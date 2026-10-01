@@ -24,15 +24,15 @@ public static partial class InvoiceSerializer {
             delivery.Address == null ? null : UblAddress("Address", delivery.Address)),
         delivery.Name == null ? null : new XElement(Cac + "DeliveryParty", new XElement(Cac + "PartyName", Text(Cbc + "Name", delivery.Name))));
 
-    private static IEnumerable<XElement> UblPayments(IEnumerable<InvoicePayment> payments) {
-        foreach (InvoicePayment payment in payments) {
+    private static IEnumerable<XElement> UblPayments(Invoice invoice) {
+        foreach (InvoicePayment payment in invoice.Payments) {
             InvoiceBankAccount? account = payment.Account;
             yield return new XElement(Cac + "PaymentMeans", new XElement(Cbc + "PaymentMeansCode", payment.MeansText == null ? null : new XAttribute("name", payment.MeansText), payment.MeansCode),
-                Text(Cbc + "PaymentID", payment.Reference),
+                Text(Cbc + "PaymentID", payment.Reference ?? invoice.PaymentReference),
                 payment.CardNumber == null ? null : new XElement(Cac + "CardAccount", Text(Cbc + "PrimaryAccountNumberID", payment.CardNumber), Text(Cbc + "NetworkID", payment.CardNetworkId), Text(Cbc + "HolderName", payment.CardHolder)),
                 account == null ? null : new XElement(Cac + "PayeeFinancialAccount", Text(Cbc + "ID", account.Identifier), Text(Cbc + "Name", account.Name),
                     account.ProviderIdentifier == null ? null : new XElement(Cac + "FinancialInstitutionBranch", Text(Cbc + "ID", account.ProviderIdentifier))),
-                payment.MandateReference == null && payment.DebitedAccount == null ? null : new XElement(Cac + "PaymentMandate", Text(Cbc + "ID", payment.MandateReference),
+                payment.MandateReference == null && invoice.DirectDebitMandateReference == null && payment.DebitedAccount == null ? null : new XElement(Cac + "PaymentMandate", Text(Cbc + "ID", payment.MandateReference ?? invoice.DirectDebitMandateReference),
                     payment.DebitedAccount == null ? null : new XElement(Cac + "PayerFinancialAccount", Text(Cbc + "ID", payment.DebitedAccount))));
         }
     }

@@ -189,7 +189,7 @@ public sealed partial class RtfLosslessEditor {
         return new RtfGroup(0, new RtfNode[] {
             new RtfControlSymbol(0, '*', null, hasParameter: false, rawText: @"\*"),
             new RtfControlWord(0, "generator", null, hasParameter: false, rawText: @"\generator "),
-            new RtfText(0, value + ";", RtfTextEncoding.EncodeText(value + ";"))
+            CreateEncodedText(0, value + ";", RtfTextEncoding.EncodeText(value + ";"))
         });
     }
 
@@ -207,7 +207,7 @@ public sealed partial class RtfLosslessEditor {
     private static RtfGroup CreateInfoFieldGroup(string destination, string value) {
         return new RtfGroup(0, new RtfNode[] {
             new RtfControlWord(0, destination, null, hasParameter: false, rawText: "\\" + destination + " "),
-            new RtfText(0, value, RtfTextEncoding.EncodeText(value))
+            CreateEncodedText(0, value, RtfTextEncoding.EncodeText(value))
         });
     }
 

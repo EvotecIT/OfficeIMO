@@ -22,9 +22,9 @@ internal static partial class RtfReaderAdapter {
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         var effectiveRtfOptions = ReaderRtfOptionsCloner.CloneOrDefault(rtfOptions);
         ReaderInputLimits.EnforceFileSize(rtfPath, effectiveReaderOptions.MaxInputBytes);
-        var source = BuildSourceMetadataFromPath(rtfPath, effectiveReaderOptions.ComputeHashes);
+        var source = BuildSourceMetadataFromPath(rtfPath, effectiveReaderOptions.ComputeHashes, cancellationToken);
 
-        RtfReadResult readResult = RtfDocument.LoadResult(rtfPath, ReaderRtfOptions.CloneReadOptions(effectiveRtfOptions.RtfReadOptions), encoding);
+        RtfReadResult readResult = RtfDocument.LoadResult(rtfPath, ReaderRtfOptions.CloneReadOptions(effectiveRtfOptions.RtfReadOptions), encoding, cancellationToken);
         IReadOnlyList<ReaderChunk> chunks = ReadRtfResultCore(readResult, source, effectiveReaderOptions, effectiveRtfOptions, cancellationToken).ToArray();
         return CompleteChunkResult(chunks, effectiveRtfOptions.Report);
     }
@@ -52,12 +52,12 @@ internal static partial class RtfReaderAdapter {
         Stream parseStream = ReaderInputLimits.EnsureSeekableReadStream(rtfStream, effectiveReaderOptions.MaxInputBytes, cancellationToken, out bool ownsParseStream);
         try {
             long parseStartPosition = parseStream.CanSeek ? parseStream.Position : 0L;
-            UpdateSourceMetadataFromSeekableStream(source, parseStream, effectiveReaderOptions.ComputeHashes, parseStartPosition);
+            UpdateSourceMetadataFromSeekableStream(source, parseStream, effectiveReaderOptions.ComputeHashes, parseStartPosition, cancellationToken);
             if (parseStream.CanSeek) {
                 parseStream.Position = parseStartPosition;
             }
 
-            RtfReadResult readResult = RtfDocument.LoadResult(parseStream, ReaderRtfOptions.CloneReadOptions(effectiveRtfOptions.RtfReadOptions), encoding);
+            RtfReadResult readResult = RtfDocument.LoadResult(parseStream, ReaderRtfOptions.CloneReadOptions(effectiveRtfOptions.RtfReadOptions), encoding, cancellationToken);
             IReadOnlyList<ReaderChunk> chunks = ReadRtfResultCore(readResult, source, effectiveReaderOptions, effectiveRtfOptions, cancellationToken).ToArray();
             return CompleteChunkResult(chunks, effectiveRtfOptions.Report);
         } finally {
@@ -101,6 +101,7 @@ internal static partial class RtfReaderAdapter {
     }
 
     private static IEnumerable<ReaderChunk> Read(RtfDocument document, SourceMetadata source, ReaderOptions readerOptions, ReaderRtfOptions rtfOptions, IReadOnlyList<RtfDiagnostic> diagnostics, CancellationToken cancellationToken) {
+        rtfOptions.Report.Merge(document.GetStyleConversionDiagnostics());
         int maxChars = readerOptions.MaxChars > 0 ? readerOptions.MaxChars : 8_000;
         var blocks = BuildBlocks(document, source.Path, rtfOptions).ToList();
         if (blocks.Count == 0) {
@@ -206,7 +207,7 @@ internal static partial class RtfReaderAdapter {
 
     private static RtfConversionResult<IReadOnlyList<ReaderChunk>> CompleteChunkResult(IReadOnlyList<ReaderChunk> chunks, RtfConversionReport report) {
         string[] adapterWarnings = report.Diagnostics
-            .Where(static diagnostic => diagnostic.Code.StartsWith("ReaderRtf", StringComparison.Ordinal))
+            .Where(IsReaderConversionDiagnostic)
             .Select(static diagnostic => diagnostic.Code + ": " + diagnostic.Message)
             .ToArray();
         if (adapterWarnings.Length > 0 && chunks.Count > 0) {
@@ -215,6 +216,11 @@ internal static partial class RtfReaderAdapter {
 
         return new RtfConversionResult<IReadOnlyList<ReaderChunk>>(chunks, report);
     }
+
+    private static bool IsReaderConversionDiagnostic(RtfConversionDiagnostic diagnostic) =>
+        diagnostic.Code.StartsWith("ReaderRtf", StringComparison.Ordinal) ||
+        diagnostic.Code is "RtfStyleInheritanceCycle" or "RtfStyleReferenceMissing" or
+            "RtfNormalizationStyleControlOmitted" or "RtfNormalizationStyleDestinationOmitted";
 
     private static RtfReaderBlock BuildParagraphBlock(RtfParagraph paragraph, string kind, int index) {
         string text = paragraph.ToPlainText();

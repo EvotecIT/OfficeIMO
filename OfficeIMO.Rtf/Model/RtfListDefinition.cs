@@ -3,8 +3,8 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// RTF list definition from the list table.
 /// </summary>
-public sealed class RtfListDefinition {
-    private readonly List<RtfListLevel> _levels = new List<RtfListLevel>();
+public sealed partial class RtfListDefinition {
+    private List<RtfListLevel> _levels = new List<RtfListLevel>();
 
     /// <summary>Creates a list definition.</summary>
     public RtfListDefinition(int id) {
@@ -12,7 +12,7 @@ public sealed class RtfListDefinition {
     }
 
     /// <summary>List definition id referenced by list overrides.</summary>
-    public int Id { get; }
+    public int Id { get; internal set; }
 
     /// <summary>Optional template id.</summary>
     public int? TemplateId { get; set; }

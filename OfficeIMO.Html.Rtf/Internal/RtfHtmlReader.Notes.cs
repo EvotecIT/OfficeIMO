@@ -116,6 +116,12 @@ internal static partial class RtfHtmlReader {
                     copiedImage.SourceHeight = image.SourceHeight;
                     copiedImage.DesiredWidthTwips = image.DesiredWidthTwips;
                     copiedImage.DesiredHeightTwips = image.DesiredHeightTwips;
+                    copiedImage.ScaleXPercent = image.ScaleXPercent;
+                    copiedImage.ScaleYPercent = image.ScaleYPercent;
+                    copiedImage.CropLeftTwips = image.CropLeftTwips;
+                    copiedImage.CropTopTwips = image.CropTopTwips;
+                    copiedImage.CropRightTwips = image.CropRightTwips;
+                    copiedImage.CropBottomTwips = image.CropBottomTwips;
                     break;
                 case RtfObject rtfObject:
                     RtfObject copiedObject = target.AddObject(rtfObject.Kind, rtfObject.Data);
@@ -148,12 +154,13 @@ internal static partial class RtfHtmlReader {
         }
 
         private void CopyRun(RtfRun source, RtfRun target, RtfDocument sourceDocument) {
-            target.Bold = source.Bold;
-            target.Italic = source.Italic;
-            target.UnderlineStyle = source.UnderlineStyle;
+            target.UseDefaultCharacterFormatting = source.UseDefaultCharacterFormatting;
+            target.DirectBold = source.DirectBold;
+            target.DirectItalic = source.DirectItalic;
+            target.DirectUnderlineStyle = source.DirectUnderlineStyle;
             target.Strike = source.Strike;
             target.DoubleStrike = source.DoubleStrike;
-            target.Hidden = source.Hidden;
+            target.DirectHidden = source.DirectHidden;
             target.Outline = source.Outline;
             target.Shadow = source.Shadow;
             target.Emboss = source.Emboss;
@@ -199,12 +206,9 @@ internal static partial class RtfHtmlReader {
         }
 
         private int? RemapColorIndex(int? sourceColorIndex, RtfDocument sourceDocument) {
-            if (!sourceColorIndex.HasValue || sourceColorIndex.Value <= 0 || sourceColorIndex.Value > sourceDocument.Colors.Count) {
-                return sourceColorIndex;
-            }
-
-            RtfColor color = sourceDocument.Colors[sourceColorIndex.Value - 1];
-            return GetOrAddColorIndex(color);
+            if (!sourceColorIndex.HasValue) return null;
+            RtfColor? color = sourceDocument.GetColor(sourceColorIndex.Value);
+            return color == null ? 0 : GetOrAddColorIndex(color);
         }
     }
 }

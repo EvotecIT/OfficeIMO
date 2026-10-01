@@ -29,6 +29,10 @@ public sealed class PdfSearchableWorkflowRequest {
     /// <remarks>The callback must honor cancellation. It does not grant permission to publish or bypass
     /// the output conflict policy or publication guard. Without a callback, all eligible words are used.</remarks>
     public Func<PdfSearchableOcrReview, CancellationToken, Task<IReadOnlyList<PdfRecognizedWord>>>? ReviewAsync { get; set; }
+    /// <summary>Optional correction review. Return eligible original word instances mapped to nonempty reviewed text.
+    /// Only returned entries are published. Cannot be combined with <see cref="ReviewAsync"/>.</summary>
+    /// <remarks>Corrections retain source geometry and original provider evidence and obey the OCR text limits.</remarks>
+    public Func<PdfSearchableOcrReview, CancellationToken, Task<IReadOnlyDictionary<PdfRecognizedWord, string>>>? ReviewCorrectionsAsync { get; set; }
 }
 
 /// <summary>Searchable-PDF outcome; recognition metadata describes the generated artifact.</summary>

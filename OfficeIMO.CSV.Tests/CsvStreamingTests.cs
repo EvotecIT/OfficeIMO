@@ -860,6 +860,68 @@ public class CsvStreamingTests
     }
 
     [Fact]
+    public void ReadFieldSpansFromText_QuoteFreeWideInputKeepsProjectedLastField()
+    {
+        const int rowCount = 500;
+        string text = CreateWideQuoteFreeText(rowCount);
+        Assert.True(text.Length >= 64 * 1024);
+
+        var fields = new List<string>();
+        var visitor = new ProjectedFieldCapturingVisitor(fields, projectedFieldIndex: 39);
+        CsvDocument.ReadFieldSpansFromText(
+            text,
+            ref visitor,
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        Assert.Equal(
+            Enumerable.Range(0, rowCount).Select(index => $"{index}:39:\u012C\u010A\u010D-{index}"),
+            fields);
+    }
+
+    [Fact]
+    public void ReadFieldSpansFromText_QuoteFreeWideInputChecksCancellationBetweenRows()
+    {
+        string text = CreateWideQuoteFreeText(rowCount: 500);
+        using var cancellation = new CancellationTokenSource();
+        int fieldCount = 0;
+
+        Assert.Throws<OperationCanceledException>(() =>
+            CsvDocument.ReadFieldSpansFromText(
+                text,
+                (recordIndex, fieldIndex, value) =>
+                {
+                    fieldCount++;
+                    if (recordIndex == 0 && fieldIndex == 0)
+                    {
+                        cancellation.Cancel();
+                    }
+                },
+                new CsvLoadOptions {
+                    SkipInitialRecords = 1,
+                    CancellationToken = cancellation.Token
+                }));
+
+        Assert.Equal(40, fieldCount);
+    }
+
+    private static string CreateWideQuoteFreeText(int rowCount)
+    {
+        var text = new StringBuilder("ignored,metadata\r\n");
+        for (int row = 0; row < rowCount; row++)
+        {
+            for (int field = 0; field < 40; field++)
+            {
+                if (field > 0) text.Append(',');
+                if (field == 0) text.Append("row-").Append(row);
+                else if (field == 39) text.Append("\u012C\u010A\u010D-").Append(row);
+                else if (field % 7 != 0) text.Append("value-").Append(field);
+            }
+            if (row + 1 < rowCount) text.Append("\r\n");
+        }
+        return text.ToString();
+    }
+
+    [Fact]
     public void ReadFieldSpansFromText_VectorizedQuotedPathGrowsForWideRecords()
     {
         var expected = Enumerable.Range(0, 40)

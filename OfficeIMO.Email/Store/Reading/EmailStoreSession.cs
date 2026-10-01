@@ -220,11 +220,18 @@ public sealed partial class EmailStoreSession : IDisposable {
     public void Dispose() {
         if (_disposed) return;
         _disposed = true;
-        _backend.Dispose();
-        if (_leaveOpen) {
-            if (_stream.CanSeek) _stream.Position = _originalPosition;
-        } else {
-            _stream.Dispose();
+        try {
+            _backend.Dispose();
+        } finally {
+            try {
+                if (_leaveOpen) {
+                    if (_stream.CanSeek) _stream.Position = _originalPosition;
+                } else {
+                    _stream.Dispose();
+                }
+            } finally {
+                _snapshotWorkspace?.Dispose();
+            }
         }
     }
 

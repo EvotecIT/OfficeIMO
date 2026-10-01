@@ -434,7 +434,7 @@ internal static partial class PdfWriter {
             // Make a resources dict that references the fonts we declared
             var pageOpts = page.Options ?? opts;
             var pageNumberInfo = pageNumberInfos[pageIndex];
-            int headerFooterVariantPageNumber = pageNumberInfo.VariantPageNumber;
+            int headerFooterVariantPageNumber = pageOpts.GetHeaderFooterVariantPageNumber(pageNumberInfo.VariantPageNumber, pageNumberInfo.PageNumber);
             int headerFooterPageNumber = pageNumberInfo.PageNumber;
             int headerFooterTotalPages = pageNumberInfo.TotalPages;
             byte[] pageContentBytes = layout.ReadContentBytes(page.Content);
@@ -503,7 +503,7 @@ internal static partial class PdfWriter {
                 pageNamedFontResources[usedFont] = usedFont.ResourceName;
                 EnsureNamedFont(usedFont, pageOpts);
             }
-            PdfTextWatermark? textWatermark = pageOpts.GetTextWatermarkForPage(headerFooterVariantPageNumber);
+            PdfTextWatermark? textWatermark = pageOpts.GetTextWatermarkForPage(pageNumberInfo.VariantPageNumber);
             string? watermarkFontAlias = null;
             string? textWatermarkGraphicsStateName = null;
             if (textWatermark != null && textWatermark.Opacity > 0D) {
@@ -517,7 +517,7 @@ internal static partial class PdfWriter {
             if (pageBackgroundImage != null && pageBackgroundImage.Opacity > 0D) {
                 AddPageBackgroundImage(page, pageOpts, pageBackgroundImage);
             }
-            PdfImageWatermark? imageWatermark = pageOpts.GetImageWatermarkForPage(headerFooterVariantPageNumber);
+            PdfImageWatermark? imageWatermark = pageOpts.GetImageWatermarkForPage(pageNumberInfo.VariantPageNumber);
             if (imageWatermark != null && imageWatermark.Opacity > 0D) {
                 AddImageWatermark(page, pageOpts, imageWatermark);
             }

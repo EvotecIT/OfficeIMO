@@ -4,9 +4,9 @@ namespace OfficeIMO.Rtf;
 /// Semantic RTF section containing ordered document blocks and section-level page layout.
 /// </summary>
 public sealed partial class RtfSection {
-    private readonly List<IRtfBlock> _blocks = new List<IRtfBlock>();
-    private readonly List<RtfSectionColumn> _columns = new List<RtfSectionColumn>();
-    private readonly RtfDocument? _document;
+    private List<IRtfBlock> _blocks = new List<IRtfBlock>();
+    private List<RtfSectionColumn> _columns = new List<RtfSectionColumn>();
+    private RtfDocument? _document;
 
     internal RtfSection(RtfDocument? document = null) {
         _document = document;
@@ -16,10 +16,10 @@ public sealed partial class RtfSection {
     public IReadOnlyList<IRtfBlock> Blocks => _blocks.AsReadOnly();
 
     /// <summary>Section page size, margins, and orientation.</summary>
-    public RtfPageSetup PageSetup { get; } = new RtfPageSetup();
+    public RtfPageSetup PageSetup { get; private set; } = new RtfPageSetup();
 
     /// <summary>Section-level footnote and endnote numbering settings.</summary>
-    public RtfNoteSettings NoteSettings { get; } = new RtfNoteSettings();
+    public RtfNoteSettings NoteSettings { get; private set; } = new RtfNoteSettings();
 
     /// <summary>Section break behavior.</summary>
     public RtfSectionBreakKind BreakKind { get; set; } = RtfSectionBreakKind.NextPage;
@@ -37,7 +37,7 @@ public sealed partial class RtfSection {
     public IReadOnlyList<RtfSectionColumn> Columns => _columns.AsReadOnly();
 
     /// <summary>Section line-numbering settings.</summary>
-    public RtfLineNumbering LineNumbering { get; } = new RtfLineNumbering();
+    public RtfLineNumbering LineNumbering { get; private set; } = new RtfLineNumbering();
 
     /// <summary>Vertical text alignment for pages in the section.</summary>
     public RtfSectionVerticalAlignment? VerticalAlignment { get; set; }
@@ -78,7 +78,7 @@ public sealed partial class RtfSection {
         }
 
         _blocks.Add(paragraph);
-        _document?.AddParsedBlock(paragraph);
+        _document?.RegisterSectionBlock(this, paragraph);
         return paragraph;
     }
 
@@ -97,7 +97,7 @@ public sealed partial class RtfSection {
         }
 
         _blocks.Add(table);
-        _document?.AddParsedBlock(table);
+        _document?.RegisterSectionBlock(this, table);
         return table;
     }
 
@@ -105,7 +105,7 @@ public sealed partial class RtfSection {
     public RtfImage AddImage(RtfImageFormat format, byte[] data) {
         var image = new RtfImage(format, data);
         _blocks.Add(image);
-        _document?.AddParsedBlock(image);
+        _document?.RegisterSectionBlock(this, image);
         return image;
     }
 

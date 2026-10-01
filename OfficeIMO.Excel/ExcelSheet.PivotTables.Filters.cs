@@ -5,9 +5,24 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using X15 = DocumentFormat.OpenXml.Office2013.Excel;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+
+        private const string WholeDayPivotFilterExtensionUri = "{0605FD5F-26C8-4aeb-8148-2DB25E43C511}";
+
+        private static void EnsurePivotAxisItems(PivotField field, CacheField cache) {
+            if (field.Axis == null || field.Items != null) return;
+            GroupItems? groupItems = cache.FieldGroup?.GetFirstChild<GroupItems>();
+            if (cache.DatabaseField?.Value == false && groupItems == null) return;
+            int count = groupItems?.ChildElements.Count ?? cache.SharedItems?.ChildElements.Count ?? 0;
+            bool subtotal = field.DefaultSubtotal?.Value != false;
+            var items = new Items { Count = (uint)(count + (subtotal ? 1 : 0)) };
+            for (int index = 0; index < count; index++) items.Append(new Item { Index = (uint)index });
+            if (subtotal) items.Append(new Item { ItemType = ItemValues.Default });
+            field.Items = items;
+        }
 
         private static PageField CreatePageField(int fieldIndex, ExcelPivotFieldOptions? options, IReadOnlyList<string> values) {
             var pageField = new PageField { Field = fieldIndex };
@@ -43,7 +58,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ApplyPivotFieldItemFilters(PivotField pivotField, ExcelPivotFieldOptions options, IReadOnlyList<string> values) {
-            if (options.HiddenItems.Count == 0 && options.VisibleItems.Count == 0) return;
+            if (options.HiddenItems.Count == 0 && options.VisibleItems.Count == 0 && options.SelectedItem == null) return;
             if (values.Count == 0) {
                 throw new ArgumentException($"Field '{options.FieldName}' has no cache items to filter.", nameof(options));
             }
@@ -53,7 +68,7 @@ namespace OfficeIMO.Excel {
                 foreach (string item in options.HiddenItems) {
                     hidden.Add(FindPivotItemIndex(item, values, options.FieldName, nameof(options.HiddenItems)));
                 }
-            } else {
+            } else if (options.VisibleItems.Count > 0) {
                 var visible = new HashSet<int>();
                 foreach (string item in options.VisibleItems) {
                     visible.Add(FindPivotItemIndex(item, values, options.FieldName, nameof(options.VisibleItems)));
@@ -106,6 +121,12 @@ namespace OfficeIMO.Excel {
                 }
 
                 pivotFilter.AutoFilter = CreatePivotFilterAutoFilter(filter, dateSystem);
+                if (filter.WholeDay) {
+                    pivotFilter.Append(new PivotFilterExtensionList(
+                        new PivotFilterExtension(new X15.PivotFilter { UseWholeDay = true }) {
+                            Uri = WholeDayPivotFilterExtensionUri
+                        }));
+                }
                 pivotFilters.Append(pivotFilter);
             }
 
@@ -124,6 +145,18 @@ namespace OfficeIMO.Excel {
 
             if (TryCreateDynamicFilter(filter, out var dynamicFilter)) {
                 filterColumn.Append(dynamicFilter);
+                autoFilter.Append(filterColumn);
+                return autoFilter;
+            }
+
+            // Excel persists a plain caption equality as a value selection. A custom
+            // equality can stop matching rounded numeric captions after refresh.
+            if (filter.Type.ToOpenXml() == PivotFilterValues.CaptionEqual
+                && filter.Value1 is string exactCaption
+                && exactCaption.IndexOfAny(new[] { '*', '?', '~' }) < 0) {
+                var values = new Filters();
+                values.Append(new Filter { Val = exactCaption });
+                filterColumn.Append(values);
                 autoFilter.Append(filterColumn);
                 return autoFilter;
             }

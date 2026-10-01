@@ -252,7 +252,8 @@ public class PowerPointSaveAsPdfTests {
         Assert.Contains(
             result.Warnings,
             warning => warning.Code == "font-family-substitution" &&
-                       warning.Message.Contains(unavailableFamily, StringComparison.Ordinal));
+                       warning.Message.Contains(unavailableFamily, StringComparison.Ordinal) &&
+                       warning.Details["substitutionReason"] == "FontUnavailable");
         Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
     }
 
@@ -273,6 +274,8 @@ public class PowerPointSaveAsPdfTests {
             item => item.Code == "font-family-substitution");
         Assert.Equal("Arial", warning.Details["fontFamily"]);
         Assert.Equal("Helvetica", warning.Details["fallbackSlot"]);
+        Assert.Equal("ResourcePolicy", warning.Details["substitutionReason"]);
+        Assert.DoesNotContain("unavailable", warning.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

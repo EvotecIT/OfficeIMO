@@ -7,6 +7,12 @@ OfficeIMO.Studio.Tests/Run-StorageAcceptance.sh text eol=lf
 # AV1 matrix facts are an embedded byte table; preserve their exact bytes.
 OfficeIMO.Core/Raster/Avif/OfficeAv1QuantizerMatrices.bin binary
 
+# Embedded pattern resources and frozen static inputs have manifest-bound hashes.
+OfficeIMO.Core/Typography/Hyphenation/*.patterns -text -diff
+OfficeIMO.Core/Typography/Hyphenation/manifest.json -text -diff
+OfficeIMO.TestAssets/Documents/Html/Qualification/StaticPdfGaps/*.html -text -diff
+OfficeIMO.TestAssets/Documents/Html/Qualification/StaticPdfGaps/manifest.json -text -diff
+
 # Preserve the unmodified upstream framework fixture bytes on every platform.
 OfficeIMO.Html.Runtime.Tests/Fixtures/Preact/*.umd.js -text
 OfficeIMO.Html.Runtime.Tests/Fixtures/Preact/LICENSE -text
@@ -23,6 +29,16 @@ Build/Project/Evidence/2026-09-18/html-frame-module-json/**/*.pdf -text -diff
 Build/Project/Evidence/2026-09-18/html-isolated-public-profile/**/*.png -text -diff
 Build/Project/Evidence/2026-09-18/html-dynamic-request-structured-message/**/*.pdf -text -diff
 Build/Project/Evidence/2026-09-18/html-dynamic-request-structured-message/**/*.png -text -diff
+
+# Integrity-labelled document inputs and provider captures must survive Windows
+# checkout without line-ending conversion, including ASCII-only PDF containers.
+OfficeIMO.TestAssets/*Layout/*.pdf -text -diff
+OfficeIMO.TestAssets/EnglishLayout/*-provider.tsv -text -diff
+OfficeIMO.TestAssets/ScanQuality/*.pdf -text -diff
+OfficeIMO.TestAssets/ScanQuality/*.tif -text -diff
+OfficeIMO.TestAssets/ScanQuality/*.txt -text -diff
+OfficeIMO.TestAssets/*Layout/manifest.json text eol=lf
+OfficeIMO.TestAssets/ScanQuality/sources.json text eol=lf
 
 # RTF interoperability fixtures are byte-level evidence. Do not normalize their
 # producer line endings, because corpus SHA-256 checks must match on every OS.
@@ -112,3 +128,16 @@ OfficeIMO.Invoicing.Tests/Fixtures/KoSIT/LICENSE.txt -text -diff
 OfficeIMO.Html.Runtime.Tests/Fixtures/ReactBuild/dist/*.js -text -diff
 Build/Project/Evidence/2026-09-16/html-public-discovery-pilot/**/*.pdf -text -diff
 Build/Project/Evidence/2026-09-16/html-public-discovery-pilot/**/*.png -text -diff
+
+# Official FA(3) XML and imported XSDs are pinned byte-level authority evidence.
+OfficeIMO.Invoicing.Tests/Fixtures/FA3/*.xml -text -diff
+OfficeIMO.Invoicing.Validation.Tests/Fixtures/FA3/Schemas/*.xsd -text -diff
+OfficeIMO.Invoicing.KSeF/Schemas/*.xsd -text -diff
+OfficeIMO.Invoicing.KSeF/Schemas/LICENSE.txt -text -diff
+OfficeIMO.Invoicing.KSeF.Tests/Fixtures/*.xml -text -diff
+
+# Hash-bound OCR inputs and independently reviewed labels must retain their original bytes.
+OfficeIMO.TestAssets/OcrQuality/*.pdf -text -diff
+OfficeIMO.TestAssets/OcrQuality/*.tif -text -diff
+OfficeIMO.TestAssets/OcrQuality/*.txt -text -whitespace
+OfficeIMO.TestAssets/OcrQuality/*.json -text

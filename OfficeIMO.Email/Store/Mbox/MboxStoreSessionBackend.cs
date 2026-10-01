@@ -62,7 +62,9 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
         try {
             var mailboxOptions = CreateMailboxOptions(
                 EmailStoreMessageReader.CreateOptions(_options,
-                    includeAttachmentContent: options.Includes(EmailStoreItemReadParts.AttachmentContent)),
+                    includeAttachmentContent: options.Includes(EmailStoreItemReadParts.AttachmentContent),
+                    maxDecodedPropertyBytes: options.MaxDecodedPropertyBytes,
+                    includeEmbeddedMessages: options.Includes(EmailStoreItemReadParts.EmbeddedItems)),
                 maximumMessages: 1);
             using (var input = new ReadOnlySegmentStream(_stream, item.Offset, item.Length)) {
                 entry = new EmailMailboxReader(mailboxOptions).ReadEntries(input, cancellationToken).Single();
@@ -77,6 +79,7 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
         if (!options.Includes(EmailStoreItemReadParts.AttachmentContent)) {
             loadedParts &= ~EmailStoreItemReadParts.AttachmentContent;
         }
+        if (!options.Includes(EmailStoreItemReadParts.EmbeddedItems)) loadedParts &= ~EmailStoreItemReadParts.EmbeddedItems;
         return new EmailStoreItem(item.Id, FolderId, document,
             loadedParts: loadedParts, format: EmailStoreFormat.Mbox, summary: item.Summary);
     }
@@ -87,7 +90,7 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
         long offset = 0;
         long totalAttachmentBytes = 0;
         var mailboxOptions = CreateMailboxOptions(
-            EmailStoreMessageReader.CreateOptions(_options, includeAttachmentContent: false),
+            EmailStoreMessageReader.CreateOptions(_options, includeAttachmentContent: false, includeEmbeddedMessages: false),
             _options.MaxItemCount);
         try {
             int index = 0;
@@ -184,6 +187,8 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
                         ? nameof(EmailStoreReaderOptions.MaxAttachmentBytes)
                         : exception.LimitName == nameof(EmailReaderOptions.MaxTotalAttachmentBytes)
                             ? nameof(EmailStoreReaderOptions.MaxTotalAttachmentBytes)
+                            : exception.LimitName == nameof(EmailReaderOptions.MaxDecodedPropertyBytes)
+                                ? nameof(EmailStoreReaderOptions.MaxDecodedPropertyBytesPerItem)
                             : exception.LimitName;
         return new EmailStoreLimitExceededException(name, exception.ActualValue, exception.MaximumValue);
     }

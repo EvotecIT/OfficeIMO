@@ -57,8 +57,15 @@ internal static partial class TableDetector {
         double fontSize = table.SourceRuns.Select(static span => span.FontSize).DefaultIfEmpty(1D).Max();
         if (table.SourceRuns.Where(run => Math.Abs(run.Y - baselines[baselines.Length - 1]) <= 2D)
             .Where(static run => !string.IsNullOrWhiteSpace(run.Text)).All(static run => run.IsBold)) return false;
-        return baselines.Length >= 2 && baselines.Zip(baselines.Skip(1), static (lower, upper) => upper - lower)
+        bool widelySpaced = baselines.Length >= 2 && baselines.Zip(baselines.Skip(1), static (lower, upper) => upper - lower)
             .All(gap => gap > fontSize * 2.2D);
+        // Aligned prose columns can have normal paragraph spacing. Width provides
+        // independent evidence when the cells are much longer than a compact grid.
+        double occupiedWidth = table.SourceRuns.Where(static run => !string.IsNullOrWhiteSpace(run.Text))
+            .Sum(static run => Math.Max(0D, run.Advance));
+        int populatedCells = table.Rows.Sum(static row => row.Count(static value => !string.IsNullOrWhiteSpace(value)));
+        return widelySpaced || (fontSize > 0D && populatedCells > 0 &&
+            occupiedWidth > populatedCells * fontSize * MaximumAverageCompactCellWidthInFontSizes);
     }
 
     private static bool LooksLikeSparseFormGrid(StructuredTable table) {

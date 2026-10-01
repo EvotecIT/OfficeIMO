@@ -79,28 +79,39 @@ internal static partial class RtfDocumentWriter {
         });
     }
 
-    private static void WriteDetachedNotes(StringBuilder builder, RtfDocument document, HashSet<RtfNote> referencedNotes, int? defaultLanguageId, int unicodeSkipCount) {
+    private static void WriteDetachedNotes(StringBuilder builder, RtfDocument document, HashSet<RtfNote> referencedNotes, RtfWriteContext context) {
         foreach (RtfNote note in document.Notes) {
             if (!referencedNotes.Contains(note)) {
-                WriteNote(builder, note, defaultLanguageId, unicodeSkipCount);
+                WriteNote(builder, note, context);
             }
         }
     }
 
-    private static void WriteNote(StringBuilder builder, RtfNote note, int? defaultLanguageId, int unicodeSkipCount) {
+    private static void WriteNote(StringBuilder builder, RtfNote note, RtfWriteContext context) {
         builder.Append(@"{\");
         builder.Append(note.Kind switch {
             RtfNoteKind.Annotation => "annotation",
-            RtfNoteKind.Endnote => "endnote",
             _ => "footnote"
         });
+        if (note.Kind == RtfNoteKind.Endnote) builder.Append(@"\ftnalt");
         if (note.Kind == RtfNoteKind.Annotation) {
-            WriteAnnotationMetadata(builder, note, unicodeSkipCount);
+            WriteAnnotationMetadata(builder, note, context.UnicodeSkipCount);
             builder.Append(@"\chatn");
         }
 
-        foreach (RtfParagraph paragraph in note.Paragraphs) {
-            WriteParagraph(builder, paragraph, defaultLanguageId, unicodeSkipCount);
+        for (int index = 0; index < note.Paragraphs.Count; index++) {
+            RtfParagraph paragraph = note.Paragraphs[index];
+            // Native readers reserve the first note character for its reference marker.
+            // Preserve an existing marker when reopening generated RTF instead of duplicating it.
+            IRtfInline? firstContent = paragraph.Inlines.FirstOrDefault(inline =>
+                !(inline is RtfBookmarkMarker) && !(inline is RtfRun run && string.IsNullOrEmpty(run.Text) && run.Note == null));
+            bool needsReference = index == 0 && note.Kind != RtfNoteKind.Annotation &&
+                !(firstContent is RtfGeneratedText generated && generated.Kind == RtfGeneratedTextKind.NoteReference);
+            // An authored empty final paragraph needs its terminator to survive native import.
+            // A nonempty final paragraph must omit it to avoid a phantom trailing list item.
+            WriteParagraph(builder, note.Paragraphs[index], context,
+                terminateParagraph: note.Kind == RtfNoteKind.Annotation || index < note.Paragraphs.Count - 1 || (index > 0 && firstContent == null),
+                prefix: needsReference ? new RtfGeneratedText(RtfGeneratedTextKind.NoteReference) : null);
         }
 
         builder.Append('}');

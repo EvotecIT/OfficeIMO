@@ -53,7 +53,7 @@ public partial class RtfHtmlConverterTests {
             NewLine = "\n"
         });
 
-        Assert.Equal("<ul><li>Allergy</li>\n<li>Medication</li></ul>", html);
+        Assert.Equal("<ul><li>Allergy</li><li>Medication</li></ul>", html);
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public partial class RtfHtmlConverterTests {
         run.ForegroundColorIndex = foreground;
         run.CharacterBackgroundColorIndex = background;
 
-        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+        string html = document.ToHtml(RtfHtmlTestOptions.CreateRoundTripFragment());
 
         Assert.Equal("<p><span style=\"color:#0C2238;background-color:#FFF2CC;\">Flag</span></p>", html);
     }
@@ -270,7 +270,7 @@ public partial class RtfHtmlConverterTests {
         run.FontId = fontId;
         run.FontSize = 13.5d;
 
-        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+        string html = document.ToHtml(RtfHtmlTestOptions.CreateRoundTripFragment());
 
         Assert.Equal("<p><span style=\"font-family:&quot;Times New Roman&quot;;font-size:13.5pt;\">Clinical</span></p>", html);
     }
@@ -342,7 +342,7 @@ public partial class RtfHtmlConverterTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Indented").SetIndentation(leftTwips: 720, rightTwips: 360, firstLineTwips: -240);
 
-        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+        string html = document.ToHtml(RtfHtmlTestOptions.CreateRoundTripFragment());
 
         Assert.Equal("<p style=\"margin-left:36pt;margin-right:18pt;text-indent:-12pt;\">Indented</p>", html);
     }

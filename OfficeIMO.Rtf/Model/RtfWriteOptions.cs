@@ -10,6 +10,9 @@ public sealed class RtfWriteOptions {
     /// <summary>Whether to emit an available Outlook/Exchange HTML encapsulation payload.</summary>
     public bool IncludeHtmlEncapsulation { get; set; } = true;
 
+    /// <summary>Writes effective style formatting as body controls for native readers that require explicit formatting. The source model is unchanged; reopening the output materializes inherited formatting as direct values.</summary>
+    public bool MaterializeStyleFormatting { get; set; } = true;
+
     /// <summary>Default font name used when the document has no fonts.</summary>
     public string DefaultFontName { get; set; } = "Calibri";
 }

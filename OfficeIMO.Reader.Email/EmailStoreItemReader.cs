@@ -196,9 +196,10 @@ public static class EmailStoreItemReader {
                     path,
                     readerOptions,
                     cursor,
-                    cancellationToken);
+                    cancellationToken, out IReadOnlyList<EmailDiagnostic> projectedDiagnostics,
+                    includeEmbeddedMessageContent: EmailStoreReaderAdapter.IncludesEmbeddedContent(adapterOptions));
             return new ReaderEmailStoreItemResult(
-                reference, summary, logicalPath, chunks, itemDiagnostics,
+                reference, summary, logicalPath, chunks, projectedDiagnostics,
                 itemIndex == 0 ? openingDiagnostics : null);
         } catch (Exception exception) when (
             adapterOptions.ContinueOnItemError &&

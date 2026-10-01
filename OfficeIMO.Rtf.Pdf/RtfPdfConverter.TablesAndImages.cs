@@ -77,7 +77,8 @@ internal static partial class RtfPdfConverter {
             return;
         }
 
-        pdf.Image(imageBytes, GetImageWidth(image, options), GetImageHeight(image, options), image.Description);
+        RtfImageLayout layout = image.ResolveLayout(options.DefaultImageWidth * 20d, options.DefaultImageHeight * 20d);
+        pdf.Image(imageBytes, layout.VisibleWidthTwips!.Value / 20d, layout.VisibleHeightTwips!.Value / 20d, style: GetImageStyle(image, layout));
     }
 
     private static List<PdfCore.PdfTextRun> BuildCellRuns(RtfDocument document, RtfTableCell cell, RtfToPdfOptions options, PdfRenderState state) {
@@ -124,7 +125,8 @@ internal static partial class RtfPdfConverter {
         foreach (RtfParagraph paragraph in cell.Paragraphs) {
             foreach (IRtfInline inline in paragraph.Inlines) {
                 if (inline is RtfImage image && TryGetRenderableImage(image, options, "TableCell/Image", out byte[] imageBytes)) {
-                    images.Add(new PdfCore.PdfTableCellImage(imageBytes, GetImageWidth(image, options), GetImageHeight(image, options)));
+                    RtfImageLayout layout = image.ResolveLayout(options.DefaultImageWidth * 20d, options.DefaultImageHeight * 20d);
+                    images.Add(new PdfCore.PdfTableCellImage(imageBytes, layout.VisibleWidthTwips!.Value / 20d, layout.VisibleHeightTwips!.Value / 20d, GetImageStyle(image, layout)));
                 }
             }
         }
@@ -133,6 +135,40 @@ internal static partial class RtfPdfConverter {
     }
 
     private static bool TryGetRenderableImage(RtfImage image, RtfToPdfOptions options, string source, out byte[] imageBytes) {
+        if (!TryGetImagePayload(image, options, source, out imageBytes)) return false;
+        try {
+            RtfImageLayout layout = image.ResolveLayout(options.DefaultImageWidth * 20d, options.DefaultImageHeight * 20d);
+            if (!HasNegativeImageCrop(image)) return true;
+            var decodeOptions = new OfficeRasterDecodeOptions { CancellationToken = options.CancellationToken };
+            if (!OfficeRasterImageDecoder.TryDecode(imageBytes, decodeOptions, out OfficeRasterImage? raster, out _) || raster == null) {
+                AddConversionWarning(options, "ImageCropDecodeFailed", source, "The picture could not be decoded to preserve crop padding.", RtfConversionAction.Blocked);
+                return false;
+            }
+            double ratioX = raster.Width / layout.WidthTwips!.Value;
+            double ratioY = raster.Height / layout.HeightTwips!.Value;
+            double width = Math.Ceiling(layout.VisibleWidthTwips!.Value / layout.ScaleX * ratioX);
+            double height = Math.Ceiling(layout.VisibleHeightTwips!.Value / layout.ScaleY * ratioY);
+            if (width > int.MaxValue || height > int.MaxValue || width * height > decodeOptions.MaximumDecodedPixels) {
+                AddConversionWarning(options, "ImageCropBudgetExceeded", source, "Picture crop padding exceeds the shared raster pixel limit.", RtfConversionAction.Blocked);
+                return false;
+            }
+            OfficeRasterImage padded = OfficeImageComposer.ComposeRaster((int)width, (int)height, OfficeColor.Transparent,
+                new[] { OfficeImageLayer.FromRaster(raster, -(image.CropLeftTwips ?? 0) * ratioX, -(image.CropTopTwips ?? 0) * ratioY, raster.Width, raster.Height) },
+                beforeLayers: null, afterLayers: null, fonts: null, cancellationToken: options.CancellationToken);
+            using var output = new MemoryStream();
+            OfficePngWriter.EncodeTo(padded, output, new OfficePngEncodeOptions(), options.CancellationToken);
+            imageBytes = output.ToArray();
+            ReportImageSubstitution(options, source, image.Format, "PNG", "Picture crop padding was composed through the shared raster engine.");
+            return true;
+        } catch (InvalidDataException exception) {
+            AddConversionWarning(options, "ImageLayoutInvalid", source, exception.Message, RtfConversionAction.Blocked);
+            return false;
+        }
+    }
+
+    private static bool HasNegativeImageCrop(RtfImage image) => image.CropLeftTwips < 0 || image.CropTopTwips < 0 || image.CropRightTwips < 0 || image.CropBottomTwips < 0;
+
+    private static bool TryGetImagePayload(RtfImage image, RtfToPdfOptions options, string source, out byte[] imageBytes) {
         imageBytes = Array.Empty<byte>();
         if (!options.IncludeImages) {
             AddConversionWarning(
@@ -218,19 +254,14 @@ internal static partial class RtfPdfConverter {
             details: details));
     }
 
-    private static double GetImageWidth(RtfImage image, RtfToPdfOptions options) {
-        if (image.DesiredWidthTwips.HasValue && image.DesiredWidthTwips.Value > 0) {
-            return RtfPdfMapping.TwipsToPoints(image.DesiredWidthTwips.Value);
-        }
-
-        return options.DefaultImageWidth;
-    }
-
-    private static double GetImageHeight(RtfImage image, RtfToPdfOptions options) {
-        if (image.DesiredHeightTwips.HasValue && image.DesiredHeightTwips.Value > 0) {
-            return RtfPdfMapping.TwipsToPoints(image.DesiredHeightTwips.Value);
-        }
-
-        return options.DefaultImageHeight;
+    private static PdfCore.PdfImageStyle GetImageStyle(RtfImage image, RtfImageLayout layout) {
+        var style = new PdfCore.PdfImageStyle { AlternativeText = string.IsNullOrWhiteSpace(image.Description) ? null : image.Description };
+        double left = (image.CropLeftTwips ?? 0) / layout.WidthTwips!.Value;
+        double top = (image.CropTopTwips ?? 0) / layout.HeightTwips!.Value;
+        double right = (image.CropRightTwips ?? 0) / layout.WidthTwips!.Value;
+        double bottom = (image.CropBottomTwips ?? 0) / layout.HeightTwips!.Value;
+        if (HasNegativeImageCrop(image)) return style;
+        if (left != 0 || top != 0 || right != 0 || bottom != 0) style.SourceCrop = new PdfCore.PdfImageSourceCrop(left, top, right, bottom);
+        return style;
     }
 }

@@ -4,6 +4,142 @@
 
 The package does not add a second document or PDF engine. Desktop applications, command-line tools, and services can share this workflow contract while keeping their user-interface and hosting code thin.
 
+## Email evidence and conversation dossiers
+
+`EmailEvidenceWorkflow` produces a portable ZIP containing `report.html`, `report.md`, `manifest.json`
+and an optional `report.pdf`. Reports include From/To/Cc, sent and received dates, attachment indexes,
+source fingerprints, protection classification, diagnostics and explicit body clipping. The body is
+semantic text from `OfficeIMO.Email.Html`, escaped for display; original formatting and embedded images
+are omitted. Attachment payloads and original messages stay outside the ZIP. The workflow reads local
+content without network access, signature verification, decryption or certificate discovery.
+
+```csharp
+var evidence = EmailEvidenceWorkflow.Create("message.eml");
+File.WriteAllBytes("message-evidence.zip", evidence.ToZipBytes());
+
+using var mailbox = OfficeIMO.Email.Store.EmailStoreSession.Open("archive.pst");
+var selected = mailbox.EnumerateItems().First().Key;
+var dossier = EmailEvidenceWorkflow.CreateConversation(mailbox, selected,
+    new EmailEvidenceOptions { MaxItemsScanned = 10_000, MaxMessages = 100 });
+File.WriteAllBytes("conversation.zip", dossier.ToZipBytes());
+```
+
+Conversation selection reuses the existing graph. Messages are chronological; thread links retain their
+evidence and heuristic status, and missing or ambiguous parents remain visible. `GraphComplete` reports
+the graph owner's coverage. Each message is projected under the body/report bounds before the next body
+is read; eager store formats retain their own bounded opening behavior. Embedded attachments are classified
+from available MAPI metadata even when their nested payload is not read. A file fingerprint hashes the same open source before and after parsing;
+a store fingerprint uses the store's durable source contract, including its composite directory hash.
+Hashes identify source bytes and resident attachment payloads; they do not certify message authenticity.
+Deferred attachment streams are not opened for hashing. Report fields use bounded display values,
+diagnostics retain a sample of up to 500 entries with the total count, and PDF conversion diagnostics
+are included in the manifest. `EmailEvidenceOptions` controls input, body, graph, report, page and output
+bounds. Outputs are created in memory; applications choose and authorize their publication destination.
+
+## Invoice inspection, conversion and rendering
+
+`OfficeInvoiceBufferWorkflow` composes the typed invoice model, optional standards
+validator and PDF adapter. It accepts captured XML bytes and returns an operation
+report without reading paths, fetching invoice links or publishing files:
+
+```csharp
+using OfficeIMO.Invoicing;
+using OfficeIMO.Workflows;
+
+var target = new InvoiceXmlOptions(
+    InvoiceSpecificationRelease.En16931_1_3_16,
+    InvoiceSyntax.Ubl,
+    InvoiceProfile.En16931);
+var request = new OfficeInvoiceWorkflowRequest(
+    File.ReadAllBytes("invoice.xml"),
+    OfficeInvoiceWorkflowOperation.Convert,
+    target,
+    inputName: "invoice.xml");
+var result = await OfficeInvoiceBufferWorkflow.RunAsync(request);
+foreach (var diagnostic in result.Diagnostics)
+    Console.WriteLine($"{diagnostic.Location}: {diagnostic.Message}");
+if (result.Succeeded)
+    File.WriteAllBytes("converted.xml", result.ToOutputBytes()!);
+```
+
+Inspection completion does not establish validity. Check `ModelValidation`,
+`Source.HasCompleteMapping` and target diagnostics separately. Recognized
+MINIMUM and BASIC WL inputs receive aggregate model checks without inventing
+invoice lines. Conversion and rendering block unmapped source data and
+unsupported target fields; explicit lower-profile projection returns each
+intentional reduction as a warning.
+
+Select `Validate`, `RenderPresentationPdf` or `RenderHybridPdf` for the other
+operations. Rendering requires an explicit CII contract. Pass `PdfOptions` with
+the fonts your content needs and `InvoicePdfLayoutOptions` for appearance and
+resource limits. The returned output XML is the same captured invoice used for
+the visible PDF; hybrid output embeds those exact bytes.
+
+For bounded header replacements that retain XML extensions, create a request with
+`OfficeInvoiceWorkflowRequest.ForSourceEdit(xml, new InvoiceSourceEdits(number:
+"INV-002"))`. The file equivalent is
+`OfficeInvoiceFileWorkflowRequest.ForSourceEdit("invoice.xml", "edited.xml",
+edits)`, which uses the same output preflight and atomic publication contract.
+`EditSource` retains the original syntax/profile and accepts no conversion target.
+Its `Succeeded` status means every requested edit completed; model and mapping
+findings can still contain errors. `Source` and `ModelValidation` describe the
+edited XML, or remain unavailable when its retained data exceeds the semantic
+mapper. Passing an explicit validation release and validator requires the exact
+edited XML to pass schema and business rules before any artifact is returned.
+See the [source-editing contract](../OfficeIMO.Invoicing/README.md#read-and-edit-safely)
+for supported fields, representations and bounds.
+
+Standards validation requires both `validationRelease` and a configured
+`InvoiceValidator` supplied to `RunAsync`. A requested validator that is missing,
+or a schema/business-rule stage that does not pass, blocks output. Otherwise
+`SchemaStatus` and `BusinessRulesStatus` explicitly report `NotRun`. For writing
+operations, `StandardsValidation.Sha256` identifies the output XML validated
+before artifact generation; it does not certify the PDF's conformance.
+
+`RunBatchAsync` preflights requests before executing them, preserves input order,
+and observes cancellation between bounded owner operations. Defaults are 256
+requests, 64 MiB of combined XML input and 64 MiB of retained output artifacts.
+`ContinueOnFailure` controls whether subsequent items run. An item exceeding the
+output budget returns diagnostics and no artifact bytes. Cancellation throws
+`OperationCanceledException`; hosts remain responsible for collision policies
+and safe output publication.
+
+`OfficeInvoiceFileWorkflow` provides that local-file adapter. Its immutable
+`OfficeInvoiceFileWorkflowRequest` captures paths and the same target and render
+settings. It preflights all inputs and destinations, applies the combined batch
+budgets, then creates each successful artifact through the shared atomic writer.
+Existing destinations and colliding batch outputs are rejected. It never
+overwrites inputs or existing files; batch publication is per item rather than a
+transaction. `OfficeInvoiceFileWorkflowResult` keeps publication errors separate
+from the model and standards evidence in `Workflow`.
+
+For a desktop host with local or provider-backed storage, use
+`OfficeWorkflowRunner.RunInvoiceAsync` with `OfficeInvoiceStorageWorkflowRequest`:
+
+```csharp
+var storageResult = await new OfficeWorkflowRunner().RunInvoiceAsync(new() {
+    InputPath = "invoice.xml",
+    Operation = OfficeInvoiceWorkflowOperation.EditSource,
+    SourceEdits = new InvoiceSourceEdits(number: "INV-002"),
+    OutputPath = "invoice.edited.xml",
+    ConflictPolicy = OfficeWorkflowConflictPolicy.Rename
+});
+```
+
+The adapter captures at most 16 MiB of input, clones render settings before
+acquisition, and verifies source contents and physical identity again before
+publication. Local output supports fail, numbered-copy and atomic replacement
+policies. It protects source aliases and asks the supplied publication guard
+about the final destination. Provider inputs use reopenable
+`OfficeWorkflowStreamInput`; provider output uses `OfficeWorkflowStreamOutput`
+with explicit `Replace` after the host obtains direct-write consent. A durable,
+hash-verified XML or PDF recovery copy precedes provider creation/writing. Failed
+or unverified provider publication returns `Unconfirmed` with retained recovery;
+it cannot promise atomic replacement or rollback. Read `Workflow` for invoice
+evidence and `Status`, `Diagnostics` and `Recovery` for storage outcomes. The
+default retained output limit is 64 MiB. Cancellation before publication returns
+`Cancelled` and removes temporary staging.
+
 ## Project reports and table exchange
 
 `ProjectReportWorkflow` exports a calculated Project view through the existing document owners:
@@ -57,6 +193,23 @@ foreach (var table in projection.Tables)
 ```
 
 Loss permission is explicit because tables omit dependencies, native presentation, and other semantics outside the selected exchange fields. `ReadExcel` requires a bounded worksheet rectangle; formula/error cells and numbers that cannot be represented exactly are rejected. `ReadCsv` uses the CSV owner's parsing and quoting rules. Wrap the resulting `ProjectDataTable` in a `ProjectMappedTable` with explicit field mappings before calling `ProjectDocument.ImportTables`. Table import creates a new project and validates identity, references, units, and conflict policy. See [Project support](../OfficeIMO.Project/SUPPORT.md#portable-reports-and-mapped-data-exchange) for the full boundary.
+
+## Review OCR before publication
+
+`MakePdfSearchableAsync` captures recognition evidence before writing an output. Set `PdfSearchableWorkflowRequest.ReviewAsync` to choose eligible words, or `ReviewCorrectionsAsync` to return original eligible word instances mapped to their reviewed text. Choose one callback. An empty review selection deliberately preserves the source copy; a recognition result with no eligible words and no native source text fails before publication.
+
+```csharp
+request.ReviewCorrectionsAsync = (review, token) => {
+    token.ThrowIfCancellationRequested();
+    IReadOnlyDictionary<OfficeIMO.Pdf.Ocr.PdfRecognizedWord, string> reviewed = review.Ocr.Pages
+        .SelectMany(page => page.Words).ToDictionary(word => word, word => word.Text);
+    return Task.FromResult(reviewed);
+};
+```
+
+A host review interface can edit dictionary values and exclude entries before returning them. Correction eligibility, text limits, source-identity checks, output conflicts, and publication guards apply to local files, provider outputs, and OCR sessions. Workflow diagnostics retain recognition warnings and page numbers. A nonrecoverable provider error prevents publication, and image recognition with no usable text does not create an empty success artifact. Successful publication means the reviewed artifact was saved; it does not certify recognition accuracy.
+
+OfficeIMO Studio shows the source region, original recognition, editable replacement, confidence, and inclusion choice. Corrections persist across page navigation. **Next uncertain word** navigates low-confidence and sub-90% words without making rejected words eligible. The selected text can be extracted without creating a PDF or saved as a searchable layer; cancellation preserves the existing destination.
 
 ## Reference from source
 
@@ -439,6 +592,7 @@ OfficeProvenanceWorkflowResult removal = await runner.RunProvenanceAsync(
         Operation = OfficeProvenanceWorkflowOperation.Remove,
         InputPath = "report.docx",
         OutputPath = "report.cleaned.docx",
+        ExpectedInputSha256 = inspection.InputSha256,
         ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
     });
 ```
@@ -446,6 +600,12 @@ OfficeProvenanceWorkflowResult removal = await runner.RunProvenanceAsync(
 `Assess` combines the owner-specific structural report with exact Unicode findings and optional `IOfficeProvenanceVerifier` / `IOfficeProvenanceSignalDetector` services supplied to the runner. It preserves each provider's result and does not infer a universal authorship verdict.
 
 Removal is strict by default. It removes only selected, structurally valid carriers and blocks a package-signature-invalidating save unless the caller explicitly selects `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures`. The output is written to a sibling staging file, reopened through the same format owner, checked against the removal report, and only then published under the requested conflict policy. Generic ZIP packages and renamed package subtypes are rejected because the workflow has no matching registered format owner for them.
+
+`OfficeProvenanceReportSerializer.Serialize(result)` produces the same `officeimo.provenance.result.v2` document used by the CLI, Studio report export, and browser provenance download. `SerializeBatch(results)` uses `officeimo.provenance.batch.v2`. Reports retain structured evidence and diagnostics, string enum values, coverage notes, input/output SHA-256 hashes, and explicit check states. Assessment reports distinguish disabled or unsupported Unicode inspection from a completed empty report and distinguish an absent provider from verification that ran.
+
+Pass `ExpectedInputSha256` from a reviewed result when a later action must use the same source bytes. The runner compares the immutable input snapshot before any mutation. `PublicationGuard` applies the host's live ownership check to each final destination; Fail/Replace reject an owned path and Rename skips it.
+
+`OfficeProvenanceAudit.RunAsync(new OfficeProvenanceAuditRequest { Inputs = ["documents"], Include = ["*.html"], MaximumItems = 1000 })` discovers and assesses a bounded set without modifying it. Discovery is recursive by default, excludes symbolic links and common generated/VCS directories, and fails on an empty selection or exceeded bounds. Explicit files retain ordinary workflow errors. `OfficeProvenanceAudit.HasFindings(result, carriers: false, dangerousText: true)` evaluates an evidence policy; callers must handle execution failures separately. `OfficeProvenanceSarif.Serialize(results)` exports the same evidence and failures as SARIF 2.1.0.
 
 Use `RunProvenanceBatchAsync` for bounded sequential batches. Sequential execution keeps parser and provider resource use predictable, while per-request progress includes an overall batch fraction.
 
@@ -458,3 +618,7 @@ var result = OfficeProvenanceBufferWorkflow.Remove(inputBytes, "report.docx");
 byte[] cleanedCopy = result.ToArray();
 // Inspect result.After and result.Changes before presenting the copy to the user.
 ```
+
+For memory-only report export, pass the inspected bytes and report to `OfficeProvenanceReportSerializer.FromBuffer(fileName, bytes, inspection, removal)` and serialize the returned result. These factories do not read paths or verify cryptographic authenticity.
+
+`OfficeTextIntegrityReview` in Core owns source-bound text selections and encoding-preserving export. `OfficeTextIntegrityReportSerializer.Serialize(review, review.Text, fileName, selectedIndices)` exports exact findings, selected occurrence indices, UTF-16 offset units, source hashes, encoding/BOM information, and the selected-copy digest. It does not include the full source text.

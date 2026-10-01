@@ -14,6 +14,12 @@ internal static partial class CsvParser
         ref TVisitor fieldVisitor)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
+        if (text.Length >= TextQuoteFreeProbeMinimumLength && text.IndexOf('"') < 0)
+        {
+            ReadFieldSpans(text.AsSpan(), options, recordsToSkip, ref fieldVisitor, textMayContainQuote: false);
+            return;
+        }
+
         if (!TryReadFieldSpansWithTextDataReaderBatch(text, options, recordsToSkip, ref fieldVisitor))
         {
             ReadFieldSpans(text.AsSpan(), options, recordsToSkip, ref fieldVisitor);

@@ -12,7 +12,7 @@ public static partial class WordRtfConverterExtensions {
         destination.Settings.ViewScale = source.Settings.ZoomPercentage;
         CopyDocumentProtection(source.Settings.ProtectionType.ToOpenXml(), destination.Settings);
 
-        if (source.Sections.Any(section => section.DifferentOddAndEvenPages)) {
+        if (source.Sections.Any(section => section.DocumentOddEvenSettingEnabled)) {
             destination.Settings.FacingPages = true;
         }
 
@@ -34,7 +34,9 @@ public static partial class WordRtfConverterExtensions {
         ApplyDocumentProtection(source.Settings, destination);
 
         if (source.Settings.FacingPages == true) {
-            destination.DifferentOddAndEvenPages = true;
+            Settings settings = destination._wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!;
+            settings.RemoveAllChildren<EvenAndOddHeaders>();
+            settings.Append(new EvenAndOddHeaders());
         }
 
         if (source.Settings.MirrorMargins == true) {

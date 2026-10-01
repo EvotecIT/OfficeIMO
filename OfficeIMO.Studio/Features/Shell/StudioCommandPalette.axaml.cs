@@ -27,7 +27,7 @@ internal sealed partial class StudioCommandPalette : UserControl {
         DataContext = Model;
         _completion = new TaskCompletionSource<StudioCommandItem?>();
         IsVisible = true;
-        Dispatcher.UIThread.Post(() => {
+        this.Dispatcher.Post(() => {
             QueryBox.Focus();
             QueryBox.SelectAll();
         }, DispatcherPriority.Loaded);

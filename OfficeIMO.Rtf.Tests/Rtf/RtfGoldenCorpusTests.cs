@@ -69,8 +69,10 @@ public class RtfGoldenCorpusTests {
             }
 
             string semanticText = GetSemanticText(result.Document);
+            string normalizedText = GetSemanticText(normalizedResult.Document);
             foreach (string requiredText in fixture.RequiredText) {
                 Assert.Contains(requiredText, semanticText, StringComparison.Ordinal);
+                Assert.Contains(requiredText, normalizedText, StringComparison.Ordinal);
             }
         }
     }

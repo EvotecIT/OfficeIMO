@@ -3,7 +3,7 @@
   --imo-header-height: 64px;
   --imo-toolbar-height: 56px;
   --imo-navigation-width: 260px;
-  --imo-reference-width: 248px;
+  --imo-reference-width: 300px;
   --imo-content-gutter: 40px;
   --imo-shell-top: calc(var(--imo-header-height) + var(--imo-toolbar-height));
 }
@@ -163,6 +163,18 @@ body.imo-body { overflow-x: clip; }
 .imo-reference-browser .sidebar-tools button { font-size: 11px; padding: 5px; }
 .imo-reference-browser .type-item { font-size: 12px; }
 .imo-reference-browser .api-sidebar-shell { overflow: visible; }
+.imo-reference-browser .pf-combobox, .imo-reference-browser .pf-combobox-list { min-width: 0; }
+.imo-reference-browser .pf-combobox-option { white-space: normal; overflow-wrap: anywhere; }
+.imo-reference-browser .pf-combobox-list { overflow-x: hidden; }
+.imo-reference-browser .pf-combobox-panel { position: static; margin-top: 6px; }
+.imo-search__filters { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0 20px; }
+.imo-search__filters label { display: grid; gap: 6px; flex: 1 1 220px; font-size: 13px; color: var(--imo-text-secondary); }
+.imo-search__filters select { width: 100%; min-width: 0; padding: 10px; border: 1px solid var(--imo-border); border-radius: 8px; background: var(--imo-bg); color: var(--imo-text); }
+.imo-search__signature { display: block; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 10px; font-size: 13px; color: var(--imo-text); }
+.imo-search__context { font-size: 12px; color: var(--imo-text-secondary); }
+.related-content-list { display: grid; gap: 10px; padding: 0; list-style: none; }
+.related-content-item { padding: 12px; border: 1px solid var(--imo-border); border-radius: 8px; }
+.related-content-kind { margin-right: 8px; color: var(--imo-text-secondary); font-size: 12px; text-transform: uppercase; }
 .imo-body--reference .type-detail-shell { display: block; }
 .imo-body--reference .api-overview, .imo-body--reference .type-detail { padding: 0; margin: 0; }
 .imo-body--reference .type-toc { display: none; }

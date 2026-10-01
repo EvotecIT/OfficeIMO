@@ -30,6 +30,7 @@ internal static partial class RtfHtmlReader {
         }
 
         context.TrimEmptyTrailingParagraph();
+        context.CompleteHeaderFooterOwnership();
     }
 
     private static void ValidateNode(INode node, HtmlDomLimitTracker limits, int depth) {
@@ -62,6 +63,10 @@ internal static partial class RtfHtmlReader {
             string name = element.LocalName;
             bool closes = !HtmlDomElementFacts.IsVoidElement(name);
             limits?.RecordElementStart(depth + 1);
+            if (element.LocalName == "span" && element.GetAttribute("data-officeimo-rtf-list-marker") == "true") {
+                if (limits != null) foreach (INode child in element.ChildNodes) ValidateNode(child, limits, depth + 1);
+                return;
+            }
             context.Start(element);
             foreach (INode child in element.ChildNodes) {
                 TraverseNode(child, context, limits, depth + 1);

@@ -151,7 +151,6 @@ namespace OfficeIMO.Excel {
                 result.Add(new T());
             }
 
-            bool hasCustomConverters = _opt.CellValueConverter != null || _opt.TypeConverter != null;
             for (int i = 0; i < rawCells.Count; i++) {
                 if (canCancel && (i & 1023) == 0) {
                     ct.ThrowIfCancellationRequested();
@@ -173,13 +172,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                object? converted = TryChangeType(cell.TypedValue, binding, _opt.Culture);
-                if (converted is null
-                    && !hasCustomConverters
-                    && ShouldRetryRawDateStyledNumericBinding(cell, binding)
-                    && TryConvertRawForBinding(cell, binding, out object? rawConverted)) {
-                    converted = rawConverted;
-                }
+                object? converted = TryChangeType(cell.TypedValue, binding, _opt.Culture, cell);
 
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
@@ -228,7 +221,8 @@ namespace OfficeIMO.Excel {
                         MaxDegreeOfParallelism = _opt.Execution.MaxDegreeOfParallelism,
                         BatchSize = 2048
                     },
-                    ct).ToList();
+                    ct,
+                    (source, values) => CaptureBufferedExcelValues(source, values, bindings)).ToList();
                 return true;
             } catch (NotSupportedException) {
                 result = [];
@@ -253,12 +247,6 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (_opt.TreatDatesUsingNumberFormat &&
-                    value is DateTime dateValue &&
-                    IsNumericBindingDestination(binding.BindingKind)) {
-                    value = ExcelDateSystemConverter.ToSerial(dateValue, _dateSystem);
-                }
-
                 object? converted = TryChangeType(value, binding, _opt.Culture);
                 if (converted is not null || binding.IsNullable) {
                     binding.SetValue(target, converted);
@@ -266,6 +254,17 @@ namespace OfficeIMO.Excel {
             }
 
             return target;
+        }
+
+        private static void CaptureBufferedExcelValues<T>(
+            DbDataReader reader, object?[] values, TypedPropertyBinding<T>?[] bindings) where T : new() {
+            for (int ordinal = 0; ordinal < bindings.Length; ordinal++) {
+                TypedPropertyBinding<T>? binding = bindings[ordinal];
+                if (binding != null) {
+                    object? value = DataReaderMappingValue.Read(reader, ordinal, binding.DestinationType);
+                    values[ordinal] = value is DataReaderMappingValue numeric ? numeric.Numeric : value;
+                }
+            }
         }
 
         private bool TryReadObjectsFromXmlMaterialized<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(

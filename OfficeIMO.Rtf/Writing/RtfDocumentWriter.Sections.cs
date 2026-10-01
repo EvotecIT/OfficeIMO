@@ -1,7 +1,7 @@
 namespace OfficeIMO.Rtf.Writing;
 
 internal static partial class RtfDocumentWriter {
-    private static void WriteSectionStart(StringBuilder builder, RtfSection section) {
+    private static void WriteSectionStart(StringBuilder builder, RtfSection section, RtfPageSetup pageSetup) {
         builder.Append(@"\sectd");
         builder.Append(section.BreakKind switch {
             RtfSectionBreakKind.Continuous => @"\sbknone",
@@ -10,7 +10,11 @@ internal static partial class RtfDocumentWriter {
             RtfSectionBreakKind.OddPage => @"\sbkodd",
             _ => @"\sbkpage"
         });
-        WritePageSetup(builder, section.PageSetup, isSection: true);
+        if (pageSetup.Landscape && !pageSetup.PaperWidthTwips.HasValue && !pageSetup.PaperHeightTwips.HasValue) {
+            pageSetup.PaperWidthTwips = 15840;
+            pageSetup.PaperHeightTwips = 12240;
+        }
+        WritePageSetup(builder, pageSetup, isSection: true);
         WriteSectionVerticalAlignment(builder, section.VerticalAlignment);
         WriteSectionDirection(builder, section.Direction);
         WriteNoteSettings(builder, section.NoteSettings);
@@ -86,9 +90,7 @@ internal static partial class RtfDocumentWriter {
         AppendOptionalTwips(builder, isSection ? @"\guttersxn" : @"\gutter", pageSetup.GutterWidthTwips);
         AppendOptionalTwips(builder, @"\headery", pageSetup.HeaderDistanceTwips);
         AppendOptionalTwips(builder, @"\footery", pageSetup.FooterDistanceTwips);
-        if (pageSetup.RtlGutter) {
-            builder.Append(@"\rtlgutter");
-        }
+        AppendOptionalToggle(builder, @"\rtlgutter", pageSetup.DirectRtlGutter);
 
         AppendOptionalTwips(builder, @"\pgnstarts", pageSetup.PageNumberStart);
         if (pageSetup.PageNumberRestart.HasValue) {
@@ -100,13 +102,9 @@ internal static partial class RtfDocumentWriter {
         WritePageNumberFormat(builder, pageSetup.PageNumberFormat);
         WritePageBorders(builder, pageSetup.PageBorders);
 
-        if (pageSetup.Landscape) {
-            builder.Append(isSection ? @"\lndscpsxn" : @"\landscape");
-        }
-
-        if (pageSetup.DifferentFirstPageHeaderFooter) {
-            builder.Append(@"\titlepg");
-        }
+        if (isSection && pageSetup.Landscape) builder.Append(@"\lndscpsxn");
+        else if (pageSetup.Landscape) builder.Append(@"\landscape");
+        AppendOptionalToggle(builder, @"\titlepg", pageSetup.DirectDifferentFirstPageHeaderFooter);
     }
 
     private static void WritePageNumberFormat(StringBuilder builder, RtfPageNumberFormat? format) {

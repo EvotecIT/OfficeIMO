@@ -3,7 +3,7 @@ using System.Globalization;
 namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlWriter {
-    private static void AppendTable(StringBuilder builder, RtfTable table, RtfToHtmlOptions options, RtfDocument document) {
+    private static void AppendTable(StringBuilder builder, RtfTable table, RtfToHtmlOptions options, RtfDocument document, RtfListNumbering numbering) {
         builder.Append("<table>");
         bool inHead = false;
         bool inBody = false;
@@ -31,7 +31,7 @@ internal static partial class RtfHtmlWriter {
                 }
             }
 
-            AppendTableRow(builder, table, rowIndex, options, document, row.RepeatHeader);
+            AppendTableRow(builder, table, rowIndex, options, document, row.RepeatHeader, numbering);
         }
 
         if (inHead) {
@@ -45,7 +45,7 @@ internal static partial class RtfHtmlWriter {
         builder.Append("</table>");
     }
 
-    private static void AppendTableRow(StringBuilder builder, RtfTable table, int rowIndex, RtfToHtmlOptions options, RtfDocument document, bool isHeader) {
+    private static void AppendTableRow(StringBuilder builder, RtfTable table, int rowIndex, RtfToHtmlOptions options, RtfDocument document, bool isHeader, RtfListNumbering numbering) {
         builder.Append("<tr");
         RtfTableRow row = table.Rows[rowIndex];
         AppendRowDirectionAttributes(builder, row);
@@ -71,13 +71,7 @@ internal static partial class RtfHtmlWriter {
             }
             AppendCellStyle(builder, cell, document);
             builder.Append('>');
-            foreach (IRtfBlock block in cell.Blocks) {
-                if (block is RtfParagraph paragraph) {
-                    AppendParagraph(builder, paragraph, options, document);
-                } else if (block is RtfTable nestedTable) {
-                    AppendTable(builder, nestedTable, options, document);
-                }
-            }
+            AppendBlocks(builder, cell.Blocks, options, document, string.Empty, numbering);
 
             builder.Append("</");
             builder.Append(cellTag);

@@ -23,12 +23,13 @@ internal static partial class RtfReaderAdapter {
         return Math.Max(1, (safeText.Length + 3) / 4);
     }
 
-    private static SourceMetadata BuildSourceMetadataFromPath(string path, bool computeHash) {
+    private static SourceMetadata BuildSourceMetadataFromPath(string path, bool computeHash, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var normalizedPath = NormalizePathForId(path);
         var source = new SourceMetadata {
             Path = path,
             SourceId = BuildSourceId(normalizedPath),
-            SourceHash = computeHash ? TryComputeFileSha256(path) : null
+            SourceHash = computeHash ? TryComputeFileSha256(path, cancellationToken) : null
         };
 
         try {
@@ -44,7 +45,8 @@ internal static partial class RtfReaderAdapter {
         return source;
     }
 
-    private static void UpdateSourceMetadataFromSeekableStream(SourceMetadata source, Stream stream, bool computeHash, long startPosition) {
+    private static void UpdateSourceMetadataFromSeekableStream(SourceMetadata source, Stream stream, bool computeHash, long startPosition, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (stream == null) throw new ArgumentNullException(nameof(stream));
 
@@ -57,7 +59,7 @@ internal static partial class RtfReaderAdapter {
         }
 
         if (computeHash) {
-            source.SourceHash ??= TryComputeStreamSha256(stream, startPosition);
+            source.SourceHash ??= TryComputeStreamSha256(stream, startPosition, cancellationToken);
         }
     }
 
@@ -85,16 +87,18 @@ internal static partial class RtfReaderAdapter {
         return "src:" + ComputeSha256Hex(normalized);
     }
 
-    private static string? TryComputeFileSha256(string path) {
+    private static string? TryComputeFileSha256(string path, CancellationToken cancellationToken) {
         try {
             using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-            return ComputeSha256Hex(fs);
+            return OfficeDocumentAssetHash.ComputeSha256Hex(fs, cancellationToken);
+        } catch (OperationCanceledException) {
+            throw;
         } catch {
             return null;
         }
     }
 
-    private static string? TryComputeStreamSha256(Stream stream, long startPosition) {
+    private static string? TryComputeStreamSha256(Stream stream, long startPosition, CancellationToken cancellationToken) {
         if (stream == null || !stream.CanSeek) return null;
 
         long position;
@@ -106,17 +110,17 @@ internal static partial class RtfReaderAdapter {
 
         try {
             stream.Position = startPosition;
-            string hash = ComputeSha256Hex(stream);
-            stream.Position = position;
-            return hash;
+            return OfficeDocumentAssetHash.ComputeSha256Hex(stream, cancellationToken);
+        } catch (OperationCanceledException) {
+            throw;
         } catch {
+            return null;
+        } finally {
             try {
                 stream.Position = position;
             } catch {
                 // ignore
             }
-
-            return null;
         }
     }
 
@@ -128,11 +132,6 @@ internal static partial class RtfReaderAdapter {
     private static string ComputeSha256Hex(byte[] bytes) {
         using var sha = SHA256.Create();
         return ConvertToHexLower(sha.ComputeHash(bytes ?? Array.Empty<byte>()));
-    }
-
-    private static string ComputeSha256Hex(Stream stream) {
-        using var sha = SHA256.Create();
-        return ConvertToHexLower(sha.ComputeHash(stream));
     }
 
     private static string ConvertToHexLower(byte[] bytes) {

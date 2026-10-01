@@ -1,0 +1,13 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T02:37:33.6171430Z",
+  "regeneration": "Build/Verification/New-ExcelPivotDateGroupOracle.ps1",
+  "file": "date-group-values-first-conformance.xlsx",
+  "sha256": "118bbeee901d605dd519481bc7eea9182bc2a7f3e7059ca9b0dd10cbbf9c292c",
+  "sourceRange": "Source!A1:B6",
+  "outputRange": "A4:D20",
+  "grouping": "Years and Months",
+  "layout": "Values first on rows; Sum and Count measures"
+}

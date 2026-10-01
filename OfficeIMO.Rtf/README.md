@@ -28,6 +28,28 @@ RtfReadResult read = RtfDocument.LoadResult("input.rtf");
 read.SaveLossless("unchanged-copy.rtf");
 ```
 
+Use `ToRtfResult()` when a semantic save must account for source content that the model cannot retain. Its report includes unbound destinations, unsupported stylesheet syntax, style cycles and missing references, read-policy omissions, and stale encapsulated HTML, even when optional read warnings are disabled:
+
+```csharp
+RtfConversionResult<string> normalized = read.Document.ToRtfResult();
+string acceptedRtf = normalized.RequireNoLoss();
+```
+
+The report belongs to that write operation. A lossless copy preserves the original source; it does not apply semantic edits.
+
+Semantic writing materializes supported effective formatting in the body by default, so native readers such as Word use the intended appearance:
+
+```csharp
+RtfConversionResult<string> nativeOutput = document.ToRtfResult(new RtfWriteOptions {
+    MaterializeStyleFormatting = true
+});
+File.WriteAllText("native-output.rtf", nativeOutput.Value);
+```
+
+This mode writes the effective formatting supported by the semantic model across body paragraphs, tables, headers, notes, and field results. It leaves the source model unchanged. When it materializes inherited or default values, the result reports `RtfNormalizationFormattingInheritanceMaterialized`: reopening the output treats those values as direct formatting, and `RequireNoLoss()` rejects that loss of editing information. Set `MaterializeStyleFormatting = false` to retain editable inheritance in semantic output; native readers may then display inherited formatting differently. Full character effects and effective table-style formatting remain outside this mode's coverage.
+
+`AddFootnote`, `AddEndnote`, and `AddNoteReference` attach notes to their reference runs. Native writing declares support for both note kinds and writes endnotes as `\footnote\ftnalt`. Note paragraph breaks separate authored paragraphs without adding an empty trailing list item. Modern list bindings use the list tables, and Unicode list markers retain their native character counts.
+
 Byte, stream, and file reads retain the exact original bytes. `HasOriginalBytes`, `ToBytesLossless()`, and `TryGetLosslessBytes(...)` make that contract observable. Character-only input can be written as lossless bytes only when every source character has an exact single-byte representation; the API reports or throws instead of silently transcoding it.
 
 RTF field instructions are tokenized by `RtfFieldCodeSyntax`, including quoted arguments, switches, escapes, and unterminated-token state. Hyperlink projection uses this syntax rather than regular-expression extraction.
@@ -90,7 +112,19 @@ RtfDocumentMergeResult merge = document.AppendDocument(otherDocument);
 merge.Report.RequireNoLoss();
 ```
 
-`AppendDocument` remaps fonts, colors, revision authors, blocks, tables, and notes. It reports style/list flattening and source header/footer omission rather than hiding those tradeoffs.
+`AppendDocument` imports fonts, colors, paragraph and character styles, list definitions and overrides, revision authors, blocks, tables, and notes. List resources are discovered through notes, fields, object fallbacks, and text boxes as well as body and table content. Imported resource IDs are remapped, and style inheritance and numbering remain attached to the imported content. File references, XML namespaces, document variables, custom properties, and document information are retained. Conflicting document metadata keeps the destination value and produces an omission diagnostic. Appending into the destination's layout reports source document/section layout and header/footer omission.
+
+An empty destination adopts source document-wide settings where it has no explicit value. When content is combined, destination settings remain in effect and differences are reported as `RtfMergeDocumentSettingsFlattened`, including tab width, facing pages, and editing protection. `PreserveSections` cannot retain separate document-wide settings. Page, word, and character counts are cleared when they no longer describe combined content, with `RtfMergeStatisticsInvalidated`. Alternate source HTML is omitted and reported because it does not describe the merged semantic document.
+
+To retain the source's page setup, columns, and header/footer stories, use section-preserving append:
+
+```csharp
+RtfDocumentMergeResult merge = document.AppendDocument(otherDocument,
+    new RtfDocumentMergeOptions { PreserveSections = true });
+merge.Report.RequireNoLoss();
+```
+
+An appended document starts with its own header/footer stories and page defaults. `GetEffectivePageSetup(section)` resolves document defaults beneath a section's explicit settings. `ToRtfResult()` reports when mixed page orientation requires materializing a document-wide landscape default as section settings.
 
 ## Lossless structural editing
 

@@ -23,10 +23,10 @@ public static partial class WordRtfConverterExtensions {
         CopyDocumentSettings(document, rtf);
         CopyWordStylesAndNumbering(document, rtf);
         var revisionAuthorIndexes = new Dictionary<string, int>(StringComparer.Ordinal);
-        CopyHeaderFooters(document, rtf, revisionAuthorIndexes);
         if (ShouldExportSections(document)) {
             CopySections(document, rtf, revisionAuthorIndexes);
         } else {
+            CopyHeaderFooters(document, rtf, revisionAuthorIndexes);
             CopyPageSetup(document, rtf);
             CopyWordElements(document.Elements, rtf, revisionAuthorIndexes);
         }
@@ -45,10 +45,10 @@ public static partial class WordRtfConverterExtensions {
         ApplyDefaultLanguage(rtfDocument, document);
         ApplyDocumentSettings(rtfDocument, document);
         ApplyRtfStylesAndNumbering(rtfDocument, document);
-        ApplyHeaderFooters(rtfDocument, document);
         if (rtfDocument.Sections.Count > 0) {
             ApplySections(rtfDocument, document);
         } else {
+            ApplyHeaderFooters(rtfDocument, document);
             ApplyPageSetup(rtfDocument, document);
             foreach (IRtfBlock block in rtfDocument.Blocks) {
                 if (block is RtfParagraph paragraph) {
@@ -74,7 +74,7 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void CopyHeaderFooter(WordHeaderFooter? source, RtfDocument rtf, Func<RtfHeaderFooterKind, RtfHeaderFooter> addDestination, RtfHeaderFooterKind kind, Dictionary<string, int> revisionAuthorIndexes) {
-        if (source == null || source.Paragraphs.Count == 0) {
+        if (source == null) {
             return;
         }
 
@@ -635,7 +635,7 @@ public static partial class WordRtfConverterExtensions {
         destination.UnderlineStyle = source.UnderlineStyle;
         destination.Strike = source.Strike;
         destination.DoubleStrike = source.DoubleStrike;
-        destination.Hidden = source.Hidden;
+        destination.DirectHidden = source.DirectHidden;
         destination.Outline = source.Outline;
         destination.Shadow = source.Shadow;
         destination.Emboss = source.Emboss;
@@ -958,7 +958,7 @@ public static partial class WordRtfConverterExtensions {
                 wordRun = wordParagraph.AddText(run.Text);
             }
 
-            ApplyRtfRunFormatting(run, wordRun, rtfDocument);
+            ApplyRtfRunFormatting(rtfDocument != null && rtfDocument.Styles.Count > 0 ? rtfDocument.GetRunFormatting(paragraph, run) : run, wordRun, rtfDocument);
 
             if (run.Note != null) {
                 AppendNote(wordRun, run.Note, rtfDocument);
@@ -1015,13 +1015,13 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static void SetHiddenWordRun(WordParagraph wordRun) {
+    private static void SetHiddenWordRun(WordParagraph wordRun, bool hidden) {
         if (wordRun._run == null) {
             return;
         }
 
         wordRun._run.RunProperties ??= new RunProperties();
-        wordRun._run.RunProperties.Vanish = new Vanish();
+        wordRun._run.RunProperties.Vanish = new Vanish { Val = hidden };
     }
 
     private static void AppendField(WordParagraph wordParagraph, RtfField field, RtfDocument? rtfDocument) {

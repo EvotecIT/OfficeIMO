@@ -92,7 +92,7 @@ public sealed partial class RtfLosslessEditor {
                 id,
                 hasParameter: true,
                 rawText: @"\xmlns" + id.ToString(CultureInfo.InvariantCulture) + " "),
-            new RtfText(0, uri + ";", RtfTextEncoding.EncodeText(uri + ";"))
+            CreateEncodedText(0, uri + ";", RtfTextEncoding.EncodeText(uri + ";"))
         });
     }
 

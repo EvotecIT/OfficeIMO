@@ -48,7 +48,7 @@ public class RtfHtmlNoteTests {
         Assert.Contains(reference.Note.Paragraphs[0].Runs, run => run.Text == "text" && run.Bold);
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        Assert.Contains(@"{\endnote", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"{\footnote\ftnalt", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\b text\b0", rtf, StringComparison.Ordinal);
     }
 

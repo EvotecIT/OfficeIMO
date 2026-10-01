@@ -1,7 +1,7 @@
 namespace OfficeIMO.Rtf.Writing;
 
 internal static partial class RtfDocumentWriter {
-    private static void WriteShape(StringBuilder builder, RtfShape shape, int? defaultLanguageId, int unicodeSkipCount) {
+    private static void WriteShape(StringBuilder builder, RtfShape shape, RtfWriteContext context) {
         builder.Append(@"{\shp{\*\shpinst");
         foreach (RtfShapeInstruction instruction in shape.Instructions) {
             builder.Append('\\');
@@ -13,16 +13,16 @@ internal static partial class RtfDocumentWriter {
 
         foreach (RtfShapeProperty property in shape.Properties) {
             builder.Append(@"{\sp{\sn ");
-            builder.Append(EscapeText(property.Name, unicodeSkipCount));
+            builder.Append(EscapeText(property.Name, context.UnicodeSkipCount));
             builder.Append(@"}{\sv ");
-            builder.Append(EscapeText(property.Value, unicodeSkipCount));
+            builder.Append(EscapeText(property.Value, context.UnicodeSkipCount));
             builder.Append("}}");
         }
 
         if (shape.TextBoxParagraphs.Count > 0) {
             builder.Append(@"{\shptxt");
             foreach (RtfParagraph paragraph in shape.TextBoxParagraphs) {
-                WriteParagraph(builder, paragraph, defaultLanguageId, unicodeSkipCount);
+                WriteParagraph(builder, paragraph, context);
             }
 
             builder.Append('}');

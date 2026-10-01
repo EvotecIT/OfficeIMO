@@ -4,6 +4,20 @@ namespace OfficeIMO.Workflows;
 
 /// <summary>Routes workflow path identity through the filesystem-aware OfficeIMO owner.</summary>
 internal static class OfficeWorkflowPathIdentity {
+    internal static bool TryFindAncestorOrDescendant(string identity, SortedSet<string> identities, out string? collisionIdentity) {
+        string? parent = Path.GetDirectoryName(identity);
+        while (!string.IsNullOrEmpty(parent)) {
+            if (identities.Contains(parent)) { collisionIdentity = parent; return true; }
+            string? next = Path.GetDirectoryName(parent);
+            if (string.Equals(next, parent, StringComparison.Ordinal)) break;
+            parent = next;
+        }
+        string prefix = identity.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        foreach (string candidate in identities.GetViewBetween(prefix, prefix + '\uffff')) {
+            collisionIdentity = candidate; return true;
+        }
+        collisionIdentity = null; return false;
+    }
     internal static bool SupportsPhysicalIdentity => OfficePathIdentity.SupportsPhysicalIdentity;
 
     internal static string Normalize(string path) => OfficePathIdentity.Normalize(path);

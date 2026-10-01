@@ -45,7 +45,8 @@ public class RtfHtmlListTests {
 
         string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
-        Assert.Equal("<ol><li data-officeimo-rtf-list-id=\"42\" data-officeimo-rtf-list-definition-id=\"100\" data-officeimo-rtf-list-level=\"2\" data-officeimo-rtf-list-text=\"7.\">Step</li></ol>", html);
+        Assert.Contains("<ol start=\"7\">", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-rtf-list-marker=\"true\"", html, StringComparison.Ordinal);
 
         RtfParagraph roundTripParagraph = Assert.Single(HtmlConversionDocument.Parse(html).ToRtfDocument().Paragraphs);
         Assert.Equal(RtfListKind.Decimal, roundTripParagraph.ListKind);

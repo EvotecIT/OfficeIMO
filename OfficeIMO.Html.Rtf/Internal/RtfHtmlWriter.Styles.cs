@@ -48,6 +48,8 @@ internal static partial class RtfHtmlWriter {
         AddNullableInt(values, prefix + ".basedOn", style.BasedOnStyleId);
         AddNullableInt(values, prefix + ".next", style.NextStyleId);
         AddNullableInt(values, prefix + ".linked", style.LinkedStyleId);
+        AddNullableInt(values, prefix + ".listId", style.ListId);
+        AddNullableInt(values, prefix + ".listLevel", style.ListLevel);
         AddKeyCode(values, prefix + ".key", style.KeyCode);
         AddBool(values, prefix + ".additive", style.Additive);
         AddBool(values, prefix + ".autoUpdate", style.AutoUpdate);
@@ -63,6 +65,7 @@ internal static partial class RtfHtmlWriter {
         AddNullableInt(values, prefix + ".revisionSaveId", style.RevisionSaveId);
         AddNullableBool(values, prefix + ".bold", style.Bold);
         AddNullableBool(values, prefix + ".italic", style.Italic);
+        AddNullableBool(values, prefix + ".textHidden", style.TextHidden);
         AddEnum(values, prefix + ".underlineStyle", style.UnderlineStyle);
         AddNullableDouble(values, prefix + ".fontSize", style.FontSize);
         AddNullableInt(values, prefix + ".fontId", style.FontId);
@@ -123,7 +126,7 @@ internal static partial class RtfHtmlWriter {
             return;
         }
 
-        AddEnum(values, prefix + ".style", border.Style == RtfParagraphBorderStyle.None ? (RtfParagraphBorderStyle?)null : border.Style);
+        AddEnum(values, prefix + ".style", border.DirectStyle);
         AddNullableInt(values, prefix + ".width", border.Width);
         AddNullableInt(values, prefix + ".color", border.ColorIndex);
     }

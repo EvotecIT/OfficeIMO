@@ -1,0 +1,11 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-27T10:58:36.3589076Z",
+  "file": "scalar-expressions.xlsx",
+  "sha256": "650096ad6bc840f010dab9cfe5fe680a2c24662976036188ef1b1eab32523487",
+  "cases": 39,
+  "regeneration": "Build/Verification/New-ExcelScalarFormulaOracle.ps1",
+  "numberTextSeparators": "decimal dot, thousands comma"
+}

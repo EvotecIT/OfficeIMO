@@ -56,6 +56,9 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
     /// <summary>Gets the captured encoded byte length.</summary>
     internal long Length { get; }
 
+    /// <summary>Gets the digest of the immutable captured bytes.</summary>
+    internal string Sha256Hex => BitConverter.ToString(_sha256).Replace("-", "").ToLowerInvariant();
+
     /// <summary>Captures local relative manifest references beside the immutable asset snapshot.</summary>
     internal void CaptureExternalManifestDependencies(
         string sourcePath,

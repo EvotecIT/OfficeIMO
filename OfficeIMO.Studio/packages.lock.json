@@ -10,25 +10,25 @@
       },
       "Avalonia.Desktop": {
         "type": "Direct",
-        "requested": "[12.1.1, )",
-        "resolved": "12.1.1",
-        "contentHash": "qZIw0njeXs1ziGJBz2WNduPI38zm9UqOksNrl2lALO2JkuzzMElYGQ3+4+Nl7VEnZSvmcbAZnOdvNYfnXGlOSw==",
+        "requested": "[12.1.3, )",
+        "resolved": "12.1.3",
+        "contentHash": "kjCpRlBIK5OZDnQ01Hd43CF0Mq4eQ9ndABiDCJAGtLD7lbzX6KxJ08vIK4N1VAiY4/enAUz8oT8q4O6bSybrBQ==",
         "dependencies": {
-          "Avalonia": "12.1.1",
-          "Avalonia.HarfBuzz": "12.1.1",
-          "Avalonia.Native": "12.1.1",
-          "Avalonia.Skia": "12.1.1",
-          "Avalonia.Win32": "12.1.1",
-          "Avalonia.X11": "12.1.1"
+          "Avalonia": "12.1.3",
+          "Avalonia.HarfBuzz": "12.1.3",
+          "Avalonia.Native": "12.1.3",
+          "Avalonia.Skia": "12.1.3",
+          "Avalonia.Win32": "12.1.3",
+          "Avalonia.X11": "12.1.3"
         }
       },
       "Avalonia.Themes.Fluent": {
         "type": "Direct",
-        "requested": "[12.1.1, )",
-        "resolved": "12.1.1",
-        "contentHash": "7vdtZsM9o8I8LpU9dyiB/Ah7WB8a5V3JHLsExe4T433ynn5x57F+DBskctZuNOxml8hbe1GmtNUNkBDsqSVKVg==",
+        "requested": "[12.1.3, )",
+        "resolved": "12.1.3",
+        "contentHash": "ens/GHfXXk0W1ZScHZ2XG6DFiVyUVKR+0O8QK6zkviMNAPQCNwkftXlRVSFSQGtBYxXoJHZMsKYvCLEtVyzkug==",
         "dependencies": {
-          "Avalonia": "12.1.1"
+          "Avalonia": "12.1.3"
         }
       },
       "CommunityToolkit.Mvvm": {
@@ -58,11 +58,11 @@
       },
       "Avalonia": {
         "type": "Transitive",
-        "resolved": "12.1.1",
-        "contentHash": "o8pZ1oE9AQ6gklpGM0lnOBp/JlVH0J/0mYszBf0GsSAcEnzHNCLM9NnrPZwKu4j2q9oNbVHYzzEPkszQeuqaKw==",
+        "resolved": "12.1.3",
+        "contentHash": "l0VGyGn1OwqFrhmIhIHivvrQP0DtBD4Vn2F1vLYgGA2X2qHg0DMVRAln/6xOTLBUYoTopiVAujN0jtH8MpVSeA==",
         "dependencies": {
           "Avalonia.BuildServices": "11.3.2",
-          "Avalonia.Remote.Protocol": "12.1.1",
+          "Avalonia.Remote.Protocol": "12.1.3",
           "MicroCom.Runtime": "0.11.6"
         }
       },
@@ -73,27 +73,27 @@
       },
       "Avalonia.FreeDesktop": {
         "type": "Transitive",
-        "resolved": "12.1.1",
-        "contentHash": "dMMW6vJGsaUD+3e5lA3dGYyNu+Tv/yl0sSrUQLlOQ2RVhmNLkybWdgebHx94lznV3RF9cRGUd9Q+J5XpJ7xfJw==",
+        "resolved": "12.1.3",
+        "contentHash": "yEvk7qm0QPzgQwFZZTAIUXt31sQOSSeOSVTDrcm/Pk+5klNN+8C08kIJs9ZD8RY9esHVk2g6VHPab6DceJYRCw==",
         "dependencies": {
-          "Avalonia": "12.1.1",
+          "Avalonia": "12.1.3",
           "Tmds.DBus.Protocol": "0.94.1"
         }
       },
       "Avalonia.FreeDesktop.AtSpi": {
         "type": "Transitive",
-        "resolved": "12.1.1",
-        "contentHash": "BJ2oGBM6pSayLvjhliMPph4LYhPmzDCRjyXQ4jdttrK7cetTViyniW0gMVpNAPNjr4sn6rbN4EHiWknPQq2pLg==",
+        "resolved": "12.1.3",
+        "contentHash": "t9dP6VQAKGlXtftNuj7QzFtE54AI1qH1dwFmDEJlvI5gweCLNR8ebgRCLlO/bSLWzzV8dZtb6mB/glZ8soisDw==",
         "dependencies": {
-          "Avalonia": "12.1.1"
+          "Avalonia": "12.1.3"
         }
       },
       "Avalonia.HarfBuzz": {
         "type": "Transitive",
-        "resolved": "12.1.1",
-        "contentHash": "vgd/Fl4bIXgv3QtYk6WCd6iGAag4i3OOAozo6/DW3xPr5dWjpi1MmJaeE9MYoZBEDJ4egD0gfHz6nYhkDADz9g==",
+        "resolved": "12.1.3",
+        "contentHash": "XcO9BBsmZHMIK+e+yy1TGsytlhqa7o4ih2Y7B0Q7OKh91GEEerbEc6v/X2kRmluKxyYNSmkwH5Uzj53FtjJngA==",
         "dependencies": {
-          "Avalonia": "12.1.1",
+          "Avalonia": "12.1.3",
           "HarfBuzzSharp": "8.3.1.3",
           "HarfBuzzSharp.NativeAssets.Linux": "8.3.1.3",
           "HarfBuzzSharp.NativeAssets.WebAssembly": "8.3.1.3"
@@ -101,23 +101,23 @@
       },
       "Avalonia.Native": {
         "type": "Transitive",
-        "resolved": "12.1.1",
-        "contentHash": "jbgCUIhgQGD7d9mLN1oe4J8EpzDa0aY9PS77PZuRUDcNyr/V+vFNdyYXSJs3imrm0NOzTsCcFtK2NSXGDmJ1dw==",
+        "resolved": "12.1.3",
+        "contentHash": "TP6G8mF8vPufxycwe/dfLTsNhqQOGBt2Os5MtJshUGfVQ8zlYUG8K8JckPE+dweuDraAKq305aHXseReD7UgXQ==",
         "dependencies": {
-          "Avalonia": "12.1.1"
+          "Avalonia": "12.1.3"
         }
       },
       "Avalonia.Remote.Protocol": {
         "type": "Transitive",
-        "resolved": "12.1.1",
-        "contentHash": "0u77tnOwJnHtVLu+WBY7T56fN9W8n7++Uq9kHW6J+bfv5y13WZUMVS+PBzoBe32taYvz/oSomDGO1V41AHaFcQ=="
+        "resolved": "12.1.3",
+        "contentHash": "HcF69DKyihgg5coLOSp7GTqxQvWAy58LMKauwcHA28uSBJVwu0h5+gTNdJA8Sn/nqJVTRDU98zYsk6i1QSwDVQ=="
       },
       "Avalonia.Skia": {
         "type": "Transitive",
-        "resolved": "12.1.1",
-        "contentHash": "Q0jRMXb212RYIZNV7p6L/zWx8lyPck9dFFW+l86moeN4dNxHjPBdJS3nLdLvAd20Eno7JC4gwRa5Fewg52td8g==",
+        "resolved": "12.1.3",
+        "contentHash": "fYfSecJ6vQT3zB9vWl2DOoBK6JM4Mzxpz7KbUPxJePjY/yUl2OyhjKCyUcGZF2DV5mpAYfCOT4rdKEk8hP/lCA==",
         "dependencies": {
-          "Avalonia": "12.1.1",
+          "Avalonia": "12.1.3",
           "HarfBuzzSharp": "8.3.1.3",
           "HarfBuzzSharp.NativeAssets.Linux": "8.3.1.3",
           "HarfBuzzSharp.NativeAssets.WebAssembly": "8.3.1.3",
@@ -128,22 +128,22 @@
       },
       "Avalonia.Win32": {
         "type": "Transitive",
-        "resolved": "12.1.1",
-        "contentHash": "W7FKmHqoyI09dlCnrt0T9QSLk92qVJwXEHPwMI4zIM09Q6H5NzKfvwoadwxIc8S5gydvFypop3DfKX8x9SILug==",
+        "resolved": "12.1.3",
+        "contentHash": "RXSOmQGV5uKS9orIeE8a5oGz9QukzBnQTP3dtT9uJUhIIuZracy3ItoW8gtlZGBs3lzhEFTZlOk1Fn/Zxj/iAg==",
         "dependencies": {
-          "Avalonia": "12.1.1",
+          "Avalonia": "12.1.3",
           "Avalonia.Angle.Windows.Natives": "2.1.27548.20260419"
         }
       },
       "Avalonia.X11": {
         "type": "Transitive",
-        "resolved": "12.1.1",
-        "contentHash": "s7eRJO+QHTmuyGZ7ZClljdgOVTT2OhfEc+Hk5hTgsjI7y84uM5skTvnm+M+Qzlmr1Ru6MLeFUQaTlFA4Aea35Q==",
+        "resolved": "12.1.3",
+        "contentHash": "NWkfAGgERPlYRKpiB18t5auSFA/Ffd++uZsUEtHPc/maitjydNJVDmtY21pUqR2QvAeTCl1nRAagi+j9bKVyKw==",
         "dependencies": {
-          "Avalonia": "12.1.1",
-          "Avalonia.FreeDesktop": "12.1.1",
-          "Avalonia.FreeDesktop.AtSpi": "12.1.1",
-          "Avalonia.Skia": "12.1.1"
+          "Avalonia": "12.1.3",
+          "Avalonia.FreeDesktop": "12.1.3",
+          "Avalonia.FreeDesktop.AtSpi": "12.1.3",
+          "Avalonia.Skia": "12.1.3"
         }
       },
       "BouncyCastle.Cryptography": {
@@ -261,14 +261,14 @@
       "officeimo.ai": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Reader.Core": "[3.4.3, )"
+          "OfficeIMO.Reader.Core": "[3.4.4, )"
         }
       },
       "officeimo.ai.intelligencex": {
         "type": "Project",
         "dependencies": {
           "IntelligenceX": "[0.1.1, )",
-          "OfficeIMO.AI": "[3.4.3, )"
+          "OfficeIMO.AI": "[3.4.4, )"
         }
       },
       "officeimo.core": {
@@ -277,29 +277,44 @@
       "officeimo.csv": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.3, )"
+          "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.email": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Rtf": "[3.4.4, )"
+        }
+      },
+      "officeimo.email.html": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Email": "[3.4.4, )",
+          "OfficeIMO.Html": "[3.4.4, )",
+          "OfficeIMO.Html.Rtf": "[3.4.4, )"
         }
       },
       "officeimo.epub": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.3, )",
-          "OfficeIMO.Html": "[3.4.3, )"
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Html": "[3.4.4, )"
         }
       },
       "officeimo.excel": {
         "type": "Project",
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
-          "OfficeIMO.Core": "[3.4.3, )"
+          "OfficeIMO.Core": "[3.4.4, )"
         }
       },
       "officeimo.excel.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.3, )",
-          "OfficeIMO.Excel": "[3.4.3, )",
-          "OfficeIMO.Pdf": "[3.4.3, )"
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Excel": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )"
         }
       },
       "officeimo.html": {
@@ -307,16 +322,16 @@
         "dependencies": {
           "AngleSharp": "[1.7.1, )",
           "AngleSharp.Css": "[1.0.1, )",
-          "OfficeIMO.Core": "[3.4.3, )",
-          "OfficeIMO.Html.AngleSharp": "[3.4.3, )",
-          "OfficeIMO.Html.Core": "[3.4.3, )"
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Html.AngleSharp": "[3.4.4, )",
+          "OfficeIMO.Html.Core": "[3.4.4, )"
         }
       },
       "officeimo.html.anglesharp": {
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.7.1, )",
-          "OfficeIMO.Html.Core": "[3.4.3, )"
+          "OfficeIMO.Html.Core": "[3.4.4, )"
         }
       },
       "officeimo.html.core": {
@@ -325,15 +340,40 @@
       "officeimo.html.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.3, )",
-          "OfficeIMO.Html": "[3.4.3, )",
-          "OfficeIMO.Pdf": "[3.4.3, )"
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Html": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )"
+        }
+      },
+      "officeimo.html.rtf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Html": "[3.4.4, )",
+          "OfficeIMO.Rtf": "[3.4.4, )"
+        }
+      },
+      "officeimo.invoicing": {
+        "type": "Project"
+      },
+      "officeimo.invoicing.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Invoicing": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )"
+        }
+      },
+      "officeimo.invoicing.validation": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Invoicing": "[3.4.4, )"
         }
       },
       "officeimo.markdown": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.3, )"
+          "OfficeIMO.Core": "[3.4.4, )"
         }
       },
       "officeimo.ocr": {
@@ -342,55 +382,55 @@
       "officeimo.ocr.process": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Ocr": "[3.4.3, )"
+          "OfficeIMO.Ocr": "[3.4.4, )"
         }
       },
       "officeimo.ocr.tesseract": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Ocr": "[3.4.3, )",
-          "OfficeIMO.Ocr.Process": "[3.4.3, )"
+          "OfficeIMO.Ocr": "[3.4.4, )",
+          "OfficeIMO.Ocr.Process": "[3.4.4, )"
         }
       },
       "officeimo.opendocument": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.3, )"
+          "OfficeIMO.Core": "[3.4.4, )"
         }
       },
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.3, )"
+          "OfficeIMO.Core": "[3.4.4, )"
         }
       },
       "officeimo.pdf.ocr": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.3, )",
-          "OfficeIMO.Ocr": "[3.4.3, )",
-          "OfficeIMO.Pdf": "[3.4.3, )"
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Ocr": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )"
         }
       },
       "officeimo.powerpoint": {
         "type": "Project",
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
-          "OfficeIMO.Core": "[3.4.3, )"
+          "OfficeIMO.Core": "[3.4.4, )"
         }
       },
       "officeimo.powerpoint.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.3, )",
-          "OfficeIMO.Pdf": "[3.4.3, )",
-          "OfficeIMO.PowerPoint": "[3.4.3, )"
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )",
+          "OfficeIMO.PowerPoint": "[3.4.4, )"
         }
       },
       "officeimo.project": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.3, )"
+          "OfficeIMO.Core": "[3.4.4, )"
         }
       },
       "officeimo.reader.core": {
@@ -399,30 +439,36 @@
       "officeimo.reader.image": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.3, )",
-          "OfficeIMO.Reader.Core": "[3.4.3, )"
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Reader.Core": "[3.4.4, )"
         }
       },
       "officeimo.reader.ocr": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Ocr": "[3.4.3, )",
-          "OfficeIMO.Reader.Core": "[3.4.3, )"
+          "OfficeIMO.Ocr": "[3.4.4, )",
+          "OfficeIMO.Reader.Core": "[3.4.4, )"
         }
       },
       "officeimo.reader.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.3, )",
-          "OfficeIMO.Pdf": "[3.4.3, )",
-          "OfficeIMO.Reader.Core": "[3.4.3, )"
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )",
+          "OfficeIMO.Reader.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.rtf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )"
         }
       },
       "officeimo.security": {
         "type": "Project",
         "dependencies": {
           "BouncyCastle.Cryptography": "[2.7.0, 3.0.0)",
-          "OfficeIMO.Core": "[3.4.3, )",
+          "OfficeIMO.Core": "[3.4.4, )",
           "System.Security.Cryptography.Pkcs": "[10.0.10, )",
           "System.Security.Cryptography.Xml": "[10.0.10, )"
         }
@@ -430,7 +476,7 @@
       "officeimo.visio": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.3, )",
+          "OfficeIMO.Core": "[3.4.4, )",
           "System.IO.Packaging": "[10.0.8, )"
         }
       },
@@ -438,40 +484,44 @@
         "type": "Project",
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
-          "OfficeIMO.Core": "[3.4.3, )"
+          "OfficeIMO.Core": "[3.4.4, )"
         }
       },
       "officeimo.word.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.4.3, )",
-          "OfficeIMO.Pdf": "[3.4.3, )",
-          "OfficeIMO.Word": "[3.4.3, )"
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )",
+          "OfficeIMO.Word": "[3.4.4, )"
         }
       },
       "officeimo.workflows": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.CSV": "[3.4.3, )",
-          "OfficeIMO.Core": "[3.4.3, )",
-          "OfficeIMO.Epub": "[3.4.3, )",
-          "OfficeIMO.Excel": "[3.4.3, )",
-          "OfficeIMO.Excel.Pdf": "[3.4.3, )",
-          "OfficeIMO.Html": "[3.4.3, )",
-          "OfficeIMO.Html.Pdf": "[3.4.3, )",
-          "OfficeIMO.Markdown": "[3.4.3, )",
-          "OfficeIMO.Ocr": "[3.4.3, )",
-          "OfficeIMO.OpenDocument": "[3.4.3, )",
-          "OfficeIMO.Pdf": "[3.4.3, )",
-          "OfficeIMO.Pdf.Ocr": "[3.4.3, )",
-          "OfficeIMO.PowerPoint": "[3.4.3, )",
-          "OfficeIMO.PowerPoint.Pdf": "[3.4.3, )",
-          "OfficeIMO.Project": "[3.4.3, )",
-          "OfficeIMO.Reader.Image": "[3.4.3, )",
-          "OfficeIMO.Reader.Ocr": "[3.4.3, )",
-          "OfficeIMO.Visio": "[3.4.3, )",
-          "OfficeIMO.Word": "[3.4.3, )",
-          "OfficeIMO.Word.Pdf": "[3.4.3, )"
+          "OfficeIMO.CSV": "[3.4.4, )",
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Email.Html": "[3.4.4, )",
+          "OfficeIMO.Epub": "[3.4.4, )",
+          "OfficeIMO.Excel": "[3.4.4, )",
+          "OfficeIMO.Excel.Pdf": "[3.4.4, )",
+          "OfficeIMO.Html": "[3.4.4, )",
+          "OfficeIMO.Html.Pdf": "[3.4.4, )",
+          "OfficeIMO.Invoicing": "[3.4.4, )",
+          "OfficeIMO.Invoicing.Pdf": "[3.4.4, )",
+          "OfficeIMO.Invoicing.Validation": "[3.4.4, )",
+          "OfficeIMO.Markdown": "[3.4.4, )",
+          "OfficeIMO.Ocr": "[3.4.4, )",
+          "OfficeIMO.OpenDocument": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )",
+          "OfficeIMO.Pdf.Ocr": "[3.4.4, )",
+          "OfficeIMO.PowerPoint": "[3.4.4, )",
+          "OfficeIMO.PowerPoint.Pdf": "[3.4.4, )",
+          "OfficeIMO.Project": "[3.4.4, )",
+          "OfficeIMO.Reader.Image": "[3.4.4, )",
+          "OfficeIMO.Reader.Ocr": "[3.4.4, )",
+          "OfficeIMO.Visio": "[3.4.4, )",
+          "OfficeIMO.Word": "[3.4.4, )",
+          "OfficeIMO.Word.Pdf": "[3.4.4, )"
         }
       }
     },
@@ -483,10 +533,10 @@
       },
       "Avalonia.Native": {
         "type": "Transitive",
-        "resolved": "12.1.1",
-        "contentHash": "jbgCUIhgQGD7d9mLN1oe4J8EpzDa0aY9PS77PZuRUDcNyr/V+vFNdyYXSJs3imrm0NOzTsCcFtK2NSXGDmJ1dw==",
+        "resolved": "12.1.3",
+        "contentHash": "TP6G8mF8vPufxycwe/dfLTsNhqQOGBt2Os5MtJshUGfVQ8zlYUG8K8JckPE+dweuDraAKq305aHXseReD7UgXQ==",
         "dependencies": {
-          "Avalonia": "12.1.1"
+          "Avalonia": "12.1.3"
         }
       },
       "HarfBuzzSharp.NativeAssets.Linux": {
@@ -533,10 +583,10 @@
       },
       "Avalonia.Native": {
         "type": "Transitive",
-        "resolved": "12.1.1",
-        "contentHash": "jbgCUIhgQGD7d9mLN1oe4J8EpzDa0aY9PS77PZuRUDcNyr/V+vFNdyYXSJs3imrm0NOzTsCcFtK2NSXGDmJ1dw==",
+        "resolved": "12.1.3",
+        "contentHash": "TP6G8mF8vPufxycwe/dfLTsNhqQOGBt2Os5MtJshUGfVQ8zlYUG8K8JckPE+dweuDraAKq305aHXseReD7UgXQ==",
         "dependencies": {
-          "Avalonia": "12.1.1"
+          "Avalonia": "12.1.3"
         }
       },
       "HarfBuzzSharp.NativeAssets.Linux": {
@@ -583,10 +633,10 @@
       },
       "Avalonia.Native": {
         "type": "Transitive",
-        "resolved": "12.1.1",
-        "contentHash": "jbgCUIhgQGD7d9mLN1oe4J8EpzDa0aY9PS77PZuRUDcNyr/V+vFNdyYXSJs3imrm0NOzTsCcFtK2NSXGDmJ1dw==",
+        "resolved": "12.1.3",
+        "contentHash": "TP6G8mF8vPufxycwe/dfLTsNhqQOGBt2Os5MtJshUGfVQ8zlYUG8K8JckPE+dweuDraAKq305aHXseReD7UgXQ==",
         "dependencies": {
-          "Avalonia": "12.1.1"
+          "Avalonia": "12.1.3"
         }
       },
       "HarfBuzzSharp.NativeAssets.Linux": {
@@ -633,10 +683,10 @@
       },
       "Avalonia.Native": {
         "type": "Transitive",
-        "resolved": "12.1.1",
-        "contentHash": "jbgCUIhgQGD7d9mLN1oe4J8EpzDa0aY9PS77PZuRUDcNyr/V+vFNdyYXSJs3imrm0NOzTsCcFtK2NSXGDmJ1dw==",
+        "resolved": "12.1.3",
+        "contentHash": "TP6G8mF8vPufxycwe/dfLTsNhqQOGBt2Os5MtJshUGfVQ8zlYUG8K8JckPE+dweuDraAKq305aHXseReD7UgXQ==",
         "dependencies": {
-          "Avalonia": "12.1.1"
+          "Avalonia": "12.1.3"
         }
       },
       "HarfBuzzSharp.NativeAssets.Linux": {
@@ -683,10 +733,10 @@
       },
       "Avalonia.Native": {
         "type": "Transitive",
-        "resolved": "12.1.1",
-        "contentHash": "jbgCUIhgQGD7d9mLN1oe4J8EpzDa0aY9PS77PZuRUDcNyr/V+vFNdyYXSJs3imrm0NOzTsCcFtK2NSXGDmJ1dw==",
+        "resolved": "12.1.3",
+        "contentHash": "TP6G8mF8vPufxycwe/dfLTsNhqQOGBt2Os5MtJshUGfVQ8zlYUG8K8JckPE+dweuDraAKq305aHXseReD7UgXQ==",
         "dependencies": {
-          "Avalonia": "12.1.1"
+          "Avalonia": "12.1.3"
         }
       },
       "HarfBuzzSharp.NativeAssets.Linux": {
@@ -733,10 +783,10 @@
       },
       "Avalonia.Native": {
         "type": "Transitive",
-        "resolved": "12.1.1",
-        "contentHash": "jbgCUIhgQGD7d9mLN1oe4J8EpzDa0aY9PS77PZuRUDcNyr/V+vFNdyYXSJs3imrm0NOzTsCcFtK2NSXGDmJ1dw==",
+        "resolved": "12.1.3",
+        "contentHash": "TP6G8mF8vPufxycwe/dfLTsNhqQOGBt2Os5MtJshUGfVQ8zlYUG8K8JckPE+dweuDraAKq305aHXseReD7UgXQ==",
         "dependencies": {
-          "Avalonia": "12.1.1"
+          "Avalonia": "12.1.3"
         }
       },
       "HarfBuzzSharp.NativeAssets.Linux": {

@@ -28,30 +28,25 @@ internal static partial class RtfHtmlWriter {
         return builder.ToString();
     }
 
-    private static void AppendBlocks(StringBuilder builder, IReadOnlyList<IRtfBlock> blocks, RtfToHtmlOptions options, RtfDocument document, string newline) {
-        RtfListKind openList = RtfListKind.None;
+    private static void AppendBlocks(StringBuilder builder, IReadOnlyList<IRtfBlock> blocks, RtfToHtmlOptions options, RtfDocument document, string newline, RtfListNumbering? numbering = null) {
+        var lists = new List<HtmlListFrame>();
+        numbering ??= new RtfListNumbering(document);
         for (int i = 0; i < blocks.Count; i++) {
             IRtfBlock block = blocks[i];
-            if (block is RtfParagraph paragraph && paragraph.ListKind != RtfListKind.None) {
-                if (openList != paragraph.ListKind) {
-                    CloseList(builder, openList);
-                    OpenList(builder, paragraph.ListKind);
-                    openList = paragraph.ListKind;
-                }
-
-                AppendParagraph(builder, paragraph, options, document);
+            RtfListMarker? marker = block is RtfParagraph numbered ? numbering.Next(numbered) : null;
+            if (block is RtfParagraph paragraph && marker != null) {
+                AppendListParagraph(builder, paragraph, marker, lists, options, document);
             } else {
-                CloseList(builder, openList);
-                openList = RtfListKind.None;
-                AppendBlock(builder, block, options, document);
+                CloseLists(builder, lists);
+                AppendBlock(builder, block, options, document, numbering);
             }
 
-            if (i + 1 < blocks.Count) {
+            if (i + 1 < blocks.Count && lists.Count == 0) {
                 builder.Append(newline);
             }
         }
 
-        CloseList(builder, openList);
+        CloseLists(builder, lists);
     }
 
     private static void AppendDocumentStart(StringBuilder builder, RtfDocument document, RtfToHtmlOptions options, string newline) {
@@ -72,10 +67,8 @@ internal static partial class RtfHtmlWriter {
         builder.Append("<head>");
         builder.Append(newline);
         builder.Append("<meta charset=\"utf-8\">");
-        if (options.IncludeDefaultStyles) {
-            builder.Append(newline);
-            builder.Append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
-        }
+        builder.Append(newline);
+        builder.Append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
         if (options.IncludeMetadata) {
             string? title = options.Title ?? document.Info.Title;
             if (!string.IsNullOrWhiteSpace(title)) {
@@ -122,13 +115,13 @@ internal static partial class RtfHtmlWriter {
         builder.Append(newline);
     }
 
-    private static void AppendBlock(StringBuilder builder, IRtfBlock block, RtfToHtmlOptions options, RtfDocument document) {
+    private static void AppendBlock(StringBuilder builder, IRtfBlock block, RtfToHtmlOptions options, RtfDocument document, RtfListNumbering numbering) {
         switch (block) {
             case RtfParagraph paragraph:
                 AppendParagraph(builder, paragraph, options, document);
                 break;
             case RtfTable table:
-                AppendTable(builder, table, options, document);
+                AppendTable(builder, table, options, document, numbering);
                 break;
             case RtfImage image:
                 AppendImage(builder, image, options);
@@ -144,8 +137,13 @@ internal static partial class RtfHtmlWriter {
         }
     }
 
-    private static void AppendParagraph(StringBuilder builder, RtfParagraph paragraph, RtfToHtmlOptions options, RtfDocument document) {
-        string tagName = GetParagraphTagName(paragraph);
+    private static void AppendParagraph(StringBuilder builder, RtfParagraph paragraph, RtfToHtmlOptions options, RtfDocument document, RtfListMarker? marker = null, bool closeListItem = true) {
+        RtfParagraph effective = document.Styles.Count > 0 ? document.GetParagraphFormatting(paragraph) : paragraph;
+        if (marker != null) {
+            effective = effective.CopyFormattingView();
+            effective.ListKind = marker.Formatting.Level.Kind;
+        }
+        string tagName = GetParagraphTagName(effective);
         builder.Append('<');
         builder.Append(tagName);
         AppendLanguageDirectionAttributes(builder, null, paragraph.Direction);
@@ -156,9 +154,17 @@ internal static partial class RtfHtmlWriter {
             AppendParagraphControlAttributes(builder, paragraph);
             AppendParagraphFrameAttributes(builder, paragraph);
         }
-        AppendParagraphStyle(builder, paragraph, document);
+        if (options.IncludeRoundTripMetadata && document.Styles.Count > 0) AppendParagraphDirectFormatting(builder, paragraph);
+        bool explicitMarker = marker != null && RequiresExplicitMarker(paragraph, marker);
+        AppendParagraphStyle(builder, effective, document, explicitMarker);
         builder.Append('>');
-        AppendInlines(builder, paragraph.Inlines, options, document);
+        if (explicitMarker) {
+            builder.Append("<span data-officeimo-rtf-list-marker=\"true\" style=\"position:absolute;inset-inline-end:100%;white-space:pre\">");
+            builder.Append(Encode(marker!.Text + marker.Separator));
+            builder.Append("</span>");
+        }
+        AppendInlines(builder, paragraph.Inlines, options, document, paragraph);
+        if (!closeListItem && tagName == "li") return;
         builder.Append("</");
         builder.Append(tagName);
         builder.Append('>');
@@ -176,10 +182,11 @@ internal static partial class RtfHtmlWriter {
         return "p";
     }
 
-    private static void AppendParagraphStyle(StringBuilder builder, RtfParagraph paragraph, RtfDocument document) {
-        if (!TryGetParagraphStyle(paragraph, document, out string? style)) {
+    private static void AppendParagraphStyle(StringBuilder builder, RtfParagraph paragraph, RtfDocument document, bool explicitMarker = false) {
+        if (!TryGetParagraphStyle(paragraph, document, out string? style) && !explicitMarker) {
             return;
         }
+        if (explicitMarker) style = (style ?? string.Empty) + "position:relative;list-style-type:none;";
 
         builder.Append(" style=\"");
         builder.Append(EncodeAttribute(style!));
@@ -271,12 +278,12 @@ internal static partial class RtfHtmlWriter {
         builder.Append(';');
     }
 
-    private static void AppendInlines(StringBuilder builder, IReadOnlyList<IRtfInline> inlines, RtfToHtmlOptions options, RtfDocument document) {
+    private static void AppendInlines(StringBuilder builder, IReadOnlyList<IRtfInline> inlines, RtfToHtmlOptions options, RtfDocument document, RtfParagraph? paragraph = null) {
         for (int index = 0; index < inlines.Count; index++) {
             IRtfInline inline = inlines[index];
             switch (inline) {
                 case RtfRun run:
-                    AppendRun(builder, run, inlines, ref index, options, document);
+                    AppendRun(builder, run, inlines, ref index, options, document, paragraph);
                     break;
                 case RtfBreak rtfBreak:
                     AppendBreak(builder, rtfBreak.Kind, options.IncludeRoundTripMetadata);
@@ -310,7 +317,16 @@ internal static partial class RtfHtmlWriter {
         IReadOnlyList<IRtfInline> inlines,
         ref int index,
         RtfToHtmlOptions options,
-        RtfDocument document) {
+        RtfDocument document,
+        RtfParagraph? paragraph) {
+        RtfRun authored = run;
+        if (document.Styles.Count > 0) run = document.GetRunFormatting(paragraph ?? new RtfParagraph(), run);
+        bool directWrapper = options.IncludeRoundTripMetadata && document.Styles.Count > 0;
+        if (directWrapper) {
+            builder.Append("<span");
+            AppendRunDirectFormatting(builder, authored);
+            builder.Append('>');
+        }
         bool revisionOpened = AppendRevisionStart(builder, run, document, options.IncludeRoundTripMetadata);
         int opened = 0;
         string? hyperlink = ResolveHtmlUrl(run.Hyperlink?.ToString(), options, "RtfHtmlHyperlinkRejected", "run.Hyperlink");
@@ -335,7 +351,7 @@ internal static partial class RtfHtmlWriter {
         while (!options.IncludeRoundTripMetadata &&
                index + 1 < inlines.Count &&
                inlines[index + 1] is RtfRun nextRun &&
-               HaveEquivalentHtmlFormatting(run, nextRun)) {
+               HaveEquivalentHtmlFormatting(run, document.Styles.Count > 0 ? document.GetRunFormatting(paragraph ?? new RtfParagraph(), nextRun) : nextRun)) {
             builder.Append(Encode(nextRun.Text));
             index++;
         }
@@ -353,6 +369,7 @@ internal static partial class RtfHtmlWriter {
 
         AppendNote(builder, run.Note, options, document);
         AppendRevisionEnd(builder, run, revisionOpened);
+        if (directWrapper) builder.Append("</span>");
     }
 
     private static void OpenTag(StringBuilder builder, string tag, bool condition, ref int opened) {
@@ -381,7 +398,22 @@ internal static partial class RtfHtmlWriter {
         if (source == null) {
             return;
         }
-
+        RtfImageLayout layout;
+        try {
+            OfficeImageReader.TryValidateContent(image.Data, null, out OfficeImageInfo? info);
+            layout = image.ResolveLayout(info?.Width > 0 ? info.Width * 15d : null, info?.Height > 0 ? info.Height * 15d : null);
+        } catch (InvalidDataException exception) {
+            options.AddDiagnostic("RtfHtmlImageLayoutInvalid", exception.Message, "Image", action: RtfConversionAction.Blocked);
+            return;
+        }
+        bool crop = HasImageCrop(image) && layout.WidthTwips.HasValue && layout.HeightTwips.HasValue;
+        if (crop) {
+            builder.Append("<span style=\"display:inline-block;position:relative;overflow:hidden;vertical-align:bottom;width:")
+                .Append(FormatPoints(layout.VisibleWidthTwips!.Value / 20d)).Append("pt;height:")
+                .Append(FormatPoints(layout.VisibleHeightTwips!.Value / 20d)).Append("pt\">");
+        } else if (HasImageCrop(image)) {
+            options.AddDiagnostic("RtfHtmlImageCropUnresolved", "Picture cropping requires known source or goal dimensions.", "Image", action: RtfConversionAction.Flattened);
+        }
         builder.Append("<img src=\"");
         builder.Append(EncodeAttribute(source));
         builder.Append('"');
@@ -391,8 +423,15 @@ internal static partial class RtfHtmlWriter {
             builder.Append('"');
         }
 
-        AppendImageSize(builder, image);
+        if (options.IncludeRoundTripMetadata) AppendImageMetadata(builder, image);
+        if (crop) {
+            builder.Append(" style=\"position:absolute;max-width:none;left:").Append(FormatPoints(-(image.CropLeftTwips ?? 0) * layout.ScaleX / 20d))
+                .Append("pt;top:").Append(FormatPoints(-(image.CropTopTwips ?? 0) * layout.ScaleY / 20d))
+                .Append("pt;width:").Append(FormatPoints(layout.WidthTwips!.Value * layout.ScaleX / 20d))
+                .Append("pt;height:").Append(FormatPoints(layout.HeightTwips!.Value * layout.ScaleY / 20d)).Append("pt\"");
+        } else AppendImageSize(builder, image, layout);
         builder.Append('>');
+        if (crop) builder.Append("</span>");
     }
 
     private static string? ResolveImageSource(RtfImage image, RtfToHtmlOptions options) {
@@ -451,7 +490,7 @@ internal static partial class RtfHtmlWriter {
         return "data:" + mediaType + ";base64," + Convert.ToBase64String(image.Data);
     }
 
-    private static void AppendImageSize(StringBuilder builder, RtfImage image) {
+    private static void AppendImageSize(StringBuilder builder, RtfImage image, RtfImageLayout layout) {
         if (image.SourceWidth.HasValue) {
             builder.Append(" width=\"");
             builder.Append(image.SourceWidth.Value.ToString(CultureInfo.InvariantCulture));
@@ -464,30 +503,22 @@ internal static partial class RtfHtmlWriter {
             builder.Append('"');
         }
 
-        if (image.DesiredWidthTwips.HasValue || image.DesiredHeightTwips.HasValue) {
+        if (layout.VisibleWidthTwips.HasValue || layout.VisibleHeightTwips.HasValue) {
             builder.Append(" style=\"");
-            if (image.DesiredWidthTwips.HasValue) {
+            if (layout.VisibleWidthTwips.HasValue) {
                 builder.Append("width:");
-                builder.Append(FormatPoints(image.DesiredWidthTwips.Value / 20d));
+                builder.Append(FormatPoints(layout.VisibleWidthTwips.Value / 20d));
                 builder.Append("pt;");
             }
 
-            if (image.DesiredHeightTwips.HasValue) {
+            if (layout.VisibleHeightTwips.HasValue) {
                 builder.Append("height:");
-                builder.Append(FormatPoints(image.DesiredHeightTwips.Value / 20d));
+                builder.Append(FormatPoints(layout.VisibleHeightTwips.Value / 20d));
                 builder.Append("pt;");
             }
 
             builder.Append('"');
         }
-    }
-
-    private static void OpenList(StringBuilder builder, RtfListKind kind) {
-        if (kind == RtfListKind.None) {
-            return;
-        }
-
-        builder.Append(kind == RtfListKind.Decimal ? "<ol>" : "<ul>");
     }
 
     private static void CloseList(StringBuilder builder, RtfListKind kind) {
@@ -580,13 +611,8 @@ internal static partial class RtfHtmlWriter {
     }
 
     private static bool TryGetColor(RtfDocument document, int? index, out RtfColor? color) {
-        if (!index.HasValue || index.Value <= 0 || index.Value > document.Colors.Count) {
-            color = null;
-            return false;
-        }
-
-        color = document.Colors[index.Value - 1];
-        return true;
+        color = index.HasValue ? document.GetColor(index.Value) : null;
+        return color != null;
     }
 
     private static bool TryGetFont(RtfDocument document, int? id, out RtfFont? font) {

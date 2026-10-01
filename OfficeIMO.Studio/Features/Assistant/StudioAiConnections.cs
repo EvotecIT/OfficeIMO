@@ -15,6 +15,8 @@ internal sealed partial class StudioAiConnections : ObservableObject {
     private readonly FileAuthBundleStore _chatGptStore;
     private readonly FileAuthBundleStore _copilotStore;
     private readonly IStudioLocalizer _localizer;
+    // Background completions belong to this application, even after its dispatcher shuts down.
+    private readonly Avalonia.Threading.Dispatcher _uiDispatcher = Avalonia.Threading.Dispatcher.UIThread;
     private CancellationTokenSource? _operation;
     private long _revision;
 
@@ -196,7 +198,7 @@ internal sealed partial class StudioAiConnections : ObservableObject {
         OnPropertyChanged(nameof(HasSavedAccounts));
     }
 
-    private void ShowLogin(string url, string? code, long revision, CancellationToken token) => Dispatcher.UIThread.Post(async () => {
+    private void ShowLogin(string url, string? code, long revision, CancellationToken token) => _uiDispatcher.Post(async () => {
         if (token.IsCancellationRequested || revision != _revision) return;
         Status = code is null ? Text("BrowserSignIn", "Complete sign-in in your browser.")
             : _localizer.FormatOrDefault("Assistant.DeviceCode", "Enter code {0} in your browser.", code);

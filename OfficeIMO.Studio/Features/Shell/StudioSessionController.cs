@@ -40,6 +40,8 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
     private readonly Func<CancellationToken, Task<string?>> _pickCopy;
     private readonly HashSet<MainWindowViewModel> _observed = [];
     private readonly DispatcherTimer _saveTimer;
+    // Background completions belong to this application, even after its dispatcher shuts down.
+    private readonly Avalonia.Threading.Dispatcher _uiDispatcher = Avalonia.Threading.Dispatcher.UIThread;
     private string? _previousActivePath;
     private bool _frozen;
     private bool _disposed;
@@ -84,7 +86,7 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
         Pending.Clear();
         OnPropertyChanged(nameof(HasPending));
     }
-    private void OnRecoveryMaintenanceCompleted(object? sender, EventArgs args) => Dispatcher.UIThread.Post(() => {
+    private void OnRecoveryMaintenanceCompleted(object? sender, EventArgs args) => _uiDispatcher.Post(() => {
         if (_disposed) return;
         foreach (var item in Pending) item.HasRecovery = item.HasRecovery && _recovery.HasSnapshotFiles(item.SourcePath);
     });

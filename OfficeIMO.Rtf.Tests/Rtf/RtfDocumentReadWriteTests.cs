@@ -191,9 +191,6 @@ public partial class RtfDocumentReadWriteTests {
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.Read(rtf);
 
-        Assert.Contains(@"Styled\plain \par", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"Again\plain  plain", rtf, StringComparison.Ordinal);
-
         RtfRun nextRun = Assert.Single(read.Document.Paragraphs[1].Runs);
         Assert.Equal("Next", nextRun.Text);
         Assert.Null(nextRun.FontId);

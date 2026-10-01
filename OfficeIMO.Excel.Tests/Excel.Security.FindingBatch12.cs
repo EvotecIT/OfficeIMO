@@ -11,15 +11,30 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
+#if EXCEL_PERFORMANCE_EVIDENCE
+        [Trait("Category", "Performance")]
+        [Trait("Category", "ExcelPerformanceEvidence")]
+#endif
         [Fact]
         public void FormulaFunctionSearch_RemainsLinearForMalformedQuotedAndBracketedTokens() {
+#if EXCEL_PERFORMANCE_EVIDENCE
+            const int quoteCount = 40_001;
+            const int bracketCount = 40_000;
+            const int functionCount = 10_000;
+#else
+            const int quoteCount = 65;
+            const int bracketCount = 64;
+            const int functionCount = 4;
+#endif
             string[] hostileFormulas = {
-                new string('\'', 40_001) + "+SUM(A1)",
-                new string('[', 40_000) + "SUM(A1)",
-                string.Concat(Enumerable.Repeat("LET(", 10_000)) + new string('\'', 40_001) + "+SUM(A1)",
-                string.Concat(Enumerable.Repeat("LAMBDA(", 10_000)) + new string('[', 40_000) + "SUM(A1)"
+                new string('\'', quoteCount) + "+SUM(A1)",
+                new string('[', bracketCount) + "SUM(A1)",
+                string.Concat(Enumerable.Repeat("LET(", functionCount)) + new string('\'', quoteCount) + "+SUM(A1)",
+                string.Concat(Enumerable.Repeat("LAMBDA(", functionCount)) + new string('[', bracketCount) + "SUM(A1)"
             };
+#if EXCEL_PERFORMANCE_EVIDENCE
             var stopwatch = Stopwatch.StartNew();
+#endif
             foreach (string formula in hostileFormulas) {
                 var cell = new ExcelFormulaCellInfo(
                     "Data",
@@ -35,11 +50,15 @@ namespace OfficeIMO.Tests {
                     new ExcelFormulaSearchOptions { Function = "SUM" },
                     Array.Empty<string>()));
             }
+#if EXCEL_PERFORMANCE_EVIDENCE
             stopwatch.Stop();
+#endif
 
+#if EXCEL_PERFORMANCE_EVIDENCE
             Assert.True(
                 stopwatch.Elapsed < TimeSpan.FromSeconds(3),
                 $"Malformed formula scans exceeded the linear-time budget: {stopwatch.Elapsed}.");
+#endif
 
             var legitimate = new ExcelFormulaCellInfo(
                 "Data",

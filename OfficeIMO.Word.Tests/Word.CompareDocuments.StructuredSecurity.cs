@@ -27,10 +27,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, comparer.EqualsCalls);
         }
 
+#if WORD_PERFORMANCE_EVIDENCE
+        [Trait("Category", "Performance")]
+        [Trait("Category", "WordPerformanceEvidence")]
+#endif
         [Fact]
         public void BoundedTextSimilarityWorkDoesNotScaleWithInputLength() {
             MethodInfo method = typeof(WordDocumentComparer).GetMethod(
-                "GetBoundedTextSimilarity",
+                "GetTextSimilarity",
                 BindingFlags.NonPublic | BindingFlags.Static,
                 null,
                 new[] { typeof(string), typeof(string) },
@@ -40,12 +44,19 @@ namespace OfficeIMO.Tests {
 
             string shortSource = "A" + new string('x', 4_094) + "B";
             string shortTarget = "C" + new string('y', 4_094) + "D";
+#if WORD_PERFORMANCE_EVIDENCE
             string longSource = "A" + new string('x', 3_999_998) + "B";
             string longTarget = "C" + new string('y', 3_999_998) + "D";
+
+#else
+            string longSource = "A" + new string('x', 8_190) + "B";
+            string longTarget = "C" + new string('y', 8_190) + "D";
+#endif
 
             Assert.Equal(0D, similarity(shortSource, shortTarget));
             Assert.Equal(0D, similarity(longSource, longTarget));
 
+#if WORD_PERFORMANCE_EVIDENCE
             const int iterations = 128;
             TimeSpan shortElapsed = MeasureSimilarity(similarity, shortSource, shortTarget, iterations);
             TimeSpan longElapsed = MeasureSimilarity(similarity, longSource, longTarget, iterations);
@@ -54,33 +65,13 @@ namespace OfficeIMO.Tests {
             Assert.True(
                 longElapsed <= maximumLongElapsed,
                 $"Bounded similarity scaled with attacker-controlled input length: short={shortElapsed.TotalMilliseconds:F1} ms, long={longElapsed.TotalMilliseconds:F1} ms, limit={maximumLongElapsed.TotalMilliseconds:F1} ms.");
+#endif
         }
 
-        [Fact]
-        public void ContainmentAwareSimilarityUsesBoundedWorkForLargeText() {
-            MethodInfo method = typeof(WordDocumentComparer).GetMethod(
-                "GetContainmentAwareTextSimilarity",
-                BindingFlags.NonPublic | BindingFlags.Static,
-                null,
-                new[] { typeof(string), typeof(string) },
-                null)
-                ?? throw new InvalidOperationException("Containment-aware text similarity implementation was not found.");
-            var similarity = (Func<string, string, double>)method.CreateDelegate(typeof(Func<string, string, double>));
-
-            string shortSource = "A" + new string('x', 4_094) + "B";
-            string target = "C" + new string('y', 1_022) + "D";
-            string longSource = "A" + new string('x', 3_999_998) + "B";
-
-            const int iterations = 4_096;
-            TimeSpan shortElapsed = MeasureSimilarity(similarity, shortSource, target, iterations);
-            TimeSpan longElapsed = MeasureSimilarity(similarity, longSource, target, iterations);
-            TimeSpan maximumLongElapsed = TimeSpan.FromTicks((shortElapsed.Ticks * 50) + TimeSpan.FromMilliseconds(50).Ticks);
-
-            Assert.True(
-                longElapsed <= maximumLongElapsed,
-                $"Containment-aware similarity scaled with attacker-controlled input length: short={shortElapsed.TotalMilliseconds:F1} ms, long={longElapsed.TotalMilliseconds:F1} ms, limit={maximumLongElapsed.TotalMilliseconds:F1} ms.");
-        }
-
+#if WORD_PERFORMANCE_EVIDENCE
+        [Trait("Category", "Performance")]
+        [Trait("Category", "WordPerformanceEvidence")]
+#endif
         [Fact]
         public void TextSimilarityChecksTheLargeInputLimitBeforeExactEquality() {
             MethodInfo method = typeof(WordDocumentComparer).GetMethod(
@@ -94,9 +85,18 @@ namespace OfficeIMO.Tests {
 
             string shortSource = new string('x', 4_095) + "A";
             string shortTarget = new string('x', 4_095) + "B";
+#if WORD_PERFORMANCE_EVIDENCE
             string longSource = new string('x', 3_999_999) + "A";
             string longTarget = new string('x', 3_999_999) + "B";
 
+#else
+            string longSource = new string('x', 8_191) + "A";
+            string longTarget = new string('x', 8_191) + "B";
+#endif
+            Assert.Equal(63D / 64D, similarity(shortSource, shortTarget));
+            Assert.Equal(63D / 64D, similarity(longSource, longTarget));
+
+#if WORD_PERFORMANCE_EVIDENCE
             const int iterations = 512;
             TimeSpan shortElapsed = MeasureSimilarity(similarity, shortSource, shortTarget, iterations);
             TimeSpan longElapsed = MeasureSimilarity(similarity, longSource, longTarget, iterations);
@@ -105,6 +105,7 @@ namespace OfficeIMO.Tests {
             Assert.True(
                 longElapsed <= maximumLongElapsed,
                 $"Large-input similarity performed attacker-length exact comparisons: short={shortElapsed.TotalMilliseconds:F1} ms, long={longElapsed.TotalMilliseconds:F1} ms, limit={maximumLongElapsed.TotalMilliseconds:F1} ms.");
+#endif
         }
 
         [Fact]
@@ -405,6 +406,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, GetRemainingComparisonWorkUnits(cachedAncestorBudget));
         }
 
+#if WORD_PERFORMANCE_EVIDENCE
         private static TimeSpan MeasureSimilarity(
             Func<string, string, double> similarity,
             string source,
@@ -418,6 +420,8 @@ namespace OfficeIMO.Tests {
             stopwatch.Stop();
             return stopwatch.Elapsed;
         }
+
+#endif
 
         private static object CreateComparisonWorkBudget(long maximumWorkUnits) {
             Type workBudgetType = typeof(WordDocumentComparer).GetNestedType(

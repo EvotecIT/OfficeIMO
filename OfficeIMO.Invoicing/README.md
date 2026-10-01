@@ -4,7 +4,15 @@ Create, read, edit and convert electronic invoices with one typed .NET model.
 The core has no external runtime dependencies and supports .NET Standard 2.0,
 .NET 8, .NET 10 and .NET Framework 4.7.2.
 
-## Build and install locally
+## Install
+
+```powershell
+dotnet add package OfficeIMO.Invoicing --version 3.4.4
+```
+
+This package does not depend on a PDF engine or an external validation runtime.
+
+## Build from source
 
 From the repository root, pack the project into a local feed, then add that
 package to your application:
@@ -14,9 +22,12 @@ dotnet pack OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj -c Release -o artifac
 dotnet add path/to/Application.csproj package OfficeIMO.Invoicing --source artifacts/invoice-feed
 ```
 
-This package does not depend on a PDF engine or an external validation runtime.
-
 ## Create invoice XML
+
+`InvoiceXmlOptions.GetSupportedTargets()` returns the valid combinations of
+specification release, syntax and profile from the same contract used by the
+options constructor. Use this catalog for format selection; projection rejects
+data loss by default.
 
 ```csharp
 using OfficeIMO.Invoicing;
@@ -68,11 +79,11 @@ Successful serialization alone does not establish standards compliance.
 | Area | Supported data |
 | --- | --- |
 | Syntax and profiles | Factur-X 1.09.2 / ZUGFeRD 2.5.2 CII D22B with MINIMUM, BASIC WL, BASIC, EN 16931 and EXTENDED; EN 16931 1.3.16 and XRechnung 3.0.2 in CII D16B or UBL 2.1; Peppol BIS Billing 3.0.21 in UBL 2.1 |
-| Documents | Invoice and credit note; document currency and accounting-currency VAT. UBL credit notes cannot carry a due date or project reference; writing or converting those fields reports unsupported target data. |
+| Documents | Invoice (380), credit note (381), partial invoice (326), corrected invoice (384), prepayment invoice (386) and self-billed invoice (389); document currency and accounting-currency VAT. UBL credit notes cannot carry a due date or project reference; writing or converting those fields reports unsupported target data. Peppol BIS Billing rejects self-billed invoices because they require a separate self-billing contract. |
 | Parties | Seller, buyer, payee, tax representative, addresses, identifiers and contacts within each semantic role. Tax registrations retain their identifier and arbitrary source scheme. Target inspection reports the exact indexed registration when a target permits only VAT, one seller fiscal registration, or a canonical CII `VA`/`FC` scheme. |
 | Lines | Quantities, price base quantities, net/gross prices, discounts, allowances, charges, item identifiers, classifications and attributes |
 | VAT and totals | Category/rate breakdowns, exemptions, document adjustments, prepayments and payable rounding |
-| Payments | Ordered payment-means occurrences with their own description, account, reference, direct-debit and masked-card data. UBL preserves card network identifiers; CII reports them as unsupported. Conflicting CII invoice-level references, creditor identifiers or mandates are reported by exact payment index. |
+| Payments | Ordered payment-means occurrences with their own description, account, reference, direct-debit and masked-card data. Independent `PaymentReference`, `CreditorIdentifier` and `DirectDebitMandateReference` retain invoice-level data when no payment means is declared. UBL requires a payment instruction for a remittance reference or mandate; conversion reports those fields rather than inventing a means code. UBL preserves card network identifiers; CII reports them as unsupported. Conflicting invoice-level and occurrence values are reported by exact payment index. |
 | References | Orders, preceding invoices, contracts, projects, delivery, periods, accounting and supporting documents. CII preserves a sales-order-only reference; UBL reports that it requires the associated purchase-order reference. External locations preserve well-formed absolute URIs, including FTP and URN schemes, without fetching them. |
 
 IBAN classification checks the registered country prefix, national length and character
@@ -86,11 +97,138 @@ selected profile omits. `AllowProfileDefinedDataLoss` permits only that declared
 profile reduction and returns the same findings as warnings from `InspectTarget`.
 MINIMUM and BASIC WL carry calculated aggregates without XML line occurrences.
 
+Use the constants in `InvoiceDocumentTypes` to select a document type. The qualified
+type mapping covers the following pinned contracts; required business data still
+depends on the selected type and profile:
+
+| Contract | Syntax | Qualified types |
+| --- | --- | --- |
+| EN 16931 1.3.16 | CII D16B, UBL 2.1 | 326, 380, 381, 384, 386, 389 |
+| XRechnung 3.0.2, 2026-08-31 rules | CII D16B, UBL 2.1 | 326, 380, 381, 384, 386, 389 |
+| Peppol BIS Billing 3.0.21 | UBL 2.1 | 326, 380, 381, 384, 386 |
+| Factur-X 1.09.2 / ZUGFeRD 2.5.2, all five profiles | CII D22B | 326, 380, 381, 384, 386, 389 |
+
+A corrected invoice can identify the original through `PrecedingInvoices`.
+Selecting prepayment type 386 does not infer a paid amount; set `PrepaidAmount`
+when the business record actually includes a payment. Selecting self-billed type
+389 does not change seller/buyer roles or establish permission to self-bill.
+
 XRechnung is the only national CIUS with an authoring contract because this
 release includes its CII/UBL syntax mappings, pinned rules and corpus evidence.
 EXTENDED-CTC-FR remains recognizable for inspection but cannot be selected for
 authoring or validation. Peppol BIS is a cross-border network usage specification,
 not a substitute for a national CIUS contract.
+
+## Create Polish FA(3)
+
+`Fa3InvoiceWriter` uses the shared `Invoice` model with explicit national options.
+FA(3) is a separate format contract rather than another EN profile.
+
+```csharp
+var polish = new Invoice {
+    Number = "FA-2026-001", IssueDate = new DateTime(2026, 9, 30), Currency = "PLN",
+    Seller = new InvoiceParty {
+        Name = "Example Seller",
+        Address = new InvoiceAddress {
+            CountryCode = "PL", Line1 = "Example Street 1", Line2 = "00-001 Warszawa"
+        }
+    },
+    Buyer = new InvoiceParty {
+        Name = "Example Buyer",
+        Address = new InvoiceAddress {
+            CountryCode = "PL", Line1 = "Example Street 2", Line2 = "00-001 Warszawa"
+        }
+    }
+};
+// Fictional example identities; supply the issuer's actual identifiers.
+polish.Seller.TaxRegistrations.Add(
+    new InvoiceTaxRegistration("9999999999", "NIP", InvoiceTaxRegistrationKind.Fiscal));
+polish.Buyer.TaxRegistrations.Add(
+    new InvoiceTaxRegistration("1111111111", "NIP", InvoiceTaxRegistrationKind.Fiscal));
+polish.Lines.Add(new InvoiceLine {
+    Id = "1", Name = "Consulting", Quantity = 1, UnitPrice = 100, UnitCode = "HUR",
+    Tax = new InvoiceTaxCategory { Code = "S", Rate = 23 }
+});
+var national = new Fa3InvoiceWriteOptions(
+    Fa3InvoiceKind.TaxInvoice,
+    new DateTimeOffset(2026, 9, 30, 12, 0, 0, TimeSpan.Zero),
+    new Fa3InvoiceAnnotations());
+var findings = Fa3InvoiceWriter.Inspect(polish, national);
+byte[] fa3Xml = Fa3InvoiceWriter.Write(polish, national);
+```
+
+Creation time and annotations are issuer declarations. The annotations cover
+cash accounting, self-billing, reverse charge, split payment, triangular
+transactions, an explicit exemption legal basis and margin procedures. This
+authoring contract declares ordinary buyer JST/GV roles and no new means of
+transport. It does not infer those choices from names or item descriptions.
+
+| National kind | Authoring contract |
+| --- | --- |
+| VAT | Ordinary PLN amounts use the shared calculator. Foreign currency or margin procedures require explicit national amounts. |
+| KOR | Common type 384, preceding invoice number and date, optional actual KSeF identifier, correction reason/timing and explicit signed national amounts. Rows express differences; previous-state row authoring is outside this contract. |
+| ZAL | Explicit national advance amounts and full order rows whose gross calculation agrees with the order total. |
+| KOR_ZAL | Explicit signed national amounts, preceding invoice reference, and `Fa3Order.CorrectionDifferences(originalTotal, revisedTotal, differences, differenceTaxAmounts)`. Signed row amounts and explicit P_11VatZ declarations in row order reconcile the order totals. P_15ZK is optional. An unchanged order requires before/after rows and is rejected by this contract. |
+| ROZ / KOR_ROZ | Settlement or settlement-correction kind, explicit national settlement amounts and previous advance references. Corrections also identify the preceding invoice and may provide P_15ZK. |
+| UPR | Explicit national amounts; omitted simplified buyer name and invoice lines are supported. |
+
+Use `Fa3FiscalAmounts` and `Fa3TaxSummary` for national P_15 and P_13/P_14
+declarations. They are not relabeled EN payable totals. Foreign-currency taxable
+buckets require explicit PLN tax amounts; an exchange rate is never guessed.
+Ordinary PLN invoices derive their amounts from the shared calculator and reject
+`FiscalAmounts` overrides. Dates, country and currency codes, NIP and contact
+fields are checked against the pinned schema restrictions. A NIP pattern check
+does not establish tax registration.
+Negative line formulas that require rounding need an explicit
+`DeclaredNetAmount`. EN negative-half rounding does not become a Polish fiscal
+calculation rule. EN prepayments, payable rounding and aggregate declarations
+must not be passed as substitutes for national payment or settlement records.
+
+Invoice and order rows reuse `InvoiceLine`. Row identifiers are distinct positive
+integers, prices apply to one unit, and unsupported adjustments or item metadata
+block output. Known unit codes map to national labels; `UnitLabels` supplies
+literal labels for other codes. `LineTaxLabels` distinguishes national `np I`
+and `np II` when the common category is `O`. An override must agree with the
+common category and rate. The supported payment forms are cash, card, cheque and
+generic transfer; a SEPA-specific code is reported rather than reduced silently.
+
+`Inspect` reports each unsupported populated field. `Write` blocks when a finding
+is an error and bounds output to 16 MiB. The qualified XSD cases cover all seven
+kinds, foreign-currency tax, exemption and margin declarations, periods and bank
+payments. Validation establishes structure, not Polish tax treatment or KSeF
+acceptance. Additional parties and JST/GV roles, new means of transport,
+previous-state correction rows, partial-payment histories, settlement charges,
+national item classifications and attachments require additional native mappings.
+
+## Read Polish FA(3)
+
+`Fa3InvoiceReader` reads the Polish FA(3), schema 1-0E, variant 3 document.
+It retains national document kinds, creation timestamps, P_15, every P_13/P_14
+VAT bucket, PLN tax declarations and literal line units. The common `Invoice`
+projection contains supported identities, addresses, contacts, dates, ordinary
+priced lines and payment instructions. A NIP remains a fiscal registration; it
+does not establish VAT registration. Address lines remain free text.
+
+```csharp
+var fa3 = Fa3InvoiceReader.Read(File.ReadAllBytes("polish-invoice.xml"));
+Console.WriteLine($"{fa3.Kind}: {fa3.Invoice.Number}, P_15={fa3.DeclaredTotal}");
+foreach (var diagnostic in fa3.UnmappedData.Concat(fa3.CommonMappingDiagnostics))
+    Console.WriteLine($"{diagnostic.Location}: {diagnostic.Message}");
+byte[] original = fa3.GetOriginalBytes();
+```
+
+The common projection does not recalculate national amounts or infer an amount
+due. Corrections retain signed differences and previous-state rows; advance and
+settlement rows are not interpreted as ordinary billed lines. Missing simplified
+invoice quantities and prices remain absent in the national line data. Other
+national annotations, order details, correction references, settlement charges
+and attachments are reported as unmapped rather than discarded.
+
+`GetOriginalBytes()` returns unchanged source bytes even after common-model edits.
+`WriteCommonInvoice` blocks conversion when national semantics or unmapped fields
+would be lost. Reading is separate from FA(3) authoring, fiscal validation and
+KSeF acceptance. Use the offline [FA(3) schema validator](../OfficeIMO.Invoicing.Validation/README.md#validate-polish-fa3)
+to qualify exact source bytes against the official XSD.
 
 ## Read and edit safely
 
@@ -115,6 +253,39 @@ reported. Rewriting blocks by default when it would discard them. The explicit
 unknown extensions. `GetOriginalBytes()` always returns the original bytes,
 even after model edits.
 
+For selected header changes on a source with unmapped extensions, use the
+preservation editor:
+
+```csharp
+var source = InvoiceSourceDocument.Load("invoice.xml");
+var result = InvoiceSourceEditor.Apply(source, new InvoiceSourceEdits(
+    number: "INV-002",
+    issueDate: new DateTime(2026, 9, 30),
+    buyerReference: "BUYER-002"));
+if (result.Succeeded)
+    File.WriteAllBytes("edited.xml", result.Document!.ToBytes());
+foreach (var diagnostic in result.Diagnostics)
+    Console.WriteLine($"{diagnostic.Location}: {diagnostic.Message}");
+```
+
+`InvoiceSourceEdits` replaces an existing number, issue date, due date, buyer
+reference or payment reference. Each field must have one unambiguous plaintext
+location. All replacements are checked before any mutation; a failed plan returns
+no edited document. Number changes retain payment references unless a replacement
+is supplied separately. Signed XML, structured or annotated fields, unsupported
+date representations and UBL credit-note due dates are rejected.
+
+Unedited sources return their exact original bytes. Editing emits UTF-8 XML and
+retains other elements, attributes, comments, processing instructions and text,
+including carriage returns; prefix placement, CDATA spelling and declaration
+formatting can change. Input and output are bounded to 16 MiB, depth 128,
+100,000 XML reader nodes and 200,000 attributes. Text replacements are limited to
+4,096 characters. Dates accept existing CII format 102 or plain UBL `yyyy-MM-dd`.
+Completion establishes that the requested edits were applied, so validate the
+resulting business data and exact XML against the intended standards release.
+The [shared workflows](../OfficeIMO.Workflows/README.md#invoice-inspection-conversion-and-rendering)
+compose these checks and safe file publication.
+
 Duplicate invoice-currency or accounting-currency VAT totals are reported as
 unmapped data. UBL parsing retains the first invoice-currency total that includes
 a VAT breakdown, keeping that group's amount and breakdown together. For CII
@@ -128,6 +299,34 @@ rounding difference for taxable categories; zero-tax categories require exactly
 zero VAT. Totals must match the resulting amounts exactly. These
 checks do not replace release-specific rules. `UpdateDeclaredAmounts` explicitly
 recalculates lines, VAT and totals after financial edits.
+
+For aggregate-only MINIMUM or BASIC WL data, recalculation retains the available
+tax bases and VAT amounts and rebuilds dependent totals, including prepayment
+edits. It does not create missing invoice lines. Target inspection still rejects
+adjustments that the selected profile cannot carry, such as a MINIMUM prepayment
+or a lower-profile rounding adjustment.
+
+Accounting-currency VAT needs an explicit decision after financial edits. When
+the invoice VAT total changes or has no retained baseline,
+`UpdateDeclaredAmounts` clears `TaxAmountInAccountingCurrency` and retains
+`TaxCurrency`; validation blocks writing until the amount is refreshed. An
+unchanged retained VAT total preserves its imported accounting-currency amount.
+Changing the invoice currency or an established tax currency also clears that
+amount. Set both currencies before supplying a refreshed amount.
+Supply the applicable exchange rate as accounting-currency units per
+invoice-currency unit to calculate that amount explicitly:
+
+```csharp
+invoice.TaxCurrency = "PLN";
+var edit = InvoiceEditor.Recalculate(invoice, taxExchangeRate: 4.25m);
+foreach (var diagnostic in edit.Diagnostics)
+    Console.WriteLine($"{diagnostic.Location}: {diagnostic.Message}");
+```
+
+`InvoiceEditor.Recalculate(invoice)` reports a required accounting-currency
+refresh as `INV-ACCOUNTING-VAT-REFRESH`. Neither API chooses a tax-point date,
+fetches exchange rates, nor infers a rate from historical amounts. Supply the
+rate required by the transaction's accounting rules.
 
 Model validation requires a seller business, legal or VAT identifier, and an
 account for credit-transfer payment codes 30 and 58. VAT checks cover category-specific

@@ -57,8 +57,8 @@ public sealed partial class MainWindowViewModel {
 
     private void OnSavedSignaturesChanged() {
         if (_disposed) return;
-        if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess()) EnsureSignaturesLoaded();
-        else Avalonia.Threading.Dispatcher.UIThread.Post(() => {
+        if (_uiDispatcher.CheckAccess()) EnsureSignaturesLoaded();
+        else _uiDispatcher.Post(() => {
             if (!_disposed) EnsureSignaturesLoaded();
         });
     }

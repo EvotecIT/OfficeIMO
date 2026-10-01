@@ -41,6 +41,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     private bool _disposed;
     private bool _discardOnNextTransition;
     private readonly StudioApplicationServices _services;
+    // Background completions belong to this application, even after its dispatcher shuts down.
+    private readonly Avalonia.Threading.Dispatcher _uiDispatcher = Avalonia.Threading.Dispatcher.UIThread;
     private readonly IStudioLocalizer _localizer;
     private StudioCommandCatalog? _commands;
     private readonly bool _persistDocumentViews;
@@ -122,7 +124,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<CancellationToken, Task<string?>>? pickSaveRedactionReport = null,
         IScanTextRecognitionService? scanTextRecognition = null,
         Func<CancellationToken, Task<string?>>? pickPrintOutput = null,
-        Func<WatermarkPreviewViewModel, Task<bool>>? reviewWatermark = null) {
+        Func<WatermarkPreviewViewModel, Task<bool>>? reviewWatermark = null,
+        Func<CancellationToken, Task<string?>>? pickProvenanceFile = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
         _services.Signatures.Changed += OnSavedSignaturesChanged;
         _persistDocumentViews = services is not null;
@@ -174,6 +177,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             publicationGuard: publicationGuard,
             jobHistory: _services.Jobs, storage: _services.Storage, recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite,
             openOutput: openWorkflowOutput);
+        InvoiceWorkbench = new InvoiceWorkbenchViewModel(
+            token => FileDialogs.PickOpenFileAsync(_localizer.GetOrDefault("Invoice.ChooseInput", "Choose invoice XML"),
+                new StudioFileType("Invoice XML", ["xml"], "application/xml"), token),
+            _pickOutputFolder, runner: null, localizer: _localizer, storage: _services.Storage, guard: publicationGuard,
+            jobs: _services.Jobs, recovery: _services.WorkflowRecovery,
+            confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite, openOutput: openWorkflowOutput);
         OutputWorkbench = new OutputIntakeWorkbenchViewModel(
             _pickPdf,
             _pickOutputFolder,
@@ -185,6 +194,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             jobHistory: _services.Jobs, storage: _services.Storage,
             recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite,
             readPrintSnapshot: ReadPrintSnapshotAsync, pickPrintOutput: pickPrintOutput);
+        ProvenanceWorkbench = new ProvenanceWorkbenchViewModel(pickProvenanceFile ?? _pickPdf, _pickOutputFolder, publicationGuard: publicationGuard);
         DocumentHealth = new DocumentHealthViewModel(_pickPdf, _pickOutputFolder, runner: null, localizer: _localizer,
             publicationGuard: publicationGuard, jobHistory: _services.Jobs, storage: _services.Storage, recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite);
         OcrWorkbench = new SearchablePdfOcrViewModel(
@@ -203,8 +213,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _services.DocumentHistory.Cleared += OnDocumentHistoryCleared;
         _services.Recovery.MaintenanceCompleted += OnRecoveryMaintenanceCompleted;
         ConversionWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
+        InvoiceWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         OutputWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         DocumentHealth.PropertyChanged += OnWorkflowPropertyChanged;
+        ProvenanceWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         OcrWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         OcrSession.PropertyChanged += OnWorkflowPropertyChanged;
         foreach (RecentDocumentViewModel document in _recentDocumentStore?.Load() ?? []) RecentDocuments.Add(document);
@@ -281,7 +293,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     public bool CanStartDocumentTransition => !IsWorkspaceBusy && !IsOpening;
 
     public bool CanCancelOperation => IsWorkspaceBusy || IsOpening || ConversionWorkbench.IsBusy ||
-                                      OutputWorkbench.IsBusy || DocumentHealth.IsBusy || OcrWorkbench.IsBusy || OcrSession.IsBusy;
+                                      OutputWorkbench.IsBusy || DocumentHealth.IsBusy || ProvenanceWorkbench.IsBusy || OcrWorkbench.IsBusy || OcrSession.IsBusy || InvoiceWorkbench.IsBusy;
 
     internal string? DocumentPath => _workspace?.Path ?? _session?.Path;
 
@@ -565,14 +577,18 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _services.Recovery.MaintenanceCompleted -= OnRecoveryMaintenanceCompleted;
         _services.DocumentHistory.Cleared -= OnDocumentHistoryCleared;
         ConversionWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
+        InvoiceWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         OutputWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         DocumentHealth.PropertyChanged -= OnWorkflowPropertyChanged;
+        ProvenanceWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         OcrWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         OcrSession.PropertyChanged -= OnWorkflowPropertyChanged;
         ConversionWorkbench.Dispose();
+        InvoiceWorkbench.Dispose();
         Jobs.Dispose();
         OutputWorkbench.Dispose();
         DocumentHealth.Dispose();
+        ProvenanceWorkbench.Dispose();
         OcrWorkbench.Dispose();
         OcrSession.Dispose();
         Settings.Dispose();

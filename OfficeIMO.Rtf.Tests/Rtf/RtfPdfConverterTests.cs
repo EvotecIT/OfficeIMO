@@ -788,6 +788,7 @@ public class RtfPdfConverterTests {
     [Fact]
     public void RtfDocument_ToPdfDocument_Renders_First_And_Even_HeaderFooter_Variants() {
         RtfDocument document = RtfDocument.Create();
+        document.Settings.FacingPages = true;
         document.PageSetup.SetDifferentFirstPageHeaderFooter();
         document.AddHeader(RtfHeaderFooterKind.RightHeader).AddParagraph("Odd header");
         document.AddHeader(RtfHeaderFooterKind.LeftHeader).AddParagraph("Even header");

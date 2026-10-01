@@ -369,11 +369,12 @@ internal static partial class RtfSemanticReader {
             }
 
             AddDocumentBlock(image);
+            _hasStandaloneBlockParagraph = true;
         }
 
         private void CompleteCurrentSection() {
             RtfSection section = EnsureCurrentSection();
-            if (section.Blocks.Count > 0 || section.HasAnyLayoutValue) {
+            if (section.Blocks.Count > 0 || section.HasAnyLayoutValue || section.HeaderFooters.Count > 0) {
                 _document.AddParsedSection(section);
             }
 
@@ -386,7 +387,7 @@ internal static partial class RtfSemanticReader {
                 return;
             }
 
-            if (_currentSection.Blocks.Count > 0 || _currentSection.HasAnyLayoutValue) {
+            if (_currentSection.Blocks.Count > 0 || _currentSection.HasAnyLayoutValue || _currentSection.HeaderFooters.Count > 0) {
                 _document.AddParsedSection(_currentSection);
             }
         }

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "officeimo": {
+      "type": "stdio",
+      "command": "dotnet",
+      "args": [
+        "dnx",
+        "OfficeIMO.Tool@3.4.4",
+        "mcp",
+        "serve",
+        "--stdio"
+      ]
+    }
+  }
+}

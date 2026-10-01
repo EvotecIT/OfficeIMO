@@ -1,0 +1,21 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "producerUiLanguageId": 1033,
+  "producerDecimalSeparator": ".",
+  "producerThousandsSeparator": ",",
+  "hostCulture": "pl-PL",
+  "generatedUtc": "2026-09-28T21:09:57.4748693Z",
+  "regeneration": "Build/Verification/New-ExcelPivotMultiFieldValueOracle.ps1",
+  "file": "pivot-value-multifield-inner-bottomsum15-conformance.xlsx",
+  "sha256": "90e2fd8fc0c0bc4f22fa61b9b3f4b3a9a1b7f4d1e8802daa13013cb4f639281d",
+  "sourceRange": "Source!A1:C7",
+  "filteredField": "Product",
+  "axis": "Row",
+  "filterType": 6,
+  "threshold": 15.0,
+  "threshold2": null,
+  "outputRange": "A4:C13",
+  "grandTotal": 145.0
+}

@@ -545,7 +545,7 @@ public static partial class WordRtfConverterExtensions {
     private static int GetOrAddColor(RtfDocument document, byte red, byte green, byte blue) {
         for (int index = 0; index < document.Colors.Count; index++) {
             RtfColor color = document.Colors[index];
-            if (color.Red == red && color.Green == green && color.Blue == blue) {
+            if (!color.IsAutomatic && color.Red == red && color.Green == green && color.Blue == blue) {
                 return index + 1;
             }
         }
@@ -554,12 +554,8 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static string? GetColorHex(RtfDocument document, int colorIndex) {
-        if (colorIndex <= 0 || colorIndex > document.Colors.Count) {
-            return null;
-        }
-
-        RtfColor color = document.Colors[colorIndex - 1];
-        return $"{color.Red:X2}{color.Green:X2}{color.Blue:X2}";
+        RtfColor? color = document.GetColor(colorIndex);
+        return color == null ? null : $"{color.Red:X2}{color.Green:X2}{color.Blue:X2}";
     }
 
     private static bool TryParseHexColor(string value, out byte red, out byte green, out byte blue) {

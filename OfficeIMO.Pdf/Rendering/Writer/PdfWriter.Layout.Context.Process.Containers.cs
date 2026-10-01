@@ -11,8 +11,18 @@ internal static partial class PdfWriter {
             var pendingBlocks = columns.Blocks.ToList();
             int blockIndex = 0;
             while (blockIndex < pendingBlocks.Count) {
-                while (blockIndex < pendingBlocks.Count && pendingBlocks[blockIndex] is ColumnBreakBlock) blockIndex++;
-                if (blockIndex >= pendingBlocks.Count) break;
+                if (pendingBlocks[blockIndex] is PageBreakBlock) {
+                    pendingFloatingBookmarks.Clear();
+                    NewPage();
+                    blockIndex++;
+                    continue;
+                }
+                int segmentEnd = blockIndex;
+                bool hasColumnBreak = false;
+                while (segmentEnd < pendingBlocks.Count && pendingBlocks[segmentEnd] is not PageBreakBlock) {
+                    hasColumnBreak |= pendingBlocks[segmentEnd] is ColumnBreakBlock;
+                    segmentEnd++;
+                }
                 // Columns are assigned using the space remaining after float clearance.
                 // Their row may span the available frame, so reserve that frame before
                 // choosing which source blocks belong to each column.
@@ -24,10 +34,11 @@ internal static partial class PdfWriter {
                 }
 
                 double remainingHeight = 0D;
-                for (int i = blockIndex; i < pendingBlocks.Count; i++) {
+                for (int i = blockIndex; i < segmentEnd; i++) {
                     if (pendingBlocks[i] is not ColumnBreakBlock) remainingHeight += MeasureColumnBlock(pendingBlocks[i], columnWidth);
                 }
-                double target = options.BalanceLastPage && remainingHeight <= availableHeight * options.ColumnCount
+                double target = options.BalanceLastPage && segmentEnd == pendingBlocks.Count &&
+                    !hasColumnBreak && remainingHeight <= availableHeight * options.ColumnCount
                     ? Math.Max(currentOpts.DefaultFontSize * 1.4D, remainingHeight / options.ColumnCount)
                     : availableHeight;
 
@@ -42,7 +53,7 @@ internal static partial class PdfWriter {
                 for (int columnIndex = 0; columnIndex < options.ColumnCount; columnIndex++) {
                     var column = new RowColumn(PdfColumnWidth.Percent(widthPercent));
                     double consumed = 0D;
-                    while (blockIndex < pendingBlocks.Count) {
+                    while (blockIndex < segmentEnd) {
                         IPdfBlock block = pendingBlocks[blockIndex];
                         if (block is ColumnBreakBlock) {
                             blockIndex++;
@@ -71,7 +82,7 @@ internal static partial class PdfWriter {
                 }
 
                 RenderRowFlowBlock(row, nextBlock: null, new List<IPdfBlock> { row }, 0);
-                if (blockIndex < pendingBlocks.Count) NewPage();
+                if (blockIndex < segmentEnd) NewPage();
             }
         }
 
@@ -210,7 +221,7 @@ internal static partial class PdfWriter {
 
         private static void ValidateMultiColumnBlocks(IReadOnlyList<IPdfBlock> blocks) {
             foreach (IPdfBlock block in blocks) {
-                if (PdfFlowNestingRules.IsColumnFlowPrimitive(block) || block is ColumnBreakBlock) {
+                if (PdfFlowNestingRules.IsColumnFlowPrimitive(block) || block is ColumnBreakBlock or PageBreakBlock) {
                     continue;
                 }
 

@@ -1,0 +1,52 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T01:16:03.7840440Z",
+  "regeneration": "Build/Verification/New-ExcelPivotFilteredOracle.ps1",
+  "file": "filtered-blank-conformance.xlsx",
+  "sha256": "94b4cdfdb5f73c1c6dd505f48070bd11118f07fb12476cc9f7a4544a8c0879b2",
+  "sourceRange": "Source!A1:C7",
+  "outputRange": "A4:B6",
+  "selectedPageItem": "Product=(blank)",
+  "hiddenRowItem": "Region=West",
+  "newRowItem": "Region=East",
+  "lookups": [
+    {
+      "name": "Grand",
+      "value": "20"
+    },
+    {
+      "name": "North",
+      "value": "20"
+    },
+    {
+      "name": "South",
+      "value": "#REF!"
+    },
+    {
+      "name": "West",
+      "value": "#REF!"
+    },
+    {
+      "name": "ProductB",
+      "value": "#REF!"
+    },
+    {
+      "name": "ProductA",
+      "value": "#REF!"
+    },
+    {
+      "name": "NorthB",
+      "value": "#REF!"
+    },
+    {
+      "name": "East",
+      "value": "#REF!"
+    },
+    {
+      "name": "ProductBlank",
+      "value": "20"
+    }
+  ]
+}

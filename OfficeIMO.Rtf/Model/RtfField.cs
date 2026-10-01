@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// RTF field with instruction text and rich inline result content.
 /// </summary>
-public sealed class RtfField : IRtfInline {
+public sealed partial class RtfField : IRtfInline {
     private string _instruction = string.Empty;
 
     /// <summary>Creates an RTF field.</summary>
@@ -25,7 +25,7 @@ public sealed class RtfField : IRtfInline {
     public RtfFieldCodeSyntax FieldCode { get; private set; } = RtfFieldCodeSyntax.Parse(string.Empty);
 
     /// <summary>Visible field result content.</summary>
-    public RtfParagraph Result { get; } = new RtfParagraph();
+    public RtfParagraph Result { get; private set; } = new RtfParagraph();
 
     /// <summary>Parsed metadata for <c>HYPERLINK</c> fields. The raw <see cref="Instruction"/> remains authoritative.</summary>
     public RtfHyperlinkFieldInfo? HyperlinkField { get; set; }

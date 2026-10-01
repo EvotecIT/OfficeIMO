@@ -163,8 +163,11 @@ $affinityAfterPlan = if ([System.Runtime.InteropServices.RuntimeInformation]::Is
 } else {
     $null
 }
-$expectedAffinityApplication = if ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
-        [System.Runtime.InteropServices.OSPlatform]::Windows)) {
+$inheritsAffinity = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+    [System.Runtime.InteropServices.OSPlatform]::Windows) -or
+    [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+        [System.Runtime.InteropServices.OSPlatform]::Linux)
+$expectedAffinityApplication = if ($inheritsAffinity) {
     'inherited-parent-process'
 } else {
     'benchmarkdotnet-command-line'

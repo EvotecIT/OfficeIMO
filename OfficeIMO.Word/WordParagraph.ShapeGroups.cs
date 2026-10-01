@@ -11,7 +11,7 @@ namespace OfficeIMO.Word {
         public WordShapeGroup? ShapeGroup {
             get {
                 if (_run == null) return null;
-                WordDrawing? drawing = _run.ChildElements
+                WordDrawing? drawing = EnumerateEffectiveRunContent()
                     .OfType<WordDrawing>()
                     .FirstOrDefault(candidate => candidate.Descendants<Wpg.WordprocessingGroup>().Any());
                 return drawing == null ? null : new WordShapeGroup(_document, this, _run, drawing);

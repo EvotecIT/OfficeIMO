@@ -98,7 +98,8 @@ public sealed partial class PdfOptions {
         string sourceFontFamily,
         PdfStandardFont? fallbackSlot,
         string? resolvedFontFamily,
-        IReadOnlyDictionary<string, string>? additionalDetails = null) {
+        IReadOnlyDictionary<string, string>? additionalDetails = null,
+        bool sourceFontEmbeddingAllowed = true) {
         var details = new Dictionary<string, string>(StringComparer.Ordinal);
         if (additionalDetails != null) {
             foreach (KeyValuePair<string, string> detail in additionalDetails) {
@@ -163,12 +164,16 @@ public sealed partial class PdfOptions {
         string fallbackNote = string.IsNullOrWhiteSpace(fallbackCandidates)
             ? string.Empty
             : " Glyphs outside that family may use the embedded fallback families " + fallbackCandidates + ".";
+        details["substitutionReason"] = sourceFontEmbeddingAllowed ? "FontUnavailable" : "ResourcePolicy";
+        string reason = sourceFontEmbeddingAllowed
+            ? "' was unavailable or could not be embedded; generated text uses "
+            : "' was substituted because the resource policy disables embedding source fonts; generated text uses ";
         return new PdfConversionWarning(
             converter,
             code,
             source,
             "The source font family '" + sourceFontFamily +
-            "' was unavailable or could not be embedded; generated text uses " +
+            reason +
             fallbackDescription + "." + fallbackNote,
             details: details);
     }

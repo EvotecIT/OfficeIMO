@@ -1,0 +1,95 @@
+{
+  "producer": "ReportLab",
+  "reportlab": "4.4.9",
+  "rasterProducer": "pdftoppm version 26.09.0",
+  "recordedProvider": "tesseract 5.5.3",
+  "dpi": 150,
+  "recordedProviderDpi": 150,
+  "cases": [
+    {
+      "id": "english-columns",
+      "languages": "eng",
+      "clockwiseDegrees": 0,
+      "rightToLeft": false,
+      "readingOrder": [
+        "Quarterly Operations Review",
+        "Northern region opened in April.",
+        "The first shipment arrived on Monday.",
+        "Sales increased by twelve percent.",
+        "The audit found no missing records.",
+        "Southern region opened in June.",
+        "The second shipment arrived on Friday.",
+        "Returns decreased by seven percent.",
+        "The review requires two signatures.",
+        "Report complete."
+      ],
+      "table": [],
+      "caption": "",
+      "acceptance": {
+        "maximumCharacterErrorRate": 0,
+        "maximumWordErrorRate": 0,
+        "requireCompleteReadingOrder": true,
+        "requireExactTables": true
+      },
+      "files": {
+        "native.pdf": "64f7e0a68940e4d6420a0ec479835567aed6d2467a8e8332dde8bc0fa3dfc4c6",
+        "scan.pdf": "5e645b5d6bc19f9d6f91549180f63aa472208b70ff205ef4706108b6c81622ff",
+        "scan.png": "540dc059b4c0b28cd11e052c84b346d30c2d05dbf9f77a255bea48830cbad618",
+        "provider.tsv": "44d4f410e9aa203604d2cff362c6ae7a6b0b4c39d06b415f3b0c9933038c5127"
+      }
+    },
+    {
+      "id": "english-ledger",
+      "languages": "eng",
+      "clockwiseDegrees": 0,
+      "rightToLeft": false,
+      "readingOrder": [
+        "Reviewed Service Ledger",
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00",
+        "Report complete."
+      ],
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "caption": "",
+      "acceptance": {
+        "maximumCharacterErrorRate": 0,
+        "maximumWordErrorRate": 0,
+        "requireCompleteReadingOrder": true,
+        "requireExactTables": true
+      },
+      "files": {
+        "native.pdf": "f7bba5e0719f173f8750cf35e4d82734f660d7d3a90c7c4caa8b93acbd2eb2c7",
+        "scan.pdf": "1f8a20c6ba01945ed1b49294408d0b53b2453f57665fbdf050f223710df37693",
+        "scan.png": "aee6a4b5951b80102f7b291fd14fd449ef3cb0083cf4b2797b039aaf334b7032",
+        "provider.tsv": "37b8bb7670848188c5fa2d55f2b56fb68a17c7ab9251f6a326995c47042b9ccf"
+      }
+    }
+  ]
+}

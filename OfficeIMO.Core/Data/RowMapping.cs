@@ -86,6 +86,11 @@ public sealed class RowMapper<T> where T : new() {
 
     /// <summary>Binds a named column to an assignment delegate.</summary>
     public RowMapper<T> FromColumn<TValue>(string columnName, Func<T, TValue, T> assign) {
+        return FromColumn(columnName, assign, null);
+    }
+
+    /// <summary>Binds a named column with per-column conversion or missing-column controls.</summary>
+    public RowMapper<T> FromColumn<TValue>(string columnName, Func<T, TValue, T> assign, RowMappingColumnOptions? options) {
         if (string.IsNullOrWhiteSpace(columnName)) {
             throw new ArgumentException("Column name cannot be null or empty.", nameof(columnName));
         }
@@ -93,7 +98,7 @@ public sealed class RowMapper<T> where T : new() {
             throw new ArgumentNullException(nameof(assign));
         }
 
-        Entries.Add(new RowMappingEntry<T, TValue>(new[] { columnName }, assign));
+        Entries.Add(new RowMappingEntry<T, TValue>(new[] { columnName }, assign, options));
         return this;
     }
 
@@ -101,6 +106,14 @@ public sealed class RowMapper<T> where T : new() {
     public RowMapper<T> FromColumns<TValue>(
         IReadOnlyList<string> columnNames,
         Func<T, TValue, T> assign) {
+        return FromColumns(columnNames, assign, null);
+    }
+
+    /// <summary>Binds the first matching alias with per-column conversion or missing-column controls.</summary>
+    public RowMapper<T> FromColumns<TValue>(
+        IReadOnlyList<string> columnNames,
+        Func<T, TValue, T> assign,
+        RowMappingColumnOptions? options) {
         if (columnNames is null) throw new ArgumentNullException(nameof(columnNames));
         if (assign is null) throw new ArgumentNullException(nameof(assign));
         string[] names = columnNames
@@ -111,7 +124,7 @@ public sealed class RowMapper<T> where T : new() {
             throw new ArgumentException("At least one non-empty column name is required.", nameof(columnNames));
         }
 
-        Entries.Add(new RowMappingEntry<T, TValue>(names, assign));
+        Entries.Add(new RowMappingEntry<T, TValue>(names, assign, options));
         return this;
     }
 }
@@ -268,6 +281,8 @@ public static class DataReaderMappingExtensions {
 
 internal interface IRowMappingEntry<T> {
     IReadOnlyList<string> ColumnNames { get; }
+    bool Optional { get; }
+    Type ValueType { get; }
     T Apply(
         T instance,
         object? rawValue,
@@ -288,13 +303,17 @@ internal interface IRowMappingEntry<T> {
 
 internal sealed class RowMappingEntry<T, TValue> : IRowMappingEntry<T> {
     private readonly Func<T, TValue, T> _assign;
+    private readonly RowMappingColumnOptions? _options;
 
-    internal RowMappingEntry(IReadOnlyList<string> columnNames, Func<T, TValue, T> assign) {
+    internal RowMappingEntry(IReadOnlyList<string> columnNames, Func<T, TValue, T> assign, RowMappingColumnOptions? options) {
         ColumnNames = columnNames;
         _assign = assign;
+        _options = options?.Snapshot();
     }
 
     public IReadOnlyList<string> ColumnNames { get; }
+    public Type ValueType => typeof(TValue);
+    public bool Optional => _options?.Optional == true;
 
     public T Apply(
         T instance,
@@ -303,7 +322,11 @@ internal sealed class RowMappingEntry<T, TValue> : IRowMappingEntry<T> {
         IReadOnlyList<string>? dateTimeFormats,
         Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
         DataMappingErrorValuePolicy errorValuePolicy) {
-        TValue? value = DataValueConverter.ConvertTo<TValue>(rawValue, culture, dateTimeFormats, typeConverter, errorValuePolicy);
+        TValue? value = DataValueConverter.ConvertTo<TValue>(rawValue,
+            _options?.Culture ?? culture,
+            _options?.DateTimeFormats ?? dateTimeFormats,
+            _options?.TypeConverter ?? typeConverter,
+            errorValuePolicy);
         return _assign(instance, value!);
     }
 
@@ -315,14 +338,15 @@ internal sealed class RowMappingEntry<T, TValue> : IRowMappingEntry<T> {
         IReadOnlyList<string>? dateTimeFormats,
         Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
         DataMappingErrorValuePolicy errorValuePolicy) {
-        if (typeConverter is null &&
+        if (typeConverter is null && _options?.TypeConverter is null &&
+            _options?.Culture is null && _options?.DateTimeFormats is null &&
             reader is IDataReaderFastMappingValues &&
             !reader.IsDBNull(ordinal) &&
             DataReaderTypedValueAccessor<TValue>.TryRead(reader, ordinal, out TValue? value)) {
             return _assign(instance, value!);
         }
 
-        object? rawValue = reader.GetValue(ordinal);
+        object? rawValue = DataReaderMappingValue.Read(reader, ordinal, typeof(TValue));
         return Apply(
             instance,
             ReferenceEquals(rawValue, DBNull.Value) ? null : rawValue,
@@ -433,6 +457,8 @@ internal static class DataValueConverter {
         result = null;
         Type? underlyingType = Nullable.GetUnderlyingType(targetType);
         Type effectiveType = underlyingType ?? targetType;
+        DataReaderMappingValue? providerValue = value as DataReaderMappingValue;
+        if (providerValue is not null) value = providerValue.Original;
 
         if (value is null) {
             if (underlyingType is null && targetType.IsValueType) {
@@ -455,6 +481,7 @@ internal static class DataValueConverter {
                 return false;
             }
         }
+        if (providerValue is not null && DataReaderMappingValue.IsNumeric(effectiveType)) value = providerValue.Numeric;
         if (effectiveType.IsInstanceOfType(value)) {
             result = value;
             return true;

@@ -391,7 +391,9 @@ foreach ($expectedGuide in $expectedIntegrationGuides.GetEnumerator()) {
 $pipelinePath = Join-Path $SiteRoot 'pipeline.json'
 $pipeline = Get-Content -LiteralPath $pipelinePath -Raw | ConvertFrom-Json
 $apiAssemblies = @($pipeline.steps | Where-Object task -eq 'apidocs' | ForEach-Object {
-    [System.IO.Path]::GetFileNameWithoutExtension([string] $_.assembly)
+    foreach ($source in $(if ($_.inputs) { $_.inputs } else { $_ })) {
+        [System.IO.Path]::GetFileNameWithoutExtension([string] $source.assembly)
+    }
 } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
 $expectedApiReferenceCount = $apiAssemblies.Count
 if (Test-Path -LiteralPath (Join-Path $SiteRoot 'data/apidocs/powershell/command-metadata.json') -PathType Leaf) {

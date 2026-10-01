@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.IO.Compression;
 using System.Threading;
 using OfficeIMO.Drawing;
 
@@ -75,24 +74,7 @@ internal static partial class PdfWriter {
     private static byte[] DeflateZlib(byte[] data) => DeflateZlib(data, CancellationToken.None);
 
     private static byte[] DeflateZlib(byte[] data, CancellationToken cancellationToken) {
-        cancellationToken.ThrowIfCancellationRequested();
-        using var output = new MemoryStream();
-        output.WriteByte(0x78);
-        output.WriteByte(0x9C);
-        using (var deflate = new DeflateStream(output, CompressionLevel.Optimal, leaveOpen: true)) {
-            const int chunkSize = 64 * 1024;
-            for (int offset = 0; offset < data.Length; offset += chunkSize) {
-                cancellationToken.ThrowIfCancellationRequested();
-                deflate.Write(data, offset, Math.Min(chunkSize, data.Length - offset));
-            }
-        }
-
-        uint adler = Adler32(data, cancellationToken);
-        output.WriteByte((byte)((adler >> 24) & 0xFF));
-        output.WriteByte((byte)((adler >> 16) & 0xFF));
-        output.WriteByte((byte)((adler >> 8) & 0xFF));
-        output.WriteByte((byte)(adler & 0xFF));
-        return ToArrayWithCancellation(output, cancellationToken);
+        return PdfFlateEncoder.Compress(data, cancellationToken);
     }
 
     private static byte[] ToArrayWithCancellation(MemoryStream source, CancellationToken cancellationToken) {

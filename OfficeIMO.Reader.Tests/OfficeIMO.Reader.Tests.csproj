@@ -11,6 +11,10 @@
     <LangVersion>Latest</LangVersion>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(ReaderPerformanceEvidence)' == 'true'">
+    <DefineConstants>$(DefineConstants);READER_PERFORMANCE_EVIDENCE</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
@@ -92,6 +96,7 @@
 
   <ItemGroup>
     <None Include="..\OfficeIMO.TestAssets\Images\**" Link="Images\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\EnglishLayout\*.pdf;..\OfficeIMO.TestAssets\EnglishLayout\*-provider.tsv;..\OfficeIMO.TestAssets\EnglishLayout\manifest.json" Link="EnglishLayout\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Pdf.Tests\Pdf\Fixtures\Interoperability\**\*" Link="PdfInteroperability\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Pdf.Tests\Pdf\ReferenceBaselines\*.pdf" Link="PdfReferenceBaselines\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.OneNote.Tests\Fixtures\*.one" Link="OneNoteFixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

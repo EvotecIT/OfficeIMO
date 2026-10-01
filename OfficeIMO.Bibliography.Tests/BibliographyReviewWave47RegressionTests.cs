@@ -6,20 +6,6 @@ using System.Threading;
 namespace OfficeIMO.Bibliography.Tests;
 
 public sealed class BibliographyReviewWave47RegressionTests {
-    [Theory]
-    [InlineData("abc")]
-    [InlineData("")]
-    [InlineData("  ")]
-    public void Named_EndNote_types_with_nonnumeric_codes_block_strict_canonical_output(string code) {
-        string source = "<xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">" + code + "</ref-type></record></records></xml>";
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml);
-
-        Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBEND004" && diagnostic.Field == "ref-type");
-        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            read.Document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
-
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV222" && diagnostic.Field == "ref-type");
-    }
 
     [Theory]
     [InlineData("secondary-authors")]

@@ -44,7 +44,7 @@ public sealed partial class PdfPageCanvas {
         }
     }
 
-    private void QueueSearchReveal() => Dispatcher.UIThread.Post(() => {
+    private void QueueSearchReveal() => this.Dispatcher.Post(() => {
         if (_disposed || Scene is not { } scene || ActiveSearchHighlight is not Rect area || Bounds.Width <= 0 || Bounds.Height <= 0) return;
         double x = Bounds.Width / Math.Max(1D, scene.Drawing.Width);
         double y = Bounds.Height / Math.Max(1D, scene.Drawing.Height);

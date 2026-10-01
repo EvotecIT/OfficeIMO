@@ -2,17 +2,29 @@
 
 The email performance contracts guard two common failure modes: copying a large MIME message too many times and scaling mailbox parsing by message count rather than source size.
 
+The Email Performance Evidence workflow runs the MIME, MSG, mbox, and PST scale
+measurements only when manually dispatched. Ordinary correctness CI excludes
+`Category=Performance` and retains deterministic format, resource-limit, reopen,
+conversion, and deduplication proof.
+
 Run the evidence with:
 
 ```powershell
 dotnet test OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj `
     -c Release `
     -f net8.0 `
-    --filter FullyQualifiedName~EmailPerformanceEvidenceTests `
+    -p:EmailPerformanceEvidence=true `
+    --filter "Category=Performance" `
     --logger "console;verbosity=detailed"
 ```
 
-The tests measure allocations on the parsing thread after constructing the fixture. They also apply a generous time ceiling to catch hangs and accidental super-linear work without turning ordinary machine variance into failures.
+The property enables the original retained-memory workload at compilation. Do not
+pass `--no-build` when changing it. Rebuild without the property to return to the
+ordinary correctness variant.
+
+The MIME, MSG, and mbox cases measure allocations on the parsing thread after constructing the fixture.
+Their time ceiling can flag hangs or accidental super-linear work, but the observed
+time and memory budgets still depend on the runtime and host.
 
 ## Current baseline
 
@@ -27,7 +39,8 @@ Measured on 2026-07-11 with an Apple M4, 24 GB memory, macOS 26.5, .NET 8.0.23 r
 These numbers are a local regression baseline, not a cross-machine throughput promise. The committed contracts enforce allocation ceilings proportional to source size plus fixed headroom and a ten-second hang ceiling. Returned strings, message models, and requested attachment payloads are intentionally included in the allocation measurement.
 
 The streaming path has a separate retained-memory contract: a generated 16 MiB attachment is written without a
-whole-artifact buffer, reopened as file-backed content, and held under 8 MiB of additional retained managed memory.
+whole-artifact buffer, reopened as file-backed content, and held under an allowance of half the payload size plus
+1 MiB of additional retained managed memory (about 9 MiB for this fixture).
 All EML, MSG/OFT, and TNEF streaming tests also reject whole-payload source reads and destination writes.
 
 For realistic deployments, measure representative `.msg`, `.eml`, TNEF, and mbox corpora with the same reader options used by the application. In particular, `includeAttachmentContent: false` changes retained memory materially when callers only need metadata.

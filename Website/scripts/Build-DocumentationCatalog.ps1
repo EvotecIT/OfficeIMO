@@ -82,7 +82,7 @@ foreach ($testProject in $testProjects) {
 $pipelinePath = Join-Path $SiteRoot 'pipeline.json'
 $pipeline = Get-Content -LiteralPath $pipelinePath -Raw | ConvertFrom-Json
 $apiRoutes = @{}
-foreach ($step in @($pipeline.steps | Where-Object task -EQ 'apidocs')) {
+foreach ($step in @($pipeline.steps | Where-Object task -EQ 'apidocs' | ForEach-Object { if ($_.inputs) { $_.inputs } else { $_ } })) {
     $assemblyName = [System.IO.Path]::GetFileNameWithoutExtension([string] $step.assembly)
     if (-not [string]::IsNullOrWhiteSpace($assemblyName)) {
         $apiRoutes[$assemblyName] = ([string] $step.baseUrl).TrimEnd('/') + '/'
@@ -118,7 +118,7 @@ $components = foreach ($projectFile in ($productionProjects | Sort-Object BaseNa
         sourceFileCount = $sourceCount
         referencingTestProjectCount = if ($referenceCounts.ContainsKey($resolvedProjectPath)) { $referenceCounts[$resolvedProjectPath] } else { 0 }
         docsUrl = Get-DocumentationUrl -Name $name
-        apiUrl = if ($apiRoutes.ContainsKey($name)) { $apiRoutes[$name] } else { $null }
+        apiUrl = if ($apiRoutes.ContainsKey((Get-ProjectValue -Project $project -Name 'AssemblyName'))) { $apiRoutes[(Get-ProjectValue -Project $project -Name 'AssemblyName')] } elseif ($apiRoutes.ContainsKey($name)) { $apiRoutes[$name] } else { $null }
         packageUrl = if ($isPackable) { "https://www.nuget.org/packages/$packageId" } else { $null }
     }
 }

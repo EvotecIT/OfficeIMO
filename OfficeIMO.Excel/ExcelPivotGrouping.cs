@@ -63,9 +63,15 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Creates numeric range grouping metadata for a pivot field.</summary>
         public static ExcelPivotGrouping Number(string fieldName, double interval, double? startNumber = null, double? endNumber = null) {
-            if (interval <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(interval), "Grouping interval must be greater than zero.");
+            if (double.IsNaN(interval) || double.IsInfinity(interval) || interval <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(interval), "Grouping interval must be finite and greater than zero.");
             }
+            if (startNumber.HasValue && (double.IsNaN(startNumber.Value) || double.IsInfinity(startNumber.Value)))
+                throw new ArgumentOutOfRangeException(nameof(startNumber), "Grouping start must be finite.");
+            if (endNumber.HasValue && (double.IsNaN(endNumber.Value) || double.IsInfinity(endNumber.Value)))
+                throw new ArgumentOutOfRangeException(nameof(endNumber), "Grouping end must be finite.");
+            if (startNumber.HasValue && endNumber.HasValue && endNumber.Value <= startNumber.Value)
+                throw new ArgumentOutOfRangeException(nameof(endNumber), "Grouping end must be greater than start.");
 
             return new ExcelPivotGrouping(fieldName, ExcelPivotGroupBy.Range, null, null, startNumber, endNumber, interval, startNumber == null, endNumber == null);
         }

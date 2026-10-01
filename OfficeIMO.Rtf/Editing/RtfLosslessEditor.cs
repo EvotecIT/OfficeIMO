@@ -25,6 +25,9 @@ public sealed partial class RtfLosslessEditor {
     /// <summary>Current edited syntax tree.</summary>
     public RtfSyntaxTree SyntaxTree => _syntaxTree;
 
+    private static RtfText CreateEncodedText(int position, string text, string rawText) =>
+        new RtfText(position, text, rawText, text.Any(character => character > 127) && rawText.Contains(@"\u") ? 1 : (int?)null);
+
     /// <summary>
     /// Replaces literal visible text contained inside individual text nodes.
     /// </summary>
@@ -40,7 +43,7 @@ public sealed partial class RtfLosslessEditor {
             }
 
             string replaced = Replace(text.Text, oldText, newText, comparison, ref replacements);
-            return new RtfText(text.Position, replaced, RtfTextEncoding.EncodeText(replaced));
+            return CreateEncodedText(text.Position, replaced, RtfTextEncoding.EncodeText(replaced));
         });
 
         if (replacements > 0) {
@@ -102,7 +105,7 @@ public sealed partial class RtfLosslessEditor {
 
         var children = new List<RtfNode>(_syntaxTree.Root.Children) {
             new RtfControlWord(0, "pard", null, hasParameter: false, rawText: @"\pard "),
-            new RtfText(0, text, RtfTextEncoding.EncodeText(text)),
+            CreateEncodedText(0, text, RtfTextEncoding.EncodeText(text)),
             new RtfControlWord(0, "par", null, hasParameter: false, rawText: @"\par")
         };
 
@@ -299,7 +302,7 @@ public sealed partial class RtfLosslessEditor {
 
     private static RtfGroup CreatePlainGroup(string text) {
         return new RtfGroup(0, new RtfNode[] {
-            new RtfText(0, text, RtfTextEncoding.EncodeText(text))
+            CreateEncodedText(0, text, RtfTextEncoding.EncodeText(text))
         });
     }
 
@@ -349,7 +352,7 @@ public sealed partial class RtfLosslessEditor {
         var nodes = new List<RtfNode> {
             new RtfGroup(0, new RtfNode[] {
                 new RtfControlWord(0, "propname", null, hasParameter: false, rawText: @"\propname "),
-                new RtfText(0, property.Name, RtfTextEncoding.EncodeText(property.Name))
+                CreateEncodedText(0, property.Name, RtfTextEncoding.EncodeText(property.Name))
             })
         };
 
@@ -374,7 +377,7 @@ public sealed partial class RtfLosslessEditor {
 
         nodes.Add(new RtfGroup(0, new RtfNode[] {
             new RtfControlWord(0, destination, null, hasParameter: false, rawText: "\\" + destination + " "),
-            new RtfText(0, value!, RtfTextEncoding.EncodeText(value!))
+            CreateEncodedText(0, value!, RtfTextEncoding.EncodeText(value!))
         }));
     }
 

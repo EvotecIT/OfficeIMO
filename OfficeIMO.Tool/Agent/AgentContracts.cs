@@ -55,6 +55,23 @@ public sealed class AgentSearchResult {
     public int Returned { get; set; }
     public int? NextCursor { get; set; }
     public bool Truncated { get; set; }
+    public int? ItemsScanned { get; set; }
+    public bool? ScanLimitReached { get; set; }
+    public IReadOnlyList<AgentSearchHit> Results { get; set; } = Array.Empty<AgentSearchHit>();
+}
+
+/// <summary>One bounded, resumable semantic email-store search response.</summary>
+public sealed class AgentEmailSearchResult {
+    public string SourceId { get; set; } = string.Empty;
+    public int Returned { get; set; }
+    public int ItemsScanned { get; set; }
+    public int ItemsSkipped { get; set; }
+    public bool ScanLimitReached { get; set; }
+    public bool IsComplete { get; set; }
+    public bool Truncated { get; set; }
+    public string? NextCheckpoint { get; set; }
+    public int DiagnosticCount { get; set; }
+    public IReadOnlyList<AgentDiagnosticSummary> Diagnostics { get; set; } = Array.Empty<AgentDiagnosticSummary>();
     public IReadOnlyList<AgentSearchHit> Results { get; set; } = Array.Empty<AgentSearchHit>();
 }
 
@@ -66,6 +83,7 @@ public sealed class AgentSearchHit {
     public string? Sender { get; set; }
     public DateTimeOffset? Timestamp { get; set; }
     public string? FolderId { get; set; }
+    public string? MatchedFields { get; set; }
     public IReadOnlyList<int>? Pages { get; set; }
 }
 

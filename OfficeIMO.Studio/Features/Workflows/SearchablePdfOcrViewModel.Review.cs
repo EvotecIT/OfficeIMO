@@ -5,17 +5,19 @@ using OfficeIMO.Pdf.Ocr;
 namespace OfficeIMO.Studio.Features.Workflows;
 
 public sealed partial class SearchablePdfOcrViewModel {
+    // Background completions belong to this application, even after its dispatcher shuts down.
+    private readonly Avalonia.Threading.Dispatcher _uiDispatcher = Avalonia.Threading.Dispatcher.UIThread;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasReview))]
     private OcrReviewViewModel? _review;
 
     public bool HasReview => Review is not null;
 
-    private Task<IReadOnlyList<PdfRecognizedWord>> ReviewWordsAsync(PdfSearchableOcrReview evidence, CancellationToken cancellationToken) =>
+    private Task<IReadOnlyDictionary<PdfRecognizedWord, string>> ReviewWordsAsync(PdfSearchableOcrReview evidence, CancellationToken cancellationToken) =>
         ReviewWordsAsync(evidence, cancellationToken, false);
 
-    private async Task<IReadOnlyList<PdfRecognizedWord>> ReviewWordsAsync(PdfSearchableOcrReview evidence, CancellationToken cancellationToken, bool textOnly) {
-        var model = await Dispatcher.UIThread.InvokeAsync(() => {
+    private async Task<IReadOnlyDictionary<PdfRecognizedWord, string>> ReviewWordsAsync(PdfSearchableOcrReview evidence, CancellationToken cancellationToken, bool textOnly) {
+        var model = await _uiDispatcher.InvokeAsync(() => {
             cancellationToken.ThrowIfCancellationRequested();
             var operation = _cancellation;
             var pending = new OcrReviewViewModel(evidence, _localizer, () => operation?.Cancel(), textOnly);
@@ -26,7 +28,7 @@ public sealed partial class SearchablePdfOcrViewModel {
         });
         try { return await model.Completion.WaitAsync(cancellationToken).ConfigureAwait(false); }
         finally {
-            await Dispatcher.UIThread.InvokeAsync(() => {
+            await _uiDispatcher.InvokeAsync(() => {
                 if (ReferenceEquals(Review, model)) Review = null;
                 model.Dispose();
             });

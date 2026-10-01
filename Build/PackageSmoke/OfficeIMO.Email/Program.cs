@@ -99,7 +99,8 @@ using (var stream = new MemoryStream(svg, writable: false)) {
     }
 }
 
-Console.WriteLine($"Unified OfficeIMO Email and selective Reader package smokes passed on {System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription}.");
+EmailToolkitSmoke.Run();
+Console.WriteLine($"Unified OfficeIMO Email toolkit and selective Reader package smokes passed on {System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription}.");
 
 static byte[] CreateAddressBook() {
     using var stream = new MemoryStream();

@@ -152,9 +152,13 @@ public sealed partial class OfflineAddressBookSession : IDisposable {
         foreach (OabAddressListSource source in _sources) source.Source.RestoreCallerPosition();
     }
 
-    private string GetDurableSourceFingerprint(CancellationToken cancellationToken) =>
-        EmailHashing.ComputeSha256HexLower(string.Join("|", _sources.Select(source =>
+    /// <summary>Hashes every selected Full Details component, without projecting entries. Supporting legacy components are outside this entry catalog.</summary>
+    public string GetDurableSourceFingerprint(CancellationToken cancellationToken = default) {
+        ThrowIfDisposed();
+        cancellationToken.ThrowIfCancellationRequested();
+        return EmailHashing.ComputeSha256HexLower(string.Join("|", _sources.Select(source =>
             string.Concat(source.Info.Id, ":", source.Source.ComputeFingerprint(cancellationToken)))));
+    }
 
     private IEnumerable<OfflineAddressBookEntryReference> EnumerateEntryReferencesCore(
         OfflineAddressBookEnumerationOptions options,

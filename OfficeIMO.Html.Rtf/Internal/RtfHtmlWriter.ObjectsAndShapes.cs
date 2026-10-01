@@ -61,7 +61,7 @@ internal static partial class RtfHtmlWriter {
         builder.Append('<');
         builder.Append(tag);
         builder.Append(" class=\"rtf-object-result\">");
-        AppendInlines(builder, rtfObject.Result.Inlines, options, document);
+        AppendInlines(builder, rtfObject.Result.Inlines, options, document, rtfObject.Result);
         if (rtfObject.ResultImage != null) {
             AppendImage(builder, rtfObject.ResultImage, options);
         }
@@ -80,7 +80,7 @@ internal static partial class RtfHtmlWriter {
                 AppendParagraph(builder, shape.TextBoxParagraphs[index], options, document);
             } else {
                 if (index > 0) builder.Append("<br>");
-                AppendInlines(builder, shape.TextBoxParagraphs[index].Inlines, options, document);
+                AppendInlines(builder, shape.TextBoxParagraphs[index].Inlines, options, document, shape.TextBoxParagraphs[index]);
             }
         }
         builder.Append("</");

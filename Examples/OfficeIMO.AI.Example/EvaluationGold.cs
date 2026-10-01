@@ -22,11 +22,16 @@ internal sealed record EvaluationGold(IReadOnlyList<EvaluationFieldGold>? Fields
         bool markersCorrect = FactMarkers is null || factMatches == FactMarkers.Count;
         bool stateCorrect = !Status.HasValue || result.Status == Status;
         bool synthesisCorrect = !RequireSynthesis || result.SynthesisStatus == OfficeAiSynthesisStatus.Completed;
-        return new(fieldsCorrect && tableCorrect && markersCorrect && stateCorrect && synthesisCorrect,
+        var citationGroups = result.Claims.Select(item => item.Citations).Concat(result.Tables.Select(item => item.Citations))
+            .Concat(result.Blocks.Select(item => item.Citations))
+            .Concat(result.Fields.Where(item => item.Status == OfficeAiFieldStatus.Present).Select(item => item.Citations));
+        bool citationsCorrect = citationGroups.All(group => group.Count > 0 && group.All(citation =>
+            !string.IsNullOrWhiteSpace(citation.EvidenceId) && (citation.QuoteMatched || citation.Quote is null)));
+        return new(fieldsCorrect && tableCorrect && markersCorrect && stateCorrect && synthesisCorrect && citationsCorrect,
             fieldMatches, Fields?.Count, result.Fields.Count,
             Table is null ? null : Ratio(cellMatches, actualCells.Length), Table is null ? null : Ratio(cellMatches, expectedCells.Length),
             FactMarkers is null ? null : Ratio(factMatches, FactMarkers.Count),
-            result.Claims.SelectMany(claim => claim.Citations).All(citation => citation.QuoteMatched || citation.Quote is null),
+            citationsCorrect,
             result.RequiresReview);
     }
     private static bool ContainsCompleteMarker(string text, string marker) {
@@ -54,6 +59,6 @@ internal sealed record EvaluationGold(IReadOnlyList<EvaluationFieldGold>? Fields
         columns.Select((column, index) => $"header:{index}:{column}").Concat(rows.SelectMany((row, rowIndex) => row.Select((cell, columnIndex) => $"cell:{rowIndex}:{columnIndex}:{cell}"))).ToArray();
 }
 
-internal sealed record EvaluationScore(bool Passed, int MatchedFields, int? ExpectedFields, int ReturnedFields,
+internal sealed record EvaluationScore(bool ContractPassed, int MatchedFields, int? ExpectedFields, int ReturnedFields,
     double? TableCellPrecision, double? TableCellRecall, double? FactMarkerRecall,
     bool CitationContractSatisfied, bool SemanticReviewRequired);

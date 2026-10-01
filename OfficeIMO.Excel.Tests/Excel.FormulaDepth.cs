@@ -353,6 +353,9 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(new[] { "Escaped Structured Brackets!A2" }, escapedOpening.Dependencies);
             Assert.Equal(new[] { "Escaped Structured Brackets!B2" }, escapedClosing.Dependencies);
+            Assert.Equal(2, document.Calculate());
+            Assert.Contains(document.InspectFormulas().Formulas, formula => formula.CellReference == "D1" && formula.CachedValue == "1");
+            Assert.Contains(document.InspectFormulas().Formulas, formula => formula.CellReference == "D2" && formula.CachedValue == "2");
         }
 
         [Fact]
@@ -1150,13 +1153,21 @@ namespace OfficeIMO.Tests {
                 shared.GetFormulaText(2, 6));
         }
 
+#if EXCEL_PERFORMANCE_EVIDENCE
+        [Trait("Category", "Performance")]
+        [Trait("Category", "ExcelPerformanceEvidence")]
+#endif
         [Fact]
         public void Test_FormulaInspection_DoesNotExpandOversizedSharedFormulaFollowers() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("Shared");
             Worksheet worksheet = sheet.WorksheetPart.Worksheet;
             SheetData sheetData = worksheet.GetFirstChild<SheetData>()!;
+#if EXCEL_PERFORMANCE_EVIDENCE
             const int followerCount = 1_000;
+#else
+            const int followerCount = 2;
+#endif
             string masterFormula = new string('A', 8_193);
             sheetData.RemoveAllChildren<Row>();
             for (int rowIndex = 1; rowIndex <= followerCount; rowIndex++) {
@@ -1175,13 +1186,19 @@ namespace OfficeIMO.Tests {
             }
             worksheet.Save();
 
+#if EXCEL_PERFORMANCE_EVIDENCE
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+#endif
             Assert.Equal(string.Empty, sheet.GetFormulaText(followerCount, 1));
             ExcelFormulaInspection inspection = document.InspectFormulas();
+#if EXCEL_PERFORMANCE_EVIDENCE
             stopwatch.Stop();
+#endif
 
             Assert.Equal(followerCount, inspection.Formulas.Count);
+#if EXCEL_PERFORMANCE_EVIDENCE
             Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), stopwatch.Elapsed.ToString());
+#endif
         }
 
         [Fact]

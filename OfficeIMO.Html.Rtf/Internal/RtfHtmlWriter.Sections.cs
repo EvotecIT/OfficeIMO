@@ -4,6 +4,7 @@ namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlWriter {
     private static void AppendSections(StringBuilder builder, RtfDocument document, RtfToHtmlOptions options, string newline) {
+        var numbering = new RtfListNumbering(document);
         for (int index = 0; index < document.Sections.Count; index++) {
             RtfSection section = document.Sections[index];
             if (index > 0) {
@@ -19,7 +20,7 @@ internal static partial class RtfHtmlWriter {
             builder.Append('>');
             if (section.Blocks.Count > 0) {
                 builder.Append(newline);
-                AppendBlocks(builder, section.Blocks, options, document, newline);
+                AppendBlocks(builder, section.Blocks, options, document, newline, numbering);
                 builder.Append(newline);
             }
 
@@ -110,6 +111,7 @@ internal static partial class RtfHtmlWriter {
             AddInt(values, prefix + ".red", color.Red);
             AddInt(values, prefix + ".green", color.Green);
             AddInt(values, prefix + ".blue", color.Blue);
+            AddNullableBool(values, prefix + ".automatic", color.IsAutomatic ? true : (bool?)null);
             AddEnum(values, prefix + ".theme", color.ThemeColor);
             AddNullableInt(values, prefix + ".tint", color.Tint);
             AddNullableInt(values, prefix + ".shade", color.Shade);
@@ -139,9 +141,9 @@ internal static partial class RtfHtmlWriter {
         AddNullableInt(values, prefix + ".pageNumberX", pageSetup.PageNumberPositionXTwips);
         AddNullableInt(values, prefix + ".pageNumberY", pageSetup.PageNumberPositionYTwips);
         AddEnum(values, prefix + ".pageNumberFormat", pageSetup.PageNumberFormat);
-        AddBool(values, prefix + ".landscape", pageSetup.Landscape);
-        AddBool(values, prefix + ".differentFirstPage", pageSetup.DifferentFirstPageHeaderFooter);
-        AddBool(values, prefix + ".rtlGutter", pageSetup.RtlGutter);
+        AddNullableBool(values, prefix + ".landscape", pageSetup.DirectLandscape);
+        AddNullableBool(values, prefix + ".differentFirstPage", pageSetup.DirectDifferentFirstPageHeaderFooter);
+        AddNullableBool(values, prefix + ".rtlGutter", pageSetup.DirectRtlGutter);
         AddPageBorders(values, prefix + ".borders", pageSetup.PageBorders);
     }
 

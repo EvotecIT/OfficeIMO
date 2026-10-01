@@ -75,7 +75,7 @@ jobs:
       packages: read
       pages: write
       id-token: write
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-deploy.yml@1b9c00bee685c326975cb1292d002cc8acfdee47
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-deploy.yml@bdec4ac6ace22190a9aa5c434b17aeaf8fdcb742
     with:
       website_root: Website
       source_ref: ${{ github.sha }}
@@ -88,7 +88,7 @@ jobs:
       dotnet_version: "10.0.112"
       dotnet_workloads: wasm-tools
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: 8c7fcff8ca680a87ebc97eff4846a03df80c1a39
+      powerforge_ref: bdec4ac6ace22190a9aa5c434b17aeaf8fdcb742
     secrets:
       indexnow_key: ${{ secrets.INDEXNOW_KEY }}
       cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}

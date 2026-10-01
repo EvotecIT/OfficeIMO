@@ -10,17 +10,30 @@ internal static partial class RtfDocumentWriter {
             state.ResetCharacter();
         }
 
+        if (run.StyleId.HasValue && state.StyleId != run.StyleId.Value) {
+            builder.Append(@"\cs");
+            builder.Append(run.StyleId.Value.ToString(CultureInfo.InvariantCulture));
+            builder.Append(' ');
+            state.StyleId = run.StyleId.Value;
+        }
+
         WriteRevisionPrefix(builder, run, state);
-        Toggle(builder, @"\b", run.Bold, ref state.Bold);
-        Toggle(builder, @"\i", run.Italic, ref state.Italic);
-        if (state.UnderlineStyle != run.UnderlineStyle) {
+        if (state.PreserveStyleInheritance) {
+            AppendOptionalBinary(builder, @"\b", run.DirectBold);
+            AppendOptionalBinary(builder, @"\i", run.DirectItalic);
+        } else {
+            Toggle(builder, @"\b", run.Bold, ref state.Bold);
+            Toggle(builder, @"\i", run.Italic, ref state.Italic);
+        }
+        if (state.PreserveStyleInheritance ? run.DirectUnderlineStyle.HasValue : state.UnderlineStyle != run.UnderlineStyle) {
             builder.Append(GetUnderlineControl(run.UnderlineStyle));
             builder.Append(' ');
             state.UnderlineStyle = run.UnderlineStyle;
         }
         Toggle(builder, @"\strike", run.Strike, ref state.Strike);
         Toggle(builder, @"\striked", run.DoubleStrike, ref state.DoubleStrike);
-        Toggle(builder, @"\v", run.Hidden, ref state.Hidden);
+        if (state.PreserveStyleInheritance) AppendOptionalBinary(builder, @"\v", run.DirectHidden);
+        else Toggle(builder, @"\v", run.Hidden, ref state.Hidden);
         Toggle(builder, @"\outl", run.Outline, ref state.Outline);
         Toggle(builder, @"\shad", run.Shadow, ref state.Shadow);
         Toggle(builder, @"\embo", run.Emboss, ref state.Emboss);
@@ -58,13 +71,6 @@ internal static partial class RtfDocumentWriter {
             });
             builder.Append(' ');
             state.VerticalPosition = run.VerticalPosition;
-        }
-
-        if (run.StyleId.HasValue && state.StyleId != run.StyleId.Value) {
-            builder.Append(@"\cs");
-            builder.Append(run.StyleId.Value.ToString(CultureInfo.InvariantCulture));
-            builder.Append(' ');
-            state.StyleId = run.StyleId.Value;
         }
 
         if (run.FontSize.HasValue && !Nullable.Equals(state.FontSize, run.FontSize)) {
@@ -261,6 +267,8 @@ internal static partial class RtfDocumentWriter {
     }
 
     private sealed class RunWriteState {
+        public bool PreserveStyleInheritance;
+        public bool InStyleScope;
         public RunWriteState(int? defaultLanguageId = null) {
             DefaultLanguageId = defaultLanguageId;
             LanguageId = defaultLanguageId;

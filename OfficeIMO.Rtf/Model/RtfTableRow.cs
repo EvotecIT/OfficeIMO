@@ -3,8 +3,8 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// RTF table row.
 /// </summary>
-public sealed class RtfTableRow {
-    private readonly List<RtfTableCell> _cells = new List<RtfTableCell>();
+public sealed partial class RtfTableRow {
+    private List<RtfTableCell> _cells = new List<RtfTableCell>();
 
     /// <summary>Cells in the row.</summary>
     public IReadOnlyList<RtfTableCell> Cells => _cells.AsReadOnly();
@@ -115,22 +115,22 @@ public sealed class RtfTableRow {
     public int? TextWrapBottomTwips { get; set; }
 
     /// <summary>Top row border.</summary>
-    public RtfTableRowBorder TopBorder { get; } = new RtfTableRowBorder();
+    public RtfTableRowBorder TopBorder { get; private set; } = new RtfTableRowBorder();
 
     /// <summary>Left row border.</summary>
-    public RtfTableRowBorder LeftBorder { get; } = new RtfTableRowBorder();
+    public RtfTableRowBorder LeftBorder { get; private set; } = new RtfTableRowBorder();
 
     /// <summary>Bottom row border.</summary>
-    public RtfTableRowBorder BottomBorder { get; } = new RtfTableRowBorder();
+    public RtfTableRowBorder BottomBorder { get; private set; } = new RtfTableRowBorder();
 
     /// <summary>Right row border.</summary>
-    public RtfTableRowBorder RightBorder { get; } = new RtfTableRowBorder();
+    public RtfTableRowBorder RightBorder { get; private set; } = new RtfTableRowBorder();
 
     /// <summary>Horizontal inside row border.</summary>
-    public RtfTableRowBorder HorizontalBorder { get; } = new RtfTableRowBorder();
+    public RtfTableRowBorder HorizontalBorder { get; private set; } = new RtfTableRowBorder();
 
     /// <summary>Vertical inside row border.</summary>
-    public RtfTableRowBorder VerticalBorder { get; } = new RtfTableRowBorder();
+    public RtfTableRowBorder VerticalBorder { get; private set; } = new RtfTableRowBorder();
 
     /// <summary>Sets the row cell gap in twips.</summary>
     public RtfTableRow SetCellGap(int? cellGapTwips) {

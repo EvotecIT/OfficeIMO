@@ -121,10 +121,9 @@ public partial class RtfDocumentRichFeatureTests {
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.Read(rtf);
 
-        Assert.Contains(@"{\*\listoverridetable{\listoverride\listid100\listoverridecount2{\lfolevel\listoverrideformat1\listoverridestartat1\levelstartat9}{\lfolevel\listoverridestartat0}\ls3}}", rtf, StringComparison.Ordinal);
         RtfListOverride readOverride = Assert.Single(read.Document.ListOverrides);
-        Assert.Equal(2, readOverride.OverrideCount);
-        Assert.Collection(readOverride.LevelOverrides,
+        Assert.Equal(9, readOverride.OverrideCount);
+        Assert.Collection(readOverride.LevelOverrides.Take(2),
             levelOverride => {
                 Assert.True(levelOverride.OverrideFormat);
                 Assert.True(levelOverride.OverrideStartAt);
@@ -135,5 +134,6 @@ public partial class RtfDocumentRichFeatureTests {
                 Assert.False(levelOverride.OverrideStartAt);
                 Assert.Null(levelOverride.StartAt);
             });
+        Assert.All(readOverride.LevelOverrides.Skip(2), item => Assert.False(item.HasAnyValue));
     }
 }

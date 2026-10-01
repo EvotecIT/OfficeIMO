@@ -195,12 +195,12 @@ namespace OfficeIMO.Word {
             _document = document;
             _wordParagraph = new WordParagraph(document, paragraph, run);
             _run = run;
-            _rectangle = selectedVmlShape == null ? run.Descendants<V.Rectangle>().FirstOrDefault() : selectedVmlShape as V.Rectangle;
-            _roundRectangle = selectedVmlShape == null ? run.Descendants<V.RoundRectangle>().FirstOrDefault() : selectedVmlShape as V.RoundRectangle;
-            _ellipse = selectedVmlShape == null ? run.Descendants<V.Oval>().FirstOrDefault() : selectedVmlShape as V.Oval;
-            _line = selectedVmlShape == null ? run.Descendants<V.Line>().FirstOrDefault() : selectedVmlShape as V.Line;
-            _polygon = selectedVmlShape == null ? run.Descendants<V.PolyLine>().FirstOrDefault() : selectedVmlShape as V.PolyLine;
-            _shape = selectedVmlShape == null
+            _rectangle = selectedVmlShape == null && drawing == null ? run.Descendants<V.Rectangle>().FirstOrDefault() : selectedVmlShape as V.Rectangle;
+            _roundRectangle = selectedVmlShape == null && drawing == null ? run.Descendants<V.RoundRectangle>().FirstOrDefault() : selectedVmlShape as V.RoundRectangle;
+            _ellipse = selectedVmlShape == null && drawing == null ? run.Descendants<V.Oval>().FirstOrDefault() : selectedVmlShape as V.Oval;
+            _line = selectedVmlShape == null && drawing == null ? run.Descendants<V.Line>().FirstOrDefault() : selectedVmlShape as V.Line;
+            _polygon = selectedVmlShape == null && drawing == null ? run.Descendants<V.PolyLine>().FirstOrDefault() : selectedVmlShape as V.PolyLine;
+            _shape = selectedVmlShape == null && drawing == null
                 ? run.Descendants<V.Shape>().FirstOrDefault(s => !s.Descendants<V.ImageData>().Any() && !s.Descendants<V.TextBox>().Any())
                 : selectedVmlShape as V.Shape;
             _drawing = drawing;

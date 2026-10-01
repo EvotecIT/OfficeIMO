@@ -77,11 +77,20 @@ public static partial class WordRtfConverterExtensions {
             return null;
         }
 
+        double visibleRatioX = 1d - (source.CropLeft ?? 0) / 100000d - (source.CropRight ?? 0) / 100000d;
+        double visibleRatioY = 1d - (source.CropTop ?? 0) / 100000d - (source.CropBottom ?? 0) / 100000d;
+        int? goalWidth = ToTwips(source.Width.HasValue && visibleRatioX > 0 ? source.Width / visibleRatioX : source.Width);
+        int? goalHeight = ToTwips(source.Height.HasValue && visibleRatioY > 0 ? source.Height / visibleRatioY : source.Height);
+        OfficeImageReader.TryValidateContent(payload, null, out OfficeImageInfo? info);
         var image = new RtfImage(format, payload) {
-            SourceWidth = ToNullableInt(source.Width),
-            SourceHeight = ToNullableInt(source.Height),
-            DesiredWidthTwips = ToTwips(source.Width),
-            DesiredHeightTwips = ToTwips(source.Height),
+            SourceWidth = info?.Width > 0 ? info.Width : null,
+            SourceHeight = info?.Height > 0 ? info.Height : null,
+            DesiredWidthTwips = goalWidth,
+            DesiredHeightTwips = goalHeight,
+            CropLeftTwips = ToCropTwips(source.CropLeft, goalWidth),
+            CropRightTwips = ToCropTwips(source.CropRight, goalWidth),
+            CropTopTwips = ToCropTwips(source.CropTop, goalHeight),
+            CropBottomTwips = ToCropTwips(source.CropBottom, goalHeight),
             Description = source.Description
         };
         return image;
@@ -92,6 +101,12 @@ public static partial class WordRtfConverterExtensions {
         destination.SourceHeight = source.SourceHeight;
         destination.DesiredWidthTwips = source.DesiredWidthTwips;
         destination.DesiredHeightTwips = source.DesiredHeightTwips;
+        destination.ScaleXPercent = source.ScaleXPercent;
+        destination.ScaleYPercent = source.ScaleYPercent;
+        destination.CropLeftTwips = source.CropLeftTwips;
+        destination.CropRightTwips = source.CropRightTwips;
+        destination.CropTopTwips = source.CropTopTwips;
+        destination.CropBottomTwips = source.CropBottomTwips;
         destination.Description = source.Description;
     }
 
@@ -111,17 +126,36 @@ public static partial class WordRtfConverterExtensions {
         }
 
         using var stream = new MemoryStream(payload);
-        paragraph.AddImage(
+        if (!TryGetWordImageLayout(image, payload, fileName, out RtfImageLayout? layout)) return;
+        WordImage output = paragraph.InsertImage(
             stream,
             fileName,
-            ToPixels(image.DesiredWidthTwips),
-            ToPixels(image.DesiredHeightTwips),
+            layout!.VisibleWidthTwips * PixelsPerTwip,
+            layout.VisibleHeightTwips * PixelsPerTwip,
             WordImageTextWrapping.InLineWithText,
             image.Description ?? string.Empty);
+        output.CropLeft = ToWordCrop(image.CropLeftTwips, layout.WidthTwips);
+        output.CropRight = ToWordCrop(image.CropRightTwips, layout.WidthTwips);
+        output.CropTop = ToWordCrop(image.CropTopTwips, layout.HeightTwips);
+        output.CropBottom = ToWordCrop(image.CropBottomTwips, layout.HeightTwips);
     }
 
+    private static int? ToCropTwips(int? fraction, int? goal) => fraction.HasValue && goal.HasValue ? checked((int)Math.Round(fraction.Value / 100000d * goal.Value, MidpointRounding.AwayFromZero)) : null;
+    private static int? ToWordCrop(int? crop, double? goal) => crop.HasValue && goal > 0 ? checked((int)Math.Round(crop.Value / goal.Value * 100000d, MidpointRounding.AwayFromZero)) : null;
+
     private static bool CanWriteToWord(RtfImage image) =>
-        TryGetWordImagePayload(image, out _, out _);
+        TryGetWordImagePayload(image, out byte[] payload, out string fileName) && TryGetWordImageLayout(image, payload, fileName, out _);
+
+    private static bool TryGetWordImageLayout(RtfImage image, byte[] payload, string fileName, out RtfImageLayout? layout) {
+        OfficeImageReader.TryValidateContent(payload, fileName, out OfficeImageInfo? info);
+        try {
+            layout = image.ResolveLayout(info?.Width > 0 ? info.Width * 15d : null, info?.Height > 0 ? info.Height * 15d : null);
+            return true;
+        } catch (InvalidDataException) {
+            layout = null;
+            return false;
+        }
+    }
 
     private static bool TryCreateRtfImagePayload(
         byte[] bytes,
@@ -206,18 +240,9 @@ public static partial class WordRtfConverterExtensions {
         return true;
     }
 
-    private static int? ToNullableInt(double? value) {
-        if (!value.HasValue) return null;
-        return (int)Math.Round(value.Value, MidpointRounding.AwayFromZero);
-    }
-
     private static int? ToTwips(double? pixels) {
         if (!pixels.HasValue) return null;
         return (int)Math.Round(pixels.Value * TwipsPerPixel, MidpointRounding.AwayFromZero);
     }
 
-    private static double? ToPixels(int? twips) {
-        if (!twips.HasValue) return null;
-        return Math.Round(twips.Value * PixelsPerTwip, 2, MidpointRounding.AwayFromZero);
-    }
 }

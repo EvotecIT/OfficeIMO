@@ -682,6 +682,10 @@ namespace OfficeIMO.Excel {
                     "A non-mutating structural plan cannot inspect pending deferred or preserved fast-save worksheet rows. " +
                     "Materialize or save those writes before requesting the plan.");
             }
+            // Planning inspects worksheet roots across the workbook. Capture the safe
+            // package baseline before those roots are loaded through raw part access.
+            foreach (ExcelSheet sheet in EnumerateDynamicSpillMutationSheets())
+                sheet.CaptureOriginalDynamicSpillFingerprintIfSafe();
         }
 
         private bool FormulaChangesForPlan(

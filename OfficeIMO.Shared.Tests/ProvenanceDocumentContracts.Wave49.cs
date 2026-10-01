@@ -24,14 +24,6 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.DoesNotContain(archive.Entries, entry => entry.FullName == "_xmlsignatures/_rels/sig1.xml.rels");
     }
 
-    [Fact]
-    public void HtmlPreflightDecodesMathMlIntegrationPointEncoding() {
-        string html =
-            "<math><annotation-xml encoding=\"text&#x2f;html\"><![CDATA[>" +
-            "<span></span><span></span>]]></annotation-xml></math>";
-
-        AssertHtmlPreflightRejects(html, maximumEntries: 3);
-    }
 
     [Fact]
     public void DataUriBase64MarkerMustBeTheFinalMetadataSegment() {

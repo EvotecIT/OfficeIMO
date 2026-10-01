@@ -1,18 +1,29 @@
 namespace OfficeIMO.Rtf.Writing;
 
 internal static partial class RtfDocumentWriter {
-    public static string Write(RtfDocument document, RtfWriteOptions options) {
+    public static string Write(RtfDocument document, RtfWriteOptions options, RtfConversionReport? report = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         options ??= new RtfWriteOptions();
         RtfTableTraversalGuard.ValidateDocument(document);
         int unicodeSkipCount = GetUnicodeSkipCount(document.Settings);
+        var context = new RtfWriteContext(document.Settings.DefaultLanguageId, unicodeSkipCount,
+            document.Styles.Any(style => style.Id == 0 && style.Kind == RtfStyleKind.Paragraph) ? 0 : (int?)null,
+            formattingDocument: options.MaterializeStyleFormatting ? document : null);
+        context.TrackMaterialization(report);
 
         var builder = new StringBuilder();
         builder.Append(@"{\rtf1");
         WriteDocumentCharacterSet(builder, document.Settings);
         builder.Append(@"\deff");
         builder.Append((document.Settings.DefaultFontId ?? 0).ToString(CultureInfo.InvariantCulture));
-        WritePageSetup(builder, document.PageSetup, isSection: false);
+        HashSet<RtfNote> referencedNotes = RtfNoteReferenceCollector.Collect(document);
+        if (referencedNotes.Concat(document.Notes).Any(note => note.Kind != RtfNoteKind.Annotation)) builder.Append(@"\fet2");
+        RtfPageSetup rootPageSetup = document.PageSetup;
+        if (document.PageSetup.Landscape && document.Sections.Any(section => section.PageSetup.DirectLandscape == false)) {
+            rootPageSetup = new RtfCloneContext().Clone(document.PageSetup)!;
+            rootPageSetup.DirectLandscape = null;
+        }
+        WritePageSetup(builder, rootPageSetup, isSection: false);
         WriteNoteSettings(builder, document.NoteSettings);
         WriteDocumentSettings(builder, document.Settings);
         WriteHtmlEncapsulation(builder, document, options, unicodeSkipCount);
@@ -33,36 +44,37 @@ internal static partial class RtfDocumentWriter {
         WriteInfo(builder, document, unicodeSkipCount);
         WriteUserProperties(builder, document, unicodeSkipCount);
         WriteDocumentVariables(builder, document, unicodeSkipCount);
-        WriteHeaderFooters(builder, document, unicodeSkipCount);
-        HashSet<RtfNote> referencedNotes = RtfNoteReferenceCollector.Collect(document);
-        WriteDetachedNotes(builder, document, referencedNotes, document.Settings.DefaultLanguageId, unicodeSkipCount);
+        WriteHeaderFooters(builder, document, context);
+        WriteDetachedNotes(builder, document, referencedNotes, context);
         builder.AppendLine();
 
         if (document.Sections.Count > 0) {
             foreach (RtfSection section in document.Sections) {
-                WriteSection(builder, section, document.Settings.DefaultLanguageId, unicodeSkipCount);
+                WriteSection(builder, section, context, document.GetPageSetup(section));
             }
         } else {
             foreach (IRtfBlock block in document.Blocks) {
-                WriteBlock(builder, block, document.Settings.DefaultLanguageId, unicodeSkipCount);
+                WriteBlock(builder, block, context);
             }
         }
 
         builder.Append('}');
+        context.ReportMaterialization(report);
         return builder.ToString();
     }
 
     private static int GetUnicodeSkipCount(RtfDocumentSettings settings) => settings.UnicodeSkipCount ?? 1;
 
     private static void WriteHtmlEncapsulation(StringBuilder builder, RtfDocument document, RtfWriteOptions options, int unicodeSkipCount) {
+        if (!options.IncludeHtmlEncapsulation || !document.IsHtmlEncapsulationCurrent) return;
         RtfHtmlEncapsulation? encapsulation = document.HtmlEncapsulation;
-        if (!options.IncludeHtmlEncapsulation || encapsulation == null || string.IsNullOrEmpty(encapsulation.Html)) return;
+        if (encapsulation == null || string.IsNullOrEmpty(encapsulation.Html)) return;
 
         builder.Append(@"\fromhtml");
         builder.Append(encapsulation.Version.ToString(CultureInfo.InvariantCulture));
         builder.Append(@"{\*\htmltag ");
         builder.Append(EscapeText(encapsulation.Html, unicodeSkipCount));
-        builder.Append('}');
+        builder.Append(@"}\htmlrtf1 ");
     }
 
     private static void WriteDocumentCharacterSet(StringBuilder builder, RtfDocumentSettings settings) {
@@ -76,34 +88,39 @@ internal static partial class RtfDocumentWriter {
         AppendOptionalTwips(builder, @"\ansicpg", settings.AnsiCodePage);
     }
 
-    private static void WriteSection(StringBuilder builder, RtfSection section, int? defaultLanguageId, int unicodeSkipCount) {
-        WriteSectionStart(builder, section);
+    private static void WriteSection(StringBuilder builder, RtfSection section, RtfWriteContext context, RtfPageSetup pageSetup) {
+        WriteSectionStart(builder, section, pageSetup);
+        WriteHeaderFooters(builder, section.HeaderFooters, context);
         foreach (IRtfBlock block in section.Blocks) {
-            WriteBlock(builder, block, defaultLanguageId, unicodeSkipCount);
+            WriteBlock(builder, block, context);
         }
 
         builder.Append(@"\sect");
         builder.AppendLine();
     }
 
-    private static void WriteBlock(StringBuilder builder, IRtfBlock block, int? defaultLanguageId, int unicodeSkipCount) {
+    private static void WriteBlock(StringBuilder builder, IRtfBlock block, RtfWriteContext context) {
         switch (block) {
             case RtfParagraph paragraph:
-                WriteParagraph(builder, paragraph, defaultLanguageId, unicodeSkipCount);
+                WriteParagraph(builder, paragraph, context);
                 break;
             case RtfTable table:
-                WriteTable(builder, table, defaultLanguageId, unicodeSkipCount);
+                WriteTable(builder, table, context);
                 break;
             case RtfImage image:
-                WriteImage(builder, image);
+                var imageParagraph = new RtfParagraph();
+                imageParagraph.AddImage(image);
+                WriteParagraph(builder, imageParagraph, context);
                 break;
             case RtfObject rtfObject:
-                WriteObject(builder, rtfObject, defaultLanguageId, unicodeSkipCount);
-                builder.AppendLine();
+                var objectParagraph = new RtfParagraph();
+                objectParagraph.AddObject(rtfObject);
+                WriteParagraph(builder, objectParagraph, context);
                 break;
             case RtfShape shape:
-                WriteShape(builder, shape, defaultLanguageId, unicodeSkipCount);
-                builder.AppendLine();
+                var shapeParagraph = new RtfParagraph();
+                shapeParagraph.AddShape(shape);
+                WriteParagraph(builder, shapeParagraph, context);
                 break;
         }
     }
@@ -147,12 +164,17 @@ internal static partial class RtfDocumentWriter {
         }
     }
 
-    private static void WriteHeaderFooters(StringBuilder builder, RtfDocument document, int unicodeSkipCount) {
-        foreach (RtfHeaderFooter headerFooter in document.HeaderFooters) {
+    private static void WriteHeaderFooters(StringBuilder builder, RtfDocument document, RtfWriteContext context) {
+        var owned = new HashSet<RtfHeaderFooter>(document.Sections.SelectMany(section => section.HeaderFooters));
+        WriteHeaderFooters(builder, document.HeaderFooters.Where(item => !owned.Contains(item)), context);
+    }
+
+    private static void WriteHeaderFooters(StringBuilder builder, IEnumerable<RtfHeaderFooter> headerFooters, RtfWriteContext context) {
+        foreach (RtfHeaderFooter headerFooter in headerFooters) {
             builder.Append(@"{\");
             builder.Append(GetHeaderFooterControlWord(headerFooter.Kind));
             foreach (RtfParagraph paragraph in headerFooter.Paragraphs) {
-                WriteParagraph(builder, paragraph, document.Settings.DefaultLanguageId, unicodeSkipCount);
+                WriteParagraph(builder, paragraph, context);
             }
 
             builder.Append('}');
@@ -243,45 +265,46 @@ internal static partial class RtfDocumentWriter {
         builder.Append('}');
     }
 
-    private static void WriteParagraph(StringBuilder builder, RtfParagraph paragraph, int? defaultLanguageId, int unicodeSkipCount) {
-        WriteListText(builder, paragraph.ListText, defaultLanguageId, unicodeSkipCount);
-        WriteParagraphStart(builder, paragraph, inTable: false, unicodeSkipCount);
+    private static void WriteParagraph(StringBuilder builder, RtfParagraph paragraph, RtfWriteContext context, bool terminateParagraph = true, IRtfInline? prefix = null) {
+        context = context.ForParagraph(paragraph);
+        WriteListText(builder, paragraph.ListText, context);
+        WriteParagraphStart(builder, paragraph, inTable: false, context);
 
-        var state = new RunWriteState(defaultLanguageId);
+        var state = new RunWriteState(context.DefaultLanguageId);
+        state.PreserveStyleInheritance = paragraph.StyleId.HasValue || context.DefaultParagraphStyleId.HasValue;
+        if (prefix != null) WriteInline(builder, prefix, state, context);
         foreach (IRtfInline inline in paragraph.Inlines) {
-            WriteInline(builder, inline, state, defaultLanguageId, unicodeSkipCount);
+            WriteInline(builder, inline, state, context);
         }
 
         ResetRunState(builder, state);
-        builder.Append(@"\par");
-        builder.AppendLine();
+        if (terminateParagraph) {
+            builder.Append(@"\par");
+            builder.AppendLine();
+        }
     }
 
-    private static void WriteParagraphStart(StringBuilder builder, RtfParagraph paragraph, bool inTable, int unicodeSkipCount) {
+    private static void WriteParagraphStart(StringBuilder builder, RtfParagraph paragraph, bool inTable, RtfWriteContext context) {
+        paragraph = context.ResolveParagraph(paragraph);
+        int? styleId = paragraph.StyleId ?? context.DefaultParagraphStyleId;
         builder.Append(@"\pard");
         if (inTable) {
             builder.Append(@"\intbl");
+        }
+
+        if (styleId.HasValue) {
+            builder.Append(@"\s");
+            builder.Append(styleId.Value.ToString(CultureInfo.InvariantCulture));
         }
 
         if (paragraph.Direction.HasValue) {
             builder.Append(paragraph.Direction.Value == RtfTextDirection.RightToLeft ? @"\rtlpar" : @"\ltrpar");
         }
 
-        if (paragraph.PageBreakBefore) {
-            builder.Append(@"\pagebb");
-        }
-
-        if (paragraph.KeepWithNext) {
-            builder.Append(@"\keepn");
-        }
-
-        if (paragraph.KeepLinesTogether) {
-            builder.Append(@"\keep");
-        }
-
-        if (paragraph.SuppressLineNumbers) {
-            builder.Append(@"\noline");
-        }
+        AppendOptionalBinary(builder, @"\pagebb", paragraph.DirectPageBreakBefore);
+        AppendOptionalBinary(builder, @"\keepn", paragraph.DirectKeepWithNext);
+        AppendOptionalBinary(builder, @"\keep", paragraph.DirectKeepLinesTogether);
+        AppendOptionalBinary(builder, @"\noline", paragraph.DirectSuppressLineNumbers);
 
         if (paragraph.AutoHyphenation.HasValue) {
             builder.Append(paragraph.AutoHyphenation.Value ? @"\hyphpar" : @"\hyphpar0");
@@ -306,14 +329,8 @@ internal static partial class RtfDocumentWriter {
         AppendOptionalTwips(builder, @"\outlinelevel", paragraph.OutlineLevel);
         AppendOptionalTwips(builder, @"\pararsid", paragraph.RevisionSaveId);
 
-        if (paragraph.StyleId.HasValue) {
-            builder.Append(@"\s");
-            builder.Append(paragraph.StyleId.Value.ToString(CultureInfo.InvariantCulture));
-        }
-
-        WriteLegacyNumbering(builder, paragraph.LegacyNumbering, unicodeSkipCount);
+        WriteLegacyNumbering(builder, paragraph.LegacyNumbering, context.UnicodeSkipCount);
         if (paragraph.ListId.HasValue) {
-            builder.Append(paragraph.ListKind == RtfListKind.Bullet ? @"\pn\pnlvlblt" : @"\pn\pnlvlbody");
             builder.Append(@"\ls");
             builder.Append(paragraph.ListId.Value.ToString(CultureInfo.InvariantCulture));
             builder.Append(@"\ilvl");
@@ -339,7 +356,7 @@ internal static partial class RtfDocumentWriter {
         WriteParagraphBorder(builder, @"\brdrl", paragraph.LeftBorder);
         WriteParagraphBorder(builder, @"\brdrb", paragraph.BottomBorder);
         WriteParagraphBorder(builder, @"\brdrr", paragraph.RightBorder);
-        builder.Append(paragraph.Alignment switch {
+        if (paragraph.DirectAlignment.HasValue || !styleId.HasValue) builder.Append(paragraph.Alignment switch {
             RtfTextAlignment.Center => @"\qc",
             RtfTextAlignment.Right => @"\qr",
             RtfTextAlignment.Justify => @"\qj",
@@ -448,6 +465,12 @@ internal static partial class RtfDocumentWriter {
         AppendOptionalTwips(builder, @"\pich", image.SourceHeight);
         AppendOptionalTwips(builder, @"\picwgoal", image.DesiredWidthTwips);
         AppendOptionalTwips(builder, @"\pichgoal", image.DesiredHeightTwips);
+        AppendOptionalTwips(builder, @"\picscalex", image.ScaleXPercent);
+        AppendOptionalTwips(builder, @"\picscaley", image.ScaleYPercent);
+        AppendOptionalTwips(builder, @"\piccropl", image.CropLeftTwips);
+        AppendOptionalTwips(builder, @"\piccropt", image.CropTopTwips);
+        AppendOptionalTwips(builder, @"\piccropr", image.CropRightTwips);
+        AppendOptionalTwips(builder, @"\piccropb", image.CropBottomTwips);
         builder.AppendLine();
         WriteHexBytes(builder, image.Data);
         builder.Append('}');
@@ -462,43 +485,58 @@ internal static partial class RtfDocumentWriter {
         }
     }
 
-    private static void WriteRun(StringBuilder builder, RtfRun run, RunWriteState state, int? defaultLanguageId, int unicodeSkipCount) {
+    private static void WriteRun(StringBuilder builder, RtfRun run, RunWriteState state, RtfWriteContext context) {
+        WriteFormattedRun(builder, context.ResolveRun(run), state, context);
+    }
+
+    private static void WriteFormattedRun(StringBuilder builder, RtfRun run, RunWriteState state, RtfWriteContext context) {
+        if (!state.InStyleScope && (context.PreserveStyleInheritance || state.PreserveStyleInheritance || run.StyleId.HasValue || run.UseDefaultCharacterFormatting)) {
+            builder.Append(@"{\uc");
+            builder.Append(context.UnicodeSkipCount.ToString(CultureInfo.InvariantCulture));
+            builder.Append(' ');
+            var scoped = new RunWriteState(context.DefaultLanguageId) { PreserveStyleInheritance = true, InStyleScope = true };
+            WriteFormattedRun(builder, run, scoped, context);
+            builder.Append('}');
+            return;
+        }
+        if (run.UseDefaultCharacterFormatting) builder.Append(@"\plain ");
         if (run.Hyperlink != null) {
             builder.Append(@"{\field{\*\fldinst HYPERLINK """);
-            builder.Append(EscapeText(run.Hyperlink.ToString(), unicodeSkipCount));
+            builder.Append(EscapeText(run.Hyperlink.ToString(), context.UnicodeSkipCount));
             builder.Append(@"""}{\fldrslt ");
             WriteRunPrefix(builder, run, state);
-            builder.Append(EscapeText(run.Text, unicodeSkipCount));
+            builder.Append(EscapeText(run.Text, context.UnicodeSkipCount));
             builder.Append("}}");
             if (run.Note != null) {
-                WriteNote(builder, run.Note, defaultLanguageId, unicodeSkipCount);
+                WriteNote(builder, run.Note, context);
             }
 
             return;
         }
 
         WriteRunPrefix(builder, run, state);
-        builder.Append(EscapeText(run.Text, unicodeSkipCount));
+        builder.Append(EscapeText(run.Text, context.UnicodeSkipCount));
         if (run.Note != null) {
-            WriteNote(builder, run.Note, defaultLanguageId, unicodeSkipCount);
+            WriteNote(builder, run.Note, context);
         }
     }
 
-    private static void WriteInline(StringBuilder builder, IRtfInline inline, RunWriteState state, int? defaultLanguageId, int unicodeSkipCount) {
+    private static void WriteInline(StringBuilder builder, IRtfInline inline, RunWriteState state, RtfWriteContext context) {
+        context = context.ForCharacterScope(state.PreserveStyleInheritance);
         switch (inline) {
             case RtfRun run:
-                WriteRun(builder, run, state, defaultLanguageId, unicodeSkipCount);
+                WriteRun(builder, run, state, context);
                 break;
             case RtfBookmarkMarker marker:
-                WriteBookmarkMarker(builder, marker, unicodeSkipCount);
+                WriteBookmarkMarker(builder, marker, context.UnicodeSkipCount);
                 break;
             case RtfField field:
-                WriteField(builder, field, defaultLanguageId, unicodeSkipCount);
+                WriteField(builder, field, context);
                 break;
             case RtfGeneratedText generatedText:
                 WriteGeneratedText(builder, generatedText);
                 if (generatedText.Note != null) {
-                    WriteNote(builder, generatedText.Note, defaultLanguageId, unicodeSkipCount);
+                    WriteNote(builder, generatedText.Note, context);
                 }
 
                 break;
@@ -507,11 +545,11 @@ internal static partial class RtfDocumentWriter {
                 break;
             case RtfObject rtfObject:
                 ResetRunState(builder, state);
-                WriteObject(builder, rtfObject, defaultLanguageId, unicodeSkipCount);
+                WriteObject(builder, rtfObject, context);
                 break;
             case RtfShape shape:
                 ResetRunState(builder, state);
-                WriteShape(builder, shape, defaultLanguageId, unicodeSkipCount);
+                WriteShape(builder, shape, context);
                 break;
             case RtfImage image:
                 ResetRunState(builder, state);
@@ -542,15 +580,15 @@ internal static partial class RtfDocumentWriter {
         });
     }
 
-    private static void WriteField(StringBuilder builder, RtfField field, int? defaultLanguageId, int unicodeSkipCount) {
+    private static void WriteField(StringBuilder builder, RtfField field, RtfWriteContext context) {
         builder.Append(@"{\field{\*\fldinst ");
-        builder.Append(EscapeText(field.Instruction, unicodeSkipCount));
+        builder.Append(EscapeText(field.Instruction, context.UnicodeSkipCount));
         builder.Append('}');
-        WriteFormFieldData(builder, field.FormFieldData, unicodeSkipCount);
+        WriteFormFieldData(builder, field.FormFieldData, context.UnicodeSkipCount);
         builder.Append(@"{\fldrslt ");
-        var state = new RunWriteState(defaultLanguageId);
+        var state = new RunWriteState(context.DefaultLanguageId);
         foreach (IRtfInline inline in field.Result.Inlines) {
-            WriteInline(builder, inline, state, defaultLanguageId, unicodeSkipCount);
+            WriteInline(builder, inline, state, context);
         }
 
         ResetRunState(builder, state);

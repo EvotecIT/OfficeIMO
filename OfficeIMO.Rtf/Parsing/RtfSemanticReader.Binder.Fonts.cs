@@ -6,6 +6,7 @@ internal static partial class RtfSemanticReader {
     private sealed partial class Binder {
         private static IReadOnlyList<RtfFont> ReadFontTable(RtfGroup root, int ansiCodePage, int unicodeSkipCount) {
             RtfGroup? table = root.Children.OfType<RtfGroup>().FirstOrDefault(group => group.Destination == "fonttbl");
+            unicodeSkipCount = GetUnicodeSkipCountBefore(root, table);
             if (table == null) return new[] { new RtfFont(0, "Calibri") };
 
             var fonts = new List<RtfFont>();

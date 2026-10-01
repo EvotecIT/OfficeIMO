@@ -43,7 +43,7 @@ public partial class WordRtfConverterTests {
         Assert.NotNull(run.Note);
         Assert.Equal(RtfNoteKind.Endnote, run.Note!.Kind);
         Assert.Equal("Endnote text", run.Note.ToPlainText());
-        Assert.Contains(@"{\endnote", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"{\footnote\ftnalt", rtf, StringComparison.Ordinal);
         Assert.Contains("Endnote text", rtf, StringComparison.Ordinal);
     }
 

@@ -11,6 +11,10 @@
     <LangVersion>Latest</LangVersion>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(PdfPerformanceEvidence)' == 'true'">
+    <DefineConstants>$(DefineConstants);PDF_PERFORMANCE_EVIDENCE</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.AsciiDoc.Pdf\OfficeIMO.AsciiDoc.Pdf.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />

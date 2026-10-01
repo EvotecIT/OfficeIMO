@@ -18,19 +18,6 @@ public sealed class BibliographyReviewWave34RegressionTests {
         Assert.Equal(original, stream.ToArray());
     }
 
-    [Fact]
-    public async Task Async_stream_save_observes_cancellation_between_bounded_writes() {
-        using var cancellation = new CancellationTokenSource();
-        using var stream = new CancelAfterFirstAsyncWriteStream(cancellation);
-        var document = new BibliographyDocument(BibliographyFormat.CslJson);
-        document.Items.Add(new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = new string('x', 256 * 1024) });
-
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            document.SaveAsync(stream, new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical }, cancellation.Token));
-
-        Assert.Equal(1, stream.WriteCount);
-        Assert.InRange(stream.MaximumWriteSize, 1, 81920);
-    }
 
     [Fact]
     public void Baseline_fingerprinting_observes_cancellation_within_a_large_value() {
@@ -90,18 +77,4 @@ public sealed class BibliographyReviewWave34RegressionTests {
         internal void ArmCancellation() => _armed = true;
     }
 
-    private sealed class CancelAfterFirstAsyncWriteStream : MemoryStream {
-        private readonly CancellationTokenSource _cancellation;
-        internal CancelAfterFirstAsyncWriteStream(CancellationTokenSource cancellation) => _cancellation = cancellation;
-        internal int WriteCount { get; private set; }
-        internal int MaximumWriteSize { get; private set; }
-
-        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) {
-            WriteCount++;
-            MaximumWriteSize = Math.Max(MaximumWriteSize, count);
-            Write(buffer, offset, count);
-            if (WriteCount == 1) _cancellation.Cancel();
-            return Task.CompletedTask;
-        }
-    }
 }

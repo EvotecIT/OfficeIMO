@@ -12,20 +12,35 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class WordAllSeverityBatch13SecurityTests {
+#if WORD_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+    [Trait("Category", "WordPerformanceEvidence")]
+#endif
     [Fact]
     public void MarkdownConversionProcessesEqualRunGroupsInLinearTime() {
+#if WORD_PERFORMANCE_EVIDENCE
+        const int runCount = 3000;
+#else
+        const int runCount = 16;
+#endif
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph();
-        for (int index = 0; index < 3000; index++) {
+        for (int index = 0; index < runCount; index++) {
             paragraph.AddText("x");
         }
 
+#if WORD_PERFORMANCE_EVIDENCE
         var stopwatch = Stopwatch.StartNew();
+#endif
         string markdown = document.ToMarkdown();
+#if WORD_PERFORMANCE_EVIDENCE
         stopwatch.Stop();
+#endif
 
-        Assert.Equal(3000, markdown.Count(character => character == 'x'));
+        Assert.Equal(runCount, markdown.Count(character => character == 'x'));
+#if WORD_PERFORMANCE_EVIDENCE
         Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(10), $"Conversion took {stopwatch.Elapsed}.");
+#endif
     }
 
     [Fact]

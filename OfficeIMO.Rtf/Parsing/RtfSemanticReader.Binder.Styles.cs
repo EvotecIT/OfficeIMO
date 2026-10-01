@@ -4,8 +4,9 @@ namespace OfficeIMO.Rtf;
 
 internal static partial class RtfSemanticReader {
     private sealed partial class Binder {
-        private static IReadOnlyList<RtfStyle> ReadStylesheet(RtfGroup root, int ansiCodePage, int unicodeSkipCount) {
+        private IReadOnlyList<RtfStyle> ReadStylesheet(RtfGroup root, int ansiCodePage, int unicodeSkipCount) {
             RtfGroup? stylesheet = root.Children.OfType<RtfGroup>().FirstOrDefault(group => group.Destination == "stylesheet");
+            unicodeSkipCount = GetUnicodeSkipCountBefore(root, stylesheet);
             if (stylesheet == null) return Array.Empty<RtfStyle>();
 
             var styles = new List<RtfStyle>();
@@ -19,7 +20,7 @@ internal static partial class RtfSemanticReader {
             return styles;
         }
 
-        private static RtfStyle? ReadStyle(RtfGroup styleGroup, int ansiCodePage, int unicodeSkipCount) {
+        private RtfStyle? ReadStyle(RtfGroup styleGroup, int ansiCodePage, int unicodeSkipCount) {
             int? id = null;
             RtfStyleKind kind = RtfStyleKind.Paragraph;
             int? basedOn = null;
@@ -40,6 +41,7 @@ internal static partial class RtfSemanticReader {
             int? revisionSaveId = null;
             bool? bold = null;
             bool? italic = null;
+            bool? textHidden = null;
             RtfUnderlineStyle? underlineStyle = null;
             double? fontSize = null;
             int? fontId = null;
@@ -84,6 +86,10 @@ internal static partial class RtfSemanticReader {
 
             foreach (RtfNode node in styleGroup.Children) {
                 if (node is RtfControlWord control) {
+                    if (IsSpecialCharacterControl(control.Name) || control.Name is "tab" or "line" or "par") {
+                        // CollectDirectPlainText retains these as characters in the style name.
+                        continue;
+                    }
                     if (TryApplyParagraphFrameControl(control, tabState)) {
                         continue;
                     }
@@ -104,6 +110,10 @@ internal static partial class RtfSemanticReader {
                     }
 
                     switch (control.Name) {
+                        case "uc":
+                        case "u":
+                            // These controls encode the name, which CollectDirectPlainText decodes.
+                            break;
                         case "s":
                             id = control.Parameter;
                             kind = RtfStyleKind.Paragraph;
@@ -124,6 +134,12 @@ internal static partial class RtfSemanticReader {
                             break;
                         case "slink":
                             linked = control.Parameter;
+                            break;
+                        case "ls":
+                            tabState.ListId = control.Parameter;
+                            break;
+                        case "ilvl":
+                            tabState.ListLevel = control.Parameter;
                             break;
                         case "additive":
                             additive = true;
@@ -166,6 +182,9 @@ internal static partial class RtfSemanticReader {
                             break;
                         case "i":
                             italic = !control.HasParameter || control.Parameter != 0;
+                            break;
+                        case "v":
+                            textHidden = !control.HasParameter || control.Parameter != 0;
                             break;
                         case "fs":
                             if (control.Parameter.HasValue) {
@@ -348,6 +367,9 @@ internal static partial class RtfSemanticReader {
                         case "brdrcf":
                             ApplyStyleBorderColor(topBorder, leftBorder, bottomBorder, rightBorder, currentBorderSide, control.Parameter);
                             break;
+                        default:
+                            _document.RecordUnboundStyleSyntax(control.Name, control.Position, isDestination: false);
+                            break;
                     }
                 } else if (node is RtfGroup childGroup) {
                     if (childGroup.Destination == "keycode") {
@@ -356,6 +378,8 @@ internal static partial class RtfSemanticReader {
                         tabState.AnsiCodePage = ansiCodePage;
                         tabState.UnicodeSkipCount = unicodeSkipCount;
                         ReadLegacyNumbering(childGroup, tabState);
+                    } else {
+                        _document.RecordUnboundStyleSyntax(childGroup.Destination ?? "unnamed", childGroup.Position, isDestination: true);
                     }
                 }
             }
@@ -369,6 +393,8 @@ internal static partial class RtfSemanticReader {
                 BasedOnStyleId = basedOn,
                 NextStyleId = next,
                 LinkedStyleId = linked,
+                ListId = tabState.ListId,
+                ListLevel = tabState.ListLevel,
                 KeyCode = keyCode,
                 Additive = additive,
                 AutoUpdate = autoUpdate,
@@ -384,6 +410,7 @@ internal static partial class RtfSemanticReader {
                 RevisionSaveId = revisionSaveId,
                 Bold = bold,
                 Italic = italic,
+                TextHidden = textHidden,
                 UnderlineStyle = underlineStyle,
                 FontSize = fontSize,
                 FontId = fontId,
@@ -500,7 +527,7 @@ internal static partial class RtfSemanticReader {
         }
 
         private static void CopyStyleBorder(RtfParagraphBorder source, RtfParagraphBorder destination) {
-            destination.Style = source.Style;
+            destination.DirectStyle = source.DirectStyle;
             destination.Width = source.Width;
             destination.ColorIndex = source.ColorIndex;
         }

@@ -10,11 +10,13 @@ public sealed record OcrReviewPageChoice(int Number, string Label);
 
 public sealed partial class OcrReviewWord : ObservableObject {
     private readonly Action<OcrReviewWord> _changed;
-    internal OcrReviewWord(PdfOcrWordEvidence evidence, bool included, string reason, Action<OcrReviewWord> changed) {
-        Evidence = evidence; _isIncluded = included; Reason = reason; _changed = changed;
+    internal OcrReviewWord(PdfOcrWordEvidence evidence, bool included, string text, string reason, Action<OcrReviewWord> changed) {
+        Evidence = evidence; _isIncluded = included; _reviewedText = text; Reason = reason; _changed = changed;
     }
     internal PdfOcrWordEvidence Evidence { get; }
     public string Text => Evidence.Word.Text;
+    [ObservableProperty] private string _reviewedText;
+    partial void OnReviewedTextChanged(string value) => _changed(this);
     public bool IsEligible => Evidence.Disposition == PdfOcrWordDisposition.Accepted;
     public string Reason { get; }
     public string Confidence => Evidence.Word.Confidence.ToString("P0");
@@ -36,18 +38,19 @@ public sealed partial class OcrReviewViewModel : ObservableObject, IDisposable {
     private readonly IStudioLocalizer _localizer;
     private readonly Action _cancel;
     private readonly HashSet<PdfRecognizedWord> _excluded = [];
-    private readonly TaskCompletionSource<IReadOnlyList<PdfRecognizedWord>> _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly Dictionary<PdfRecognizedWord, string> _corrections = [];
+    private readonly TaskCompletionSource<IReadOnlyDictionary<PdfRecognizedWord, string>> _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private CancellationTokenSource? _previewCancellation;
     private bool _disposed;
     internal Task PreviewTask { get; private set; } = Task.CompletedTask;
-    internal Task<IReadOnlyList<PdfRecognizedWord>> Completion => _completion.Task;
+    internal Task<IReadOnlyDictionary<PdfRecognizedWord, string>> Completion => _completion.Task;
 
     internal OcrReviewViewModel(PdfSearchableOcrReview review, IStudioLocalizer localizer, Action cancel, bool textOnly = false) {
         _review = review; _localizer = localizer; _cancel = cancel;
         CommitLabel = textOnly ? localizer.GetOrDefault("Ocr.Text.UseSelected", "Use selected text")
             : localizer.GetOrDefault("SearchablePdfOcr.CreateSearchablePDF", "Create searchable PDF");
-        CommitNote = textOnly ? localizer.GetOrDefault("Ocr.Text.CommitNote", "Extract the selected words without creating a PDF.")
-            : localizer.GetOrDefault("Ocr.Review.CommitNote", "Only selected eligible words will be added to the searchable PDF.");
+        CommitNote = textOnly ? localizer.GetOrDefault("Ocr.Text.CommitNote", "Extract the selected words and your corrections without creating a PDF.")
+            : localizer.GetOrDefault("Ocr.Review.CommitNote", "Only selected eligible words and your corrections will be added. Original recognition evidence is retained.");
         Pages = review.Ocr.Pages.Select(page => new OcrReviewPageChoice(page.PageNumber,
             localizer.FormatOrDefault("Ocr.Review.Page", "Page {0}", page.PageNumber))).ToArray();
         SelectedPage = Pages.FirstOrDefault();
@@ -57,8 +60,11 @@ public sealed partial class OcrReviewViewModel : ObservableObject, IDisposable {
     public string CommitLabel { get; }
     public string CommitNote { get; }
     [ObservableProperty] private IReadOnlyList<OcrReviewWord> _words = [];
-    public string Summary => _localizer.FormatOrDefault("Ocr.Review.Summary", "Selected words: {0:N0} · Reviewed pages: {1:N0}. Rejected words remain excluded.",
-        _review.Ocr.AcceptedWordCount - _excluded.Count, Pages.Count);
+    public string Summary => _localizer.FormatOrDefault("Ocr.Review.Summary", "Selected words: {0:N0} · Corrected: {2:N0} · Pages: {1:N0}. Rejected words remain excluded.",
+        _review.Ocr.AcceptedWordCount - _excluded.Count, Pages.Count,
+        _corrections.Count(pair => !_excluded.Contains(pair.Key) && !string.IsNullOrWhiteSpace(pair.Value)));
+    public string? CorrectionError => _corrections.Any(pair => !_excluded.Contains(pair.Key) && string.IsNullOrWhiteSpace(pair.Value))
+        ? T("EmptyCorrection", "Enter replacement text or exclude the word before continuing.") : null;
     [ObservableProperty] private OcrReviewPageChoice? _selectedPage;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSelectedWord))]
@@ -74,7 +80,8 @@ public sealed partial class OcrReviewViewModel : ObservableObject, IDisposable {
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CommitCommand))]
     private bool _isLoadingPreview;
-    private bool CanCommit => !_disposed && !IsLoadingPreview && Preview is not null && PreviewError is null && !_completion.Task.IsCompleted;
+    private bool CanCommit => !_disposed && !IsLoadingPreview && Preview is not null && PreviewError is null && !_completion.Task.IsCompleted
+        && _corrections.All(pair => _excluded.Contains(pair.Key) || !string.IsNullOrWhiteSpace(pair.Value));
 
     partial void OnSelectedPageChanged(OcrReviewPageChoice? value) {
         if (_disposed || value is null) return;
@@ -95,7 +102,7 @@ public sealed partial class OcrReviewViewModel : ObservableObject, IDisposable {
                 PdfOcrWordDisposition.LowConfidence => T("LowConfidence", "Below confidence threshold; overlap not evaluated"),
                 _ => T("Overlap", "Already covered by native text")
             };
-            return new OcrReviewWord(item, item.Disposition == PdfOcrWordDisposition.Accepted && !_excluded.Contains(item.Word), reason, WordChanged);
+            return new OcrReviewWord(item, item.Disposition == PdfOcrWordDisposition.Accepted && !_excluded.Contains(item.Word), _corrections.GetValueOrDefault(item.Word, item.Word.Text), reason, WordChanged);
         }).ToArray();
         SelectedWord = Words.FirstOrDefault();
         PageDetails = _localizer.FormatOrDefault("Ocr.Review.PageDetails", "Language: {0} · Provider: {1} · Eligible: {2:N0} · Low confidence: {3:N0} · Native overlap: {4:N0}",
@@ -127,19 +134,45 @@ public sealed partial class OcrReviewViewModel : ObservableObject, IDisposable {
         SelectedWord = word;
         if (word.IsIncluded) _excluded.Remove(word.Evidence.Word);
         else if (word.IsEligible) _excluded.Add(word.Evidence.Word);
+        if (word.IsEligible) {
+            if (word.ReviewedText == word.Text) _corrections.Remove(word.Evidence.Word);
+            else _corrections[word.Evidence.Word] = word.ReviewedText;
+        }
         OnPropertyChanged(nameof(Summary));
+        OnPropertyChanged(nameof(CorrectionError));
+        CommitCommand.NotifyCanExecuteChanged();
     }
 
     [RelayCommand(CanExecute = nameof(CanCommit))]
     private void Commit() {
         if (!CanCommit) return;
-        _completion.TrySetResult(_review.Ocr.Pages.SelectMany(page => page.Words).Where(word => !_excluded.Contains(word)).ToArray());
+        _completion.TrySetResult(_review.Ocr.Pages.SelectMany(page => page.Words).Where(word => !_excluded.Contains(word))
+            .ToDictionary(word => word, word => _corrections.GetValueOrDefault(word, word.Text)));
         CommitCommand.NotifyCanExecuteChanged();
     }
 
     [RelayCommand]
     private void Cancel() {
         if (!_disposed) _cancel();
+    }
+
+    [RelayCommand]
+    private async Task NextUncertainAsync() {
+        var uncertain = _review.Ocr.Pages.SelectMany(page => page.WordEvidence
+            .Where(item => item.Disposition == PdfOcrWordDisposition.LowConfidence
+                || item.Disposition == PdfOcrWordDisposition.Accepted && item.Word.Confidence < 0.9)
+            .Select(item => (page.PageNumber, Word: item.Word))).ToArray();
+        if (uncertain.Length == 0 || _disposed) return;
+        int current = Array.FindIndex(uncertain, item => ReferenceEquals(item.Word, SelectedWord?.Evidence.Word));
+        var next = uncertain[(current + 1) % uncertain.Length];
+        SelectedPage = Pages.Single(page => page.Number == next.PageNumber);
+        Task preview = PreviewTask;
+        var selection = SelectedWord;
+        await preview;
+        if (_disposed || !ReferenceEquals(PreviewTask, preview) || SelectedPage?.Number != next.PageNumber
+            || !ReferenceEquals(SelectedWord, selection)) return;
+        var word = Words.FirstOrDefault(item => ReferenceEquals(item.Evidence.Word, next.Word));
+        if (word is not null) SelectedWord = word;
     }
 
     [RelayCommand]

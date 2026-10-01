@@ -9,6 +9,13 @@ internal static partial class PdfWriter {
             EnsurePage();
             foreach (PdfCanvasItem item in canvas.Items) {
                 switch (item) {
+                    case PdfCanvasBehindTextItem behindText:
+                        RenderBehindTextCanvas(behindText);
+                        break;
+                    case PdfCanvasParagraphAnchorItem paragraphAnchor:
+                        RenderCanvasEffect(new PdfCanvasEffectItem(paragraphAnchor.Items,
+                            OfficeTransform.Translate(0D, currentOpts.PageHeight - (paragraphCanvasTop ?? y)), 1D, OfficeBlendMode.Normal));
+                        break;
                     case PdfCanvasArtifactItem artifact:
                         RenderCanvasArtifact(artifact);
                         break;

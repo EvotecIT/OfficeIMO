@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Custom document property from the RTF <c>\userprops</c> destination.
 /// </summary>
-public sealed class RtfUserProperty {
+public sealed partial class RtfUserProperty {
     /// <summary>Text property type code used by common RTF producers.</summary>
     public const int TextType = 30;
 

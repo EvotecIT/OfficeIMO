@@ -305,23 +305,32 @@ public sealed class ReaderPageLocationTests {
     }
 
     [Fact]
+#if READER_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+    [Trait("Category", "ResourcePerformanceEvidence")]
+#endif
     public void Search_MaximumResultsBoundsOccurrenceCollectionForLargeBlocks() {
+#if READER_PERFORMANCE_EVIDENCE && NET8_0_OR_GREATER
+        const int occurrenceCount = 250_000;
+#else
+        const int occurrenceCount = 8;
+#endif
         var sourceBlock = new OfficeDocumentBlock {
             Id = "paragraph-large",
             Kind = "paragraph",
-            Text = new string('a', 250_000)
+            Text = new string('a', occurrenceCount)
         };
         var document = new OfficeDocumentReadResult {
             Blocks = new[] { sourceBlock }
         };
 
-#if NET8_0_OR_GREATER
+#if READER_PERFORMANCE_EVIDENCE && NET8_0_OR_GREATER
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
 #endif
         OfficeDocumentSearchHit hit = Assert.Single(document.Search(
             "a",
             new OfficeDocumentSearchOptions { MaximumResults = 1 }).Hits);
-#if NET8_0_OR_GREATER
+#if READER_PERFORMANCE_EVIDENCE && NET8_0_OR_GREATER
         long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
         Assert.InRange(allocated, 0L, 512L * 1024L);
 #endif
@@ -330,14 +339,19 @@ public sealed class ReaderPageLocationTests {
     }
 
     [Fact]
+#if READER_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+    [Trait("Category", "ResourcePerformanceEvidence")]
+#endif
     public void Search_LimitedFallbackCorrelationDoesNotCopyUnboundedFragmentText() {
-        const int fragmentCount = 256;
-        const int fragmentLength = 8192;
         var sourceBlock = new OfficeDocumentBlock {
             Id = "paragraph-bounded-correlation",
             Kind = "paragraph",
             Text = "needle"
         };
+#if READER_PERFORMANCE_EVIDENCE && NET8_0_OR_GREATER
+        const int fragmentCount = 256;
+        const int fragmentLength = 8192;
         string fragmentText = new string('x', fragmentLength);
         var document = new OfficeDocumentReadResult {
             Blocks = new[] { sourceBlock },
@@ -345,14 +359,32 @@ public sealed class ReaderPageLocationTests {
                 .Select(page => Page(page, PageBlock(sourceBlock, page, fragmentText)))
                 .ToArray()
         };
+#else
+        // Matching occurrence counts make a lost capture cap observable as a false citation.
+        const int captureLimit = 1024 * 1024;
+        OfficeDocumentPage capturedPage = Page(1, PageBlock(
+            sourceBlock, 1, "needle" + new string('x', captureLimit - "needle".Length)));
+        var capturedDocument = new OfficeDocumentReadResult {
+            Blocks = new[] { sourceBlock },
+            Pages = new[] { capturedPage }
+        };
+        OfficeDocumentSearchHit capturedHit = Assert.Single(capturedDocument.Search(
+            "needle",
+            new OfficeDocumentSearchOptions { MaximumResults = 1 }).Hits);
+        Assert.Equal(1, Assert.Single(capturedHit.Pages).Number);
+        var document = new OfficeDocumentReadResult {
+            Blocks = new[] { sourceBlock },
+            Pages = new[] { capturedPage, Page(2, PageBlock(sourceBlock, 2, "x")) }
+        };
+#endif
 
-#if NET8_0_OR_GREATER
+#if READER_PERFORMANCE_EVIDENCE && NET8_0_OR_GREATER
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
 #endif
         OfficeDocumentSearchHit hit = Assert.Single(document.Search(
             "needle",
             new OfficeDocumentSearchOptions { MaximumResults = 1 }).Hits);
-#if NET8_0_OR_GREATER
+#if READER_PERFORMANCE_EVIDENCE && NET8_0_OR_GREATER
         long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
         Assert.InRange(allocated, 0L, 8L * 1024L * 1024L);
 #endif
@@ -361,8 +393,16 @@ public sealed class ReaderPageLocationTests {
     }
 
     [Fact]
+#if READER_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+    [Trait("Category", "ResourcePerformanceEvidence")]
+#endif
     public void Search_PageMappingScalesAcrossManyFragments() {
+#if READER_PERFORMANCE_EVIDENCE && NET8_0_OR_GREATER
         const int fragmentCount = 10_000;
+#else
+        const int fragmentCount = 8;
+#endif
         var sourceBlock = new OfficeDocumentBlock {
             Id = "paragraph-many-fragments",
             Kind = "paragraph",
@@ -375,16 +415,25 @@ public sealed class ReaderPageLocationTests {
                 .ToArray()
         };
 
+#if READER_PERFORMANCE_EVIDENCE && NET8_0_OR_GREATER
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+#endif
         OfficeDocumentSearchResult result = document.Search("x",
             new OfficeDocumentSearchOptions { MaximumResults = fragmentCount });
+#if READER_PERFORMANCE_EVIDENCE && NET8_0_OR_GREATER
         stopwatch.Stop();
+#endif
 
         Assert.Equal(fragmentCount, result.Hits.Count);
         Assert.Equal(1, result.Hits[0].Pages.Single().Number);
         Assert.Equal(fragmentCount,
             result.Hits[result.Hits.Count - 1].Pages.Single().Number);
+        Assert.Equal(
+            Enumerable.Range(1, fragmentCount),
+            result.Hits.Select(hit => Assert.Single(hit.Pages).Number!.Value));
+#if READER_PERFORMANCE_EVIDENCE && NET8_0_OR_GREATER
         Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), stopwatch.Elapsed.ToString());
+#endif
     }
 
     [Fact]

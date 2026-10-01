@@ -1,12 +1,34 @@
 namespace OfficeIMO.Invoicing;
 
 /// <summary>Shared decimal arithmetic for invoice XML, validation and visible presentation.</summary>
-public static class InvoiceCalculator {
+public static partial class InvoiceCalculator {
     /// <summary>Explicitly replaces source-declared amounts after editing prices, quantities, taxes or adjustments.</summary>
-    public static InvoiceCalculation UpdateDeclaredAmounts(Invoice invoice) {
+    public static InvoiceCalculation UpdateDeclaredAmounts(Invoice invoice) => UpdateDeclaredAmounts(invoice, null);
+
+    /// <summary>Recalculates declared amounts. An explicit positive rate converts invoice VAT to accounting currency; without a rate, a changed VAT total invalidates its retained foreign-currency amount.</summary>
+    /// <param name="invoice">Invoice to update after editing.</param>
+    /// <param name="taxExchangeRate">Accounting-currency units per invoice-currency unit, chosen by the caller for the applicable tax point.</param>
+    public static InvoiceCalculation UpdateDeclaredAmounts(Invoice invoice, decimal? taxExchangeRate) {
         if (invoice == null) throw new ArgumentNullException(nameof(invoice));
-        if (invoice.Lines.Count == 0) return FromDeclaredAggregate(invoice);
-        InvoiceCalculation calculation = Calculate(invoice, false);
+        if (taxExchangeRate.HasValue && (taxExchangeRate <= 0m || string.IsNullOrWhiteSpace(invoice.TaxCurrency)))
+            throw new ArgumentException("An accounting-currency exchange rate requires a positive rate and an explicit tax currency.", nameof(taxExchangeRate));
+        decimal? previousVat = invoice.DeclaredTotals?.TaxTotal;
+        InvoiceCalculation calculation = invoice.Lines.Count == 0 ? RecalculateAggregate(invoice) : Calculate(invoice, false);
+        // Calculate before mutation so overflow or an invalid rate cannot leave partially updated amounts.
+        decimal? accountingVat = taxExchangeRate.HasValue
+            ? InvoiceArithmetic.RoundedProduct(calculation.TaxTotal, taxExchangeRate.Value, 1m)
+            : previousVat == calculation.TaxTotal ? invoice.TaxAmountInAccountingCurrency : null;
+        if (invoice.Lines.Count == 0) {
+            InvoiceDeclaredTotals totals = invoice.DeclaredTotals!;
+            invoice.DeclaredTotals = new InvoiceDeclaredTotals {
+                LineNetTotal = totals.LineNetTotal.HasValue ? calculation.LineNetTotal : null,
+                AllowanceTotal = totals.AllowanceTotal, ChargeTotal = totals.ChargeTotal,
+                TaxExclusiveTotal = calculation.TaxExclusiveTotal, TaxTotal = calculation.TaxTotal,
+                TaxInclusiveTotal = calculation.TaxInclusiveTotal, PayableAmount = calculation.PayableAmount
+            };
+            invoice.TaxAmountInAccountingCurrency = accountingVat;
+            return calculation;
+        }
         for (int index = 0; index < invoice.Lines.Count; index++) invoice.Lines[index].DeclaredNetAmount = calculation.Lines[index].NetAmount;
         invoice.DeclaredTotals = new InvoiceDeclaredTotals {
             LineNetTotal = calculation.LineNetTotal, AllowanceTotal = calculation.AllowanceTotal, ChargeTotal = calculation.ChargeTotal,
@@ -17,6 +39,7 @@ public static class InvoiceCalculator {
             Category = new InvoiceTaxCategory { Code = tax.CategoryCode, Rate = tax.Rate, ExemptionReason = tax.ExemptionReason, ExemptionReasonCode = tax.ExemptionReasonCode },
             TaxableAmount = tax.TaxableAmount, TaxAmount = tax.TaxAmount
         });
+        invoice.TaxAmountInAccountingCurrency = accountingVat;
         return calculation;
     }
     /// <summary>Rounds to two decimal places using XPath round semantics (ties towards positive infinity).</summary>
@@ -38,9 +61,11 @@ public static class InvoiceCalculator {
             ?? throw new ArgumentException("Aggregate-only invoice data requires declared totals.", nameof(invoice));
         if (!totals.TaxExclusiveTotal.HasValue || !totals.TaxTotal.HasValue || !totals.TaxInclusiveTotal.HasValue || !totals.PayableAmount.HasValue)
             throw new ArgumentException("Aggregate-only invoice data is missing a required declared total.", nameof(invoice));
-        IReadOnlyList<InvoiceCalculatedTax> taxes = invoice.DeclaredTaxes.Select(tax => new InvoiceCalculatedTax(
-            tax.Category.Code, NormalizeRate(tax.Category), tax.TaxableAmount, tax.Category.ExemptionReason,
-            tax.Category.ExemptionReasonCode, tax.TaxAmount)).ToArray();
+        IReadOnlyList<InvoiceCalculatedTax> taxes = invoice.DeclaredTaxes.Select(tax => {
+            if (tax == null || tax.Category == null) throw new ArgumentException("A declared VAT breakdown is null.", nameof(invoice));
+            return new InvoiceCalculatedTax(tax.Category.Code, NormalizeRate(tax.Category), tax.TaxableAmount,
+                tax.Category.ExemptionReason, tax.Category.ExemptionReasonCode, tax.TaxAmount);
+        }).ToArray();
         return new InvoiceCalculation(Array.Empty<InvoiceCalculatedLine>(), taxes,
             totals.LineNetTotal ?? totals.TaxExclusiveTotal.Value,
             totals.AllowanceTotal ?? 0m,

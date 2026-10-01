@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Page size and margin settings for an RTF document.
 /// </summary>
-public sealed class RtfPageSetup {
+public sealed partial class RtfPageSetup {
     /// <summary>Paper width in twips.</summary>
     public int? PaperWidthTwips { get; set; }
 
@@ -56,16 +56,25 @@ public sealed class RtfPageSetup {
     public RtfPageNumberFormat? PageNumberFormat { get; set; }
 
     /// <summary>Page border settings.</summary>
-    public RtfPageBorders PageBorders { get; } = new RtfPageBorders();
+    public RtfPageBorders PageBorders { get; private set; } = new RtfPageBorders();
 
     /// <summary>Whether the document declares landscape orientation.</summary>
-    public bool Landscape { get; set; }
+    public bool Landscape { get => DirectLandscape ?? false; set => DirectLandscape = value; }
+
+    /// <summary>Authored orientation. Null inherits the document's orientation; false explicitly selects portrait.</summary>
+    public bool? DirectLandscape { get; set; }
 
     /// <summary>Whether first-page header/footer variants are enabled, represented by <c>\titlepg</c>.</summary>
-    public bool DifferentFirstPageHeaderFooter { get; set; }
+    public bool DifferentFirstPageHeaderFooter { get => DirectDifferentFirstPageHeaderFooter ?? false; set => DirectDifferentFirstPageHeaderFooter = value; }
+
+    /// <summary>Authored first-page header/footer setting. Null inherits the document setting.</summary>
+    public bool? DirectDifferentFirstPageHeaderFooter { get; set; }
 
     /// <summary>Whether the gutter should be positioned on the right side.</summary>
-    public bool RtlGutter { get; set; }
+    public bool RtlGutter { get => DirectRtlGutter ?? false; set => DirectRtlGutter = value; }
+
+    /// <summary>Authored gutter direction. Null inherits the document setting.</summary>
+    public bool? DirectRtlGutter { get; set; }
 
     /// <summary>Sets paper size in twips.</summary>
     public RtfPageSetup SetPaperSize(int widthTwips, int heightTwips) {
@@ -166,9 +175,9 @@ public sealed class RtfPageSetup {
         PageNumberPositionYTwips.HasValue ||
         PageNumberFormat.HasValue ||
         PageBorders.HasAnyValue ||
-        Landscape ||
-        DifferentFirstPageHeaderFooter ||
-        RtlGutter;
+        DirectLandscape.HasValue ||
+        DirectDifferentFirstPageHeaderFooter.HasValue ||
+        DirectRtlGutter.HasValue;
 
     internal void Clear() {
         PaperWidthTwips = null;
@@ -189,9 +198,9 @@ public sealed class RtfPageSetup {
         PageNumberPositionYTwips = null;
         PageNumberFormat = null;
         PageBorders.Clear();
-        Landscape = false;
-        DifferentFirstPageHeaderFooter = false;
-        RtlGutter = false;
+        DirectLandscape = null;
+        DirectDifferentFirstPageHeaderFooter = null;
+        DirectRtlGutter = null;
     }
 
     private static void ValidateNonNegative(int? value, string parameterName) {

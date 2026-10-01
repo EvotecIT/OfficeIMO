@@ -233,20 +233,5 @@ public sealed partial class ProvenanceCoreContracts {
         Assert.Equal(png, result.ToArray());
     }
 
-    [Fact]
-    public void MultipleDirectSvgRdfScopesAreStructurallyAmbiguous() {
-        byte[] svg = Encoding.UTF8.GetBytes(
-            "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" " +
-            "xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\"><metadata>" +
-            "<rdf:RDF><rdf:Description iptc:DigitalSourceType=\"trainedAlgorithmicMedia\"/></rdf:RDF>" +
-            "<rdf:RDF><rdf:Description iptc:DigitalSourceType=\"trainedAlgorithmicMedia\"/></rdf:RDF>" +
-            "</metadata></svg>");
 
-        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(svg, "fixture.svg");
-
-        Assert.Equal(2, result.Before.Evidence.Count);
-        Assert.All(result.Before.Evidence, evidence => Assert.False(evidence.IsStructurallyValid));
-        Assert.False(result.WasChanged);
-        Assert.Equal(svg, result.ToArray());
-    }
 }

@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Document-level RTF settings that are not tied to page setup or body content.
 /// </summary>
-public sealed class RtfDocumentSettings {
+public sealed partial class RtfDocumentSettings {
     /// <summary>Document character set declaration represented by <c>\ansi</c>, <c>\mac</c>, <c>\pc</c>, or <c>\pca</c>.</summary>
     public RtfDocumentCharacterSet? CharacterSet { get; set; }
 

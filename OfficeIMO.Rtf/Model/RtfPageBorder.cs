@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Formatting for one side of an RTF page border.
 /// </summary>
-public sealed class RtfPageBorder {
+public sealed partial class RtfPageBorder {
     /// <summary>Border line style.</summary>
     public RtfPageBorderStyle Style { get; set; } = RtfPageBorderStyle.None;
 

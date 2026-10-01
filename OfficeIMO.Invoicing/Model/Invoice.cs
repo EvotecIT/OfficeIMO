@@ -2,14 +2,19 @@ namespace OfficeIMO.Invoicing;
 
 /// <summary>Editable semantic invoice shared by XML writers and presentation adapters.</summary>
 public sealed class Invoice {
+    private string _currency = "EUR";
+    private string? _taxCurrency;
     /// <summary>Seller-assigned invoice number (BT-1).</summary>
     public string Number { get; set; } = string.Empty;
     /// <summary>Issue date, without a time or timezone (BT-2).</summary>
     public DateTime IssueDate { get; set; }
     /// <summary>UNCL 1001 document type, normally 380 for an invoice or 381 for a credit note.</summary>
     public string TypeCode { get; set; } = "380";
-    /// <summary>ISO 4217 invoice currency (BT-5).</summary>
-    public string Currency { get; set; } = "EUR";
+    /// <summary>ISO 4217 invoice currency (BT-5). Changing it invalidates any accounting-currency VAT amount.</summary>
+    public string Currency {
+        get => _currency;
+        set { if (_currency != value) TaxAmountInAccountingCurrency = null; _currency = value; }
+    }
     /// <summary>Business process identifier (BT-23), distinct from the selected guideline.</summary>
     public string? BusinessProcessId { get; set; }
     /// <summary>Buyer routing reference, including a Leitweg-ID where required (BT-10).</summary>
@@ -60,6 +65,12 @@ public sealed class Invoice {
     public IList<InvoiceAllowanceCharge> AllowancesAndCharges { get; } = new List<InvoiceAllowanceCharge>();
     /// <summary>Payment instruction occurrences (BG-16), retained independently so conflicting descriptions and references are not collapsed.</summary>
     public IList<InvoicePayment> Payments { get; } = new List<InvoicePayment>();
+    /// <summary>Invoice-level remittance reference retained when no payment instruction is present.</summary>
+    public string? PaymentReference { get; set; }
+    /// <summary>Bank-assigned creditor identifier retained independently of payment instructions.</summary>
+    public string? CreditorIdentifier { get; set; }
+    /// <summary>Invoice-level direct-debit mandate retained when no payment instruction is present.</summary>
+    public string? DirectDebitMandateReference { get; set; }
     /// <summary>Payment terms (BT-20).</summary>
     public string? PaymentTerms { get; set; }
     /// <summary>Payment due date (BT-9).</summary>
@@ -68,8 +79,11 @@ public sealed class Invoice {
     public decimal PrepaidAmount { get; set; }
     /// <summary>Explicit rounding adjustment to the amount due (BT-114).</summary>
     public decimal RoundingAmount { get; set; }
-    /// <summary>Accounting currency for VAT reporting (BT-6).</summary>
-    public string? TaxCurrency { get; set; }
+    /// <summary>Accounting currency for VAT reporting (BT-6). Changing an established currency invalidates its VAT amount.</summary>
+    public string? TaxCurrency {
+        get => _taxCurrency;
+        set { if (_taxCurrency != null && _taxCurrency != value) TaxAmountInAccountingCurrency = null; _taxCurrency = value; }
+    }
     /// <summary>VAT total in the accounting currency (BT-111), supplied with an explicit tax currency.</summary>
     public decimal? TaxAmountInAccountingCurrency { get; set; }
     /// <summary>Totals declared by a source document, retained for validation rather than silently recalculated on import.</summary>

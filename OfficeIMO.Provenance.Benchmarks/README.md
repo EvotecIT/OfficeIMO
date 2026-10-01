@@ -20,7 +20,9 @@ process peak working set, input size, and exact removal-output size. The JSON
 also records the source commit and whether the source tree was dirty.
 The checked-in large-fixture budgets cover every format on Windows, Linux, and
 macOS. They gate elapsed time, allocation, managed peak, process peak, and
-removal-output size while the preflight keeps content fidelity authoritative.
+removal-output size in the manually dispatched Security and Provenance Evidence
+workflow. Ordinary pull-request runs execute the deterministic
+`validate` preflight, which keeps content fidelity authoritative.
 
 The project stays outside `OfficeIMO.sln`. No external library is presented as
 a performance comparator because no official managed .NET C2PA library exposes

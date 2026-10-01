@@ -7,6 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
+using OfficeIMO.Data;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -53,6 +54,11 @@ namespace OfficeIMO.Excel {
 
                 var values = new object[fieldCount];
                 inner.GetValues(values);
+                for (int ordinal = 0; ordinal < fieldCount; ordinal++) {
+                    if (values[ordinal] is DateTime) {
+                        values[ordinal] = DataReaderMappingValue.Read(inner, ordinal, typeof(double))!;
+                    }
+                }
                 _sampledRows.Add(values);
             }
 
@@ -99,7 +105,7 @@ namespace OfficeIMO.Excel {
             : _inner.GetBoolean(ordinal);
 
         public override byte GetByte(int ordinal) => IsSampledRow
-            ? Convert.ToByte(GetNonDbNullValue(ordinal), _culture)
+            ? Convert.ToByte(GetNonDbNullValue(ordinal, preserveSerial: true), _culture)
             : _inner.GetByte(ordinal);
 
         public override long GetBytes(
@@ -140,11 +146,11 @@ namespace OfficeIMO.Excel {
             : _inner.GetDateTime(ordinal);
 
         public override decimal GetDecimal(int ordinal) => IsSampledRow
-            ? Convert.ToDecimal(GetNonDbNullValue(ordinal), _culture)
+            ? Convert.ToDecimal(GetNonDbNullValue(ordinal, preserveSerial: true), _culture)
             : _inner.GetDecimal(ordinal);
 
         public override double GetDouble(int ordinal) => IsSampledRow
-            ? Convert.ToDouble(GetNonDbNullValue(ordinal), _culture)
+            ? Convert.ToDouble(GetNonDbNullValue(ordinal, preserveSerial: true), _culture)
             : _inner.GetDouble(ordinal);
 
         [UnconditionalSuppressMessage("Trimming", "IL2063", Justification = "Inferred Excel column types are closed scalar conversion tokens; OfficeIMO never activates or reflects over their public members.")]
@@ -152,7 +158,7 @@ namespace OfficeIMO.Excel {
         public override Type GetFieldType(int ordinal) => _columnTypes[ordinal];
 
         public override float GetFloat(int ordinal) => IsSampledRow
-            ? Convert.ToSingle(GetNonDbNullValue(ordinal), _culture)
+            ? Convert.ToSingle(GetNonDbNullValue(ordinal, preserveSerial: true), _culture)
             : _inner.GetFloat(ordinal);
 
         public override Guid GetGuid(int ordinal) {
@@ -165,15 +171,15 @@ namespace OfficeIMO.Excel {
         }
 
         public override short GetInt16(int ordinal) => IsSampledRow
-            ? Convert.ToInt16(GetNonDbNullValue(ordinal), _culture)
+            ? Convert.ToInt16(GetNonDbNullValue(ordinal, preserveSerial: true), _culture)
             : _inner.GetInt16(ordinal);
 
         public override int GetInt32(int ordinal) => IsSampledRow
-            ? Convert.ToInt32(GetNonDbNullValue(ordinal), _culture)
+            ? Convert.ToInt32(GetNonDbNullValue(ordinal, preserveSerial: true), _culture)
             : _inner.GetInt32(ordinal);
 
         public override long GetInt64(int ordinal) => IsSampledRow
-            ? Convert.ToInt64(GetNonDbNullValue(ordinal), _culture)
+            ? Convert.ToInt64(GetNonDbNullValue(ordinal, preserveSerial: true), _culture)
             : _inner.GetInt64(ordinal);
 
         public override string GetName(int ordinal) => _inner.GetName(ordinal);
@@ -185,7 +191,7 @@ namespace OfficeIMO.Excel {
             : _inner.GetString(ordinal);
 
         public override object GetValue(int ordinal) => IsSampledRow
-            ? _sampledCurrentRow![ordinal]
+            ? MaterializeSampleValue(_sampledCurrentRow![ordinal])
             : _inner.GetValue(ordinal);
 
         public override int GetValues(object[] values) {
@@ -194,7 +200,7 @@ namespace OfficeIMO.Excel {
             }
 
             int count = Math.Min(values.Length, FieldCount);
-            Array.Copy(_sampledCurrentRow!, values, count);
+            for (int ordinal = 0; ordinal < count; ordinal++) values[ordinal] = MaterializeSampleValue(_sampledCurrentRow![ordinal]);
             return count;
         }
 
@@ -265,8 +271,9 @@ namespace OfficeIMO.Excel {
 
         private bool IsSampledRow => _sampledCurrentRow != null;
 
-        private object GetNonDbNullValue(int ordinal) {
-            object value = GetValue(ordinal);
+        private object GetNonDbNullValue(int ordinal, bool preserveSerial = false) {
+            object value = IsSampledRow ? _sampledCurrentRow![ordinal] : _inner.GetValue(ordinal);
+            if (value is DataReaderMappingValue serial) value = preserveSerial ? serial.Numeric : serial.Original;
             if (value == null || ReferenceEquals(value, DBNull.Value)) {
                 throw new InvalidCastException($"Column '{GetName(ordinal)}' contains DBNull.");
             }
@@ -279,7 +286,7 @@ namespace OfficeIMO.Excel {
             for (int column = 0; column < fieldCount; column++) {
                 Type? inferred = null;
                 for (int row = 0; row < rows.Count; row++) {
-                    inferred = ExcelSheetReader.MergeDataTableColumnType(inferred, rows[row][column]);
+                    inferred = ExcelSheetReader.MergeDataTableColumnType(inferred, MaterializeSampleValue(rows[row][column]));
                     if (inferred == typeof(object)) {
                         break;
                     }
@@ -290,5 +297,7 @@ namespace OfficeIMO.Excel {
 
             return types;
         }
+
+        private static object MaterializeSampleValue(object value) => value is DataReaderMappingValue serial ? serial.Original : value;
     }
 }

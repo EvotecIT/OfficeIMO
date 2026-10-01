@@ -3,6 +3,9 @@ using OfficeIMO.Email.Store;
 namespace OfficeIMO.Reader.Email;
 
 internal static class EmailStoreReaderAdapter {
+    internal static bool IncludesEmbeddedContent(ReaderEmailStoreOptions options) =>
+        EmailStoreReaderProjection.GetItemReadOptions(options).Includes(EmailStoreItemReadParts.EmbeddedItems);
+
     internal static IEnumerable<ReaderChunk> Read(
         string path,
         ReaderOptions readerOptions,
@@ -19,7 +22,7 @@ internal static class EmailStoreReaderAdapter {
                 projection.EmailFormat,
                 path,
                 readerOptions,
-                cancellationToken);
+                cancellationToken, includeEmbeddedMessageContent: IncludesEmbeddedContent(adapterOptions));
         }
     }
 
@@ -45,7 +48,7 @@ internal static class EmailStoreReaderAdapter {
                     projection.EmailFormat,
                     logicalSourceName,
                     readerOptions,
-                    cancellationToken).ToArray();
+                    cancellationToken, includeEmbeddedMessageContent: IncludesEmbeddedContent(adapterOptions)).ToArray();
             }
         } finally {
             if (ownsParseStream) parseStream.Dispose();
@@ -70,7 +73,7 @@ internal static class EmailStoreReaderAdapter {
                 path,
                 readerOptions,
                 cancellationToken,
-                computeSourceHash: adapterOptions.ComputeSourceHash);
+                computeSourceHash: adapterOptions.ComputeSourceHash, includeEmbeddedMessageContent: IncludesEmbeddedContent(adapterOptions));
             return EmailStoreReaderProjection.EnrichResult(result, projection);
         }
     }
@@ -99,7 +102,7 @@ internal static class EmailStoreReaderAdapter {
                     parseStream,
                     readerOptions,
                     cancellationToken,
-                    computeSourceHash: adapterOptions.ComputeSourceHash);
+                    computeSourceHash: adapterOptions.ComputeSourceHash, includeEmbeddedMessageContent: IncludesEmbeddedContent(adapterOptions));
                 return EmailStoreReaderProjection.EnrichResult(result, projection);
             }
         } finally {

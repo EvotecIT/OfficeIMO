@@ -46,6 +46,11 @@ namespace OfficeIMO.Excel {
                     var filterInfos = ResolvePivotFilterInfos(def.PivotFilters?.Elements<PivotFilter>(), cacheFields, dataFields);
                     var calculatedFieldInfos = ResolveCalculatedFieldInfos(cacheDef, numberFormatCodes);
                     var groupingInfos = ResolvePivotGroupingInfos(cacheDef, cacheFields);
+                    var rowAxisIndices = def.RowFields?.Elements<Field>().Select(f => f.Index?.Value ?? int.MinValue).ToArray() ?? Array.Empty<int>();
+                    var columnAxisIndices = def.ColumnFields?.Elements<Field>().Select(f => f.Index?.Value ?? int.MinValue).ToArray() ?? Array.Empty<int>();
+                    int valuesFieldCount = rowAxisIndices.Count(f => f == -2) + columnAxisIndices.Count(f => f == -2);
+                    ExcelPivotTableAxis? valuesAxis = valuesFieldCount == 1
+                        ? rowAxisIndices.Contains(-2) ? ExcelPivotTableAxis.AxisRow : ExcelPivotTableAxis.AxisColumn : null;
 
                     var layout = ResolveLayout(def.CompactData, def.OutlineData);
 
@@ -89,8 +94,12 @@ namespace OfficeIMO.Excel {
                         saveSourceData: cacheDef?.SaveData?.Value,
                         preserveFormatting: def.PreserveFormatting?.Value,
                         enableDrill: def.EnableDrill?.Value,
-                        hasValuesAxisField: def.RowFields?.Elements<Field>().Any(field => field.Index?.Value == -2) == true
-                            || def.ColumnFields?.Elements<Field>().Any(field => field.Index?.Value == -2) == true));
+                        hasValuesAxisField: valuesFieldCount > 0) {
+                        RowSourceFields = ResolveFieldNames(def.RowFields?.Elements<Field>(), cacheFields, sourceFieldsOnly: true),
+                        ColumnSourceFields = ResolveFieldNames(def.ColumnFields?.Elements<Field>(), cacheFields, sourceFieldsOnly: true),
+                        ValuesAxis = valuesAxis,
+                        ValuesAxisPosition = valuesAxis.HasValue ? Array.IndexOf(valuesAxis == ExcelPivotTableAxis.AxisRow ? rowAxisIndices : columnAxisIndices, -2) : null
+                    });
                 }
 
                 return list;
@@ -202,7 +211,7 @@ namespace OfficeIMO.Excel {
         /// <param name="pivotFilters">Optional label and value filters.</param>
         /// <param name="calculatedFields">Optional formula-backed pivot cache fields.</param>
         /// <param name="groupings">Optional date or numeric grouping metadata.</param>
-        /// <param name="options">Optional pivot cache and workbook-interaction settings.</param>
+        /// <param name="options">Optional pivot layout, cache and workbook-interaction settings.</param>
         public void AddPivotTable(
             string sourceRange,
             string destinationCell,
@@ -236,6 +245,7 @@ namespace OfficeIMO.Excel {
             IEnumerable<ExcelPivotCalculatedField>? calculatedFields = null,
             IEnumerable<ExcelPivotGrouping>? groupings = null,
             ExcelPivotTableOptions? options = null) {
+            int? valuesAxisPosition = options?.ValuesAxisPosition;
             if (string.IsNullOrWhiteSpace(sourceRange)) throw new ArgumentNullException(nameof(sourceRange));
             if (string.IsNullOrWhiteSpace(destinationCell)) throw new ArgumentNullException(nameof(destinationCell));
             if (!A1.TryParseRange(sourceRange, out int r1, out int c1, out int r2, out int c2)) {
@@ -327,9 +337,19 @@ namespace OfficeIMO.Excel {
                 ReportPivotTiming("AddPivotTable.ResolveFields");
 
                 var dataFieldIndices = new HashSet<int>();
+                var measureCaptions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var df in dataFieldList) {
                     int idx = ResolveFieldIndex(df.FieldName, headerIndex, nameof(dataFields));
+                    string caption = df.DisplayName ?? $"{df.Function} of {allFields[idx]}";
+                    if (string.IsNullOrWhiteSpace(caption) || !measureCaptions.Add(caption))
+                        throw new ArgumentException("Pivot measures require unique non-empty captions.", nameof(dataFields));
                     dataFieldIndices.Add(idx);
+                }
+                if (valuesAxisPosition.HasValue) {
+                    int axisFieldCount = dataOnRows == true ? rowFieldIndices.Count : columnFieldIndices.Count;
+                    if (dataFieldList.Count < 2 || valuesAxisPosition.Value < 0 || valuesAxisPosition.Value > axisFieldCount)
+                        throw new ArgumentOutOfRangeException(nameof(valuesAxisPosition),
+                            "Values placement requires multiple measures and a position within the selected axis.");
                 }
 
                 var fieldOptionMap = BuildPivotFieldOptionMap(fieldOptions, headerIndex);
@@ -357,6 +377,7 @@ namespace OfficeIMO.Excel {
                 var fieldValueMap = canUseDeferredPivotValues
                     ? BuildPivotFieldValueMap(deferredPivotSource!, headers.Count, r1 + 1, r2, c1, sourceSharedItemRequirements)
                     : BuildPivotFieldValueMap(headers.Count, r1 + 1, r2, c1, groupingMap, sourceSharedItemRequirements);
+                PrepareNativeDateGroupingFields(generatedGroupingFields, fieldValueMap);
                 var generatedFieldValueMap = BuildGeneratedPivotFieldValueMap(generatedGroupingFields, r1 + 1, r2, c1);
                 ReportPivotTiming("AddPivotTable.BuildFieldValueMap");
                 if (deferredPivotSource != null && canUseDeferredPivotValues) {
@@ -365,6 +386,10 @@ namespace OfficeIMO.Excel {
                 ReportPivotTiming("AddPivotTable.PreserveFastSaveModel");
 
                 var allFieldValueMap = BuildPivotTextValueMap(fieldValueMap, generatedFieldValueMap, calculatedFieldList.Count, allFields.Count);
+                foreach (var pair in groupingMap) {
+                    PivotFieldValues? numericLabels = BuildAuthorNumericGroupLabels(pair.Value);
+                    if (numericLabels != null) allFieldValueMap[pair.Key] = numericLabels.TextValues;
+                }
                 ExpandGeneratedGroupingFieldOptions(fieldOptionMap, generatedFieldsBySource, allFields, allFieldValueMap);
                 uint cacheId = NextPivotCacheId(workbookPart);
                 ReportPivotTiming("AddPivotTable.PrepareCacheMetadata");
@@ -392,7 +417,11 @@ namespace OfficeIMO.Excel {
                     groupingMap.TryGetValue(i, out var grouping);
                     cacheField.SharedItems = BuildSharedItems(fieldValueMap[i], grouping, sourceSharedItemRequirements[i]);
                     if (grouping != null) {
-                        cacheField.FieldGroup = CreatePivotFieldGroup(grouping, fieldValueMap[i]);
+                        cacheField.FieldGroup = generatedFieldsBySource.TryGetValue(i, out var dateFields)
+                            && generatedGroupingFields.Where(field => field.SourceIndex == i).All(field => field.NativeGrouping != null)
+                            ? new FieldGroup { ParentId = (uint)dateFields[0] }
+                            : CreatePivotFieldGroup(grouping, fieldValueMap[i],
+                                grouping.GroupBy == ExcelPivotGroupBy.Range ? (uint)i : null);
                     }
                     cacheDef.CacheFields.Append(cacheField);
                 }
@@ -405,7 +434,7 @@ namespace OfficeIMO.Excel {
                     };
                     cacheField.SharedItems = BuildSharedItems(generatedFieldValueMap[i], generatedField.Grouping);
                     cacheField.FieldGroup = CreatePivotFieldGroup(
-                        generatedField.Grouping,
+                        generatedField.NativeGrouping?.Grouping ?? generatedField.Grouping,
                         generatedFieldValueMap[i],
                         (uint)generatedField.SourceIndex,
                         generatedField.ParentFieldIndex.HasValue ? (uint)generatedField.ParentFieldIndex.Value : null);
@@ -428,6 +457,7 @@ namespace OfficeIMO.Excel {
                 cacheDefPart.PivotCacheDefinition = cacheDef;
                 ReportPivotTiming("AddPivotTable.SaveCacheDefinition");
                 var cacheRecordsPart = cacheDefPart.AddNewPart<PivotTableCacheRecordsPart>();
+                cacheDef.Id = cacheDefPart.GetIdOfPart(cacheRecordsPart);
                 if (!effectiveSavePivotCacheRecords) {
                     cacheRecordsPart.PivotCacheRecords = new PivotCacheRecords { Count = 0U };
                 } else if (canUseDeferredPivotValues) {
@@ -471,19 +501,21 @@ namespace OfficeIMO.Excel {
                 pivotPart.AddPart(cacheDefPart);
 
                 var pivotFields = new PivotFields { Count = (uint)allFields.Count };
+                CacheField[] cacheFieldsForItems = cacheDef.CacheFields!.Elements<CacheField>().ToArray();
                 for (int i = 0; i < allFields.Count; i++) {
                     ExcelPivotFieldOptions? options = null;
                     if (fieldOptionMap != null) {
                         fieldOptionMap.TryGetValue(i, out options);
                     }
 
-                    var pivotField = new PivotField { ShowAll = options?.ShowAll ?? true };
+                    var pivotField = new PivotField { ShowAll = options?.ShowAll ?? false };
                     if (pageFieldIndices.Contains(i)) pivotField.Axis = PivotTableAxisValues.AxisPage;
                     if (rowFieldIndices.Contains(i)) pivotField.Axis = PivotTableAxisValues.AxisRow;
                     if (columnFieldIndices.Contains(i)) pivotField.Axis = PivotTableAxisValues.AxisColumn;
                     if (dataFieldIndices.Contains(i)) pivotField.DataField = true;
                     IReadOnlyList<string> values = options != null ? allFieldValueMap[i] : Array.Empty<string>();
                     ApplyPivotFieldOptions(pivotField, options, workbookPart, values);
+                    EnsurePivotAxisItems(pivotField, cacheFieldsForItems[i]);
                     pivotFields.Append(pivotField);
                 }
                 ReportPivotTiming("AddPivotTable.BuildPivotFields");
@@ -496,6 +528,17 @@ namespace OfficeIMO.Excel {
                 var columnFieldsElement = columnFieldIndices.Count > 0 ? new ColumnFields { Count = (uint)columnFieldIndices.Count } : null;
                 if (columnFieldsElement != null) {
                     foreach (int idx in columnFieldIndices) columnFieldsElement.Append(new Field { Index = idx });
+                }
+                if (dataFieldList.Count > 1) {
+                    if (dataOnRows == true) {
+                        rowFieldsElement ??= new RowFields();
+                        rowFieldsElement.InsertAt(new Field { Index = -2 }, valuesAxisPosition ?? rowFieldIndices.Count);
+                        rowFieldsElement.Count = (uint)rowFieldsElement.ChildElements.Count;
+                    } else {
+                        columnFieldsElement ??= new ColumnFields();
+                        columnFieldsElement.InsertAt(new Field { Index = -2 }, valuesAxisPosition ?? columnFieldIndices.Count);
+                        columnFieldsElement.Count = (uint)columnFieldsElement.ChildElements.Count;
+                    }
                 }
 
                 var pageFieldsElement = pageFieldIndices.Count > 0 ? new PageFields { Count = (uint)pageFieldIndices.Count } : null;
@@ -529,6 +572,13 @@ namespace OfficeIMO.Excel {
                 }
 
                 PivotFilters? pivotFiltersElement = CreatePivotFilters(pivotFilterList, headerIndex, dataFieldList, _excelDocument.DateSystem);
+                if (pivotFiltersElement != null) {
+                    var savedPivotFields = pivotFields.Elements<PivotField>().ToArray();
+                    foreach (var filter in pivotFiltersElement.Elements<PivotFilter>()) {
+                        if (filter.MeasureField != null && filter.Field != null)
+                            savedPivotFields[filter.Field.Value].MeasureFilter = true;
+                    }
+                }
 
                 string pivotRef = BuildPivotLocationReference(destRow, destCol, rowFieldIndices.Count + columnFieldIndices.Count + dataFieldList.Count);
 
