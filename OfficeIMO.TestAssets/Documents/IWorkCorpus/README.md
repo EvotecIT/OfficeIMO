@@ -152,3 +152,13 @@ The extractor accepts this pinned two-table fixture only, verifies the PDF hash 
 | `numbers-parser/test-10-formulas.numbers` | `dd85bad68898ce5b065f277c0b9be1f3c32d696e3baa6b09d3614bbd35a5249f` |
 | `numbers-parser/test-9-merges.numbers` | `d640c0012d629834161827cb2f564d0966d24e159586f82426a69c12a8f334cf` |
 | `picodocs/sample-v14.4.pages` | `4714477138d0a4090fc2ee2ba2ebb6adcd0fb6ce20a28897a6247a8e17d1ddce` |
+
+## Keynote unbanded table-fill defaults
+
+`keynote-table-fill-defaults.json` records the unchanged Keynote 15.2.1 table fixture's disabled banding and explicit no-fill role declarations through pinned independent numbers-parser 4.19.0 schemas. Reproduce it with:
+
+```sh
+python Build/IWork/extract-keynote-table-fill-defaults.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/keynote-table-fill-defaults.json
+```
+
+All nine saved/reopened PPTX cells preserve explicit no-fill and suppress destination theme backgrounds. This qualifies source declarations and saved properties; role intersections, banded appearance, Apple exports and complete styling remain unqualified.

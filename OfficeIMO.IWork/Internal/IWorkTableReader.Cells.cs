@@ -36,7 +36,7 @@ internal static partial class IWorkTableReader {
             for (int bit = 0; bit < 5; bit++)
                 if ((flags & (1u << bit)) != 0) styleOffset += CellValueFieldSize(bit);
             IWorkTableCellStyle? style = cellStyles.Read(IWorkProtobuf.ReadUInt32(buffer, styleOffset));
-            if (style != null) cell = cell.WithStyle(style);
+            cell = cell.WithStyle(style ?? new IWorkTableCellStyle(null, null, null, false));
         }
         if (!cell.HasDecodeError && (flags & (1u << 6)) != 0) {
             int styleOffset = offset + 12;
@@ -50,7 +50,7 @@ internal static partial class IWorkTableReader {
             ? new IWorkTableCell(row, column, IWorkCellKind.Error, null,
                 error: cell.Error, sourceFormulaIsDeclared: true,
                 hasDecodeError: cell.HasDecodeError, fill: cell.Fill,
-                padding: cell.Padding, verticalAlignment: cell.VerticalAlignment, paragraphStyle: cell.ParagraphStyle, hasSelectedTextStyle: cell.HasSelectedTextStyle)
+                padding: cell.Padding, verticalAlignment: cell.VerticalAlignment, paragraphStyle: cell.ParagraphStyle, hasSelectedTextStyle: cell.HasSelectedTextStyle, hasUnresolvedFill: cell.HasUnresolvedFill)
             : cell;
     }
 

@@ -31,6 +31,11 @@ public static partial class WordIWorkConverter {
         for (int row = 1; row <= source.RowCount; row++) {
             cancellationToken.ThrowIfCancellationRequested();
             for (int column = 1; column <= source.ColumnCount; column++) {
+                WordTableCell fillTarget = table.Rows[row - 1].Cells[column - 1];
+                if (source.GetFill(row, column) is { } fill) {
+                    if (fill.Color is { } color) fillTarget.ShadingFillColorHex = color.RgbHex;
+                    else fillTarget.ShadingPattern = WordShadingPattern.Nil;
+                }
                 if (source.GetParagraphStyle(row, column) is { } style) {
                     WordParagraph paragraph = table.Rows[row - 1].Cells[column - 1].Paragraphs[0];
                     ApplyParagraphStyle(paragraph, style, string.Empty);
@@ -41,10 +46,6 @@ public static partial class WordIWorkConverter {
         foreach (IWorkTableCell sourceCell in source.Cells) {
             cancellationToken.ThrowIfCancellationRequested();
             WordTableCell target = table.Rows[sourceCell.Row - 1].Cells[sourceCell.Column - 1];
-            if (sourceCell.Fill is { } fill) {
-                if (fill.Color is { } color) target.ShadingFillColorHex = color.RgbHex;
-                else target.ShadingPattern = WordShadingPattern.Nil;
-            }
             if (sourceCell.Padding is { } padding) {
                 target.MarginLeftWidth = checked((short)ToSignedTwips(padding.LeftPoints));
                 target.MarginTopWidth = checked((short)ToSignedTwips(padding.TopPoints));

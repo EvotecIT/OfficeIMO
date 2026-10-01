@@ -1,0 +1,118 @@
+{
+  "provider": "numbers-parser",
+  "providerVersion": "4.19.0",
+  "source": {
+    "path": "keynotekit/tabledeck-v15.2.1.key",
+    "sha256": "384962b1fff18abc5a901b59dc5f8820c2a959977f18f90dc9cd10095bdd0a56"
+  },
+  "tables": [
+    {
+      "modelIdentifier": 2652491,
+      "name": "Table 1",
+      "tableStyleIdentifiers": [
+        2651329
+      ],
+      "bandedRows": false,
+      "roles": {
+        "body_cell_style": {
+          "styleIdentifiers": [
+            2651330
+          ],
+          "fill": {
+            "kind": "none"
+          }
+        },
+        "header_row_style": {
+          "styleIdentifiers": [
+            2651331
+          ],
+          "fill": {
+            "kind": "none"
+          }
+        },
+        "header_column_style": {
+          "styleIdentifiers": [
+            2651332
+          ],
+          "fill": {
+            "kind": "none"
+          }
+        },
+        "footer_row_style": {
+          "styleIdentifiers": [
+            2651333
+          ],
+          "fill": {
+            "kind": "none"
+          }
+        }
+      },
+      "cells": [
+        {
+          "row": 1,
+          "column": 1,
+          "fill": {
+            "kind": "none"
+          }
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "fill": {
+            "kind": "none"
+          }
+        },
+        {
+          "row": 1,
+          "column": 3,
+          "fill": {
+            "kind": "none"
+          }
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "fill": {
+            "kind": "none"
+          }
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "fill": {
+            "kind": "none"
+          }
+        },
+        {
+          "row": 2,
+          "column": 3,
+          "fill": {
+            "kind": "none"
+          }
+        },
+        {
+          "row": 3,
+          "column": 1,
+          "fill": {
+            "kind": "none"
+          }
+        },
+        {
+          "row": 3,
+          "column": 2,
+          "fill": {
+            "kind": "none"
+          }
+        },
+        {
+          "row": 3,
+          "column": 3,
+          "fill": {
+            "kind": "none"
+          }
+        }
+      ]
+    }
+  ],
+  "limits": "Unbanded native Keynote role no-fill declarations only. Role intersections, banding, Apple exports and complete appearance are not qualified."
+}

@@ -136,7 +136,7 @@ public static partial class ExcelIWorkConverter {
                         cancellationToken.ThrowIfCancellationRequested();
                         IWorkTable table = sourceSheet.Tables[tableIndex];
                         ExcelSheet sheet = preparedTables![table];
-                        ApplyTableTextStyles(sheet, table, cancellationToken);
+                        ApplyTableStyles(sheet, table, cancellationToken);
                         foreach (IWorkTableCell cell in table.Cells) {
                             cancellationToken.ThrowIfCancellationRequested();
                             string? formula = preparedFormulas!.TryGetValue(cell, out string? boundFormula) ? boundFormula : null;
@@ -364,10 +364,10 @@ public static partial class ExcelIWorkConverter {
                 if (table.RowCount > 1_048_576 || table.ColumnCount > 16_384) {
                     return $"Numbers table '{table.Name}' exceeds the XLSX worksheet dimensions.";
                 }
-                if (TableParagraphStyles(table).Any()) {
+                if (TableParagraphStyles(table).Any() || HasTableFillDefaults(table)) {
                     long area = (long)table.RowCount * table.ColumnCount;
                     if (area > 100_000 || styledCellCount > 1_000_000 - area)
-                        return "Numbers table text defaults exceed the bounded XLSX styled-cell budget.";
+                        return "Numbers table style defaults exceed the bounded XLSX styled-cell budget.";
                     styledCellCount += area;
                     if (TableParagraphStyles(table).Any(style => style.TextStyle.FontSizePoints is double size
                         && (!IsFinite(size) || size < 1d || size > 409d)))

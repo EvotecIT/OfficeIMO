@@ -25,7 +25,7 @@ Table-region defaults and selected text styles preserve supported fonts, emphasi
 
 Selected native cell padding becomes PowerPoint table-cell margins, and top/middle/bottom alignment becomes the cell anchor. Values must fit the PPTX margin range; the partial policy permits EMU rounding with a precision diagnostic.
 
-Supported selected solid cell fills and explicit no-fill override the PPTX table theme, including styled empty cells. Unsupported fills remain diagnosed on the source projection; native table-role fills and banding remain unqualified.
+Supported selected and unbanded region fills override the PPTX table theme, including explicit no-fill and unstored empty cells. Selected fills take precedence over region defaults. Unsupported fills and banding remain diagnosed on the source projection; banding and complete native appearance remain unqualified.
 
 Individual table row heights and column widths are carried into PPTX. If their total differs from the table’s drawable extent, the adapter scales them proportionally and reports `IWORK_KEYNOTE_TABLE_SIZING_SCALED` as an approximation. Measurements are quantized to EMUs with a separate precision diagnostic.
 

@@ -10,7 +10,7 @@ public sealed class IWorkTableCell {
         bool cachedValueIsComplete = true, bool sourceFormulaIsDeclared = false,
         bool hasDecodeError = false, IWorkNumberFormat? numberFormat = null,
         string? sourceNumberText = null, bool numericValueIsApproximate = false, Internal.IWorkFormulaDefinition? formulaDefinition = null, IWorkCellFill? fill = null,
-        IWorkCellPadding? padding = null, IWorkCellVerticalAlignment? verticalAlignment = null, IWorkParagraphStyle? paragraphStyle = null, bool hasSelectedTextStyle = false) {
+        IWorkCellPadding? padding = null, IWorkCellVerticalAlignment? verticalAlignment = null, IWorkParagraphStyle? paragraphStyle = null, bool hasSelectedTextStyle = false, bool hasUnresolvedFill = false) {
         Row = row;
         Column = column;
         Kind = kind;
@@ -32,6 +32,7 @@ public sealed class IWorkTableCell {
         VerticalAlignment = verticalAlignment;
         ParagraphStyle = paragraphStyle;
         HasSelectedTextStyle = hasSelectedTextStyle;
+        HasUnresolvedFill = hasUnresolvedFill;
     }
 
     /// <summary>Gets the one-based row position.</summary>
@@ -80,33 +81,34 @@ public sealed class IWorkTableCell {
     /// <summary>Gets the supported explicitly selected paragraph style, or null when absent or unresolved. Table defaults are available through <see cref="IWorkTable.GetParagraphStyle"/>.</summary>
     public IWorkParagraphStyle? ParagraphStyle { get; }
     internal bool HasSelectedTextStyle { get; }
-    internal bool HasCellFormatting => Fill != null || Padding != null || VerticalAlignment != null || HasSelectedTextStyle;
+    internal bool HasUnresolvedFill { get; }
+    internal bool HasCellFormatting => HasUnresolvedFill || Fill != null || Padding != null || VerticalAlignment != null || HasSelectedTextStyle;
 
     internal Internal.IWorkFormulaDefinition? FormulaDefinition { get; }
 
     internal IWorkTableCell WithFormula(Internal.IWorkFormulaResult result) =>
         new(Row, Column, Kind, Value, result.Text.Length == 0 ? "=?" : result.Text, Error, ValueKind, result.IsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
-            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment, ParagraphStyle, HasSelectedTextStyle);
+            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, HasUnresolvedFill);
 
     internal IWorkTableCell WithNumberFormat(IWorkNumberFormat format) =>
         new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, format,
-            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment, ParagraphStyle, HasSelectedTextStyle);
+            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, HasUnresolvedFill);
 
     internal IWorkTableCell WithSourceNumber(string text, bool approximate) =>
         new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
-            text, approximate, FormulaDefinition, Fill, Padding, VerticalAlignment, ParagraphStyle, HasSelectedTextStyle);
+            text, approximate, FormulaDefinition, Fill, Padding, VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, HasUnresolvedFill);
     internal IWorkTableCell WithStyle(Internal.IWorkTableCellStyle style) =>
         new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
-            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, style.Fill, style.Padding, style.VerticalAlignment, ParagraphStyle, HasSelectedTextStyle);
+            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, style.Fill, style.Padding, style.VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, !style.FillIsComplete);
 
     internal IWorkTableCell WithParagraphStyle(IWorkParagraphStyle? style) =>
         new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
-            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment, style, true);
+            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment, style, true, HasUnresolvedFill);
 
     /// <summary>Gets a culture-invariant display representation of the recovered value or formula.</summary>
     public string DisplayText => Kind switch {
@@ -162,7 +164,7 @@ public sealed class IWorkTable {
         IReadOnlyList<IWorkObjectIdentity>? omittedTextUnits = null,
         IReadOnlyDictionary<int, double>? rowHeights = null,
         IReadOnlyDictionary<int, double>? columnWidths = null,
-        Guid? formulaIdentifier = null, IWorkArchiveRecord? modelRecord = null, bool bodyMetadataIsComplete = true, bool? autoResizeRows = null, IWorkTableTextStyles? textStyles = null) {
+        Guid? formulaIdentifier = null, IWorkArchiveRecord? modelRecord = null, bool bodyMetadataIsComplete = true, bool? autoResizeRows = null, IWorkTableTextStyles? textStyles = null, IWorkTableFillStyles? fillStyles = null) {
         Name = name;
         FormulaIdentifier = formulaIdentifier;
         ModelRecord = modelRecord;
@@ -174,6 +176,7 @@ public sealed class IWorkTable {
         FooterRowCount = footerRowCount;
         DefaultRowHeight = defaultRowHeight;
         AutoResizeRows = autoResizeRows;
+        FillStyles = fillStyles ?? new IWorkTableFillStyles(null, null, null, null);
         TextStyles = textStyles ?? new IWorkTableTextStyles(null, null, null, null);
         DefaultColumnWidth = defaultColumnWidth;
         RowHeights = CopyDimensions(rowHeights);
@@ -194,7 +197,24 @@ public sealed class IWorkTable {
     internal IWorkTable WithCells(IReadOnlyList<IWorkTableCell> cells) =>
         new(Name, RowCount, ColumnCount, cells, HeaderRowCount, HeaderColumnCount, FooterRowCount,
             DefaultRowHeight, DefaultColumnWidth, MergedRanges, Geometry, AccessibilityDescription,
-            SourceIdentity, OmittedTextUnits, RowHeights, ColumnWidths, FormulaIdentifier, ModelRecord, BodyMetadataIsComplete, AutoResizeRows, TextStyles);
+            SourceIdentity, OmittedTextUnits, RowHeights, ColumnWidths, FormulaIdentifier, ModelRecord, BodyMetadataIsComplete, AutoResizeRows, TextStyles, FillStyles);
+
+    /// <summary>Gets supported unbanded table-region fill defaults without materializing empty source cells.</summary>
+    public IWorkTableFillStyles FillStyles { get; }
+
+    /// <summary>Gets the effective supported fill at a one-based position. Selected fills, including explicit no-fill,
+    /// override region defaults. Unresolved selected fills suppress defaults. Header rows precede header columns, then footers and body.</summary>
+    public IWorkCellFill? GetFill(int row, int column) {
+        if (row < 1 || row > RowCount) throw new ArgumentOutOfRangeException(nameof(row));
+        if (column < 1 || column > ColumnCount) throw new ArgumentOutOfRangeException(nameof(column));
+        IWorkTableCell? cell = GetCell(row, column);
+        if (cell?.HasUnresolvedFill == true) return null;
+        if (cell?.Fill != null) return cell.Fill;
+        if (row <= HeaderRowCount) return FillStyles.HeaderRow;
+        if (column <= HeaderColumnCount) return FillStyles.HeaderColumn;
+        if (row > RowCount - FooterRowCount) return FillStyles.FooterRow;
+        return FillStyles.Body;
+    }
 
     /// <summary>Gets the qualified table-region paragraph defaults.</summary>
     public IWorkTableTextStyles TextStyles { get; }

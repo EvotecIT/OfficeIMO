@@ -25,6 +25,11 @@ public static partial class PowerPointIWorkConverter {
         for (int row = 1; row <= source.RowCount; row++) {
             cancellationToken.ThrowIfCancellationRequested();
             for (int column = 1; column <= source.ColumnCount; column++) {
+                PowerPointTableCell fillTarget = table.GetCell(row - 1, column - 1);
+                if (source.GetFill(row, column) is { } fill) {
+                    if (fill.IsNone) fillTarget.NoFill = true;
+                    else fillTarget.FillColor = fill.Color!.RgbHex;
+                }
                 if (source.GetParagraphStyle(row, column) is { } style) {
                     PowerPointParagraph paragraph = table.GetCell(row - 1, column - 1).Paragraphs[0];
                     ApplyParagraphStyle(paragraph, style, string.Empty);
@@ -35,10 +40,6 @@ public static partial class PowerPointIWorkConverter {
         foreach (IWorkTableCell sourceCell in source.Cells) {
             cancellationToken.ThrowIfCancellationRequested();
             PowerPointTableCell target = table.GetCell(sourceCell.Row - 1, sourceCell.Column - 1);
-            if (sourceCell.Fill is { } fill) {
-                if (fill.IsNone) target.NoFill = true;
-                else target.FillColor = fill.Color!.RgbHex;
-            }
             if (sourceCell.Padding is { } padding) {
                 target.PaddingLeftPoints = padding.LeftPoints;
                 target.PaddingTopPoints = padding.TopPoints;
