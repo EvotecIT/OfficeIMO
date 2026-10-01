@@ -1221,6 +1221,7 @@ namespace OfficeIMO.Word.Pdf {
             double? fontSize = paragraph.FontSizePoints.HasValue && paragraph.FontSizePoints.Value > 0
                 ? paragraph.FontSizePoints.Value
                 : characterStyleDefaults.FontSize ?? styleDefaults.FontSize ?? tableRunStyleDefaults.FontSize;
+            fontSize = ResolveNativeComplexScriptFontSize(fontSize, runProperties, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults);
             PdfCore.PdfStandardFont? font = ResolveNativeTextRunFont(paragraph, fallback, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults, nativeFontMap);
             string? fontFamily = ResolveNativeTextRunFontFamily(paragraph, fallback, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults, nativeFontMap);
 
