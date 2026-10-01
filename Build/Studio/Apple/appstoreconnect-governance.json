@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "appId": "6818096229",
+  "pricing": {
+    "baseTerritoryId": "USA",
+    "prices": [
+      {
+        "appPricePointId": "eyJzIjoiNjgxODA5NjIyOSIsInQiOiJVU0EiLCJwIjoiMTAwMDAifQ",
+        "territoryId": "USA"
+      }
+    ]
+  },
+  "accessibility": [],
+  "encryptionDeclarations": [],
+  "subscriptionGroups": []
+}
