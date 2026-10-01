@@ -160,7 +160,9 @@ namespace OfficeIMO.Word.Pdf {
         private static void ApplyNativeShapeStyle(OfficeShape nativeShape, WordShape wordShape, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors) {
             Wps.ShapeProperties? shapeProperties = wordShape._wpsShape?.GetFirstChild<Wps.ShapeProperties>();
             if (nativeShape.Kind != OfficeShapeKind.Line) {
-                if (TryGetNativeDrawingGradientFill(shapeProperties, out OfficeLinearGradient? drawingGradient, themeColors)) {
+                if (shapeProperties?.GetFirstChild<A.NoFill>() != null) {
+                    nativeShape.FillColor = null;
+                } else if (TryGetNativeDrawingGradientFill(shapeProperties, out OfficeLinearGradient? drawingGradient, themeColors)) {
                     nativeShape.FillGradient = drawingGradient;
                 } else if (TryGetNativeDrawingSolidFillColor(shapeProperties, out OfficeColor drawingFill, themeColors)) {
                     nativeShape.FillColor = drawingFill;

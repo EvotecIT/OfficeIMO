@@ -143,6 +143,7 @@ namespace OfficeIMO.Word.Pdf {
                     spacingAfter: chartOnly && runChartDrawings.Count == 0 ? style.SpacingAfter ?? 0D : 0D);
             }
 
+            RenderNativeParagraphShapeGroups(pdf, paragraph, runs, objectAlign, options, style);
             if (currentShape != null) {
                 RenderNativeShape(pdf, currentShape);
             }
@@ -666,6 +667,8 @@ namespace OfficeIMO.Word.Pdf {
             var images = new List<(WordImage Image, int Position)>();
             void Add(WordImage? image, DocumentFormat.OpenXml.OpenXmlElement? container) {
                 if (image == null) return;
+                // Group rendering owns its child images and their local coordinates.
+                if (image._vmlShape?.Ancestors<DocumentFormat.OpenXml.Vml.Group>().Any() == true) return;
                 if (images.Count >= imageLimit)
                     throw new InvalidDataException("Word paragraph image count exceeds the PDF export limit.");
                 // DrawingML images retain their exact position; VML wrappers use their containing run.
@@ -681,6 +684,7 @@ namespace OfficeIMO.Word.Pdf {
                 foreach (WordImage image in run.EnumerateImages()) Add(image, run._run);
             }
             var anchoredCanvas = new PdfCore.PdfPageCanvas();
+            if (anchorStyle.AnchoredCanvas != null) anchoredCanvas.AddItems(anchorStyle.AnchoredCanvas.Items);
             foreach (var image in images.OrderBy(item => item.Position)) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
                 RenderNativeImage(pdf, image.Image, align, options, "body paragraph image", anchorStyle, anchoredCanvas);
