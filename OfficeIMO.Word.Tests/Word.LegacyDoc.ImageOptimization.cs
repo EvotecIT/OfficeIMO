@@ -13,6 +13,8 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph("Default style font");
             Style normal = GetNormalStyle(document);
+            document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                .DocDefaults!.RunPropertiesDefault!.RunPropertiesBaseStyle!.RemoveAllChildren<RunFonts>();
             var fonts = new RunFonts();
             if (selector == "eastAsia") fonts.EastAsia = "Courier New";
             else if (selector == "complexScript") fonts.ComplexScript = "Courier New";
@@ -32,11 +34,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
+        [InlineData("Courier New", false)]
+        [InlineData("Arial", true)]
+        public void LegacyDoc_DefaultStyleValidatesInheritedAndOverriddenFontSelectors(string overrideFont, bool supported) {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph("Inherited Latin font");
+            var defaults = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                .DocDefaults!.RunPropertiesDefault!.RunPropertiesBaseStyle!;
+            defaults.RemoveAllChildren<RunFonts>();
+            defaults.PrependChild(new RunFonts { Ascii = "Arial", HighAnsi = "Arial" });
+            GetNormalStyle(document).StyleRunProperties = new StyleRunProperties(new RunFonts { EastAsia = overrideFont });
+            if (!supported) Assert.Throws<NotSupportedException>(() => document.ToBytes(WordFileFormat.Doc));
+            else {
+                using var output = new MemoryStream(document.ToBytes(WordFileFormat.Doc));
+                using WordDocument reopened = WordDocument.Load(output);
+                Assert.Equal("Arial", GetNormalStyle(reopened).StyleRunProperties?.GetFirstChild<RunFonts>()?.Ascii?.Value);
+            }
+        }
+
+        [Theory]
         [InlineData(false)]
         [InlineData(true)]
         public void LegacyDoc_DefaultStyleResolvesMajorAsciiAndHighAnsiThemeFonts(bool ascii) {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph("Theme default font");
+            document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                .DocDefaults!.RunPropertiesDefault!.RunPropertiesBaseStyle!.RemoveAllChildren<RunFonts>();
             var main = document._wordprocessingDocument.MainDocumentPart!;
             var theme = main.ThemePart ?? main.AddNewPart<DocumentFormat.OpenXml.Packaging.ThemePart>();
             theme.Theme = new A.Theme(new A.ThemeElements(new A.FontScheme(

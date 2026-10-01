@@ -13,20 +13,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var defaults = styles?.DocDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle;
             if (defaults != null) {
                 foreach (var property in defaults.ChildElements) {
-                    // Only materialize the default font and size here. Other script-specific
-                    // defaults retain their existing native-writer support boundary.
-                    if (property is not RunFonts && property is not FontSize && property is not FontSizeComplexScript) continue;
+                    // Font selectors are inherited individually below.
+                    if (property is not FontSize && property is not FontSizeComplexScript) continue;
                     if (!normal.StyleRunProperties.ChildElements.Any(child => child.LocalName == property.LocalName))
                         normal.StyleRunProperties.AppendChild(property.CloneNode(true));
                 }
             }
             RunFonts? fonts = normal.StyleRunProperties.GetFirstChild<RunFonts>();
+            RunFonts? inherited = defaults?.GetFirstChild<RunFonts>();
             var scheme = mainPart.ThemePart?.Theme?.ThemeElements?.FontScheme;
-            RunFonts effectiveFonts = fonts == null ? new RunFonts() : (RunFonts)fonts.CloneNode(true);
-            effectiveFonts.Ascii = ResolveDefaultThemeFont(scheme, fonts?.AsciiTheme?.Value) ?? fonts?.Ascii?.Value;
-            effectiveFonts.HighAnsi = ResolveDefaultThemeFont(scheme, fonts?.HighAnsiTheme?.Value) ?? fonts?.HighAnsi?.Value;
-            effectiveFonts.EastAsia = ResolveDefaultThemeFont(scheme, fonts?.EastAsiaTheme?.Value) ?? fonts?.EastAsia?.Value;
-            effectiveFonts.ComplexScript = ResolveDefaultThemeFont(scheme, fonts?.ComplexScriptTheme?.Value) ?? fonts?.ComplexScript?.Value;
+            RunFonts effectiveFonts = new RunFonts {
+                Ascii = ResolveDefaultFontSlot(scheme, fonts?.Ascii?.Value, fonts?.AsciiTheme?.Value, inherited?.Ascii?.Value, inherited?.AsciiTheme?.Value),
+                HighAnsi = ResolveDefaultFontSlot(scheme, fonts?.HighAnsi?.Value, fonts?.HighAnsiTheme?.Value, inherited?.HighAnsi?.Value, inherited?.HighAnsiTheme?.Value),
+                EastAsia = ResolveDefaultFontSlot(scheme, fonts?.EastAsia?.Value, fonts?.EastAsiaTheme?.Value, inherited?.EastAsia?.Value, inherited?.EastAsiaTheme?.Value),
+                ComplexScript = ResolveDefaultFontSlot(scheme, fonts?.ComplexScript?.Value, fonts?.ComplexScriptTheme?.Value, inherited?.ComplexScript?.Value, inherited?.ComplexScriptTheme?.Value)
+            };
             string? family = ReadSupportedRunFontFamily(effectiveFonts);
             // A native DOC has no theme-based default font. Materialize the resolved default.
             family = string.IsNullOrWhiteSpace(family) ? "Calibri" : family;
@@ -34,6 +35,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             normal.StyleRunProperties.PrependChild(new RunFonts { Ascii = family, HighAnsi = family });
             return normal;
         }
+
+        private static string? ResolveDefaultFontSlot(A.FontScheme? scheme, string? name, ThemeFontValues? selector,
+            string? inheritedName, ThemeFontValues? inheritedSelector) =>
+            selector != null || !string.IsNullOrWhiteSpace(name)
+                ? ResolveDefaultThemeFont(scheme, selector) ?? name
+                : ResolveDefaultThemeFont(scheme, inheritedSelector) ?? inheritedName;
 
         private static string? ResolveDefaultThemeFont(A.FontScheme? scheme, ThemeFontValues? selector) {
             if (scheme == null || selector == null) return null;
