@@ -21,7 +21,7 @@ public sealed class StudioIWorkConversionTests {
     [InlineData("simple.numbers", "numbers-xlsx", true)]
     [InlineData("tabledeck.key", "keynote-pptx", false)]
     [InlineData("tabledeck.key", "keynote-pptx", true)]
-    public async Task Studio_default_registry_intakes_and_converts_all_Apple_formats(string fixture, string route, bool directory) {
+    public async Task Studio_default_registry_intakes_Apple_formats_and_honors_conversion_acceptance(string fixture, string route, bool directory) {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
             var services = ((App)Application.Current!).Services;
@@ -38,8 +38,24 @@ public sealed class StudioIWorkConversionTests {
             Assert.False(job.AllowIncompleteVisualPreview);
             Assert.False(job.AllowPartialEditableReconstruction);
             await queue.RunQueueCommand.ExecuteAsync(null);
+            if (route == "keynote-pptx") {
+                // This native table's paragraph pagination needs explicit partial acceptance.
+                Assert.Equal(ConversionJobState.Failed, job.State);
+                Assert.False(job.HasOutput);
+                job.AllowPartialEditableReconstruction = true;
+                await queue.RetryFailedCommand.ExecuteAsync(null);
+                Assert.Contains(job.ConversionEvidence!.FidelityDiagnostics,
+                    diagnostic => diagnostic.Code == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED");
+            }
             Assert.Equal(ConversionJobState.Completed, job.State);
             Assert.True(job.HasOutput, job.Summary);
+            if (route == "keynote-pptx") {
+                using var saved = OfficeIMO.PowerPoint.PowerPointPresentation.Load(job.OutputPath!);
+                var table = Assert.Single(saved.Slides.SelectMany(slide => slide.Tables));
+                Assert.Equal("Widget", table.GetCell(1, 0).Text);
+                for (int row = 0; row < 3; row++)
+                    for (int column = 0; column < 3; column++) Assert.True(table.GetCell(row, column).NoFill);
+            }
             Assert.True(job.HasConversionEvidence);
             Assert.Equal(64, job.SourceFingerprint.Length);
             Assert.Contains(job.Diagnostics, item => item.Code == "SourceSnapshot" && item.Details.GetValueOrDefault("snapshotKind") == (directory ? "DirectoryPackage" : "FileBytes"));
