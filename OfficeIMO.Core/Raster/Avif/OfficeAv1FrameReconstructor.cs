@@ -3,9 +3,9 @@ using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>One-shot Main-8 reconstruction into owned, padded planes, before all frame filters.</summary>
+/// <summary>One-shot Main-8 reconstruction into owned padded planes through the selected pipeline stage.</summary>
 /// <remarks>Only a completely terminated set of tiles publishes a result. All partial pixels stay private.
-/// Frame filtering, superresolution and color/alpha composition are separate owners.</remarks>
+/// Remaining frame filters, superresolution and color/alpha composition are separate owners.</remarks>
 internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsumer {
     private readonly OfficeAv1StillFrame _frame;
     private readonly OfficeAv1StillSequence _sequence;
@@ -16,6 +16,7 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
     private readonly bool[][] _decoded;
     private readonly OfficeAv1IntraPredictor _predictor;
     private readonly OfficeAv1ResidualTransform _residual;
+    private readonly OfficeAv1Deblocker? _deblocker;
     private readonly int _stride,_rows,_sb;
     private OfficeAv1Tile _tile;
     private OfficeAv1TileBlock _block;
@@ -23,12 +24,14 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
     private bool _active,_tileComplete;
 
     private OfficeAv1FrameReconstructor(byte[] bytes,OfficeAv1StillSequence sequence,
-        OfficeAv1StillFrame frame,OfficeRasterDecodeOptions options) {
+        OfficeAv1StillFrame frame,OfficeRasterDecodeOptions options,OfficeAv1ReconstructionStage stage) {
         if(bytes==null) throw new ArgumentNullException(nameof(bytes));
         if(sequence==null) throw new ArgumentNullException(nameof(sequence));
         if(frame==null) throw new ArgumentNullException(nameof(frame));
         if(options==null) throw new ArgumentNullException(nameof(options));
         options.Validate();options.CancellationToken.ThrowIfCancellationRequested();
+        if(stage!=OfficeAv1ReconstructionStage.Unfiltered && stage!=OfficeAv1ReconstructionStage.Deblocked)
+            throw new ArgumentOutOfRangeException(nameof(stage));
         if(frame.Width<1 || frame.Width>65536 || frame.Height<1 || frame.Height>65536 ||
            frame.MiCols!=((frame.Width+7)/8)*2 || frame.MiRows!=((frame.Height+7)/8)*2 ||
            (long)frame.Width*frame.Height>options.MaximumDecodedPixels || bytes.Length>options.MaximumEncodedBytes)
@@ -39,14 +42,17 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
             (long)frame.MiRows*frame.MiCols*2;
         // Reserve edges/maps/CfL and the live prediction/residual results, including array/object overhead.
         const long scratch=131072;
-        long owned=storage+scratch+OfficeAv1IntraPredictor.ContextBytes+OfficeAv1ResidualTransform.ContextBytes;
+        long filter=stage==OfficeAv1ReconstructionStage.Deblocked?OfficeAv1Deblocker.ContextBytes(frame,sequence.Monochrome):0;
+        long owned=storage+scratch+OfficeAv1IntraPredictor.ContextBytes+OfficeAv1ResidualTransform.ContextBytes+filter;
         long all=owned+tileContext+bytes.LongLength;
         if(options.RetainedManagedBytes>OfficeRasterGuards.MaximumDecodedBytes-all)
             throw new FormatException("AV1 reconstruction exceeds aggregate retained memory.");
         _tileOptions=options.WithAdditionalRetainedManagedBytes(owned);
-        var child=options.WithAdditionalRetainedManagedBytes(storage+scratch+tileContext+bytes.LongLength);
+        var child=options.WithAdditionalRetainedManagedBytes(storage+scratch+tileContext+bytes.LongLength+filter);
         _predictor=new OfficeAv1IntraPredictor(child.WithAdditionalRetainedManagedBytes(OfficeAv1ResidualTransform.ContextBytes));
         _residual=new OfficeAv1ResidualTransform(frame,child.WithAdditionalRetainedManagedBytes(OfficeAv1IntraPredictor.ContextBytes));
+        if(filter!=0) _deblocker=new OfficeAv1Deblocker(frame,sequence.Monochrome,
+            options.WithAdditionalRetainedManagedBytes(owned-filter+tileContext+bytes.LongLength));
         _pixels=new byte[sequence.Monochrome?1:3][];
         for(int p=0;p<_pixels.Length;p++) _pixels[p]=new byte[checked((_stride>>(p>0?1:0))*(_rows>>(p>0?1:0)))];
         _yModes=new byte[frame.MiRows*frame.MiCols];_uvModes=new byte[_yModes.Length];
@@ -56,13 +62,15 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
 
     /// <summary>Decodes every declared tile. Throws without exposing partial output on any failure.</summary>
     internal static OfficeAv1ReconstructedFrame Decode(byte[] bytes,OfficeAv1StillSequence sequence,
-        OfficeAv1StillFrame frame,OfficeRasterDecodeOptions options) {
-        var owner=new OfficeAv1FrameReconstructor(bytes,sequence,frame,options);
+        OfficeAv1StillFrame frame,OfficeRasterDecodeOptions options,
+        OfficeAv1ReconstructionStage stage=OfficeAv1ReconstructionStage.Unfiltered) {
+        var owner=new OfficeAv1FrameReconstructor(bytes,sequence,frame,options,stage);
         foreach(var tile in frame.Tiles) {
             owner._tile=tile;owner._tileComplete=false;owner._sbRow=owner._sbCol=-1;
             new OfficeAv1TileReader(frame,sequence,tile,owner._tileOptions).Read(bytes,owner);
             if(!owner._tileComplete) throw new FormatException("AV1 reconstruction tile did not terminate.");
         }
+        owner._deblocker?.Apply(owner._pixels,owner._stride);
         owner._cancellation.ThrowIfCancellationRequested();
         return new OfficeAv1ReconstructedFrame(frame.Width,frame.Height,owner._stride,owner._rows,owner._pixels);
     }
@@ -108,6 +116,7 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
         }
         if(b.Plane==0) {_maxLumaX=b.X+b.Width;_maxLumaY=b.Y+b.Height;}
         MarkDecoded(b);
+        _deblocker?.Transform(b);
     }
     void IOfficeAv1TileConsumer.EndBlock() {
         if(!_active || _index!=_block.Transforms.Count) throw new FormatException("Incomplete AV1 reconstruction leaf.");
@@ -117,7 +126,7 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
                 int i=r*_frame.MiCols+c;_yModes[i]=(byte)_block.Modes.YMode;
                 _uvModes[i]=_block.Modes.UseIntraBlockCopy?(byte)255:(byte)_block.Modes.UvMode;
             }
-        _active=false;
+        _deblocker?.Leaf(_block);_active=false;
     }
     void IOfficeAv1TileConsumer.CompleteTile() {
         if(_active) throw new FormatException("AV1 reconstruction has a pending leaf.");
@@ -125,7 +134,10 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
     }
 }
 
-/// <summary>Immutable owned pre-filter planes. The padded samples are retained for later filter owners.</summary>
+/// <summary>Internal pipeline boundary; later frame filtering remains a separate stage.</summary>
+internal enum OfficeAv1ReconstructionStage { Unfiltered, Deblocked }
+
+/// <summary>Immutable owned reconstructed planes. Padded samples are retained for subsequent filter owners.</summary>
 internal sealed class OfficeAv1ReconstructedFrame {
     private readonly byte[][] _planes;
     private readonly int _stride,_rows;
