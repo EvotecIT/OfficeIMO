@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Font entry used by an RTF document.
 /// </summary>
-public sealed class RtfFont {
+public sealed partial class RtfFont {
     /// <summary>
     /// Initializes a font.
     /// </summary>

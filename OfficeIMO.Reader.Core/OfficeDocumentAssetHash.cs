@@ -1,6 +1,8 @@
 using System;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Reader;
 
@@ -8,6 +10,24 @@ namespace OfficeIMO.Reader;
 /// Hash helpers for materializable read-result assets.
 /// </summary>
 public static class OfficeDocumentAssetHash {
+    /// <summary>Hashes the remaining stream bytes while observing cancellation. Leaves the stream open at the consumed position.</summary>
+    public static string ComputeSha256Hex(Stream stream, CancellationToken cancellationToken = default) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        using var sha = SHA256.Create();
+        var buffer = new byte[81920];
+        while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = stream.Read(buffer, 0, buffer.Length);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (count == 0) break;
+            sha.TransformBlock(buffer, 0, count, buffer, 0);
+        }
+        sha.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+        var builder = new StringBuilder(64);
+        foreach (byte value in sha.Hash!) builder.Append(value.ToString("x2", System.Globalization.CultureInfo.InvariantCulture));
+        return builder.ToString();
+    }
+
     /// <summary>
     /// Computes a lowercase SHA-256 hex hash for asset payload bytes.
     /// </summary>

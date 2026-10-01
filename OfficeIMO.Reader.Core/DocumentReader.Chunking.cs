@@ -148,16 +148,7 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static string ComputeSha256Hex(Stream stream, CancellationToken cancellationToken = default) {
-        using var sha = SHA256.Create();
-        var buffer = new byte[81920];
-        while (true) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int read = stream.Read(buffer, 0, buffer.Length);
-            if (read == 0) break;
-            sha.TransformBlock(buffer, 0, read, buffer, 0);
-        }
-        sha.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-        return ConvertToHexLower(sha.Hash!);
+        return OfficeDocumentAssetHash.ComputeSha256Hex(stream, cancellationToken);
     }
 
     private static string ConvertToHexLower(byte[] bytes) {

@@ -43,7 +43,7 @@ public class RtfAutomaticNoteReferenceTests {
         RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
         RtfGeneratedText reference = Assert.IsType<RtfGeneratedText>(Assert.Single(roundTrip.Paragraphs).Inlines[1]);
 
-        Assert.Contains(@"\chftn {\endnote", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\chftn {\footnote\ftnalt", rtf, StringComparison.Ordinal);
         Assert.Equal(RtfGeneratedTextKind.NoteReference, reference.Kind);
         Assert.NotNull(reference.Note);
         Assert.Equal(RtfNoteKind.Endnote, reference.Note!.Kind);

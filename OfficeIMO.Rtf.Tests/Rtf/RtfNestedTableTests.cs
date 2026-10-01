@@ -48,7 +48,7 @@ public class RtfNestedTableTests {
         Assert.Contains(@"\nestcell", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\nesttableprops", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\nestrow", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\row" + Environment.NewLine + @"\pard\par", rtf, StringComparison.Ordinal);
+        Assert.Single(RtfDocument.Read(roundTrip.ToRtf()).Document.Blocks);
         Assert.Equal(new[] { "Inner A", "Inner B" }, nested.Rows[0].Cells.Select(cell => cell.Paragraphs[0].ToPlainText()));
     }
 

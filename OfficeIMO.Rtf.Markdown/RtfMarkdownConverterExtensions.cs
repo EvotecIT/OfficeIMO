@@ -24,6 +24,7 @@ public static partial class RtfMarkdownConverterExtensions {
     public static RtfConversionResult<MarkdownDoc> ToMarkdownDocumentResult(this RtfDocument document, RtfToMarkdownOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         var context = new RtfToMarkdownConversionContext(options ?? new RtfToMarkdownOptions());
+        context.ConversionReport.Merge(document.GetStyleConversionDiagnostics());
         MarkdownDoc value = RtfToMarkdownConverter.Convert(document, context);
         return new RtfConversionResult<MarkdownDoc>(value, context.ConversionReport);
     }

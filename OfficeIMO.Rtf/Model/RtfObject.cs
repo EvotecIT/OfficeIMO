@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Dependency-free representation of an RTF embedded or linked object.
 /// </summary>
-public sealed class RtfObject : IRtfInline, IRtfBlock {
+public sealed partial class RtfObject : IRtfInline, IRtfBlock {
     /// <summary>Creates an RTF object with optional raw object payload.</summary>
     public RtfObject(RtfObjectKind kind = RtfObjectKind.Unknown, byte[]? data = null) {
         Kind = kind;
@@ -35,7 +35,7 @@ public sealed class RtfObject : IRtfInline, IRtfBlock {
     public int? ScaleY { get; set; }
 
     /// <summary>Textual/rich fallback result shown by readers that cannot activate the object.</summary>
-    public RtfParagraph Result { get; } = new RtfParagraph();
+    public RtfParagraph Result { get; private set; } = new RtfParagraph();
 
     /// <summary>Picture fallback result when the object declares a result picture.</summary>
     public RtfImage? ResultImage { get; set; }

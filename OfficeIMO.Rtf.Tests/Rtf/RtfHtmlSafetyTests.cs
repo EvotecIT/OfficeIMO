@@ -95,7 +95,7 @@ public class RtfHtmlSafetyTests {
     public void Data_Uri_Embedding_Enforces_Per_Image_Limit() {
         RtfDocument document = RtfDocument.Create();
         document.AddImage(RtfImageFormat.Png, new byte[] { 1, 2, 3, 4 });
-        var options = RtfToHtmlOptions.CreateRoundTripProfile();
+        var options = RtfHtmlTestOptions.CreateRoundTripFragment();
         options.MaxEmbeddedImageBytes = 3;
 
         RtfToHtmlResult result = document.ToHtmlResult(options);

@@ -65,6 +65,8 @@ internal static partial class RtfHtmlReader {
             style.BasedOnStyleId = ReadInt(values, prefix + ".basedOn");
             style.NextStyleId = ReadInt(values, prefix + ".next");
             style.LinkedStyleId = ReadInt(values, prefix + ".linked");
+            style.ListId = ReadInt(values, prefix + ".listId");
+            style.ListLevel = ReadInt(values, prefix + ".listLevel");
             style.KeyCode = ReadKeyCode(values, prefix + ".key");
             style.Additive = ReadBool(values, prefix + ".additive") == true;
             style.AutoUpdate = ReadBool(values, prefix + ".autoUpdate") == true;
@@ -80,6 +82,7 @@ internal static partial class RtfHtmlReader {
             style.RevisionSaveId = ReadInt(values, prefix + ".revisionSaveId");
             style.Bold = ReadBool(values, prefix + ".bold");
             style.Italic = ReadBool(values, prefix + ".italic");
+            style.TextHidden = ReadBool(values, prefix + ".textHidden");
             style.UnderlineStyle = ReadEnum<RtfUnderlineStyle>(values, prefix + ".underlineStyle");
             style.FontSize = ReadDouble(values, prefix + ".fontSize");
             style.FontId = ReadInt(values, prefix + ".fontId");
@@ -143,7 +146,7 @@ internal static partial class RtfHtmlReader {
         }
 
         private static void ApplyBorder(Dictionary<string, string> values, string prefix, RtfParagraphBorder border) {
-            border.Style = ReadEnum(values, prefix + ".style", RtfParagraphBorderStyle.None);
+            border.DirectStyle = ReadEnum<RtfParagraphBorderStyle>(values, prefix + ".style");
             border.Width = ReadInt(values, prefix + ".width");
             border.ColorIndex = ReadInt(values, prefix + ".color");
         }

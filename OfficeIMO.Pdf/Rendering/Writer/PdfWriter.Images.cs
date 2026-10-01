@@ -791,21 +791,6 @@ internal static partial class PdfWriter {
         return pb <= pc ? up : upLeft;
     }
 
-    private static uint Adler32(byte[] data) => Adler32(data, CancellationToken.None);
-
-    private static uint Adler32(byte[] data, CancellationToken cancellationToken) {
-        const uint mod = 65521;
-        uint a = 1;
-        uint b = 0;
-        for (int i = 0; i < data.Length; i++) {
-            if ((i & 0xFFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
-            a = (a + data[i]) % mod;
-            b = (b + a) % mod;
-        }
-
-        return (b << 16) | a;
-    }
-
     private static bool TryBuildImageStream(PageImage img, out PdfImageStream image, out string? unsupportedReason) {
         if (img.PreparedStream != null) {
             image = img.PreparedStream.CloneForWrite();

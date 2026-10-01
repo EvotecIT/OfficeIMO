@@ -9,7 +9,7 @@ using OfficeIMO.Rtf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Rtf;
 
-RtfDocument rtf = RtfDocument.Load("input.rtf").Document;
+RtfDocument rtf = RtfDocument.Load("input.rtf");
 RtfConversionResult<WordDocument> conversion = rtf.ToWordDocumentResult();
 
 using WordDocument word = conversion.Value;

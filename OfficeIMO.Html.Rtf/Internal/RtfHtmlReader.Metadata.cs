@@ -179,16 +179,32 @@ internal static partial class RtfHtmlReader {
                 return;
             }
 
-            string? html = DecodeString(encodedContent);
-            if (string.IsNullOrEmpty(html)) {
+            string? html = encodedContent == string.Empty ? string.Empty : DecodeString(encodedContent);
+            if (html == null) {
                 return;
             }
 
-            RtfHeaderFooter headerFooter = _document.AddHeaderFooter(kind);
+            var headerFooter = new RtfHeaderFooter(kind);
+            _document.AddParsedHeaderFooter(headerFooter);
+            if (int.TryParse(GetAttribute(token, "data-officeimo-rtf-section-index"),
+                System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int sectionIndex)) {
+                _pendingSectionHeaders.Add(new KeyValuePair<RtfHeaderFooter, int>(headerFooter, sectionIndex));
+            }
+            if (html.Length == 0) return;
             RtfDocument contentDocument = HtmlConversionDocument.Parse(html!).ToRtfDocument();
             foreach (RtfParagraph paragraph in contentDocument.Paragraphs) {
                 RtfParagraph target = headerFooter.AddParagraph();
                 CopyParagraphInlines(paragraph, target, contentDocument);
+            }
+        }
+
+        private readonly List<KeyValuePair<RtfHeaderFooter, int>> _pendingSectionHeaders = new List<KeyValuePair<RtfHeaderFooter, int>>();
+
+        internal void CompleteHeaderFooterOwnership() {
+            foreach (KeyValuePair<RtfHeaderFooter, int> pending in _pendingSectionHeaders) {
+                if (pending.Value >= 0 && pending.Value < _document.Sections.Count) {
+                    _document.Sections[pending.Value].AddParsedHeaderFooter(pending.Key);
+                }
             }
         }
 

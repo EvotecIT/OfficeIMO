@@ -3,8 +3,8 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// RTF list override entry that maps <c>\ls</c> paragraph ids to list definitions.
 /// </summary>
-public sealed class RtfListOverride {
-    private readonly List<RtfListLevelOverride> _levelOverrides = new List<RtfListLevelOverride>();
+public sealed partial class RtfListOverride {
+    private List<RtfListLevelOverride> _levelOverrides = new List<RtfListLevelOverride>();
 
     /// <summary>Creates a list override.</summary>
     public RtfListOverride(int id, int listId) {
@@ -13,10 +13,10 @@ public sealed class RtfListOverride {
     }
 
     /// <summary>Paragraph list override id used by <c>\ls</c>.</summary>
-    public int Id { get; }
+    public int Id { get; internal set; }
 
     /// <summary>Referenced list definition id.</summary>
-    public int ListId { get; }
+    public int ListId { get; internal set; }
 
     /// <summary>Number of level overrides, when present.</summary>
     public int? OverrideCount { get; set; }

@@ -57,7 +57,11 @@ internal static partial class RtfHtmlReader {
         }
 
         private static void AddListLevel(RtfListDefinition definition, Dictionary<string, string> values, string prefix) {
-            RtfListLevel level = definition.AddLevel(ReadEnum(values, prefix + ".kind", RtfListKind.Decimal));
+            definition.AddParsedLevel(ReadListLevel(values, prefix, definition.Levels.Count));
+        }
+
+        private static RtfListLevel ReadListLevel(Dictionary<string, string> values, string prefix, int index) {
+            var level = new RtfListLevel(index, ReadEnum(values, prefix + ".kind", RtfListKind.Decimal));
             level.NumberFormat = ReadInt(values, prefix + ".numberFormat");
             level.NumberFormatN = ReadInt(values, prefix + ".numberFormatN");
             level.Alignment = ReadEnum<RtfListLevelAlignment>(values, prefix + ".alignment");
@@ -74,6 +78,7 @@ internal static partial class RtfHtmlReader {
             level.Numbers = ReadString(values, prefix + ".numbers");
             level.LeftIndentTwips = ReadInt(values, prefix + ".leftIndentTwips");
             level.FirstLineIndentTwips = ReadInt(values, prefix + ".firstLineIndentTwips");
+            return level;
         }
 
         private static void AddListLevelOverride(RtfListOverride listOverride, Dictionary<string, string> values, string prefix) {
@@ -82,6 +87,7 @@ internal static partial class RtfHtmlReader {
             levelOverride.OverrideFormat = ReadBool(values, prefix + ".overrideFormat");
             levelOverride.OverrideStartAt = ReadBool(values, prefix + ".overrideStartAt");
             levelOverride.StartAt = ReadInt(values, prefix + ".startAt");
+            if (values.ContainsKey(prefix + ".formatting.kind")) levelOverride.Formatting = ReadListLevel(values, prefix + ".formatting", levelOverride.LevelIndex ?? 0);
         }
     }
 }

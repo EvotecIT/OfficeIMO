@@ -132,16 +132,16 @@ public class RtfParagraphFormattingTests {
         using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
-        Assert.Equal(1, rtfParagraph.BackgroundColorIndex);
+        Assert.Equal("#E6F2FF", rtfDocument.GetColor(rtfParagraph.BackgroundColorIndex!.Value)!.ToString());
         Assert.Equal(RtfParagraphBorderStyle.Single, rtfParagraph.TopBorder.Style);
         Assert.Equal(12, rtfParagraph.TopBorder.Width);
-        Assert.Equal(2, rtfParagraph.TopBorder.ColorIndex);
+        Assert.Equal("#4472C4", rtfDocument.GetColor(rtfParagraph.TopBorder.ColorIndex!.Value)!.ToString());
         Assert.Equal(RtfParagraphBorderStyle.Double, rtfParagraph.LeftBorder.Style);
         Assert.Equal(8, rtfParagraph.LeftBorder.Width);
-        Assert.Equal(3, rtfParagraph.LeftBorder.ColorIndex);
-        Assert.Contains(@"\cbpat1", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\brdrt\brdrs\brdrw12\brdrcf2", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\brdrl\brdrdb\brdrw8\brdrcf3", rtf, StringComparison.Ordinal);
+        Assert.Equal("#00AA55", rtfDocument.GetColor(rtfParagraph.LeftBorder.ColorIndex!.Value)!.ToString());
+        Assert.Contains($@"\cbpat{rtfParagraph.BackgroundColorIndex}", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\brdrt\brdrs\brdrw12\brdrcf{rtfParagraph.TopBorder.ColorIndex}", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\brdrl\brdrdb\brdrw8\brdrcf{rtfParagraph.LeftBorder.ColorIndex}", rtf, StringComparison.Ordinal);
 
         WordParagraph roundTripParagraph = Assert.Single(roundTrip.Paragraphs);
         Assert.Equal("E6F2FF", roundTripParagraph.ShadingFillColorHex);
@@ -189,11 +189,11 @@ public class RtfParagraphFormattingTests {
         using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
-        Assert.Equal(1, rtfParagraph.BackgroundColorIndex);
-        Assert.Equal(2, rtfParagraph.ShadingForegroundColorIndex);
+        Assert.Equal("#E6F2FF", rtfDocument.GetColor(rtfParagraph.BackgroundColorIndex!.Value)!.ToString());
+        Assert.Equal("#4472C4", rtfDocument.GetColor(rtfParagraph.ShadingForegroundColorIndex!.Value)!.ToString());
         Assert.Equal(3750, rtfParagraph.ShadingPatternPercent);
         Assert.Equal(RtfShadingPattern.None, rtfParagraph.ShadingPattern);
-        Assert.Contains(@"\cbpat1\cfpat2\shading3750", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\cbpat{rtfParagraph.BackgroundColorIndex}\cfpat{rtfParagraph.ShadingForegroundColorIndex}\shading3750", rtf, StringComparison.Ordinal);
 
         WordParagraph roundTripParagraph = Assert.Single(roundTrip.Paragraphs);
         Assert.Equal("E6F2FF", roundTripParagraph.ShadingFillColorHex);

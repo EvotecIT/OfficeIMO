@@ -1,5 +1,4 @@
 using OfficeIMO.Core.Internal;
-using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Threading;
 
@@ -301,38 +300,7 @@ internal static partial class PdfOptimizer {
     }
 
     private static byte[] CompressFlate(byte[] data, CancellationToken cancellationToken) {
-        const int chunkSize = 64 * 1024;
-        cancellationToken.ThrowIfCancellationRequested();
-        using var output = new MemoryStream();
-        output.WriteByte(0x78);
-        output.WriteByte(0x9C);
-        using (var deflate = new DeflateStream(output, CompressionLevel.Optimal, leaveOpen: true)) {
-            for (int offset = 0; offset < data.Length; offset += chunkSize) {
-                cancellationToken.ThrowIfCancellationRequested();
-                deflate.Write(data, offset, Math.Min(chunkSize, data.Length - offset));
-            }
-        }
-
-        uint adler = Adler32(data, cancellationToken);
-        output.WriteByte((byte)((adler >> 24) & 0xFF));
-        output.WriteByte((byte)((adler >> 16) & 0xFF));
-        output.WriteByte((byte)((adler >> 8) & 0xFF));
-        output.WriteByte((byte)(adler & 0xFF));
-        return output.ToArray();
-    }
-
-    private static uint Adler32(byte[] data, CancellationToken cancellationToken) {
-        const int chunkSize = 64 * 1024;
-        const uint mod = 65521;
-        uint a = 1;
-        uint b = 0;
-        for (int i = 0; i < data.Length; i++) {
-            if (i % chunkSize == 0) cancellationToken.ThrowIfCancellationRequested();
-            a = (a + data[i]) % mod;
-            b = (b + a) % mod;
-        }
-
-        return (b << 16) | a;
+        return PdfFlateEncoder.Compress(data, cancellationToken);
     }
 
     private static void DeduplicateIdenticalStreams(

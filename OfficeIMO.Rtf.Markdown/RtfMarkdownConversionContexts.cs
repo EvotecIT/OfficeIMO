@@ -45,6 +45,7 @@ internal sealed class RtfToMarkdownConversionContext : RtfMarkdownConversionCont
     internal Func<RtfImage, int, string>? ImagePathFactory => _options.ImagePathFactory;
     internal Action<RtfImage, int, string>? ImageExporter => _options.ImageExporter;
     internal RtfMarkdownNoteRegistry? NoteRegistry { get; set; }
+    internal RtfDocument? Document { get; set; }
 
     internal void Report(
         string code,

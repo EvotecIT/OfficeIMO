@@ -68,11 +68,11 @@ public partial class WordRtfConverterTests {
         Assert.Equal(RtfPageBorderStyle.Single, rtfDocument.PageSetup.PageBorders.Top.Style);
         Assert.Equal(12, rtfDocument.PageSetup.PageBorders.Top.Width);
         Assert.Equal(24, rtfDocument.PageSetup.PageBorders.Top.Space);
-        Assert.Equal(1, rtfDocument.PageSetup.PageBorders.Top.ColorIndex);
+        Assert.Equal("#FF0000", rtfDocument.GetColor(rtfDocument.PageSetup.PageBorders.Top.ColorIndex!.Value)!.ToString());
         Assert.Equal(RtfPageBorderStyle.Double, rtfDocument.PageSetup.PageBorders.Bottom.Style);
         Assert.Equal(18, rtfDocument.PageSetup.PageBorders.Bottom.Width);
         Assert.Equal(30, rtfDocument.PageSetup.PageBorders.Bottom.Space);
-        Assert.Equal(2, rtfDocument.PageSetup.PageBorders.Bottom.ColorIndex);
+        Assert.Equal("#0000FF", rtfDocument.GetColor(rtfDocument.PageSetup.PageBorders.Bottom.ColorIndex!.Value)!.ToString());
         Assert.True(rtfDocument.PageSetup.Landscape);
         Assert.True(rtfDocument.PageSetup.DifferentFirstPageHeaderFooter);
         Assert.True(rtfDocument.Settings.FacingPages);
@@ -95,8 +95,8 @@ public partial class WordRtfConverterTests {
         Assert.Contains(@"\pgnrestart", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\pgnlcrm", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\pgbrdropt34", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\pgbrdrt\brdrs\brdrw12\brsp24\brdrcf1", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\pgbrdrb\brdrdb\brdrw18\brsp30\brdrcf2", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\pgbrdrt\brdrs\brdrw12\brsp24\brdrcf{rtfDocument.PageSetup.PageBorders.Top.ColorIndex}", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\pgbrdrb\brdrdb\brdrw18\brsp30\brdrcf{rtfDocument.PageSetup.PageBorders.Bottom.ColorIndex}", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\header", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\headerf", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\headerl", rtf, StringComparison.Ordinal);
@@ -155,7 +155,10 @@ public partial class WordRtfConverterTests {
         Assert.Equal(1440, word.Settings.DefaultTabStop);
         Assert.Equal(125, word.Settings.ZoomPercentage);
         Assert.Equal(WordDocumentProtectionType.ReadOnly, word.Settings.ProtectionType);
-        Assert.True(word.DifferentOddAndEvenPages);
+        // The selection flag survives without inventing an empty even-page story.
+        Assert.False(word.DifferentOddAndEvenPages);
+        Assert.Null(word.Sections[0].Header.Even);
+        Assert.Null(word.Sections[0].Footer.Even);
         Assert.True(word.Settings.MirrorMargins);
         Assert.Equal(1440, roundTrip.Settings.DefaultTabWidthTwips);
         Assert.Equal(125, roundTrip.Settings.ViewScale);

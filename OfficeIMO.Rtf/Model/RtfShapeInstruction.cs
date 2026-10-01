@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Raw shape instruction control from an RTF <c>\shpinst</c> destination.
 /// </summary>
-public sealed class RtfShapeInstruction {
+public sealed partial class RtfShapeInstruction {
     /// <summary>Creates a shape instruction control.</summary>
     public RtfShapeInstruction(string name, int? parameter = null, bool hasParameter = false) {
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Shape instruction name cannot be empty.", nameof(name));

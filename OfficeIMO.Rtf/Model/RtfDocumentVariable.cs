@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Document variable from the RTF <c>\docvar</c> destination.
 /// </summary>
-public sealed class RtfDocumentVariable {
+public sealed partial class RtfDocumentVariable {
     /// <summary>Creates a document variable.</summary>
     public RtfDocumentVariable(string name, string value) {
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Document variable name cannot be empty.", nameof(name));

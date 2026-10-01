@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Text run with character-level formatting.
 /// </summary>
-public sealed class RtfRun : IRtfInline {
+public sealed partial class RtfRun : IRtfInline {
     internal RtfRun(string text) {
         Text = text ?? string.Empty;
     }
@@ -11,11 +11,20 @@ public sealed class RtfRun : IRtfInline {
     /// <summary>Run text.</summary>
     public string Text { get; set; }
 
+    /// <summary>Whether a native plain reset selects document defaults beneath this run's direct and character-style formatting.</summary>
+    public bool UseDefaultCharacterFormatting { get; set; }
+
     /// <summary>Whether the run is bold.</summary>
-    public bool Bold { get; set; }
+    public bool Bold { get => DirectBold ?? false; set => DirectBold = value; }
+
+    /// <summary>Authored Bold override. Null inherits from the selected style; an explicit default clears that style value.</summary>
+    public bool? DirectBold { get; set; }
 
     /// <summary>Whether the run is italic.</summary>
-    public bool Italic { get; set; }
+    public bool Italic { get => DirectItalic ?? false; set => DirectItalic = value; }
+
+    /// <summary>Authored Italic override. Null inherits from the selected style; an explicit default clears that style value.</summary>
+    public bool? DirectItalic { get; set; }
 
     /// <summary>Whether the run is underlined. Setting this property uses single underline when enabled.</summary>
     public bool Underline {
@@ -24,7 +33,10 @@ public sealed class RtfRun : IRtfInline {
     }
 
     /// <summary>Underline style for the run.</summary>
-    public RtfUnderlineStyle UnderlineStyle { get; set; } = RtfUnderlineStyle.None;
+    public RtfUnderlineStyle UnderlineStyle { get => DirectUnderlineStyle ?? RtfUnderlineStyle.None; set => DirectUnderlineStyle = value; }
+
+    /// <summary>Authored UnderlineStyle override. Null inherits from the selected style; an explicit default clears that style value.</summary>
+    public RtfUnderlineStyle? DirectUnderlineStyle { get; set; }
 
     /// <summary>Whether the run is struck through.</summary>
     public bool Strike { get; set; }
@@ -33,7 +45,10 @@ public sealed class RtfRun : IRtfInline {
     public bool DoubleStrike { get; set; }
 
     /// <summary>Whether the run is hidden text.</summary>
-    public bool Hidden { get; set; }
+    public bool Hidden { get => DirectHidden ?? false; set => DirectHidden = value; }
+
+    /// <summary>Authored hidden-text override. Null inherits; false makes text visible beneath a hidden-text style.</summary>
+    public bool? DirectHidden { get; set; }
 
     /// <summary>Whether the run text is outlined.</summary>
     public bool Outline { get; set; }
@@ -78,7 +93,7 @@ public sealed class RtfRun : IRtfInline {
     public RtfShadingPattern CharacterShadingPattern { get; set; } = RtfShadingPattern.None;
 
     /// <summary>Character border metadata represented by <c>\chbrdr</c> and following border controls.</summary>
-    public RtfCharacterBorder CharacterBorder { get; } = new RtfCharacterBorder();
+    public RtfCharacterBorder CharacterBorder { get; private set; } = new RtfCharacterBorder();
 
     /// <summary>Optional underline color table index. A null value uses the document default.</summary>
     public int? UnderlineColorIndex { get; set; }

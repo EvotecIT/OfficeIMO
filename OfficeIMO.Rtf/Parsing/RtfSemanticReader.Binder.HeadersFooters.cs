@@ -14,6 +14,7 @@ internal static partial class RtfSemanticReader {
 
             var headerFooter = new RtfHeaderFooter(kind);
             _document.AddParsedHeaderFooter(headerFooter);
+            EnsureCurrentSection().AddParsedHeaderFooter(headerFooter);
             _currentHeaderFooter = headerFooter;
             _currentParagraph = new RtfParagraph();
             _currentTable = null;

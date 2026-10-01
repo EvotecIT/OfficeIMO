@@ -21,7 +21,7 @@ internal static partial class RtfHtmlWriter {
             AppendAttribute(builder, "title", field.HyperlinkField!.ScreenTip);
         }
         builder.Append('>');
-        AppendInlines(builder, field.Result.Inlines, options, document);
+        AppendInlines(builder, field.Result.Inlines, options, document, field.Result);
         builder.Append("</");
         builder.Append(tagName);
         builder.Append('>');

@@ -196,13 +196,13 @@ public sealed partial class RtfLosslessEditor {
         }
 
         int insertIndex = children.FindLastIndex(node => node is RtfControlWord control && control.Name == "colortbl") + 1;
-        children.Insert(insertIndex, new RtfText(0, ";", ";"));
+        children.Insert(insertIndex, CreateEncodedText(0, ";", ";"));
     }
 
     private static RtfGroup CreateColorTable(RtfColor color) {
         var children = new List<RtfNode> {
             new RtfControlWord(0, "colortbl", null, hasParameter: false, rawText: @"\colortbl"),
-            new RtfText(0, ";", ";")
+            CreateEncodedText(0, ";", ";")
         };
         children.AddRange(CreateColorEntryNodes(color));
         return new RtfGroup(0, children);
@@ -222,7 +222,7 @@ public sealed partial class RtfLosslessEditor {
 
         AddOptionalColorNumber(children, "ctint", color.Tint);
         AddOptionalColorNumber(children, "cshade", color.Shade);
-        children.Add(new RtfText(0, ";", ";"));
+        children.Add(CreateEncodedText(0, ";", ";"));
         return children;
     }
 

@@ -25,7 +25,7 @@ File.WriteAllText("report.rtf", document.ToRtf());
 ## Edit semantically
 
 ```csharp
-RtfDocument document = RtfDocument.Load("input.rtf").Document;
+RtfDocument document = RtfDocument.Load("input.rtf");
 
 document.InsertParagraph(0, "Confidential");
 document.ReplaceText("Contoso Ltd.", "Contoso Europe");
@@ -48,7 +48,7 @@ editor.SaveLossless("updated-lossless.rtf");
 RtfReadOptions options = RtfReadOptions.CreateUntrustedProfile();
 using FileStream input = File.OpenRead("upload.rtf");
 
-RtfReadResult read = await RtfDocument.LoadAsync(
+RtfReadResult read = await RtfDocument.LoadResultAsync(
     input,
     options,
     cancellationToken: cancellationToken);

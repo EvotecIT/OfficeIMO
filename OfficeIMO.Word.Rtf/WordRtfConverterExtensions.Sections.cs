@@ -24,6 +24,7 @@ public static partial class WordRtfConverterExtensions {
             WordSection wordSection = document.Sections[index];
             RtfSection section = rtf.AddSection(ToRtfSectionBreakKind(document, index));
             CopyPageSetup(wordSection, section, rtf);
+            CopySectionHeaderFooters(wordSection, section, rtf, revisionAuthorIndexes);
             CopyWordElements(wordSection.Elements, section, rtf, revisionAuthorIndexes);
         }
     }
@@ -104,53 +105,54 @@ public static partial class WordRtfConverterExtensions {
         for (int index = 0; index < rtfDocument.Sections.Count; index++) {
             ApplyPageSetup(rtfDocument.Sections[index], wordSections[index], rtfDocument);
         }
+        ApplySectionHeaderFooters(rtfDocument, document, wordSections);
     }
 
     private static void ApplyPageSetup(RtfSection source, WordSection destination, RtfDocument rtfDocument) {
-        if (source.PageSetup.Landscape) {
-            destination.PageOrientation = OfficePageOrientation.Landscape;
+        RtfPageSetup pageSetup = rtfDocument.GetPageSetup(source);
+        if (pageSetup.DirectLandscape.HasValue)
+            destination.PageOrientation = pageSetup.Landscape ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
+
+        if (pageSetup.PaperWidthTwips.HasValue) {
+            destination.PageSettings.Width = ToUInt32Value(pageSetup.PaperWidthTwips.Value);
         }
 
-        if (source.PageSetup.PaperWidthTwips.HasValue) {
-            destination.PageSettings.Width = ToUInt32Value(source.PageSetup.PaperWidthTwips.Value);
+        if (pageSetup.PaperHeightTwips.HasValue) {
+            destination.PageSettings.Height = ToUInt32Value(pageSetup.PaperHeightTwips.Value);
         }
 
-        if (source.PageSetup.PaperHeightTwips.HasValue) {
-            destination.PageSettings.Height = ToUInt32Value(source.PageSetup.PaperHeightTwips.Value);
+        if (pageSetup.MarginLeftTwips.HasValue) {
+            destination.Margins.Left = ToUInt32Value(pageSetup.MarginLeftTwips.Value);
         }
 
-        if (source.PageSetup.MarginLeftTwips.HasValue) {
-            destination.Margins.Left = ToUInt32Value(source.PageSetup.MarginLeftTwips.Value);
+        if (pageSetup.MarginRightTwips.HasValue) {
+            destination.Margins.Right = ToUInt32Value(pageSetup.MarginRightTwips.Value);
         }
 
-        if (source.PageSetup.MarginRightTwips.HasValue) {
-            destination.Margins.Right = ToUInt32Value(source.PageSetup.MarginRightTwips.Value);
+        if (pageSetup.MarginTopTwips.HasValue) {
+            destination.Margins.Top = pageSetup.MarginTopTwips.Value;
         }
 
-        if (source.PageSetup.MarginTopTwips.HasValue) {
-            destination.Margins.Top = source.PageSetup.MarginTopTwips.Value;
+        if (pageSetup.MarginBottomTwips.HasValue) {
+            destination.Margins.Bottom = pageSetup.MarginBottomTwips.Value;
         }
 
-        if (source.PageSetup.MarginBottomTwips.HasValue) {
-            destination.Margins.Bottom = source.PageSetup.MarginBottomTwips.Value;
+        if (pageSetup.GutterWidthTwips.HasValue) {
+            destination.Margins.Gutter = ToUInt32Value(pageSetup.GutterWidthTwips.Value);
         }
 
-        if (source.PageSetup.GutterWidthTwips.HasValue) {
-            destination.Margins.Gutter = ToUInt32Value(source.PageSetup.GutterWidthTwips.Value);
+        if (pageSetup.HeaderDistanceTwips.HasValue) {
+            destination.Margins.HeaderDistance = ToUInt32Value(pageSetup.HeaderDistanceTwips.Value);
         }
 
-        if (source.PageSetup.HeaderDistanceTwips.HasValue) {
-            destination.Margins.HeaderDistance = ToUInt32Value(source.PageSetup.HeaderDistanceTwips.Value);
+        if (pageSetup.FooterDistanceTwips.HasValue) {
+            destination.Margins.FooterDistance = ToUInt32Value(pageSetup.FooterDistanceTwips.Value);
         }
 
-        if (source.PageSetup.FooterDistanceTwips.HasValue) {
-            destination.Margins.FooterDistance = ToUInt32Value(source.PageSetup.FooterDistanceTwips.Value);
-        }
-
-        destination.DifferentFirstPage = source.PageSetup.DifferentFirstPageHeaderFooter;
-        destination.RtlGutter = source.PageSetup.RtlGutter;
-        ApplyPageNumbering(source.PageSetup, destination);
-        ApplyPageBorders(source.PageSetup.PageBorders, destination, rtfDocument);
+        ApplyFirstPageHeaderFooterSelection(destination, pageSetup.DifferentFirstPageHeaderFooter);
+        destination.RtlGutter = pageSetup.RtlGutter;
+        ApplyPageNumbering(pageSetup, destination);
+        ApplyPageBorders(pageSetup.PageBorders, destination, rtfDocument);
         ApplyNoteSettings(source.NoteSettings, destination);
         ApplyLineNumbering(source.LineNumbering, destination);
         ApplySectionVerticalAlignment(source.VerticalAlignment, destination);

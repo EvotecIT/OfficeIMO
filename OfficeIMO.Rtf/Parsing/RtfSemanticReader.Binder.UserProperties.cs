@@ -6,6 +6,7 @@ internal static partial class RtfSemanticReader {
     private sealed partial class Binder {
         private static IReadOnlyList<RtfUserProperty> ReadUserProperties(RtfGroup root, int ansiCodePage, int unicodeSkipCount) {
             RtfGroup? userPropertiesGroup = root.Children.OfType<RtfGroup>().FirstOrDefault(group => group.Destination == "userprops");
+            unicodeSkipCount = GetUnicodeSkipCountBefore(root, userPropertiesGroup);
             if (userPropertiesGroup == null) return Array.Empty<RtfUserProperty>();
 
             var properties = new List<RtfUserProperty>();

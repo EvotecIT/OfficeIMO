@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Section column definition used when an RTF section has unequal column widths or gaps.
 /// </summary>
-public sealed class RtfSectionColumn {
+public sealed partial class RtfSectionColumn {
     /// <summary>Creates an empty section column definition.</summary>
     public RtfSectionColumn() {
     }

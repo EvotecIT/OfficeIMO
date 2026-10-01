@@ -108,6 +108,24 @@ internal static partial class PdfWriter {
             if (currentPage == null) StartPage(currentOpts);
         }
 
+        private void PadSectionStart(PdfPageParity? parity) {
+            if (!parity.HasValue || pages.Count == 0) return;
+            bool nextPageIsEven = (pages.Count + 1) % 2 == 0;
+            if (nextPageIsEven == (parity == PdfPageParity.Even)) return;
+            PdfOptions previous = pages[pages.Count - 1].Options;
+            StartPage(new PdfOptions {
+                PageWidth = previous.PageWidth,
+                PageHeight = previous.PageHeight,
+                MarginLeft = previous.MarginLeft,
+                MarginRight = previous.MarginRight,
+                MarginTop = previous.MarginTop,
+                MarginBottom = previous.MarginBottom,
+                ShowHeader = false,
+                ShowPageNumbers = false
+            });
+            FlushPage(force: true);
+        }
+
         private bool HasCurrentPageNonContentObjects() =>
             currentPage != null &&
             (currentPage.Images.Count > 0 ||

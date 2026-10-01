@@ -6,6 +6,7 @@ internal static partial class RtfSemanticReader {
     private sealed partial class Binder {
         private static IReadOnlyList<RtfRevisionAuthor> ReadRevisionAuthors(RtfGroup root, int ansiCodePage, int unicodeSkipCount) {
             RtfGroup? revisionTable = root.Children.OfType<RtfGroup>().FirstOrDefault(group => group.Destination == "revtbl");
+            unicodeSkipCount = GetUnicodeSkipCountBefore(root, revisionTable);
             if (revisionTable == null) return Array.Empty<RtfRevisionAuthor>();
 
             var authors = new List<RtfRevisionAuthor>();

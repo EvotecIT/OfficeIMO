@@ -6,7 +6,7 @@
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Markdown;
 
-RtfDocument rtf = RtfDocument.Load("input.rtf").Document;
+RtfDocument rtf = RtfDocument.Load("input.rtf");
 var options = new RtfToMarkdownOptions {
     ImagePathFactory = (_, index) => $"media/image-{index + 1}.png",
     ImageExporter = (image, _, path) => {

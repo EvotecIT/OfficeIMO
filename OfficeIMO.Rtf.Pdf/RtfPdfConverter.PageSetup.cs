@@ -24,7 +24,8 @@ internal static partial class RtfPdfConverter {
             options.PageHeight = RtfPdfMapping.TwipsToPoints(setup.PaperHeightTwips.Value);
         }
 
-        if (setup.Landscape && options.PageWidth < options.PageHeight) {
+        if ((setup.DirectLandscape == true && options.PageWidth < options.PageHeight) ||
+            (setup.DirectLandscape == false && options.PageWidth > options.PageHeight)) {
             double width = options.PageWidth;
             options.PageWidth = options.PageHeight;
             options.PageHeight = width;
@@ -60,56 +61,31 @@ internal static partial class RtfPdfConverter {
         }
     }
 
-    private static void ApplyPageSetup(RtfDocument document, RtfPageSetup setup, PdfCore.PdfPageBuilder page, PdfCore.PdfOptions inheritedOptions) {
-        double width = setup.PaperWidthTwips.HasValue && setup.PaperWidthTwips.Value > 0
-            ? RtfPdfMapping.TwipsToPoints(setup.PaperWidthTwips.Value)
-            : inheritedOptions.PageWidth;
-        double height = setup.PaperHeightTwips.HasValue && setup.PaperHeightTwips.Value > 0
-            ? RtfPdfMapping.TwipsToPoints(setup.PaperHeightTwips.Value)
-            : inheritedOptions.PageHeight;
-
-        if (setup.Landscape && width < height) {
-            double swap = width;
-            width = height;
-            height = swap;
+    private static void ApplyPageSetup(RtfDocument document, RtfSection section, PdfCore.PdfPageBuilder page, PdfCore.PdfOptions inheritedOptions) {
+        RtfPageSetup setup = document.GetPageSetup(section);
+        PdfCore.PdfOptions options = page.Options;
+        options.PageWidth = inheritedOptions.PageWidth;
+        options.PageHeight = inheritedOptions.PageHeight;
+        options.MarginLeft = inheritedOptions.MarginLeft;
+        options.MarginRight = inheritedOptions.MarginRight;
+        options.MarginTop = inheritedOptions.MarginTop;
+        options.MarginBottom = inheritedOptions.MarginBottom;
+        options.PageBorder = inheritedOptions.PageBorder;
+        options.PageNumberStyle = inheritedOptions.PageNumberStyle;
+        ApplyPageSetup(document, setup, options);
+        options.ClearPageNumberStartOverride();
+        if (section.PageSetup.PageNumberRestart == true ||
+            (section.PageSetup.PageNumberStart.HasValue && section.PageSetup.PageNumberRestart != false)) {
+            options.PageNumberStart = section.PageSetup.PageNumberStart ?? document.PageSetup.PageNumberStart ?? 1;
         }
-
-        if ((setup.PaperWidthTwips.HasValue && setup.PaperWidthTwips.Value > 0) ||
-            (setup.PaperHeightTwips.HasValue && setup.PaperHeightTwips.Value > 0) ||
-            setup.Landscape) {
-            page.Size(width, height);
-        }
-
-        if (HasAnyMargin(setup)) {
-            page.Margin(
-                setup.MarginLeftTwips.HasValue ? RtfPdfMapping.TwipsToPoints(setup.MarginLeftTwips.Value) : inheritedOptions.MarginLeft,
-                setup.MarginTopTwips.HasValue ? RtfPdfMapping.TwipsToPoints(setup.MarginTopTwips.Value) : inheritedOptions.MarginTop,
-                setup.MarginRightTwips.HasValue ? RtfPdfMapping.TwipsToPoints(setup.MarginRightTwips.Value) : inheritedOptions.MarginRight,
-                setup.MarginBottomTwips.HasValue ? RtfPdfMapping.TwipsToPoints(setup.MarginBottomTwips.Value) : inheritedOptions.MarginBottom);
-        }
-
-        if (setup.PageNumberStart.HasValue) {
-            page.PageNumberStart(setup.PageNumberStart.Value);
-        }
-
-        if (setup.PageNumberFormat.HasValue) {
-            page.PageNumberStyle(RtfPdfMapping.ToPdfPageNumberStyle(setup.PageNumberFormat.Value));
-        }
-
-        PdfCore.PdfPageBorder? border = RtfPdfMapping.ToPdfPageBorder(document, setup.PageBorders);
-        if (border != null) {
-            page.PageBorder(border);
-        }
+        options.PageStartParity = section.BreakKind == RtfSectionBreakKind.EvenPage ? PdfCore.PdfPageParity.Even
+            : section.BreakKind == RtfSectionBreakKind.OddPage ? PdfCore.PdfPageParity.Odd
+            : document.Settings.FacingPages == true && options.HasExplicitPageNumberStart
+                ? options.PageNumberStart % 2 == 0 ? PdfCore.PdfPageParity.Even : PdfCore.PdfPageParity.Odd
+                : null;
     }
 
-    private static bool HasAnyMargin(RtfPageSetup setup) {
-        return setup.MarginLeftTwips.HasValue ||
-               setup.MarginRightTwips.HasValue ||
-               setup.MarginTopTwips.HasValue ||
-               setup.MarginBottomTwips.HasValue;
-    }
-
-    private static void ApplyHeaderFooters(RtfDocument document, PdfCore.PdfOptions options, RtfToPdfOptions saveOptions) {
+    private static void ApplyHeaderFooters(RtfDocument document, RtfPageSetup setup, PdfCore.PdfOptions options, RtfToPdfOptions saveOptions, IReadOnlyList<RtfHeaderFooter> declarations) {
         if (document.HeaderFooters.Count == 0) {
             return;
         }
@@ -126,58 +102,74 @@ internal static partial class RtfPdfConverter {
             return;
         }
 
-        string? defaultHeader = GetHeaderFooterText(document, RtfHeaderFooterKind.RightHeader)
-            ?? GetHeaderFooterText(document, RtfHeaderFooterKind.Header);
-        if (defaultHeader != null && defaultHeader.Length > 0) {
-            options.ShowHeader = true;
+        if (declarations.Count == 0) return;
+
+        string? defaultHeader = GetHeaderFooterText(declarations, RtfHeaderFooterKind.RightHeader)
+            ?? GetHeaderFooterText(declarations, RtfHeaderFooterKind.Header);
+        if (defaultHeader != null) {
+            options.ShowHeader = defaultHeader.Length > 0;
             options.HeaderFormat = defaultHeader;
         }
 
-        string? defaultFooter = GetHeaderFooterText(document, RtfHeaderFooterKind.RightFooter)
-            ?? GetHeaderFooterText(document, RtfHeaderFooterKind.Footer);
-        if (defaultFooter != null && defaultFooter.Length > 0) {
-            options.ShowPageNumbers = true;
+        string? defaultFooter = GetHeaderFooterText(declarations, RtfHeaderFooterKind.RightFooter)
+            ?? GetHeaderFooterText(declarations, RtfHeaderFooterKind.Footer);
+        if (defaultFooter != null) {
+            options.ShowPageNumbers = defaultFooter.Length > 0;
             options.FooterFormat = defaultFooter;
         }
 
-        string? firstHeader = GetHeaderFooterText(document, RtfHeaderFooterKind.FirstHeader);
-        string? firstFooter = GetHeaderFooterText(document, RtfHeaderFooterKind.FirstFooter);
-        if ((firstHeader != null && firstHeader.Length > 0) ||
-            (firstFooter != null && firstFooter.Length > 0) ||
-            document.PageSetup.DifferentFirstPageHeaderFooter) {
-            options.DifferentFirstPageHeaderFooter = true;
-            if (firstHeader != null && firstHeader.Length > 0) {
-                options.FirstPageHeaderFormat = firstHeader;
-            }
+        string? firstHeader = GetHeaderFooterText(declarations, RtfHeaderFooterKind.FirstHeader);
+        string? firstFooter = GetHeaderFooterText(declarations, RtfHeaderFooterKind.FirstFooter);
+        options.DifferentFirstPageHeaderFooter = setup.DifferentFirstPageHeaderFooter;
+        options.FirstPageHeaderFormat = firstHeader ?? string.Empty;
+        options.FirstPageFooterFormat = firstFooter ?? string.Empty;
 
-            if (firstFooter != null && firstFooter.Length > 0) {
-                options.FirstPageFooterFormat = firstFooter;
-            }
-        }
-
-        string? evenHeader = GetHeaderFooterText(document, RtfHeaderFooterKind.LeftHeader);
-        string? evenFooter = GetHeaderFooterText(document, RtfHeaderFooterKind.LeftFooter);
-        if ((evenHeader != null && evenHeader.Length > 0) ||
-            (evenFooter != null && evenFooter.Length > 0)) {
-            options.DifferentOddAndEvenPagesHeaderFooter = true;
-            if (evenHeader != null && evenHeader.Length > 0) {
-                options.EvenPageHeaderFormat = evenHeader;
-            }
-
-            if (evenFooter != null && evenFooter.Length > 0) {
-                options.EvenPageFooterFormat = evenFooter;
-            }
-        }
+        string? evenHeader = GetHeaderFooterText(declarations, RtfHeaderFooterKind.LeftHeader);
+        string? evenFooter = GetHeaderFooterText(declarations, RtfHeaderFooterKind.LeftFooter);
+        options.DifferentOddAndEvenPagesHeaderFooter = document.Settings.FacingPages == true;
+        options.UsePageNumberParityForHeaderFooter = true;
+        options.EvenPageHeaderFormat = evenHeader ?? string.Empty;
+        options.EvenPageFooterFormat = evenFooter ?? string.Empty;
     }
 
-    private static string? GetHeaderFooterText(RtfDocument document, RtfHeaderFooterKind kind) {
-        RtfHeaderFooter? headerFooter = document.HeaderFooters.FirstOrDefault(item => item.Kind == kind);
+    private static string? GetHeaderFooterText(IReadOnlyList<RtfHeaderFooter> declarations, RtfHeaderFooterKind kind) {
+        RtfHeaderFooter? headerFooter = declarations.LastOrDefault(item => item.Kind == kind);
         if (headerFooter == null) {
             return null;
         }
 
         string text = NormalizeHeaderFooterText(headerFooter.ToPlainText());
-        return text.Length == 0 ? null : text;
+        return text;
+    }
+
+    private static void ApplySectionHeaderFooters(RtfDocument document, RtfSection section, PdfCore.PdfPageBuilder page, RtfToPdfOptions options) {
+        if (!options.IncludeHeaderFooters) return;
+        IReadOnlyList<RtfHeaderFooter> declarations = document.GetEffectiveHeaderFooters(section);
+        if (declarations.Count == 0) return;
+        string? header = GetHeaderFooterText(declarations, RtfHeaderFooterKind.RightHeader) ?? GetHeaderFooterText(declarations, RtfHeaderFooterKind.Header);
+        string? footer = GetHeaderFooterText(declarations, RtfHeaderFooterKind.RightFooter) ?? GetHeaderFooterText(declarations, RtfHeaderFooterKind.Footer);
+        string? firstHeader = GetHeaderFooterText(declarations, RtfHeaderFooterKind.FirstHeader);
+        string? firstFooter = GetHeaderFooterText(declarations, RtfHeaderFooterKind.FirstFooter);
+        string? evenHeader = GetHeaderFooterText(declarations, RtfHeaderFooterKind.LeftHeader);
+        string? evenFooter = GetHeaderFooterText(declarations, RtfHeaderFooterKind.LeftFooter);
+        page.Header(builder => {
+            if (header != null) builder.Text(header);
+            if (firstHeader != null) builder.FirstPageText(firstHeader);
+            if (evenHeader != null) builder.EvenPagesText(evenHeader);
+        });
+        page.Footer(builder => {
+            if (footer != null) builder.Text(footer);
+            if (firstFooter != null) builder.FirstPageText(firstFooter);
+            if (evenFooter != null) builder.EvenPagesText(evenFooter);
+        });
+        PdfCore.PdfOptions settings = page.Options;
+        settings.DifferentFirstPageHeaderFooter = document.GetPageSetup(section).DifferentFirstPageHeaderFooter;
+        settings.DifferentOddAndEvenPagesHeaderFooter = document.Settings.FacingPages == true;
+        settings.UsePageNumberParityForHeaderFooter = true;
+        settings.FirstPageHeaderFormat = firstHeader ?? string.Empty;
+        settings.FirstPageFooterFormat = firstFooter ?? string.Empty;
+        settings.EvenPageHeaderFormat = evenHeader ?? string.Empty;
+        settings.EvenPageFooterFormat = evenFooter ?? string.Empty;
     }
 
     private static string NormalizeHeaderFooterText(string text) {

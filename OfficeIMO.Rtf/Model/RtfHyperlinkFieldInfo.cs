@@ -4,7 +4,7 @@ namespace OfficeIMO.Rtf;
 /// Parsed semantic metadata for an RTF <c>HYPERLINK</c> field instruction.
 /// The original <see cref="RtfField.Instruction"/> remains the authoritative field code.
 /// </summary>
-public sealed class RtfHyperlinkFieldInfo {
+public sealed partial class RtfHyperlinkFieldInfo {
     /// <summary>Target URI from the first non-switch argument.</summary>
     public Uri? Target { get; set; }
 

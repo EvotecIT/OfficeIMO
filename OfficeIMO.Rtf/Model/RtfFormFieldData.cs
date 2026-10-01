@@ -3,9 +3,9 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Word form-field metadata stored in an RTF <c>\ffdata</c> destination.
 /// </summary>
-public sealed class RtfFormFieldData {
-    private readonly List<RtfFormFieldDataControl> _controls = new List<RtfFormFieldDataControl>();
-    private readonly List<string> _dropDownItems = new List<string>();
+public sealed partial class RtfFormFieldData {
+    private List<RtfFormFieldDataControl> _controls = new List<RtfFormFieldDataControl>();
+    private List<string> _dropDownItems = new List<string>();
 
     /// <summary>Raw controls in source or creation order.</summary>
     public IReadOnlyList<RtfFormFieldDataControl> Controls => _controls.AsReadOnly();

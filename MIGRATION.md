@@ -9,6 +9,16 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## RTF HTML round-trip output
+
+Semantic RTF writing defaults to `RtfWriteOptions.MaterializeStyleFormatting = true`. Supported effective style values are written as body controls for native Word appearance. Reopening the output treats those values as direct formatting. Set this option to `false` when retaining editable style inheritance is the priority. `ToRtfResult()` reports `RtfNormalizationFormattingInheritanceMaterialized` when it materializes values; strict callers must explicitly accept that loss or select inheritance-preserving output.
+
+`RtfToHtmlOptions.CreateRoundTripProfile()` emits a complete HTML document so font and color tables, styles, numbering, and document-level settings survive an editable round trip. Consumers that require HTML fragments should set `FragmentOnly = true` explicitly. Fragment output retains inline metadata but omits metadata stored in the document head.
+
+`AppendDocument` retains imported style and list bindings. Applications that also need source page setup and header/footer stories can use `RtfDocumentMergeOptions.PreserveSections`. Page setup exposes nullable `DirectLandscape`, `DirectDifferentFirstPageHeaderFooter`, and `DirectRtlGutter` values: use `null` to inherit the document setting and `false` to select an explicit reset.
+
+RTF append reports differences in document-wide settings even with `PreserveSections`, and reports discarded root page setup and alternate HTML. Empty destinations adopt unset source settings. When content is combined, aggregate page, word, and character counts are cleared and reported; recalculate them in the consuming application. Strict callers must inspect these merge diagnostics before accepting the result.
+
 ## Invoice financial edits and standalone payment data
 
 `InvoiceCalculator.UpdateDeclaredAmounts` invalidates an accounting-currency VAT

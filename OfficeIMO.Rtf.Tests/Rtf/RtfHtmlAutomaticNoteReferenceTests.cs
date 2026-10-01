@@ -44,7 +44,7 @@ public class RtfHtmlAutomaticNoteReferenceTests {
         Assert.Equal("Endnote text", reference.Note.ToPlainText());
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        Assert.Contains(@"\chftn {\endnote", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\chftn {\footnote\ftnalt", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\b text\b0", rtf, StringComparison.Ordinal);
     }
 }

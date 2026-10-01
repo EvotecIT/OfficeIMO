@@ -12,10 +12,13 @@ internal static partial class RtfSemanticReader {
                     .ToArray();
                 if (valueGroups.Length < 2) continue;
 
-                string name = CollectPlainText(valueGroups[0], ansiCodePage, unicodeSkipCount).Trim();
+                int scopedCount = GetUnicodeSkipCountBefore(root, documentVariableGroup);
+                string name = CollectPlainText(valueGroups[0], ansiCodePage,
+                    GetUnicodeSkipCountBefore(documentVariableGroup, valueGroups[0], scopedCount)).Trim();
                 if (string.IsNullOrEmpty(name)) continue;
 
-                string value = CollectPlainText(valueGroups[1], ansiCodePage, unicodeSkipCount).Trim();
+                string value = CollectPlainText(valueGroups[1], ansiCodePage,
+                    GetUnicodeSkipCountBefore(documentVariableGroup, valueGroups[1], scopedCount)).Trim();
                 variables.Add(new RtfDocumentVariable(name, value));
             }
 

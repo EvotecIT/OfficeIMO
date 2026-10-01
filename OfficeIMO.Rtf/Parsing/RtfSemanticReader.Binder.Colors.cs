@@ -10,15 +10,21 @@ internal static partial class RtfSemanticReader {
 
             var colors = new List<RtfColor>();
             var entry = new ColorTableEntry();
+            bool first = true;
             foreach (RtfNode node in table.Children) {
                 if (node is RtfControlWord control) {
                     ApplyColorTableControl(control, entry);
-                } else if (node is RtfText text && text.Text.Contains(";")) {
-                    if (entry.HasAnyValue) {
-                        colors.Add(entry.ToColor());
+                } else if (node is RtfText text) {
+                    foreach (char character in text.Text) {
+                        if (character != ';') continue;
+                        if (!first || entry.HasAnyValue) {
+                            RtfColor color = entry.ToColor();
+                            color.IsAutomatic = !entry.HasAnyValue;
+                            colors.Add(color);
+                        }
+                        first = false;
+                        entry = new ColorTableEntry();
                     }
-
-                    entry = new ColorTableEntry();
                 }
             }
 

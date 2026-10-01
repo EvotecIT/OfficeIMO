@@ -3,8 +3,8 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// RTF table block composed of rows and cells.
 /// </summary>
-public sealed class RtfTable : IRtfBlock {
-    private readonly List<RtfTableRow> _rows = new List<RtfTableRow>();
+public sealed partial class RtfTable : IRtfBlock {
+    private List<RtfTableRow> _rows = new List<RtfTableRow>();
 
     /// <summary>Table rows.</summary>
     public IReadOnlyList<RtfTableRow> Rows => _rows.AsReadOnly();
