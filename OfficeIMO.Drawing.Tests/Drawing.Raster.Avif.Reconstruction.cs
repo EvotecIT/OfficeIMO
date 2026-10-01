@@ -71,10 +71,8 @@ public sealed class DrawingAv1ReconstructionTests {
         frame.Tiles=Array.Empty<OfficeAv1Tile>();Assert.Throws<FormatException>(()=>OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,new OfficeRasterDecodeOptions(),stage));
     }
     [Fact]
-    public void TenBitPlanesCannotEnterEightBitCompositionOrInconsistentReconstruction() {
+    public void ReconstructionRejectsInconsistentFrameAndSequenceDepth() {
         var (bytes,sequence,frame)=Read("avif-main10-420-full",false);var options=new OfficeRasterDecodeOptions();
-        var result=OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,options);
-        Assert.Throws<FormatException>(()=>OfficeAvifColorConverter.Compose(result,sequence.Color,null,options));
         frame.BitDepth=8;
         Assert.Throws<FormatException>(()=>OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,options));
     }

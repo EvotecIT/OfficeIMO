@@ -83,7 +83,7 @@ internal sealed partial class OfficeAvifContainerReader {
             if (reference.To != _primaryId) continue;
             Require(reference.From != _primaryId && alpha == null);
             alpha = ResolveItem(reference.From, alpha: true);
-            Require(alpha.Width == color.Width && alpha.Height == color.Height);
+            Require(alpha.Width == color.Width && alpha.Height == color.Height && alpha.BitDepth == color.BitDepth);
         }
         return new OfficeAvifContainer(color, alpha);
     }

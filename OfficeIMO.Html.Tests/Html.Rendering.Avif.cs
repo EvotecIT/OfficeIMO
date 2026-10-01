@@ -20,9 +20,17 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("avif-monochrome-limited", "image/avif")]
     [InlineData("avif-monochrome-full-alpha", "image/avif")]
     [InlineData("avif-monochrome-limited-alpha", "image/avif")]
+    [InlineData("avif-main10-420-full", "image/avif")]
+    [InlineData("avif-main10-420-limited", "image/avif")]
+    [InlineData("avif-main10-420-full-alpha", "image/avif")]
+    [InlineData("avif-main10-420-limited-alpha", "image/avif")]
+    [InlineData("avif-main10-mono-full", "image/avif")]
+    [InlineData("avif-main10-mono-limited", "image/avif")]
+    [InlineData("avif-main10-mono-full-alpha", "image/avif")]
+    [InlineData("avif-main10-mono-limited-alpha", "image/avif")]
     public void HtmlRender_AvifPreservesIndependentPixelsInScreenAndPdf(string name, string? pictureType) {
         string root = Path.Combine(AppContext.BaseDirectory, "Documents", "Html", "Qualification",
-            name.StartsWith("avif-monochrome-", StringComparison.Ordinal) ? "AvifMonochrome" : "StaticPdfGaps");
+            name.StartsWith("avif-main10-", StringComparison.Ordinal) ? "AvifMain10" : name.StartsWith("avif-monochrome-", StringComparison.Ordinal) ? "AvifMonochrome" : "StaticPdfGaps");
         byte[] bytes = File.ReadAllBytes(Path.Combine(root, name + ".avif"));
         byte[] reference = File.ReadAllBytes(Path.Combine(root, name + ".rgba"));
         string source = "data:image/avif;base64," + Convert.ToBase64String(bytes);
@@ -42,13 +50,13 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(49, visual.Width);
         Assert.Equal(33, visual.Height);
         Assert.True(OfficeRasterImageDecoder.TryDecode(visual.Bytes, out var raster));
-        AssertAvifPixels(reference, raster!);
+        AssertAvifPixels(reference, raster!,name.StartsWith("avif-main10-",StringComparison.Ordinal)?1:3);
         var result = document.RenderToPdfResult(HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged,
             HtmlRenderEncoder.Pdf, new HtmlToPdfOptions(options)));
         Assert.Empty(result.Output.Warnings);
         var embedded = Assert.Single(OfficeIMO.Pdf.PdfImageExtractor.ExtractImages(result.ToBytes()));
         Assert.True(OfficeRasterImageDecoder.TryDecode(embedded.Bytes, out var extracted));
-        AssertAvifPixels(reference, extracted!);
+        AssertAvifPixels(reference, extracted!,name.StartsWith("avif-main10-",StringComparison.Ordinal)?1:3);
     }
 
     [Theory]
@@ -92,11 +100,11 @@ public sealed partial class HtmlRenderingTests {
         if (avifSelected) AssertAvifPixels(File.ReadAllBytes(Path.Combine(root, "avif-alpha.rgba")), decoded!);
     }
 
-    private static void AssertAvifPixels(byte[] reference, OfficeRasterImage image) {
+    private static void AssertAvifPixels(byte[] reference, OfficeRasterImage image,int rgbTolerance=3) {
         Assert.Equal(49, image.Width); Assert.Equal(33, image.Height);
         Assert.Equal(reference.Length, image.PixelBuffer.Length);
         for (int i = 0; i < reference.Length; i++)
-            Assert.InRange(Math.Abs(reference[i] - image.PixelBuffer[i]), 0, i % 4 == 3 ? 0 : 3);
+            Assert.InRange(Math.Abs(reference[i] - image.PixelBuffer[i]), 0, i % 4 == 3 ? 0 : rgbTolerance);
     }
 
     [Theory]

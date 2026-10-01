@@ -13,6 +13,14 @@ public sealed class DrawingAvifPublicDecodeTests {
     [InlineData("avif-monochrome-limited")]
     [InlineData("avif-monochrome-full-alpha")]
     [InlineData("avif-monochrome-limited-alpha")]
+    [InlineData("avif-main10-420-full")]
+    [InlineData("avif-main10-420-limited")]
+    [InlineData("avif-main10-420-full-alpha")]
+    [InlineData("avif-main10-420-limited-alpha")]
+    [InlineData("avif-main10-mono-full")]
+    [InlineData("avif-main10-mono-limited")]
+    [InlineData("avif-main10-mono-full-alpha")]
+    [InlineData("avif-main10-mono-limited-alpha")]
     public void DefaultByteAndStreamDecodePreservesIndependentPixelsAndSelection(string name) {
         byte[] bytes=File.ReadAllBytes(Asset(name+".avif")),saved=(byte[])bytes.Clone(),expected=File.ReadAllBytes(Asset(name+".rgba"));
         var codec=new RejectingCodec();var options=new OfficeRasterDecodeOptions {ImageCodec=codec};
@@ -25,7 +33,7 @@ public sealed class DrawingAvifPublicDecodeTests {
         Assert.True(OfficeImageReader.TryValidateContent(bytes,name+".avif",out var metadata));Assert.Equal(49,metadata.Width);Assert.Equal(33,metadata.Height);
         Assert.True(OfficeRasterContainerInspector.TryInspect(bytes,out var inspected));Assert.Equal(1,inspected!.Count);
         Assert.Equal(expected.Length,image!.PixelBuffer.Length);
-        int rgbTolerance = name.StartsWith("avif-monochrome-", StringComparison.Ordinal) ? 1 : 3;
+        int rgbTolerance = name.StartsWith("avif-monochrome-", StringComparison.Ordinal) || name.StartsWith("avif-main10-", StringComparison.Ordinal) ? 1 : 3;
         for(int i=0;i<expected.Length;i++)Assert.InRange(Math.Abs(expected[i]-image.PixelBuffer[i]),0,i%4==3?0:rgbTolerance);
         using var stream=new MemoryStream(bytes);Assert.True(OfficeRasterImageDecoder.TryDecode(stream,options,out var streamImage,out _));
         Assert.Equal(0,stream.Position);Assert.Equal(image.PixelBuffer,streamImage!.PixelBuffer);
@@ -37,6 +45,8 @@ public sealed class DrawingAvifPublicDecodeTests {
     [Theory]
     [InlineData("avif-alpha")]
     [InlineData("avif-monochrome-limited-alpha")]
+    [InlineData("avif-main10-420-full-alpha")]
+    [InlineData("avif-main10-mono-limited-alpha")]
     public void PixelEncodedRetainedAndCanceledRequestsCannotReachTheCallerCodec(string name) {
         byte[] bytes=File.ReadAllBytes(Asset(name + ".avif"));var codec=new RejectingCodec();
         foreach(var options in new[] {
@@ -51,9 +61,12 @@ public sealed class DrawingAvifPublicDecodeTests {
             CancellationToken=cancellation.Token,ImageCodec=codec},out _,out _));Assert.Equal(0,codec.Calls);
     }
 
-    [Fact]
-    public void MalformedAlphaPayloadCannotPublishColorOnlyAndInspectedUnsupportedColorMayUseTheTrustedCodec() {
-        byte[] original=File.ReadAllBytes(Asset("avif-alpha.avif")),broken=(byte[])original.Clone();
+    [Theory]
+    [InlineData("avif-alpha")]
+    [InlineData("avif-main10-420-full-alpha")]
+    [InlineData("avif-main10-mono-limited-alpha")]
+    public void MalformedAlphaPayloadCannotPublishColorOnlyAndInspectedUnsupportedColorMayUseTheTrustedCodec(string name) {
+        byte[] original=File.ReadAllBytes(Asset(name+".avif")),broken=(byte[])original.Clone();
         Assert.True(OfficeAvifContainerReader.TryRead(original,new OfficeRasterDecodeOptions(),out var container));
         broken[container!.Alpha!.Offset]=0x80; // forbidden OBU bit in the selected alpha item
         Assert.False(OfficeRasterImageDecoder.TryDecode(broken,out var image));Assert.Null(image);
@@ -65,7 +78,7 @@ public sealed class DrawingAvifPublicDecodeTests {
         var accepting = new AcceptingCodec();
         Assert.True(OfficeRasterImageDecoder.TryDecode(unsupported, new OfficeRasterDecodeOptions { ImageCodec = accepting }, out image, out _));
         Assert.Equal(1, accepting.Calls); Assert.Equal(49, image!.Width); Assert.Equal(33, image.Height);
-        Assert.Equal(original,File.ReadAllBytes(Asset("avif-alpha.avif")));
+        Assert.Equal(original,File.ReadAllBytes(Asset(name+".avif")));
     }
 
     [Fact]

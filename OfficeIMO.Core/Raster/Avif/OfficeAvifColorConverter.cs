@@ -2,14 +2,14 @@ using System;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>Composes bounded Main-8 YUV420 or monochrome planes into owned straight-alpha RGBA.</summary>
+/// <summary>Composes bounded Main-8/Main10 YUV420 or monochrome planes into owned straight-alpha RGBA.</summary>
 /// <remarks>Converts channel values using CICP range/matrix metadata. ICC, transfer and gamut transforms are not applied.</remarks>
 internal static class OfficeAvifColorConverter {
     internal static OfficeRasterImage Compose(OfficeAv1ReconstructedFrame frame, OfficeAvifColorDescription color,
         OfficeAv1ReconstructedFrame? alpha, OfficeRasterDecodeOptions options) {
         options.Validate(); options.CancellationToken.ThrowIfCancellationRequested();
-        if(frame.BitDepth!=8 || (alpha!=null && alpha.BitDepth!=8))
-            throw new FormatException("AVIF high-bit-depth composition is not qualified.");
+        if((frame.BitDepth!=8 && frame.BitDepth!=10) || (alpha!=null && alpha.BitDepth!=frame.BitDepth))
+            throw new FormatException("Invalid or inconsistent AVIF composition bit depth.");
         if (!OfficeRasterGuards.TryEnsurePixelCount(frame.Width, frame.Height, options.MaximumDecodedPixels, out int pixels) ||
             (frame.PlaneCount != 1 && frame.PlaneCount != 3) ||
             (alpha != null && (alpha.Width != frame.Width || alpha.Height != frame.Height || alpha.PlaneCount != 1)) ||
@@ -27,22 +27,23 @@ internal static class OfficeAvifColorConverter {
             case 9: kr = .2627; kb = .0593; break;
             default: throw new NotSupportedException("Unsupported AVIF color matrix.");
         }
-        double kg = 1 - kr - kb, yRange = color.FullRange ? 255 : 219, uvRange = color.FullRange ? 255 : 224;
-        int biasY = color.FullRange ? 0 : 16;
+        int maximumSample=(1<<frame.BitDepth)-1,rangeScale=1<<(frame.BitDepth-8),biasUV=1<<(frame.BitDepth-1);
+        double kg = 1 - kr - kb, yRange = color.FullRange ? maximumSample : 219*rangeScale, uvRange = color.FullRange ? maximumSample : 224*rangeScale;
+        int biasY = color.FullRange ? 0 : 16*rangeScale;
         byte[] rgba = new byte[checked(pixels * 4)];
         for (int y = 0; y < frame.Height; y++) {
             options.CancellationToken.ThrowIfCancellationRequested();
             for (int x = 0; x < frame.Width; x++) {
                 double luma = (frame.Value(0, x, y) - biasY) / yRange, cb = 0, cr = 0;
                 if (frame.PlaneCount == 3) {
-                    cb = (Chroma(frame, 1, x, y) - 128) / uvRange;
-                    cr = (Chroma(frame, 2, x, y) - 128) / uvRange;
+                    cb = (Chroma(frame, 1, x, y) - biasUV) / uvRange;
+                    cr = (Chroma(frame, 2, x, y) - biasUV) / uvRange;
                 }
                 int index = (y * frame.Width + x) * 4;
                 rgba[index] = Channel(luma + 2 * (1 - kr) * cr);
                 rgba[index + 1] = Channel(luma - 2 * (kr * (1 - kr) * cr + kb * (1 - kb) * cb) / kg);
                 rgba[index + 2] = Channel(luma + 2 * (1 - kb) * cb);
-                rgba[index + 3] = alpha == null ? (byte)255 : (byte)alpha.Value(0, x, y);
+                rgba[index + 3] = alpha == null ? (byte)255 : (byte)((alpha.Value(0,x,y)*255+maximumSample/2)/maximumSample);
             }
         }
         options.CancellationToken.ThrowIfCancellationRequested();

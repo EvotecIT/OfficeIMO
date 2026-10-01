@@ -3,7 +3,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
-/// <summary>Independent Main10 still items establish the bit-depth boundary before widened reconstruction.</summary>
+/// <summary>Independent Main10 still items protect container selection, depth agreement and public decoding.</summary>
 public sealed class DrawingAvifMain10HeaderTests {
     [Theory]
     [InlineData("avif-main10-420-full", false, true, false)]
@@ -41,11 +41,23 @@ public sealed class DrawingAvifMain10HeaderTests {
         }
         Assert.True(OfficeImageReader.TryIdentifyByContent(bytes, name + ".avif", out var metadata));
         Assert.Equal(49, metadata.Width); Assert.Equal(33, metadata.Height);
-        Assert.False(OfficeImageReader.TryValidateContent(bytes, name + ".avif", out _));
+        Assert.True(OfficeImageReader.TryValidateContent(bytes, name + ".avif", out _));
         Assert.Equal(10, OfficeAv1FrameReconstructor.Decode(bytes, sequence, frame, options, OfficeAv1ReconstructionStage.Restored).BitDepth);
         var codec = new AcceptingCodec();
-        Assert.False(OfficeRasterImageDecoder.TryDecode(bytes, new OfficeRasterDecodeOptions { ImageCodec = codec }, out var image, out _));
-        Assert.Null(image); Assert.Equal(0, codec.Calls);
+        Assert.True(OfficeRasterImageDecoder.TryDecode(bytes, new OfficeRasterDecodeOptions { ImageCodec = codec }, out var image, out _));
+        Assert.NotNull(image); Assert.Equal(0, codec.Calls);
+    }
+
+    [Fact]
+    public void AuxiliaryDepthMustMatchItsPrimaryBeforePayloadDecode() {
+        byte[] bytes=File.ReadAllBytes(Asset("avif-main10-420-full-alpha"));
+        int config=Find(bytes,"av1C",1)+4,pixi=Find(bytes,"pixi",1)+8;
+        bytes[config+2]&=0xbf;
+        Assert.Equal(1,bytes[pixi]);bytes[pixi+1]=8;
+        var codec=new AcceptingCodec();
+        Assert.False(OfficeAvifContainerReader.TryRead(bytes,new OfficeRasterDecodeOptions(),out _));
+        Assert.False(OfficeRasterImageDecoder.TryDecode(bytes,new OfficeRasterDecodeOptions {ImageCodec=codec},out var image,out _));
+        Assert.Null(image);Assert.Equal(0,codec.Calls);
     }
 
     [Theory]
@@ -83,10 +95,10 @@ public sealed class DrawingAvifMain10HeaderTests {
         Assert.Equal(fullRange, OfficeAv1StillSequenceReader.TryRead(bytes, auxiliary, options, out _));
     }
 
-    private static int Find(byte[] bytes, string text) {
+    private static int Find(byte[] bytes, string text, int occurrence=0) {
         byte[] marker = Encoding.ASCII.GetBytes(text);
         for (int i = 0; i <= bytes.Length - marker.Length; i++)
-            if (bytes.Skip(i).Take(marker.Length).SequenceEqual(marker)) return i;
+            if (bytes.Skip(i).Take(marker.Length).SequenceEqual(marker) && occurrence--==0) return i;
         throw new InvalidOperationException("Missing native fixture property.");
     }
 
