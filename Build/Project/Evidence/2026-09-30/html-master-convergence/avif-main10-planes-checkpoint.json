@@ -1,0 +1,729 @@
+{
+  "sourceCommit": "63751b8168b43d346dbaa6f0f6f656c9fbeba0e7",
+  "baseCommit": "0bbdc75f56429713fae0bfa2b8c93ed47d1eed6c",
+  "recordedAt": "2026-10-01T11:50:37.768940+00:00",
+  "scope": "Shared owned ushort sample planes for Main8/Main10 unfiltered AV1 reconstruction. Existing Main8 filters/composition migrate their sample storage and accounting; Main10 filtered/public output stays disabled.",
+  "frozenManifestSha256": "8a050e28e6905159c0c0b97e976de21d4c93d1b8844f1c6600cd3e0af9189522",
+  "sourceSha256": {
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1Cdef.cs": "ac7e635ce4ffdd248e28d6d777e7b2e75c451d39aefe68cc1f3a9ad60cd77716",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1CdefFilter.cs": "5130ec13433a09113d3b41fc081dfb7cf17434dba65452dad3efae185b1711e5",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1DeblockFilter.cs": "aa72d2b2b0a175614a60c1982fd26609aefd5227d96ee582b93fa6350724e33e",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1Deblocker.cs": "89971df776d087cd30d13618f7a1d18fd2041750122933132d287b2a8ce11d4b",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1FrameReconstructor.Edges.cs": "3cd261f0b2d0633cf72aae021b52d7d3eb8c1531221741856edfb396b17f7ac3",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1FrameReconstructor.cs": "a6d180cdd67d6050e59975ccad2a6550c8d900e69eee98b45b6631f7cf5d01f8",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1RestorationFilter.cs": "a5cc3c44b7ac4589cf3a8e26f880c88638be27d7b5baa49c06c7684ff1db61d6",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1Restorer.cs": "98bef91eb914539669928a66925fe2a6b81f5bcc6726f20cbae0d2ed2d638142",
+    "OfficeIMO.Core/Raster/Avif/OfficeAv1Upscaler.cs": "74a8ad625bc7aef8b36bc9e2f53e02b380a033fdd228f8449c3729ac383b8e1e",
+    "OfficeIMO.Core/Raster/Avif/OfficeAvifColorConverter.cs": "6b70951c8f3fde4df0574effbca0ea3dfb0f6d7914119065dd52ab07aa110c02",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Cdef.cs": "ceefd8e777c865999cd888b81f9da6c02e56d205d0c800930a2084457ffed119",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Color.cs": "86e74dafcc30f84483e654f12fa8efc92e998367f271872270d835fd956c2e4d",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Deblocking.cs": "7518c0d63757a324646443feaf150bbc5a2d0b8db0375370d68dbb64bfbaa338",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Main10Headers.cs": "541aee120d9cb239cd5053dc89be39f2632364e776e73cf3948a6e1a2cc7ff62",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Reconstruction.cs": "e0c72235c196f18e72dba85bfbbe89eafcd730c1e4ca39be777de174f5c4e2e1",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.RestoredFrames.cs": "0f6bd8ab04816e281d7209eed1fbb30f0bcd92d1b5951caa932a2a3740fc667e",
+    "OfficeIMO.Drawing.Tests/Drawing.Raster.Avif.Superresolution.cs": "647d47391d1fc9a11312e4489adc004b61f6e46440a3eee87e25b882a0407d80",
+    "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj": "f21bc5d7e914904df7c2c2e3eee2b87edef2105d0088a33955d2d23c0cb5f2be",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/EncodeReconstructionControls.c": "fce74d753dfe80942a8e3352cbf188de4e52db2d88986baa3a6d8cd91031f881",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/GenerateReconstructionFixtures.py": "522a3b23432d448a1766b22817e6f8db20588a00a83bd6761161693880a3a048",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/OfficeReconstructionProbe.inc": "627cbe6c376a8bf1e50f6d01b58aa2b77c56dbf7d48373865e8495dc8da9d839",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/ReadTileTrace.c": "66ada681357e0f5f41489084fa312694b63f5cac5d91d939e5eeab732a78a976",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/reconstruction-main10-inputs.json": "897fab6fb38341b072a15927f4508abef0b35db17fe9772be75f6e09538e1a26",
+    "OfficeIMO.Drawing.Tests/TestAssets/Avif/reconstruction-main10-reference.json.gz": "b65d18958c296fda22ac1eea1591968f6bac80a7038abc67ccfc64950e33362b"
+  },
+  "nativeReference": {
+    "tag": "v3.13.1",
+    "observation": "Actual decoder after all tiles, before frame filters. Only three access/observation insertions in a copied decodeframe.c; reusable native source and build remain untouched. Little-endian 16-bit native sample capture.",
+    "decoderThreads": 1,
+    "retainedBuildFeatures": "CONFIG_MULTITHREAD and CONFIG_RUNTIME_CPU_DETECT enabled; driver explicitly requests one decoding thread.",
+    "main10Receipt": {
+      "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+      "decodeframeSourceSha256": "653fe4bc6556f48064e20058057f231902bd9740c66a8930c33a059f4273ac51",
+      "bitDepth": 10,
+      "configurationSha256": "07ae8cc6a92f6511dca2df565c465907b109cdfbfbe972ad24b63f53a61010a7",
+      "librarySha256": "32b49355ef8cc2da27770601d2ad91437513dc171725c944527af7483fa31907",
+      "assetsSha256": {
+        "GenerateReconstructionFixtures.py": "522a3b23432d448a1766b22817e6f8db20588a00a83bd6761161693880a3a048",
+        "GenerateTileFixtures.py": "677e62d6c05da46bd0f5f9f9556d4548864f488df317b6b79ca0cfccc8b0f5ce",
+        "TraceReconstruction.patch": "0c79e5fed5001b187e61a63104d64ab125a516a6610afb4dacdf6d851d07dec1",
+        "OfficeReconstructionProbe.inc": "627cbe6c376a8bf1e50f6d01b58aa2b77c56dbf7d48373865e8495dc8da9d839",
+        "ReadTileTrace.c": "66ada681357e0f5f41489084fa312694b63f5cac5d91d939e5eeab732a78a976",
+        "EncodeReconstructionControls.c": "fce74d753dfe80942a8e3352cbf188de4e52db2d88986baa3a6d8cd91031f881",
+        "reconstruction-main10-inputs.json": "897fab6fb38341b072a15927f4508abef0b35db17fe9772be75f6e09538e1a26"
+      },
+      "fixtureSha256": "b65d18958c296fda22ac1eea1591968f6bac80a7038abc67ccfc64950e33362b",
+      "canonicalJsonSha256": "85539ac458503ae35043b343b770df3dde4f8d025e50beac6b967bfaa91f49e8",
+      "cases": 13,
+      "samples": 154240
+    },
+    "main8ReplayReceipt": {
+      "nativeCommit": "d772e334cc724105040382a977ebb10dfd393293",
+      "decodeframeSourceSha256": "653fe4bc6556f48064e20058057f231902bd9740c66a8930c33a059f4273ac51",
+      "bitDepth": 8,
+      "configurationSha256": "07ae8cc6a92f6511dca2df565c465907b109cdfbfbe972ad24b63f53a61010a7",
+      "librarySha256": "32b49355ef8cc2da27770601d2ad91437513dc171725c944527af7483fa31907",
+      "assetsSha256": {
+        "GenerateReconstructionFixtures.py": "66008fc2b49aeea6f28da67241f4f666cd382f23974e0f7a108421aa6f3a0809",
+        "GenerateTileFixtures.py": "677e62d6c05da46bd0f5f9f9556d4548864f488df317b6b79ca0cfccc8b0f5ce",
+        "TraceReconstruction.patch": "0c79e5fed5001b187e61a63104d64ab125a516a6610afb4dacdf6d851d07dec1",
+        "OfficeReconstructionProbe.inc": "627cbe6c376a8bf1e50f6d01b58aa2b77c56dbf7d48373865e8495dc8da9d839",
+        "ReadTileTrace.c": "66ada681357e0f5f41489084fa312694b63f5cac5d91d939e5eeab732a78a976",
+        "EncodeReconstructionControls.c": "fce74d753dfe80942a8e3352cbf188de4e52db2d88986baa3a6d8cd91031f881",
+        "reconstruction-main10-inputs.json": "897fab6fb38341b072a15927f4508abef0b35db17fe9772be75f6e09538e1a26"
+      },
+      "fixtureSha256": "73c22d90f960e6238ea42dc05df9fa5c813352859c282bbc2100363addd35a64",
+      "canonicalJsonSha256": "e0fdc07c2b39ea5049ec7ff745bdcfbeb8c5106af6e1e5a06a9d9609b61457ce",
+      "cases": 5,
+      "samples": 180992
+    },
+    "preservationAndRepeat": {
+      "eightBitFrozenFixtureUntouched": true,
+      "eightBitReplayPreservedCases": 5,
+      "repeatCases": 13,
+      "main10Maximum": 1023,
+      "main10SamplesAbove255": 123739,
+      "eightBitCanonicalSha256": "76097e4b54f52604a4a9ce26c93c5911de963d471a13f92175c8214e27c89cd7",
+      "eightBitReplayDifference": "Only additional tileCols/tileRows metadata; every original field, hash and sample matches.",
+      "eightBitAdditionalMetadata": [
+        "tileCols",
+        "tileRows"
+      ]
+    },
+    "main8TrackedFixtureSha256": "30d6cf9679f9eb0ba6b3fa70c828adeaa1cdeddb525e9755afe17105c8e5695d",
+    "coverage": [
+      {
+        "name": "avif-main10-420-full-alpha",
+        "alpha": false,
+        "nativeImage": {
+          "width": 49,
+          "height": 33,
+          "planes": 3,
+          "depth": 10,
+          "planeBytes": [
+            3234,
+            850,
+            850
+          ]
+        },
+        "prefilter": {
+          "width": 49,
+          "height": 33,
+          "level": 0,
+          "miCols": 14,
+          "miRows": 10,
+          "tileCols": 1,
+          "tileRows": 1,
+          "leaves": 101,
+          "skipLeaves": 0,
+          "copyLeaves": 0,
+          "fractionalCopyLeaves": 0,
+          "planeSha256": [
+            "a973ed62d7416e082280749ca7fd9d3c0ce728a2c74f4ffb7e30183ffdf95c31",
+            "655f76ec8a648410e3e99f6e5664321c9b7a6f891ab3b3819a875468948b01a3",
+            "f09aeade9121e81679d87b6b54abc002c4b1832b438f88f0db00910e590e5cce"
+          ]
+        }
+      },
+      {
+        "name": "avif-main10-420-full-alpha",
+        "alpha": true,
+        "nativeImage": {
+          "width": 49,
+          "height": 33,
+          "planes": 1,
+          "depth": 10,
+          "planeBytes": [
+            3234
+          ]
+        },
+        "prefilter": {
+          "width": 49,
+          "height": 33,
+          "level": 0,
+          "miCols": 14,
+          "miRows": 10,
+          "tileCols": 1,
+          "tileRows": 1,
+          "leaves": 72,
+          "skipLeaves": 0,
+          "copyLeaves": 0,
+          "fractionalCopyLeaves": 0,
+          "planeSha256": [
+            "2158f2497e82bbe0f28ed4d6cfccaa6a2c437f48713bc66d82fefe4c96b54421"
+          ]
+        }
+      },
+      {
+        "name": "avif-main10-420-full",
+        "alpha": false,
+        "nativeImage": {
+          "width": 49,
+          "height": 33,
+          "planes": 3,
+          "depth": 10,
+          "planeBytes": [
+            3234,
+            850,
+            850
+          ]
+        },
+        "prefilter": {
+          "width": 49,
+          "height": 33,
+          "level": 0,
+          "miCols": 14,
+          "miRows": 10,
+          "tileCols": 1,
+          "tileRows": 1,
+          "leaves": 101,
+          "skipLeaves": 0,
+          "copyLeaves": 0,
+          "fractionalCopyLeaves": 0,
+          "planeSha256": [
+            "a973ed62d7416e082280749ca7fd9d3c0ce728a2c74f4ffb7e30183ffdf95c31",
+            "655f76ec8a648410e3e99f6e5664321c9b7a6f891ab3b3819a875468948b01a3",
+            "f09aeade9121e81679d87b6b54abc002c4b1832b438f88f0db00910e590e5cce"
+          ]
+        }
+      },
+      {
+        "name": "avif-main10-420-limited-alpha",
+        "alpha": false,
+        "nativeImage": {
+          "width": 49,
+          "height": 33,
+          "planes": 3,
+          "depth": 10,
+          "planeBytes": [
+            3234,
+            850,
+            850
+          ]
+        },
+        "prefilter": {
+          "width": 49,
+          "height": 33,
+          "level": 0,
+          "miCols": 14,
+          "miRows": 10,
+          "tileCols": 1,
+          "tileRows": 1,
+          "leaves": 104,
+          "skipLeaves": 0,
+          "copyLeaves": 0,
+          "fractionalCopyLeaves": 0,
+          "planeSha256": [
+            "a7f9c5ac08a1822a5441d08549bc9ab7d674acefef1a3e2b110541c804710804",
+            "3998450b58a5a42d089502a03b726aa4369ebe182a73742caea613bfd461197d",
+            "5297ce3c4b8bec4fb64383693881e08f37bc6d09b77b112fd2f1cfb496d77bd1"
+          ]
+        }
+      },
+      {
+        "name": "avif-main10-420-limited-alpha",
+        "alpha": true,
+        "nativeImage": {
+          "width": 49,
+          "height": 33,
+          "planes": 1,
+          "depth": 10,
+          "planeBytes": [
+            3234
+          ]
+        },
+        "prefilter": {
+          "width": 49,
+          "height": 33,
+          "level": 0,
+          "miCols": 14,
+          "miRows": 10,
+          "tileCols": 1,
+          "tileRows": 1,
+          "leaves": 72,
+          "skipLeaves": 0,
+          "copyLeaves": 0,
+          "fractionalCopyLeaves": 0,
+          "planeSha256": [
+            "2158f2497e82bbe0f28ed4d6cfccaa6a2c437f48713bc66d82fefe4c96b54421"
+          ]
+        }
+      },
+      {
+        "name": "avif-main10-420-limited",
+        "alpha": false,
+        "nativeImage": {
+          "width": 49,
+          "height": 33,
+          "planes": 3,
+          "depth": 10,
+          "planeBytes": [
+            3234,
+            850,
+            850
+          ]
+        },
+        "prefilter": {
+          "width": 49,
+          "height": 33,
+          "level": 0,
+          "miCols": 14,
+          "miRows": 10,
+          "tileCols": 1,
+          "tileRows": 1,
+          "leaves": 104,
+          "skipLeaves": 0,
+          "copyLeaves": 0,
+          "fractionalCopyLeaves": 0,
+          "planeSha256": [
+            "a7f9c5ac08a1822a5441d08549bc9ab7d674acefef1a3e2b110541c804710804",
+            "3998450b58a5a42d089502a03b726aa4369ebe182a73742caea613bfd461197d",
+            "5297ce3c4b8bec4fb64383693881e08f37bc6d09b77b112fd2f1cfb496d77bd1"
+          ]
+        }
+      },
+      {
+        "name": "avif-main10-mono-full-alpha",
+        "alpha": false,
+        "nativeImage": {
+          "width": 49,
+          "height": 33,
+          "planes": 1,
+          "depth": 10,
+          "planeBytes": [
+            3234
+          ]
+        },
+        "prefilter": {
+          "width": 49,
+          "height": 33,
+          "level": 0,
+          "miCols": 14,
+          "miRows": 10,
+          "tileCols": 1,
+          "tileRows": 1,
+          "leaves": 96,
+          "skipLeaves": 0,
+          "copyLeaves": 0,
+          "fractionalCopyLeaves": 0,
+          "planeSha256": [
+            "48e74c82786b2148bc2c8eea2db8da86a68490418b4e234fd119b32683295e99"
+          ]
+        }
+      },
+      {
+        "name": "avif-main10-mono-full-alpha",
+        "alpha": true,
+        "nativeImage": {
+          "width": 49,
+          "height": 33,
+          "planes": 1,
+          "depth": 10,
+          "planeBytes": [
+            3234
+          ]
+        },
+        "prefilter": {
+          "width": 49,
+          "height": 33,
+          "level": 0,
+          "miCols": 14,
+          "miRows": 10,
+          "tileCols": 1,
+          "tileRows": 1,
+          "leaves": 72,
+          "skipLeaves": 0,
+          "copyLeaves": 0,
+          "fractionalCopyLeaves": 0,
+          "planeSha256": [
+            "2158f2497e82bbe0f28ed4d6cfccaa6a2c437f48713bc66d82fefe4c96b54421"
+          ]
+        }
+      },
+      {
+        "name": "avif-main10-mono-full",
+        "alpha": false,
+        "nativeImage": {
+          "width": 49,
+          "height": 33,
+          "planes": 1,
+          "depth": 10,
+          "planeBytes": [
+            3234
+          ]
+        },
+        "prefilter": {
+          "width": 49,
+          "height": 33,
+          "level": 0,
+          "miCols": 14,
+          "miRows": 10,
+          "tileCols": 1,
+          "tileRows": 1,
+          "leaves": 96,
+          "skipLeaves": 0,
+          "copyLeaves": 0,
+          "fractionalCopyLeaves": 0,
+          "planeSha256": [
+            "48e74c82786b2148bc2c8eea2db8da86a68490418b4e234fd119b32683295e99"
+          ]
+        }
+      },
+      {
+        "name": "avif-main10-mono-limited-alpha",
+        "alpha": false,
+        "nativeImage": {
+          "width": 49,
+          "height": 33,
+          "planes": 1,
+          "depth": 10,
+          "planeBytes": [
+            3234
+          ]
+        },
+        "prefilter": {
+          "width": 49,
+          "height": 33,
+          "level": 0,
+          "miCols": 14,
+          "miRows": 10,
+          "tileCols": 1,
+          "tileRows": 1,
+          "leaves": 96,
+          "skipLeaves": 0,
+          "copyLeaves": 0,
+          "fractionalCopyLeaves": 0,
+          "planeSha256": [
+            "986f9b0282b5f3af37c2a0e31a2be21ebfd9e302e4bf216b35f671ab08ead26f"
+          ]
+        }
+      },
+      {
+        "name": "avif-main10-mono-limited-alpha",
+        "alpha": true,
+        "nativeImage": {
+          "width": 49,
+          "height": 33,
+          "planes": 1,
+          "depth": 10,
+          "planeBytes": [
+            3234
+          ]
+        },
+        "prefilter": {
+          "width": 49,
+          "height": 33,
+          "level": 0,
+          "miCols": 14,
+          "miRows": 10,
+          "tileCols": 1,
+          "tileRows": 1,
+          "leaves": 72,
+          "skipLeaves": 0,
+          "copyLeaves": 0,
+          "fractionalCopyLeaves": 0,
+          "planeSha256": [
+            "2158f2497e82bbe0f28ed4d6cfccaa6a2c437f48713bc66d82fefe4c96b54421"
+          ]
+        }
+      },
+      {
+        "name": "avif-main10-mono-limited",
+        "alpha": false,
+        "nativeImage": {
+          "width": 49,
+          "height": 33,
+          "planes": 1,
+          "depth": 10,
+          "planeBytes": [
+            3234
+          ]
+        },
+        "prefilter": {
+          "width": 49,
+          "height": 33,
+          "level": 0,
+          "miCols": 14,
+          "miRows": 10,
+          "tileCols": 1,
+          "tileRows": 1,
+          "leaves": 96,
+          "skipLeaves": 0,
+          "copyLeaves": 0,
+          "fractionalCopyLeaves": 0,
+          "planeSha256": [
+            "986f9b0282b5f3af37c2a0e31a2be21ebfd9e302e4bf216b35f671ab08ead26f"
+          ]
+        }
+      },
+      {
+        "name": "lossless-copy",
+        "alpha": false,
+        "nativeImage": {
+          "width": 640,
+          "height": 128,
+          "planes": 3,
+          "depth": 10,
+          "planeBytes": [
+            163840,
+            40960,
+            40960
+          ]
+        },
+        "prefilter": {
+          "width": 640,
+          "height": 128,
+          "level": 0,
+          "miCols": 160,
+          "miRows": 32,
+          "tileCols": 1,
+          "tileRows": 1,
+          "leaves": 1279,
+          "skipLeaves": 105,
+          "copyLeaves": 176,
+          "fractionalCopyLeaves": 71,
+          "planeSha256": [
+            "00315ab02b839d7c48b0130a85c3cf3e1e2890a2e1b8b93b79778cad196e3c5e",
+            "850690e43a92d4b19519d3e629d1f68d42485cf9f45044ffab79a935c7a7100f",
+            "48c3ca986f84ee4b8ba88c31bc08312457ad8fc62b3f46ab56f5e64ff1062fc6"
+          ]
+        }
+      }
+    ]
+  },
+  "validation": {
+    "diffFingerprint": "1933a0fd6c3797cbdb50d0dd7f7854691fc6cb58",
+    "tests": [
+      {
+        "file": "before-reconstruction.trx",
+        "sha256": "a51129757652c1a50b2b3ebf0f3f0c2e324480c84e740d1075b8eda8c3bff9c2",
+        "counters": {
+          "total": "18",
+          "executed": "18",
+          "passed": "5",
+          "failed": "13",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "times": {
+          "creation": "2026-10-01T13:32:39.7581520+02:00",
+          "queuing": "2026-10-01T13:32:39.7581520+02:00",
+          "start": "2026-10-01T13:32:39.2179040+02:00",
+          "finish": "2026-10-01T13:32:39.7926320+02:00"
+        }
+      },
+      {
+        "file": "after-reconstruction-final.trx",
+        "sha256": "1f9156440f8f54200e0373d353dae719c98635cc552ed1a68d7ecb3f2e339532",
+        "counters": {
+          "total": "88",
+          "executed": "88",
+          "passed": "88",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "times": {
+          "creation": "2026-10-01T13:39:26.9499080+02:00",
+          "queuing": "2026-10-01T13:39:26.9499080+02:00",
+          "start": "2026-10-01T13:39:26.5030470+02:00",
+          "finish": "2026-10-01T13:39:37.7477580+02:00"
+        }
+      },
+      {
+        "file": "drawing-net8.trx",
+        "sha256": "7324609c77912a39c1a2a1a69b7de0d31f773af74763b72444604db6858890af",
+        "counters": {
+          "total": "3076",
+          "executed": "3076",
+          "passed": "3076",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "times": {
+          "creation": "2026-10-01T13:41:14.2799830+02:00",
+          "queuing": "2026-10-01T13:41:14.2799830+02:00",
+          "start": "2026-10-01T13:41:13.3976220+02:00",
+          "finish": "2026-10-01T13:41:30.6049320+02:00"
+        }
+      },
+      {
+        "file": "drawing-net10.trx",
+        "sha256": "106c85be24eed6a5c03784974a8f6fb6cffa512ddb4f58ad7123a9a61b16a699",
+        "counters": {
+          "total": "3076",
+          "executed": "3076",
+          "passed": "3076",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "times": {
+          "creation": "2026-10-01T13:41:06.5155200+02:00",
+          "queuing": "2026-10-01T13:41:06.5155200+02:00",
+          "start": "2026-10-01T13:41:05.7097390+02:00",
+          "finish": "2026-10-01T13:41:26.3019240+02:00"
+        }
+      },
+      {
+        "file": "html-avif-net8.trx",
+        "sha256": "6fb290ce38cfd57a3aeaab0baa57d7a2b931a13b6f9381b276ac2bd6fe6d9265",
+        "counters": {
+          "total": "14",
+          "executed": "14",
+          "passed": "14",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "times": {
+          "creation": "2026-10-01T13:42:45.0925590+02:00",
+          "queuing": "2026-10-01T13:42:45.0925590+02:00",
+          "start": "2026-10-01T13:42:43.9700530+02:00",
+          "finish": "2026-10-01T13:42:45.5098020+02:00"
+        }
+      },
+      {
+        "file": "html-avif-net10.trx",
+        "sha256": "f30e7dafb6b63efbfce59b6356c47c8e9db705c9381eec1c35bbee7bc5f15156",
+        "counters": {
+          "total": "14",
+          "executed": "14",
+          "passed": "14",
+          "failed": "0",
+          "error": "0",
+          "timeout": "0",
+          "aborted": "0",
+          "inconclusive": "0",
+          "passedButRunAborted": "0",
+          "notRunnable": "0",
+          "notExecuted": "0",
+          "disconnected": "0",
+          "warning": "0",
+          "completed": "0",
+          "inProgress": "0",
+          "pending": "0"
+        },
+        "times": {
+          "creation": "2026-10-01T13:42:00.9873230+02:00",
+          "queuing": "2026-10-01T13:42:00.9873230+02:00",
+          "start": "2026-10-01T13:41:59.9851990+02:00",
+          "finish": "2026-10-01T13:42:01.3742950+02:00"
+        }
+      }
+    ],
+    "coreNetstandardBuild": {
+      "framework": "netstandard2.0",
+      "configuration": "Debug",
+      "warnings": 0,
+      "errors": 0,
+      "sdk": "10.0.303",
+      "command": "dotnet build <worktree>/OfficeIMO.Core/OfficeIMO.Core.csproj -f netstandard2.0 --no-restore (cwd /tmp)",
+      "assemblySha256": "d876a8eca77fdeec8a1f6642a312240d28dea660247c3e3f98e54b7ff1973281"
+    }
+  },
+  "localReview": {
+    "task": "/root/avif_main10_planes_review",
+    "base": "0bbdc75f56429713fae0bfa2b8c93ed47d1eed6c",
+    "diffFingerprint": "1933a0fd6c3797cbdb50d0dd7f7854691fc6cb58",
+    "boundary": "current",
+    "result": "No actionable P0-P3",
+    "independentlyVerified": [
+      "All12 item extents via pitm/iloc/auxl",
+      "13case/154240 sample shapes and hashes",
+      "All13 native repeated output hashes",
+      "All original Main8 fields/samples",
+      "Pinned library/config/source and access-only copied decoder changes",
+      "Sample clipping/edge depth/consumers/copy offsets/resource/cancellation"
+    ],
+    "targetedConfirmationUsed": false,
+    "limitations": "Reviewer did not run tests/builds; primary owns those. No ten-bit filtering/composition/formal Baseline claim."
+  },
+  "observedWorkBoundFix": "Before preflight correction, the focused work-limit assertion failed at both bit depths: MaximumInspectionWorkPixels=1 was accepted by reconstruction. The frame dimension guard now rejects before allocation, and both regressions pass.",
+  "proofBoundary": {
+    "qualified": [
+      "Every frozen prefilter sample, including MI padding, native color/grayscale/auxiliary-alpha and skip/fractional intra-block-copy",
+      "Main8 prefilter/filter/color numeric regressions and HTML AVIF pixel consumers",
+      "Bit-depth consistency, later-stage/composition guards, retained storage, cancellation and malformed/incomplete tile failure"
+    ],
+    "notQualified": [
+      "Ten-bit deblocking, CDEF, superresolution, restoration or final RGBA/HTML/PDF output",
+      "Non-reduced still headers or formal AVIF Baseline coverage",
+      "New packed consumer/H4/NASA or macOS performance qualification for the completed ten-bit pipeline",
+      "Windows/net472 runtime proof or Windows/Linux H10 budgets"
+    ],
+    "supportCatalog": "Qualified eight-bit public contract unchanged; no wider public decode claim."
+  },
+  "retainedArtifacts": {
+    "directory": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-planes-proof-63751b816",
+    "bytes": 2557524,
+    "purpose": "Compact receipts/metrics, before/final focused and HTML TRXs, one native replay executable and 13 OBU inputs; original producer source/build retained at its separate prior path."
+  },
+  "cleanup": {
+    "removed": [
+      {
+        "path": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-planes-work-0bbdc75f5",
+        "bytes": 19297347,
+        "files": 57,
+        "reason": "Task-owned native observation copies/probes/raw captures and full-suite TRXs, verified compact copies/hashes retained; no live process, tracked/staged files or Git metadata."
+      },
+      {
+        "path": "/Users/przemyslawklys/Developer/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-main8-planes-work-0bbdc75f5",
+        "bytes": 9083696,
+        "files": 18,
+        "reason": "Task-owned native observation copies/probes/raw captures and full-suite TRXs, verified compact copies/hashes retained; no live process, tracked/staged files or Git metadata."
+      }
+    ],
+    "verifiedAbsent": true,
+    "postCleanupReplayCases": 13
+  }
+}
