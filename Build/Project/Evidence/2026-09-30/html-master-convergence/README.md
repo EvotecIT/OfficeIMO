@@ -1,5 +1,17 @@
 # HTML shared-owner convergence and comparison evidence
 
+## Master af22cc8ff integration
+
+Source `eb7fa2169e9844f53cf2d2c147c2ea9b223102ef` integrates master `af22cc8ff4f7147a26394a9e14db26afb06c7e4d` while preserving the HTML engine and provider boundaries. The [convergence record](master-af22-convergence-checkpoint.json) binds the resolved tree, independent review, tests, package inspection, portable fixture bytes and clean-source rendered evidence.
+
+HTML 4,039/4,039, PDF 8,606/8,606, RTF 922/922 and Drawing 3,229/3,229 pass on .NET 8 and .NET 10. Core and the HTML PDF/RTF netstandard2.0 graphs build without warnings. The independent integration review found no actionable defects. A checkout with automatic newline conversion preserves all 22 protected pattern resources and frozen static HTML inputs/manifests.
+
+H4 acceptance passes 8/8; all eight print PDFs and all eleven NASA and language PDF variants are byte-identical to their previously qualified outputs. Representative NASA and language pages were inspected after external rasterization. The unchanged macOS static budget and all ten H10 operation ceilings pass. An earlier H10 run exceeded only RTF/Markdown timing during unrelated compiler contention; the same source and ceilings pass on the quieter repeat. Editable operations still report loss, and this run does not qualify their appearance, Windows/Linux budgets, or the remaining static-suite gaps.
+
+Duplicate native PDFs and archives are removed after byte verification; the existing baseline files and compact current reports remain under `Ignore/HtmlUnknownPageQualification`. The Core package has no external runtime dependencies or native assets and retains the required license and patent notices. Open product work remains in `Docs/ROADMAP.md`.
+
+## Earlier shared-owner checkpoint
+
 This run qualifies source `40bd3f7bbbf0aff338336511ed899d27f79cd3fe` after integrating master `344dd83dc12e48d98fba933194f7773f84be212d`. The [compact record](qualification.json) binds test results, package inspection, reference versions, archive identity, output hashes and operation costs. The references are package/source pins, not a claim that every runtime dependency has been upgraded to its latest release. Open delivery work belongs in [the product roadmap](../../../../../Docs/ROADMAP.md#independent-html-engine).
 
 ## Integration result
