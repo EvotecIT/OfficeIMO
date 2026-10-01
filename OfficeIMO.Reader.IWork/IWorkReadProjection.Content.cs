@@ -91,6 +91,15 @@ internal sealed partial class IWorkReadProjection {
                 Location = location
             });
         }
+        if (source.HiddenRows.Count > 0 || source.HiddenColumns.Count > 0) {
+            _diagnostics.Add(new OfficeDocumentDiagnostic {
+                Category = OfficeDocumentDiagnosticCategory.Content,
+                Code = "IWORK_READER_HIDDEN_TABLE_CONTENT_INCLUDED",
+                Message = $"Table '{source.Name}' includes source-hidden rows or columns in the Reader grid; visibility remains on the iWork source model.",
+                Source = "OfficeIMO.Reader.IWork",
+                Location = location
+            });
+        }
         if (source.HeaderColumnCount > 0 || source.FooterRowCount > 0) {
             _diagnostics.Add(new OfficeDocumentDiagnostic {
                 Category = OfficeDocumentDiagnosticCategory.Content,

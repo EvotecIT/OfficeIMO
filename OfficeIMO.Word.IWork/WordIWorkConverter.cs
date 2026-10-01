@@ -63,6 +63,13 @@ public static partial class WordIWorkConverter {
         if (editable) {
             destinationDiagnostics = destinationDiagnostics.Concat(IWorkNumericDisplayDiagnostics.ForTextTables(
                 projection.Tables.SelectMany(table => table.Cells), "PAGES", "DOCX", cancellationToken)).ToArray();
+            if (projection.Tables.Any(table => table.HiddenRows.Count > 0 || table.HiddenColumns.Count > 0)) {
+                destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                    new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_TABLE_VISIBILITY_OMITTED",
+                        "DOCX tables retain source-hidden rows and columns as visible content; their visibility is retained on the iWork projection.",
+                        lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission)
+                }).ToArray();
+            }
         }
         if (editable && projection.Sections.Count > reconstructedSectionCount) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {

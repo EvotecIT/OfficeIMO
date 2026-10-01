@@ -172,7 +172,8 @@ public sealed class IWorkTable {
         IReadOnlyList<IWorkObjectIdentity>? omittedTextUnits = null,
         IReadOnlyDictionary<int, double>? rowHeights = null,
         IReadOnlyDictionary<int, double>? columnWidths = null,
-        Guid? formulaIdentifier = null, IWorkArchiveRecord? modelRecord = null, bool bodyMetadataIsComplete = true, bool? autoResizeRows = null, IWorkTableTextStyles? textStyles = null, IWorkTableFillStyles? fillStyles = null) {
+        Guid? formulaIdentifier = null, IWorkArchiveRecord? modelRecord = null, bool bodyMetadataIsComplete = true, bool? autoResizeRows = null, IWorkTableTextStyles? textStyles = null, IWorkTableFillStyles? fillStyles = null,
+        IReadOnlyList<int>? hiddenRows = null, IReadOnlyList<int>? hiddenColumns = null) {
         Name = name;
         FormulaIdentifier = formulaIdentifier;
         ModelRecord = modelRecord;
@@ -189,6 +190,8 @@ public sealed class IWorkTable {
         DefaultColumnWidth = defaultColumnWidth;
         RowHeights = CopyDimensions(rowHeights);
         ColumnWidths = CopyDimensions(columnWidths);
+        HiddenRows = Array.AsReadOnly((hiddenRows ?? Array.Empty<int>()).OrderBy(index => index).ToArray());
+        HiddenColumns = Array.AsReadOnly((hiddenColumns ?? Array.Empty<int>()).OrderBy(index => index).ToArray());
         MergedRanges = Array.AsReadOnly((mergedRanges ?? Array.Empty<IWorkTableMergeRange>()).ToArray());
         Geometry = geometry;
         AccessibilityDescription = accessibilityDescription;
@@ -205,7 +208,7 @@ public sealed class IWorkTable {
     internal IWorkTable WithCells(IReadOnlyList<IWorkTableCell> cells) =>
         new(Name, RowCount, ColumnCount, cells, HeaderRowCount, HeaderColumnCount, FooterRowCount,
             DefaultRowHeight, DefaultColumnWidth, MergedRanges, Geometry, AccessibilityDescription,
-            SourceIdentity, OmittedTextUnits, RowHeights, ColumnWidths, FormulaIdentifier, ModelRecord, BodyMetadataIsComplete, AutoResizeRows, TextStyles, FillStyles);
+            SourceIdentity, OmittedTextUnits, RowHeights, ColumnWidths, FormulaIdentifier, ModelRecord, BodyMetadataIsComplete, AutoResizeRows, TextStyles, FillStyles, HiddenRows, HiddenColumns);
 
     /// <summary>Gets supported table-region and alternating body-row fill defaults without materializing empty source cells.</summary>
     public IWorkTableFillStyles FillStyles { get; }
@@ -267,6 +270,10 @@ public sealed class IWorkTable {
     public IReadOnlyDictionary<int, double> RowHeights { get; }
     /// <summary>Gets explicit column widths in points, keyed by one-based column position. Zero-size native entries use the default and are omitted.</summary>
     public IReadOnlyDictionary<int, double> ColumnWidths { get; }
+    /// <summary>Gets qualified base user-hidden rows as sorted one-based positions. Other visibility states remain in source diagnostics.</summary>
+    public IReadOnlyList<int> HiddenRows { get; }
+    /// <summary>Gets qualified base user-hidden columns as sorted one-based positions. Other visibility states remain in source diagnostics.</summary>
+    public IReadOnlyList<int> HiddenColumns { get; }
 
     /// <summary>Gets the explicit height or default height of a one-based row, when known.</summary>
     public double? GetRowHeight(int row) {

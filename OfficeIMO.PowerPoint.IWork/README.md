@@ -31,6 +31,8 @@ Individual table row heights and column widths are carried into PPTX. If their t
 
 Supported numeric table formats become editable PPTX text: decimal precision, grouping, percentages, scientific notation, fractions, currency-code prefixes and negative-value parentheses. Red negative formats become run color. The report identifies display approximation because locale-specific symbols, automatic precision and source appearance can differ. Raw values and formula caches remain on the source projection; formatting does not change its raw display properties. Native Keynote export qualification remains outside this bounded contract.
 
+Qualified source-hidden table rows and columns remain visible in editable PPTX output. Conversion requires `AllowPartialEditableReconstruction = true` and reports `IWORK_KEYNOTE_TABLE_VISIBILITY_OMITTED`; strict conversion uses visual fallback when available. Hidden positions and cell content remain on the typed source projection.
+
 Choose the acceptance policy explicitly when source details cannot be represented:
 
 ```csharp

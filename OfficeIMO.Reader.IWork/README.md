@@ -37,6 +37,8 @@ The Reader path accepts ZIP-form iWork packages as files or streams and director
 
 Bundle reads retain the iWork owner's entry/path/byte limits, physical-root and regular-file checks, and cancellation. `ReaderOptions.MaxInputBytes` and folder aggregate byte limits also apply. `Source.LengthBytes` counts captured physical file bytes before nested expansion. When `ComputeHashes` is enabled, `Source.SourceHash` hashes the captured normalized entries, including paths, bytes, and nested-index entries; it is a package-content identity rather than a ZIP-file checksum. File and stream sources retain Reader's existing file/payload hash contract. Discovery with an aggregate byte limit parses a bundle through its bounded handler to obtain its source size.
 
+Reader includes content from qualified source-hidden table rows and columns in its bounded grid and reports `IWORK_READER_HIDDEN_TABLE_CONTENT_INCLUDED`. Use `OfficeIMO.IWork` directly to inspect `HiddenRows` and `HiddenColumns`; unqualified visibility selections retain source warnings.
+
 Reader does not paginate Pages layouts or render Keynote slides. Its logical page labels represent a Pages document, Numbers sheet, or Keynote slide, not a rendered Pages page count.
 
 Targets: `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows. License: MIT. Runtime dependencies are `OfficeIMO.Reader.Core` and `OfficeIMO.IWork`.

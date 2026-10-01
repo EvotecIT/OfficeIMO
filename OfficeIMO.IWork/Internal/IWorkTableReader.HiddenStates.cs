@@ -7,7 +7,8 @@ internal static partial class IWorkTableReader {
     private static readonly int[] UnassessedExtentFields = { 5, 7, 9, 10, 11 };
 
     private static void AssessHiddenStates(IWorkSourceDocument source, IWorkArchiveRecord model,
-        IWorkWireMessage message, IWorkProjectionBudget budget, IWorkSourceReferenceIssueCollector references,
+        IWorkWireMessage message, int rows, int columns, HashSet<int> hiddenRows, HashSet<int> hiddenColumns,
+        IWorkProjectionBudget budget, IWorkSourceReferenceIssueCollector references,
         List<IWorkDiagnostic> diagnostics, ref bool supportsEditableReconstruction) {
         bool complete = true;
         AssessVisibilityFilter(source, model, message, 38, "38", budget, references, ref complete);
@@ -29,7 +30,8 @@ internal static partial class IWorkTableReader {
                         IWorkWireMessage? extent = ReadVisibilityMessage(model, states, axis, extentPath,
                             references, ref complete, required: true);
                         if (extent == null) continue;
-                        AssessHiddenExtent(source, model, extent, axis == 2 ? 0ul : 1ul, extentPath,
+                        AssessHiddenExtent(source, model, message, extent, axis == 2 ? 0ul : 1ul, extentPath,
+                            axis == 2 ? columns : rows, owner.FieldCount(2) == 1, axis == 2 ? hiddenColumns : hiddenRows,
                             budget, references, ref complete);
                     }
                 }
@@ -44,10 +46,12 @@ internal static partial class IWorkTableReader {
     }
 
     private static void AssessHiddenExtent(IWorkSourceDocument source, IWorkArchiveRecord model,
-        IWorkWireMessage extent, ulong expectedDirection, string path, IWorkProjectionBudget budget,
+        IWorkWireMessage modelMessage, IWorkWireMessage extent, ulong expectedDirection, string path,
+        int dimensionCount, bool singleStateSet, HashSet<int> hidden, IWorkProjectionBudget budget,
         IWorkSourceReferenceIssueCollector references, ref bool complete) {
-        if (extent.FieldCount(3) != 1 || extent.HasUnexpectedWireKind(3, IWorkWireKind.Varint)
-            || extent.GetUnsigned(3) != expectedDirection) {
+        bool directionValid = extent.FieldCount(3) == 1 && !extent.HasUnexpectedWireKind(3, IWorkWireKind.Varint)
+            && extent.GetUnsigned(3) == expectedDirection;
+        if (!directionValid) {
             complete = false;
             references.Declarations.Record(model, path + "/3", extent.FieldCount(3), IWorkSourceDeclarationIssueKind.InvalidValue);
         }
@@ -63,17 +67,31 @@ internal static partial class IWorkTableReader {
         foreach (int field in new[] { 2, 12 }) {
             budget.AddTableDimensionEntries(extent.FieldCount(field));
             int position = 0;
+            bool entriesComplete = true;
+            var baseStates = new List<(IWorkWireMessage Message, string Path)>();
             foreach (IWorkWireValue value in extent.EnumerateValues(field)) {
                 source.CancellationToken.ThrowIfCancellationRequested();
                 string entryPath = path + "/" + field.ToString(CultureInfo.InvariantCulture)
                     + "[" + (++position).ToString(CultureInfo.InvariantCulture) + "]";
                 IWorkWireMessage? state = ReadVisibilityEntry(model, extent, value, entryPath, references, ref complete);
-                if (state == null) continue;
-                // UUID identities are not resolved here. False/absent selectors do not hide content;
-                // positive or ambiguous selectors establish a gap without inventing positions.
-                foreach (int flag in new[] { 2, 3, 4 })
+                if (state == null) { entriesComplete = false; continue; }
+                if (field == 2) baseStates.Add((state, entryPath));
+                foreach (int flag in field == 2 ? new[] { 3, 4 } : new[] { 2, 3, 4 })
                     AssessVisibilityFlag(model, state, flag, entryPath + "/" + flag.ToString(CultureInfo.InvariantCulture),
                         references, ref complete);
+            }
+            if (field != 2) continue;
+            bool selected = baseStates.Any(state => state.Message.FieldCount(2) == 1
+                && !state.Message.HasUnexpectedWireKind(2, IWorkWireKind.Varint) && state.Message.GetUnsigned(2) == 1);
+            IReadOnlyList<int> recovered = Array.Empty<int>();
+            bool resolved = selected && entriesComplete && directionValid && singleStateSet
+                && IWorkTableVisibilityMap.TryResolve(source, model, modelMessage, dimensionCount, expectedDirection == 0,
+                    baseStates, budget, references, out recovered);
+            if (resolved) {
+                foreach (int index in recovered!) hidden.Add(index);
+            } else {
+                foreach (var state in baseStates)
+                    AssessVisibilityFlag(model, state.Message, 2, state.Path + "/2", references, ref complete);
             }
         }
         AssessVisibilityFilter(source, model, extent, 8, path + "/8", budget, references, ref complete);

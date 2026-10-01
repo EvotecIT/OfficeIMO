@@ -234,6 +234,14 @@ public static partial class ExcelIWorkConverter {
                             cancellationToken.ThrowIfCancellationRequested();
                             sheet.SetColumnWidth(column.Key, PointsToExcelColumnWidth(column.Value));
                         }
+                        foreach (int row in table.HiddenRows) {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            sheet.SetRowHidden(row, true);
+                        }
+                        foreach (int column in table.HiddenColumns) {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            sheet.SetColumnHidden(column, true);
+                        }
                     }
                 }
             } else {

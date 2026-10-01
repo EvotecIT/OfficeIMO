@@ -143,7 +143,9 @@ internal static partial class IWorkTableReader {
         int columns = CheckedDimension(message.GetUnsigned(7), source.Options.MaximumTableColumns, "column", model);
         AssessVisibilityCounts(source, model, message, rows, columns, references,
             diagnostics, ref supportsEditableReconstruction);
-        AssessHiddenStates(source, model, message, projectionBudget, references,
+        var hiddenRows = new HashSet<int>();
+        var hiddenColumns = new HashSet<int>();
+        AssessHiddenStates(source, model, message, rows, columns, hiddenRows, hiddenColumns, projectionBudget, references,
             diagnostics, ref supportsEditableReconstruction);
         string? tableName = message.GetString(8, out bool tableNameComplete);
         if (!tableNameComplete) {
@@ -533,7 +535,8 @@ internal static partial class IWorkTableReader {
             message.FieldCount(6) == 1 && message.FieldCount(7) == 1
                 && new[] { 6, 7, 9, 10, 11 }.All(field => message.FieldCount(field) <= 1
                     && !message.HasUnexpectedWireKind(field, IWorkWireKind.Varint))
-                && (long)headerRows + footerRows <= rows, autoResizeRows, textStyles?.Defaults, fillStyles.Defaults);
+                && (long)headerRows + footerRows <= rows, autoResizeRows, textStyles?.Defaults, fillStyles.Defaults,
+            hiddenRows.ToArray(), hiddenColumns.ToArray());
     }
 
     private static void MarkTableTextStyleUnsupported(IWorkArchiveRecord model, List<IWorkDiagnostic> diagnostics,
