@@ -15,10 +15,21 @@ public sealed class DrawingAv1CdefTests {
     [InlineData("lossless-copy",false)]
     [InlineData("odd-color",false)]
     [InlineData("odd-mono",false)]
+    [InlineData("odd-tiled-color",false)]
+    [InlineData("svt-tiled-mixed-skip",false)]
     public void CompleteFramesMatchNativeDeblockedAndCdefPixels(string name,bool alpha) {
         using var fixture=Open();var c=fixture.RootElement.GetProperty("cases").EnumerateArray().Single(v=>
             v.GetProperty("name").GetString()==name && v.GetProperty("alpha").GetBoolean()==alpha);
         var (bytes,sequence,frame)=Read(c,name,alpha);
+        if(name=="odd-tiled-color" || name=="svt-tiled-mixed-skip") {
+            var native=c.GetProperty("unfiltered");
+            Assert.Equal(native.GetProperty("tileCols").GetInt32()*native.GetProperty("tileRows").GetInt32(),frame.Tiles.Length);
+            Assert.True(frame.Tiles.Length>1);
+            if(name=="svt-tiled-mixed-skip") {
+                int skip=native.GetProperty("skipLeaves").GetInt32();
+                Assert.True(skip>0 && skip<native.GetProperty("leaves").GetInt32());
+            }
+        }
         foreach(var stage in new[] {OfficeAv1ReconstructionStage.Deblocked,OfficeAv1ReconstructionStage.Cdef}) {
             var result=OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,new OfficeRasterDecodeOptions(),stage);
             var planes=c.GetProperty(stage==OfficeAv1ReconstructionStage.Cdef?"cdef":"deblocked").GetProperty("planes");

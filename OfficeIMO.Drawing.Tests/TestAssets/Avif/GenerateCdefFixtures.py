@@ -37,13 +37,20 @@ def main():
         encoded=(repo/path).read_bytes();assert digest(encoded)==expected;decode(name,alpha,encoded[offset:offset+length],expected,mono=alpha)
     controls=json.loads(gzip.decompress((here/'reconstruction-reference.json.gz').read_bytes()))
     c=next(v for v in controls['cases'] if v['name']=='lossless-copy');encoded=base64.b64decode(c['inputBase64']);assert digest(encoded)==c['inputSha256'];decode('lossless-copy',False,encoded,c['inputSha256'],True)
-    for mono in [False,True]:
-        name='odd-mono' if mono else 'odd-color';obu=work/(name+'.obu');run([encoder,obu,str(int(mono))]);encoded=obu.read_bytes();c=decode(name,False,encoded,digest(encoded),True,mono)
+    for name,mode in [('odd-color',0),('odd-mono',1),('odd-tiled-color',2)]:
+        obu=work/(name+'.obu');run([encoder,obu,str(mode)]);encoded=obu.read_bytes();c=decode(name,False,encoded,digest(encoded),True,mode==1)
         assert c['deblocked']['planes']!=c['unfiltered']['planes'] and c['cdef']['planes']!=c['deblocked']['planes'],'Control must demonstrate active deblocking and CDEF'
+        if mode==2:
+            f=c['unfiltered'];assert f['tileCols']*f['tileRows']>1,'Control must contain multiple tiles'
+    encoded=(here/'cdef-svt-mixed-skip.obu').read_bytes()
+    assert digest(encoded)=='a7df0ead410eeec2758c51d0764f73463aacbccced234f18dcd97af5ab74c46f'
+    c=decode('svt-tiled-mixed-skip',False,encoded,digest(encoded),True)
+    f=c['unfiltered'];assert f['tileCols']*f['tileRows']>1 and 0<f['skipLeaves']<f['leaves']
+    assert c['cdef']['planes']!=c['deblocked']['planes'],'Mixed-skip control must demonstrate active CDEF'
     numeric=[json.loads(v) for v in run([kernels],stdout=subprocess.PIPE,text=True).stdout.splitlines()]
     fixture={'nativeCommit':COMMIT,'reference':'Actual AOM single-threaded pre/post-CDEF planes and unmodified direction/filter kernels','cases':cases,'directions':[v for v in numeric if v['kind']=='direction'],'kernels':[v for v in numeric if v['kind']=='kernel']}
     canonical=(json.dumps(fixture,separators=(',',':'))+'\n').encode();output=args.output.resolve() if args.output else work/'cdef-reference.json.gz';output.write_bytes(gzip.compress(canonical,mtime=0))
-    assets=['GenerateCdefFixtures.py','GenerateTileFixtures.py','GenerateReconstructionFixtures.py','TraceCdef.patch','OfficeReconstructionProbe.inc','ReadTileTrace.c','EncodeFilterControls.c','ReadCdefKernels.c','reconstruction-reference.json.gz']
+    assets=['GenerateCdefFixtures.py','GenerateSvtCdefControl.py','cdef-svt-mixed-skip.obu','GenerateTileFixtures.py','GenerateReconstructionFixtures.py','TraceCdef.patch','OfficeReconstructionProbe.inc','ReadTileTrace.c','EncodeFilterControls.c','ReadCdefKernels.c','reconstruction-reference.json.gz']
     receipt={'nativeCommit':COMMIT,'decodeframeSourceSha256':SOURCE,'assetsSha256':{n:digest((here/n).read_bytes()) for n in assets},'fixtureSha256':digest(output.read_bytes()),'canonicalJsonSha256':digest(canonical),'cases':len(cases),'directions':len(fixture['directions']),'kernels':len(fixture['kernels']),'changedKernelCases':sum(v['input']!=v['output'] for v in fixture['kernels']),'changedCdefSamples':sum(sum(a!=b for a,b in zip(base64.b64decode(u),base64.b64decode(d))) for c in cases for u,d in zip(c['deblocked']['planes'],c['cdef']['planes']))}
     (work/'cdef-oracle-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n');print(json.dumps(receipt,indent=2))
 
