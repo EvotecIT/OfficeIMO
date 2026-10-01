@@ -84,7 +84,7 @@ internal static partial class OfficeConversionBatchExecutor {
                 if (!OfficePathIdentity.IsSameOrDescendant(resourceRoot, sourceRoot))
                     throw new ArgumentException("Checkpoint resources must remain inside the selected source root.");
             }
-            string? resourceIdentity = resourceRoot == null ? null : await CaptureResourceIdentityAsync(resourceRoot, settings.MaximumInputBytes, token).ConfigureAwait(false);
+            string? resourceIdentity = resourceRoot == null ? null : await CaptureResourceIdentityAsync(resourceRoot, input, settings.MaximumInputBytes, token).ConfigureAwait(false);
             configuration = Hash(configuration + CaptureRenderingConfiguration(settings, routeId) + resourceIdentity);
             OfficeConversionBatchReceipt? receipt = ReadState(receiptPath, OfficeConversionBatchJsonContext.Default.OfficeConversionBatchReceipt);
             if (receipt != null) {
@@ -181,7 +181,7 @@ internal static partial class OfficeConversionBatchExecutor {
         public async ValueTask<bool> CanPublishAsync(string absoluteDestination, bool isDirectory, CancellationToken cancellationToken) {
             EnsureNoLinks(absoluteDestination);
             EnsureNoLinks(output);
-            await VerifyResourcesAsync(resourceRoot, resourceIdentity, settings.MaximumInputBytes, cancellationToken).ConfigureAwait(false);
+            await VerifyResourcesAsync(resourceRoot, input, resourceIdentity, settings.MaximumInputBytes, cancellationToken).ConfigureAwait(false);
             return !isDirectory && absoluteDestination == stagingPath && OfficePathIdentity.IsSameOrDescendant(absoluteDestination, settings.OutputDirectory) &&
                 (settings.InputDirectory == null || !OfficePathIdentity.IsSameOrDescendant(absoluteDestination, settings.InputDirectory)) &&
                 (hostGuard == null ||

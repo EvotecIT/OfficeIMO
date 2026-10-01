@@ -224,6 +224,26 @@ public sealed class OfficeConversionBatchTests {
         Assert.Equal(1, durable.Failed); Assert.Equal(0, durable.Reused);
     }
 
+    [Theory]
+    [InlineData(".md")]
+    [InlineData(".html")]
+    public async Task CorrectedFailedSourceCanRetryWithoutInvalidatingItsResourceConfiguration(string extension) {
+        using var scope = new BatchDirectory();
+        string input = Path.Combine(scope.Input, "page" + extension);
+        File.WriteAllText(input, string.Join("\n", Enumerable.Repeat("<p>A long source that exceeds the bounded PDF output.</p>", 1000)));
+        var request = new OfficeConversionBatchRequest { InputPaths = [input], InputDirectory = scope.Input,
+            OutputDirectory = scope.Output, CheckpointDirectory = scope.State, MaximumOutputBytes = 16 * 1024,
+            ConversionOptions = new() { Markdown = new() { BaseDirectory = scope.Input,
+                ResourcePolicy = new PdfResourcePolicy { AllowLocalFileAccess = true } } }
+        };
+        Assert.Equal(1, (await new OfficeWorkflowRunner().RunBatchAsync(request)).Failed);
+        File.WriteAllText(input, "Corrected source");
+        Assert.Equal(1, (await new OfficeWorkflowRunner().RunBatchAsync(request)).Failed);
+        var repaired = await new OfficeWorkflowRunner().RunBatchAsync(request with { RetryFailed = true });
+        Assert.Equal(0, repaired.Failed); Assert.Equal(1, repaired.Completed);
+        Assert.Equal(1, (await new OfficeWorkflowRunner().RunBatchAsync(request)).Reused);
+    }
+
     private sealed class ChangeResource(string resource) : IOfficeWorkflowPublicationGuard {
         public ValueTask<bool> CanPublishAsync(string path, bool directory, CancellationToken token) {
             if (!directory) File.WriteAllText(resource, "Changed at publication");

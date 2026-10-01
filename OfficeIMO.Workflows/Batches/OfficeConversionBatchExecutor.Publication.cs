@@ -20,7 +20,7 @@ internal static partial class OfficeConversionBatchExecutor {
             string staged = GetPendingStagePath(output, receipt.PendingStageId);
             if (hostGuard != null && !await hostGuard.CanPublishAsync(output, false, token).ConfigureAwait(false))
                 throw new UnauthorizedAccessException("Batch output is protected by the host publication policy.");
-            await VerifyResourcesAsync(resourceRoot, resourceIdentity, settings.MaximumInputBytes, token).ConfigureAwait(false);
+            await VerifyResourcesAsync(resourceRoot, input, resourceIdentity, settings.MaximumInputBytes, token).ConfigureAwait(false);
             if (await HashFileAsync(input, settings.InputDirectory ?? Path.GetDirectoryName(input)!, settings.MaximumInputBytes, token).ConfigureAwait(false) != receipt.InputSha256)
                 throw new InvalidDataException("Batch source changed before publication; no output was replaced.");
             EnsureNoLinks(staged);
@@ -37,7 +37,7 @@ internal static partial class OfficeConversionBatchExecutor {
             if (await HashFileAsync(output, settings.OutputDirectory, settings.MaximumOutputBytes, CancellationToken.None).ConfigureAwait(false) != receipt.OutputSha256)
                 throw new InvalidDataException("Published batch PDF differs from its recorded artifact; completion was not recorded.");
         }
-        await VerifyResourcesAsync(resourceRoot, resourceIdentity, settings.MaximumInputBytes, token).ConfigureAwait(false);
+        await VerifyResourcesAsync(resourceRoot, input, resourceIdentity, settings.MaximumInputBytes, token).ConfigureAwait(false);
         // A crash after the move is reconciled by verifying the final artifact on restart.
         if (receipt.PendingStageId != null)
             StoreReceipt(receiptPath, receipt with { PendingStageId = null });

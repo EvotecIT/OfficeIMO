@@ -58,10 +58,13 @@ internal static partial class OfficeConversionBatchExecutor {
 
     // Include every regular file: Markdown identifies images by bytes, not filename extensions.
     // Reject links so native resource reads cannot escape the fingerprinted tree.
-    private static async Task<string> CaptureResourceIdentityAsync(string root, long maximumBytes, CancellationToken token) {
+    private static async Task<string> CaptureResourceIdentityAsync(string root, string input, long maximumBytes, CancellationToken token) {
         var resources = new List<(string Path, string Hash)>();
+        string inputIdentity = OfficePathIdentity.GetPathIdentityKey(input);
         long bytes = 0;
         foreach (string path in Discover(root, true, token, rejectLinks: true)) {
+            // The primary input has its own immutable/retryable hash; do not also make it configuration.
+            if (OfficePathIdentity.GetPathIdentityKey(path) == inputIdentity) continue;
             if (resources.Count >= OfficeWorkflowHtmlResourceResolver.MaximumReferencedResourceCount)
                 throw new InvalidDataException("The source resource directory exceeds the checkpoint resource limit.");
             EnsureNoLinks(path);
@@ -72,8 +75,8 @@ internal static partial class OfficeConversionBatchExecutor {
         return Hash(string.Join("\n", resources.OrderBy(item => item.Path, StringComparer.Ordinal).Select(item => item.Path + "\0" + item.Hash)));
     }
 
-    private static async Task VerifyResourcesAsync(string? root, string? expected, long limit, CancellationToken token) {
-        if (root != null && await CaptureResourceIdentityAsync(root, limit, token).ConfigureAwait(false) != expected)
+    private static async Task VerifyResourcesAsync(string? root, string input, string? expected, long limit, CancellationToken token) {
+        if (root != null && await CaptureResourceIdentityAsync(root, input, limit, token).ConfigureAwait(false) != expected)
             throw new InvalidDataException("Conversion resources changed before publication; no output was replaced.");
     }
 }
