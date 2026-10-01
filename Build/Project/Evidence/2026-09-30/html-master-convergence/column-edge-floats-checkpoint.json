@@ -594,13 +594,15 @@
         "byteIdenticalToAccepted4bb48267f": true
       }
     ],
-    "zeroMarginImageOccurrences": 24,
-    "imageCountProof": "Identical complete PDF bytes retain the independently checked accepted PDF image objects.",
+    "imageCountProof": "Byte-identical b15854ce2 replay verifies 18 image paint occurrences and 24 pdfimages inventory rows, including six soft masks; the historical 24-image label included those masks.",
     "peachPdf": {
       "pageCount": 14,
       "sha256": "df2e1747c4e50f099575e016b869110455b95719c6efcc4598ee591a03d712ac"
     },
-    "lossQualification": "Current conversion reports retain loss; byte preservation is a regression gate, not unfamiliar-page fidelity acceptance."
+    "lossQualification": "Current conversion reports retain loss; byte preservation is a regression gate, not unfamiliar-page fidelity acceptance.",
+    "zeroMarginImageAndMaskInventoryRows": 24,
+    "zeroMarginImagePaintOccurrences": 18,
+    "zeroMarginSoftMaskRows": 6
   },
   "staticMacosBudget": {
     "report": "Ignore/HtmlUnknownPageQualification/static-gap-column-edges-static-budget-clean-d20713b13/html-static-budget.json",
