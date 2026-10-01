@@ -1,0 +1,54 @@
+"""Reproduce function-ID evidence with opt-in numbers-parser 4.19.0.
+
+The selected argument counts exercise reconstruction, not evaluation or Apple export fidelity.
+"""
+import argparse
+import hashlib
+import json
+from importlib.metadata import version
+from pathlib import Path
+from numbers_parser import Document
+from numbers_parser.generated.functionmap import FUNCTION_MAP
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('source', type=Path)
+parser.add_argument('output', type=Path)
+args = parser.parse_args()
+assert version('numbers-parser') == '4.19.0'
+source_hash = hashlib.sha256(args.source.read_bytes()).hexdigest()
+assert source_hash == '9371c5b1d6ee4dfa17569097f064eba9c67f804d88b48638efbbeeb459d07dd4'
+# Counts follow the public function signatures; names/IDs come from the independent provider.
+samples = {'ABS': 1, 'AND': 1, 'AVERAGE': 1, 'COLUMN': 0, 'COUNT': 1,
+           'COUNTA': 1, 'COUNTBLANK': 1, 'COUNTIF': 2, 'DATE': 3, 'DAY': 1,
+           'FALSE': 0, 'FIND': 2, 'HOUR': 1, 'HYPERLINK': 2, 'IF': 3,
+           'INDEX': 2, 'LEFT': 1, 'LEN': 1, 'MAX': 1, 'MEDIAN': 1,
+           'MID': 3, 'MIN': 1, 'MINUTE': 1, 'NOW': 0, 'OR': 2, 'PI': 0,
+           'POWER': 2, 'RIGHT': 1, 'ROUND': 2, 'SECOND': 1, 'SUM': 1, 'SUMIF': 2}
+identities = [{'index': index, 'name': name, 'sampleArgumentCount': samples[name]}
+              for index, name in FUNCTION_MAP.items() if name in samples]
+assert len(identities) == len(samples)
+document = Document(str(args.source))
+native_cases = []
+for sheet_name, table_name, row, column in [('Main Sheet', 'Formula Tests', 16, 0),
+                                          ('Powers Sheet', 'Powers of Two', 0, 0)]:
+    table = document.sheets[sheet_name].tables[table_name]
+    cell = table.cell(row, column)
+    nodes = document._model.formula_ast(table._table_id)[cell._formula_id]
+    native_cases.append({'sourceSheet': sheet_name, 'sourceTable': table_name,
+                         'row': row + 1, 'column': column + 1, 'formula': cell.formula,
+                         'cachedValue': cell.value,
+                         'functions': [{'index': n.AST_function_node_index,
+                                        'name': FUNCTION_MAP[n.AST_function_node_index],
+                                        'argumentCount': n.AST_function_node_numArgs}
+                                       for n in nodes if n.AST_node_type == 16]})
+manifest = {'upstream': 'https://github.com/masaccio/numbers-parser',
+            'revision': '1c6c5c3d2e29a9abb601596678089f0a6c85d64c',
+            'upstreamPath': 'tests/data/create-formulas.numbers',
+            'sourceSha256': source_hash, 'extractorVersion': 'numbers-parser 4.19.0',
+            'license': 'MIT, copyright Jon Connell',
+            'qualification': 'Independent function identities plus two unmodified native expressions and caches; synthetic argument samples do not qualify evaluation. No Apple export, recalculation or appearance oracle.',
+            'identities': identities, 'nativeCases': native_cases,
+            'unqualifiedIdentities': [{'index': index, 'name': FUNCTION_MAP.get(index)}
+                                     for index in [89, 101, 112, 119, 169]]}
+args.output.write_text(json.dumps(manifest, indent=2) + '\n')
+print(f'Extracted {len(identities)} identities and {len(native_cases)} native cases')

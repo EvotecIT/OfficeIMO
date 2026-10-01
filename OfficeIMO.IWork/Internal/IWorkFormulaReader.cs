@@ -20,6 +20,8 @@ internal static partial class IWorkFormulaReader {
     private const int PrimaryPrecedence = 10;
     private const int SumFunctionIndex = 168;
     private const int UnaryPrecedence = 6;
+    // Native iWork function IDs, qualified against the pinned independent function-identity manifest.
+    // These are not Excel/BIFF IDs; unqualified IDs must remain incomplete to protect editable output.
     private static readonly IReadOnlyDictionary<int, FunctionDefinition> Functions =
         new Dictionary<int, FunctionDefinition> {
         [1] = new("ABS", 1, 1),
@@ -44,15 +46,16 @@ internal static partial class IWorkFormulaReader {
         [86] = new("MEDIAN", 1, 255),
         [87] = new("MID", 3, 3),
         [88] = new("MIN", 1, 255),
-        [89] = new("MINUTE", 1, 1),
+        [90] = new("MINUTE", 1, 1),
         [97] = new("NOW", 0, 0),
-        [101] = new("OR", 1, 255),
-        [102] = new("PI", 0, 0),
-        [112] = new("ROUND", 2, 2),
-        [119] = new("SECOND", 1, 1),
+        [102] = new("OR", 1, 255),
+        [104] = new("PI", 0, 0),
+        [107] = new("POWER", 2, 2),
         [124] = new("RIGHT", 1, 2),
-        [SumFunctionIndex] = new("SUM", 1, 255),
-        [169] = new("SUMIF", 2, 3)
+        [126] = new("ROUND", 2, 2),
+        [132] = new("SECOND", 1, 1),
+        [145] = new("SUMIF", 2, 3),
+        [SumFunctionIndex] = new("SUM", 1, 255)
     };
 
     internal static IWorkFormulaResult Render(IWorkWireMessage formula, int zeroBasedRow, int zeroBasedColumn,

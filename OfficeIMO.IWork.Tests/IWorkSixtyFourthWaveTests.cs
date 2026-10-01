@@ -12,9 +12,9 @@ public sealed partial class IWorkBoundaryTests {
             (39, 3, 3), (41, 1, 1), (52, 0, 0), (53, 2, 3),
             (60, 1, 1), (61, 1, 2), (62, 2, 3), (63, 2, 4),
             (76, 1, 2), (77, 1, 1), (84, 1, 255), (86, 1, 255),
-            (87, 3, 3), (88, 1, 255), (89, 1, 1), (97, 0, 0),
-            (101, 1, 255), (102, 0, 0), (112, 2, 2), (119, 1, 1),
-            (124, 1, 2), (168, 1, 255), (169, 2, 3)
+            (87, 3, 3), (88, 1, 255), (90, 1, 1), (97, 0, 0),
+            (102, 1, 255), (104, 0, 0), (107, 2, 2), (126, 2, 2), (132, 1, 1),
+            (124, 1, 2), (168, 1, 255), (145, 2, 3)
         };
         foreach ((int index, int minimum, int maximum) in functions) {
             yield return new object[] { index, minimum == 0 ? maximum + 1 : minimum - 1 };
@@ -104,15 +104,7 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     private static IWorkFormulaResult RenderFunction(int functionIndex, int argumentCount) {
-        var nodes = new List<byte[]>(argumentCount + 1);
-        for (int index = 0; index < argumentCount; index++) {
-            nodes.Add(BytesField(1, Message(VarintField(1, 17), DoubleField(4, index + 1d))));
-        }
-        nodes.Add(BytesField(1, Message(VarintField(1, 16),
-            VarintField(2, checked((ulong)functionIndex)),
-            VarintField(3, checked((ulong)argumentCount)))));
-        IWorkWireMessage formula = IWorkProtobuf.Parse(
-            Message(BytesField(1, Message(nodes.ToArray()))), new IWorkReadOptions());
+        IWorkWireMessage formula = IWorkProtobuf.Parse(FunctionPayload(functionIndex, argumentCount), new IWorkReadOptions());
         return IWorkFormulaReader.Render(formula, 0, 0, 512, 4096);
     }
 }
