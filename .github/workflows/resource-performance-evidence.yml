@@ -1,0 +1,42 @@
+name: Test resource performance evidence
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        owner:
+          - name: shared
+            project: OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj
+            property: SharedPerformanceEvidence
+          - name: drawing
+            project: OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj
+            property: DrawingPerformanceEvidence
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            8.0.418
+            10.0.112
+      - name: Measure ${{ matrix.owner.name }} resource envelopes
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet test "${{ matrix.owner.project }}" --configuration Release --framework net8.0 "-p:${{ matrix.owner.property }}=true" --filter "Category=Performance" --logger "console;verbosity=normal" --logger trx --results-directory "artifacts/resource-performance/${{ matrix.owner.name }}"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: resource-performance-${{ matrix.owner.name }}-${{ matrix.os }}
+          path: artifacts/resource-performance/${{ matrix.owner.name }}
+          if-no-files-found: warn
