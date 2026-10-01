@@ -20,6 +20,7 @@ internal sealed partial class IWorkReadProjection {
                     Location = Location(page)
                 });
             }
+            AddTableComments(page, source, null, 0, 0, 0, 0);
             return null;
         }
         int columnCount = Math.Min(Math.Min(source.ColumnCount, _options.MaximumTableColumns),
@@ -91,14 +92,7 @@ internal sealed partial class IWorkReadProjection {
                 Location = location
             });
         }
-        if (source.Cells.Any(cell => cell.Comment != null)) {
-            _diagnostics.Add(new OfficeDocumentDiagnostic {
-                Category = OfficeDocumentDiagnosticCategory.Content,
-                Code = "IWORK_READER_TABLE_COMMENTS_OMITTED",
-                Message = $"Table '{source.Name}' cell comments remain on the iWork source model and are omitted from the Reader grid.",
-                Source = "OfficeIMO.Reader.IWork", Location = location
-            });
-        }
+        AddTableComments(page, source, tableIndex, columnCount, materializedHeaderRows, headerRows, dataRows);
         if (source.HiddenRows.Count > 0 || source.HiddenColumns.Count > 0) {
             _diagnostics.Add(new OfficeDocumentDiagnostic {
                 Category = OfficeDocumentDiagnosticCategory.Content,
@@ -216,8 +210,8 @@ internal sealed partial class IWorkReadProjection {
 
     private ReaderLocation AddImage(OfficeDocumentPage page, IWorkImageAsset source, bool includeAnchorBlock = false) {
         _cancellationToken.ThrowIfCancellationRequested();
-        _imageBudget.AddImage();
-        if (_options.IncludeImagePayloads) _imageBudget.AddProjectedImageBytes(source.Length);
+        _projectionBudget.AddImage();
+        if (_options.IncludeImagePayloads) _projectionBudget.AddProjectedImageBytes(source.Length);
         ReportUnsupportedRotation(page, source.Geometry, "image");
         string id = "iwork-a" + (_assets.Count + 1).ToString("D6", CultureInfo.InvariantCulture);
         var asset = new OfficeDocumentAsset {
@@ -364,7 +358,7 @@ internal sealed partial class IWorkReadProjection {
         for (int index = 0; index < value.Length; index++) {
             if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             char character = value[index];
-            if ("\\`*_{}[]()#+-.!>|~".IndexOf(character) >= 0) builder.Append('\\');
+            if ("\\`*_{}[]()#+-.!><|~&".IndexOf(character) >= 0) builder.Append('\\');
             builder.Append(character);
         }
         cancellationToken.ThrowIfCancellationRequested();

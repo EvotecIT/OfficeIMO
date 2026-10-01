@@ -458,7 +458,8 @@ public sealed class ReaderLocation {
     public string? Sheet { get; set; }
 
     /// <summary>
-    /// Optional A1 range descriptor (Excel).
+    /// Optional source cell or range descriptor in A1 notation. For containers with multiple
+    /// tables, <see cref="TableIndex"/> identifies the table whose coordinates are used.
     /// </summary>
     public string? A1Range { get; set; }
 

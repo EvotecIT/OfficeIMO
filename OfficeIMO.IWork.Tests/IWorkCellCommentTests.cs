@@ -87,13 +87,30 @@ public sealed partial class IWorkBoundaryTests {
             new IWorkReadOptions { MaximumTableCatalogEntries = 1 }).ReadNumbers());
     }
 
-    [Fact]
-    public void Reader_reports_qualified_cell_comments_omitted_from_its_grid() {
-        using var package = CommentPackage(IWorkDocumentKind.Numbers);
+    [Theory]
+    [InlineData(IWorkDocumentKind.Pages, "pages")]
+    [InlineData(IWorkDocumentKind.Numbers, "numbers")]
+    [InlineData(IWorkDocumentKind.Keynote, "key")]
+    public void Reader_retains_qualified_cell_comment_content_and_metadata_without_replacing_values(IWorkDocumentKind kind, string extension) {
+        using var package = CommentPackage(kind);
         var reader = new OfficeIMO.Reader.OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
-        var result = reader.ReadDocument(package, "comments.numbers");
-        Assert.Contains(result.Diagnostics, d => d.Code == "IWORK_READER_TABLE_COMMENTS_OMITTED");
+        var result = reader.ReadDocument(package, "comments." + extension);
         Assert.Equal("42", Assert.Single(Assert.Single(result.Tables).Rows[0]));
+        var block = Assert.Single(result.Blocks, b => b.Kind == "comment");
+        Assert.Equal("Review this\nplease ", block.Text);
+        Assert.Equal("A1", block.Location.A1Range);
+        Assert.Equal(0, block.Location.TableIndex);
+        Assert.Equal("table-cell-comment", block.Location.SourceBlockKind);
+        var metadata = Assert.Single(result.Metadata, m => m.Category == "table.comment");
+        Assert.Equal(block.Text, metadata.Value);
+        Assert.Equal(block.Id, metadata.Location!.BlockAnchor);
+        Assert.Equal("Reviewer", metadata.Attributes["author"]);
+        Assert.Equal("2001-01-01T00:00:42.0000000Z", metadata.Attributes["creationDateUtc"]);
+        Assert.Equal("14", metadata.SourceObjectId);
+        Assert.Equal("15", metadata.Attributes["authorRecordIdentifier"]);
+        Assert.Contains("Comment on", result.Markdown);
+        Assert.Contains("Review this\nplease ", result.Markdown);
+        Assert.DoesNotContain(result.Diagnostics, d => d.Code == "IWORK_READER_TABLE_COMMENTS_OMITTED");
     }
 
     [Theory]

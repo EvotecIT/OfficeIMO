@@ -2,6 +2,8 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using OfficeIMO.Excel;
 using OfficeIMO.IWork;
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.IWork;
 
 namespace OfficeIMO.IWork.Tests;
 
@@ -18,6 +20,11 @@ public sealed class IWorkCellCommentCorpusTests {
         Assert.False(result.IsVisualFallback, string.Join("\n", result.Report.Diagnostics.Select(d => d.Code + ": " + d.Message)));
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
+        var reader = new OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
+        OfficeDocumentReadResult read = reader.ReadDocument(path);
+        string json = read.ToJson();
+        OfficeDocumentReadResult transported = OfficeDocumentReadResultJson.Deserialize(json);
+        Assert.Equal(json, transported.ToJson());
         foreach (JsonElement expected in manifest.RootElement.GetProperty("cases").EnumerateArray()) {
             string sourceSheet = expected.GetProperty("sheet").GetString()!, sourceTable = expected.GetProperty("table").GetString()!;
             IWorkTable table = result.Projection.Sheets.Single(s => s.Name == sourceSheet).Tables.Single(t => t.Name == sourceTable);
@@ -39,8 +46,28 @@ public sealed class IWorkCellCommentCorpusTests {
             Assert.Equal(comment.Text, destination.Text); Assert.Equal(comment.Author, destination.Author);
             Assert.Null(destination.ParentId);
             Assert.Equal(comment.CreationDateUtc, destination.Date);
+
+            var metadata = Assert.Single(transported.Metadata, m => m.Category == "table.comment"
+                && m.Location!.Sheet == sourceSheet
+                && transported.Pages.Single(p => p.Location.Sheet == sourceSheet).Tables[m.Location.TableIndex!.Value].Title == sourceTable
+                && m.Location.A1Range == A1.CellReference(row, column));
+            Assert.Equal(comment.Text, metadata.Value);
+            Assert.Equal(comment.Author, metadata.Attributes["author"]);
+            Assert.Equal(comment.CreationDateUtc.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+                metadata.Attributes["creationDateUtc"]);
+            Assert.Equal(comment.SourceIdentity.EntryPath, metadata.Attributes["sourceEntryPath"]);
+            Assert.Equal(comment.SourceIdentity.RecordIdentifier.ToString(), metadata.SourceObjectId);
+            var block = Assert.Single(transported.Blocks, b => b.Id == metadata.Location!.BlockAnchor);
+            Assert.Equal("comment", block.Kind);
+            Assert.Equal(comment.Text, block.Text);
+            var page = Assert.Single(transported.Pages, p => p.Location.Sheet == sourceSheet);
+            Assert.Equal(sourceTable, page.Tables[metadata.Location!.TableIndex!.Value].Title);
+            Assert.Contains(page.Blocks, b => b.Id == block.Id);
+            Assert.Equal(comment.Text, string.Concat(transported.Chunks
+                .Where(c => c.Location.BlockAnchor == block.Id).Select(c => c.Text)));
         }
         Assert.Equal(3, reopened.Sheets.Sum(s => s.GetThreadedComments().Count));
+        Assert.Equal(3, transported.Blocks.Count(b => b.Kind == "comment"));
         saved.Position = 0;
         using var package = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(saved, false);
         Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator(DocumentFormat.OpenXml.FileFormatVersions.Office2019).Validate(package));

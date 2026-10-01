@@ -10,7 +10,7 @@ internal sealed partial class IWorkReadProjection {
     private readonly ReaderOptions _readerOptions;
     private readonly ReaderIWorkOptions _options;
     private readonly CancellationToken _cancellationToken;
-    private readonly IWorkProjectionBudget _imageBudget;
+    private readonly IWorkProjectionBudget _projectionBudget;
     private readonly List<ReaderChunk> _chunks = new();
     private readonly List<OfficeDocumentBlock> _blocks = new();
     private readonly List<ReaderTable> _tables = new();
@@ -18,7 +18,7 @@ internal sealed partial class IWorkReadProjection {
     private readonly List<OfficeDocumentLink> _links = new();
     private readonly List<OfficeDocumentPage> _pages = new();
     private readonly List<OfficeDocumentDiagnostic> _diagnostics = new();
-    private readonly List<OfficeDocumentMetadataEntry> _slideMetadata = new();
+    private readonly List<OfficeDocumentMetadataEntry> _projectionMetadata = new();
     private bool _reportedMarkdownListDepthLimit;
     private bool _reportedUnsupportedTextStyles;
     private bool _reportedUnsupportedLayoutBreaks;
@@ -37,7 +37,7 @@ internal sealed partial class IWorkReadProjection {
         _readerOptions = readerOptions;
         _options = options;
         _cancellationToken = cancellationToken;
-        _imageBudget = new IWorkProjectionBudget((options.ReadOptions ?? new IWorkReadOptions()).Clone());
+        _projectionBudget = new IWorkProjectionBudget((options.ReadOptions ?? new IWorkReadOptions()).Clone());
     }
 
     internal void AddNumbers(IWorkNumbersProjection source) {
@@ -64,7 +64,7 @@ internal sealed partial class IWorkReadProjection {
         foreach (IWorkKeynoteSlide slide in source.Slides) {
             _cancellationToken.ThrowIfCancellationRequested();
             var page = NewPage(slide.Index, slide.Name, null, slide.Index);
-            _slideMetadata.Add(new OfficeDocumentMetadataEntry {
+            _projectionMetadata.Add(new OfficeDocumentMetadataEntry {
                 Id = "iwork-slide-" + slide.Index.ToString("D4", CultureInfo.InvariantCulture)
                     + "-skipped",
                 Category = "presentation.slide",
@@ -144,7 +144,7 @@ internal sealed partial class IWorkReadProjection {
                 Category = "producer",
                 Name = "BuildVersion",
                 Value = version
-            }).Concat(_slideMetadata).ToArray();
+            }).Concat(_projectionMetadata).ToArray();
     }
 
     private OfficeDocumentPage NewPage(int? number, string name, string? sheet,
@@ -275,11 +275,12 @@ internal sealed partial class IWorkReadProjection {
         ReaderTable? table = null,
         Func<int, int, string>? markdownPart = null,
         string? sourceKind = null, OfficeDocumentRegion? region = null,
-        bool splitMarkdownIndependently = false, int? tableIndex = null) {
+        bool splitMarkdownIndependently = false, int? tableIndex = null, string? a1Range = null) {
         _cancellationToken.ThrowIfCancellationRequested();
         string id = "iwork-b" + (_blocks.Count + 1).ToString("D6", CultureInfo.InvariantCulture);
         ReaderLocation location = Location(page, sourceKind: sourceKind ?? kind, anchor: id);
         location.TableIndex = tableIndex;
+        location.A1Range = a1Range;
         var block = new OfficeDocumentBlock {
             Id = id,
             Kind = kind,
@@ -308,6 +309,7 @@ internal sealed partial class IWorkReadProjection {
                 ? ScalarSafeChunkLength(markdown, markdownOffset, maxChars) : 0;
             ReaderLocation chunkLocation = Location(page, _chunks.Count, sourceKind ?? kind, id);
             chunkLocation.TableIndex = tableIndex;
+            chunkLocation.A1Range = a1Range;
             _chunks.Add(new ReaderChunk {
                 Id = id + "-" + partIndex.ToString("D3", CultureInfo.InvariantCulture),
                 Kind = ReaderInputKind.IWork,

@@ -23,9 +23,12 @@ The current level is **extended semantic reconstruction**. Normal document conte
 
 `OfficeIMO.Reader.IWork.AotSmoke` publishes and executes the source reader and shared
 Reader handler on macOS arm64 with .NET 8.0.31 and .NET 10.0.12. The host rejects
-managed execution. Four hash-pinned corpus fixtures exercise Pages body text,
+managed execution. Five hash-pinned corpus fixtures exercise Pages body text,
 Numbers sparse typed cells and selected arithmetic/range/string formulas, and
-Keynote slide titles, body text and presenter notes. It also checks source and
+Keynote slide titles, body text and presenter notes. The native comment fixture
+checks three Reader root comments against its independent manifest, including
+exact content, author, creation time, native identity and source cell anchors.
+It also checks source and
 Reader path/stream parity, caller-owned streams, source preservation and
 unassessed-fidelity diagnostics, Reader JSON transport round-trip, pre-cancellation
 and configured input byte limits. Fixture provenance and licenses remain in the
@@ -242,4 +245,4 @@ Selected modern bit-19 comments resolve through store field `19`, a type-6005 co
 
 Missing or rejected selected references retain model path `4/19`, catalog path `3[n]/10`, or comment path `3`; invalid text, date and UUID metadata use root paths `1`, `2` and `5`. Replies retain `UnsupportedField` at root path `4` and remain unqualified. Unused catalogs and unselected comment values are not traversed. Qualified roots do not set `UnsupportedFeatures.Comment`; unresolved and unsupported selections retain it and require explicit partial reconstruction for editable values.
 
-XLSX preserves qualified root text, author, timestamp and cell address through the existing threaded-comment owner. Empty comment text, author normalization and case-colliding author names require destination fallback instead of silent rewriting. DOCX and PPTX table projections require partial reconstruction to omit comments and report `Omission`. Reader retains qualified comments on the source model and reports their omission from the grid. Three native roots are pinned in `cell-comments/native-roots.numbers`; the independent adjacent manifest verifies selected identities, text, author and timestamps. Pages/Keynote root behavior has synthetic boundary proof. Replies, native Apple exports and rendered comment appearance remain unqualified.
+XLSX preserves qualified root text, author, timestamp and cell address through the existing threaded-comment owner. Empty comment text, author normalization and case-colliding author names require destination fallback instead of silent rewriting. DOCX and PPTX table projections require partial reconstruction to omit comments and report `Omission`. Reader emits separate root-comment blocks, chunks and `table.comment` metadata with native identities, source table/cell anchors, exact text, author and UTC creation time. Its Markdown labels comments separately from table values. Qualified comments outside Reader row, column or dense-cell limits retain explicit omission counts. Three native roots are pinned in `cell-comments/native-roots.numbers`; the independent adjacent manifest verifies selected identities, text, author and timestamps, including Reader JSON transport and bounded NativeAOT output. Pages/Keynote root behavior has synthetic boundary proof. Replies, native Apple exports and rendered comment appearance remain unqualified.

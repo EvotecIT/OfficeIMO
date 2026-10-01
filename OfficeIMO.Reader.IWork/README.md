@@ -39,6 +39,22 @@ Bundle reads retain the iWork owner's entry/path/byte limits, physical-root and 
 
 Reader includes content from qualified source-hidden table rows and columns in its bounded grid and reports `IWORK_READER_HIDDEN_TABLE_CONTENT_INCLUDED`. Use `OfficeIMO.IWork` directly to inspect `HiddenRows` and `HiddenColumns`; unqualified visibility selections retain source warnings.
 
+## Table-cell comments
+
+Qualified root comments on projected cells become `comment` blocks and chunks with `SourceBlockKind = "table-cell-comment"`. `Location.TableIndex` identifies the table within its logical page; `Location.A1Range` keeps the original source cell address, including header rows flattened into Reader column labels. Comment text is separate from cell values and remains exact in blocks, chunks and metadata. Markdown labels each comment with its table, cell, author and UTC creation time and escapes literal source markup.
+
+Metadata entries in category `table.comment`, named `RootComment`, link to the comment block through `Location.BlockAnchor`. Their `Value` contains comment text; attributes include `author`, `creationDateUtc`, `sourceEntryPath`, `sourcePayloadIndex`, `authorRecordIdentifier`, `authorEntryPath` and `authorPayloadIndex`. `SourceObjectId` is the native comment record identifier. The linked logical page's `Tables[Location.TableIndex]` supplies the table name. These fields survive the shared Reader JSON transport.
+
+```csharp
+foreach (OfficeDocumentMetadataEntry entry in document.Metadata) {
+    if (entry.Category != "table.comment") continue;
+    Console.WriteLine($"Table {entry.Location?.TableIndex + 1}, cell {entry.Location?.A1Range}: {entry.Value}");
+    Console.WriteLine($"By {entry.Attributes["author"]} at {entry.Attributes["creationDateUtc"]}");
+}
+```
+
+Reader row, column and dense-cell limits also bound comment projection. `IWORK_READER_TABLE_COMMENTS_OMITTED` reports `omittedCommentCount` and `tableName` for qualified comments whose cells are truncated or whose entire table is omitted. `ReadOptions.MaximumProjectedTextItems` and `MaximumProjectedTextCharacters` independently bound emitted comment uses and their text, author and native entry-path payloads before formatting. Repeated references count separately. Markdown uses table indices rather than repeating potentially large table names in every comment. Replies and unsupported native comment fields retain source warnings; they are not flattened into qualified roots.
+
 Reader does not paginate Pages layouts or render Keynote slides. Its logical page labels represent a Pages document, Numbers sheet, or Keynote slide, not a rendered Pages page count.
 
 Targets: `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows. License: MIT. Runtime dependencies are `OfficeIMO.Reader.Core` and `OfficeIMO.IWork`.

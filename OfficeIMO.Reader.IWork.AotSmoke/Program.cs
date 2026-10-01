@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Security.Cryptography;
+using System.Text.Json;
 using OfficeIMO.IWork;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.IWork;
@@ -13,7 +14,8 @@ var fixtures = new[] {
     ("simple.pages", IWorkDocumentKind.Pages, "5AEE6D03277D2DB2104F593E64AFE081DEC539F0117B97124B6F99158124C93E"),
     ("simple.numbers", IWorkDocumentKind.Numbers, "D0B00D9CAE5985CCCAA3B2FB251FAE92EB0E38360FB4B5DF8B4350EB658F752B"),
     ("simple.key", IWorkDocumentKind.Keynote, "BA95755DF82CEB0CA834E1E03E2777C34FAD906320D8336B4F3FEFC6B48607EB"),
-    ("formulas.numbers", IWorkDocumentKind.Numbers, "DD85BAD68898CE5B065F277C0B9BE1F3C32D696E3BAA6B09D3614BBD35A5249F")
+    ("formulas.numbers", IWorkDocumentKind.Numbers, "DD85BAD68898CE5B065F277C0B9BE1F3C32D696E3BAA6B09D3614BBD35A5249F"),
+    ("comments.numbers", IWorkDocumentKind.Numbers, "81814EEC7D90108595F3A6E41457B980C1FD935E16A74D77BAD20AB11006DCAF")
 };
 foreach (var (name, kind, sha256) in fixtures) {
     string path = Path.Combine(AppContext.BaseDirectory, name);
@@ -49,6 +51,7 @@ foreach (var (name, kind, sha256) in fixtures) {
     OfficeDocumentReadResult roundTrip = OfficeDocumentReadResultJson.Deserialize(json);
     Require(OfficeDocumentReadResultJson.Serialize(roundTrip) == json,
         name + " Reader transport changed during JSON round-trip.");
+    if (name == "comments.numbers") VerifyComments(roundTrip);
 
     Reject<OperationCanceledException>(() => IWorkSourceDocument.Open(path, options: null,
         new CancellationToken(canceled: true)), name + " pre-cancellation");
@@ -99,7 +102,7 @@ static void VerifySource(IWorkSourceDocument source, string name) {
                 && table.GetCell(1, 1)!.Value is string first && first == "a"
                 && table.GetCell(2, 2)!.Value is double value && value == 2
                 && table.GetCell(3, 3)!.Value is string last && last == "Z", "Numbers sparse typed values changed.");
-        } else {
+        } else if (name == "formulas.numbers") {
             IWorkTableCell arithmetic = table.GetCell(2, 2)!;
             Require(arithmetic.Kind == IWorkCellKind.Formula && arithmetic.FormulaIsComplete
                 && arithmetic.Formula == "=A1+A2" && arithmetic.Value is double value && value == 3
@@ -107,6 +110,36 @@ static void VerifySource(IWorkSourceDocument source, string name) {
                 && numbers.Sheets[1].Tables[0].GetCell(3, 2)!.Formula == "=LEFT(A3,1)",
                 "Numbers formula expression or typed cache changed.");
         }
+    }
+}
+
+static void VerifyComments(OfficeDocumentReadResult result) {
+    using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "comments.json")));
+    Require(result.Blocks.Count(block => block.Kind == "comment") == 3, "Reader lost native root comments.");
+    foreach (JsonElement expected in manifest.RootElement.GetProperty("cases").EnumerateArray()) {
+        string address = OfficeIMO.Spreadsheet.SpreadsheetRangeReference.FromCell(
+            column: expected.GetProperty("column").GetInt32(), row: expected.GetProperty("row").GetInt32())
+            .Format(OfficeIMO.Spreadsheet.SpreadsheetAddressDialect.UnboundedA1);
+        OfficeDocumentMetadataEntry metadata = result.Metadata.Single(entry => entry.Category == "table.comment"
+            && entry.Location!.Sheet == expected.GetProperty("sheet").GetString()
+            && result.Pages.Single(page => page.Location.Sheet == entry.Location.Sheet)
+                .Tables[entry.Location.TableIndex!.Value].Title == expected.GetProperty("table").GetString()
+            && entry.Location.A1Range == address);
+        Require(metadata.Value == expected.GetProperty("text").GetString()
+            && metadata.Attributes["author"] == expected.GetProperty("author").GetString()
+            && metadata.SourceObjectId == expected.GetProperty("commentId").GetUInt64().ToString(CultureInfo.InvariantCulture),
+            "Reader lost native comment content, author or identity.");
+        DateTime actualDate = DateTime.Parse(metadata.Attributes["creationDateUtc"], CultureInfo.InvariantCulture,
+            DateTimeStyles.RoundtripKind);
+        DateTime expectedDate = DateTime.Parse(expected.GetProperty("creationDateUtc").GetString()!,
+            CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal);
+        Require(actualDate.Kind == DateTimeKind.Utc && Math.Abs((actualDate - expectedDate).Ticks) <= 10,
+            "Reader changed native comment creation time.");
+        OfficeDocumentBlock block = result.Blocks.Single(block => block.Id == metadata.Location!.BlockAnchor);
+        Require(block.Text == metadata.Value && block.Location.A1Range == address,
+            "Reader comment block lost content or cell anchor.");
+        Require(string.Concat(result.Chunks.Where(chunk => chunk.Location.BlockAnchor == block.Id).Select(chunk => chunk.Text)) == metadata.Value,
+            "Reader comment chunks lost content.");
     }
 }
 
