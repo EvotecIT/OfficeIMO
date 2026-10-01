@@ -704,6 +704,7 @@ public sealed partial class OfficeDrawing {
                 }
                 AddEffectDrawing(effectGroup.InnerDrawing, translatedTransform, effectGroup.BlendMode, effectGroup.SoftMask, effectGroup.Opacity);
                 ((OfficeDrawingEffectGroup)_elements[_elements.Count - 1]).UnfilteredGeometryBounds = effectGroup.UnfilteredGeometryBounds;
+                ((OfficeDrawingEffectGroup)_elements[_elements.Count - 1]).IsSvgMarkerPaint = effectGroup.IsSvgMarkerPaint;
             } else if (element is OfficeDrawingLink link) {
                 double linkX = link.X + x;
                 double linkY = link.Y + y;

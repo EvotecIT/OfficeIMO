@@ -15,18 +15,18 @@ public static partial class OfficeSvgDrawingReader {
             !TryResolveFilterRegion(graph, source, bounds.Transform(inverse), transform, out SvgInteractiveBounds region)) return false;
 
         if (region.Right <= region.Left || region.Bottom <= region.Top) {
-            result = new OfficeDrawing(source.Width, source.Height);
+            result = CreateEmptySvgFilterResult(source, bounds);
             return true;
         }
         double left = Math.Floor(region.Left), top = Math.Floor(region.Top);
         double w = Math.Ceiling(region.Right) - left, h = Math.Ceiling(region.Bottom) - top;
         if (w <= 0D || h <= 0D) {
-            result = new OfficeDrawing(source.Width, source.Height);
+            result = CreateEmptySvgFilterResult(source, bounds);
             return true;
         }
         if (!FiniteFilterNumber(w) || !FiniteFilterNumber(h) || w > int.MaxValue || h > int.MaxValue) return false;
         double pixels = w * h;
-        double work = pixels * (4D + CountDrawingElements(source, OfficeSvgDrawingReaderOptions.MaximumAllowedElements));
+        double work = pixels * (4D + EstimateSvgFilterSourceWork(source, references.CancellationToken));
         foreach (SvgFilterNode node in graph.Nodes) {
             if (node.Operation == SvgFilterOperation.Blur) {
                 double sx = node.X * Math.Abs(transform.M11), sy = node.Y * Math.Abs(transform.M22);
@@ -99,7 +99,18 @@ public static partial class OfficeSvgDrawingReader {
             // Existing managed renderer/encoder limits or unsupported source paint.
             // The importer reports the unapplied filter and retains its source drawing.
             return false;
+        } catch (NotSupportedException) {
+            // Recognized image formats may require an optional codec. Graph import
+            // has no caller codec: retain the original image and report the filter.
+            return false;
         }
+    }
+
+    private static OfficeDrawing CreateEmptySvgFilterResult(OfficeDrawing source, SvgInteractiveBounds bounds) {
+        var result = new OfficeDrawing(source.Width, source.Height);
+        result.AddClippedDrawingForRendering(new OfficeDrawing(source.Width, source.Height), 0D, 0D, OfficeClipPath.Empty(), 0D, 0D);
+        ((OfficeDrawingGroup)result.Elements[0]).UnfilteredGeometryBounds = (bounds.Left, bounds.Top, bounds.Right, bounds.Bottom);
+        return result;
     }
 
     private static float[] ResolveFilterPixels(int input, float[] graphic, float[] alpha, List<float[]> outputs) =>

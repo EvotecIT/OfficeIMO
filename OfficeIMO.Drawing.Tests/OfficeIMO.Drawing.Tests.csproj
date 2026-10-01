@@ -85,6 +85,7 @@
     <None Include="TestAssets\NotoSansDevanagari-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="TestAssets\NotoSansSC-BaselineSubset.ttf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Images\Kulek.jpg" Link="TestAssets\Kulek.jpg" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Pdf.Tests\Pdf\Fixtures\Interoperability\Scans\red-rgb.jp2" Link="TestAssets\red-rgb.jp2" CopyToOutputDirectory="PreserveNewest" />
     <None Include="TestAssets\OpenSans-Regular.woff2" CopyToOutputDirectory="PreserveNewest" />
     <None Include="TestAssets\SourceSansPro-Regular.otf" CopyToOutputDirectory="PreserveNewest" />
     <None Include="TestAssets\AdobeVFPrototype-Subset.otf" CopyToOutputDirectory="PreserveNewest" />

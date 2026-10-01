@@ -164,8 +164,8 @@ public static partial class OfficeSvgDrawingReader {
             }
             OfficeDrawing linkContent = target;
             if (hasEffects) {
-                TryApplySvgFilter(target, filterEffect, references, transform, maximumElements, ref visited, ref unsupported, out target);
-                drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
+                bool applied = TryApplySvgFilter(target, filterEffect, references, transform, maximumElements, ref visited, ref unsupported, out target);
+                AddSvgFilteredDrawing(drawing, target, applied ? filterEffect : null, blendMode, softMask);
             } else if (capturesLink) {
                 drawing.AddDrawingForClippedRendering(target, 0D, 0D, null);
             }
@@ -229,8 +229,8 @@ public static partial class OfficeSvgDrawingReader {
                     ref unsupported);
             }
             if (hasEffects) {
-                TryApplySvgFilter(target, filterEffect, references, transform, maximumElements, ref visited, ref unsupported, out target);
-                drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
+                bool applied = TryApplySvgFilter(target, filterEffect, references, transform, maximumElements, ref visited, ref unsupported, out target);
+                AddSvgFilteredDrawing(drawing, target, applied ? filterEffect : null, blendMode, softMask);
             }
             return;
         }
@@ -348,9 +348,12 @@ public static partial class OfficeSvgDrawingReader {
                 if (patternLayer != null) target.AddEffectDrawing(patternLayer, OfficeTransform.Identity);
                 target.AddShapeForClippedRendering(shape.Shape, shape.X, shape.Y);
                 if (strokePatternLayer != null) target.AddEffectDrawing(strokePatternLayer, OfficeTransform.Identity);
-                if (markerLayer != null) target.AddEffectDrawing(markerLayer, OfficeTransform.Identity);
-                TryApplySvgFilter(target, filterEffect, references, transform, maximumElements, ref visited, ref unsupported, out target);
-                drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
+                if (markerLayer != null) {
+                    target.AddEffectDrawing(markerLayer, OfficeTransform.Identity);
+                    ((OfficeDrawingEffectGroup)target.Elements[target.Elements.Count - 1]).IsSvgMarkerPaint = true;
+                }
+                bool applied = TryApplySvgFilter(target, filterEffect, references, transform, maximumElements, ref visited, ref unsupported, out target);
+                AddSvgFilteredDrawing(drawing, target, applied ? filterEffect : null, blendMode, softMask);
             } else {
                 drawing.AddShapeForClippedRendering(shape.Shape, shape.X, shape.Y);
             }

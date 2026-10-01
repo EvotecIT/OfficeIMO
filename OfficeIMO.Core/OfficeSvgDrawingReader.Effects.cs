@@ -6,6 +6,34 @@ using System.Xml.Linq;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeSvgDrawingReader {
+    private static void AddSvgFilteredDrawing(OfficeDrawing drawing, OfficeDrawing filtered,
+        SvgFilterEffect? filter, OfficeBlendMode blend, OfficeDrawingSoftMask? mask) {
+        // A managed graph already has its own filter-region clip. An identity
+        // effect surface would prematurely clip it to the SVG viewport before
+        // an enclosing graph can sample or translate the outside paint.
+        if (filter?.Graph != null && blend == OfficeBlendMode.Normal && mask == null) {
+            drawing.AddDrawingForClippedRendering(filtered, 0D, 0D, null);
+        } else if (filter?.Graph != null && filtered.Elements.Count == 1 && filtered.Elements[0] is OfficeDrawingGroup region) {
+            if (region.ClipPath.Kind == OfficeClipPathKind.Empty) {
+                drawing.AddDrawingForClippedRendering(filtered, 0D, 0D, null);
+                return;
+            }
+            // Real blend/mask effects still require an offscreen surface. Size it
+            // to the graph's paint region, not the unrelated containing viewport.
+            var local = new OfficeDrawing(region.ClipPath.Width, region.ClipPath.Height);
+            local.AddDrawingForClippedRendering(filtered, -region.X, -region.Y, null);
+            if (mask != null) {
+                var localMask = new OfficeDrawing(local.Width, local.Height);
+                localMask.AddDrawingForClippedRendering(mask.InnerDrawing, -region.X, -region.Y, null);
+                mask = new OfficeDrawingSoftMask(localMask, mask.Mode);
+            }
+            drawing.AddEffectDrawing(local, OfficeTransform.Translate(region.X, region.Y), blend, mask);
+            ((OfficeDrawingEffectGroup)drawing.Elements[drawing.Elements.Count - 1]).UnfilteredGeometryBounds = region.UnfilteredGeometryBounds;
+        } else {
+            drawing.AddEffectDrawing(filtered, OfficeTransform.Identity, blend, mask);
+        }
+    }
+
     private static bool TryResolveSvgEffects(
         XElement element,
         double width,

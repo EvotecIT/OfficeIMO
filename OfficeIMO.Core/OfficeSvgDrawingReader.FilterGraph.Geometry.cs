@@ -21,6 +21,7 @@ public static partial class OfficeSvgDrawingReader {
                 }
                 if (group.FrameTransform.HasValue) current = current.Transform(group.FrameTransform.Value.CreateDestinationTransform());
             } else if (element is OfficeDrawingEffectGroup effect) {
+                if (effect.IsSvgMarkerPaint) continue;
                 if (effect.UnfilteredGeometryBounds.HasValue) {
                     var original = effect.UnfilteredGeometryBounds.Value;
                     current = new SvgInteractiveBounds(original.Left, original.Top, original.Right, original.Bottom);
