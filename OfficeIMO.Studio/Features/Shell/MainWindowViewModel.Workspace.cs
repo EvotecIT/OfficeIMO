@@ -9,7 +9,7 @@ using OfficeIMO.Studio.Features.Workspace;
 namespace OfficeIMO.Studio.Features.Shell;
 
 public sealed partial class MainWindowViewModel {
-    private void OnRecoveryMaintenanceCompleted(object? sender, EventArgs args) => Avalonia.Threading.Dispatcher.UIThread.Post(() => {
+    private void OnRecoveryMaintenanceCompleted(object? sender, EventArgs args) => _uiDispatcher.Post(() => {
         if (!_disposed) OnPropertyChanged(nameof(HasRecovery));
     });
 

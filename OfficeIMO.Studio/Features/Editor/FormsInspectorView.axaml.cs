@@ -24,7 +24,7 @@ public sealed partial class FormsInspectorView : UserControl {
 
     private void OnModelChanged(object? sender, PropertyChangedEventArgs args) {
         if (args.PropertyName != nameof(MainWindowViewModel.HasFormPreview) || _model?.HasFormPreview != true) return;
-        Dispatcher.UIThread.Post(() => {
+        this.Dispatcher.Post(() => {
             if (_attached && _model?.HasFormPreview == true) FormAppearancePreview.BringIntoView();
         }, DispatcherPriority.Loaded);
     }
