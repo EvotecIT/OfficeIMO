@@ -80,6 +80,7 @@
         "AppStore": true,
         "TeamId": "8ZPGZ79T7J",
         "InstallerSigningIdentity": "3rd Party Mac Developer Installer: Evotec Services sp z o.o. (8ZPGZ79T7J)",
+        "ProvisioningProfilePath": "Artifacts/Studio/Apple/signing/OfficeIMO-Studio-MacAppStore.provisionprofile",
         "ThirdPartyNoticesManifestPath": "Build/Studio/Apple/third-party-notices.json",
         "DependenciesPath": "Artifacts/Studio/Apple/build/bin/OfficeIMO.Studio/release_osx-arm64/OfficeIMO.Studio.deps.json"
       }

@@ -92,9 +92,21 @@ an Apple distribution application identity and a Mac installer distribution
 identity for team `8ZPGZ79T7J`. A development certificate can qualify sandbox
 behavior but cannot produce a Store installer. Install credentials on the trusted
 builder; never commit private keys, certificates, keychains, or provisioning
-profiles. If capabilities require a profile, set `ProvisioningProfilePath` to a
-builder-local path within the configured project root. The packager rejects
-expired, wrong-team, wrong-bundle and development profiles.
+profiles.
+
+Create a Mac App Store Connect profile for `com.evotec.officeimo.studio` using the
+application distribution certificate installed on the builder. Set
+`OFFICEIMO_MAC_STORE_PROFILE` to the downloaded profile's absolute path, then
+stage it at the ignored path selected by `ProvisioningProfilePath`:
+
+```sh
+mkdir -p Artifacts/Studio/Apple/signing
+cp "$OFFICEIMO_MAC_STORE_PROFILE" Artifacts/Studio/Apple/signing/OfficeIMO-Studio-MacAppStore.provisionprofile
+```
+
+The committed entitlements bind the app to that bundle and team. The packager
+rejects expired, wrong-team, wrong-bundle and development profiles. Renew the
+profile when its certificate changes or the profile expires.
 
 Keep marketing version and build number identical in the release target and
 MacApp configuration. This backend uses explicit versions; Xcode project
