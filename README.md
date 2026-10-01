@@ -241,6 +241,12 @@ EN 16931, XRechnung and UBL Peppol BIS, plus pinned independent corpus evidence.
 Business-rule execution uses an explicitly configured local Java/Saxon runtime.
 [`OfficeIMO.Invoicing.Pdf`](OfficeIMO.Invoicing.Pdf/README.md) renders localized or
 multilingual layouts and attaches the exact captured XML through `PdfInvoiceDocument`.
+Native Polish FA(3) reading and bounded authoring keep national declarations
+separate from EN totals, with an offline pinned-schema validator and official
+fixtures. [`OfficeIMO.Invoicing.KSeF`](OfficeIMO.Invoicing.KSeF/README.md) owns token
+authentication, encrypted online submission, status and UPO retrieval. Submission
+references, accepted status, receipt binding and receipt schema results remain
+distinct.
 
 #### [OfficeIMO.Pdf](OfficeIMO.Pdf/README.md)
 

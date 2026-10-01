@@ -2,6 +2,14 @@ namespace OfficeIMO.Invoicing.Tests;
 
 public class InvoiceTargetProfileTests {
     [Fact]
+    public void SelfBilledInvoiceRequiresASeparatePeppolContract() {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.TypeCode = InvoiceDocumentTypes.SelfBilledInvoice;
+        var contract = InvoiceTestContracts.For(InvoiceSyntax.Ubl, InvoiceProfile.PeppolBis);
+        Assert.Contains(InvoiceSerializer.InspectTarget(invoice, contract), diagnostic => diagnostic.Location == "TypeCode" && diagnostic.Severity == InvoiceDiagnosticSeverity.Error);
+        Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, contract));
+    }
+    [Fact]
     public void CiiBuyerIdentifiersCannotBeSilentlyReducedForUbl() {
         Invoice invoice = InvoiceFixture.Create();
         invoice.Seller.Identifiers.Add(new InvoiceIdentifier("seller-1"));

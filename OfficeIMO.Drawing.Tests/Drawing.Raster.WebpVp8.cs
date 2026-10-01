@@ -153,21 +153,31 @@ public sealed class DrawingWebpVp8Tests {
 
 #if NET8_0_OR_GREATER
     [Fact]
+#if DRAWING_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+    [Trait("Category", "ResourcePerformanceEvidence")]
+#endif
     public void LargeVp8DecodeKeepsAllocationsNearItsRetainedImageBudget() {
         // Independently produced with Pillow/libwebp from a 512x512 gradient pattern.
         // The output itself needs 1 MiB; per-block coefficient/transform arrays
         // would add several more MiB of short-lived allocations.
         byte[] encoded = ReadFixture("independent-vp8-allocation.webp");
+#if DRAWING_PERFORMANCE_EVIDENCE
         Assert.True(OfficeWebpCodec.TryDecode(encoded, out _)); // JIT and codec warmup.
 
         long before = GC.GetAllocatedBytesForCurrentThread();
+#endif
         bool decoded = OfficeWebpCodec.TryDecode(encoded, out OfficeRasterImage? image);
+#if DRAWING_PERFORMANCE_EVIDENCE
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+#endif
 
         Assert.True(decoded);
         Assert.Equal(512, image!.Width);
         Assert.Equal(512, image.Height);
+#if DRAWING_PERFORMANCE_EVIDENCE
         Assert.True(allocated <= 4_000_000, $"VP8 decode allocated {allocated:N0} bytes.");
+#endif
     }
 #endif
 

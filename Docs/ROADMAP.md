@@ -252,6 +252,8 @@ Milestone numbers are identifiers, not a strict dependency-removal queue. H1-H4 
 
 ## Electronic invoices
 
+- [ ] Extend native FA(3) authoring beyond its [bounded creation and reading contracts](../OfficeIMO.Invoicing/README.md#create-polish-fa3): before/after correction rows, additional parties and JST/GV roles, new means of transport, partial-payment histories, settlement charges, national item classifications and attachments. Qualify each additional mapping against the pinned schema and independent authority examples; retain explicit reports for unsupported fields.
+- [ ] Qualify the [KSeF integration](../OfficeIMO.Invoicing.KSeF/README.md) with a configured TEST identity: authenticated token exchange, online FA(3) acceptance, asynchronous status and exact UPO retrieval. The credential-free harness covers state, cryptography, cancellation and ambiguous mutations; the public TEST certificate endpoint is separately checked. Keep authenticated acceptance distinct from native FA(3) schema validation, and investigate the official TEST UPO examples' receiver-name disagreement with the pinned UPO schema.
 - [ ] Run the equivalent XML read, XML write, pinned-rules validation, and PDF-generation workloads on Windows and macOS target hosts. Retain elapsed and managed-allocation evidence for every operation, confirm or adjust the configured platform ceilings from those measurements, and keep the canonical XML and XML/PDF agreement gates identical to the qualified Linux run.
 
 ## Google Workspace

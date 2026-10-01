@@ -8,6 +8,10 @@ namespace OfficeIMO.Invoicing.Pdf;
 public sealed class InvoicePdfLayoutOptions {
     private readonly List<InvoicePdfLanguagePack> _languages = new List<InvoicePdfLanguagePack>();
     private readonly List<InvoicePdfApproval> _approvals = new List<InvoicePdfApproval>();
+    private readonly List<InvoicePdfLineColumn> _lineColumns = new List<InvoicePdfLineColumn> {
+        InvoicePdfLineColumn.Item, InvoicePdfLineColumn.Quantity, InvoicePdfLineColumn.NetPrice,
+        InvoicePdfLineColumn.Vat, InvoicePdfLineColumn.NetAmount
+    };
     private string _labelSeparator = " / ";
     private string _dateFormat = "yyyy-MM-dd";
     private CultureInfo _formattingCulture = CultureInfo.InvariantCulture;
@@ -37,6 +41,21 @@ public sealed class InvoicePdfLayoutOptions {
 
     /// <summary>Language packs displayed in order. Multiple packs produce multilingual labels.</summary>
     public IList<InvoicePdfLanguagePack> Languages => _languages;
+
+    /// <summary>Ordered line-table columns. Choose two to eight distinct columns including Item and NetAmount. The default contains Item, Quantity, NetPrice, Vat and NetAmount.</summary>
+    public IList<InvoicePdfLineColumn> LineColumns => _lineColumns;
+
+    /// <summary>Unit description mode. Defaults to the original machine-readable code.</summary>
+    public InvoicePdfCodeDisplay UnitCodeDisplay { get; set; }
+
+    /// <summary>Payment description mode. Defaults to the original code; authored payment text is always retained.</summary>
+    public InvoicePdfCodeDisplay PaymentCodeDisplay { get; set; }
+
+    /// <summary>Reduces spacing and table padding for document details while retaining their values.</summary>
+    public bool CompactDetails { get; set; }
+
+    /// <summary>Uses the captured single-line invoice number (up to 80 characters) and localized page count as the text footer on every page. This replaces configured footer text, including first/even variants, while retaining header settings and footer graphics. Defaults to false.</summary>
+    public bool IncludePageIdentity { get; set; }
 
     /// <summary>
     /// Optional visual theme. Leave null to retain the compact compatibility layout.
@@ -122,9 +141,19 @@ public sealed class InvoicePdfLayoutOptions {
         return result;
     }
 
+    /// <summary>Creates an independent copy of language, appearance, approval and resource settings for deferred or batch processing.</summary>
+    public InvoicePdfLayoutOptions Clone() => Snapshot();
+
     internal InvoicePdfLayoutOptions Snapshot() {
         if (_languages.Count == 0) throw new InvalidOperationException("At least one invoice PDF language pack is required.");
         if (_languages.Any(static language => language == null)) throw new InvalidOperationException("Invoice PDF language packs cannot contain null.");
+        if (_lineColumns.Count < 2 || _lineColumns.Count > 8 || _lineColumns.Distinct().Count() != _lineColumns.Count ||
+            !_lineColumns.Contains(InvoicePdfLineColumn.Item) || !_lineColumns.Contains(InvoicePdfLineColumn.NetAmount) ||
+            _lineColumns.Any(static column => column < InvoicePdfLineColumn.Item || column > InvoicePdfLineColumn.PriceDiscount))
+            throw new InvalidOperationException("Choose two to eight distinct defined line columns, including Item and NetAmount.");
+        if (UnitCodeDisplay < InvoicePdfCodeDisplay.Code || UnitCodeDisplay > InvoicePdfCodeDisplay.CodeAndDescription ||
+            PaymentCodeDisplay < InvoicePdfCodeDisplay.Code || PaymentCodeDisplay > InvoicePdfCodeDisplay.CodeAndDescription)
+            throw new InvalidOperationException("Invoice code display mode is undefined.");
         var result = new InvoicePdfLayoutOptions {
             LabelSeparator = LabelSeparator,
             FormattingCulture = FormattingCulture,
@@ -141,6 +170,12 @@ public sealed class InvoicePdfLayoutOptions {
             MaxGeneratedPages = MaxGeneratedPages,
             MaxOutputBytes = MaxOutputBytes
         };
+        result._lineColumns.Clear();
+        result._lineColumns.AddRange(_lineColumns);
+        result.UnitCodeDisplay = UnitCodeDisplay;
+        result.PaymentCodeDisplay = PaymentCodeDisplay;
+        result.CompactDetails = CompactDetails;
+        result.IncludePageIdentity = IncludePageIdentity;
         result._languages.Clear();
         result._languages.AddRange(_languages);
         result._approvals.AddRange(_approvals.Select(static approval =>

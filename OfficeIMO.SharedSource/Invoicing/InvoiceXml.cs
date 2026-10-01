@@ -9,13 +9,17 @@ namespace OfficeIMO.Internal.Invoicing;
 
 /// <summary>Bounded, namespace-aware XML operations shared by invoice readers and profile inspection.</summary>
 internal static class InvoiceXml {
+    internal const int MaximumNodes = 100_000;
+    internal const int MaximumAttributes = 200_000;
     internal static readonly XNamespace Rsm = "urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100";
     internal static readonly XNamespace Ram = "urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100";
     internal static readonly XNamespace Cbc = "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2";
+    internal static readonly XNamespace Cac = "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2";
+    internal static readonly XNamespace Udt = "urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100";
     internal static readonly XNamespace UblInvoice = "urn:oasis:names:specification:ubl:schema:xsd:Invoice-2";
     internal static readonly XNamespace UblCreditNote = "urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2";
 
-    internal static XDocument Parse(byte[] bytes) {
+    internal static XDocument Parse(byte[] bytes, int? maximumNodes = null, int? maximumAttributes = null) {
 #if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(bytes);
 #else
@@ -32,8 +36,12 @@ internal static class InvoiceXml {
         // Validate depth before materializing the tree, including deeply nested unknown extensions.
         using (var stream = new MemoryStream(bytes, false))
         using (var reader = XmlReader.Create(stream, settings)) {
+            int nodes = 0, attributes = 0;
             while (reader.Read()) {
                 if (reader.Depth > 128) throw new InvalidDataException("Invoice XML exceeds the maximum depth of 128.");
+                if (++nodes > maximumNodes) throw new InvalidDataException("Invoice XML exceeds the maximum node count of " + maximumNodes + ".");
+                attributes += reader.AttributeCount;
+                if (attributes > maximumAttributes) throw new InvalidDataException("Invoice XML exceeds the maximum attribute count of " + maximumAttributes + ".");
             }
         }
         using (var stream = new MemoryStream(bytes, false))

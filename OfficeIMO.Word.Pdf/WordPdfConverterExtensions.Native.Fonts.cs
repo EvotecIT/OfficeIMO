@@ -171,7 +171,8 @@ namespace OfficeIMO.Word.Pdf {
                 PdfCore.PdfOptions options,
                 string familyName,
                 PdfCore.PdfStandardFont? fallbackSlot,
-                string? resolvedFontFamily = null) {
+                string? resolvedFontFamily = null,
+                bool sourceFontEmbeddingAllowed = true) {
                 string normalizedFamily = NormalizeNativeFontFamily(familyName);
                 if (_report == null || !_reportedFontSubstitution.Add(normalizedFamily)) {
                     return;
@@ -183,7 +184,8 @@ namespace OfficeIMO.Word.Pdf {
                     "word:font[" + familyName + "]",
                     familyName,
                     fallbackSlot,
-                    resolvedFontFamily));
+                    resolvedFontFamily,
+                    sourceFontEmbeddingAllowed: sourceFontEmbeddingAllowed));
             }
         }
 

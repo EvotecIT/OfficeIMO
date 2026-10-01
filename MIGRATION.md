@@ -9,6 +9,35 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## Invoice financial edits and standalone payment data
+
+`InvoiceCalculator.UpdateDeclaredAmounts` invalidates an accounting-currency VAT
+amount when invoice VAT changes or has no retained baseline. Supply a refreshed
+`TaxAmountInAccountingCurrency`, or use the exchange-rate overload, before writing.
+`InvoiceEditor.Recalculate` returns the corresponding refresh diagnostic.
+Applications that relied on retaining the old foreign-currency amount must make
+this accounting decision explicitly.
+Changing `Currency` or an established `TaxCurrency` also clears the foreign-currency
+VAT amount. Set currencies before supplying a refreshed amount.
+
+CII payment references, creditor identifiers and mandates without payment means
+now populate `Invoice.PaymentReference`, `CreditorIdentifier` and
+`DirectDebitMandateReference`. UBL seller creditor identifiers without payment
+means populate `CreditorIdentifier`. These sources no longer create an empty
+`InvoicePayment`. Read the independent fields when handling such documents;
+`Payments` contains only actual payment instructions.
+
+VAT-breakdown validation diagnostics identify the exact `DeclaredTaxes[index]`
+occurrence. Update any application routing that matched the former collection-only
+paths.
+
+`OfficeInvoiceWorkflowOperation` includes `EditSource`. Update exhaustive
+operation switches to handle it. For this operation, `Source` and
+`ModelValidation` describe the edited XML, and `Succeeded` means that the
+requested replacements completed. Model or mapping errors can remain in the
+report; requested standards validation must pass before output is returned.
+Create captured edit requests through `ForSourceEdit` on the memory or file
+request type.
 ## CSV asynchronous reads and stream saves
 
 On .NET 8 and later, `CsvDocument.OpenDataReaderAsync` reads incrementally.
