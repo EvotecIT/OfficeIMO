@@ -4,60 +4,9 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private IElement? _activeColumnNoteOwner;
-
-    private IReadOnlyList<HtmlRenderFlowBlock> BuildColumnChildrenWithNotes(
-        IElement element, double width, HtmlRenderBoxStyle style, int depth) {
-        IElement? previous = _activeColumnNoteOwner;
-        _activeColumnNoteOwner = _options.Mode == HtmlRenderMode.Paged ? element : null;
-        try {
-            return BuildMultiColumnChildBlocks(element, element.ChildNodes, width, style, depth);
-        } finally {
-            _activeColumnNoteOwner = previous;
-        }
-    }
-
-    private IElement? ResolveColumnNoteOwner(IElement element) {
-        if (_activeColumnNoteOwner == null || !_computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed)
-            || !string.Equals(computed.GetValue("float-reference").Trim(), "column", StringComparison.OrdinalIgnoreCase)) return null;
-        for (IElement? parent = element.ParentElement; parent != null; parent = parent.ParentElement) {
-            if (ReferenceEquals(parent, _activeColumnNoteOwner)) return parent;
-            if (_computedStyles.Elements.TryGetValue(parent, out HtmlComputedStyle? parentStyle)) {
-                string count = parentStyle.GetValue("column-count").Trim();
-                string width = parentStyle.GetValue("column-width").Trim();
-                if ((count.Length > 0 && count != "auto") || (width.Length > 0 && width != "auto")) return null;
-            }
-        }
-        return null;
-    }
-
-    /// <summary>
-    /// Reserves each note in its call's column. A call deferred by reservation
-    /// cannot move back during reflow; its preceding legal body fragment remains.
-    /// </summary>
-    private MultiColumnPlan ResolveColumnNoteLayout(
-        IElement owner, IReadOnlyList<HtmlRenderFlowBlock> children, MultiColumnPlan body,
-        double width, double height) {
-        if (_footnoteEntries.Count == 0) return body;
-        HtmlFootnoteEntry[] entries = _footnoteEntries.Values.Where(e => ReferenceEquals(e.ColumnOwner, owner))
-            .OrderBy(e => e.Number).ToArray();
-        if (entries.Length == 0) return body;
-        ColumnNotePlan notes = PlanColumnNotes(body, entries, width, height, null);
-        int maximumPasses = Math.Min(64, Math.Max(8, entries.Length + 4));
-        for (int pass = 0; pass < maximumPasses; pass++) {
-            CheckCancellation();
-            body = BuildMultiColumnPlan(children, height, _options.MaxColumnCount, throwOnLimit: true, notes);
-            ColumnNotePlan next = PlanColumnNotes(body, entries, width, height, notes);
-            if (next.EquivalentTo(notes)) return AppendColumnNoteFragments(body, next, width, height);
-            notes = next;
-        }
-        throw new HtmlDomLimitException(HtmlRenderDiagnosticCodes.PaginationConvergenceLimitExceeded,
-            "Column-note reflow exceeded its bounded convergence limit.", "ColumnNoteReflowPasses", maximumPasses + 1, maximumPasses);
-    }
-
     private ColumnNotePlan PlanColumnNotes(
         MultiColumnPlan body, IReadOnlyList<HtmlFootnoteEntry> entries, double width, double height,
-        ColumnNotePlan? previous) {
+        ColumnNotePlan? previous, ColumnEdgeFloatPlan? floats = null) {
         var chunks = new List<ColumnNoteChunk>();
         var reserved = new Dictionary<int, double>();
         var minimumCalls = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -81,7 +30,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double minimumBody = column == callColumn
                     ? Math.Min(height, Math.Max(callHeight,
                         Math.Min(height * 0.5D, Math.Max(12D, _options.DefaultFontSize * 1.5D)))) : 0D;
-                double capacity = Math.Max(0D, height - minimumBody - occupied - gap);
+                double capacity = Math.Max(0D, height - minimumBody - occupied - gap - (floats?.Reserved(column) ?? 0D));
                 if (capacity <= 0.01D) { column++; continue; }
                 double end = FindFragmentEnd(entry.Block, offset, capacity, fullPageHeight: height);
                 if (end <= offset + 0.0001D) {
@@ -140,9 +89,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
     /// call and note together when that set fits a fresh page; overflow sets
     /// retain their authored row-boundary page breaks.
     /// </summary>
-    private IEnumerable<HtmlRenderAvoidBreakRange> ResolveColumnNoteKeepRanges(
+    private IEnumerable<HtmlRenderAvoidBreakRange> ResolveColumnReservationKeepRanges(
         IElement owner, IReadOnlyList<double> rowBreaks, double contentY, double contentHeight) {
-        if (!_footnoteEntries.Values.Any(entry => ReferenceEquals(entry.ColumnOwner, owner))) yield break;
+        if (!_footnoteEntries.Values.Any(entry => ReferenceEquals(entry.ColumnOwner, owner))
+            && !_columnEdgeFloatEntries.Values.Any(entry => ReferenceEquals(entry.Owner, owner))) yield break;
         double start = 0D;
         foreach (double end in rowBreaks.Concat(new[] { contentHeight })) {
             yield return new HtmlRenderAvoidBreakRange(contentY + start, contentY + end);

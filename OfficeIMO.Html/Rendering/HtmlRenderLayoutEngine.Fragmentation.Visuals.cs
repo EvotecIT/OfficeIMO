@@ -22,7 +22,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                     continue;
                 }
-                bool containsFlowAnchor = _pageFloatEntries.Count > 0 && ContainsFlowAnchor(visual);
+                bool containsFlowAnchor = (_pageFloatEntries.Count > 0 || _columnEdgeFloatEntries.Count > 0) && ContainsFlowAnchor(visual);
                 double visualBottom = visual.LayoutY + visual.LayoutHeight;
                 // Paint-neutral wrappers can retain the CSS box height while
                 // their visible children continue across printed pages.

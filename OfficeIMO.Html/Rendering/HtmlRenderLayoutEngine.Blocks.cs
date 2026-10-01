@@ -156,7 +156,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
 
-                if (childStyle.FloatSide != "none" || TryGetPageFloatSide(element, childStyle, out _)) {
+                if (childStyle.FloatSide != "none" || TryGetPageFloatSide(element, childStyle, out _)
+                    || TryGetColumnEdgeFloatSide(element, childStyle, out _, out _)) {
                     inlineNodes.Add(node);
                     continue;
                 }

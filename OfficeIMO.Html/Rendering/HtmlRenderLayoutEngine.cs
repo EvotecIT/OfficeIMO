@@ -502,6 +502,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _flattenedSemanticBoundaries.Clear();
         _footnoteEntries.Clear();
         _pageFloatEntries.Clear();
+        _columnEdgeFloatEntries.Clear();
         _bookmarkDefinitions.Clear();
         _runningStringValues.Clear();
         _runningElementSnapshots.Clear();

@@ -262,11 +262,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         _layoutStyles[element] = style.Clone();
         if (style.Display == "none") return;
-        if (!HtmlRenderStyleResolver.IsBlockElement(element, style)) {
+        bool isPageFloat = TryGetPageFloatSide(element, style, out _);
+        bool isColumnFloat = TryGetColumnEdgeFloatSide(element, style, out _, out _);
+        if (!HtmlRenderStyleResolver.IsBlockElement(element, style) && !isPageFloat && !isColumnFloat) {
             AddInlineNamedDestinationRun(element, style, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
         }
-        bool isPageFloat = TryGetPageFloatSide(element, style, out _);
-        if (!isPageFloat) ReportUnsupportedFloatValues(element, style);
+        if (!isPageFloat && !isColumnFloat) ReportUnsupportedFloatValues(element, style);
         ReportUnsupportedOverflowValues(element, style);
         ReportUnsupportedMultiColumnValues(element, style);
         RegisterInlineSemanticControls(element, style);
@@ -298,9 +299,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 element));
             return;
         }
+        if (isColumnFloat) {
+            AssignLogicalTextOrders(runs);
+            if (TryAddColumnEdgeFloatRun(element, inheritedStyle, depth, style, link, runs)) return;
+        }
         if (isPageFloat) {
             AssignLogicalTextOrders(runs);
             if (TryAddPageFloatRun(element, inheritedStyle, depth, style, link, runs)) return;
+        }
+        // Extracted figures own their destination at the moved box. A
+        // rejected extraction retains the ordinary inline target in source flow.
+        if ((isPageFloat || isColumnFloat) && !HtmlRenderStyleResolver.IsBlockElement(element, style)) {
+            AddInlineNamedDestinationRun(element, style, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
         }
         if (style.FloatSide != "none") {
             AssignLogicalTextOrders(runs);

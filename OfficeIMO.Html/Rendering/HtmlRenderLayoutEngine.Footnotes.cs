@@ -21,7 +21,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             noteStyle.ClearSide = "none";
             noteStyle.UnsupportedFloat = string.Empty;
             noteStyle.UnsupportedClear = string.Empty;
-            IElement? columnOwner = ResolveColumnNoteOwner(element);
+            IElement? columnOwner = ResolveColumnReferenceOwner(element);
             double pageContentWidth = columnOwner != null ? containingWidth
                 : _footnotePlan.TryGetContentWidth(element, out double plannedContentWidth)
                 ? Math.Max(1D, plannedContentWidth)
