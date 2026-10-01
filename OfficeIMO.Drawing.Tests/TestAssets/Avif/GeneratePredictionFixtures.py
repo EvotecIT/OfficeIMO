@@ -61,7 +61,7 @@ def main():
     if subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip()!=COMMIT: raise ValueError('Unexpected native revision')
     for name,expected in SOURCES.items():
         if digest(subprocess.check_output(['git','-C',str(source),'show','HEAD:'+name]))!=expected: raise ValueError('Unexpected native source: '+name)
-    diff=subprocess.check_output(['git','-C',str(source),'diff','--no-ext-diff','--unified=0'])
+    diff=subprocess.check_output(['git','-C',str(source),'diff','HEAD','--no-ext-diff','--unified=0'])
     if diff and diff!=patch.read_bytes(): raise ValueError('Unexpected native edits')
     if not diff: run(['git','-C',source,'apply','--unidiff-zero',patch])
     facts=tables(a.spec_text,work/'numeric-tables')

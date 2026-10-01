@@ -44,10 +44,10 @@ def main():
     for name,expected in SOURCES.items():
         data=subprocess.check_output(['git','-C',str(source),'show','HEAD:'+name])
         if digest(data)!=expected: raise ValueError('Native baseline hash mismatch: '+name)
-    diff=subprocess.check_output(['git','-C',str(source),'diff','--no-ext-diff','--unified=0'])
+    diff=subprocess.check_output(['git','-C',str(source),'diff','HEAD','--no-ext-diff','--unified=0'])
     if diff and diff!=patch.read_bytes(): raise ValueError('Unexpected native source edits')
     if not diff: run(['git','-C',source,'apply','--unidiff-zero',patch])
-    if subprocess.check_output(['git','-C',str(source),'diff','--no-ext-diff','--unified=0'])!=patch.read_bytes():
+    if subprocess.check_output(['git','-C',str(source),'diff','HEAD','--no-ext-diff','--unified=0'])!=patch.read_bytes():
         raise ValueError('Native trace patch mismatch')
     with (work/'native-configure.log').open('w') as log:
         run(['cmake','-S',source,'-B',build,'-DCMAKE_BUILD_TYPE=Release','-DENABLE_DOCS=0','-DENABLE_TESTS=0','-DENABLE_EXAMPLES=0','-DENABLE_TOOLS=0','-DCONFIG_AV1_ENCODER=0','-DCONFIG_MULTITHREAD=0','-DCONFIG_RUNTIME_CPU_DETECT=0'],stdout=log,stderr=subprocess.STDOUT)

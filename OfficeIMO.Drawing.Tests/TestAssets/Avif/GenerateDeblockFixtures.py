@@ -12,10 +12,10 @@ def main():
     if not source.exists():run(['git','clone','--depth','1','--branch','v3.13.1','https://aomedia.googlesource.com/aom',source])
     assert subprocess.check_output(['git','-C',source,'rev-parse','HEAD'],text=True).strip()==COMMIT
     assert digest(subprocess.check_output(['git','-C',source,'show','HEAD:av1/decoder/decodeframe.c']))==SOURCE
-    diff=subprocess.check_output(['git','-C',source,'diff','--no-ext-diff','--unified=0'])
+    diff=subprocess.check_output(['git','-C',source,'diff','HEAD','--no-ext-diff','--unified=0'])
     if diff and diff!=patch.read_bytes():raise ValueError('Unexpected native edits')
     if not diff:run(['git','-C',source,'apply','--unidiff-zero',patch])
-    assert subprocess.check_output(['git','-C',source,'diff','--no-ext-diff','--unified=0'])==patch.read_bytes()
+    assert subprocess.check_output(['git','-C',source,'diff','HEAD','--no-ext-diff','--unified=0'])==patch.read_bytes()
     shutil.copyfile(here/'OfficeReconstructionProbe.inc',source/'av1/decoder/OfficeReconstructionProbe.inc')
     for name in ['LICENSE','PATENTS']:shutil.copyfile(source/name,work/name)
     with (work/'native-configure.log').open('w') as log:run(['cmake','-S',source,'-B',build,'-DCMAKE_BUILD_TYPE=Release','-DAOM_TARGET_CPU=generic','-DENABLE_DOCS=0','-DENABLE_TESTS=0','-DENABLE_EXAMPLES=0','-DENABLE_TOOLS=0','-DCONFIG_AV1_ENCODER=0','-DCONFIG_MULTITHREAD=0','-DCONFIG_RUNTIME_CPU_DETECT=0'],stdout=log,stderr=subprocess.STDOUT)

@@ -49,6 +49,7 @@
     <None Update="TestAssets\Avif\prediction-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\reconstruction-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\deblock-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="TestAssets\Avif\cdef-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\*.avif" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\StaticPdfGaps\*.avif" Link="TestAssets\Avif\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\ScanQuality\**\*" Link="ScanQuality\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
