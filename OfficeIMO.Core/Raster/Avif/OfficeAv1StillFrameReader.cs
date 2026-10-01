@@ -2,7 +2,7 @@ using System;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>Reads reduced Main-8 still-frame syntax and a complete combined-OBU tile group.</summary>
+/// <summary>Reads reduced Main 8/10-bit still-frame syntax and a complete combined-OBU tile group.</summary>
 internal static partial class OfficeAv1StillFrameReader {
     internal static bool TryRead(byte[] bytes, OfficeAvifImageItem item, OfficeAv1StillSequence sequence,
         OfficeRasterDecodeOptions options, out OfficeAv1StillFrame? frame) {
@@ -12,11 +12,13 @@ internal static partial class OfficeAv1StillFrameReader {
         frame = null;
         if (bytes == null || item == null || sequence == null || bytes.Length > options.MaximumEncodedBytes) return false;
         try {
+            Require(sequence.BitDepth is 8 or 10 && sequence.BitDepth == item.BitDepth);
             Require(item.Offset >= 0 && item.Length > 0 && item.Offset <= bytes.Length - item.Length);
             Require(sequence.FrameOffset >= item.Offset && sequence.FrameLength > 0 &&
                 sequence.FrameOffset <= item.Offset + item.Length - sequence.FrameLength);
             var bits = new OfficeAv1Bits(bytes, sequence.FrameOffset, sequence.FrameLength, options.CancellationToken);
             var result = new OfficeAv1StillFrame {
+                BitDepth = sequence.BitDepth,
                 DisableCdfUpdate = bits.Flag(),
                 AllowScreenContentTools = bits.Flag(),
                 UpscaledWidth = sequence.MaximumWidth,

@@ -2,7 +2,7 @@ using System;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>Checks low-overhead OBU boundaries and 8-bit Main reduced headers, without decoding or allocating planes.</summary>
+/// <summary>Checks low-overhead OBU boundaries and Main 8/10-bit reduced headers, without allocating planes.</summary>
 internal static class OfficeAv1StillSequenceReader {
     internal static bool TryRead(byte[] bytes, OfficeAvifImageItem item, OfficeRasterDecodeOptions options,
         out OfficeAv1StillSequence? sequence) {
@@ -92,7 +92,7 @@ internal static class OfficeAv1StillSequenceReader {
         result.SuperResolution = bits.Flag();
         result.Cdef = bits.Flag();
         result.Restoration = bits.Flag();
-        Require(!bits.Flag()); // high_bitdepth: this stage owns 8-bit planes.
+        result.BitDepth = bits.Flag() ? 10 : 8; // Main profile has no twelve_bit field.
         result.Monochrome = bits.Flag();
         int primaries = 2, transfer = 2, matrix = 2;
         if (bits.Flag()) { primaries = bits.Read(8); transfer = bits.Read(8); matrix = bits.Read(8); }
@@ -111,8 +111,9 @@ internal static class OfficeAv1StillSequenceReader {
         bits.TrailingBits();
         byte[] config = item.Configuration;
         Require(config.Length == 4 && config[0] == 0x81 && config[1] == result.Level);
-        int format = (result.Monochrome ? 16 : 0) | 12 | result.ChromaSamplePosition;
+        int format = (result.BitDepth == 10 ? 64 : 0) | (result.Monochrome ? 16 : 0) | 12 | result.ChromaSamplePosition;
         Require(config[2] == format && config[3] == 0);
+        Require(result.BitDepth == item.BitDepth);
         Require(result.Monochrome == item.Monochrome && (!item.IsAlpha || (result.Monochrome && fullRange)));
         return result;
     }

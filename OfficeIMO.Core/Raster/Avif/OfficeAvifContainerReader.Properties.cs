@@ -55,7 +55,7 @@ internal sealed partial class OfficeAvifContainerReader {
         Require(_types.TryGetValue(id, out string? type) && type == "av01");
         Require(_locations.TryGetValue(id, out var location));
         Require(_associations.TryGetValue(id, out var properties));
-        int width = 0, height = 0, pixelChannels = 0;
+        int width = 0, height = 0, pixelChannels = 0, pixelDepth = 0;
         byte[]? configuration = null;
         OfficeAvifColorDescription? color = null;
         bool hasAuxiliaryType = false;
@@ -78,8 +78,9 @@ internal sealed partial class OfficeAvifContainerReader {
                     Require(seen.Add(property.Type) && property.Length == 4 && _bytes[property.Start] == 0x81);
                     configuration = new byte[4];
                     Buffer.BlockCopy(_bytes, property.Start, configuration, 0, 4);
-                    // Initial path is 8-bit Main profile: no high-bit-depth planes or extra config OBUs yet.
-                    Require((configuration[1] >> 5) == 0 && (configuration[2] & 0xE0) == 0 && configuration[3] == 0);
+                    // Main profile permits 8/10-bit declarations. Pixel reconstruction is a separate gate.
+                    // Tier and twelve_bit remain zero; extra configuration OBUs are outside this path.
+                    Require((configuration[1] >> 5) == 0 && (configuration[2] & 0xA0) == 0 && configuration[3] == 0);
                     Require((configuration[2] & 0x0C) == 0x0C);
                     bool monochrome = (configuration[2] & 0x10) != 0;
                     Require(!alpha || monochrome);
@@ -93,7 +94,9 @@ internal sealed partial class OfficeAvifContainerReader {
                     int channels = (int)cursor.Integer(1);
                     Require(channels is 1 or 3);
                     pixelChannels = channels;
-                    for (int i = 0; i < channels; i++) Require(cursor.Integer(1) == 8);
+                    pixelDepth = (int)cursor.Integer(1);
+                    Require(pixelDepth is 8 or 10);
+                    for (int i = 1; i < channels; i++) Require(cursor.Integer(1) == (uint)pixelDepth);
                     cursor.End();
                     break;
                 }
@@ -119,6 +122,7 @@ internal sealed partial class OfficeAvifContainerReader {
         Require(width > 0 && height > 0 && configuration != null && (!alpha || hasAuxiliaryType));
         // pixi may precede av1C in the association list; validate their agreement after reading both.
         Require(pixelChannels == 0 || pixelChannels == ((configuration![2] & 0x10) != 0 ? 1 : 3));
+        Require(pixelDepth == 0 || pixelDepth == ((configuration![2] & 0x40) != 0 ? 10 : 8));
         return new OfficeAvifImageItem(id, width, height, location.Offset, location.Length, configuration!, alpha, color);
     }
 

@@ -21,6 +21,8 @@ internal sealed class OfficeAvifImageItem {
     internal int Length { get; }
     internal byte[] Configuration { get; }
     internal bool Monochrome => Configuration.Length >= 3 && (Configuration[2] & 16) != 0;
+    /// <summary>Main-profile sample depth retained independently of auxiliary-alpha role.</summary>
+    internal int BitDepth => Configuration.Length >= 3 && (Configuration[2] & 64) != 0 ? 10 : 8;
     /// <summary>Auxiliary-alpha role is established by item references and auxC, independently of plane count.</summary>
     internal bool IsAlpha { get; }
     internal OfficeAvifColorDescription? ColorDescription { get; }

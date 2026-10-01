@@ -1,7 +1,8 @@
 namespace OfficeIMO.Drawing;
 
-/// <summary>Validated reduced still-picture sequence parameters used by the forthcoming frame/tile decoder.</summary>
+/// <summary>Validated reduced still-picture sequence parameters retained separately from pixel reconstruction.</summary>
 internal sealed class OfficeAv1StillSequence {
+    internal int BitDepth { get; set; } = 8;
     internal int MaximumWidth { get; set; }
     internal int MaximumHeight { get; set; }
     internal int WidthBits { get; set; }

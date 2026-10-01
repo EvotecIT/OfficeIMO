@@ -33,6 +33,9 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
         if(frame==null) throw new ArgumentNullException(nameof(frame));
         if(options==null) throw new ArgumentNullException(nameof(options));
         options.Validate();options.CancellationToken.ThrowIfCancellationRequested();
+        // Header recognition must not route wider samples into byte-sized prediction/filter owners.
+        if(sequence.BitDepth!=8 || frame.BitDepth!=8)
+            throw new FormatException("AV1 high-bit-depth reconstruction is not qualified.");
         if(stage<OfficeAv1ReconstructionStage.Unfiltered || stage>OfficeAv1ReconstructionStage.Restored)
             throw new ArgumentOutOfRangeException(nameof(stage));
         if(frame.Width<1 || frame.Width>65536 || frame.UpscaledWidth<frame.Width || frame.UpscaledWidth>65536 || frame.Height<1 || frame.Height>65536 ||

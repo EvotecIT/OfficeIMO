@@ -4,6 +4,7 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>Reduced still-frame syntax retained for tile reconstruction, without allocating pixel planes.</summary>
 internal sealed class OfficeAv1StillFrame {
+    internal int BitDepth { get; set; } = 8;
     internal int Width { get; set; }
     internal int UpscaledWidth { get; set; }
     internal int Height { get; set; }

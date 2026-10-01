@@ -24,7 +24,7 @@ internal sealed partial class OfficeAvifContainerReader {
         _options = options;
     }
 
-    /// <summary>Reads whole, untransformed 8-bit color/alpha items. Unsupported paths stay distinct from pixel support.</summary>
+    /// <summary>Reads whole, untransformed Main 8/10-bit color/alpha items. Container support is distinct from pixels.</summary>
     internal static bool TryRead(byte[]? bytes, OfficeRasterDecodeOptions options, out OfficeAvifContainer? container) {
         if (options == null) throw new ArgumentNullException(nameof(options));
         options.Validate();
