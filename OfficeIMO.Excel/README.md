@@ -54,7 +54,7 @@ document.Save();
 - Reads tabular values through the forward-only `ExcelDocument.OpenDataReader(...)` API and typed `ExcelSheet.RowsAs<T>(...)` helpers.
 - Edits loaded workbooks through the normal worksheet, cell, range, table, and fluent authoring APIs.
 - Handles practical workbook hygiene such as table/filter conflicts, safe table names, deterministic save order, and feature inspection.
-- Renders supported numeric display formats consistently in PDF and image export, including optional decimals and red negative-number sections. Numeric-looking text retains its type, contents, and font color. Other number-format colors are not projected.
+- Renders supported numeric display formats consistently in PDF and image export, including optional decimals, scientific mantissa precision and exponent sign/case/padding, and red negative-number sections. Quoted or escaped exponent letters and decimal points remain literals. Numeric-looking text retains its type, contents, and font color. Other number-format colors are not projected.
 - Applies optional shared package-security policy before parsing Open XML, XLSB, or compound XLS files.
 - Includes parallel execution controls for heavy export and autofit workloads while serializing the Open XML mutation phase safely.
 

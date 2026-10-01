@@ -34,6 +34,9 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(258u, 2u, 2u, 0u, "0.00%;(0.00%)")]
     [InlineData(258u, 0u, 3u, 1u, "#,##0%;[Red](#,##0%)")]
     [InlineData(258u, 253u, 0u, 0u, "0.###############%")]
+    [InlineData(259u, 3u, 0u, 0u, "0.000E+00")]
+    [InlineData(259u, 0u, 0u, 0u, "0E+00")]
+    [InlineData(259u, 253u, 0u, 0u, "0.###############E+00")]
     public void Excel_numeric_format_survives_save_with_typed_cache(uint type, uint decimals, uint negative, uint grouping, string code) {
         using MemoryStream package = NumberFormatPackage(IWorkDocumentKind.Numbers, NumericFormat(type, decimals, negative, grouping), value: -0.5d);
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);

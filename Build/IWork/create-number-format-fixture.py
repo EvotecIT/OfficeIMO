@@ -7,6 +7,7 @@ from importlib.metadata import version
 from pathlib import Path
 
 from numbers_parser import Document, NegativeNumberStyle
+from fixture_number_values import source_number
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("output", type=Path)
@@ -58,23 +59,13 @@ for row, (label, value, kind, decimals, grouping, negative) in enumerate(cases):
     assert native.decimal_places == (253 if decimals is None else decimals)
     assert native.show_thousands_separator == grouping
     assert native.negative_style == negative.value
-    assert cell._buffer[0] == 5 and cell._flags & 1
-    raw = cell._buffer[12:28]
-    coefficient = int.from_bytes(raw[:14], "little") + ((raw[14] & 1) << 112)
-    exponent = (((raw[15] & 0x7f) << 7) | (raw[14] >> 1)) - 0x1820
-    if coefficient:
-        while coefficient % 10 == 0:
-            coefficient //= 10
-            exponent += 1
-        source_text = ("-" if raw[15] & 0x80 else "") + str(coefficient) + "E" + str(exponent)
-    else:
-        source_text = "0"
+    source_text, _, approximate = source_number(cell)
     expected.append({
         "row": row + 1, "label": label, "value": cell.value,
         "kind": "Percentage" if kind == "percentage" else "Number",
         "decimalPlaces": decimals, "thousandsSeparator": native.show_thousands_separator,
         "negativeStyle": native.negative_style, "displayText": cell.formatted_value,
-        "sourceNumberText": source_text, "numericValueIsApproximate": len(str(coefficient)) > 15,
+        "sourceNumberText": source_text, "numericValueIsApproximate": approximate,
     })
 manifest = {
     "producer": "numbers-parser", "producerVersion": "4.19.0",

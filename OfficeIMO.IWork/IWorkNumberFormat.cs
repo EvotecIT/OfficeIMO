@@ -13,9 +13,9 @@ public sealed class IWorkNumberFormat {
         UseAccountingStyle = useAccountingStyle;
     }
 
-    /// <summary>Gets whether the value is displayed as a number, a percentage, or a currency amount.</summary>
+    /// <summary>Gets the source numeric display family.</summary>
     public IWorkNumberFormatKind Kind { get; }
-    /// <summary>Gets the explicit decimal count from zero through thirty, or null for Numbers' automatic mode.</summary>
+    /// <summary>Gets the explicit decimal count from zero through thirty, or null for Numbers' automatic mode. Scientific formats apply this count to the mantissa.</summary>
     public int? DecimalPlaces { get; }
     /// <summary>Gets whether the source requests digit grouping.</summary>
     public bool ThousandsSeparator { get; }
@@ -34,7 +34,9 @@ public enum IWorkNumberFormatKind {
     /// <summary>A numeric value displayed after multiplication by one hundred, with a percent sign.</summary>
     Percentage,
     /// <summary>A numeric currency amount with a source currency identifier.</summary>
-    Currency
+    Currency,
+    /// <summary>A numeric value displayed with a mantissa and a base-ten exponent.</summary>
+    Scientific
 }
 
 /// <summary>Supported source treatments of negative numbers.</summary>

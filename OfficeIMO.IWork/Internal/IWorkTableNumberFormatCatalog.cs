@@ -66,10 +66,12 @@ internal sealed class IWorkTableNumberFormatCatalog {
                         && code is { Length: 3 } && code.All(value => value is >= (byte)'A' and <= (byte)'Z');
                     if (supportedShape) currencyCode = System.Text.Encoding.ASCII.GetString(code!);
                 }
-                if (supportedShape && (currency ? type == 257 : type is 256 or 258)
+                if (supportedShape && (currency ? type == 257 : type is 256 or 258 or 259)
                     && (decimals <= 30 || decimals == 253) && negative <= 3 && grouping <= 1
+                    && (type != 259 || negative == 0 && grouping == 0)
                     && accounting <= 1 && (accounting == 0 || negative == 0)) {
                     format = new IWorkNumberFormat(currency ? IWorkNumberFormatKind.Currency
+                            : type == 259 ? IWorkNumberFormatKind.Scientific
                             : type == 258 ? IWorkNumberFormatKind.Percentage : IWorkNumberFormatKind.Number,
                         decimals == 253 ? null : (int)decimals, grouping == 1, (IWorkNegativeNumberStyle)negative,
                         currencyCode, accounting == 1);

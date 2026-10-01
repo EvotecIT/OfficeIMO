@@ -60,7 +60,7 @@ public static partial class ExcelIWorkConverter {
             .Any(cell => cell.NumberFormat is { DecimalPlaces: null })) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED",
-                    "Numbers automatic decimal formats use up to fifteen optional decimal places in XLSX. Significant-digit selection and scientific notation can differ; numeric values and formula caches are unchanged.",
+                    "Numbers automatic decimal formats use up to fifteen optional fractional places in XLSX; scientific formats apply them to the mantissa. Significant-digit selection, rounding and exponent presentation can differ; numeric values and formula caches are unchanged.",
                     lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation)
             }).ToArray();
         }

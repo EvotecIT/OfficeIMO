@@ -13,6 +13,10 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 Finite Decimal128 values above fifteen significant digits now retain numeric recovery instead of forcing visual fallback. Inspect `IWorkTableCell.NumericValueIsApproximate` before consuming values that must retain exact source precision; `SourceNumberText` holds the exact normalized coefficient/exponent value. Conversion reports use `IWORK_TABLE_NUMERIC_VALUE_APPROXIMATED` with `Approximation` fidelity, and formula cache assessments use `Approximate`. `RequireNoLoss()` rejects this approximation. Overflow, nonzero underflow and unsupported special encodings remain decode failures.
 
+## iWork scientific reconstruction
+
+`IWorkNumberFormatKind.Scientific` is an additive enum member. Supported scientific selections retain typed values and formula caches and convert to editable XLSX with zero-to-thirty mantissa decimal places and an `E+00` exponent. Automatic precision reports `IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED`; `RequireNoLoss()` rejects that approximation. Nondefault scientific negative styles and grouping still require the partial-reconstruction policy. DOCX and PPTX table conversion retains raw cached text and reports numeric-format omission.
+
 ## iWork currency reconstruction
 
 Supported currency selections retain editable numeric values and currency metadata instead of requiring partial reconstruction for the format alone. The Excel adapter displays the source identifier as a prefix and reports `IWORK_NUMBERS_CURRENCY_DISPLAY_APPROXIMATED`; `RequireNoLoss()` rejects this display approximation. Inspect `IWorkTableCell.NumberFormat.CurrencyCode` and `UseAccountingStyle` when the source format matters. Currency symbols, locale placement, and accounting alignment are not reconstructed. Unsupported currency metadata still requires the partial-reconstruction policy.

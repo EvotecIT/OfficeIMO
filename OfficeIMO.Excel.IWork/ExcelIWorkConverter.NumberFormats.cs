@@ -9,6 +9,7 @@ public static partial class ExcelIWorkConverter {
             ? places == 0 ? "" : "." + new string('0', places)
             : "." + new string('#', 15);
         if (format.Kind == IWorkNumberFormatKind.Percentage) number += "%";
+        if (format.Kind == IWorkNumberFormatKind.Scientific) number += "E+00";
         if (format.Kind == IWorkNumberFormatKind.Currency) {
             // The source identifier is qualified; a locale-specific currency symbol is not.
             // Keep the identifier visible and report the display approximation separately.

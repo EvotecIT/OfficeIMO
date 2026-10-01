@@ -268,12 +268,7 @@ namespace OfficeIMO.Excel {
                 return ApplyFractionAffixes(normalized, fractionText);
             }
 
-            if (lower.Contains("e+") || lower.Contains("e-")) {
-                int decimals = CountDecimalPlaces(lower);
-                double scientificValue = selectedSection == 1 ? Math.Abs(value) : value;
-                string scientificText = scientificValue.ToString(BuildScientificFormat(lower, decimals), CultureInfo.InvariantCulture);
-                return ApplyNumericAffixes(normalized, scientificText);
-            }
+            if (TryFormatScientific(value, normalized, selectedSection, out string scientificText)) return scientificText;
 
             int percentPlaceholders = CountPercentPlaceholders(section);
             bool thousands = lower.Contains("#,##") || lower.Contains(",##");
@@ -529,83 +524,6 @@ namespace OfficeIMO.Excel {
             return builder.Length > 0
                 && int.TryParse(builder.ToString(), NumberStyles.None, CultureInfo.InvariantCulture, out denominator)
                 && denominator > 0;
-        }
-
-        private static int CountDecimalPlaces(string formatCode) {
-            return GetDecimalPlaceInfo(formatCode).Maximum;
-        }
-
-        private static string BuildScientificFormat(string formatCode, int decimals) {
-            int exponentIndex = formatCode.IndexOf('e');
-            int exponentDigits = 0;
-            if (exponentIndex >= 0) {
-                for (int i = exponentIndex + 1; i < formatCode.Length; i++) {
-                    char ch = formatCode[i];
-                    if (ch == '+' || ch == '-') {
-                        continue;
-                    }
-
-                    if (ch == '0') {
-                        exponentDigits++;
-                        continue;
-                    }
-
-                    break;
-                }
-            }
-
-            exponentDigits = Math.Max(1, exponentDigits);
-            return "0"
-                + (decimals > 0 ? "." + new string('0', decimals) : string.Empty)
-                + "E+"
-                + new string('0', exponentDigits);
-        }
-
-        private static DecimalPlaceInfo GetDecimalPlaceInfo(string formatCode) {
-            int dot = formatCode.IndexOf('.');
-            if (dot < 0) {
-                return new DecimalPlaceInfo(0, 0);
-            }
-
-            int required = 0;
-            int maximum = 0;
-            for (int i = dot + 1; i < formatCode.Length; i++) {
-                char ch = formatCode[i];
-                if (ch == '0') {
-                    required++;
-                    maximum++;
-                    continue;
-                }
-
-                if (ch == '#' || ch == '?') {
-                    maximum++;
-                    continue;
-                }
-
-                break;
-            }
-
-            return new DecimalPlaceInfo(required, maximum);
-        }
-
-        private static string TrimOptionalDecimalPlaces(string text, int requiredDecimalPlaces) {
-            int dot = text.IndexOf('.');
-            if (dot < 0) {
-                return text;
-            }
-
-            int end = text.Length - 1;
-            while (end > dot + requiredDecimalPlaces && text[end] == '0') {
-                end--;
-            }
-
-            if (end == dot) {
-                return text.Substring(0, dot);
-            }
-
-            return end == text.Length - 1
-                ? text
-                : text.Substring(0, end + 1);
         }
 
         private static int CountScalingCommas(string formatCode) {
@@ -953,7 +871,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                if (inQuote && IsNumericPlaceholder(ch)) {
+                if (inQuote && (IsNumericPlaceholder(ch) || ch is 'E' or 'e')) {
                     builder.Append(LiteralPunctuationMarker).Append(ch);
                     continue;
                 }
@@ -976,7 +894,7 @@ namespace OfficeIMO.Excel {
                 if (!inQuote && ch == '\\') {
                     if (i + 1 < formatCode.Length) {
                         char escaped = formatCode[i + 1];
-                        if (escaped == ',' || escaped == '.') {
+                        if (escaped is ',' or '.' or 'E' or 'e' || IsNumericPlaceholder(escaped)) {
                             builder.Append(LiteralPunctuationMarker);
                         }
 
@@ -1020,17 +938,5 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private readonly struct DecimalPlaceInfo {
-            internal DecimalPlaceInfo(int required, int maximum) {
-                Required = required;
-                Maximum = maximum;
-            }
-
-            internal int Required { get; }
-
-            internal int Maximum { get; }
-
-            internal int Optional => Maximum - Required;
-        }
     }
 }
