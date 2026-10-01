@@ -74,7 +74,7 @@ public sealed class IWorkFormulaSummary {
     public int CompleteCacheCount { get; }
     /// <summary>Gets the count with partial recovered caches.</summary>
     public int PartialCacheCount { get; }
-    /// <summary>Gets the count with generic error markers whose original codes were not decoded.</summary>
+    /// <summary>Gets the count of numeric caches above portable precision and source error caches represented by generic markers.</summary>
     public int ApproximateCacheCount { get; }
     /// <summary>Gets the count without recovered caches.</summary>
     public int MissingCacheCount { get; }
