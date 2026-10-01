@@ -44,14 +44,6 @@ public static partial class ExcelIWorkConverter {
             }).ToArray();
         }
         if (editable && projection.Sheets.SelectMany(sheet => sheet.Tables).SelectMany(table => table.Cells)
-            .Any(cell => cell.Fill != null)) {
-            destinationDiagnostics = destinationDiagnostics.Concat(new[] {
-                new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_CELL_FILL_OMITTED",
-                    "Selected native cell fills remain on the source projection and are omitted from XLSX table reconstruction.",
-                    lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission)
-            }).ToArray();
-        }
-        if (editable && projection.Sheets.SelectMany(sheet => sheet.Tables).SelectMany(table => table.Cells)
             .Any(cell => cell.Padding != null)) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_CELL_PADDING_OMITTED",
@@ -161,6 +153,8 @@ public static partial class ExcelIWorkConverter {
                                 _ => cell.Value
                             };
                             ExcelCell targetCell = sheet.CellAt(cell.Row, cell.Column);
+                            // Reconstructed worksheets start unfilled; explicit no-fill keeps that state.
+                            if (cell.Fill?.Color is { } fillColor) targetCell.SetFillColor(fillColor.RgbHex);
                             bool formulaWritten = false;
                             bool hasErrorValue = cell.Kind == IWorkCellKind.Error
                                 || cell.Kind == IWorkCellKind.Formula

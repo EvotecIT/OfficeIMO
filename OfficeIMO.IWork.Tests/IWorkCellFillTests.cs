@@ -5,6 +5,41 @@ namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkBoundaryTests {
     [Fact]
+    public void Independent_selected_Numbers_fills_survive_saved_XLSX_including_styled_empty_cells() {
+        using var manifest = JsonDocument.Parse(File.ReadAllText(CorpusFixture("numbers-cell-fills.json")));
+        var expectedSource = manifest.RootElement.GetProperty("source");
+        string path = CorpusFixture(expectedSource.GetProperty("path").GetString()!);
+        Assert.Equal(expectedSource.GetProperty("sha256").GetString(), Convert.ToHexString(
+            System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
+            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
+        Assert.False(result.IsVisualFallback);
+        using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
+        using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
+        foreach (var expectedTable in manifest.RootElement.GetProperty("tables").EnumerateArray()) {
+            var sourceSheet = Assert.Single(result.Projection.Sheets, sheet => sheet.Tables.Any(table =>
+                table.ModelRecord!.Identifier == expectedTable.GetProperty("modelIdentifier").GetUInt64()));
+            var table = Assert.Single(sourceSheet.Tables, table =>
+                table.ModelRecord!.Identifier == expectedTable.GetProperty("modelIdentifier").GetUInt64());
+            string destinationName = Assert.Single(result.WorksheetMappings, mapping =>
+                mapping.SourceSheetIndex == result.Projection.Sheets.ToList().IndexOf(sourceSheet) + 1
+                && mapping.SourceTableIndex == sourceSheet.Tables.ToList().IndexOf(table) + 1).DestinationName;
+            var destination = Assert.Single(reopened.Sheets, sheet => sheet.Name == destinationName);
+            foreach (var expected in expectedTable.GetProperty("cells").EnumerateArray()) {
+                int row = expected.GetProperty("row").GetInt32(), column = expected.GetProperty("column").GetInt32();
+                var source = Assert.IsType<IWorkTableCell>(table.GetCell(row, column));
+                Assert.Equal(expected.GetProperty("empty").GetBoolean(), source.Kind == IWorkCellKind.Empty);
+                var fill = expected.GetProperty("fill");
+                string? rgb = fill.GetProperty("kind").GetString() == "none" ? null : fill.GetProperty("rgbHex").GetString();
+                Assert.IsType<IWorkCellFill>(source.Fill);
+                Assert.Equal(rgb, source.Fill!.Color?.RgbHex);
+                Assert.Equal(rgb == null ? null : "FF" + rgb, destination.GetCellStyle(row, column).FillColorArgb);
+            }
+        }
+        Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_CELL_FILL_OMITTED");
+    }
+
+    [Fact]
     public void Independent_selected_Pages_cell_fills_and_layout_survive_saved_DOCX_including_empty_cells() {
         using var manifest = JsonDocument.Parse(File.ReadAllText(CorpusFixture("pages-cell-fills.json")));
         using var result = WordIWorkConverter.ConvertPagesToWordResult(CorpusFixture("picodocs/sample-v14.4.pages"),
@@ -147,22 +182,42 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Theory]
-    [InlineData(IWorkDocumentKind.Numbers)]
-    [InlineData(IWorkDocumentKind.Keynote)]
-    public void Unmapped_destination_cell_fills_are_reported_and_Reader_empty_cells_remain_empty(IWorkDocumentKind kind) {
-        using var package = CellFillPackage(new[] { FillStyle(30, FillColor(1, 0, 0)) }, kind: kind);
+    [InlineData(IWorkDocumentKind.Numbers, "inherit", "FF0000")]
+    [InlineData(IWorkDocumentKind.Numbers, "solid", "0000FF")]
+    [InlineData(IWorkDocumentKind.Numbers, "none", null)]
+    [InlineData(IWorkDocumentKind.Keynote, "inherit", "FF0000")]
+    [InlineData(IWorkDocumentKind.Keynote, "solid", "0000FF")]
+    [InlineData(IWorkDocumentKind.Keynote, "none", null)]
+    public void Selected_cell_fills_survive_saved_destinations_and_Reader_empty_cells_remain_empty(IWorkDocumentKind kind, string mode, string? expected) {
+        byte[]? declaration = mode == "inherit" ? null : mode == "none" ? Array.Empty<byte>() : FillColor(0, 0, 1);
+        using var package = CellFillPackage(new[] { FillStyle(30, declaration, 31), FillStyle(31, FillColor(1, 0, 0)) }, kind: kind);
         var source = IWorkSourceDocument.Open(package);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
+        using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Numbers) {
             using var result = source.ToExcelDocumentResult(policy);
             Assert.False(result.IsVisualFallback);
-            Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_NUMBERS_CELL_FILL_OMITTED"
-                && diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission);
+            Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_NUMBERS_CELL_FILL_OMITTED");
+            result.Value.Save(saved); saved.Position = 0;
+            using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
+            Assert.All(new[] { 1, 2 }, column => Assert.Equal(expected == null ? null : "FF" + expected,
+                reopened.Sheets[0].GetCellStyle(1, column).FillColorArgb));
+            Assert.True(reopened.Sheets[0].TryGetCellValueSnapshot(1, 1, out var value));
+            Assert.Equal(OfficeIMO.Excel.ExcelCellValueKind.Number, value!.Kind); Assert.Equal("42", value.RawValue);
         } else {
             using var result = source.ToPowerPointPresentationResult(policy);
             Assert.False(result.IsVisualFallback);
-            Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_KEYNOTE_CELL_FILL_OMITTED"
-                && diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission);
+            Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_KEYNOTE_CELL_FILL_OMITTED");
+            result.Value.Save(saved); saved.Position = 0;
+            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            var table = Assert.Single(reopened.Slides[0].Tables);
+            Assert.Equal("42", table.GetCell(0, 0).Text);
+            Assert.Equal(string.Empty, table.GetCell(0, 1).Text);
+            Assert.All(new[] { 0, 1 }, column => {
+                Assert.Equal(expected, table.GetCell(0, column).FillColor);
+                Assert.Equal(expected == null, table.GetCell(0, column).NoFill);
+            });
+            Assert.Empty(reopened.ValidateDocument());
         }
         package.Position = 0;
         var reader = new OfficeIMO.Reader.OfficeDocumentReaderBuilder();

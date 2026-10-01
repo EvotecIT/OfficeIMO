@@ -113,25 +113,6 @@ namespace OfficeIMO.PowerPoint {
 
 
         /// <summary>
-        ///     Gets or sets the fill color of the cell in hex format (e.g. "FF0000").
-        /// </summary>
-        public string? FillColor {
-            get {
-                SolidFill? solid = Cell.TableCellProperties?.GetFirstChild<SolidFill>();
-                return solid?.RgbColorModelHex?.Val;
-            }
-
-
-            set {
-                Cell.TableCellProperties ??= new TableCellProperties();
-                Cell.TableCellProperties.RemoveAllChildren<SolidFill>();
-                if (value != null) {
-                    Cell.TableCellProperties.Append(new SolidFill(new RgbColorModelHex { Val = value }));
-                }
-            }
-        }
-
-        /// <summary>
         ///     Gets or sets the border color (all sides) in hex format.        
         /// </summary>
         public string? BorderColor {

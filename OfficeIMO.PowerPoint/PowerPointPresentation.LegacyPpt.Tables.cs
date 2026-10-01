@@ -107,7 +107,9 @@ namespace OfficeIMO.PowerPoint {
                             ownerPart.RootElement?.Save();
                         }));
                 }
-                if (sourceCell.SourceShape.FillColor != null) {
+                if (sourceCell.SourceShape.Style.FillEnabled == false) {
+                    targetCell.NoFill = true;
+                } else if (sourceCell.SourceShape.FillColor != null) {
                     targetCell.FillColor = sourceCell.SourceShape.FillColor;
                 }
                 if (!tableSource.HasExplicitGridLines

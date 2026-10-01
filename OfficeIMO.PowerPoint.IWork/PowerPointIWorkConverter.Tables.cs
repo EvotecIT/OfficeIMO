@@ -35,6 +35,10 @@ public static partial class PowerPointIWorkConverter {
         foreach (IWorkTableCell sourceCell in source.Cells) {
             cancellationToken.ThrowIfCancellationRequested();
             PowerPointTableCell target = table.GetCell(sourceCell.Row - 1, sourceCell.Column - 1);
+            if (sourceCell.Fill is { } fill) {
+                if (fill.IsNone) target.NoFill = true;
+                else target.FillColor = fill.Color!.RgbHex;
+            }
             if (sourceCell.Padding is { } padding) {
                 target.PaddingLeftPoints = padding.LeftPoints;
                 target.PaddingTopPoints = padding.TopPoints;

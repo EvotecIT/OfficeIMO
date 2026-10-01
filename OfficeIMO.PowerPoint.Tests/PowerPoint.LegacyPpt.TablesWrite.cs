@@ -9,6 +9,31 @@ using P = DocumentFormat.OpenXml.Presentation;
 namespace OfficeIMO.Tests {
     public class PowerPointLegacyPptTableWriteTests {
         [Fact]
+        public void NativeWriter_RoundTripsExplicitNoFillTableCell() {
+            using var source = PowerPointPresentation.Create();
+            source.SlideSize.SetSizePoints(180, 100);
+            var slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
+            slide.BackgroundColor = "FFFF00";
+            var table = slide.AddTablePoints(1, 2, 20, 20, 120, 48);
+            table.GetCell(0, 0).NoFill = true;
+            table.GetCell(0, 1).FillColor = "FF0000";
+            Assert.True(source.AnalyzeLegacyPptWrite().CanWrite);
+            byte[] bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            var legacy = LegacyPptPresentation.Load(bytes);
+            var native = Assert.Single(Assert.Single(legacy.Slides).Shapes, shape => shape.Kind == LegacyPptShapeKind.Table).Table!;
+            Assert.False(Assert.Single(native.Cells, cell => cell.Row == 0 && cell.Column == 0).SourceShape.Style.FillEnabled);
+            using var input = new MemoryStream(bytes);
+            using var reopened = PowerPointPresentation.Load(input);
+            var projected = Assert.Single(reopened.Slides[0].Tables);
+            Assert.True(projected.GetCell(0, 0).NoFill);
+            Assert.Equal("FF0000", projected.GetCell(0, 1).FillColor);
+            Assert.True(OfficePngReader.TryDecode(reopened.Slides[0].ExportImage(OfficeImageExportFormat.Png).Bytes, out var image));
+            Assert.Equal(OfficeColor.Yellow, image!.GetPixel(32, 32));
+            Assert.Equal(OfficeColor.Red, image.GetPixel(92, 32));
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
         public void NativeWriter_RoundTripsEditableTableCellsAndLinks() {
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {

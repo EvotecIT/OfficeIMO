@@ -1,4 +1,4 @@
-"""Extract selected Pages cell fills and layout through pinned independent protobuf schemas.
+"""Extract selected native cell fills and layout through pinned independent protobuf schemas.
 
 Requires opt-in numbers-parser 4.19.0. No native Apple export/appearance claim.
 """
@@ -16,12 +16,17 @@ from numbers_parser.generated.TSTArchives_pb2 import TableModelArchive, CellStyl
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('corpus', type=Path)
 parser.add_argument('output', type=Path)
+parser.add_argument('--source', choices=('picodocs/sample-v14.4.pages', 'numbers-parser/cross-table-formulas.numbers'),
+                    default='picodocs/sample-v14.4.pages')
 args = parser.parse_args()
 assert version('numbers-parser') == '4.19.0'
-name = 'picodocs/sample-v14.4.pages'
+name = args.source
 source = args.corpus / name
 source_hash = hashlib.sha256(source.read_bytes()).hexdigest()
-assert source_hash == '4714477138d0a4090fc2ee2ba2ebb6adcd0fb6ce20a28897a6247a8e17d1ddce'
+assert source_hash == {
+    'picodocs/sample-v14.4.pages': '4714477138d0a4090fc2ee2ba2ebb6adcd0fb6ce20a28897a6247a8e17d1ddce',
+    'numbers-parser/cross-table-formulas.numbers': '9371c5b1d6ee4dfa17569097f064eba9c67f804d88b48638efbbeeb459d07dd4',
+}[name]
 records = {}
 with ZipFile(source) as package:
     for entry in package.namelist():
@@ -115,7 +120,8 @@ for identifier, (kind, content) in sorted(records.items()):
                               'styleKey': key, 'styleIdentifiers': chain, 'fill': fill,
                               'paddingPoints': padding, 'verticalAlignment': vertical})
     tables.append({'modelIdentifier': identifier, 'name': model.table_name, 'cells': cells})
-assert len(tables) == 3 and sum(len(table['cells']) for table in tables) == 64
+assert (len(tables), sum(len(table['cells']) for table in tables)) == (
+    (3, 64) if name.endswith('.pages') else (14, 130))
 manifest = {'provider': 'numbers-parser', 'providerVersion': '4.19.0',
             'source': {'path': name, 'sha256': source_hash}, 'tables': tables,
             'limits': 'Selected modern cell fills, four-sided padding, vertical alignment and inheritance only; table-role defaults, banding, other styles, Apple exports and complete appearance are not qualified.'}

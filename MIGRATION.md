@@ -51,7 +51,7 @@ Range, streaming, typed-object, and PDF reads use correctly rounded conversion o
 
 `IWorkTable.Cells` and `GetCell` can now return empty cells that carry a supported selected native fill, padding or vertical alignment. Check `Kind == IWorkCellKind.Empty` when distinguishing values from formatting; their display text is empty. `Fill == null` means absent or unresolved, while `Fill.IsNone` represents an explicit no-fill override. Styled empty cells count toward `MaximumMaterializedCells`.
 
-Reconvert Pages tables to retain selected solid fills and no-fill overrides in DOCX. Unsupported fills can require the existing partial-reconstruction policy; inspect `IWORK_TABLE_CELL_FILL_UNSUPPORTED`. Numbers and Keynote keep the source fill but report its omission from editable destination tables.
+Reconvert iWork tables to retain supported selected solid fills and no-fill overrides in DOCX, XLSX and PPTX. The Numbers and Keynote adapters no longer report supported selected fills as omitted. Unsupported fills can require the existing partial-reconstruction policy; inspect `IWORK_TABLE_CELL_FILL_UNSUPPORTED`.
 
 ## iWork fraction reconstruction
 
