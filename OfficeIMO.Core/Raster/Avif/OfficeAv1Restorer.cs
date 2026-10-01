@@ -14,7 +14,7 @@ internal sealed class OfficeAv1Restorer {
     private readonly long _workLimit;
     private byte[][]? _deblocked;
     internal static long ContextBytes(OfficeAv1StillFrame frame,bool monochrome,int sb) {
-        long pixels=(long)((frame.Width+sb-1)/sb*sb)*((frame.Height+sb-1)/sb*sb)*(monochrome?2:3)/2,units=0;
+        long pixels=(long)((frame.UpscaledWidth+sb-1)/sb*sb)*((frame.Height+sb-1)/sb*sb)*(monochrome?2:3)/2,units=0;
         for(int p=0;p<(monochrome?1:3);p++) if(frame.RestorationTypes[p]!=0) {
             int sub=p==0?0:1,size=frame.RestorationUnitSizes[p];
             if(size!=32 && size!=64 && size!=128 && size!=256) throw new FormatException("Invalid AV1 restoration unit size.");
@@ -25,10 +25,9 @@ internal sealed class OfficeAv1Restorer {
     }
     internal OfficeAv1Restorer(OfficeAv1StillFrame frame,OfficeAv1StillSequence sequence,int sb,OfficeRasterDecodeOptions options) {
         options.CancellationToken.ThrowIfCancellationRequested();
-        if(frame.Width!=frame.UpscaledWidth) throw new FormatException("AV1 restoration requires completed superresolution.");
         if(options.RetainedManagedBytes>OfficeRasterGuards.MaximumDecodedBytes-ContextBytes(frame,sequence.Monochrome,sb))
             throw new FormatException("AV1 restoration exceeds retained memory.");
-        _width=frame.Width;_height=frame.Height;_cancellation=options.CancellationToken;_workLimit=options.MaximumInspectionWorkPixels;
+        _width=frame.UpscaledWidth;_height=frame.Height;_cancellation=options.CancellationToken;_workLimit=options.MaximumInspectionWorkPixels;
         _units=new OfficeAv1RestorationUnit[sequence.Monochrome?1:3][];_assigned=new bool[_units.Length][];
         for(int p=0;p<_units.Length;p++) {
             int sub=p==0?0:1,size=frame.RestorationUnitSizes[p],type=frame.RestorationTypes[p];_types[p]=type;_sizes[p]=size;
@@ -51,6 +50,11 @@ internal sealed class OfficeAv1Restorer {
         _units[p][index]=unit;_assigned[p][index]=true;
     }
     internal void CaptureDeblocked(byte[][] pixels,int stride) { _deblocked=Copy(pixels,stride); }
+    /// <summary>Applies the same normative upscaler to deblocked stripe samples before restoration.</summary>
+    internal void UpscaleDeblocked(OfficeAv1Upscaler upscaler,int stride) {
+        if(_deblocked==null) throw new InvalidOperationException("AV1 restoration requires deblocked stripe sources.");
+        _deblocked=upscaler.Apply(_deblocked,stride);
+    }
     internal void Apply(byte[][] pixels,int stride) {
         if(_deblocked==null) throw new InvalidOperationException("AV1 restoration requires deblocked stripe sources.");
         for(int p=0;p<_assigned.Length;p++) for(int i=0;i<_assigned[p].Length;i++)

@@ -24,16 +24,26 @@ public sealed class DrawingAv1RestoredFrameTests {
     [InlineData("restore-control-3",false)]
     [InlineData("restore-control-4",false)]
     [InlineData("restore-control-5",false)]
+[InlineData("restore-control-6",false)]
+[InlineData("restore-control-7",false)]
+[InlineData("restore-control-8",false)]
+[InlineData("restore-control-9",false)]
+[InlineData("restore-control-10",false)]
+[InlineData("restore-control-11",false)]
+[InlineData("restore-control-12",false)]
+[InlineData("restore-control-13",false)]
+[InlineData("restore-control-14",false)]
+[InlineData("restore-control-15",false)]
     public void CroppedFrameMatchesNativeBeforeAndAfterRestoration(string name,bool alpha) {
         using var fixture=Open();var c=fixture.RootElement.GetProperty("cases").EnumerateArray().Single(v=>
             v.GetProperty("name").GetString()==name && v.GetProperty("alpha").GetBoolean()==alpha);
         var (bytes,sequence,frame)=Read(c,name,alpha);
-        foreach(var stage in new[] {OfficeAv1ReconstructionStage.Cdef,OfficeAv1ReconstructionStage.Restored}) {
+        foreach(var stage in new[] {OfficeAv1ReconstructionStage.Cdef,OfficeAv1ReconstructionStage.Upscaled,OfficeAv1ReconstructionStage.Restored}) {
             var result=OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,new OfficeRasterDecodeOptions(),stage);
-            var native=c.GetProperty(stage==OfficeAv1ReconstructionStage.Cdef?"cdef":"restored");
+            var native=c.GetProperty(stage==OfficeAv1ReconstructionStage.Cdef?"cdef":stage==OfficeAv1ReconstructionStage.Upscaled?"upscaled":"restored");
             var planes=native.GetProperty("planes");Assert.Equal(result.PlaneCount,planes.GetArrayLength());
             for(int p=0;p<result.PlaneCount;p++) {
-                int sub=p==0?0:1,w=(frame.Width+(1<<sub)-1)>>sub,h=(frame.Height+(1<<sub)-1)>>sub;
+                int sub=p==0?0:1,w=(result.Width+(1<<sub)-1)>>sub,h=(frame.Height+(1<<sub)-1)>>sub;
                 int pitch=stage==OfficeAv1ReconstructionStage.Cdef?frame.MiCols*4>>sub:w;
                 byte[] samples=Convert.FromBase64String(planes[p].GetString()!);
                 Assert.Equal(stage==OfficeAv1ReconstructionStage.Cdef?pitch*(frame.MiRows*4>>sub):w*h,samples.Length);
@@ -93,7 +103,7 @@ public sealed class DrawingAv1RestoredFrameTests {
         byte[] bytes;OfficeAvifImageItem item;var options=new OfficeRasterDecodeOptions();
         if(c.TryGetProperty("inputBase64",out var input)) {
             bytes=Convert.FromBase64String(input.GetString()!);var native=c.GetProperty("cdef");bool mono=c.GetProperty("monochrome").GetBoolean();
-            item=new OfficeAvifImageItem(1,native.GetProperty("width").GetInt32(),native.GetProperty("height").GetInt32(),0,bytes.Length,
+            item=new OfficeAvifImageItem(1,c.GetProperty("restored").GetProperty("width").GetInt32(),native.GetProperty("height").GetInt32(),0,bytes.Length,
                 new byte[] {0x81,(byte)native.GetProperty("level").GetInt32(),(byte)(mono?28:12),0},mono,null);
         } else {
             bytes=File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory,"TestAssets","Avif",name+".avif"));

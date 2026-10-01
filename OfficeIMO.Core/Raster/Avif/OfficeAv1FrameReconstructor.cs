@@ -5,7 +5,7 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>One-shot Main-8 reconstruction into owned padded planes through the selected pipeline stage.</summary>
 /// <remarks>Only a completely terminated set of tiles publishes a result. All partial pixels stay private.
-/// Remaining frame filters, superresolution and color/alpha composition are separate owners.</remarks>
+/// Color/alpha composition and public raster integration are separate owners.</remarks>
 internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsumer {
     private readonly OfficeAv1StillFrame _frame;
     private readonly OfficeAv1StillSequence _sequence;
@@ -19,6 +19,7 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
     private readonly OfficeAv1Deblocker? _deblocker;
     private readonly OfficeAv1Cdef? _cdef;
     private readonly OfficeAv1Restorer? _restorer;
+    private readonly OfficeAv1Upscaler? _upscaler;
     private readonly int _stride,_rows,_sb;
     private OfficeAv1Tile _tile;
     private OfficeAv1TileBlock _block;
@@ -34,11 +35,9 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
         options.Validate();options.CancellationToken.ThrowIfCancellationRequested();
         if(stage<OfficeAv1ReconstructionStage.Unfiltered || stage>OfficeAv1ReconstructionStage.Restored)
             throw new ArgumentOutOfRangeException(nameof(stage));
-        if(stage>=OfficeAv1ReconstructionStage.Restored && frame.Width!=frame.UpscaledWidth)
-            throw new FormatException("AV1 restoration requires completed superresolution.");
-        if(frame.Width<1 || frame.Width>65536 || frame.Height<1 || frame.Height>65536 ||
+        if(frame.Width<1 || frame.Width>65536 || frame.UpscaledWidth<frame.Width || frame.UpscaledWidth>65536 || frame.Height<1 || frame.Height>65536 ||
            frame.MiCols!=((frame.Width+7)/8)*2 || frame.MiRows!=((frame.Height+7)/8)*2 ||
-           (long)frame.Width*frame.Height>options.MaximumDecodedPixels || bytes.Length>options.MaximumEncodedBytes)
+           (long)frame.UpscaledWidth*frame.Height>options.MaximumDecodedPixels || bytes.Length>options.MaximumEncodedBytes)
             throw new FormatException("AV1 reconstruction exceeds frame or input limits.");
         _frame=frame;_sequence=sequence;_cancellation=options.CancellationToken;_sb=sequence.Use128Superblock?128:64;
         _stride=(frame.Width+_sb-1)/_sb*_sb;_rows=(frame.Height+_sb-1)/_sb*_sb;
@@ -52,7 +51,9 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
         long restoration=stage>=OfficeAv1ReconstructionStage.Restored &&
             (frame.RestorationTypes[0]!=0 || frame.RestorationTypes[1]!=0 || frame.RestorationTypes[2]!=0)?
             OfficeAv1Restorer.ContextBytes(frame,sequence.Monochrome,_sb):0;
-        long filter=deblock+cdef+restoration;
+        long upscale=stage>=OfficeAv1ReconstructionStage.Upscaled && frame.Width!=frame.UpscaledWidth?
+            OfficeAv1Upscaler.ContextBytes(frame,sequence.Monochrome,_sb):0;
+        long filter=deblock+cdef+restoration+upscale;
         long owned=storage+scratch+OfficeAv1IntraPredictor.ContextBytes+OfficeAv1ResidualTransform.ContextBytes+filter;
         long all=owned+tileContext+bytes.LongLength;
         if(options.RetainedManagedBytes>OfficeRasterGuards.MaximumDecodedBytes-all)
@@ -65,6 +66,8 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
             options.WithAdditionalRetainedManagedBytes(owned-deblock+tileContext+bytes.LongLength));
         if(cdef!=0) _cdef=new OfficeAv1Cdef(frame,sequence.Monochrome,_sb,
             options.WithAdditionalRetainedManagedBytes(owned-cdef+tileContext+bytes.LongLength));
+        if(upscale!=0) _upscaler=new OfficeAv1Upscaler(frame,sequence,_sb,
+            options.WithAdditionalRetainedManagedBytes(owned-upscale+tileContext+bytes.LongLength));
         if(restoration!=0) _restorer=new OfficeAv1Restorer(frame,sequence,_sb,
             options.WithAdditionalRetainedManagedBytes(owned-restoration+tileContext+bytes.LongLength));
         _pixels=new byte[sequence.Monochrome?1:3][];
@@ -87,9 +90,15 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
         owner._deblocker?.Apply(owner._pixels,owner._stride);
         owner._restorer?.CaptureDeblocked(owner._pixels,owner._stride);
         owner._cdef?.Apply(owner._pixels,owner._stride);
-        owner._restorer?.Apply(owner._pixels,owner._stride);
+        byte[][] pixels=owner._pixels;int stride=owner._stride,rows=owner._rows,width=frame.Width;
+        if(owner._upscaler!=null) {
+            owner._restorer?.UpscaleDeblocked(owner._upscaler,owner._stride);
+            pixels=owner._upscaler.Apply(pixels,owner._stride);
+            stride=owner._upscaler.Stride;rows=owner._upscaler.Rows;width=frame.UpscaledWidth;
+        }
+        owner._restorer?.Apply(pixels,stride);
         owner._cancellation.ThrowIfCancellationRequested();
-        return new OfficeAv1ReconstructedFrame(frame.Width,frame.Height,owner._stride,owner._rows,owner._pixels);
+        return new OfficeAv1ReconstructedFrame(width,frame.Height,stride,rows,pixels);
     }
 
     private static long ValidateTiles(OfficeAv1StillFrame f,int sb) {
@@ -152,7 +161,7 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
 }
 
 /// <summary>Internal pipeline boundary; later frame filtering remains a separate stage.</summary>
-internal enum OfficeAv1ReconstructionStage { Unfiltered, Deblocked, Cdef, Restored }
+internal enum OfficeAv1ReconstructionStage { Unfiltered, Deblocked, Cdef, Upscaled, Restored }
 
 /// <summary>Immutable owned reconstructed planes. Padded samples are retained for subsequent filter owners.</summary>
 internal sealed class OfficeAv1ReconstructedFrame {
