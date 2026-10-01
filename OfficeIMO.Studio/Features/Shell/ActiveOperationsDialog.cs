@@ -85,17 +85,17 @@ internal sealed class ActiveOperationsDialog : Window {
                 if (_documents.Add(document)) document.PropertyChanged += OnDocumentChanged;
             }
         }
-        Dispatcher.UIThread.Post(CheckIdle);
+        this.Dispatcher.Post(CheckIdle);
     }
 
     private void OnSessionChanged(object? sender, PropertyChangedEventArgs args) {
-        if (args.PropertyName == nameof(StudioSessionController.IsBusy)) Dispatcher.UIThread.Post(CheckIdle);
+        if (args.PropertyName == nameof(StudioSessionController.IsBusy)) this.Dispatcher.Post(CheckIdle);
     }
 
     private void OnDocumentChanged(object? sender, PropertyChangedEventArgs args) {
         if (args.PropertyName == nameof(MainWindowViewModel.CanCancelOperation)) {
             // Finish after the operation's finally block and its remaining UI notifications unwind.
-            Dispatcher.UIThread.Post(CheckIdle);
+            this.Dispatcher.Post(CheckIdle);
         }
     }
 

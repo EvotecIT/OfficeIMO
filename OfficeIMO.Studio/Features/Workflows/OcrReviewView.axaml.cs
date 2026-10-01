@@ -17,7 +17,7 @@ public sealed partial class OcrReviewView : UserControl {
 
     private void ReviewChanged(object? sender, PropertyChangedEventArgs args) {
         if (args.PropertyName is nameof(OcrReviewViewModel.SelectedWord) or nameof(OcrReviewViewModel.IsZoomed) or nameof(OcrReviewViewModel.Preview))
-            Dispatcher.UIThread.Post(() => {
+            this.Dispatcher.Post(() => {
                 if (_observed?.IsZoomed == true && _observed.HasSelectedWord) ZoomSelection.BringIntoView();
             }, DispatcherPriority.Loaded);
     }

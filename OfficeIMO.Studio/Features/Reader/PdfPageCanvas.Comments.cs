@@ -28,7 +28,7 @@ public sealed partial class PdfPageCanvas {
         if (CommentAnchorBounds is Rect area) context.DrawRectangle(null, new Pen(new SolidColorBrush(PageAccent), 2D), area.Inflate(4D));
     }
 
-    private void QueueCommentAnchorReveal() => Dispatcher.UIThread.Post(() => {
+    private void QueueCommentAnchorReveal() => this.Dispatcher.Post(() => {
         if (_disposed || Scene is not { } scene || CommentAnchorBounds is not Rect area || Bounds.Width <= 0 || Bounds.Height <= 0) return;
         double x = Bounds.Width / Math.Max(1D, scene.Drawing.Width);
         double y = Bounds.Height / Math.Max(1D, scene.Drawing.Height);

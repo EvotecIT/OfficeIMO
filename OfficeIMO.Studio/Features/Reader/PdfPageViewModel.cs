@@ -176,6 +176,7 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     internal async Task EnsureRenderedAsync() {
         if (_disposed || !_isAttached) return;
 
+        Dispatcher uiDispatcher = Dispatcher.UIThread;
         CancelLoad();
         var cancellation = new CancellationTokenSource();
         CancellationToken token = cancellation.Token;
@@ -194,7 +195,7 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
                 .ConfigureAwait(false);
             token.ThrowIfCancellationRequested();
 
-            await Dispatcher.UIThread.InvokeAsync(() => {
+            await uiDispatcher.InvokeAsync(() => {
                 if (!_disposed && _isAttached && generation == _loadGeneration && !token.IsCancellationRequested) {
                     Scene = scene;
                 }
@@ -213,7 +214,7 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
                 diagnostics = diagnostics.Concat(rendered.Diagnostics).Distinct(StringComparer.Ordinal).ToArray();
             }
 
-            await Dispatcher.UIThread.InvokeAsync(() => {
+            await uiDispatcher.InvokeAsync(() => {
                 if (_disposed || !_isAttached || generation != _loadGeneration || token.IsCancellationRequested) {
                     bitmap?.Dispose();
                     return;
@@ -230,13 +231,15 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
         } catch (OperationCanceledException) {
             // A detached page, zoom change, document close, or newer generation superseded this result.
         } catch (Exception ex) {
-            await Dispatcher.UIThread.InvokeAsync(() => {
+            await uiDispatcher.InvokeAsync(() => {
                 if (!_disposed && _isAttached && generation == _loadGeneration) RenderError = ex.Message;
             });
         } finally {
-            await Dispatcher.UIThread.InvokeAsync(() => {
-                if (!_disposed && generation == _loadGeneration) IsRendering = false;
-            });
+            if (!_disposed) {
+                await uiDispatcher.InvokeAsync(() => {
+                    if (!_disposed && generation == _loadGeneration) IsRendering = false;
+                });
+            }
         }
     }
 

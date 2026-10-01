@@ -190,7 +190,7 @@ public sealed partial class DocumentWorkspaceView : UserControl {
         SavePaneVisibility();
         NavigationTabs.SelectedIndex = 2;
         var document = _document;
-        Avalonia.Threading.Dispatcher.UIThread.Post(() => {
+        this.Dispatcher.Post(() => {
             if (!ReferenceEquals(document, _document) || NavigationTabs.SelectedIndex != 2 || !IsEffectivelyVisible) return;
             SearchBox.Focus();
             SearchBox.SelectAll();
@@ -219,7 +219,7 @@ public sealed partial class DocumentWorkspaceView : UserControl {
     // Choosing a signature or creating one closes the menu so the next click lands on the page. The menu closes
     // after the item's command has run; closing it first would detach the item from its data context.
     private void OnFillSignItemClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) =>
-        Avalonia.Threading.Dispatcher.UIThread.Post(() => FillSignButton.Flyout?.Hide(), Avalonia.Threading.DispatcherPriority.Background);
+        this.Dispatcher.Post(() => FillSignButton.Flyout?.Hide(), Avalonia.Threading.DispatcherPriority.Background);
 
     // Enter renames the selected bookmark; Escape restores its current title.
     private async void OnBookmarkTitleKeyDown(object? sender, KeyEventArgs e) {
