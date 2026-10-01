@@ -74,10 +74,8 @@ public sealed class DrawingAv1ReconstructionTests {
     public void TenBitPlanesCannotEnterUnqualifiedFiltersOrEightBitComposition() {
         var (bytes,sequence,frame)=Read("avif-main10-420-full",false);var options=new OfficeRasterDecodeOptions();
         var result=OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,options);
-        foreach(var stage in new[] {OfficeAv1ReconstructionStage.Cdef,
-            OfficeAv1ReconstructionStage.Upscaled,OfficeAv1ReconstructionStage.Restored})
+        foreach(var stage in new[] {OfficeAv1ReconstructionStage.Upscaled,OfficeAv1ReconstructionStage.Restored})
             Assert.Throws<FormatException>(()=>OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,options,stage));
-        Assert.Throws<FormatException>(()=>new OfficeAv1Cdef(frame,false,64,options));
         Assert.Throws<FormatException>(()=>new OfficeAv1Restorer(frame,sequence,64,options));
         Assert.Throws<FormatException>(()=>new OfficeAv1Upscaler(frame,sequence,64,options));
         Assert.Throws<FormatException>(()=>OfficeAvifColorConverter.Compose(result,sequence.Color,null,options));

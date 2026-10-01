@@ -36,8 +36,8 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
         options.Validate();options.CancellationToken.ThrowIfCancellationRequested();
         if((sequence.BitDepth!=8 && sequence.BitDepth!=10) || frame.BitDepth!=sequence.BitDepth)
             throw new FormatException("Invalid or inconsistent AV1 reconstruction bit depth.");
-        // Main10 reconstruction and deblocking are qualified; subsequent filters remain separate work.
-        if(sequence.BitDepth==10 && stage>OfficeAv1ReconstructionStage.Deblocked)
+        // Main10 reconstruction, deblocking and CDEF are qualified; subsequent filters remain separate work.
+        if(sequence.BitDepth==10 && stage>OfficeAv1ReconstructionStage.Cdef)
             throw new FormatException("AV1 high-bit-depth frame filtering is not qualified.");
         if(stage<OfficeAv1ReconstructionStage.Unfiltered || stage>OfficeAv1ReconstructionStage.Restored)
             throw new ArgumentOutOfRangeException(nameof(stage));

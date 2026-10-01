@@ -2,7 +2,7 @@ using System;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>Main-8 directional deringing arithmetic from AV1 7.15.2–3.</summary>
+/// <summary>Main-8/Main10 directional deringing arithmetic from AV1 7.15.2–3.</summary>
 internal static class OfficeAv1CdefFilter {
     private static readonly int[] Divisors={0,840,420,280,210,168,140,120,105};
     private static readonly int[,,] Directions={
@@ -10,12 +10,13 @@ internal static class OfficeAv1CdefFilter {
         {{1,1},{2,2}},{{1,0},{2,1}},{{1,0},{2,0}},{{1,0},{2,-1}}};
 
     /// <summary>Finds direction and variance using the owner's reusable bounded scratch.</summary>
-    internal static int FindDirection(ushort[] pixels,int stride,int offset,int[] partial,int[] cost,out int variance) {
+    internal static int FindDirection(ushort[] pixels,int stride,int offset,int bitDepth,int[] partial,int[] cost,out int variance) {
+        if(bitDepth!=8 && bitDepth!=10) throw new ArgumentOutOfRangeException(nameof(bitDepth));
         if(stride<8 || offset<0 || offset+(long)7*stride+7>=pixels.Length || partial.Length<120 || cost.Length<8)
             throw new FormatException("Invalid AV1 CDEF direction footprint.");
         Array.Clear(partial,0,120);Array.Clear(cost,0,8);
         for(int i=0;i<8;i++) for(int j=0;j<8;j++) {
-            int x=pixels[offset+i*stride+j]-128;
+            int x=(pixels[offset+i*stride+j]>>(bitDepth-8))-128;
             partial[i+j]+=x;partial[15+i+j/2]+=x;partial[30+i]+=x;
             partial[45+3+i-j/2]+=x;partial[60+7+i-j]+=x;
             partial[75+3-i/2+j]+=x;partial[90+j]+=x;partial[105+i/2+j]+=x;
@@ -39,9 +40,11 @@ internal static class OfficeAv1CdefFilter {
 
     /// <summary>Filters one 8x8 or subsampled 4x4 block, reading only the immutable input plane.</summary>
     internal static void Apply(ushort[] input,ushort[] output,int stride,int x0,int y0,int size,
-        int width,int height,int primary,int secondary,int damping,int direction) {
-        if(ReferenceEquals(input,output) || (size!=4 && size!=8) || primary<0 || primary>15 ||
-           (secondary!=0 && secondary!=1 && secondary!=2 && secondary!=4) || damping<2 || damping>6 ||
+        int width,int height,int primary,int secondary,int damping,int direction,int bitDepth) {
+        if(bitDepth!=8 && bitDepth!=10) throw new ArgumentOutOfRangeException(nameof(bitDepth));
+        int shift=bitDepth-8,scale=1<<shift;
+        if(ReferenceEquals(input,output) || (size!=4 && size!=8) || primary<0 || primary>15*scale ||
+           (secondary!=0 && secondary!=scale && secondary!=2*scale && secondary!=4*scale) || damping<2+shift || damping>6+shift ||
            direction<0 || direction>7 || width<1 || width>stride || height<1 || x0<0 || y0<0 ||
            x0+size>width || y0+size>height || (long)stride*height>input.Length || (long)stride*height>output.Length)
             throw new FormatException("Invalid AV1 CDEF filter footprint or parameters.");
@@ -50,7 +53,7 @@ internal static class OfficeAv1CdefFilter {
         for(int y=y0;y<y0+size;y++) for(int x=x0;x<x0+size;x++) {
             int value=input[y*stride+x],sum=0,min=value,max=value;
             for(int k=0;k<2;k++) for(int sign=-1;sign<=1;sign+=2) {
-                int primaryTap=(primary&1)==0?(k==0?4:2):3;
+                int primaryTap=((primary>>shift)&1)==0?(k==0?4:2):3;
                 Add(input,stride,x,y,width,height,direction,k,sign,value,primary,primaryTap,primaryShift,ref sum,ref min,ref max);
                 for(int d=-2;d<=2;d+=4)
                     Add(input,stride,x,y,width,height,(direction+d)&7,k,sign,value,secondary,k==0?2:1,secondaryShift,ref sum,ref min,ref max);

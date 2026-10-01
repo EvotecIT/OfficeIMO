@@ -3,9 +3,9 @@ using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>Owns Main-8 CDEF skip/index maps and an immutable snapshot of pre-CDEF samples.</summary>
+/// <summary>Owns Main-8/Main10 CDEF skip/index maps and an immutable snapshot of pre-CDEF samples.</summary>
 internal sealed class OfficeAv1Cdef {
-    private readonly int _rows,_cols,_regions,_bits,_damping;
+    private readonly int _rows,_cols,_regions,_bits,_damping,_bitDepth;
     private readonly int[,] _strengths;
     private readonly byte[] _skip,_indices;
     private readonly int[] _partial=new int[120],_cost=new int[8];
@@ -16,12 +16,13 @@ internal sealed class OfficeAv1Cdef {
     }
     internal OfficeAv1Cdef(OfficeAv1StillFrame frame,bool monochrome,int sb,OfficeRasterDecodeOptions options) {
         options.CancellationToken.ThrowIfCancellationRequested();
-        if(frame.BitDepth!=8) throw new FormatException("AV1 high-bit-depth CDEF is not qualified.");
+        if(frame.BitDepth!=8 && frame.BitDepth!=10) throw new FormatException("Invalid AV1 CDEF bit depth.");
         if(options.RetainedManagedBytes>OfficeRasterGuards.MaximumDecodedBytes-ContextBytes(frame,monochrome,sb))
             throw new FormatException("AV1 CDEF contexts exceed retained memory.");
         if(frame.CdefBits<0 || frame.CdefBits>3 || frame.CdefDamping<3 || frame.CdefDamping>6)
             throw new FormatException("Invalid AV1 CDEF parameters.");
-        _strengths=(int[,])frame.CdefStrengths.Clone();_bits=frame.CdefBits;_damping=frame.CdefDamping;
+        _bitDepth=frame.BitDepth;
+        _strengths=(int[,])frame.CdefStrengths.Clone();_bits=frame.CdefBits;_damping=frame.CdefDamping+_bitDepth-8;
         for(int i=0;i<(1<<_bits);i++) for(int j=0;j<4;j++) {
             int s=_strengths[i,j];
             if((j&1)==0?(s<0 || s>15):(s!=0 && s!=1 && s!=2 && s!=4))
@@ -62,13 +63,13 @@ internal sealed class OfficeAv1Cdef {
                 int index=_indices[r/16*_regions+c/16];
                 if(index==255 || (_skip[r*_cols+c]!=0 && _skip[r*_cols+c+1]!=0 &&
                    _skip[(r+1)*_cols+c]!=0 && _skip[(r+1)*_cols+c+1]!=0)) continue;
-                int direction=OfficeAv1CdefFilter.FindDirection(input[0],stride,r*4*stride+c*4,_partial,_cost,out int variance);
+                int direction=OfficeAv1CdefFilter.FindDirection(input[0],stride,r*4*stride+c*4,_bitDepth,_partial,_cost,out int variance);
                 for(int p=0;p<planes.Length;p++) {
-                    int sub=p==0?0:1,primary=_strengths[index,p==0?0:2],secondary=_strengths[index,p==0?1:3];
+                    int sub=p==0?0:1,primary=_strengths[index,p==0?0:2]<<(_bitDepth-8),secondary=_strengths[index,p==0?1:3]<<(_bitDepth-8);
                     int dir=primary==0?0:direction;
                     if(p==0) primary=OfficeAv1CdefFilter.AdjustStrength(primary,variance);
                     OfficeAv1CdefFilter.Apply(input[p],planes[p],stride>>sub,c*4>>sub,r*4>>sub,8>>sub,
-                        _cols*4>>sub,_rows*4>>sub,primary,secondary,_damping-sub,dir);
+                        _cols*4>>sub,_rows*4>>sub,primary,secondary,_damping-sub,dir,_bitDepth);
                 }
             }
         }
