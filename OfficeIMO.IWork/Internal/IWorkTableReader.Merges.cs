@@ -57,7 +57,7 @@ internal static partial class IWorkTableReader {
                 continue;
             }
             if (!IWorkFormulaReader.TryReadAbsoluteRange(formula, maximumFormulaNodes,
-                    out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                    out int firstRow, out int firstColumn, out int lastRow, out int lastColumn, table)) {
                 references.Declarations.Record(model, path + "/2", 1, IWorkSourceDeclarationIssueKind.RejectedMessageSet);
                 unknownRange = true;
                 MarkMergeStorageUnsupported(model, diagnostics, ref supportsEditableReconstruction);

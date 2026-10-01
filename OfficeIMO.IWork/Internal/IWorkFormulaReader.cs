@@ -12,7 +12,7 @@ internal sealed class IWorkFormulaResult {
     internal bool IsComplete { get; }
 }
 
-internal static class IWorkFormulaReader {
+internal static partial class IWorkFormulaReader {
     private const int PrimaryPrecedence = 10;
     private const int SumFunctionIndex = 168;
     private const int UnaryPrecedence = 6;
@@ -247,11 +247,13 @@ internal static class IWorkFormulaReader {
     }
 
     internal static bool TryReadAbsoluteRange(IWorkWireMessage formula, int maximumNodes,
-        out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) {
+        out int firstRow, out int firstColumn, out int lastRow, out int lastColumn,
+        IWorkWireMessage? owningTable = null) {
         firstRow = firstColumn = lastRow = lastColumn = 0;
         if (!TryReadNodes(formula, maximumNodes, out IReadOnlyList<IWorkWireMessage> nodes)) return false;
         if (nodes.Any(node => node.FieldCount(1) != 1
-                || node.HasUnexpectedWireKind(1, IWorkWireKind.Varint))) return false;
+                || node.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
+                || node.HasField(28) && !ReferencesOwningTable(node, owningTable))) return false;
         if (nodes[0].GetUnsigned(1) == 67) {
             if (nodes.Count != 1) return false;
             IWorkWireMessage? tract = IWorkObjectIndex.TryGetMessage(nodes[0], 40);
@@ -345,11 +347,16 @@ internal static class IWorkFormulaReader {
         }
         string address = CellAddress(resolvedColumn, resolvedRow, absoluteColumn, absoluteRow);
         if (resolvedColumn == null || resolvedRow == null) address += ":" + address;
-        if (node.HasField(28)) {
-            complete = false;
-            return node.HasBytes(28) ? "OTHER_TABLE::" + address : "#REF!";
-        }
-        return address;
+        return PreserveUnresolvedTableReference(node, address, ref complete);
+    }
+
+    // Dropping a declared table identity would turn an external reference into a
+    // complete local formula or merge. Keep it unresolved until identity binding is supported.
+    private static string PreserveUnresolvedTableReference(IWorkWireMessage node, string address,
+        ref bool complete) {
+        if (!node.HasField(28)) return address;
+        complete = false;
+        return node.HasBytes(28) ? "OTHER_TABLE::" + address : "#REF!";
     }
 
     private static int? ResolveCoordinate(IWorkWireMessage? message, int origin, out bool absolute,
@@ -414,7 +421,8 @@ internal static class IWorkFormulaReader {
         string first = CellAddress(firstColumn, firstRow, absoluteColumn, absoluteRow);
         string last = CellAddress(lastColumn, lastRow, absoluteColumn, absoluteRow);
         if (first == "#REF!" || last == "#REF!") complete = false;
-        return first == last ? first : first + ":" + last;
+        return PreserveUnresolvedTableReference(node,
+            first == last ? first : first + ":" + last, ref complete);
     }
 
     private static bool TryRange(IWorkWireMessage tract, int absoluteField, int relativeField, int origin,

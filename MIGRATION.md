@@ -9,6 +9,10 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## iWork cross-table ranges
+
+Cross-table rectangular formulas retain cached values instead of exporting a local formula after losing the source table qualifier. Inspect `FormulaIsComplete` and the conversion report before relying on editable expressions; use the preserved cache while cross-table reconstruction remains unsupported. Merge declarations that reference another table are rejected and reported through `SourceDeclarationIssues` instead of being applied locally.
+
 ## iWork high-precision numeric recovery
 
 Finite Decimal128 values above fifteen significant digits now retain numeric recovery instead of forcing visual fallback. Inspect `IWorkTableCell.NumericValueIsApproximate` before consuming values that must retain exact source precision; `SourceNumberText` holds the exact normalized coefficient/exponent value. Conversion reports use `IWORK_TABLE_NUMERIC_VALUE_APPROXIMATED` with `Approximation` fidelity, and formula cache assessments use `Approximate`. `RequireNoLoss()` rejects this approximation. Overflow, nonzero underflow and unsupported special encodings remain decode failures.

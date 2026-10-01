@@ -92,6 +92,8 @@ Numbers retains generic source error text when it has no known XLSX error mappin
 
 Every adapter report exposes `IWorkProjectionKind.EditableReconstruction` or `IWorkProjectionKind.VisualFallback`. `IWorkPreviewAsset.Coverage` distinguishes a known full-document asset from a first-page or composite preview. Current adapters embed PNG or JPEG previews; structurally validated classic-xref PDF previews remain available on the source model but are not silently rasterized. Xref-stream PDFs are rejected until their filtered cross-reference entries can be decoded and traversed within the same bounded contract.
 
+Cross-table cell and rectangular-range references remain incomplete and retain typed caches. The reader does not discard a native table qualifier to produce a complete local formula. Merge-range extraction accepts an explicit own-table qualifier only when its four-word CFUUID matches the table model’s textual UUID in native byte order; references to another table and ambiguous UUID metadata retain rejected-declaration evidence. The independent rectangular corpus covers all sixteen combinations of absolute and relative range endpoints; it qualifies safe cache preservation, not editable cross-table reconstruction or Apple appearance.
+
 ## Corpus evidence
 
 The checked-in interoperability corpus includes unmodified upstream fixtures with recorded revisions and reproduced MIT or 0BSD notices, plus a reproducible numbers-parser 4.19.0 sizing fixture:
