@@ -5,7 +5,7 @@ namespace OfficeIMO.Reader.Email;
 
 /// <summary>Controls direct email, mailbox, calendar, and vCard ingestion.</summary>
 public sealed class ReaderEmailOptions {
-    /// <summary>Bounded policy for EML, MSG/OFT, and TNEF artifacts.</summary>
+    /// <summary>Bounded policy for EML, MSG/OFT, and TNEF artifacts. Disabling embedded messages also omits nested mail attachment text projection.</summary>
     public EmailReaderOptions? MessageOptions { get; set; }
 
     /// <summary>Bounded policy for Mbox and MBX mailboxes.</summary>

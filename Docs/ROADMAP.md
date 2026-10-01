@@ -246,6 +246,10 @@ Milestone numbers are identifiers, not a strict dependency-removal queue. H1-H4 
 - [ ] Reduce AsciiDoc's lossless collection and semantic graph overhead beyond the current validated large baseline of 29.34 MiB allocated and 19.50 MiB retained for a 558 KiB source. Preserve exact spans, parent navigation, semantic editing, bounded nesting, table and list-continuation behavior, and byte-identical writing, and add Linux/macOS evidence.
 - [ ] Deepen RTF semantic parsing and writing beyond the current Broad and Preserved contracts for complex and nested tables, fields and form-field data, embedded pictures and objects, advanced destination groups, Unicode and code-page interactions, lists and overrides, and producer-specific controls. Extend the independent Word, WordPad, and Outlook corpus with editable semantic round trips and deterministic preservation diagnostics rather than treating syntax preservation or adapter reopening as full semantic coverage.
 
+## Email artifacts and archives
+
+- [ ] Qualify the external lanes in the [email interoperability runner](../Build/Email/README.md) against pinned, licensed, independently produced fixtures and named classic Outlook versions. Record producer versions, source hashes, expected semantics and host coverage for MSGReader/MimeKit corpora, Outlook exchange and PST operations, real S/MIME artifacts, and caller-owned PST/OST read/conversion. Keep private content and certificate material out of published evidence, and distinguish disabled lanes from qualified producers.
+
 ## Electronic invoices
 
 - [ ] Extend native FA(3) authoring beyond its [bounded creation and reading contracts](../OfficeIMO.Invoicing/README.md#create-polish-fa3): before/after correction rows, additional parties and JST/GV roles, new means of transport, partial-payment histories, settlement charges, national item classifications and attachments. Qualify each additional mapping against the pinned schema and independent authority examples; retain explicit reports for unsupported fields.

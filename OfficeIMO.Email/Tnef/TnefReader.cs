@@ -236,18 +236,22 @@ internal static class TnefReader {
             int nestedLength = objectBytes.Length - 16;
             attachment.Length = nestedLength;
             state.CountAttachment(nestedLength);
-            byte[] nested = MsgBinary.Slice(objectBytes, 16, nestedLength);
-            if (nestedDepth < state.Options.MaxNestedMessageDepth && nested.Length >= 4 && MsgBinary.ReadUInt32(nested, 0) == TnefConstants.Signature) {
-                attachment.EmbeddedDocument = ReadMessage(nested, state, nestedDepth + 1, string.Concat(location, "/embedded"));
-            } else {
+            if (!state.Options.IncludeEmbeddedMessages) {
                 if (state.Options.IncludeAttachmentContent) attachment.Content = (byte[])objectBytes.Clone();
-                bool depthLimited = nestedDepth >= state.Options.MaxNestedMessageDepth;
-                state.Diagnostics.Add(new EmailDiagnostic(
-                    depthLimited ? "EMAIL_TNEF_NESTED_MESSAGE_LIMIT" : "EMAIL_TNEF_EMBEDDED_MESSAGE_INVALID",
-                    depthLimited
-                        ? "The embedded TNEF message was retained as opaque content but not projected because the nested-message limit was reached."
-                        : "The embedded TNEF message was retained as opaque content but could not be projected.",
-                    EmailDiagnosticSeverity.Warning, location));
+            } else {
+                byte[] nested = MsgBinary.Slice(objectBytes, 16, nestedLength);
+                if (nestedDepth < state.Options.MaxNestedMessageDepth && nested.Length >= 4 && MsgBinary.ReadUInt32(nested, 0) == TnefConstants.Signature) {
+                    attachment.EmbeddedDocument = ReadMessage(nested, state, nestedDepth + 1, string.Concat(location, "/embedded"));
+                } else {
+                    if (state.Options.IncludeAttachmentContent) attachment.Content = (byte[])objectBytes.Clone();
+                    bool depthLimited = nestedDepth >= state.Options.MaxNestedMessageDepth;
+                    state.Diagnostics.Add(new EmailDiagnostic(
+                        depthLimited ? "EMAIL_TNEF_NESTED_MESSAGE_LIMIT" : "EMAIL_TNEF_EMBEDDED_MESSAGE_INVALID",
+                        depthLimited
+                            ? "The embedded TNEF message was retained as opaque content but not projected because the nested-message limit was reached."
+                            : "The embedded TNEF message was retained as opaque content but could not be projected.",
+                        EmailDiagnosticSeverity.Warning, location));
+                }
             }
         } else if (method == 6 && objectBytes != null && objectBytes.Length > 16 && new Guid(MsgBinary.Slice(objectBytes, 0, 16)) == IidStorage) {
             int compoundLength = objectBytes.Length - 16;

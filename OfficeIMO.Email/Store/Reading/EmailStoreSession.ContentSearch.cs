@@ -69,7 +69,8 @@ public sealed partial class EmailStoreSession {
                     }
 
                     results.Add(new EmailStoreContentSearchResult(
-                        reference, summary, matchedFields, snippet));
+                        reference, summary, matchedFields, snippet,
+                        EmailStoreContentSearchCheckpoint.Create(startOffset + scanned, sourceFingerprint, query.Signature)));
                     if (results.Count >= query.MaxResults) {
                         stoppedAtResultLimit = references.MoveNext();
                         break;

@@ -8,11 +8,16 @@ internal sealed class EmlxStoreReader {
     private const string FolderId = "emlx:folder:apple-mail";
     private readonly EmailStoreReaderOptions _options;
     private readonly bool? _includeAttachmentContent;
+    private readonly bool _includeEmbeddedMessages;
+    private readonly long _propertyLimit;
     private readonly List<EmailStoreDiagnostic> _diagnostics = new List<EmailStoreDiagnostic>();
 
-    internal EmlxStoreReader(EmailStoreReaderOptions options, bool? includeAttachmentContent = null) {
+    internal EmlxStoreReader(EmailStoreReaderOptions options, bool? includeAttachmentContent = null, long? maxDecodedPropertyBytes = null,
+        bool includeEmbeddedMessages = true) {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _includeAttachmentContent = includeAttachmentContent;
+        _includeEmbeddedMessages = includeEmbeddedMessages;
+        _propertyLimit = Math.Min(options.MaxDecodedPropertyBytesPerItem, maxDecodedPropertyBytes ?? options.MaxDecodedPropertyBytesPerItem);
     }
 
     internal static bool HasEnvelopePrefix(Stream stream) {
@@ -69,7 +74,8 @@ internal sealed class EmlxStoreReader {
         document.Properties["Emlx:DeclaredMessageBytes"] = declaredMessageBytes;
         document.Properties["Emlx:IsPartial"] = isPartial;
 
-        ReadMetadata(stream, document, itemName, cancellationToken);
+        long decodedPropertyBytes = emailResult.ProcessingBudget.DecodedPropertyBytes;
+        decodedPropertyBytes = checked(decodedPropertyBytes + ReadMetadata(stream, document, itemName, decodedPropertyBytes, cancellationToken));
         if (isPartial) {
             _diagnostics.Add(new EmailStoreDiagnostic(
                 "EMAIL_STORE_EMLX_PARTIAL_MESSAGE",
@@ -81,33 +87,34 @@ internal sealed class EmlxStoreReader {
         EmailStoreItemReadParts loadedParts = EmailStoreItemReadParts.All;
         if (!(_includeAttachmentContent ?? _options.RetainAttachmentContent))
             loadedParts &= ~EmailStoreItemReadParts.AttachmentContent;
+        if (!_includeEmbeddedMessages) loadedParts &= ~EmailStoreItemReadParts.EmbeddedItems;
         folder.MutableItems.Add(new EmailStoreItem(
-            itemId, FolderId, document, loadedParts: loadedParts, format: EmailStoreFormat.Emlx));
+            itemId, FolderId, document, loadedParts: loadedParts, format: EmailStoreFormat.Emlx) { DecodedPropertyBytes = decodedPropertyBytes });
         return new EmailStoreReadResult(store, _diagnostics.AsReadOnly(), stream.Length);
     }
 
     private EmailReadResult ReadMessage(byte[] messageBytes, CancellationToken cancellationToken) {
         return EmailStoreMessageReader.Read(messageBytes, _options, cancellationToken,
-            _includeAttachmentContent);
+            _includeAttachmentContent, _propertyLimit, _includeEmbeddedMessages);
     }
 
-    private void ReadMetadata(Stream stream, EmailDocument document, string itemName,
+    private long ReadMetadata(Stream stream, EmailDocument document, string itemName, long previousDecodedBytes,
         CancellationToken cancellationToken) {
         long metadataLength = stream.Length - stream.Position;
-        if (metadataLength == 0) return;
-        if (metadataLength > _options.MaxDecodedPropertyBytesPerItem) {
+        if (metadataLength == 0) return 0;
+        if (metadataLength > _propertyLimit - previousDecodedBytes) {
             throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxDecodedPropertyBytesPerItem),
-                metadataLength, _options.MaxDecodedPropertyBytesPerItem);
+                checked(metadataLength + previousDecodedBytes), _propertyLimit);
         }
         if (metadataLength > int.MaxValue) {
             throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxDecodedPropertyBytesPerItem),
-                metadataLength, Math.Min(_options.MaxDecodedPropertyBytesPerItem, int.MaxValue));
+                metadataLength, Math.Min(_propertyLimit, int.MaxValue));
         }
 
         byte[] metadata = ReadExact(stream, (int)metadataLength, cancellationToken,
             "The EMLX metadata trailer ended unexpectedly.");
         int contentOffset = FirstContentOffset(metadata);
-        if (contentOffset == metadata.Length) return;
+        if (contentOffset == metadata.Length) return metadataLength;
         try {
             if (EmlxPlistReader.LooksLikeBinaryPlist(metadata, contentOffset)) {
                 _diagnostics.Add(new EmailStoreDiagnostic(
@@ -115,7 +122,7 @@ internal sealed class EmlxStoreReader {
                     "The binary property-list trailer was not decoded; the RFC message remains available.",
                     EmailStoreDiagnosticSeverity.Warning,
                     itemName));
-                return;
+                return metadataLength;
             }
             IReadOnlyDictionary<string, object?> values = EmlxPlistReader.Read(
                 metadata, contentOffset, _options, cancellationToken);
@@ -130,6 +137,7 @@ internal sealed class EmlxStoreReader {
                 EmailStoreDiagnosticSeverity.Warning,
                 itemName));
         }
+        return metadataLength;
     }
 
     private static void ApplyMetadata(EmailDocument document, IReadOnlyDictionary<string, object?> values) {

@@ -42,7 +42,7 @@ internal sealed partial class EmailSemanticSnapshotBuilder {
             if (_options.Profile == EmailSemanticComparisonProfile.Strict) {
                 AddTnefAttributes(path + "/strict/tnef", attachment.TnefAttributes);
             }
-            if (attachment.EmbeddedDocument != null) {
+            if (_options.IncludeEmbeddedMessageContent && attachment.EmbeddedDocument != null) {
                 await AddDocument(attachment.EmbeddedDocument, path + "/embedded",
                     depth + 1, useAsync, cancellationToken).ConfigureAwait(false);
             }

@@ -1,5 +1,82 @@
 # OfficeIMO.Email
 
+## Attachment extraction and draft composition
+
+Extract decoded attachments into a directory controlled by the application:
+
+```csharp
+EmailAttachmentExtractionResult extraction = EmailAttachmentExtractor.Extract(message, "attachments",
+    new EmailAttachmentExtractionOptions(recurseEmbeddedMessages: true));
+
+foreach (EmailAttachmentExtractionEntry entry in extraction.Entries) {
+    Console.WriteLine($"{entry.SourcePath}: {entry.OutputPath} {entry.Sha256}");
+}
+```
+
+The result is a hash and provenance manifest. Each entry keeps its original filename, logical attachment
+indexes, committed path, byte count, and diagnostics. Portable filenames include a deterministic index
+and source-path hash. Existing files are never overwritten. Embedded messages are exported as EML through
+the regular writer, so their conversion and signature policies still apply. Linked attachment paths are
+never opened, hidden attachments are excluded by default, and inline attachments can be excluded explicitly.
+The defaults visit at most 1,000 entries, allow 64 MiB per file and 256 MiB per operation, and permit four
+levels of nested attachment traversal when enabled. A rejected streaming payload may consume one sentinel
+byte beyond its limit. The aggregate budget counts decoded source reads, including failed attempts, and
+generated embedded EML bytes. Embedded source content is staged once through the shared writer staging
+owner; it is not reopened during serialization. `ExtractAsync` stages and copies source streams asynchronously.
+Earlier committed files remain available if a later attachment fails or the operation
+is cancelled. Keep the destination directory under application control while extraction runs.
+
+Create reply and forward artifacts without sending them:
+
+```csharp
+var composition = new EmailCompositionOptions();
+composition.OwnAddresses.Add("alias@example.com");
+EmailCompositionResult reply = EmailComposer.ReplyAll(message,
+    new EmailAddress("me@example.com", "Example User"), "Thanks for the update.", composition);
+reply.Document.Save("reply.eml");
+```
+
+`Reply` prefers Reply-To over From. `ReplyAll` also selects the original To/Cc recipients, excludes the
+composing address and configured aliases, and deduplicates addresses. Bcc is never copied. Exchange
+directory addresses that need resolution produce diagnostics. The new draft receives References and
+In-Reply-To, bounded to the most recent 100 identifiers by default. Source transport headers, signatures,
+MAPI metadata, attachments, and the original Message-ID are not inherited.
+
+`Forward` starts with no recipients or attachments; add the intended recipients and attachments explicitly.
+These builders quote the plain-text alternative, with a 256 KiB character limit and Unicode-safe truncation.
+HTML-only messages return a missing-plain-body diagnostic. Inspect the result before handing a draft to a
+transport such as Mailozaurr.
+
+## Create a field-selected share copy
+
+Create an independent EML model with a reviewed plain-text body:
+
+```csharp
+EmailShareCopyResult share = EmailShareCopy.Create(message, new EmailShareCopyOptions {
+    ReplacementSubject = "Shared discussion",
+    ReplacementBodyText = "Text reviewed for sharing"
+});
+share.Document.Save("share.eml");
+```
+
+The default copies the original plain-text body and omits the original envelope, Bcc, threading,
+extra headers, attachments, HTML/RTF, raw source, MAPI/TNEF metadata and protected wrappers.
+`RetainedFields` selects subject, author, To/Cc or date. `AddressReplacements` replaces selected
+addresses or omits them with a null replacement; display names require `KeepDisplayNames`.
+`RetainedHeaderNames` selects extra headers, while envelope (including `Resent-*`), MIME and integrity headers remain
+owned by the new artifact. `Changes` records copied, replaced and omitted field paths without
+original values. Diagnostics explain removed integrity evidence and unavailable plain bodies.
+
+Select ordinary attachment indexes explicitly through `AttachmentIndexes`. Selected payload bytes
+are copied independently and remain unchanged; generic filenames are used unless explicitly retained
+or replaced through `AttachmentNames`. Linked paths are never opened, and embedded messages require
+separate field-selected copies. Defaults allow 100 selected attachments, 64 MiB per payload, 256 MiB
+total, and 2 Mi characters per retained text field. The source document is unchanged.
+
+Review retained body text, selected extra headers and opaque attachment content before sharing.
+Field selection does not anonymize their contents or preserve the original signature assurance.
+The optional HTML bridge supplies bounded text projection and selected concealed-content cleanup.
+
 `OfficeIMO.Email` provides a first-party engine for persisted email and Outlook artifacts without a third-party message, compound-file, MIME, RTF, or platform-UI runtime.
 
 ```powershell
@@ -16,6 +93,18 @@ dotnet add package OfficeIMO.Security
 Email reads expose an aggregate `ProcessingBudget` snapshot. MIME, MSG, embedded TNEF, and streaming payload paths share one operation ledger, so nested parsers do not receive fresh attachment, property, or structural allowances. `EmailLimitExceededException.Diagnostic` carries a stable actionable non-sensitive diagnostic automatically; store limits expose the equivalent through `EmailStoreDiagnostic.FromLimit`.
 
 Store table, content-search, and OAB search checkpoints are versioned persistence values bound to a complete-source SHA-256 and exact query signature. Persist the checkpoint's `Value`, parse it after restart, and expect resume to fail closed if the source bytes or query changed. Creating a durable checkpoint intentionally reads the complete selected source to establish that identity.
+
+`EmailStoreSession.SearchWithReport` adds scan/result completion evidence to lightweight metadata
+search. `SearchContent` supplies semantic field matches, snippets and durable batch continuation.
+Each content match also exposes `ResumeAfter`, a checkpoint immediately after that item; consumers
+returning only a prefix of a batch can resume there without losing the remaining matches.
+
+For repeated queries over one store file, use `EmailStoreSession.OpenSnapshot(path)` or its stream overload.
+The session makes a bounded private copy and hashes it while copying, then reuses the complete-source SHA-256
+for queries and checkpoints. Caller-side changes after opening cannot change the snapshot's results.
+Keep the original source stable while it is copied and dispose the session to remove its temporary file.
+Opening a new snapshot still validates checkpoints against the newly copied bytes; ordinary sessions continue
+to check the source before and after durable queries. Directory stores retain their existing content validation.
 
 `EmailStoreSession.PlanMaintenance` is read-only and source-bound. It returns `CompleteInspection` rather than `None` whenever item, recovery, structural page, block, or byte bounds leave evidence incomplete, or when requested structural verification is unsupported for the source format. Executable repair remains a separate operation through recovery export, PST compaction, or PST split planning; OfficeIMO never repairs the opened source in place and rewrite paths require semantic post-verification.
 
@@ -148,6 +237,19 @@ sources were opened for that operation, `DiagnosticCodes` retains stable evidenc
 no known loss, explicitly accepted loss, and a blocked write. Transport adapters can carry that result without defining
 another message or artifact model.
 
+Regenerating a message with DKIM, DomainKey, or ARC signatures is blocked by default because serialization can
+invalidate those signatures. Choose `new EmailWriterOptions(OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures)`
+to remove the signature chain from the output, or `PreserveSignatureMarkup` to retain it with an invalidation warning.
+The enum is in the `OfficeIMO` namespace. Neither option verifies signatures or overrides the separate S/MIME loss
+policy. Unchanged raw-source output preserves the original bytes and headers. Regenerated output omits retained
+`Content-Length`, `Content-MD5`, `Content-Digest`, `Repr-Digest`, and `Digest` headers and reports their removal.
+These policies also cover embedded messages and do not mutate the input model's header collection.
+
+Use `EmailAttachmentTextReader.Read(attachment, maxBytes, cancellationToken)` for text attachments. It honors the
+MIME `charset`, uses a Unicode BOM when present, and returns the text, effective charset, bytes consumed, and decoding
+diagnostics. Charsetless text uses UTF-8 with Windows-1252 recovery; unavailable charsets and malformed byte sequences
+produce warnings. The byte limit applies to decoded attachment bytes before text decoding.
+
 ## Compare message semantics
 
 Semantic comparison hashes a canonical, versioned projection rather than serialized bytes. The migration profile
@@ -250,6 +352,47 @@ template.Save("updated.oft");
 ```
 
 ## Standalone iCalendar and vCard documents
+
+`EmailPortableContentExport.ToCalendar(item)` exports an Outlook appointment or task as a standalone ICS stream.
+`ToVCard(item)` exports an individual contact. Both return an editable document, a detached UTF-8 byte snapshot and
+diagnostics. Unchanged imported semantic content retains its unknown properties. Regeneration uses the same loss
+checks as EML conversion and blocks opaque recurrence, nonportable addresses or changed imported semantics by
+default. Select `EmailConversionLossPolicy.Warn` explicitly when reviewing a lossy projection. These exports do not
+preserve the mail envelope, ordinary attachments or transport signatures.
+
+When a message contains several projected calendar or contact MIME parts, export retains every matching part.
+The imported source byte limit applies across those parts, with at most 1,000 semantic parts per item.
+MIME calendar methods are carried into roots that omit `METHOD`. Unencoded vCard property charset declarations
+are updated to UTF-8; quoted-printable and Base64 payload spellings keep their source charset. These normalizations
+have explicit diagnostics. Decoded parsing allows bounded UTF-8 expansion without counting it as imported bytes.
+
+```csharp
+EmailPortableContentExportResult<IcsDocument> exported =
+    EmailPortableContentExport.ToCalendar(item);
+File.WriteAllBytes("meeting.ics", exported.ToBytes());
+
+EmailPortableContentExportResult<VCardDocument> cards =
+    EmailPortableContentCollection.ToVCards(selectedContacts,
+        new EmailPortableContentExportOptions(maxOutputBytes: 8 * 1024 * 1024));
+File.WriteAllBytes("contacts.vcf", cards.ToBytes());
+```
+
+`EmailPortableContentCollection.ToCalendars` keeps separate VCALENDAR roots rather than combining timezone,
+UID or METHOD scopes. Collection output has one aggregate byte limit and an item limit. The source byte limit
+applies to each item's imported semantic content. Generated output is bounded while the codec accumulates it;
+these options do not limit the size of a caller-created in-memory Outlook model.
+
+`EmailContactConsolidation.Review` takes provenance-tagged `EmailContactSource` contacts. It groups candidates
+by exact SMTP addresses and, when supplied, a complete `OfflineAddressBookIdentityIndex` with an unambiguous
+authoritative address match. Display names never create a match. Shared addresses can belong to different people,
+so a candidate group is a review suggestion. `EmailContactSource.FromAddressBook` uses the OAB owner's contact
+mapping and rejects distribution lists.
+
+Review groups retain conflicting field variants, ordered repeated values, parameters and source IDs.
+`Consolidate(review, groupIndex, choices)` creates an independent vCard. Every conflicting field needs an explicit
+zero-based choice index keyed by `EmailContactReviewField.Key`; `-1` explicitly omits that field. Required vCard
+fields, output size and property limits are checked. Reviewing contacts can project opaque Outlook identity data
+with warnings; inspect `review.Diagnostics` before consolidation. The APIs do not update a store or directory.
 
 `IcsDocument` and `VCardDocument` expose the same ordered content-line model used by MIME projections. Repeated,
 grouped, unknown, IANA, and `X-` properties and their parameters remain available for inspection and mutation instead
@@ -392,6 +535,27 @@ EmailStoreItemReference firstReference = session.EnumerateItems(
 EmailDocument firstMessage = session.ReadItem(firstReference).Document;
 ```
 
+`session.AnalyzeArchive()` returns read-only folder and UTC month distributions, large attachment metadata and
+semantic duplicate candidates. It projects bounded bodies, recipients and attachment metadata; it does not request
+attachment payloads or embedded-item content. Matching candidates can contain different attachment bytes and
+unloaded properties, so the report does not establish duplicate equality or select mail for deletion.
+
+```csharp
+EmailArchiveAnalysisReport analysis = session.AnalyzeArchive(
+    new EmailArchiveAnalysisOptions(maxItems: 10_000, maxLargeAttachments: 25));
+Console.WriteLine($"Scanned {analysis.ItemsScanned}; exhausted references: {analysis.ExhaustedSelectedReferences}");
+Console.WriteLine($"Candidate groups: {analysis.DuplicateCandidateGroupCount}");
+```
+
+The report rechecks a SHA-256 of the complete persisted source. That source hashing performs I/O even though
+attachment payloads are not decoded for analysis. `OpenSnapshot` can reuse its owned snapshot fingerprint.
+Header-only and potentially partial local items are excluded from candidate matching. Scan limits, failed analyses,
+source warnings, omitted distribution buckets, omitted candidate IDs/groups and diagnostic totals remain explicit.
+`ExhaustedSelectedReferences` describes the session's regular-reference enumeration; it does not prove that a
+damaged source catalog includes every original item. Failed analysis can occur after an item was projected.
+`EstimatedCandidateDeclaredBytes` uses available item size declarations and excludes the largest member in each
+candidate group. It is neither verified duplicate savings nor a physical PST compaction estimate. No archive is changed.
+
 Long-running PST/OST/OLM/EMLX/Mbox/mail-directory migrations can opt into an atomic checkpoint. The checkpoint binds
 the exact source byte fingerprint, bounded source catalog, destination, conversion options, writer state, item provenance,
 and verification journal. Resume rejects changed sources or options instead of silently continuing against different data:
@@ -439,6 +603,35 @@ remote resources by default, resolves CID/content-location/filename references, 
 resources plus a prepared `HtmlConversionDocument`. `OfficeIMO.Email.Image` and `OfficeIMO.Reader.Email` consume this
 same bridge; Reader can then project the prepared safe document to text or Markdown. The core `OfficeIMO.Email` package
 does not reference AngleSharp or another HTML engine.
+
+## Inspect local email data
+
+`OfficeIMO.Email.Data.EmailDataInspector` reports metadata through the existing artifact readers:
+
+```csharp
+using OfficeIMO.Email.Data;
+
+EmailDataInspectionReport report = EmailDataInspector.Inspect("message.eml",
+    new EmailDataInspectionOptions(maxSamples: 32));
+foreach (EmailDataBodyAlternative body in report.Bodies)
+    Console.WriteLine($"{body.Kind}: {body.CharacterCount} UTF-16 units; charset {body.DeclaredCharset}");
+```
+
+Individual-message reports include body alternatives, declared charsets, attachment metadata, protected-wrapper
+classification, transport-signature header names and bounded diagnostic code/severity samples. They omit body
+text, signature values, linked paths and original diagnostic messages, and never open deferred attachment streams.
+Signature presence does not establish authenticity: `CryptographicallyVerified` is false.
+
+Store and OAB inspection reports catalogs and declared counts without projecting all messages or address-book
+entries. ICS/VCF inspection reports parsed root counts; use those format owners' `Validate()` operations for
+semantic validation. These reports do not promise completeness beyond the selected owner's catalog or read policy.
+
+The default inspection profile bounds individual messages and decoded properties to 16 MiB, store files to
+4 GiB and 10,000 items, and OAB components to 64 MiB. `OpenOptions` supplies explicit owner-specific policies;
+the overload accepting an existing `EmailDataOpenResult` keeps the caller's read policy and resource ownership.
+Sample truncation and a bounded signature-header scan are visible in the report. Install `OfficeIMO.Email.Html`
+for the optional HTML safety adapter. Inspection does not access the network, discover certificates, decrypt,
+verify signatures, follow linked attachments or change the source.
 
 ## Resource limits
 

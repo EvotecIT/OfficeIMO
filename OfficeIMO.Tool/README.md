@@ -252,6 +252,44 @@ officeimo agent fetch `
 
 For PST, OST, OLM, EMLX, Mbox, MBX, and directories of messages, `search` uses lightweight store summaries. `fetch` materializes only the selected message. Whole-store conversion is intentionally rejected.
 
+Mailbox `search` examines at most 10,000 summaries per execution and reports `itemsScanned` and
+`scanLimitReached`. A scan limit means the response does not establish that later items have no matches.
+Use `search-email` for bounded semantic content search with durable continuation:
+
+```powershell
+$page = officeimo agent search-email ./archive.pst --query "renewal date" `
+    --fields "Subject,TextBody,HtmlBody" --take 5 --max-items-scanned 1000 | ConvertFrom-Json
+
+if ($page.nextCheckpoint) {
+    $page = officeimo agent search-email ./archive.pst --query "renewal date" `
+        --fields "Subject,TextBody,HtmlBody" --checkpoint $page.nextCheckpoint `
+        --take 5 --max-items-scanned 1000 | ConvertFrom-Json
+}
+```
+
+`search-email` accepts one case-insensitive query phrase and the same mailbox metadata filters as
+`search`. Fields are `Subject`, `Sender`, `Recipients`, `TextBody`, `HtmlBody`, `RtfBody`,
+`AttachmentNames`, `Bodies` or `All`; attachment payloads are not searched. Defaults allow 10,000
+processed items per batch, 16 MiB of decoded properties and 2,000,000 searchable characters per item.
+`--max-decoded-bytes` and `--max-searchable-characters` can reduce those bounds. Complete-source
+hashing also reads the selected source to bind the checkpoint, independently of the item scan budget.
+Opening/indexing work follows the store reader's own container limits; Mbox, EMLX and OLM can decode
+content while opening. The requested decoded-property limit also applies to those reads. MIME body
+alternatives share that budget, EMLX includes its metadata trailer, and OLM counts scalar XML values.
+ZIP/XML input, headers and attachment payloads have separate store-reader limits.
+
+Follow `nextCheckpoint` even when a batch returns zero matches. `isComplete` records enumeration
+completion, while `truncated` also records output trimming. The checkpoint resumes after the last
+delivered match if the output budget shortens a page, so later matches remain available. Source or
+query changes invalidate it. Keep the selected fields, metadata filters and per-item decode/text
+bounds unchanged when resuming. Fetch uses the returned opaque hit IDs.
+
+Source IDs from semantic email search bind the complete store content, including when `fetch`
+resolves them in another process through `--path`. If a single opaque hit ID cannot fit the output
+budget, the page returns no hits, `isComplete: false`, and the input checkpoint without advancing.
+Retry that position with a larger output budget or use the store API; do not treat a null checkpoint
+as completion when `isComplete` is false.
+
 Inspect, search, fetch, and capabilities accept a bounded `--max-output-characters` value. Search and fetch return continuation cursors when more results or content are available. Convert writes its full representation to the requested output file and returns only a small artifact summary.
 
 Use `OFFICEIMO_MCP_ALLOWED_ROOTS` to set a platform path-separator-delimited list of directories available to agent and MCP operations. The STDIO MCP server defaults to its launch working directory when the variable is unset. Explicit roots replace this default; include the launch directory when it should remain available.
@@ -267,13 +305,28 @@ officeimo mcp serve --stdio
 The server exposes:
 
 - `officeimo_inspect`
+- `officeimo_inspect_email`
 - `officeimo_search`
+- `officeimo_search_email`
 - `officeimo_fetch`
 - `officeimo_convert`
 - `officeimo_capabilities`
 
 Tool results contain a short text summary plus compact structured content. The server does not publish duplicate resources containing full documents or mailbox contents.
 
+Use `officeimo agent inspect-email ./message.eml --max-output-characters 6000` or `officeimo_inspect_email`
+for the bounded mail-data and HTML safety report. EML/MSG/OFT/TNEF reports include body alternatives, charsets,
+attachment metadata, protection classification and unverified signature status. ICS/VCF reports root counts;
+store/OAB reports cover catalogs without inspecting every message or entry. The optional HTML pass reports
+concealment and the shared active-content policy, without body previews or signature values. Its status makes
+unavailable and oversized inspection explicit. When details exceed the output budget they are omitted and
+`truncated` is true; summary counts remain, and an insufficient minimum budget is rejected. Existing allowed-root
+and source-identity restrictions apply.
+
+Mail-data identities use the same bounded discovery profile as inspection. They hash individual files or the
+selected Store/OAB owner sources, including OAB Full Details components, and are checked again after inspection.
+Supporting legacy OAB components remain outside the entry catalog. Identity checks may reopen and hash the
+source; report samples limit retained output rather than source hashing I/O.
 Install the [OfficeIMO Document Tools plugin](https://github.com/EvotecIT/OfficeIMO/tree/master/.agents/plugins/officeimo-document-tools#readme) for Codex, Claude Code, or another client supporting portable Agent Plugins. It bundles document and mailbox skills with a pinned NuGet tool launcher. Configure authorized document roots before starting the client.
 
 ## Exit codes

@@ -59,6 +59,7 @@ The package README is the primary usage guide for its public API. These reposito
 - [RTF support](officeimo.rtf-support-matrix.md)
 - [Email and Outlook artifact support](officeimo.email-support-matrix.md)
 - [Email performance evidence](officeimo.email-performance.md)
+- [Email interoperability qualification](../Build/Email/README.md) — managed and opt-in producer validation for contributors.
 - [AsciiDoc support](officeimo.asciidoc-support-matrix.md)
 - [LaTeX support](officeimo.latex-support-matrix.md)
 - [Bibliography support](officeimo.bibliography-support-matrix.md)

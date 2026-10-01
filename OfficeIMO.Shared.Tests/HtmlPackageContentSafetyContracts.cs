@@ -592,6 +592,14 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Fact]
+    public void Mhtml_ParentOnlyPolicySurvivesContentSafetyOptionIntersection() {
+        byte[] input = BuildMhtmlWithProtectedNestedMessage();
+        var report = MhtmlDocument.InspectContentSafety(input,
+            mimeOptions: new EmailReaderOptions(maxNestedMessageDepth: 0, includeEmbeddedMessages: false));
+        Assert.Contains(report.Findings, finding => finding.TextPreview.Contains("Nested payload preservation", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Mhtml_CleanupPreservesProtectedNestedMessagePayload() {
         byte[] input = BuildMhtmlWithProtectedNestedMessage();
         EmailAttachment originalNested = Assert.Single(

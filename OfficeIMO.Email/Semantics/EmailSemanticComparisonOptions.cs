@@ -18,6 +18,7 @@ public sealed class EmailSemanticComparisonOptions {
     /// <param name="maxTotalAttachmentBytes">Maximum decoded attachment bytes hashed across one root document.</param>
     /// <param name="maxEmbeddedMessageDepth">Maximum embedded-message recursion depth.</param>
     /// <param name="maxDifferences">Maximum detailed differences retained by a comparison report.</param>
+    /// <param name="includeEmbeddedMessageContent">Whether loaded embedded documents participate in comparison.</param>
     public EmailSemanticComparisonOptions(
         EmailSemanticComparisonProfile profile = EmailSemanticComparisonProfile.Migration,
         byte[]? digestKey = null,
@@ -25,7 +26,8 @@ public sealed class EmailSemanticComparisonOptions {
         long maxAttachmentBytes = 8L * 1024 * 1024 * 1024,
         long maxTotalAttachmentBytes = 64L * 1024 * 1024 * 1024,
         int maxEmbeddedMessageDepth = 32,
-        int maxDifferences = 10_000) {
+        int maxDifferences = 10_000,
+        bool includeEmbeddedMessageContent = true) {
         if (maxAttachmentBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxAttachmentBytes));
         if (maxTotalAttachmentBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxTotalAttachmentBytes));
         if (maxEmbeddedMessageDepth < 0) throw new ArgumentOutOfRangeException(nameof(maxEmbeddedMessageDepth));
@@ -41,6 +43,7 @@ public sealed class EmailSemanticComparisonOptions {
         MaxTotalAttachmentBytes = maxTotalAttachmentBytes;
         MaxEmbeddedMessageDepth = maxEmbeddedMessageDepth;
         MaxDifferences = maxDifferences;
+        IncludeEmbeddedMessageContent = includeEmbeddedMessageContent;
     }
 
     /// <summary>Representation profile being compared.</summary>
@@ -51,6 +54,8 @@ public sealed class EmailSemanticComparisonOptions {
 
     /// <summary>Whether decoded attachment content participates in comparison.</summary>
     public bool IncludeAttachmentContent { get; }
+    /// <summary>Whether loaded embedded documents participate in comparison.</summary>
+    public bool IncludeEmbeddedMessageContent { get; }
 
     /// <summary>Maximum decoded bytes hashed for one attachment.</summary>
     public long MaxAttachmentBytes { get; }

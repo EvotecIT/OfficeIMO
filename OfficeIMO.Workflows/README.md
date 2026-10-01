@@ -4,6 +4,38 @@
 
 The package does not add a second document or PDF engine. Desktop applications, command-line tools, and services can share this workflow contract while keeping their user-interface and hosting code thin.
 
+## Email evidence and conversation dossiers
+
+`EmailEvidenceWorkflow` produces a portable ZIP containing `report.html`, `report.md`, `manifest.json`
+and an optional `report.pdf`. Reports include From/To/Cc, sent and received dates, attachment indexes,
+source fingerprints, protection classification, diagnostics and explicit body clipping. The body is
+semantic text from `OfficeIMO.Email.Html`, escaped for display; original formatting and embedded images
+are omitted. Attachment payloads and original messages stay outside the ZIP. The workflow reads local
+content without network access, signature verification, decryption or certificate discovery.
+
+```csharp
+var evidence = EmailEvidenceWorkflow.Create("message.eml");
+File.WriteAllBytes("message-evidence.zip", evidence.ToZipBytes());
+
+using var mailbox = OfficeIMO.Email.Store.EmailStoreSession.Open("archive.pst");
+var selected = mailbox.EnumerateItems().First().Key;
+var dossier = EmailEvidenceWorkflow.CreateConversation(mailbox, selected,
+    new EmailEvidenceOptions { MaxItemsScanned = 10_000, MaxMessages = 100 });
+File.WriteAllBytes("conversation.zip", dossier.ToZipBytes());
+```
+
+Conversation selection reuses the existing graph. Messages are chronological; thread links retain their
+evidence and heuristic status, and missing or ambiguous parents remain visible. `GraphComplete` reports
+the graph owner's coverage. Each message is projected under the body/report bounds before the next body
+is read; eager store formats retain their own bounded opening behavior. Embedded attachments are classified
+from available MAPI metadata even when their nested payload is not read. A file fingerprint hashes the same open source before and after parsing;
+a store fingerprint uses the store's durable source contract, including its composite directory hash.
+Hashes identify source bytes and resident attachment payloads; they do not certify message authenticity.
+Deferred attachment streams are not opened for hashing. Report fields use bounded display values,
+diagnostics retain a sample of up to 500 entries with the total count, and PDF conversion diagnostics
+are included in the manifest. `EmailEvidenceOptions` controls input, body, graph, report, page and output
+bounds. Outputs are created in memory; applications choose and authorize their publication destination.
+
 ## Invoice inspection, conversion and rendering
 
 `OfficeInvoiceBufferWorkflow` composes the typed invoice model, optional standards

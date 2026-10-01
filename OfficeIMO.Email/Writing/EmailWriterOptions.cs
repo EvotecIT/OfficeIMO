@@ -16,7 +16,18 @@ public sealed class EmailWriterOptions {
     public EmailWriterOptions(EmailConversionLossPolicy conversionLossPolicy,
         bool usePreservedRawSource = false, bool includeBccHeader = false,
         int base64LineLength = 76, int maxNestedMessageDepth = 16,
+        long maxOutputBytes = 512L * 1024L * 1024L)
+        : this(OfficeSignatureMutationPolicy.BlockSave, conversionLossPolicy, usePreservedRawSource,
+            includeBccHeader, base64LineLength, maxNestedMessageDepth, maxOutputBytes) { }
+
+    /// <summary>Creates writer options with an explicit policy for transport signatures invalidated by regeneration.</summary>
+    public EmailWriterOptions(OfficeSignatureMutationPolicy signatureMutationPolicy,
+        EmailConversionLossPolicy conversionLossPolicy = EmailConversionLossPolicy.Block,
+        bool usePreservedRawSource = false, bool includeBccHeader = false,
+        int base64LineLength = 76, int maxNestedMessageDepth = 16,
         long maxOutputBytes = 512L * 1024L * 1024L) {
+        if (!Enum.IsDefined(typeof(OfficeSignatureMutationPolicy), signatureMutationPolicy))
+            throw new ArgumentOutOfRangeException(nameof(signatureMutationPolicy));
         if (base64LineLength < 4 || base64LineLength > 998 || base64LineLength % 4 != 0) {
             throw new ArgumentOutOfRangeException(nameof(base64LineLength), "Base64 line length must be a multiple of four from 4 through 996.");
         }
@@ -28,6 +39,7 @@ public sealed class EmailWriterOptions {
         MaxNestedMessageDepth = maxNestedMessageDepth;
         MaxOutputBytes = maxOutputBytes;
         ConversionLossPolicy = conversionLossPolicy;
+        SignatureMutationPolicy = signatureMutationPolicy;
     }
 
     /// <summary>Whether an unchanged preserved source should be emitted instead of regenerating the artifact.</summary>
@@ -47,4 +59,10 @@ public sealed class EmailWriterOptions {
 
     /// <summary>Policy applied when the requested format cannot preserve known message semantics.</summary>
     public EmailConversionLossPolicy ConversionLossPolicy { get; }
+
+    /// <summary>
+    /// Policy for DKIM, DomainKey, and ARC headers when serializing regenerated content. Defaults to blocking.
+    /// This does not verify signatures or authorize rewriting a protected S/MIME wrapper.
+    /// </summary>
+    public OfficeSignatureMutationPolicy SignatureMutationPolicy { get; }
 }

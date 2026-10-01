@@ -5,6 +5,7 @@
     <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
     <EnableOfficeIMOEmailPackageSmoke Condition="'$(EnableOfficeIMOEmailPackageSmoke)' == ''">false</EnableOfficeIMOEmailPackageSmoke>
     <OfficeIMOEmailPackageVersion Condition="'$(OfficeIMOEmailPackageVersion)' == ''">3.3.0</OfficeIMOEmailPackageVersion>
+    <OfficeIMOEmailHtmlPackageVersion Condition="'$(OfficeIMOEmailHtmlPackageVersion)' == ''">$(OfficeIMOEmailPackageVersion)</OfficeIMOEmailHtmlPackageVersion>
     <OfficeIMOReaderCorePackageVersion Condition="'$(OfficeIMOReaderCorePackageVersion)' == ''">3.3.0</OfficeIMOReaderCorePackageVersion>
     <OfficeIMOReaderEmailPackageVersion Condition="'$(OfficeIMOReaderEmailPackageVersion)' == ''">3.3.0</OfficeIMOReaderEmailPackageVersion>
     <OfficeIMOReaderImagePackageVersion Condition="'$(OfficeIMOReaderImagePackageVersion)' == ''">3.3.0</OfficeIMOReaderImagePackageVersion>
@@ -16,6 +17,7 @@
 
   <ItemGroup Condition="'$(EnableOfficeIMOEmailPackageSmoke)' == 'true'">
     <PackageReference Include="OfficeIMO.Email" Version="[$(OfficeIMOEmailPackageVersion)]" />
+    <PackageReference Include="OfficeIMO.Email.Html" Version="[$(OfficeIMOEmailHtmlPackageVersion)]" />
     <PackageReference Include="OfficeIMO.Reader.Core" Version="[$(OfficeIMOReaderCorePackageVersion)]" />
     <PackageReference Include="OfficeIMO.Reader.Email" Version="[$(OfficeIMOReaderEmailPackageVersion)]" />
     <PackageReference Include="OfficeIMO.Reader.Image" Version="[$(OfficeIMOReaderImagePackageVersion)]" />

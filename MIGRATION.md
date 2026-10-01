@@ -133,6 +133,40 @@ AI Date fields require formats with a year, month, and day. Partial formats retu
 
 The synthetic AI evaluation report uses schema `officeimo.ai.evaluation.v3` and `contractPassed`. A successful initial contract evaluation returns exit code `4` until independent semantic review is complete. Use the example's offline `--review-evaluation` command with semantic-review v2 labels bound to both evaluation and per-run report hashes; exit code `0` then means every selected case passed both contract and review checks. Earlier v1 labels must be regenerated and independently assessed against the current evaluation.
 
+## Email transport signature regeneration
+
+`EmailDocumentWriter` blocks regenerated output that retains DKIM, DomainKey, or ARC signatures by default.
+Applications that intentionally rewrite such messages must select
+`new EmailWriterOptions(OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures)` or
+`new EmailWriterOptions(OfficeSignatureMutationPolicy.PreserveSignatureMarkup)` explicitly. The enum is in the
+`OfficeIMO` namespace. These choices return an invalidation diagnostic and do not change the separate S/MIME policy.
+For an unchanged archival copy, read with `preserveRawSource: true` and write with `usePreservedRawSource: true`.
+Regenerated output drops original payload length and digest headers instead of carrying stale values forward.
+
+## Email decoded content budgets
+
+`EmailReaderOptions.MaxDecodedPropertyBytes` includes MIME body alternatives and semantic calendar/contact
+parts as well as MSG/TNEF properties. The reader checks decoded MIME byte counts before materializing
+their payloads and shares the allowance across alternatives and embedded messages. Applications that
+set this option only for MSG should review their MIME body limits when upgrading.
+
+Store selective reads honor narrower `EmailStoreItemReadOptions.MaxDecodedPropertyBytes` for mailbox
+directories, Mbox and eager EMLX/OLM items. EMLX combines message and metadata-trailer bytes; OLM counts
+UTF-8 scalar text and attribute values per item. ZIP/XML input and attachment budgets remain separate.
+
+## Email parent-only reads and comparisons
+
+`EmailReaderOptions` adds `includeEmbeddedMessages`, and `EmailSemanticComparisonOptions` adds
+`includeEmbeddedMessageContent`. Both default to `true`. Rebuild compiled applications that construct
+these option types against the updated package; the constructor signatures have changed.
+
+Use `includeEmbeddedMessages: false` with `includeAttachmentContent: false` when a workflow needs only
+the parent message and attachment metadata. Store selective reads apply the same boundary when
+`EmailStoreItemReadParts.EmbeddedItems` is omitted. Embedded content is then absent from `LoadedParts`.
+For an already loaded model, `includeEmbeddedMessageContent: false` excludes embedded documents from
+semantic comparison. Archive candidate analysis uses these parent-only contracts and does not establish
+that candidate attachment payloads are equal.
+
 ## Reader document schema version 8
 
 `OfficeDocumentReadResult` now emits schema version 8. This version adds

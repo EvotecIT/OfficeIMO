@@ -4,6 +4,8 @@ namespace OfficeIMO.Email.Store;
 
 /// <summary>An email or typed Outlook item located within a store folder.</summary>
 public sealed class EmailStoreItem {
+    // Eager readers retain their measured decoded-byte ledger so narrower later reads can reject without re-decoding.
+    internal long? DecodedPropertyBytes { get; set; }
     internal EmailStoreItem(string id, string folderId, EmailDocument document,
         bool isAssociated = false, bool isOrphaned = false,
         EmailStoreItemReadParts loadedParts = EmailStoreItemReadParts.All,
