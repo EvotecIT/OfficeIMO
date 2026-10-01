@@ -1,0 +1,725 @@
+{
+  "sourceCommit": "4bb48267fe4cdc2df60ce29d5973ccbe8394c55b",
+  "baseCommit": "0d85bfd5592911829d48d9dd84540c129442764e",
+  "scope": "Originating-column notes in non-spanning horizontal fixed-height paged column sets; existing page-wide notes retained.",
+  "sourceSha256": {
+    "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Columns.cs": "7d9f0e7d86f51dba2609495700e4bcb6d2b1c5cb34ae074891fda78f3bb731f1",
+    "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Columns.Footnotes.cs": "948a0c8fdaed22d98ad349ba8d13f39de5df4dcff809f91e65d208b402053166",
+    "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Footnotes.cs": "d9ac7c975e62cde00a7c96e467418f96a3fe44ba3e1dcd062268e52162cc349e",
+    "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Footnotes.Paint.cs": "80090fe46e8553e1366ff0aa9c8ea09d3b54b02989869b9878e34db8716df028",
+    "OfficeIMO.Html.Tests/Html.Rendering.Columns.Footnotes.cs": "58e3cbe3bdd8fa1e17d9ba45c5592ad6eeb4a0f33221bb3ec7dc7f1a14a5870c",
+    "OfficeIMO.Html/Capabilities/HtmlRenderCapabilityCatalog.cs": "f804855fc0c0ce7d18c49b1f8653b2a674180ba86c896302db8df032fc7fed25"
+  },
+  "tests": [
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-column-notes-work-0d85bfd55/adjacent-before.trx",
+      "sha256": "710da3804b964494115349eaa55076a5df57d0651d058df09d9546f11de65f8f",
+      "total": 2,
+      "passed": 1,
+      "failed": 1,
+      "failedTests": [
+        "OfficeIMO.Tests.HtmlRenderingTests.HtmlPagedMedia_UnnamedFootnotesStayWithTheirDistinctCallPages"
+      ],
+      "rawArtifactRetained": true
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-column-notes-work-0d85bfd55/atomic-note-before.trx",
+      "sha256": "a671f626c6c64fc04851dbc37fde1ab8c0a7d3a25e533c7ff80a6e83d138f9c3",
+      "total": 1,
+      "passed": 0,
+      "failed": 1,
+      "failedTests": [
+        "OfficeIMO.Tests.HtmlRenderingTests.HtmlColumnNotes_AtomicNoteImageContinuesWholeWithoutLosingContent"
+      ],
+      "rawArtifactRetained": true
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-column-notes-work-0d85bfd55/before-final.trx",
+      "sha256": "1a1c590046fe25ec47d211191450d9b60bc60d6fc035a6615a0fbccd87b67770",
+      "total": 3,
+      "passed": 0,
+      "failed": 3,
+      "failedTests": [
+        "OfficeIMO.Tests.HtmlRenderingTests.HtmlColumnNotes_ReserveOnlyTheirOriginatingColumnWithoutBodyOverlap(precedingHeight: 30)",
+        "OfficeIMO.Tests.HtmlRenderingTests.HtmlColumnNotes_LongNoteContinuesWithAllLinesAndNavigation",
+        "OfficeIMO.Tests.HtmlRenderingTests.HtmlColumnNotes_ReserveOnlyTheirOriginatingColumnWithoutBodyOverlap(precedingHeight: 0)"
+      ],
+      "rawArtifactRetained": true
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-column-notes-work-0d85bfd55/call-height-after.trx",
+      "sha256": "5a6802ef1c207254f1c723aa1938cc4a1639da77526da6db32e46fc83c1c8e3d",
+      "total": 53,
+      "passed": 53,
+      "failed": 0,
+      "failedTests": [],
+      "rawArtifactRetained": false
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-column-notes-work-0d85bfd55/call-height-before.trx",
+      "sha256": "bc94a42210b8d6ad6366bf5e1d2c5bac0a3193247b750a25812b0104f8fcff04",
+      "total": 2,
+      "passed": 0,
+      "failed": 2,
+      "failedTests": [
+        "OfficeIMO.Tests.HtmlRenderingTests.HtmlColumnNotes_ReservationFitsTheMeasuredCallLine(lineHeight: 40)",
+        "OfficeIMO.Tests.HtmlRenderingTests.HtmlColumnNotes_ReservationFitsTheMeasuredCallLine(lineHeight: 60)"
+      ],
+      "rawArtifactRetained": true
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-column-notes-work-0d85bfd55/matrix-final.trx",
+      "sha256": "9cb7034086cc1aa9799bcb193ec41297bc2e88080c3bddf7ecc0014caff474b1",
+      "total": 1,
+      "passed": 1,
+      "failed": 0,
+      "failedTests": [],
+      "rawArtifactRetained": false
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-column-notes-work-0d85bfd55/qualified-net10.0.trx",
+      "sha256": "c1dc5400eb77e183d9083c0b90a33408dcf50faff8926f5082a8c2b0d27c8951",
+      "total": 3981,
+      "passed": 3981,
+      "failed": 0,
+      "failedTests": [],
+      "rawArtifactRetained": false
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-column-notes-work-0d85bfd55/qualified-net8.0.trx",
+      "sha256": "a255202dc5fcfeedb1cb4b3bd8cd0868307d0025c4b80bf2e3a88e5f4c930e68",
+      "total": 3981,
+      "passed": 3981,
+      "failed": 0,
+      "failedTests": [],
+      "rawArtifactRetained": false
+    },
+    {
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-column-notes-work-0d85bfd55/review-before.trx",
+      "sha256": "71aaf00ac154d10a3d5e8728699bcadf8e2f57dac97cb61c187150566205930a",
+      "total": 5,
+      "passed": 2,
+      "failed": 3,
+      "failedTests": [
+        "OfficeIMO.Tests.HtmlRenderingTests.HtmlColumnNotes_AtomicBodyImageAvoidsContinuationReservations",
+        "OfficeIMO.Tests.HtmlRenderingTests.HtmlColumnNotes_ReserveOnlyTheirOriginatingColumnWithoutBodyOverlap(precedingHeight: 100)",
+        "OfficeIMO.Tests.HtmlRenderingTests.HtmlColumnNotes_DeferredCallPreservesParagraphWidows"
+      ],
+      "rawArtifactRetained": true
+    }
+  ],
+  "builds": {
+    "qualified-netstandard": {
+      "result": "Passed; zero warnings/errors",
+      "logSha256": "ee5b7e73be8e51af3def90621a7d04405c3598d9216eb39e1eb36de537db7cae"
+    },
+    "comparison-clean-build": {
+      "result": "Passed; zero warnings/errors",
+      "logSha256": "af93553f419098f28d60c913db69eeebbbe3da981c6b8dcd32ae95fd5f51e337"
+    },
+    "editable-clean-build": {
+      "result": "Passed; zero warnings/errors",
+      "logSha256": "54b2620637bc5b33382fb273264f64a09a20ff300a43058c2c50f946d9c62d13"
+    },
+    "static-clean-build": {
+      "result": "Passed; zero warnings/errors",
+      "logSha256": "7cd6d8e87812fb4e1ef3d5a9b5c7b7acb540aca6df74a6e47ff2a81b8489005b"
+    },
+    "h10-clean-build": {
+      "result": "Passed; zero warnings/errors",
+      "logSha256": "c6e58dd32bda7d67ebbae289faafea1ec53ab6b4fbb9aface250b083c96945d1"
+    }
+  },
+  "review": {
+    "boundary": "candidate-reviewed",
+    "type": "one fresh strictly read-only full pass and one targeted confirmation",
+    "agent": "column_notes_review",
+    "initialPatchSha256": "61f4c1dc2c4dbfff8eeb18555c05b0f6aceadb684665117d9826164fe5f7b8ff",
+    "confirmationPatchSha256": "f7480f70348bcb3c24868c2b593a709acf56699bf15d6381e412615798647b4d",
+    "findings": [
+      {
+        "priority": "P2",
+        "contract": "Atomic body image overlapping a note continuation",
+        "disposition": "Reproduced, fixed and covered by focused regressions and final broad gates"
+      },
+      {
+        "priority": "P2",
+        "contract": "Physical page slicing separating a call and its initial note",
+        "disposition": "Reproduced, fixed and covered by focused regressions and final broad gates"
+      },
+      {
+        "priority": "P2",
+        "contract": "Deferred-call cuts bypassing widow/orphan legality",
+        "disposition": "Reproduced, fixed and covered by focused regressions and final broad gates"
+      },
+      {
+        "priority": "P2",
+        "contract": "Remediation-introduced tall-call reservation causing nonconvergence",
+        "disposition": "Reproduced, fixed and covered by focused regressions and final broad gates"
+      }
+    ],
+    "targetedConfirmationUsed": true,
+    "finalCorrection": "Measured the call line and legal/kept fragment before reserving notes; 40px and 60px reproductions fail before and pass after. Primary validation closes this correction; no additional independent pass claimed."
+  },
+  "columnInput": {
+    "source": {
+      "corpusId": "officeimo-static-html-pdf-gaps",
+      "relativeRoot": "OfficeIMO.TestAssets/Documents/Html/Qualification/StaticPdfGaps",
+      "manifestSha256": "8a050e28e6905159c0c0b97e976de21d4c93d1b8844f1c6600cd3e0af9189522",
+      "commit": "4bb48267fe4cdc2df60ce29d5973ccbe8394c55b",
+      "worktreeDirty": false,
+      "caseCount": 1
+    },
+    "inputSha256": "883a047a207023dbe9356b5c38d86888890bd7c300068cc5dbea17930ff916db",
+    "reportSha256": "1c2335d9a0109e11d72141cfbd4012bfeabf64e83e8ac5f15155cf1870069fce",
+    "independentPdfInspection": {
+      "source": {
+        "corpusId": "officeimo-static-html-pdf-gaps",
+        "relativeRoot": "OfficeIMO.TestAssets/Documents/Html/Qualification/StaticPdfGaps",
+        "manifestSha256": "8a050e28e6905159c0c0b97e976de21d4c93d1b8844f1c6600cd3e0af9189522",
+        "commit": "4bb48267fe4cdc2df60ce29d5973ccbe8394c55b",
+        "worktreeDirty": false,
+        "caseCount": 1
+      },
+      "inputSha256": "883a047a207023dbe9356b5c38d86888890bd7c300068cc5dbea17930ff916db",
+      "pdfSha256": "f40f2c3b69285ef3f2ab5debe18e55b4105b194eab3f5e849410c2e862edad35",
+      "pageCount": 3,
+      "markerCounts": {
+        "NOTE-BODY-": {
+          "expected": 26,
+          "observed": 26,
+          "exactlyOnce": true,
+          "longNoteOrderPreserved": false
+        },
+        "NOTE-TAIL-": {
+          "expected": 28,
+          "observed": 28,
+          "exactlyOnce": true,
+          "longNoteOrderPreserved": false
+        },
+        "LONG-NOTE-": {
+          "expected": 35,
+          "observed": 35,
+          "exactlyOnce": true,
+          "longNoteOrderPreserved": true
+        }
+      },
+      "outOfContentBounds": [],
+      "placement": [
+        {
+          "call": {
+            "text": "CALL-A",
+            "x": 18.000007,
+            "y": 54.576,
+            "right": 52.049318,
+            "bottom": 69.228,
+            "page": 1
+          },
+          "note": {
+            "text": "NOTE-A",
+            "x": 32.999994,
+            "y": 580.932,
+            "right": 61.396634,
+            "bottom": 591.921,
+            "page": 1
+          },
+          "columnLeft": 18,
+          "columnRight": 288.638,
+          "noBodyOverlap": true
+        },
+        {
+          "call": {
+            "text": "CALL-B",
+            "x": 17.999999,
+            "y": 18.576,
+            "right": 51.632977,
+            "bottom": 33.228,
+            "page": 2
+          },
+          "note": {
+            "text": "LONG-NOTE-00",
+            "x": 32.999987,
+            "y": 85.932,
+            "right": 88.909018,
+            "bottom": 96.921,
+            "page": 2
+          },
+          "columnLeft": 18,
+          "columnRight": 288.638,
+          "noBodyOverlap": true
+        }
+      ],
+      "links": [
+        {
+          "page": 1,
+          "target": "html-fragment:officeimo-footnote-note-1",
+          "rectangle": [
+            54.762,
+            774.308,
+            57.742,
+            781.488
+          ]
+        },
+        {
+          "page": 1,
+          "target": "html-fragment:officeimo-footnote-call-1",
+          "rectangle": [
+            18.0,
+            249.969,
+            22.563,
+            260.958
+          ]
+        },
+        {
+          "page": 2,
+          "target": "html-fragment:officeimo-footnote-note-2",
+          "rectangle": [
+            54.346,
+            810.308,
+            57.326,
+            817.488
+          ]
+        },
+        {
+          "page": 2,
+          "target": "html-fragment:officeimo-footnote-call-2",
+          "rectangle": [
+            18.0,
+            744.969,
+            22.563,
+            755.958
+          ]
+        }
+      ],
+      "allTargetsResolve": true,
+      "bodyFontPoints": [
+        12.0
+      ],
+      "runnerFailures": [],
+      "pdfStructureRoles": {
+        "/Document": 1,
+        "/H1": 1,
+        "/Span": 98,
+        "/P": 59,
+        "/Link": 4,
+        "/Note": 2
+      }
+    },
+    "visualInspection": "All three final print rasters inspected. Initial notes occupy their call columns/pages; every body and note marker is visible without overlap or reduced body text size. Focused continuation cases additionally prove legal carry-forward and whole atomic note images.",
+    "retainedDirectory": "Ignore/HtmlUnknownPageQualification/static-gap-column-notes-clean-4bb48267f"
+  },
+  "h4": {
+    "source": {
+      "corpusId": "officeimo-html-h4-advanced-held-out",
+      "relativeRoot": "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out",
+      "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+      "commit": "4bb48267fe4cdc2df60ce29d5973ccbe8394c55b",
+      "worktreeDirty": false,
+      "caseCount": 8
+    },
+    "caseCount": 8,
+    "passed": 8,
+    "failed": 0,
+    "reportSha256": "2c59b362e2a654c551010f0cd63d478df5c253a11662d381b1b18b1335bf78f1",
+    "retainedDirectory": "Ignore/HtmlUnknownPageQualification/static-gap-column-notes-h4-clean-4bb48267f"
+  },
+  "nasa": {
+    "sourceCommit": "4bb48267fe4cdc2df60ce29d5973ccbe8394c55b",
+    "worktreeDirty": false,
+    "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+    "reportSha256": "09c5a75120e65d6978e5c966f9397f4ee322a3b9ff0595d9f4b7b14cd7d39316",
+    "variants": [
+      {
+        "path": "officeimo-print-browser-ua.pdf",
+        "prior": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "current": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "byteIdentical": true
+      },
+      {
+        "path": "officeimo-print-fit-1200-local-fonts.pdf",
+        "prior": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+        "current": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+        "byteIdentical": true
+      },
+      {
+        "path": "officeimo-print-fit-1200.pdf",
+        "prior": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+        "current": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+        "byteIdentical": true
+      },
+      {
+        "path": "officeimo-print-fit-browser-viewport.pdf",
+        "prior": "70bd7305e38a3aca89c8ff3f56145fe70def65576d6a818de5d04bfde46eca68",
+        "current": "70bd7305e38a3aca89c8ff3f56145fe70def65576d6a818de5d04bfde46eca68",
+        "byteIdentical": true
+      },
+      {
+        "path": "officeimo-print-zero-margin-local-fonts.pdf",
+        "prior": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "current": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "byteIdentical": true
+      },
+      {
+        "path": "officeimo-print-zero-margin.pdf",
+        "prior": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "current": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "byteIdentical": true
+      },
+      {
+        "path": "officeimo-print.pdf",
+        "prior": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e",
+        "current": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e",
+        "byteIdentical": true
+      },
+      {
+        "path": "officeimo-screen-media-local-fonts.pdf",
+        "prior": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "current": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "byteIdentical": true
+      },
+      {
+        "path": "officeimo-screen-media.pdf",
+        "prior": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "current": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "byteIdentical": true
+      },
+      {
+        "path": "officeimo-screen-snapshot-local-fonts.pdf",
+        "prior": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "current": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "byteIdentical": true
+      },
+      {
+        "path": "officeimo-screen-snapshot.pdf",
+        "prior": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "current": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "byteIdentical": true
+      }
+    ],
+    "zeroMarginPages": 16,
+    "zeroMarginImages": 24,
+    "zeroMarginSha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+    "referenceOutcome": {
+      "peachPdfVersion": "0.9.20",
+      "intent": "peachpdf-print",
+      "completed": true,
+      "pageCount": 14,
+      "qualificationClaim": false
+    },
+    "retainedDirectory": "Ignore/HtmlUnknownPageQualification/static-gap-column-notes-nasa-clean-4bb48267f",
+    "independentPageImageInspection": {
+      "tool": "Poppler pdfinfo/pdfimages",
+      "pageCount": 16,
+      "imageOccurrences": 24
+    }
+  },
+  "macosStaticBudget": {
+    "report": "Ignore/HtmlUnknownPageQualification/static-gap-column-notes-static-budget-clean-4bb48267f/html-static-budget.json",
+    "reportSha256": "7106e346d468437de86ee7013208df5c4eecdea7dafe7d14b3d837b1a1cf4a49",
+    "cold": {
+      "mode": "cold",
+      "processElapsedMilliseconds": 4661.4831,
+      "peakWorkingSetBytes": 366936064,
+      "memorySampleCount": 128,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 4586.0068,
+          "managedAllocatedBytes": 1083557800,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        }
+      ],
+      "deterministic": true
+    },
+    "warm": {
+      "mode": "warm",
+      "processElapsedMilliseconds": 10952.1477,
+      "peakWorkingSetBytes": 548487168,
+      "memorySampleCount": 298,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 2338.0495,
+          "managedAllocatedBytes": 894000424,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        },
+        {
+          "number": 2,
+          "elapsedMilliseconds": 2033.509,
+          "managedAllocatedBytes": 895155112,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        },
+        {
+          "number": 3,
+          "elapsedMilliseconds": 1883.5699,
+          "managedAllocatedBytes": 895023880,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        }
+      ],
+      "deterministic": true
+    },
+    "cancellation": {
+      "status": "Passed",
+      "elapsedMilliseconds": 1.6677,
+      "detail": "Cancellation propagated through the asynchronous resource boundary."
+    },
+    "failures": [],
+    "source": {
+      "commit": "4bb48267fe4cdc2df60ce29d5973ccbe8394c55b",
+      "worktreeClean": true,
+      "corpusId": "officeimo-html-h4-advanced-held-out",
+      "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+      "caseCount": 8,
+      "outputsPerIteration": 76
+    },
+    "unchangedCeiling": {
+      "osFamily": "macOS",
+      "coldProcessElapsedMilliseconds": 8000,
+      "warmIterationElapsedMilliseconds": 3000,
+      "coldManagedAllocatedBytes": 1250000000,
+      "warmManagedAllocatedBytes": 1100000000,
+      "peakWorkingSetBytes": 700000000,
+      "outputBytesPerIteration": 3000000,
+      "cancellationElapsedMilliseconds": 250
+    }
+  },
+  "macosH10Budget": {
+    "report": "Ignore/HtmlUnknownPageQualification/static-gap-column-notes-h10-budget-clean-4bb48267f/h10-budget.json",
+    "reportSha256": "ed59f8ba8a2a783dfff064df0bb10683c1f5279c953b4d517e06d5f94412e899",
+    "sourceCommit": "4bb48267fe4cdc2df60ce29d5973ccbe8394c55b",
+    "sourceClean": true,
+    "unchangedCeiling": "Build/Project/Evidence/2026-09-28/html-h10-nist-noaa-nasa/macos-budget-nasa-solar-system-terrestrial-planets.json",
+    "operations": [
+      {
+        "name": "pdf-print",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4359.3255,
+        "managedAllocatedBytes": 2109566888,
+        "processMilliseconds": 4731.6356,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 486670336,
+          "sampleCount": 160,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7813360,
+        "outputSha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e",
+        "pageCount": 19
+      },
+      {
+        "name": "pdf-print-zero-margin",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4365.1649,
+        "managedAllocatedBytes": 2113746432,
+        "processMilliseconds": 4761.8863,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 502710272,
+          "sampleCount": 161,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7756639,
+        "outputSha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "pageCount": 16
+      },
+      {
+        "name": "pdf-screen-media",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3495.1507,
+        "managedAllocatedBytes": 1652446784,
+        "processMilliseconds": 3885.697,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 444727296,
+          "sampleCount": 132,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7684160,
+        "outputSha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "pageCount": 21
+      },
+      {
+        "name": "pdf-screen-snapshot",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3677.2222,
+        "managedAllocatedBytes": 1772008784,
+        "processMilliseconds": 4056.635,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 547766272,
+          "sampleCount": 138,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7740830,
+        "outputSha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "pageCount": 16
+      },
+      {
+        "name": "editable-word",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2547.4815,
+        "managedAllocatedBytes": 962783816,
+        "processMilliseconds": 2758.9447,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 320946176,
+          "sampleCount": 93,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 2,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1491338,
+        "outputSha256": "e49c0fe91fb6c781cea3ea262dd9aaa843390b16743d551709d14f5e1e7b328f",
+        "pageCount": null
+      },
+      {
+        "name": "editable-excel",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2075.859,
+        "managedAllocatedBytes": 896495920,
+        "processMilliseconds": 2242.6287,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 321060864,
+          "sampleCount": 76,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1528680,
+        "outputSha256": "b4f622d1c71b1f12c3d193b296268ed1ec605bea429aab15784bef6b030bd785",
+        "pageCount": null
+      },
+      {
+        "name": "editable-powerpoint",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2918.989,
+        "managedAllocatedBytes": 1026576328,
+        "processMilliseconds": 3091.8351,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 321650688,
+          "sampleCount": 105,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1499715,
+        "outputSha256": "51bbdaff5b41db28354542e6cec6132d18a8d33b99a70e59247a2724344c9dd1",
+        "pageCount": null
+      },
+      {
+        "name": "editable-onenote",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1545.5172,
+        "managedAllocatedBytes": 645379704,
+        "processMilliseconds": 1719.9147,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 222543872,
+          "sampleCount": 58,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1595264,
+        "outputSha256": "cb61c52c5dda5356dfd6fef327015ae2e911dd07c9450dac832824a0e734f8f3",
+        "pageCount": null
+      },
+      {
+        "name": "editable-rtf",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1795.1273,
+        "managedAllocatedBytes": 858785400,
+        "processMilliseconds": 1963.1054,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 272875520,
+          "sampleCount": 66,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 2945978,
+        "outputSha256": "7468f0dff2e5468fb4d89960516a000945560b18bdc00beaa1fab943249933b5",
+        "pageCount": null
+      },
+      {
+        "name": "editable-markdown",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1442.2695,
+        "managedAllocatedBytes": 646316504,
+        "processMilliseconds": 1611.2953,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 264749056,
+          "sampleCount": 54,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1967406,
+        "outputSha256": "2f36d6712928d25864185183ac62544b4dfeefaed5b0b2c1b7d87f807d4cbaad",
+        "pageCount": null
+      }
+    ],
+    "failures": [],
+    "editableScope": "Existing editable operations retained only as unchanged budget regression gates, not as qualification within this static milestone."
+  },
+  "limits": [
+    "Spanning and over-page-height column-note sets are outside this qualified subset.",
+    "Windows/net472 and Windows/Linux H10 operation budgets are unfinished.",
+    "This checkpoint does not qualify general browser fidelity or PDF/A/PDF/UA conformance.",
+    "The full 18-case static gap-closure goal remains active; remaining outcomes belong only to Docs/ROADMAP.md."
+  ],
+  "state": {
+    "htmlPrOpened": false,
+    "masterMerged": false,
+    "packageReleased": false,
+    "manualHostedReviewRequested": false
+  },
+  "cleanup": {
+    "removedBytes": 188423656,
+    "targetCount": 227,
+    "provenance": "Three superseded current-task comparison probes; successful TRXs summarized before removal; previous NASA PDFs byte-identical to current; previous H4 rendered output and H10 output superseded by passing clean-source evidence. Source archives, font/image assets and compact reports retained. All generating/review processes terminal.",
+    "planSha256": "69f2ec8492c6375634b1f9528541ddf989ed8b678a13cb64fc449be58710582b",
+    "retainedDirectories": [
+      "Ignore/HtmlUnknownPageQualification/static-gap-column-notes-clean-4bb48267f",
+      "Ignore/HtmlUnknownPageQualification/static-gap-column-notes-h4-clean-4bb48267f",
+      "Ignore/HtmlUnknownPageQualification/static-gap-column-notes-nasa-clean-4bb48267f",
+      "Ignore/HtmlUnknownPageQualification/static-gap-column-notes-static-budget-clean-4bb48267f",
+      "Ignore/HtmlUnknownPageQualification/static-gap-column-notes-h10-budget-clean-4bb48267f"
+    ],
+    "retainedBytes": 163220512
+  }
+}
