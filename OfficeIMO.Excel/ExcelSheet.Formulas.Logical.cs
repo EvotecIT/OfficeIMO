@@ -167,7 +167,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 bool isFormula = referenceSheet.TryGetExistingCell(referenceRow, referenceColumn)?.CellFormula != null;
-                result = new FormulaArgumentValue(isFormula ? 1d : 0d, isFormula ? "1" : "0");
+                result = FormulaArgumentValue.Boolean(isFormula);
                 return true;
             }
 
@@ -183,10 +183,10 @@ namespace OfficeIMO.Excel {
                     matches = !value.HasValue;
                     break;
                 case "ISNUMBER":
-                    matches = value.Number.HasValue;
+                    matches = value.IsNumericAggregateValue && !value.IsBoolean;
                     break;
                 case "ISTEXT":
-                    matches = value.Text != null && !value.Number.HasValue;
+                    matches = value.SourceCellKind == ExcelCellDataKind.Text || (value.Text != null && !value.Number.HasValue && !value.IsError);
                     break;
                 case "ISERROR":
                     matches = value.IsError;
@@ -201,7 +201,7 @@ namespace OfficeIMO.Excel {
                     return false;
             }
 
-            result = new FormulaArgumentValue(matches ? 1d : 0d, matches ? "1" : "0");
+            result = FormulaArgumentValue.Boolean(matches);
             return true;
         }
 

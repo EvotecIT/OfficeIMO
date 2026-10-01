@@ -635,7 +635,7 @@ Author `TEXTJOIN` through the normal cell and array-formula APIs. The writer sto
 
 ### Referenced values in aggregates
 
-`Calculate()` preserves referenced types for numeric aggregates. `MINA`, `MAXA` and `AVERAGEA` include Boolean values as one or zero and referenced text as zero, skip blank cells, and preserve typed errors. Empty `MINA` and `MAXA` ranges return zero; empty `AVERAGEA` ranges return `#DIV/0!`. Ordinary numeric aggregates skip referenced Boolean and text values, including numeric-looking strings. Scalar numeric coercion remains available. Positional statistical helpers require numeric-only ranges; mixed-type series remain unevaluated rather than losing their paired coordinates.
+`Calculate()` preserves referenced types for numeric aggregates. `MINA`, `MAXA` and `AVERAGEA` include Boolean values as one or zero and referenced text as zero, skip blank cells, and preserve typed errors. Empty `MINA` and `MAXA` ranges return zero; empty `AVERAGEA` ranges return `#DIV/0!`. Ordinary numeric aggregates skip referenced Boolean and text values, including numeric-looking strings. Boolean formula results and selected text results retain their types through references and saved caches. `SUMSQ`, `LARGE` and `SMALL` filter referenced data values; the rank argument keeps scalar coercion. Scalar numeric coercion remains available. Positional statistical helpers require numeric-only ranges; mixed-type series remain unevaluated rather than losing their paired coordinates.
 
 ### Preflight a workbook before choosing a workflow
 

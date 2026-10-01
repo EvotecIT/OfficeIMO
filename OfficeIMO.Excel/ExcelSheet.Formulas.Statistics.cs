@@ -6,6 +6,19 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        private bool TryEvaluateRankedAggregate(string function, string args, out double result) {
+            result = 0;
+            var tokens = SplitFormulaArguments(args);
+            if (tokens.Count != 2 || !TryGetWholeNumberArgument(tokens[1], out int rank)
+                || !TryResolveFormulaArguments(tokens[0], out var values)
+                || values.Any(value => value.IsUnresolvedFormula || value.IsError)) return false;
+            var sorted = values.Where(value => value.IsNumericAggregateValue).Select(value => value.Number!.Value)
+                .OrderBy(value => value).ToList();
+            if (rank < 1 || rank > sorted.Count) return false;
+            result = function == "LARGE" ? sorted[sorted.Count - rank] : sorted[rank - 1];
+            return true;
+        }
+
         private bool TryEvaluateStatisticalFunction(string function, string args, out double result) {
             result = 0;
             var tokens = SplitFormulaArguments(args);

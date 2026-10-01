@@ -260,9 +260,15 @@ namespace OfficeIMO.Excel {
         }
 
         private static void SetFormulaCachedValue(Cell cell, FormulaArgumentValue result) {
+            if (!result.IsError && result.SourceCellKind == ExcelCellDataKind.Text && result.Text != null) {
+                cell.CellValue = new CellValue(result.Text);
+                cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String;
+                return;
+            }
             if (result.Number.HasValue) {
                 cell.CellValue = new CellValue(InvariantNumberText.Get(result.Number.Value));
-                cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
+                cell.DataType = result.IsBoolean ? DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean
+                    : DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
                 return;
             }
 
@@ -593,6 +599,11 @@ namespace OfficeIMO.Excel {
             }
 
             formula = NormalizeSupportedFunctionPrefix(formula);
+            string literal = formula.Trim().TrimStart('=').Trim();
+            if (literal.Equals("TRUE", StringComparison.OrdinalIgnoreCase) || literal.Equals("FALSE", StringComparison.OrdinalIgnoreCase)) {
+                result = FormulaArgumentValue.Boolean(literal.Equals("TRUE", StringComparison.OrdinalIgnoreCase));
+                return true;
+            }
             ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(formula, out ExcelFormulaFunctionCallSyntax? functionCall);
             if (functionCall != null) {
                     string function = functionCall.Name.ToUpperInvariant();
@@ -654,7 +665,9 @@ namespace OfficeIMO.Excel {
             }
 
             if (TryEvaluateFormula(formula, out double numeric)) {
-                result = new FormulaArgumentValue(numeric, InvariantNumberText.Get(numeric));
+                result = functionCall?.Name.ToUpperInvariant() is "AND" or "OR" or "NOT"
+                    ? FormulaArgumentValue.Boolean(numeric != 0)
+                    : new FormulaArgumentValue(numeric, InvariantNumberText.Get(numeric));
                 return true;
             }
 
@@ -823,6 +836,10 @@ namespace OfficeIMO.Excel {
                         return true;
                     }
 
+                    if (function == "LARGE" || function == "SMALL") {
+                        return TryEvaluateRankedAggregate(function, args, out result);
+                    }
+
                     if (!TryResolveFormulaArguments(args, out var values) || values.Any(value => value.IsUnresolvedFormula)) {
                         return false;
                     }
@@ -832,7 +849,7 @@ namespace OfficeIMO.Excel {
                         return true;
                     }
 
-                    bool numericReferencesOnly = function is "SUM" or "AVERAGE" or "MIN" or "MAX" or "COUNT" or "PRODUCT" or "MEDIAN";
+                    bool numericReferencesOnly = function is "SUM" or "AVERAGE" or "MIN" or "MAX" or "COUNT" or "PRODUCT" or "MEDIAN" or "SUMSQ";
                     var numbers = values.Where(v => v.Number.HasValue && (!numericReferencesOnly || v.IsNumericAggregateValue))
                         .Select(v => v.Number!.Value).ToList();
                     if (function == "COUNT") {
@@ -999,20 +1016,6 @@ namespace OfficeIMO.Excel {
                         }
 
                         result = numbers[0] - numbers[1] * Math.Floor(numbers[0] / numbers[1]);
-                        return true;
-                    }
-
-                    if (function == "LARGE" || function == "SMALL") {
-                        if (numbers.Count < 2 || !TryGetWholeNumber(numbers[numbers.Count - 1], out int rank)) {
-                            return false;
-                        }
-
-                        var sorted = numbers.Take(numbers.Count - 1).OrderBy(value => value).ToList();
-                        if (rank < 1 || rank > sorted.Count) {
-                            return false;
-                        }
-
-                        result = function == "LARGE" ? sorted[sorted.Count - rank] : sorted[rank - 1];
                         return true;
                     }
 

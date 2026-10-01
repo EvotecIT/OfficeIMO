@@ -89,12 +89,12 @@ namespace OfficeIMO.Excel {
             }
 
             if (trimmed.Equals("TRUE", StringComparison.OrdinalIgnoreCase)) {
-                value = new FormulaArgumentValue(1d, "1");
+                value = FormulaArgumentValue.Boolean(true);
                 return true;
             }
 
             if (trimmed.Equals("FALSE", StringComparison.OrdinalIgnoreCase)) {
-                value = new FormulaArgumentValue(0d, "0");
+                value = FormulaArgumentValue.Boolean(false);
                 return true;
             }
 
@@ -943,7 +943,7 @@ namespace OfficeIMO.Excel {
             bool unresolvedFormula = false;
             if (cell?.CellFormula != null && _formulaEvaluationCache != null) {
                 if (TryEvaluateFormulaCellValue(cell, out FormulaArgumentValue formulaResult)) {
-                    return formulaResult;
+                    return formulaResult.AsReferencedValue();
                 }
 
                 if (_formulaEvaluationDepthFrames != null
