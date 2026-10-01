@@ -1,0 +1,171 @@
+{
+  "upstream": "https://github.com/masaccio/numbers-parser",
+  "revision": "d3836ebda1110b5c13b8722642ca61111fe8e865",
+  "upstreamPath": "tests/data/test-all-formulas.numbers",
+  "sourceSha256": "4ce0593faa61bf159bde0752ade1fa202afcd142317ba16fdec8eb71a7149170",
+  "extractorVersion": "numbers-parser 4.19.0",
+  "license": "MIT, copyright Jon Connell",
+  "buildVersionHistory": [
+    "xlsx",
+    "M11.1-7031.0.102-2",
+    "M11.2-7032.0.145-2",
+    "M12.2-7035.0.159-2",
+    "M13.1-7037.0.101-2"
+  ],
+  "qualification": "Native node-36 target identities and mixed coordinates; independent current-cell computations agree with numeric/text caches. Build metadata is retained in this manifest. No Apple export/render oracle.",
+  "cases": [
+    {
+      "sourceSheet": "Reference",
+      "sourceTable": "Tests",
+      "row": 14,
+      "column": 2,
+      "sourceFormula": "COLUMN(Data::C3)",
+      "cachedValue": 3.0,
+      "computedCurrentValue": 3,
+      "targetSheet": "Reference",
+      "targetTable": "Data",
+      "references": [
+        {
+          "address": "C3",
+          "row": 3,
+          "column": 3,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "7c31e70db6e7b99b784befbedaa57489"
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Reference",
+      "sourceTable": "Tests",
+      "row": 83,
+      "column": 2,
+      "sourceFormula": "Data::A$1",
+      "cachedValue": "fruit",
+      "computedCurrentValue": "fruit",
+      "targetSheet": "Reference",
+      "targetTable": "Data",
+      "references": [
+        {
+          "address": "A$1",
+          "row": 1,
+          "column": 1,
+          "rowAbsolute": true,
+          "columnAbsolute": false,
+          "targetUuid": "7c31e70db6e7b99b784befbedaa57489"
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Reference",
+      "sourceTable": "Tests",
+      "row": 84,
+      "column": 2,
+      "sourceFormula": "Data::$A2",
+      "cachedValue": "Apples",
+      "computedCurrentValue": "Apples",
+      "targetSheet": "Reference",
+      "targetTable": "Data",
+      "references": [
+        {
+          "address": "$A2",
+          "row": 2,
+          "column": 1,
+          "rowAbsolute": false,
+          "columnAbsolute": true,
+          "targetUuid": "7c31e70db6e7b99b784befbedaa57489"
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 141,
+      "column": 2,
+      "sourceFormula": "SUMIF(Data::A2:A5,\">\"&Data::C2,Data::B2:B5)",
+      "cachedValue": 49000.0,
+      "computedCurrentValue": 49000.0,
+      "targetSheet": "Math",
+      "targetTable": "Data",
+      "references": [
+        {
+          "address": "A2",
+          "row": 2,
+          "column": 1,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "d6d36dc618fa35a84b47cefcf6f7edc2"
+        },
+        {
+          "address": "A5",
+          "row": 5,
+          "column": 1,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "d6d36dc618fa35a84b47cefcf6f7edc2"
+        },
+        {
+          "address": "C2",
+          "row": 2,
+          "column": 3,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "d6d36dc618fa35a84b47cefcf6f7edc2"
+        },
+        {
+          "address": "B2",
+          "row": 2,
+          "column": 2,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "d6d36dc618fa35a84b47cefcf6f7edc2"
+        },
+        {
+          "address": "B5",
+          "row": 5,
+          "column": 2,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "d6d36dc618fa35a84b47cefcf6f7edc2"
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Statistical",
+      "sourceTable": "Tests",
+      "row": 37,
+      "column": 2,
+      "sourceFormula": "COUNTIF(Data::A2:A5,Data::A4)",
+      "cachedValue": 1.0,
+      "computedCurrentValue": 1,
+      "targetSheet": "Statistical",
+      "targetTable": "Data",
+      "references": [
+        {
+          "address": "A2",
+          "row": 2,
+          "column": 1,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "ef52d6c8000414823a45889c8b607828"
+        },
+        {
+          "address": "A5",
+          "row": 5,
+          "column": 1,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "ef52d6c8000414823a45889c8b607828"
+        },
+        {
+          "address": "A4",
+          "row": 4,
+          "column": 1,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "ef52d6c8000414823a45889c8b607828"
+        }
+      ]
+    }
+  ]
+}

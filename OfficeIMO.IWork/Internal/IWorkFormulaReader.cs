@@ -163,14 +163,32 @@ internal static partial class IWorkFormulaReader {
                 case 36:
                 case 63:
                 case 64:
-                case 65:
-                    stack.Add(new Operand(RenderReference(node, zeroBasedRow, zeroBasedColumn, maximumCharacters, tableQualifiers, owningTable, type == 36, ref complete, ref boundedBodyRanges, ref needsLocalBodyBinding),
-                        PrimaryPrecedence));
+                case 65: {
+                    string reference = RenderReference(node, zeroBasedRow, zeroBasedColumn, maximumCharacters, tableQualifiers,
+                        owningTable, type == 36, ref complete, ref boundedBodyRanges, ref needsLocalBodyBinding);
+                    Guid? identifier = type == 36 && node.HasField(26) && node.HasField(27)
+                        ? ReadReferencedTableIdentifier(node) : null;
+                    string? qualifier = identifier.HasValue && tableQualifiers != null
+                        && tableQualifiers.TryGetValue(identifier.Value, out IWorkFormulaTableBinding? target)
+                        && reference.StartsWith(target.Qualifier, StringComparison.Ordinal) ? target.Qualifier : null;
+                    stack.Add(new Operand(reference, PrimaryPrecedence, identifier, qualifier,
+                        qualifier == null ? null : reference.Substring(qualifier.Length)));
                     break;
+                }
                 case 29:
                 case 45: {
                     Operand[] range = Pop(stack, 2, ref complete);
-                    stack.Add(new Operand(Bound(range[0].Text + ":" + range[1].Text,
+                    string last = range[1].Text;
+                    if (range[0].ReferenceQualifier != null || range[1].ReferenceQualifier != null) {
+                        // Independently qualified endpoint pairs use the same target identity.
+                        // A local or differently qualified endpoint must not become a guessed cross-table range.
+                        if (range[0].ReferenceIdentifier == range[1].ReferenceIdentifier
+                            && range[0].ReferenceQualifier != null
+                            && range[0].ReferenceQualifier == range[1].ReferenceQualifier)
+                            last = range[1].ReferenceAddress!;
+                        else complete = false;
+                    }
+                    stack.Add(new Operand(Bound(range[0].Text + ":" + last,
                         maximumCharacters, ref complete), PrimaryPrecedence));
                     break;
                 }
@@ -200,7 +218,9 @@ internal static partial class IWorkFormulaReader {
                         complete = false;
                     }
                     stack.Add(new Operand(Bound(type == 32 ? operand.Text + whitespace : whitespace + operand.Text,
-                        maximumCharacters, ref complete), operand.Precedence));
+                        maximumCharacters, ref complete), operand.Precedence, operand.ReferenceIdentifier, operand.ReferenceQualifier,
+                        operand.ReferenceAddress == null ? null : type == 32
+                            ? operand.ReferenceAddress + whitespace : whitespace + operand.ReferenceAddress));
                     break;
                 }
                 case 34:
@@ -334,7 +354,7 @@ internal static partial class IWorkFormulaReader {
     }
 
     private static string RenderReference(IWorkWireMessage node, int row, int column, int maximumCharacters,
-        IReadOnlyDictionary<Guid, IWorkFormulaTableBinding>? tableQualifiers, IWorkFormulaTableBinding? owningTable, bool supportsBodyBinding,
+        IReadOnlyDictionary<Guid, IWorkFormulaTableBinding>? tableQualifiers, IWorkFormulaTableBinding? owningTable, bool supportsCoordinateBinding,
         ref bool complete, ref bool boundedBodyRanges, ref bool needsLocalBodyBinding) {
         IWorkWireMessage? columnMessage = IWorkObjectIndex.TryGetMessage(node, 26, out bool malformedColumn);
         IWorkWireMessage? rowMessage = IWorkObjectIndex.TryGetMessage(node, 27, out bool malformedRow);
@@ -362,13 +382,11 @@ internal static partial class IWorkFormulaReader {
         }
         string address = CellAddress(resolvedColumn, resolvedRow, absoluteColumn, absoluteRow);
         if (resolvedColumn == null || resolvedRow == null) address += ":" + address;
-        // Only the independently qualified missing-axis form is enabled here.
-        if (resolvedColumn != null && resolvedRow != null)
+        if (!supportsCoordinateBinding) {
+            if (resolvedColumn == null || resolvedRow == null) complete = false;
             return PreserveUnresolvedTableReference(node, address, ref complete);
-        if (!supportsBodyBinding) {
-            complete = false; return PreserveUnresolvedTableReference(node, address, ref complete);
         }
-        needsLocalBodyBinding = true;
+        if (resolvedColumn == null || resolvedRow == null) needsLocalBodyBinding = true;
         return BindTableReference(node, resolvedColumn, resolvedColumn, resolvedRow, resolvedRow,
             absoluteColumn, absoluteColumn, absoluteRow, absoluteRow, maximumCharacters,
             tableQualifiers, owningTable, ref complete, ref boundedBodyRanges);
@@ -548,12 +566,19 @@ internal static partial class IWorkFormulaReader {
         operand.Precedence < minimumPrecedence ? "(" + operand.Text + ")" : operand.Text;
 
     private readonly struct Operand {
-        internal Operand(string text, int precedence) {
+        internal Operand(string text, int precedence, Guid? referenceIdentifier = null, string? referenceQualifier = null,
+            string? referenceAddress = null) {
             Text = text;
             Precedence = precedence;
+            ReferenceIdentifier = referenceIdentifier;
+            ReferenceQualifier = referenceQualifier;
+            ReferenceAddress = referenceAddress;
         }
 
         internal string Text { get; }
         internal int Precedence { get; }
+        internal Guid? ReferenceIdentifier { get; }
+        internal string? ReferenceQualifier { get; }
+        internal string? ReferenceAddress { get; }
     }
 }

@@ -176,7 +176,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED");
     }
 
-    private static MemoryStream CrossBindingPackage(int defect = 0, bool uncached = false, bool shortNames = false, bool unnamedTarget = false, int bodyReference = 0, bool ambiguousBodyMetadata = false, bool emptyBody = false, bool localBodyReference = false, byte[]? sourceCellPayload = null) {
+    private static MemoryStream CrossBindingPackage(int defect = 0, bool uncached = false, bool shortNames = false, bool unnamedTarget = false, int bodyReference = 0, bool ambiguousBodyMetadata = false, bool emptyBody = false, bool localBodyReference = false, byte[]? sourceCellPayload = null, byte[]? formulaPayload = null) {
         const string targetId = "00112233-4455-6677-8899-aabbccddeeff";
         byte[] uuid = Message(VarintField(2, 0x33221100), VarintField(3, 0x77665544),
             VarintField(4, 0xbbaa9988), VarintField(5, 0xffeeddcc));
@@ -196,7 +196,7 @@ public sealed partial class IWorkBoundaryTests {
                     external);
             }
         }
-        byte[] formula = BytesField(1, Message(BytesField(1, reference),
+        byte[] formula = formulaPayload ?? BytesField(1, Message(BytesField(1, reference),
             BytesField(1, Message(VarintField(1, 16), VarintField(2, 168), VarintField(3, 1)))));
         var records = new List<byte[]> { ArchiveRecord(1, 1, ReferenceField(1, 2)) };
         var sheet = new List<byte[]> { StringField(1, shortNames ? "Sheet" : "Quarter's /") };

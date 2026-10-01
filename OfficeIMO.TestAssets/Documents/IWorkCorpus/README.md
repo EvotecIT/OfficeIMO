@@ -206,3 +206,14 @@ python Build/IWork/extract-user-hidden-columns.py OfficeIMO.TestAssets/Documents
 ```
 
 OfficeIMO checks the source checksum, recovered positions and every column’s saved XLSX hidden attribute. Synthetic format-boundary cases cover positive rows, populated hidden cells, Reader inclusion and DOCX/PPTX partial policy. This qualifies base user-hidden column decoding and XLSX metadata; Apple export/render equivalence, active filters, pivot hiding, summary states and collapsed groups remain open.
+
+## Single-cell and endpoint formulas
+
+`numbers-parser/single-cell-formulas.numbers` and `endpoint-formulas.numbers` are unchanged upstream `tests/data/test-all-formulas.numbers` and `test-extra-formulas.numbers` at revision `d3836ebda1110b5c13b8722642ca61111fe8e865`. The existing numbers-parser MIT notice applies. The first package records an XLSX import followed by Numbers 11.1 through 13.1 saves; the second records CSV import and Numbers 11.1/12.2 saves. Their adjacent manifests retain source checksums and build metadata. Reproduce each with independent numbers-parser 4.19.0:
+
+```bash
+python Build/IWork/extract-single-cell-formulas.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/single-cell-formulas.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/single-cell-formulas.json
+python Build/IWork/extract-single-cell-formulas.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/endpoint-formulas.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/endpoint-formulas.json
+```
+
+The manifests resolve node-36 identities, signed relative offsets and mixed absolute flags through independent native schemas. Current-cell computations agree with all eight caches. OfficeIMO checks the first package’s five reconstructed source expressions and typed caches. Its pre-1900 dates still require whole-workbook XLSX fallback; the fixture is not edited to bypass that safety rule. The second package qualifies saved/reopened `COUNTBLANK`, `MAX` and single-cell `OFFSET` expressions, caches and recalculation after an edited referenced value. Synthetic packages cover all absolute/relative combinations, forward and normalized names, unresolved identities, malformed coordinates, endpoint whitespace and incompatible endpoint targets. Apple export, rendering and broader native recalculation remain unqualified.
