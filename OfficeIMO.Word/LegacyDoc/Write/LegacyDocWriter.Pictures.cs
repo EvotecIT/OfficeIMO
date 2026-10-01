@@ -7,6 +7,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using P = DocumentFormat.OpenXml.Drawing.Pictures;
 using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
@@ -75,11 +76,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     "Native DOC saving supports embedded inline pictures only. Linked or missing image relationships are not supported.");
             }
 
-            if (source.BlipFill?.SourceRectangle is { HasAttributes: true }
-                || source.BlipFill?.SourceRectangle is { HasChildren: true }) {
-                throw new NotSupportedException(
-                    "Native DOC saving does not yet support cropped inline pictures.");
-            }
+            A.SourceRectangle? sourceCrop = source.BlipFill?.SourceRectangle;
+            OfficeImageSourceCrop crop;
+            try { crop = OfficeImageSourceCrop.FromStrictFractions((sourceCrop?.Left?.Value ?? 0) / 100000D,
+                (sourceCrop?.Top?.Value ?? 0) / 100000D, (sourceCrop?.Right?.Value ?? 0) / 100000D, (sourceCrop?.Bottom?.Value ?? 0) / 100000D); }
+            catch (ArgumentOutOfRangeException exception) { throw new NotSupportedException("Native DOC saving requires an inset crop with a visible source area.", exception); }
+            if (sourceCrop?.HasChildren == true) throw new NotSupportedException("Native DOC saving does not support extended crop elements.");
+            if (Math.Round(crop.Left * 65536) + Math.Round(crop.Right * 65536) >= 65536
+                || Math.Round(crop.Top * 65536) + Math.Round(crop.Bottom * 65536) >= 65536)
+                throw new NotSupportedException("Native DOC saving cannot preserve a crop whose visible area collapses at binary crop precision.");
+            var transform = source.ShapeProperties?.Transform2D;
+            if (transform?.Rotation?.Value is int rotation && rotation != 0 || transform?.HorizontalFlip?.Value == true || transform?.VerticalFlip?.Value == true)
+                throw new NotSupportedException("Native DOC saving does not yet support rotated or mirrored inline pictures.");
 
             if (blip.ChildElements.Any(element => element is not A.BlipExtensionList)
                 || blip.Descendants().Any(element =>
@@ -116,7 +124,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     exception);
             }
 
-            return new LegacyDocWritablePicture(imageBytes, imagePart.ContentType, widthTwips, heightTwips);
+            return new LegacyDocWritablePicture(imageBytes, imagePart.ContentType, widthTwips, heightTwips, crop);
         }
 
         private static int ConvertPictureExtentToTwips(long? emus, string dimensionName) {
@@ -135,7 +143,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static byte[] CreatePicfAndOfficeArtData(LegacyDocWritablePicture picture, uint shapeId) {
-            byte[] inlineShape = CreateInlinePictureShape(shapeId);
+            byte[] inlineShape = CreateInlinePictureShape(shapeId, picture.Crop);
             byte[] blip = OfficeArtBlipStoreEntryWriter.CreateEmbedded(picture.ImageBytes, picture.ContentType);
             int totalLength = checked(68 + inlineShape.Length + blip.Length);
             var result = new byte[totalLength];
@@ -151,7 +159,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return result;
         }
 
-        private static byte[] CreateInlinePictureShape(uint shapeId) {
+        private static byte[] CreateInlinePictureShape(uint shapeId, OfficeImageSourceCrop crop) {
             byte[] shapeProperties = CreateOfficeArtRecord(
                 version: 2,
                 instance: OfficeArtPictureFrameShapeType,
@@ -159,9 +167,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 payload: CreatePictureFspPayload(shapeId));
             byte[] options = CreateOfficeArtRecord(
                 version: 3,
-                instance: 11,
+                instance: 15,
                 type: OfficeArtFopt,
-                payload: CreatePictureFoptPayload());
+                payload: CreatePictureFoptPayload(crop));
             var anchorPayload = new byte[4];
             WriteUInt32(anchorPayload, 0, 0x80000000);
             byte[] clientAnchor = CreateOfficeArtRecord(
@@ -180,12 +188,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return payload;
         }
 
-        private static byte[] CreatePictureFoptPayload() {
+        private static byte[] CreatePictureFoptPayload(OfficeImageSourceCrop crop) {
             var properties = new (ushort Id, uint Value)[] {
                 (0x0081, 0),
                 (0x0082, 0),
                 (0x0083, 0),
                 (0x0084, 0),
+                (0x0100, (uint)Math.Round(crop.Top * 65536)),
+                (0x0101, (uint)Math.Round(crop.Bottom * 65536)),
+                (0x0102, (uint)Math.Round(crop.Left * 65536)),
+                (0x0103, (uint)Math.Round(crop.Right * 65536)),
                 (0x4104, 1),
                 (0x0106, 0),
                 (0x013F, 0),
@@ -225,17 +237,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritablePicture {
-            internal LegacyDocWritablePicture(byte[] imageBytes, string contentType, int widthTwips, int heightTwips) {
+            internal LegacyDocWritablePicture(byte[] imageBytes, string contentType, int widthTwips, int heightTwips, OfficeImageSourceCrop crop) {
                 ImageBytes = imageBytes;
                 ContentType = contentType;
                 WidthTwips = widthTwips;
                 HeightTwips = heightTwips;
+                Crop = crop;
             }
 
             internal byte[] ImageBytes { get; }
             internal string ContentType { get; }
             internal int WidthTwips { get; }
             internal int HeightTwips { get; }
+            internal OfficeImageSourceCrop Crop { get; }
         }
     }
 }

@@ -182,11 +182,20 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <returns>A <see cref="Stream"/> for reading the image bytes.</returns>
         public Stream OpenRead() {
-            if (_imagePart == null) {
+            ImagePart? part = ResolveImagePart();
+            if (part == null) {
                 throw new InvalidOperationException("Image is linked externally and cannot be extracted.");
             }
 
-            return _imagePart.GetStream(FileMode.Open, FileAccess.Read);
+            return part.GetStream(FileMode.Open, FileAccess.Read);
+        }
+
+        private ImagePart? ResolveImagePart() {
+            // Optimizing a BMP/GIF can change its media carrier while preserving the occurrence's relationship ID.
+            if (_imagePart != null && RelationshipId is string id &&
+                GetContainingPart().TryGetPartById(id, out OpenXmlPart? current))
+                _imagePart = current as ImagePart;
+            return _imagePart;
         }
 
         /// <summary>
@@ -210,6 +219,7 @@ namespace OfficeIMO.Word {
             OpenXmlElement occurrence = _vmlShape ?? (OpenXmlElement)_Image;
             if (occurrence.Parent == null) throw new InvalidOperationException("The image occurrence is no longer attached to the document.");
             OpenXmlPart owner = GetContainingPart();
+            ResolveImagePart();
             string? relationshipId = _externalRelationshipId ?? RelationshipId;
             occurrence.Remove();
             bool referenced = relationshipId != null && owner.RootElement?.Descendants().Any(element =>

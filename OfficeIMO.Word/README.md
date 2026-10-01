@@ -132,6 +132,33 @@ header, footer, or document. The destination owns its image relationships and fr
 identifiers. Cloning preserves VML shapes and their referenced definitions, and remaps
 embedded SVG extension resources along with the primary image.
 
+Optimize embedded images before saving a separate copy:
+
+```csharp
+using OfficeIMO.Drawing;
+using OfficeIMO.Word;
+
+using var document = WordDocument.Load("input.docx");
+var options = new WordImageOptimizationOptions {
+    Mode = OfficeImageOptimizationMode.DownsampleAndRecompress,
+    TargetDpi = 144,
+    JpegQuality = 85
+};
+WordImageOptimizationReport report = document.OptimizeImages(options);
+document.Save("optimized.docx");
+Console.WriteLine($"{report.OptimizedCount} images changed; {report.BytesSaved} media bytes saved.");
+```
+
+`AnalyzeImageOptimization(options)` evaluates the same candidates without changing media; it also works on a read-only document. Reports contain one item per unique media part, original/final dimensions and encoded sizes, reference counts, metadata evidence, and preservation reasons. Measure whole-file savings after saving: ZIP compression and document normalization can change that result.
+
+`Downsample` is the default mode. `Recompress` retains pixel dimensions and explicitly re-encodes JPEGs at the selected quality; `DownsampleAndRecompress` combines both. PNG, JPEG, single-page TIFF, and static WebP retain their media type. BMP and static GIF candidates use PNG carriers while keeping drawing relationship IDs. Larger candidates remain unchanged by default. Animated/multi-page images, unsupported vectors, unreferenced media, and unsafe placement geometry are preserved. Linked images are counted without fetching them.
+
+The inventory visits all package stories and XML media references, including body paragraphs, tables, headers, footers, notes, comments, DrawingML, and VML. Shared media uses the greatest pixel demand across its placements; crop edges increase that demand. Cropping remains editable and hidden crop pixels remain in the image. Tile fills, unresolved group transforms, relative sizing, and other unknown placements block downsampling for the shared part; explicit same-size recompression can still apply.
+
+Candidates are staged before mutation, with cooperative cancellation and rollback. Default limits are 32 MiB per encoded image, 128 MiB of staged originals/candidates, and 10,000 package parts. Metadata loss blocks replacement unless `AllowMetadataLoss` is explicit. Signed packages block mutation unless `SignedDocumentPolicy` permits invalidation; saving that package also requires the corresponding save policy. `CompressionQuality` records Word's compression-state hint; use `OptimizeImages` to change the encoded bytes.
+
+For supported legacy DOC inline pictures, optimization uses the same projected media API and native save preflight. The [legacy compatibility guide](../Docs/officeimo.word.legacy-doc-compatibility.md) describes the supported subset. The [workflow runner](../OfficeIMO.Workflows/README.md#optimize-embedded-word-images) provides source-preserving file and batch publication.
+
 ### Hyperlinks and bookmarks
 
 ```csharp
@@ -314,57 +341,19 @@ if (result.HasDocument) {
 }
 ```
 
-Legacy `.doc` support is first-party and dependency-free at runtime. The current
-reader projects supported Word 97-2003 body paragraphs, simple zero-length,
-same-paragraph, and cross-paragraph body bookmarks plus simple table-cell,
-header/footer, and footnote/endnote paragraph bookmarks, simple external and
-internal bookmark hyperlink fields with supported text, tab, soft/no-break
-hyphen, and break display runs, simple static date/time and document-property
-field display results,
-common run and paragraph formatting including proofing exclusion, bidirectional
-paragraph layout, mirror indents, contextual spacing, East Asian typography and
-punctuation spacing flags, and automatic hyphenation suppression, built-in and
-custom paragraph styles, simple tables, paragraph-boundary sections, page setup,
-simple header/footer stories with tabs, text-wrapping and column breaks,
-supported direct run formatting, and supported paragraph formatting, simple
-footnote/endnote bodies with supported direct run and paragraph formatting and
-soft/no-break hyphen runs, section note numbering and placement settings, and
-document properties into the normal `WordDocument` model. Native `.doc` saving
-is available for the supported simple subset: paragraphs, simple zero-length,
-same-paragraph, and cross-paragraph body bookmarks plus simple table-cell,
-header/footer, and footnote/endnote paragraph bookmarks, simple external and
-internal bookmark hyperlinks with supported text, tab, soft/no-break hyphen,
-break display runs, simple static date/time and document-property fields with
-static display text and supported inline result characters including inside flattened inline content
-controls, simple inline content-control display text, and simple block content
-controls with nested
-simple block controls plus nested inline content controls in
-body/table/header/footer/footnote/endnote stories, common run and paragraph
-formatting including proofing exclusion,
-bidirectional paragraph layout, mirror indents, contextual spacing, East Asian
-typography and punctuation spacing flags, and automatic hyphenation suppression,
-tabs, soft/no-break hyphen runs, line/carriage-return/page/column breaks, simple
-body tables with common formatting, including simple depth-2 nested tables,
-supported table-style border, shading, layout, paragraph
-formatting, run formatting, default-cell expansion, conditional table/cell
-border, shading, paragraph formatting, run formatting, cell-layout expansion,
-and conditional row height/header/no-split formatting, paragraph-boundary
-sections, page setup, simple header/footer stories with tabs, soft/no-break
-hyphen runs, text-wrapping, carriage-return, and column breaks, supported
-direct run formatting, and supported paragraph formatting,
-simple footnote/endnote bodies with supported direct run and paragraph
-formatting and soft/no-break hyphen runs, supported section note settings, and
-scalar document properties. Unsupported features such as macros, embedded OLE
-objects, comments, text boxes, images, bookmark ranges outside supported
-body/table-cell/header/footer/footnote/endnote paragraphs, richer
-content-control children, richer visual table style effects, deeper or richer
-nested table shapes,
-richer note body structures, and richer header/footer or section shapes are
-diagnosed or blocked rather than silently flattened. `WordDocument.Convert(...)`
-uses those same load and save paths and blocks legacy sources with unsupported
-or preserve-only content by default. Set `LossPolicy` to
-`OfficeConversionLossPolicy.Allow` on `WordDocumentConversionOptions` or
-`WordSaveOptions` only when that loss has been reviewed and is intentional.
+Legacy `.doc` support is first-party and dependency-free at runtime. The reader
+projects supported paragraphs, formatting, styles, tables, sections, headers,
+footers, bookmarks, fields, notes, comments, revisions, and inline pictures into
+the normal `WordDocument` model. Native writing preflights the destination subset;
+supported inline pictures retain inset crops and can use `OptimizeImages` before
+saving. Default fonts and Normal style formatting are materialized in the native
+stylesheet.
+
+Floating drawings, unsupported image effects and transforms, embedded objects,
+and other unprojected legacy content are diagnosed or blocked. File optimization
+workflows refuse to publish incomplete legacy projections. `WordDocument.Convert`
+uses the same load/save paths and blocks known conversion loss by default. Set
+`LossPolicy = OfficeConversionLossPolicy.Allow` only after reviewing that loss.
 See [DOC and DOCX compatibility](../Docs/officeimo.word.legacy-doc-compatibility.md)
 for the current capability matrix and safety contract. Use the
 [migration guide](../MIGRATION.md#legacy-doc-and-xls-api-changes) for canonical API replacements.
