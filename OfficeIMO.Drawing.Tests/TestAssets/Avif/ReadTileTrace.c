@@ -14,14 +14,14 @@ int main(int argc,char **argv) {
   if(fread(bytes,1,(size_t)size,input)!=(size_t)size) return 3;
   fclose(input);
   aom_codec_ctx_t decoder;
-  aom_codec_dec_cfg_t cfg={1,0,0,0};
+  aom_codec_dec_cfg_t cfg={1,0,0,1};
   if(aom_codec_dec_init(&decoder,aom_codec_av1_dx(),&cfg,0)) return 5;
   if(aom_codec_decode(&decoder,bytes,(size_t)size,NULL)) {
     fprintf(stderr,"Native AV1 error: %s (%s)\n",aom_codec_error(&decoder),aom_codec_error_detail(&decoder));return 6;
   }
   aom_codec_iter_t iter=NULL;
   aom_image_t *image=aom_codec_get_frame(&decoder,&iter);
-  if(!image || image->bit_depth!=8) return 7;
+  if(!image || image->bit_depth!=8 || (image->fmt & AOM_IMG_FMT_HIGHBITDEPTH)) return 7;
   FILE *output=fopen(argv[2],"wb");if(!output) return 8;
   int planes=image->monochrome?1:3;
   printf("{\"width\":%u,\"height\":%u,\"planes\":%d,\"depth\":%u,\"planeBytes\":[",image->d_w,image->d_h,planes,image->bit_depth);

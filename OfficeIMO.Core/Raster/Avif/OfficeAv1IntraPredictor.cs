@@ -7,6 +7,7 @@ namespace OfficeIMO.Drawing;
 /// <remarks>The reconstruction consumer derives availability from tile and decode order, and budgets
 /// retained outputs separately. Input edges are copied before filtering; results never expose scratch.</remarks>
 internal sealed partial class OfficeAv1IntraPredictor {
+    internal const long ContextBytes=12288;
     private const int Origin=2;
     private readonly int[] _above,_left,_copy,_neighbors,_luma;
     private readonly long _retained;
@@ -16,7 +17,7 @@ internal sealed partial class OfficeAv1IntraPredictor {
     internal OfficeAv1IntraPredictor(OfficeRasterDecodeOptions options) {
         if(options==null) throw new ArgumentNullException(nameof(options));
         options.Validate();options.CancellationToken.ThrowIfCancellationRequested();
-        const long context=12288; // reusable edges, CfL samples, numeric facts and object/array overhead
+        const long context=ContextBytes; // reusable edges, CfL samples, numeric facts and object/array overhead
         if(options.RetainedManagedBytes>OfficeRasterGuards.MaximumDecodedBytes-context)
             throw new FormatException("AV1 prediction contexts exceed the retained-memory limit.");
         _retained=options.RetainedManagedBytes+context;_maximumPixels=options.MaximumDecodedPixels;

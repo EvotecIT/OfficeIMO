@@ -7,6 +7,7 @@ namespace OfficeIMO.Drawing;
 /// <remarks>Sequential use only. Returned residuals are immutable; callers budget retained results separately.
 /// Prediction and final sample clipping belong to the reconstruction consumer.</remarks>
 internal sealed class OfficeAv1ResidualTransform {
+    internal const long ContextBytes=4096+OfficeAv1QuantizationTables.MatrixBytes;
     private readonly int _baseQ;
     private readonly bool _deltaQ;
     private readonly int[] _dc,_ac,_altQ,_matrix;
@@ -19,7 +20,7 @@ internal sealed class OfficeAv1ResidualTransform {
         if(frame==null) throw new ArgumentNullException(nameof(frame));
         if(options==null) throw new ArgumentNullException(nameof(options));
         options.Validate();options.CancellationToken.ThrowIfCancellationRequested();
-        const long context=4096+OfficeAv1QuantizationTables.MatrixBytes; // scratch, snapshots, fixed facts and array/object overhead
+        const long context=ContextBytes; // scratch, snapshots, fixed facts and array/object overhead
         if(options.RetainedManagedBytes>OfficeRasterGuards.MaximumDecodedBytes-context)
             throw new FormatException("AV1 residual contexts exceed the retained-memory limit.");
         if(frame.Width<1 || frame.Width>65536 || frame.Height<1 || frame.Height>65536 ||

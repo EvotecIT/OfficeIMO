@@ -36,11 +36,11 @@ internal sealed class OfficeAv1TileReader {
         long area=(long)(tile.MiColEnd-tile.MiColStart)*(tile.MiRowEnd-tile.MiRowStart);
         // Reserve all simultaneously live contexts, including one-leaf temporaries, before allocating any.
         // The partition owner has no options parameter; its CDFs and border storage are included here.
-        long partitionBytes=4096+axis, preludeBytes=1024+axis+(frame.SegmentationEnabled?area:0);
+        long preludeBytes=1024+axis+(frame.SegmentationEnabled?area:0);
         long modeBytes=8192+axis, paletteBytes=16384+18*axis, transformBytes=65536+3*axis;
         long coefficientBytes=196608+4*axis, motionBytes=frame.AllowIntraBlockCopy?4096+8*area:0;
         const long restorationBytes=2048;
-        long all=partitionBytes+preludeBytes+modeBytes+paletteBytes+transformBytes+coefficientBytes+motionBytes+restorationBytes;
+        long all=ContextBytes(frame,tile);
         if(options.RetainedManagedBytes>OfficeRasterGuards.MaximumDecodedBytes-all)
             throw new FormatException("AV1 tile contexts exceed the retained-memory limit.");
         _retainedContextBytes=options.RetainedManagedBytes+all;
@@ -53,6 +53,13 @@ internal sealed class OfficeAv1TileReader {
         _restoration=new OfficeAv1RestorationReader(frame,sequence,tile,options.WithAdditionalRetainedManagedBytes(all-restorationBytes));
         if(frame.AllowIntraBlockCopy)
             _motion=new OfficeAv1CopyMotionReader(frame,sequence,tile,options.WithAdditionalRetainedManagedBytes(all-motionBytes));
+    }
+
+    /// <summary>Simultaneously live tile contexts and one-leaf temporaries, after tile geometry validation.</summary>
+    internal static long ContextBytes(OfficeAv1StillFrame frame,OfficeAv1Tile tile) {
+        long axis=(long)(tile.MiColEnd-tile.MiColStart)+(tile.MiRowEnd-tile.MiRowStart);
+        long area=(long)(tile.MiColEnd-tile.MiColStart)*(tile.MiRowEnd-tile.MiRowStart);
+        return 293888+28*axis+(frame.SegmentationEnabled?area:0)+(frame.AllowIntraBlockCopy?4096+8*area:0);
     }
 
     /// <summary>Consumes the bounded tile once. CompleteTile is called only after the mandatory trailing bits pass.</summary>
