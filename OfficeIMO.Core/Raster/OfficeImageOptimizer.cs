@@ -25,6 +25,12 @@ public sealed class OfficeImageOptimizationRequest {
     private double? _outputDpiX;
     private double? _outputDpiY;
 
+    /// <summary>Optimization mode. Downsample preserves the existing no-unnecessary-rewrite behavior.</summary>
+    public OfficeImageOptimizationMode Mode { get; set; } = OfficeImageOptimizationMode.Downsample;
+
+    /// <summary>Cancellation observed during decoding, resampling, and encoding.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; set; }
+
     /// <summary>Creates an optimization request for a target pixel bounding box.</summary>
     public OfficeImageOptimizationRequest(int targetPixelWidth, int targetPixelHeight) {
         TargetPixelWidth = targetPixelWidth;
@@ -186,6 +192,7 @@ public static class OfficeImageOptimizer {
     public static OfficeImageOptimizationResult Optimize(byte[] encodedBytes, OfficeImageOptimizationRequest request, string? fileName = null) {
         if (encodedBytes == null) throw new ArgumentNullException(nameof(encodedBytes));
         if (request == null) throw new ArgumentNullException(nameof(request));
+        request.CancellationToken.ThrowIfCancellationRequested();
         ValidateRequest(request);
         ValidateInputLength(encodedBytes.Length);
         if (!OfficeImageReader.TryIdentify(encodedBytes, fileName, out OfficeImageInfo original)) {
@@ -204,7 +211,8 @@ public static class OfficeImageOptimizer {
         }
 
         var decodeOptions = new OfficeRasterDecodeOptions {
-            AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated
+            FrameLossPolicy = OfficeRasterFrameLossPolicy.RejectMultipleFrames,
+            CancellationToken = request.CancellationToken
         };
         if (!OfficeRasterImageDecoder.TryDecode(encodedBytes, decodeOptions, out OfficeRasterImage? decoded, out _) || decoded == null) {
             OfficeImageMetadataSnapshot failedMetadata = OfficeImageMetadataInspector.Inspect(
@@ -217,6 +225,10 @@ public static class OfficeImageOptimizer {
         }
 
         ResolveDimensions(decoded.Width, decoded.Height, request, out int width, out int height);
+        if (request.Mode == OfficeImageOptimizationMode.Recompress) {
+            width = decoded.Width;
+            height = decoded.Height;
+        }
         long anticipatedRasterBytes = decoded.PixelBuffer.LongLength + 24L;
         if (width != decoded.Width || height != decoded.Height) {
             anticipatedRasterBytes = checked(
@@ -229,7 +241,8 @@ public static class OfficeImageOptimizer {
         bool metadataRewriteRequired = (metadata.Kinds & ~requestedMetadata) != OfficeImageMetadataKinds.None;
         bool explicitResolutionRewrite = request.OutputDpiX.HasValue || request.OutputDpiY.HasValue;
         bool rewriteRequired = metadataRewriteRequired || explicitResolutionRewrite;
-        if (width == decoded.Width && height == decoded.Height && outputFormat == original.Format && !rewriteRequired) {
+        bool recompressJpeg = request.Mode != OfficeImageOptimizationMode.Downsample && outputFormat == OfficeImageFormat.Jpeg;
+        if (width == decoded.Width && height == decoded.Height && outputFormat == original.Format && !rewriteRequired && !recompressJpeg) {
             return Result(encodedBytes, OfficeImageOptimizationStatus.AlreadySuitable, original, original,
                 MetadataReport(request, metadata.Kinds, requestedMetadata, metadata.Kinds, OfficeImageMetadataKinds.None),
                 retainedManagedBytes: decoded.PixelBuffer.LongLength + 24L + GetRetainedMetadataBytes(metadata));
@@ -241,7 +254,7 @@ public static class OfficeImageOptimizer {
             ? decoded
             : OfficeRasterResampler.Resize(
                 decoded, width, height, request.ResamplingMode, request.ResamplingColorSpace,
-                retainedResamplingBytes);
+                retainedResamplingBytes, request.CancellationToken);
         ResolveMetadataForOutput(original.Format, outputFormat, metadata, requestedMetadata,
             out OfficeJpegMetadata jpegMetadata, out OfficeImageMetadataKinds preservedMetadata,
             out OfficeImageMetadataKinds normalizedMetadata);
@@ -443,7 +456,9 @@ public static class OfficeImageOptimizer {
                 Predictor = request.TiffPredictor
             }
         };
-        return OfficeRasterImageEncoder.Encode(image, exportFormat, options);
+        return OfficeRasterImageEncoder.Encode(image, exportFormat, options,
+            OfficeRasterGuards.MaximumEncodedBytes, request.CancellationToken,
+            exportFormat == OfficeImageExportFormat.Jpeg ? 0L : retainedManagedBytes);
     }
 
     private static OfficeImageExportFormat ToExportFormat(OfficeImageFormat format) => format switch {
@@ -455,6 +470,9 @@ public static class OfficeImageOptimizer {
     };
 
     private static void ValidateRequest(OfficeImageOptimizationRequest request) {
+        if (request.Mode < OfficeImageOptimizationMode.Downsample || request.Mode > OfficeImageOptimizationMode.DownsampleAndRecompress) {
+            throw new ArgumentOutOfRangeException(nameof(request.Mode));
+        }
         if (request.ResamplingMode < OfficeRasterResamplingMode.NearestNeighbor ||
             request.ResamplingMode > OfficeRasterResamplingMode.Lanczos3) {
             throw new ArgumentOutOfRangeException(nameof(request.ResamplingMode));

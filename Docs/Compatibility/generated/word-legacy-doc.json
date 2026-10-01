@@ -301,7 +301,7 @@
       "modernToLegacy":"Rasterized",
       "legacyToModern":"Native",
       "affectedFidelity":"Visual, Editability, Carrier",
-      "note":"Supported encodings write as editable inline DOC pictures. If the native writer rejects a modern picture or effect, PreferVisual and BestEffort create static page images; PreservationOnly can also retain the source carrier."
+      "note":"Supported encodings and inset source crops write as editable inline DOC pictures. Rotated, mirrored, or effect-bearing pictures require a qualified visual fallback. PreferVisual and BestEffort create static page images when native writing rejects the picture; PreservationOnly can also retain the source carrier."
     },
     {
       "id":"Word.Drawing.FloatingObjects",

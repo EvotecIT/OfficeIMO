@@ -153,6 +153,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return (Specified & property) != 0;
         }
 
+        internal LegacyDocCharacterFormat WithDefaultFont(string? fontFamily) => FontFamily != null || fontFamily == null ? this :
+            new LegacyDocCharacterFormat(Bold, Italic, Strike, DoubleStrike, Outline, Shadow, Emboss, Imprint,
+                Hidden, NoProof, Caps, VerticalPosition, Underline, Highlight, FontSizeHalfPoints, ColorHex,
+                fontFamily, CharacterSpacingTwips, Language, EastAsiaLanguage,
+                Specified | LegacyDocCharacterFormatProperties.FontFamily, PictureDataOffset, Revision);
+
         public bool Equals(LegacyDocCharacterFormat other) {
             return Bold == other.Bold
                 && Italic == other.Italic

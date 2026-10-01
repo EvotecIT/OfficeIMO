@@ -1,7 +1,7 @@
 using OfficeIMO.Drawing.Binary;
 
 namespace OfficeIMO.Word.LegacyDoc.Model {
-    internal static class LegacyDocPictureReader {
+    internal static partial class LegacyDocPictureReader {
         private const ushort OfficeArtSpContainer = 0xF004;
         private const ushort OfficeArtFbse = 0xF007;
         private const short MmShape = 0x0064;
@@ -147,6 +147,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             int blipStoreOffset = checked(shapeOffset + 8 + shapeLength);
+            if (!TryReadInlinePictureCrop(data, shapeOffset + 8, shapeLength, out var crop)) {
+                warning = $"The inline picture at DOC Data stream offset {offset} has malformed properties or unsupported crop, transform, or effects. Its binary data is retained as preserve-only content.";
+                return false;
+            }
             if (!TryReadOfficeArtHeader(data, blipStoreOffset, pictureEnd, out ushort recordType, out ushort recordInstance, out int payloadLength)
                 || recordType != OfficeArtFbse
                 || !OfficeArtBlipStoreEntryReader.TryRead(
@@ -164,7 +168,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             double widthPixels = widthGoal * (widthScale / 1000D) * PixelsPerTwip;
             double heightPixels = heightGoal * (heightScale / 1000D) * PixelsPerTwip;
-            picture = new LegacyDocPicture(entry.ImageBytes, entry.ContentType!, widthPixels, heightPixels);
+            picture = new LegacyDocPicture(entry.ImageBytes, entry.ContentType!, widthPixels, heightPixels, crop);
             consumedLength = lcb;
             return true;
         }

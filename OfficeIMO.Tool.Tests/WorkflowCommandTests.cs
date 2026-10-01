@@ -7,6 +7,38 @@ namespace OfficeIMO.Tool.Tests;
 
 public sealed class WorkflowCommandTests {
     [Fact]
+    public async Task WordImagesCommandPublishesSeparateWordAndPdfCopiesAndReportsAnalysis() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "source.docx"), output = Path.Combine(scope.Path, "output.docx"), pdf = Path.Combine(scope.Path, "output.pdf");
+        using (var word = OfficeIMO.Word.WordDocument.Create()) {
+            var image = new OfficeIMO.Drawing.OfficeRasterImage(200, 100, OfficeIMO.Drawing.OfficeColor.Red);
+            using var stream = new MemoryStream(OfficeIMO.Drawing.OfficeJpegCodec.Encode(image));
+            word.AddParagraph("Retained text").InsertImage(stream, "picture.jpg", 96, 48);
+            word.Save(input);
+        }
+        byte[] before = File.ReadAllBytes(input);
+        var analysis = await RunAsync(["workflow", "optimize-images", input, "--analyze"]);
+        var copied = await RunAsync(["workflow", "optimize-images", input, "--output", output, "--dpi", "72"]);
+        var exported = await RunAsync(["workflow", "optimize-images", input, "--output", pdf, "--mode", "recompress", "--quality", "40"]);
+        Assert.Equal((int)OfficeImoToolExitCode.Success, analysis.ExitCode);
+        Assert.Contains("WordImageInventory", analysis.Output);
+        Assert.Equal((int)OfficeImoToolExitCode.Success, copied.ExitCode);
+        Assert.Equal((int)OfficeImoToolExitCode.Success, exported.ExitCode);
+        Assert.Equal(before, File.ReadAllBytes(input));
+        Assert.Single(PdfReadDocument.Open(File.ReadAllBytes(pdf)).Pages);
+        using var reopened = OfficeIMO.Word.WordDocument.Load(output);
+        Assert.Equal(72, OfficeIMO.Drawing.OfficeImageReader.Identify(reopened.Images[0].ToBytes()).Width);
+    }
+
+    [Theory]
+    [InlineData("--output", "--force")]
+    [InlineData("--mode", "invalid")]
+    [InlineData("--quality", "101")]
+    public async Task WordImagesCommandRejectsInvalidOptionsBeforeFileAccess(string option, string value) {
+        var result = await RunAsync(["workflow", "optimize-images", "source.docx", "--analyze", option, value]);
+        Assert.Equal((int)OfficeImoToolExitCode.Usage, result.ExitCode);
+    }
+    [Fact]
     public async Task ExportPagesPublishesSelectedValidatedImages() {
         using var scope = new TestDirectory();
         string input = Path.Combine(scope.Path, "source.pdf");

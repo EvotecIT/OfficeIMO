@@ -16072,7 +16072,7 @@
       "evidence":"OfficeIMO.Word.LegacyDoc::Word.Drawing.InlinePictures::modern-to-legacy",
       "sourceCatalog":"OfficeIMO.Word.LegacyDoc",
       "extensions":[".docm",".docx",".dotm",".dotx"],
-      "limitation":"Supported encodings write as editable inline DOC pictures. If the native writer rejects a modern picture or effect, PreferVisual and BestEffort create static page images; PreservationOnly can also retain the source carrier."
+      "limitation":"Supported encodings and inset source crops write as editable inline DOC pictures. Rotated, mirrored, or effect-bearing pictures require a qualified visual fallback. PreferVisual and BestEffort create static page images when native writing rejects the picture; PreservationOnly can also retain the source carrier."
     },
     {
       "id":"legacy:OfficeIMO.Word.LegacyDoc:Word.Drawing.SmartArt:modern-to-legacy",
@@ -16576,7 +16576,7 @@
       "evidence":"OfficeIMO.Word.LegacyDoc::Word.Drawing.InlinePictures::new-legacy-write",
       "sourceCatalog":"OfficeIMO.Word.LegacyDoc",
       "extensions":[".doc",".dot"],
-      "limitation":"Supported encodings write as editable inline DOC pictures. If the native writer rejects a modern picture or effect, PreferVisual and BestEffort create static page images; PreservationOnly can also retain the source carrier."
+      "limitation":"Supported encodings and inset source crops write as editable inline DOC pictures. Rotated, mirrored, or effect-bearing pictures require a qualified visual fallback. PreferVisual and BestEffort create static page images when native writing rejects the picture; PreservationOnly can also retain the source carrier."
     },
     {
       "id":"legacy:OfficeIMO.Word.LegacyDoc:Word.Drawing.SmartArt:new-legacy-write",
@@ -17038,7 +17038,7 @@
       "evidence":"OfficeIMO.Word.LegacyDoc::Word.Drawing.InlinePictures::legacy-import",
       "sourceCatalog":"OfficeIMO.Word.LegacyDoc",
       "extensions":[".doc",".dot"],
-      "limitation":"Supported encodings write as editable inline DOC pictures. If the native writer rejects a modern picture or effect, PreferVisual and BestEffort create static page images; PreservationOnly can also retain the source carrier."
+      "limitation":"Supported encodings and inset source crops write as editable inline DOC pictures. Rotated, mirrored, or effect-bearing pictures require a qualified visual fallback. PreferVisual and BestEffort create static page images when native writing rejects the picture; PreservationOnly can also retain the source carrier."
     },
     {
       "id":"legacy:OfficeIMO.Word.LegacyDoc:Word.Drawing.SmartArt:legacy-import",
@@ -17500,7 +17500,7 @@
       "evidence":"OfficeIMO.Word.LegacyDoc::Word.Drawing.InlinePictures::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Word.LegacyDoc",
       "extensions":[".doc",".dot"],
-      "limitation":"Supported encodings write as editable inline DOC pictures. If the native writer rejects a modern picture or effect, PreferVisual and BestEffort create static page images; PreservationOnly can also retain the source carrier."
+      "limitation":"Supported encodings and inset source crops write as editable inline DOC pictures. Rotated, mirrored, or effect-bearing pictures require a qualified visual fallback. PreferVisual and BestEffort create static page images when native writing rejects the picture; PreservationOnly can also retain the source carrier."
     },
     {
       "id":"legacy:OfficeIMO.Word.LegacyDoc:Word.Drawing.SmartArt:legacy-round-trip-edit",
@@ -17962,7 +17962,7 @@
       "evidence":"OfficeIMO.Word.LegacyDoc::Word.Drawing.InlinePictures::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Word.LegacyDoc",
       "extensions":[".doc",".dot"],
-      "limitation":"Supported encodings write as editable inline DOC pictures. If the native writer rejects a modern picture or effect, PreferVisual and BestEffort create static page images; PreservationOnly can also retain the source carrier."
+      "limitation":"Supported encodings and inset source crops write as editable inline DOC pictures. Rotated, mirrored, or effect-bearing pictures require a qualified visual fallback. PreferVisual and BestEffort create static page images when native writing rejects the picture; PreservationOnly can also retain the source carrier."
     },
     {
       "id":"legacy:OfficeIMO.Word.LegacyDoc:Word.Drawing.SmartArt:legacy-round-trip-preserve",
@@ -18424,7 +18424,7 @@
       "evidence":"OfficeIMO.Word.LegacyDoc::Word.Drawing.InlinePictures::legacy-to-modern",
       "sourceCatalog":"OfficeIMO.Word.LegacyDoc",
       "extensions":[".doc",".dot"],
-      "limitation":"Supported encodings write as editable inline DOC pictures. If the native writer rejects a modern picture or effect, PreferVisual and BestEffort create static page images; PreservationOnly can also retain the source carrier."
+      "limitation":"Supported encodings and inset source crops write as editable inline DOC pictures. Rotated, mirrored, or effect-bearing pictures require a qualified visual fallback. PreferVisual and BestEffort create static page images when native writing rejects the picture; PreservationOnly can also retain the source carrier."
     },
     {
       "id":"legacy:OfficeIMO.Word.LegacyDoc:Word.Drawing.SmartArt:legacy-to-modern",

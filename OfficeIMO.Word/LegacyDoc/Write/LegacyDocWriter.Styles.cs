@@ -5,7 +5,7 @@ using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
-        private const ushort CustomParagraphStyleSti = 0x0FFF;
+        private const ushort CustomParagraphStyleSti = 0x0FFE;
         private const ushort NoBaseStyleIndex = 0x0FFF;
         private static readonly IReadOnlyDictionary<string, ushort> EmptyStyleIndexes = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase);
 
@@ -26,9 +26,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 .Where(styleId => !TryMapBuiltInParagraphStyleIndex(styleId, out _))
                 .ToArray();
 
-            if (builtInStyleIndexes.Count == 0 && customStyleIds.Length == 0) {
-                return LegacyDocWritableStyleSheet.Empty;
-            }
+            builtInStyleIndexes.Add(0);
 
             Styles? styles = mainPart.StyleDefinitionsPart?.Styles;
             if (styles == null && customStyleIds.Length > 0) {
@@ -40,6 +38,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 .Where(style => !string.IsNullOrWhiteSpace(style.StyleId?.Value))
                 .GroupBy(style => style.StyleId!.Value!, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+            paragraphStyles["Normal"] = CreateDefaultParagraphStyle(mainPart, paragraphStyles, styles);
 
             var orderedStyleIds = new List<string>();
             var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -52,7 +51,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             Dictionary<ushort, Style> builtInStyles = ReadUsedBuiltInStyles(builtInStyleIndexes, paragraphStyles);
             var styleIndexes = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase);
             for (int index = 0; index < orderedStyleIds.Count; index++) {
-                styleIndexes[orderedStyleIds[index]] = checked((ushort)(10 + index));
+                styleIndexes[orderedStyleIds[index]] = checked((ushort)(15 + index));
             }
 
             IReadOnlyList<string> fontFamilies = ReadStyleFontFamilies(builtInStyles.Values, orderedStyleIds, paragraphStyles);
@@ -176,13 +175,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             IReadOnlyDictionary<string, ushort> styleIndexes,
             IReadOnlyList<string> fontFamilies,
             IReadOnlyDictionary<string, int> fontFamilyIndexes) {
-            var styleRecords = new List<byte[]>(10 + customStyleIds.Count) {
+            var styleRecords = new List<byte[]>(15 + customStyleIds.Count) {
                 CreateBuiltInParagraphStyleRecord(0, builtInStyles, fontFamilyIndexes)
             };
 
             for (ushort index = 1; index <= 9; index++) {
                 styleRecords.Add(CreateBuiltInParagraphStyleRecord(index, builtInStyles, fontFamilyIndexes));
             }
+            for (int index = 10; index < 15; index++) styleRecords.Add(Array.Empty<byte>());
 
             foreach (string styleId in customStyleIds) {
                 Style style = paragraphStyles[styleId];
@@ -194,7 +194,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 LegacyDocWritableFormatting characterFormatting = ReadSupportedRunFormatting(style.StyleRunProperties);
                 byte[] paragraphUpx = LegacyDocParagraphFormattingWriter.CreateStyleParagraphUpx(paragraphFormatting);
                 byte[] characterUpx = CreateStyleCharacterUpx(characterFormatting, fontFamilyIndexes);
-                styleRecords.Add(CreateParagraphStyleRecord(CustomParagraphStyleSti, baseStyleIndex, nextStyleIndex, styleName, paragraphUpx, characterUpx));
+                styleRecords.Add(CreateParagraphStyleRecord(CustomParagraphStyleSti, baseStyleIndex, nextStyleIndex, styleName, paragraphUpx, characterUpx, styleIndex));
 
                 if (styleRecords.Count - 1 != styleIndex) {
                     throw new InvalidOperationException("The generated DOC stylesheet index map is inconsistent.");
@@ -202,9 +202,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             using var stream = new MemoryStream();
-            WriteUInt16(stream, 4);
+            WriteUInt16(stream, 18);
             WriteUInt16(stream, checked((ushort)styleRecords.Count));
-            WriteUInt16(stream, 8);
+            WriteUInt16(stream, 10);
+            WriteUInt16(stream, 1); // Built-in style names are written.
+            WriteUInt16(stream, 10);
+            WriteUInt16(stream, 15); // Reserved fixed-index styles.
+            WriteUInt16(stream, 0);
+            WriteUInt16(stream, 0); // Default ASCII, East Asian and other font indexes.
+            WriteUInt16(stream, 0);
+            WriteUInt16(stream, 0);
 
             foreach (byte[] styleRecord in styleRecords) {
                 WriteUInt16(stream, checked((ushort)styleRecord.Length));
@@ -317,18 +324,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return "heading " + styleIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
-        private static byte[] CreateParagraphStyleRecord(ushort sti, ushort baseStyleIndex, ushort nextStyleIndex, string name, byte[] paragraphUpx, byte[] characterUpx) {
-            var upxs = characterUpx.Length == 0
-                ? paragraphUpx.Length == 0
-                    ? Array.Empty<byte[]>()
-                    : new[] { paragraphUpx }
-                : new[] { paragraphUpx, characterUpx };
+        private static byte[] CreateParagraphStyleRecord(ushort sti, ushort baseStyleIndex, ushort nextStyleIndex, string name, byte[] paragraphUpx, byte[] characterUpx, ushort? styleIndex = null) {
+            if (paragraphUpx.Length == 0) paragraphUpx = new byte[2];
+            ushort index = styleIndex ?? sti;
+            paragraphUpx[0] = (byte)index;
+            paragraphUpx[1] = (byte)(index >> 8);
+            var upxs = new[] { paragraphUpx, characterUpx };
 
             using var stream = new MemoryStream();
             WriteUInt16(stream, sti);
             WriteUInt16(stream, checked((ushort)((baseStyleIndex << 4) | 1)));
             WriteUInt16(stream, checked((ushort)((nextStyleIndex << 4) | upxs.Length)));
             WriteUInt16(stream, 0);
+            WriteUInt16(stream, 0); // StdfBase flags, following bchUpe.
             WriteXstz(stream, name);
 
             foreach (byte[] upx in upxs) {
@@ -339,7 +347,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
             }
 
-            return stream.ToArray();
+            byte[] record = stream.ToArray();
+            record[6] = (byte)record.Length;
+            record[7] = (byte)(record.Length >> 8);
+            return record;
         }
 
         private static void WriteXstz(Stream stream, string value) {

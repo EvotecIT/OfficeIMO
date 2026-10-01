@@ -8,6 +8,9 @@ internal static class WorkflowCommand {
 OfficeIMO.Tool - output and intake workflows
 
 Usage:
+  officeimo workflow optimize-images <input.docx|input.doc>... [--analyze]
+             [--output <file> | --output-directory <folder>] [--format docx|doc|pdf]
+             [--mode downsample|recompress|both] [--dpi <36-1200>] [--quality <1-100>] [--force]
   officeimo workflow export-pages <input.pdf> --output <folder> [--pages <selection>]
              [--format png|jpeg|webp|tiff|svg] [--dpi <36-600>] [--max-dimension <pixels>] [--force]
   officeimo workflow assemble <source>... --output <output.pdf> [--no-recursive] [--force]
@@ -34,6 +37,8 @@ Existing output is refused unless --force is supplied.
         Func<PdfPrintPlanRequest, CancellationToken, Task<PdfPrintPlan>>? printPlanner = null) {
         WorkflowCommandKind activeCommand = WorkflowCommandKind.Help;
         try {
+            if (args.FirstOrDefault()?.Equals("optimize-images", StringComparison.OrdinalIgnoreCase) == true)
+                return await WordImagesCommand.RunAsync(args.Skip(1).ToArray(), standardOutput, standardError, cancellationToken).ConfigureAwait(false);
             if (args.FirstOrDefault() == "archive")
                 return await WorkflowArchiveCommand.RunAsync(args[1..], standardOutput, standardError, cancellationToken).ConfigureAwait(false);
             if (args.FirstOrDefault() is "printers" or "print")
@@ -160,7 +165,7 @@ Existing output is refused unless --force is supplied.
         }
     }
 
-    private static int MapStatus(OfficeWorkflowStatus status, OfficeWorkflowFailureKind failureKind) => status switch {
+    internal static int MapStatus(OfficeWorkflowStatus status, OfficeWorkflowFailureKind failureKind) => status switch {
         OfficeWorkflowStatus.Cancelled => (int)OfficeImoToolExitCode.Cancelled,
         OfficeWorkflowStatus.Failed => failureKind switch {
             OfficeWorkflowFailureKind.ValidationFailed => (int)OfficeImoToolExitCode.Usage,

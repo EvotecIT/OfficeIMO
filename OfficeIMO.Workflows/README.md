@@ -310,6 +310,31 @@ OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new() {
 
 Set `ExpectedSourceSha256` to the SHA-256 hex digest of a reviewed snapshot to reject a source that changed before export. Provider inputs and destinations use the same snapshot, confirmation, recovery, and publication guards as other workflows. To retain the visible source and add searchable text, use the searchable OCR workflow instead.
 
+## Optimize embedded Word images
+
+```csharp
+using OfficeIMO.Drawing;
+using OfficeIMO.Word;
+using OfficeIMO.Workflows;
+
+var runner = new OfficeWorkflowRunner();
+OfficeWorkflowResult result = await runner.RunAsync(new OfficeWorkflowRequest {
+    Operation = OfficeWorkflowOperation.OptimizeWordImages,
+    InputPath = "input.docx",
+    OutputPath = "optimized.docx", // .doc or .pdf also selects that output format
+    ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
+    WordImageOptimization = new WordImageOptimizationOptions {
+        Mode = OfficeImageOptimizationMode.DownsampleAndRecompress,
+        TargetDpi = 144,
+        JpegQuality = 85
+    }
+});
+```
+
+The runner snapshots the source, optimizes through `OfficeIMO.Word`, reopens the staged output through its format owner, and publishes a separate copy atomically. Source replacement and publication over any batch source are refused. `AnalyzeWordImages` returns per-media diagnostics without publishing a file. `RunBatchAsync` accepts up to 250 requests, snapshots options before execution, and publishes each item independently.
+
+DOCX and supported legacy DOC inputs can produce DOCX, native DOC, or PDF. Incomplete legacy projections block output; analysis warns that its inventory covers only projected pictures. The native DOC writer preflights destination support. Word reports encoded-media savings; `InputBytes` and `OutputBytes` measure actual files. PDF generation after Word optimization retains its default image policy to avoid a second JPEG quality reduction. [Word image options and preservation rules](../OfficeIMO.Word/README.md#images) apply to every host.
+
 ## Convert a document
 
 ```csharp
