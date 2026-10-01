@@ -71,6 +71,13 @@ public sealed partial class OfficeWorkflowRunner {
         ArgumentNullException.ThrowIfNull(input);
         OfficeWorkflowRoute route = request.Route!;
         OfficeWorkflowConversionOptions settings = request.ConversionOptions ?? new();
+        // The optimizer operates on unencrypted bytes; apply native output security last.
+        PdfStandardEncryptionOptions? deferredEncryption = settings.CompressPdfOutput
+            ? settings.GetOutputPdfOptions()?.Encryption : null;
+        if (deferredEncryption != null) {
+            settings = settings.Clone();
+            settings.GetOutputPdfOptions()!.ClearEncryption();
+        }
         PdfReadOptions? readOptions = settings.CreateReadOptions();
         cancellationToken.ThrowIfCancellationRequested();
         long maximumOutputBytes = request.Limits.MaximumOutputBytes;
@@ -263,6 +270,13 @@ public sealed partial class OfficeWorkflowRunner {
             bytes = optimized.Bytes;
             diagnostics.Add(new OfficeWorkflowDiagnostic("PdfOutputCompression", "Verified lossless PDF compression completed; saved " + optimized.SavedBytes + " bytes.",
                 OfficeWorkflowDiagnosticSeverity.Information, "convert"));
+        }
+        if (deferredEncryption != null) {
+            PdfSecurityMutationResult encrypted = PdfSecurityEditor.Encrypt(bytes, deferredEncryption,
+                maximumOutputBytes: maximumOutputBytes, cancellationToken: cancellationToken);
+            if (!encrypted.PreservationReport.IsPreserved)
+                throw new InvalidOperationException("PDF encryption did not preserve the converted document.");
+            bytes = encrypted.Pdf;
         }
 
         diagnostics.Add(new OfficeWorkflowDiagnostic(

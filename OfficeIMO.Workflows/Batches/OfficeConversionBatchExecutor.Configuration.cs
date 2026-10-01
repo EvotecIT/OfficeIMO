@@ -20,6 +20,8 @@ internal static partial class OfficeConversionBatchExecutor {
             options.Markdown?.ResourcePolicy.AllowRemoteResourceResolution == true ||
             options.Html?.ResourcePolicy.AllowRemoteResourceResolution == true)
             throw new NotSupportedException("Runtime resource callbacks and remote resources require an ordinary batch without checkpoints.");
+        if (options.Markdown?.ResourcePolicy.AllowLocalFileAccess == true && !options.Markdown.RestrictLocalImagesToBaseDirectory)
+            throw new NotSupportedException("Checkpointed Markdown resources must remain inside BaseDirectory. Unrestricted local resources require an ordinary batch without checkpoints.");
         using var hash = SHA256.Create();
         using (var stream = new CryptoStream(Stream.Null, hash, CryptoStreamMode.Write)) {
             JsonSerializer.Serialize(stream, new { Route = routeId, settings.OutputProfile, Options = options,
@@ -34,6 +36,8 @@ internal static partial class OfficeConversionBatchExecutor {
         public override void Write(Utf8JsonWriter writer, PdfOptions value, JsonSerializerOptions options) {
             if (value.TextShapingProvider != null)
                 throw new NotSupportedException("Runtime text shaping providers require an ordinary batch without checkpoints. Embedded font settings support checkpoints.");
+            if (value.Encryption?.AesCryptographyProvider != null)
+                throw new NotSupportedException("Runtime cryptography providers require an ordinary batch without checkpoints.");
             writer.WriteStartObject();
             writer.WritePropertyName("Settings");
             JsonSerializer.Serialize(writer, value, new JsonSerializerOptions { IncludeFields = true });
@@ -52,13 +56,12 @@ internal static partial class OfficeConversionBatchExecutor {
         }
     }
 
-    // The scoped resolver supports files under the source directory. Include their names and
-    // bytes conservatively, so changed CSS, images or fonts cannot reuse an earlier artifact.
+    // Include every regular file: Markdown identifies images by bytes, not filename extensions.
+    // Reject links so native resource reads cannot escape the fingerprinted tree.
     private static async Task<string> CaptureResourceIdentityAsync(string root, long maximumBytes, CancellationToken token) {
         var resources = new List<(string Path, string Hash)>();
         long bytes = 0;
-        foreach (string path in Discover(root, true, token)) {
-            if (!OfficeWorkflowHtmlResourceResolver.IsSupportedDependency(path)) continue;
+        foreach (string path in Discover(root, true, token, rejectLinks: true)) {
             if (resources.Count >= OfficeWorkflowHtmlResourceResolver.MaximumReferencedResourceCount)
                 throw new InvalidDataException("The source resource directory exceeds the checkpoint resource limit.");
             EnsureNoLinks(path);

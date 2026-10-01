@@ -120,6 +120,9 @@ public sealed class OfficeWorkflowConversionOptions {
         return copy;
     }
 
+    internal PdfOptions? GetOutputPdfOptions() => Word?.PdfOptions ?? Excel?.PdfOptions ?? PowerPoint?.PdfOptions
+        ?? Html?.PdfOptions ?? Markdown?.PdfOptions ?? Rtf?.PdfOptions ?? PlainText?.PdfOptions;
+
     internal PdfReadOptions? CreateReadOptions() => string.IsNullOrWhiteSpace(PageRanges) ? null
         : new PdfReadOptions { PageSelection = PdfPageSelection.Parse(PageRanges) };
 }

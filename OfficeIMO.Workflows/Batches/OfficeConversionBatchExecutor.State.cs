@@ -129,14 +129,17 @@ internal static partial class OfficeConversionBatchExecutor {
         return new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
     }
 
-    private static IEnumerable<string> Discover(string directory, bool recursive, CancellationToken token, int depth = 0) {
+    private static IEnumerable<string> Discover(string directory, bool recursive, CancellationToken token, int depth = 0, bool rejectLinks = false) {
         if (depth > 64) throw new InvalidDataException("Batch directory depth exceeds 64.");
         foreach (string path in Directory.EnumerateFileSystemEntries(directory)) {
             token.ThrowIfCancellationRequested();
             FileAttributes attributes = File.GetAttributes(path);
-            if ((attributes & FileAttributes.ReparsePoint) != 0) continue;
+            if ((attributes & FileAttributes.ReparsePoint) != 0) {
+                if (rejectLinks) throw new InvalidDataException("Checkpoint resource trees must not contain symbolic links or junctions.");
+                continue;
+            }
             if ((attributes & FileAttributes.Directory) != 0) {
-                if (recursive) foreach (string child in Discover(path, true, token, depth + 1)) yield return child;
+                if (recursive) foreach (string child in Discover(path, true, token, depth + 1, rejectLinks)) yield return child;
             } else yield return path;
         }
     }

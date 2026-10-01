@@ -136,6 +136,101 @@ public sealed class OfficeConversionBatchTests {
         Assert.Contains("<h1>literal text</h1>", pdf.GetPage(1).Text);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task NativeOutputEncryptionWorksForEveryPdfBagWithOptionalCompressionAndCheckpoints(bool checkpoint, bool compress) {
+        using var scope = new BatchDirectory();
+        File.WriteAllText(Path.Combine(scope.Input, "text.txt"), "Encrypted text");
+        File.WriteAllText(Path.Combine(scope.Input, "page.html"), "<p>Encrypted HTML</p>");
+        File.WriteAllText(Path.Combine(scope.Input, "markup.md"), "# Encrypted Markdown");
+        File.WriteAllText(Path.Combine(scope.Input, "rich.rtf"), "{\\rtf1\\ansi Encrypted RTF}");
+        using (var word = WordDocument.Create(Path.Combine(scope.Input, "word.docx"))) { word.AddParagraph("Encrypted Word"); word.Save(); }
+        using (var excel = ExcelDocument.Create(Path.Combine(scope.Input, "sheet.xlsx"))) { excel.AddWorksheet("Data").Cell(1, 1, "Encrypted Excel"); excel.Save(); }
+        using (var slides = PowerPointPresentation.Create(Path.Combine(scope.Input, "slides.pptx"))) { slides.AddSlide().AddTextBoxPoints("Encrypted slides", 40, 40, 500, 60); slides.Save(); }
+        const string userPassword = "Synthetic output reader", ownerPassword = "Synthetic output owner";
+        PdfOptions Encryption() => new PdfOptions().SetEncryption(userPassword, ownerPassword);
+        var request = new OfficeConversionBatchRequest { InputDirectory = scope.Input, OutputDirectory = scope.Output,
+            CheckpointDirectory = checkpoint ? scope.State : null, PdfPassword = "Unrelated source password",
+            ConversionOptions = new() {
+                PlainText = new() { PdfOptions = Encryption() }, Word = new() { PdfOptions = Encryption() },
+                Excel = new() { PdfOptions = Encryption() }, PowerPoint = new() { PdfOptions = Encryption() },
+                Html = new() { PdfOptions = Encryption() }, Markdown = new() { PdfOptions = Encryption() },
+                Rtf = new() { PdfOptions = Encryption() }, CompressPdfOutput = compress
+            }
+        };
+        var items = new Items();
+        var result = await new OfficeWorkflowRunner().RunBatchAsync(request, items);
+        Assert.True(result.Failed == 0, string.Join("\n", items.Values.Select(item => item.Summary))); Assert.Equal(7, result.Completed);
+        foreach (var item in items.Values) {
+            var pdf = PdfDocument.Load(item.OutputPath!, new PdfLoadOptions { Password = userPassword });
+            Assert.True(pdf.Inspect().Security.HasEncryption); Assert.NotEmpty(pdf.Read().Pages);
+        }
+        if (checkpoint) {
+            Assert.Equal(7, (await new OfficeWorkflowRunner().RunBatchAsync(request)).Reused);
+            foreach (string receipt in Directory.EnumerateFiles(scope.State, "*.json", SearchOption.AllDirectories)) {
+                Assert.DoesNotContain(userPassword, File.ReadAllText(receipt));
+                Assert.DoesNotContain(ownerPassword, File.ReadAllText(receipt));
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task MarkdownImageBytesWithoutKnownExtensionsInvalidateReuseAndPublication(bool mutateAtPublication) {
+        using var scope = new BatchDirectory();
+        string input = Path.Combine(scope.Input, "page.md"), image = Path.Combine(scope.Input, "image.asset");
+        File.WriteAllText(input, "# Image source\n![image](image.asset)");
+        byte[] png = OcrSessionWorkflowTests.Png();
+        File.WriteAllBytes(image, png);
+        var request = new OfficeConversionBatchRequest { InputPaths = [input], InputDirectory = scope.Input,
+            OutputDirectory = scope.Output, CheckpointDirectory = scope.State,
+            ConversionOptions = new() { Markdown = new() { BaseDirectory = scope.Input,
+                ResourcePolicy = new PdfResourcePolicy { AllowLocalFileAccess = true } } }
+        };
+        if (mutateAtPublication) {
+            var result = await new OfficeWorkflowRunner().RunBatchAsync(request,
+                publicationGuard: new ChangeResource(image));
+            Assert.Equal(1, result.Failed); Assert.False(File.Exists(Path.Combine(scope.Output, "page.md.pdf")));
+        } else {
+            Assert.Equal(1, (await new OfficeWorkflowRunner().RunBatchAsync(request)).Completed);
+            string output = Path.Combine(scope.Output, "page.md.pdf");
+            using (var pdf = ReadPdf.Open(output)) Assert.NotEmpty(pdf.GetPage(1).GetImages());
+            byte[] original = File.ReadAllBytes(output);
+            File.WriteAllBytes(image, [.. png, 0]);
+            Assert.Equal(1, (await new OfficeWorkflowRunner().RunBatchAsync(request)).Failed);
+            Assert.Equal(original, File.ReadAllBytes(output));
+        }
+    }
+
+    [Fact]
+    public async Task UnrestrictedMarkdownResourcesRequireAnOrdinaryBatch() {
+        using var scope = new BatchDirectory();
+        string input = Path.Combine(scope.Input, "page.md");
+        File.WriteAllText(input, "# Image source\n![image](../external.png)");
+        File.WriteAllBytes(Path.Combine(Path.GetDirectoryName(scope.Input)!, "external.png"), OcrSessionWorkflowTests.Png());
+        var request = new OfficeConversionBatchRequest { InputPaths = [input], InputDirectory = scope.Input,
+            OutputDirectory = scope.Output, ConversionOptions = new() { Markdown = new() {
+                BaseDirectory = scope.Input, RestrictLocalImagesToBaseDirectory = false,
+                ResourcePolicy = new PdfResourcePolicy { AllowLocalFileAccess = true }
+            } }
+        };
+        Assert.Equal(1, (await new OfficeWorkflowRunner().RunBatchAsync(request)).Completed);
+        using (var pdf = ReadPdf.Open(Path.Combine(scope.Output, "page.md.pdf"))) Assert.NotEmpty(pdf.GetPage(1).GetImages());
+        var durable = await new OfficeWorkflowRunner().RunBatchAsync(request with { CheckpointDirectory = scope.State });
+        Assert.Equal(1, durable.Failed); Assert.Equal(0, durable.Reused);
+    }
+
+    private sealed class ChangeResource(string resource) : IOfficeWorkflowPublicationGuard {
+        public ValueTask<bool> CanPublishAsync(string path, bool directory, CancellationToken token) {
+            if (!directory) File.WriteAllText(resource, "Changed at publication");
+            return ValueTask.FromResult(true);
+        }
+    }
+
     private sealed class Items : IProgress<OfficeConversionBatchItemResult> {
         public ConcurrentBag<OfficeConversionBatchItemResult> Values { get; } = [];
         public void Report(OfficeConversionBatchItemResult item) => Values.Add(item);
