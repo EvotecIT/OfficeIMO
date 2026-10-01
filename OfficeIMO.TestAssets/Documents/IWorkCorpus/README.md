@@ -22,6 +22,16 @@ python Build/IWork/extract-pages-inline-anchors.py OfficeIMO.TestAssets/Document
 
 OfficeIMO compares native attachment/drawable identities and offsets with this evidence. Saved/reopened DOCX and Reader tests check the representative fixture's object order. This qualifies source attachment decoding and destination placement; native Apple export, pagination, wrapping and rendered equivalence remain unqualified.
 
+## Pages automatic row sizing
+
+`pages-table-sizing.json` records the native automatic-resize setting and individual row heights of all three tables in the unchanged `picodocs/sample-v14.4.pages` fixture. It uses the same pinned source, hash and MIT provenance above. Reproduce the manifest with independent numbers-parser 4.19.0 schemas:
+
+```bash
+python Build/IWork/extract-pages-table-sizing.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/pages-table-sizing.json
+```
+
+Saved/reopened DOCX retains the declared 16.5-point heights as minimum constraints, so wrapped cell content can increase row height. The embedded package preview provides a bounded visual counterexample to treating these rows as fixed. This qualifies the source setting and destination constraint; native Apple export, complete styling and pagination remain unqualified.
+
 ## Cross-table rectangular formulas
 
 `numbers-parser/cross-table-formulas.numbers` is the unmodified upstream `tests/data/create-formulas.numbers` at revision `1c6c5c3d2e29a9abb601596678089f0a6c85d64c`, covered by the existing numbers-parser MIT notice. Its adjacent JSON manifest records sixteen `COUNTA` formulas with cross-table rectangular references, all combinations of absolute and relative endpoint coordinates, native target UUIDs and cached numeric values. `Build/IWork/extract-cross-table-formula-fixture.py` reads the pinned package through numbers-parser 4.19.0 to reproduce the manifest without rewriting the source:

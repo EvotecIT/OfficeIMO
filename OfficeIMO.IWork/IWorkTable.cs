@@ -131,7 +131,7 @@ public sealed class IWorkTable {
         IReadOnlyList<IWorkObjectIdentity>? omittedTextUnits = null,
         IReadOnlyDictionary<int, double>? rowHeights = null,
         IReadOnlyDictionary<int, double>? columnWidths = null,
-        Guid? formulaIdentifier = null, IWorkArchiveRecord? modelRecord = null, bool bodyMetadataIsComplete = true) {
+        Guid? formulaIdentifier = null, IWorkArchiveRecord? modelRecord = null, bool bodyMetadataIsComplete = true, bool? autoResizeRows = null) {
         Name = name;
         FormulaIdentifier = formulaIdentifier;
         ModelRecord = modelRecord;
@@ -142,6 +142,7 @@ public sealed class IWorkTable {
         HeaderColumnCount = headerColumnCount;
         FooterRowCount = footerRowCount;
         DefaultRowHeight = defaultRowHeight;
+        AutoResizeRows = autoResizeRows;
         DefaultColumnWidth = defaultColumnWidth;
         RowHeights = CopyDimensions(rowHeights);
         ColumnWidths = CopyDimensions(columnWidths);
@@ -161,7 +162,7 @@ public sealed class IWorkTable {
     internal IWorkTable WithCells(IReadOnlyList<IWorkTableCell> cells) =>
         new(Name, RowCount, ColumnCount, cells, HeaderRowCount, HeaderColumnCount, FooterRowCount,
             DefaultRowHeight, DefaultColumnWidth, MergedRanges, Geometry, AccessibilityDescription,
-            SourceIdentity, OmittedTextUnits, RowHeights, ColumnWidths, FormulaIdentifier, ModelRecord, BodyMetadataIsComplete);
+            SourceIdentity, OmittedTextUnits, RowHeights, ColumnWidths, FormulaIdentifier, ModelRecord, BodyMetadataIsComplete, AutoResizeRows);
 
     /// <summary>Gets the source table name.</summary>
     public string Name { get; }
@@ -180,6 +181,8 @@ public sealed class IWorkTable {
     public int FooterRowCount { get; }
     /// <summary>Gets the default row height in source points.</summary>
     public double? DefaultRowHeight { get; }
+    /// <summary>Gets whether native table rows grow to fit content. Null means the setting is absent or unresolved.</summary>
+    public bool? AutoResizeRows { get; }
     /// <summary>Gets the default column width in source points.</summary>
     public double? DefaultColumnWidth { get; }
     /// <summary>Gets explicit row heights in points, keyed by one-based row position. Zero-size native entries use the default and are omitted.</summary>

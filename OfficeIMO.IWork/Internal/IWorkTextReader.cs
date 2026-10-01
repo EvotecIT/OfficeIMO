@@ -138,11 +138,11 @@ internal static partial class IWorkTextReader {
         }
         bool resolvedCompletely = true;
         var data = new ParagraphStyleData();
-        IReadOnlyList<IWorkWireMessage> chain = ReadStyleChain(index, identifier.Value,
+        var chain = IWorkStyleReader.ReadChain(index, identifier.Value,
             projectionBudget.MaximumTextStyleInheritanceDepth,
             type => type == ParagraphStyleArchive, tolerateStyleDepth, references, ref resolvedCompletely);
         for (int styleIndex = chain.Count - 1; styleIndex >= 0; styleIndex--) {
-            IWorkWireMessage message = chain[styleIndex];
+            IWorkWireMessage message = chain[styleIndex].Message;
             ApplyStyleName(message, value => data.Name = value, projectionBudget, ref resolvedCompletely);
             IWorkWireMessage? character = IWorkObjectIndex.TryGetMessage(message, 11, out bool malformedCharacter);
             if (malformedCharacter || message.HasUnexpectedWireKind(11, IWorkWireKind.Bytes)
@@ -173,12 +173,12 @@ internal static partial class IWorkTextReader {
         }
         bool resolvedCompletely = true;
         var data = TextStyleData.From(inherited);
-        IReadOnlyList<IWorkWireMessage> chain = ReadStyleChain(index, identifier.Value,
+        var chain = IWorkStyleReader.ReadChain(index, identifier.Value,
             projectionBudget.MaximumTextStyleInheritanceDepth,
             type => type is CharacterStyleArchive or ParagraphStyleArchive,
             tolerateStyleDepth, references, ref resolvedCompletely);
         for (int styleIndex = chain.Count - 1; styleIndex >= 0; styleIndex--) {
-            IWorkWireMessage message = chain[styleIndex];
+            IWorkWireMessage message = chain[styleIndex].Message;
             ApplyStyleName(message, value => data.Name = value, projectionBudget, ref resolvedCompletely);
             IWorkWireMessage? character = IWorkObjectIndex.TryGetMessage(message, 11, out bool malformedCharacter);
             if (malformedCharacter || message.HasUnexpectedWireKind(11, IWorkWireKind.Bytes)
@@ -189,59 +189,6 @@ internal static partial class IWorkTextReader {
         cache.Add(key, new Cached<IWorkTextStyle>(result, resolvedCompletely));
         if (!resolvedCompletely) complete = false;
         return result;
-    }
-
-    private static IReadOnlyList<IWorkWireMessage> ReadStyleChain(IWorkObjectIndex index,
-        ulong identifier, int maximumDepth, Func<uint, bool> allowedType,
-        bool tolerateStyleDepth, IWorkSourceReferenceIssueCollector references, ref bool complete) {
-        var chain = new List<IWorkWireMessage>();
-        var seen = new HashSet<ulong>();
-        ulong current = identifier;
-        while (true) {
-            if (chain.Count >= maximumDepth) {
-                if (tolerateStyleDepth) {
-                    complete = false;
-                    break;
-                }
-                throw new InvalidDataException(
-                    $"iWork text style inheritance exceeds the configured depth of {maximumDepth}.");
-            }
-            if (!seen.Add(current)) {
-                complete = false;
-                break;
-            }
-            IWorkArchiveRecord? record = index.Find(current);
-            if (record == null || !allowedType(record.MessageType)) {
-                complete = false;
-                break;
-            }
-            IWorkWireMessage message;
-            try {
-                message = index.Message(record);
-            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
-                references.Declarations.Record(record, "$", null);
-                complete = false;
-                break;
-            }
-            chain.Add(message);
-            IWorkWireMessage? super = IWorkObjectIndex.TryGetMessage(message, 1, out bool malformedSuper);
-            if (malformedSuper || message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
-                || message.HasField(1) && super == null) {
-                references.Declarations.Record(record, "1", message.FieldCount(1));
-                complete = false;
-                break;
-            }
-            if (super == null) break;
-            IWorkArchiveRecord? parent = references.ReadOne(record, super, 3, "1/3");
-            if (super.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)
-                || super.HasField(3) && parent == null) {
-                complete = false;
-                break;
-            }
-            if (parent == null) break;
-            current = parent.Identifier;
-        }
-        return chain;
     }
 
     private static void ApplyStyleName(IWorkWireMessage message, Action<string> apply,
@@ -333,11 +280,11 @@ internal static partial class IWorkTextReader {
         }
         bool resolvedCompletely = true;
         var data = new ListStyleData();
-        IReadOnlyList<IWorkWireMessage> chain = ReadStyleChain(index, identifier.Value,
+        var chain = IWorkStyleReader.ReadChain(index, identifier.Value,
             projectionBudget.MaximumTextStyleInheritanceDepth,
             type => type == ListStyleArchive, tolerateStyleDepth, references, ref resolvedCompletely);
         for (int styleIndex = chain.Count - 1; styleIndex >= 0; styleIndex--) {
-            IWorkWireMessage message = chain[styleIndex];
+            IWorkWireMessage message = chain[styleIndex].Message;
             ApplyStyleName(message, value => data.Name = value, projectionBudget, ref resolvedCompletely);
             IReadOnlyList<ulong> labelTypes;
             if (message.HasUnexpectedWireKind(11, IWorkWireKind.Varint, IWorkWireKind.Bytes)) {

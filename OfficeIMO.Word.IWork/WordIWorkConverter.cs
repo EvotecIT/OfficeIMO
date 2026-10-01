@@ -313,7 +313,10 @@ public static partial class WordIWorkConverter {
         }
         for (int row = 1; row <= source.RowCount; row++) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (source.GetRowHeight(row) is double height) table.Rows[row - 1].Height = ToSignedTwips(height);
+            if (source.GetRowHeight(row) is double height) {
+                if (source.AutoResizeRows == true) table.Rows[row - 1].MinimumHeight = ToSignedTwips(height);
+                else table.Rows[row - 1].Height = ToSignedTwips(height);
+            }
         }
         foreach (IWorkTableCell sourceCell in source.Cells) {
             cancellationToken.ThrowIfCancellationRequested();

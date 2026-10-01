@@ -173,6 +173,8 @@ internal static partial class IWorkTableReader {
         IReadOnlyList<IWorkTableMergeRange> mergedRanges = ReadMergedRanges(source, message, rows, columns,
             source.Options.MaximumTableMergedRanges, source.Options.MaximumFormulaNodes,
             model, references, diagnostics, ref supportsEditableReconstruction);
+        bool? autoResizeRows = ReadAutoResizeRows(index, model, message, projectionBudget, references,
+            diagnostics, ref supportsEditableReconstruction);
         var rowHeights = new Dictionary<int, double>();
         var columnWidths = new Dictionary<int, double>();
         var cells = new List<IWorkTableCell>();
@@ -488,7 +490,7 @@ internal static partial class IWorkTableReader {
             message.FieldCount(6) == 1 && message.FieldCount(7) == 1
                 && new[] { 6, 7, 9, 10, 11 }.All(field => message.FieldCount(field) <= 1
                     && !message.HasUnexpectedWireKind(field, IWorkWireKind.Varint))
-                && (long)headerRows + footerRows <= rows);
+                && (long)headerRows + footerRows <= rows, autoResizeRows);
     }
 
     private static void MarkDuplicateTile(IWorkArchiveRecord model,

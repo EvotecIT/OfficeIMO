@@ -107,7 +107,7 @@ public sealed class IWorkReadOptions {
     /// <summary>Gets or sets the maximum number of decoded text characters across one semantic projection.</summary>
     public long MaximumProjectedTextCharacters { get; set; } = 16L * 1024 * 1024;
 
-    /// <summary>Gets or sets the maximum cross-record inheritance depth of an iWork text style.</summary>
+    /// <summary>Gets or sets the maximum cross-record inheritance depth of an iWork text or table style.</summary>
     public int MaximumTextStyleInheritanceDepth { get; set; } = 64;
 
     /// <summary>Returns a validated copy suitable for an isolated reader registration.</summary>

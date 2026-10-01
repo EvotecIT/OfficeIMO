@@ -23,7 +23,7 @@ result.Value.Save("converted.docx");
 
 Qualified body image attachments retain their inline run positions. A qualified table attachment occupies its own paragraph and becomes a Word table between the surrounding body paragraphs. Nonzero placement modes, tables mixed with other paragraph content, repeated attachment positions for one drawable, and attachment-run hyperlinks remain unsupported. Other source or destination limits can still require the explicit partial policy.
 
-Individual table row heights and column widths are carried into DOCX in twips under the adapter’s precision policy.
+Individual table row heights and column widths are carried into DOCX in twips under the adapter’s precision policy. A resolved native automatic-resize setting maps row heights to minimum constraints, allowing wrapped cell text to grow the row. Explicit fixed settings retain exact heights; absent settings retain the existing exact-height mapping. Unresolved or malformed settings are diagnosed.
 
 Choose the acceptance policy explicitly when source details cannot be represented:
 

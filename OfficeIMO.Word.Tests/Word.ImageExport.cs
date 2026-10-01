@@ -5202,8 +5202,7 @@ namespace OfficeIMO.Tests {
             table.Width = 3000;
             table.ColumnWidthType = WordTableWidthUnit.Dxa;
             table.ColumnWidth = new List<int> { 3000 };
-            table.Rows[0].Height = 240;
-            table.Rows[0]._tableRow.TableRowProperties!.GetFirstChild<TableRowHeight>()!.HeightType = HeightRuleValues.AtLeast;
+            table.Rows[0].MinimumHeight = 240;
             table.Rows[0].Cells[0].Paragraphs[0].Text = string.Join(
                 " ",
                 Enumerable.Range(1, 32).Select(index => "AtLeastRowToken" + index.ToString("00", CultureInfo.InvariantCulture)));
