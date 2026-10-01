@@ -18,6 +18,10 @@ internal static class NativeDomBridge {
     private static readonly ConditionalWeakTable<HtmlDocument, NativeStateReference> OwnedStates = new ConditionalWeakTable<HtmlDocument, NativeStateReference>();
     private static readonly ConditionalWeakTable<IHtmlDocument, Lazy<CallbackState>> CallbackSnapshots = new ConditionalWeakTable<IHtmlDocument, Lazy<CallbackState>>();
     private static readonly ConditionalWeakTable<HtmlDocument, CallbackState> CallbackSources = new ConditionalWeakTable<HtmlDocument, CallbackState>();
+    // A retained detached native node is a lease on its node maps. Ephemeron keys let the
+    // complete projection disappear once callers release those nodes, even though the state
+    // points back to them. Attached native trees can instead rebuild maps from their structure.
+    private static readonly ConditionalWeakTable<INode, NativeState> DetachedProjectionLeases = new ConditionalWeakTable<INode, NativeState>();
     private static readonly object CacheSync = new object();
     private sealed class NativeStateReference {
         private readonly WeakReference<NativeState> _state;
@@ -216,7 +220,10 @@ internal static class NativeDomBridge {
                 INode native = ExportNode(root, state.Native);
                 detached.Add(native, root);
                 ExportChildren(detached, root, native);
-                foreach (var pair in detached.ToOwned) state.Add(pair.Key, pair.Value);
+                foreach (var pair in detached.ToOwned) {
+                    state.Add(pair.Key, pair.Value);
+                    DetachedProjectionLeases.Add(pair.Key, state);
+                }
             }
             return state;
         }

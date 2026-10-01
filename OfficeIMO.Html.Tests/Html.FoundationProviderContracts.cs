@@ -180,6 +180,44 @@ public sealed class HtmlFoundationProviderContractTests {
     }
 
     [Fact]
+    public void RetainedDetachedNodeKeepsItsProjectionIdentityAcrossCollection() {
+        var lease = CreateDetachedProjectionLease();
+        CollectReleasedGraphs();
+
+        Assert.Same(lease.Native, NativeDomBridge.GetNative(lease.OwnedNode));
+        Assert.Same(lease.Native.Owner, NativeDomBridge.GetNativeDocument(lease.OwnedNode.Document));
+        GC.KeepAlive(lease.Native);
+    }
+
+    [Fact]
+    public void ReleasedDetachedNodeDoesNotPermanentlyRetainItsProviderGraph() {
+        var lease = CreateReleasedDetachedProjection();
+        CollectReleasedGraphs();
+
+        Assert.False(lease.State.TryGetTarget(out _));
+        Assert.Equal("Detached child", lease.OwnedNode.TextContent);
+        GC.KeepAlive(lease.OwnedNode);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static (HtmlElement OwnedNode, AngleSharp.Dom.INode Native, WeakReference<NativeDomBridge.NativeState> State) CreateDetachedProjectionLease() {
+        HtmlDocument document = AngleSharpHtmlParser.Instance.ParseDocument("<p>Attached</p>", new HtmlParseOptions()).Clone();
+        HtmlElement root = document.CreateElement("div");
+        HtmlElement child = document.CreateElement("span");
+        child.TextContent = "Detached child";
+        root.AppendChild(child);
+        document.Freeze();
+        NativeDomBridge.NativeState state = NativeDomBridge.GetState(child);
+        return (child, NativeDomBridge.GetNative(child), new WeakReference<NativeDomBridge.NativeState>(state));
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static (HtmlElement OwnedNode, WeakReference<NativeDomBridge.NativeState> State) CreateReleasedDetachedProjection() {
+        var lease = CreateDetachedProjectionLease();
+        return (lease.OwnedNode, lease.State);
+    }
+
+    [Fact]
     public async Task ConcurrentDetachedProjectionAndCallbackSnapshotsRetainNodeIdentity() {
         HtmlDocument document = AngleSharpHtmlParser.Instance.ParseDocument("<p>Attached</p>", new HtmlParseOptions()).Clone();
         HtmlElement[] detached = Enumerable.Range(0, 12).Select(index => {
