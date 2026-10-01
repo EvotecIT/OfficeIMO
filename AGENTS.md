@@ -72,15 +72,15 @@ From the OfficeIMO checkout, invoke the built CLI:
 
 ```sh
 dotnet "$POWERFORGE_SOURCE/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll" agent-plugin sync --source .agents/plugins/officeimo-document-tools
-dotnet "$POWERFORGE_SOURCE/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll" agent-plugin validate --source .agents/plugins/officeimo-document-tools
-dotnet "$POWERFORGE_SOURCE/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll" agent-plugin pack --source .agents/plugins/officeimo-document-tools --out Artefacts/AgentPlugins
+dotnet "$POWERFORGE_SOURCE/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll" agent-plugin validate --source .agents/plugins/officeimo-document-tools --project OfficeIMO.Tool/OfficeIMO.Tool.csproj
+dotnet "$POWERFORGE_SOURCE/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll" agent-plugin pack --source .agents/plugins/officeimo-document-tools --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --out Artefacts/AgentPlugins
 ```
 
 In PowerShell, use `$env:POWERFORGE_SOURCE` in place of `$POWERFORGE_SOURCE`. The resulting CLI runs on Windows, macOS, and Linux.
 
 The packer produces a versioned ZIP and SHA-256 sidecar. Run the Agent Skills validator and real client/server checks in addition to package validation. OfficeIMO's release version bindings update the pinned tool version in all MCP configurations and the manual launcher in `.agents/plugins/officeimo-document-tools/README.md`; regenerate compatibility files after other metadata changes. Contributor skills live separately in `.agents/skills` and are not part of this user plugin.
 
-The **Agent Plugin Package** workflow validates the package and MCP Registry metadata on plugin and Registry package-input changes and manual runs. It builds a pinned PowerForge source revision with its own SDK and uploads the ZIP and checksum as a workflow artifact. Normal `OfficeIMO-vYYYYMMDDHHMMSS` release events attach those files to the [GitHub release](https://github.com/EvotecIT/OfficeIMO/releases). Existing assets are preserved; attaching a duplicate filename fails. Increment the plugin version when changing package content, including a tool-version update, then regenerate its compatibility manifests.
+The **Agent Plugin Package** workflow validates the package and MCP Registry metadata on plugin and Registry package-input changes and manual runs. It builds a pinned PowerForge source revision with its own SDK and uploads the ZIP and checksum as a workflow artifact. Normal `OfficeIMO-vYYYYMMDDHHMMSS` release events attach those files to the [GitHub release](https://github.com/EvotecIT/OfficeIMO/releases). Existing assets are preserved; attaching a duplicate filename fails. The plugin version follows the OfficeIMO.Tool NuGet release version. The canonical plugin version binding regenerates client manifests in the same PowerForge release transaction; generated files have no separate release bindings. Every published bundle change, including skills-only changes, requires a new product patch release. Keep schema/protocol and shared PowerForge versions independent.
 
 PowerForge's project release bindings update both version fields in `server.json`. Publish the signed NuGet package first and check that its embedded README contains the matching `mcp-name` ownership marker. The registry validates the published package, so source metadata alone is insufficient. Then, from the repository root, authenticate an authorized EvotecIT publisher and submit the metadata:
 
