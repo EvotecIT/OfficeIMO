@@ -586,8 +586,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 warning.Message,
                 warning.Severity == PdfConversionWarningSeverity.Information
                     ? OfficeWorkflowDiagnosticSeverity.Information
-                    : OfficeWorkflowDiagnosticSeverity.Warning,
-                "convert"));
+                    : warning.Severity == PdfConversionWarningSeverity.Error ? OfficeWorkflowDiagnosticSeverity.Error : OfficeWorkflowDiagnosticSeverity.Warning,
+                "convert", new Dictionary<string, string> { ["source"] = warning.Source, ["lossKind"] = warning.LossKind.ToString(), ["converter"] = warning.Converter }));
         }
     }
 

@@ -14,6 +14,11 @@ Usage:
   officeimo workflow print-plan <input.pdf> [--pages <selection>] [--paper A4|Letter|Legal|A3]
              [--orientation auto|portrait|landscape] [--pages-per-sheet 1|2|4]
              [--scale fit|actual|fill] [--margin <points>]
+  officeimo workflow archive --request <archive.json> [--retry-failed]
+  officeimo workflow printers [--paper-sources <queue>]
+  officeimo workflow print <input.pdf> --printer <name> [print-plan options]
+             [--copies 1..100] [--duplex default|off|long|short] [--paper-source <id>] [--dpi 72..600]
+             [--output-file <new-local-path>]
 
 Page selections accept document-relative expressions such as 1-3,last.
 Folders and ZIP archives are expanded deterministically by the reusable workflow owner.
@@ -29,6 +34,10 @@ Existing output is refused unless --force is supplied.
         Func<PdfPrintPlanRequest, CancellationToken, Task<PdfPrintPlan>>? printPlanner = null) {
         WorkflowCommandKind activeCommand = WorkflowCommandKind.Help;
         try {
+            if (args.FirstOrDefault() == "archive")
+                return await WorkflowArchiveCommand.RunAsync(args[1..], standardOutput, standardError, cancellationToken).ConfigureAwait(false);
+            if (args.FirstOrDefault() is "printers" or "print")
+                return await WorkflowPrintCommand.RunAsync(args, standardOutput, standardError, cancellationToken).ConfigureAwait(false);
             WorkflowArguments parsed = WorkflowArguments.Parse(args);
             activeCommand = parsed.Command;
             if (parsed.Command == WorkflowCommandKind.Help) {

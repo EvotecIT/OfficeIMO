@@ -36,6 +36,8 @@ Completion evidence: a visitor can choose a task, find the supported surface, in
 
 ## PDF engine and conversion fidelity
 
+- [ ] Qualify the DOC/DOCX/TXT archive workflow with a representative large mixed-format producer corpus, including interruption/restart, source/output integrity, diagnostics, throughput and peak memory. Keep the existing per-file limits separate from archive-capacity claims.
+- [ ] Qualify printer delivery on native macOS and physical Windows/CUPS printers, including duplex, trays, margins and driver failures. Preserve queue acceptance as a separate contract from confirmed physical delivery.
 - [ ] Add cancellation and caller-selectable read limits to legacy PDF page-extraction path, page-range, and split routes that still use default source options. Prove oversized seekable and nonseekable input rejection, current-position semantics, and unchanged output.
 - [ ] Qualify cooperative cancellation and nonseekable input behavior across unfinished PDF utility routes, including legacy page extraction, merge and page import, form filling and flattening, annotation editing and flattening, stamping, metadata and security, redaction, optimization, sanitization, mutation planning, and incremental updates. Preserve current-position and output-side-effect guarantees through cancellation.
 - [ ] Finish authoring resource budgets beyond the encoded image, font, and electronic-invoice XML input caps: bound embedded-font decoding and general attachment authoring/editing data, including aggregate copies. Preserve intentional large attachments through explicit caller limits and prove rejection leaves the PDF and output target unchanged.
