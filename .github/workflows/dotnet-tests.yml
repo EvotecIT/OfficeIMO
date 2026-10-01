@@ -196,8 +196,8 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
+      - name: Restore NuGet packages
+        uses: actions/cache/restore@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
@@ -703,8 +703,8 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
+      - name: Restore NuGet packages
+        uses: actions/cache/restore@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
@@ -1051,8 +1051,8 @@ jobs:
           test "${version}" = "pdftoppm version 26.05.0"
           echo "OFFICEIMO_PDF_RASTERIZER=${rasterizer}" >> "${GITHUB_ENV}"
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
+      - name: Restore NuGet packages
+        uses: actions/cache/restore@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
@@ -1510,8 +1510,8 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
+      - name: Restore NuGet packages
+        uses: actions/cache/restore@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
@@ -1545,8 +1545,8 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
+      - name: Restore NuGet packages
+        uses: actions/cache/restore@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
@@ -1648,8 +1648,9 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
+      - name: Restore NuGet packages
+        id: macos-nuget-cache
+        uses: actions/cache/restore@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
@@ -1714,6 +1715,13 @@ jobs:
           path: '**/*.trx'
           retention-days: 7
 
+      - name: Save default-branch NuGet cache
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && steps.macos-nuget-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.nuget/packages
+          key: ${{ steps.macos-nuget-cache.outputs.cache-primary-key }}
+
   test-macos:
     name: 'macOS'
     runs-on: ubuntu-latest
@@ -1743,8 +1751,8 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
+      - name: Restore NuGet packages
+        uses: actions/cache/restore@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
@@ -1809,8 +1817,8 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
+      - name: Restore NuGet packages
+        uses: actions/cache/restore@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
