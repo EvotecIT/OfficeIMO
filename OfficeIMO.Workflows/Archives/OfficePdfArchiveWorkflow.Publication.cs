@@ -17,17 +17,23 @@ public static partial class OfficePdfArchiveWorkflow {
             if (receipt.PendingStageId == null)
                 throw new InvalidDataException("Completed archive output is missing; no automatic retry is allowed.");
             string staged = GetPendingStagePath(output, receipt.PendingStageId);
-            EnsureNoLinks(staged);
-            if (!File.Exists(staged) ||
-                await HashFileAsync(staged, settings.OutputDirectory, settings.MaximumOutputBytes, token).ConfigureAwait(false) != receipt.OutputSha256)
-                throw new InvalidDataException("Pending archive PDF is missing or changed; no output was replaced.");
             if (hostGuard != null && !await hostGuard.CanPublishAsync(output, false, token).ConfigureAwait(false))
                 throw new UnauthorizedAccessException("Archive output is protected by the host publication policy.");
             if (await HashFileAsync(input, settings.InputDirectory, settings.MaximumInputBytes, token).ConfigureAwait(false) != receipt.InputSha256)
                 throw new InvalidDataException("Archive source changed before publication; no output was replaced.");
+            EnsureNoLinks(staged);
+            if (!File.Exists(staged) ||
+                await HashFileAsync(staged, settings.OutputDirectory, settings.MaximumOutputBytes, token).ConfigureAwait(false) != receipt.OutputSha256)
+                throw new InvalidDataException("Pending archive PDF is missing or changed; no output was replaced.");
+            EnsureNoLinks(staged);
             EnsureNoLinks(output);
             token.ThrowIfCancellationRequested();
             File.Move(staged, output, overwrite: false);
+            // Confirm the published path before clearing the intent, including replacement
+            // races after the last stage check. A mismatch retains the recovery record.
+            EnsureNoLinks(output);
+            if (await HashFileAsync(output, settings.OutputDirectory, settings.MaximumOutputBytes, CancellationToken.None).ConfigureAwait(false) != receipt.OutputSha256)
+                throw new InvalidDataException("Published archive PDF differs from its recorded artifact; completion was not recorded.");
         }
         // A crash after the move is reconciled by verifying the final artifact on restart.
         if (receipt.PendingStageId != null)

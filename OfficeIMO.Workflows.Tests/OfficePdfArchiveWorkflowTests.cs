@@ -4,6 +4,37 @@ namespace OfficeIMO.Workflows.Tests;
 
 public sealed class OfficePdfArchiveWorkflowTests {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task PublicationRejectsStageChangesDuringTheHostGuard(bool resume, bool replace) {
+        using var scope = new ArchiveDirectory();
+        File.WriteAllText(Path.Combine(scope.Input, "one.txt"), "Validated source");
+        if (resume) {
+            using var cancellation = new CancellationTokenSource();
+            await OfficePdfArchiveWorkflow.RunAsync(scope.Request, cancellationToken: cancellation.Token,
+                publicationGuard: new CancelBeforeFinalMove(cancellation));
+        }
+        var result = await OfficePdfArchiveWorkflow.RunAsync(scope.Request,
+            publicationGuard: new ChangePendingStage(scope.Output, resume ? 1 : 2, replace));
+        Assert.Equal(1, result.Failed);
+        Assert.False(File.Exists(Path.Combine(scope.Output, "one.txt.pdf")));
+    }
+
+    private sealed class ChangePendingStage(string directory, int check, bool replace) : IOfficeWorkflowPublicationGuard {
+        private int _finalChecks;
+        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
+            if (!isDirectory && Path.GetFileName(path) == "one.txt.pdf" && Interlocked.Increment(ref _finalChecks) == check) {
+                string staged = Assert.Single(Directory.GetFiles(directory, "*.archive.pdf"));
+                if (replace) File.Delete(staged);
+                File.WriteAllText(staged, "Modified during publication policy check");
+            }
+            return ValueTask.FromResult(true);
+        }
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task PendingPublicationRecoversBeforeAndAfterTheFinalMove(bool alreadyMoved) {
