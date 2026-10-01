@@ -21,7 +21,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             noteStyle.ClearSide = "none";
             noteStyle.UnsupportedFloat = string.Empty;
             noteStyle.UnsupportedClear = string.Empty;
-            double pageContentWidth = _footnotePlan.TryGetContentWidth(element, out double plannedContentWidth)
+            IElement? columnOwner = ResolveColumnNoteOwner(element);
+            double pageContentWidth = columnOwner != null ? containingWidth
+                : _footnotePlan.TryGetContentWidth(element, out double plannedContentWidth)
                 ? Math.Max(1D, plannedContentWidth)
                 : Math.Max(1D, _activePageGeometry.ContentWidth);
             double noteWidth = Math.Max(1D, pageContentWidth - FootnoteMarkerGutter);
@@ -78,7 +80,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 markerContent,
                 markerBlock,
                 markerGutter,
-                suppressMarker);
+                suppressMarker,
+                columnOwner);
         }
 
         bool hasCallStyle = _styleResolver.TryResolvePseudo(
@@ -191,7 +194,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var chunks = new List<HtmlFootnoteChunk>();
         var reservations = new Dictionary<int, double>();
         var contentWidths = new Dictionary<IElement, double>();
-        foreach (HtmlFootnoteEntry entry in _footnoteEntries.Values.OrderBy(item => item.Number)) {
+        foreach (HtmlFootnoteEntry entry in _footnoteEntries.Values.Where(item => item.ColumnOwner == null).OrderBy(item => item.Number)) {
             int callPage = FindFootnoteCallPage(rendered, entry);
             if (callPage <= 0) continue;
             int pageNumber = callPage;
@@ -286,9 +289,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static int FindFootnoteCallPage(HtmlRenderDocument rendered, HtmlFootnoteEntry entry) {
-        string source = HtmlRenderStyleResolver.DescribeSource(entry.Element) + ":footnote-call";
+        string name = FootnoteCallDestination(entry.Number);
         foreach (HtmlRenderPage page in rendered.Pages) {
-            if (ContainsVisualSource(page.Scene, source)) return page.PageNumber;
+            if (EnumeratePageFloatVisuals(page.Scene).OfType<HtmlRenderNamedDestination>()
+                .Any(destination => destination.Name == name)) return page.PageNumber;
         }
         return 0;
     }
@@ -344,83 +348,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 separatorPainted = true;
             }
             cursorY += gap;
-            string marker = entry.MarkerContent
-                + (chunk.Start > 0.0001D ? "\u00a0(cont.)" : string.Empty);
-            double markerGutter = entry.MarkerGutter;
-            IReadOnlyList<HtmlRenderVisual> body = SliceBlockVisuals(entry.Block, chunk.Start, chunk.End);
-            var children = new List<HtmlRenderVisual>();
-            if (chunk.Start <= 0.0001D) {
-                children.Add(new HtmlRenderNamedDestination(
-                    FootnoteNoteDestination(entry.Number),
-                    geometry.Margins.Left,
-                    cursorY,
-                    _paintOrder++,
-                    HtmlRenderStyleResolver.DescribeSource(entry.Element) + ":footnote-destination"));
-            }
-            if (!entry.SuppressMarker) {
-                if (entry.MarkerBlock != null) {
-                    foreach (HtmlRenderVisual visual in entry.MarkerBlock.Visuals) {
-                        children.Add(visual.Translate(geometry.Margins.Left, cursorY, _paintOrder++));
-                    }
-                    if (chunk.Start > 0.0001D) {
-                        _fontUsage?.Observe("\u00a0(cont.)", entry.MarkerStyle.Font.FamilyName, entry.MarkerStyle.FontDescriptor);
-                        children.Add(new HtmlRenderText(
-                            "\u00a0(cont.)",
-                            geometry.Margins.Left + entry.MarkerBlock.Width,
-                            cursorY,
-                            Math.Max(0.01D, markerGutter - entry.MarkerBlock.Width),
-                            Math.Max(0.01D, entry.MarkerStyle.LineHeight),
-                            entry.MarkerStyle.Font,
-                            entry.MarkerStyle.Color,
-                            OfficeTextAlignment.Left,
-                            entry.MarkerStyle.LineHeight,
-                            _paintOrder++,
-                            "#" + FootnoteCallDestination(entry.Number),
-                            HtmlRenderStyleResolver.DescribeSource(entry.Element) + ":footnote-marker",
-                            semanticRole: null,
-                            layoutY: null,
-                            semanticNodeId: null,
-                            textAdvanceWidth: null,
-                            featureSettings: entry.MarkerStyle.TextFeatureSettings,
-                            fontPalette: entry.MarkerStyle.FontPalette,
-                            fontDescriptor: entry.MarkerStyle.FontDescriptor));
-                    }
-                } else {
-                    children.Add(new HtmlRenderText(
-                        marker,
-                        geometry.Margins.Left,
-                        cursorY,
-                        Math.Max(0.01D, markerGutter - 2D),
-                        Math.Max(0.01D, entry.MarkerStyle.LineHeight),
-                        entry.MarkerStyle.Font,
-                        entry.MarkerStyle.Color,
-                        OfficeTextAlignment.Left,
-                        entry.MarkerStyle.LineHeight,
-                        _paintOrder++,
-                        "#" + FootnoteCallDestination(entry.Number),
-                        HtmlRenderStyleResolver.DescribeSource(entry.Element) + ":footnote-marker",
-                        semanticRole: null,
-                        layoutY: null,
-                        semanticNodeId: null,
-                        textAdvanceWidth: null,
-                        featureSettings: entry.MarkerStyle.TextFeatureSettings,
-                        fontPalette: entry.MarkerStyle.FontPalette,
-                        fontDescriptor: entry.MarkerStyle.FontDescriptor));
-                }
-            }
-            foreach (HtmlRenderVisual visual in body) {
-                children.Add(visual.Translate(geometry.Margins.Left + markerGutter, cursorY, _paintOrder++));
-            }
-            target.Add(new HtmlRenderSemanticGroup(
-                HtmlRenderSemanticGroupRole.Footnote,
-                geometry.Margins.Left,
-                cursorY,
-                geometry.ContentWidth,
-                chunk.ReservedHeight,
-                children,
-                _paintOrder++,
-                HtmlRenderStyleResolver.DescribeSource(entry.Element) + ":footnote",
-                structureElementKey: "html-footnote:" + entry.Number.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            AddFootnoteChunkVisuals(target, entry, chunk, geometry.Margins.Left, cursorY, geometry.ContentWidth);
             cursorY += chunk.ReservedHeight;
         }
     }
@@ -440,8 +368,10 @@ internal sealed class HtmlFootnoteEntry {
         string markerContent,
         HtmlRenderFlowBlock? markerBlock,
         double markerGutter,
-        bool suppressMarker) {
+        bool suppressMarker,
+        IElement? columnOwner) {
         Element = element;
+        ColumnOwner = columnOwner;
         Number = number;
         Block = block;
         LayoutWidth = layoutWidth;
@@ -457,6 +387,7 @@ internal sealed class HtmlFootnoteEntry {
     }
 
     internal IElement Element { get; }
+    internal IElement? ColumnOwner { get; }
     internal int Number { get; }
     internal HtmlRenderFlowBlock Block { get; set; }
     internal double LayoutWidth { get; set; }

@@ -35,8 +35,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 out block)) {
             return true;
         }
-        IReadOnlyList<HtmlRenderFlowBlock> children = BuildMultiColumnChildBlocks(
-            element, element.ChildNodes, columnWidth, style, depth);
+        IReadOnlyList<HtmlRenderFlowBlock> children = BuildColumnChildrenWithNotes(
+            element, columnWidth, style, depth);
         double? declaredHeight = ResolveDeclaredColumnContentHeight(style);
         double targetHeight;
         if (declaredHeight.HasValue && style.ColumnFill == "auto") {
@@ -48,6 +48,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         targetHeight = Math.Max(0.01D, targetHeight);
 
         MultiColumnPlan plan = BuildMultiColumnPlan(children, targetHeight, _options.MaxColumnCount, throwOnLimit: true);
+        plan = ResolveColumnNoteLayout(element, children, plan, columnWidth, targetHeight);
         EnsureMultiColumnLimit(plan.ColumnCount);
         IReadOnlyList<double> columnPageBreaks = Array.Empty<double>();
         if (style.OverflowX == "visible" && style.OverflowY == "visible") {
@@ -106,6 +107,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             breakOffsets,
             pageName: style.PageName,
             forcedBreaks: columnPageBreaks.Select(offset => new HtmlRenderForcedBreak(contentY + offset, HtmlPageBreakTarget.Page)),
+            avoidBreakRanges: ResolveColumnNoteKeepRanges(element, columnPageBreaks, contentY, contentHeight),
             runningStringAssignments: EnumerateMultiColumnRunningStringAssignments(plan, contentY)
                 .Concat(positionedRunningStringAssignments)
                 .OrderBy(assignment => assignment.OrderOffset));
@@ -146,7 +148,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<HtmlRenderFlowBlock> blocks,
         double targetHeight,
         int maximumGeneratedColumns,
-        bool throwOnLimit) {
+        bool throwOnLimit,
+        ColumnNotePlan? notes = null) {
         var fragments = new List<MultiColumnFragment>();
         int column = 0;
         double y = 0D;
@@ -154,7 +157,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (HtmlRenderFlowBlock child in blocks) {
             double start = 0D;
             while (start < child.Height - 0.0001D) {
-                double available = targetHeight - y;
+                double available = targetHeight - (notes?.Reserved(column) ?? 0D) - y;
                 double remaining = child.Height - start;
                 if (available <= 0.0001D) {
                     if (column + 2 > maximumGeneratedColumns) {
@@ -181,6 +184,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         continue;
                     }
                     if (end <= start + 0.0001D) end = FindNextColumnBreak(child, start);
+                }
+
+                if (notes != null) {
+                    CheckCancellation();
+                    ChargeLayoutOperation("column note body fragmentation");
+                    // A forced atomic fragment may exceed a fresh column, but
+                    // must never paint through an existing note reservation.
+                    if (notes.Reserved(column) > 0.0001D && end - start > available + 0.0001D) {
+                        EnsureMultiColumnLimit(column + 2);
+                        column++;
+                        y = 0D;
+                        continue;
+                    }
+                    end = RestrictFragmentBeforeDeferredColumnCall(child, start, end, column, targetHeight, notes);
+                    if (end <= start + 0.0001D) {
+                        EnsureMultiColumnLimit(column + 2);
+                        column++;
+                        y = 0D;
+                        continue;
+                    }
                 }
 
                 double height = Math.Max(0.01D, end - start);
