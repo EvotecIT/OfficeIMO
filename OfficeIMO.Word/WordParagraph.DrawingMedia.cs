@@ -24,13 +24,13 @@ using Wpg = DocumentFormat.OpenXml.Office2010.Word.DrawingGroup;
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
         /// <summary>
-        /// Gets the first image associated with this run, if any.
+        /// Gets the first independent image associated with this run, if any. Group-owned images remain part of their group.
         /// </summary>
         public WordImage? Image {
             get => EnumerateImages().FirstOrDefault();
         }
 
-        /// <summary>Enumerates every DrawingML or VML image represented by this run.</summary>
+        /// <summary>Enumerates independent DrawingML or VML images represented by this run.</summary>
         internal IEnumerable<WordImage> EnumerateImages() {
             if (_run == null) yield break;
 
@@ -54,7 +54,7 @@ namespace OfficeIMO.Word {
                          element => element is V.Shape direct
                              ? new[] { direct }
                              : element.Descendants<V.Shape>())) {
-                if (shape.GetFirstChild<V.ImageData>() != null) {
+                if (!shape.Ancestors<V.Group>().Any() && shape.GetFirstChild<V.ImageData>() != null) {
                     yield return new WordImage(_document, _paragraph, _run, shape);
                 }
             }

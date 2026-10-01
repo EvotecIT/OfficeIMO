@@ -229,8 +229,10 @@ public sealed class PdfShapeGroupTests {
         SaveEvidence(pdf, "behind-text-groups");
     }
 
-    [Fact]
-    public void LegacyGroupOwnsItsImagePlacementWithoutDuplicateFlowImages() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LegacyGroupOwnsItsImagePlacementWithoutDuplicateFlowImages(bool bodyTextInSameRun) {
         string imagePath = Path.Combine(Path.GetTempPath(), "officeimo-group-image-" + Guid.NewGuid().ToString("N") + ".png");
         try {
             File.WriteAllBytes(imagePath, OfficeRasterImageEncoder.Encode(new OfficeRasterImage(4, 4, OfficeColor.Red), OfficeImageExportFormat.Png));
@@ -246,15 +248,19 @@ public sealed class PdfShapeGroupTests {
             };
             group.Append(shape, new V.Rectangle { Style = "position:absolute;left:20;top:0;width:20;height:20", FillColor = "blue", Stroked = false });
             picture.Append(group);
+            if (bodyTextInSameRun) paragraph._run.Append(new W.Text("Body text"));
+            Assert.False(paragraph.IsImage);
             var result = word.ToPdfDocumentResult();
             var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
             var image = Assert.Single(pdf.Images.Placements());
             Assert.Equal(72D, image.X, 3);
             Assert.Equal(20D, image.Width, 3);
             Assert.Single(pdf.Reader.Pages());
-            AssertPixel(Render(pdf, 1), 80, 80, 255, 0, 0);
-            AssertPixel(Render(pdf, 1), 100, 80, 0, 0, 255);
+            AssertPixel(Render(pdf, 1), 80, 90, 255, 0, 0);
+            AssertPixel(Render(pdf, 1), 100, 90, 0, 0, 255);
+            if (bodyTextInSameRun) Assert.Contains("Body text", pdf.Reader.Text());
             Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeShapeGroupUnsupported");
+            SaveEvidence(pdf, "group-image-body-text-" + bodyTextInSameRun);
         } finally { File.Delete(imagePath); }
     }
 
