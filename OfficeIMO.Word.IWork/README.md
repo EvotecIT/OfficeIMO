@@ -33,6 +33,8 @@ Supported numeric table formats become editable DOCX text: decimal precision, gr
 
 Qualified source-hidden table rows and columns remain visible in editable DOCX output. Conversion requires `AllowPartialEditableReconstruction = true` and reports `IWORK_PAGES_TABLE_VISIBILITY_OMITTED`; strict conversion uses visual fallback when available. Hidden positions and cell content remain on the typed source projection.
 
+Qualified root table comments become DOCX comments anchored to the cell's direct paragraphs, including otherwise empty cells. Plain text, display author and UTC creation time are preserved through the Word comment owner. Replies and collaboration state remain unsupported. Comment text or author names that would require normalization use destination fallback; other source and layout limits still follow the chosen conversion policy. Native Pages export and rendered comment appearance are not qualified.
+
 Choose the acceptance policy explicitly when source details cannot be represented:
 
 ```csharp

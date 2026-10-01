@@ -217,7 +217,7 @@ public sealed partial class IWorkBoundaryTests {
         cell = cellPayload ?? cell;
         byte[] roots = kind switch {
             IWorkDocumentKind.Pages => Message(
-                ArchiveRecord(1, 10000, Message(ReferenceField(4, 2)), new ulong[] { 2, 10 }),
+                ArchiveRecord(1, 10000, Message(ReferenceField(4, 2)), repeatModel ? new ulong[] { 2, 10, 20 } : new ulong[] { 2, 10 }),
                 ArchiveRecord(2, 2001, Message(StringField(3, "Body")))),
             IWorkDocumentKind.Numbers => Message(ArchiveRecord(1, 1, Message(ReferenceField(1, 2))),
                 ArchiveRecord(2, 2, Message(StringField(1, sheetName), ReferenceField(2, 10),

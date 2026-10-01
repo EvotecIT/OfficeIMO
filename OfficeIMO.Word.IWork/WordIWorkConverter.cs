@@ -63,13 +63,6 @@ public static partial class WordIWorkConverter {
         if (editable) {
             destinationDiagnostics = destinationDiagnostics.Concat(IWorkNumericDisplayDiagnostics.ForTextTables(
                 projection.Tables.SelectMany(table => table.Cells), "PAGES", "DOCX", cancellationToken)).ToArray();
-            if (projection.Tables.Any(table => table.Cells.Any(cell => cell.Comment != null))) {
-                destinationDiagnostics = destinationDiagnostics.Concat(new[] {
-                    new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_TABLE_COMMENTS_OMITTED",
-                        "DOCX table reconstruction omits native cell comments; qualified comments remain on the iWork projection.",
-                        lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission)
-                }).ToArray();
-            }
             if (projection.Tables.Any(table => table.HiddenRows.Count > 0 || table.HiddenColumns.Count > 0)) {
                 destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                     new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_TABLE_VISIBILITY_OMITTED",
@@ -113,6 +106,7 @@ public static partial class WordIWorkConverter {
             }
             if (editable) {
                 var nativeLists = new IWorkNativeListCatalog(document);
+                var cellComments = new List<WordCellComment>();
                 (double contentWidth, double contentHeight) = ContentBox(document.Sections[0]);
                 var semanticSections = new List<WordSection> { document.Sections[0] };
                 var pageHosts = new Dictionary<int, WordParagraph>();
@@ -142,7 +136,7 @@ public static partial class WordIWorkConverter {
                         }
                     }, cancellationToken: cancellationToken, addInlineObject: (paragraph, run) =>
                         AddInlineObject(document, paragraph, drawableLookup[run.InlineObject!.Drawable.RecordIdentifier],
-                            nativeLists, contentWidth, contentHeight, cancellationToken));
+                            nativeLists, contentWidth, contentHeight, cellComments, cancellationToken));
                 if (projection.PageLayout != null) {
                     foreach (WordSection section in document.Sections) ApplyPageLayout(section, projection.PageLayout);
                 }
@@ -169,13 +163,14 @@ public static partial class WordIWorkConverter {
                                     ? anchor
                                     : null;
                             WordTable? insertedTable = AddTable(document,
-                                sourceDrawable.Table!, nativeLists, pageHost, priorTable, cancellationToken);
+                                sourceDrawable.Table!, nativeLists, pageHost, priorTable, cellComments, cancellationToken);
                             if (sourceDrawable.PageIndex.HasValue && insertedTable != null) {
                                 pageTableAnchors[sourceDrawable.PageIndex.Value] = insertedTable;
                             }
                             break;
                     }
                 }
+                document.AddCellComments(cellComments, cancellationToken);
                 bool hasAnyEvenPageTemplate = projection.Sections.Any(section => section.HasEvenPageTemplate);
                 for (int sectionIndex = 0; sectionIndex < projection.Sections.Count; sectionIndex++) {
                     cancellationToken.ThrowIfCancellationRequested();

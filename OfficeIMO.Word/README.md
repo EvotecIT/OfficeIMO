@@ -57,6 +57,26 @@ document.AsFluent()
 document.Save();
 ```
 
+## Comments on table cells
+
+`AddCellComments` adds root comments across tables in one batch. The cell's direct paragraphs form the anchor range; cell values remain unchanged.
+
+```csharp
+using var document = WordDocument.Create();
+var table = document.AddTable(2, 2);
+table.Rows[1].Cells[0].Paragraphs[0].Text = "Review this value";
+
+var comments = document.AddCellComments(new[] {
+    new WordCellComment(table.Rows[1].Cells[0], "Reviewer", "R",
+        "Check the source figure.", DateTime.UtcNow)
+});
+comments[0].AddReply("Editor", "E", "Checked.");
+comments[0].MarkResolved();
+document.Save("review.docx");
+```
+
+Targets must be attached cells in this document's body. Empty cells, empty comment text and empty author names are supported. A null creation date leaves the timestamp unspecified. Line feeds, tabs and whitespace are preserved; carriage returns, U+2028 and invalid XML characters are rejected instead of silently normalized. `WordCellComment.CanPreserveText` checks the plain-text contract before importing content. Invalid input and cancellation before batch application do not add comments. Cancellation is checked during enumeration and preparation; once application starts, the batch finishes without cancellation checks between anchors.
+
 ## What it does
 
 - Creates, loads, edits, saves, and appends `.docx` documents.

@@ -23,24 +23,40 @@ public sealed partial class IWorkBoundaryTests {
         package.Position = 0;
         if (kind == IWorkDocumentKind.Numbers) {
             using var result = IWorkSourceDocument.Open(package).ToExcelDocumentResult();
-            Assert.False(result.IsVisualFallback);
+            Assert.False(result.IsVisualFallback, string.Join("\n", result.Report.Diagnostics.Select(d => d.Code + ": " + d.Message)));
             using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
             using var reopened = ExcelDocument.Load(saved);
             var destination = Assert.Single(reopened.Sheets[0].GetThreadedComments());
             Assert.Equal(comment.Text, destination.Text); Assert.Equal(comment.Author, destination.Author);
             Assert.Equal("A1", destination.CellReference);
             Assert.Equal(comment.CreationDateUtc, destination.Date);
+        } else if (kind == IWorkDocumentKind.Pages) {
+            using var source = CommentPackage(kind, empty: true);
+            using var result = IWorkSourceDocument.Open(source, kind).ToWordDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+            Assert.False(result.IsVisualFallback);
+            Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_PAGES_TABLE_COMMENTS_OMITTED");
+            using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
+            using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
+            var destination = Assert.Single(reopened.Comments);
+            Assert.Equal(comment.Text, destination.Text);
+            Assert.Equal(comment.Author, destination.Author);
+            Assert.Equal(comment.CreationDateUtc, destination.DateTime);
+            Assert.Null(destination.ParentParaId);
+            Assert.Equal(string.Empty, reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
+            saved.Position = 0;
+            using var artifact = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(saved, false);
+            Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator(DocumentFormat.OpenXml.FileFormatVersions.Office2019).Validate(artifact));
+            var cellAnchor = Assert.Single(artifact.MainDocumentPart!.Document.Body!
+                .Descendants<DocumentFormat.OpenXml.Wordprocessing.TableCell>());
+            Assert.Equal(destination.Id, Assert.Single(cellAnchor.Descendants<DocumentFormat.OpenXml.Wordprocessing.CommentRangeStart>()).Id?.Value);
+            Assert.Equal(destination.Id, Assert.Single(cellAnchor.Descendants<DocumentFormat.OpenXml.Wordprocessing.CommentRangeEnd>()).Id?.Value);
+            Assert.Equal(destination.Id, Assert.Single(cellAnchor.Descendants<DocumentFormat.OpenXml.Wordprocessing.CommentReference>()).Id?.Value);
         } else {
             using var source = CommentPackage(kind);
             Assert.True(ConvertUnitReport(source, kind, visual: false).IsPartialEditableReconstruction);
             using var strict = CommentPackage(kind);
             IWorkSourceDocument strictSource = IWorkSourceDocument.Open(strict, kind);
-            if (kind == IWorkDocumentKind.Pages) {
-                using var result = strictSource.ToWordDocumentResult(); Assert.True(result.IsVisualFallback);
-                Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_PAGES_WORD_DESTINATION_UNSUPPORTED");
-            } else {
-                using var result = strictSource.ToPowerPointPresentationResult(); Assert.True(result.IsVisualFallback);
-            }
+            using var result = strictSource.ToPowerPointPresentationResult(); Assert.True(result.IsVisualFallback);
         }
     }
 
@@ -146,12 +162,43 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(result.Report.Diagnostics, d => d.Message.Contains("differ only by case", StringComparison.Ordinal));
     }
 
-    private static MemoryStream CommentPackage(IWorkDocumentKind kind, bool empty = false, bool repeatModel = false) =>
+    [Theory]
+    [InlineData("line\rbreak", "Reviewer")]
+    [InlineData("layout\u2028break", "Reviewer")]
+    [InlineData("Text", "line\rbreak")]
+    public void Pages_comments_that_cannot_be_preserved_require_destination_fallback_even_under_partial_policy(string text, string author) {
+        using var package = CommentPackage(IWorkDocumentKind.Pages, text: text, author: author);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordDocumentResult(
+            new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        IWorkCellComment sourceComment = result.Projection.Tables[0].Cells[0].Comment!;
+        Assert.Equal(text, sourceComment.Text);
+        Assert.Equal(author, sourceComment.Author);
+        Assert.True(result.IsVisualFallback);
+        Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_PAGES_WORD_DESTINATION_UNSUPPORTED");
+        Assert.Empty(result.Value.Comments);
+    }
+
+    [Fact]
+    public void Pages_comment_roots_on_repeated_table_models_have_distinct_saved_destination_anchors() {
+        using var package = CommentPackage(IWorkDocumentKind.Pages, repeatModel: true);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        Assert.False(result.IsVisualFallback);
+        Assert.Equal(2, result.Value.Comments.Count);
+        using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
+        using var artifact = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(saved, false);
+        var tables = artifact.MainDocumentPart!.Document.Body!.Elements<DocumentFormat.OpenXml.Wordprocessing.Table>().ToArray();
+        Assert.Equal(2, tables.Length);
+        Assert.Equal(2, tables.Select(t => Assert.Single(t.Descendants<DocumentFormat.OpenXml.Wordprocessing.CommentReference>()).Id!.Value).Distinct().Count());
+        Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator(DocumentFormat.OpenXml.FileFormatVersions.Office2019).Validate(artifact));
+    }
+
+    private static MemoryStream CommentPackage(IWorkDocumentKind kind, bool empty = false, bool repeatModel = false,
+        string text = "Review this\nplease ", string author = "Reviewer") =>
         TableDependencyPackage(kind, ReferenceField(19, 13), repeatModel: repeatModel, cellPayload: CommentCell(empty),
             additionalRecords: Message(
                 ArchiveRecord(13, 6005, Message(VarintField(1, 10), BytesField(3, Message(VarintField(1, 1), ReferenceField(10, 14))))),
-                ArchiveRecord(14, 3056, Message(StringField(1, "Review this\nplease "), BytesField(2, Message(DoubleField(1, 42d))), ReferenceField(3, 15))),
-                ArchiveRecord(15, 212, StringField(1, "Reviewer"))));
+                ArchiveRecord(14, 3056, Message(StringField(1, text), BytesField(2, Message(DoubleField(1, 42d))), ReferenceField(3, 15))),
+                ArchiveRecord(15, 212, StringField(1, author))));
 
     private static byte[] CommentCell(bool empty) {
         byte[] cell = FeatureCell(empty, 1u << 19);

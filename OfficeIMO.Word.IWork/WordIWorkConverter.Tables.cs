@@ -6,7 +6,7 @@ namespace OfficeIMO.Word.IWork;
 public static partial class WordIWorkConverter {
     private static WordTable? AddTable(WordDocument document, IWorkTable source,
         IWorkNativeListCatalog nativeLists,
-        WordParagraph? pageHost, WordTable? tableHost, CancellationToken cancellationToken) {
+        WordParagraph? pageHost, WordTable? tableHost, List<WordCellComment> cellComments, CancellationToken cancellationToken) {
         if (source.RowCount == 0 || source.ColumnCount == 0) return null;
         WordTable table = pageHost == null
             ? document.AddTable(source.RowCount, source.ColumnCount, WordTableStyle.TableGrid)
@@ -79,6 +79,10 @@ public static partial class WordIWorkConverter {
                     ApplyTextStyle(paragraph, defaultStyle.TextStyle);
                 }
                 if (numericColor != null) paragraph.ColorHex = numericColor;
+            }
+            if (sourceCell.Comment is { } comment) {
+                cellComments.Add(new WordCellComment(target, comment.Author, string.Empty,
+                    comment.Text, comment.CreationDateUtc));
             }
         }
         foreach (IWorkTableMergeRange merge in source.MergedRanges) {

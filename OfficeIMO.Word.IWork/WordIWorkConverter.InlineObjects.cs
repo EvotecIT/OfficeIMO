@@ -28,9 +28,9 @@ public static partial class WordIWorkConverter {
 
     private static void AddInlineObject(WordDocument document, WordParagraph paragraph,
         IWorkPagesDrawable drawable, IWorkNativeListCatalog nativeLists, double contentWidth, double contentHeight,
-        CancellationToken cancellationToken) {
+        List<WordCellComment> cellComments, CancellationToken cancellationToken) {
         if (drawable.Table is { } table) {
-            AddTable(document, table, nativeLists, paragraph, null, cancellationToken);
+            AddTable(document, table, nativeLists, paragraph, null, cellComments, cancellationToken);
         } else if (drawable.Image is { } source) {
             using var image = new MemoryStream(source.GetBytes(), writable: false);
             double width = source.Geometry?.WidthPoints ?? source.PixelWidth.GetValueOrDefault(640) * 72d / 96d;
