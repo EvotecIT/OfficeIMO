@@ -99,7 +99,7 @@ The [source-reader support matrix](officeimo.iwork-support-matrix.md) owns the c
 
 ### I5: runtime and Apple host acceptance
 
-- [ ] Establish elapsed, allocation, retained-memory, and cancellation budgets for large packages and repeated conversions; qualify the applicable trimming/AOT and portable-font contracts.
+- [ ] Establish elapsed, allocation, retained-memory, and cancellation budgets for large packages and repeated conversions; extend the [opt-in synthetic runtime lane](../OfficeIMO.IWork.Benchmarks/README.md) with independent producer and repeated-conversion evidence, and qualify the applicable trimming/AOT and portable-font contracts.
 - [ ] Complete Apple host and artifact evidence through [Studio desktop acceptance and distribution](#phase-5-desktop-acceptance-and-distribution), including Finder activation, native menus, signed sandbox bookmark recovery, permitted helpers, and exact-artifact Developer ID/notarization/Gatekeeper checks. Reuse PowerForge for packaging and release ownership.
 - [ ] Qualify the document engines selected by the [bounded iPad feasibility slice](#phase-7-ipad-then-iphone) on a physical device before expanding mobile support claims.
 
