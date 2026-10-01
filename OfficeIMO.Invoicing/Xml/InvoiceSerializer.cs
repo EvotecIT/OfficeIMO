@@ -50,6 +50,7 @@ public static partial class InvoiceSerializer {
         void Projection(string path, string text) => diagnostics.Add("INV-TARGET-PROJECTION", text, path,
             options.ProjectionPolicy == InvoiceProjectionPolicy.AllowProfileDefinedDataLoss ? InvoiceDiagnosticSeverity.Warning : InvoiceDiagnosticSeverity.Error);
         void RequiredProjection(string path, string text) => diagnostics.Add("INV-TARGET-PROJECTION", text, path);
+        if (!IsReducedFacturX(options)) CheckIndependentPaymentData(invoice, options, Unsupported);
         if (invoice.Payments.Count != 0 && !IsReducedFacturX(options)) {
             CheckPaymentProfile(invoice, options, Unsupported);
             CheckSingletonPaymentField(invoice, payment => payment.MeansCode, "MeansCode",
@@ -77,8 +78,10 @@ public static partial class InvoiceSerializer {
                 CheckSingletonPaymentField(invoice, payment => payment.CreditorIdentifier, "CreditorIdentifier", "UBL carries one seller-level SEPA creditor identifier", Unsupported);
             }
         }
-        if (options.Syntax == InvoiceSyntax.Ubl && invoice.TypeCode != "380" && invoice.TypeCode != "381" && invoice.TypeCode != "384" && invoice.TypeCode != "389")
-            Unsupported("TypeCode", "UBL authoring supports invoice codes 380, 384, 389 and credit note code 381.");
+        if (options.Syntax == InvoiceSyntax.Ubl && !InvoiceDocumentTypes.HasPresentationMapping(invoice.TypeCode))
+            Unsupported("TypeCode", "UBL authoring supports invoice codes 326, 380, 384, 386, 389 and credit note code 381.");
+        if (options.Profile == InvoiceProfile.PeppolBis && invoice.TypeCode == InvoiceDocumentTypes.SelfBilledInvoice)
+            Unsupported("TypeCode", "The selected Peppol billing profile does not accept self-billed invoices. A separate self-billing contract is required.");
         if (options.Syntax == InvoiceSyntax.Ubl) {
             if (invoice.Buyer.Identifiers.Count > 1)
                 Unsupported("Buyer.Identifiers", "The EN 16931 UBL mapping permits at most one buyer identifier; CII can preserve multiple buyer identifiers.");

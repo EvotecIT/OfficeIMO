@@ -31,7 +31,7 @@ public static partial class InvoiceParser {
         City = c.Text(element, Ram + "CityName"), PostCode = c.Text(element, Ram + "PostcodeCode"), CountryCode = c.Required(element, Ram + "CountryID"), Subdivision = c.Text(element, Ram + "CountrySubDivisionName")
     };
 
-    private static IEnumerable<InvoicePayment> CiiPayments(InvoiceXmlReadContext c, XElement? settlement) {
+    private static IEnumerable<InvoicePayment> CiiPayments(InvoiceXmlReadContext c, XElement? settlement, Invoice invoice) {
         string? reference = c.Text(settlement, Ram + "PaymentReference"), creditor = c.Text(settlement, Ram + "CreditorReferenceID");
         bool found = false;
         foreach (XElement element in c.Children(settlement, Ram + "SpecifiedTradeSettlementPaymentMeans")) {
@@ -57,6 +57,6 @@ public static partial class InvoiceParser {
                 c.Loss(debtorAccount!, "The source debtor account is explicitly identified as an IBAN but does not have a registered country format and valid checksum.");
             yield return result;
         }
-        if (!found && (reference != null || creditor != null)) yield return new InvoicePayment { Reference = reference, CreditorIdentifier = creditor };
+        if (!found) { invoice.PaymentReference = reference; invoice.CreditorIdentifier = creditor; }
     }
 }

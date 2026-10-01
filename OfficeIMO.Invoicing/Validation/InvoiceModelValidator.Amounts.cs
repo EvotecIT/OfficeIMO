@@ -44,12 +44,13 @@ public static partial class InvoiceModelValidator {
                     InvoiceDeclaredTax declared = invoice.DeclaredTaxes[index];
                     string categoryPath = "DeclaredTaxes[" + index + "].Category";
                     Tax(declared.Category, categoryPath, true);
+                    if (declared.Category == null) { valid = false; continue; }
                     if (!declaredKeys.Add((declared.Category.Code, InvoiceCalculator.NormalizeRate(declared.Category)))) {
                         Error("INV-TAX-BREAKDOWN", "VAT category/rate is declared more than once.", categoryPath);
                         valid = false;
                     }
-                    Money(declared.TaxableAmount, "DeclaredTaxes.TaxableAmount");
-                    Money(declared.TaxAmount, "DeclaredTaxes.TaxAmount");
+                    Money(declared.TaxableAmount, "DeclaredTaxes[" + index + "].TaxableAmount");
+                    Money(declared.TaxAmount, "DeclaredTaxes[" + index + "].TaxAmount");
                     Compare(declared.TaxAmount, InvoiceArithmetic.RoundedProduct(
                         declared.TaxableAmount, InvoiceCalculator.NormalizeRate(declared.Category) ?? 0m, 100m),
                         "DeclaredTaxes[" + index + "].TaxAmount", 0.01m);
@@ -77,14 +78,17 @@ public static partial class InvoiceModelValidator {
             }
             var matched = new HashSet<InvoiceCalculatedTax>();
             var expectedByCategory = calculation.Taxes.ToDictionary(tax => (tax.CategoryCode, tax.Rate));
-            foreach (InvoiceDeclaredTax declared in invoice.DeclaredTaxes) {
-                Tax(declared.Category, "DeclaredTaxes.Category", true);
+            for (int index = 0; index < invoice.DeclaredTaxes.Count; index++) {
+                InvoiceDeclaredTax declared = invoice.DeclaredTaxes[index];
+                string path = "DeclaredTaxes[" + index + "]";
+                Tax(declared.Category, path + ".Category", true);
+                if (declared.Category == null) continue;
                 if (!expectedByCategory.TryGetValue((declared.Category.Code, InvoiceCalculator.NormalizeRate(declared.Category)), out InvoiceCalculatedTax? expected)) {
-                    Error("INV-TAX-BREAKDOWN", "Declared VAT category/rate has no matching taxable amounts.", "DeclaredTaxes"); continue;
+                    Error("INV-TAX-BREAKDOWN", "Declared VAT category/rate has no matching taxable amounts.", path + ".Category"); continue;
                 }
-                if (!matched.Add(expected)) Error("INV-TAX-BREAKDOWN", "VAT category/rate is declared more than once.", "DeclaredTaxes");
-                Compare(declared.TaxableAmount, expected.TaxableAmount, "DeclaredTaxes.TaxableAmount");
-                Compare(declared.TaxAmount, expected.FormulaTaxAmount, "DeclaredTaxes.TaxAmount", 0.01m);
+                if (!matched.Add(expected)) Error("INV-TAX-BREAKDOWN", "VAT category/rate is declared more than once.", path + ".Category");
+                Compare(declared.TaxableAmount, expected.TaxableAmount, path + ".TaxableAmount");
+                Compare(declared.TaxAmount, expected.FormulaTaxAmount, path + ".TaxAmount", 0.01m);
             }
             if (invoice.DeclaredTaxes.Count != 0 && matched.Count != calculation.Taxes.Count)
                 Error("INV-TAX-BREAKDOWN", "Source VAT breakdown omits a calculated category/rate.", "DeclaredTaxes");

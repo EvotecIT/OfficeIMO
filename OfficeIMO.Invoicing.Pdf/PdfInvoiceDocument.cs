@@ -9,7 +9,14 @@ public sealed partial class PdfInvoiceDocument {
     private readonly PdfInvoiceAmounts _amounts;
     private readonly InvoicePdfLayoutOptions _layout;
     private readonly DateTimeOffset _capturedAt = DateTimeOffset.UtcNow;
-    private string DocumentTitle => Label(_invoice.TypeCode == "381" ? InvoicePdfText.CreditNote : InvoicePdfText.Invoice) + " " + _invoice.Number;
+    private string DocumentTitle => Label(_invoice.TypeCode switch {
+        InvoiceDocumentTypes.CreditNote => InvoicePdfText.CreditNote,
+        InvoiceDocumentTypes.PartialInvoice => InvoicePdfText.PartialInvoice,
+        InvoiceDocumentTypes.CorrectedInvoice => InvoicePdfText.CorrectedInvoice,
+        InvoiceDocumentTypes.PrepaymentInvoice => InvoicePdfText.PrepaymentInvoice,
+        InvoiceDocumentTypes.SelfBilledInvoice => InvoicePdfText.SelfBilledInvoice,
+        _ => InvoicePdfText.Invoice
+    }) + " " + _invoice.Number;
 
     private PdfInvoiceDocument(byte[] xml, InvoiceXmlOptions contract, InvoicePdfLayoutOptions layout) {
         _xml = xml;
@@ -19,12 +26,12 @@ public sealed partial class PdfInvoiceDocument {
         Profile = parsed.Declaration.Profile ?? throw new InvalidDataException("Generated invoice has no recognized profile.");
         Release = contract.Release;
         _invoice = parsed.Invoice;
-        if (_invoice.TypeCode != "380" && _invoice.TypeCode != "381")
-            throw new NotSupportedException("PDF invoice presentation supports document type 380 (invoice) and 381 (credit note) only.");
+        if (!InvoiceDocumentTypes.HasPresentationMapping(_invoice.TypeCode))
+            throw new NotSupportedException("PDF invoice presentation supports document types 326, 380, 381, 384, 386 and 389.");
         _amounts = PdfInvoiceAmounts.Create(_invoice, Profile);
     }
 
-    /// <summary>Creates an independent snapshot for type 380 (invoice) or 381 (credit note). Later edits to the supplied invoice cannot change its PDF or XML.</summary>
+    /// <summary>Creates an independent snapshot for a document type in <see cref="InvoiceDocumentTypes"/>. Later edits to the supplied invoice cannot change its PDF or XML.</summary>
     public static PdfInvoiceDocument Create(Invoice invoice, InvoiceXmlOptions contract, InvoicePdfLayoutOptions? layout = null) {
 #if NET8_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(contract);
@@ -105,7 +112,17 @@ public sealed partial class PdfInvoiceDocument {
         }
         PdfDocument document = PdfDocument.Create(configured);
         document.Meta(title: DocumentTitle, author: _invoice.Seller.Name);
-        Compose(document.Content);
+        if (_layout.IncludePageIdentity) {
+            if (_invoice.Number.Length > 80 || ContainsLineBreak(_invoice.Number))
+                throw new InvalidDataException("Page identity requires a single-line invoice number up to 80 characters.");
+            document.Compose(builder => builder.Page(page => page.Footer(footer => {
+                Action<FooterTextBuilder> identity = text => text.Text(_invoice.Number);
+                Action<FooterTextBuilder> count = text => text.Text(Label(InvoicePdfText.Page) + " ").CurrentPage().Text(" / ").TotalPages();
+                footer.StyledZones(identity, null, count);
+                if (configured.DifferentFirstPageHeaderFooter) footer.FirstPageStyledZones(identity, null, count);
+                if (configured.DifferentOddAndEvenPagesHeaderFooter) footer.EvenPagesStyledZones(identity, null, count);
+            }).Content(Compose)));
+        } else Compose(document.Content);
         byte[] pdf = document.ToBytes(cancellationToken);
         if (pdf.Length > _layout.MaxOutputBytes)
             throw new InvalidDataException("Invoice PDF exceeds the configured output byte limit.");

@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsd:schema 
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+    xmlns:tns="http://ksef.mf.gov.pl/auth/token/2.1" 
+    targetNamespace="http://ksef.mf.gov.pl/auth/token/2.1" 
+    elementFormDefault="qualified" attributeFormDefault="unqualified">
+    <xsd:element name="AuthTokenRequest">
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element name="Challenge">
+                    <xsd:simpleType>
+                        <xsd:restriction base="xsd:token">
+                            <xsd:length value="36"/>
+                            <xsd:pattern value="\d{8}-CR-[A-F0-9]{10}-[A-F0-9]{10}-[A-F0-9]{2}"/>
+                        </xsd:restriction>
+                    </xsd:simpleType>
+                </xsd:element>
+                <xsd:element name="ContextIdentifier" type="tns:TContextIdentifier"/>
+                <xsd:element name="SubjectIdentifierType" type="tns:SubjectIdentifierTypeEnum"/>
+                <xsd:element name="AuthorizationPolicy" minOccurs="0">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:element name="AllowedIps">
+                                <xsd:complexType>
+                                    <xsd:sequence minOccurs="1" maxOccurs="1">
+                                        <xsd:element name="Ip4Address" minOccurs="0" maxOccurs="10">
+                                            <xsd:simpleType>
+                                                <xsd:restriction base="xsd:token">
+                                                    <xsd:pattern value="((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])"/>
+                                                </xsd:restriction>
+                                            </xsd:simpleType>
+                                        </xsd:element>
+                                        <xsd:element name="Ip4Range" minOccurs="0" maxOccurs="10">
+                                            <xsd:simpleType>
+                                                <xsd:restriction base="xsd:token">
+                                                    <xsd:pattern value="((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])-((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])"/>
+                                                </xsd:restriction>
+                                            </xsd:simpleType>
+                                        </xsd:element>
+                                        <xsd:element name="Ip4Mask" minOccurs="0" maxOccurs="10">
+                                            <xsd:simpleType>
+                                                <xsd:restriction base="xsd:token">
+                                                    <xsd:pattern value="((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])/(0|[1-9]|[12][0-9]|3[0-2])"/>
+                                                </xsd:restriction>
+                                            </xsd:simpleType>
+                                        </xsd:element>
+                                    </xsd:sequence>
+                                </xsd:complexType>
+                            </xsd:element>
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+    <xsd:simpleType name="SubjectIdentifierTypeEnum">
+        <xsd:restriction base="xsd:token">
+            <xsd:enumeration value="certificateSubject"/>
+            <xsd:enumeration value="certificateFingerprint"/>
+        </xsd:restriction>
+    </xsd:simpleType>	
+    
+    <xsd:complexType name="TContextIdentifier">
+        <xsd:choice>
+            <xsd:element name="Nip" type="tns:TNIP">
+                <xsd:annotation>
+                    <xsd:documentation>Numer Identyfikacyjny NIP</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="InternalId" type="tns:TIID">
+                <xsd:annotation>
+                    <xsd:documentation>Identyfikator wewnętrzny</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="NipVatUe" type="tns:TNipVatUE">
+                <xsd:annotation>
+                    <xsd:documentation>Kontekst złożony, będący połaczniem numeru NIP oraz numeru Vat UE</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="PeppolId" type="tns:TPeppolId">
+                <xsd:annotation>
+                    <xsd:documentation>Identyfikator dostawcy usług Peppol</xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:choice>
+    </xsd:complexType>
+    
+    <xsd:simpleType name="TIID">
+        <xsd:restriction base="xsd:string">
+            <xsd:pattern value="[1-9]((\d[1-9])|([1-9]\d))\d{7}-\d{5}"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:simpleType name="TNIP">
+        <xsd:restriction base="xsd:string">
+            <xsd:pattern value="[1-9]((\d[1-9])|([1-9]\d))\d{7}"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:simpleType name="TNipVatUE">
+        <xsd:restriction base="xsd:string">
+            <!-- based on: https://ec.europa.eu/taxation_customs/vies/#/faq   Q11 -->
+            <xsd:pattern value="([1-9]((\d[1-9])|([1-9]\d))\d{7}-((AT)(U\d{8})|(BE)([01]{1}\d{9})|(BG)(\d{9,10})|(CY)(\d{8}[A-Z])|(CZ)(\d{8,10})|(DE)(\d{9})|(DK)(\d{8})|(EE)(\d{9})|(EL)(\d{9})|(ES)([A-Z]\d{8}|\d{8}[A-Z]|[A-Z]\d{7}[A-Z])|(FI)(\d{8})|(FR)[A-Z0-9]{2}\d{9}|(HR)(\d{11})|(HU)(\d{8})|(IE)(\d{7}[A-Z]{2}|\d[A-Z0-9+*]\d{5}[A-Z])|(IT)(\d{11})|(LT)(\d{9}|\d{12})|(LU)(\d{8})|(LV)(\d{11})|(MT)(\d{8})|(NL)([A-Z0-9+*]{12})|(PT)(\d{9})|(RO)(\d{2,10})|(SE)(\d{12})|(SI)(\d{8})|(SK)(\d{10})|(XI)((\d{9}|(\d{12}))|(GD|HA)(\d{3}))))$"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+    <xsd:simpleType name="TPeppolId">
+        <xsd:restriction base="xsd:string">
+            <xsd:pattern value="^P[A-Z]{2}[0-9]{6}$"/>
+        </xsd:restriction>
+    </xsd:simpleType>
+</xsd:schema>

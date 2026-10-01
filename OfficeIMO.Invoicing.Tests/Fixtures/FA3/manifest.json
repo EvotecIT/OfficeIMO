@@ -1,0 +1,136 @@
+{
+  "fixtures": [
+    {
+      "sha256": "5FEC107E5415C91B357C89A523EC433E75A4D55DFB872B383B5964C7D8896D20",
+      "file": "example-01.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/FA_3_Przykład_1.xml"
+    },
+    {
+      "sha256": "7B244E212E369E23CC65D04C1CD2C5B9E923EA3C9F7C76BB2DE09560A4955F77",
+      "file": "example-02.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/FA_3_Przykład_2.xml"
+    },
+    {
+      "sha256": "FE4159B3CA9BEB872960BC76F295FB13D04A8ABDB2586F2490913F9611385A6F",
+      "file": "example-03.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/FA_3_Przykład_3.xml"
+    },
+    {
+      "sha256": "160194A64DEA81E9F4841DECC12B929F8F5D806A23B559F991340494431BCF87",
+      "file": "example-04.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/FA_3_Przykład_4.xml"
+    },
+    {
+      "sha256": "142D6080E718696247FE5CC7B01E791D743C73A7E7A1F6D60EBE668A47C88696",
+      "file": "example-05.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/FA_3_Przykład_5.xml"
+    },
+    {
+      "sha256": "99A4DEF14F9922C23FCE2F297E08C5C824241D863ADFAF19213624B538ECEA8C",
+      "file": "example-06.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/FA_3_Przykład_6.xml"
+    },
+    {
+      "sha256": "DF8676B14FB8AA914CCE270EBD8F26D6E44EB6A58A48B2C1ADB169D7534A844D",
+      "file": "example-07.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/FA_3_Przykład_7.xml"
+    },
+    {
+      "sha256": "9EA48F19D48C6A76A8485256D21C6ED9937D4FB13C0EF9093B76E2F97A874F92",
+      "file": "example-08.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/FA_3_Przykład_8.xml"
+    },
+    {
+      "sha256": "A516B3D8DCBC029F6482CFF5EF53D32D9849697D4CD992D5CF2E3D9A12B272B6",
+      "file": "example-09.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/FA_3_Przykład_9.xml"
+    },
+    {
+      "sha256": "B39DEE7848E9D46B12368E8942C0AB26A680B59028976DDE34F1BC5479B93504",
+      "file": "example-10.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/FA_3_Przykład_10.xml"
+    },
+    {
+      "sha256": "29CBB54D6B7CDEC1807469CAF4C5B8CDB421500AE23B78D381CFD49A5E39E8D1",
+      "file": "example-11.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/FA_3_Przykład_11.xml"
+    },
+    {
+      "sha256": "FB91207C56D28400F5E691E1DA0393D37D973C76F28C3EA45C0F250FF8A40EE9",
+      "file": "example-12.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/FA_3_Przykład_12.xml"
+    },
+    {
+      "sha256": "CD4EE728980C91BD8E61A7D4CCC837D4B390E326564CFB9C68A9AADE001452EF",
+      "file": "example-13.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/FA_3_Przykład_13.xml"
+    },
+    {
+      "sha256": "9253F7EBF7AAF1BC347A710233CD91DC1634F54554DCFA7934C72A310B1316E9",
+      "file": "example-14.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/Fa_3_Przykład_14.xml"
+    },
+    {
+      "sha256": "79C6D43F6D1E263311C0595DF928541FE3D15A567DAE51C827603956E5AE6BEB",
+      "file": "example-15.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/FA_3_Przykład_15.xml"
+    },
+    {
+      "sha256": "9BF642C712A17F9F955244627A4CDD0453FAF6F52E7A9DC672063FBCAE70D475",
+      "file": "example-16.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/FA_3_Przykład_16.xml"
+    },
+    {
+      "sha256": "493CFEE0417761FFBAD3260D49DB3B0822C7F86134BEF60BF1DA91F868E82493",
+      "file": "example-17.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/Fa_3_Przykład_17.xml"
+    },
+    {
+      "sha256": "0CFE7F22A6A53BD1222D7CE53EBA089A724B12985DB62E9D06A1511B5857D4CB",
+      "file": "example-18.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/Fa_3_Przykład_18.xml"
+    },
+    {
+      "sha256": "18F8CA89078FDD226FAA27DF4E5C83FD0C3C0490186FFF9C96E943C6E76EA94D",
+      "file": "example-19.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/Fa_3_Przykład_19.xml"
+    },
+    {
+      "sha256": "09B711438C863AD605A99AB92129C74426C9312BAE626B26598E6C6713EC068B",
+      "file": "example-20.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/Fa_3_Przykład_20.xml"
+    },
+    {
+      "sha256": "8759ECBB28D7AFB84B51AB543A71BCC52B8D1D8D66F8CEE3DCC24797280042BB",
+      "file": "example-21.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/FA_3_Przykład_21.xml"
+    },
+    {
+      "sha256": "6A2CB33FF97AF3109C4C352E3FF57F9D8055BD8FCBD53BA98DC43D2EF4DEF7A1",
+      "file": "example-22.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/FA_3_Przykład_22.xml"
+    },
+    {
+      "sha256": "C04DFCD750A437C628E874874AF512BDE2E2BB6CEE660916F1A226FEBECD3131",
+      "file": "example-23.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/FA_3_Przykład_23.xml"
+    },
+    {
+      "sha256": "0F7B74C6689A2F07F666CED2CEC143E3437F9728A3C107A7DF327417DB0DB469",
+      "file": "example-24.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/FA_3_Przykład_24.xml"
+    },
+    {
+      "sha256": "0923934EF61F1E46146BD09955B326342A9BC7E61519978D4379542ED4ACD0C7",
+      "file": "example-25.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/FA_3_Przykład_25.xml"
+    },
+    {
+      "sha256": "DDCEC9500933DE144ECDF937C2F42C6CA16FD154472005324D52716718AC2E3D",
+      "file": "example-26.xml",
+      "sourceEntry": "Przykładowe pliki dla struktury logicznej e-Faktury FA(3)/FA_3_Przykład_26.xml"
+    }
+  ],
+  "source": "https://ksef.podatki.gov.pl/media/e5cia0ey/przykladowe-pliki-dla-struktury-logicznej-e-faktury-fa-3.zip",
+  "archiveSha256": "41EBD3C57144951C65D68A36FBE433285B5791A86A8BD46CB059503E3F8B1E10"
+}

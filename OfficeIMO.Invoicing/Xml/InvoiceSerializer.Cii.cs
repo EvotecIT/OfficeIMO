@@ -81,15 +81,15 @@ public static partial class InvoiceSerializer {
         CiiReference("DespatchAdviceReferencedDocument", invoice.DespatchAdviceReference), CiiReference("ReceivingAdviceReferencedDocument", invoice.ReceivingAdviceReference));
 
     private static XElement CiiSettlement(Invoice invoice, InvoiceCalculation calculation) => new XElement(Ram + "ApplicableHeaderTradeSettlement",
-        Text(Ram + "CreditorReferenceID", FirstPaymentValue(invoice, payment => payment.CreditorIdentifier)),
-        Text(Ram + "PaymentReference", FirstPaymentValue(invoice, payment => payment.Reference)),
+        Text(Ram + "CreditorReferenceID", invoice.CreditorIdentifier ?? FirstPaymentValue(invoice, payment => payment.CreditorIdentifier)),
+        Text(Ram + "PaymentReference", invoice.PaymentReference ?? FirstPaymentValue(invoice, payment => payment.Reference)),
         Text(Ram + "TaxCurrencyCode", invoice.TaxCurrency), new XElement(Ram + "InvoiceCurrencyCode", invoice.Currency),
         invoice.Payee == null ? null : CiiParty("PayeeTradeParty", invoice.Payee, includeAddress: false),
         CiiPayments(invoice.Payments), calculation.Taxes.Select((tax, index) => CiiTax(tax, invoice, index == 0)), CiiPeriod(invoice.Period),
         invoice.AllowancesAndCharges.Select(item => CiiAdjustment(item, true)),
-        invoice.PaymentTerms == null && invoice.DueDate == null && FirstPaymentValue(invoice, payment => payment.MandateReference) == null ? null :
+        invoice.PaymentTerms == null && invoice.DueDate == null && invoice.DirectDebitMandateReference == null && FirstPaymentValue(invoice, payment => payment.MandateReference) == null ? null :
             new XElement(Ram + "SpecifiedTradePaymentTerms", Text(Ram + "Description", invoice.PaymentTerms), CiiDate("DueDateDateTime", invoice.DueDate),
-                Text(Ram + "DirectDebitMandateID", FirstPaymentValue(invoice, payment => payment.MandateReference))),
+                Text(Ram + "DirectDebitMandateID", invoice.DirectDebitMandateReference ?? FirstPaymentValue(invoice, payment => payment.MandateReference))),
         new XElement(Ram + "SpecifiedTradeSettlementHeaderMonetarySummation", CiiAmount("LineTotalAmount", calculation.LineNetTotal),
             CiiAmount("ChargeTotalAmount", calculation.ChargeTotal), CiiAmount("AllowanceTotalAmount", calculation.AllowanceTotal), CiiAmount("TaxBasisTotalAmount", calculation.TaxExclusiveTotal),
             new XElement(Ram + "TaxTotalAmount", new XAttribute("currencyID", invoice.Currency), Amount(calculation.TaxTotal)),
