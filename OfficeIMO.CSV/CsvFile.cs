@@ -10,7 +10,7 @@ namespace OfficeIMO.CSV;
 /// <summary>
 /// Opens CSV file readers and writers with OfficeIMO CSV encoding and compression options.
 /// </summary>
-internal static class CsvFile
+internal static partial class CsvFile
 {
     /// <summary>
     /// Opens a text reader for a CSV file, applying compression from the supplied options or file extension.
@@ -25,14 +25,14 @@ internal static class CsvFile
         options ??= new CsvLoadOptions();
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         var stream = OpenReadStream(path, options, bufferSize, useAsync: false);
-        return new StreamReader(stream, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: bufferSize);
+        return new StreamReader(new CsvBomReadStream(stream), encoding, detectEncodingFromByteOrderMarks: options.DetectEncodingFromByteOrderMarks, bufferSize: bufferSize);
     }
 
     internal static TextReader OpenTextReaderForAsyncRead(string path, CsvLoadOptions options, int bufferSize = 256 * 1024)
     {
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         var stream = OpenReadStream(path, options, bufferSize, useAsync: true);
-        return new StreamReader(stream, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: bufferSize);
+        return new StreamReader(new CsvBomReadStream(stream), encoding, detectEncodingFromByteOrderMarks: options.DetectEncodingFromByteOrderMarks, bufferSize: bufferSize);
     }
 
     internal static TextReader OpenTextReader(Stream source, CsvLoadOptions options, bool leaveOpen, int bufferSize = 256 * 1024)
@@ -62,9 +62,9 @@ internal static class CsvFile
 
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         return new StreamReader(
-            input,
+            new CsvBomReadStream(input),
             encoding,
-            detectEncodingFromByteOrderMarks: true,
+            detectEncodingFromByteOrderMarks: options.DetectEncodingFromByteOrderMarks,
             bufferSize,
             leaveOpen: false);
     }
@@ -80,6 +80,10 @@ internal static class CsvFile
         }
 
         options ??= new CsvSaveOptions();
+        if (append)
+        {
+            return CreateAppendTextWriter(path, options, bufferSize);
+        }
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         var stream = CreateWriteStream(path, options, append, bufferSize);
         return new StreamWriter(stream, encoding, bufferSize: bufferSize);
@@ -164,12 +168,8 @@ internal static class CsvFile
         }
 
         var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, fileOptions);
-        Stream stream = WrapReadStream(fileStream, compressionType, leaveOpen: false);
-        if (compressionType == CsvCompressionType.None)
-        {
-            stream = new CsvBoundedReadStream(stream, options.MaxInputBytes, leaveOpen: false);
-        }
-        else if (options.MaxDecompressedBytes is { } maxBytesLimit)
+        Stream stream = WrapReadStream(new CsvBoundedReadStream(fileStream, options.MaxInputBytes, leaveOpen: false), compressionType, leaveOpen: false);
+        if (compressionType != CsvCompressionType.None && options.MaxDecompressedBytes is { } maxBytesLimit)
         {
             stream = new CsvBoundedReadStream(stream, maxBytesLimit, leaveOpen: false);
         }
@@ -338,6 +338,15 @@ internal static class CsvFile
             RecordBytesRead(read);
             return read;
         }
+
+#if NET8_0_OR_GREATER
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            int read = await _inner.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+            RecordBytesRead(read);
+            return read;
+        }
+#endif
 
         private void RecordBytesRead(int count)
         {

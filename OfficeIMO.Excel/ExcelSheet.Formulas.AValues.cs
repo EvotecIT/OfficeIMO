@@ -14,7 +14,8 @@ public partial class ExcelSheet {
         var numbers = new List<double>();
         foreach (FormulaArgumentValue value in values) {
             if (value.SourceCellKind == ExcelCellDataKind.Boolean) {
-                numbers.Add(value.Text == "1" || (bool.TryParse(value.Text, out bool logical) && logical) ? 1d : 0d);
+                numbers.Add(value.Number.HasValue ? (value.Number.Value != 0 ? 1d : 0d)
+                    : value.Text == "1" || (bool.TryParse(value.Text, out bool logical) && logical) ? 1d : 0d);
             } else if (value.SourceCellKind == ExcelCellDataKind.Text) {
                 numbers.Add(0d);
             } else if (value.Number.HasValue) {

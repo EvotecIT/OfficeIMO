@@ -351,7 +351,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool AreFormulaNumbersEqual(double left, double right) {
-            return Math.Abs(left - right) < 0.0000001d;
+            return left == right;
         }
 
         private static bool TryEvaluatePercentRankInclusive(IReadOnlyList<double> numbers, double number, int? significance, out double result) {

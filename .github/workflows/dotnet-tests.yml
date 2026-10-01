@@ -39,9 +39,6 @@ jobs:
     name: 'Studio workflows and accessibility / ${{ matrix.os }}'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
-    # Temporary: Avalonia.Headless 12.1.1/12.1.2 session teardown races on Windows.
-    # Upstream fix: https://github.com/AvaloniaUI/Avalonia/pull/22222
-    # The runner suppresses only that exact TRX signature on Windows and fails closed otherwise.
     strategy:
       fail-fast: false
       matrix:
@@ -53,7 +50,10 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - name: Test Studio
         shell: pwsh
-        run: ./Build/Invoke-StudioContractTests.ps1 -Configuration ${{ env.BUILD_CONFIGURATION }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet test OfficeIMO.Studio.Tests/OfficeIMO.Studio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --logger 'trx;LogFileName=studio.trx' --results-directory TestResults/Studio
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
@@ -122,8 +122,9 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
+      - name: Restore NuGet packages
+        id: build-nuget-cache
+        uses: actions/cache/restore@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
@@ -153,6 +154,13 @@ jobs:
           $project = 'OfficeIMO.Examples/OfficeIMO.Examples.csproj'
           dotnet restore $project
           dotnet build $project --configuration $env:BUILD_CONFIGURATION --no-restore
+
+      - name: Save default-branch NuGet cache
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && steps.build-nuget-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.nuget/packages
+          key: ${{ steps.build-nuget-cache.outputs.cache-primary-key }}
 
   html-package-consumers:
     name: 'OfficeIMO HTML packed API consumers'
@@ -188,8 +196,8 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
+      - name: Restore NuGet packages
+        uses: actions/cache/restore@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
@@ -695,8 +703,8 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
+      - name: Restore NuGet packages
+        uses: actions/cache/restore@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
@@ -1043,8 +1051,8 @@ jobs:
           test "${version}" = "pdftoppm version 26.05.0"
           echo "OFFICEIMO_PDF_RASTERIZER=${rasterizer}" >> "${GITHUB_ENV}"
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
+      - name: Restore NuGet packages
+        uses: actions/cache/restore@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
@@ -1158,8 +1166,7 @@ jobs:
           test_filter='Category!=ExcelImageVisualGate'
           run_shared_tests() {
             local name="$1"
-            local filter="$2"
-            local collect_coverage="${3:-false}"
+            local collect_coverage="${2:-false}"
             local coverage_args=()
             # Keep PR test partitions focused on contract proof. Coverage collection is
             # intentionally disabled for the matrix because it turns data-heavy Markdown
@@ -1169,7 +1176,7 @@ jobs:
             fi
             echo ""
             echo "== OfficeIMO.Shared.Tests: ${name} =="
-            dotnet test OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "(${filter})&${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx "${coverage_args[@]}"
+            dotnet test OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx "${coverage_args[@]}"
           }
 
           run_excel_tests() {
@@ -1344,7 +1351,8 @@ jobs:
               run_pdf_tests "pdf-visual-inspector" 'FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfDocumentVisualQualityTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfInspectorTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfReaderAndFooterRegressionTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.MarkdownSaveAsPdfVisualTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfDocumentRasterVisualBaselineTests'
               ;;
             pdf-core)
-              run_pdf_tests "pdf-core" '(FullyQualifiedName~OfficeIMO.Tests.Pdf.&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfDocumentVisualQualityTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfInspectorTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfReaderAndFooterRegressionTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.MarkdownSaveAsPdfVisualTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfDocumentRasterVisualBaselineTests)|FullyQualifiedName~OfficeIMO.Tests.MarkdownPdfTests|FullyQualifiedName~OfficeIMO.Tests.PdfReadLayoutSmokeTests'
+              # Every PDF test outside the visual partition belongs to core, regardless of namespace.
+              run_pdf_tests "pdf-core" 'FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfDocumentVisualQualityTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfInspectorTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfReaderAndFooterRegressionTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.MarkdownSaveAsPdfVisualTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfDocumentRasterVisualBaselineTests'
               ;;
             excel-image-charts)
               run_excel_tests "excel-image" 'FullyQualifiedName~OfficeIMO.Tests.ExcelImageExport'
@@ -1384,7 +1392,7 @@ jobs:
               run_visio_tests
               run_reader_tests
               dotnet test OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
-              run_shared_tests "shared-contracts" 'FullyQualifiedName~OfficeIMO.Shared.Tests.'
+              run_shared_tests "shared-contracts"
               dotnet test OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               dotnet test OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               dotnet test OfficeIMO.Bibliography.Tests/OfficeIMO.Bibliography.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
@@ -1469,6 +1477,7 @@ jobs:
       - name: Pack and install the .NET tool
         run: |
           dotnet pack OfficeIMO.Tool/OfficeIMO.Tool.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --output artifacts/tool-package -p:PackageVersion=0.0.0-local
+          python3 Build/validate_mcp_registry.py package artifacts/tool-package/OfficeIMO.Tool.0.0.0-local.nupkg
           dotnet tool install OfficeIMO.Tool --tool-path artifacts/tool-install --version 0.0.0-local --add-source artifacts/tool-package
 
       - name: Exercise the installed command surface
@@ -1502,8 +1511,8 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
+      - name: Restore NuGet packages
+        uses: actions/cache/restore@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
@@ -1537,8 +1546,8 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
+      - name: Restore NuGet packages
+        uses: actions/cache/restore@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
@@ -1640,8 +1649,9 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
+      - name: Restore NuGet packages
+        id: macos-nuget-cache
+        uses: actions/cache/restore@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
@@ -1707,6 +1717,13 @@ jobs:
           path: '**/*.trx'
           retention-days: 7
 
+      - name: Save default-branch NuGet cache
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && steps.macos-nuget-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.nuget/packages
+          key: ${{ steps.macos-nuget-cache.outputs.cache-primary-key }}
+
   test-macos:
     name: 'macOS'
     runs-on: ubuntu-latest
@@ -1736,8 +1753,8 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
+      - name: Restore NuGet packages
+        uses: actions/cache/restore@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
@@ -1802,8 +1819,8 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
+      - name: Restore NuGet packages
+        uses: actions/cache/restore@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}

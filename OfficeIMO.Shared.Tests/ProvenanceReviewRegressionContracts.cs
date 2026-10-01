@@ -709,7 +709,11 @@ public sealed partial class ProvenanceReviewRegressionContracts {
 
 #if NET8_0_OR_GREATER
     [Fact]
-    public void IncompleteExtendedXmpDoesNotAllocateTheDeclaredPacketLength() {
+#if SHARED_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+    [Trait("Category", "ResourcePerformanceEvidence")]
+#endif
+    public void IncompleteExtendedXmpIsNotReportedAsEvidence() {
         const string guid = "0123456789ABCDEF0123456789ABCDEF";
         byte[] standardPacket = Encoding.UTF8.GetBytes(
             $"<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" xmlns:xmpNote=\"http://ns.adobe.com/xmp/note/\" xmpNote:HasExtendedXMP=\"{guid}\"/>");
@@ -719,17 +723,27 @@ public sealed partial class ProvenanceReviewRegressionContracts {
             CreateExtendedXmpSegment(guid, new byte[] { 1 }, 128 * 1024 * 1024),
             new byte[] { 0xFF, 0xD9 });
 
+#if SHARED_PERFORMANCE_EVIDENCE
         long before = GC.GetAllocatedBytesForCurrentThread();
+#endif
         OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(jpeg, "fixture.jpg");
+#if SHARED_PERFORMANCE_EVIDENCE
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+#endif
 
         Assert.Empty(report.Evidence);
+#if SHARED_PERFORMANCE_EVIDENCE
         Assert.True(allocated < 8L * 1024L * 1024L, $"Inspection allocated {allocated} bytes.");
+#endif
     }
 
 
     [Fact]
-    public void IncompleteApp11SequenceDoesNotAllocateTheDeclaredManifestLength() {
+#if SHARED_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+    [Trait("Category", "ResourcePerformanceEvidence")]
+#endif
+    public void IncompleteApp11SequenceIsReportedAsStructurallyInvalid() {
         byte[] fragment = CreateManifestStore();
         WriteBigEndian(fragment, 0, 64 * 1024 * 1024);
         byte[] app11Payload = Join(
@@ -742,12 +756,18 @@ public sealed partial class ProvenanceReviewRegressionContracts {
             CreateJpegSegment(0xEB, app11Payload),
             new byte[] { 0xFF, 0xD9 });
 
+#if SHARED_PERFORMANCE_EVIDENCE
         long before = GC.GetAllocatedBytesForCurrentThread();
+#endif
         OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(jpeg, "fixture.jpg");
+#if SHARED_PERFORMANCE_EVIDENCE
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+#endif
 
         Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+#if SHARED_PERFORMANCE_EVIDENCE
         Assert.True(allocated < 8L * 1024L * 1024L, $"Inspection allocated {allocated} bytes.");
+#endif
     }
 #endif
 

@@ -15,6 +15,58 @@ The managed VP8 decoder is maintained in `OfficeIMO.Core` under OfficeIMO's MIT 
 dotnet add package OfficeIMO.Core
 ```
 
+## Per-column row mapping
+
+`RowMapper<T>` in `OfficeIMO.Data` provides explicit assignments for any
+`DbDataReader`. CSV and Excel use this shared mapper. `FromColumns` tries aliases
+in the supplied order; required missing columns and ambiguous duplicate matches
+fail before row projection.
+
+```csharp
+using OfficeIMO.Data;
+using System.Data.Common;
+using System.Globalization;
+
+static IEnumerable<Invoice> ReadInvoices(DbDataReader reader) =>
+    reader.RowsAs<Invoice>(map => map
+        .FromColumns<int>(new[] { "Id", "InvoiceId" },
+            (row, value) => { row.Id = value; return row; })
+        .FromColumn<decimal>("Amount",
+            (row, value) => { row.Amount = value; return row; },
+            new RowMappingColumnOptions { Culture = CultureInfo.GetCultureInfo("fr-FR") })
+        .FromColumn<DateTime>("Date",
+            (row, value) => { row.Date = value; return row; },
+            new RowMappingColumnOptions { DateTimeFormats = new[] { "yyyyMMdd" } })
+        .FromColumn<string>("Note",
+            (row, value) => { row.Note = value; return row; },
+            new RowMappingColumnOptions { Optional = true }));
+
+public sealed class Invoice {
+    public int Id { get; set; }
+    public decimal Amount { get; set; }
+    public DateTime Date { get; set; }
+    public string? Note { get; set; } = "No note";
+}
+```
+
+Optional means the source column may be absent. Its assignment is skipped,
+preserving the model's initialized value. Present empty or invalid values still
+follow the normal conversion and nullability rules. Even when every configured
+column is optional and absent, each source row produces a model.
+
+The mapper snapshots each binding's culture and date-format list when it is
+configured. Per-column date/time formats replace the reader's format list and
+are tried before ordinary culture-based parsing. A per-column `TypeConverter`
+replaces the reader's converter for that binding. Returning `(false, null)`
+selects built-in conversion; handled results, including null, take precedence.
+The converter receives the value exposed by the reader before built-in
+conversion. Excel numeric mappings retain the original date serial when a
+converter declines.
+
+The same controls apply to `RowsAs`, `RowsAsAsync` and `RowsAsParallel`.
+Parallel converters must support concurrent calls. Source-value redaction
+continues to follow the reader's mapping-error policy.
+
 ## Image export density
 
 `OfficeImageExportOptions.UseQuality(...)` and fluent `WithQuality(...)` select shared density presets: `Preview` is 96 DPI, `Screen` is 192 DPI, and `Print` is 300 DPI. They retain the selected fonts, layout, format, and safety limits. Clear `TargetDpi` when setting `Scale` directly; fluent `WithScale(...)` clears it automatically. Each document adapter defines its logical units per inch.
@@ -290,6 +342,18 @@ foreach (OfficeProvenanceSignalResult signal in assessment.ProviderSignals) {
 Existing detector and verifier implementations remain valid. Providers that perform long-running work can additionally implement `ICancellableOfficeProvenanceSignalDetector` or `ICancellableOfficeProvenanceVerifier`; cancellation-aware assessment and workflow calls pass their token to those providers and fall back to the original contracts for compatibility.
 
 Use `OfficeTextIntegrityInspector` to report exact invisible and context-sensitive Unicode code points. It reports offsets, code points, and risk; it does not call those characters an AI watermark. Format content-safety reports also mirror these as selectable `NonPrintingUnicode` findings when the owning adapter can verify and rewrite the exact native text node. Cleanup has no blanket mode: callers pass only reviewed finding IDs, so legitimate joiners, variation selectors, and typographic spaces are not silently normalized.
+
+`OfficeProvenanceAssessmentReport.TextIntegrityStatus`, `VerificationStatus`, and `ProviderSignalsStatus` describe whether each check ran. A disabled or unsupported text check has no report; an absent provider is `NotConfigured`. Provider-specific result statuses retain their separate conclusions.
+
+`OfficeTextIntegrityReview` binds occurrence selections to the exact source text and exports a separate copy without normalization:
+
+```csharp
+var review = OfficeTextIntegrityReview.Inspect("invoice\u202E123 · language joiner: a\u200Db");
+// After reviewing occurrence 0 (the directional override), remove only that occurrence.
+byte[] copy = review.ExportSelected(review.Text, new[] { 0 });
+```
+
+For files, pass the encoded bytes to `Inspect(bytes)`. Strict UTF-8 and BOM-declared UTF-16/32 are supported. Export retains the original encoding, BOM, line endings, and all unselected characters. `RemoveSelected(currentText, indices)` rejects changed source text and invalid indices; callers must inspect edits again. The review also exposes hashes of the decoded UTF-16 code units and, for file inputs, the original bytes.
 
 ### Inspect concealed content before model ingestion
 

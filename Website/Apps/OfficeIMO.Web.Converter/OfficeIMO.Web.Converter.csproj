@@ -5,10 +5,15 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
-    <BlazorEnableCompression>false</BlazorEnableCompression>
+    <CompressionEnabled>false</CompressionEnabled>
     <!-- HarfBuzz WebAssembly ships as a native archive and must be linked into dotnet.native.wasm. -->
     <WasmBuildNative>true</WasmBuildNative>
   </PropertyGroup>
+
+  <!-- Link unused optional workflows and invoice dependencies out of the browser app. -->
+  <ItemGroup>
+    <TrimmableAssembly Include="OfficeIMO.Workflows;OfficeIMO.Invoicing;OfficeIMO.Invoicing.Pdf;OfficeIMO.Invoicing.Validation" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.9" />

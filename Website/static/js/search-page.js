@@ -40,11 +40,24 @@
       card.className = 'imo-search__result';
       var type = document.createElement('span');
       type.className = 'imo-search__type';
-      type.textContent = labels[item.collection] || 'Page';
+      type.textContent = [labels[item.collection] || 'Page', item.kind, item.project].filter(Boolean).join(' · ');
       var link = document.createElement('a');
       link.href = url.pathname + url.search + url.hash;
       link.textContent = item.title || item.url;
       card.append(type, link);
+      if (item.meta && item.meta.signature) {
+        var signature = document.createElement('code');
+        signature.className = 'imo-search__signature';
+        signature.textContent = item.meta.signature;
+        card.append(signature);
+      }
+      if (item.meta && item.meta.namespace) {
+        var context = document.createElement('p');
+        context.className = 'imo-search__context';
+        context.textContent = 'using ' + item.meta.namespace + ';' +
+          (item.meta.receiverType ? ' · Extension for ' + item.meta.receiverType : '');
+        card.append(context);
+      }
       var description = item.description || item.snippet;
       if (description) {
         var text = document.createElement('p');
@@ -77,7 +90,9 @@
     }
     meta.textContent = 'Searching…';
     try {
-      var response = await api.search({ query: query, limit: panel.searchLimit });
+      var response = await api.search({ query: query, limit: panel.searchLimit,
+        project: panel.querySelector('[data-search-package]').value,
+        kind: panel.querySelector('[data-search-kind]').value });
       if (version !== panel.searchVersion) return;
       response.query = query;
       render(panel, response);
@@ -89,7 +104,27 @@
   }
 
   panels.forEach(function (panel) {
-    panel.querySelector('[data-search-page-input]').addEventListener('input', function () { search(panel); });
+    var filters = document.createElement('div');
+    filters.className = 'imo-search__filters';
+    [['package', 'All packages', []], ['kind', 'All types and members', ['class', 'interface', 'struct', 'enum', 'method', 'extension', 'constructor', 'property', 'field', 'event']]].forEach(function (spec) {
+      var label = document.createElement('label');
+      label.textContent = spec[0] === 'package' ? 'Package' : 'API kind';
+      var select = document.createElement('select');
+      select.setAttribute('data-search-' + spec[0], '');
+      var all = document.createElement('option');
+      all.value = ''; all.textContent = spec[1]; select.append(all);
+      spec[2].forEach(function (value) { var option = document.createElement('option'); option.value = value; option.textContent = value; select.append(option); });
+      label.append(select); filters.append(label);
+      select.addEventListener('change', function () { search(panel); });
+    });
+    panel.querySelector('[data-search-page-results]').before(filters);
+    panel.querySelector('[data-search-page-input]').placeholder = 'Search methods, types, packages, or tasks…';
+    panel.querySelector('[data-search-page-input]').addEventListener('focus', populatePackages, { once: true });
+    panel.querySelector('[data-search-page-input]').addEventListener('input', function () {
+      panel.searchVersion = (panel.searchVersion || 0) + 1;
+      clearTimeout(panel.searchTimer);
+      panel.searchTimer = setTimeout(function () { search(panel); }, 150);
+    });
     panel.addEventListener('keydown', function (event) {
       if (event.altKey || event.ctrlKey || event.metaKey || event.isComposing || !['ArrowDown', 'ArrowUp'].includes(event.key)) return;
       var links = Array.from(panel.querySelectorAll('[data-search-page-results] a'));
@@ -101,6 +136,15 @@
     });
     panel.querySelector('[data-site-search-more]').addEventListener('click', function () { search(panel, (panel.searchLimit || 20) + 20); });
   });
+  var packagePromise;
+  function populatePackages() {
+    if (!packagePromise && typeof api.facets === 'function') packagePromise = api.facets().then(function (facets) {
+      panels.forEach(function (panel) {
+        var select = panel.querySelector('[data-search-package]');
+        facets.projects.forEach(function (project) { var option = document.createElement('option'); option.value = project; option.textContent = project; select.append(option); });
+      });
+    }).catch(function () { packagePromise = null; });
+  }
   document.querySelectorAll('[data-site-search-open]').forEach(function (link) {
     link.addEventListener('click', function (event) {
       if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
@@ -129,11 +173,14 @@
     var panel = pagePanel || dialogPanel;
     panel.searchVersion = (panel.searchVersion || 0) + 1;
     panel.querySelector('[data-search-page-input]').value = response.query;
+    panel.querySelector('[data-search-package]').value = '';
+    panel.querySelector('[data-search-kind]').value = '';
     if (!pagePanel) openSearch();
     render(panel, response);
   };
   function seedPage() {
     if (!pagePanel) return;
+    populatePackages();
     pagePanel.querySelector('[data-search-page-input]').value = new URLSearchParams(location.search).get('q') || '';
     search(pagePanel);
   }

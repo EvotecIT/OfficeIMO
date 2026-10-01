@@ -1,3 +1,5 @@
+using System.Data;
+using System.Globalization;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
@@ -5,6 +7,51 @@ using Xunit;
 
 namespace OfficeIMO.Excel.Tests {
     public partial class ExcelTests {
+        [Theory]
+        [InlineData(false, 1)]
+        [InlineData(true, 1)]
+        [InlineData(false, 512)]
+        public void DirectPackageWriter_EscapedClusterThenLongPlainTextPreservesLaterEscapes(bool compact, int rowCount) {
+            string source = "A&<tag>" + new string('q', 2048)
+                + "\r&<later>" + new string('z', 2048) + '\u0001' + "tail";
+            string expected = source.Replace("\u0001", string.Empty);
+            var table = new DataTable();
+            table.Columns.Add("Notes", typeof(string));
+            for (int row = 0; row < rowCount; row++) table.Rows.Add(source);
+
+            using var output = new MemoryStream();
+            using (var reader = table.CreateDataReader()) {
+                ExcelDocument.WriteDataReader(output, reader, compact
+                    ? new ExcelTabularWriteOptions { IncludeCellReferences = false, UseSharedStrings = false }
+                    : null);
+            }
+
+            output.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(output, false);
+            WorksheetPart sheet = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            Cell[] cells = sheet.Worksheet.Descendants<Cell>().ToArray();
+            Assert.Equal(rowCount + 1, cells.Length);
+            Cell cell = cells[1];
+            if (!compact) Assert.Equal("A2", cell.CellReference?.Value);
+            if (rowCount > 1) {
+                Assert.Equal(CellValues.SharedString, cell.DataType?.Value);
+                Assert.NotNull(spreadsheet.WorkbookPart.SharedStringTablePart);
+            }
+            string actual = cell.DataType?.Value == CellValues.SharedString
+                ? spreadsheet.WorkbookPart.SharedStringTablePart!.SharedStringTable!
+                    .Elements<SharedStringItem>()
+                    .ElementAt(int.Parse(cell.CellValue!.Text, CultureInfo.InvariantCulture)).InnerText
+                : cell.InlineString?.InnerText ?? cell.CellValue?.Text ?? string.Empty;
+            Assert.Equal(expected, actual);
+            using var xmlReader = new StreamReader(rowCount > 1
+                ? spreadsheet.WorkbookPart.SharedStringTablePart!.GetStream()
+                : sheet.GetStream());
+            string textXml = xmlReader.ReadToEnd();
+            Assert.Contains("&#xD;", textXml, StringComparison.Ordinal);
+            Assert.DoesNotContain('\u0001', textXml);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
+        }
+
         [Fact]
         public void DirectPackageWriter_PreservesUnicodeAndBlankValuesInTypedRows() {
             using var output = new MemoryStream();

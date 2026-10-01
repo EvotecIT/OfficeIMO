@@ -31,6 +31,13 @@ sheet.AutoFitColumns();
 document.Save();
 ```
 
+For ordinary workbook work, use `ExcelDocument.Create(...)` or
+`ExcelDocument.Load(...)`, edit the same document through its sheets, then call
+`Save()`. Use `ExcelDocument.OpenDataReader(...)` when you only need forward-only
+rows. Formula calculation, dynamic arrays, and pivot materialization are
+operations on that workbook model when a report needs them; they are not
+alternate ways to open a workbook.
+
 `AsFluent()` wraps the same `ExcelDocument`; it does not create a separate
 workbook model. Call `End()` when direct worksheet APIs are more convenient:
 
@@ -68,7 +75,7 @@ and the supported legacy `.xls` subset.
 
 Performance claims use validated outputs and record the workload, package versions, runtime, operating system, processor, warm-up, iterations, allocations, and source provenance. Windows, Linux, and macOS remain separate evidence lanes; missing platforms stay visible rather than being inferred from another operating system.
 
-Use the [benchmark website](https://officeimo.com/benchmarks/) for the current comparison matrix. The [benchmark harness](../OfficeIMO.Excel.Benchmarks/README.md) documents reproducible local runs, workload validation, allocation evidence, and data publication. Benchmark-only libraries remain isolated from the `OfficeIMO.Excel` runtime package.
+Use the [benchmark website](https://officeimo.com/benchmarks/) for dated comparison snapshots and their recorded environments. The [benchmark harness](../OfficeIMO.Excel.Benchmarks/README.md) documents reproducible local runs, workload validation, allocation evidence, and data publication. Benchmark-only libraries remain isolated from the `OfficeIMO.Excel` runtime package.
 
 ## Examples
 
@@ -249,6 +256,25 @@ reader schema. Set `ExcelReadOptions.MappingErrorValuePolicy` to
 `DataMappingErrorValuePolicy.Redact` when typed mapping failures must omit
 source values and custom-converter exception details; the default is `Include`
 for compatibility.
+
+With `TreatDatesUsingNumberFormat` enabled, calendar formats use the workbook's
+1900 or 1904 date system. Time-only and elapsed formats use an OLE Automation
+`DateTime` as a carrier for the unshifted serial; changing the workbook date
+system does not add days to a duration. Use a numeric getter or disable date
+format interpretation when the application needs the original serial.
+These rules apply to XLSX, XLS and XLSB tabular readers, including cached numeric
+formulas. XLS import preserves the source date system and numeric serials rather
+than reconstructing them from `DateTime` values.
+Numeric properties mapped through `RowsAs<T>` or `RowsAsParallel<T>` also receive
+the original serial, including cached formula values. A cell converter returning
+`ExcelCellValue.NotHandled`, or a type converter returning `(false, null)`,
+retains default conversion. Explicit converter results, including handled nulls,
+take precedence. Type converters see the reader's original value before numeric
+mapping uses the serial.
+Explicit `RowMapper<T>` bindings also support aliases, optional source columns,
+per-column culture, date formats and converters through
+[`RowMappingColumnOptions`](../OfficeIMO.Core/README.md#per-column-row-mapping).
+These controls apply to sequential, asynchronous and parallel projections.
 
 `ExcelReadOptions.EnableWorksheetPrefetch` can overlap selected XLSX worksheet
 decompression with workbook metadata parsing on a spare worker. It is disabled by default,
@@ -574,6 +600,235 @@ document.Save();
 
 Pivot support covers source-range pivots, row/column/page/data fields, styles, layouts, filters, calculated fields, grouping metadata, shared-cache-aware source updates, refresh-on-open, and readback. `AddPivotSlicer` authors native slicer caches, worksheet views, and drawing anchors for supported fields. `AddPivotTimeline` does the same for date-only fields. Compatible views reuse shared caches; removing the last view can prune its cache. Unsupported imported siblings remain preserved.
 
+Read an existing saved pivot value with `GetPivotData`. The lookup uses the pivot's
+saved output cells and axis metadata; changing source cells does not refresh it.
+
+```csharp
+using var document = ExcelDocument.Load("saved-sales-pivot.xlsx");
+var sheet = document.GetSheet("Summary");
+ExcelCellData value = sheet.GetPivotData("SalesPivot", "Revenue",
+    new Dictionary<string, object?> { ["Region"] = "North" });
+```
+
+The lightweight evaluator also supports `GETPIVOTDATA("Revenue",Summary!A1,"Region","North")`.
+Both paths support saved hierarchies with multiple row and column
+fields, selected page items, multiple measures, default subtotals, and text, numeric, Boolean, date, error or blank
+item keys. Numeric range groups and Years/Months or Years/Quarters/Months date hierarchies on row or column axes use their displayed
+group labels as criteria. A numeric criterion equal to a group's lower bound also selects that group; other raw source
+numbers do not. A year criterion accepts its displayed text
+or an integer year. Lookup follows saved tabular, compact and outline views, including
+subtotals displayed at the top and collapsed groups. A partial selection uses its displayed subtotal, or a single matching
+leaf when no subtotal is displayed. Ambiguous matches and unknown items, fields
+or measures return typed errors; a blank intersection of existing items returns
+zero. Lookup accepts at most 256 source fields, measures and criteria, one Values
+pseudo-field across the axes, 100,000 shared keys per field, 100,001 axis/field
+items (including totals or default items), and one million output cells. Each
+axis also has a one-million budget for field visits and indexed criterion items.
+Other grouped profiles and views without saved axis items remain
+unsupported. The public method throws `NotSupportedException` for those profiles;
+formula recalculation leaves them unsupported. `AddPivotTable` authors metadata
+and refresh-on-open settings; it does not populate an output view for lookup.
+
+For date items, use a `DateTime` or a numeric serial in the workbook's date system.
+Use serial `60` (or its time fraction) to select Excel's fictitious February 29,
+1900; a .NET `DateTime` cannot represent that date. Pivot-cache date items retain
+Excel's separate OLE Automation encoding, including early-1900 values.
+When a mixed field contains both a date and a number with the same serial,
+lookup selects the date item, as Excel does.
+To select an error item through the public API, pass
+`new ExcelCellData(ExcelCellDataKind.Error, "#DIV/0!")` as the criterion value.
+The string `"#DIV/0!"` selects a text item with that spelling. An error-valued
+formula argument propagates its error through formula calculation.
+
+Call `MaterializePivotTable` to generate an output view without an Office refresh:
+
+```csharp
+ExcelPivotMaterializationResult result = sheet.MaterializePivotTable("SalesPivot");
+Console.WriteLine(result.OutputRange);
+```
+
+For a typed `OrderDate` column, build and populate a year/month view in the same workbook:
+
+```csharp
+sheet.Pivot("A1:B6").Rows("OrderDate").Sum("Sales", "Metric")
+    .DateHierarchy("OrderDate", ExcelPivotGroupBy.Years, ExcelPivotGroupBy.Months)
+    .Layout(ExcelPivotLayout.Tabular).At("D4", "SalesByMonth");
+sheet.MaterializePivotTable("SalesByMonth");
+```
+
+For a text `Product` column, create a named manual group in a derived field and
+materialize the resulting two-level row view:
+
+```csharp
+sheet.Pivot("A1:B6").Rows("Product").Sum("Sales", "Metric")
+    .Layout(ExcelPivotLayout.Tabular).At("E4", "SalesByProductGroup");
+sheet.AddPivotManualGrouping("SalesByProductGroup", "Product", "Product2",
+    new Dictionary<string, string[]> { ["Fruit"] = new[] { "Apple", "Pear" } },
+    hiddenGroupItems: new[] { "Carrot" });
+sheet.MaterializePivotTable("SalesByProductGroup");
+var fruit = sheet.GetPivotData("SalesByProductGroup", "Metric",
+    new Dictionary<string, object?> { ["Product2"] = "Fruit" });
+```
+
+Pass multiple entries in the dictionary to add several named groups in one derived field.
+Each source item can belong to only one group; ungrouped text items remain
+individual entries. The source field must be on a row or column axis. Use the
+pivot's actual name, which may differ from a requested duplicate name.
+
+Materialization supports up to 256 ordinary measures with unique captions, all eleven aggregation modes,
+and multiple fields on each axis, with at most 256 cache fields in total. Numeric range groups with explicit finite
+bounds and intervals, including decimal intervals, are supported when each bound and interval is at most 9 × 10¹⁵
+in magnitude and the range has at most 99,998 buckets.
+Years/Months and Years/Quarters/Months date hierarchies and manual text groups with saved group labels are also supported on row and column axes. Hidden items on qualified manual, numeric, and date groups are applied to source records and saved views. Grouping on page fields is not.
+Date hierarchies require typed date source values. The saved group labels are retained, including labels created under
+a non-English Excel locale. Renamed item captions remain visible in the generated view; `GETPIVOTDATA`
+accepts both the displayed caption and the original cache key for a renamed ordinary item.
+It writes a tabular view in first-seen key order for ordinary fields, chronological
+order for default-sorted date fields with native date filters, and group-label order for groups,
+with selected page items, hidden row/column items, optional grand totals, typed values/errors, source cache
+records and consistent axis metadata. It saves a copy of the source records in
+the pivot cache and clears refresh-on-open. Source formulas must have saved
+cached results; materialization does not calculate them.
+When several pivot views share a cache, materializing any one of them regenerates
+every view of that cache in one transaction. All views must qualify for
+materialization and produce identical cache fields and records. The returned
+`AffectedPivotTables` names the refreshed views; `OutputRange` remains the range
+of the requested view.
+Manual item filters retain their selected keys when source item order changes.
+New source keys remain excluded from a manually filtered field unless its
+`IncludeNewItemsInFilter` setting admits them. A filter that leaves no source
+records is rejected before changing the saved view.
+Materialization supports label equals, begins with, ends with, contains, and
+their negations on ordinary row or column fields with text, Boolean, blank,
+error, or numeric captions. Numeric captions use General, `#,##0`,
+`#,##0.00`, `#,##0.000`, `0.0`, `0.00`, `0.000`, `0.0%`, `0.00%`, `$#,##0`,
+`$#,##0.00`, or `#,##0.00;(#,##0.00)` pivot-field formatting; other numeric
+formats and date captions remain unqualified. It also supports label
+greater/less comparisons and inclusive between or exclusive not-between
+ranges when every caption and criterion uses ASCII letters. Numeric label
+ranges support signed integer captions in General, signed fixed two-decimal
+captions in `0.00`, and nonnegative grouped integer captions in `#,##0`.
+These use caption order rather than numeric magnitude; in the qualified Excel
+workbooks, `2` precedes `-2`. Other text and numeric formats are rejected
+because Excel's localized ordering or display format can select different
+items. Qualified label comparisons use the current process culture, matching
+Excel's locale-dependent ordering when run under the same locale. Distinct
+numeric cache keys remain separate when the format gives them the same
+displayed caption: a label filter can select both rows, while typed
+numeric `GetPivotData` criteria still address each key.
+
+Native fixed-date equals/not-equals, older/newer, inclusive-bound, between,
+and not-between filters materialize on date-valued row or column fields.
+By default they compare complete date-time values in either workbook date
+system, so a midnight equality does not select a later time on the same day.
+Call `WithWholeDay()`, for example
+`ExcelPivotFilter.DateEquals("OrderDate", day).WithWholeDay()`, to include
+every time on the selected date. The same modifier applies to the other
+fixed-date predicates; it is saved in Excel's pivot-filter extension and
+survives a workbook reload. `GetPivotTables()` exposes the setting through
+each filter's `WholeDay` property. All-years
+month and quarter selectors include matching dates from every year, including
+time-bearing values. Relative today/yesterday/tomorrow, week, month, quarter,
+year, and year-to-date filters use local calendar periods with half-open end
+bounds; weeks begin on Sunday, as in the qualified Excel-produced workbooks.
+The local date is captured once for every view sharing a cache. Pass
+`referenceDate: new DateTime(2026, 9, 28)` to `MaterializePivotTable` for a
+reproducible relative-date view; omitting it uses the current local date.
+Default-sorted date items selected by these filters are
+ordered chronologically in the saved cache and view. Views sharing that cache
+retain their own saved manual item order. Blank source dates do not match,
+including not-equals.
+
+On a single ordinary axis field, materialization also supports value equals,
+not equals, greater than, greater than or equal, less than, less than or
+equal, inclusive between, exclusive not-between, and top/bottom count,
+percent, and sum filters. Count filters include ties at the cutoff. Percent
+and sum filters select by cumulative signed measure value, including the item
+that crosses the threshold. Percent uses the current grand total; a zero
+grand total retains all items. When a percent or sum cutoff splits equal
+aggregates, materialization reports an unsupported item order rather than
+writing a different filtered view. Zero and negative item aggregates are supported.
+An item whose selected aggregate is an error does not enter a ranking with numeric
+aggregates; Count and Count Numbers still rank their numeric results for
+error-valued source cells. When every selected aggregate is one of Excel's seven
+classic errors, top/bottom count filters rank by Excel error-code order and
+include ties at the cutoff. All-error percent and sum ranking, newer error
+values, and ranking with neither numeric nor qualified error aggregates remain
+deferred.
+With two ordinary row fields, no column field, and one measure,
+materialization supports the same value comparisons and ranges on either
+field and top/bottom count, percent, and sum on either field. The inner field's
+aggregate is compared or ranked within each parent; the outer field uses its
+aggregate across its children. Two column fields support the same comparisons,
+ranges, and top/bottom count, percent, and sum filters on either field. With
+one row and one column field, the same value comparisons, ranges,
+and top/bottom count, percent, and sum filters can target either field. With
+three row fields and one measure, Top 1, Top 2, and Bottom 1 count, numeric
+greater-than, and numeric between filters on the innermost field are qualified
+against Excel-produced views and `GETPIVOTDATA` results. With two row fields,
+one column field, and one measure, numeric greater-than, numeric between, and
+Top/Bottom 1 count on the inner row field, plus numeric greater-than and
+Top/Bottom 1 count on the column field, are qualified against complete
+Excel-produced views and lookups. Top 1 includes tied column items at the
+cutoff, and the qualified inner-row Top 1 case retains tied siblings. Numeric
+Top 1 ranking also excludes error-valued aggregate siblings on either qualified
+axis. A saved inner-row Top 1 followed by column Bottom 1 is evaluated in that order; the
+reverse filter order can select different cells, as in Excel. Other
+three-or-more-field value rules remain outside this qualified profile. With
+two row fields, one column field, and two Sum measures, an inner-row Top 1
+filter can select either named measure. Excel-produced views and lookups qualify
+both selections with Values before or after Channel on columns, or before Region,
+between Region and Product, or after Product on rows. Use `ValuesPosition(0)` or
+`ValuesPosition(1)` on the fluent pivot builder to place Values first or between
+the two row fields. When Values precedes Product on rows, the Top 1 filter selects
+items only for its named measure; the other measure keeps its full source rows. Other
+multi-measure filter interactions remain outside this profile.
+Signed and zero child aggregates, nonpositive outer-field totals, three siblings
+per parent, mixed numeric/error ranking, and classic
+all-error parent top/bottom count ranking have Excel-produced examples.
+All-error parent percent/sum ranking and broader sign/error mixes still need
+independent evidence.
+Label and value filters can share that field. Value filters use the selected measure's aggregation
+over current source rows; refreshed views reevaluate item membership. The
+filter definition remains available for Excel refresh, and filtered items are
+not converted into manually hidden items. Filter evaluation is bounded by the
+source-cell work budget.
+For multiple measures, the Values field appears on exactly one axis. Values-first,
+intermediate and Values-last ordering are preserved, including views without real row or column
+fields. `AddPivotTable` creates this field on columns by default, or on rows when
+`dataOnRows` is true. Repeated native axis prefixes are expanded during saved-view lookup.
+Regeneration expands collapsed groups and normalizes compact and outline layouts to
+tabular output with subtotals below their children. Hidden subtotals stay hidden;
+custom subtotal functions become automatic subtotals using each measure's aggregation.
+Date labels receive date/time formatting when the destination has no date format.
+Date subtotal captions use `yyyy-MM-dd HH:mm:ss`, including Excel's fictitious
+February 29, 1900. Existing destination date formats are retained.
+
+The operation rejects destination collisions with unrelated values, formulas,
+source cells, other pivots, tables and merged ranges. It replaces a previous
+materialized view and clears its stale tail while retaining existing cell styles.
+Preparation and writing run under the workbook lock; the shared mutation owner
+rolls back interrupted writes or invalid generated metadata. Use
+`ExcelMutationPlanOptions` to lower source/output and rollback budgets. The source
+and affected output are each capped at one million cells. The measure-input budget is
+source records times measure count times the number of displayed input levels on each
+axis: the leaf level plus enabled intermediate subtotals. Grand totals add at most
+one level per axis, bounding actual aggregate updates at four times that budget.
+For shared caches, source-cell visits, measure-input visits, and affected output
+cells are each summed across views against the configured budget.
+Fields and measures are capped at 256; distinct shared keys per field and observed
+leaf aggregate states across measures are capped at 100,000. All aggregate states,
+including subtotals and grand totals, must fit the output budget. Saved axis items,
+including totals, are capped at 100,001. On each axis, the sum of saved field items
+and shared keys must also fit the configured budget, so all generated criteria
+combinations remain within the saved-lookup indexing limit.
+
+Other date levels and layouts, custom non-text grouping, formatted date and broader numeric label filters,
+localized label range ordering, explicit show-all empty item combinations, other label/value pivot filter types and broader multi-field value filtering,
+calculated fields, incompatible shared-cache groupings, and associated interaction
+caches still require additional materialization support. Imported definitions
+remain available through the existing metadata and refresh-on-open APIs.
+
 ### Guarded query-backed tables
 
 ```csharp
@@ -603,6 +858,121 @@ ExcelQueryRefreshResult refresh = await document.RefreshQueryAsync(
 OfficeIMO stores the native connection, table, and query-table relationship chain but does not ship a database or network provider. The application-owned `IExcelQueryExecutionHost` interprets the opaque command and returns rows. OfficeIMO applies row, column, cell, and character budgets before a transactional table replacement. Commands loaded from imported workbooks require the separate `AllowImportedCommands` opt-in.
 
 ### Formula inspection and calculation policy
+
+Scalar calculation supports parentheses, unary signs, percentages, powers,
+arithmetic precedence, text concatenation, comparisons, and expressions inside
+supported function arguments. For example, `SUM(A1,2)*3` and
+`IF(A1*2>10,"High","Low")` can be calculated without Excel. Errors such as
+`#DIV/0!`, `#VALUE!`, and `#NUM!` propagate through these expressions. Syntax
+and nested function evaluation are bounded to 128 levels; unsupported formulas
+continue to be reported explicitly rather than calculated from stale caches.
+
+Named references can resolve to A1 ranges or numeric, text, Boolean, and error
+constants, including bounded aliases and worksheet-local scope. Arbitrary
+formulas stored in defined names remain outside this calculation subset.
+`ISNUMBER` distinguishes numbers from Boolean values; `ISLOGICAL` and `NA`
+support typed guards and error fallbacks. `SEARCH` and text criteria recognize
+`*`, `?`, and tilde escapes. `ROUND` handles decimal midpoints away from zero.
+`TEXT` uses invariant English formatting and accepts an explicit `[$-409]`
+locale prefix; other locale qualifiers remain unsupported.
+
+Array calculation uses the range owned by `SetArrayFormula`, or the existing
+array reference in an imported workbook. A fixed range must match the result
+shape:
+
+```csharp
+using var document = ExcelDocument.Create("array-report.xlsx");
+var sheet = document.AddWorksheet("Results");
+sheet.SetArrayFormula("G2:H4", "SEQUENCE(3,2,10,-2)");
+document.Calculate();
+document.Save();
+```
+
+Use `SetDynamicArrayFormula` when the result shape may change:
+
+```csharp
+using var document = ExcelDocument.Create("dynamic-report.xlsx");
+var sheet = document.AddWorksheet("Results");
+sheet.CellValue(1, 1, 3);
+sheet.SetDynamicArrayFormula("G2", "SEQUENCE(A1,2)");
+document.Calculate(); // G2:H4 contains 1 through 6
+document.Save();
+```
+
+`SEQUENCE` produces rectangular numeric results. `FILTER` accepts a row or
+column mask of numbers or Booleans, including comparisons between operands of
+the same native type and a scalar empty-result fallback. Blank mask cells are
+false; mixed-type comparisons and text-mask coercion remain deferred.
+`SORT` supports numeric, ASCII letter-and-digit text, Boolean, and blank sort keys, including
+mixed keys, both directions, and sorting rows or columns. Numbers precede text and
+Booleans in ascending order; descending order reverses those nonblank groups.
+Blanks remain last in either direction and their output cells contain zero, as
+in Excel's cached results. Text compares without ASCII case and equal keys keep
+their input order. Sort inputs dependent on an unevaluated formula cache remain
+deferred. Locale-dependent, punctuation, Unicode, and error-key collation remains
+deferred. `UNIQUE` preserves the first
+occurrence of distinct rows or columns and supports `exactly_once`. These
+functions can be nested within this array subset. Each input and output is
+limited to 100,000 cells, with at most 32 array-expression levels.
+`SetArrayFormula` writes the Excel compatibility prefixes for these four
+functions, including nested calls, while preserving literals and reference text.
+
+Fixed arrays update only when their result matches the authored range and the
+range contains neither another formula nor a merged cell. Dynamic arrays write
+Excel's native dynamic-array metadata, resize their cached range as inputs
+change, and clear vacated children. A nonempty cell, fixed array, table, or
+merged range that blocks a spill yields `#SPILL!` at the anchor without
+overwriting the blocker. Clearing the blocker allows the next calculation to
+spill. Value, formula, bulk-value, and clear operations reject edits inside an
+active spill; call `ClearArrayFormula` to remove the array first. Array children
+participate in same-sheet dependency calculation before caches are written;
+a reference to the anchor is scalar. Unsupported expressions remain deferred
+with existing caches preserved. Empty results use Excel's rich-value `#CALC!`
+metadata. Zero-sized `SEQUENCE` dimensions produce `#CALC!`; negative
+dimensions produce `#VALUE!`. The checked-in Excel-produced array corpus
+verifies cached results through save and reopen.
+
+Loaded dynamic arrays can resize when their saved child caches still match the
+worksheet's original content. If old cells were edited outside the sheet API,
+the saved source changed before calculation, the raw Open XML package was
+accessed before the sheet, or the source exceeds the bounded ownership scan,
+calculation reports `#SPILL!` and keeps ambiguous cells. Clear and re-author the
+array only when you own the old range.
+
+Cached reads resolve native rich-value `#CALC!` and `#SPILL!` errors across the
+object model, range reads, and forward-only data readers. Unknown or unresolved
+rich values retain their ordinary cell fallback. Rich error metadata is limited
+to 16 MiB per part and 100,000 entries per collection; readers also honor a
+smaller configured metadata limit. Repeated calculation reuses error records,
+and images and other rich values keep their existing metadata and relationships.
+
+`CellAt(...).GetValue().Value` preserves the native cached result type, including
+Boolean values and text that looks numeric, such as the result of `="12"`.
+
+Calculation honors the workbook's 1900 or 1904 date system. In the 1900 system,
+`DATE` and date-part functions retain Excel's fictitious February 29, 1900.
+When converting serial 60 to `DateTime`, `ExcelDateSystemConverter.FromSerial`
+uses February 28 because .NET cannot represent that fictitious date. The
+checked-in Excel-produced corpus verifies function composition, named and
+cross-sheet references, typed errors, rounding, and both date systems through
+calculation, save, and reopen.
+
+`Calculation.MaximumDependencyDepth` defaults to 256 formula cells per chain.
+The expression-nesting limit applies separately within each cell. A dependency
+limit or circular reference clears affected caches and marks those formulas
+dirty; unrelated formulas still calculate. Raise the dependency budget explicitly
+for longer trusted chains. Calculation also checks the caller's available stack;
+deeply composed dependencies can be left dirty even within those two budgets.
+The independent corpus includes forward and reverse
+300-cell chains and a circular-reference workbook, with cache recovery and
+diagnostics verified after save and reopen. Circular caches from Excel are
+preserved as input evidence rather than treated as a numeric cycle solution.
+
+For bounded row-memory XLSX exports, set `RequireStreaming = true` in
+`ExcelTabularWriteOptions`. With `WriteDataReader`, also set
+`UseSharedStrings = false` and `AutoFit = false`; tables require headers.
+With `WriteRows`, turn off tables and automatic sizing. Incompatible options
+are rejected before source rows are consumed or destination bytes are written.
 
 ```csharp
 using var document = ExcelDocument.Load("report.xlsx");

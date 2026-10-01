@@ -358,6 +358,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
             var compilations = new List<NativePivotCompilation>();
             foreach (ExcelPivotTableInfo pivot in sourceSheet.GetPivotTables()) {
                 if (pivot.CalculatedFields.Count > 0 || pivot.Groupings.Count > 0 || pivot.Filters.Count > 0
+                    || (pivot.HasValuesAxisField && !pivot.ValuesAxis.HasValue)
+                    || (pivot.HasValuesAxisField && pivot.ValuesAxisPosition != (pivot.ValuesAxis == ExcelPivotTableAxis.AxisRow ? pivot.RowSourceFields.Count : pivot.ColumnSourceFields.Count))
                     || string.IsNullOrWhiteSpace(pivot.SourceSheet) || string.IsNullOrWhiteSpace(pivot.SourceRange)
                     || !TryGetDestination(pivot.Location, out int destinationRow, out int destinationColumn)
                     || !TryBuildPivotFields(pivot, workbook, out var rows, out var columns, out var values)) {
@@ -373,6 +375,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     Rows = rows,
                     Columns = columns,
                     Values = values,
+                    ValueLayout = pivot.ValuesAxis == ExcelPivotTableAxis.AxisRow ? "VERTICAL" : "HORIZONTAL",
                 };
                 compilations.Add(new NativePivotCompilation(pivot.Location!, request));
             }
@@ -401,11 +404,11 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 headers[caption] = cell.Column - startColumn;
             }
             if (headers.Count == 0) return false;
-            if (pivot.RowFields.Any(field => !headers.ContainsKey(field))
-                || pivot.ColumnFields.Any(field => !headers.ContainsKey(field))
+            if (pivot.RowSourceFields.Any(field => !headers.ContainsKey(field))
+                || pivot.ColumnSourceFields.Any(field => !headers.ContainsKey(field))
                 || pivot.DataFields.Any(field => !headers.ContainsKey(field.FieldName))) return false;
-            rows = pivot.RowFields.Select(field => new GoogleSheetsPivotGroup { SourceColumnOffset = headers[field], ShowTotals = pivot.RowGrandTotals != false }).ToArray();
-            columns = pivot.ColumnFields.Select(field => new GoogleSheetsPivotGroup { SourceColumnOffset = headers[field], ShowTotals = pivot.ColumnGrandTotals != false }).ToArray();
+            rows = pivot.RowSourceFields.Select(field => new GoogleSheetsPivotGroup { SourceColumnOffset = headers[field], ShowTotals = pivot.RowGrandTotals != false }).ToArray();
+            columns = pivot.ColumnSourceFields.Select(field => new GoogleSheetsPivotGroup { SourceColumnOffset = headers[field], ShowTotals = pivot.ColumnGrandTotals != false }).ToArray();
             values = pivot.DataFields.Select(field => new GoogleSheetsPivotValue {
                 SourceColumnOffset = headers[field.FieldName],
                 SummarizeFunction = MapAggregate(field.Function),

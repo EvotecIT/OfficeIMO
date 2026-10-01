@@ -50,6 +50,39 @@ public partial class Excel {
             File.Delete(path);
         }
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SmallMetadataReadsDirectWorkbookPropertiesAndSheetsPastExtensions(bool strictNamespace) {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            const string entry = "xl/workbook.xml";
+            XDocument workbook = XDocument.Parse(Encoding.UTF8.GetString(ReadZipEntry(path, entry)));
+            XNamespace ns = workbook.Root!.Name.Namespace;
+            XNamespace extension = "urn:officeimo:workbook-extension";
+            workbook.Root.AddFirst(new XElement(extension + "container",
+                new XElement(ns + "sheets", new XElement(ns + "sheet", new XAttribute("name", "Ignored")))));
+            workbook.Root.AddFirst(new XElement(ns + "workbookPr", new XAttribute("date1904", "true")));
+            if (strictNamespace) {
+                XNamespace strict = "http://purl.oclc.org/ooxml/spreadsheetml/main";
+                workbook.Root.Attribute("xmlns")?.Remove();
+                foreach (XElement element in workbook.Descendants()) {
+                    if (element.Name.Namespace == ns) {
+                        element.Name = strict + element.Name.LocalName;
+                    }
+                }
+            }
+            ReplaceZipEntry(path, entry, Encoding.UTF8.GetBytes(workbook.ToString(SaveOptions.DisableFormatting)));
+
+            using XlsxTabularWorkbook native = XlsxTabularWorkbook.Open(path, new ExcelReadOptions());
+            Assert.Equal(ExcelDateSystem.NineteenFour, native.DateSystem);
+            Assert.Equal(new[] { "Data" }, native.TableNames);
+            Assert.Equal(new[] { "Data" }, ExcelDocument.GetSheetNames(path));
+        } finally {
+            File.Delete(path);
+        }
+    }
 }
 
 public class OpenXmlSmallPartTests {

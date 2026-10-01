@@ -527,7 +527,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     public async Task InspectRejectsAUnixFifoWithoutBlockingForAWriter() {
 #if NET8_0_OR_GREATER
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
-        string fifo = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pdf");
+        string fifo = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".txt");
         try {
             Assert.Equal(0, CreateWorkflowFifoUnix(fifo, 0x180));
 
@@ -675,6 +675,9 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         Assert.Contains("absolute file-based external provenance manifest", result.Summary, StringComparison.OrdinalIgnoreCase);
         Assert.False(verifier.SawRelativeManifest);
         Assert.Null(verifier.ObservedDirectory);
+        Assert.Equal(OfficeProvenanceCheckStatus.Completed, result.Checks.Structural);
+        Assert.Equal(OfficeProvenanceCheckStatus.NotRequested, result.Checks.TextIntegrity);
+        Assert.Equal(OfficeProvenanceCheckStatus.NotRequested, result.Checks.Verification);
     }
 
     [Fact]

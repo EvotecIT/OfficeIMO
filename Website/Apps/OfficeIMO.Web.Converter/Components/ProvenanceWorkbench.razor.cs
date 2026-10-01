@@ -119,11 +119,8 @@ public partial class ProvenanceWorkbench {
                 message = report.Evidence.Count == 0 ? "No supported provenance carriers were found. This is not proof of origin." : "Inspection complete. Choose which carrier categories to remove from a copy.";
             }
             if (!IsCurrent()) return;
-            byte[] reportBytes = JsonSerializer.SerializeToUtf8Bytes(new {
-                schemaVersion = 1, operation = remove ? "remove" : "inspect", fileName = file.Name,
-                before = removal?.Before ?? report, after = removal?.After, changes = removal?.Changes,
-                structuralOnly = true, externalReferencesFetched = false
-            }, new JsonSerializerOptions { WriteIndented = true });
+            byte[] reportBytes = System.Text.Encoding.UTF8.GetBytes(OfficeProvenanceReportSerializer.Serialize(
+                OfficeProvenanceReportSerializer.FromBuffer(file.Name, file.Bytes, report, removal)));
             string reportUrl = await urls.CreateAsync(reportBytes, "application/json");
             if (!IsCurrent()) return;
             if (file.Extension is ".jpg" or ".jpeg" or ".png" or ".webp") {

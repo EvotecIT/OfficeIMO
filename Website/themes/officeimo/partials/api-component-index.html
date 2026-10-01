@@ -1,5 +1,5 @@
 <section class="imo-api-family imo-api-component-index" aria-labelledby="api-all-components">
-  <div class="imo-api-family__heading"><p>Complete repository surface</p><h2 id="api-all-components">All {{ data.documentation_catalog.repository.productionComponentCount }} production components</h2><span>Generated API is shown where the assembly participates in the reference build. Focused adapters link to their owning guide and package instead of disappearing from the catalog.</span></div>
+  <div class="imo-api-family__heading"><p>Complete repository surface</p><h2 id="api-all-components">All {{ data.documentation_catalog.repository.productionComponentCount }} production components</h2><span>Search across packages to find a type or member, or open a reference below to browse its signatures and source documentation.</span></div>
   {{ for category in data.documentation_catalog.categories }}
   <details class="imo-api-component-group">
     <summary><strong>{{ category.name }}</strong><span>{{ category.componentCount }} components</span></summary>

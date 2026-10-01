@@ -188,6 +188,9 @@ namespace OfficeIMO.Excel {
                 case "ISTEXT":
                     matches = value.SourceCellKind == ExcelCellDataKind.Text || (value.Text != null && !value.Number.HasValue && !value.IsError);
                     break;
+                case "ISLOGICAL":
+                    matches = value.IsBoolean;
+                    break;
                 case "ISERROR":
                     matches = value.IsError;
                     break;
@@ -305,9 +308,14 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryEvaluateFormulaOrNumeric(string token, out double result) {
-            if (TryEvaluateFormula(token, out result) || TryResolveNumericOperand(token, out result)) {
+            if (TryEvaluateFormula(token, out result)) {
                 return true;
             }
+            // A blocked dependency cannot become calculable through another
+            // syntax path. Retrying it can multiply work in deep chains.
+            if (_formulaEvaluationGuardState?.DependencyGuardBlocked == true) return false;
+            if (TryResolveNumericOperand(token, out result)) return true;
+            if (_formulaEvaluationGuardState?.DependencyGuardBlocked == true) return false;
 
             if (TryResolveFormulaArgument(token, out FormulaArgumentValue value) && value.Number.HasValue) {
                 result = value.Number.Value;

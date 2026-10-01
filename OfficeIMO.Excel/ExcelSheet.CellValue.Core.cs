@@ -84,7 +84,7 @@ namespace OfficeIMO.Excel {
 
             var (cellValue, dataType) = CoerceForCell(value);
 
-            var cell = GetCell(row, column);
+            var cell = GetWritableValueCell(row, column);
             ClearCellValueMetadata(cell);
             cell.CellValue = cellValue;
             cell.DataType = dataType;
@@ -99,7 +99,7 @@ namespace OfficeIMO.Excel {
             }
 
             CoerceValueHelper.ValidateSharedStringLength(value!, nameof(value));
-            var cell = GetCell(row, column);
+            var cell = GetWritableValueCell(row, column);
             ClearCellValueMetadata(cell);
             string text = value!;
             if (TryGetCellValueSharedStringIndex(text, out int cachedSharedStringIndex, out bool cachedContainsLineBreak)) {
@@ -145,7 +145,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void CellEmptyStringValueCore(int row, int column) {
-            var cell = GetCell(row, column);
+            var cell = GetWritableValueCell(row, column);
             ClearCellValueMetadata(cell);
             cell.CellValue = new CellValue(string.Empty);
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String;
@@ -178,7 +178,7 @@ namespace OfficeIMO.Excel {
 
         private void CellDoubleValueCore(int row, int column, double value) {
             string text = InvariantNumberText.Get(value);
-            var cell = GetCell(row, column);
+            var cell = GetWritableValueCell(row, column);
             ClearCellValueMetadata(cell);
             cell.CellValue = new CellValue(text);
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
@@ -187,7 +187,7 @@ namespace OfficeIMO.Excel {
 
         private void CellDecimalValueCore(int row, int column, decimal value) {
             string text = value.ToString(CultureInfo.InvariantCulture);
-            var cell = GetCell(row, column);
+            var cell = GetWritableValueCell(row, column);
             ClearCellValueMetadata(cell);
             cell.CellValue = new CellValue(text);
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
@@ -195,7 +195,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void CellNumberTextValueCore(int row, int column, string text) {
-            var cell = GetCell(row, column);
+            var cell = GetWritableValueCell(row, column);
             ClearCellValueMetadata(cell);
             cell.CellValue = new CellValue(text);
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
@@ -203,7 +203,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void CellBooleanValueCore(int row, int column, bool value) {
-            var cell = GetCell(row, column);
+            var cell = GetWritableValueCell(row, column);
             ClearCellValueMetadata(cell);
             cell.CellValue = new CellValue(value ? "1" : "0");
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean;
@@ -213,7 +213,7 @@ namespace OfficeIMO.Excel {
         private void CellDateTimeValueCore(int row, int column, DateTime value) {
             double serial = ExcelDateSystemConverter.ToSerial(value, _excelDocument.DateSystem);
             string text = InvariantNumberText.Get(serial);
-            var cell = GetCell(row, column);
+            var cell = GetWritableValueCell(row, column);
             ClearCellValueMetadata(cell);
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
             cell.CellValue = new CellValue(text);
@@ -246,7 +246,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (numericText != null) {
-                var numericCell = GetCell(row, column);
+                var numericCell = GetWritableValueCell(row, column);
                 ClearCellValueMetadata(numericCell);
                 numericCell.CellValue = new CellValue(numericText);
                 numericCell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
@@ -262,7 +262,7 @@ namespace OfficeIMO.Excel {
 
             string fallbackText = value.ToString("o", CultureInfo.InvariantCulture);
             int sharedStringIndex = _excelDocument.GetSharedStringIndex(fallbackText, validateNewString: true, out bool containsLineBreak);
-            var fallbackCell = GetCell(row, column);
+            var fallbackCell = GetWritableValueCell(row, column);
             ClearCellValueMetadata(fallbackCell);
             SetExistingCellSharedStringValue(fallbackCell, sharedStringIndex, containsLineBreak);
             CompleteCellValueMutation(row, column);
@@ -273,7 +273,7 @@ namespace OfficeIMO.Excel {
             string text = InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(
                 value.ToDateTime(TimeOnly.MinValue),
                 _excelDocument.DateSystem));
-            var cell = GetCell(row, column);
+            var cell = GetWritableValueCell(row, column);
             ClearCellValueMetadata(cell);
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
             cell.CellValue = new CellValue(text);
@@ -286,7 +286,7 @@ namespace OfficeIMO.Excel {
 
         private void CellTimeOnlyValueCore(int row, int column, TimeOnly value) {
             string text = InvariantNumberText.Get(value.ToTimeSpan().TotalDays);
-            var cell = GetCell(row, column);
+            var cell = GetWritableValueCell(row, column);
             ClearCellValueMetadata(cell);
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
             cell.CellValue = new CellValue(text);
@@ -300,7 +300,7 @@ namespace OfficeIMO.Excel {
 
         private void CellFormulaCore(int row, int column, string formula) {
             var safe = Utilities.ExcelSanitizer.SanitizeFormula(formula);
-            Cell cell = GetCell(row, column);
+            Cell cell = GetWritableValueCell(row, column);
             bool retainsCachedValue = cell.CellValue != null;
             ClearCellValueMetadata(cell);
             // Excel formulas in XML should not start with '=' and must not include illegal control characters
@@ -318,7 +318,7 @@ namespace OfficeIMO.Excel {
         private void CellTimeSpanValueCore(int row, int column, TimeSpan value) {
             double serial = value.TotalDays;
             string text = InvariantNumberText.Get(serial);
-            var cell = GetCell(row, column);
+            var cell = GetWritableValueCell(row, column);
             ClearCellValueMetadata(cell);
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
             cell.CellValue = new CellValue(text);

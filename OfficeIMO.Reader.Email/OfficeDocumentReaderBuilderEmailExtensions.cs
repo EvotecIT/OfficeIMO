@@ -32,6 +32,8 @@ public static class OfficeDocumentReaderBuilderEmailExtensions {
             Extensions = new[] { ".eml", ".msg", ".oft", ".tnef" },
             ReadDocumentPath = (path, readerOptions, token) => EmailArtifactReaderAdapter.ReadDocument(path, readerOptions, configured, token),
             ReadDocumentStream = (stream, sourceName, readerOptions, token) => EmailArtifactReaderAdapter.ReadDocument(stream, sourceName, readerOptions, configured, token),
+            ReadDocumentPathAsync = (path, readerOptions, token) => EmailArtifactReaderAdapter.ReadDocumentAsync(path, readerOptions, configured, token),
+            ReadDocumentStreamAsync = (stream, sourceName, readerOptions, token) => EmailArtifactReaderAdapter.ReadDocumentAsync(stream, sourceName, readerOptions, configured, token),
             DefaultMaxInputBytes = configured.MessageOptions!.MaxInputBytes,
             WarningBehavior = ReaderWarningBehavior.Mixed,
             DeterministicOutput = true
@@ -46,6 +48,8 @@ public static class OfficeDocumentReaderBuilderEmailExtensions {
             Extensions = new[] { ".mbox", ".mbx" },
             ReadDocumentPath = (path, readerOptions, token) => EmailArtifactReaderAdapter.ReadDocument(path, readerOptions, configured, token),
             ReadDocumentStream = (stream, sourceName, readerOptions, token) => EmailArtifactReaderAdapter.ReadDocument(stream, sourceName, readerOptions, configured, token),
+            ReadDocumentPathAsync = (path, readerOptions, token) => EmailArtifactReaderAdapter.ReadDocumentAsync(path, readerOptions, configured, token),
+            ReadDocumentStreamAsync = (stream, sourceName, readerOptions, token) => EmailArtifactReaderAdapter.ReadDocumentAsync(stream, sourceName, readerOptions, configured, token),
             DefaultMaxInputBytes = configured.MailboxOptions!.MaxMailboxBytes,
             WarningBehavior = ReaderWarningBehavior.Mixed,
             DeterministicOutput = true
@@ -60,6 +64,8 @@ public static class OfficeDocumentReaderBuilderEmailExtensions {
             UseDetectedKindFallback = true,
             ReadDocumentPath = (path, readerOptions, token) => EmailArtifactReaderAdapter.ReadCalendarDocument(path, readerOptions, configured, token),
             ReadDocumentStream = (stream, sourceName, readerOptions, token) => EmailArtifactReaderAdapter.ReadCalendarDocument(stream, sourceName, readerOptions, configured, token),
+            ReadDocumentPathAsync = (path, readerOptions, token) => EmailArtifactReaderAdapter.ReadCalendarDocumentAsync(path, readerOptions, configured, token),
+            ReadDocumentStreamAsync = (stream, sourceName, readerOptions, token) => EmailArtifactReaderAdapter.ReadCalendarDocumentAsync(stream, sourceName, readerOptions, configured, token),
             DefaultMaxInputBytes = configured.ContentLineOptions!.MaxInputBytes,
             WarningBehavior = ReaderWarningBehavior.Mixed,
             DeterministicOutput = true
@@ -74,6 +80,8 @@ public static class OfficeDocumentReaderBuilderEmailExtensions {
             UseDetectedKindFallback = true,
             ReadDocumentPath = (path, readerOptions, token) => EmailArtifactReaderAdapter.ReadVCardDocument(path, readerOptions, configured, token),
             ReadDocumentStream = (stream, sourceName, readerOptions, token) => EmailArtifactReaderAdapter.ReadVCardDocument(stream, sourceName, readerOptions, configured, token),
+            ReadDocumentPathAsync = (path, readerOptions, token) => EmailArtifactReaderAdapter.ReadVCardDocumentAsync(path, readerOptions, configured, token),
+            ReadDocumentStreamAsync = (stream, sourceName, readerOptions, token) => EmailArtifactReaderAdapter.ReadVCardDocumentAsync(stream, sourceName, readerOptions, configured, token),
             DefaultMaxInputBytes = configured.ContentLineOptions!.MaxInputBytes,
             WarningBehavior = ReaderWarningBehavior.Mixed,
             DeterministicOutput = true

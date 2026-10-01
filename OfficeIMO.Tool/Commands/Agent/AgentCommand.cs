@@ -8,12 +8,17 @@ OfficeIMO.Tool - compact agent operations
 
 Usage:
   officeimo agent inspect <path> [--max-output-characters <512-64000>]
+  officeimo agent inspect-email <path> [--max-output-characters <512-64000>]
   officeimo agent search <path> [--query <text>] [--subject <text>] [--sender <text>] [--folder-id <id>]
                                [--since <ISO-8601>] [--before <ISO-8601>] [--has-attachments <bool>]
                                [--is-read <bool>] [--include-descendants] [--take <1-25>] [--cursor <n>]
                                [--max-output-characters <512-64000>]
   officeimo agent fetch --source-id <id> --id <result-id> [--path <original-path>] [--cursor <n>]
                          [--max-output-characters <512-64000>]
+  officeimo agent search-email <mailbox> --query <text> [--fields <names>] [--checkpoint <value>]
+                                     [--take <1-25>] [--max-items-scanned <1-10000>]
+                                     [--max-decoded-bytes <1-67108864>] [--max-searchable-characters <1-2000000>]
+                                     [--max-output-characters <512-64000>] [mailbox filters as above]
   officeimo agent convert <path> --output <file> [--format markdown|json] [--overwrite]
   officeimo agent capabilities [--extension <.ext>] [--operation create|read|edit|preserve|inspect|validate|remove|search|fetch|convert|export]
                                 [--cursor <n>] [--conversion-cursor <n>] [--max-output-characters <512-64000>]
@@ -42,6 +47,9 @@ Output is one compact JSON object. Inspect or search first, then fetch selected 
         try {
             var service = new OfficeImoAgentService();
             object result = parsed.Command switch {
+                AgentCommandKind.InspectEmail => await service.InspectEmailDataAsync(parsed.Path!,
+                    parsed.MaxOutputCharacters ?? OfficeImoAgentService.DefaultInspectOutputCharacters,
+                    cancellationToken).ConfigureAwait(false),
                 AgentCommandKind.Inspect => await service.InspectAsync(
                     parsed.Path!,
                     parsed.MaxOutputCharacters ?? OfficeImoAgentService.DefaultInspectOutputCharacters,
@@ -67,6 +75,12 @@ Output is one compact JSON object. Inspect or search first, then fetch selected 
                     parsed.Cursor,
                     parsed.MaxOutputCharacters ?? OfficeImoAgentService.DefaultFetchOutputCharacters,
                     parsed.Path,
+                    cancellationToken).ConfigureAwait(false),
+                AgentCommandKind.SearchEmail => await service.SearchEmailContentAsync(
+                    parsed.Path!, parsed.Query!, parsed.Fields, parsed.Checkpoint, parsed.Take, parsed.MaxItemsScanned,
+                    parsed.MaxDecodedBytes, parsed.MaxSearchableCharacters, parsed.Subject, parsed.Sender, parsed.FolderId,
+                    parsed.Since, parsed.Before, parsed.HasAttachments, parsed.IsRead, parsed.IncludeDescendants,
+                    parsed.MaxOutputCharacters ?? OfficeImoAgentService.DefaultSearchOutputCharacters,
                     cancellationToken).ConfigureAwait(false),
                 AgentCommandKind.Convert => await service.ConvertAsync(
                     parsed.Path!,

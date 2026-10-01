@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Faktura xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
+	<Naglowek>
+		<KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
+		<WariantFormularza>3</WariantFormularza>
+		<DataWytworzeniaFa>2026-02-15T09:30:47Z</DataWytworzeniaFa>
+		<SystemInfo>Samplofaktur</SystemInfo>
+	</Naglowek>
+	<Podmiot1>
+		<DaneIdentyfikacyjne>
+			<NIP>9999999999</NIP>
+			<Nazwa>ABC Leasing S.A.</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Kwiatowa 1 m. 2</AdresL1>
+			<AdresL2>00-001 Warszawa</AdresL2>
+		</Adres>
+		<DaneKontaktowe>
+			<Email>abc@abc.pl</Email>
+			<Telefon>667444555</Telefon>
+		</DaneKontaktowe>
+	</Podmiot1>
+	<Podmiot2>
+		<DaneIdentyfikacyjne>
+			<NIP>1111111111</NIP>
+			<Nazwa>Gmina Bzdziszewo</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>Bzdziszewo 1</AdresL1>
+			<AdresL2>00-007 Bzdziszewo</AdresL2>
+		</Adres>
+		<DaneKontaktowe>
+			<Email>bzdziszewo@tuwartoinwestowac.pl</Email>
+			<Telefon>555777999</Telefon>
+		</DaneKontaktowe>
+		<NrKlienta>fdfd778343</NrKlienta>
+		<JST>1</JST>
+		<GV>2</GV>
+	</Podmiot2>
+	<Podmiot3>
+		<DaneIdentyfikacyjne>
+			<NIP>2222222222</NIP>
+			<Nazwa>Szkoła Podstawowa w Bzdziszewie</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Akacjowa 200</AdresL1>
+			<AdresL2>00-007 Bzdziszewo</AdresL2>
+		</Adres>
+		<DaneKontaktowe>
+			<Email>sp@bzdziszewo.p</Email>
+			<Telefon>666888999</Telefon>
+		</DaneKontaktowe>
+		<Rola>8</Rola>
+	</Podmiot3>
+	<Fa>
+		<KodWaluty>PLN</KodWaluty>
+		<P_1>2026-02-15</P_1>
+		<P_1M>Warszawa</P_1M>
+		<P_2>FV2026/02/150</P_2>
+		<OkresFa>
+			<P_6_Od>2026-01-01</P_6_Od>
+			<P_6_Do>2026-01-01</P_6_Do>
+		</OkresFa>
+		<P_13_1>2000</P_13_1>
+		<P_14_1>460</P_14_1>
+		<P_13_7>300</P_13_7>
+		<P_15>2760</P_15>
+		<Adnotacje>
+			<P_16>2</P_16>
+			<P_17>2</P_17>
+			<P_18>2</P_18>
+			<P_18A>2</P_18A>
+			<Zwolnienie>
+				<P_19>1</P_19>
+				<P_19A>art. 43 ust. 1 pkt 37 ustawy VAT</P_19A>
+			</Zwolnienie>
+			<NoweSrodkiTransportu>
+				<P_22N>1</P_22N>
+			</NoweSrodkiTransportu>
+			<P_23>2</P_23>
+			<PMarzy>
+				<P_PMarzyN>1</P_PMarzyN>
+			</PMarzy>
+		</Adnotacje>
+		<RodzajFaktury>VAT</RodzajFaktury>
+		<DodatkowyOpis>
+			<Klucz>część odsetkowa raty</Klucz>
+			<Wartosc>netto 200, vat 46</Wartosc>
+		</DodatkowyOpis>
+		<FaWiersz>
+			<NrWierszaFa>1</NrWierszaFa>
+			<UU_ID>aaaa111133339990</UU_ID>
+			<P_7>rata leasingowa za 01/2026</P_7>
+			<P_8A>szt.</P_8A>
+			<P_8B>1</P_8B>
+			<P_9A>2000</P_9A>
+			<P_11>2000</P_11>
+			<P_12>23</P_12>
+		</FaWiersz>
+		<FaWiersz>
+			<NrWierszaFa>2</NrWierszaFa>
+			<UU_ID>aaaa111133339991</UU_ID>
+			<P_7>pakiet ubezpieczeń za 01/2026</P_7>
+			<P_8A>szt.</P_8A>
+			<P_8B>1</P_8B>
+			<P_9A>300</P_9A>
+			<P_11>300</P_11>
+			<P_12>zw</P_12>
+		</FaWiersz>
+		<Platnosc>
+			<TerminPlatnosci>
+				<Termin>2026-03-15</Termin>
+			</TerminPlatnosci>
+			<FormaPlatnosci>6</FormaPlatnosci>
+			<RachunekBankowy>
+				<NrRB>73111111111111111111111111</NrRB>
+				<NazwaBanku>Bank Bankowości Bankowej S. A.</NazwaBanku>
+				<OpisRachunku>PLN</OpisRachunku>
+			</RachunekBankowy>
+		</Platnosc>
+	</Fa>
+	<Stopka>
+		<Informacje>
+			<StopkaFaktury>Kapiał zakładowy 5 000 000</StopkaFaktury>
+		</Informacje>
+		<Rejestry>
+			<KRS>0000099999</KRS>
+			<REGON>999999999</REGON>
+			<BDO>000099999</BDO>
+		</Rejestry>
+	</Stopka>
+</Faktura>

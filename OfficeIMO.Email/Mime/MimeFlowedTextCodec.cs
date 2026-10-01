@@ -18,7 +18,7 @@ internal static class MimeFlowedTextCodec {
 
             while (IsFlowed(current) && index + 1 < lines.Length) {
                 FlowedLine next = Parse(lines[index + 1]);
-                if (next.QuoteDepth != current.QuoteDepth) break;
+                if (next.QuoteDepth != current.QuoteDepth || next.Content == "-- ") break;
 
                 output.Append(deleteSpace
                     ? current.Content.Substring(0, current.Content.Length - 1)
@@ -39,12 +39,11 @@ internal static class MimeFlowedTextCodec {
     }
 
     private static FlowedLine Parse(string physicalLine) {
-        string line = physicalLine.Length > 0 && physicalLine[0] == ' '
-            ? physicalLine.Substring(1)
-            : physicalLine;
         int quoteDepth = 0;
-        while (quoteDepth < line.Length && line[quoteDepth] == '>') quoteDepth++;
-        return new FlowedLine(line.Substring(0, quoteDepth), line.Substring(quoteDepth), quoteDepth);
+        while (quoteDepth < physicalLine.Length && physicalLine[quoteDepth] == '>') quoteDepth++;
+        int contentStart = quoteDepth;
+        if (contentStart < physicalLine.Length && physicalLine[contentStart] == ' ') contentStart++;
+        return new FlowedLine(physicalLine.Substring(0, quoteDepth), physicalLine.Substring(contentStart), quoteDepth);
     }
 
     private static bool IsFlowed(FlowedLine line) => line.Content.EndsWith(" ", StringComparison.Ordinal) &&

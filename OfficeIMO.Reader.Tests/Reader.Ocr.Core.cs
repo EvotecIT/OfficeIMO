@@ -6,6 +6,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
+[Collection(ReaderOcrCoreCollection.Name)]
 public sealed partial class ReaderOcrCoreTests {
     [Theory]
     [InlineData(true)]

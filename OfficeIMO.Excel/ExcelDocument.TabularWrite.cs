@@ -26,6 +26,9 @@ namespace OfficeIMO.Excel {
             if (writeRow == null) throw new ArgumentNullException(nameof(writeRow));
 
             options = CreateRowWriteOptions(options);
+            if (options.RequireStreaming && !CanWriteRowsSinglePass(options)) {
+                throw new ArgumentException("Streaming row exports require AutoFit=false and CreateTable=false.", nameof(options));
+            }
             if (options.AutoFit) {
                 throw new ArgumentException("Row-writer exports cannot calculate column widths before writing rows.", nameof(options));
             }
@@ -145,6 +148,7 @@ namespace OfficeIMO.Excel {
                 UseCellValueNumberFormats = options.UseCellValueNumberFormats,
                 IncludeCellReferences = options.IncludeCellReferences,
                 UseSharedStrings = false,
+                RequireStreaming = options.RequireStreaming,
                 DateSystem = options.DateSystem
             };
         }
@@ -215,6 +219,10 @@ namespace OfficeIMO.Excel {
             if (reader.FieldCount < 1) throw new ArgumentException("Data reader must expose at least one field.", nameof(reader));
 
             options ??= new ExcelTabularWriteOptions();
+            ct.ThrowIfCancellationRequested();
+            if (options.RequireStreaming && (options.UseSharedStrings || options.AutoFit || (options.CreateTable && !options.IncludeHeaders))) {
+                throw new ArgumentException("Streaming data reader exports require UseSharedStrings=false, AutoFit=false, and headers when creating a table.", nameof(options));
+            }
             string[] headers = ExcelSheet.BuildReaderHeaders(reader);
             Type[] fieldTypes = ExcelSheet.BuildReaderFieldTypes(reader);
             string[] columnNames = ExcelSheet.BuildDirectReaderColumnNames(headers, options.IncludeHeaders);

@@ -15,6 +15,7 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
     private readonly Action<int>? _afterValueRead;
     private readonly bool _throwOnGetDataTypeName;
     private readonly bool _throwOnTypedGetters;
+    private readonly bool _supportGetValues;
     private int _rowIndex = -1;
     private bool _closed;
 
@@ -29,7 +30,8 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
         Action? afterEnd = null,
         Action<int>? afterValueRead = null,
         bool throwOnGetDataTypeName = false,
-        bool throwOnTypedGetters = false)
+        bool throwOnTypedGetters = false,
+        bool supportGetValues = false)
     {
         _headers = headers ?? throw new ArgumentNullException(nameof(headers));
         _rows = rows ?? throw new ArgumentNullException(nameof(rows));
@@ -39,6 +41,7 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
         _afterValueRead = afterValueRead;
         _throwOnGetDataTypeName = throwOnGetDataTypeName;
         _throwOnTypedGetters = throwOnTypedGetters;
+        _supportGetValues = supportGetValues;
     }
 
     public override object this[int ordinal] => GetValue(ordinal);
@@ -124,7 +127,21 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
         return value ?? DBNull.Value;
     }
 
-    public override int GetValues(object[] values) => throw new NotSupportedException("GetValues should not be required for CSV data reader export.");
+    public override int GetValues(object[] values)
+    {
+        if (!_supportGetValues)
+        {
+            throw new NotSupportedException("GetValues should not be required for CSV data reader export.");
+        }
+
+        int count = Math.Min(values.Length, FieldCount);
+        for (int i = 0; i < count; i++)
+        {
+            values[i] = GetValue(i);
+        }
+
+        return count;
+    }
 
     public override bool IsDBNull(int ordinal)
     {

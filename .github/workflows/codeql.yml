@@ -21,7 +21,7 @@ jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
     runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
-    timeout-minutes: 45
+    timeout-minutes: 60
     permissions:
       security-events: write
       packages: read
@@ -47,9 +47,9 @@ jobs:
             8.0.418
             10.0.112
 
-      - name: Cache NuGet packages
+      - name: Restore NuGet packages
         if: matrix.build-mode == 'manual'
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}

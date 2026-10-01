@@ -635,11 +635,10 @@ namespace OfficeIMO.Tests {
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(7, before.TotalFormulas);
-                Assert.Equal(6, before.SupportedFormulas);
+                Assert.Equal(7, before.SupportedFormulas);
                 Assert.Contains("DATEDIF", before.Capabilities.SupportedFunctions);
-                Assert.Contains(before.Formulas, formula => formula.CellReference == "D7" && !formula.IsSupportedByOfficeIMO);
 
-                Assert.Equal(6, document.Calculate());
+                Assert.Equal(7, document.Calculate());
                 ExcelFormulaInspection after = document.InspectFormulas();
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "D1" && formula.CachedValue == "6");
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "D2" && formula.CachedValue == "76");
@@ -647,6 +646,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "D4" && formula.CachedValue == "4");
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "D5" && formula.CachedValue == "133");
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "D6" && formula.CachedValue == "13");
+                Assert.Contains(after.Formulas, formula => formula.CellReference == "D7" && formula.CachedValue == "#NUM!");
                 document.Save();
             }
 
@@ -677,12 +677,11 @@ namespace OfficeIMO.Tests {
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(8, before.TotalFormulas);
-                Assert.Equal(6, before.SupportedFormulas);
+                Assert.Equal(7, before.SupportedFormulas);
                 Assert.Contains("YEARFRAC", before.Capabilities.SupportedFunctions);
-                Assert.Contains(before.Formulas, formula => formula.CellReference == "D7" && !formula.IsSupportedByOfficeIMO);
                 Assert.Contains(before.Formulas, formula => formula.CellReference == "D8" && !formula.IsSupportedByOfficeIMO);
 
-                Assert.Equal(6, document.Calculate());
+                Assert.Equal(7, document.Calculate());
                 ExcelFormulaInspection after = document.InspectFormulas();
                 AssertCachedNumber(after, "D1", 1d);
                 AssertCachedNumber(after, "D2", 1d);
@@ -690,6 +689,7 @@ namespace OfficeIMO.Tests {
                 AssertCachedNumber(after, "D4", 366d / 365d);
                 AssertCachedNumber(after, "D5", 29d / 360d);
                 AssertCachedNumber(after, "D6", 29d / 360d);
+                AssertCachedNumber(after, "D7", 1d);
                 document.Save();
             }
 

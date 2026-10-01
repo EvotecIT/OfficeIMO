@@ -1,0 +1,95 @@
+﻿{
+    "producer":  "Microsoft Excel",
+    "version":  "16.0",
+    "build":  20326,
+    "generatedUtc":  "2026-09-27T21:53:30.3304914Z",
+    "file":  "dynamic-spills.xlsx",
+    "sha256":  "d59532c5e5229796cc287dd75587f187db910d173ca155ffc144f9107f271ee7",
+    "observations":  [
+                         {
+                             "sheet":  "Initial",
+                             "anchor":  "G1",
+                             "formula":  "=SEQUENCE(A1,B1)",
+                             "text":  "1"
+                         },
+                         {
+                             "sheet":  "Grown",
+                             "anchor":  "G1",
+                             "formula":  "=SEQUENCE(A1,B1)",
+                             "text":  "1"
+                         },
+                         {
+                             "sheet":  "Shrunk",
+                             "anchor":  "G1",
+                             "formula":  "=SEQUENCE(A1,B1)",
+                             "text":  "1"
+                         },
+                         {
+                             "sheet":  "Blocked",
+                             "anchor":  "G1",
+                             "formula":  "=SEQUENCE(A1,B1)",
+                             "text":  "#SPILL!"
+                         },
+                         {
+                             "sheet":  "Recovered",
+                             "anchor":  "G1",
+                             "formula":  "=SEQUENCE(A1,B1)",
+                             "text":  "1"
+                         },
+                         {
+                             "sheet":  "Merged",
+                             "anchor":  "G1",
+                             "formula":  "=SEQUENCE(A1,B1)",
+                             "text":  "#SPILL!"
+                         },
+                         {
+                             "sheet":  "Table",
+                             "anchor":  "G1",
+                             "formula":  "=SEQUENCE(A1,B1)",
+                             "text":  "#SPILL!"
+                         },
+                         {
+                             "sheet":  "Edge",
+                             "anchor":  "XFD1048576",
+                             "formula":  "=SEQUENCE(2,2)",
+                             "text":  "#SPILL!"
+                         },
+                         {
+                             "sheet":  "EmptyFilter",
+                             "anchor":  "G1",
+                             "formula":  "=FILTER(A1:A4,D1:D4)",
+                             "text":  "#CALC!"
+                         },
+                         {
+                             "sheet":  "EmptyUnique",
+                             "anchor":  "G1",
+                             "formula":  "=UNIQUE(A1:A4,FALSE,TRUE)",
+                             "text":  "#CALC!"
+                         },
+                         {
+                             "sheet":  "ZeroRows",
+                             "anchor":  "G1",
+                             "formula":  "=SEQUENCE(0)",
+                             "text":  "#CALC!"
+                         },
+                         {
+                             "sheet":  "NegativeRows",
+                             "anchor":  "G1",
+                             "formula":  "=SEQUENCE(-1)",
+                             "text":  "#VALUE!"
+                         },
+                         {
+                             "sheet":  "ZeroColumns",
+                             "anchor":  "G1",
+                             "formula":  "=SEQUENCE(1,0)",
+                             "text":  "#CALC!"
+                         },
+                         {
+                             "sheet":  "NegativeColumns",
+                             "anchor":  "G1",
+                             "formula":  "=SEQUENCE(1,-1)",
+                             "text":  "#VALUE!"
+                         }
+                     ],
+    "regeneration":  "Build/Verification/New-ExcelDynamicSpillOracle.ps1"
+}

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.evotecit/officeimo",
+  "title": "OfficeIMO Document Tools",
+  "description": "Inspect, search, fetch, and convert local documents and mail stores with bounded access.",
+  "version": "3.4.4",
+  "repository": {
+    "url": "https://github.com/EvotecIT/OfficeIMO",
+    "source": "github",
+    "subfolder": "OfficeIMO.Tool"
+  },
+  "websiteUrl": "https://officeimo.com/",
+  "packages": [
+    {
+      "registryType": "nuget",
+      "registryBaseUrl": "https://api.nuget.org/v3/index.json",
+      "identifier": "OfficeIMO.Tool",
+      "version": "3.4.4",
+      "runtimeHint": "dnx",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        { "type": "positional", "value": "mcp" },
+        { "type": "positional", "value": "serve" },
+        { "type": "positional", "value": "--stdio" }
+      ],
+      "environmentVariables": [
+        {
+          "name": "OFFICEIMO_MCP_ALLOWED_ROOTS",
+          "description": "Authorized document and output folders. Separate roots with ':' on macOS/Linux or ';' on Windows. Requires .NET SDK 10.0.100 or later for dotnet dnx.",
+          "format": "string",
+          "isRequired": true,
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}

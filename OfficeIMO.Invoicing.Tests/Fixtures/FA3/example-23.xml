@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Faktura xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
+	<Naglowek>
+		<KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
+		<WariantFormularza>3</WariantFormularza>
+		<DataWytworzeniaFa>2026-02-01T00:00:00Z</DataWytworzeniaFa>
+		<SystemInfo>SamploFaktur</SystemInfo>
+	</Naglowek>
+	<Podmiot1>
+		<DaneIdentyfikacyjne>
+			<NIP>9999999999</NIP>
+			<Nazwa>ABC AGD sp. z o. o.</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Kwiatowa 1 m. 2</AdresL1>
+			<AdresL2>00-001 Warszawa</AdresL2>
+		</Adres>
+		<DaneKontaktowe>
+			<Email>abc@abc.pl</Email>
+			<Telefon>667444555</Telefon>
+		</DaneKontaktowe>
+	</Podmiot1>
+	<Podmiot2>
+		<DaneIdentyfikacyjne>
+			<KodKraju>US</KodKraju>
+			<NrID>999999999</NrID>
+			<Nazwa>EFG Ltd.</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>US</KodKraju>
+			<AdresL1>Flower (St) 1</AdresL1>
+			<AdresL2>Seattle, WA 99999</AdresL2>
+		</Adres>
+		<DaneKontaktowe>
+			<Email>john@smith.us</Email>
+			<Telefon>555777999</Telefon>
+		</DaneKontaktowe>
+		<JST>2</JST>
+		<GV>2</GV>
+	</Podmiot2>
+	<Fa>
+		<KodWaluty>USD</KodWaluty>
+		<P_1>2026-06-15</P_1>
+		<P_1M>Warszawa</P_1M>
+		<P_2>FV2026/02/150</P_2>
+		<P_13_6_3>8000</P_13_6_3>
+		<P_15>8000</P_15>
+		<Adnotacje>
+			<P_16>2</P_16>
+			<P_17>2</P_17>
+			<P_18>2</P_18>
+			<P_18A>2</P_18A>
+			<Zwolnienie>
+				<P_19N>1</P_19N>
+			</Zwolnienie>
+			<NoweSrodkiTransportu>
+				<P_22N>1</P_22N>
+			</NoweSrodkiTransportu>
+			<P_23>2</P_23>
+			<PMarzy>
+				<P_PMarzyN>1</P_PMarzyN>
+			</PMarzy>
+		</Adnotacje>
+		<RodzajFaktury>VAT</RodzajFaktury>
+		<FaWiersz>
+			<NrWierszaFa>1</NrWierszaFa>
+			<UU_ID>aaaa111133339990</UU_ID>
+			<P_6A>2026-01-03</P_6A>
+			<P_7>lodówka Zimnotech mk1</P_7>
+			<P_8A>szt.</P_8A>
+			<P_8B>20</P_8B>
+			<P_9A>400</P_9A>
+			<P_11>8000</P_11>
+			<P_12>0 EX</P_12>
+		</FaWiersz>
+	</Fa>
+	<Stopka>
+		<Informacje>
+			<StopkaFaktury>Kapiał zakładowy 5 000 000</StopkaFaktury>
+		</Informacje>
+		<Rejestry>
+			<KRS>0000099999</KRS>
+			<REGON>999999999</REGON>
+			<BDO>000099999</BDO>
+		</Rejestry>
+	</Stopka>
+</Faktura>

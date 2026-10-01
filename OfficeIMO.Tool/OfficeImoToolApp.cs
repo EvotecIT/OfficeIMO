@@ -1,6 +1,7 @@
 using OfficeIMO.Tool.Commands.Agent;
 using OfficeIMO.Tool.Commands.Convert;
 using OfficeIMO.Tool.Commands.Html;
+using OfficeIMO.Tool.Commands.Invoice;
 using OfficeIMO.Tool.Commands.Markup;
 using OfficeIMO.Tool.Commands.Mcp;
 using OfficeIMO.Tool.Commands.Pdf;
@@ -27,6 +28,7 @@ Usage:
   officeimo markup <command> [options]
   officeimo tabular <command> [options]
   officeimo workflow <command> [options]
+  officeimo invoice <command> [options]
   officeimo pdf redact <plan|apply|verify> [options]
   officeimo provenance <command> [options]
   officeimo agent <command> [options]
@@ -134,6 +136,10 @@ Run 'officeimo <area> --help' for area-specific commands and options.
                         provenanceOutput,
                         standardError,
                         cancellationToken).ConfigureAwait(false);
+                }
+            case "invoice":
+                using (var invoiceOutput = CreateUtf8Writer(standardOutput)) {
+                    return await InvoiceCommand.RunAsync(commandArguments, invoiceOutput, standardError, cancellationToken).ConfigureAwait(false);
                 }
             case "agent":
                 return await RunAgentAsync(

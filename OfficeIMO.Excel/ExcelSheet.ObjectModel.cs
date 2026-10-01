@@ -32,13 +32,22 @@ namespace OfficeIMO.Excel {
                 return new ExcelCellData(ExcelCellDataKind.Blank, null);
             }
 
-            string? cached = cell.CellValue?.Text;
+            string? cached = ResolveRichValueError(cell, cell.CellValue?.Text);
+            var type = cell.DataType?.Value;
             if (cell.CellFormula != null) {
-                var cacheType = cell.DataType?.Value;
-                object? formulaValue = (cacheType == null || cacheType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number)
-                    && double.TryParse(cached, NumberStyles.Float, CultureInfo.InvariantCulture, out double cachedNumber)
-                    ? cachedNumber
-                    : cached;
+                object? formulaValue = cached;
+                if (cached != null) {
+                    if (type == DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean) {
+                        formulaValue = cached == "1" || string.Equals(cached, "true", StringComparison.OrdinalIgnoreCase);
+                    } else if (type == DocumentFormat.OpenXml.Spreadsheet.CellValues.String
+                        || type == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString
+                        || type == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
+                        formulaValue = GetCellText(cell);
+                    } else if (type != DocumentFormat.OpenXml.Spreadsheet.CellValues.Error
+                        && double.TryParse(cached, NumberStyles.Float, CultureInfo.InvariantCulture, out double cachedNumber)) {
+                        formulaValue = cachedNumber;
+                    }
+                }
                 return new ExcelCellData(ExcelCellDataKind.Formula, formulaValue, cell.CellFormula.Text, cached);
             }
 
@@ -46,7 +55,6 @@ namespace OfficeIMO.Excel {
                 return new ExcelCellData(ExcelCellDataKind.Blank, null);
             }
 
-            var type = cell.DataType?.Value;
             if (type == DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean) {
                 return new ExcelCellData(ExcelCellDataKind.Boolean, cached == "1" || string.Equals(cached, "true", StringComparison.OrdinalIgnoreCase), cachedText: cached);
             }
@@ -126,6 +134,9 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 var ws = WorksheetRoot;
                 bool worksheetChanged = false;
+
+                if (options.HasFlag(ExcelClearOptions.Values) || options.HasFlag(ExcelClearOptions.Formulas))
+                    EnsureDynamicArrayRangeWritable(r1, c1, r2, c2);
 
                 if (clearCellFields) {
                     worksheetChanged |= ClearExistingCellFieldsInRange((r1, c1, r2, c2), options);

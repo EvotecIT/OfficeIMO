@@ -16,8 +16,10 @@ public enum StudioWorkspaceMode {
     Convert,
     Output,
     DocumentHealth,
+    Provenance,
     Settings,
-    Jobs
+    Jobs,
+    Invoices
 }
 
 public enum StudioDocumentMode {
@@ -38,8 +40,10 @@ public sealed partial class MainWindowViewModel {
     [NotifyPropertyChangedFor(nameof(IsConversionMode))]
     [NotifyPropertyChangedFor(nameof(IsOutputMode))]
     [NotifyPropertyChangedFor(nameof(IsDocumentHealthMode))]
+    [NotifyPropertyChangedFor(nameof(IsProvenanceMode))]
     [NotifyPropertyChangedFor(nameof(IsSettingsMode))]
     [NotifyPropertyChangedFor(nameof(IsJobsMode))]
+    [NotifyPropertyChangedFor(nameof(IsInvoiceMode))]
     [NotifyPropertyChangedFor(nameof(ShowPdfDocumentControls))]
     private StudioWorkspaceMode _workspaceMode;
 
@@ -54,7 +58,12 @@ public sealed partial class MainWindowViewModel {
 
     public ConversionWorkbenchViewModel ConversionWorkbench { get; private set; } = null!;
 
+    public InvoiceWorkbenchViewModel InvoiceWorkbench { get; private set; } = null!;
+
     public OutputIntakeWorkbenchViewModel OutputWorkbench { get; private set; } = null!;
+
+    public ProvenanceWorkbenchViewModel ProvenanceWorkbench { get; private set; } = null!;
+    public bool IsProvenanceMode => WorkspaceMode == StudioWorkspaceMode.Provenance;
 
     public DocumentHealthViewModel DocumentHealth { get; private set; } = null!;
 
@@ -69,6 +78,7 @@ public sealed partial class MainWindowViewModel {
     public bool IsOcrMode => WorkspaceMode == StudioWorkspaceMode.Ocr;
     public bool ShowPdfDocumentControls => IsPdfWorkspaceMode && HasDocument;
     public bool IsConversionMode => WorkspaceMode == StudioWorkspaceMode.Convert;
+    public bool IsInvoiceMode => WorkspaceMode == StudioWorkspaceMode.Invoices;
     public bool IsOutputMode => WorkspaceMode == StudioWorkspaceMode.Output;
     public bool IsDocumentHealthMode => WorkspaceMode == StudioWorkspaceMode.DocumentHealth;
     public bool IsSettingsMode => WorkspaceMode == StudioWorkspaceMode.Settings;
@@ -137,7 +147,13 @@ public sealed partial class MainWindowViewModel {
     private void ShowSettings() => WorkspaceMode = StudioWorkspaceMode.Settings;
 
     [RelayCommand]
+    private void ShowProvenance() => WorkspaceMode = StudioWorkspaceMode.Provenance;
+
+    [RelayCommand]
     private void ShowConversionWorkbench() => WorkspaceMode = StudioWorkspaceMode.Convert;
+
+    [RelayCommand]
+    private void ShowInvoiceWorkbench() => WorkspaceMode = StudioWorkspaceMode.Invoices;
 
     [RelayCommand]
     private void ShowPrintPreview() {
@@ -246,7 +262,9 @@ public sealed partial class MainWindowViewModel {
     private void OnWorkflowPropertyChanged(object? sender, PropertyChangedEventArgs e) {
         if (e.PropertyName == nameof(ConversionWorkbenchViewModel.IsBusy) ||
             e.PropertyName == nameof(OutputIntakeWorkbenchViewModel.IsBusy) ||
+            e.PropertyName == nameof(InvoiceWorkbenchViewModel.IsBusy) ||
             e.PropertyName == nameof(DocumentHealthViewModel.IsBusy) ||
+            e.PropertyName == nameof(ProvenanceWorkbenchViewModel.IsBusy) ||
             e.PropertyName == nameof(SearchablePdfOcrViewModel.IsBusy)) {
             OnPropertyChanged(nameof(CanCancelOperation));
         }

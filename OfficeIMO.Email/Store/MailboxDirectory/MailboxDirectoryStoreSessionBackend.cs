@@ -74,16 +74,17 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
                 "The item reference does not belong to this mailbox-directory session.");
         }
         bool includeAttachmentContent = options.Includes(EmailStoreItemReadParts.AttachmentContent);
+        bool includeEmbeddedMessages = options.Includes(EmailStoreItemReadParts.EmbeddedItems);
         using (FileStream stream = OpenRegularMailboxFile(file.Path)) {
             EmailDocument document;
             if (file.IsEmlx) {
-                EmailStoreReadResult result = new EmlxStoreReader(_options, includeAttachmentContent)
+                EmailStoreReadResult result = new EmlxStoreReader(_options, includeAttachmentContent, options.MaxDecodedPropertyBytes, includeEmbeddedMessages)
                     .Read(stream, Path.GetFileName(file.Path), cancellationToken);
                 foreach (EmailStoreDiagnostic diagnostic in result.Diagnostics) _diagnostics.Add(diagnostic);
                 document = result.Store.Folders.SelectMany(folder => folder.Items).Single().Document;
             } else {
                 EmailReadResult result = EmailStoreMessageReader.Read(stream, _options, cancellationToken,
-                    includeAttachmentContent);
+                    includeAttachmentContent, options.MaxDecodedPropertyBytes, includeEmbeddedMessages);
                 CopyDiagnostics(result.Diagnostics, file.RelativePath);
                 document = result.Document;
             }
@@ -94,6 +95,7 @@ internal sealed class MailboxDirectoryStoreSessionBackend : IEmailStoreSessionBa
             ApplyMaildirFlags(document, file.MaildirFlags);
             EmailStoreItemReadParts loadedParts = EmailStoreItemReadParts.All;
             if (!includeAttachmentContent) loadedParts &= ~EmailStoreItemReadParts.AttachmentContent;
+            if (!includeEmbeddedMessages) loadedParts &= ~EmailStoreItemReadParts.EmbeddedItems;
             return new EmailStoreItem(file.Id, file.FolderId, document,
                 loadedParts: loadedParts, format: EmailStoreFormat.MailboxDirectory);
         }

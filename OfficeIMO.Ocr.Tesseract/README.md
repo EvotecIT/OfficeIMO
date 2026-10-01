@@ -57,6 +57,40 @@ The provider parses Tesseract TSV into line and word spans with pixel bounding b
 
 Per-request payload and output files use owner-only Unix directories and permissions. Temporary files are deleted by default; enable `KeepTemporaryFiles` only for controlled diagnostics.
 
+## Bounded segmentation retries
+
+Use two segmentation configurations over the same image when the baseline word evidence is weak. This example provisions checksum-pinned English data through the existing language catalog and resolves the installed native executable:
+
+```csharp
+using OfficeIMO.Ocr;
+using OfficeIMO.Ocr.Tesseract;
+
+TesseractOcrEngine installed = TesseractOcrEngine.CreateDefault();
+TesseractLanguageDataResult data = await TesseractLanguageData.EnsureAsync("eng");
+TesseractOcrEngine Variant(int mode) => new(new TesseractOcrEngineOptions {
+    ExecutablePath = installed.ExecutablePath,
+    TessdataDirectory = data.Directory,
+    Language = "eng",
+    PageSegmentationMode = mode,
+    Timeout = TimeSpan.FromSeconds(30)
+});
+
+var adaptive = new AdaptiveOcrEngine("tesseract-document", new[] {
+    new OcrRecognitionAttempt("automatic", Variant(3)),
+    new OcrRecognitionAttempt("text-block", Variant(6))
+}, timeout: TimeSpan.FromSeconds(45));
+
+AdaptiveOcrResult recognition = await adaptive.RecognizeWithReviewAsync(new OcrRequest {
+    Payload = await File.ReadAllBytesAsync("scan.png"),
+    MediaType = "image/png",
+    Language = "eng"
+});
+Console.WriteLine(recognition.Result.Text);
+Console.WriteLine($"Review recommended: {recognition.ReviewRecommended}");
+```
+
+`adaptive` can also serve as the engine in Reader and PDF OCR. Retries do not deskew, crop, resize, or silently approve text. Provider confidence and a retained word count do not establish recognition accuracy. Use the [shared review policy](../OfficeIMO.Ocr/README.md#retry-weak-recognition-evidence) and the [hash-bound native scorecard](../OfficeIMO.TestAssets/OcrQuality/README.md) to choose and evaluate a policy for your documents.
+
 ## Detect page orientation
 
 The engine advertises `SupportsOrientationDetection`. Set `OcrRequest.Operation` to `OcrOperation.DetectOrientation` and run it through `OcrEngineRunner` to share the same timeout and concurrency rules as text recognition. The provider uses Tesseract's page segmentation mode 0 with `osd` trained data and returns `OcrResult.Orientation`.

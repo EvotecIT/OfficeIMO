@@ -2062,7 +2062,7 @@ namespace OfficeIMO.Tests {
                 var row = Assert.Single(reader.GetSheet("Data").ReadObjects<DateStyledNumericTypedRow>("A1:C2", ExcelExecutionMode.Parallel));
 
                 Assert.Equal(serialValue, row.NumericValue);
-                DateTime expectedDate = ExcelDateSystemConverter.FromSerial(serialValue, ExcelDateSystem.NineteenFour);
+                DateTime expectedDate = DateTime.FromOADate(serialValue);
                 Assert.Equal(expectedDate, row.DateValue);
                 Assert.Equal(expectedDate.ToString(CultureInfo.InvariantCulture), row.TextValue);
             } finally {

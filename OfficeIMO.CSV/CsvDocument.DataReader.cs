@@ -186,99 +186,6 @@ public sealed partial class CsvDocument
     }
 
 #if NET8_0_OR_GREATER
-    /// <summary>
-    /// Asynchronously reads a bounded CSV file snapshot and opens a forward-only data reader over it.
-    /// Subsequent <see cref="DbDataReader.ReadAsync(CancellationToken)"/> calls are memory-backed and
-    /// therefore do not block on file I/O.
-    /// </summary>
-    /// <param name="path">Source CSV path.</param>
-    /// <param name="loadOptions">CSV load and input-bound options.</param>
-    /// <param name="readerOptions">Reader projection options. When omitted, all columns are emitted as strings.</param>
-    /// <param name="cancellationToken">Cancels asynchronous file reading and parsing.</param>
-    /// <returns>A memory-backed data reader. The caller owns the returned reader.</returns>
-    public static async Task<DbDataReader> OpenDataReaderAsync(
-        string path,
-        CsvLoadOptions? loadOptions = null,
-        CsvDataReaderOptions? readerOptions = null,
-        CancellationToken cancellationToken = default)
-    {
-        ValidateAsyncReaderOptions(readerOptions);
-        CsvLoadOptions resolved = loadOptions?.Clone() ?? new CsvLoadOptions();
-        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
-            cancellationToken,
-            resolved.CancellationToken);
-        CancellationToken effectiveCancellation = linkedCancellation.Token;
-        resolved.CancellationToken = effectiveCancellation;
-        resolved.Mode = CsvLoadMode.InMemory;
-        CsvDocument document = await LoadAsync(path, resolved, effectiveCancellation).ConfigureAwait(false);
-        DbDataReader reader = document.CreateDataReader(readerOptions, effectiveCancellation);
-        return ReturnAfterCancellationCheck(reader, effectiveCancellation);
-    }
-
-    /// <summary>
-    /// Asynchronously reads a bounded snapshot from a caller-owned stream and opens a forward-only
-    /// data reader over it. Disposing the returned reader does not dispose the source stream.
-    /// </summary>
-    /// <param name="stream">Readable source stream.</param>
-    /// <param name="loadOptions">CSV load and input-bound options.</param>
-    /// <param name="readerOptions">Reader projection options. When omitted, all columns are emitted as strings.</param>
-    /// <param name="cancellationToken">Cancels asynchronous stream reading and parsing.</param>
-    /// <returns>A memory-backed data reader. The caller owns the returned reader.</returns>
-    public static async Task<DbDataReader> OpenDataReaderAsync(
-        Stream stream,
-        CsvLoadOptions? loadOptions = null,
-        CsvDataReaderOptions? readerOptions = null,
-        CancellationToken cancellationToken = default)
-    {
-        ValidateAsyncReaderOptions(readerOptions);
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
-        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
-        CsvLoadOptions resolved = loadOptions?.Clone() ?? new CsvLoadOptions();
-        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
-            cancellationToken,
-            resolved.CancellationToken);
-        CancellationToken effectiveCancellation = linkedCancellation.Token;
-        resolved.CancellationToken = effectiveCancellation;
-        resolved.Mode = CsvLoadMode.InMemory;
-        long startPosition = stream.CanSeek ? stream.Position : 0;
-        byte[] snapshot;
-        try
-        {
-            snapshot = await OfficeIMO.Core.Internal.OfficeStreamReader.ReadRemainingBytesAsync(
-                stream,
-                effectiveCancellation,
-                resolved.MaxInputBytes).ConfigureAwait(false);
-        }
-        finally
-        {
-            if (stream.CanSeek)
-            {
-                stream.Position = startPosition;
-            }
-        }
-
-        using var snapshotStream = new MemoryStream(snapshot, writable: false);
-        CsvDocument document = Load(snapshotStream, resolved);
-        DbDataReader reader = document.CreateDataReader(readerOptions, effectiveCancellation);
-        return ReturnAfterCancellationCheck(reader, effectiveCancellation);
-    }
-
-    private static DbDataReader ReturnAfterCancellationCheck(
-        DbDataReader reader,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            return reader;
-        }
-        catch
-        {
-            reader.Dispose();
-            throw;
-        }
-    }
-
     private static void ValidateAsyncReaderOptions(CsvDataReaderOptions? readerOptions)
     {
         if (readerOptions is { SchemaSampleSize: <= 0 })
@@ -515,7 +422,8 @@ public sealed partial class CsvDocument
             _dateTimeFormats,
             _delimiter,
             _mappingErrorValuePolicy,
-            _rowsAreParsedStringsOnly), options);
+            _rowsAreParsedStringsOnly,
+            delimiterText: DelimiterText), options);
     }
 
     private static bool CanUseSinglePassFileDataReader(CsvLoadOptions options, CsvDataReaderOptions readerOptions) =>
@@ -830,7 +738,7 @@ public sealed partial class CsvDocument
                 EnumerateSampledThenRemainingRows(sampledRows, rowOwner),
                 _culture,
                 _dateTimeFormats,
-                _streamingSource.Options.Delimiter,
+                CsvParser.GetDelimiterChar(_streamingSource.Options),
                 _streamingSource.Options.MappingErrorValuePolicy,
                 rowOwner: rowOwner,
                 operationCancellationOptions: inferenceOptions);

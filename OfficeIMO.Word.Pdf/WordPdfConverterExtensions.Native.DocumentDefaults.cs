@@ -5,7 +5,9 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private readonly record struct NativeDocumentDefaults(string? FontFamily, string? Language, double FontSize, double ParagraphLineHeight, double ParagraphSpacingBefore, bool ParagraphSpacingBeforeDeclared, double ParagraphSpacingAfter, bool ParagraphSpacingAfterDeclared, bool ParagraphWidowControl, double? DefaultTabStopWidth) {
-            public static NativeDocumentDefaults WordDefault { get; } = new(null, null, 11D, NativeDefaultParagraphLineHeight, 0D, false, NativeDefaultParagraphSpacingAfter, false, true, null);
+            public NativeComplexScriptDefaults ComplexScript { get; init; }
+            // A missing docDefaults element follows Word's 12pt application fallback.
+            public static NativeDocumentDefaults WordDefault { get; } = new(null, null, 12D, NativeDefaultParagraphLineHeight, 0D, false, NativeDefaultParagraphSpacingAfter, false, true, null);
         }
 
         private static NativeDocumentDefaults GetNativeDocumentDefaults(
@@ -32,7 +34,9 @@ namespace OfficeIMO.Word.Pdf {
                 .GetFirstChild<W.RunPropertiesBaseStyle>()?
                 .GetFirstChild<W.RunFonts>());
             string? language = GetNativeDocumentLanguage(document, defaults);
-            double fontSize = GetNativeDefaultFontSize(defaults) ?? NativeDocumentDefaults.WordDefault.FontSize;
+            // Word treats an existing docDefaults with no declared size as 10pt.
+            // OfficeIMO-created documents explicitly declare 11pt and retain it.
+            double fontSize = GetNativeDefaultFontSize(defaults) ?? 10D;
             W.SpacingBetweenLines? spacing = defaults
                 .GetFirstChild<W.ParagraphPropertiesDefault>()?
                 .GetFirstChild<W.ParagraphPropertiesBaseStyle>()?
@@ -50,7 +54,10 @@ namespace OfficeIMO.Word.Pdf {
                 .GetFirstChild<W.ParagraphPropertiesDefault>()?
                 .GetFirstChild<W.ParagraphPropertiesBaseStyle>()?
                 .GetFirstChild<W.WidowControl>()) ?? NativeDocumentDefaults.WordDefault.ParagraphWidowControl;
-            return new NativeDocumentDefaults(fontFamily, language, fontSize, lineHeight, spacingBefore, spacingBeforeDeclared, spacingAfter, spacingAfterDeclared, widowControl, defaultTabStopWidth);
+            W.RunPropertiesBaseStyle? defaultRuns = defaults.GetFirstChild<W.RunPropertiesDefault>()?.GetFirstChild<W.RunPropertiesBaseStyle>();
+            return new NativeDocumentDefaults(fontFamily, language, fontSize, lineHeight, spacingBefore, spacingBeforeDeclared, spacingAfter, spacingAfterDeclared, widowControl, defaultTabStopWidth) {
+                ComplexScript = default(NativeComplexScriptDefaults).Merge(defaultRuns)
+            };
         }
 
         private static string? GetNativeDocumentLanguage(WordDocument? document, W.DocDefaults? defaults) {
@@ -83,12 +90,13 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static double? GetNativeDefaultFontSize(W.DocDefaults defaults) {
-            string? value = defaults
+            W.RunPropertiesBaseStyle? runProperties = defaults
                 .GetFirstChild<W.RunPropertiesDefault>()?
-                .GetFirstChild<W.RunPropertiesBaseStyle>()?
-                .GetFirstChild<W.FontSize>()?
-                .Val?
-                .Value;
+                .GetFirstChild<W.RunPropertiesBaseStyle>();
+            return ParseNativeDefaultFontSize(runProperties?.GetFirstChild<W.FontSize>()?.Val?.Value);
+        }
+
+        private static double? ParseNativeDefaultFontSize(string? value) {
             if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints) ||
                 halfPoints <= 0D ||
                 double.IsNaN(halfPoints) ||

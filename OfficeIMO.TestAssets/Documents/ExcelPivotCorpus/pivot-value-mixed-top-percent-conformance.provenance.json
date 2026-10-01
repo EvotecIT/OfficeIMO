@@ -1,0 +1,22 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T07:42:55.1816801Z",
+  "regeneration": "Build/Verification/New-ExcelPivotNonpositiveRankingOracle.ps1",
+  "file": "pivot-value-mixed-top-percent-conformance.xlsx",
+  "sha256": "9737d3de2f5924ec88f1fe0d60734664519406387f62f2ac289a167d70346027",
+  "sourceRange": "Source!A1:B7",
+  "amounts": [
+    -40,
+    -10,
+    0,
+    20,
+    30,
+    50
+  ],
+  "filterType": 3,
+  "value1": 40.0,
+  "outputRange": "A4:B6",
+  "grandTotal": 50.0
+}

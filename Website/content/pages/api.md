@@ -7,8 +7,8 @@ layout: api-home
 <section class="imo-api-landing">
   <header class="imo-api-landing__hero">
     <p class="imo-api-landing__eyebrow">Generated from source</p>
-    <h1>Choose a package.<br><span>Use the exact API.</span></h1>
-    <p>Reference pages are built from compiled assemblies and XML documentation. Start with a guide when you are choosing a workflow; use this catalog when you already know the owning package.</p>
+    <h1>Find the API.<br><span>Across OfficeIMO.</span></h1>
+    <p>Search for a method, type, or task across the document libraries and conversion adapters. Results show the owning package, signature, and namespace, and link directly to the member. Browse a package below when you want to explore its reference.</p>
     <div class="imo-api-landing__actions"><a class="imo-btn imo-btn-primary" href="/search/">Search all reference</a><a class="imo-btn imo-btn-ghost" href="/docs/">Open guides</a></div>
   </header>
 

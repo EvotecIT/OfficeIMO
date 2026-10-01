@@ -19,7 +19,7 @@ public sealed class EmailProcessingBudgetSnapshot {
     public int PartCount { get; }
     /// <summary>MAPI properties accounted across MSG and TNEF structures.</summary>
     public int PropertyCount { get; }
-    /// <summary>Decoded MAPI property bytes accounted across the operation.</summary>
+    /// <summary>Decoded MAPI property and MIME body/semantic-part bytes accounted across the operation.</summary>
     public long DecodedPropertyBytes { get; }
     /// <summary>Attachments accounted across nested MIME, MSG, and TNEF structures.</summary>
     public int AttachmentCount { get; }

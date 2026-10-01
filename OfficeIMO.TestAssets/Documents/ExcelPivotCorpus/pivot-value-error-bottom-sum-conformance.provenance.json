@@ -1,0 +1,23 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T08:03:15.9490677Z",
+  "regeneration": "Build/Verification/New-ExcelPivotErrorRankingOracle.ps1",
+  "file": "pivot-value-error-bottom-sum-conformance.xlsx",
+  "sha256": "bd07e5ec08b0d9746139a20f5cec46be5cb34f993cab63e0893fe402a94639fa",
+  "sourceRange": "Source!A1:B7",
+  "errorCells": "Source!B3",
+  "errorFormula": "=NA()",
+  "filterType": 6,
+  "value1": 60.0,
+  "aggregateFunction": -4157,
+  "outputRange": "A4:B8",
+  "grandTotal": 60.0,
+  "grandError": null,
+  "displayedItems": [
+    "Alpha",
+    "Charlie",
+    "Delta"
+  ]
+}

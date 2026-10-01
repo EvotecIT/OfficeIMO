@@ -26,6 +26,7 @@ namespace OfficeIMO.Excel {
         private readonly ExcelDateSystem _dateSystem;
         private readonly bool _canStreamWorksheetPart;
         private readonly OpenXmlPackagePartBufferReader? _partBufferReader;
+        private readonly Lazy<RichValueErrorLookup> _richValueErrors;
         private StylesCache? _stylesCache;
         private List<string>? _sharedStringItems;
         private bool? _hasWorksheetPartStreamContent;
@@ -56,6 +57,8 @@ namespace OfficeIMO.Excel {
             _dateSystem = dateSystem;
             _canStreamWorksheetPart = canStreamWorksheetPart;
             _partBufferReader = partBufferReader;
+            _richValueErrors = new Lazy<RichValueErrorLookup>(() => RichValueErrorLookup.FromWorkbook(
+                (wsPart.OpenXmlPackage as SpreadsheetDocument)?.WorkbookPart, Math.Min(_opt.MaxMetadataPartBytes, RichValueErrorLookup.MaximumPartBytes)));
         }
 
         internal ExcelSheetReader(
@@ -65,7 +68,8 @@ namespace OfficeIMO.Excel {
             StylesCacheProvider styles,
             ExcelReadOptions opt,
             ExcelDateSystem dateSystem,
-            OpenXmlPackagePartBufferReader partBufferReader) {
+            OpenXmlPackagePartBufferReader partBufferReader,
+            Lazy<RichValueErrorLookup>? richValueErrors = null) {
             _sheetName = sheetName;
             _wsPart = null!;
             _worksheetPartName = worksheetPartName;
@@ -76,6 +80,7 @@ namespace OfficeIMO.Excel {
             _dateSystem = dateSystem;
             _canStreamWorksheetPart = true;
             _partBufferReader = partBufferReader;
+            _richValueErrors = richValueErrors ?? new Lazy<RichValueErrorLookup>(() => RichValueErrorLookup.Empty);
             _hasWorksheetPartStreamContent = true;
         }
 
@@ -102,7 +107,9 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private DateTime FromExcelSerialDate(double serial) => ExcelDateSystemConverter.FromSerial(serial, _dateSystem);
+        private DateTime FromExcelSerialDate(double serial, bool calendarStyle) => calendarStyle ? ExcelDateSystemConverter.FromSerial(serial, _dateSystem) : DateTime.FromOADate(serial);
+        private DateTime FromExcelSerialDate(double serial, uint? styleIndex) => FromExcelSerialDate(serial, styleIndex.HasValue && Styles.IsDateSystemShiftStyle(styleIndex.Value));
+        private bool IsCalendarStyleAttribute(string? attribute) => uint.TryParse(attribute, NumberStyles.None, CultureInfo.InvariantCulture, out uint index) && Styles.IsDateSystemShiftStyle(index);
 
         private StylesCache Styles => _stylesCache ??= _styles.Value;
 
@@ -648,6 +655,7 @@ namespace OfficeIMO.Excel {
                     return text[0] switch {
                         'b' => XmlCellKind.Boolean,
                         'd' => XmlCellKind.Date,
+                        'e' => XmlCellKind.Error,
                         'n' => XmlCellKind.Number,
                         's' => XmlCellKind.SharedString,
                         _ => XmlCellKind.Unknown
@@ -671,6 +679,7 @@ namespace OfficeIMO.Excel {
             return kind switch {
                 XmlCellKind.Boolean => CellValues.Boolean,
                 XmlCellKind.Date => CellValues.Date,
+                XmlCellKind.Error => CellValues.Error,
                 XmlCellKind.InlineString => CellValues.InlineString,
                 XmlCellKind.Number => CellValues.Number,
                 XmlCellKind.SharedString => CellValues.SharedString,
@@ -692,17 +701,19 @@ namespace OfficeIMO.Excel {
                 StyleIndex = cell.StyleIndex?.Value,
                 HasFormula = hasFormula,
                 FormulaText = formulaText,
-                RawText = preferFormulaText ? null : ExtractRawText(cell),
+                RawText = preferFormulaText ? null : typeHint == CellValues.Error && cell.ValueMetaIndex != null
+                    ? _richValueErrors.Value.Resolve(cell.ValueMetaIndex.Value, ExtractRawText(cell)) : ExtractRawText(cell),
                 InlineText = preferFormulaText ? null : ExtractInlineString(cell, typeHint)
             };
         }
 
         private CellRaw ConvertRaw(CellRaw raw) {
+            raw.CustomValueHandled = false;
             if (raw.HasFormula) {
                 if (_opt.UseCachedFormulaResult && raw.RawText != null) {
                     raw.TypedValue = TryConvertWithoutCustomHook(raw.TypeHint, raw.StyleIndex, raw.RawText, raw.InlineText, out var cachedValue)
                         ? cachedValue
-                        : ConvertByHints(raw.TypeHint, raw.StyleIndex, raw.RawText, raw.InlineText);
+                        : ConvertByHints(raw.TypeHint, raw.StyleIndex, raw.RawText, raw.InlineText, out raw.CustomValueHandled);
                 } else {
                     raw.TypedValue = raw.FormulaText ?? raw.RawText ?? raw.InlineText;
                 }
@@ -711,7 +722,7 @@ namespace OfficeIMO.Excel {
 
             raw.TypedValue = TryConvertWithoutCustomHook(raw.TypeHint, raw.StyleIndex, raw.RawText, raw.InlineText, out var value)
                 ? value
-                : ConvertByHints(raw.TypeHint, raw.StyleIndex, raw.RawText, raw.InlineText);
+                : ConvertByHints(raw.TypeHint, raw.StyleIndex, raw.RawText, raw.InlineText, out raw.CustomValueHandled);
             return raw;
         }
 
@@ -763,7 +774,7 @@ namespace OfficeIMO.Excel {
             if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                 if (TryParseInvariantDouble(rawText, out var oa)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa)) {
-                    value = FromExcelSerialDate(oa);
+                    value = FromExcelSerialDate(oa, styleIndex);
                 } else {
                     value = rawText;
                 }
@@ -829,13 +840,17 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private object? ConvertByHints(CellValues? type, uint? styleIndex, string? rawText, string? inlineText) {
+        private object? ConvertByHints(CellValues? type, uint? styleIndex, string? rawText, string? inlineText) =>
+            ConvertByHints(type, styleIndex, rawText, inlineText, out _);
+
+        private object? ConvertByHints(CellValues? type, uint? styleIndex, string? rawText, string? inlineText, out bool customHandled) {
+            customHandled = false;
             // Custom converter hook (cell-level). If provided and handled, honor it.
             var hook = _opt.CellValueConverter;
             if (hook != null) {
                 var ctx = new ExcelCellContext(type.ToOfficeEnum(), styleIndex, rawText, inlineText, _opt.Culture);
                 var res = hook(ctx);
-                if (res.Handled) return res.Value;
+                if (res.Handled) { customHandled = true; return res.Value; }
             }
             if (!string.IsNullOrEmpty(inlineText)) return inlineText;
 
@@ -849,7 +864,7 @@ namespace OfficeIMO.Excel {
                 if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                     if (TryParseInvariantDouble(rawText, out var oa)
                         || double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
-                        return FromExcelSerialDate(oa);
+                        return FromExcelSerialDate(oa, styleIndex);
                 }
                 if (_opt.NumericAsDecimal) {
                     if (TryParseExcelNumberAsDecimal(rawText, _opt.Culture, out var dec))
@@ -880,7 +895,7 @@ namespace OfficeIMO.Excel {
                 if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                     if (TryParseInvariantDouble(rawText, out var oa)
                         || double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
-                        return FromExcelSerialDate(oa);
+                        return FromExcelSerialDate(oa, styleIndex);
                     return rawText;
                 }
 
@@ -905,6 +920,7 @@ namespace OfficeIMO.Excel {
             public CellValues? TypeHint;
             public uint? StyleIndex;
             public bool HasFormula;
+            public bool CustomValueHandled;
             public string? FormulaText;
             public string? RawText;
             public string? InlineText;
@@ -919,7 +935,8 @@ namespace OfficeIMO.Excel {
             Number,
             SharedString,
             String,
-            Unknown
+            Unknown,
+            Error
         }
     }
 }

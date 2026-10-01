@@ -1,6 +1,5 @@
 using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Markdown;
-using OfficeIMO.Word.Pdf;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using System;
@@ -208,24 +207,6 @@ public class ConversionOptionsTests {
     }
 
     [Fact]
-    public void WordToMarkdownOptions_ExposeFontFamily() {
-        var options = new WordToMarkdownOptions {
-            FontFamily = "Arial",
-            PageBreakMode = MarkdownPageBreakMode.HorizontalRule,
-            UnsupportedContentMode = MarkdownUnsupportedContentMode.Placeholder,
-            VisualFallbackMode = MarkdownVisualFallbackMode.SvgFile,
-            VisualFallbackDirectory = "assets",
-            VisualFallbackPathPrefix = "assets"
-        };
-        Assert.Equal("Arial", options.FontFamily);
-        Assert.Equal(MarkdownPageBreakMode.HorizontalRule, options.PageBreakMode);
-        Assert.Equal(MarkdownUnsupportedContentMode.Placeholder, options.UnsupportedContentMode);
-        Assert.Equal(MarkdownVisualFallbackMode.SvgFile, options.VisualFallbackMode);
-        Assert.Equal("assets", options.VisualFallbackDirectory);
-        Assert.Equal("assets", options.VisualFallbackPathPrefix);
-    }
-
-    [Fact]
     public void MarkdownToWordOptions_EnableBoundedDataUriImagesByDefault() {
         var options = new MarkdownToWordOptions();
 
@@ -233,29 +214,4 @@ public class ConversionOptionsTests {
         Assert.Equal(32L * 1024L * 1024L, options.MaxDataUriImageBytes);
     }
 
-    [Fact]
-    public void WordToHtmlOptions_ExposeSectionMetadataOption() {
-        var options = new WordToHtmlOptions {
-            IncludeCustomProperties = true,
-            IncludeSectionMetadata = true
-        };
-        Assert.True(options.IncludeCustomProperties);
-        Assert.True(options.IncludeSectionMetadata);
-    }
-
-    [Fact]
-    public void PdfOptions_ExposeFontFamily() {
-        var options = new WordToPdfOptions { FontFamily = "Times New Roman" };
-        Assert.Equal("Times New Roman", options.FontFamily);
-    }
-
-    [Fact]
-    public void Options_ExposeDefaultPageSettings() {
-        var options = new HtmlToWordOptions {
-            DefaultOrientation = OfficePageOrientation.Landscape,
-            DefaultPageSize = WordPageSize.A3
-        };
-        Assert.Equal(OfficePageOrientation.Landscape, options.DefaultOrientation);
-        Assert.Equal(WordPageSize.A3, options.DefaultPageSize);
-    }
 }

@@ -18,7 +18,7 @@ public partial class Excel {
             new XlsbTabularDataReader(
                 worksheetPart,
                 Array.Empty<string>(),
-                Array.Empty<bool>(),
+                Array.Empty<ExcelSerialDateStyle>(),
                 uses1904DateSystem: false,
                 hasHeaderRow: true,
                 new ExcelReadOptions(),
@@ -812,7 +812,7 @@ public partial class Excel {
         new(
             worksheetPart,
             sharedStrings,
-            new[] { dateStyle },
+            new[] { dateStyle ? ExcelSerialDateStyle.Calendar : ExcelSerialDateStyle.None },
             uses1904DateSystem: false,
             hasHeaderRow,
             options ?? new ExcelReadOptions(),

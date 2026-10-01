@@ -7,6 +7,11 @@ internal static class EmailConversionAnalyzer {
         if (options == null) throw new ArgumentNullException(nameof(options));
 
         var diagnostics = new List<EmailDiagnostic>();
+        bool reusesSource = (options.UsePreservedRawSource || document.Protection.IsProtected) &&
+            document.Format == targetFormat && document.RawSource != null &&
+            document.RawSourceModelFingerprint != null &&
+            EmailDocumentStateFingerprint.Matches(document, document.RawSourceModelFingerprint);
+        if (!reusesSource) EmailTransportIntegrity.Analyze(document, options, diagnostics, targetFormat == EmailFileFormat.Eml);
 
         if (document.Protection.IsProtected && !CanPassThroughProtectedSource(document, targetFormat)) {
             diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
@@ -16,99 +21,8 @@ internal static class EmailConversionAnalyzer {
                 "protection"));
         }
 
-        if (targetFormat == EmailFileFormat.Eml) {
-            if (document.OutlookItemKind == OutlookItemKind.Appointment) {
-                if ((document.Appointment == null || !document.Appointment.Start.HasValue) &&
-                    !HasUnchangedMimeSemanticSource(document)) {
-                    diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
-                        "EMAIL_ICALENDAR_START_REQUIRED",
-                        "An appointment needs a start time before it can be represented as an iCalendar VEVENT.",
-                        "appointment/start"));
-                } else if (document.Appointment != null && IcsCalendarCodec.HasOpaqueAppointmentState(document.Appointment) &&
-                    !HasUnchangedMimeSemanticSource(document)) {
-                    diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
-                        "EMAIL_ICALENDAR_OPAQUE_RECURRENCE",
-                        "The appointment contains Outlook recurrence or time-zone blobs that cannot be translated safely to iCalendar without changing their meaning.",
-                        "appointment/recurrence"));
-                }
-                if (document.Appointment != null && HasAddresslessAttendeeDisplayState(document) &&
-                    !HasUnchangedMimeSemanticSource(document)) {
-                    diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
-                        "EMAIL_ICALENDAR_ATTENDEE_ADDRESS_REQUIRED",
-                        "The appointment has attendee state without portable SMTP recipient addresses from which valid iCalendar ATTENDEE values can be created.",
-                        "appointment/attendees"));
-                }
-                if (HasNonPortableCalendarOrganizer(document) &&
-                    !HasUnchangedMimeSemanticSource(document)) {
-                    diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
-                        "EMAIL_ICALENDAR_ORGANIZER_ADDRESS_REQUIRED",
-                        "The appointment organizer does not have a portable SMTP address from which a valid iCalendar ORGANIZER value can be created.",
-                        "appointment/organizer"));
-                }
-                if (HasNonPortableMeetingLifecycle(document.MeetingCommunication) &&
-                    !HasUnchangedMimeSemanticSource(document)) {
-                    diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
-                        "EMAIL_ICALENDAR_MEETING_LIFECYCLE_EXTENSION_LOSS",
-                        "The meeting communication contains Outlook lifecycle or counter-proposal properties that the current iCalendar projection cannot represent completely.",
-                        "appointment/meeting-communication"));
-                }
-            } else if (document.OutlookItemKind == OutlookItemKind.Task) {
-                if (document.TaskCommunication != null &&
-                    document.TaskCommunication.Kind != OutlookTaskCommunicationKind.None &&
-                    !HasUnchangedMimeSemanticSource(document)) {
-                    diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
-                        "EMAIL_ICALENDAR_TASK_COMMUNICATION_UNSUPPORTED",
-                        "The current iCalendar projection does not represent an Outlook task request, acceptance, rejection, or update envelope with its embedded task.",
-                        "task/communication"));
-                }
-                if (document.Task != null && IcsCalendarCodec.HasOpaqueTaskState(document.Task) &&
-                    !HasUnchangedMimeSemanticSource(document)) {
-                    diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
-                        "EMAIL_ICALENDAR_OPAQUE_TASK_RECURRENCE",
-                        "The task is recurring, but its recurrence rule is not available for a safe iCalendar VTODO representation.",
-                        "task/recurrence"));
-                }
-                if (HasNonPortableCalendarRecipient(document) && !HasUnchangedMimeSemanticSource(document)) {
-                    diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
-                        "EMAIL_ICALENDAR_ATTENDEE_ADDRESS_REQUIRED",
-                        "The task has an assignee recipient without a portable SMTP address from which a valid iCalendar ATTENDEE value can be created.",
-                        "task/attendees"));
-                }
-                if (HasNonPortableCalendarOrganizer(document, document.Task?.Owner) &&
-                    !HasUnchangedMimeSemanticSource(document)) {
-                    diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
-                        "EMAIL_ICALENDAR_ORGANIZER_ADDRESS_REQUIRED",
-                        "The task owner does not have a portable SMTP address from which a valid iCalendar ORGANIZER value can be created.",
-                        "task/organizer"));
-                }
-            } else if (IsDistributionList(document)) {
-                diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
-                    "EMAIL_VCARD_DISTRIBUTION_LIST_UNSUPPORTED",
-                    "An Outlook distribution list cannot be represented as an individual vCard without losing its membership.",
-                    "contact/distribution-list"));
-            } else if (document.OutlookItemKind == OutlookItemKind.Contact &&
-                (document.Contact == null || VCardCodec.HasOpaqueContactState(document.Contact))) {
-                diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
-                    "EMAIL_VCARD_OPAQUE_CONTACT_IDENTITY",
-                    "The contact contains opaque Outlook entry identifiers that cannot be represented in vCard.",
-                    "contact/email-address"));
-            } else if (document.OutlookItemKind == OutlookItemKind.Journal ||
-                document.OutlookItemKind == OutlookItemKind.Note) {
-                diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
-                    "EMAIL_OUTLOOK_ITEM_EML_REPRESENTATION_MISSING",
-                    string.Concat(document.OutlookItemKind.ToString(),
-                        " does not yet have a standards-based EML representation."),
-                    "outlook-item"));
-            }
-        }
-
-        if (document.MimeSemanticSourceModelFingerprint != null &&
-            !EmailDocumentStateFingerprint.Matches(document, document.MimeSemanticSourceModelFingerprint)) {
-            diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
-                "EMAIL_MIME_SEMANTIC_CONTENT_CHANGED",
-                "The message model changed after calendar or vCard content was projected. Regenerating that content can omit unmodeled source properties.",
-                "semantic-content"));
-        }
+        if (targetFormat == EmailFileFormat.Eml) diagnostics.AddRange(AnalyzePortableContent(document, options));
+        else AddSemanticMutationDiagnostic(document, options, diagnostics);
 
         if (targetFormat != EmailFileFormat.Eml && document.MimeSemanticProjectionIsIncomplete) {
             diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
@@ -132,6 +46,106 @@ internal static class EmailConversionAnalyzer {
         }
 
         return new EmailConversionReport(document.Format, targetFormat, diagnostics.AsReadOnly());
+    }
+
+    internal static IReadOnlyList<EmailDiagnostic> AnalyzePortableContent(EmailDocument document, EmailWriterOptions options) {
+        var diagnostics = new List<EmailDiagnostic>();
+        if (document.OutlookItemKind == OutlookItemKind.Appointment) {
+            if ((document.Appointment == null || !document.Appointment.Start.HasValue) &&
+                !HasUnchangedMimeSemanticSource(document)) {
+                diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                    "EMAIL_ICALENDAR_START_REQUIRED",
+                    "An appointment needs a start time before it can be represented as an iCalendar VEVENT.",
+                    "appointment/start"));
+            } else if (document.Appointment != null && IcsCalendarCodec.HasOpaqueAppointmentState(document.Appointment) &&
+                !HasUnchangedMimeSemanticSource(document)) {
+                diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                    "EMAIL_ICALENDAR_OPAQUE_RECURRENCE",
+                    "The appointment contains Outlook recurrence or time-zone blobs that cannot be translated safely to iCalendar without changing their meaning.",
+                    "appointment/recurrence"));
+            }
+            if (document.Appointment != null && HasAddresslessAttendeeDisplayState(document) &&
+                !HasUnchangedMimeSemanticSource(document)) {
+                diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                    "EMAIL_ICALENDAR_ATTENDEE_ADDRESS_REQUIRED",
+                    "The appointment has attendee state without portable SMTP recipient addresses from which valid iCalendar ATTENDEE values can be created.",
+                    "appointment/attendees"));
+            }
+            if (HasNonPortableCalendarOrganizer(document) &&
+                !HasUnchangedMimeSemanticSource(document)) {
+                diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                    "EMAIL_ICALENDAR_ORGANIZER_ADDRESS_REQUIRED",
+                    "The appointment organizer does not have a portable SMTP address from which a valid iCalendar ORGANIZER value can be created.",
+                    "appointment/organizer"));
+            }
+            if (HasNonPortableMeetingLifecycle(document.MeetingCommunication) &&
+                !HasUnchangedMimeSemanticSource(document)) {
+                diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                    "EMAIL_ICALENDAR_MEETING_LIFECYCLE_EXTENSION_LOSS",
+                    "The meeting communication contains Outlook lifecycle or counter-proposal properties that the current iCalendar projection cannot represent completely.",
+                    "appointment/meeting-communication"));
+            }
+        } else if (document.OutlookItemKind == OutlookItemKind.Task) {
+            if (document.TaskCommunication != null &&
+                document.TaskCommunication.Kind != OutlookTaskCommunicationKind.None &&
+                !HasUnchangedMimeSemanticSource(document)) {
+                diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                    "EMAIL_ICALENDAR_TASK_COMMUNICATION_UNSUPPORTED",
+                    "The current iCalendar projection does not represent an Outlook task request, acceptance, rejection, or update envelope with its embedded task.",
+                    "task/communication"));
+            }
+            if (document.Task != null && IcsCalendarCodec.HasOpaqueTaskState(document.Task) &&
+                !HasUnchangedMimeSemanticSource(document)) {
+                diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                    "EMAIL_ICALENDAR_OPAQUE_TASK_RECURRENCE",
+                    "The task is recurring, but its recurrence rule is not available for a safe iCalendar VTODO representation.",
+                    "task/recurrence"));
+            }
+            if (HasNonPortableCalendarRecipient(document) && !HasUnchangedMimeSemanticSource(document)) {
+                diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                    "EMAIL_ICALENDAR_ATTENDEE_ADDRESS_REQUIRED",
+                    "The task has an assignee recipient without a portable SMTP address from which a valid iCalendar ATTENDEE value can be created.",
+                    "task/attendees"));
+            }
+            if (HasNonPortableCalendarOrganizer(document, document.Task?.Owner) &&
+                !HasUnchangedMimeSemanticSource(document)) {
+                diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                    "EMAIL_ICALENDAR_ORGANIZER_ADDRESS_REQUIRED",
+                    "The task owner does not have a portable SMTP address from which a valid iCalendar ORGANIZER value can be created.",
+                    "task/organizer"));
+            }
+        } else if (IsDistributionList(document)) {
+            diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                "EMAIL_VCARD_DISTRIBUTION_LIST_UNSUPPORTED",
+                "An Outlook distribution list cannot be represented as an individual vCard without losing its membership.",
+                "contact/distribution-list"));
+        } else if (document.OutlookItemKind == OutlookItemKind.Contact &&
+            (document.Contact == null || VCardCodec.HasOpaqueContactState(document.Contact))) {
+            diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                "EMAIL_VCARD_OPAQUE_CONTACT_IDENTITY",
+                "The contact contains opaque Outlook entry identifiers that cannot be represented in vCard.",
+                "contact/email-address"));
+        } else if (document.OutlookItemKind == OutlookItemKind.Journal ||
+            document.OutlookItemKind == OutlookItemKind.Note) {
+            diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                "EMAIL_OUTLOOK_ITEM_EML_REPRESENTATION_MISSING",
+                string.Concat(document.OutlookItemKind.ToString(),
+                    " does not yet have a standards-based EML representation."),
+                "outlook-item"));
+        }
+        AddSemanticMutationDiagnostic(document, options, diagnostics);
+        return diagnostics.AsReadOnly();
+    }
+
+    private static void AddSemanticMutationDiagnostic(EmailDocument document, EmailWriterOptions options, List<EmailDiagnostic> diagnostics) {
+        if (document.MimeSemanticSourceModelFingerprint != null &&
+            !EmailDocumentStateFingerprint.Matches(document, document.MimeSemanticSourceModelFingerprint)) {
+            diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                "EMAIL_MIME_SEMANTIC_CONTENT_CHANGED",
+                "The message model changed after calendar or vCard content was projected. Regenerating that content can omit unmodeled source properties.",
+                "semantic-content"));
+        }
+
     }
 
     internal static bool CanPassThroughProtectedSource(EmailDocument document, EmailFileFormat targetFormat) {
@@ -175,7 +189,7 @@ internal static class EmailConversionAnalyzer {
         string.Equals(document.MessageClass, "IPM.DistList", StringComparison.OrdinalIgnoreCase) ||
         document.MessageClass?.StartsWith("IPM.DistList.", StringComparison.OrdinalIgnoreCase) == true;
 
-    private static bool HasUnchangedMimeSemanticSource(EmailDocument document) =>
+    internal static bool HasUnchangedMimeSemanticSource(EmailDocument document) =>
         document.Format == EmailFileFormat.Eml && document.MimeSemanticSourceModelFingerprint != null &&
         EmailDocumentStateFingerprint.Matches(document, document.MimeSemanticSourceModelFingerprint);
 

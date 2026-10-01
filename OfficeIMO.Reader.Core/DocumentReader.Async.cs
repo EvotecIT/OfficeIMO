@@ -32,8 +32,8 @@ internal static partial class DocumentReaderEngine {
         if (resolution.Handler?.ReadDocumentPathAsync != null) {
             ReaderHandlerDescriptor handler = resolution.Handler;
             cancellationToken.ThrowIfCancellationRequested();
-            SourceInfo source = BuildSourceInfoFromPath(path,
-                ShouldComputeSourceHash(handler, opt), cancellationToken);
+            SourceInfo source = await BuildSourceInfoFromPathAsync(path,
+                ShouldComputeSourceHash(handler, opt), cancellationToken).ConfigureAwait(false);
             OfficeDocumentReadResult result = await ValidateDocumentTaskAsync(
                 handler.ReadDocumentPathAsync(path, opt, cancellationToken),
                 handler.Id).ConfigureAwait(false);
@@ -77,8 +77,8 @@ internal static partial class DocumentReaderEngine {
                 cancellationToken).ConfigureAwait(false);
             if (resolution.Handler?.ReadDocumentStreamAsync != null) {
                 ReaderHandlerDescriptor handler = resolution.Handler;
-                SourceInfo source = BuildSourceInfoFromStream(readStream,
-                    logicalSourceName, ShouldComputeSourceHash(handler, opt), cancellationToken);
+                SourceInfo source = await BuildSourceInfoFromStreamAsync(readStream,
+                    logicalSourceName, ShouldComputeSourceHash(handler, opt), cancellationToken).ConfigureAwait(false);
                 OfficeDocumentReadResult result = await ValidateDocumentTaskAsync(
                     handler.ReadDocumentStreamAsync(readStream, logicalSourceName, opt, cancellationToken),
                     handler.Id).ConfigureAwait(false);
@@ -129,7 +129,9 @@ internal static partial class DocumentReaderEngine {
             OfficeDocumentReadResult result = await ValidateDocumentTaskAsync(
                 handler.ReadDocumentPathAsync(path, opt, cancellationToken),
                 handler.Id).ConfigureAwait(false);
-            return ApplyDetectionDiagnostics(result, resolution.Detection);
+            SourceInfo source = await BuildSourceInfoFromPathAsync(path,
+                ShouldComputeSourceHash(handler, opt), cancellationToken).ConfigureAwait(false);
+            return ApplyDetectionDiagnostics(FinalizeHandlerDocumentResult(result, source, opt.ComputeHashes), resolution.Detection);
         }
 
         if (resolution.Handler != null && !resolution.Handler.SupportsStreamInput) {
@@ -172,7 +174,9 @@ internal static partial class DocumentReaderEngine {
                 OfficeDocumentReadResult result = await ValidateDocumentTaskAsync(
                     handler.ReadDocumentStreamAsync(readStream, logicalSourceName, opt, cancellationToken),
                     handler.Id).ConfigureAwait(false);
-                return ApplyDetectionDiagnostics(result, resolution.Detection);
+                SourceInfo source = await BuildSourceInfoFromStreamAsync(readStream,
+                    logicalSourceName, ShouldComputeSourceHash(handler, opt), cancellationToken).ConfigureAwait(false);
+                return ApplyDetectionDiagnostics(FinalizeHandlerDocumentResult(result, source, opt.ComputeHashes), resolution.Detection);
             }
 
             return ReadDocument(readStream, logicalSourceName, opt, cancellationToken);

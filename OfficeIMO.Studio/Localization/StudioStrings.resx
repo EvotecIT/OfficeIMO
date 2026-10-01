@@ -2347,7 +2347,72 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Conversion.IWork.FormulaCounts" xml:space="preserve"><value>Source formulas: {0} complete · {1} incomplete · {6} unassessed. Recovered caches: {2} complete · {3} partial · {4} approximate · {5} missing · {7} unassessed</value></data>
   <data name="Activation.Unsupported" xml:space="preserve"><value>This item cannot be opened here. Select a PDF or a supported conversion file. Native directory packages require a local startup path.</value></data>
   <data name="Activation.Busy" xml:space="preserve"><value>Wait for the current operation to finish, then open the file again.</value></data>
+
+  <data name="Invoice.ChooseInput" xml:space="preserve"><value>Choose invoice XML</value></data>
+  <data name="Invoice.Input" xml:space="preserve"><value>Invoice XML</value></data>
+  <data name="Invoice.OutputFolder" xml:space="preserve"><value>Output folder</value></data>
+  <data name="Invoice.ChooseFolder" xml:space="preserve"><value>Choose folder</value></data>
+  <data name="Invoice.Operation" xml:space="preserve"><value>Operation</value></data>
+  <data name="Invoice.Target" xml:space="preserve"><value>Output specification</value></data>
+  <data name="Invoice.SourceRelease" xml:space="preserve"><value>Source specification for standards checks</value></data>
+  <data name="Invoice.AllowProfileLoss" xml:space="preserve"><value>Allow data loss defined by the selected profile</value></data>
+  <data name="Invoice.Standards" xml:space="preserve"><value>Standards checks</value></data>
+  <data name="Invoice.RequireStandards" xml:space="preserve"><value>Require schema and business-rule checks</value></data>
+  <data name="Invoice.RuleBundle" xml:space="preserve"><value>Pinned rule bundle</value></data>
+  <data name="Invoice.SaxonJar" xml:space="preserve"><value>Saxon JAR</value></data>
+  <data name="Invoice.Java" xml:space="preserve"><value>Java executable</value></data>
+  <data name="Invoice.PeppolRules" xml:space="preserve"><value>Peppol rules file (when applicable)</value></data>
+  <data name="Invoice.FacturXRules" xml:space="preserve"><value>Factur-X rule bundle (when applicable)</value></data>
+  <data name="Invoice.Presentation" xml:space="preserve"><value>PDF presentation</value></data>
+  <data name="Invoice.Languages" xml:space="preserve"><value>Languages (comma-separated culture codes)</value></data>
+  <data name="Invoice.Font" xml:space="preserve"><value>Embedded font file (optional)</value></data>
+  <data name="Invoice.Table" xml:space="preserve"><value>Line-item columns</value></data>
+  <data name="Invoice.UnitDisplay" xml:space="preserve"><value>Unit labels</value></data>
+  <data name="Invoice.PaymentDisplay" xml:space="preserve"><value>Payment labels</value></data>
+  <data name="Invoice.Modern" xml:space="preserve"><value>Modern layout</value></data>
+  <data name="Invoice.Compact" xml:space="preserve"><value>Compact details</value></data>
+  <data name="Invoice.PageIdentity" xml:space="preserve"><value>Invoice identity on continuation pages</value></data>
+  <data name="Invoice.EditFields" xml:space="preserve"><value>Source header replacements</value></data>
+  <data name="Invoice.Number" xml:space="preserve"><value>Invoice number</value></data>
+  <data name="Invoice.IssueDate" xml:space="preserve"><value>Issue date (yyyy-MM-dd)</value></data>
+  <data name="Invoice.DueDate" xml:space="preserve"><value>Due date (yyyy-MM-dd)</value></data>
+  <data name="Invoice.BuyerReference" xml:space="preserve"><value>Buyer reference</value></data>
+  <data name="Invoice.PaymentReference" xml:space="preserve"><value>Payment reference</value></data>
+  <data name="Invoice.Run" xml:space="preserve"><value>Run invoice operation</value></data>
+  <data name="Invoice.Report" xml:space="preserve"><value>Results</value></data>
+  <data name="Invoice.Source" xml:space="preserve"><value>Source</value></data>
+  <data name="Invoice.Mapping" xml:space="preserve"><value>Mapping</value></data>
+  <data name="Invoice.Model" xml:space="preserve"><value>Model checks</value></data>
+  <data name="Invoice.Schema" xml:space="preserve"><value>Schema checks</value></data>
+  <data name="Invoice.Rules" xml:space="preserve"><value>Business rules</value></data>
+  <data name="Invoice.Findings" xml:space="preserve"><value>Findings</value></data>
+  <data name="Invoice.Output" xml:space="preserve"><value>Created output</value></data>
+  <data name="Invoice.ValidationStatus.NotRun" xml:space="preserve"><value>Not run</value></data>
+  <data name="Invoice.ValidationStatus.NotRequested" xml:space="preserve"><value>Not requested</value></data>
+  <data name="Invoice.ValidationStatus.Passed" xml:space="preserve"><value>Passed</value></data>
+  <data name="Invoice.ValidationStatus.Invalid" xml:space="preserve"><value>Invalid</value></data>
+  <data name="Invoice.ValidationStatus.Unavailable" xml:space="preserve"><value>Unavailable</value></data>
+  <data name="Commands.Invoices.Title" xml:space="preserve"><value>Invoices</value></data>
+  <data name="Commands.Invoices.Description" xml:space="preserve"><value>Inspect and validate invoice XML, convert formats, render PDFs, or edit source headers.</value></data>
+
   <data name="Ocr.Review.CorrectText" xml:space="preserve"><value>Correct selected word</value></data>
   <data name="Ocr.Review.NextUncertain" xml:space="preserve"><value>Next uncertain word</value></data>
   <data name="Ocr.Review.OriginalText" xml:space="preserve"><value>Original recognition</value></data>
+  <data name="Provenance.Title" xml:space="preserve"><value>File origin and text integrity</value></data>
+  <data name="Provenance.Description" xml:space="preserve"><value>Assess supported origin records and Unicode findings in a local file. Structural evidence does not establish authenticity or AI authorship.</value></data>
+  <data name="Provenance.Source" xml:space="preserve"><value>Source file</value></data>
+  <data name="Provenance.LocalPath" xml:space="preserve"><value>Absolute local file path</value></data>
+  <data name="Provenance.ChooseFile" xml:space="preserve"><value>Choose local file</value></data>
+  <data name="Provenance.Assess" xml:space="preserve"><value>Assess file</value></data>
+  <data name="Provenance.Findings" xml:space="preserve"><value>Evidence and text findings</value></data>
+  <data name="Provenance.CopyTitle" xml:space="preserve"><value>Create a separate copy</value></data>
+  <data name="Provenance.CopyDescription" xml:space="preserve"><value>Assess the source first, then select carrier categories. The copy is re-inspected and cannot overwrite the source. Visible watermarks and unselected metadata remain unchanged. Signed packages retain the owner’s blocking policy.</value></data>
+  <data name="Provenance.Manifests" xml:space="preserve"><value>Embedded Content Credentials</value></data>
+  <data name="Provenance.References" xml:space="preserve"><value>External credential references</value></data>
+  <data name="Provenance.Declarations" xml:space="preserve"><value>AI source declarations</value></data>
+  <data name="Provenance.OutputFolder" xml:space="preserve"><value>Existing local output folder</value></data>
+  <data name="Provenance.ChooseFolder" xml:space="preserve"><value>Choose folder</value></data>
+  <data name="Provenance.CreateCopy" xml:space="preserve"><value>Create and verify copy</value></data>
+  <data name="Provenance.Export" xml:space="preserve"><value>Export JSON report</value></data>
+  <data name="Provenance.Cancel" xml:space="preserve"><value>Cancel</value></data>
 </root>

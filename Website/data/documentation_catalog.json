@@ -2,21 +2,20 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 243,
-    "productionComponentCount": 128,
-    "testProjectCount": 47,
+    "projectCount": 245,
+    "productionComponentCount": 129,
+    "testProjectCount": 48,
     "benchmarkProjectCount": 34,
     "validationProjectCount": 35,
-    "apiReferenceCount": 26,
+    "apiReferenceCount": 122,
     "conceptualPageCount": 97,
-    "conceptualWordCount": 44212
+    "conceptualWordCount": 44656
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
       "componentCount": 29,
       "componentIndexes": [
-        81,
         82,
         83,
         84,
@@ -44,7 +43,8 @@
         106,
         107,
         108,
-        109
+        109,
+        110
       ]
     },
     {
@@ -57,8 +57,7 @@
         19,
         20,
         21,
-        43,
-        62,
+        44,
         63,
         64,
         65,
@@ -66,8 +65,9 @@
         67,
         68,
         69,
-        116,
-        117
+        70,
+        117,
+        118
       ]
     },
     {
@@ -78,16 +78,16 @@
         9,
         15,
         16,
-        53,
         54,
         55,
         56,
-        59,
+        57,
         60,
         61,
-        80,
-        113,
-        127
+        62,
+        81,
+        114,
+        128
       ]
     },
     {
@@ -111,25 +111,25 @@
         26,
         27,
         28,
-        73,
         74,
         75,
         76,
         77,
         78,
-        118,
+        79,
         119,
         120,
         121,
         122,
         123,
         124,
-        125
+        125,
+        126
       ]
     },
     {
       "name": "Publishing and conversion",
-      "componentCount": 24,
+      "componentCount": 25,
       "componentIndexes": [
         4,
         5,
@@ -144,26 +144,27 @@
         40,
         41,
         42,
-        44,
+        43,
         45,
         46,
         47,
         48,
         49,
-        71,
+        50,
         72,
-        110,
+        73,
         111,
-        112
+        112,
+        113
       ]
     },
     {
       "name": "Rendering surfaces",
       "componentCount": 3,
       "componentIndexes": [
-        50,
         51,
-        52
+        52,
+        53
       ]
     },
     {
@@ -179,13 +180,13 @@
         12,
         13,
         14,
-        57,
         58,
-        70,
-        79,
-        114,
+        59,
+        71,
+        80,
         115,
-        126
+        116,
+        127
       ]
     }
   ],
@@ -200,7 +201,7 @@
       "sourceFileCount": 7,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/adf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Adf"
     },
     {
@@ -210,10 +211,10 @@
       "description": "Provider-neutral document AI operations with bounded evidence, source citations and validated extraction.",
       "kind": "package",
       "projectPath": "OfficeIMO.AI/OfficeIMO.AI.csproj",
-      "sourceFileCount": 16,
+      "sourceFileCount": 17,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/ai/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AI"
     },
     {
@@ -223,7 +224,7 @@
       "description": "OfficeIMO.AI.Example is a focused component in the OfficeIMO managed document platform.",
       "kind": "tool",
       "projectPath": "Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj",
-      "sourceFileCount": 10,
+      "sourceFileCount": 13,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -239,7 +240,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/ai-intelligence-x/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AI.IntelligenceX"
     },
     {
@@ -252,7 +253,7 @@
       "sourceFileCount": 50,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/ascii-doc/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AsciiDoc"
     },
     {
@@ -265,7 +266,7 @@
       "sourceFileCount": 10,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/ascii-doc-markdown/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AsciiDoc.Markdown"
     },
     {
@@ -278,7 +279,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/ascii-doc-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AsciiDoc.Pdf"
     },
     {
@@ -291,7 +292,7 @@
       "sourceFileCount": 20,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/bibliography/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Bibliography"
     },
     {
@@ -304,7 +305,7 @@
       "sourceFileCount": 25,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/chart-forge-x/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.ChartForgeX"
     },
     {
@@ -317,7 +318,7 @@
       "sourceFileCount": 10,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/confluence/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Confluence"
     },
     {
@@ -327,10 +328,10 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 595,
+      "sourceFileCount": 623,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/core/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Core"
     },
     {
@@ -340,7 +341,7 @@
       "description": "A fluent, strongly-typed CSV document model for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.CSV/OfficeIMO.CSV.csproj",
-      "sourceFileCount": 75,
+      "sourceFileCount": 87,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/csv/",
       "apiUrl": "/api/csv/",
@@ -356,7 +357,7 @@
       "sourceFileCount": 4,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/data-arrow/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Data.Arrow"
     },
     {
@@ -369,7 +370,7 @@
       "sourceFileCount": 1,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/data-generators/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Data.Generators"
     },
     {
@@ -382,7 +383,7 @@
       "sourceFileCount": 7,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/doc-book/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.DocBook"
     },
     {
@@ -395,7 +396,7 @@
       "sourceFileCount": 1,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/drawing-code-glyph-x/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Drawing.CodeGlyphX"
     },
     {
@@ -408,7 +409,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/drawing-harf-buzz/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Drawing.HarfBuzz"
     },
     {
@@ -434,7 +435,7 @@
       "sourceFileCount": 4,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/email/",
-      "apiUrl": null,
+      "apiUrl": "/api/email-html/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Email.Html"
     },
     {
@@ -460,7 +461,7 @@
       "sourceFileCount": 30,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/epub/",
-      "apiUrl": null,
+      "apiUrl": "/api/epub/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Epub"
     },
     {
@@ -473,7 +474,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/epub/",
-      "apiUrl": null,
+      "apiUrl": "/api/epub-image/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Epub.Image"
     },
     {
@@ -483,7 +484,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 1008,
+      "sourceFileCount": 1050,
       "referencingTestProjectCount": 10,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -499,7 +500,7 @@
       "sourceFileCount": 4,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/excel/",
-      "apiUrl": null,
+      "apiUrl": "/api/excel-csv/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Csv"
     },
     {
@@ -512,7 +513,7 @@
       "sourceFileCount": 32,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/excel/",
-      "apiUrl": null,
+      "apiUrl": "/api/excel-google-sheets/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.GoogleSheets"
     },
     {
@@ -525,7 +526,7 @@
       "sourceFileCount": 18,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/excel/",
-      "apiUrl": null,
+      "apiUrl": "/api/excel-html/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Html"
     },
     {
@@ -538,7 +539,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/iwork/",
-      "apiUrl": null,
+      "apiUrl": "/api/excel-iwork/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.IWork"
     },
     {
@@ -551,7 +552,7 @@
       "sourceFileCount": 16,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/excel/",
-      "apiUrl": null,
+      "apiUrl": "/api/excel-open-document/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.OpenDocument"
     },
     {
@@ -564,7 +565,7 @@
       "sourceFileCount": 23,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/excel/",
-      "apiUrl": null,
+      "apiUrl": "/api/excel-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Pdf"
     },
     {
@@ -626,7 +627,7 @@
       "description": "HTML parsing, resource policy, CSS layout, diagnostics, and direct rendering for OfficeIMO converters.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html/OfficeIMO.Html.csproj",
-      "sourceFileCount": 306,
+      "sourceFileCount": 307,
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html/",
@@ -642,7 +643,7 @@
       "sourceFileCount": 6,
       "referencingTestProjectCount": 0,
       "docsUrl": "/docs/html/",
-      "apiUrl": null,
+      "apiUrl": "/api/html-angle-sharp/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.AngleSharp"
     },
     {
@@ -655,7 +656,7 @@
       "sourceFileCount": 9,
       "referencingTestProjectCount": 0,
       "docsUrl": "/docs/html/",
-      "apiUrl": null,
+      "apiUrl": "/api/html-core/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Core"
     },
     {
@@ -668,7 +669,7 @@
       "sourceFileCount": 28,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/html/",
-      "apiUrl": null,
+      "apiUrl": "/api/html-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Pdf"
     },
     {
@@ -681,7 +682,7 @@
       "sourceFileCount": 2,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/html/",
-      "apiUrl": null,
+      "apiUrl": "/api/html-pdf-browser/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Pdf.Browser"
     },
     {
@@ -717,11 +718,24 @@
       "description": "Typed electronic invoices, CII/UBL authoring, parsing, conversion, and model validation for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj",
-      "sourceFileCount": 43,
+      "sourceFileCount": 57,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/invoicing/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing"
+    },
+    {
+      "name": "OfficeIMO.Invoicing.KSeF",
+      "packageId": "OfficeIMO.Invoicing.KSeF",
+      "category": "Publishing and conversion",
+      "description": "KSeF v2 token authentication, encrypted online invoice submission, status and UPO retrieval.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Invoicing.KSeF/OfficeIMO.Invoicing.KSeF.csproj",
+      "sourceFileCount": 12,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": "/api/invoicing-ksef/",
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing.KSeF"
     },
     {
       "name": "OfficeIMO.Invoicing.Pdf",
@@ -730,10 +744,10 @@
       "description": "Optional PDF presentation and hybrid CII invoice generation for OfficeIMO.Invoicing.",
       "kind": "package",
       "projectPath": "OfficeIMO.Invoicing.Pdf/OfficeIMO.Invoicing.Pdf.csproj",
-      "sourceFileCount": 14,
+      "sourceFileCount": 18,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/invoicing-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing.Pdf"
     },
     {
@@ -743,10 +757,10 @@
       "description": "Pinned schema and Schematron validation for OfficeIMO electronic invoices.",
       "kind": "package",
       "projectPath": "OfficeIMO.Invoicing.Validation/OfficeIMO.Invoicing.Validation.csproj",
-      "sourceFileCount": 7,
+      "sourceFileCount": 9,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/invoicing-validation/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing.Validation"
     },
     {
@@ -756,10 +770,10 @@
       "description": "Bounded read-only Apple iWork package and IWA inspection with Pages, Numbers, and Keynote source projections.",
       "kind": "package",
       "projectPath": "OfficeIMO.IWork/OfficeIMO.IWork.csproj",
-      "sourceFileCount": 32,
+      "sourceFileCount": 33,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/iwork/",
-      "apiUrl": null,
+      "apiUrl": "/api/iwork/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.IWork"
     },
     {
@@ -772,7 +786,7 @@
       "sourceFileCount": 17,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/latex/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Latex"
     },
     {
@@ -785,7 +799,7 @@
       "sourceFileCount": 5,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/latex-markdown/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Latex.Markdown"
     },
     {
@@ -798,7 +812,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/latex-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Latex.Pdf"
     },
     {
@@ -824,7 +838,7 @@
       "sourceFileCount": 20,
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/markdown/",
-      "apiUrl": null,
+      "apiUrl": "/api/markdown-html/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Markdown.Html"
     },
     {
@@ -837,7 +851,7 @@
       "sourceFileCount": 22,
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/markdown/",
-      "apiUrl": null,
+      "apiUrl": "/api/markdown-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Markdown.Pdf"
     },
     {
@@ -850,7 +864,7 @@
       "sourceFileCount": 36,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/markdown/",
-      "apiUrl": null,
+      "apiUrl": "/api/markdown-renderer/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer"
     },
     {
@@ -863,7 +877,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/markdown/",
-      "apiUrl": null,
+      "apiUrl": "/api/markdown-renderer-intelligence-x/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer.IntelligenceX"
     },
     {
@@ -876,7 +890,7 @@
       "sourceFileCount": 7,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/markdown/",
-      "apiUrl": null,
+      "apiUrl": "/api/markdown-renderer-wpf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer.Wpf"
     },
     {
@@ -964,7 +978,7 @@
       "description": "Dependency-light OCR contracts shared by OfficeIMO document formats and providers.",
       "kind": "package",
       "projectPath": "OfficeIMO.Ocr/OfficeIMO.Ocr.csproj",
-      "sourceFileCount": 7,
+      "sourceFileCount": 14,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/ocr/",
@@ -1019,7 +1033,7 @@
       "sourceFileCount": 9,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/onenote/",
-      "apiUrl": null,
+      "apiUrl": "/api/one-note-html/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OneNote.Html"
     },
     {
@@ -1032,7 +1046,7 @@
       "sourceFileCount": 6,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/onenote/",
-      "apiUrl": null,
+      "apiUrl": "/api/one-note-markdown/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OneNote.Markdown"
     },
     {
@@ -1045,7 +1059,7 @@
       "sourceFileCount": 7,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/onenote/",
-      "apiUrl": null,
+      "apiUrl": "/api/one-note-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OneNote.Pdf"
     },
     {
@@ -1055,7 +1069,7 @@
       "description": "Native OpenDocument ODT, ODS, and ODP reader, writer, and preservation-aware document model for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.OpenDocument/OfficeIMO.OpenDocument.csproj",
-      "sourceFileCount": 124,
+      "sourceFileCount": 125,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/open-document/",
       "apiUrl": "/api/open-document/",
@@ -1071,7 +1085,7 @@
       "sourceFileCount": 2,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/open-document/",
-      "apiUrl": null,
+      "apiUrl": "/api/open-document-odp-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument.Odp.Pdf"
     },
     {
@@ -1084,7 +1098,7 @@
       "sourceFileCount": 2,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/open-document/",
-      "apiUrl": null,
+      "apiUrl": "/api/open-document-ods-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument.Ods.Pdf"
     },
     {
@@ -1097,7 +1111,7 @@
       "sourceFileCount": 2,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/open-document/",
-      "apiUrl": null,
+      "apiUrl": "/api/open-document-odt-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument.Odt.Pdf"
     },
     {
@@ -1110,7 +1124,7 @@
       "sourceFileCount": 6,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/opml/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Opml"
     },
     {
@@ -1120,7 +1134,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1225,
+      "sourceFileCount": 1231,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -1133,7 +1147,7 @@
       "description": "Optional OCR rendering, native-text merge, and searchable output for OfficeIMO.Pdf.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf.Ocr/OfficeIMO.Pdf.Ocr.csproj",
-      "sourceFileCount": 15,
+      "sourceFileCount": 16,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf-ocr/",
@@ -1146,7 +1160,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft PowerPoint PPT, PPTX, PPTM, POT, PPS, and related presentations without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
-      "sourceFileCount": 467,
+      "sourceFileCount": 466,
       "referencingTestProjectCount": 8,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/powerpoint/",
@@ -1162,7 +1176,7 @@
       "sourceFileCount": 12,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/powerpoint/",
-      "apiUrl": null,
+      "apiUrl": "/api/power-point-google-slides/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.GoogleSlides"
     },
     {
@@ -1172,10 +1186,10 @@
       "description": "HTML converter for OfficeIMO.PowerPoint - Export presentations to semantic or positioned review HTML.",
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint.Html/OfficeIMO.PowerPoint.Html.csproj",
-      "sourceFileCount": 17,
+      "sourceFileCount": 18,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/powerpoint/",
-      "apiUrl": null,
+      "apiUrl": "/api/power-point-html/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.Html"
     },
     {
@@ -1188,7 +1202,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/iwork/",
-      "apiUrl": null,
+      "apiUrl": "/api/power-point-iwork/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.IWork"
     },
     {
@@ -1201,7 +1215,7 @@
       "sourceFileCount": 10,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/powerpoint/",
-      "apiUrl": null,
+      "apiUrl": "/api/power-point-open-document/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.OpenDocument"
     },
     {
@@ -1214,7 +1228,7 @@
       "sourceFileCount": 15,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/powerpoint/",
-      "apiUrl": null,
+      "apiUrl": "/api/power-point-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.Pdf"
     },
     {
@@ -1227,7 +1241,7 @@
       "sourceFileCount": 188,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/project/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Project"
     },
     {
@@ -1240,7 +1254,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/provenance-c2pa/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Provenance.C2pa"
     },
     {
@@ -1253,7 +1267,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-all/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.All"
     },
     {
@@ -1266,7 +1280,7 @@
       "sourceFileCount": 4,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-ascii-doc/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.AsciiDoc"
     },
     {
@@ -1276,7 +1290,7 @@
       "description": "Dependency-light contracts, routing, processing, and normalized document models for modular OfficeIMO readers.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj",
-      "sourceFileCount": 114,
+      "sourceFileCount": 115,
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/reader/",
       "apiUrl": "/api/reader/",
@@ -1292,7 +1306,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-csv/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Csv"
     },
     {
@@ -1305,7 +1319,7 @@
       "sourceFileCount": 5,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-doc-book/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.DocBook"
     },
     {
@@ -1318,7 +1332,7 @@
       "sourceFileCount": 22,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-email/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Email"
     },
     {
@@ -1331,7 +1345,7 @@
       "sourceFileCount": 9,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-epub/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Epub"
     },
     {
@@ -1344,7 +1358,7 @@
       "sourceFileCount": 5,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-excel/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Excel"
     },
     {
@@ -1357,7 +1371,7 @@
       "sourceFileCount": 5,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-html/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Html"
     },
     {
@@ -1370,7 +1384,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-image/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Image"
     },
     {
@@ -1383,7 +1397,7 @@
       "sourceFileCount": 5,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/iwork/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-iwork/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.IWork"
     },
     {
@@ -1396,7 +1410,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-json/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Json"
     },
     {
@@ -1409,7 +1423,7 @@
       "sourceFileCount": 4,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-latex/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Latex"
     },
     {
@@ -1422,7 +1436,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-markdown/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Markdown"
     },
     {
@@ -1435,7 +1449,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-notebook/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Notebook"
     },
     {
@@ -1461,7 +1475,7 @@
       "sourceFileCount": 10,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-one-note/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.OneNote"
     },
     {
@@ -1474,7 +1488,7 @@
       "sourceFileCount": 6,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-open-document/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.OpenDocument"
     },
     {
@@ -1487,7 +1501,7 @@
       "sourceFileCount": 4,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-opml/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Opml"
     },
     {
@@ -1500,7 +1514,7 @@
       "sourceFileCount": 18,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Pdf"
     },
     {
@@ -1513,7 +1527,7 @@
       "sourceFileCount": 4,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-power-point/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.PowerPoint"
     },
     {
@@ -1526,7 +1540,7 @@
       "sourceFileCount": 8,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-rtf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Rtf"
     },
     {
@@ -1539,7 +1553,7 @@
       "sourceFileCount": 4,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-subtitles/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Subtitles"
     },
     {
@@ -1552,7 +1566,7 @@
       "sourceFileCount": 7,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-visio/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Visio"
     },
     {
@@ -1565,7 +1579,7 @@
       "sourceFileCount": 6,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-web/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Web"
     },
     {
@@ -1578,7 +1592,7 @@
       "sourceFileCount": 6,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-word/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Word"
     },
     {
@@ -1591,7 +1605,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-xml/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Xml"
     },
     {
@@ -1604,7 +1618,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-yaml/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Yaml"
     },
     {
@@ -1617,7 +1631,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-zip/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Zip"
     },
     {
@@ -1630,7 +1644,7 @@
       "sourceFileCount": 229,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/rtf/",
-      "apiUrl": null,
+      "apiUrl": "/api/rtf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Rtf"
     },
     {
@@ -1643,7 +1657,7 @@
       "sourceFileCount": 8,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/rtf/",
-      "apiUrl": null,
+      "apiUrl": "/api/rtf-markdown/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Rtf.Markdown"
     },
     {
@@ -1656,7 +1670,7 @@
       "sourceFileCount": 14,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/rtf/",
-      "apiUrl": null,
+      "apiUrl": "/api/rtf-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Rtf.Pdf"
     },
     {
@@ -1669,7 +1683,7 @@
       "sourceFileCount": 14,
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/security/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Security"
     },
     {
@@ -1679,7 +1693,7 @@
       "description": "Cross-platform OfficeIMO desktop document reader and workspace.",
       "kind": "library",
       "projectPath": "OfficeIMO.Studio/OfficeIMO.Studio.csproj",
-      "sourceFileCount": 227,
+      "sourceFileCount": 231,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -1692,7 +1706,7 @@
       "description": "Unified command-line interface for OfficeIMO document conversion, extraction, markup, provenance, output, intake, and capability discovery.",
       "kind": "tool",
       "projectPath": "OfficeIMO.Tool/OfficeIMO.Tool.csproj",
-      "sourceFileCount": 41,
+      "sourceFileCount": 44,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -1721,7 +1735,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/visio/",
-      "apiUrl": null,
+      "apiUrl": "/api/visio-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Visio.Pdf"
     },
     {
@@ -1731,7 +1745,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 676,
+      "sourceFileCount": 688,
       "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
@@ -1747,7 +1761,7 @@
       "sourceFileCount": 30,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/word/",
-      "apiUrl": null,
+      "apiUrl": "/api/word-google-docs/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.GoogleDocs"
     },
     {
@@ -1757,10 +1771,10 @@
       "description": "HTML converter for OfficeIMO.Word - Convert Word documents to/from HTML using AngleSharp",
       "kind": "package",
       "projectPath": "OfficeIMO.Word.Html/OfficeIMO.Word.Html.csproj",
-      "sourceFileCount": 75,
+      "sourceFileCount": 76,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/word/",
-      "apiUrl": null,
+      "apiUrl": "/api/word-html/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Html"
     },
     {
@@ -1773,7 +1787,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/iwork/",
-      "apiUrl": null,
+      "apiUrl": "/api/word-iwork/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.IWork"
     },
     {
@@ -1783,10 +1797,10 @@
       "description": "Markdown converter for OfficeIMO.Word - Convert Word documents to/from Markdown using OfficeIMO.Markdown",
       "kind": "package",
       "projectPath": "OfficeIMO.Word.Markdown/OfficeIMO.Word.Markdown.csproj",
-      "sourceFileCount": 28,
+      "sourceFileCount": 29,
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/word/",
-      "apiUrl": null,
+      "apiUrl": "/api/word-markdown/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Markdown"
     },
     {
@@ -1799,7 +1813,7 @@
       "sourceFileCount": 10,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/word/",
-      "apiUrl": null,
+      "apiUrl": "/api/word-open-document/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.OpenDocument"
     },
     {
@@ -1809,10 +1823,10 @@
       "description": "PDF converter for OfficeIMO.Word - Export Word documents to PDF using the first-party OfficeIMO.Pdf engine.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
-      "sourceFileCount": 45,
+      "sourceFileCount": 47,
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/word/",
-      "apiUrl": null,
+      "apiUrl": "/api/word-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Pdf"
     },
     {
@@ -1825,7 +1839,7 @@
       "sourceFileCount": 20,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/word/",
-      "apiUrl": null,
+      "apiUrl": "/api/word-rtf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Rtf"
     },
     {
@@ -1835,10 +1849,10 @@
       "description": "Typed local document workflows that compose first-party OfficeIMO conversion, PDF, and provenance capabilities.",
       "kind": "package",
       "projectPath": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
-      "sourceFileCount": 91,
+      "sourceFileCount": 99,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/workflows/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Workflows"
     },
     {
@@ -1851,7 +1865,7 @@
       "sourceFileCount": 5,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/zip/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Zip"
     }
   ]

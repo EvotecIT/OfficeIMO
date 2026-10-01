@@ -9,6 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\OfficeIMO.Email.Tests\AddressBook\OabV4Fixture.cs" Link="Fixtures\OabV4Fixture.cs" />
+    <Compile Include="..\OfficeIMO.Email.Tests\AddressBook\OabPropertyTags.cs" Link="Fixtures\OabPropertyTags.cs" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="coverlet.collector" Version="10.0.1">
@@ -37,6 +39,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="../OfficeIMO.Invoicing.Tests/Fixtures/InvoiceFixture.cs" Link="Fixtures/InvoiceFixture.cs" />
+    <None Include="../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Fonts/SourceSerif4-Regular.otf" Link="Fixtures/SourceSerif4-Regular.otf" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs"
              Link="Shared\ManagedTextShapingTestAssets.cs" />
   </ItemGroup>

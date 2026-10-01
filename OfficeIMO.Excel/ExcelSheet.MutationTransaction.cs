@@ -31,6 +31,7 @@ namespace OfficeIMO.Excel {
             Batch(_ => {
                 cancellationToken.ThrowIfCancellationRequested();
                 EnsureWorksheetCapturedByMutationPlanIsActive();
+                var dynamicSpillState = CaptureDynamicSpillMutationState(_excelDocument.WorkbookPartRoot);
                 var snapshot = PackageMutationSnapshot.Capture(_excelDocument.WorkbookPartRoot, options.MaximumSnapshotCharacters);
                 ExcelDocument.FormulaMutationState formulaMutationState = _excelDocument.CaptureFormulaMutationState();
                 try {
@@ -50,6 +51,7 @@ namespace OfficeIMO.Excel {
                     } finally {
                         _excelDocument.RestoreFormulaMutationState(formulaMutationState);
                         ResetMutationCaches();
+                        RestoreDynamicSpillMutationState(_excelDocument.WorkbookPartRoot, dynamicSpillState);
                     }
                     throw;
                 }
@@ -58,6 +60,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void ResetMutationCaches() {
+            RefreshDynamicSpillOwnershipAfterMutation(_excelDocument.WorkbookPartRoot);
             _excelDocument.ResetMutationCachesAfterRollback();
             _sheetDataCache = null;
             _lastAccessedRow = null;

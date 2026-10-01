@@ -51,6 +51,21 @@
           "OfficeIMO.Core": "[3.4.4, )"
         }
       },
+      "officeimo.email": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Rtf": "[3.4.4, )"
+        }
+      },
+      "officeimo.email.html": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Email": "[3.4.4, )",
+          "OfficeIMO.Html": "[3.4.4, )",
+          "OfficeIMO.Html.Rtf": "[3.4.4, )"
+        }
+      },
       "officeimo.epub": {
         "type": "Project",
         "dependencies": {
@@ -99,6 +114,31 @@
           "OfficeIMO.Core": "[3.4.4, )",
           "OfficeIMO.Html": "[3.4.4, )",
           "OfficeIMO.Pdf": "[3.4.4, )"
+        }
+      },
+      "officeimo.html.rtf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Html": "[3.4.4, )",
+          "OfficeIMO.Rtf": "[3.4.4, )"
+        }
+      },
+      "officeimo.invoicing": {
+        "type": "Project"
+      },
+      "officeimo.invoicing.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Invoicing": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )"
+        }
+      },
+      "officeimo.invoicing.validation": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Invoicing": "[3.4.4, )"
         }
       },
       "officeimo.markdown": {
@@ -166,6 +206,12 @@
         "dependencies": {
           "OfficeIMO.Ocr": "[3.4.4, )",
           "OfficeIMO.Reader.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.rtf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )"
         }
       },
       "officeimo.visio": {
@@ -252,6 +298,21 @@
           "OfficeIMO.Core": "[3.4.4, )"
         }
       },
+      "officeimo.email": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Rtf": "[3.4.4, )"
+        }
+      },
+      "officeimo.email.html": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Email": "[3.4.4, )",
+          "OfficeIMO.Html": "[3.4.4, )",
+          "OfficeIMO.Html.Rtf": "[3.4.4, )"
+        }
+      },
       "officeimo.epub": {
         "type": "Project",
         "dependencies": {
@@ -301,6 +362,31 @@
           "OfficeIMO.Core": "[3.4.4, )",
           "OfficeIMO.Html": "[3.4.4, )",
           "OfficeIMO.Pdf": "[3.4.4, )"
+        }
+      },
+      "officeimo.html.rtf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Html": "[3.4.4, )",
+          "OfficeIMO.Rtf": "[3.4.4, )"
+        }
+      },
+      "officeimo.invoicing": {
+        "type": "Project"
+      },
+      "officeimo.invoicing.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Invoicing": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )"
+        }
+      },
+      "officeimo.invoicing.validation": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Invoicing": "[3.4.4, )"
         }
       },
       "officeimo.markdown": {
@@ -368,6 +454,12 @@
         "dependencies": {
           "OfficeIMO.Ocr": "[3.4.4, )",
           "OfficeIMO.Reader.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.rtf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )"
         }
       },
       "officeimo.visio": {

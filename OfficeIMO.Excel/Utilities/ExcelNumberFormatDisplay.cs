@@ -290,7 +290,11 @@ namespace OfficeIMO.Excel {
             string numericFormat = thousands
                 ? "N" + decimalPlaces.Maximum.ToString(CultureInfo.InvariantCulture)
                 : "F" + decimalPlaces.Maximum.ToString(CultureInfo.InvariantCulture);
-            string text = displayValue.ToString(numericFormat, CultureInfo.InvariantCulture);
+            double roundedValue = decimalPlaces.Maximum <= 15
+                && !double.IsNaN(displayValue) && !double.IsInfinity(displayValue)
+                ? Math.Round(displayValue, decimalPlaces.Maximum, MidpointRounding.AwayFromZero)
+                : displayValue;
+            string text = roundedValue.ToString(numericFormat, CultureInfo.InvariantCulture);
             if (decimalPlaces.Optional > 0) {
                 text = TrimOptionalDecimalPlaces(text, decimalPlaces.Required);
             }
@@ -597,6 +601,10 @@ namespace OfficeIMO.Excel {
 
             string prefix = CleanLiteralAffix(formatCode.Substring(0, first));
             string suffix = CleanLiteralAffix(formatCode.Substring(last + 1));
+            if (numericText.Length > 0 && numericText[0] == '-' && prefix.Length > 0
+                && prefix[0] is '$' or '\u20AC' or '\u00A3') {
+                return "-" + prefix + numericText.Substring(1) + suffix;
+            }
             return prefix + numericText + suffix;
         }
 

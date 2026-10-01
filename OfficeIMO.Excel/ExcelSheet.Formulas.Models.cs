@@ -8,13 +8,14 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private readonly struct FormulaArgumentValue {
             internal FormulaArgumentValue(double? number, string? text, bool isUnresolvedFormula = false, bool isError = false,
-                ExcelCellDataKind? sourceCellKind = null, bool isBoolean = false) {
+                ExcelCellDataKind? sourceCellKind = null, bool isBoolean = false, bool isUnevaluatedFormulaCache = false) {
                 Number = number;
                 Text = text;
                 IsUnresolvedFormula = isUnresolvedFormula;
                 IsError = isError;
                 SourceCellKind = sourceCellKind;
                 IsBoolean = isBoolean || sourceCellKind == ExcelCellDataKind.Boolean;
+                IsUnevaluatedFormulaCache = isUnevaluatedFormulaCache;
             }
 
             internal double? Number { get; }
@@ -35,9 +36,14 @@ namespace OfficeIMO.Excel {
             // Only references apply reference coercion: a direct TRUE argument still counts as numeric.
             internal FormulaArgumentValue AsReferencedValue() => new FormulaArgumentValue(
                 Number, Text, IsUnresolvedFormula, IsError,
-                IsError ? ExcelCellDataKind.Error : IsBoolean ? ExcelCellDataKind.Boolean : SourceCellKind == ExcelCellDataKind.Text ? ExcelCellDataKind.Text
+                sourceCellKind: IsError ? ExcelCellDataKind.Error : IsBoolean ? ExcelCellDataKind.Boolean : SourceCellKind == ExcelCellDataKind.Text ? ExcelCellDataKind.Text
                     : Number.HasValue ? ExcelCellDataKind.Number
-                    : Text != null ? ExcelCellDataKind.Text : ExcelCellDataKind.Blank, IsBoolean);
+                    : Text != null ? ExcelCellDataKind.Text : ExcelCellDataKind.Blank, isBoolean: IsBoolean, isUnevaluatedFormulaCache: IsUnevaluatedFormulaCache);
+            internal bool IsUnevaluatedFormulaCache { get; }
+
+            internal FormulaArgumentValue WithUnevaluatedFormulaCache() =>
+                new FormulaArgumentValue(Number, Text, IsUnresolvedFormula, IsError,
+                    sourceCellKind: SourceCellKind, isBoolean: IsBoolean, isUnevaluatedFormulaCache: true);
 
             internal static FormulaArgumentValue UnresolvedFormula() {
                 return new FormulaArgumentValue(null, null, isUnresolvedFormula: true);

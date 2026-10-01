@@ -22,6 +22,7 @@ public sealed partial class CsvDocument
     private CsvLoadMode _mode;
     private CsvStreamingSource? _streamingSource;
     private char _delimiter;
+    private string? _delimiterText;
     private CultureInfo _culture;
     private Encoding _encoding;
     private CsvColumnCountMismatchPolicy _columnCountMismatchPolicy;
@@ -339,6 +340,9 @@ public sealed partial class CsvDocument
     /// </summary>
     public char Delimiter => _delimiter;
 
+    /// <summary>Gets the complete delimiter used when parsing and by default when saving.</summary>
+    public string DelimiterText => _delimiterText ?? _delimiter.ToString();
+
     /// <summary>
     /// Gets the culture used for type conversions.
     /// </summary>
@@ -438,37 +442,20 @@ public sealed partial class CsvDocument
             if (compressionType != CsvCompressionType.None)
                 throw new NotSupportedException("Appending to compressed CSV files is not supported.");
             OfficeFileCommit.EnsureTargetDirectory(fullPath);
-            byte[] appendBytes = SerializeToBytes(options, CsvCompressionType.None);
-            using var stream = new FileStream(fullPath, FileMode.Append, FileAccess.Write, FileShare.Read,
+            using var stream = new FileStream(fullPath, options.NoClobber ? FileMode.CreateNew : FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read,
                 FileBufferSize, FileOptions.Asynchronous);
-            int appendOffset = GetAppendOffset(appendBytes, options.Encoding, stream.Length > 0);
-#if NET6_0_OR_GREATER
-            await stream.WriteAsync(appendBytes.AsMemory(appendOffset), cancellationToken).ConfigureAwait(false);
-#else
-            await stream.WriteAsync(appendBytes, appendOffset, appendBytes.Length - appendOffset, cancellationToken).ConfigureAwait(false);
-#endif
-            await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+            Encoding appendEncoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+            bool needsSeparator = CsvFile.NeedsAppendRecordSeparator(stream, appendEncoding);
+            stream.Position = stream.Length;
+            await SaveToStreamAsync(stream, CopySaveOptions(options, CsvCompressionType.None), cancellationToken,
+                needsSeparator ? options.NewLine : null).ConfigureAwait(false);
             return;
         }
 
-        byte[] bytes = SerializeToBytes(options, compressionType);
-        await OfficeFileCommit.WriteAllBytesAsync(fullPath, bytes,
+        await OfficeFileCommit.WriteAsync(fullPath,
+            (stream, token) => SaveToStreamAsync(stream, CopySaveOptions(options, compressionType), token),
             options.NoClobber ? OfficeFileCommit.ConflictPolicy.FailIfExists : OfficeFileCommit.ConflictPolicy.Replace,
             cancellationToken).ConfigureAwait(false);
-    }
-
-    private static int GetAppendOffset(byte[] bytes, Encoding? configuredEncoding, bool destinationHasContent)
-    {
-        if (!destinationHasContent) return 0;
-        Encoding encoding = configuredEncoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        byte[] preamble = encoding.GetPreamble();
-        if (preamble.Length == 0 || bytes.Length < preamble.Length) return 0;
-        for (int index = 0; index < preamble.Length; index++)
-        {
-            if (bytes[index] != preamble[index]) return 0;
-        }
-
-        return preamble.Length;
     }
 
     /// <summary>Asynchronously saves the document to a caller-owned writable stream.</summary>
@@ -476,7 +463,30 @@ public sealed partial class CsvDocument
     {
         if (destination == null) throw new ArgumentNullException(nameof(destination));
         cancellationToken.ThrowIfCancellationRequested();
-        return OfficeStreamWriter.WriteAllBytesAsync(destination, ToBytes(options), cancellationToken);
+        options = ResolveSaveOptions(options);
+        if (options.Append || options.NoClobber)
+            throw new ArgumentException("Append and NoClobber apply only to path saves.", nameof(options));
+        return SaveToStreamAsync(destination, options, cancellationToken);
+    }
+
+    private async Task SaveToStreamAsync(Stream destination, CsvSaveOptions options, CancellationToken cancellationToken, string? initialSeparator = null)
+    {
+        using var guard = new CsvFile.AsyncWriteGuard(destination, cancellationToken);
+        var writer = CsvFile.CreateTextWriter(guard, options, leaveOpen: true, FileBufferSize);
+        try {
+            await CsvWriter.WriteAsync(writer, this, options, cancellationToken, initialSeparator, guard.DrainAsync).ConfigureAwait(false);
+#if NET8_0_OR_GREATER
+            await writer.DisposeAsync().ConfigureAwait(false);
+#else
+            writer.Dispose();
+#endif
+            await guard.DrainAsync().ConfigureAwait(false);
+            await guard.FlushAsync(cancellationToken).ConfigureAwait(false);
+        } catch {
+            guard.SuppressWrites = true;
+            writer.Dispose();
+            throw;
+        }
     }
 
     /// <summary>Encodes the document using the selected CSV encoding and compression.</summary>
@@ -531,6 +541,7 @@ public sealed partial class CsvDocument
         return options ?? new CsvSaveOptions
         {
             Delimiter = _delimiter,
+            DelimiterText = _delimiterText,
             Culture = _culture,
             Encoding = _encoding
         };
@@ -541,12 +552,7 @@ public sealed partial class CsvDocument
     /// </summary>
     public string ToString(CsvSaveOptions? options)
     {
-        options ??= new CsvSaveOptions
-        {
-            Delimiter = _delimiter,
-            Culture = _culture,
-            Encoding = _encoding
-        };
+        options = ResolveSaveOptions(options);
 
         using var writer = new StringWriter();
         CsvWriter.Write(writer, this, options);
@@ -589,6 +595,17 @@ public sealed partial class CsvDocument
     public CsvDocument WithDelimiter(char delimiter)
     {
         _delimiter = delimiter;
+        _delimiterText = null;
+        return this;
+    }
+
+    /// <summary>Sets a complete single- or multi-character delimiter for subsequent saves.</summary>
+    public CsvDocument WithDelimiter(string delimiter)
+    {
+        if (string.IsNullOrEmpty(delimiter))
+            throw new ArgumentException("Delimiter cannot be empty.", nameof(delimiter));
+        _delimiter = delimiter[0];
+        _delimiterText = delimiter;
         return this;
     }
 

@@ -118,9 +118,9 @@ internal static partial class VCardCodec {
                 attachment.ContentTypeParameters.TryGetValue("profile", out string? profile) ? profile : null));
     }
 
-    internal static EmailAttachment CreateAttachment(EmailDocument document, EmailAttachment? source = null) {
+    internal static EmailAttachment CreateAttachment(EmailDocument document, EmailAttachment? source = null, long maxOutputBytes = long.MaxValue, CancellationToken cancellationToken = default) {
         if (source != null) return source;
-        byte[] content = Create(document);
+        byte[] content = Create(document, maxOutputBytes, cancellationToken);
         var attachment = new EmailAttachment {
             ContentType = "text/vcard",
             Content = content,
@@ -147,9 +147,9 @@ internal static partial class VCardCodec {
         string.Equals(contentType, "text/directory", StringComparison.OrdinalIgnoreCase) &&
         string.Equals(profile, "vcard", StringComparison.OrdinalIgnoreCase);
 
-    private static byte[] Create(EmailDocument document) {
+    private static byte[] Create(EmailDocument document, long maxOutputBytes, CancellationToken cancellationToken) {
         OutlookContact contact = document.Contact ?? new OutlookContact();
-        var output = new StringBuilder();
+        var output = new EmailContentLineOutput(maxOutputBytes, cancellationToken);
         AppendLine(output, "BEGIN:VCARD");
         AppendLine(output, "VERSION:3.0");
         AppendLine(output, string.Concat("N:", Escape(contact.Surname), ";", Escape(contact.GivenName), ";",
@@ -360,18 +360,18 @@ internal static partial class VCardCodec {
         }
     }
 
-    private static void WriteEmail(StringBuilder output, OutlookContactEmailAddress email, string type, bool preferred) {
+    private static void WriteEmail(EmailContentLineOutput output, OutlookContactEmailAddress email, string type, bool preferred) {
         if (string.IsNullOrWhiteSpace(email.Address)) return;
         AppendLine(output, string.Concat("EMAIL;TYPE=", type, preferred ? ",PREF:" : ":", Escape(email.Address)));
     }
 
-    private static void WriteEmailMetadata(StringBuilder output, OutlookContactEmailAddress email, int index) {
+    private static void WriteEmailMetadata(EmailContentLineOutput output, OutlookContactEmailAddress email, int index) {
         string prefix = string.Concat("X-OFFICEIMO-EMAIL", index.ToString(CultureInfo.InvariantCulture));
         AppendText(output, string.Concat(prefix, "-DISPLAY-NAME"), email.DisplayName);
         AppendText(output, string.Concat(prefix, "-ORIGINAL-DISPLAY-NAME"), email.OriginalDisplayName);
     }
 
-    private static void WritePhones(StringBuilder output, OutlookContactPhones phones) {
+    private static void WritePhones(EmailContentLineOutput output, OutlookContactPhones phones) {
         WritePhone(output, phones.Business, "WORK,VOICE");
         WritePhone(output, phones.Business2, "WORK,VOICE");
         WritePhone(output, phones.Home, "HOME,VOICE");
@@ -393,12 +393,12 @@ internal static partial class VCardCodec {
         WritePhone(output, phones.Isdn, "ISDN");
     }
 
-    private static void WritePhone(StringBuilder output, string? value, string type) {
+    private static void WritePhone(EmailContentLineOutput output, string? value, string type) {
         if (!string.IsNullOrWhiteSpace(value)) AppendLine(output,
             string.Concat("TEL;TYPE=", type, ":", Escape(value)));
     }
 
-    private static void WriteAddress(StringBuilder output, OutlookPostalAddress address, string type) {
+    private static void WriteAddress(EmailContentLineOutput output, OutlookPostalAddress address, string type) {
         if (IsEmpty(address)) return;
         AppendLine(output, string.Concat("ADR;TYPE=", type, ":", Escape(address.PostOfficeBox), ";;",
             Escape(address.Street), ";", Escape(address.City), ";", Escape(address.StateOrProvince), ";",
@@ -406,7 +406,7 @@ internal static partial class VCardCodec {
         if (!string.IsNullOrWhiteSpace(address.Formatted)) AppendText(output, string.Concat("LABEL;TYPE=", type), address.Formatted);
     }
 
-    private static void WriteAddressMetadata(StringBuilder output, OutlookPostalAddress address, string type) =>
+    private static void WriteAddressMetadata(EmailContentLineOutput output, OutlookPostalAddress address, string type) =>
         AppendText(output, string.Concat("X-OFFICEIMO-", type, "-COUNTRY-CODE"), address.CountryCode);
 
     private static bool IsEmpty(OutlookPostalAddress address) => new[] { address.Formatted, address.Street,
@@ -419,22 +419,30 @@ internal static partial class VCardCodec {
         foreach (ContentLineComponent root in VCardDocument.Parse(text).Cards) {
             result.Add(new VCardProperty("BEGIN", root.Name, null));
             foreach (ContentLineProperty source in root.Properties) {
-                var property = new VCardProperty(source.Name.ToUpperInvariant(), source.Value, source.Group);
-                foreach (ContentLineParameter parameter in source.Parameters) {
-                    string parameterName = parameter.Values.Count == 0 ? "TYPE" : parameter.Name;
-                    string parameterValue = parameter.Values.Count == 0
-                        ? parameter.Name
-                        : string.Join(",", parameter.Values);
-                    if (property.Parameters.TryGetValue(parameterName, out string? prior))
-                        property.Parameters[parameterName] = string.Concat(prior, ",", parameterValue);
-                    else property.Parameters[parameterName] = parameterValue;
-                }
-                DecodePropertyValue(property, diagnostics, location);
+                VCardProperty property = ProjectProperty(source, diagnostics, location);
                 result.Add(property);
             }
             result.Add(new VCardProperty("END", root.Name, null));
         }
         return result;
+    }
+
+    internal static string ReadTextValue(ContentLineProperty source, IList<EmailDiagnostic> diagnostics, string location) =>
+        Unescape(ProjectProperty(source, diagnostics, location).Value);
+
+    private static VCardProperty ProjectProperty(ContentLineProperty source, IList<EmailDiagnostic> diagnostics, string location) {
+        var property = new VCardProperty(source.Name.ToUpperInvariant(), source.Value, source.Group);
+        foreach (ContentLineParameter parameter in source.Parameters) {
+            string parameterName = parameter.Values.Count == 0 ? "TYPE" : parameter.Name;
+            string parameterValue = parameter.Values.Count == 0
+                ? parameter.Name
+                : string.Join(",", parameter.Values);
+            if (property.Parameters.TryGetValue(parameterName, out string? prior))
+                property.Parameters[parameterName] = string.Concat(prior, ",", parameterValue);
+            else property.Parameters[parameterName] = parameterValue;
+        }
+        DecodePropertyValue(property, diagnostics, location);
+        return property;
     }
 
     private static void DecodePropertyValue(VCardProperty property, IList<EmailDiagnostic> diagnostics,
@@ -495,11 +503,11 @@ internal static partial class VCardCodec {
     private static string? ValueAt(string[] values, int index) => index < values.Length &&
         !string.IsNullOrWhiteSpace(values[index]) ? values[index] : null;
 
-    private static void AppendText(StringBuilder output, string name, string? value) {
+    private static void AppendText(EmailContentLineOutput output, string name, string? value) {
         if (!string.IsNullOrWhiteSpace(value)) AppendLine(output, string.Concat(name, ":", Escape(value)));
     }
 
-    private static void AppendLine(StringBuilder output, string line) {
+    private static void AppendLine(EmailContentLineOutput output, string line) {
         const int maximumOctets = 75;
         var current = new StringBuilder();
         int octets = 0;

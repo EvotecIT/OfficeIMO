@@ -174,6 +174,15 @@ public class PdfCiiInvoiceDocumentTests {
     }
 
     [Fact]
+    public void EscapedIdentifierOutputIsBoundedAndRetainsTheOriginalOnFailure() {
+        var document = Load(Invoice("INV-1"));
+        string replacement = new string('&', PdfCiiInvoiceDocument.MaximumXmlBytes / 4);
+        Assert.Throws<InvalidDataException>(() => document.WithDocumentId(replacement));
+        Assert.Equal("INV-1", document.DocumentId);
+        Assert.Equal(Encoding.UTF8.GetBytes(Invoice("INV-1")), document.ToBytes());
+    }
+
+    [Fact]
     public void PdfBridgeUsesTheSameSnapshotAndGroundworkAsByteAttachment() {
         var invoice = Load(Invoice("INV-1")).WithDocumentId("INV-2");
         var expected = new PdfOptions().UseFacturX(invoice.ToBytes());

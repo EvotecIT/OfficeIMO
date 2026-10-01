@@ -56,6 +56,13 @@ Set `LossPolicy = OfficeConversionLossPolicy.Allow` only for reviewed, intention
 
 The BIFF reader projects supported content into the normal OfficeIMO workbook model. Current covered families include:
 
+Import retains the workbook's 1900 or 1904 date system, numeric calendar and
+duration serials, number formats, and date-validation literals. This preserves
+Excel's fictitious serial 60 through XLS to XLSX conversion. Tabular readers
+interpret calendar formats using the workbook date system and use an unshifted
+OLE Automation `DateTime` carrier for time-only and elapsed formats. Numeric
+getters retain the original serial after date getters.
+
 | Family | XLS to XLSX behavior |
 |---|---|
 | Worksheets, cells, types, cached values, and rich text | Projected |

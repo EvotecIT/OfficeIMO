@@ -1,0 +1,101 @@
+name: Agent Plugin Package
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - '.agents/plugins/**'
+      - 'OfficeIMO.Tool/server.json'
+      - 'OfficeIMO.Tool/README.md'
+      - 'OfficeIMO.Tool/OfficeIMO.Tool.csproj'
+      - 'Build/validate_mcp_registry.py'
+      - 'Build/test_validate_mcp_registry.py'
+      - 'Build/project.build.json'
+      - '.github/workflows/agent-plugin.yml'
+  push:
+    branches: [master]
+    paths:
+      - '.agents/plugins/**'
+      - 'OfficeIMO.Tool/server.json'
+      - 'OfficeIMO.Tool/README.md'
+      - 'OfficeIMO.Tool/OfficeIMO.Tool.csproj'
+      - 'Build/validate_mcp_registry.py'
+      - 'Build/test_validate_mcp_registry.py'
+      - 'Build/project.build.json'
+      - '.github/workflows/agent-plugin.yml'
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    if: ${{ github.event_name != 'release' || startsWith(github.event.release.tag_name, 'OfficeIMO-v') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate release source
+        if: ${{ github.event_name == 'release' }}
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          [[ "$RELEASE_TAG" =~ ^OfficeIMO-v[0-9]{14}$ ]]
+          git merge-base --is-ancestor HEAD origin/master
+      - name: Check out the shared packer
+        uses: actions/checkout@v7
+        with:
+          repository: EvotecIT/PSPublishModule
+          ref: f665f2b591508358a9543217c3c03ec4352bc14a
+          path: .powerforge-agent-plugin-build
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: .powerforge-agent-plugin-build/global.json
+      - name: Build the shared CLI
+        working-directory: .powerforge-agent-plugin-build
+        run: dotnet build PowerForge.Cli/PowerForge.Cli.csproj -c Release -f net10.0 --nologo
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Validate MCP Registry metadata
+        run: |
+          python -m pip install jsonschema==4.26.0
+          python -m unittest discover -s Build -p test_validate_mcp_registry.py
+          python Build/validate_mcp_registry.py metadata
+      - name: Validate and package the plugin
+        env:
+          PLUGIN_OUTPUT: ${{ runner.temp }}/officeimo-agent-plugin
+        run: |
+          packer=.powerforge-agent-plugin-build/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll
+          dotnet "$packer" agent-plugin validate --source .agents/plugins/officeimo-document-tools
+          dotnet "$packer" agent-plugin pack --source .agents/plugins/officeimo-document-tools --out "$PLUGIN_OUTPUT"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: officeimo-agent-plugin
+          path: ${{ runner.temp }}/officeimo-agent-plugin/*
+          if-no-files-found: error
+          retention-days: 7
+
+  attach-release:
+    if: ${{ github.event_name == 'release' && startsWith(github.event.release.tag_name, 'OfficeIMO-v') }}
+    needs: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: officeimo-agent-plugin
+          path: agent-plugin
+      - name: Attach immutable plugin assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$RELEASE_TAG" agent-plugin/*.zip agent-plugin/*.sha256 --repo "$GITHUB_REPOSITORY"

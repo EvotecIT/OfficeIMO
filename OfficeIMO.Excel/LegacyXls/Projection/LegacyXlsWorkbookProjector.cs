@@ -18,6 +18,9 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
             ExcelDocument document = ExcelDocument.Create();
             try {
+                document.DateSystem = workbook.Uses1904DateSystem
+                    ? ExcelDateSystem.NineteenFour
+                    : ExcelDateSystem.NineteenHundred;
                 if (workbook.Worksheets.Count == 0 && workbook.ChartSheets.Count == 0) {
                     document.AddWorksheet("Sheet1");
                 }
@@ -744,7 +747,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                         continue;
                     }
 
-                    object? value = GetProjectedCellValue(workbook, cell, format);
+                    object? value = cell.Value;
                     if (cell.Kind == LegacyXlsCellValueKind.Text
                         && value is string text
                         && TryCreateCellRichTextRuns(workbook, text, cell.TextFormattingRuns, out IReadOnlyList<ExcelRichTextRun> richTextRuns)) {
@@ -2275,19 +2278,6 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
 
             return current == null ? value : current + value;
-        }
-
-        private static object? GetProjectedCellValue(
-            LegacyXlsWorkbook workbook,
-            LegacyXlsCell cell,
-            LegacyXlsCellFormat? format) {
-            if (cell.Kind != LegacyXlsCellValueKind.Number || format?.IsDateLike != true || cell.Value is not double serial) {
-                return cell.Value;
-            }
-
-            return LegacyXlsDateSerialConverter.TryConvert(serial, workbook.Uses1904DateSystem, out DateTime value)
-                ? value
-                : cell.Value;
         }
 
         private static void ApplyNumberFormat(ExcelSheet sheet, LegacyXlsCell cell, LegacyXlsCellFormat? format) {

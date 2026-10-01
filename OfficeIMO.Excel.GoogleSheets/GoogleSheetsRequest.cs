@@ -351,6 +351,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public IReadOnlyList<GoogleSheetsPivotGroup> Columns { get; set; } = Array.Empty<GoogleSheetsPivotGroup>();
         /// <summary>Gets or sets aggregated pivot values.</summary>
         public IReadOnlyList<GoogleSheetsPivotValue> Values { get; set; } = Array.Empty<GoogleSheetsPivotValue>();
+        /// <summary>Gets or sets measure placement: HORIZONTAL for columns or VERTICAL for rows.</summary>
+        public string ValueLayout { get; set; } = "HORIZONTAL";
     }
 
     /// <summary>A source column grouped on a pivot-table axis.</summary>

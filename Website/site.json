@@ -316,7 +316,7 @@
       {
         "Name": "search_site",
         "Route": "/search/",
-        "Description": "Search OfficeIMO guides, API types, PowerShell commands, products, browser workflows, examples, and articles.",
+        "Description": "Search OfficeIMO API types and members across packages, alongside guides, PowerShell commands, products, browser workflows, examples, and articles.",
         "Kind": "site-search",
         "ReadOnly": true
       },

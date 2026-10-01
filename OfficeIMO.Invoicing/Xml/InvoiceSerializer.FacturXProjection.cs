@@ -53,6 +53,9 @@ public static partial class InvoiceSerializer {
         Omitted(invoice.SupportingDocuments.Count != 0, "SupportingDocuments", invoice.SupportingDocuments.Count + " supporting document(s)");
         Omitted(invoice.PrecedingInvoices.Count != 0, "PrecedingInvoices", invoice.PrecedingInvoices.Count + " preceding invoice reference(s)");
         Omitted(invoice.Payments.Count != 0, "Payments", invoice.Payments.Count + " payment instruction occurrence(s)");
+        Omitted(invoice.PaymentReference != null, "PaymentReference", "the remittance reference");
+        Omitted(invoice.CreditorIdentifier != null, "CreditorIdentifier", "the creditor identifier");
+        Omitted(invoice.DirectDebitMandateReference != null, "DirectDebitMandateReference", "the direct-debit mandate");
         Omitted(invoice.PaymentTerms != null, "PaymentTerms", "payment terms text");
         Omitted(invoice.DueDate.HasValue, "DueDate", "the payment due date");
         if (retainsIntraCommunityTax && invoice.Period != null)

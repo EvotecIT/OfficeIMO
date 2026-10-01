@@ -144,7 +144,9 @@ internal static class MsgReader {
             long total = GetStorageLength(compound, objectStorage);
             attachment.Length = total;
             state.CountAttachment(total);
-            if (nestedDepth >= state.Options.MaxNestedMessageDepth) {
+            if (!state.Options.IncludeEmbeddedMessages) {
+                RetainStorageStreams(compound, objectStorage, attachment, state);
+            } else if (nestedDepth >= state.Options.MaxNestedMessageDepth) {
                 RetainStorageStreams(compound, objectStorage, attachment, state);
                 state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_NESTED_MESSAGE_LIMIT",
                     state.Options.IncludeAttachmentContent
@@ -181,10 +183,10 @@ internal static class MsgReader {
             state.CountAttachment(length);
             attachment.Content = state.Options.IncludeAttachmentContent && content != null ? (byte[])content.Clone() : null;
             attachment.ContentSource = state.Options.IncludeAttachmentContent ? externalSource : null;
-            if (content != null && IsTnef(content) && nestedDepth < state.Options.MaxNestedMessageDepth) {
+            if (state.Options.IncludeEmbeddedMessages && content != null && IsTnef(content) && nestedDepth < state.Options.MaxNestedMessageDepth) {
                 attachment.EmbeddedDocument = TnefReader.Read(content, state, nestedDepth + 1,
                     string.Concat(path, "/tnef"));
-            } else if (content != null && IsTnef(content)) {
+            } else if (state.Options.IncludeEmbeddedMessages && content != null && IsTnef(content)) {
                 state.Diagnostics.Add(new EmailDiagnostic("EMAIL_TNEF_NESTED_MESSAGE_LIMIT",
                     "The encapsulated TNEF attachment was retained but not projected because the nested-message limit was reached.",
                     EmailDiagnosticSeverity.Warning, path));
