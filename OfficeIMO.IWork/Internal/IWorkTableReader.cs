@@ -141,6 +141,8 @@ internal static partial class IWorkTableReader {
         }
         int rows = CheckedDimension(message.GetUnsigned(6), source.Options.MaximumTableRows, "row", model);
         int columns = CheckedDimension(message.GetUnsigned(7), source.Options.MaximumTableColumns, "column", model);
+        AssessVisibilityCounts(source, model, message, rows, columns, references,
+            diagnostics, ref supportsEditableReconstruction);
         string? tableName = message.GetString(8, out bool tableNameComplete);
         if (!tableNameComplete) {
             MarkTextMetadataUnsupported(model, diagnostics, ref supportsEditableReconstruction);

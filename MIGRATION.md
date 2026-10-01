@@ -15,6 +15,8 @@ Tables with decoded conditional-style, applied-rule or comment selectors now req
 
 Malformed or inconsistent row cell counts and non-empty modern buffers without selected offsets also require the partial policy. Inspect `IWORK_TABLE_ROW_STORAGE_UNASSESSED`; its evidence identifies native paths without estimating missing-cell counts.
 
+Positive hidden/filtered row or column counts and malformed visibility counts now require the same partial policy. Inspect `IWORK_TABLE_VISIBILITY_UNASSESSED` before accepting editable output or Reader content: these routes can include content hidden in the source. Reconvert previously accepted tables when source visibility matters. Visibility counts do not identify hidden positions, and hidden-state extent reconstruction remains unqualified.
+
 ## iWork table text formatting and acceptance
 
 Keynote table text defaults are preserved, including source font sizes and horizontal alignment. Strict conversion can now use visual fallback when newly assessed table paragraph pagination flags cannot be represented in PPTX. Set `AllowPartialEditableReconstruction = true` to retain the supported editable table text and inspect `IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED`. Numbers default-style expansion can require fallback when it exceeds the bounded styled-cell budget; typed values and formula caches remain available on the source projection.
