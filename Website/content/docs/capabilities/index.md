@@ -4,7 +4,7 @@ description: "Navigate the complete managed document platform by workflow, compo
 layout: docs
 ---
 
-OfficeIMO is a modular document platform, not a single basic DOCX helper. The repository currently contains **128 production libraries, adapters, renderers, and tools**, backed by **47 test projects**, **34 benchmark projects**, and dedicated validation applications.
+OfficeIMO is a modular document platform, not a single basic DOCX helper. The repository currently contains **129 production libraries, adapters, renderers, and tools**, backed by **48 test projects**, **34 benchmark projects**, and dedicated validation applications.
 
 ## Choose the right depth
 
@@ -24,7 +24,7 @@ OfficeIMO is a modular document platform, not a single basic DOCX helper. The re
 - **Foundations and integrations:** 14 focused components
 - **Google Workspace:** 4 focused components
 - **Office documents:** 21 focused components
-- **Publishing and conversion:** 24 focused components
+- **Publishing and conversion:** 25 focused components
 - **Rendering surfaces:** 3 focused components
 - **Specialized components:** 16 focused components
 

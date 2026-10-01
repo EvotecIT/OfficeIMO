@@ -14,6 +14,11 @@ internal static class InvoiceSchemaValidation {
         using var schemaInput = new MemoryStream(bundle.File(schemaPath), false);
         using (XmlReader schemaReader = XmlReader.Create(schemaInput, InvoiceRuleBundle.XmlSettings(), "invoice-bundle:///" + schemaPath)) schemas.Add(null, schemaReader);
         schemas.Compile();
+        return ValidateDocument(xml, schemas, cancellationToken);
+    }
+
+    internal static List<InvoiceDiagnostic> ValidateDocument(byte[] xml, XmlSchemaSet schemas, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var diagnostics = new InvoiceDiagnosticBuffer();
         XmlReaderSettings settings = InvoiceRuleBundle.XmlSettings();
         settings.Schemas = schemas; settings.ValidationType = ValidationType.Schema;

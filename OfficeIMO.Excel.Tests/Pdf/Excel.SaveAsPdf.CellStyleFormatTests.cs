@@ -162,6 +162,7 @@ public partial class Excel {
             result.Warnings,
             item => item.Code == "WorksheetFontFamilySubstituted");
         Assert.Equal("Fonts", warning.Source);
+        Assert.Equal("FontUnavailable", warning.Details["substitutionReason"]);
         Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
     }
 
@@ -188,6 +189,8 @@ public partial class Excel {
             item => item.Code == "WorksheetFontFamilySubstituted");
         Assert.Equal("Arial", warning.Details["fontFamily"]);
         Assert.Equal("Helvetica", warning.Details["fallbackSlot"]);
+        Assert.Equal("ResourcePolicy", warning.Details["substitutionReason"]);
+        Assert.DoesNotContain("unavailable", warning.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

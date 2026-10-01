@@ -29,4 +29,16 @@ public sealed class InvoiceXmlOptions {
     public InvoiceProfile Profile { get; }
     /// <summary>Policy for intentional data reduction required by lower Factur-X profiles.</summary>
     public InvoiceProjectionPolicy ProjectionPolicy { get; }
+
+    /// <summary>Returns the supported immutable authoring targets from the same contract owner used by the constructor.</summary>
+    public static IReadOnlyList<InvoiceXmlOptions> GetSupportedTargets(InvoiceProjectionPolicy projectionPolicy = InvoiceProjectionPolicy.RejectDataLoss) {
+        if (projectionPolicy < InvoiceProjectionPolicy.RejectDataLoss || projectionPolicy > InvoiceProjectionPolicy.AllowProfileDefinedDataLoss)
+            throw new ArgumentOutOfRangeException(nameof(projectionPolicy));
+        var targets = new List<InvoiceXmlOptions>();
+        foreach (InvoiceSpecificationRelease release in Enum.GetValues(typeof(InvoiceSpecificationRelease)))
+            foreach (InvoiceSyntax syntax in Enum.GetValues(typeof(InvoiceSyntax)))
+                foreach (InvoiceProfile profile in Enum.GetValues(typeof(InvoiceProfile)))
+                    if (InvoiceSpecificationContracts.IsSupported(release, syntax, profile)) targets.Add(new(release, syntax, profile, projectionPolicy));
+        return targets.AsReadOnly();
+    }
 }
