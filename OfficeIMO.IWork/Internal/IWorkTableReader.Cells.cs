@@ -6,7 +6,7 @@ internal static partial class IWorkTableReader {
     private static IWorkTableCell DecodeCell(byte[] buffer, int offset, int endOffset,
         int row, int column,
         IReadOnlyDictionary<uint, string> strings, IWorkTableRichTextCatalog richStrings,
-        IReadOnlyDictionary<uint, IWorkWireMessage> formulas, IWorkTableNumberFormatCatalog numberFormats, IWorkTableCellStyleCatalog cellStyles,
+        IReadOnlyDictionary<uint, IWorkWireMessage> formulas, IWorkTableNumberFormatCatalog numberFormats, IWorkTableCellStyleCatalog cellStyles, IWorkTableTextStyleReader textStyles,
         IWorkReadOptions options, IWorkProjectionBudget projectionBudget,
         HashSet<uint> formulaRichStringIdentifiers, HashSet<uint> nonFormulaRichStringIdentifiers) {
         if (offset < 0 || endOffset < offset || endOffset > buffer.Length
@@ -38,13 +38,19 @@ internal static partial class IWorkTableReader {
             IWorkTableCellStyle? style = cellStyles.Read(IWorkProtobuf.ReadUInt32(buffer, styleOffset));
             if (style != null) cell = cell.WithStyle(style);
         }
+        if (!cell.HasDecodeError && (flags & (1u << 6)) != 0) {
+            int styleOffset = offset + 12;
+            for (int bit = 0; bit < 6; bit++)
+                if ((flags & (1u << bit)) != 0) styleOffset += CellValueFieldSize(bit);
+            cell = cell.WithParagraphStyle(textStyles.ReadSelected(IWorkProtobuf.ReadUInt32(buffer, styleOffset)));
+        }
         // Only a complete, supported header establishes formula presence. Keep decode errors
         // as errors instead of inventing an expression or a recovered cache.
         return cell.Kind == IWorkCellKind.Error && (flags & (1u << 9)) != 0
             ? new IWorkTableCell(row, column, IWorkCellKind.Error, null,
                 error: cell.Error, sourceFormulaIsDeclared: true,
                 hasDecodeError: cell.HasDecodeError, fill: cell.Fill,
-                padding: cell.Padding, verticalAlignment: cell.VerticalAlignment)
+                padding: cell.Padding, verticalAlignment: cell.VerticalAlignment, paragraphStyle: cell.ParagraphStyle, hasSelectedTextStyle: cell.HasSelectedTextStyle)
             : cell;
     }
 

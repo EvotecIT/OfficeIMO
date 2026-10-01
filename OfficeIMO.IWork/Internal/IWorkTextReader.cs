@@ -145,12 +145,18 @@ internal static partial class IWorkTextReader {
             IWorkWireMessage message = chain[styleIndex].Message;
             ApplyStyleName(message, value => data.Name = value, projectionBudget, ref resolvedCompletely);
             IWorkWireMessage? character = IWorkObjectIndex.TryGetMessage(message, 11, out bool malformedCharacter);
-            if (malformedCharacter || message.HasUnexpectedWireKind(11, IWorkWireKind.Bytes)
-                || message.HasField(11) && character == null) resolvedCompletely = false;
+            if (malformedCharacter || message.FieldCount(11) > 1 || message.HasUnexpectedWireKind(11, IWorkWireKind.Bytes)
+                || message.HasField(11) && character == null) {
+                references.Declarations.Record(chain[styleIndex].Record, "11", message.FieldCount(11));
+                resolvedCompletely = false;
+            }
             if (character != null) OverlayText(character, data.Text, projectionBudget, ref resolvedCompletely);
             IWorkWireMessage? paragraph = IWorkObjectIndex.TryGetMessage(message, 12, out bool malformedParagraph);
-            if (malformedParagraph || message.HasUnexpectedWireKind(12, IWorkWireKind.Bytes)
-                || message.HasField(12) && paragraph == null) resolvedCompletely = false;
+            if (malformedParagraph || message.FieldCount(12) > 1 || message.HasUnexpectedWireKind(12, IWorkWireKind.Bytes)
+                || message.HasField(12) && paragraph == null) {
+                references.Declarations.Record(chain[styleIndex].Record, "12", message.FieldCount(12));
+                resolvedCompletely = false;
+            }
             if (paragraph != null) OverlayParagraph(paragraph, data, ref resolvedCompletely);
         }
         IWorkParagraphStyle result = data.ToPublic();
@@ -181,8 +187,11 @@ internal static partial class IWorkTextReader {
             IWorkWireMessage message = chain[styleIndex].Message;
             ApplyStyleName(message, value => data.Name = value, projectionBudget, ref resolvedCompletely);
             IWorkWireMessage? character = IWorkObjectIndex.TryGetMessage(message, 11, out bool malformedCharacter);
-            if (malformedCharacter || message.HasUnexpectedWireKind(11, IWorkWireKind.Bytes)
-                || message.HasField(11) && character == null) resolvedCompletely = false;
+            if (malformedCharacter || message.FieldCount(11) > 1 || message.HasUnexpectedWireKind(11, IWorkWireKind.Bytes)
+                || message.HasField(11) && character == null) {
+                references.Declarations.Record(chain[styleIndex].Record, "11", message.FieldCount(11));
+                resolvedCompletely = false;
+            }
             if (character != null) OverlayText(character, data, projectionBudget, ref resolvedCompletely);
         }
         IWorkTextStyle result = data.ToPublic();

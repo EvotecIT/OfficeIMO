@@ -59,6 +59,14 @@ public static partial class ExcelIWorkConverter {
                     lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission)
             }).ToArray();
         }
+        if (editable && projection.Sheets.SelectMany(sheet => sheet.Tables).SelectMany(TableParagraphStyles)
+            .Any(HasUnsupportedTableTextStyle)) {
+            destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_TABLE_TEXT_STYLE_PARTIAL",
+                    "XLSX retains supported table fonts and horizontal alignment; paragraph indents, spacing, pagination, highlights and color transparency remain on the iWork projection.",
+                    lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission)
+            }).ToArray();
+        }
         long approximatedErrorCount = editable
             ? projection.Sheets.SelectMany(sheet => sheet.Tables).SelectMany(table => table.Cells)
                 .LongCount(cell => (cell.Kind == IWorkCellKind.Error
@@ -136,9 +144,11 @@ public static partial class ExcelIWorkConverter {
                         cancellationToken.ThrowIfCancellationRequested();
                         IWorkTable table = sourceSheet.Tables[tableIndex];
                         ExcelSheet sheet = preparedTables![table];
+                        ApplyTableTextStyles(sheet, table, cancellationToken);
                         foreach (IWorkTableCell cell in table.Cells) {
                             cancellationToken.ThrowIfCancellationRequested();
                             string? formula = preparedFormulas!.TryGetValue(cell, out string? boundFormula) ? boundFormula : null;
+                            IWorkParagraphStyle? defaultStyle = table.GetParagraphStyle(cell.Row, cell.Column);
                             bool isDuration = cell.Kind == IWorkCellKind.Duration
                                 || cell.Kind == IWorkCellKind.Formula
                                     && cell.ValueKind == IWorkCellKind.Duration;
@@ -191,11 +201,11 @@ public static partial class ExcelIWorkConverter {
                                 bool headerCell = cell.Row <= table.HeaderRowCount
                                     || cell.Column <= table.HeaderColumnCount
                                     || cell.Row > table.RowCount - table.FooterRowCount;
-                                targetCell.SetRichText(ToExcelRichTextRuns(richText, headerCell, cancellationToken));
+                                targetCell.SetRichText(ToExcelRichTextRuns(richText, headerCell && defaultStyle?.TextStyle.Bold == null, cancellationToken, defaultStyle?.TextStyle));
                             }
                             if (cell.Row <= table.HeaderRowCount || cell.Column <= table.HeaderColumnCount
                                 || cell.Row > table.RowCount - table.FooterRowCount) {
-                                targetCell.SetBold();
+                                if (defaultStyle?.TextStyle.Bold == null) targetCell.SetBold();
                             }
                             if (cell.Kind == IWorkCellKind.Formula && formula != null
                                 && !string.IsNullOrEmpty(formula) && !formulaWritten) {
@@ -286,7 +296,7 @@ public static partial class ExcelIWorkConverter {
                 or IWorkParagraphBreakKind.Layout or IWorkParagraphBreakKind.Page);
 
     private static ExcelRichTextRun[] ToExcelRichTextRuns(IWorkTextContent content, bool forceBold,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, IWorkTextStyle? defaultStyle = null) {
         var runs = new List<ExcelRichTextRun>();
         for (int paragraphIndex = 0; paragraphIndex < content.Paragraphs.Count; paragraphIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -298,14 +308,13 @@ public static partial class ExcelIWorkConverter {
             foreach (IWorkTextRun source in content.Paragraphs[paragraphIndex].Runs) {
                 cancellationToken.ThrowIfCancellationRequested();
                 var run = new ExcelRichTextRun(source.Text);
-                if (forceBold) run.Bold = true;
-                else if (source.Style.Bold.HasValue) run.Bold = source.Style.Bold.Value;
-                if (source.Style.Italic.HasValue) run.Italic = source.Style.Italic.Value;
-                if (source.Style.Underline.HasValue) run.Underline = source.Style.Underline.Value;
-                if (source.Style.Strikethrough.HasValue) run.Strikethrough = source.Style.Strikethrough.Value;
-                run.FontSize = source.Style.FontSizePoints;
-                run.FontName = source.Style.FontName;
-                run.FontColor = source.Style.Color?.RgbHex;
+                run.Bold = source.Style.Bold ?? defaultStyle?.Bold ?? forceBold;
+                run.Italic = source.Style.Italic ?? defaultStyle?.Italic ?? false;
+                run.Underline = source.Style.Underline ?? defaultStyle?.Underline ?? false;
+                run.Strikethrough = source.Style.Strikethrough ?? defaultStyle?.Strikethrough ?? false;
+                run.FontSize = source.Style.FontSizePoints ?? defaultStyle?.FontSizePoints;
+                run.FontName = source.Style.FontName ?? defaultStyle?.FontName;
+                run.FontColor = source.Style.Color?.RgbHex ?? defaultStyle?.Color?.RgbHex;
                 runs.Add(run);
             }
         }
@@ -332,6 +341,7 @@ public static partial class ExcelIWorkConverter {
 
     private static string? FindExcelProjectionLimitation(IWorkNumbersProjection projection,
         bool normalizeWorksheetNames) {
+        long styledCellCount = 0;
         var destinationSheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (IWorkNumbersSheet sheet in projection.Sheets) {
             if (!FitsTextBoxesInWorksheet(sheet.TextBoxes.Count)) {
@@ -359,6 +369,15 @@ public static partial class ExcelIWorkConverter {
                 }
                 if (table.RowCount > 1_048_576 || table.ColumnCount > 16_384) {
                     return $"Numbers table '{table.Name}' exceeds the XLSX worksheet dimensions.";
+                }
+                if (TableParagraphStyles(table).Any()) {
+                    long area = (long)table.RowCount * table.ColumnCount;
+                    if (area > 100_000 || styledCellCount > 1_000_000 - area)
+                        return "Numbers table text defaults exceed the bounded XLSX styled-cell budget.";
+                    styledCellCount += area;
+                    if (TableParagraphStyles(table).Any(style => style.TextStyle.FontSizePoints is double size
+                        && (!IsFinite(size) || size < 1d || size > 409d)))
+                        return $"Numbers table '{table.Name}' contains a font size outside the XLSX-supported range of 1 to 409 points.";
                 }
                 if (table.HasPopulatedCoveredMergeCells()) {
                     return $"Numbers table '{table.Name}' contains content in a covered merged cell that the XLSX owner cannot preserve.";

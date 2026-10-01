@@ -15,7 +15,11 @@ public sealed class IWorkWorkflowTests {
         using var files = new Files(source, target);
         OfficeWorkflowRunner runner = IWorkWorkflow.CreateRunner();
         Assert.Contains(runner.ConversionRoutes, item => item.Id == route && item.CanExecute);
-        OfficeWorkflowResult result = await runner.RunAsync(files.Request(route));
+        var request = files.Request(route);
+        if (source == "key") request.RegisteredConversionSettings = new IWorkWorkflowSettings {
+            ConversionOptions = new IWorkConversionOptions { AllowPartialEditableReconstruction = true, RequireCompleteVisualCoverage = true }
+        };
+        OfficeWorkflowResult result = await runner.RunAsync(request);
         Assert.True(result.Succeeded, result.Summary);
         Assert.True(File.Exists(files.Output));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
@@ -23,6 +27,10 @@ public sealed class IWorkWorkflowTests {
         Assert.Equal(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(files.Input))), snapshot.Details["sha256"], ignoreCase: true);
         OfficeWorkflowConversionEvidence evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
         Assert.Equal("EditableReconstruction", evidence.Facts["projectionKind"]);
+        if (source == "key") {
+            Assert.Equal("True", evidence.Facts["partialEditableReconstruction"]);
+            Assert.Contains(evidence.FidelityDiagnostics, d => d.Code == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED");
+        }
         int unitCount = int.Parse(evidence.Facts["sourceUnitCount"], System.Globalization.CultureInfo.InvariantCulture);
         int reconstructed = int.Parse(evidence.Facts["reconstructedSourceUnitCount"], System.Globalization.CultureInfo.InvariantCulture);
         int omitted = int.Parse(evidence.Facts["omittedSourceUnitCount"], System.Globalization.CultureInfo.InvariantCulture);

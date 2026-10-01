@@ -22,6 +22,16 @@ public static partial class PowerPointIWorkConverter {
         table.FirstRow = source.HeaderRowCount > 0;
         table.FirstColumn = source.HeaderColumnCount > 0;
         table.LastRow = source.FooterRowCount > 0;
+        for (int row = 1; row <= source.RowCount; row++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            for (int column = 1; column <= source.ColumnCount; column++) {
+                if (source.GetParagraphStyle(row, column) is { } style) {
+                    PowerPointParagraph paragraph = table.GetCell(row - 1, column - 1).Paragraphs[0];
+                    ApplyParagraphStyle(paragraph, style, string.Empty);
+                    foreach (PowerPointTextRun run in paragraph.Runs) ApplyTextStyle(run, style.TextStyle);
+                }
+            }
+        }
         foreach (IWorkTableCell sourceCell in source.Cells) {
             cancellationToken.ThrowIfCancellationRequested();
             PowerPointTableCell target = table.GetCell(sourceCell.Row - 1, sourceCell.Column - 1);
@@ -36,6 +46,9 @@ public static partial class PowerPointIWorkConverter {
                 IWorkCellVerticalAlignment.Middle => PowerPointTextVerticalAlignment.Center,
                 _ => PowerPointTextVerticalAlignment.Bottom
             };
+            IWorkParagraphStyle? defaultStyle = source.GetParagraphStyle(sourceCell.Row, sourceCell.Column);
+            bool header = sourceCell.Row <= source.HeaderRowCount || sourceCell.Column <= source.HeaderColumnCount
+                || sourceCell.Row > source.RowCount - source.FooterRowCount;
             if (sourceCell.RichText is { Paragraphs.Count: > 0 } richText) {
                 IReadOnlyList<PowerPointParagraph> paragraphs = target.SetParagraphs(
                     richText.Paragraphs.Select(_ => string.Empty));
@@ -43,24 +56,23 @@ public static partial class PowerPointIWorkConverter {
                 for (int index = 0; index < paragraphs.Count; index++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     IWorkTextParagraph sourceParagraph = richText.Paragraphs[index];
+                    if (defaultStyle != null) ApplyParagraphStyle(paragraphs[index], defaultStyle, sourceParagraph.Text);
                     ApplyParagraphStyle(paragraphs[index], sourceParagraph,
                         listState.StartsAtSourceLabel(sourceParagraph));
-                    WriteParagraphContent(paragraphs[index], sourceParagraph, cancellationToken);
-                }
-                if (sourceCell.Row <= source.HeaderRowCount
-                    || sourceCell.Column <= source.HeaderColumnCount
-                    || sourceCell.Row > source.RowCount - source.FooterRowCount) {
-                    foreach (PowerPointParagraph paragraph in paragraphs) {
-                        foreach (PowerPointTextRun run in paragraph.Runs) run.Bold = true;
-                    }
+                    WriteParagraphContent(paragraphs[index], sourceParagraph, cancellationToken, defaultStyle?.TextStyle, header);
                 }
             } else {
                 target.Text = sourceCell.Kind == IWorkCellKind.Formula && sourceCell.Value != null
                     ? sourceCell.CachedDisplayText
                     : sourceCell.DisplayText;
+                if (header) target.Bold = true;
+                if (defaultStyle != null) {
+                    foreach (PowerPointParagraph paragraph in target.Paragraphs) {
+                        ApplyParagraphStyle(paragraph, defaultStyle, paragraph.Text);
+                        foreach (PowerPointTextRun run in paragraph.Runs) ApplyTextStyle(run, defaultStyle.TextStyle);
+                    }
+                }
             }
-            if (sourceCell.Row <= source.HeaderRowCount || sourceCell.Column <= source.HeaderColumnCount
-                || sourceCell.Row > source.RowCount - source.FooterRowCount) target.Bold = true;
         }
         foreach (IWorkTableMergeRange merge in source.MergedRanges) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -71,6 +83,28 @@ public static partial class PowerPointIWorkConverter {
             source.Geometry?.WidthPoints, width, table.SetColumnWidthPoints, cancellationToken);
         ApplyAxisSizing(source.RowCount, source.RowHeights, source.DefaultRowHeight,
             source.Geometry?.HeightPoints, height, table.SetRowHeightPoints, cancellationToken);
+    }
+
+    private static IEnumerable<IWorkParagraphStyle> TableParagraphStyles(IWorkTable table) =>
+        new[] { table.TextStyles.Body, table.TextStyles.HeaderRow, table.TextStyles.HeaderColumn, table.TextStyles.FooterRow }
+            .Concat(table.Cells.Select(cell => cell.ParagraphStyle)).Where(style => style != null).Cast<IWorkParagraphStyle>();
+
+    private static string? FindTableTextStyleLimitation(IWorkTable table, bool allowPartial) {
+        foreach (IWorkParagraphStyle style in TableParagraphStyles(table)) {
+            if (!allowPartial && (style.PageBreakBefore == true || style.KeepWithNext == true || style.KeepLinesTogether == true))
+                return $"Keynote table '{table.Name}' contains paragraph pagination formatting that the PPTX owner cannot preserve.";
+            if (!FitsTextCoordinate(style.FirstLineIndentPoints) || !FitsTextCoordinate(style.LeftIndentPoints)
+                || !FitsTextCoordinate(style.RightIndentPoints) || Math.Abs(style.RightIndentPoints.GetValueOrDefault()) > 0.000001d
+                || !FitsSpacing(style.SpaceBeforePoints) || !FitsSpacing(style.SpaceAfterPoints))
+                return $"Keynote table '{table.Name}' contains paragraph formatting outside the PPTX range.";
+            IWorkTextStyle text = style.TextStyle;
+            if (text.FontSizePoints is double size && (!IsFinite(size) || size < 1d || size > 4000d
+                    || size * 100d != Math.Round(size * 100d, MidpointRounding.AwayFromZero)))
+                return $"Keynote table '{table.Name}' contains a font size outside the PPTX range or hundredth-point precision.";
+            if (text.Color is { Alpha: < byte.MaxValue } || text.BackgroundColor is { Alpha: < byte.MaxValue })
+                return $"Keynote table '{table.Name}' contains transparent text colors that the PPTX owner cannot preserve.";
+        }
+        return null;
     }
 
     private static IEnumerable<double> PaddingPoints(IWorkCellPadding padding) {

@@ -9,6 +9,10 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## iWork table text formatting and acceptance
+
+Keynote table text defaults are preserved, including source font sizes and horizontal alignment. Strict conversion can now use visual fallback when newly assessed table paragraph pagination flags cannot be represented in PPTX. Set `AllowPartialEditableReconstruction = true` to retain the supported editable table text and inspect `IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED`. Numbers default-style expansion can require fallback when it exceeds the bounded styled-cell budget; typed values and formula caches remain available on the source projection.
+
 ## Pages body attachment placement
 
 Pages conversion inserts qualified zero-offset body images inline and standalone tables between their surrounding paragraphs. Reconvert sources whose earlier DOCX output appended these objects after the body. `IWorkTextRun.InlineObject` identifies marker-only source runs and retains the original UTF-16 offset and native record identities. Do not infer that an empty run has no content when this property is set.

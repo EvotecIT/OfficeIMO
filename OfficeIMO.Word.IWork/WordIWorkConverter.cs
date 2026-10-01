@@ -336,14 +336,19 @@ public static partial class WordIWorkConverter {
         Func<WordParagraph>? addPageBreak = null,
         Action<IWorkParagraphBreakKind>? addSectionBreak = null,
         bool forceBold = false, CancellationToken cancellationToken = default,
-        Action<WordParagraph, IWorkTextRun>? addInlineObject = null) {
+        Action<WordParagraph, IWorkTextRun>? addInlineObject = null, IWorkParagraphStyle? defaultStyle = null) {
         ulong? previousListIdentifier = null;
         bool hasPreviousListParagraph = false;
         foreach (IWorkTextParagraph sourceParagraph in content.Paragraphs) {
             cancellationToken.ThrowIfCancellationRequested();
             WordParagraph paragraph = addParagraph(string.Empty);
+            if (defaultStyle != null) {
+                ApplyParagraphStyle(paragraph, defaultStyle, sourceParagraph.Text);
+                ApplyTextStyle(paragraph, defaultStyle.TextStyle);
+            }
             ApplyParagraphStyle(paragraph, sourceParagraph);
             if (forceBold) paragraph.Bold = true;
+            ApplyTextStyle(paragraph, sourceParagraph.Style.TextStyle);
             if (sourceParagraph.ListLevel >= 0) {
                 bool startsNewList = !hasPreviousListParagraph
                     || sourceParagraph.ListIdentifier != previousListIdentifier;
@@ -358,7 +363,7 @@ public static partial class WordIWorkConverter {
             foreach (IWorkTextRun sourceRun in sourceParagraph.Runs) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (sourceRun.InlineObject != null) addInlineObject?.Invoke(paragraph, sourceRun);
-                else AddStyledTextRun(paragraph, sourceRun, forceBold);
+                else AddStyledTextRun(paragraph, sourceRun, forceBold, defaultStyle?.TextStyle);
             }
             if (sourceParagraph.BreakKind == IWorkParagraphBreakKind.Page) addPageBreak?.Invoke();
             else if (sourceParagraph.BreakKind is IWorkParagraphBreakKind.Section
@@ -367,7 +372,7 @@ public static partial class WordIWorkConverter {
     }
 
     private static void AddStyledTextRun(WordParagraph paragraph, IWorkTextRun sourceRun,
-        bool forceBold = false) {
+        bool forceBold = false, IWorkTextStyle? defaultStyle = null) {
         string[] lines = sourceRun.Text.Split('\n');
         for (int index = 0; index < lines.Length; index++) {
             if (index > 0) paragraph.AddBreak();
@@ -381,14 +386,18 @@ public static partial class WordIWorkConverter {
             } else {
                 run = paragraph.AddText(lines[index]);
             }
-            ApplyTextStyle(run, sourceRun.Style);
             if (forceBold) run.Bold = true;
+            if (defaultStyle != null) ApplyTextStyle(run, defaultStyle);
+            ApplyTextStyle(run, sourceRun.Style);
         }
     }
 
     private static void ApplyParagraphStyle(WordParagraph paragraph, IWorkTextParagraph source) {
-        IWorkParagraphStyle style = source.Style;
-        paragraph.BiDi = OfficeTextElements.ResolveBaseDirection(source.Text)
+        ApplyParagraphStyle(paragraph, source.Style, source.Text);
+    }
+
+    private static void ApplyParagraphStyle(WordParagraph paragraph, IWorkParagraphStyle style, string text) {
+        paragraph.BiDi = OfficeTextElements.ResolveBaseDirection(text)
             == OfficeTextDirection.RightToLeft;
         if (style.Alignment.HasValue) {
             paragraph.ParagraphAlignment = style.Alignment.Value switch {
@@ -400,11 +409,11 @@ public static partial class WordIWorkConverter {
                 _ => throw new InvalidOperationException("Unsupported iWork paragraph alignment.")
             };
         }
-        paragraph.IndentationFirstLinePoints = style.FirstLineIndentPoints;
-        paragraph.IndentationBeforePoints = style.LeftIndentPoints;
-        paragraph.IndentationAfterPoints = style.RightIndentPoints;
-        paragraph.LineSpacingBeforePoints = style.SpaceBeforePoints;
-        paragraph.LineSpacingAfterPoints = style.SpaceAfterPoints;
+        if (style.FirstLineIndentPoints.HasValue) paragraph.IndentationFirstLinePoints = style.FirstLineIndentPoints;
+        if (style.LeftIndentPoints.HasValue) paragraph.IndentationBeforePoints = style.LeftIndentPoints;
+        if (style.RightIndentPoints.HasValue) paragraph.IndentationAfterPoints = style.RightIndentPoints;
+        if (style.SpaceBeforePoints.HasValue) paragraph.LineSpacingBeforePoints = style.SpaceBeforePoints;
+        if (style.SpaceAfterPoints.HasValue) paragraph.LineSpacingAfterPoints = style.SpaceAfterPoints;
         if (style.PageBreakBefore.HasValue) paragraph.PageBreakBefore = style.PageBreakBefore.Value;
         if (style.KeepWithNext.HasValue) paragraph.KeepWithNext = style.KeepWithNext.Value;
         if (style.KeepLinesTogether.HasValue) paragraph.KeepLinesTogether = style.KeepLinesTogether.Value;

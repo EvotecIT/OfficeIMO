@@ -325,7 +325,8 @@ public sealed class IWorkCorpusTests {
     [Fact]
     public void Keynote_owner_projects_table_and_image_as_editable_powerpoint_shapes() {
         using var tableResult = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(
-            Fixture("keynotekit/tabledeck-v15.2.1.key"));
+            Fixture("keynotekit/tabledeck-v15.2.1.key"),
+            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         PowerPointTable table = Assert.Single(Assert.Single(tableResult.Value.Slides).Tables);
         IWorkTable sourceTable = Assert.Single(Assert.Single(
             tableResult.Projection.Slides).Tables);

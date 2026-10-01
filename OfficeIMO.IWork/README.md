@@ -70,6 +70,8 @@ IWorkNumbersProjection workbook = source.ReadNumbers();
 
 The verifying form is `IWorkSourceDocument.Open(stream, IWorkDocumentKind.Numbers, options)`.
 
+Table text formatting is separate from typed values. `IWorkTable.TextStyles` exposes applicable region defaults, `IWorkTableCell.ParagraphStyle` exposes a selected text style, and `table.GetParagraphStyle(row, column)` resolves the supported style for a one-based position, including an unstored empty cell. Selected styles override region defaults; an unresolved selected style stays null and produces `IWORK_TABLE_TEXT_STYLE_UNSUPPORTED`. The [support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md#table-text-defaults-and-selected-styles) defines the qualified fields and limits.
+
 ## Cancellation
 
 Path, stream, and byte-array `Open` overloads accept a `CancellationToken` after the read options. The token governs loading and all later semantic projections and conversions from that source. Once it is cancelled, reopen the source with a new token for another operation. Caller-owned streams remain open when loading succeeds or is cancelled.

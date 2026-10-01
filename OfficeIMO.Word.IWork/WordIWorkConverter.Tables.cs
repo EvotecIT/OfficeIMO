@@ -28,6 +28,16 @@ public static partial class WordIWorkConverter {
                 else table.Rows[row - 1].Height = ToSignedTwips(height);
             }
         }
+        for (int row = 1; row <= source.RowCount; row++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            for (int column = 1; column <= source.ColumnCount; column++) {
+                if (source.GetParagraphStyle(row, column) is { } style) {
+                    WordParagraph paragraph = table.Rows[row - 1].Cells[column - 1].Paragraphs[0];
+                    ApplyParagraphStyle(paragraph, style, string.Empty);
+                    ApplyTextStyle(paragraph, style.TextStyle);
+                }
+            }
+        }
         foreach (IWorkTableCell sourceCell in source.Cells) {
             cancellationToken.ThrowIfCancellationRequested();
             WordTableCell target = table.Rows[sourceCell.Row - 1].Cells[sourceCell.Column - 1];
@@ -46,6 +56,7 @@ public static partial class WordIWorkConverter {
                 IWorkCellVerticalAlignment.Middle => WordTableVerticalAlignment.Center,
                 _ => WordTableVerticalAlignment.Bottom
             };
+            IWorkParagraphStyle? defaultStyle = source.GetParagraphStyle(sourceCell.Row, sourceCell.Column);
             bool header = sourceCell.Row <= source.HeaderRowCount
                 || sourceCell.Column <= source.HeaderColumnCount
                 || sourceCell.Row > source.RowCount - source.FooterRowCount;
@@ -56,11 +67,15 @@ public static partial class WordIWorkConverter {
                         removeExistingParagraphs: first);
                     first = false;
                     return paragraph;
-                }, nativeLists, forceBold: header, cancellationToken: cancellationToken);
+                }, nativeLists, forceBold: header && defaultStyle?.TextStyle.Bold == null, cancellationToken: cancellationToken, defaultStyle: defaultStyle);
             } else {
                 WordParagraph paragraph = target.AddParagraph(CellText(sourceCell),
                     removeExistingParagraphs: true);
                 if (header) paragraph.Bold = true;
+                if (defaultStyle != null) {
+                    ApplyParagraphStyle(paragraph, defaultStyle, paragraph.Text);
+                    ApplyTextStyle(paragraph, defaultStyle.TextStyle);
+                }
             }
         }
         foreach (IWorkTableMergeRange merge in source.MergedRanges) {

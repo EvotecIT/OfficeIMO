@@ -7,6 +7,7 @@ internal sealed class IWorkTableCellStyleCatalog(IWorkSourceDocument source, IWo
     private readonly Dictionary<uint, IWorkTableCellStyle?> _resolved = new();
     private IWorkArchiveRecord? _list;
     private bool _initialized;
+    private bool _catalogComplete = true;
 
     internal bool FillsFullyReconstructed { get; private set; } = true;
     internal bool LayoutFullyReconstructed { get; private set; } = true;
@@ -14,6 +15,7 @@ internal sealed class IWorkTableCellStyleCatalog(IWorkSourceDocument source, IWo
     internal IWorkTableCellStyle? Read(uint key) {
         source.CancellationToken.ThrowIfCancellationRequested();
         if (!_initialized) Initialize();
+        if (!_catalogComplete) FillsFullyReconstructed = LayoutFullyReconstructed = false;
         if (_resolved.TryGetValue(key, out var cached)) return cached;
         if (!_entries.TryGetValue(key, out var entry)) {
             FillsFullyReconstructed = LayoutFullyReconstructed = false;
@@ -145,23 +147,52 @@ internal sealed class IWorkTableCellStyleCatalog(IWorkSourceDocument source, IWo
         return !color.HasField(1) || color.GetUnsigned(1) == (color.HasField(11) ? 3UL : 1UL);
     }
 
+    /// <summary>Resolves a selected text-style entry without traversing unselected style references.</summary>
+    internal IWorkArchiveRecord? ReadTextStyle(uint key, ref bool complete) {
+        source.CancellationToken.ThrowIfCancellationRequested();
+        if (!_initialized) Initialize();
+        if (!_catalogComplete) complete = false;
+        if (!_entries.TryGetValue(key, out var entry)) { complete = false; return null; }
+        string path = IWorkTableCatalogIndex.EntryPath(entry.Position) + "/4";
+        IWorkArchiveRecord? record = references.ReadOne(_list!, entry.Message, 4, path);
+        if (entry.Message.TotalFieldCount != entry.Message.FieldCount(1)
+                + entry.Message.FieldCount(2) + entry.Message.FieldCount(4)
+            || entry.Message.FieldCount(2) > 1
+            || entry.Message.HasUnexpectedWireKind(2, IWorkWireKind.Varint)
+            || entry.Message.FieldCount(4) != 1
+            || entry.Message.HasUnexpectedWireKind(4, IWorkWireKind.Bytes)
+            || record?.MessageType != 2022) {
+            references.Declarations.Record(_list!, path, entry.Message.FieldCount(4),
+                IWorkSourceDeclarationIssueKind.RejectedMessageSet);
+            complete = false;
+            return null;
+        }
+        return record;
+    }
+
+    internal void RecordTextStyleFailure(uint key) {
+        if (_list != null && _entries.TryGetValue(key, out var entry))
+            references.Declarations.Record(_list, IWorkTableCatalogIndex.EntryPath(entry.Position) + "/4",
+                entry.Message.FieldCount(4), IWorkSourceDeclarationIssueKind.RejectedMessageSet);
+    }
+
     private void Initialize() {
         _initialized = true;
         _list = references.ReadOne(model, store, 5, "4/5");
         if (store.FieldCount(5) != 1 || store.HasUnexpectedWireKind(5, IWorkWireKind.Bytes)
             || _list?.MessageType != 6005) {
-            FillsFullyReconstructed = LayoutFullyReconstructed = false;
+            _catalogComplete = false;
             return;
         }
         var declarations = IWorkTableCatalogIndex.Read(source, _list, budget, references, "cell-style");
-        FillsFullyReconstructed = LayoutFullyReconstructed = declarations.IsComplete;
+        _catalogComplete = declarations.IsComplete;
         if (!declarations.EnvelopeIsComplete) return;
         IWorkWireMessage message = source.Index.Message(_list);
         if (message.FieldCount(1) != 1 || message.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
             || message.GetUnsigned(1) != 4) {
             references.Declarations.Record(_list, "1", message.FieldCount(1),
                 IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
-            FillsFullyReconstructed = LayoutFullyReconstructed = false;
+            _catalogComplete = false;
             return;
         }
         foreach (var entry in declarations.Entries) {

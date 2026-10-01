@@ -118,11 +118,12 @@ internal sealed partial class IWorkReadProjection {
             });
         }
         bool hasFormula = false;
-        bool hasUnrepresentedStyle = false;
+        bool hasUnrepresentedStyle = new[] { source.TextStyles.Body, source.TextStyles.HeaderRow,
+            source.TextStyles.HeaderColumn, source.TextStyles.FooterRow }.Any(style => style != null);
         foreach (IWorkTableCell cell in source.Cells) {
             _cancellationToken.ThrowIfCancellationRequested();
             hasFormula |= cell.Kind == IWorkCellKind.Formula;
-            hasUnrepresentedStyle |= cell.Fill != null || cell.Padding != null || cell.VerticalAlignment != null;
+            hasUnrepresentedStyle |= cell.Fill != null || cell.Padding != null || cell.VerticalAlignment != null || cell.ParagraphStyle != null;
             if (cell.RichText is not { } richText) continue;
             hasUnrepresentedStyle |= !richText.IsComplete;
             bool isProjected = cell.Row <= headerRows + dataRows && cell.Column <= columnCount
@@ -156,7 +157,7 @@ internal sealed partial class IWorkReadProjection {
             _diagnostics.Add(new OfficeDocumentDiagnostic {
                 Category = OfficeDocumentDiagnosticCategory.Content,
                 Code = "IWORK_READER_TABLE_STYLE_PARTIAL",
-                Message = $"Table '{source.Name}' is projected as plain Reader table text; source cell fills, padding and vertical alignment or rich-text formatting are unresolved or cannot be represented in Reader output.",
+                Message = $"Table '{source.Name}' is projected as plain Reader table text; source cell fills, padding, alignment, fonts or rich-text formatting are unresolved or cannot be represented in Reader output.",
                 Source = "OfficeIMO.Reader.IWork",
                 Location = location
             });

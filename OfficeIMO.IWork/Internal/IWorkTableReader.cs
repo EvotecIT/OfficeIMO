@@ -182,6 +182,7 @@ internal static partial class IWorkTableReader {
         var coordinates = new HashSet<long>();
         var formulaRichStringIdentifiers = new HashSet<uint>();
         var nonFormulaRichStringIdentifiers = new HashSet<uint>();
+        IWorkTableTextStyleReader? textStyles = null;
         IWorkWireMessage? store = IWorkObjectIndex.TryGetMessage(message, 4);
         if (store == null) {
             if (message.HasField(4)) references.Declarations.Record(model, "4", message.FieldCount(4));
@@ -199,6 +200,9 @@ internal static partial class IWorkTableReader {
             projectionBudget, references);
         var numberFormats = new IWorkTableNumberFormatCatalog(source, store, model, projectionBudget, references);
         var cellStyles = new IWorkTableCellStyleCatalog(source, store, model, projectionBudget, references);
+        textStyles = new IWorkTableTextStyleReader(source, model, message, cellStyles, projectionBudget,
+            references, rows, columns, headerRows, headerColumns, footerRows);
+        if (!textStyles.FullyReconstructed) MarkTableTextStyleUnsupported(model, diagnostics, ref supportsEditableReconstruction);
         IReadOnlyDictionary<uint, IWorkWireMessage> formulas = ReadFormulas(source, store, model, references,
             projectionBudget,
             out bool formulaStorageComplete, out bool formulaCatalogEnvelopeComplete);
@@ -416,7 +420,7 @@ internal static partial class IWorkTableReader {
                     int offset = hasWideOffsets ? checked(encodedOffset * 4) : encodedOffset;
                     IWorkTableCell cell = DecodeCell(buffer, offset, cellLimits[offset],
                         checked((int)zeroBasedRow + 1), column + 1,
-                        strings, richStrings, formulas, numberFormats, cellStyles, source.Options, projectionBudget,
+                        strings, richStrings, formulas, numberFormats, cellStyles, textStyles, source.Options, projectionBudget,
                         formulaRichStringIdentifiers, nonFormulaRichStringIdentifiers);
                     if (cell.Kind == IWorkCellKind.Empty && !cell.HasCellFormatting) continue;
                     if (materializedCellCount >= source.Options.MaximumMaterializedCells) {
@@ -463,6 +467,7 @@ internal static partial class IWorkTableReader {
                 model.EntryPath, model.Identifier));
         }
 
+        if (!textStyles.FullyReconstructed) MarkTableTextStyleUnsupported(model, diagnostics, ref supportsEditableReconstruction);
         if (!cellStyles.FillsFullyReconstructed) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_TABLE_CELL_FILL_UNSUPPORTED",
@@ -503,7 +508,16 @@ internal static partial class IWorkTableReader {
             message.FieldCount(6) == 1 && message.FieldCount(7) == 1
                 && new[] { 6, 7, 9, 10, 11 }.All(field => message.FieldCount(field) <= 1
                     && !message.HasUnexpectedWireKind(field, IWorkWireKind.Varint))
-                && (long)headerRows + footerRows <= rows, autoResizeRows);
+                && (long)headerRows + footerRows <= rows, autoResizeRows, textStyles?.Defaults);
+    }
+
+    private static void MarkTableTextStyleUnsupported(IWorkArchiveRecord model, List<IWorkDiagnostic> diagnostics,
+        ref bool supportsEditableReconstruction) {
+        supportsEditableReconstruction = false;
+        if (diagnostics.Any(d => d.Code == "IWORK_TABLE_TEXT_STYLE_UNSUPPORTED" && d.RecordIdentifier == model.Identifier)) return;
+        diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_TABLE_TEXT_STYLE_UNSUPPORTED",
+            "Applicable table-region or selected cell text styles contain unsupported or unresolved declarations; cell values remain available.",
+            model.EntryPath, model.Identifier, global::OfficeIMO.OfficeConversionLossKind.Unassessed));
     }
 
     private static void MarkDuplicateTile(IWorkArchiveRecord model,

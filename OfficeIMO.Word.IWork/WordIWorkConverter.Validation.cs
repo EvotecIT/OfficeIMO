@@ -131,29 +131,21 @@ public static partial class WordIWorkConverter {
                 return "A Pages image has unsupported placement, rotation, or extent for the DOCX image owner.";
             }
         }
-        foreach (IWorkTextContent content in AllPagesText(projection)) {
-            foreach (IWorkTextParagraph paragraph in content.Paragraphs) {
-                IWorkParagraphStyle style = paragraph.Style;
-                if (!FitsSignedTwips(style.FirstLineIndentPoints, allowPartialEditableReconstruction)
-                    || !FitsSignedTwips(style.LeftIndentPoints, allowPartialEditableReconstruction)
-                    || !FitsSignedTwips(style.RightIndentPoints, allowPartialEditableReconstruction)
-                    || !FitsUnsignedNullableTwips(style.SpaceBeforePoints, allowPartialEditableReconstruction)
-                    || !FitsUnsignedNullableTwips(style.SpaceAfterPoints, allowPartialEditableReconstruction)) {
-                    return "Pages paragraph formatting exceeds the DOCX measurement range.";
-                }
-                foreach (IWorkTextRun run in paragraph.Runs) {
-                    if (run.Style.Color is { Alpha: < byte.MaxValue }
-                        || run.Style.BackgroundColor is { Alpha: < byte.MaxValue }) {
-                        return "Pages contains transparent text colors that cannot be represented by the DOCX owner.";
-                    }
-                    if (run.Style.FontSizePoints is double fontSize
-                        && (!IsFinite(fontSize) || fontSize < 0 || fontSize > int.MaxValue / 2d
-                            || !allowPartialEditableReconstruction && fontSize * 2d != Math.Round(fontSize * 2d,
-                                MidpointRounding.AwayFromZero))) {
-                        return "A Pages font size exceeds the DOCX measurement range or half-point precision.";
-                    }
-                }
-            }
+        foreach (IWorkParagraphStyle style in AllPagesParagraphStyles(projection)) {
+            if (!FitsSignedTwips(style.FirstLineIndentPoints, allowPartialEditableReconstruction)
+                || !FitsSignedTwips(style.LeftIndentPoints, allowPartialEditableReconstruction)
+                || !FitsSignedTwips(style.RightIndentPoints, allowPartialEditableReconstruction)
+                || !FitsUnsignedNullableTwips(style.SpaceBeforePoints, allowPartialEditableReconstruction)
+                || !FitsUnsignedNullableTwips(style.SpaceAfterPoints, allowPartialEditableReconstruction))
+                return "Pages paragraph formatting exceeds the DOCX measurement range.";
+        }
+        foreach (IWorkTextStyle style in AllPagesRunStyles(projection)) {
+            if (style.Color is { Alpha: < byte.MaxValue } || style.BackgroundColor is { Alpha: < byte.MaxValue })
+                return "Pages contains transparent text colors that cannot be represented by the DOCX owner.";
+            if (style.FontSizePoints is double fontSize
+                && (!IsFinite(fontSize) || fontSize < 0 || fontSize > int.MaxValue / 2d
+                    || !allowPartialEditableReconstruction && fontSize * 2d != Math.Round(fontSize * 2d, MidpointRounding.AwayFromZero)))
+                return "A Pages font size exceeds the DOCX measurement range or half-point precision.";
         }
         return null;
     }
@@ -167,8 +159,8 @@ public static partial class WordIWorkConverter {
 
     private static bool RequiresWordRounding(IWorkPagesProjection projection) =>
         WordTwipMeasurements(projection).Any(value => value.HasValue && !IsExactDestinationUnit(value.Value, 20d))
-        || AllPagesText(projection).SelectMany(content => content.Paragraphs).SelectMany(paragraph => paragraph.Runs)
-            .Any(run => run.Style.FontSizePoints is double size && !IsExactDestinationUnit(size, 2d))
+        || AllPagesRunStyles(projection)
+            .Any(style => style.FontSizePoints is double size && !IsExactDestinationUnit(size, 2d))
         || projection.TextBoxObjects.Select(box => box.Geometry)
             .Concat(projection.Images.Select(image => image.Geometry))
             .Any(geometry => geometry != null && (!IsExactDestinationUnit(geometry.LeftPoints, 12700d)
@@ -196,8 +188,7 @@ public static partial class WordIWorkConverter {
                 if (cell.Padding != null)
                     foreach (double points in PaddingPoints(cell.Padding)) yield return points;
         }
-        foreach (IWorkTextParagraph paragraph in AllPagesText(projection).SelectMany(content => content.Paragraphs)) {
-            IWorkParagraphStyle style = paragraph.Style;
+        foreach (IWorkParagraphStyle style in AllPagesParagraphStyles(projection)) {
             yield return style.FirstLineIndentPoints;
             yield return style.LeftIndentPoints;
             yield return style.RightIndentPoints;
@@ -205,6 +196,19 @@ public static partial class WordIWorkConverter {
             yield return style.SpaceAfterPoints;
         }
     }
+
+    private static IEnumerable<IWorkParagraphStyle> TableParagraphStyles(IWorkTable table) =>
+        new[] { table.TextStyles.Body, table.TextStyles.HeaderRow, table.TextStyles.HeaderColumn, table.TextStyles.FooterRow }
+            .Concat(table.Cells.Select(cell => cell.ParagraphStyle)).Where(style => style != null).Cast<IWorkParagraphStyle>();
+
+    private static IEnumerable<IWorkParagraphStyle> AllPagesParagraphStyles(IWorkPagesProjection projection) =>
+        AllPagesText(projection).SelectMany(content => content.Paragraphs).Select(paragraph => paragraph.Style)
+            .Concat(projection.Tables.SelectMany(TableParagraphStyles));
+
+    private static IEnumerable<IWorkTextStyle> AllPagesRunStyles(IWorkPagesProjection projection) =>
+        AllPagesText(projection).SelectMany(content => content.Paragraphs).SelectMany(paragraph => paragraph.Runs).Select(run => run.Style)
+            .Concat(AllPagesText(projection).SelectMany(content => content.Paragraphs).Select(paragraph => paragraph.Style.TextStyle))
+            .Concat(projection.Tables.SelectMany(TableParagraphStyles).Select(style => style.TextStyle));
 
     private static IEnumerable<IWorkTextContent> AllPagesText(IWorkPagesProjection projection) {
         yield return projection.Body;
