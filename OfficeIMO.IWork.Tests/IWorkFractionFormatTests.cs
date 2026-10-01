@@ -20,7 +20,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.DoesNotContain(report.Diagnostics, d => d.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED");
         Assert.Contains(report.Diagnostics, d => d.Code == (kind == IWorkDocumentKind.Numbers
             ? "IWORK_NUMBERS_FRACTION_DISPLAY_APPROXIMATED" : kind == IWorkDocumentKind.Pages
-            ? "IWORK_PAGES_NUMBER_FORMAT_OMITTED" : "IWORK_KEYNOTE_NUMBER_FORMAT_OMITTED"));
+            ? "IWORK_PAGES_NUMBER_FORMAT_APPROXIMATED" : "IWORK_KEYNOTE_NUMBER_FORMAT_APPROXIMATED"));
     }
 
     [Theory]

@@ -18,7 +18,7 @@ public sealed partial class IWorkBoundaryTests {
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual: false);
         Assert.DoesNotContain(report.Diagnostics, d => d.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED");
         if (kind != IWorkDocumentKind.Numbers) Assert.Contains(report.Diagnostics, d => d.Code ==
-            (kind == IWorkDocumentKind.Pages ? "IWORK_PAGES_NUMBER_FORMAT_OMITTED" : "IWORK_KEYNOTE_NUMBER_FORMAT_OMITTED"));
+            (kind == IWorkDocumentKind.Pages ? "IWORK_PAGES_NUMBER_FORMAT_APPROXIMATED" : "IWORK_KEYNOTE_NUMBER_FORMAT_APPROXIMATED"));
     }
 
     [Theory]

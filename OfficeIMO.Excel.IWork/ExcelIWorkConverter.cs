@@ -212,7 +212,7 @@ public static partial class ExcelIWorkConverter {
                             });
                             if (isDuration && cell.Value is double) targetCell.DurationHours();
                             if (cell.NumberFormat is { } numberFormat)
-                                sheet.FormatCell(cell.Row, cell.Column, NumberFormatCode(numberFormat));
+                                sheet.FormatCell(cell.Row, cell.Column, numberFormat.ToSpreadsheetFormatCode());
                         }
                         foreach (IWorkTableMergeRange merge in table.MergedRanges) {
                             cancellationToken.ThrowIfCancellationRequested();

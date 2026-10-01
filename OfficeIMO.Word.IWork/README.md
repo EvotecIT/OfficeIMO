@@ -29,6 +29,8 @@ Table-region defaults and selected text styles preserve supported fonts, emphasi
 
 Selected native padding becomes Word cell margins, and top/middle/bottom alignment becomes Word vertical alignment. Source points must fit the Word cell-margin range; the partial policy permits twip rounding with a precision diagnostic. Supported selected and unbanded region solid fills become DOCX shading. Explicit no-fill overrides clear inherited fills, including on empty cells. Unsupported fills and banding retain source diagnostics and follow the conversion acceptance policy.
 
+Supported numeric table formats become editable DOCX text: decimal precision, grouping, percentages, scientific notation, fractions, currency-code prefixes and negative-value parentheses. Red negative formats become run color. The report identifies display approximation because locale-specific symbols, automatic precision and source appearance can differ. Raw values and formula caches remain on the source projection; formatting does not change its raw display properties. Native Pages export qualification remains outside this bounded contract.
+
 Choose the acceptance policy explicitly when source details cannot be represented:
 
 ```csharp

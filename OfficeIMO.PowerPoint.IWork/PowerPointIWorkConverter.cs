@@ -1,6 +1,7 @@
 using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.IWork;
+using OfficeIMO.IWork.Internal;
 using OfficeIMO.PowerPoint.IWork;
 
 namespace OfficeIMO.PowerPoint.IWork;
@@ -34,7 +35,7 @@ public static partial class PowerPointIWorkConverter {
                 : new[] { new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_KEYNOTE_POWERPOINT_DESTINATION_UNSUPPORTED", destinationLimitation) })
             .Concat(editable
-                ? FindPowerPointProjectionDiagnostics(projection)
+                ? FindPowerPointProjectionDiagnostics(projection, cancellationToken)
                 : Array.Empty<IWorkDiagnostic>())
             .ToArray();
         if (editable && settings.AllowPartialEditableReconstruction &&
@@ -339,7 +340,7 @@ public static partial class PowerPointIWorkConverter {
         && value <= 51206400d / 12700d;
 
     private static IReadOnlyList<IWorkDiagnostic> FindPowerPointProjectionDiagnostics(
-        IWorkKeynoteProjection projection) {
+        IWorkKeynoteProjection projection, CancellationToken cancellationToken) {
         bool requiresEmuRounding = projection.SlideSize is { } slideSize
                 && (!IsExactEmu(slideSize.WidthPoints) || !IsExactEmu(slideSize.HeightPoints))
             || projection.Slides.SelectMany(slide => slide.TextBoxes
@@ -366,12 +367,8 @@ public static partial class PowerPointIWorkConverter {
                 "PPTX retains supported text formatting but cannot represent source paragraph pagination flags; the iWork projection retains them.",
                 lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission));
         }
-        if (projection.Slides.SelectMany(slide => slide.Tables).SelectMany(table => table.Cells)
-            .Any(cell => cell.NumberFormat != null)) {
-            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_NUMBER_FORMAT_OMITTED",
-                "PPTX table cells retain raw cached values without the source numeric display formats. Semantic number formats remain available on the source projection.",
-                lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission));
-        }
+        diagnostics.AddRange(IWorkNumericDisplayDiagnostics.ForTextTables(
+            projection.Slides.SelectMany(slide => slide.Tables).SelectMany(table => table.Cells), "KEYNOTE", "PPTX", cancellationToken));
         if (projection.Slides.SelectMany(slide => slide.Tables).Any(table =>
             AxisSizingIsScaled(table.ColumnCount, table.ColumnWidths, table.DefaultColumnWidth, table.Geometry?.WidthPoints)
             || AxisSizingIsScaled(table.RowCount, table.RowHeights, table.DefaultRowHeight, table.Geometry?.HeightPoints))) {

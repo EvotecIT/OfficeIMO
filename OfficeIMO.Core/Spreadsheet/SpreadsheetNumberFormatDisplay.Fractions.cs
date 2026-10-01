@@ -1,8 +1,9 @@
+using System;
 using System.Globalization;
 using System.Text;
 
-namespace OfficeIMO.Excel {
-    internal static partial class ExcelNumberFormatDisplay {
+namespace OfficeIMO.Spreadsheet {
+    internal static partial class SpreadsheetNumberFormatDisplay {
         private static bool TryFormatFraction(double value, string formatCode, int selectedSection, out string text) {
             text = string.Empty;
             int slash = formatCode.IndexOf('/');

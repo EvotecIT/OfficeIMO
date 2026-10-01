@@ -24,8 +24,8 @@ public sealed partial class IWorkBoundaryTests {
         package.Position = 0;
         var report = ConvertUnitReport(package, kind, visual: false);
         if (kind != IWorkDocumentKind.Numbers) Assert.Contains(report.Diagnostics, diagnostic =>
-            diagnostic.Code == (kind == IWorkDocumentKind.Pages ? "IWORK_PAGES_NUMBER_FORMAT_OMITTED" : "IWORK_KEYNOTE_NUMBER_FORMAT_OMITTED")
-            && diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission);
+            diagnostic.Code == (kind == IWorkDocumentKind.Pages ? "IWORK_PAGES_NUMBER_FORMAT_APPROXIMATED" : "IWORK_KEYNOTE_NUMBER_FORMAT_APPROXIMATED")
+            && diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Approximation);
     }
 
     [Theory]

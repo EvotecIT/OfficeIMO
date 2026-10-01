@@ -1,7 +1,7 @@
 namespace OfficeIMO.IWork;
 
 /// <summary>The recovered semantic numeric format of an iWork cell, independent of a destination format code.</summary>
-public sealed class IWorkNumberFormat {
+public sealed partial class IWorkNumberFormat {
     internal IWorkNumberFormat(IWorkNumberFormatKind kind, int? decimalPlaces,
         bool thousandsSeparator, IWorkNegativeNumberStyle negativeStyle,
         string? currencyCode = null, bool useAccountingStyle = false,

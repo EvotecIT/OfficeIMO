@@ -67,15 +67,17 @@ public static partial class PowerPointIWorkConverter {
                     WriteParagraphContent(paragraphs[index], sourceParagraph, cancellationToken, defaultStyle?.TextStyle, header);
                 }
             } else {
-                target.Text = sourceCell.Kind == IWorkCellKind.Formula && sourceCell.Value != null
-                    ? sourceCell.CachedDisplayText
-                    : sourceCell.DisplayText;
+                sourceCell.TryGetFormattedNumber(out string cellText, out string? numericColor);
+                target.Text = cellText;
                 if (header) target.Bold = true;
                 if (defaultStyle != null) {
                     foreach (PowerPointParagraph paragraph in target.Paragraphs) {
                         ApplyParagraphStyle(paragraph, defaultStyle, paragraph.Text);
                         foreach (PowerPointTextRun run in paragraph.Runs) ApplyTextStyle(run, defaultStyle.TextStyle);
                     }
+                }
+                if (numericColor != null) {
+                    foreach (PowerPointTextRun run in target.Paragraphs.SelectMany(paragraph => paragraph.Runs)) run.Color = numericColor;
                 }
             }
         }

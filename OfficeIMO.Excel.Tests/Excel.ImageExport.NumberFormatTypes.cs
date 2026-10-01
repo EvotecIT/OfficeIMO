@@ -63,4 +63,16 @@ public partial class ExcelImageExportTests {
         Assert.Contains("fill=\"#" + color + "\"", range.ToSvg(), StringComparison.OrdinalIgnoreCase);
         Assert.Equal("0000FF", sheet.CellAt(1, 1).GetStyle().FontColorHex);
     }
+
+    [Fact]
+    public void Image_percentage_overflow_retains_finite_raw_value() {
+        using var workbook = ExcelDocument.Create();
+        ExcelSheet sheet = workbook.AddWorksheet("Large");
+        sheet.CellAt(1, 1).SetValue(1e308).SetNumberFormat("0.00%");
+        using var saved = new MemoryStream(); workbook.Save(saved); saved.Position = 0;
+        using var reopened = ExcelDocument.Load(saved);
+        Assert.Equal("1E+308", Assert.Single(reopened.Sheets[0].Range("A1:A1").CreateVisualSnapshot().Cells).Text);
+        Assert.Equal(1e308, reopened.Sheets[0].CellAt(1, 1).GetValue().Value);
+    }
+
 }

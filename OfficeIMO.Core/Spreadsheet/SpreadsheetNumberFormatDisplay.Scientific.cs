@@ -1,7 +1,8 @@
+using System;
 using System.Globalization;
 
-namespace OfficeIMO.Excel {
-    internal static partial class ExcelNumberFormatDisplay {
+namespace OfficeIMO.Spreadsheet {
+    internal static partial class SpreadsheetNumberFormatDisplay {
         /// <summary>Formats the supported scientific mantissa while preserving optional precision and exponent presentation.</summary>
         private static bool TryFormatScientific(double value, string formatCode, int selectedSection, out string text) {
             text = string.Empty;

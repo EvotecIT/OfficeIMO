@@ -2,6 +2,7 @@ using System.Threading;
 using System.Globalization;
 using OfficeIMO.Drawing;
 using OfficeIMO.IWork;
+using OfficeIMO.IWork.Internal;
 using OfficeIMO.Word.IWork;
 using OpenXmlParagraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
 using OpenXmlRun = DocumentFormat.OpenXml.Wordprocessing.Run;
@@ -59,12 +60,9 @@ public static partial class WordIWorkConverter {
         }
         int reconstructedSectionCount = 1 + projection.Body.Paragraphs.Count(paragraph =>
             paragraph.BreakKind == IWorkParagraphBreakKind.Section);
-        if (editable && projection.Tables.SelectMany(table => table.Cells).Any(cell => cell.NumberFormat != null)) {
-            destinationDiagnostics = destinationDiagnostics.Concat(new[] {
-                new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_NUMBER_FORMAT_OMITTED",
-                    "DOCX table cells retain raw cached values without the source numeric display formats. Semantic number formats remain available on the source projection.",
-                    lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission)
-            }).ToArray();
+        if (editable) {
+            destinationDiagnostics = destinationDiagnostics.Concat(IWorkNumericDisplayDiagnostics.ForTextTables(
+                projection.Tables.SelectMany(table => table.Cells), "PAGES", "DOCX", cancellationToken)).ToArray();
         }
         if (editable && projection.Sections.Count > reconstructedSectionCount) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
@@ -323,12 +321,6 @@ public static partial class WordIWorkConverter {
             content.Append(new OpenXmlParagraph(new OpenXmlRun()));
         }
         return textBox;
-    }
-
-    private static string CellText(IWorkTableCell cell) {
-        return cell.Kind == IWorkCellKind.Formula && cell.Value != null
-            ? cell.CachedDisplayText
-            : cell.DisplayText;
     }
 
     private static void AddRichText(IWorkTextContent content, Func<string, WordParagraph> addParagraph,

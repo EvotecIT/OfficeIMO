@@ -3,7 +3,7 @@ using System.Globalization;
 namespace OfficeIMO.IWork;
 
 /// <summary>One materialized value or explicitly styled empty cell shared by Pages, Numbers, and Keynote table projections.</summary>
-public sealed class IWorkTableCell {
+public sealed partial class IWorkTableCell {
     internal IWorkTableCell(int row, int column, IWorkCellKind kind, object? value,
         string? formula = null, string? error = null, IWorkCellKind? valueKind = null,
         bool formulaIsComplete = false, IWorkTextContent? richText = null,

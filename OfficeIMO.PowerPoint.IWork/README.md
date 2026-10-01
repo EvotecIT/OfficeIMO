@@ -29,6 +29,8 @@ Supported selected and unbanded region fills override the PPTX table theme, incl
 
 Individual table row heights and column widths are carried into PPTX. If their total differs from the table’s drawable extent, the adapter scales them proportionally and reports `IWORK_KEYNOTE_TABLE_SIZING_SCALED` as an approximation. Measurements are quantized to EMUs with a separate precision diagnostic.
 
+Supported numeric table formats become editable PPTX text: decimal precision, grouping, percentages, scientific notation, fractions, currency-code prefixes and negative-value parentheses. Red negative formats become run color. The report identifies display approximation because locale-specific symbols, automatic precision and source appearance can differ. Raw values and formula caches remain on the source projection; formatting does not change its raw display properties. Native Keynote export qualification remains outside this bounded contract.
+
 Choose the acceptance policy explicitly when source details cannot be represented:
 
 ```csharp

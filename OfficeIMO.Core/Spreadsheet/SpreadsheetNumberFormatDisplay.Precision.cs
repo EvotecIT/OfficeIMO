@@ -1,5 +1,6 @@
-namespace OfficeIMO.Excel {
-    internal static partial class ExcelNumberFormatDisplay {
+using System;
+namespace OfficeIMO.Spreadsheet {
+    internal static partial class SpreadsheetNumberFormatDisplay {
         private static DecimalPlaceInfo GetDecimalPlaceInfo(string formatCode) {
             int dot = -1;
             for (int index = 0; index < formatCode.Length; index++) {

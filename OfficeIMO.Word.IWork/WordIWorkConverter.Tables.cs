@@ -70,13 +70,15 @@ public static partial class WordIWorkConverter {
                     return paragraph;
                 }, nativeLists, forceBold: header && defaultStyle?.TextStyle.Bold == null, cancellationToken: cancellationToken, defaultStyle: defaultStyle);
             } else {
-                WordParagraph paragraph = target.AddParagraph(CellText(sourceCell),
+                sourceCell.TryGetFormattedNumber(out string cellText, out string? numericColor);
+                WordParagraph paragraph = target.AddParagraph(cellText,
                     removeExistingParagraphs: true);
                 if (header) paragraph.Bold = true;
                 if (defaultStyle != null) {
                     ApplyParagraphStyle(paragraph, defaultStyle, paragraph.Text);
                     ApplyTextStyle(paragraph, defaultStyle.TextStyle);
                 }
+                if (numericColor != null) paragraph.ColorHex = numericColor;
             }
         }
         foreach (IWorkTableMergeRange merge in source.MergedRanges) {
