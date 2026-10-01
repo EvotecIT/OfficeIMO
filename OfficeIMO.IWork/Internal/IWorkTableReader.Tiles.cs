@@ -78,6 +78,34 @@ internal static partial class IWorkTableReader {
 
     private static string TileRowPath(int position) => "5[" + position.ToString(CultureInfo.InvariantCulture) + "]";
 
+    /// <summary>Assesses selected modern storage without turning declared counts or unselected bytes into identified cells.</summary>
+    private static void AssessRowStorageSelection(IWorkWireMessage row, IWorkArchiveRecord tile,
+        int position, int bufferLength, int selectedOffsetCount, IWorkSourceReferenceIssueCollector references,
+        List<IWorkDiagnostic> diagnostics, ref bool supportsEditableReconstruction) {
+        bool unassessed = false;
+        // Count physical records, including empty cells that need no destination object.
+        // Older supported producers may omit this metadata, so absence is not a failure.
+        if (row.HasField(2) && (row.FieldCount(2) != 1
+                || row.HasUnexpectedWireKind(2, IWorkWireKind.Varint)
+                || row.GetUnsigned(2) != (ulong)selectedOffsetCount)) {
+            references.Declarations.Record(tile, TileRowPath(position) + "/2", row.FieldCount(2),
+                IWorkSourceDeclarationIssueKind.InvalidValue);
+            unassessed = true;
+        }
+        if (bufferLength > 0 && selectedOffsetCount == 0) {
+            references.Declarations.Record(tile, TileRowPath(position) + "/6", row.FieldCount(6),
+                IWorkSourceDeclarationIssueKind.InvalidValue);
+            unassessed = true;
+        }
+        if (!unassessed) return;
+        supportsEditableReconstruction = false;
+        if (diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_TABLE_ROW_STORAGE_UNASSESSED"
+                && diagnostic.RecordIdentifier == tile.Identifier)) return;
+        diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_TABLE_ROW_STORAGE_UNASSESSED",
+            "Selected modern row storage has an invalid or inconsistent cell count, or a non-empty buffer with no selected cell offsets. Recoverable cells remain available; unmaterialized contents cannot be identified.",
+            tile.EntryPath, tile.Identifier, global::OfficeIMO.OfficeConversionLossKind.Unassessed));
+    }
+
     private static void RecordInvalidTileRow(IWorkArchiveRecord tile, int position,
         IWorkSourceReferenceIssueCollector references) =>
         references.Declarations.Record(tile, TileRowPath(position), 1,

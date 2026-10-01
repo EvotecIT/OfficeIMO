@@ -409,6 +409,8 @@ internal static partial class IWorkTableReader {
                     .Where(encodedOffset => encodedOffset != ushort.MaxValue)
                     .Select(encodedOffset => hasWideOffsets ? checked(encodedOffset * 4) : encodedOffset)
                     .ToArray();
+                AssessRowStorageSelection(rowInfo, tile, rowPosition, buffer.Length, populatedOffsets.Length,
+                    references, diagnostics, ref supportsEditableReconstruction);
                 if (populatedOffsets.Length != populatedOffsets.Distinct().Count()) {
                     RecordInvalidTileRow(tile, rowPosition, references);
                     MarkCellStorageUnsupported(tile, diagnostics, ref supportsEditableReconstruction);
