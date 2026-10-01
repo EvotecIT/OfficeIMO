@@ -36,7 +36,56 @@
       "AAAAAB+HelveticaNeue",
       "AAAAAC+HelveticaNeue"
     ],
-    "fontProvenance": "Apple Numbers/Quartz embedded subsets; no standalone font files copied"
+    "fontProvenance": "Apple Numbers/Quartz embedded subsets; no standalone font files copied",
+    "tableGeometry": {
+      "measurement": "Axis-aligned stroke centre positions, rounded to 0.001 point",
+      "tool": "Build/IWork/update-numbers-export-geometry.py",
+      "pdfplumberVersion": "0.11.9",
+      "tables": [
+        {
+          "tableIndex": 1,
+          "pageNumber": 1,
+          "columnWidthsPoints": [
+            98.0,
+            98.0,
+            98.0
+          ],
+          "rowHeightsPoints": [
+            20.07,
+            20.07,
+            20.07,
+            20.07,
+            20.07,
+            20.07,
+            20.07,
+            20.07,
+            20.07
+          ]
+        },
+        {
+          "tableIndex": 2,
+          "pageNumber": 2,
+          "columnWidthsPoints": [
+            98.0,
+            98.0
+          ],
+          "rowHeightsPoints": [
+            20.07,
+            20.07,
+            20.07,
+            20.07,
+            20.07,
+            20.07,
+            20.07,
+            20.07,
+            20.07,
+            20.07,
+            20.07
+          ]
+        }
+      ],
+      "limitations": "This measures the pinned rendered grid only. It does not qualify font metrics, styles, content, page placement or automatic row sizing."
+    }
   },
   "limitations": [
     "Native XLSX export inserts a table-title row; reference formulas and coordinates therefore have one added row.",

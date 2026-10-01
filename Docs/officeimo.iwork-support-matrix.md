@@ -100,7 +100,7 @@ Tests assert path/stream parity, cumulative decompression and materialization bo
 
 This corpus proves the current read contract; it does not establish a stable iWork write contract.
 
-Independent Numbers 14.5 XLSX and PDF exports qualify the two-table formula fixture separately from parser tests. Saved-and-reopened OfficeIMO output agrees on 28 expressions and 24 stable typed cached values after accounting for Apple's table-title row. Volatile timestamps and generic error caches are excluded. The reference manifest records producer/build, hashes, export settings, licensing, and embedded font provenance. Other fixtures, producer versions, rendering, and full styling remain unqualified by this comparison.
+Independent Numbers 14.5 XLSX and PDF exports qualify the two-table formula fixture separately from parser tests. Saved-and-reopened OfficeIMO output agrees on 28 expressions and 24 stable typed cached values after accounting for Apple's table-title row. Volatile timestamps and generic error caches are excluded. The reference manifest records producer/build, hashes, export settings, licensing, and embedded font provenance. The hashed PDF grid also measures 98-point columns and 20.07-point rows. Saved OfficeIMO output retains the declared row heights (about 19.93 points); this fixture’s row-height difference from the native PDF is bounded to 0.15 point per row. This does not qualify Apple automatic row sizing. Other fixtures, producer versions, rendering, and full styling remain unqualified by this comparison.
 
 ## Intentional authoring boundary
 
