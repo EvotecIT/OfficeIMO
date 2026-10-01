@@ -51,7 +51,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: EvotecIT/PSPublishModule
-          ref: f665f2b591508358a9543217c3c03ec4352bc14a
+          ref: bd579031c5dd60be02bd03bb1199efc8cd2cd94a
           path: .powerforge-agent-plugin-build
           persist-credentials: false
       - uses: actions/setup-dotnet@v6
@@ -73,8 +73,8 @@ jobs:
           PLUGIN_OUTPUT: ${{ runner.temp }}/officeimo-agent-plugin
         run: |
           packer=.powerforge-agent-plugin-build/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll
-          dotnet "$packer" agent-plugin validate --source .agents/plugins/officeimo-document-tools
-          dotnet "$packer" agent-plugin pack --source .agents/plugins/officeimo-document-tools --out "$PLUGIN_OUTPUT"
+          dotnet "$packer" agent-plugin validate --source .agents/plugins/officeimo-document-tools --project OfficeIMO.Tool/OfficeIMO.Tool.csproj
+          dotnet "$packer" agent-plugin pack --source .agents/plugins/officeimo-document-tools --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --out "$PLUGIN_OUTPUT"
       - uses: actions/upload-artifact@v7
         with:
           name: officeimo-agent-plugin

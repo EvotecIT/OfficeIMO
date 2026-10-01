@@ -20,6 +20,15 @@ def validate_metadata(server, schema):
     Draft7Validator(schema, format_checker=FormatChecker()).validate(server)
 
 
+def validate_release_versions(server, plugin_version):
+    packages = [package for package in server.get("packages", [])
+                if package.get("registryType") == "nuget" and package.get("identifier") == "OfficeIMO.Tool"]
+    if len(packages) != 1:
+        raise ValueError("Registry metadata must declare exactly one OfficeIMO.Tool NuGet package")
+    if server.get("version") != plugin_version or packages[0].get("version") != plugin_version:
+        raise ValueError("Registry, NuGet package and plugin versions must match")
+
+
 def validate_marker(readme, server):
     marker = f'<!-- mcp-name: {server["name"]} -->'
     markers = [line.strip() for line in readme.splitlines() if "mcp-name:" in line]
@@ -58,6 +67,8 @@ def main():
         with urlopen(SCHEMA_URL, timeout=30) as response:
             schema = json.load(response)
         validate_metadata(server, schema)
+        plugin = json.loads((ROOT / ".agents/plugins/officeimo-document-tools/plugin.json").read_text())
+        validate_release_versions(server, plugin["version"])
         validate_marker((ROOT / "OfficeIMO.Tool/README.md").read_text(), server)
 
 
