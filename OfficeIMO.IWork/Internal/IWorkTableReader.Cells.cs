@@ -23,7 +23,8 @@ internal static partial class IWorkTableReader {
         // as errors instead of inventing an expression or a recovered cache.
         return cell.Kind == IWorkCellKind.Error && (flags & (1u << 9)) != 0
             ? new IWorkTableCell(row, column, IWorkCellKind.Error, null,
-                error: cell.Error, sourceFormulaIsDeclared: true)
+                error: cell.Error, sourceFormulaIsDeclared: true,
+                hasDecodeError: cell.HasDecodeError)
             : cell;
     }
 
@@ -155,7 +156,7 @@ internal static partial class IWorkTableReader {
             case 8:
                 return hasFormula
                     ? Formula(row, column, formulaIdentifier, formulas, options, projectionBudget, "#ERROR", IWorkCellKind.Error)
-                    : Error(row, column, "#ERROR");
+                    : new IWorkTableCell(row, column, IWorkCellKind.Error, null, error: "#ERROR");
             case 9:
                 if (hasRichString) {
                     if (hasFormula) formulaRichStringIdentifiers.Add(richStringIdentifier);
@@ -220,7 +221,7 @@ internal static partial class IWorkTableReader {
             : Error(row, column, "Number cell has a non-finite value.");
 
     private static IWorkTableCell Error(int row, int column, string message) =>
-        new(row, column, IWorkCellKind.Error, null, error: message);
+        new(row, column, IWorkCellKind.Error, null, error: message, hasDecodeError: true);
 
     private static void MarkCellStorageUnsupported(IWorkArchiveRecord tile,
         ICollection<IWorkDiagnostic> diagnostics, ref bool supportsEditableReconstruction) {

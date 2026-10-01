@@ -7,7 +7,8 @@ public sealed class IWorkTableCell {
     internal IWorkTableCell(int row, int column, IWorkCellKind kind, object? value,
         string? formula = null, string? error = null, IWorkCellKind? valueKind = null,
         bool formulaIsComplete = false, IWorkTextContent? richText = null,
-        bool cachedValueIsComplete = true, bool sourceFormulaIsDeclared = false) {
+        bool cachedValueIsComplete = true, bool sourceFormulaIsDeclared = false,
+        bool hasDecodeError = false) {
         Row = row;
         Column = column;
         Kind = kind;
@@ -18,6 +19,7 @@ public sealed class IWorkTableCell {
         SourceFormulaIsDeclared = sourceFormulaIsDeclared || kind == IWorkCellKind.Formula;
         CachedValueIsComplete = cachedValueIsComplete;
         Error = error;
+        HasDecodeError = hasDecodeError;
         RichText = richText;
     }
 
@@ -39,8 +41,10 @@ public sealed class IWorkTableCell {
     public bool SourceFormulaIsDeclared { get; }
     /// <summary>Gets whether the recovered cached value is complete.</summary>
     public bool CachedValueIsComplete { get; }
-    /// <summary>Gets a cell-level decode error without failing the surrounding table.</summary>
+    /// <summary>Gets an error marker or cell-level decode failure without failing the surrounding table.</summary>
     public string? Error { get; }
+    /// <summary>Gets whether a storage or value decoding failure replaced this cell with an error. A recovered native error marker does not set this flag; false does not establish complete field fidelity.</summary>
+    public bool HasDecodeError { get; }
     /// <summary>Gets source rich text for a text or formula cell, including runs, styles, and hyperlinks when recovered.</summary>
     public IWorkTextContent? RichText { get; }
     /// <summary>Gets a culture-invariant display representation of the recovered value or formula.</summary>

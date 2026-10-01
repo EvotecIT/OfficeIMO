@@ -459,11 +459,12 @@ internal static partial class IWorkTableReader {
                 model.EntryPath, model.Identifier));
         }
 
-        int errorCount = cells.Count(cell => cell.Kind == IWorkCellKind.Error && cell.Error != "#ERROR");
+        int errorCount = cells.Count(cell => cell.HasDecodeError);
         if (errorCount > 0) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_TABLE_CELL_DECODE",
-                $"{errorCount} cells in table '{name}' could not be decoded completely.", model.EntryPath, model.Identifier));
+                $"{errorCount} cells in table '{name}' could not be decoded completely.", model.EntryPath, model.Identifier,
+                global::OfficeIMO.OfficeConversionLossKind.Unassessed));
         }
         int incompleteCachedFormulaCount = cells.Count(cell => cell.Kind == IWorkCellKind.Formula
             && !cell.FormulaIsComplete && cell.Value != null);

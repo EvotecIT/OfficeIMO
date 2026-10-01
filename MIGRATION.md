@@ -201,6 +201,10 @@ these methods.
 
 ## OfficeIMO 3.4: one document and conversion grammar
 
+### iWork cell decoding evidence
+
+Use `IWorkTableCell.HasDecodeError` to distinguish storage/value decoding failures from recovered native error markers, instead of comparing `Error` to `"#ERROR"`. Inspect `IWorkConversionReport.SourceCellIssues` for table identities and coordinates. `IWORK_TABLE_CELL_DECODE` now has fidelity category `Unassessed`, rather than `Omission`; unreadable cell content does not establish what was omitted. Workflow evidence retains the count as `sourceCellIssueCount`.
+
 ### iWork catalog ambiguity and declaration evidence
 
 String, formula and rich-text catalogs reject duplicate keys even when a duplicate value is malformed. An unreadable entry or key leaves key uniqueness unassessed, so catalog values remain unresolved; valid numeric formula caches remain recoverable through `AllowPartialEditableReconstruction`. Inspect `SourceDeclarationIssues` for the physical catalog paths. Handle the new `IWorkSourceDeclarationIssueKind.InvalidValue` member in exhaustive switches; it identifies invalid plain-string catalog values and unsupported dimension-size or visibility values.

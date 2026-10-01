@@ -24,6 +24,7 @@ public sealed partial class IWorkBoundaryTests {
         IWorkTableCell cell = Assert.Single(table.Cells);
         Assert.Equal(IWorkCellKind.Error, cell.Kind);
         Assert.True(cell.SourceFormulaIsDeclared);
+        Assert.True(cell.HasDecodeError);
         Assert.NotNull(cell.Error);
         Assert.Null(cell.Value);
         Assert.Null(cell.Formula);
@@ -33,6 +34,10 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Empty(report.PreservedRecords);
         Assert.Equal(visual ? IWorkProjectionKind.VisualFallback : IWorkProjectionKind.EditableReconstruction,
             report.ProjectionKind);
+        IWorkSourceCellIssue issue = Assert.Single(report.SourceCellIssues);
+        Assert.Equal(10ul, issue.TableIdentity!.RecordIdentifier);
+        Assert.Equal((1, 1), (issue.Row, issue.Column));
+        Assert.Equal(cell.Error, issue.Message);
         IWorkFormulaCellStatus assessment = Assert.Single(report.FormulaCells);
         Assert.Equal(10ul, assessment.TableIdentity!.RecordIdentifier);
         Assert.Equal(1, assessment.Row); Assert.Equal(1, assessment.Column);

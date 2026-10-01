@@ -165,6 +165,7 @@ public sealed partial class IWorkSourceDocument {
         IReadOnlyList<IWorkArchiveRecord> preserved = _options.PreserveSourceRecords
             ? allPreserved
             : Array.Empty<IWorkArchiveRecord>();
+        var cells = new IWorkCellInventory(this, tables);
         return new IWorkConversionReport(
             Kind,
             projectionKind,
@@ -176,7 +177,7 @@ public sealed partial class IWorkSourceDocument {
             allPreserved.Length,
             reconstructedItemCount,
             IWorkSourceUnitInventory.Create(this, projectionKind, reconstructedUnits, omittedUnits),
-            IWorkFormulaInventory.Create(this, tables), sourceReferenceIssues, sourceDeclarationIssues);
+            cells.FormulaCells, sourceReferenceIssues, sourceDeclarationIssues, cells.SourceCellIssues);
     }
 
     private static IWorkSourceDocument OpenPath(string path, IWorkDocumentKind? expectedKind,

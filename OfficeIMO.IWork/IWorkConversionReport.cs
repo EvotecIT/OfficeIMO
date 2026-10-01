@@ -9,7 +9,8 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
         IReadOnlyList<IWorkSourceUnit>? sourceUnits = null,
         IReadOnlyList<IWorkFormulaCellStatus>? formulaCells = null,
         IReadOnlyList<IWorkSourceReferenceIssue>? sourceReferenceIssues = null,
-        IReadOnlyList<IWorkSourceDeclarationIssue>? sourceDeclarationIssues = null) {
+        IReadOnlyList<IWorkSourceDeclarationIssue>? sourceDeclarationIssues = null,
+        IReadOnlyList<IWorkSourceCellIssue>? sourceCellIssues = null) {
         SourceKind = sourceKind;
         ProjectionKind = projectionKind;
         BuildVersions = Array.AsReadOnly(buildVersions.ToArray());
@@ -26,6 +27,7 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
         FormulaSummary = new IWorkFormulaSummary(FormulaCells);
         SourceReferenceIssues = Array.AsReadOnly((sourceReferenceIssues ?? Array.Empty<IWorkSourceReferenceIssue>()).ToArray());
         SourceDeclarationIssues = Array.AsReadOnly((sourceDeclarationIssues ?? Array.Empty<IWorkSourceDeclarationIssue>()).ToArray());
+        SourceCellIssues = Array.AsReadOnly((sourceCellIssues ?? Array.Empty<IWorkSourceCellIssue>()).ToArray());
         var fidelityDiagnostics = new List<global::OfficeIMO.OfficeConversionFidelityDiagnostic>();
         foreach (IWorkDiagnostic diagnostic in Diagnostics) {
             fidelityDiagnostics.Add(new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
@@ -62,6 +64,13 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
             fidelityDiagnostics.Add(new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
                 "IWORK_SOURCE_DECLARATIONS_UNASSESSED",
                 SourceDeclarationIssues.Count + " selected source path(s) contain unreadable or rejected declarations. Their nested references and content coverage remain unknown; these are not omitted-object counts.",
+                global::OfficeIMO.OfficeConversionLossKind.Unassessed,
+                "OfficeIMO.IWork"));
+        }
+        if (SourceCellIssues.Count > 0) {
+            fidelityDiagnostics.Add(new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
+                "IWORK_SOURCE_CELLS_UNDECODED",
+                SourceCellIssues.Count + " materialized selected cell(s) could not be decoded. Their source contents remain unassessed; this is not a count of omitted cells or unreadable storage entries.",
                 global::OfficeIMO.OfficeConversionLossKind.Unassessed,
                 "OfficeIMO.IWork"));
         }
@@ -105,6 +114,8 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
     public IReadOnlyList<IWorkSourceReferenceIssue> SourceReferenceIssues { get; }
     /// <summary>Gets unreadable or rejected declarations at selected source paths, separately from resolved object identities and failed references. Repeated selection of a shared path reports it once. Visual fallback does not establish coverage.</summary>
     public IReadOnlyList<IWorkSourceDeclarationIssue> SourceDeclarationIssues { get; }
+    /// <summary>Gets decoding failures for materialized selected cells, including visual fallback. Native error markers, inactive tables and unmaterialized storage are excluded. The inventory is bounded by the source-wide materialized-cell limit and does not establish destination cell outcomes.</summary>
+    public IReadOnlyList<IWorkSourceCellIssue> SourceCellIssues { get; }
     /// <summary>Gets source expression and cache assessments for declared formula cells, including supported headers in undecoded cells and visual fallback. These do not establish destination formula preservation or cache freshness.</summary>
     public IReadOnlyList<IWorkFormulaCellStatus> FormulaCells { get; }
     /// <summary>Gets aggregate source expression/cache assessment, including unassessed declared formulas. Unknown headers and inactive table records are excluded.</summary>

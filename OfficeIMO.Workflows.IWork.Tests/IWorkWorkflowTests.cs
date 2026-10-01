@@ -44,6 +44,13 @@ public sealed class IWorkWorkflowTests {
         };
         Assert.Equal(declarationIssues, int.Parse(evidence.Facts["sourceDeclarationIssueCount"],
             System.Globalization.CultureInfo.InvariantCulture));
+        IEnumerable<IWorkTable> tables = coreSource.Kind switch {
+            IWorkDocumentKind.Pages => coreSource.ReadPages().Tables,
+            IWorkDocumentKind.Numbers => coreSource.ReadNumbers().Sheets.SelectMany(sheet => sheet.Tables),
+            _ => coreSource.ReadKeynote().Slides.SelectMany(slide => slide.Tables)
+        };
+        Assert.Equal(tables.Sum(table => table.Cells.Count(cell => cell.HasDecodeError)),
+            int.Parse(evidence.Facts["sourceCellIssueCount"], System.Globalization.CultureInfo.InvariantCulture));
         Assert.Contains(evidence.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
         Assert.Throws<InvalidOperationException>(evidence.RequireNoLoss);
         Assert.Equal(new FileInfo(files.Input).Length, result.InputBytes);
