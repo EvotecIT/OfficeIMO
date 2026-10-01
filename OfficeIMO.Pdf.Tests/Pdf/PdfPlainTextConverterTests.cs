@@ -8,6 +8,18 @@ using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfPlainTextConverterTests {
+    [Theory]
+    [InlineData("")]
+    [InlineData("BEFORE")]
+    public void WidePreservedWhitespaceWrapsWithoutHidingFollowingText(string prefix) {
+        byte[] bytes = PdfPlainTextConverter.ToPdfDocumentResult(prefix + new string(' ', 100) + "VISIBLE").ToBytes();
+        using var pdf = PdfPigDocument.Open(bytes);
+        var page = pdf.GetPage(1);
+        Assert.Contains("VISIBLE", page.Text);
+        Assert.All(page.Letters, letter => Assert.InRange(letter.StartBaseLine.X, 72, page.Width - 72));
+        Assert.True(page.Letters.First(letter => letter.Value == "V").StartBaseLine.Y < page.Height - 90);
+    }
+
     [Fact]
     public void StreamImportLeavesOwnershipAndPositionWithCallerAndEnforcesByteLimit() {
         using var input = new System.IO.MemoryStream(Encoding.UTF8.GetBytes("skip Stream text"));

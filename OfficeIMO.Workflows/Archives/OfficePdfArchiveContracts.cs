@@ -41,7 +41,8 @@ public sealed record OfficePdfArchiveResult(long Selected, long Completed, long 
 
 internal sealed record OfficePdfArchivePlan(string Schema, string ConfigurationSha256);
 internal sealed record OfficePdfArchiveReceipt(string Schema, string ConfigurationSha256, string InputSha256,
-    string? OutputSha256, OfficeWorkflowStatus Status, string Summary, OfficePdfArchiveStoredDiagnostic[] Diagnostics, int DiagnosticCount);
+    string? OutputSha256, OfficeWorkflowStatus Status, string Summary, OfficePdfArchiveStoredDiagnostic[] Diagnostics, int DiagnosticCount,
+    string? PendingStageId = null);
 internal sealed record OfficePdfArchiveStoredDiagnostic(string Code, string Message, OfficeWorkflowDiagnosticSeverity Severity,
     string? Stage, string? Source, string? LossKind);
 

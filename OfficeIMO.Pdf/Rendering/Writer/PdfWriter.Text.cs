@@ -965,6 +965,28 @@ internal static partial class PdfWriter {
                 }
                 double tokenW = MeasureRichText(token, fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings);
                 if (token.Length > 0) PrepareLineFrame(runFontSize * lineHeightRatio);
+                if (preserveWhitespace && !pendingLeadingIsTab && pendingLeadingAdvance > 0 && (token.Length > 0 || hadNewline)) {
+                    // Literal spacing consumes line capacity just like visible text. Keep
+                    // its advance on the line it occupies, including completely blank lines.
+                    while (pendingLeadingAdvance > 0.001D) {
+                        double available = CurrentMaxWidth() - lineWidth;
+                        if (available <= 0.001D) {
+                            StartNewLine();
+                            PrepareLineFrame(runFontSize * lineHeightRatio);
+                            available = CurrentMaxWidth();
+                            if (available <= 0.001D) throw new InvalidOperationException("No width is available for preserved text spacing.");
+                        }
+                        double advance = Math.Min(available, pendingLeadingAdvance);
+                        lines[lines.Count - 1].Add(new RichSeg(string.Empty, bold, italic, underline, strike, color, backgroundColor,
+                            uri, destinationName, contents, fontForRun, runFontSize, baseline, 0,
+                            leadingSpace: true, leadingAdvance: advance, leadingSpaceIsExpandable: false,
+                            namedFont: currentRunNamedFont, featureSettings: currentRunFeatureSettings));
+                        RegisterLineHeight(runFontSize);
+                        lineWidth += advance;
+                        pendingLeadingAdvance -= advance;
+                    }
+                    ResetPendingLeading();
+                }
                 var lastLine = lines[lines.Count - 1];
                 double needed = lastLine.Count == 0 && !preserveWhitespace ? tokenW : pendingLeadingAdvance + tokenW;
                 double currentMaxWidth = CurrentMaxWidth();

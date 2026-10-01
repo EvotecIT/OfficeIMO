@@ -3,6 +3,53 @@ using System.Text;
 namespace OfficeIMO.Workflows.Tests;
 
 public sealed class OfficePdfArchiveWorkflowTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PendingPublicationRecoversBeforeAndAfterTheFinalMove(bool alreadyMoved) {
+        using var scope = new ArchiveDirectory();
+        File.WriteAllText(Path.Combine(scope.Input, "one.txt"), "Recoverable publication");
+        using var cancellation = new CancellationTokenSource();
+        var interrupted = await OfficePdfArchiveWorkflow.RunAsync(scope.Request, cancellationToken: cancellation.Token,
+            publicationGuard: new CancelBeforeFinalMove(cancellation));
+        Assert.True(interrupted.Cancelled);
+        string output = Path.Combine(scope.Output, "one.txt.pdf");
+        Assert.False(File.Exists(output));
+        string staged = Assert.Single(Directory.GetFiles(scope.Output, "*.archive.pdf"));
+        byte[] original = File.ReadAllBytes(staged);
+        if (alreadyMoved) File.Move(staged, output); // Process interruption after move, before completion checkpoint.
+        var resumed = await OfficePdfArchiveWorkflow.RunAsync(scope.Request);
+        Assert.Equal(1, resumed.Completed); Assert.Equal(1, resumed.Reused); Assert.Equal(0, resumed.Failed);
+        Assert.Equal(original, File.ReadAllBytes(output));
+        Assert.Empty(Directory.GetFiles(scope.Output, "*.archive.pdf"));
+        Assert.Single(OfficeIMO.Pdf.PdfDocument.Load(output).Read().Pages);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task PendingPublicationRejectsChangedSourceOrArtifact(bool changeSource) {
+        using var scope = new ArchiveDirectory();
+        string input = Path.Combine(scope.Input, "one.txt");
+        File.WriteAllText(input, "Recoverable publication");
+        using var cancellation = new CancellationTokenSource();
+        await OfficePdfArchiveWorkflow.RunAsync(scope.Request, cancellationToken: cancellation.Token,
+            publicationGuard: new CancelBeforeFinalMove(cancellation));
+        string staged = Assert.Single(Directory.GetFiles(scope.Output, "*.archive.pdf"));
+        File.WriteAllText(changeSource ? input : staged, "Changed after durable intent");
+        var resumed = await OfficePdfArchiveWorkflow.RunAsync(scope.Request with { RetryFailed = true });
+        Assert.Equal(1, resumed.Failed); Assert.False(File.Exists(Path.Combine(scope.Output, "one.txt.pdf")));
+    }
+
+    private sealed class CancelBeforeFinalMove(CancellationTokenSource cancellation) : IOfficeWorkflowPublicationGuard {
+        private int _finalChecks;
+        public ValueTask<bool> CanPublishAsync(string path, bool directory, CancellationToken token) {
+            if (!directory && Path.GetFileName(path) == "one.txt.pdf" && Interlocked.Increment(ref _finalChecks) == 2)
+                cancellation.Cancel();
+            return ValueTask.FromResult(true);
+        }
+    }
+
     [Fact]
     public void MinimalJsonRequestUsesDeclaredResourceDefaults() {
         var request = OfficePdfArchiveSerializer.ParseRequest(Encoding.UTF8.GetBytes(

@@ -38,7 +38,7 @@
       "supportEvidence":"Literal text conversion uses the canonical PDF flow engine, strict decoding, source whitespace and bounded pagination.",
       "knownLimitations":"Long lines wrap to page width. Unicode appearance depends on supplied fonts; no Markdown, HTML or ANSI interpretation occurs.",
       "resultContract":"PdfDocumentConversionResult",
-      "browserAvailable":true,
+      "browserAvailable":false,
       "agentDiscoverable":true
     },
     {
