@@ -56,7 +56,7 @@ OfficeIMO tests compare all sixteen reconstructed source ranges and saved/reopen
 
 ## Formula function identities
 
-`numbers-parser/function-identities.json` records 34 native function identifiers from the pinned numbers-parser 4.19.0 function map, plus the expressions, function nodes and typed caches of three cases in the unmodified `cross-table-formulas.numbers` fixture. OfficeIMO checks every selected identity, rejects the displaced unqualified identifiers, and saves/reopens the native nested `OR`, `POWER`, and cross-table `TEXTJOIN` cases. The `TEXTJOIN` descriptor records independently resolved coordinates and a join of current referenced values that agrees with its cache. Its saved-output test checks the XLSX compatibility prefix, typed string cache, and recalculation after changing a referenced value and testing both empty-cell policies. The additional `MINA` identity uses the independent map; synthetic native-format cases check saved output separately from the three unmodified document cases. Sample argument counts exercise reconstruction; they do not qualify evaluation for arbitrary argument types. Reproduce the evidence without rewriting the package:
+`numbers-parser/function-identities.json` records 37 native function identifiers from the pinned numbers-parser 4.19.0 function map, plus the expressions, function nodes and typed caches of three cases in the unmodified `cross-table-formulas.numbers` fixture. OfficeIMO checks every selected identity, rejects unknown identifiers and invalid argument counts, and saves/reopens the native nested `OR`, `POWER`, and cross-table `TEXTJOIN` cases. The `TEXTJOIN` descriptor records independently resolved coordinates and a join of current referenced values that agrees with its cache. Its saved-output test checks the XLSX compatibility prefix, typed string cache, and recalculation after changing a referenced value and testing both empty-cell policies. The additional `MINA` identity uses the independent map; synthetic native-format cases check saved output separately from the three unmodified document cases. Sample argument counts exercise reconstruction; they do not qualify evaluation for arbitrary argument types. Reproduce the evidence without rewriting the package:
 
 ```bash
 python Build/IWork/extract-function-identities.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/cross-table-formulas.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/function-identities.json
@@ -174,3 +174,15 @@ python Build/IWork/extract-numbers-banding.py OfficeIMO.TestAssets/Documents/IWo
 ```
 
 This evidence covers opaque sRGB region and band fills in this fixture. It does not establish complete appearance, selected override behavior in Apple exports, other producer versions, or Pages and Keynote banded exports.
+
+## Native Numbers function exports
+
+`native-exports/numbers-functions-v14.5.json` records two OfficeIMO-authored Numbers 14.5 fixtures and their Apple XLSX exports. The matching intake workbooks contain cache-free OOXML formulas built with Python standard-library ZIP/XML, independently of OfficeIMO. Numbers imports, evaluates and writes the native files and exports. All assets are covered by the repository MIT license.
+
+The manifest records 26 expressions, native function IDs and argument counts, numeric cache comparisons, producer version and artifact hashes. It exercises `OFFSET` as a scalar and as a `SUM` range argument, `PROB` exact and interval bounds, zero probabilities and invalid distributions, and fixed and variable `RANDBETWEEN` bounds. Reproduce the manifest with pinned opt-in numbers-parser 4.19.0:
+
+```sh
+python Build/IWork/extract-numbers-functions.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-functions-v14.5.json
+```
+
+The fractional random cases returned zero in this native import and remain outside local evaluation qualification. Random caches are snapshots. Native error cells have no XLSX error cache, so this evidence does not qualify error-code equivalence. Saved/reopened conversions retain the expressions and diagnosed caches; fresh shared-owner evaluation and edits to referenced inputs are tested separately. The PDF is a native reference, not a qualification of complete layout, implicit intersection, dynamic spills or other producer versions.

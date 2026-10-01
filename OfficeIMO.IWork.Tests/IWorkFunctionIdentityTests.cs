@@ -20,11 +20,11 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Theory]
-    [InlineData(101, 3)] // Native OFFSET; previously exported as OR.
+    [InlineData(101, 2)] // OFFSET requires a base, row offset and column offset.
     [InlineData(112, 2)] // PROB cannot use ROUND's signature.
     [InlineData(119, 1)] // RANDBETWEEN cannot use SECOND's signature.
     [InlineData(169, 2)] // No qualified native SUMIF identity here.
-    public void Unqualified_function_identifiers_preserve_caches_without_an_editable_formula(int index, int arguments) {
+    public void Unknown_identifiers_and_invalid_arities_preserve_caches_without_an_editable_formula(int index, int arguments) {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("Functions", 1, 1, 42d, hasFormula: true,
                 formulaPayload: FunctionPayload(index, arguments))

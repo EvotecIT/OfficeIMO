@@ -104,6 +104,13 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
+            // A scalar OFFSET owns blank-to-zero coercion. Do not consume its
+            // reference as a plain cell before dispatching the function.
+            if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(trimmed, out ExcelFormulaFunctionCallSyntax? call)
+                && call!.Name.Equals("OFFSET", StringComparison.OrdinalIgnoreCase)) {
+                return TryEvaluateFormulaValue(trimmed, out value, allowScalarExpression: false);
+            }
+
             if (TryParseQualifiedFormulaCellReference(trimmed, out ExcelSheet sheet, out int row, out int column)) {
                 value = ResolveFormulaDependency(sheet, row, column);
                 return true;
@@ -177,7 +184,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static IReadOnlyList<string> SplitFormulaArguments(string args) {
+        private static IReadOnlyList<string> SplitFormulaArguments(string args, bool preserveEmpty = false) {
             var tokens = new List<string>();
             var builder = new StringBuilder();
             int depth = 0;
@@ -247,7 +254,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (!inString && ch == ',' && depth == 0 && bracketDepth == 0) {
-                    AddToken(tokens, builder);
+                    AddToken(tokens, builder, preserveEmpty);
                     continue;
                 }
 
@@ -258,13 +265,13 @@ namespace OfficeIMO.Excel {
                 return Array.Empty<string>();
             }
 
-            AddToken(tokens, builder);
+            AddToken(tokens, builder, preserveEmpty);
             return tokens;
         }
 
-        private static void AddToken(List<string> tokens, StringBuilder builder) {
+        private static void AddToken(List<string> tokens, StringBuilder builder, bool preserveEmpty = false) {
             string token = builder.ToString().Trim();
-            if (token.Length > 0) {
+            if (token.Length > 0 || preserveEmpty) {
                 tokens.Add(token);
             }
 
@@ -440,6 +447,13 @@ namespace OfficeIMO.Excel {
             out int c1,
             out int r2,
             out int c2) {
+            if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(token, out ExcelFormulaFunctionCallSyntax? call)
+                && call!.Name.Equals("OFFSET", StringComparison.OrdinalIgnoreCase)) {
+                bool resolved = TryResolveOffsetRange(call.Arguments, currentRow, out sheet, out r1, out c1, out r2, out c2,
+                    out FormulaArgumentValue error);
+                if (error.IsError && !_formulaReferenceError.IsError) _formulaReferenceError = error;
+                return resolved && !error.IsError;
+            }
             if (TryParseQualifiedFormulaRange(token, out sheet, out r1, out c1, out r2, out c2)) {
                 return true;
             }

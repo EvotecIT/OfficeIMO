@@ -32,6 +32,8 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            if (lookupValue.IsUnresolvedFormula) return false;
+            if (lookupValue.IsError) { result = lookupValue; return true; }
             if (function == "VLOOKUP") {
                 int width = c2 - c1 + 1;
                 if (resultIndex < 1 || resultIndex > width) {
@@ -40,7 +42,10 @@ namespace OfficeIMO.Excel {
 
                 int resultColumn = c1 + resultIndex - 1;
                 for (int row = r1; row <= r2; row++) {
-                    if (!FormulaValuesEqual(ResolveFormulaDependency(rangeSheet, row, c1), lookupValue)) {
+                    FormulaArgumentValue candidate = ResolveFormulaDependency(rangeSheet, row, c1);
+                    if (candidate.IsUnresolvedFormula) return false;
+                    if (candidate.IsError) { result = candidate; return true; }
+                    if (!FormulaValuesEqual(candidate, lookupValue)) {
                         continue;
                     }
 
@@ -48,7 +53,8 @@ namespace OfficeIMO.Excel {
                     return result.HasValue;
                 }
 
-                return false;
+                result = FormulaArgumentValue.Error("#N/A");
+                return true;
             }
 
             int height = r2 - r1 + 1;
@@ -58,7 +64,10 @@ namespace OfficeIMO.Excel {
 
             int resultRow = r1 + resultIndex - 1;
             for (int column = c1; column <= c2; column++) {
-                if (!FormulaValuesEqual(ResolveFormulaDependency(rangeSheet, r1, column), lookupValue)) {
+                FormulaArgumentValue candidate = ResolveFormulaDependency(rangeSheet, r1, column);
+                if (candidate.IsUnresolvedFormula) return false;
+                if (candidate.IsError) { result = candidate; return true; }
+                if (!FormulaValuesEqual(candidate, lookupValue)) {
                     continue;
                 }
 
@@ -66,7 +75,8 @@ namespace OfficeIMO.Excel {
                 return result.HasValue;
             }
 
-            return false;
+            result = FormulaArgumentValue.Error("#N/A");
+            return true;
         }
 
         private bool TryEvaluateXLookupValue(IReadOnlyList<string> tokens, out FormulaArgumentValue result) {
@@ -95,21 +105,23 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (TryFindLookupPosition(lookupValue, lookupValues, matchMode, searchMode, out int position)) {
+            if (lookupValue.IsUnresolvedFormula) return false;
+            if (lookupValue.IsError) { result = lookupValue; return true; }
+            if (TryFindLookupPosition(lookupValue, lookupValues, matchMode, searchMode, out int position, out FormulaArgumentValue searchFailure)) {
                 var returnValue = returnValues[position - 1];
                 result = returnValue;
                 return result.HasValue;
             }
 
-            if (tokens.Count >= 4
-                && TryResolveFormulaArgument(tokens[3], out FormulaArgumentValue fallback)
-                && !fallback.IsUnresolvedFormula
-                && fallback.HasValue) {
-                result = fallback;
+            if (searchFailure.IsUnresolvedFormula) return false;
+            if (searchFailure.IsError) { result = searchFailure; return true; }
+            if (tokens.Count >= 4) {
+                if (!TryResolveFormulaArgument(tokens[3], out result) || result.IsUnresolvedFormula || !result.HasValue) return false;
                 return true;
             }
 
-            return false;
+            result = FormulaArgumentValue.Error("#N/A");
+            return true;
         }
 
         private bool TryEvaluateSumProduct(string args, out double result) {

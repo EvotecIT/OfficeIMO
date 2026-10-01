@@ -46,11 +46,8 @@ namespace OfficeIMO.Excel {
             if (!TryResolveFormulaArgument(tokens[0], out FormulaArgumentValue candidate)
                 || candidate.IsUnresolvedFormula
                 || !candidate.HasValue) {
-                if (!TryInferFormulaErrorArgument(tokens[0], out string inferredErrorCode)) {
-                    return false;
-                }
-
-                candidate = FormulaArgumentValue.Error(inferredErrorCode);
+                // Only a successfully evaluated typed error activates the fallback.
+                return false;
             }
 
             if (!candidate.IsError || !shouldUseFallback(candidate.ErrorCode ?? "#VALUE!")) {
@@ -268,43 +265,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryResolveInfoArgument(string token, out FormulaArgumentValue value) {
-            if (TryResolveFormulaArgument(token, out value)) {
-                return true;
-            }
-
-            if (TryInferFormulaErrorArgument(token, out string errorCode)) {
-                value = FormulaArgumentValue.Error(errorCode);
-                return true;
-            }
-
-            value = default;
-            return false;
-        }
-
-        private bool TryInferFormulaErrorArgument(string token, out string errorCode) {
-            string trimmed = token.Trim();
-            if (TryParseFormulaErrorLiteral(trimmed, out errorCode)) {
-                return true;
-            }
-
-            if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(trimmed, out ExcelFormulaFunctionCallSyntax? functionCall)) {
-                string function = functionCall!.Name.ToUpperInvariant();
-                errorCode = function == "MATCH" || function == "XMATCH" || function == "XLOOKUP" || function == "VLOOKUP" || function == "HLOOKUP"
-                    ? "#N/A"
-                    : "#VALUE!";
-                return true;
-            }
-
-            if (ExcelFormulaExpressionParser.TryParseArithmetic(trimmed, out ExcelFormulaBinaryExpressionSyntax? binary)
-                && string.Equals(binary!.Operator, "/", StringComparison.Ordinal)
-                && TryResolveNumericOperand(binary.Right, out double divisor)
-                && Math.Abs(divisor) < double.Epsilon) {
-                errorCode = "#DIV/0!";
-                return true;
-            }
-
-            errorCode = string.Empty;
-            return false;
+            return TryResolveFormulaArgument(token, out value) && !value.IsUnresolvedFormula;
         }
 
         private bool TryEvaluateFormulaOrNumeric(string token, out double result) {

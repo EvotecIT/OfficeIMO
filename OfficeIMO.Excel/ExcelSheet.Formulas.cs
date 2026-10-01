@@ -17,11 +17,11 @@ namespace OfficeIMO.Excel {
         private Dictionary<string, IReadOnlyDictionary<uint, SharedFormulaDefinition>>? _formulaEvaluationSharedDefinitionsBySheet;
         private string? _formulaEvaluationCellReference;
 
-        private sealed class FormulaEvaluationGuardState {
+        internal sealed class FormulaEvaluationGuardState {
             internal bool DependencyGuardBlocked { get; set; }
         }
 
-        private sealed class FormulaEvaluationDepthFrame {
+        internal sealed class FormulaEvaluationDepthFrame {
             internal int MaximumChildDepth { get; private set; }
             internal bool DependencyGuardBlocked { get; private set; }
             internal bool UsedUnevaluatedFormulaCache { get; private set; }
@@ -80,7 +80,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Evaluates supported formulas on this sheet and writes cached results.
         /// </summary>
-        public int RecalculateSupportedFormulas() {
+        public int RecalculateSupportedFormulas() => RecalculateSupportedFormulas(new FormulaCalculationContext());
+
+        internal int RecalculateSupportedFormulas(FormulaCalculationContext context) {
             MaterializePendingDirectCellValues();
 
             int count = 0;
@@ -95,11 +97,11 @@ namespace OfficeIMO.Excel {
                 var previousGuardState = _formulaEvaluationGuardState;
                 var previousSharedDefinitions = _formulaEvaluationSharedDefinitions;
                 var previousSharedDefinitionsBySheet = _formulaEvaluationSharedDefinitionsBySheet;
-                _formulaEvaluationCache = new Dictionary<string, FormulaArgumentValue>(StringComparer.OrdinalIgnoreCase);
-                _formulaEvaluationDepthCache = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                _formulaEvaluationStack = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                _formulaEvaluationDepthFrames = new Stack<FormulaEvaluationDepthFrame>();
-                _formulaEvaluationGuardState = new FormulaEvaluationGuardState();
+                _formulaEvaluationCache = context.Cache;
+                _formulaEvaluationDepthCache = context.DepthCache;
+                _formulaEvaluationStack = context.Stack;
+                _formulaEvaluationDepthFrames = context.DepthFrames;
+                _formulaEvaluationGuardState = context.GuardState;
                 _formulaEvaluationSharedDefinitions = BuildSharedFormulaDefinitions();
                 _formulaEvaluationSharedDefinitionsBySheet = new Dictionary<string, IReadOnlyDictionary<uint, SharedFormulaDefinition>>(
                     StringComparer.OrdinalIgnoreCase) {
@@ -659,24 +661,6 @@ namespace OfficeIMO.Excel {
 
         private int _scalarFormulaEvaluationDepth;
 
-        private bool TryEvaluateFormulaValue(string formula, out FormulaArgumentValue result, bool allowScalarExpression = true) {
-            result = default;
-            if (!HasSufficientFormulaExecutionStack()) return false;
-            if (_scalarFormulaEvaluationDepth >= 128) return false;
-            _scalarFormulaEvaluationDepth++;
-            try {
-                // Scalar dependency chains must not retain the function dispatcher's
-                // temporaries on every recursive cell frame, especially on .NET 8.
-                if (allowScalarExpression) {
-                    if (string.IsNullOrWhiteSpace(formula) || formula.Length > MaxSupportedFormulaLength) return false;
-                    return TryEvaluateScalarExpression(NormalizeSupportedFunctionPrefix(formula), out result);
-                }
-                return TryEvaluateFormulaValueCore(formula, out result);
-            } finally {
-                _scalarFormulaEvaluationDepth--;
-            }
-        }
-
         private bool TryEvaluateFormulaValueCore(string formula, out FormulaArgumentValue result) {
             result = default;
             if (string.IsNullOrWhiteSpace(formula) || formula.Length > MaxSupportedFormulaLength) {
@@ -693,6 +677,10 @@ namespace OfficeIMO.Excel {
             if (functionCall != null) {
                     string function = functionCall.Name.ToUpperInvariant();
                     string args = functionCall.Arguments;
+                    if (function == "MATCH" || function == "XMATCH") return TryEvaluateMatchValue(function, args, out result);
+                    if (function == "PROB") return TryEvaluateProbabilityValue(args, out result);
+                    if (function == "RANDBETWEEN") return TryEvaluateRandomBetweenValue(args, out result);
+                    if (function == "OFFSET") return TryEvaluateOffsetValue(args, out result);
                     if (function == "GETPIVOTDATA") return TryEvaluatePivotDataValue(args, out result);
                     if ((function == "TRUE" || function == "FALSE") && string.IsNullOrWhiteSpace(args)) {
                         bool boolean = function == "TRUE";
@@ -789,6 +777,16 @@ namespace OfficeIMO.Excel {
             if (functionCall != null) {
                     string function = functionCall.Name.ToUpperInvariant();
                     string args = functionCall.Arguments;
+                    if (function == "PROB" || function == "RANDBETWEEN" || function == "OFFSET") {
+                        bool evaluated = function == "PROB" ? TryEvaluateProbabilityValue(args, out FormulaArgumentValue value)
+                            : function == "RANDBETWEEN" ? TryEvaluateRandomBetweenValue(args, out value)
+                            : TryEvaluateOffsetValue(args, out value);
+                        if (!evaluated) return false;
+                        if (value.IsError) { error = value; return false; }
+                        if (!value.Number.HasValue) return false;
+                        result = value.Number.Value;
+                        return true;
+                    }
                     if (function == "IFERROR" || function == "IFNA") {
                         if (!TryEvaluateErrorFallback(function, args, out result)) {
                             return false;
@@ -925,7 +923,11 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (function == "MATCH" || function == "XMATCH") {
-                        return TryEvaluateMatchFunction(function, args, out result);
+                        if (!TryEvaluateMatchValue(function, args, out FormulaArgumentValue value)) return false;
+                        if (value.IsError) { error = value; return false; }
+                        if (!value.Number.HasValue) return false;
+                        result = value.Number.Value;
+                        return true;
                     }
 
                     if (TryEvaluateTextFunction(function, args, out FormulaArgumentValue textFunctionResult)

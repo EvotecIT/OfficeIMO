@@ -133,6 +133,11 @@
       "sampleArgumentCount": 0
     },
     {
+      "index": 101,
+      "name": "OFFSET",
+      "sampleArgumentCount": 3
+    },
+    {
       "index": 102,
       "name": "OR",
       "sampleArgumentCount": 2
@@ -145,6 +150,16 @@
     {
       "index": 107,
       "name": "POWER",
+      "sampleArgumentCount": 2
+    },
+    {
+      "index": 112,
+      "name": "PROB",
+      "sampleArgumentCount": 3
+    },
+    {
+      "index": 119,
+      "name": "RANDBETWEEN",
       "sampleArgumentCount": 2
     },
     {
@@ -240,18 +255,6 @@
     "computedCurrentRangeValue": "cat,dog,hamster"
   },
   "unqualifiedIdentities": [
-    {
-      "index": 101,
-      "name": "OFFSET"
-    },
-    {
-      "index": 112,
-      "name": "PROB"
-    },
-    {
-      "index": 119,
-      "name": "RANDBETWEEN"
-    },
     {
       "index": 169,
       "name": null

@@ -6,7 +6,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        private readonly struct FormulaArgumentValue {
+        internal readonly struct FormulaArgumentValue {
             internal FormulaArgumentValue(double? number, string? text, bool isUnresolvedFormula = false, bool isError = false,
                 ExcelCellDataKind? sourceCellKind = null, bool isBoolean = false, bool isUnevaluatedFormulaCache = false) {
                 Number = number;

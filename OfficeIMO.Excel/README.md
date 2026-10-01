@@ -867,6 +867,22 @@ supported function arguments. For example, `SUM(A1,2)*3` and
 and nested function evaluation are bounded to 128 levels; unsupported formulas
 continue to be reported explicitly rather than calculated from stale caches.
 
+`OFFSET` resolves a single-cell value or a rectangular reference argument for
+functions such as `SUM`, within worksheet bounds and 32 reference levels.
+Multi-cell scalar results, implicit intersection and spills remain unsupported.
+`PROB` evaluates finite numeric vectors with a shared 100,000-cell input budget;
+mixed text, Boolean and blank vector coercion remains unsupported. Probabilities
+must lie between zero and one and sum to one within `1e-12` rounding tolerance.
+`RANDBETWEEN` accepts inclusive integer bounds within Int32 and draws a fresh
+value on each calculation pass; dependent formulas reuse that pass's cell cache.
+Fractional and larger random bounds retain their producer cache without local
+evaluation. Inspection reports direct references; dynamic `OFFSET` targets are
+resolved during calculation and its runtime dependency guards apply. Invalid
+reference errors propagate through reference consumers and error handlers.
+Unsupported inputs and resource limits remain unevaluated inside `IFERROR`,
+`IFNA` and error predicates, preserving existing caches. Completed supported
+lookup searches return typed `#N/A` when no match exists.
+
 Named references can resolve to A1 ranges or numeric, text, Boolean, and error
 constants, including bounded aliases and worksheet-local scope. Arbitrary
 formulas stored in defined names remain outside this calculation subset.

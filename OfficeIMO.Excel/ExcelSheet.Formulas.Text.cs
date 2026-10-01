@@ -431,8 +431,8 @@ namespace OfficeIMO.Excel {
             return result.HasValue;
         }
 
-        private bool TryEvaluateMatchFunction(string function, string args, out double result) {
-            result = 0;
+        private bool TryEvaluateMatchValue(string function, string args, out FormulaArgumentValue result) {
+            result = default;
             var tokens = SplitFormulaArguments(args);
             int maxTokens = function == "XMATCH" ? 4 : 3;
             if (tokens.Count < 2
@@ -469,17 +469,24 @@ namespace OfficeIMO.Excel {
             }
 
             int lookupMode = function == "MATCH" ? -matchMode : matchMode;
-            if (!TryResolveFormulaRange(tokens[1], out var lookupValues)
-                || !TryFindLookupPosition(lookupValue, lookupValues, lookupMode, searchMode, out int position)) {
-                return false;
+            if (!TryResolveFormulaRange(tokens[1], out var lookupValues) || lookupValue.IsUnresolvedFormula) return false;
+            if (lookupValue.IsError) { result = lookupValue; return true; }
+            if (!TryFindLookupPosition(lookupValue, lookupValues, lookupMode, searchMode, out int position, out FormulaArgumentValue searchFailure)) {
+                if (searchFailure.IsUnresolvedFormula) return false;
+                if (searchFailure.IsError) { result = searchFailure; return true; }
+                // Approximate text ordering is outside this numeric lookup subset.
+                if (lookupMode != 0 && !lookupValue.Number.HasValue) return false;
+                result = FormulaArgumentValue.Error("#N/A");
+                return true;
             }
 
-            result = position;
+            result = new FormulaArgumentValue(position, InvariantNumberText.Get(position));
             return true;
         }
 
-        private static bool TryFindLookupPosition(FormulaArgumentValue lookupValue, IReadOnlyList<FormulaArgumentValue> lookupValues, int matchMode, int searchMode, out int position) {
+        private static bool TryFindLookupPosition(FormulaArgumentValue lookupValue, IReadOnlyList<FormulaArgumentValue> lookupValues, int matchMode, int searchMode, out int position, out FormulaArgumentValue failure) {
             position = 0;
+            failure = default;
             if (lookupValues.Count == 0) {
                 return false;
             }
@@ -489,7 +496,11 @@ namespace OfficeIMO.Excel {
             int step = searchMode == -1 ? -1 : 1;
 
             for (int index = start; index != end; index += step) {
-                if (!FormulaValuesEqual(lookupValues[index], lookupValue)) {
+                // Stop at the first exact match in the requested search order.
+                // Later entries cannot invalidate a selected result.
+                FormulaArgumentValue candidate = lookupValues[index];
+                if (candidate.IsError || candidate.IsUnresolvedFormula) { failure = candidate; return false; }
+                if (!FormulaValuesEqual(candidate, lookupValue)) {
                     continue;
                 }
 
