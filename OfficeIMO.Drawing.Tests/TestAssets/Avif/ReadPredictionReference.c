@@ -1,0 +1,35 @@
+/* Portable opt-in observation driver. Pixel algorithms stay in the pinned native library. */
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include "av1/common/common_data.h"
+void office_intra_prediction(const int *, const uint8_t *, const uint8_t *, uint8_t *);
+void office_cfl_prediction(const int *, const uint8_t *, uint8_t *);
+void office_palette_prediction(const int *, const uint8_t *, const uint8_t *, uint8_t *);
+static int integer(FILE *f) {
+  uint8_t b[4]; if (fread(b, 1, 4, f) != 4) exit(2);
+  return (int32_t)((uint32_t)b[0] | (uint32_t)b[1] << 8 | (uint32_t)b[2] << 16 | (uint32_t)b[3] << 24);
+}
+static void bytes(FILE *f, uint8_t *dst, int count, int capacity) {
+  if (count < 0 || count > capacity || fread(dst, 1, (size_t)count, f) != (size_t)count) exit(3);
+}
+int main(int argc, char **argv) {
+  if (argc != 2) return 1;
+  FILE *f = fopen(argv[1], "rb"); if (!f) return 2;
+  int count = integer(f);
+  for (int i = 0; i < count; i++) {
+    int kind = integer(f), p[16]; uint8_t a[4096], b[4096], output[4096];
+    for (int j = 0; j < 16; j++) p[j] = integer(f);
+    if (p[0] < 0 || p[0] >= TX_SIZES_ALL) return 4;
+    if (kind == 0) {bytes(f, a, p[11], 128); bytes(f, b, p[12], 128); office_intra_prediction(p, a, b, output);}
+    else if (kind == 1) {bytes(f, a, p[8], 4096); office_cfl_prediction(p, a, output);}
+    else if (kind == 2) {bytes(f, a, p[6], 8); bytes(f, b, p[2] * p[3], 4096); office_palette_prediction(p, a, b, output);}
+    else return 5;
+    int pixels = tx_size_wide[p[0]] * tx_size_high[p[0]];
+    printf("{\"scenario\":%d,\"pixels\":[", i);
+    for (int j = 0; j < pixels; j++) printf("%s%d", j ? "," : "", output[j]);
+    puts("]}");
+  }
+  if (fgetc(f) != EOF) return 6;
+  fclose(f); return 0;
+}
