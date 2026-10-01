@@ -173,6 +173,10 @@ internal sealed class OfficeAv1ReconstructedFrame {
     internal int Width {get;}
     internal int Height {get;}
     internal int PlaneCount=>_planes.Length;
+    /// <summary>Owned plane storage charged while another decode/composition owner is live.</summary>
+    internal long StorageBytes {
+        get { long bytes=0;foreach(byte[] plane in _planes)bytes+=plane.LongLength;return bytes; }
+    }
     internal byte Value(int plane,int x,int y) {
         if((uint)plane>=(uint)_planes.Length) throw new ArgumentOutOfRangeException(nameof(plane));
         int sub=plane==0?0:1;

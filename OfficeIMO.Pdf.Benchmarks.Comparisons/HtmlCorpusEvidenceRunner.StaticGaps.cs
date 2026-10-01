@@ -8,6 +8,14 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 internal static partial class HtmlCorpusEvidenceRunner {
     private const string StaticGapRoot = "OfficeIMO.TestAssets/Documents/Html/Qualification/StaticPdfGaps";
 
+    private static HtmlRenderOptions CreateCorpusRenderOptions(HtmlCorpusEvidenceInput input) {
+        HtmlRenderOptions options = input.Scenario.CreateOptions();
+        // These immutable offline inputs embed their fonts and images. Keep the
+        // resource boundary explicit for screen as well as PDF conversion.
+        if (input.IsStaticGap) options.ResourceUrlPolicy = HtmlUrlPolicy.CreateEmbeddedResourceProfile();
+        return options;
+    }
+
     /// <summary>Loads frozen equivalent inputs; criteria remain independent of renderer output.</summary>
     private static HtmlCorpusEvidenceInputSet LoadStaticGapCorpus() {
         string root = Path.Combine(FindRepositoryRoot(), StaticGapRoot);

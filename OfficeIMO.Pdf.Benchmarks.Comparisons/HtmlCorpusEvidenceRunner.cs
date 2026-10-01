@@ -242,7 +242,7 @@ internal static partial class HtmlCorpusEvidenceRunner {
         HtmlRenderingCorpusCase scenario = input.Scenario;
         using var sourceStream = new MemoryStream(input.SourceBytes, writable: false);
         HtmlConversionDocument source = HtmlConversionDocument.Load(sourceStream);
-        HtmlToPdfOptions printOptions = new(scenario.CreateOptions());
+        HtmlToPdfOptions printOptions = new(CreateCorpusRenderOptions(input));
         printOptions.Margins = HtmlRenderMargins.All(0D);
         if (input.IsStaticGap) printOptions.Scale = 1D;
         HtmlRenderRequest printRequest = HtmlRenderRequest.Create(
@@ -260,7 +260,7 @@ internal static partial class HtmlCorpusEvidenceRunner {
             GC.GetTotalAllocatedBytes(precise: true) - operationAllocatedBefore,
             printPdf.LongLength);
 
-        HtmlRenderOptions screenOptions = scenario.CreateOptions();
+        HtmlRenderOptions screenOptions = CreateCorpusRenderOptions(input);
         screenOptions.Mode = HtmlRenderMode.Continuous;
         screenOptions.ViewportWidth = BrowserViewportWidth;
         screenOptions.ViewportHeight = BrowserViewportHeight;

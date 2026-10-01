@@ -422,6 +422,8 @@ if (OfficeRasterImageDecoder.TryDecode(input, decodeOptions, out var page, out v
 
 Set `FrameLossPolicy` to `RejectMultipleFrames` when a static result must not discard animation frames or document pages. Animated WebP pixel composition remains a caller-codec boundary, but its frame inventory is still available for a fail-closed decision.
 
+AVIF decoding accepts bounded, whole, untransformed 8-bit YUV420 color items with reduced still-picture headers and optional full-range monochrome alpha. It produces straight-alpha RGBA using the declared CICP range and supported non-constant-luminance matrix. It does not apply ICC, transfer-function or gamut transforms. Image grids, image sequences, higher bit depths, crop/rotation properties and applied film grain are outside this decoder contract. The original encoded buffer, reconstruction planes and final pixels share the retained-memory limit; cancellation and work limits apply through reconstruction and composition. Malformed selected items and limit failures cannot invoke a caller codec. A validated item with an unsupported color matrix may use the explicitly supplied `ImageCodec`.
+
 ### Optimize encoded images for a placement
 
 `OfficeImageOptimizer` resizes and re-encodes a static raster image for the pixel bounds where it will be used:
