@@ -1,0 +1,41 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:shell="using:OfficeIMO.Studio.Features.Shell" xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+ x:Class="OfficeIMO.Studio.Features.Workflows.ProvenanceWorkbenchView" x:DataType="shell:MainWindowViewModel">
+ <ScrollViewer VerticalScrollBarVisibility="Auto">
+  <StackPanel Margin="20" Spacing="14" MaxWidth="1000" HorizontalAlignment="Stretch">
+   <TextBlock Classes="pageTitle" Text="{loc:Loc Provenance.Title}" />
+   <TextBlock Classes="muted" TextWrapping="Wrap" Text="{loc:Loc Provenance.Description}" />
+   <Border Classes="card"><StackPanel Spacing="8">
+    <TextBlock Text="{loc:Loc Provenance.Source}" FontWeight="SemiBold" />
+    <TextBox Text="{Binding ProvenanceWorkbench.InputPath}" IsEnabled="{Binding !ProvenanceWorkbench.IsBusy}" PlaceholderText="{loc:Loc Provenance.LocalPath}" />
+    <WrapPanel><Button Content="{loc:Loc Provenance.ChooseFile}" Command="{Binding ProvenanceWorkbench.ChooseInputCommand}" IsEnabled="{Binding !ProvenanceWorkbench.IsBusy}" Margin="0,0,8,0" />
+     <Button Classes="accent" Content="{loc:Loc Provenance.Assess}" Command="{Binding ProvenanceWorkbench.AssessCommand}" IsEnabled="{Binding ProvenanceWorkbench.CanAssess}" /></WrapPanel>
+   </StackPanel></Border>
+   <TextBlock Text="{Binding ProvenanceWorkbench.Status}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+   <TextBlock Text="{Binding ProvenanceWorkbench.Checks}" TextWrapping="Wrap" />
+   <TextBlock Classes="muted" Text="{Binding ProvenanceWorkbench.Coverage}" TextWrapping="Wrap" />
+   <Border Classes="card"><StackPanel Spacing="8">
+    <TextBlock Text="{loc:Loc Provenance.Findings}" FontWeight="SemiBold" />
+    <ItemsControl ItemsSource="{Binding ProvenanceWorkbench.Findings}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,3" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+    <TextBlock Text="{Binding ProvenanceWorkbench.InputHash, StringFormat='Input SHA-256: {0}'}" TextWrapping="Wrap" Classes="muted" />
+   </StackPanel></Border>
+   <Border Classes="card"><StackPanel Spacing="8" IsEnabled="{Binding !ProvenanceWorkbench.IsBusy}">
+    <TextBlock Text="{loc:Loc Provenance.CopyTitle}" FontWeight="SemiBold" />
+    <TextBlock Text="{loc:Loc Provenance.CopyDescription}" TextWrapping="Wrap" Classes="muted" />
+    <CheckBox Content="{loc:Loc Provenance.Manifests}" IsChecked="{Binding ProvenanceWorkbench.RemoveManifests}" />
+    <CheckBox Content="{loc:Loc Provenance.References}" IsChecked="{Binding ProvenanceWorkbench.RemoveReferences}" />
+    <CheckBox Content="{loc:Loc Provenance.Declarations}" IsChecked="{Binding ProvenanceWorkbench.RemoveDeclarations}" />
+    <TextBox Text="{Binding ProvenanceWorkbench.OutputFolder}" PlaceholderText="{loc:Loc Provenance.OutputFolder}" />
+    <WrapPanel><Button Content="{loc:Loc Provenance.ChooseFolder}" Command="{Binding ProvenanceWorkbench.ChooseFolderCommand}" Margin="0,0,8,8" />
+     <Button Content="{loc:Loc Provenance.CreateCopy}" Command="{Binding ProvenanceWorkbench.CreateCopyCommand}" IsEnabled="{Binding ProvenanceWorkbench.CanCreateCopy}" Margin="0,0,8,8" />
+     <Button Content="{loc:Loc Provenance.Export}" Command="{Binding ProvenanceWorkbench.ExportReportCommand}" IsEnabled="{Binding ProvenanceWorkbench.CanExportReport}" Margin="0,0,8,8" /></WrapPanel>
+   </StackPanel></Border>
+   <Button Content="{loc:Loc Provenance.Cancel}" Command="{Binding ProvenanceWorkbench.CancelCommand}" IsVisible="{Binding ProvenanceWorkbench.IsBusy}" HorizontalAlignment="Left" />
+   <TextBlock Text="{Binding ProvenanceWorkbench.OutputPath, StringFormat='Copy: {0}'}" TextWrapping="Wrap" />
+   <TextBlock Text="{Binding ProvenanceWorkbench.OutputHash, StringFormat='Output SHA-256: {0}'}" TextWrapping="Wrap" />
+   <TextBlock Text="{Binding ProvenanceWorkbench.ReportPath, StringFormat='Report: {0}'}" TextWrapping="Wrap" />
+   <ItemsControl ItemsSource="{Binding ProvenanceWorkbench.Changes}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" TextWrapping="Wrap" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+   <ItemsControl ItemsSource="{Binding ProvenanceWorkbench.Diagnostics}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" TextWrapping="Wrap" Classes="muted" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+  </StackPanel>
+ </ScrollViewer>
+</UserControl>

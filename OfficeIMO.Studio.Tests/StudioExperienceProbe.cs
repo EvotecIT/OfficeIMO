@@ -12,7 +12,7 @@ namespace OfficeIMO.Studio.Tests;
 /// <summary>Repeatable native UI acceptance against synthetic documents and an isolated profile.</summary>
 internal static class StudioExperienceProbe {
     internal static int Run(string root, string scenario, int width, int height, string culture, string theme) {
-        if (scenario is not ("home" or "document" or "tabs" or "assistant" or "connections" or "ocr" or "convert" or "invoices" or "invoices-standards" or "watermark" or "watermark-image")
+        if (scenario is not ("provenance" or "home" or "document" or "tabs" or "assistant" or "connections" or "ocr" or "convert" or "invoices" or "invoices-standards" or "watermark" or "watermark-image")
             || width < 960 || height < 620 || !Enum.TryParse(theme, true, out StudioThemePreference appearance)) return 2;
         root = Path.GetFullPath(root);
         Directory.CreateDirectory(root);
@@ -47,6 +47,14 @@ internal static class StudioExperienceProbe {
                     }
                     if (scenario is "assistant" or "connections") window.ViewModel.ToggleAssistantCommand.Execute(null);
                     if (scenario == "ocr") window.ViewModel.ShowOcrCommand.Execute(null);
+                    if (scenario == "provenance") {
+                        string textSource = Path.Combine(root, "review.html");
+                        await File.WriteAllTextAsync(textSource, "<!doctype html><html><head><link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head><body>review\u202Ethis</body></html>");
+                        var workspace = window.ViewModel.ProvenanceWorkbench;
+                        workspace.InputPath = textSource; workspace.OutputFolder = root;
+                        await workspace.AssessCommand.ExecuteAsync(null); workspace.RemoveReferences = true;
+                        window.ViewModel.ShowProvenanceCommand.Execute(null);
+                    }
                     if (scenario == "convert") window.ViewModel.Commands["Convert"].Execute(null);
                     if (scenario is "invoices" or "invoices-standards") {
                         string invoice = Path.Combine(root, "sample-invoice.xml");

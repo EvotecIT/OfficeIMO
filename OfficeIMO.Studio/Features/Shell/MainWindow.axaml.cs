@@ -119,6 +119,8 @@ public sealed partial class MainWindow : Window {
             reviewPageExtraction: preview => new PageExtractionDialog(preview).ShowDialog<bool>(this),
             showPageExtractionResult: result => new PageExtractionDialog(result).ShowDialog(this),
             reviewPageImport: preview => new PageImportDialog(preview).ShowDialog<bool>(this),
+            pickProvenanceFile: token => FileDialogs.PickOpenFileAsync(_services.Localizer.Get("Provenance.ChooseFile"),
+                new StudioFileType("Provenance assets", OfficeProvenanceWorkflowCatalog.All.SelectMany(item => item.Extensions).Select(extension => extension.TrimStart('.')).Distinct().ToArray()), token),
             pickWorkflowFiles: token => PickFilesSafelyAsync(PickWorkflowFilesAsync, token),
             pickOcrFiles: token => PickFilesSafelyAsync(PickOcrFilesAsync, token),
             pickSaveRedactionReport: token => PickFileSafelyAsync(PickSaveRedactionReportAsync, token),

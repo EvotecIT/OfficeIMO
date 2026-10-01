@@ -343,6 +343,18 @@ Existing detector and verifier implementations remain valid. Providers that perf
 
 Use `OfficeTextIntegrityInspector` to report exact invisible and context-sensitive Unicode code points. It reports offsets, code points, and risk; it does not call those characters an AI watermark. Format content-safety reports also mirror these as selectable `NonPrintingUnicode` findings when the owning adapter can verify and rewrite the exact native text node. Cleanup has no blanket mode: callers pass only reviewed finding IDs, so legitimate joiners, variation selectors, and typographic spaces are not silently normalized.
 
+`OfficeProvenanceAssessmentReport.TextIntegrityStatus`, `VerificationStatus`, and `ProviderSignalsStatus` describe whether each check ran. A disabled or unsupported text check has no report; an absent provider is `NotConfigured`. Provider-specific result statuses retain their separate conclusions.
+
+`OfficeTextIntegrityReview` binds occurrence selections to the exact source text and exports a separate copy without normalization:
+
+```csharp
+var review = OfficeTextIntegrityReview.Inspect("invoice\u202E123 · language joiner: a\u200Db");
+// After reviewing occurrence 0 (the directional override), remove only that occurrence.
+byte[] copy = review.ExportSelected(review.Text, new[] { 0 });
+```
+
+For files, pass the encoded bytes to `Inspect(bytes)`. Strict UTF-8 and BOM-declared UTF-16/32 are supported. Export retains the original encoding, BOM, line endings, and all unselected characters. `RemoveSelected(currentText, indices)` rejects changed source text and invalid indices; callers must inspect edits again. The review also exposes hashes of the decoded UTF-16 code units and, for file inputs, the original bytes.
+
 ### Inspect concealed content before model ingestion
 
 `OfficeIMO.ContentSafety` is separate from provenance. It reports native hidden text, white-on-white or otherwise low-contrast text, tiny or zero-size text, off-canvas/clipped content, notes/comments/alternative text, and exact Unicode evidence through the format package that understands the file. Concealment can be legitimate accessibility, review, layout, or metadata content; it is not an AI watermark or an authorship verdict.

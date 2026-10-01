@@ -22,11 +22,17 @@ public sealed class OfficeProvenanceWorkflowRequest {
     /// <summary>Input asset path.</summary>
     public required string InputPath { get; set; }
 
+    /// <summary>Optional SHA-256 of previously reviewed input bytes. A mismatch rejects the request before mutation.</summary>
+    public string? ExpectedInputSha256 { get; set; }
+
     /// <summary>Output asset path for removal. When omitted, a sibling provenance-cleaned name is used.</summary>
     public string? OutputPath { get; set; }
 
     /// <summary>Conflict behavior used when publishing a removal artifact.</summary>
     public OfficeWorkflowConflictPolicy ConflictPolicy { get; set; } = OfficeWorkflowConflictPolicy.Rename;
+
+    /// <summary>Optional live application ownership check for each final publication candidate.</summary>
+    public IOfficeWorkflowPublicationGuard? PublicationGuard { get; set; }
 
     /// <summary>Structural inspection limits used by <see cref="OfficeProvenanceWorkflowOperation.Inspect"/>.</summary>
     public OfficeProvenanceOptions Inspection { get; set; } = new();

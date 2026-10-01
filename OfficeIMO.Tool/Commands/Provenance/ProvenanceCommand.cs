@@ -17,10 +17,16 @@ Usage:
              [--keep-c2pa] [--keep-external-c2pa] [--keep-ai-source]
              [--remove-invalidated-signatures] [--no-embedded]
              [--max-input-bytes <bytes>] [--max-output-bytes <bytes>] [--format json|text]
+  officeimo provenance audit <file-or-directory>... [--include <wildcard>] [--exclude <wildcard>]
+             [--no-recursive] [--max-items <1-10000>] [--format json|text|ndjson|sarif]
+  officeimo provenance check <file-or-directory>... [--fail-on dangerous-text|carriers|any] [audit options]
   officeimo provenance batch inspect|assess <input>... [--max-items <1-10000>] [options]
   officeimo provenance batch remove <input>... --output-directory <path>
              [--max-items <1-10000>] [options]
 
+audit and check never modify files. Directory discovery skips symbolic links, .git, bin, obj and node_modules.
+check defaults to dangerous Unicode findings; exit 1 means the selected evidence policy found findings.
+Missing inputs, incomplete discovery and failed assessments return their existing nonzero error codes.
 JSON is the default output and carries a versioned schema identifier.
 Removal preserves the input format, refuses existing output unless --force is supplied,
 and blocks invalidating package signatures unless --remove-invalidated-signatures is explicit.
@@ -44,6 +50,25 @@ and blocks invalidating package signatures unless --remove-invalidated-signature
             }
 
             IOfficeProvenanceWorkflowRunner activeRunner = runner ?? new OfficeWorkflowRunner();
+            if (parsed.Command is ProvenanceCommandKind.Audit or ProvenanceCommandKind.Check) {
+                var audit = new OfficeProvenanceAuditRequest { Inputs = parsed.Inputs, Recursive = parsed.Recursive,
+                    Include = parsed.Include, Exclude = parsed.Exclude, MaximumItems = parsed.MaximumItems,
+                    MaximumInputBytes = parsed.MaximumInputBytes, InspectTextIntegrity = parsed.InspectTextIntegrity,
+                    ProcessEmbeddedAssets = parsed.ProcessEmbeddedAssets };
+                IReadOnlyList<OfficeProvenanceWorkflowResult> reports = await OfficeProvenanceAudit.RunAsync(audit, activeRunner, cancellationToken).ConfigureAwait(false);
+                if (parsed.Format == ProvenanceOutputFormat.Ndjson) {
+                    foreach (var report in reports) await standardOutput.WriteLineAsync(OfficeProvenanceReportSerializer.Serialize(report)).ConfigureAwait(false);
+                } else if (parsed.Format == ProvenanceOutputFormat.Sarif) {
+                    await standardOutput.WriteLineAsync(OfficeProvenanceSarif.Serialize(reports)).ConfigureAwait(false);
+                } else await ProvenanceOutput.WriteBatchAsync(standardOutput, reports, parsed.Format).ConfigureAwait(false);
+                int execution = MapBatch(reports);
+                if (execution != 0) return execution;
+                if (reports.Any(report => report.Assessment?.VerificationStatus == OfficeProvenanceCheckStatus.Failed ||
+                    report.Assessment?.ProviderSignalsStatus == OfficeProvenanceCheckStatus.Failed)) return (int)OfficeImoToolExitCode.OperationFailed;
+                return parsed.Command == ProvenanceCommandKind.Check && reports.Any(report =>
+                    OfficeProvenanceAudit.HasFindings(report, parsed.FailOnCarriers, parsed.FailOnDangerousText))
+                    ? (int)OfficeImoToolExitCode.ValidationFailed : (int)OfficeImoToolExitCode.Success;
+            }
             if (parsed.Command == ProvenanceCommandKind.Batch) {
                 if (cancellationToken.IsCancellationRequested) {
                     OfficeProvenanceWorkflowResult cancelled = await activeRunner.RunProvenanceAsync(

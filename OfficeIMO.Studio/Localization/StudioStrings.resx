@@ -2377,4 +2377,21 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Ocr.Review.CorrectText" xml:space="preserve"><value>Correct selected word</value></data>
   <data name="Ocr.Review.NextUncertain" xml:space="preserve"><value>Next uncertain word</value></data>
   <data name="Ocr.Review.OriginalText" xml:space="preserve"><value>Original recognition</value></data>
+  <data name="Provenance.Title" xml:space="preserve"><value>File origin and text integrity</value></data>
+  <data name="Provenance.Description" xml:space="preserve"><value>Assess supported origin records and Unicode findings in a local file. Structural evidence does not establish authenticity or AI authorship.</value></data>
+  <data name="Provenance.Source" xml:space="preserve"><value>Source file</value></data>
+  <data name="Provenance.LocalPath" xml:space="preserve"><value>Absolute local file path</value></data>
+  <data name="Provenance.ChooseFile" xml:space="preserve"><value>Choose local file</value></data>
+  <data name="Provenance.Assess" xml:space="preserve"><value>Assess file</value></data>
+  <data name="Provenance.Findings" xml:space="preserve"><value>Evidence and text findings</value></data>
+  <data name="Provenance.CopyTitle" xml:space="preserve"><value>Create a separate copy</value></data>
+  <data name="Provenance.CopyDescription" xml:space="preserve"><value>Assess the source first, then select carrier categories. The copy is re-inspected and cannot overwrite the source. Visible watermarks and unselected metadata remain unchanged. Signed packages retain the owner’s blocking policy.</value></data>
+  <data name="Provenance.Manifests" xml:space="preserve"><value>Embedded Content Credentials</value></data>
+  <data name="Provenance.References" xml:space="preserve"><value>External credential references</value></data>
+  <data name="Provenance.Declarations" xml:space="preserve"><value>AI source declarations</value></data>
+  <data name="Provenance.OutputFolder" xml:space="preserve"><value>Existing local output folder</value></data>
+  <data name="Provenance.ChooseFolder" xml:space="preserve"><value>Choose folder</value></data>
+  <data name="Provenance.CreateCopy" xml:space="preserve"><value>Create and verify copy</value></data>
+  <data name="Provenance.Export" xml:space="preserve"><value>Export JSON report</value></data>
+  <data name="Provenance.Cancel" xml:space="preserve"><value>Cancel</value></data>
 </root>

@@ -22,8 +22,15 @@ public sealed class OfficeProvenanceWorkflowResult {
         OfficeProvenanceReport? after = null,
         IReadOnlyList<OfficeProvenanceChange>? changes = null,
         bool wasReserialized = false,
-        bool wereInvalidatedSignaturesRemoved = false) {
+        bool wereInvalidatedSignaturesRemoved = false,
+        string? inputPath = null, string? inputSha256 = null, string? outputSha256 = null, OfficeProvenanceWorkflowChecks? checks = null) {
         RequestId = requestId;
+        InputPath = inputPath; InputSha256 = inputSha256; OutputSha256 = outputSha256;
+        Checks = checks ?? new OfficeProvenanceWorkflowChecks(
+            inspection != null || assessment != null || before != null ? OfficeProvenanceCheckStatus.Completed : OfficeProvenanceCheckStatus.NotRequested,
+            assessment?.TextIntegrityStatus ?? OfficeProvenanceCheckStatus.NotRequested,
+            assessment?.VerificationStatus ?? OfficeProvenanceCheckStatus.NotRequested,
+            assessment?.ProviderSignalsStatus ?? OfficeProvenanceCheckStatus.NotRequested);
         Operation = operation;
         Status = status;
         FailureKind = failureKind;
@@ -43,6 +50,14 @@ public sealed class OfficeProvenanceWorkflowResult {
         WereInvalidatedSignaturesRemoved = wereInvalidatedSignaturesRemoved;
     }
 
+    /// <summary>Execution coverage retained even when a check fails before producing evidence.</summary>
+    public OfficeProvenanceWorkflowChecks Checks { get; }
+    /// <summary>Logical input path or memory-only file name.</summary>
+    public string? InputPath { get; }
+    /// <summary>SHA-256 of the exact inspected input bytes, when a snapshot was captured.</summary>
+    public string? InputSha256 { get; }
+    /// <summary>SHA-256 of the verified output bytes, when an artifact was produced.</summary>
+    public string? OutputSha256 { get; }
     /// <summary>Caller-provided request identifier.</summary>
     public string RequestId { get; }
     /// <summary>Executed operation.</summary>
@@ -84,3 +99,14 @@ public sealed class OfficeProvenanceWorkflowResult {
     /// <summary>Whether the workflow completed successfully.</summary>
     public bool Succeeded => Status == OfficeWorkflowStatus.Completed;
 }
+
+/// <summary>Execution coverage independent of completed evidence reports.</summary>
+/// <param name="Structural">Whether structural inspection ran.</param>
+/// <param name="TextIntegrity">Whether Unicode inspection ran.</param>
+/// <param name="Verification">Whether the configured verifier ran.</param>
+/// <param name="ProviderSignals">Whether configured signal detectors ran.</param>
+public sealed record OfficeProvenanceWorkflowChecks(
+    OfficeProvenanceCheckStatus Structural,
+    OfficeProvenanceCheckStatus TextIntegrity,
+    OfficeProvenanceCheckStatus Verification,
+    OfficeProvenanceCheckStatus ProviderSignals);

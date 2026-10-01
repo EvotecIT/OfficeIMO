@@ -527,7 +527,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     public async Task InspectRejectsAUnixFifoWithoutBlockingForAWriter() {
 #if NET8_0_OR_GREATER
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
-        string fifo = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".fifo");
+        string fifo = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".txt");
         try {
             Assert.Equal(0, CreateWorkflowFifoUnix(fifo, 0x180));
 
@@ -675,6 +675,9 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         Assert.Contains("absolute file-based external provenance manifest", result.Summary, StringComparison.OrdinalIgnoreCase);
         Assert.False(verifier.SawRelativeManifest);
         Assert.Null(verifier.ObservedDirectory);
+        Assert.Equal(OfficeProvenanceCheckStatus.Completed, result.Checks.Structural);
+        Assert.Equal(OfficeProvenanceCheckStatus.NotRequested, result.Checks.TextIntegrity);
+        Assert.Equal(OfficeProvenanceCheckStatus.NotRequested, result.Checks.Verification);
     }
 
     [Fact]
@@ -1168,6 +1171,9 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         internal bool Replaced { get; private set; }
 
         public OfficeProvenanceSignalResult Detect(string filePath) {
+            // A hostile same-user provider can undo directory sealing; exercise the identity/hash check after that.
+            if (!OperatingSystem.IsWindows())
+                File.SetUnixFileMode(Path.GetDirectoryName(filePath)!, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
             string replacementPath = filePath + ".replacement";
             File.WriteAllText(replacementPath, "replacement");
             File.Move(replacementPath, filePath, overwrite: true);

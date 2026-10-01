@@ -6,7 +6,7 @@ using Xunit;
 
 namespace OfficeIMO.Tool.Tests;
 
-public sealed class ProvenanceCommandTests {
+public sealed partial class ProvenanceCommandTests {
     [Fact]
     public async Task CapabilitiesReturnVersionedOwnerCatalog() {
         ToolResult result = await RunAsync(["provenance", "capabilities"]);
@@ -37,7 +37,7 @@ public sealed class ProvenanceCommandTests {
 
         Assert.Equal((int)OfficeImoToolExitCode.Success, result.ExitCode);
         using JsonDocument json = JsonDocument.Parse(result.Output);
-        Assert.Equal("officeimo.provenance.result.v1", json.RootElement.GetProperty("schema").GetString());
+        Assert.Equal("officeimo.provenance.result.v2", json.RootElement.GetProperty("schema").GetString());
         Assert.Equal("Inspect", json.RootElement.GetProperty("operation").GetString());
         Assert.Equal("OfficeIMO.Html", json.RootElement.GetProperty("ownerPackage").GetString());
         Assert.Equal(1, json.RootElement.GetProperty("inspection").GetProperty("evidence").GetArrayLength());
@@ -146,7 +146,7 @@ public sealed class ProvenanceCommandTests {
 
         Assert.Equal((int)OfficeImoToolExitCode.Success, result.ExitCode);
         using JsonDocument json = JsonDocument.Parse(result.Output);
-        Assert.Equal("officeimo.provenance.batch.v1", json.RootElement.GetProperty("schema").GetString());
+        Assert.Equal("officeimo.provenance.batch.v2", json.RootElement.GetProperty("schema").GetString());
         Assert.Equal(2, json.RootElement.GetProperty("results").GetArrayLength());
     }
 

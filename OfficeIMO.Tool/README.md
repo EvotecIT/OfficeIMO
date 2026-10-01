@@ -194,7 +194,25 @@ officeimo provenance batch inspect .\one.docx .\two.pdf --max-items 20
 officeimo provenance batch remove .\one.docx .\two.pdf --output-directory .\cleaned
 ```
 
-The JSON envelopes use `officeimo.provenance.capabilities.v2`, `officeimo.provenance.result.v1`, or `officeimo.provenance.batch.v1` schema identifiers. The capabilities response reports the exact extensions, structural formats, owning package, and memory/browser qualification. Successful inspection can still report provenance evidence; findings are data and do not change the process exit code. Execution failures use the shared exit-code table below.
+The JSON envelopes use `officeimo.provenance.capabilities.v2`, `officeimo.provenance.result.v2`, or `officeimo.provenance.batch.v2` schema identifiers. The capabilities response reports the exact extensions, structural formats, owning package, and memory/browser qualification. Successful inspection can still report provenance evidence; findings are data and do not change the process exit code. Execution failures use the shared exit-code table below.
+
+`audit` and `check` assess files or directories without changing them:
+
+```powershell
+# Recurse through qualified files; patterns match slash-separated paths relative to each root
+officeimo provenance audit .\documents --include "*.html" --exclude "private/*" --format ndjson
+
+# Fail on potentially dangerous Unicode; use --fail-on carriers or any for a different evidence policy
+officeimo provenance check .\documents --format sarif > provenance.sarif
+```
+
+`audit` returns success when assessments execute successfully, even when findings are present. `check` returns exit code **1** when its selected policy finds evidence, and existing error codes for failed assessments. `--fail-on dangerous-text` is the default; it requires text inspection. Unsupported text checks remain explicit in reports. Neither command configures cryptographic or watermark providers.
+
+Directory discovery skips symbolic links and `.git`, `bin`, `obj`, and `node_modules` directories. `--no-recursive` limits discovery to the root. `--include` and `--exclude` accept repeatable simple wildcards (`*` and `?`, with `*` also matching directory separators). Explicit file inputs obey the filters and produce failures when missing or unsupported. The default is 256 assessed files, configurable with `--max-items` up to 10,000, and at most 100,000 visited entries. Exceeding a bound or finding no eligible files fails the audit instead of reporting a partial or empty success.
+
+Use `check` in CI or a pre-commit hook to inspect the current working files. It does not inspect Git's index or fetch a website. NDJSON emits one result-v2 document per assessed file; SARIF 2.1.0 exports Unicode findings, structural carrier notes, input hashes, check coverage, and execution failures. A structural carrier note is evidence, not an authenticity or AI verdict.
+
+Reports include the digest of the exact captured bytes and explicit `Completed`, `Disabled`, `Unsupported`, `NotConfigured`, `Failed`, or `NotRequested` check states. A missing text or provider result is not represented as a completed zero-finding check.
 
 Removal preserves the input format, keeps malformed carriers by default, and routes package-aware changes to the owning OfficeIMO library. A mutation that would invalidate an Office package signature is blocked unless `--remove-invalidated-signatures` is supplied. Use `--keep-c2pa`, `--keep-external-c2pa`, or `--keep-ai-source` to preserve a carrier class, and `--no-embedded` to skip supported embedded assets. The CLI accepts only extensions registered to an OfficeIMO owner and rejects renamed package subtypes; generic ZIP files and unregistered formats are outside this workflow.
 

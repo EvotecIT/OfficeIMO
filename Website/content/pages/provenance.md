@@ -34,6 +34,14 @@ The browser tool accepts JPEG, PNG, WebP, PDF, DOCX, XLSX, and PPTX files up to 
 
 Your original file is never overwritten. When a record is malformed, ambiguous, or unsafe to rewrite, OfficeIMO preserves or rejects it instead of silently damaging the file.
 
+## Review text integrity
+
+The same workspace includes a Unicode text review. Paste text or open a UTF-8 file, or a UTF-16/32 file with a byte-order mark. The text stays in the browser. This review accepts up to 1 MB of encoded data, 262,144 UTF-16 code units and 512 findings.
+
+Inspect the code-point markers, offsets and contextual risks, then select individual occurrences to remove from a separate text copy. No occurrences are selected automatically. Language joiners, emoji selectors and typographic spaces may be intentional; the tool does not normalize them or treat them as proof of AI authorship. File exports preserve the original encoding, byte-order mark and line endings. Editing the source clears the previous review and downloads.
+
+The text report records exact findings and selected occurrence indices under `officeimo.text-integrity.result.v1`. Provenance reports use the same `officeimo.provenance.result.v2` contract as the CLI and Studio, with source/output hashes, coverage and explicit check states.
+
 ## What it can remove
 
 - Embedded Content Credentials manifests.

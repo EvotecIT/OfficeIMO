@@ -560,6 +560,7 @@ OfficeProvenanceWorkflowResult removal = await runner.RunProvenanceAsync(
         Operation = OfficeProvenanceWorkflowOperation.Remove,
         InputPath = "report.docx",
         OutputPath = "report.cleaned.docx",
+        ExpectedInputSha256 = inspection.InputSha256,
         ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
     });
 ```
@@ -567,6 +568,12 @@ OfficeProvenanceWorkflowResult removal = await runner.RunProvenanceAsync(
 `Assess` combines the owner-specific structural report with exact Unicode findings and optional `IOfficeProvenanceVerifier` / `IOfficeProvenanceSignalDetector` services supplied to the runner. It preserves each provider's result and does not infer a universal authorship verdict.
 
 Removal is strict by default. It removes only selected, structurally valid carriers and blocks a package-signature-invalidating save unless the caller explicitly selects `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures`. The output is written to a sibling staging file, reopened through the same format owner, checked against the removal report, and only then published under the requested conflict policy. Generic ZIP packages and renamed package subtypes are rejected because the workflow has no matching registered format owner for them.
+
+`OfficeProvenanceReportSerializer.Serialize(result)` produces the same `officeimo.provenance.result.v2` document used by the CLI, Studio report export, and browser provenance download. `SerializeBatch(results)` uses `officeimo.provenance.batch.v2`. Reports retain structured evidence and diagnostics, string enum values, coverage notes, input/output SHA-256 hashes, and explicit check states. Assessment reports distinguish disabled or unsupported Unicode inspection from a completed empty report and distinguish an absent provider from verification that ran.
+
+Pass `ExpectedInputSha256` from a reviewed result when a later action must use the same source bytes. The runner compares the immutable input snapshot before any mutation. `PublicationGuard` applies the host's live ownership check to each final destination; Fail/Replace reject an owned path and Rename skips it.
+
+`OfficeProvenanceAudit.RunAsync(new OfficeProvenanceAuditRequest { Inputs = ["documents"], Include = ["*.html"], MaximumItems = 1000 })` discovers and assesses a bounded set without modifying it. Discovery is recursive by default, excludes symbolic links and common generated/VCS directories, and fails on an empty selection or exceeded bounds. Explicit files retain ordinary workflow errors. `OfficeProvenanceAudit.HasFindings(result, carriers: false, dangerousText: true)` evaluates an evidence policy; callers must handle execution failures separately. `OfficeProvenanceSarif.Serialize(results)` exports the same evidence and failures as SARIF 2.1.0.
 
 Use `RunProvenanceBatchAsync` for bounded sequential batches. Sequential execution keeps parser and provider resource use predictable, while per-request progress includes an overall batch fraction.
 
@@ -579,3 +586,7 @@ var result = OfficeProvenanceBufferWorkflow.Remove(inputBytes, "report.docx");
 byte[] cleanedCopy = result.ToArray();
 // Inspect result.After and result.Changes before presenting the copy to the user.
 ```
+
+For memory-only report export, pass the inspected bytes and report to `OfficeProvenanceReportSerializer.FromBuffer(fileName, bytes, inspection, removal)` and serialize the returned result. These factories do not read paths or verify cryptographic authenticity.
+
+`OfficeTextIntegrityReview` in Core owns source-bound text selections and encoding-preserving export. `OfficeTextIntegrityReportSerializer.Serialize(review, review.Text, fileName, selectedIndices)` exports exact findings, selected occurrence indices, UTF-16 offset units, source hashes, encoding/BOM information, and the selected-copy digest. It does not include the full source text.
