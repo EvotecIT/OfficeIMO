@@ -58,7 +58,7 @@ internal sealed class OfficeAv1SymbolReader {
 
     /// <summary>Reads AV1 NS(n) for a bounded alphabet without adapting probabilities.</summary>
     internal int ReadNonSymmetric(int count) {
-        if (count < 1 || count > 16) throw new ArgumentOutOfRangeException(nameof(count));
+        if (count < 1 || count > 128) throw new ArgumentOutOfRangeException(nameof(count));
         int width = FloorLog2(count) + 1;
         int threshold = (1 << width) - count;
         int value = ReadLiteral(width - 1);
