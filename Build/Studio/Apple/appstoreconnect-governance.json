@@ -12,5 +12,710 @@
   },
   "accessibility": [],
   "encryptionDeclarations": [],
-  "subscriptionGroups": []
+  "subscriptionGroups": [],
+  "availability": {
+    "availableInNewTerritories": true,
+    "territories": [
+      {
+        "territoryId": "AFG",
+        "available": true
+      },
+      {
+        "territoryId": "AGO",
+        "available": true
+      },
+      {
+        "territoryId": "AIA",
+        "available": true
+      },
+      {
+        "territoryId": "ALB",
+        "available": true
+      },
+      {
+        "territoryId": "ARE",
+        "available": true
+      },
+      {
+        "territoryId": "ARG",
+        "available": true
+      },
+      {
+        "territoryId": "ARM",
+        "available": true
+      },
+      {
+        "territoryId": "ATG",
+        "available": true
+      },
+      {
+        "territoryId": "AUS",
+        "available": true
+      },
+      {
+        "territoryId": "AUT",
+        "available": true
+      },
+      {
+        "territoryId": "AZE",
+        "available": true
+      },
+      {
+        "territoryId": "BEL",
+        "available": true
+      },
+      {
+        "territoryId": "BEN",
+        "available": true
+      },
+      {
+        "territoryId": "BFA",
+        "available": true
+      },
+      {
+        "territoryId": "BGR",
+        "available": true
+      },
+      {
+        "territoryId": "BHR",
+        "available": true
+      },
+      {
+        "territoryId": "BHS",
+        "available": true
+      },
+      {
+        "territoryId": "BIH",
+        "available": true
+      },
+      {
+        "territoryId": "BLR",
+        "available": true
+      },
+      {
+        "territoryId": "BLZ",
+        "available": true
+      },
+      {
+        "territoryId": "BMU",
+        "available": true
+      },
+      {
+        "territoryId": "BOL",
+        "available": true
+      },
+      {
+        "territoryId": "BRA",
+        "available": true
+      },
+      {
+        "territoryId": "BRB",
+        "available": true
+      },
+      {
+        "territoryId": "BRN",
+        "available": true
+      },
+      {
+        "territoryId": "BTN",
+        "available": true
+      },
+      {
+        "territoryId": "BWA",
+        "available": true
+      },
+      {
+        "territoryId": "CAN",
+        "available": true
+      },
+      {
+        "territoryId": "CHE",
+        "available": true
+      },
+      {
+        "territoryId": "CHL",
+        "available": true
+      },
+      {
+        "territoryId": "CHN",
+        "available": true
+      },
+      {
+        "territoryId": "CIV",
+        "available": true
+      },
+      {
+        "territoryId": "CMR",
+        "available": true
+      },
+      {
+        "territoryId": "COD",
+        "available": true
+      },
+      {
+        "territoryId": "COG",
+        "available": true
+      },
+      {
+        "territoryId": "COL",
+        "available": true
+      },
+      {
+        "territoryId": "CPV",
+        "available": true
+      },
+      {
+        "territoryId": "CRI",
+        "available": true
+      },
+      {
+        "territoryId": "CYM",
+        "available": true
+      },
+      {
+        "territoryId": "CYP",
+        "available": true
+      },
+      {
+        "territoryId": "CZE",
+        "available": true
+      },
+      {
+        "territoryId": "DEU",
+        "available": true
+      },
+      {
+        "territoryId": "DMA",
+        "available": true
+      },
+      {
+        "territoryId": "DNK",
+        "available": true
+      },
+      {
+        "territoryId": "DOM",
+        "available": true
+      },
+      {
+        "territoryId": "DZA",
+        "available": true
+      },
+      {
+        "territoryId": "ECU",
+        "available": true
+      },
+      {
+        "territoryId": "EGY",
+        "available": true
+      },
+      {
+        "territoryId": "ESP",
+        "available": true
+      },
+      {
+        "territoryId": "EST",
+        "available": true
+      },
+      {
+        "territoryId": "FIN",
+        "available": true
+      },
+      {
+        "territoryId": "FJI",
+        "available": true
+      },
+      {
+        "territoryId": "FRA",
+        "available": true
+      },
+      {
+        "territoryId": "FSM",
+        "available": true
+      },
+      {
+        "territoryId": "GAB",
+        "available": true
+      },
+      {
+        "territoryId": "GBR",
+        "available": true
+      },
+      {
+        "territoryId": "GEO",
+        "available": true
+      },
+      {
+        "territoryId": "GHA",
+        "available": true
+      },
+      {
+        "territoryId": "GMB",
+        "available": true
+      },
+      {
+        "territoryId": "GNB",
+        "available": true
+      },
+      {
+        "territoryId": "GRC",
+        "available": true
+      },
+      {
+        "territoryId": "GRD",
+        "available": true
+      },
+      {
+        "territoryId": "GTM",
+        "available": true
+      },
+      {
+        "territoryId": "GUY",
+        "available": true
+      },
+      {
+        "territoryId": "HKG",
+        "available": true
+      },
+      {
+        "territoryId": "HND",
+        "available": true
+      },
+      {
+        "territoryId": "HRV",
+        "available": true
+      },
+      {
+        "territoryId": "HUN",
+        "available": true
+      },
+      {
+        "territoryId": "IDN",
+        "available": true
+      },
+      {
+        "territoryId": "IND",
+        "available": true
+      },
+      {
+        "territoryId": "IRL",
+        "available": true
+      },
+      {
+        "territoryId": "IRQ",
+        "available": true
+      },
+      {
+        "territoryId": "ISL",
+        "available": true
+      },
+      {
+        "territoryId": "ISR",
+        "available": true
+      },
+      {
+        "territoryId": "ITA",
+        "available": true
+      },
+      {
+        "territoryId": "JAM",
+        "available": true
+      },
+      {
+        "territoryId": "JOR",
+        "available": true
+      },
+      {
+        "territoryId": "JPN",
+        "available": true
+      },
+      {
+        "territoryId": "KAZ",
+        "available": true
+      },
+      {
+        "territoryId": "KEN",
+        "available": true
+      },
+      {
+        "territoryId": "KGZ",
+        "available": true
+      },
+      {
+        "territoryId": "KHM",
+        "available": true
+      },
+      {
+        "territoryId": "KNA",
+        "available": true
+      },
+      {
+        "territoryId": "KOR",
+        "available": true
+      },
+      {
+        "territoryId": "KWT",
+        "available": true
+      },
+      {
+        "territoryId": "LAO",
+        "available": true
+      },
+      {
+        "territoryId": "LBN",
+        "available": true
+      },
+      {
+        "territoryId": "LBR",
+        "available": true
+      },
+      {
+        "territoryId": "LBY",
+        "available": true
+      },
+      {
+        "territoryId": "LCA",
+        "available": true
+      },
+      {
+        "territoryId": "LKA",
+        "available": true
+      },
+      {
+        "territoryId": "LTU",
+        "available": true
+      },
+      {
+        "territoryId": "LUX",
+        "available": true
+      },
+      {
+        "territoryId": "LVA",
+        "available": true
+      },
+      {
+        "territoryId": "MAC",
+        "available": true
+      },
+      {
+        "territoryId": "MAR",
+        "available": true
+      },
+      {
+        "territoryId": "MDA",
+        "available": true
+      },
+      {
+        "territoryId": "MDG",
+        "available": true
+      },
+      {
+        "territoryId": "MDV",
+        "available": true
+      },
+      {
+        "territoryId": "MEX",
+        "available": true
+      },
+      {
+        "territoryId": "MKD",
+        "available": true
+      },
+      {
+        "territoryId": "MLI",
+        "available": true
+      },
+      {
+        "territoryId": "MLT",
+        "available": true
+      },
+      {
+        "territoryId": "MMR",
+        "available": true
+      },
+      {
+        "territoryId": "MNE",
+        "available": true
+      },
+      {
+        "territoryId": "MNG",
+        "available": true
+      },
+      {
+        "territoryId": "MOZ",
+        "available": true
+      },
+      {
+        "territoryId": "MRT",
+        "available": true
+      },
+      {
+        "territoryId": "MSR",
+        "available": true
+      },
+      {
+        "territoryId": "MUS",
+        "available": true
+      },
+      {
+        "territoryId": "MWI",
+        "available": true
+      },
+      {
+        "territoryId": "MYS",
+        "available": true
+      },
+      {
+        "territoryId": "NAM",
+        "available": true
+      },
+      {
+        "territoryId": "NER",
+        "available": true
+      },
+      {
+        "territoryId": "NGA",
+        "available": true
+      },
+      {
+        "territoryId": "NIC",
+        "available": true
+      },
+      {
+        "territoryId": "NLD",
+        "available": true
+      },
+      {
+        "territoryId": "NOR",
+        "available": true
+      },
+      {
+        "territoryId": "NPL",
+        "available": true
+      },
+      {
+        "territoryId": "NRU",
+        "available": true
+      },
+      {
+        "territoryId": "NZL",
+        "available": true
+      },
+      {
+        "territoryId": "OMN",
+        "available": true
+      },
+      {
+        "territoryId": "PAK",
+        "available": true
+      },
+      {
+        "territoryId": "PAN",
+        "available": true
+      },
+      {
+        "territoryId": "PER",
+        "available": true
+      },
+      {
+        "territoryId": "PHL",
+        "available": true
+      },
+      {
+        "territoryId": "PLW",
+        "available": true
+      },
+      {
+        "territoryId": "PNG",
+        "available": true
+      },
+      {
+        "territoryId": "POL",
+        "available": true
+      },
+      {
+        "territoryId": "PRT",
+        "available": true
+      },
+      {
+        "territoryId": "PRY",
+        "available": true
+      },
+      {
+        "territoryId": "QAT",
+        "available": true
+      },
+      {
+        "territoryId": "ROU",
+        "available": true
+      },
+      {
+        "territoryId": "RUS",
+        "available": true
+      },
+      {
+        "territoryId": "RWA",
+        "available": true
+      },
+      {
+        "territoryId": "SAU",
+        "available": true
+      },
+      {
+        "territoryId": "SEN",
+        "available": true
+      },
+      {
+        "territoryId": "SGP",
+        "available": true
+      },
+      {
+        "territoryId": "SLB",
+        "available": true
+      },
+      {
+        "territoryId": "SLE",
+        "available": true
+      },
+      {
+        "territoryId": "SLV",
+        "available": true
+      },
+      {
+        "territoryId": "SRB",
+        "available": true
+      },
+      {
+        "territoryId": "STP",
+        "available": true
+      },
+      {
+        "territoryId": "SUR",
+        "available": true
+      },
+      {
+        "territoryId": "SVK",
+        "available": true
+      },
+      {
+        "territoryId": "SVN",
+        "available": true
+      },
+      {
+        "territoryId": "SWE",
+        "available": true
+      },
+      {
+        "territoryId": "SWZ",
+        "available": true
+      },
+      {
+        "territoryId": "SYC",
+        "available": true
+      },
+      {
+        "territoryId": "TCA",
+        "available": true
+      },
+      {
+        "territoryId": "TCD",
+        "available": true
+      },
+      {
+        "territoryId": "THA",
+        "available": true
+      },
+      {
+        "territoryId": "TJK",
+        "available": true
+      },
+      {
+        "territoryId": "TKM",
+        "available": true
+      },
+      {
+        "territoryId": "TON",
+        "available": true
+      },
+      {
+        "territoryId": "TTO",
+        "available": true
+      },
+      {
+        "territoryId": "TUN",
+        "available": true
+      },
+      {
+        "territoryId": "TUR",
+        "available": true
+      },
+      {
+        "territoryId": "TWN",
+        "available": true
+      },
+      {
+        "territoryId": "TZA",
+        "available": true
+      },
+      {
+        "territoryId": "UGA",
+        "available": true
+      },
+      {
+        "territoryId": "UKR",
+        "available": true
+      },
+      {
+        "territoryId": "URY",
+        "available": true
+      },
+      {
+        "territoryId": "USA",
+        "available": true
+      },
+      {
+        "territoryId": "UZB",
+        "available": true
+      },
+      {
+        "territoryId": "VCT",
+        "available": true
+      },
+      {
+        "territoryId": "VEN",
+        "available": true
+      },
+      {
+        "territoryId": "VGB",
+        "available": true
+      },
+      {
+        "territoryId": "VNM",
+        "available": true
+      },
+      {
+        "territoryId": "VUT",
+        "available": true
+      },
+      {
+        "territoryId": "XKS",
+        "available": true
+      },
+      {
+        "territoryId": "YEM",
+        "available": true
+      },
+      {
+        "territoryId": "ZAF",
+        "available": true
+      },
+      {
+        "territoryId": "ZMB",
+        "available": true
+      },
+      {
+        "territoryId": "ZWE",
+        "available": true
+      }
+    ]
+  }
 }

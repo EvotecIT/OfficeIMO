@@ -16,6 +16,7 @@ the iPhone/iPad app:
 | SKU | `officeimo-studio` |
 | Primary language | English (U.S.) |
 | Store price | Free |
+| Country availability | All current App Store countries and regions, including new regions added by Apple |
 
 iPadOS uses the iOS store entry. The Mac entry is a separate native application
 binary under the same record. An iPhone app running on Apple silicon does not
