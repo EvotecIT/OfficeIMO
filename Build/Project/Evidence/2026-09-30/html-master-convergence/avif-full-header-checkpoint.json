@@ -1,0 +1,2097 @@
+{
+  "schemaVersion": 1,
+  "generatedUtc": "2026-10-01T17:39:17.474742+00:00",
+  "sourceCommit": "6594a706c33330e64a3e8590e318f70b493c76f0",
+  "sourceClean": true,
+  "contract": "Bounded Main8/Main10 reduced or full still headers: still_picture=1, one unlayered operating point, no timing/decoder model, one shown key frame in a combined frame OBU; whole YUV420/monochrome items and optional same-depth full-range monochrome alpha.",
+  "fixtureManifest": "OfficeIMO.TestAssets/Documents/Html/Qualification/AvifFullHeaders/manifest.json",
+  "nativeRepeat": {
+    "fullHeadersRepeatedIdentically": 16,
+    "reducedMain10AssetsPreserved": 8,
+    "driverSha256": "8d83152607abfed0e475c3514cccc4a9b02ba700074321b9cc2476fa9449c08b",
+    "generatorSha256": "0a15fa8bd0593ef6cff403c1f3ac413fad4cbee97d82d6d71d99c5bdf521c1ed"
+  },
+  "tests": [
+    {
+      "run": "before-decoder",
+      "counters": {
+        "total": "16",
+        "executed": "16",
+        "passed": "0",
+        "failed": "16",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trxSha256": "473d63b5d04c894798431a1bd81b5cc76a8fd89638cde226dde923adf7268f8f"
+    },
+    {
+      "run": "focused-final",
+      "counters": {
+        "total": "20",
+        "executed": "20",
+        "passed": "20",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trxSha256": "7dc553b2e03ebe4c6405c68eba3bc726f69153cd8daf6c1f8703e01cf20b591f"
+    },
+    {
+      "run": "drawing-net8",
+      "counters": {
+        "total": "3209",
+        "executed": "3209",
+        "passed": "3209",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trxSha256": "da8e1699a785d1fb67e86ee6660b42ace6140019e5bda97a64f8ac8a3ad13362"
+    },
+    {
+      "run": "drawing-net10",
+      "counters": {
+        "total": "3209",
+        "executed": "3209",
+        "passed": "3209",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trxSha256": "fb189e6a77009124c02dc2301f3f9bda7fb2365feefe2b34673ddeee43831fd8"
+    },
+    {
+      "run": "html-focused",
+      "counters": {
+        "total": "21",
+        "executed": "21",
+        "passed": "21",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trxSha256": "8c80a1bd1dc6930fa278bf4010f52b02444a268b6ae5388dc9a78970c846c056"
+    },
+    {
+      "run": "html-net8",
+      "counters": {
+        "total": "4023",
+        "executed": "4023",
+        "passed": "4023",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trxSha256": "d55d6837a9818ba1f489ebc272b779515e15a3bd81cdfc03abd699213656a3cd"
+    },
+    {
+      "run": "html-net10",
+      "counters": {
+        "total": "4023",
+        "executed": "4023",
+        "passed": "4023",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trxSha256": "a6009ac8d72d47f65e339775cd7c75a19fd031b5d476eb5d9b05ea0f795a23d7"
+    }
+  ],
+  "coreNetstandard": {
+    "warnings": 0,
+    "errors": 0
+  },
+  "package": {
+    "packageSha256": "c43f7a4ea5d13769f957237b11d6012c264995cb209730e9d717587b2ab32db9",
+    "frameworks": [
+      "net10.0",
+      "net8.0",
+      "netstandard2.0"
+    ],
+    "externalRuntimeDependencies": 0,
+    "nativeAssets": 0,
+    "publicDecoderCasesPerFramework": 16,
+    "packageBuiltFromSameValidatedCandidateBeforeCommit": true
+  },
+  "packageConsumers": [
+    {
+      "framework": ".NET 8.0.23",
+      "assembly": "3.4.4+6571ef26d5aa35d1aa541120100af702f73cff0d",
+      "cases": [
+        {
+          "file": "avif-main10-fullheader-420-full-alpha.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main10-fullheader-420-full.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main10-fullheader-420-limited-alpha.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main10-fullheader-420-limited.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main10-fullheader-mono-full-alpha.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main10-fullheader-mono-full.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main10-fullheader-mono-limited-alpha.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main10-fullheader-mono-limited.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main8-fullheader-420-full-alpha.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main8-fullheader-420-full.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main8-fullheader-420-limited-alpha.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main8-fullheader-420-limited.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main8-fullheader-mono-full-alpha.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main8-fullheader-mono-full.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main8-fullheader-mono-limited-alpha.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main8-fullheader-mono-limited.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        }
+      ]
+    },
+    {
+      "framework": ".NET 10.0.12",
+      "assembly": "3.4.4+6571ef26d5aa35d1aa541120100af702f73cff0d",
+      "cases": [
+        {
+          "file": "avif-main10-fullheader-420-full-alpha.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main10-fullheader-420-full.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main10-fullheader-420-limited-alpha.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main10-fullheader-420-limited.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main10-fullheader-mono-full-alpha.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main10-fullheader-mono-full.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main10-fullheader-mono-limited-alpha.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main10-fullheader-mono-limited.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main8-fullheader-420-full-alpha.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main8-fullheader-420-full.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main8-fullheader-420-limited-alpha.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main8-fullheader-420-limited.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main8-fullheader-mono-full-alpha.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main8-fullheader-mono-full.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main8-fullheader-mono-limited-alpha.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        },
+        {
+          "file": "avif-main8-fullheader-mono-limited.avif",
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "inputPreserved": true,
+          "streamRestored": true
+        }
+      ]
+    }
+  ],
+  "localReview": {
+    "task": "avif_full_header_review",
+    "base": "6571ef26d5aa35d1aa541120100af702f73cff0d",
+    "candidateFingerprint": "5f5b06852e9eaf26e81c22103bd2fc5b3f77c35d7a1b55a326ec37d31459a1dd",
+    "findings": [],
+    "confirmationUsed": false,
+    "boundary": "current; provenance-only manifest added after read-only review"
+  },
+  "supplementalPdfInspection": [
+    {
+      "case": "avif-main8-fullheader-420-full-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main8-fullheader-420-full-alpha-clean-6594a706c/chromium-print.pdf",
+      "sha256": "0bffa66053d1a930c56cf266b062e37c752445fb7e478b7fe02aa067b14b53fe",
+      "pages": 1,
+      "text": "avif-main8-fullheader-420-full-alpha\nEND-avif-main8-fullheader-420-full-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            27.74999884375,
+            679.16998678125,
+            174.74999271875,
+            778.16998265625
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            194.24999190625,
+            679.16998678125,
+            341.24998578124996,
+            778.16998265625
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 252,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 20.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "compositeCriterionPassed": false,
+      "predeclaredExactAlphaPassed": true,
+      "checksPassed": false,
+      "referenceLimit": null
+    },
+    {
+      "case": "avif-main8-fullheader-420-full-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main8-fullheader-420-full-alpha-clean-6594a706c/officeimo-print-browser-ua.pdf",
+      "sha256": "6e939b1520b9142bf2c23031dadd6587174f4d346c3cef41f485f5331c8904ce",
+      "pages": 1,
+      "text": "avif-main8-fullheader-420-full-alpha\nEND-avif-main8-fullheader-420-full-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            27.75,
+            679.139764,
+            174.75,
+            778.139764
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            194.25,
+            679.139764,
+            341.25,
+            778.139764
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 0.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "checksPassed": true
+    },
+    {
+      "case": "avif-main8-fullheader-420-full-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main8-fullheader-420-full-alpha-clean-6594a706c/officeimo-print-fit-1200-local-fonts.pdf",
+      "sha256": "83aa10dcf998d44c62c065d91ef54500daf3a689fd87c66b0a58481b04823af5",
+      "pages": 1,
+      "text": "avif-main8-fullheader-420-full-alpha\nEND-avif-main8-fullheader-420-full-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            6.4488157500000005,
+            746.149381285588,
+            103.67711475,
+            811.629664285588
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            116.57474625,
+            746.149381285588,
+            213.80304525000003,
+            811.629664285588
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 0.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "checksPassed": true
+    },
+    {
+      "case": "avif-main8-fullheader-420-full-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main8-fullheader-420-full-alpha-clean-6594a706c/officeimo-print-fit-1200.pdf",
+      "sha256": "83aa10dcf998d44c62c065d91ef54500daf3a689fd87c66b0a58481b04823af5",
+      "pages": 1,
+      "text": "avif-main8-fullheader-420-full-alpha\nEND-avif-main8-fullheader-420-full-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            6.4488157500000005,
+            746.149381285588,
+            103.67711475,
+            811.629664285588
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            116.57474625,
+            746.149381285588,
+            213.80304525000003,
+            811.629664285588
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 0.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "checksPassed": true
+    },
+    {
+      "case": "avif-main8-fullheader-420-full-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main8-fullheader-420-full-alpha-clean-6594a706c/officeimo-print-fit-browser-viewport.pdf",
+      "sha256": "f2cb4e2d14786515ade65f40dc64ea6c75df44efe315814fdde0368a569f15cd",
+      "pages": 1,
+      "text": "avif-main8-fullheader-420-full-alpha\nEND-avif-main8-fullheader-420-full-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            26.910027428892,
+            691.610118512744,
+            161.245830428892,
+            782.0811695127439
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            179.06588592889202,
+            691.610118512744,
+            313.401688928892,
+            782.0811695127439
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 0.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "checksPassed": true
+    },
+    {
+      "case": "avif-main8-fullheader-420-full-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main8-fullheader-420-full-alpha-clean-6594a706c/officeimo-print-zero-margin-local-fonts.pdf",
+      "sha256": "6e939b1520b9142bf2c23031dadd6587174f4d346c3cef41f485f5331c8904ce",
+      "pages": 1,
+      "text": "avif-main8-fullheader-420-full-alpha\nEND-avif-main8-fullheader-420-full-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            27.75,
+            679.139764,
+            174.75,
+            778.139764
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            194.25,
+            679.139764,
+            341.25,
+            778.139764
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 0.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "checksPassed": true
+    },
+    {
+      "case": "avif-main8-fullheader-420-full-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main8-fullheader-420-full-alpha-clean-6594a706c/officeimo-print-zero-margin.pdf",
+      "sha256": "6e939b1520b9142bf2c23031dadd6587174f4d346c3cef41f485f5331c8904ce",
+      "pages": 1,
+      "text": "avif-main8-fullheader-420-full-alpha\nEND-avif-main8-fullheader-420-full-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            27.75,
+            679.139764,
+            174.75,
+            778.139764
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            194.25,
+            679.139764,
+            341.25,
+            778.139764
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 0.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "checksPassed": true
+    },
+    {
+      "case": "avif-main8-fullheader-420-full-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main8-fullheader-420-full-alpha-clean-6594a706c/officeimo-print.pdf",
+      "sha256": "6e939b1520b9142bf2c23031dadd6587174f4d346c3cef41f485f5331c8904ce",
+      "pages": 1,
+      "text": "avif-main8-fullheader-420-full-alpha\nEND-avif-main8-fullheader-420-full-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            27.75,
+            679.139764,
+            174.75,
+            778.139764
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            194.25,
+            679.139764,
+            341.25,
+            778.139764
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 0.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "checksPassed": true
+    },
+    {
+      "case": "avif-main8-fullheader-420-full-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main8-fullheader-420-full-alpha-clean-6594a706c/peachpdf-print.pdf",
+      "sha256": "3c572a57a166d3ad93e20fcd6610a75fb1e88b9c21453eb9759c1443cd19307a",
+      "pages": 1,
+      "text": "avif-main8-fullheader-420-full-alpha\nEND-avif-main8-fullheader-420-full-alpha",
+      "imageOccurrences": 0,
+      "boxes": [],
+      "decodedImages": [],
+      "annotations": 0
+    },
+    {
+      "case": "avif-main8-fullheader-420-full-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main8-fullheader-420-full-alpha-clean-6594a706c/chromium-screen.pdf",
+      "sha256": "0bffa66053d1a930c56cf266b062e37c752445fb7e478b7fe02aa067b14b53fe",
+      "pages": 1,
+      "text": "avif-main8-fullheader-420-full-alpha\nEND-avif-main8-fullheader-420-full-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            27.74999884375,
+            679.16998678125,
+            174.74999271875,
+            778.16998265625
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            194.24999190625,
+            679.16998678125,
+            341.24998578124996,
+            778.16998265625
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 252,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 20.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "compositeCriterionPassed": false,
+      "predeclaredExactAlphaPassed": true,
+      "checksPassed": false,
+      "referenceLimit": null
+    },
+    {
+      "case": "avif-main8-fullheader-420-full-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main8-fullheader-420-full-alpha-clean-6594a706c/officeimo-screen-media-local-fonts.pdf",
+      "sha256": "7148fa815b1b4e7d98efec0ee6e66093c0a26a3a3609bab26ee77ab8cdf4360b",
+      "pages": 1,
+      "text": "avif-main8-fullheader-420-full-alpha\nEND-avif-main8-fullheader-420-full-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            9.75,
+            697.139764,
+            156.75,
+            796.139764
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            176.25,
+            697.139764,
+            323.25,
+            796.139764
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 0.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "checksPassed": true
+    },
+    {
+      "case": "avif-main8-fullheader-420-full-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main8-fullheader-420-full-alpha-clean-6594a706c/officeimo-screen-media.pdf",
+      "sha256": "7148fa815b1b4e7d98efec0ee6e66093c0a26a3a3609bab26ee77ab8cdf4360b",
+      "pages": 1,
+      "text": "avif-main8-fullheader-420-full-alpha\nEND-avif-main8-fullheader-420-full-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            9.75,
+            697.139764,
+            156.75,
+            796.139764
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            176.25,
+            697.139764,
+            323.25,
+            796.139764
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 0.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "checksPassed": true
+    },
+    {
+      "case": "avif-main8-fullheader-420-full-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main8-fullheader-420-full-alpha-clean-6594a706c/officeimo-screen-snapshot-local-fonts.pdf",
+      "sha256": "f9d155be4dbdb2d028c3e532d50314c5ca875cc052dd3bbb40260df2ee290592",
+      "pages": 1,
+      "text": "avif-main8-fullheader-420-full-alpha\nEND-avif-main8-fullheader-420-full-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            9.75,
+            530.25,
+            156.75,
+            629.25
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            176.25,
+            530.25,
+            323.25,
+            629.25
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 0.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "checksPassed": true
+    },
+    {
+      "case": "avif-main8-fullheader-420-full-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main8-fullheader-420-full-alpha-clean-6594a706c/officeimo-screen-snapshot.pdf",
+      "sha256": "f9d155be4dbdb2d028c3e532d50314c5ca875cc052dd3bbb40260df2ee290592",
+      "pages": 1,
+      "text": "avif-main8-fullheader-420-full-alpha\nEND-avif-main8-fullheader-420-full-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            9.75,
+            530.25,
+            156.75,
+            629.25
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            176.25,
+            530.25,
+            323.25,
+            629.25
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 0.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "checksPassed": true
+    },
+    {
+      "case": "avif-main10-fullheader-mono-limited-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-fullheader-mono-limited-alpha-clean-6594a706c/chromium-print.pdf",
+      "sha256": "e6da3c4b540dafaa79755bcd9353019c6b30c11a6a8f495afee758a48346e16d",
+      "pages": 1,
+      "text": "avif-main10-fullheader-mono-limited-alpha\nEND-avif-main10-fullheader-mono-limited-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            27.74999884375,
+            679.16998678125,
+            174.74999271875,
+            778.16998265625
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            194.24999190625,
+            679.16998678125,
+            341.24998578124996,
+            778.16998265625
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 50,
+          "maxAlphaError": 1,
+          "maxCompositeRgbError": 1.3764705882352941
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "compositeCriterionPassed": true,
+      "predeclaredExactAlphaPassed": false,
+      "checksPassed": false,
+      "referenceLimit": "Chromium PDF alpha quantization differs from the native libavif oracle by one channel value"
+    },
+    {
+      "case": "avif-main10-fullheader-mono-limited-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-fullheader-mono-limited-alpha-clean-6594a706c/officeimo-print-browser-ua.pdf",
+      "sha256": "8d0c6645ee1cca1274dd5001baf1a01117dc9cbf68c3b67d654cc060636327bf",
+      "pages": 1,
+      "text": "avif-main10-fullheader-mono-limited-alpha\nEND-avif-main10-fullheader-mono-limited-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            27.75,
+            679.139764,
+            174.75,
+            778.139764
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            194.25,
+            679.139764,
+            341.25,
+            778.139764
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 0.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "checksPassed": true
+    },
+    {
+      "case": "avif-main10-fullheader-mono-limited-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-fullheader-mono-limited-alpha-clean-6594a706c/officeimo-print-fit-1200-local-fonts.pdf",
+      "sha256": "c04aaf3eb1f7774c17c5ea047a7949e202d9b94171ac587b2ae85934a642904e",
+      "pages": 1,
+      "text": "avif-main10-fullheader-mono-limited-alpha\nEND-avif-main10-fullheader-mono-limited-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            6.4488157500000005,
+            746.149381285588,
+            103.67711475,
+            811.629664285588
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            116.57474625,
+            746.149381285588,
+            213.80304525000003,
+            811.629664285588
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 0.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "checksPassed": true
+    },
+    {
+      "case": "avif-main10-fullheader-mono-limited-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-fullheader-mono-limited-alpha-clean-6594a706c/officeimo-print-fit-1200.pdf",
+      "sha256": "c04aaf3eb1f7774c17c5ea047a7949e202d9b94171ac587b2ae85934a642904e",
+      "pages": 1,
+      "text": "avif-main10-fullheader-mono-limited-alpha\nEND-avif-main10-fullheader-mono-limited-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            6.4488157500000005,
+            746.149381285588,
+            103.67711475,
+            811.629664285588
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            116.57474625,
+            746.149381285588,
+            213.80304525000003,
+            811.629664285588
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 0.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "checksPassed": true
+    },
+    {
+      "case": "avif-main10-fullheader-mono-limited-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-fullheader-mono-limited-alpha-clean-6594a706c/officeimo-print-fit-browser-viewport.pdf",
+      "sha256": "42d88236217b30cbec5a6d3301b4208ccf9a18fdc06f2d3c8285e71008f5cc87",
+      "pages": 1,
+      "text": "avif-main10-fullheader-mono-limited-alpha\nEND-avif-main10-fullheader-mono-limited-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            26.910027428892,
+            691.610118512744,
+            161.245830428892,
+            782.0811695127439
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            179.06588592889202,
+            691.610118512744,
+            313.401688928892,
+            782.0811695127439
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 0.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "checksPassed": true
+    },
+    {
+      "case": "avif-main10-fullheader-mono-limited-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-fullheader-mono-limited-alpha-clean-6594a706c/officeimo-print-zero-margin-local-fonts.pdf",
+      "sha256": "8d0c6645ee1cca1274dd5001baf1a01117dc9cbf68c3b67d654cc060636327bf",
+      "pages": 1,
+      "text": "avif-main10-fullheader-mono-limited-alpha\nEND-avif-main10-fullheader-mono-limited-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            27.75,
+            679.139764,
+            174.75,
+            778.139764
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            194.25,
+            679.139764,
+            341.25,
+            778.139764
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 0.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "checksPassed": true
+    },
+    {
+      "case": "avif-main10-fullheader-mono-limited-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-fullheader-mono-limited-alpha-clean-6594a706c/officeimo-print-zero-margin.pdf",
+      "sha256": "8d0c6645ee1cca1274dd5001baf1a01117dc9cbf68c3b67d654cc060636327bf",
+      "pages": 1,
+      "text": "avif-main10-fullheader-mono-limited-alpha\nEND-avif-main10-fullheader-mono-limited-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            27.75,
+            679.139764,
+            174.75,
+            778.139764
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            194.25,
+            679.139764,
+            341.25,
+            778.139764
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 0.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "checksPassed": true
+    },
+    {
+      "case": "avif-main10-fullheader-mono-limited-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-fullheader-mono-limited-alpha-clean-6594a706c/officeimo-print.pdf",
+      "sha256": "8d0c6645ee1cca1274dd5001baf1a01117dc9cbf68c3b67d654cc060636327bf",
+      "pages": 1,
+      "text": "avif-main10-fullheader-mono-limited-alpha\nEND-avif-main10-fullheader-mono-limited-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            27.75,
+            679.139764,
+            174.75,
+            778.139764
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            194.25,
+            679.139764,
+            341.25,
+            778.139764
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 0.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "checksPassed": true
+    },
+    {
+      "case": "avif-main10-fullheader-mono-limited-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-fullheader-mono-limited-alpha-clean-6594a706c/peachpdf-print.pdf",
+      "sha256": "bdff48f9a4c14e99f7f6bf44e27a1ab39a0526331d4b58e688be6e8eaff03324",
+      "pages": 1,
+      "text": "avif-main10-fullheader-mono-limited-alpha\nEND-avif-main10-fullheader-mono-limited-alpha",
+      "imageOccurrences": 0,
+      "boxes": [],
+      "decodedImages": [],
+      "annotations": 0
+    },
+    {
+      "case": "avif-main10-fullheader-mono-limited-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-fullheader-mono-limited-alpha-clean-6594a706c/chromium-screen.pdf",
+      "sha256": "e6da3c4b540dafaa79755bcd9353019c6b30c11a6a8f495afee758a48346e16d",
+      "pages": 1,
+      "text": "avif-main10-fullheader-mono-limited-alpha\nEND-avif-main10-fullheader-mono-limited-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            27.74999884375,
+            679.16998678125,
+            174.74999271875,
+            778.16998265625
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            194.24999190625,
+            679.16998678125,
+            341.24998578124996,
+            778.16998265625
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 50,
+          "maxAlphaError": 1,
+          "maxCompositeRgbError": 1.3764705882352941
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "compositeCriterionPassed": true,
+      "predeclaredExactAlphaPassed": false,
+      "checksPassed": false,
+      "referenceLimit": "Chromium PDF alpha quantization differs from the native libavif oracle by one channel value"
+    },
+    {
+      "case": "avif-main10-fullheader-mono-limited-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-fullheader-mono-limited-alpha-clean-6594a706c/officeimo-screen-media-local-fonts.pdf",
+      "sha256": "9872cc660f57f0f97dc484ea2005f205d76061a00e417fd12416c316f2ddfc52",
+      "pages": 1,
+      "text": "avif-main10-fullheader-mono-limited-alpha\nEND-avif-main10-fullheader-mono-limited-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            9.75,
+            697.139764,
+            156.75,
+            796.139764
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            176.25,
+            697.139764,
+            323.25,
+            796.139764
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 0.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "checksPassed": true
+    },
+    {
+      "case": "avif-main10-fullheader-mono-limited-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-fullheader-mono-limited-alpha-clean-6594a706c/officeimo-screen-media.pdf",
+      "sha256": "9872cc660f57f0f97dc484ea2005f205d76061a00e417fd12416c316f2ddfc52",
+      "pages": 1,
+      "text": "avif-main10-fullheader-mono-limited-alpha\nEND-avif-main10-fullheader-mono-limited-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            9.75,
+            697.139764,
+            156.75,
+            796.139764
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            176.25,
+            697.139764,
+            323.25,
+            796.139764
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 0.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "checksPassed": true
+    },
+    {
+      "case": "avif-main10-fullheader-mono-limited-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-fullheader-mono-limited-alpha-clean-6594a706c/officeimo-screen-snapshot-local-fonts.pdf",
+      "sha256": "bcf8ffe5b29c7ff24a4a30e270709ee792ec789ef7ca1f26e874a1a161f4e731",
+      "pages": 1,
+      "text": "avif-main10-fullheader-mono-limited-alpha\nEND-avif-main10-fullheader-mono-limited-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            9.75,
+            530.25,
+            156.75,
+            629.25
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            176.25,
+            530.25,
+            323.25,
+            629.25
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 0.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "checksPassed": true
+    },
+    {
+      "case": "avif-main10-fullheader-mono-limited-alpha",
+      "kind": "fullheader",
+      "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-fullheader-mono-limited-alpha-clean-6594a706c/officeimo-screen-snapshot.pdf",
+      "sha256": "bcf8ffe5b29c7ff24a4a30e270709ee792ec789ef7ca1f26e874a1a161f4e731",
+      "pages": 1,
+      "text": "avif-main10-fullheader-mono-limited-alpha\nEND-avif-main10-fullheader-mono-limited-alpha",
+      "imageOccurrences": 2,
+      "boxes": [
+        {
+          "bounds": [
+            9.75,
+            530.25,
+            156.75,
+            629.25
+          ],
+          "inPage": true
+        },
+        {
+          "bounds": [
+            176.25,
+            530.25,
+            323.25,
+            629.25
+          ],
+          "inPage": true
+        }
+      ],
+      "decodedImages": [
+        {
+          "size": [
+            49,
+            33
+          ],
+          "maxRgbError": 0,
+          "maxAlphaError": 0,
+          "maxCompositeRgbError": 0.0
+        }
+      ],
+      "annotations": 0,
+      "structurePassed": true,
+      "checksPassed": true
+    }
+  ],
+  "visualInspection": {
+    "file": "Ignore/HtmlUnknownPageQualification/static-gap-avif-nonreduced-work-6571ef26d/fullheader-pdf-contact-sheet.png",
+    "views": 4,
+    "observed": "Both color and grayscale alpha examples show two complete images on white/black backgrounds with full markers in one page; paired Chromium prints inspected. No browser pixel-parity claim."
+  },
+  "referencePackages": [
+    {
+      "package": "peachpdf",
+      "url": "https://api.nuget.org/v3-flatcontainer/peachpdf/index.json",
+      "latest": "0.9.20",
+      "containsPinned": true,
+      "indexSha256": "9cd1afb8b15b3cb05942c574bedc8392479dc65b914cc715e9bb7a9ccf62b135"
+    },
+    {
+      "package": "htmltinkerx",
+      "url": "https://api.nuget.org/v3-flatcontainer/htmltinkerx/index.json",
+      "latest": "3.0.3",
+      "containsPinned": true,
+      "indexSha256": "a76e1c90987e6b7b251a9a5ef61ed9b89e119bcfa5798197cbd3b91e14b711ee"
+    }
+  ],
+  "h4": {
+    "corpus": "advanced-held-out",
+    "accepted": 8,
+    "total": 8,
+    "report": "Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-h4-clean-6594a706c/html-corpus-evidence.json"
+  },
+  "nasaManagedPdfs": [
+    {
+      "file": "officeimo-print-browser-ua.pdf",
+      "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+      "byteIdentical": true
+    },
+    {
+      "file": "officeimo-print-fit-1200-local-fonts.pdf",
+      "sha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+      "byteIdentical": true
+    },
+    {
+      "file": "officeimo-print-fit-1200.pdf",
+      "sha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+      "byteIdentical": true
+    },
+    {
+      "file": "officeimo-print-fit-browser-viewport.pdf",
+      "sha256": "70bd7305e38a3aca89c8ff3f56145fe70def65576d6a818de5d04bfde46eca68",
+      "byteIdentical": true
+    },
+    {
+      "file": "officeimo-print-zero-margin-local-fonts.pdf",
+      "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+      "byteIdentical": true
+    },
+    {
+      "file": "officeimo-print-zero-margin.pdf",
+      "sha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+      "byteIdentical": true
+    },
+    {
+      "file": "officeimo-print.pdf",
+      "sha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e",
+      "byteIdentical": true
+    },
+    {
+      "file": "officeimo-screen-media-local-fonts.pdf",
+      "sha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+      "byteIdentical": true
+    },
+    {
+      "file": "officeimo-screen-media.pdf",
+      "sha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+      "byteIdentical": true
+    },
+    {
+      "file": "officeimo-screen-snapshot-local-fonts.pdf",
+      "sha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+      "byteIdentical": true
+    },
+    {
+      "file": "officeimo-screen-snapshot.pdf",
+      "sha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+      "byteIdentical": true
+    }
+  ],
+  "staticBudget": {
+    "schemaVersion": 1,
+    "generatedUtc": "2026-10-01T17:26:00.188954+00:00",
+    "environment": {
+      "osFamily": "macOS",
+      "osDescription": "macOS 27.0.1",
+      "osArchitecture": "Arm64",
+      "processArchitecture": "Arm64",
+      "frameworkDescription": ".NET 10.0.12",
+      "machineName": "evomini",
+      "processorCount": 10
+    },
+    "source": {
+      "commit": "6594a706c33330e64a3e8590e318f70b493c76f0",
+      "worktreeClean": true,
+      "corpusId": "officeimo-html-h4-advanced-held-out",
+      "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+      "caseCount": 8,
+      "outputsPerIteration": 76
+    },
+    "ceiling": {
+      "osFamily": "macOS",
+      "coldProcessElapsedMilliseconds": 8000,
+      "warmIterationElapsedMilliseconds": 3000,
+      "coldManagedAllocatedBytes": 1250000000,
+      "warmManagedAllocatedBytes": 1100000000,
+      "peakWorkingSetBytes": 700000000,
+      "outputBytesPerIteration": 3000000,
+      "cancellationElapsedMilliseconds": 250
+    },
+    "cold": {
+      "mode": "cold",
+      "processElapsedMilliseconds": 4781.1317,
+      "peakWorkingSetBytes": 366428160,
+      "memorySampleCount": 136,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 4712.8841,
+          "managedAllocatedBytes": 1083559096,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        }
+      ],
+      "deterministic": true
+    },
+    "warm": {
+      "mode": "warm",
+      "processElapsedMilliseconds": 10763.0999,
+      "peakWorkingSetBytes": 548028416,
+      "memorySampleCount": 304,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 2316.3343,
+          "managedAllocatedBytes": 894060216,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        },
+        {
+          "number": 2,
+          "elapsedMilliseconds": 1981.8739,
+          "managedAllocatedBytes": 894903424,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        },
+        {
+          "number": 3,
+          "elapsedMilliseconds": 1838.0158,
+          "managedAllocatedBytes": 894820760,
+          "outputBytes": 2144788,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "66ab0cc835560ad644a2c5fe8884cfd828a2917d765915889f96486c8f9de2c2"
+        }
+      ],
+      "deterministic": true
+    },
+    "cancellation": {
+      "status": "Passed",
+      "elapsedMilliseconds": 1.7903,
+      "detail": "Cancellation propagated through the asynchronous resource boundary."
+    },
+    "failures": []
+  },
+  "h10Budget": {
+    "schemaVersion": 1,
+    "generatedUtc": "2026-10-01T17:27:16.494695+00:00",
+    "caseId": "nasa-solar-system-terrestrial-planets",
+    "sourceUrl": "https://science.nasa.gov/learn/basics-of-space-flight/chapter1-2/",
+    "sourceCommit": "6594a706c33330e64a3e8590e318f70b493c76f0",
+    "sourceClean": true,
+    "runnerVersion": "1.0.0+6594a706c33330e64a3e8590e318f70b493c76f0",
+    "manifestSha256": "ad84429c1bbccec1e2add012ba578d8a85ed140989c2c1ca01a5f87daf5b3928",
+    "caseSha256": "3040fa21e310e602b848bcfec809e6173cc8141982e9eeb15bf0bdd92ef466db",
+    "archivePath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-nasa-22157e58d/source.mhtml",
+    "archiveBytes": 2641258,
+    "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+    "osFamily": "macOS",
+    "osDescription": "macOS 27.0.1",
+    "framework": ".NET 10.0.12",
+    "processorCount": 10,
+    "machineName": "evomini",
+    "memoryScope": "fresh child process tree per declared operation, including startup and conversion",
+    "conversionScope": "layout and PDF conversion of preloaded MHTML for PDF; MHTML load, visible-content preparation, save and reopen for editable",
+    "ceiling": {
+      "osFamily": "macOS",
+      "caseId": "nasa-solar-system-terrestrial-planets",
+      "operations": [
+        {
+          "name": "pdf-print",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3556769792,
+          "peakWorkingSetBytes": 603979776
+        },
+        {
+          "name": "pdf-print-zero-margin",
+          "conversionMilliseconds": 7000,
+          "managedAllocatedBytes": 2617245696,
+          "peakWorkingSetBytes": 671088640
+        },
+        {
+          "name": "pdf-screen-media",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3489660928,
+          "peakWorkingSetBytes": 738197504
+        },
+        {
+          "name": "pdf-screen-snapshot",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3623878656,
+          "peakWorkingSetBytes": 805306368
+        },
+        {
+          "name": "editable-word",
+          "conversionMilliseconds": 4000,
+          "managedAllocatedBytes": 1207959552,
+          "peakWorkingSetBytes": 469762048
+        },
+        {
+          "name": "editable-excel",
+          "conversionMilliseconds": 3500,
+          "managedAllocatedBytes": 1140850688,
+          "peakWorkingSetBytes": 536870912
+        },
+        {
+          "name": "editable-powerpoint",
+          "conversionMilliseconds": 5000,
+          "managedAllocatedBytes": 1207959552,
+          "peakWorkingSetBytes": 469762048
+        },
+        {
+          "name": "editable-onenote",
+          "conversionMilliseconds": 3000,
+          "managedAllocatedBytes": 805306368,
+          "peakWorkingSetBytes": 402653184
+        },
+        {
+          "name": "editable-rtf",
+          "conversionMilliseconds": 3000,
+          "managedAllocatedBytes": 1073741824,
+          "peakWorkingSetBytes": 402653184
+        },
+        {
+          "name": "editable-markdown",
+          "conversionMilliseconds": 2500,
+          "managedAllocatedBytes": 872415232,
+          "peakWorkingSetBytes": 402653184
+        }
+      ]
+    },
+    "operations": [
+      {
+        "name": "pdf-print",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4179.4532,
+        "managedAllocatedBytes": 2109638280,
+        "processMilliseconds": 4548.5419,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 488439808,
+          "sampleCount": 153,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7813360,
+        "outputSha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e",
+        "pageCount": 19,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-h10-budget-clean-6594a706c/pdf-print/html-mhtml-evidence.json"
+      },
+      {
+        "name": "pdf-print-zero-margin",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 4290.0666,
+        "managedAllocatedBytes": 2113781504,
+        "processMilliseconds": 4675.0125,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 528941056,
+          "sampleCount": 156,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7756639,
+        "outputSha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "pageCount": 16,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-h10-budget-clean-6594a706c/pdf-print-zero-margin/html-mhtml-evidence.json"
+      },
+      {
+        "name": "pdf-screen-media",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3481.0124,
+        "managedAllocatedBytes": 1652589752,
+        "processMilliseconds": 3851.9165,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 386400256,
+          "sampleCount": 129,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7684160,
+        "outputSha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "pageCount": 21,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-h10-budget-clean-6594a706c/pdf-screen-media/html-mhtml-evidence.json"
+      },
+      {
+        "name": "pdf-screen-snapshot",
+        "kind": "pdf",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 3610.0394,
+        "managedAllocatedBytes": 1772064608,
+        "processMilliseconds": 3993.1034,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 546832384,
+          "sampleCount": 133,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 7740830,
+        "outputSha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "pageCount": 16,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-h10-budget-clean-6594a706c/pdf-screen-snapshot/html-mhtml-evidence.json"
+      },
+      {
+        "name": "editable-word",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2470.7553,
+        "managedAllocatedBytes": 961702208,
+        "processMilliseconds": 2667.7407,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 282476544,
+          "sampleCount": 89,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1491329,
+        "outputSha256": "e805c5b2edc2d93f504bca8d283269f9550f1b8998d240da6c840eb8c49b55a4",
+        "pageCount": null,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-h10-budget-clean-6594a706c/editable-word/word/report.json"
+      },
+      {
+        "name": "editable-excel",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1988.6847,
+        "managedAllocatedBytes": 896494640,
+        "processMilliseconds": 2156.1577,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 276086784,
+          "sampleCount": 72,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1528692,
+        "outputSha256": "3e200f19acd786b0cf684abb3ac25d43a02ade9904eed421ec2e8a71c2c4b43d",
+        "pageCount": null,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-h10-budget-clean-6594a706c/editable-excel/excel/report.json"
+      },
+      {
+        "name": "editable-powerpoint",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 2427.0045,
+        "managedAllocatedBytes": 1026583920,
+        "processMilliseconds": 2599.3145,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 318865408,
+          "sampleCount": 86,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1499715,
+        "outputSha256": "e231dd1eab6cd164df0a2733136373e8e4e1cedd5549de0f83ee6385a792130f",
+        "pageCount": null,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-h10-budget-clean-6594a706c/editable-powerpoint/powerpoint/report.json"
+      },
+      {
+        "name": "editable-onenote",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1466.7404,
+        "managedAllocatedBytes": 645697008,
+        "processMilliseconds": 1642.4941,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 244563968,
+          "sampleCount": 54,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1595264,
+        "outputSha256": "04fe2ca1af1f7f3252c1961c4b6e96f2ad55dd186e0f8b38a6b96b2f12958896",
+        "pageCount": null,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-h10-budget-clean-6594a706c/editable-onenote/onenote/report.json"
+      },
+      {
+        "name": "editable-rtf",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1820.7331,
+        "managedAllocatedBytes": 858776120,
+        "processMilliseconds": 1982.6416,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 273678336,
+          "sampleCount": 65,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 2945978,
+        "outputSha256": "7468f0dff2e5468fb4d89960516a000945560b18bdc00beaa1fab943249933b5",
+        "pageCount": null,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-h10-budget-clean-6594a706c/editable-rtf/rtf/report.json"
+      },
+      {
+        "name": "editable-markdown",
+        "kind": "editable",
+        "passed": true,
+        "hasLoss": true,
+        "conversionMilliseconds": 1390.2635,
+        "managedAllocatedBytes": 647191288,
+        "processMilliseconds": 1556.1095,
+        "processTreeMemory": {
+          "peakWorkingSetBytes": 253493248,
+          "sampleCount": 52,
+          "minimumObservedProcessCount": 1,
+          "maximumObservedProcessCount": 3,
+          "sampler": "ps pid/ppid/rss snapshot"
+        },
+        "outputBytes": 1967406,
+        "outputSha256": "2f36d6712928d25864185183ac62544b4dfeefaed5b0b2c1b7d87f807d4cbaad",
+        "pageCount": null,
+        "reportPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-unknown-page-qualification/Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-h10-budget-clean-6594a706c/editable-markdown/markdown/report.json"
+      }
+    ],
+    "failures": []
+  },
+  "cleanup": {
+    "removedTargets": 30,
+    "removedBytes": 727130684,
+    "retainedFixtureHashesVerified": 48,
+    "postCleanupNativeCasesRepeatedIdentically": 16,
+    "nativeLibraryHashVerified": true
+  },
+  "retainedArtifacts": [
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/static-gap-avif-nonreduced-work-6571ef26d",
+      "bytes": 18183724
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main8-fullheader-420-full-alpha-clean-6594a706c",
+      "bytes": 490385
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main10-fullheader-mono-limited-alpha-clean-6594a706c",
+      "bytes": 434881
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-h4-clean-6594a706c",
+      "bytes": 7560094
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-nasa-clean-6594a706c",
+      "bytes": 89260855
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-static-budget-clean-6594a706c",
+      "bytes": 2779
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/static-gap-avif-fullheader-h10-budget-clean-6594a706c",
+      "bytes": 63761540
+    }
+  ],
+  "remainingLimits": [
+    "Native fixtures cover common AOM full-header options; alternate frame IDs, size override and forced screen-tool choices have narrower synthetic/static coverage.",
+    "Timing/decoder-model, non-still and multi-operating-point sequences remain rejected; formal AVIF Baseline support is not claimed.",
+    "All four paired Chromium outputs pass structural criteria. The eight-bit color print/screen fail the unchanged composite RGB ceiling (20 versus 3), with exact alpha; the ten-bit grayscale print/screen pass composite RGB (1.3765) but fail exact alpha by one value. Root cause of the eight-bit color reconstruction/composition difference is not established. Native YUV samples and public/package RGBA are exact; do not claim either browser comparison gap closed.",
+    "Windows/net472 execution and Windows/Linux operation ceilings are not qualified.",
+    "Larger static HTML goal remains active; this checkpoint does not qualify unrelated editable/browser/script behavior."
+  ]
+}
