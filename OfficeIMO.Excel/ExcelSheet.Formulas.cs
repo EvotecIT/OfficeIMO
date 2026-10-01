@@ -477,6 +477,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void SetArrayFormula(string a1Range, string formula) {
             if (string.IsNullOrWhiteSpace(formula)) throw new ArgumentNullException(nameof(formula));
+            string safeFormula = Utilities.ExcelSanitizer.SanitizeFormula(formula);
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
             WriteLock(() => {
                 foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
@@ -491,7 +492,7 @@ namespace OfficeIMO.Excel {
                 var topLeft = GetCell(r1, c1);
                 bool retainsCachedValue = topLeft.CellValue != null;
                 ClearCellValueMetadata(topLeft);
-                topLeft.CellFormula = new CellFormula(Utilities.ExcelSanitizer.SanitizeFormula(formula)) {
+                topLeft.CellFormula = new CellFormula(safeFormula) {
                     FormulaType = CellFormulaValues.Array,
                     Reference = a1Range
                 };
@@ -518,6 +519,7 @@ namespace OfficeIMO.Excel {
 
         internal void SetLegacyArrayFormula(string a1Range, string formula) {
             if (string.IsNullOrWhiteSpace(formula)) throw new ArgumentNullException(nameof(formula));
+            string safeFormula = Utilities.ExcelSanitizer.SanitizeFormula(formula);
             int r2;
             int c2;
             if (!A1.TryParseRange(a1Range, out int r1, out int c1, out r2, out c2)) {
@@ -537,7 +539,7 @@ namespace OfficeIMO.Excel {
                 }
                 var topLeft = GetCell(r1, c1);
                 bool retainsCachedValue = topLeft.CellValue != null;
-                topLeft.CellFormula = new CellFormula(Utilities.ExcelSanitizer.SanitizeFormula(formula)) {
+                topLeft.CellFormula = new CellFormula(safeFormula) {
                     FormulaType = CellFormulaValues.Array,
                     Reference = a1Range
                 };

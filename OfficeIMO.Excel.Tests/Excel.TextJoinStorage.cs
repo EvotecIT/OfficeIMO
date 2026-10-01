@@ -10,6 +10,39 @@ namespace OfficeIMO.Tests;
 
 public sealed class ExcelTextJoinStorageTests {
     [Theory]
+    [InlineData("text")]
+    [InlineData("inline")]
+    [InlineData("string-cache")]
+    [InlineData("error-cache")]
+    public void Joining_distinguishes_error_like_text_from_typed_formula_errors(string kind) {
+        using var document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Report");
+        if (kind.EndsWith("cache", StringComparison.Ordinal)) sheet.CellFormulaWithTextCache(1, 1, "UNSUPPORTED()", "#N/A");
+        else sheet.CellValue(1, 1, "#N/A");
+        sheet.CellAt(1, 1).GetValue();
+        var source = sheet.WorksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single();
+        if (kind == "inline") {
+            source.CellValue = null;
+            source.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString;
+            source.InlineString = new DocumentFormat.OpenXml.Spreadsheet.InlineString(new DocumentFormat.OpenXml.Spreadsheet.Text("#N/A"));
+        }
+        if (kind == "error-cache") source.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Error;
+        sheet.CellFormula(1, 2, "TEXTJOIN(\",\",FALSE,A1,\"tail\")");
+        sheet.CellFormula(2, 2, "CONCAT(A1,\"tail\")");
+        sheet.CellFormula(3, 2, "CONCATENATE(A1,\"tail\")");
+        using var input = new MemoryStream(); document.Save(input); input.Position = 0;
+        using var reopened = ExcelDocument.Load(input);
+        Assert.True(reopened.Calculate() >= 3);
+        var cells = reopened.Sheets[0].WorksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>()
+            .Where(c => c.CellReference?.Value is "B1" or "B2" or "B3").ToArray();
+        Assert.Equal(3, cells.Length);
+        foreach (var cell in cells) {
+            Assert.Equal(kind == "error-cache" ? DocumentFormat.OpenXml.Spreadsheet.CellValues.Error : DocumentFormat.OpenXml.Spreadsheet.CellValues.String, cell.DataType!.Value);
+            Assert.Equal(kind == "error-cache" ? "#N/A" : cell.CellReference!.Value == "B1" ? "#N/A,tail" : "#N/Atail", cell.CellValue!.Text);
+        }
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void TextJoin_storage_prefixes_nested_calls_and_preserves_literal_and_qualified_text(bool materialized) {

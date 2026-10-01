@@ -987,12 +987,9 @@ namespace OfficeIMO.Excel {
                 _formulaEvaluationDepthFrames.Peek().IncludeChild(1);
             }
 
-            if (value.Kind == ExcelCellDataKind.Error) {
+            if (value.Kind == ExcelCellDataKind.Error
+                || (value.Kind == ExcelCellDataKind.Formula && cell?.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Error)) {
                 return FormulaArgumentValue.Error(value.CachedText ?? value.Value?.ToString() ?? "#VALUE!");
-            }
-
-            if (TryParseFormulaErrorLiteral(value.CachedText ?? value.Value?.ToString() ?? string.Empty, out string errorCode)) {
-                return FormulaArgumentValue.Error(errorCode);
             }
 
             if (value.Value is double d) {

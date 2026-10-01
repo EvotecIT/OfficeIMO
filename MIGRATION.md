@@ -13,7 +13,7 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 Numbers `TEXTJOIN` expressions with qualified operands now retain editable XLSX formulas and typed caches. The shared Excel writer stores authored `TEXTJOIN` calls as `_xlfn.TEXTJOIN`, including nested calls. Code comparing exact formula strings from `GetFormulaText` must account for this prefix. Existing prefixes, string literals, quoted worksheet names and structured references retain their text. Formula-prefix expansion that exceeds the 8,192-character storage limit raises an argument error for direct Excel authoring; iWork conversion uses its destination fallback policy instead of truncating the expression.
 
-The shared evaluator handles punctuation in quoted worksheet names, propagates errors through `TEXTJOIN`, `CONCAT` and `CONCATENATE`, and returns `#VALUE!` when joined text exceeds 32,767 characters. Recalculate outputs whose cached results depend on these cases; the source cache retained during conversion is not a freshness guarantee.
+The shared evaluator handles punctuation in quoted worksheet names, propagates typed errors through `TEXTJOIN`, `CONCAT` and `CONCATENATE`, preserves ordinary text such as `#N/A`, and returns `#VALUE!` when joined text exceeds 32,767 characters. Rejected prefix expansion preserves existing cells and in-cell images. Recalculate outputs whose cached results depend on these cases; the source cache retained during conversion is not a freshness guarantee.
 
 ## iWork formula function identities
 
