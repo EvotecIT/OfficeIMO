@@ -24,6 +24,7 @@ namespace OfficeIMO.Excel {
         private sealed class FormulaEvaluationDepthFrame {
             internal int MaximumChildDepth { get; private set; }
             internal bool DependencyGuardBlocked { get; private set; }
+            internal bool UsedUnevaluatedFormulaCache { get; private set; }
 
             internal void IncludeChild(int depth) {
                 if (depth > MaximumChildDepth) {
@@ -33,6 +34,10 @@ namespace OfficeIMO.Excel {
 
             internal void BlockByDependencyGuard() {
                 DependencyGuardBlocked = true;
+            }
+
+            internal void MarkUnevaluatedFormulaCache() {
+                UsedUnevaluatedFormulaCache = true;
             }
         }
 
@@ -55,8 +60,9 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 bool changed = false;
                 foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula != null)) {
-                    if (cell.CellValue != null) {
+                    if (cell.CellValue != null || cell.ValueMetaIndex != null) {
                         cell.CellValue = null;
+                        ClearCellValueMetadataAttribute(cell);
                         changed = true;
                     }
                 }
@@ -103,13 +109,15 @@ namespace OfficeIMO.Excel {
                 bool allFormulasEvaluated = true;
 
                 try {
+                    if (_excelDocument.WorkbookPartRoot.CellMetadataPart != null) PlanDynamicArrayOwners();
                     foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula != null).ToList()) {
                         _formulaEvaluationGuardState.DependencyGuardBlocked = false;
                         if (!TryEvaluateFormulaCellValue(cell, out FormulaArgumentValue result)) {
                             allFormulasEvaluated = false;
                             if (_formulaEvaluationGuardState.DependencyGuardBlocked) {
-                                if (cell.CellValue != null) {
+                                if (cell.CellValue != null || cell.ValueMetaIndex != null) {
                                     cell.CellValue = null;
+                                    ClearCellValueMetadataAttribute(cell);
                                     changed = true;
                                 }
 
@@ -122,7 +130,12 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
 
-                        SetFormulaCachedValue(cell, result);
+                        if (TryGetDynamicArrayPlan(cell, out DynamicArrayPlan dynamicPlan)) {
+                            WriteDynamicArrayFormulaCache(dynamicPlan);
+                        } else {
+                            SetFormulaCachedValue(cell, result);
+                            if (TryGetCalculatedArray(cell, out FormulaArrayValue array)) WriteFixedArrayFormulaCache(cell, array);
+                        }
                         cell.CellFormula!.CalculateCell = false;
                         _excelDocument.MarkFormulaCellRecalculated(
                             _worksheetPart,
@@ -182,14 +195,20 @@ namespace OfficeIMO.Excel {
 
             string? reference = NormalizeFormulaCellReference(cell.CellReference?.Value);
             string? previousCellReference = _formulaEvaluationCellReference;
+            // Expression nesting belongs to a single formula. Dependency cells have
+            // their own nesting budget and are bounded by MaximumDependencyDepth.
+            int previousScalarDepth = _scalarFormulaEvaluationDepth;
             _formulaEvaluationCellReference = reference;
+            _scalarFormulaEvaluationDepth = 0;
             try {
                 if (reference == null
                     || _formulaEvaluationCache == null
                     || _formulaEvaluationDepthCache == null
                     || _formulaEvaluationStack == null
                     || _formulaEvaluationDepthFrames == null) {
-                    return TryEvaluateFormulaValue(formula, out result);
+                    return cell.CellFormula.FormulaType?.Value == CellFormulaValues.Array
+                        ? TryEvaluateAuthoredFormulaCell(cell, formula, out result)
+                        : TryEvaluateFormulaValue(formula, out result);
                 }
 
                 string cacheKey = GetFormulaEvaluationCacheKey(reference);
@@ -202,6 +221,8 @@ namespace OfficeIMO.Excel {
 
                     if (_formulaEvaluationDepthFrames.Count > 0) {
                         _formulaEvaluationDepthFrames.Peek().IncludeChild(cachedDepth);
+                        if (cachedResult.IsUnevaluatedFormulaCache)
+                            _formulaEvaluationDepthFrames.Peek().MarkUnevaluatedFormulaCache();
                     }
 
                     result = cachedResult;
@@ -223,12 +244,17 @@ namespace OfficeIMO.Excel {
                 bool evaluated = false;
                 int evaluationDepth = 0;
                 try {
-                    if (!TryEvaluateFormulaValue(formula, out result)) {
+                    if (!(cell.CellFormula.FormulaType?.Value == CellFormulaValues.Array
+                        ? TryEvaluateAuthoredFormulaCell(cell, formula, out result)
+                        : TryEvaluateFormulaValue(formula, out result))) {
                         return false;
                     }
                     if (depthFrame.DependencyGuardBlocked) {
                         return false;
                     }
+
+                    if (depthFrame.UsedUnevaluatedFormulaCache)
+                        result = result.WithUnevaluatedFormulaCache();
 
                     evaluationDepth = depthFrame.MaximumChildDepth + 1;
                     _formulaEvaluationCache[cacheKey] = result;
@@ -240,12 +266,15 @@ namespace OfficeIMO.Excel {
                     _formulaEvaluationStack.Remove(cacheKey);
                     if (evaluated && _formulaEvaluationDepthFrames.Count > 0) {
                         _formulaEvaluationDepthFrames.Peek().IncludeChild(evaluationDepth);
+                        if (result.IsUnevaluatedFormulaCache)
+                            _formulaEvaluationDepthFrames.Peek().MarkUnevaluatedFormulaCache();
                     } else if (depthFrame.DependencyGuardBlocked && _formulaEvaluationDepthFrames.Count > 0) {
                         _formulaEvaluationDepthFrames.Peek().BlockByDependencyGuard();
                     }
                 }
             } finally {
                 _formulaEvaluationCellReference = previousCellReference;
+                _scalarFormulaEvaluationDepth = previousScalarDepth;
             }
         }
 
@@ -259,7 +288,14 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void SetFormulaCachedValue(Cell cell, FormulaArgumentValue result) {
+        private void SetFormulaCachedValue(Cell cell, FormulaArgumentValue result) {
+            cell.ValueMetaIndex = null;
+            if (result.IsError && TryWriteRichFormulaError(cell, result.ErrorCode)) return;
+            if (result.IsBoolean) {
+                cell.CellValue = new CellValue(result.Number == 0 ? "0" : "1");
+                cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean;
+                return;
+            }
             if (result.Number.HasValue) {
                 cell.CellValue = new CellValue(InvariantNumberText.Get(result.Number.Value));
                 cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
@@ -326,6 +362,7 @@ namespace OfficeIMO.Excel {
                     [Name] = sharedFormulaDefinitions
                 };
                 try {
+                    if (metadataPart != null) PlanDynamicArrayOwners();
                     foreach (Cell cell in formulaCells) {
                         _formulaEvaluationGuardState.DependencyGuardBlocked = false;
                         string formula = ResolveCellFormulaText(cell, sharedFormulaDefinitions);
@@ -468,21 +505,34 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public bool TryGetCachedFormulaValue(int row, int column, out string? value) {
             var cell = TryGetExistingCell(row, column);
-            value = cell?.CellFormula == null ? null : cell.CellValue?.Text;
+            value = cell?.CellFormula == null ? null : ResolveRichValueError(cell, cell.CellValue?.Text);
             return value != null;
         }
 
         /// <summary>
         /// Sets a shared-free array formula over a range. The top-left cell owns the formula metadata.
         /// </summary>
-        public void SetArrayFormula(string a1Range, string formula) {
+        public void SetArrayFormula(string a1Range, string formula) => SetArrayFormulaCore(a1Range, formula, dynamic: false);
+
+        /// <summary>
+        /// Authors a dynamic array at one anchor cell. Calculation determines its bounded spill range.
+        /// </summary>
+        public void SetDynamicArrayFormula(string a1Cell, string formula) {
+            var (row, column) = A1.ParseCellRef(a1Cell);
+            if (row < 1 || row > A1.MaxRows || column < 1 || column > A1.MaxColumns)
+                throw new ArgumentOutOfRangeException(nameof(a1Cell));
+            string anchor = A1.CellReference(row, column);
+            SetArrayFormulaCore(anchor + ":" + anchor, formula, dynamic: true);
+        }
+
+        private void SetArrayFormulaCore(string a1Range, string formula, bool dynamic) {
             if (string.IsNullOrWhiteSpace(formula)) throw new ArgumentNullException(nameof(formula));
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
             WriteLock(() => {
                 foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
                     string? reference = cell.CellFormula?.Reference?.Value;
                     if (!string.IsNullOrWhiteSpace(reference)
-                        && A1.TryParseRange(reference!, out int existingR1, out int existingC1, out int existingR2, out int existingC2)
+                        && TryFixedArrayBounds(reference!, out int existingR1, out int existingC1, out int existingR2, out int existingC2)
                         && RangesOverlapInclusive((r1, c1, r2, c2), (existingR1, existingC1, existingR2, existingC2))) {
                         throw new InvalidOperationException($"Array formula range '{a1Range}' overlaps existing array formula range '{reference}'.");
                     }
@@ -491,7 +541,8 @@ namespace OfficeIMO.Excel {
                 var topLeft = GetCell(r1, c1);
                 bool retainsCachedValue = topLeft.CellValue != null;
                 ClearCellValueMetadata(topLeft);
-                topLeft.CellFormula = new CellFormula(Utilities.ExcelSanitizer.SanitizeFormula(formula)) {
+                topLeft.CellMetaIndex = dynamic ? EnsureDynamicArrayMetadata() : null;
+                topLeft.CellFormula = new CellFormula(QualifyAuthoredArrayFunctions(Utilities.ExcelSanitizer.SanitizeFormula(formula))) {
                     FormulaType = CellFormulaValues.Array,
                     Reference = a1Range
                 };
@@ -512,6 +563,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
+                InvalidateDynamicArrayWriteIndex();
                 WorksheetRoot.Save();
             });
         }
@@ -564,37 +616,77 @@ namespace OfficeIMO.Excel {
                 foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
                     string? reference = cell.CellFormula?.Reference?.Value;
                     if (!string.IsNullOrWhiteSpace(reference)
-                        && A1.TryParseRange(reference!.Replace("$", string.Empty), out int existingR1, out int existingC1, out int existingR2, out int existingC2)
+                        && TryFixedArrayBounds(reference!, out int existingR1, out int existingC1, out int existingR2, out int existingC2)
                         && RangesOverlapInclusive(bounds, (existingR1, existingC1, existingR2, existingC2))) {
-                        for (int row = existingR1; row <= existingR2; row++) {
-                            for (int column = existingC1; column <= existingC2; column++) {
-                                var spillCell = TryGetExistingCell(row, column);
-                                if (spillCell == null) {
-                                    continue;
-                                }
-
-                                spillCell.CellFormula = null;
-                                spillCell.CellValue = null;
-                            }
+                        foreach (Cell spillCell in WorksheetRoot.Descendants<Cell>().ToList()) {
+                            if (!TryParseCellReference(spillCell.CellReference?.Value ?? "", out int row, out int column)
+                                || row < existingR1 || row > existingR2 || column < existingC1 || column > existingC2)
+                                continue;
+                            spillCell.CellFormula = null;
+                            spillCell.CellValue = null;
+                            ClearCellValueMetadataAttribute(spillCell);
+                            spillCell.DataType = null;
+                            if (ReferenceEquals(spillCell, cell)) spillCell.CellMetaIndex = null;
+                            DynamicSpillCacheSnapshots.Remove(DynamicCellKey(row, column));
                         }
+                        SpillOwnership.WrittenOwners.Remove(DynamicCellKey(existingR1, existingC1));
                     }
                 }
 
+                InvalidateDynamicArrayWriteIndex();
                 WorksheetRoot.Save();
             });
         }
 
-        private bool TryEvaluateFormulaValue(string formula, out FormulaArgumentValue result) {
+        private bool HasSufficientFormulaExecutionStack() {
+            try {
+                System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
+                return true;
+            } catch (InsufficientExecutionStackException) {
+                // Independent cell and expression limits must also fit the caller's stack.
+                BlockCurrentFormulaByDependencyGuard();
+                return false;
+            }
+        }
+
+        private int _scalarFormulaEvaluationDepth;
+
+        private bool TryEvaluateFormulaValue(string formula, out FormulaArgumentValue result, bool allowScalarExpression = true) {
+            result = default;
+            if (!HasSufficientFormulaExecutionStack()) return false;
+            if (_scalarFormulaEvaluationDepth >= 128) return false;
+            _scalarFormulaEvaluationDepth++;
+            try {
+                return TryEvaluateFormulaValueCore(formula, out result, allowScalarExpression);
+            } finally {
+                _scalarFormulaEvaluationDepth--;
+            }
+        }
+
+        private bool TryEvaluateFormulaValueCore(string formula, out FormulaArgumentValue result, bool allowScalarExpression) {
             result = default;
             if (string.IsNullOrWhiteSpace(formula) || formula.Length > MaxSupportedFormulaLength) {
                 return false;
             }
 
             formula = NormalizeSupportedFunctionPrefix(formula);
+            if (allowScalarExpression) return TryEvaluateScalarExpression(formula, out result);
             ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(formula, out ExcelFormulaFunctionCallSyntax? functionCall);
             if (functionCall != null) {
                     string function = functionCall.Name.ToUpperInvariant();
                     string args = functionCall.Arguments;
+                    if (function == "GETPIVOTDATA") return TryEvaluatePivotDataValue(args, out result);
+                    if ((function == "TRUE" || function == "FALSE") && string.IsNullOrWhiteSpace(args)) {
+                        bool boolean = function == "TRUE";
+                        result = new FormulaArgumentValue(boolean ? 1 : 0, function, isBoolean: true);
+                        return true;
+                    }
+                    if (function == "NA" && string.IsNullOrWhiteSpace(args)) {
+                        result = FormulaArgumentValue.Error("#N/A");
+                        return true;
+                    }
+                    if (function == "DATE" && TryEvaluateDateValue(args, out result)) return true;
+                    if (function == "DATEDIF" && TryEvaluateDateDifValue(args, out result)) return true;
                     if (function == "IFERROR" && TryEvaluateIfErrorValue(args, out result)) {
                         return true;
                     }
@@ -619,7 +711,7 @@ namespace OfficeIMO.Excel {
                         return true;
                     }
 
-                    if ((function == "ISBLANK" || function == "ISNUMBER" || function == "ISTEXT" || function == "ISERROR" || function == "ISERR" || function == "ISNA" || function == "ISFORMULA")
+                    if ((function == "ISBLANK" || function == "ISNUMBER" || function == "ISLOGICAL" || function == "ISTEXT" || function == "ISERROR" || function == "ISERR" || function == "ISNA" || function == "ISFORMULA")
                         && TryEvaluateInfoFunction(function, args, out result)) {
                         return true;
                     }
@@ -646,16 +738,25 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (TryEvaluateFormula(formula, out double numeric)) {
-                result = new FormulaArgumentValue(numeric, InvariantNumberText.Get(numeric));
+            if (TryEvaluateFormulaCore(formula, out double numeric, out FormulaArgumentValue error)) {
+                bool isBoolean = functionCall != null && (functionCall.Name.Equals("AND", StringComparison.OrdinalIgnoreCase)
+                    || functionCall.Name.Equals("OR", StringComparison.OrdinalIgnoreCase) || functionCall.Name.Equals("NOT", StringComparison.OrdinalIgnoreCase));
+                result = new FormulaArgumentValue(numeric, InvariantNumberText.Get(numeric), isBoolean: isBoolean);
                 return true;
             }
+
+            if (error.IsError) { result = error; return true; }
 
             return false;
         }
 
         private bool TryEvaluateFormula(string formula, out double result) {
+            return TryEvaluateFormulaCore(formula, out result, out _);
+        }
+
+        private bool TryEvaluateFormulaCore(string formula, out double result, out FormulaArgumentValue error) {
             result = 0;
+            error = default;
             if (string.IsNullOrWhiteSpace(formula) || formula.Length > MaxSupportedFormulaLength) {
                 return false;
             }
@@ -708,7 +809,7 @@ namespace OfficeIMO.Excel {
                         return true;
                     }
 
-                    if (function == "ISBLANK" || function == "ISNUMBER" || function == "ISTEXT" || function == "ISERROR" || function == "ISERR" || function == "ISNA" || function == "ISFORMULA") {
+                    if (function == "ISBLANK" || function == "ISNUMBER" || function == "ISLOGICAL" || function == "ISTEXT" || function == "ISERROR" || function == "ISERR" || function == "ISNA" || function == "ISFORMULA") {
                         if (!TryEvaluateInfoFunction(function, args, out FormulaArgumentValue infoResult) || !infoResult.Number.HasValue) {
                             return false;
                         }
@@ -817,6 +918,12 @@ namespace OfficeIMO.Excel {
                     if (function == "COUNTA") {
                         result = values.Count(v => v.HasValue || !string.IsNullOrEmpty(v.Text));
                         return true;
+                    }
+
+                    if (function != "COUNT") {
+                        foreach (FormulaArgumentValue value in values) {
+                            if (value.IsError) { error = value; return false; }
+                        }
                     }
 
                     var numbers = values.Where(v => v.Number.HasValue).Select(v => v.Number!.Value).ToList();

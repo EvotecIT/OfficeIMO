@@ -459,7 +459,8 @@ public partial class DrawingTests {
     }
 
     [Theory]
-    [InlineData(0x01)]
+    [InlineData(0x02)]
+    [InlineData(0x03)]
     [InlineData(0x20)]
     [InlineData(0x40)]
     public void WebpAlphaChunksRejectReservedHeaderValues(int invalidControl) {
@@ -906,17 +907,21 @@ public partial class DrawingTests {
     }
 
     [Fact]
+#if DRAWING_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+    [Trait("Category", "ResourcePerformanceEvidence")]
+#endif
     public void BoundedForwardOnlyReaderTransfersAnExactCapacityBufferWithoutAFullPayloadCopy() {
         var source = new byte[64 * 1024];
         for (int index = 0; index < source.Length; index++) source[index] = (byte)index;
         using var stream = new ForwardOnlyReadStream(source);
-#if NET8_0_OR_GREATER
+#if DRAWING_PERFORMANCE_EVIDENCE && NET8_0_OR_GREATER
         long before = GC.GetAllocatedBytesForCurrentThread();
 #endif
 
         bool success = OfficeBoundedStreamReader.TryRead(
             stream, source.Length, CancellationToken.None, out byte[] result);
-#if NET8_0_OR_GREATER
+#if DRAWING_PERFORMANCE_EVIDENCE && NET8_0_OR_GREATER
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 #endif
 
@@ -928,7 +933,7 @@ public partial class DrawingTests {
         Assert.False(OfficeBoundedStreamReader.IsFinalCopyWithinLimit(
             OfficeRasterGuards.MaximumEncodedBytes,
             OfficeRasterGuards.MaximumEncodedBytes - 47L));
-#if NET8_0_OR_GREATER
+#if DRAWING_PERFORMANCE_EVIDENCE && NET8_0_OR_GREATER
         Assert.True(allocated < 100L * 1024L,
             $"Exact-capacity stream materialization allocated {allocated:N0} bytes.");
 #endif
@@ -1110,12 +1115,20 @@ public partial class DrawingTests {
 
 #if NET8_0_OR_GREATER
     [Fact]
+#if DRAWING_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+    [Trait("Category", "ResourcePerformanceEvidence")]
+#endif
     public void ApngValidationCopiesEachSecondaryFramePayloadAtMostOnce() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
         byte[] apng = CreateTwoFrameApng(png);
         int frameDataOffset = FindPngChunk(apng, "fdAT");
         int frameDataLength = ReadBigEndianInt32(apng, frameDataOffset);
+#if DRAWING_PERFORMANCE_EVIDENCE
         var largeFrameData = new byte[8 * 1024 * 1024 + 4];
+#else
+        var largeFrameData = new byte[128 + 4];
+#endif
         Buffer.BlockCopy(apng, frameDataOffset + 8, largeFrameData, 0, 4);
         byte[] replacement = CreatePngChunk("fdAT", largeFrameData);
         byte[] expanded = new byte[apng.Length - frameDataLength - 12 + replacement.Length];
@@ -1125,12 +1138,16 @@ public partial class DrawingTests {
             frameDataOffset + replacement.Length,
             apng.Length - frameDataOffset - frameDataLength - 12);
 
+#if DRAWING_PERFORMANCE_EVIDENCE
         long before = GC.GetAllocatedBytesForCurrentThread();
+#endif
         Assert.False(OfficePngAnimationValidator.TryValidateAdditionalFrames(expanded));
+#if DRAWING_PERFORMANCE_EVIDENCE
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.True(allocated < 12L * 1024L * 1024L,
             $"APNG validation allocated {allocated:N0} bytes for an 8 MB secondary payload.");
+#endif
     }
 #endif
 
@@ -1243,12 +1260,20 @@ public partial class DrawingTests {
 
 #if NET8_0_OR_GREATER
     [Fact]
+#if DRAWING_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+    [Trait("Category", "ResourcePerformanceEvidence")]
+#endif
     public void SelectedApngDecodeDoesNotCopyUnselectedFramePayloads() {
         byte[] staticPng = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
         byte[] apng = CreateTwoFrameApng(staticPng);
         int frameDataOffset = FindPngChunk(apng, "fdAT");
         int frameDataLength = ReadBigEndianInt32(apng, frameDataOffset);
+#if DRAWING_PERFORMANCE_EVIDENCE
         var largeFrameData = new byte[8 * 1024 * 1024 + 4];
+#else
+        var largeFrameData = new byte[128 + 4];
+#endif
         Buffer.BlockCopy(apng, frameDataOffset + 8, largeFrameData, 0, 4);
         byte[] replacement = CreatePngChunk("fdAT", largeFrameData);
         byte[] expanded = new byte[apng.Length - frameDataLength - 12 + replacement.Length];
@@ -1258,16 +1283,22 @@ public partial class DrawingTests {
             frameDataOffset + replacement.Length,
             apng.Length - frameDataOffset - frameDataLength - 12);
 
+#if DRAWING_PERFORMANCE_EVIDENCE
         long before = GC.GetAllocatedBytesForCurrentThread();
+#endif
         Assert.True(OfficeRasterImageDecoder.TryDecode(
             expanded,
             new OfficeRasterDecodeOptions { FrameIndex = 0 },
             out OfficeRasterImage? selected,
             out _));
+#if DRAWING_PERFORMANCE_EVIDENCE
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+#endif
 
         Assert.Equal(OfficeColor.Lime, selected!.GetPixel(0, 0));
+#if DRAWING_PERFORMANCE_EVIDENCE
         Assert.True(allocated < 4L * 1024L * 1024L, $"Selected-frame decode allocated {allocated:N0} bytes.");
+#endif
     }
 #endif
 

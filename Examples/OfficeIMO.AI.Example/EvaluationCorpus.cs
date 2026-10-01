@@ -3,11 +3,6 @@ using OfficeIMO.AI;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 
-internal sealed record EvaluationCase(string Id, string Extension, byte[] Source, OfficeAiRequest Request, bool Images,
-    string Expected, EvaluationGold Gold) {
-    public string Split { get; init; } = "development";
-}
-
 internal static class EvaluationCorpus {
     public const string Version = "officeimo.ai.synthetic.v3";
 

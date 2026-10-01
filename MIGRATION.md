@@ -19,6 +19,130 @@ Semantic RTF writing defaults to `RtfWriteOptions.MaterializeStyleFormatting = t
 
 RTF append reports differences in document-wide settings even with `PreserveSections`, and reports discarded root page setup and alternate HTML. Empty destinations adopt unset source settings. When content is combined, aggregate page, word, and character counts are cleared and reported; recalculate them in the consuming application. Strict callers must inspect these merge diagnostics before accepting the result.
 
+## Invoice financial edits and standalone payment data
+
+`InvoiceCalculator.UpdateDeclaredAmounts` invalidates an accounting-currency VAT
+amount when invoice VAT changes or has no retained baseline. Supply a refreshed
+`TaxAmountInAccountingCurrency`, or use the exchange-rate overload, before writing.
+`InvoiceEditor.Recalculate` returns the corresponding refresh diagnostic.
+Applications that relied on retaining the old foreign-currency amount must make
+this accounting decision explicitly.
+Changing `Currency` or an established `TaxCurrency` also clears the foreign-currency
+VAT amount. Set currencies before supplying a refreshed amount.
+
+CII payment references, creditor identifiers and mandates without payment means
+now populate `Invoice.PaymentReference`, `CreditorIdentifier` and
+`DirectDebitMandateReference`. UBL seller creditor identifiers without payment
+means populate `CreditorIdentifier`. These sources no longer create an empty
+`InvoicePayment`. Read the independent fields when handling such documents;
+`Payments` contains only actual payment instructions.
+
+VAT-breakdown validation diagnostics identify the exact `DeclaredTaxes[index]`
+occurrence. Update any application routing that matched the former collection-only
+paths.
+
+`OfficeInvoiceWorkflowOperation` includes `EditSource`. Update exhaustive
+operation switches to handle it. For this operation, `Source` and
+`ModelValidation` describe the edited XML, and `Succeeded` means that the
+requested replacements completed. Model or mapping errors can remain in the
+report; requested standards validation must pass before output is returned.
+Create captured edit requests through `ForSourceEdit` on the memory or file
+request type.
+## CSV asynchronous reads and stream saves
+
+On .NET 8 and later, `CsvDocument.OpenDataReaderAsync` reads incrementally.
+Opening reads the header and any configured schema sample; later `ReadAsync`
+calls perform source I/O. Source limits and parsing errors can therefore occur
+during traversal. The opening cancellation token remains active until the
+reader is disposed, and cancellation or a failed advance ends the reader.
+Caller-owned streams remain open, but their position advances and is not restored.
+
+For a materialized snapshot with memory-backed traversal, load the document first:
+
+```csharp
+var csv = await CsvDocument.LoadAsync(stream, cancellationToken: cancellationToken);
+using DbDataReader reader = csv.CreateDataReader();
+```
+
+`LoadAsync(Stream, ...)` reads a seekable stream from its beginning and restores
+its original position afterward. To snapshot CSV after a non-CSV prefix, pass a
+bounded stream view or copy the remaining CSV bytes to a separate stream.
+
+`CsvDocument.SaveAsync(Stream, ...)` writes records incrementally instead of
+serializing the complete CSV before the first write. If formatting, cancellation,
+or destination I/O fails, a caller-owned stream can contain partial output. Save
+to a path when replacement must be staged before commit. Appending to an existing
+path also writes directly and can leave a partial append on failure.
+
+`Append` and `NoClobber` are path-only options. Passing either to
+`SaveAsync(Stream, ...)` now throws `ArgumentException` instead of silently
+ignoring it.
+
+## Excel typed formula caches
+
+OfficeIMO calculation now saves Boolean formulas as Boolean cached values.
+Comparisons, logical functions, information functions, and `EXACT` read back as
+`bool` through cached-value readers instead of numeric `1` or `0`. Applications
+that previously cast these results to `double` should accept `bool`, or convert
+explicitly with `Convert.ToDouble` when a numeric representation is required.
+
+`CellAt(...).GetValue().Value` also retains native cached result types. Boolean
+formula caches return `bool`, and text formulas such as `="12"` return `string`
+instead of being inferred as numeric values. Match the returned value type before
+performing numeric casts.
+
+## Excel pivot items without data
+
+New pivot fields default to `ShowAll = false`, which hides items without data.
+To preserve the previous display behavior, pass field options such as
+`new ExcelPivotFieldOptions("Region", showAll: true)` to `AddPivotTable` or its
+fluent builder. Headless `MaterializePivotTable` does not support showing items
+without data; refresh those layouts in Excel instead.
+
+## Excel time-only and elapsed values
+
+Date-format interpretation distinguishes calendar dates from time-only and
+elapsed values. Formats such as `hhmmss` and `[h]:mm` retain an unshifted OLE
+Automation `DateTime` carrier in either workbook date system. Code that treated
+the carrier's date as a calendar date in a 1904 workbook must use its time or
+duration serial instead. Use a numeric getter, or set
+`ExcelReadOptions.TreatDatesUsingNumberFormat = false`, to retrieve the original
+serial directly. Calendar date formats continue to use the workbook date system.
+
+This distinction also applies to XLS and XLSB tabular readers. Early calendar
+serials in XLS and XLSB use the same January 1, 1900 = serial 1 contract as XLSX.
+
+## XLS import date-system preservation
+
+XLS import retains the source workbook's date system, numeric date and duration
+serials, and date-validation literals. A 1904 workbook therefore remains a 1904
+workbook instead of having its styled date values rewritten into the 1900 system.
+Applications that assumed every imported XLS used the 1900 system must inspect
+`ExcelDocument.DateSystem` before interpreting numeric calendar values. Serial 60
+remains 60 through import and save; reading it as `DateTime` still uses the
+February 28 surrogate because .NET cannot represent February 29, 1900.
+
+## Excel dates before March 1900
+
+The 1900 date-system converter now uses Excel serials rather than OLE Automation
+serials for dates before March 1, 1900. January 1 is serial 1 and February 28 is
+serial 59. Applications that persisted the previous early-date numbers should
+recreate them from their original dates. Serial 60 remains Excel's fictitious
+February 29 and maps to February 28 when read as `DateTime`. Modern dates and
+the 1904 date system keep their existing serials. Negative serials in the 1900
+system extend the December 31, 1899 epoch backwards, including fractional days;
+they no longer use OLE Automation's negative-fraction convention.
+
+## OCR outcomes and AI evaluation
+
+Calls through `OcrEngineRunner` now throw `OcrEngineExecutionException` for provider exceptions, null results, and nonrecoverable error diagnostics. Catch this type and inspect `Kind` instead of parsing provider exception messages. Provider exception text and inner exceptions are omitted; caller cancellation and shared timeouts remain distinct. Reader's continue-on-error mode records a failed candidate rather than enriching from a nonrecoverable result.
+
+Invalid Reader OCR confidence values now become `null` instead of being clamped to zero or one. Treat them as unavailable quality evidence. PDF workflows reject recognition with no eligible words and no native text; deliberate empty review selections still create an unchanged source copy. Image workflows reject empty recognition before review and publication.
+
+AI Date fields require formats with a year, month, and day. Partial formats return `Invalid` rather than inventing calendar components. Numeric currency-context validation stops at line breaks.
+
+The synthetic AI evaluation report uses schema `officeimo.ai.evaluation.v3` and `contractPassed`. A successful initial contract evaluation returns exit code `4` until independent semantic review is complete. Use the example's offline `--review-evaluation` command with semantic-review v2 labels bound to both evaluation and per-run report hashes; exit code `0` then means every selected case passed both contract and review checks. Earlier v1 labels must be regenerated and independently assessed against the current evaluation.
+
 ## Reader document schema version 8
 
 `OfficeDocumentReadResult` now emits schema version 8. This version adds
@@ -1831,11 +1955,11 @@ The low-level `CsvFile` compression helper is no longer public. Use
 `TextReader` / `TextWriter` streams so file and compression behavior stays with
 the operation being performed.
 
-CSV `LoadAsync` and `SaveAsync` use asynchronous source or destination I/O but
-still materialize the document or serialized output. Use `OpenDataReader` for a
-bounded forward-only cursor. That reader remains synchronous and can be cast to
-`ICsvDataReaderPositionMetadata` for logical record numbers and available
-physical start/end line numbers.
+CSV `LoadAsync` materializes an editable document. `SaveAsync` writes records
+incrementally. Use `OpenDataReader` for synchronous forward-only reading or,
+on .NET 8 and later, `OpenDataReaderAsync` for incremental asynchronous I/O.
+Both readers expose `ICsvDataReaderPositionMetadata` for logical record numbers
+and available physical start/end line numbers.
 
 `WriteRows` keeps typed cell dispatch without boxing when its typed `Write`
 overloads are used. Use `WriteRowsAsync` for an `IAsyncEnumerable<T>` source; it

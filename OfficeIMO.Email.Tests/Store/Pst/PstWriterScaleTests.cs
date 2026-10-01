@@ -6,6 +6,7 @@ using Xunit.Abstractions;
 
 namespace OfficeIMO.Email.Store.Tests;
 
+[Trait("Category", "Performance")]
 public sealed class PstWriterScaleTests {
     private readonly ITestOutputHelper _output;
 

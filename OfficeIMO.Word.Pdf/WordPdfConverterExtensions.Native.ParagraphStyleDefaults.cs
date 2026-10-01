@@ -34,6 +34,7 @@ namespace OfficeIMO.Word.Pdf {
             bool? ContextualSpacing,
             string? ShadingFillColorHex,
             NativeParagraphBorders Borders) {
+            public NativeComplexScriptDefaults ComplexScript { get; init; }
             public static NativeParagraphStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, NativeParagraphBorders.Empty);
         }
 
@@ -61,6 +62,7 @@ namespace OfficeIMO.Word.Pdf {
             W.VerticalPositionValues? Baseline,
             string? ColorHex,
             W.HighlightColorValues? Highlight) {
+            public NativeComplexScriptDefaults ComplexScript { get; init; }
             public static NativeCharacterStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null);
         }
 
@@ -77,6 +79,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             NativeDocumentDefaults documentDefaults = GetNativeDocumentDefaults(paragraph._document);
+            NativeComplexScriptDefaults complexScript = default;
             double? fontSize = null;
             string? fontFamily = null;
             bool? bold = null;
@@ -107,6 +110,7 @@ namespace OfficeIMO.Word.Pdf {
 
             foreach (W.Style style in styleChain) {
                 W.StyleRunProperties? runProperties = style.GetFirstChild<W.StyleRunProperties>();
+                complexScript = complexScript.Merge(runProperties);
                 fontSize = GetNativeStyleFontSize(runProperties) ?? fontSize;
                 fontFamily = ResolveNativeRunFontsFamily(paragraph._document, runProperties?.GetFirstChild<W.RunFonts>()) ?? fontFamily;
                 bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>()) ?? bold;
@@ -194,7 +198,7 @@ namespace OfficeIMO.Word.Pdf {
                 widowControl,
                 contextualSpacing,
                 shadingFillColorHex,
-                borders);
+                borders) { ComplexScript = complexScript };
             if (cache != null && !string.IsNullOrWhiteSpace(resolvedStyleId)) {
                 cache.ParagraphDefaults[resolvedStyleId!] = result;
             }
@@ -240,6 +244,7 @@ namespace OfficeIMO.Word.Pdf {
                 return NativeCharacterStyleDefaults.Empty;
             }
 
+            NativeComplexScriptDefaults complexScript = default;
             double? fontSize = null;
             string? fontFamily = null;
             bool? bold = null;
@@ -254,6 +259,7 @@ namespace OfficeIMO.Word.Pdf {
 
             foreach (W.Style style in styleChain) {
                 W.StyleRunProperties? styleRunProperties = style.GetFirstChild<W.StyleRunProperties>();
+                complexScript = complexScript.Merge(styleRunProperties);
                 fontSize = GetNativeStyleFontSize(styleRunProperties) ?? fontSize;
                 fontFamily = ResolveNativeRunFontsFamily(document, styleRunProperties?.GetFirstChild<W.RunFonts>()) ?? fontFamily;
                 bold = ReadNativeOnOff(styleRunProperties?.GetFirstChild<W.Bold>()) ?? bold;
@@ -278,7 +284,7 @@ namespace OfficeIMO.Word.Pdf {
                 allCaps,
                 baseline,
                 colorHex,
-                highlight);
+                highlight) { ComplexScript = complexScript };
             if (cache != null && !string.IsNullOrWhiteSpace(styleId)) {
                 cache.CharacterDefaults[styleId!] = result;
             }

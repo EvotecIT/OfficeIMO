@@ -921,7 +921,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return true;
             }
 
-            if (LegacyXlsErrorValue.TryGetCode(text, out byte errorCode)) {
+            if (ExcelErrorCode.TryGetCode(text, out byte errorCode)) {
                 tokens = new[] { (byte)0x1c, errorCode };
                 return true;
             }

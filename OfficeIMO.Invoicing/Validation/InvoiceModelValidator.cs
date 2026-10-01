@@ -8,6 +8,14 @@ public static partial class InvoiceModelValidator {
     /// <summary>Validates the model; use pinned external rules separately for authoritative profile compliance.</summary>
     public static InvoiceModelValidationResult Validate(Invoice invoice) => Validate(invoice, null);
 
+    /// <summary>Validates a parsed source model, retaining the aggregate-only semantics declared by recognized MINIMUM or BASIC WL sources. This does not run standards rules.</summary>
+    public static InvoiceModelValidationResult ValidateSource(InvoiceReadResult source) {
+        if (source == null) throw new ArgumentNullException(nameof(source));
+        InvoiceProfile? profile = source.Declaration.Profile;
+        return Validate(source.Invoice, source.Invoice.Lines.Count == 0 &&
+            profile is InvoiceProfile.Minimum or InvoiceProfile.BasicWithoutLines ? profile : null);
+    }
+
     internal static InvoiceModelValidationResult ValidateForTarget(Invoice invoice, InvoiceXmlOptions options) {
         InvoiceProfile? aggregateProfile = options.Release == InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2 &&
             options.Profile is (InvoiceProfile.Minimum or InvoiceProfile.BasicWithoutLines) && invoice.Lines.Count == 0
@@ -59,6 +67,9 @@ public static partial class InvoiceModelValidator {
         }
         check.Money(invoice.PrepaidAmount, "PrepaidAmount");
         check.Money(invoice.RoundingAmount, "RoundingAmount");
+        if (invoice.PaymentReference != null) check.Required(invoice.PaymentReference, "PaymentReference");
+        if (invoice.CreditorIdentifier != null) check.Required(invoice.CreditorIdentifier, "CreditorIdentifier");
+        if (invoice.DirectDebitMandateReference != null) check.Required(invoice.DirectDebitMandateReference, "DirectDebitMandateReference");
         if (invoice.PrepaidAmount < 0m) check.Error("INV-PREPAID", "Prepaid amount cannot be negative.", "PrepaidAmount");
         if ((invoice.TaxCurrency != null) != invoice.TaxAmountInAccountingCurrency.HasValue)
             check.Error("INV-TAX-CURRENCY", "Supply both the accounting currency and its VAT amount.", "TaxCurrency");

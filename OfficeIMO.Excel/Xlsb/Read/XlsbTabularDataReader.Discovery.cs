@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             XlsbImportOptions limits,
             XlsbRecordReadBudget recordBudget,
             XlsbCellReadBudget cellBudget,
-            bool[] dateStyles,
+            ExcelSerialDateStyle[] dateStyles,
             int sharedStringCount,
             bool treatDatesUsingNumberFormat,
             bool useCachedFormulaResult,
@@ -221,7 +221,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         EnsureFormulaModeSupported(recordType, useCachedFormulaResult);
                     }
                     int column;
-                    bool isDate = false;
+                    ExcelSerialDateStyle dateStyle = ExcelSerialDateStyle.None;
                     if (recordSize >= sizeof(int) + sizeof(uint)
                         && recordType is >= BrtCellBlank and <= BrtCellIsst) {
                         ref byte payload = ref Unsafe.Add(ref data, payloadOffset);
@@ -233,9 +233,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                                 $"The XLSB cell record at offset {recordOffset} refers to missing cell format " +
                                 $"{styleIndex}; the styles part exposes {styleCount} format(s).");
                         }
-                        isDate = treatDatesUsingNumberFormat
-                            && recordType is BrtCellRk or BrtCellReal
-                            && dateStyles[styleIndex];
+                        dateStyle = treatDatesUsingNumberFormat && recordType is BrtCellRk or BrtCellReal
+                            ? dateStyles[styleIndex] : ExcelSerialDateStyle.None;
 
                         int valueBytes = recordSize - sizeof(int) - sizeof(uint);
                         bool validFixedPayload = recordType switch {
@@ -294,7 +293,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         payloadOffset,
                         recordSize,
                         column,
-                        isDate);
+                        dateStyle);
                     bool covered = currentRowSpanCount == 1
                         ? currentRowSpanBounds[0] <= column && column <= currentRowSpanBounds[1]
                         : IsCoveredByRowSpan(currentRowSpanBounds, currentRowSpanCount, column);

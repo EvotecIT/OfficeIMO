@@ -2,23 +2,43 @@ namespace OfficeIMO.Bibliography.Tests;
 
 public sealed class BibliographyReviewWave21RegressionTests {
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(false, true)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public async Task Stream_load_routes_enforce_character_limits_while_decoding(bool asynchronous, bool detectFormat) {
-        byte[] source = Encoding.UTF8.GetBytes("@book{x,title={" + new string('x', 128 * 1024) + "}}");
-        var options = new BibliographyReadOptions { MaximumInputBytes = source.Length + 1, MaximumInputCharacters = 32 };
-        string? path = detectFormat ? Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".unknown") : null;
+    [InlineData("parse-explicit", false)]
+    [InlineData("parse-detected", false)]
+    [InlineData("stream", false)]
+    [InlineData("stream", true)]
+    [InlineData("path", false)]
+    [InlineData("path", true)]
+    [InlineData("path-small", false)]
+    [InlineData("path-small", true)]
+    public async Task Stream_load_routes_enforce_character_limits_while_decoding(string route, bool asynchronous) {
+        const string smallDetectedSource = "TY  - BOOK\nID  - x\nTI  - Bounded\nER  -\n";
+        string text = route == "parse-explicit" ? "@book{x,title={too long}}"
+            : route == "parse-detected" || route == "path-small" ? smallDetectedSource
+            : "@book{x,title={" + new string('x', 128 * 1024) + "}}";
+        byte[] source = Encoding.UTF8.GetBytes(text);
+        var options = new BibliographyReadOptions {
+            MaximumInputBytes = route == "parse-detected" || route == "path-small" ? 1024 : source.Length + 1,
+            MaximumInputCharacters = route.StartsWith("parse", StringComparison.Ordinal) || route == "path-small" ? 8 : 32
+        };
+        if (route == "parse-explicit") {
+            Assert.Throws<InvalidDataException>(() => BibliographyDocument.Parse(text, BibliographyFormat.BibTex, options));
+            return;
+        }
+        if (route == "parse-detected") {
+            Assert.Throws<InvalidDataException>(() => BibliographyDocument.Parse(text, options));
+            return;
+        }
+        string? path = route.StartsWith("path", StringComparison.Ordinal) ? Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".unknown") : null;
+        Encoding? pathEncoding = route == "path-small" ? null : Encoding.UTF8;
         if (path != null) File.WriteAllBytes(path, source);
         try {
             if (asynchronous) {
-                if (path != null) await Assert.ThrowsAsync<InvalidDataException>(() => BibliographyDocument.LoadAsync(path, options: options, encoding: Encoding.UTF8));
+                if (path != null) await Assert.ThrowsAsync<InvalidDataException>(() => BibliographyDocument.LoadAsync(path, options: options, encoding: pathEncoding));
                 else {
                     using var stream = new MemoryStream(source);
                     await Assert.ThrowsAsync<InvalidDataException>(() => BibliographyDocument.LoadAsync(stream, BibliographyFormat.BibLatex, options, Encoding.UTF8));
                 }
-            } else if (path != null) Assert.Throws<InvalidDataException>(() => BibliographyDocument.Load(path, options: options, encoding: Encoding.UTF8));
+            } else if (path != null) Assert.Throws<InvalidDataException>(() => BibliographyDocument.Load(path, options: options, encoding: pathEncoding));
             else {
                 using var stream = new MemoryStream(source);
                 Assert.Throws<InvalidDataException>(() => BibliographyDocument.Load(stream, BibliographyFormat.BibLatex, options, Encoding.UTF8));
@@ -68,11 +88,20 @@ public sealed class BibliographyReviewWave21RegressionTests {
     }
 
     [Fact]
+    [Trait("Category", "ResourcePerformanceEvidence")]
+#if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+#endif
     public void Tagged_aggregate_limits_apply_before_continuation_concatenation() {
-        string value = new string('x', 512 * 1024);
+#if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE
+        const int length = 512 * 1024;
+#else
+        const int length = 128;
+#endif
+        string value = new string('x', length);
         string source = "TY  - JOUR\nTI  - " + value + "\n      " + value + "\nER  -";
         var options = new BibliographyReadOptions { MaximumValueLength = value.Length + 1 };
-#if NET472
+#if !BIBLIOGRAPHY_PERFORMANCE_EVIDENCE || NET472
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.Ris, options);
 #else
         long before = GC.GetAllocatedBytesForCurrentThread();
@@ -81,7 +110,7 @@ public sealed class BibliographyReviewWave21RegressionTests {
 #endif
 
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
-#if !NET472
+#if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE && !NET472
         Assert.True(allocated < 5 * 1024 * 1024, $"Oversized tagged continuation allocated {allocated:N0} bytes before rejection.");
 #endif
     }

@@ -1,0 +1,284 @@
+{
+  "sourceHead": "d8b919f5f",
+  "runtime": "net10.0",
+  "host": "Windows 11, AMD Ryzen 9 9950X3D2",
+  "policy": "BenchmarkDotNet 0.15.8; affinity 0xFFFF and 0xFFFF0000; AboveNormal; eight invocations; four warmups; eight measured iterations; one launch; outliers retained",
+  "runs": [
+    {
+      "run": "baseline",
+      "cases": [
+        {
+          "method": "OfficeIMO_WriteDataReader",
+          "affinity": "0xFFFF",
+          "meanNanoseconds": 37707473.4375,
+          "allocatedBytes": 18234608,
+          "samplesNanoseconds": [
+            38187287.5,
+            38093800,
+            38429262.5,
+            38594925,
+            37397837.5,
+            38016562.5,
+            37483212.5,
+            35456900
+          ]
+        },
+        {
+          "method": "Sylvan_WriteProjectedRows",
+          "affinity": "0xFFFF",
+          "meanNanoseconds": 27688535.9375,
+          "allocatedBytes": 18193360,
+          "samplesNanoseconds": [
+            25422431.25,
+            28120281.25,
+            28103343.75,
+            30118568.75,
+            25689306.25,
+            26265206.25,
+            29851706.25,
+            27937443.75
+          ]
+        },
+        {
+          "method": "OfficeIMO_WriteDataReader",
+          "affinity": "0xFFFF0000",
+          "meanNanoseconds": 36556896.875,
+          "allocatedBytes": 18234608,
+          "samplesNanoseconds": [
+            36448018.75,
+            33178306.25,
+            33029031.25,
+            36054156.25,
+            37326081.25,
+            38627256.25,
+            38797943.75,
+            38994381.25
+          ]
+        },
+        {
+          "method": "Sylvan_WriteProjectedRows",
+          "affinity": "0xFFFF0000",
+          "meanNanoseconds": 32816110.9375,
+          "allocatedBytes": 18193360,
+          "samplesNanoseconds": [
+            35817087.5,
+            29782962.5,
+            29760762.5,
+            35690987.5,
+            29247262.5,
+            36752112.5,
+            35694425,
+            29783287.5
+          ]
+        }
+      ]
+    },
+    {
+      "run": "candidate",
+      "cases": [
+        {
+          "method": "OfficeIMO_WriteDataReader",
+          "affinity": "0xFFFF",
+          "meanNanoseconds": 32026443.75,
+          "allocatedBytes": 18151680,
+          "samplesNanoseconds": [
+            32449206.25,
+            28141106.25,
+            30916856.25,
+            32163043.75,
+            32763018.75,
+            36340231.25,
+            32342693.75,
+            31095393.75
+          ]
+        },
+        {
+          "method": "Sylvan_WriteProjectedRows",
+          "affinity": "0xFFFF",
+          "meanNanoseconds": 27114679.6875,
+          "allocatedBytes": 18193360,
+          "samplesNanoseconds": [
+            25370187.5,
+            28059375,
+            26476300,
+            28441925,
+            24952687.5,
+            28049175,
+            27935137.5,
+            27632650
+          ]
+        },
+        {
+          "method": "OfficeIMO_WriteDataReader",
+          "affinity": "0xFFFF0000",
+          "meanNanoseconds": 35899715.625,
+          "allocatedBytes": 18151680,
+          "samplesNanoseconds": [
+            34956418.75,
+            36024606.25,
+            30377693.75,
+            38392593.75,
+            35362531.25,
+            37090106.25,
+            38990231.25,
+            36003543.75
+          ]
+        },
+        {
+          "method": "Sylvan_WriteProjectedRows",
+          "affinity": "0xFFFF0000",
+          "meanNanoseconds": 31001790.625,
+          "allocatedBytes": 18193360,
+          "samplesNanoseconds": [
+            30084850,
+            28284125,
+            28575150,
+            34055537.5,
+            30314787.5,
+            32870287.5,
+            32871912.5,
+            30957675
+          ]
+        }
+      ]
+    },
+    {
+      "run": "baseline2",
+      "cases": [
+        {
+          "method": "OfficeIMO_WriteDataReader",
+          "affinity": "0xFFFF",
+          "meanNanoseconds": 30782521.875,
+          "allocatedBytes": 18234608,
+          "samplesNanoseconds": [
+            31906643.75,
+            32052931.25,
+            29798706.25,
+            27868168.75,
+            35710056.25,
+            30970506.25,
+            30932443.75,
+            27020718.75
+          ]
+        },
+        {
+          "method": "Sylvan_WriteProjectedRows",
+          "affinity": "0xFFFF",
+          "meanNanoseconds": 26921434.375,
+          "allocatedBytes": 18193360,
+          "samplesNanoseconds": [
+            26582937.5,
+            25867512.5,
+            25248562.5,
+            28963937.5,
+            26029537.5,
+            27637825,
+            27827075,
+            27214087.5
+          ]
+        },
+        {
+          "method": "OfficeIMO_WriteDataReader",
+          "affinity": "0xFFFF0000",
+          "meanNanoseconds": 34607623.4375,
+          "allocatedBytes": 18234608,
+          "samplesNanoseconds": [
+            28693468.75,
+            31654293.75,
+            35568368.75,
+            33252918.75,
+            39589368.75,
+            38465768.75,
+            37400881.25,
+            32235918.75
+          ]
+        },
+        {
+          "method": "Sylvan_WriteProjectedRows",
+          "affinity": "0xFFFF0000",
+          "meanNanoseconds": 29895634.375,
+          "allocatedBytes": 18193360,
+          "samplesNanoseconds": [
+            31203125,
+            30072500,
+            31678325,
+            29745062.5,
+            27430250,
+            32301250,
+            26754287.5,
+            29980275
+          ]
+        }
+      ]
+    },
+    {
+      "run": "candidate2",
+      "cases": [
+        {
+          "method": "OfficeIMO_WriteDataReader",
+          "affinity": "0xFFFF",
+          "meanNanoseconds": 32479832.8125,
+          "allocatedBytes": 18151680,
+          "samplesNanoseconds": [
+            31926387.5,
+            32681312.5,
+            30902925,
+            36533262.5,
+            32595387.5,
+            32554525,
+            33285312.5,
+            29359550
+          ]
+        },
+        {
+          "method": "Sylvan_WriteProjectedRows",
+          "affinity": "0xFFFF",
+          "meanNanoseconds": 26105007.8125,
+          "allocatedBytes": 18193360,
+          "samplesNanoseconds": [
+            24202125,
+            26756375,
+            27134600,
+            28002987.5,
+            27250812.5,
+            24235687.5,
+            25547087.5,
+            25710387.5
+          ]
+        },
+        {
+          "method": "OfficeIMO_WriteDataReader",
+          "affinity": "0xFFFF0000",
+          "meanNanoseconds": 35069137.5,
+          "allocatedBytes": 18151680,
+          "samplesNanoseconds": [
+            33521043.75,
+            36077531.25,
+            35976268.75,
+            35518556.25,
+            34901943.75,
+            35050943.75,
+            33529993.75,
+            35976818.75
+          ]
+        },
+        {
+          "method": "Sylvan_WriteProjectedRows",
+          "affinity": "0xFFFF0000",
+          "meanNanoseconds": 31152456.25,
+          "allocatedBytes": 18193360,
+          "samplesNanoseconds": [
+            29402462.5,
+            30447750,
+            32902462.5,
+            23504600,
+            36146987.5,
+            32096025,
+            31451637.5,
+            33267725
+          ]
+        }
+      ]
+    }
+  ]
+}

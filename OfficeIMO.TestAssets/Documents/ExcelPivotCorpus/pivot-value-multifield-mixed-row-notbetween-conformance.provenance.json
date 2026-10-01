@@ -1,0 +1,21 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "producerUiLanguageId": 1033,
+  "producerDecimalSeparator": ".",
+  "producerThousandsSeparator": ",",
+  "hostCulture": "pl-PL",
+  "generatedUtc": "2026-09-28T22:13:11.9200725Z",
+  "regeneration": "Build/Verification/New-ExcelPivotMultiFieldValueOracle.ps1",
+  "file": "pivot-value-multifield-mixed-row-notbetween-conformance.xlsx",
+  "sha256": "3955f2e6ec1d8f5e207d9ec036b42e95c163d2c60104dc59698cfb0422a885b3",
+  "sourceRange": "Source!A1:C7",
+  "filteredField": "Region",
+  "axis": "Mixed",
+  "filterType": 14,
+  "threshold": 61.0,
+  "threshold2": 65.0,
+  "outputRange": "A4:D8",
+  "grandTotal": 120.0
+}

@@ -1,0 +1,15 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T06:53:46.9376630Z",
+  "regeneration": "Build/Verification/New-ExcelPivotLabelRangeOracle.ps1",
+  "file": "pivot-label-range-between-conformance.xlsx",
+  "sha256": "ec98df5e4f86fd6d8aa28752594f1b68d7d5b1d32412f39af2355a926a3bff16",
+  "sourceRange": "Source!A1:B7",
+  "filterType": 27,
+  "value1": "Bravo",
+  "value2": "Echo",
+  "outputRange": "A4:B9",
+  "grandTotal": 140.0
+}

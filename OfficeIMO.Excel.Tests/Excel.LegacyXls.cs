@@ -168,7 +168,8 @@ namespace OfficeIMO.Tests {
             WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
             WorksheetPart worksheetPart = workbookPart.WorksheetParts.Single();
             Cell projectedDateCell = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference!.Value == "A1");
-            Assert.Equal(new DateTime(1904, 1, 2).ToOADate().ToString(CultureInfo.InvariantCulture), projectedDateCell.CellValue!.Text);
+            Assert.Equal(ExcelDateSystem.NineteenFour, document.DateSystem);
+            Assert.Equal("1", projectedDateCell.CellValue!.Text);
             Assert.NotNull(projectedDateCell.StyleIndex);
             CellFormat dateFormat = workbookPart.WorkbookStylesPart!.Stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)projectedDateCell.StyleIndex!.Value);
             uint dateNumberFormatId = dateFormat.NumberFormatId!.Value;

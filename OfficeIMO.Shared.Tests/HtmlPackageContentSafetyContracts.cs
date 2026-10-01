@@ -171,18 +171,36 @@ public sealed class HtmlPackageContentSafetyContractTests {
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(externalImport));
     }
 
-    [Fact]
-    public void Mhtml_StylesheetFragmentsResolveAgainstTheEmbeddedResource() {
-        byte[] input = new MhtmlDocument(
-            "<html><head><link rel='stylesheet' href='styles/site.css#theme'></head>" +
-            "<body><p class='concealed'>Fragment concealed text.</p></body></html>",
-            new[] {
-                new MhtmlResource(Encoding.UTF8.GetBytes(".concealed { display: none; }"), "text/css", contentLocation: "styles/site.css")
-            },
-            contentLocation: "https://example.test/index.html").ToBytes();
-
+    [Theory]
+    [MemberData(nameof(Mhtml_StylesheetFragmentsUseFragmentFreeResourceIdentityCases))]
+    public void Mhtml_StylesheetFragmentsUseFragmentFreeResourceIdentity(string caseName, byte[] input, string expectedPreview) {
+        _ = caseName;
         Assert.Contains(MhtmlDocument.InspectContentSafety(input).Findings, finding =>
-            finding.TextPreview.Contains("Fragment concealed text", StringComparison.Ordinal));
+            finding.TextPreview.Contains(expectedPreview, StringComparison.Ordinal));
+    }
+
+    public static IEnumerable<object[]> Mhtml_StylesheetFragmentsUseFragmentFreeResourceIdentityCases() {
+        {
+            byte[] input = new MhtmlDocument(
+                "<html><head><link rel='stylesheet' href='styles/site.css#theme'></head>" +
+                "<body><p class='concealed'>Fragment concealed text.</p></body></html>",
+                new[] {
+                    new MhtmlResource(Encoding.UTF8.GetBytes(".concealed { display: none; }"), "text/css", contentLocation: "styles/site.css")
+                },
+                contentLocation: "https://example.test/index.html").ToBytes();
+            yield return new object[] { "Mhtml_StylesheetFragmentsResolveAgainstTheEmbeddedResource", input, "Fragment concealed text" };
+        }
+        {
+            byte[] input = new MhtmlDocument(
+                "<html><head><link rel='stylesheet' href='styles/site.css#requested'></head>" +
+                "<body><p class='concealed'>Stored fragment concealed text.</p></body></html>",
+                new[] {
+                    new MhtmlResource(Encoding.UTF8.GetBytes(".concealed { display: none; }"), "text/css",
+                        contentLocation: "styles/site.css#embedded")
+                },
+                contentLocation: "https://example.test/index.html").ToBytes();
+            yield return new object[] { "Mhtml_StoredStylesheetFragmentsUseFragmentFreeRetrievalIdentity", input, "Stored fragment concealed text" };
+        }
     }
 
     [Fact]
@@ -204,20 +222,6 @@ public sealed class HtmlPackageContentSafetyContractTests {
             finding.TextPreview.Contains("Case-sensitive inline import", StringComparison.Ordinal));
     }
 
-    [Fact]
-    public void Mhtml_StoredStylesheetFragmentsUseFragmentFreeRetrievalIdentity() {
-        byte[] input = new MhtmlDocument(
-            "<html><head><link rel='stylesheet' href='styles/site.css#requested'></head>" +
-            "<body><p class='concealed'>Stored fragment concealed text.</p></body></html>",
-            new[] {
-                new MhtmlResource(Encoding.UTF8.GetBytes(".concealed { display: none; }"), "text/css",
-                    contentLocation: "styles/site.css#embedded")
-            },
-            contentLocation: "https://example.test/index.html").ToBytes();
-
-        Assert.Contains(MhtmlDocument.InspectContentSafety(input).Findings, finding =>
-            finding.TextPreview.Contains("Stored fragment concealed text", StringComparison.Ordinal));
-    }
 
     [Fact]
     public void Mhtml_FileNamesAreNotRelatedResourceRetrievalIdentities() {
@@ -1382,12 +1386,21 @@ public sealed class HtmlPackageContentSafetyContractTests {
     }
 
     [Theory]
-    [InlineData("<style>@supports not (display: block flow-root){.concealed{display:none}}</style>")]
-    [InlineData("<style>@\\73 upports not (display: block flow-root){.concealed{display:none}}</style>")]
-    [InlineData("<style>@import 'nested.css' supports(not (display: block flow-root));</style>")]
-    public void Mhtml_PackageCssRejectsUnmodeledKnownSupportsValuesBeforeNegation(string stylesheet) {
+    [InlineData("<style>@supports not (display: block flow-root){.concealed{display:none}}</style>", "Unmodeled supports text.")]
+    [InlineData("<style>@\\73 upports not (display: block flow-root){.concealed{display:none}}</style>", "Unmodeled supports text.")]
+    [InlineData("<style>@import 'nested.css' supports(not (display: block flow-root));</style>", "Unmodeled supports text.")]
+    [InlineData("<style media='not (prefers-contrast: more)'>.concealed{display:none}</style>", "Unknown media text.")]
+    [InlineData("<link rel='stylesheet' href='nested.css' media='not (prefers-contrast: more)'>", "Unknown media text.")]
+    [InlineData("<style>@import 'nested.css' not (prefers-contrast: more);</style>", "Unknown media text.")]
+    [InlineData("<style>@media not (prefers-contrast: more){.concealed{display:none}}</style>", "Unknown media text.")]
+    [InlineData("<style media='not (min-width: calc(1px))'>.concealed{display:none}</style>", "Unknown media text.")]
+    [InlineData("<link rel='stylesheet' href='nested.css' media='not (min-width: calc(1px))'>", "Unknown media text.")]
+    [InlineData("<style>@import 'nested.css' not (min-width: calc(1px));</style>", "Unknown media text.")]
+    [InlineData("<style>@media not (min-width: calc(1px)){.concealed{display:none}}</style>", "Unknown media text.")]
+    [InlineData("<style>@\\6d edia not (min-width: calc(1px)){.concealed{display:none}}</style>", "Unknown media text.")]
+    public void Mhtml_PackageCssRejectsUnknownNegatedConditions(string stylesheet, string bodyText) {
         byte[] input = new MhtmlDocument(
-            "<html><head>" + stylesheet + "</head><body><p class='concealed'>Unmodeled supports text.</p></body></html>",
+            "<html><head>" + stylesheet + "</head><body><p class='concealed'>" + bodyText + "</p></body></html>",
             new[] {
                 new MhtmlResource(
                     Encoding.UTF8.GetBytes(".concealed{display:none}"),
@@ -1397,31 +1410,9 @@ public sealed class HtmlPackageContentSafetyContractTests {
             contentLocation: "https://example.test/index.html").ToBytes();
 
         Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
+
     }
 
-    [Theory]
-    [InlineData("<style media='not (prefers-contrast: more)'>.concealed{display:none}</style>")]
-    [InlineData("<link rel='stylesheet' href='nested.css' media='not (prefers-contrast: more)'>")]
-    [InlineData("<style>@import 'nested.css' not (prefers-contrast: more);</style>")]
-    [InlineData("<style>@media not (prefers-contrast: more){.concealed{display:none}}</style>")]
-    [InlineData("<style media='not (min-width: calc(1px))'>.concealed{display:none}</style>")]
-    [InlineData("<link rel='stylesheet' href='nested.css' media='not (min-width: calc(1px))'>")]
-    [InlineData("<style>@import 'nested.css' not (min-width: calc(1px));</style>")]
-    [InlineData("<style>@media not (min-width: calc(1px)){.concealed{display:none}}</style>")]
-    [InlineData("<style>@\\6d edia not (min-width: calc(1px)){.concealed{display:none}}</style>")]
-    public void Mhtml_PackageCssRejectsUnknownMediaConditionsBeforeNegation(string stylesheet) {
-        byte[] input = new MhtmlDocument(
-            "<html><head>" + stylesheet + "</head><body><p class='concealed'>Unknown media text.</p></body></html>",
-            new[] {
-                new MhtmlResource(
-                    Encoding.UTF8.GetBytes(".concealed{display:none}"),
-                    "text/css",
-                    contentLocation: "nested.css")
-            },
-            contentLocation: "https://example.test/index.html").ToBytes();
-
-        Assert.Throws<InvalidDataException>(() => MhtmlDocument.InspectContentSafety(input));
-    }
 
     [Fact]
     public void Mhtml_PackageCssAcceptsKnownMediaConditionsUnderNegation() {

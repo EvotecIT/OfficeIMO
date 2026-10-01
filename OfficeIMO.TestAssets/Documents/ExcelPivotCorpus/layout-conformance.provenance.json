@@ -1,0 +1,162 @@
+﻿{
+    "producer":  "Microsoft Excel",
+    "version":  "16.0",
+    "build":  20326,
+    "generatedUtc":  "2026-09-27T14:45:26.7849849Z",
+    "regeneration":  "Build/Verification/New-ExcelPivotLayoutOracle.ps1",
+    "file":  "layout-conformance.xlsx",
+    "sha256":  "7c48142bdadd40c6b10e060498f1d3e2bf4d32001b8842021fad7a41b5ec6a15",
+    "sourceRange":  "Source!A1:D9",
+    "lookupFormulaCells":  324,
+    "measures":  [
+                     {
+                         "Field":  "Amount",
+                         "Function":  -4157,
+                         "Caption":  "Revenue"
+                     },
+                     {
+                         "Field":  "Units",
+                         "Function":  -4106,
+                         "Caption":  "AvgUnits"
+                     },
+                     {
+                         "Field":  "Amount",
+                         "Function":  -4112,
+                         "Caption":  "Entries"
+                     }
+                 ],
+    "profiles":  [
+                     {
+                         "name":  "PivotBothCol",
+                         "sheet":  "BothCol",
+                         "row":  "Region",
+                         "column":  "Product",
+                         "valuesOnRows":  false,
+                         "valuesFirst":  false,
+                         "outputRange":  "A1:J7",
+                         "firstLookup":  1,
+                         "lookupCount":  27
+                     },
+                     {
+                         "name":  "PivotBothRow",
+                         "sheet":  "BothRow",
+                         "row":  "Region",
+                         "column":  "Product",
+                         "valuesOnRows":  true,
+                         "valuesFirst":  false,
+                         "outputRange":  "A1:E14",
+                         "firstLookup":  28,
+                         "lookupCount":  27
+                     },
+                     {
+                         "name":  "PivotRowCol",
+                         "sheet":  "RowCol",
+                         "row":  "Region",
+                         "column":  null,
+                         "valuesOnRows":  false,
+                         "valuesFirst":  false,
+                         "outputRange":  "A1:D5",
+                         "firstLookup":  55,
+                         "lookupCount":  27
+                     },
+                     {
+                         "name":  "PivotRowRow",
+                         "sheet":  "RowRow",
+                         "row":  "Region",
+                         "column":  null,
+                         "valuesOnRows":  true,
+                         "valuesFirst":  false,
+                         "outputRange":  "A1:C13",
+                         "firstLookup":  82,
+                         "lookupCount":  27
+                     },
+                     {
+                         "name":  "PivotColCol",
+                         "sheet":  "ColCol",
+                         "row":  null,
+                         "column":  "Product",
+                         "valuesOnRows":  false,
+                         "valuesFirst":  false,
+                         "outputRange":  "A1:I4",
+                         "firstLookup":  109,
+                         "lookupCount":  27
+                     },
+                     {
+                         "name":  "PivotColRow",
+                         "sheet":  "ColRow",
+                         "row":  null,
+                         "column":  "Product",
+                         "valuesOnRows":  true,
+                         "valuesFirst":  false,
+                         "outputRange":  "A1:D5",
+                         "firstLookup":  136,
+                         "lookupCount":  27
+                     },
+                     {
+                         "name":  "PivotScalarCol",
+                         "sheet":  "ScalarCol",
+                         "row":  null,
+                         "column":  null,
+                         "valuesOnRows":  false,
+                         "valuesFirst":  false,
+                         "outputRange":  "A1:C2",
+                         "firstLookup":  163,
+                         "lookupCount":  27
+                     },
+                     {
+                         "name":  "PivotScalarRow",
+                         "sheet":  "ScalarRow",
+                         "row":  null,
+                         "column":  null,
+                         "valuesOnRows":  true,
+                         "valuesFirst":  false,
+                         "outputRange":  "A1:B4",
+                         "firstLookup":  190,
+                         "lookupCount":  27
+                     },
+                     {
+                         "name":  "PivotBothColOuter",
+                         "sheet":  "BothColOuter",
+                         "row":  "Region",
+                         "column":  "Product",
+                         "valuesOnRows":  false,
+                         "valuesFirst":  true,
+                         "outputRange":  "A1:J7",
+                         "firstLookup":  217,
+                         "lookupCount":  27
+                     },
+                     {
+                         "name":  "PivotBothRowOuter",
+                         "sheet":  "BothRowOuter",
+                         "row":  "Region",
+                         "column":  "Product",
+                         "valuesOnRows":  true,
+                         "valuesFirst":  true,
+                         "outputRange":  "A1:E14",
+                         "firstLookup":  244,
+                         "lookupCount":  27
+                     },
+                     {
+                         "name":  "PivotRowRowOuter",
+                         "sheet":  "RowRowOuter",
+                         "row":  "Region",
+                         "column":  null,
+                         "valuesOnRows":  true,
+                         "valuesFirst":  true,
+                         "outputRange":  "A1:C13",
+                         "firstLookup":  271,
+                         "lookupCount":  27
+                     },
+                     {
+                         "name":  "PivotColColOuter",
+                         "sheet":  "ColColOuter",
+                         "row":  null,
+                         "column":  "Product",
+                         "valuesOnRows":  false,
+                         "valuesFirst":  true,
+                         "outputRange":  "A1:I4",
+                         "firstLookup":  298,
+                         "lookupCount":  27
+                     }
+                 ]
+}

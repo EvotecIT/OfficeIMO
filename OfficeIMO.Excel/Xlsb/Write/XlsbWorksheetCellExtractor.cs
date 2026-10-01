@@ -323,7 +323,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static byte GetErrorCode(string value, int row, int column) {
-            if (LegacyXlsErrorValue.TryGetCode(value, out byte code)) return code;
+            if (ExcelErrorCode.TryGetCode(value, out byte code)) return code;
             throw new NotSupportedException($"Native XLSB rewriting cannot encode error value '{value}' at {ToAddress(row, column)}.");
         }
 

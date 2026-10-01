@@ -8,6 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <None Update="Fixtures/**/*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.Invoicing.Validation.Tests/Fixtures/FA3/Schemas/*.xsd" Link="Fixtures/FA3/Schemas/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageReference Include="xunit" Version="2.9.3" />

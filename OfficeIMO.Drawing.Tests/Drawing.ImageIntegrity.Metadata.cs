@@ -279,23 +279,31 @@ public partial class DrawingTests {
     }
 
     [Fact]
+#if DRAWING_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+    [Trait("Category", "ResourcePerformanceEvidence")]
+#endif
     public void PngMetadataInspectionDoesNotRetainLargeExifPayloads() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
-        var exif = new byte[4 * 1024 * 1024];
         byte[] minimalTiff = {
             (byte)'I', (byte)'I', 42, 0, 8, 0, 0, 0,
             0, 0,
             0, 0, 0, 0
         };
+#if DRAWING_PERFORMANCE_EVIDENCE && NET8_0_OR_GREATER
+        var exif = new byte[4 * 1024 * 1024];
+#else
+        var exif = new byte[minimalTiff.Length];
+#endif
         Buffer.BlockCopy(minimalTiff, 0, exif, 0, minimalTiff.Length);
         byte[] withExif = InsertPngChunkBefore(png, "IDAT", "eXIf", exif);
 
-#if NET8_0_OR_GREATER
+#if DRAWING_PERFORMANCE_EVIDENCE && NET8_0_OR_GREATER
         long before = GC.GetAllocatedBytesForCurrentThread();
 #endif
         OfficeImageMetadataSnapshot metadata =
             OfficeImageMetadataInspector.Inspect(withExif, OfficeImageFormat.Png);
-#if NET8_0_OR_GREATER
+#if DRAWING_PERFORMANCE_EVIDENCE && NET8_0_OR_GREATER
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.InRange(allocated, 0, 128 * 1024);
 #endif

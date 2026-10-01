@@ -318,7 +318,8 @@ namespace OfficeIMO.Excel.Pdf {
                         pdfOptions.GetEmbeddedFontFamilyName(reportedFallback),
                         new Dictionary<string, string> {
                             ["sheetName"] = sheetName
-                        }));
+                        },
+                        sourceFontEmbeddingAllowed: embedSystemFont));
                 }
             }
         }

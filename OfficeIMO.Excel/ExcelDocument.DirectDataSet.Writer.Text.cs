@@ -77,8 +77,9 @@ namespace OfficeIMO.Excel {
                     start = specialIndex + 1;
                     specialIndex = IndexOfXmlTextSpecial(value, start);
                     if (specialIndex >= 0 && specialIndex - start < 16) {
-                        WriteSanitizedEscapedScalar(writer, value, start);
-                        return;
+                        start = WriteSanitizedEscapedScalar(writer, value, start);
+                        if (start == value.Length) return;
+                        specialIndex = IndexOfXmlTextSpecial(value, start);
                     }
                 }
 
@@ -89,16 +90,24 @@ namespace OfficeIMO.Excel {
 
             // Dense markup benefits from the original single character loop.
             // Keep its segment writes and sanitization when escapes cluster.
-            private static void WriteSanitizedEscapedScalar(TextWriter writer, string value, int start) {
+            private static int WriteSanitizedEscapedScalar(TextWriter writer, string value, int start) {
+                int plainCharacters = 0;
                 for (int index = start; index < value.Length; index++) {
                     char current = value[index];
-                    if (!IsInvalidXmlControl(current) && !IsXmlTextEscape(current)) continue;
+                    if (!IsInvalidXmlControl(current) && !IsXmlTextEscape(current)) {
+                        // Once the dense escape run ends, let the vector search
+                        // handle the remaining long plain-text segment.
+                        if (++plainCharacters == 32) return start;
+                        continue;
+                    }
                     if (index > start) WriteSlice(writer, value, start, index - start);
                     if (!IsInvalidXmlControl(current)) WriteEscapedTextCharacter(writer, current);
                     start = index + 1;
+                    plainCharacters = 0;
                 }
 
                 if (start < value.Length) WriteSlice(writer, value, start, value.Length - start);
+                return value.Length;
             }
 
             private static void WriteSlice(TextWriter writer, string value, int startIndex, int length) {

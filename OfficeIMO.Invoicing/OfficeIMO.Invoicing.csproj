@@ -30,5 +30,6 @@
     <Using Include="System.Collections.Generic" />
     <InternalsVisibleTo Include="OfficeIMO.Invoicing.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Invoicing.Validation" />
+    <InternalsVisibleTo Include="OfficeIMO.Invoicing.KSeF" />
   </ItemGroup>
 </Project>

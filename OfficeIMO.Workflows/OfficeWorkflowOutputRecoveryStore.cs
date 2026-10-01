@@ -11,7 +11,7 @@ public sealed partial class OfficeWorkflowOutputRecoveryStore {
     private const string Prefix = "output-";
     private const int MaximumRecords = 100;
     private const int MaximumMetadataBytes = 65536;
-    private static readonly HashSet<string> Extensions = new(StringComparer.OrdinalIgnoreCase) { ".pdf", ".html", ".docx", ".xlsx", ".pptx", ".png", ".svg", ".jpg", ".jpeg", ".tif", ".tiff", ".webp", ".txt" };
+    private static readonly HashSet<string> Extensions = new(StringComparer.OrdinalIgnoreCase) { ".pdf", ".html", ".docx", ".xlsx", ".pptx", ".png", ".svg", ".jpg", ".jpeg", ".tif", ".tiff", ".webp", ".txt", ".xml" };
 
     /// <summary>Creates a store under a host-selected local directory. Admission is bounded across processes.</summary>
     public OfficeWorkflowOutputRecoveryStore(string directory, long maximumRetainedBytes = 1024L * 1024 * 1024) {

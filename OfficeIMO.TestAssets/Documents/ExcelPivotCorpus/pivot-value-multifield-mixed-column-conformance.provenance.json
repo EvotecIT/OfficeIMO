@@ -1,0 +1,21 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "producerUiLanguageId": 1033,
+  "producerDecimalSeparator": ".",
+  "producerThousandsSeparator": ",",
+  "hostCulture": "pl-PL",
+  "generatedUtc": "2026-09-28T21:04:32.7293989Z",
+  "regeneration": "Build/Verification/New-ExcelPivotMultiFieldValueOracle.ps1",
+  "file": "pivot-value-multifield-mixed-column-conformance.xlsx",
+  "sha256": "87d1ae004aa15d01d1f0a3c06a73d925a3deea18afb9e785622d2d900308fdc2",
+  "sourceRange": "Source!A1:C7",
+  "filteredField": "Product",
+  "axis": "Mixed",
+  "filterType": 9,
+  "threshold": 100.0,
+  "threshold2": null,
+  "outputRange": "A4:C9",
+  "grandTotal": 130.0
+}

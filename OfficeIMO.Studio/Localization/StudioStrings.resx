@@ -1521,7 +1521,7 @@
   <data name="Ocr.Review.ExcludePage" xml:space="preserve"><value>Exclude page</value></data>
   <data name="Ocr.Review.Words" xml:space="preserve"><value>Recognized words and confidence</value></data>
   <data name="Ocr.Review.Diagnostics" xml:space="preserve"><value>Recognition and rendering diagnostics</value></data>
-  <data name="Ocr.Review.CommitNote" xml:space="preserve"><value>Only selected eligible words will enter the searchable layer. The source PDF stays unchanged.</value></data>
+  <data name="Ocr.Review.CommitNote" xml:space="preserve"><value>Selected words and your corrections enter the searchable layer. Original recognition evidence is retained.</value></data>
   <data name="Ocr.Review.Recognize" xml:space="preserve"><value>Recognize and review</value></data>
   <data name="Ocr.Review.Advanced" xml:space="preserve"><value>Advanced recognition settings</value></data>
   <data name="Ocr.Review.Enlarge" xml:space="preserve"><value>Enlarge selected word</value></data>
@@ -1864,7 +1864,7 @@
   <data name="Ocr.Text.Recognize" xml:space="preserve"><value>Recognize text to copy</value></data>
   <data name="Ocr.Text.Copy" xml:space="preserve"><value>Copy reviewed text</value></data>
   <data name="Ocr.Text.UseSelected" xml:space="preserve"><value>Use selected text</value></data>
-  <data name="Ocr.Text.CommitNote" xml:space="preserve"><value>Extract the selected words without creating a PDF.</value></data>
+  <data name="Ocr.Text.CommitNote" xml:space="preserve"><value>Extract the selected words and your corrections without creating a PDF.</value></data>
   <data name="Ocr.Text.NoClipboard" xml:space="preserve"><value>Clipboard is unavailable. Select the text to copy it manually.</value></data>
   <data name="Ocr.Text.Copied" xml:space="preserve"><value>Reviewed text copied.</value></data>
   <data name="Ocr.Text.Preparing" xml:space="preserve"><value>Recognizing text on the selected scan page…</value></data>
@@ -2003,7 +2003,7 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Ocr.Result.SummaryWithProvider" xml:space="preserve"><value>Searchable words: {0:N0} · Pages: {1:N0} · Provider: {2}</value></data>
   <data name="Ocr.Review.Page" xml:space="preserve"><value>Page {0}</value></data>
   <data name="Ocr.Review.PageDetails" xml:space="preserve"><value>Language: {0} · Provider: {1} · Eligible: {2:N0} · Low confidence: {3:N0} · Native overlap: {4:N0}</value></data>
-  <data name="Ocr.Review.Summary" xml:space="preserve"><value>Selected words: {0:N0} · Reviewed pages: {1:N0}. Rejected words remain excluded.</value></data>
+  <data name="Ocr.Review.Summary" xml:space="preserve"><value>Selected words: {0:N0} · Corrected: {2:N0} · Pages: {1:N0}. Rejected words remain excluded.</value></data>
   <data name="OcrSession.ImageRoute" xml:space="preserve"><value>Image → reviewed text</value></data>
   <data name="OcrSession.Outcomes" xml:space="preserve"><value>Last run: {0} saved · {1} failed · {2} cancelled · {3} need checking. Saved outputs were retained.</value></data>
   <data name="OcrSession.PdfRoute" xml:space="preserve"><value>PDF → searchable PDF</value></data>
@@ -2327,4 +2327,54 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Signing.Certify.FormsAndComments" xml:space="preserve"><value>Form filling, comments and signing</value></data>
   <data name="FillSign.ImageNeedsContent" xml:space="preserve"><value>This PDF only accepts annotations, so a picture signature cannot be placed. Draw or type your signature instead.</value></data>
   <data name="Tools.FlattenAnnotations" xml:space="preserve"><value>Flatten all annotations</value></data>
+  <data name="Invoice.ChooseInput" xml:space="preserve"><value>Choose invoice XML</value></data>
+  <data name="Invoice.Input" xml:space="preserve"><value>Invoice XML</value></data>
+  <data name="Invoice.OutputFolder" xml:space="preserve"><value>Output folder</value></data>
+  <data name="Invoice.ChooseFolder" xml:space="preserve"><value>Choose folder</value></data>
+  <data name="Invoice.Operation" xml:space="preserve"><value>Operation</value></data>
+  <data name="Invoice.Target" xml:space="preserve"><value>Output specification</value></data>
+  <data name="Invoice.SourceRelease" xml:space="preserve"><value>Source specification for standards checks</value></data>
+  <data name="Invoice.AllowProfileLoss" xml:space="preserve"><value>Allow data loss defined by the selected profile</value></data>
+  <data name="Invoice.Standards" xml:space="preserve"><value>Standards checks</value></data>
+  <data name="Invoice.RequireStandards" xml:space="preserve"><value>Require schema and business-rule checks</value></data>
+  <data name="Invoice.RuleBundle" xml:space="preserve"><value>Pinned rule bundle</value></data>
+  <data name="Invoice.SaxonJar" xml:space="preserve"><value>Saxon JAR</value></data>
+  <data name="Invoice.Java" xml:space="preserve"><value>Java executable</value></data>
+  <data name="Invoice.PeppolRules" xml:space="preserve"><value>Peppol rules file (when applicable)</value></data>
+  <data name="Invoice.FacturXRules" xml:space="preserve"><value>Factur-X rule bundle (when applicable)</value></data>
+  <data name="Invoice.Presentation" xml:space="preserve"><value>PDF presentation</value></data>
+  <data name="Invoice.Languages" xml:space="preserve"><value>Languages (comma-separated culture codes)</value></data>
+  <data name="Invoice.Font" xml:space="preserve"><value>Embedded font file (optional)</value></data>
+  <data name="Invoice.Table" xml:space="preserve"><value>Line-item columns</value></data>
+  <data name="Invoice.UnitDisplay" xml:space="preserve"><value>Unit labels</value></data>
+  <data name="Invoice.PaymentDisplay" xml:space="preserve"><value>Payment labels</value></data>
+  <data name="Invoice.Modern" xml:space="preserve"><value>Modern layout</value></data>
+  <data name="Invoice.Compact" xml:space="preserve"><value>Compact details</value></data>
+  <data name="Invoice.PageIdentity" xml:space="preserve"><value>Invoice identity on continuation pages</value></data>
+  <data name="Invoice.EditFields" xml:space="preserve"><value>Source header replacements</value></data>
+  <data name="Invoice.Number" xml:space="preserve"><value>Invoice number</value></data>
+  <data name="Invoice.IssueDate" xml:space="preserve"><value>Issue date (yyyy-MM-dd)</value></data>
+  <data name="Invoice.DueDate" xml:space="preserve"><value>Due date (yyyy-MM-dd)</value></data>
+  <data name="Invoice.BuyerReference" xml:space="preserve"><value>Buyer reference</value></data>
+  <data name="Invoice.PaymentReference" xml:space="preserve"><value>Payment reference</value></data>
+  <data name="Invoice.Run" xml:space="preserve"><value>Run invoice operation</value></data>
+  <data name="Invoice.Report" xml:space="preserve"><value>Results</value></data>
+  <data name="Invoice.Source" xml:space="preserve"><value>Source</value></data>
+  <data name="Invoice.Mapping" xml:space="preserve"><value>Mapping</value></data>
+  <data name="Invoice.Model" xml:space="preserve"><value>Model checks</value></data>
+  <data name="Invoice.Schema" xml:space="preserve"><value>Schema checks</value></data>
+  <data name="Invoice.Rules" xml:space="preserve"><value>Business rules</value></data>
+  <data name="Invoice.Findings" xml:space="preserve"><value>Findings</value></data>
+  <data name="Invoice.Output" xml:space="preserve"><value>Created output</value></data>
+  <data name="Invoice.ValidationStatus.NotRun" xml:space="preserve"><value>Not run</value></data>
+  <data name="Invoice.ValidationStatus.NotRequested" xml:space="preserve"><value>Not requested</value></data>
+  <data name="Invoice.ValidationStatus.Passed" xml:space="preserve"><value>Passed</value></data>
+  <data name="Invoice.ValidationStatus.Invalid" xml:space="preserve"><value>Invalid</value></data>
+  <data name="Invoice.ValidationStatus.Unavailable" xml:space="preserve"><value>Unavailable</value></data>
+  <data name="Commands.Invoices.Title" xml:space="preserve"><value>Invoices</value></data>
+  <data name="Commands.Invoices.Description" xml:space="preserve"><value>Inspect and validate invoice XML, convert formats, render PDFs, or edit source headers.</value></data>
+
+  <data name="Ocr.Review.CorrectText" xml:space="preserve"><value>Correct selected word</value></data>
+  <data name="Ocr.Review.NextUncertain" xml:space="preserve"><value>Next uncertain word</value></data>
+  <data name="Ocr.Review.OriginalText" xml:space="preserve"><value>Original recognition</value></data>
 </root>

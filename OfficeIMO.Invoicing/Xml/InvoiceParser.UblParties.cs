@@ -33,7 +33,7 @@ public static partial class InvoiceParser {
             else c.Loss(tax, "A tax registration requires both an identifier and a scheme to preserve its meaning.");
         }
     }
-    private static IEnumerable<InvoicePayment> UblPayments(InvoiceXmlReadContext c, XElement root, string? creditor) {
+    private static IEnumerable<InvoicePayment> UblPayments(InvoiceXmlReadContext c, XElement root, string? creditor, Invoice invoice) {
         bool found = false;
         foreach (XElement element in c.Children(root, Cac + "PaymentMeans")) {
             found = true;
@@ -54,6 +54,6 @@ public static partial class InvoiceParser {
             result.MandateReference = mandateReference; result.DebitedAccount = debit;
             yield return result;
         }
-        if (!found && creditor != null) yield return new InvoicePayment { CreditorIdentifier = creditor };
+        if (!found) invoice.CreditorIdentifier = creditor;
     }
 }

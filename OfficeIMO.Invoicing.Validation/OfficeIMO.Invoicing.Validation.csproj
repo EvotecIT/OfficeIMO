@@ -20,5 +20,6 @@
     <None Include="../Assets/OfficeIMO.png" Pack="true" PackagePath="/" />
     <EmbeddedResource Include="Compiler/*.xsl" />
     <InternalsVisibleTo Include="OfficeIMO.Invoicing.Validation.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Invoicing.KSeF" />
   </ItemGroup>
 </Project>

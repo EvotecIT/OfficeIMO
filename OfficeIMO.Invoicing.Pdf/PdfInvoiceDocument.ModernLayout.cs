@@ -85,20 +85,7 @@ public sealed partial class PdfInvoiceDocument {
 
     private void ComposeModernLines(PdfContentBuilder content, InvoicePdfTheme theme) {
         if (_invoice.Lines.Count == 0) return;
-        var rows = new List<string[]> {
-            new[] { Label(InvoicePdfText.Item), Label(InvoicePdfText.Quantity), Label(InvoicePdfText.NetPrice), Label(InvoicePdfText.Vat), Label(InvoicePdfText.NetAmount) }
-        };
-        for (int index = 0; index < _invoice.Lines.Count; index++) {
-            InvoiceLine line = _invoice.Lines[index];
-            rows.Add(new[] {
-                LineText(line),
-                NumberText(line.Quantity) + " " + line.UnitCode,
-                NumberText(line.UnitPrice) + " / " + NumberText(line.PriceBaseQuantity) + " " + line.UnitCode,
-                line.Tax.Code + (line.Tax.Rate.HasValue ? " " + NumberText(line.Tax.Rate.Value) + "%" : string.Empty),
-                Money(_amounts.Lines[index])
-            });
-        }
-        content.Table(rows, style: new PdfTableStyle {
+        content.Table(LineRows(), style: new PdfTableStyle {
             HeaderRowCount = 1,
             HeaderFill = theme.Text,
             HeaderTextColor = PdfColor.White,
@@ -111,14 +98,8 @@ public sealed partial class PdfInvoiceDocument {
             CellPaddingX = 7D,
             CellPaddingY = 7D,
             SpacingAfter = 12D,
-            ColumnWidthWeights = new List<double> { 3.7D, 1.15D, 1.55D, 1D, 1.6D },
-            Alignments = new List<PdfColumnAlign> {
-                PdfColumnAlign.Left,
-                PdfColumnAlign.Right,
-                PdfColumnAlign.Right,
-                PdfColumnAlign.Right,
-                PdfColumnAlign.Right
-            }
+            ColumnWidthWeights = LineColumnWeights(),
+            Alignments = LineColumnAlignments()
         });
     }
 
@@ -142,7 +123,7 @@ public sealed partial class PdfInvoiceDocument {
 
         string paymentReference = _invoice.Payments
             .Select(payment => payment.Reference)
-            .FirstOrDefault(reference => reference != null) ?? _invoice.Number;
+            .FirstOrDefault(reference => reference != null) ?? _invoice.PaymentReference ?? _invoice.Number;
         int paymentSummaryLength = paymentReference.Length +
             (_invoice.PaymentTerms?.Length ?? 0);
         bool paymentSummaryIsMultiline = ContainsLineBreak(paymentReference) ||

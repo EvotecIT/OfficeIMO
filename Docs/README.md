@@ -7,6 +7,7 @@ Use this index to find package guides, cross-package contracts, generated eviden
 - [Repository overview](../README.md) — package map, dependency model, supported formats, and platform coverage.
 - [Migration guide](../MIGRATION.md) — version-to-version package, API, and behavior changes.
 - [Examples](../OfficeIMO.Examples/README.md) — runnable examples across the package family.
+- [Agent plugin](../.agents/plugins/officeimo-document-tools/README.md) — local MCP and portable skills, Codex and Claude installation, authorized file access, and supported operations.
 - [Roadmap](ROADMAP.md) — the single backlog for open cross-package and product work.
 - [Microsoft Project milestones](ROADMAP.md#microsoft-project-document-library) — planned XML/MPP/MPX lifecycle, scheduling, conversions, and acceptance evidence.
 - [Project document API](../OfficeIMO.Project/README.md) and [operation matrix](../OfficeIMO.Project/SUPPORT.md) — typed/fluent XML, native MPP/MPT, MPX, advanced calculation, portable reports, mapped data exchange, and producer-specific limits.
@@ -14,6 +15,7 @@ Use this index to find package guides, cross-package contracts, generated eviden
 - [Website guide](officeimo.website.md) — local build and publication workflow.
 - [Website search and answer-engine operations](officeimo.website-seo-geo-operations.md) — publication and discovery checks.
 - [CI and test strategy](officeimo.ci-test-strategy.md) — test ownership and validation lanes.
+- [Native OCR quality corpus](../OfficeIMO.TestAssets/OcrQuality/README.md) — independently labelled forms and scans, bounded retries, confidence false passes, source hashes, and platform scorecards.
 - [Real-world and PDF quality corpus evidence](officeimo.real-world-corpus-evidence.md) — bounded external discovery, strict provenance-bound PDF scorecards, multilingual native/OCR reconstruction measurements, deterministic sampling, isolation, and interpretation limits.
 - [Excel benchmark notes](officeimo.excel.benchmark-notes.md) — reproducible comparison-suite execution and provenance.
 - [Image engine benchmarks](../OfficeIMO.Drawing.Benchmarks/README.md) — validated identification, decode, encode, resize, and placement-optimization workloads, with isolated opt-in library comparisons.
@@ -49,6 +51,7 @@ The package README is the primary usage guide for its public API. These reposito
 - [Electronic invoice model and CII/UBL conversion](../OfficeIMO.Invoicing/README.md)
 - [Typed invoice PDF generation](../OfficeIMO.Invoicing.Pdf/README.md)
 - [Pinned invoice schema and business-rule validation](../OfficeIMO.Invoicing.Validation/README.md)
+- [KSeF authentication, encrypted submission and receipt retrieval](../OfficeIMO.Invoicing.KSeF/README.md)
 - [PDF current state](officeimo.pdf.current-state.md)
 - [PDF conversion support](officeimo.pdf-conversion-support-matrix.md)
 - [PDF reverse-conversion scorecard](pdf-reverse-conversion-scorecard.json) — executable 56-case producer/target matrix plus scanned, mixed, encrypted, and malformed stress evidence.

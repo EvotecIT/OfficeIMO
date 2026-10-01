@@ -1,0 +1,81 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization" xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows"
+ x:Class="OfficeIMO.Studio.Features.Workflows.InvoiceWorkbenchView" x:DataType="workflow:InvoiceWorkbenchViewModel">
+ <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+  <StackPanel Margin="20" Spacing="16" MaxWidth="1000" HorizontalAlignment="Stretch">
+   <StackPanel Spacing="4"><TextBlock Text="{Binding Title}" Classes="pageTitle" /><TextBlock Text="{Binding Description}" Classes="muted" TextWrapping="Wrap" /></StackPanel>
+   <Border Classes="card" Padding="16">
+    <StackPanel Spacing="12" IsEnabled="{Binding CanEdit}">
+     <TextBlock Text="{loc:Loc Invoice.Input}" Classes="sectionTitle" />
+     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+      <TextBox Text="{Binding InputPath}" PlaceholderText="{loc:Loc Invoice.Input}" AutomationProperties.Name="{loc:Loc Invoice.Input}" />
+      <Button Grid.Column="1" Classes="tool" Content="{loc:Loc Invoice.ChooseInput}" Command="{Binding ChooseInputCommand}" />
+     </Grid>
+     <StackPanel Spacing="4"><TextBlock Text="{loc:Loc Invoice.Operation}" /><ComboBox ItemsSource="{Binding Operations}" SelectedItem="{Binding SelectedOperation}" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Invoice.Operation}"><ComboBox.ItemTemplate><DataTemplate x:DataType="workflow:InvoiceOperationChoice"><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></StackPanel>
+     <StackPanel IsVisible="{Binding NeedsTarget}" Spacing="8">
+      <StackPanel Spacing="4"><TextBlock Text="{loc:Loc Invoice.Target}" /><ComboBox ItemsSource="{Binding AvailableTargets}" SelectedItem="{Binding SelectedTarget}" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Invoice.Target}"><ComboBox.ItemTemplate><DataTemplate x:DataType="workflow:InvoiceTargetChoice"><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></StackPanel>
+      <CheckBox IsChecked="{Binding AllowProfileLoss}"><TextBlock Text="{loc:Loc Invoice.AllowProfileLoss}" TextWrapping="Wrap" /></CheckBox>
+     </StackPanel>
+     <StackPanel IsVisible="{Binding IsWriting}" Spacing="4">
+      <TextBlock Text="{loc:Loc Invoice.OutputFolder}" />
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8"><TextBox Text="{Binding OutputFolder}" PlaceholderText="{loc:Loc Invoice.OutputFolder}" AutomationProperties.Name="{loc:Loc Invoice.OutputFolder}" /><Button Grid.Column="1" Classes="tool" Content="{loc:Loc Invoice.ChooseFolder}" Command="{Binding ChooseOutputFolderCommand}" /></Grid>
+     </StackPanel>
+     <StackPanel IsVisible="{Binding IsEditing}" Spacing="8">
+      <TextBlock Text="{loc:Loc Invoice.EditFields}" Classes="sectionTitle" /><TextBlock Text="{Binding EditingHint}" Classes="muted" TextWrapping="Wrap" />
+<StackPanel Spacing="4"><TextBlock Text="{loc:Loc Invoice.Number}" /><TextBox Text="{Binding EditNumber}" PlaceholderText="{loc:Loc Invoice.Number}" AutomationProperties.Name="{loc:Loc Invoice.Number}" /></StackPanel>
+<StackPanel Spacing="4"><TextBlock Text="{loc:Loc Invoice.IssueDate}" /><TextBox Text="{Binding EditIssueDate}" PlaceholderText="{loc:Loc Invoice.IssueDate}" AutomationProperties.Name="{loc:Loc Invoice.IssueDate}" /></StackPanel>
+<StackPanel Spacing="4"><TextBlock Text="{loc:Loc Invoice.DueDate}" /><TextBox Text="{Binding EditDueDate}" PlaceholderText="{loc:Loc Invoice.DueDate}" AutomationProperties.Name="{loc:Loc Invoice.DueDate}" /></StackPanel>
+<StackPanel Spacing="4"><TextBlock Text="{loc:Loc Invoice.BuyerReference}" /><TextBox Text="{Binding EditBuyerReference}" PlaceholderText="{loc:Loc Invoice.BuyerReference}" AutomationProperties.Name="{loc:Loc Invoice.BuyerReference}" /></StackPanel>
+<StackPanel Spacing="4"><TextBlock Text="{loc:Loc Invoice.PaymentReference}" /><TextBox Text="{Binding EditPaymentReference}" PlaceholderText="{loc:Loc Invoice.PaymentReference}" AutomationProperties.Name="{loc:Loc Invoice.PaymentReference}" /></StackPanel>
+     </StackPanel>
+     <Expander Header="{loc:Loc Invoice.Presentation}" IsVisible="{Binding IsRendering}">
+      <StackPanel Spacing="8" Margin="0,8,0,0">
+<StackPanel Spacing="4"><TextBlock Text="{loc:Loc Invoice.Languages}" /><TextBox Text="{Binding Languages}" PlaceholderText="{loc:Loc Invoice.Languages}" AutomationProperties.Name="{loc:Loc Invoice.Languages}" /></StackPanel>
+<StackPanel Spacing="4"><TextBlock Text="{loc:Loc Invoice.Font}" /><TextBox Text="{Binding FontPath}" PlaceholderText="{loc:Loc Invoice.Font}" AutomationProperties.Name="{loc:Loc Invoice.Font}" /></StackPanel>
+       <StackPanel Spacing="4"><TextBlock Text="{loc:Loc Invoice.Table}" /><ComboBox ItemsSource="{Binding TableLayouts}" SelectedItem="{Binding SelectedTableLayout}" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Invoice.Table}"><ComboBox.ItemTemplate><DataTemplate x:DataType="workflow:InvoiceTableLayoutChoice"><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></StackPanel>
+       <StackPanel Spacing="4"><TextBlock Text="{loc:Loc Invoice.UnitDisplay}" /><ComboBox ItemsSource="{Binding CodeDisplays}" SelectedItem="{Binding SelectedUnitDisplay}" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Invoice.UnitDisplay}"><ComboBox.ItemTemplate><DataTemplate x:DataType="workflow:InvoiceCodeDisplayChoice"><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></StackPanel>
+       <StackPanel Spacing="4"><TextBlock Text="{loc:Loc Invoice.PaymentDisplay}" /><ComboBox ItemsSource="{Binding CodeDisplays}" SelectedItem="{Binding SelectedPaymentDisplay}" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Invoice.PaymentDisplay}"><ComboBox.ItemTemplate><DataTemplate x:DataType="workflow:InvoiceCodeDisplayChoice"><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></StackPanel>
+       <WrapPanel><CheckBox IsChecked="{Binding ModernLayout}" Margin="0,0,16,0"><TextBlock Text="{loc:Loc Invoice.Modern}" TextWrapping="Wrap" /></CheckBox>
+<CheckBox IsChecked="{Binding CompactDetails}" Margin="0,0,16,0"><TextBlock Text="{loc:Loc Invoice.Compact}" TextWrapping="Wrap" /></CheckBox>
+<CheckBox IsChecked="{Binding PageIdentity}" Margin="0,0,16,0"><TextBlock Text="{loc:Loc Invoice.PageIdentity}" TextWrapping="Wrap" /></CheckBox></WrapPanel>
+      </StackPanel>
+     </Expander>
+     <Expander Header="{loc:Loc Invoice.Standards}">
+      <StackPanel Spacing="8" Margin="0,8,0,0">
+       <CheckBox IsChecked="{Binding RequireStandards}"><TextBlock Text="{loc:Loc Invoice.RequireStandards}" TextWrapping="Wrap" /></CheckBox>
+       <StackPanel IsVisible="{Binding RequireStandards}" Spacing="8">
+        <TextBlock Text="{Binding StandardsHint}" Classes="muted" TextWrapping="Wrap" />
+        <StackPanel IsVisible="{Binding ShowsSourceRelease}"><StackPanel Spacing="4"><TextBlock Text="{loc:Loc Invoice.SourceRelease}" /><ComboBox ItemsSource="{Binding Releases}" SelectedItem="{Binding SelectedRelease}" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Invoice.SourceRelease}"><ComboBox.ItemTemplate><DataTemplate x:DataType="workflow:InvoiceReleaseChoice"><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></StackPanel></StackPanel>
+<StackPanel Spacing="4"><TextBlock Text="{loc:Loc Invoice.RuleBundle}" /><TextBox Text="{Binding RuleBundlePath}" PlaceholderText="{loc:Loc Invoice.RuleBundle}" AutomationProperties.Name="{loc:Loc Invoice.RuleBundle}" /></StackPanel>
+<StackPanel Spacing="4"><TextBlock Text="{loc:Loc Invoice.SaxonJar}" /><TextBox Text="{Binding SaxonJarPath}" PlaceholderText="{loc:Loc Invoice.SaxonJar}" AutomationProperties.Name="{loc:Loc Invoice.SaxonJar}" /></StackPanel>
+<StackPanel Spacing="4"><TextBlock Text="{loc:Loc Invoice.Java}" /><TextBox Text="{Binding JavaExecutable}" PlaceholderText="{loc:Loc Invoice.Java}" AutomationProperties.Name="{loc:Loc Invoice.Java}" /></StackPanel>
+<StackPanel Spacing="4"><TextBlock Text="{loc:Loc Invoice.PeppolRules}" /><TextBox Text="{Binding PeppolRulesPath}" PlaceholderText="{loc:Loc Invoice.PeppolRules}" AutomationProperties.Name="{loc:Loc Invoice.PeppolRules}" /></StackPanel>
+<StackPanel Spacing="4"><TextBlock Text="{loc:Loc Invoice.FacturXRules}" /><TextBox Text="{Binding FacturXRulesPath}" PlaceholderText="{loc:Loc Invoice.FacturXRules}" AutomationProperties.Name="{loc:Loc Invoice.FacturXRules}" /></StackPanel>
+       </StackPanel>
+      </StackPanel>
+     </Expander>
+    </StackPanel>
+   </Border>
+   <WrapPanel>
+    <Button Classes="primary" Content="{loc:Loc Invoice.Run}" Command="{Binding RunCommand}" Margin="0,0,8,8" />
+    <Button Classes="tool" Content="{loc:Loc Common.Cancel}" Command="{Binding CancelCommand}" IsVisible="{Binding IsBusy}" Margin="0,0,8,8" />
+    <Button Classes="tool" Content="{loc:Loc Jobs.OpenOutput}" Command="{Binding OpenOutputCommand}" IsVisible="{Binding HasOutput}" Margin="0,0,8,8" />
+   </WrapPanel>
+   <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
+   <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+   <Border Classes="card" Padding="16">
+    <StackPanel Spacing="8">
+     <TextBlock Text="{loc:Loc Invoice.Report}" Classes="sectionTitle" />
+     <StackPanel Spacing="2"><TextBlock Text="{loc:Loc Invoice.Source}" FontWeight="SemiBold" /><TextBlock Text="{Binding SourceSummary}" TextWrapping="Wrap" /></StackPanel>
+<StackPanel Spacing="2"><TextBlock Text="{loc:Loc Invoice.Mapping}" FontWeight="SemiBold" /><TextBlock Text="{Binding MappingSummary}" TextWrapping="Wrap" /></StackPanel>
+<StackPanel Spacing="2"><TextBlock Text="{loc:Loc Invoice.Model}" FontWeight="SemiBold" /><TextBlock Text="{Binding ModelSummary}" TextWrapping="Wrap" /></StackPanel>
+<StackPanel Spacing="2"><TextBlock Text="{loc:Loc Invoice.Schema}" FontWeight="SemiBold" /><TextBlock Text="{Binding SchemaSummary}" TextWrapping="Wrap" /></StackPanel>
+<StackPanel Spacing="2"><TextBlock Text="{loc:Loc Invoice.Rules}" FontWeight="SemiBold" /><TextBlock Text="{Binding RulesSummary}" TextWrapping="Wrap" /></StackPanel>
+     <StackPanel Spacing="2" IsVisible="{Binding HasOutput}"><TextBlock Text="{loc:Loc Invoice.Output}" FontWeight="SemiBold" /><SelectableTextBlock Text="{Binding OutputPath}" TextWrapping="Wrap" /></StackPanel>
+     <TextBlock Text="{loc:Loc Invoice.Findings}" FontWeight="SemiBold" />
+     <ItemsControl ItemsSource="{Binding Diagnostics}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><SelectableTextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,4" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+    </StackPanel>
+   </Border>
+  </StackPanel>
+ </ScrollViewer>
+</UserControl>

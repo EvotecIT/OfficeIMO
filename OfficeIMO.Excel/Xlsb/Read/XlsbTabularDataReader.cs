@@ -37,7 +37,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private readonly XlsbRecordSliceReader _records;
         private readonly XlsbPooledPartStream _worksheetPart;
         private readonly IReadOnlyList<string> _sharedStrings;
-        private readonly bool[] _dateStyles;
+        private readonly ExcelSerialDateStyle[] _dateStyles;
         private readonly bool _uses1904DateSystem;
         private readonly ExcelReadOptions _options;
         private readonly XlsbImportOptions _limits;
@@ -66,7 +66,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         internal XlsbTabularDataReader(
             Stream worksheetPart,
             IReadOnlyList<string> sharedStrings,
-            bool[] dateStyles,
+            ExcelSerialDateStyle[] dateStyles,
             bool uses1904DateSystem,
             bool hasHeaderRow,
             ExcelReadOptions options,
@@ -92,7 +92,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         internal XlsbTabularDataReader(
             XlsbPooledPartStream worksheetPart,
             IReadOnlyList<string> sharedStrings,
-            bool[] dateStyles,
+            ExcelSerialDateStyle[] dateStyles,
             bool uses1904DateSystem,
             bool hasHeaderRow,
             ExcelReadOptions options,
@@ -451,6 +451,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     break;
                 case XlsbTabularValueKind.Number:
                 case XlsbTabularValueKind.Date:
+                case XlsbTabularValueKind.Time:
                     _numbers[ordinal] = cell.Number;
                     break;
                 case XlsbTabularValueKind.Boolean:
@@ -467,16 +468,15 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             int column = cursor.ReadInt32();
             uint styleIndex = cursor.ReadUInt32() & 0x00FFFFFFU;
 
-            bool isDate = _options.TreatDatesUsingNumberFormat
-                && styleIndex < _dateStyles.Length
-                && _dateStyles[styleIndex];
+            ExcelSerialDateStyle dateStyle = _options.TreatDatesUsingNumberFormat && styleIndex < _dateStyles.Length
+                ? _dateStyles[styleIndex] : ExcelSerialDateStyle.None;
             DecodedCell cell;
             switch (record.Type) {
                 case BrtCellBlank:
                     cell = new DecodedCell(column, XlsbTabularValueKind.Empty);
                     break;
                 case BrtCellRk:
-                    cell = NumericCell(column, BiffRkNumberReader.ReadRkNumber(cursor.ReadUInt32()), isDate);
+                    cell = NumericCell(column, BiffRkNumberReader.ReadRkNumber(cursor.ReadUInt32()), dateStyle);
                     break;
                 case BrtCellError:
                     cell = new DecodedCell(column, XlsbTabularValueKind.Error) {
@@ -489,7 +489,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     };
                     break;
                 case BrtCellReal:
-                    cell = NumericCell(column, cursor.ReadDouble(), isDate);
+                    cell = NumericCell(column, cursor.ReadDouble(), dateStyle);
                     break;
                 case BrtCellSt:
                     cell = new DecodedCell(column, XlsbTabularValueKind.Text) {
@@ -516,7 +516,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     };
                     break;
                 case BrtFmlaNum:
-                    cell = NumericCell(column, cursor.ReadDouble(), isDate);
+                    cell = NumericCell(column, cursor.ReadDouble(), dateStyle);
                     break;
                 case BrtFmlaBool:
                     cell = new DecodedCell(column, XlsbTabularValueKind.Boolean) {
@@ -535,8 +535,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             return ApplyCellValueConverter(cell, styleIndex, record.Type);
         }
 
-        private static DecodedCell NumericCell(int column, double number, bool isDate) =>
-            new(column, isDate ? XlsbTabularValueKind.Date : XlsbTabularValueKind.Number) {
+        private static XlsbTabularValueKind NumericKind(ExcelSerialDateStyle style) => style switch {
+            ExcelSerialDateStyle.Calendar => XlsbTabularValueKind.Date,
+            ExcelSerialDateStyle.Time => XlsbTabularValueKind.Time,
+            _ => XlsbTabularValueKind.Number
+        };
+
+        private static DecodedCell NumericCell(int column, double number, ExcelSerialDateStyle dateStyle) =>
+            new(column, NumericKind(dateStyle)) {
                 Number = number
             };
 
@@ -545,7 +551,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 XlsbTabularValueKind.Text or XlsbTabularValueKind.Error => cell.Text,
                 XlsbTabularValueKind.Number => cell.Number.ToString("R", _options.Culture),
                 XlsbTabularValueKind.Boolean => cell.Boolean.ToString(),
-                XlsbTabularValueKind.Date => ConvertDate(cell.Number).ToString(_options.Culture),
+                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => ConvertDate(cell.Number, cell.Kind == XlsbTabularValueKind.Date).ToString(_options.Culture),
                 XlsbTabularValueKind.Custom => Convert.ToString(cell.CustomValue, _options.Culture),
                 _ => null
             };
@@ -560,7 +566,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
 
             CellValues? typeHint = cell.Kind switch {
-                XlsbTabularValueKind.Number or XlsbTabularValueKind.Date => CellValues.Number,
+                XlsbTabularValueKind.Number or XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => CellValues.Number,
                 XlsbTabularValueKind.Boolean => CellValues.Boolean,
                 XlsbTabularValueKind.Error => CellValues.Error,
                 XlsbTabularValueKind.Text when recordType == BrtCellIsst => CellValues.SharedString,
@@ -568,7 +574,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 _ => null
             };
             string? rawText = cell.RawText ?? cell.Kind switch {
-                XlsbTabularValueKind.Number or XlsbTabularValueKind.Date =>
+                XlsbTabularValueKind.Number or XlsbTabularValueKind.Date or XlsbTabularValueKind.Time =>
                     cell.Number.ToString("R", CultureInfo.InvariantCulture),
                 XlsbTabularValueKind.Boolean => cell.Boolean ? "1" : "0",
                 XlsbTabularValueKind.Text or XlsbTabularValueKind.Error => cell.Text,
@@ -592,8 +598,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 : cell;
         }
 
-        private DateTime ConvertDate(double serial) {
-            if (LegacyXlsDateSerialConverter.TryConvert(serial, _uses1904DateSystem, out DateTime value)) {
+        private DateTime ConvertDate(double serial, bool calendarStyle) {
+            if (LegacyXlsDateSerialConverter.TryConvert(serial, _uses1904DateSystem, out DateTime value, calendarStyle)) {
                 return value;
             }
 
@@ -780,7 +786,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         ? typeof(decimal)
                         : typeof(double),
                 XlsbTabularValueKind.Boolean => typeof(bool),
-                XlsbTabularValueKind.Date => typeof(DateTime),
+                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => typeof(DateTime),
                 XlsbTabularValueKind.Custom => IsMissingCustomValue(_customValues[ordinal])
                     ? typeof(object)
                     : _customValues[ordinal]!.GetType(),
@@ -805,7 +811,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             Boolean,
             Date,
             Error,
-            Custom
+            Custom,
+            Time
         }
 
         private struct DecodedCell {

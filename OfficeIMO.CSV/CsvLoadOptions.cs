@@ -154,6 +154,14 @@ public sealed class CsvLoadOptions
     public Encoding? Encoding { get; set; }
 
     /// <summary>
+    /// Gets or sets whether an input BOM may select the decoding encoding. Default is true.
+    /// When false, the configured encoding remains authoritative and its own preamble is
+    /// accepted. Use an encoding with exception fallback to reject invalid encoded input.
+    /// This applies to byte-based file and stream APIs; text inputs are already decoded.
+    /// </summary>
+    public bool DetectEncodingFromByteOrderMarks { get; set; } = true;
+
+    /// <summary>
     /// Gets or sets compression used when reading from files. Default infers compression from the file extension.
     /// </summary>
     public CsvCompressionType CompressionType { get; set; } = CsvCompressionType.Auto;

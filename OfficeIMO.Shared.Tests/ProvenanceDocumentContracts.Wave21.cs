@@ -22,16 +22,36 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Empty(result.After.Evidence);
     }
 
-    [Fact]
-    public void HtmlDomPreflightRequiresRawTextClosingTagDelimiter() {
-        string falseClosings = string.Concat(Enumerable.Repeat("</scripture><div></div>", 16));
-        string html = "<html><head><script>" + falseClosings + "</script></head><body><p>kept</p></body></html>";
-
+    [Theory]
+    [MemberData(nameof(HtmlPreflightIgnoresInertAndIgnoredMarkupWithinEntryLimitCases))]
+    public void HtmlPreflightIgnoresInertAndIgnoredMarkupWithinEntryLimit(string caseName, string html, int maximumEntries) {
+        _ = caseName;
         OfficeProvenanceReport report = HtmlProvenance.Inspect(
-            html,
-            new OfficeProvenanceOptions { MaxContainerEntries = 8 });
+            html, new OfficeProvenanceOptions { MaxContainerEntries = maximumEntries });
 
         Assert.Empty(report.Evidence);
+    }
+
+    public static IEnumerable<object[]> HtmlPreflightIgnoresInertAndIgnoredMarkupWithinEntryLimitCases() {
+        {
+            string falseClosings = string.Concat(Enumerable.Repeat("</scripture><div></div>", 16));
+            string html = "<html><head><script>" + falseClosings + "</script></head><body><p>kept</p></body></html>";
+            yield return new object[] { "HtmlDomPreflightRequiresRawTextClosingTagDelimiter", html, 8 };
+        }
+        {
+            string manifest = Convert.ToBase64String(CreateManifestStore());
+            string html = "<é><é><é><é><é><html><head><script type=\"application/c2pa\">" +
+                manifest + "</script></head><body></body></html>";
+            yield return new object[] { "HtmlPreflightCountsOnlyAsciiTagOpeners", html, 8 };
+        }
+        {
+            const string html = "<html><body><div><select></div><img><img></select>";
+            yield return new object[] { "IgnoredSelectEndTagsDoNotInflateHtmlPreflightCounts", html, 5 };
+        }
+        {
+            const string html = "<form><form><form><form><form>";
+            yield return new object[] { "HtmlPreflightDoesNotChargeIgnoredNestedForms", html, 4 };
+        }
     }
 
     [Fact]

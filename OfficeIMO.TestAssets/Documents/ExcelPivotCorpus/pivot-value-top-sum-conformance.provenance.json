@@ -1,0 +1,15 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T07:13:16.6082193Z",
+  "regeneration": "Build/Verification/New-ExcelPivotValueRangeRankingOracle.ps1",
+  "file": "pivot-value-top-sum-conformance.xlsx",
+  "sha256": "6e99275e38899ce57ca2b3d7d91ce8872de28aa8d3b19e65c8f6fde67f257b50",
+  "sourceRange": "Source!A1:B7",
+  "filterType": 5,
+  "value1": 90.0,
+  "value2": null,
+  "outputRange": "A4:B7",
+  "grandTotal": 100.0
+}

@@ -1,0 +1,18 @@
+# XLSX workbook metadata read, 2026-09-28
+
+The native XLSX reader now reads `xl/workbook.xml` with a forward-only XML reader. It collects the date-system flag and bounded sheet definitions without materializing an XML document. Direct-child and namespace checks preserve the workbook contract; extension elements and nested lookalikes do not become sheets. The existing relationship, content-type, worksheet-limit, cancellation, and SDK fallback checks still apply. This changes setup allocation, not the worksheet value scanner.
+
+The baseline was commit `3dfba74dc`. Baseline and candidate assemblies were published from the same tree and .NET SDK 10.0.112, with only the workbook parser and its location changed. Their `OfficeIMO.Excel.dll` SHA-256 hashes were `E7231BC9A169512C07D10732483E552DBDBF5872E1914DE744A5DABB9D5B7C44` and `E8D548F07D4F7DD983E1A2E6105B9298FED23B877D2A2DC9CBEAD30AABAD015A`. The 65,535-row, 14-column fixture was `65K_Records_Data.xlsx`, SHA-256 `0F44D3E06454508DBD2CDBAF701B04160637162AB71471616D8ADC59D2EDD3A8`.
+
+Windows 11 on an AMD Ryzen 9 9950X3D2 was measured at Normal priority. Separate processes were pinned to logical processors `0xFFFF` (A) or `0xFFFF0000` (B). Baseline and candidate order was rotated across three run pairs per domain. A typed-scan process performed 24 complete public `ExcelDocument.OpenDataReader` scans; a sheet-name process performed 21 batches of 100 public `ExcelDocument.GetSheetNames` calls. The first iteration in each process is warm-up. The table pools all later samples within each variant/domain, retaining outliers in [the raw samples](xlsx-workbook-metadata-2026-09-28/samples.csv). The [probe source](xlsx-metadata-2026-09-28/reproduction/Program.cs) checks the row count and typed-value checksum.
+
+| Profile and domain | Baseline allocation | Candidate allocation | Baseline median / mean | Candidate median / mean |
+| --- | ---: | ---: | ---: | ---: |
+| 65K typed scan, A | 109,984 B/scan | 106,920 B/scan | 71.15 / 85.24 ms | 74.16 / 98.45 ms |
+| 65K typed scan, B | 109,984 B/scan | 106,600 B/scan | 65.40 / 78.56 ms | 65.05 / 76.05 ms |
+| Sheet names, A | 55,033 B/open | 51,649 B/open | 16.66 / 17.20 ms per 100 | 16.57 / 17.91 ms per 100 |
+| Sheet names, B | 55,033 B/open | 51,649 B/open | 15.82 / 16.25 ms per 100 | 16.19 / 16.58 ms per 100 |
+
+Every typed scan produced checksum `4814962925905058108`. Workbook setup saves about 3.4 KB per open, or 6.1% of the metadata-only allocation in this comparison. Full-scan elapsed time is mixed across domains and has large outliers; this run does not establish a speed improvement. The candidate's A-domain full-scan median is higher, so the result should not be used as a time budget. The warmed full scan is still above the 91,916 B target that would halve the original 183,832 B allocation. XML-reader setup, shared strings, styles, and ZIP indexing remain open in the [spreadsheet and CSV roadmap](../ROADMAP.md#spreadsheet-and-csv-delivery-order).
+
+The same pinned fixture and [probe project](xlsx-metadata-2026-09-28/reproduction/Probe.csproj) can reproduce these public calls: run `dotnet run -c Release -f net10.0 --project Docs/benchmarks/xlsx-metadata-2026-09-28/reproduction/Probe.csproj -- typed-scan <fixture-path> FFFF`, or replace `typed-scan` with `sheet-names-100`. Build each revision in its own checkout, then rotate separate processes with both processor masks. The focused native package and workbook metadata tests passed on Windows .NET 10 (48), .NET 8 (48), .NET Framework 4.7.2 (46), and Ubuntu/WSL .NET 10 (48); the Excel library built for all four declared targets.

@@ -1,26 +1,16 @@
 namespace OfficeIMO.Bibliography.Tests;
 
 public sealed class BibliographyReviewWave49RegressionTests {
-    [Fact]
-    public void RIS_accession_continuations_update_the_exact_qualified_identifier() {
-        const string source = "TY  - BOOK\nDO  - earlier\nAN  - DOI:10.1/\n      suffix\nER  - \n";
-
+    [Theory]
+    [InlineData("TY  - BOOK\nDO  - earlier\nAN  - DOI:10.1/\n      suffix\nER  - \n", "DOI:10.1/ suffix", "DOI", "earlier")]
+    [InlineData("TY  - BOOK\nAN  - local:first\nAN  - DOI:10.1/\n      suffix\nER  - \n", "local:first", "local", "first")]
+    public void RIS_accession_continuations_update_the_exact_qualified_identifier(string source, string expectedKey, string earlierScheme, string earlierValue) {
         BibliographyItem item = Assert.Single(BibliographyDocument.Parse(source, BibliographyFormat.Ris).Document.Items);
 
-        Assert.Equal("DOI:10.1/ suffix", item.Key);
-        Assert.Equal(new[] { "earlier", "10.1/ suffix" }, item.Identifiers.Where(identifier => identifier.Scheme == "DOI").Select(identifier => identifier.Value));
+        Assert.Equal(expectedKey, item.Key);
+        Assert.Equal(new[] { earlierScheme + "=" + earlierValue, "DOI=10.1/ suffix" }, item.Identifiers.Select(identifier => identifier.Scheme + "=" + identifier.Value));
     }
 
-    [Fact]
-    public void RIS_later_accession_continuations_do_not_change_the_key_from_an_earlier_accession() {
-        const string source = "TY  - BOOK\nAN  - local:first\nAN  - DOI:10.1/\n      suffix\nER  - \n";
-
-        BibliographyItem item = Assert.Single(BibliographyDocument.Parse(source, BibliographyFormat.Ris).Document.Items);
-
-        Assert.Equal("local:first", item.Key);
-        Assert.Equal("first", Assert.Single(item.Identifiers, identifier => identifier.Scheme == "local").Value);
-        Assert.Equal("10.1/ suffix", Assert.Single(item.Identifiers, identifier => identifier.Scheme == "DOI").Value);
-    }
 
     [Theory]
     [InlineData("validate")]

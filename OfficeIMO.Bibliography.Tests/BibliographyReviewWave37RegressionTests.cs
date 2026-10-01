@@ -23,42 +23,41 @@ public sealed class BibliographyReviewWave37RegressionTests {
     }
 
     [Theory]
-    [InlineData("\n")]
-    [InlineData("\r\n")]
-    [InlineData("\r")]
-    public void CSL_syntax_diagnostics_map_all_supported_line_endings(string lineEnding) {
-        string source = "[" + lineEnding + "{\"title\":\"Ł\",?}]";
-        int expectedOffset = source.IndexOf('?');
-        int lineStart = lineEnding.Length + 1;
+    [InlineData("[\n{\"title\":\"Ł\",?}]", 2, 2, "?")]
+    [InlineData("[\r\n{\"title\":\"Ł\",?}]", 2, 3, "?")]
+    [InlineData("[\r{\"title\":\"Ł\",?}]", 2, 2, "?")]
+    [InlineData("[{\"id\":\"😀\" \"type\":\"book\"}]", 1, 0, "\"type\"")]
+    public void CSL_syntax_diagnostics_map_all_supported_line_endings(string source, int expectedLine, int lineStart, string offendingToken) {
+        int expectedOffset = source.IndexOf(offendingToken, StringComparison.Ordinal);
 
-        BibliographyDiagnostic diagnostic = Assert.Single(BibliographyDocument.Parse(source, BibliographyFormat.CslJson).Diagnostics, value => value.Code == "BIBCSL002");
+        BibliographyDiagnostic diagnostic = Assert.Single(BibliographyDocument.Parse(source, BibliographyFormat.CslJson).Diagnostics);
 
+        Assert.Equal("BIBCSL002", diagnostic.Code);
         Assert.Equal(expectedOffset, diagnostic.Offset);
-        Assert.Equal(2, diagnostic.Line);
+        Assert.Equal(expectedLine, diagnostic.Line);
         Assert.Equal(expectedOffset - lineStart + 1, diagnostic.Column);
     }
 
-    [Fact]
-    public void Undefined_writer_modes_are_rejected_before_preserve_or_normalization() {
-        BibliographyDocument document = BibliographyDocument.Parse("@book{x,title={Exact}}", BibliographyFormat.BibLatex).Document;
-        var options = new BibliographyWriteOptions { Mode = (BibliographyWriterMode)99 };
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void Undefined_writer_enums_are_rejected_before_preserve_or_normalization(bool invalidFormat, bool sourceBacked) {
+        BibliographyDocument document = sourceBacked
+            ? BibliographyDocument.Parse("@book{x,title={Exact}}", BibliographyFormat.BibLatex).Document
+            : new BibliographyDocument(BibliographyFormat.BibLatex);
+        var options = invalidFormat
+            ? new BibliographyWriteOptions { Format = (BibliographyFormat)99 }
+            : new BibliographyWriteOptions { Mode = (BibliographyWriterMode)99 };
 
         ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() => document.Write(options));
 
-        Assert.Equal(nameof(BibliographyWriteOptions.Mode), exception.ParamName);
+        Assert.Equal(invalidFormat ? nameof(BibliographyWriteOptions.Format) : nameof(BibliographyWriteOptions.Mode), exception.ParamName);
     }
 
-    [Fact]
-    public void Undefined_destination_formats_are_rejected_with_the_other_writer_enums() {
-        var document = new BibliographyDocument(BibliographyFormat.BibLatex);
-        var options = new BibliographyWriteOptions { Format = (BibliographyFormat)99 };
-
-        ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() => document.Write(options));
-
-        Assert.Equal(nameof(BibliographyWriteOptions.Format), exception.ParamName);
-    }
 
     [Theory]
+    [InlineData("[999999999999999999999]")]
     [InlineData("[2024,0]")]
     [InlineData("[2024,13]")]
     [InlineData("[2024,1,0]")]
@@ -72,7 +71,11 @@ public sealed class BibliographyReviewWave37RegressionTests {
         read.Document.Items[0].Title = "Edited";
 
         BibliographyWriteResult written = read.Document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
-        BibliographyDate reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items[0].Dates);
+        BibliographyReadResult reread = BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson);
+        BibliographyDate reopened = Assert.Single(reread.Document.Items[0].Dates);
+
+        Assert.False(read.HasErrors);
+        Assert.False(reread.HasErrors);
 
         Assert.Null(date.Month);
         Assert.Null(date.Day);

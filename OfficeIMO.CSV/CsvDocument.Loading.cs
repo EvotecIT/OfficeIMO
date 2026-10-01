@@ -373,12 +373,13 @@ public sealed partial class CsvDocument
         var initialRecordsToSkip = GetInitialRecordsToSkip(options);
         var document = new CsvDocument(
             options.Mode,
-            options.Delimiter,
+            CsvParser.GetDelimiterChar(options),
             options.Culture,
             encoding,
             options.ColumnCountMismatchPolicy,
             options.DateTimeFormats,
             options.MappingErrorValuePolicy);
+            document._delimiterText = CsvParser.GetDelimiterText(options);
 
         var explicitHeader = NormalizeExplicitHeader(options);
         if (explicitHeader is not null)

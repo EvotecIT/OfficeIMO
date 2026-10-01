@@ -48,12 +48,12 @@ public static partial class InvoiceParser {
             if (invoice.Lines.Count >= 10000) throw new InvalidDataException("Invoice exceeds 10,000 lines.");
             c.AddTo(invoice.Lines, CiiLine(c, line, invoice.Currency));
         }
-        foreach (InvoicePayment payment in CiiPayments(c, settlement)) c.AddTo(invoice.Payments, payment);
+        foreach (InvoicePayment payment in CiiPayments(c, settlement, invoice)) c.AddTo(invoice.Payments, payment);
         XElement? terms = c.Child(settlement, Ram + "SpecifiedTradePaymentTerms");
         invoice.PaymentTerms = c.Text(terms, Ram + "Description"); invoice.DueDate = CiiDate(c, terms, "DueDateDateTime");
         string? mandate = c.Text(terms, Ram + "DirectDebitMandateID");
         if (mandate != null) {
-            if (invoice.Payments.Count == 0) c.AddTo(invoice.Payments, new InvoicePayment());
+            if (invoice.Payments.Count == 0) invoice.DirectDebitMandateReference = mandate;
             foreach (InvoicePayment payment in invoice.Payments) payment.MandateReference = mandate;
         }
         foreach (XElement adjustment in c.Children(settlement, Ram + "SpecifiedTradeAllowanceCharge")) c.AddTo(invoice.AllowancesAndCharges, CiiAdjustment(c, adjustment, invoice.Currency, true));

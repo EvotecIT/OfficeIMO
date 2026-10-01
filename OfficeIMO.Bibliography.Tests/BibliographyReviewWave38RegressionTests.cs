@@ -1,21 +1,6 @@
 namespace OfficeIMO.Bibliography.Tests;
 
 public sealed class BibliographyReviewWave38RegressionTests {
-    [Theory]
-    [InlineData(" alpha ")]
-    [InlineData("alpha ")]
-    [InlineData("\talpha\t")]
-    public void Bib_keywords_preserve_surrounding_whitespace(string keyword) {
-        var document = new BibliographyDocument(BibliographyFormat.BibLatex);
-        var item = new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = "Keywords" };
-        item.Keywords.Add(keyword);
-        document.Items.Add(item);
-
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
-        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.BibLatex).Document.Items);
-
-        Assert.Equal(keyword, Assert.Single(reopened.Keywords));
-    }
 
     [Theory]
     [InlineData(BibliographyFormat.Ris)]

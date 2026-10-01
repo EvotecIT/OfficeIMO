@@ -5,6 +5,11 @@ namespace OfficeIMO.AI.Tests;
 
 public sealed partial class EngineContractTests {
     [Theory]
+    [InlineData("Wed, 03 Apr 2030", "Wed, 03 Apr 2030", "r", "en-US", true)]
+    [InlineData("04-03", "04-03", "MM-dd", "en-US", false)]
+    [InlineData("2030-04", "2030-04", "yyyy-MM", "en-US", false)]
+    [InlineData("April 2030 Wednesday", "April 2030 Wednesday", "MMMM yyyy dddd", "en-US", false)]
+    [InlineData("2030-04-03", "2030-04-03", "yyyy-MM-'dd'", "en-US", false)]
     [InlineData("12030-04-031", "2030-04-03", "yyyy-MM-dd", "en-US", false)]
     [InlineData("é2030-04-03", "2030-04-03", "yyyy-MM-dd", "en-US", false)]
     [InlineData("2030-04-03\u0301", "2030-04-03", "yyyy-MM-dd", "en-US", false)]

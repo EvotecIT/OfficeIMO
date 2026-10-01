@@ -12,6 +12,44 @@ namespace OfficeIMO.Tests {
     public partial class Excel {
         private const double Excel1904DateOffsetDays = 1462d;
 
+        [Theory]
+        [InlineData(1900, 1, 1, 1d)]
+        [InlineData(1900, 2, 28, 59d)]
+        [InlineData(1900, 3, 1, 61d)]
+        [InlineData(1904, 1, 1, 1462d)]
+        public void DateSystem_Early1900Dates_PreserveExcelSerialAndTime(int year, int month, int day, double expectedSerial) {
+            DateTime date = new DateTime(year, month, day, 12, 0, 0);
+            Assert.Equal(expectedSerial + 0.5d, ExcelDateSystemConverter.ToSerial(date, ExcelDateSystem.NineteenHundred));
+            Assert.Equal(date, ExcelDateSystemConverter.FromSerial(expectedSerial + 0.5d, ExcelDateSystem.NineteenHundred));
+            string path = Path.Combine(_directoryWithFiles, $"EarlyDate{year}{month}{day}.xlsx");
+            using (var document = ExcelDocument.Create(path)) {
+                document.AddWorksheet("Dates").CellValue(1, 1, date);
+                document.Save();
+            }
+            using (var package = SpreadsheetDocument.Open(path, false)) {
+                Assert.Equal((expectedSerial + 0.5d).ToString(CultureInfo.InvariantCulture),
+                    GetCellValueText(package.WorkbookPart!.WorksheetParts.First(), "A1"));
+            }
+            using var reader = ExcelDocumentReader.Open(path, new ExcelReadOptions { TreatDatesUsingNumberFormat = true });
+            Assert.Equal(date, Assert.IsType<DateTime>(reader.GetSheet("Dates").ReadRange("A1:A1")[0, 0]));
+        }
+
+        [Fact]
+        public void DateSystem_FictitiousLeapDay_UsesDocumentedDateTimeSurrogate() {
+            Assert.Equal(new DateTime(1900, 2, 28, 12, 0, 0),
+                ExcelDateSystemConverter.FromSerial(60.5d, ExcelDateSystem.NineteenHundred));
+        }
+
+        [Theory]
+        [InlineData(1899, 12, 30, -0.5d)]
+        [InlineData(1899, 12, 29, -1.5d)]
+        [InlineData(1800, 1, 1, -36522.5d)]
+        public void DateSystem_Negative1900Serials_RoundTripHistoricalTimes(int year, int month, int day, double expectedSerial) {
+            DateTime date = new DateTime(year, month, day, 12, 0, 0);
+            Assert.Equal(expectedSerial, ExcelDateSystemConverter.ToSerial(date, ExcelDateSystem.NineteenHundred));
+            Assert.Equal(date, ExcelDateSystemConverter.FromSerial(expectedSerial, ExcelDateSystem.NineteenHundred));
+        }
+
         [Fact]
         public void DateSystem_1904_WritesWorkbookFlagAndAdjustedSerials() {
             string filePath = Path.Combine(_directoryWithFiles, "DateSystem1904.xlsx");

@@ -44,8 +44,17 @@ public class CsvWideBenchmarks
     private string _csvPath = string.Empty;
     private CsvSchema _wideSchema = new CsvSchemaBuilder().Build();
 
-    [Params(1000, 10000, 25000)]
+    [ParamsSource(nameof(RowCounts))]
     public int RowCount { get; set; }
+
+    public IEnumerable<int> RowCounts()
+    {
+        string? selected = Environment.GetEnvironmentVariable("OFFICEIMO_CSV_WIDE_ROW_COUNT");
+        if (string.IsNullOrWhiteSpace(selected)) return [1000, 10000, 25000];
+        if (!int.TryParse(selected, NumberStyles.None, CultureInfo.InvariantCulture, out int rowCount) || rowCount <= 0)
+            throw new ArgumentException("OFFICEIMO_CSV_WIDE_ROW_COUNT must be a positive integer.");
+        return [rowCount];
+    }
 
     [GlobalSetup]
     public void Setup()

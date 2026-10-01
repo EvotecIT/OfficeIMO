@@ -203,6 +203,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TrySetPendingDirectCellValueCore(int row, int column, object? value) {
+            EnsureDynamicArrayCellWritable(row, column);
             if (!_excelDocument.TryReservePendingDirectCellValueSheet(this)) {
                 return false;
             }

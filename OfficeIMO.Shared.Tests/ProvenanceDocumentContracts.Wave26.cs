@@ -11,16 +11,61 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceDocumentContracts {
-    [Fact]
-    public void HtmlPreflightTreatsPlaintextRemainderAsText() {
-        string manifest = Convert.ToBase64String(CreateManifestStore());
-        string html = "<html><head><script type=\"application/c2pa\">" + manifest +
-            "</script></head><body><plaintext>" + string.Concat(Enumerable.Repeat("<div>literal</div>", 128));
-
+    [Theory]
+    [MemberData(nameof(HtmlPreflightKeepsRawAndForeignMarkupLiteralWithNativeManifestCases))]
+    public void HtmlPreflightKeepsRawAndForeignMarkupLiteralWithNativeManifest(string caseName, string html, int maximumEntries) {
+        _ = caseName;
         OfficeProvenanceReport report = HtmlProvenance.Inspect(
-            html, new OfficeProvenanceOptions { MaxContainerEntries = 32 });
+            html, new OfficeProvenanceOptions { MaxContainerEntries = maximumEntries });
 
         Assert.Single(report.Evidence);
+    }
+
+    public static IEnumerable<object[]> HtmlPreflightKeepsRawAndForeignMarkupLiteralWithNativeManifestCases() {
+        {
+            string manifest = Convert.ToBase64String(CreateManifestStore());
+            string html = "<html><head><script type=\"application/c2pa\">" + manifest +
+                "</script></head><body><plaintext>" + string.Concat(Enumerable.Repeat("<div>literal</div>", 128));
+            yield return new object[] { "HtmlPreflightTreatsPlaintextRemainderAsText", html, 32 };
+        }
+        {
+            string manifest = Convert.ToBase64String(CreateManifestStore());
+            string html = "<html><head><script type=\"application/c2pa\">" + manifest +
+                "</script></head><body><xmp>" + string.Concat(Enumerable.Repeat("<div>literal</div>", 128)) +
+                "</xmp></body></html>";
+            yield return new object[] { "HtmlPreflightTreatsLegacyRawTextElementsAsText", html, 32 };
+        }
+        {
+            string manifest = Convert.ToBase64String(CreateManifestStore());
+            string html = "<html><head><script type=\"application/c2pa\">" + manifest +
+                "</script></head><body><svg><![CDATA[" + string.Concat(Enumerable.Repeat("<div></div>", 64)) +
+                "]]></svg></body></html>";
+            yield return new object[] { "HtmlPreflightPreservesForeignContentCdataAsText", html, 16 };
+        }
+        {
+            string manifest = Convert.ToBase64String(CreateManifestStore());
+            string html = "<html><head><script type=\"application/c2pa\">" + manifest +
+                "</script></head><body><math><mi><mglyph><![CDATA[" +
+                string.Concat(Enumerable.Repeat("<div></div>", 64)) +
+                "]]></mglyph></mi></math></body></html>";
+            yield return new object[] { "HtmlPreflightKeepsMathMlGlyphCdataInForeignContent", html, 32 };
+        }
+        {
+            string manifest = Convert.ToBase64String(CreateManifestStore());
+            string html = "<html><head><script type=\"application/c2pa\">" + manifest +
+                "</script></head><body><script><!--<script></script>" +
+                string.Concat(Enumerable.Repeat("<div></div>", 64)) +
+                "</script></body></html>";
+            yield return new object[] { "HtmlPreflightModelsScriptDoubleEscapedState", html, 32 };
+        }
+        {
+            string manifest = Convert.ToBase64String(CreateManifestStore());
+            string html = "<html><head><script type=\"application/c2pa\">" + manifest +
+                "</script></head><body><svg><font title=\" color=x\"><![CDATA[" +
+                string.Concat(Enumerable.Repeat("<div></div>", 64)) +
+                "]]></font></svg></body></html>";
+            yield return new object[] { "HtmlForeignFontBreakoutUsesAttributeNamesNotQuotedValues", html, 32 };
+        }
     }
 
 

@@ -5,7 +5,7 @@ using OfficeIMO.Workflows;
 namespace OfficeIMO.Studio.Features.Workflows;
 
 public sealed partial class OcrSessionViewModel {
-    private async Task<IReadOnlyList<PdfRecognizedWord>> ReviewPdfAsync(OcrSessionItem item, PdfSearchableOcrReview evidence,
+    private async Task<IReadOnlyDictionary<PdfRecognizedWord, string>> ReviewPdfAsync(OcrSessionItem item, PdfSearchableOcrReview evidence,
         CancellationTokenSource operation, CancellationToken token) {
         var review = await Dispatcher.UIThread.InvokeAsync(() => {
             token.ThrowIfCancellationRequested();

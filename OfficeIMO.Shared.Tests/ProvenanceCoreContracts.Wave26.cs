@@ -30,28 +30,31 @@ public sealed partial class ProvenanceCoreContracts {
         Assert.Equal(png, result.ToArray());
     }
 
-    [Fact]
-    public void OpcSignaturePartsRemainEvidenceWithoutContentTypes() {
-        byte[] package = CreateZip(
-            ("_xmlsignatures/sig1.xml", Encoding.UTF8.GetBytes("<Signature/>")),
-            ("META-INF/content_credential.c2pa", CreateManifestStore()));
-
+    [Theory]
+    [MemberData(nameof(OpcSignatureEvidenceWithoutContentTypesBlocksMutationCases))]
+    public void OpcSignatureEvidenceWithoutContentTypesBlocksMutation(string caseName, byte[] package) {
+        _ = caseName;
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
             OfficeProvenanceRemover.Remove(package, "document.docx"));
 
         Assert.Contains("invalidate package signatures", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact]
-    public void OpcSignatureOriginRelationshipsRemainEvidenceWithoutContentTypes() {
-        byte[] package = CreateZip(
-            ("_rels/.rels", Encoding.UTF8.GetBytes(
-                "<Relationships><Relationship Type=\"http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin\" Target=\"missing.sigs\"/></Relationships>")),
-            ("META-INF/content_credential.c2pa", CreateManifestStore()));
-
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-            OfficeProvenanceRemover.Remove(package, "document.docx"));
-
-        Assert.Contains("invalidate package signatures", exception.Message, StringComparison.OrdinalIgnoreCase);
+    public static IEnumerable<object[]> OpcSignatureEvidenceWithoutContentTypesBlocksMutationCases() {
+        {
+            byte[] package = CreateZip(
+                ("_xmlsignatures/sig1.xml", Encoding.UTF8.GetBytes("<Signature/>")),
+                ("META-INF/content_credential.c2pa", CreateManifestStore()));
+            yield return new object[] { "OpcSignaturePartsRemainEvidenceWithoutContentTypes", package };
+        }
+        {
+            byte[] package = CreateZip(
+                ("_rels/.rels", Encoding.UTF8.GetBytes(
+                    "<Relationships><Relationship Type=\"http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin\" Target=\"missing.sigs\"/></Relationships>")),
+                ("META-INF/content_credential.c2pa", CreateManifestStore()));
+            yield return new object[] { "OpcSignatureOriginRelationshipsRemainEvidenceWithoutContentTypes", package };
+        }
     }
+
+
 }

@@ -23,13 +23,17 @@ public sealed partial class CsvDocument
 
     private static char DetectDelimiter(Func<TextReader> readerFactory, CsvLoadOptions options, bool useHeaderDiscovery)
     {
+        using var reader = readerFactory();
+        var samples = ReadDelimiterDetectionSamples(reader, options, useHeaderDiscovery).ToArray();
+        return SelectDetectedDelimiter(samples, options);
+    }
+
+    private static char SelectDetectedDelimiter(IReadOnlyList<string> samples, CsvLoadOptions options)
+    {
         var candidates = options.DelimiterCandidates is { Length: > 0 }
             ? options.DelimiterCandidates
             : DefaultDelimiterCandidates;
-
-        using var reader = readerFactory();
-        var samples = ReadDelimiterDetectionSamples(reader, options, useHeaderDiscovery).ToArray();
-        if (samples.Length == 0)
+        if (samples.Count == 0)
         {
             return options.Delimiter;
         }

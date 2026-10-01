@@ -95,7 +95,7 @@ public sealed partial class OfficeWorkflowRunner {
         if (item.Pdf is { } pdf) return new(item.Id, new PdfSearchableWorkflowRequest {
             Id = pdf.Id, InputPath = pdf.InputPath, InputStream = pdf.InputStream, OutputPath = pdf.OutputPath,
             OutputStream = pdf.OutputStream, ConflictPolicy = pdf.ConflictPolicy, PublicationGuard = pdf.PublicationGuard,
-            Limits = pdf.Limits.CloneAndValidate(), PdfPassword = pdf.PdfPassword, Ocr = pdf.Ocr.Clone(), ReviewAsync = pdf.ReviewAsync
+            Limits = pdf.Limits.CloneAndValidate(), PdfPassword = pdf.PdfPassword, Ocr = pdf.Ocr.Clone(), ReviewAsync = pdf.ReviewAsync, ReviewCorrectionsAsync = pdf.ReviewCorrectionsAsync
         });
         var image = item.Image!;
         return new(item.Id, new ImageOcrWorkflowRequest {

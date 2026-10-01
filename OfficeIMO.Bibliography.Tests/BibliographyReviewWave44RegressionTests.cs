@@ -22,17 +22,26 @@ public sealed class BibliographyReviewWave44RegressionTests {
         Assert.StartsWith("<" + recordName, carrier.Value, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Additional_EndNote_URLs_keep_their_position_among_native_fields() {
-        const string source = "<xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><custom>first</custom><urls><related-urls><url>primary</url><url>extra</url></related-urls></urls><other>last</other></record></records></xml>";
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Additional_EndNote_URLs_keep_their_position_among_native_fields(bool interleavedFields) {
+        string source = interleavedFields
+            ? "<xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><custom>first</custom><urls><related-urls><url>primary</url><url>extra</url></related-urls></urls><other>last</other></record></records></xml>"
+            : "<xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><titles><title>Original</title></titles><urls><related-urls><url>https://one.example</url><url>https://two.example</url></related-urls></urls></record></records></xml>";
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
         BibliographyItem item = Assert.Single(document.Items);
-        string[] originalOrder = item.NativeFields.Select(field => field.Name + "=" + field.Value).ToArray();
+        string[] expectedOrder = interleavedFields
+            ? new[] { "custom=first", "url=extra", "other=last" }
+            : new[] { "url=https://two.example" };
+        Assert.Equal(expectedOrder, item.NativeFields.Select(field => field.Name + "=" + field.Value));
         item.Title = "Edited";
 
         BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items);
 
-        Assert.Equal(originalOrder, reopened.NativeFields.Select(field => field.Name + "=" + field.Value));
+        Assert.Equal(expectedOrder, reopened.NativeFields.Select(field => field.Name + "=" + field.Value));
+        Assert.Equal(interleavedFields ? "primary" : "https://one.example", reopened.Url);
+        Assert.Equal(interleavedFields ? "extra" : "https://two.example", Assert.Single(reopened.NativeFields, field => field.Name == "url").Value);
     }
 }

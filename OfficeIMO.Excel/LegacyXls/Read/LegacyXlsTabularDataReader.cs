@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private readonly LegacyBiffSource _bytes;
         private readonly byte[]? _bufferedBytes;
         private readonly IReadOnlyList<string> _sharedStrings;
-        private readonly bool[] _dateStyles;
+        private readonly ExcelSerialDateStyle[] _dateStyles;
         private readonly bool _uses1904DateSystem;
         private readonly ExcelReadOptions _options;
         private readonly CancellationToken _cancellationToken;
@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             int sheetOffset,
             int sheetEndOffset,
             IReadOnlyList<string> sharedStrings,
-            bool[] dateStyles,
+            ExcelSerialDateStyle[] dateStyles,
             bool uses1904DateSystem,
             bool hasHeaderRow,
             ExcelReadOptions options,
@@ -839,8 +839,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             DateTime date = default;
             bool isDate = _options.TreatDatesUsingNumberFormat
                 && style < _dateStyles.Length
-                && _dateStyles[style]
-                && LegacyXlsDateSerialConverter.TryConvert(number, _uses1904DateSystem, out date);
+                && _dateStyles[style] != ExcelSerialDateStyle.None
+                && LegacyXlsDateSerialConverter.TryConvert(number, _uses1904DateSystem, out date, _dateStyles[style] == ExcelSerialDateStyle.Calendar);
             _kinds[ordinal] = isDate ? ValueKind.Date : ValueKind.Number;
             _numbers[ordinal] = number;
             if (isDate) {
@@ -871,8 +871,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private string NumberToHeader(double value, ushort style) {
             if (_options.TreatDatesUsingNumberFormat
                 && style < _dateStyles.Length
-                && _dateStyles[style]
-                && LegacyXlsDateSerialConverter.TryConvert(value, _uses1904DateSystem, out DateTime date)) {
+                && _dateStyles[style] != ExcelSerialDateStyle.None
+                && LegacyXlsDateSerialConverter.TryConvert(value, _uses1904DateSystem, out DateTime date, _dateStyles[style] == ExcelSerialDateStyle.Calendar)) {
                 return date.ToString(_options.Culture);
             }
             return value.ToString("R", _options.Culture);
