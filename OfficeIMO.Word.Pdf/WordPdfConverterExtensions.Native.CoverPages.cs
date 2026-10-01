@@ -141,6 +141,8 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool RenderNativeVmlGroup(PdfCore.PdfPageCanvas canvas, WordDocument document, OpenXmlElement group, NativeVmlFrame parentFrame, double pageWidth, double pageHeight) {
+            if (group.Ancestors<V.Group>().Count() >= 32)
+                throw new InvalidDataException("Word shape group nesting exceeds the PDF export limit of 32 levels.");
             if (!TryGetNativeVmlBox(group, parentFrame, pageWidth, pageHeight, out NativeVmlBox box)) {
                 return RenderNativeVmlCoverChildren(canvas, document, group.ChildElements, parentFrame, pageWidth, pageHeight);
             }

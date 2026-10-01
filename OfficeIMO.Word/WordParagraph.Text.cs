@@ -432,6 +432,11 @@ namespace OfficeIMO.Word {
                 case DeletedRun:
                 case MoveFromRun:
                     return;
+                // A grouped drawing owns its labels; they are not part of the enclosing paragraph's text.
+                case DocumentFormat.OpenXml.Office2010.Word.DrawingGroup.WordprocessingGroup:
+                case DocumentFormat.OpenXml.Office2010.Word.DrawingGroup.GroupShape:
+                case V.Group:
+                    return;
                 case AlternateContent alternate:
                     OpenXmlCompositeElement? branch = WordAlternateContentResolver.SelectBranch(alternate);
                     if (branch != null) AppendVisibleText(builder, branch, nonTextBreaks, observeElement);

@@ -174,8 +174,12 @@ pdf.SaveAsWord(
 - Word sections, page size, orientation, margins, columns, headers, footers, page numbers, and document background color.
 - Tables with common Word table styling, repeated headers, cell fills, borders, alignment, merged cells, and rich text in cells.
 - Paragraph-aligned images, selected shapes, text boxes, content controls, simple form controls, footnote/endnote markers, and table-of-contents links where supported by the first-party PDF path.
+- DrawingML groups of supported preset shapes retain nested child coordinates and scaling. Non-wrapping groups behind text preserve page- or margin-relative positions and paragraph-relative vertical anchors. Paragraph anchors follow pagination, columns, and floating-table clearance; list paragraphs retain both their marker and the group.
+
 - Unrotated, uncropped `InFrontOfText` images with explicit page-relative offsets inside the page bounds. Images follow the first page of their anchor paragraph or heading, including section columns, and paint over text and other flow content without reserving their height in the document flow. Overlapping foreground images follow `WordImage.ZOrder`; images with equal values retain document order.
 - Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
+
+For imported groups with unsupported DrawingML geometry, fixed-position export uses the document's VML fallback when available and reports `NativeShapeGroupVmlFallback`. Supported groups with other wrapping or anchor modes are placed in document flow with `NativeShapeGroupFlowed`; groups that cannot be rendered report `NativeShapeGroupUnsupported`. Arbitrary custom geometry, rotation, flips, foreground stacking, and exact text wrapping around groups remain limited.
 
 ## What it imports
 
