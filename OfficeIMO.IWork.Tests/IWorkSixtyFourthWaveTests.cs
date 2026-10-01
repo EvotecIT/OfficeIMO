@@ -14,7 +14,7 @@ public sealed partial class IWorkBoundaryTests {
             (76, 1, 2), (77, 1, 1), (84, 1, 255), (86, 1, 255),
             (87, 3, 3), (88, 1, 255), (90, 1, 1), (97, 0, 0),
             (102, 1, 255), (104, 0, 0), (107, 2, 2), (126, 2, 2), (132, 1, 1),
-            (124, 1, 2), (168, 1, 255), (145, 2, 3)
+            (124, 1, 2), (168, 1, 255), (145, 2, 3), (328, 3, 254)
         };
         foreach ((int index, int minimum, int maximum) in functions) {
             yield return new object[] { index, minimum == 0 ? maximum + 1 : minimum - 1 };

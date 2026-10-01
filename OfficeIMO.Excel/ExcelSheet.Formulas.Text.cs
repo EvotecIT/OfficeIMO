@@ -19,27 +19,25 @@ namespace OfficeIMO.Excel {
             }
 
             if (function == "CONCAT" || function == "CONCATENATE") {
-                if (tokens.Count == 0 || !TryResolveTextArgumentValues(tokens, out var parts)) {
-                    return false;
-                }
-
-                result = new FormulaArgumentValue(null, string.Concat(parts));
+                if (tokens.Count == 0 || !TryResolveTextArgumentValues(tokens, out var parts, out string? error)) return false;
+                result = error != null ? FormulaArgumentValue.Error(error) : CombineFormulaText(parts, string.Empty);
                 return true;
             }
 
             if (function == "TEXTJOIN") {
-                if (tokens.Count < 3
-                    || !TryResolveTextArgument(tokens[0], out string delimiter)
-                    || !TryResolveBooleanArgument(tokens[1], out bool ignoreEmpty)
-                    || !TryResolveTextArgumentValues(tokens.Skip(2), out var parts)) {
-                    return false;
+                if (tokens.Count < 3 || tokens.Count > 254
+                    || !TryResolveFormulaArgument(tokens[0], out FormulaArgumentValue delimiterValue)
+                    || delimiterValue.IsUnresolvedFormula) return false;
+                if (delimiterValue.IsError) { result = delimiterValue; return true; }
+                if (TryResolveFormulaArgument(tokens[1], out FormulaArgumentValue emptyPolicy) && emptyPolicy.IsError) {
+                    result = emptyPolicy;
+                    return true;
                 }
-
-                if (ignoreEmpty) {
-                    parts = parts.Where(part => part.Length > 0).ToList();
-                }
-
-                result = new FormulaArgumentValue(null, string.Join(delimiter, parts));
+                if (!TryResolveBooleanArgument(tokens[1], out bool ignoreEmpty)
+                    || !TryResolveTextArgumentValues(tokens.Skip(2), out var parts, out string? error)) return false;
+                if (error != null) { result = FormulaArgumentValue.Error(error); return true; }
+                if (ignoreEmpty) parts = parts.Where(part => part.Length > 0).ToList();
+                result = CombineFormulaText(parts, FormulaValueToText(delimiterValue));
                 return true;
             }
 
@@ -229,6 +227,15 @@ namespace OfficeIMO.Excel {
             }
 
             return false;
+        }
+
+        private static FormulaArgumentValue CombineFormulaText(IReadOnlyList<string> parts, string delimiter) {
+            long length = (long)delimiter.Length * Math.Max(0, parts.Count - 1);
+            foreach (string part in parts) {
+                length += part.Length;
+                if (length > 32767) return FormulaArgumentValue.Error("#VALUE!");
+            }
+            return new FormulaArgumentValue(null, string.Join(delimiter, parts));
         }
 
         private bool TryEvaluateTextBeforeAfterFunction(bool before, IReadOnlyList<string> tokens, out FormulaArgumentValue result) {

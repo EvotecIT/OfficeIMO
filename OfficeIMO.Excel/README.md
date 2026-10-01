@@ -627,6 +627,12 @@ document.Save("report.xlsx", new ExcelSaveOptions {
 });
 ```
 
+### TEXTJOIN formula storage
+
+Author `TEXTJOIN` through the normal cell and array-formula APIs. The writer stores these calls as `_xlfn.TEXTJOIN` in XLSX, including nested calls; `GetFormulaText` exposes the stored spelling. Existing prefixes, string literals, quoted worksheet names and structured references retain their text. Prefix expansion is checked against the 8,192-character formula limit.
+
+`Calculate()` supports both empty-cell policies, quoted worksheet names with punctuation, and typed error propagation through `TEXTJOIN`, `CONCAT` and `CONCATENATE`. Joined results above the 32,767-character cell-text limit become `#VALUE!`. The evaluator remains bounded by its supported expression and range contracts.
+
 ### Preflight a workbook before choosing a workflow
 
 ```csharp

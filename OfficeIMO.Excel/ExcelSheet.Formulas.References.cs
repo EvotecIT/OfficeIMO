@@ -19,30 +19,26 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private bool TryResolveTextArgumentValues(IEnumerable<string> tokens, out List<string> values) {
+        private bool TryResolveTextArgumentValues(IEnumerable<string> tokens, out List<string> values, out string? errorCode) {
             values = new List<string>();
+            errorCode = null;
+            int remainingCellBudget = MaxResolvedFormulaRangeCells;
             foreach (string token in tokens) {
-                if (TryResolveFormulaRange(token, out var rangeValues)) {
+                if (TryResolveFormulaRange(token, out var rangeValues, ref remainingCellBudget)) {
                     foreach (var rangeValue in rangeValues) {
-                        if (rangeValue.IsUnresolvedFormula) {
-                            values.Clear();
-                            return false;
-                        }
-
+                        if (rangeValue.IsUnresolvedFormula) { values.Clear(); return false; }
+                        if (rangeValue.IsError) { errorCode = rangeValue.ErrorCode; values.Clear(); return true; }
                         values.Add(FormulaValueToText(rangeValue));
                     }
-
                     continue;
                 }
-
-                if (!TryResolveTextArgument(token, out string value)) {
+                if (!TryResolveFormulaArgument(token, out FormulaArgumentValue value) || value.IsUnresolvedFormula) {
                     values.Clear();
                     return false;
                 }
-
-                values.Add(value);
+                if (value.IsError) { errorCode = value.ErrorCode; values.Clear(); return true; }
+                values.Add(FormulaValueToText(value));
             }
-
             return true;
         }
 
@@ -183,10 +179,23 @@ namespace OfficeIMO.Excel {
             var builder = new StringBuilder();
             int depth = 0;
             int bracketDepth = 0;
-            bool inString = false;
+            bool inString = false, inQuotedQualifier = false;
 
             for (int index = 0; index < args.Length; index++) {
                 char ch = args[index];
+                if (inQuotedQualifier) {
+                    builder.Append(ch);
+                    if (ch == '\'') {
+                        if (index + 1 < args.Length && args[index + 1] == '\'') builder.Append(args[++index]);
+                        else inQuotedQualifier = false;
+                    }
+                    continue;
+                }
+                if (!inString && bracketDepth == 0 && ch == '\'') {
+                    inQuotedQualifier = true;
+                    builder.Append(ch);
+                    continue;
+                }
                 if (ch == '"') {
                     builder.Append(ch);
                     if (inString && index + 1 < args.Length && args[index + 1] == '"') {
@@ -239,7 +248,7 @@ namespace OfficeIMO.Excel {
                 builder.Append(ch);
             }
 
-            if (depth != 0 || bracketDepth != 0 || inString) {
+            if (depth != 0 || bracketDepth != 0 || inString || inQuotedQualifier) {
                 return Array.Empty<string>();
             }
 

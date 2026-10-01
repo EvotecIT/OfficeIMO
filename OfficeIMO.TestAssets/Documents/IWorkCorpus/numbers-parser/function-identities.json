@@ -5,7 +5,7 @@
   "sourceSha256": "9371c5b1d6ee4dfa17569097f064eba9c67f804d88b48638efbbeeb459d07dd4",
   "extractorVersion": "numbers-parser 4.19.0",
   "license": "MIT, copyright Jon Connell",
-  "qualification": "Independent function identities plus two unmodified native expressions and caches; synthetic argument samples do not qualify evaluation. No Apple export, recalculation or appearance oracle.",
+  "qualification": "Independent function identities plus three unmodified native expressions and caches; synthetic argument samples do not qualify evaluation. No Apple export, recalculation or appearance oracle.",
   "identities": [
     {
       "index": 1,
@@ -166,6 +166,11 @@
       "index": 168,
       "name": "SUM",
       "sampleArgumentCount": 1
+    },
+    {
+      "index": 328,
+      "name": "TEXTJOIN",
+      "sampleArgumentCount": 3
     }
   ],
   "nativeCases": [
@@ -215,6 +220,20 @@
       ]
     }
   ],
+  "textJoinCase": {
+    "sourceSheet": "Main Sheet",
+    "sourceTable": "Formula Tests",
+    "row": 16,
+    "column": 1,
+    "sourceFormula": "TEXTJOIN(\",\",FALSE,Animal Table::B1:D1)",
+    "functionIndex": 328,
+    "argumentCount": 3,
+    "targetSheet": "Main Sheet",
+    "targetTable": "Animal Table",
+    "address": "B1:D1",
+    "cachedValue": "cat,dog,hamster",
+    "computedCurrentRangeValue": "cat,dog,hamster"
+  },
   "unqualifiedIdentities": [
     {
       "index": 89,

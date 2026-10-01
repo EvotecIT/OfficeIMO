@@ -9,6 +9,12 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## Excel and iWork TEXTJOIN formulas
+
+Numbers `TEXTJOIN` expressions with qualified operands now retain editable XLSX formulas and typed caches. The shared Excel writer stores authored `TEXTJOIN` calls as `_xlfn.TEXTJOIN`, including nested calls. Code comparing exact formula strings from `GetFormulaText` must account for this prefix. Existing prefixes, string literals, quoted worksheet names and structured references retain their text. Formula-prefix expansion that exceeds the 8,192-character storage limit raises an argument error for direct Excel authoring; iWork conversion uses its destination fallback policy instead of truncating the expression.
+
+The shared evaluator handles punctuation in quoted worksheet names, propagates errors through `TEXTJOIN`, `CONCAT` and `CONCATENATE`, and returns `#VALUE!` when joined text exceeds 32,767 characters. Recalculate outputs whose cached results depend on these cases; the source cache retained during conversion is not a freshness guarantee.
+
 ## iWork formula function identities
 
 Reconvert Numbers inputs that use `MINUTE`, `OR`, `PI`, `ROUND`, `SECOND`, or `SUMIF`; their native identifiers now resolve to the correct function names. Previous output could omit these expressions or contain an incorrectly named editable formula. Native `MINA`, `OFFSET`, `PROB`, `RANDBETWEEN`, and unrecognized identifiers remain incomplete and retain valid caches. Inspect `FormulaIsComplete` and `IWORK_TABLE_FORMULA_PARTIAL` before relying on editable formulas. `POWER` expressions are reconstructed with their typed caches.

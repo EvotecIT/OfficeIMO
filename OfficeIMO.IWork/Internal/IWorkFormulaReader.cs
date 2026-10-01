@@ -55,7 +55,8 @@ internal static partial class IWorkFormulaReader {
         [126] = new("ROUND", 2, 2),
         [132] = new("SECOND", 1, 1),
         [145] = new("SUMIF", 2, 3),
-        [SumFunctionIndex] = new("SUM", 1, 255)
+        [SumFunctionIndex] = new("SUM", 1, 255),
+        [328] = new("TEXTJOIN", 3, 254)
     };
 
     internal static IWorkFormulaResult Render(IWorkWireMessage formula, int zeroBasedRow, int zeroBasedColumn,
