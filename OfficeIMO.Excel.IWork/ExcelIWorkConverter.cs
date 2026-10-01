@@ -51,6 +51,14 @@ public static partial class ExcelIWorkConverter {
                     lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission)
             }).ToArray();
         }
+        if (editable && projection.Sheets.SelectMany(sheet => sheet.Tables).SelectMany(table => table.Cells)
+            .Any(cell => cell.Padding != null)) {
+            destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_CELL_PADDING_OMITTED",
+                    "Four-sided native cell padding remains on the source projection; XLSX cell alignment has no equivalent padding setting.",
+                    lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission)
+            }).ToArray();
+        }
         long approximatedErrorCount = editable
             ? projection.Sheets.SelectMany(sheet => sheet.Tables).SelectMany(table => table.Cells)
                 .LongCount(cell => (cell.Kind == IWorkCellKind.Error
@@ -193,6 +201,11 @@ public static partial class ExcelIWorkConverter {
                                 && !string.IsNullOrEmpty(formula) && !formulaWritten) {
                                 targetCell.SetFormula(formula!);
                             }
+                            if (cell.VerticalAlignment is { } vertical) sheet.CellVerticalAlign(cell.Row, cell.Column, vertical switch {
+                                IWorkCellVerticalAlignment.Top => ExcelVerticalAlignment.Top,
+                                IWorkCellVerticalAlignment.Middle => ExcelVerticalAlignment.Center,
+                                _ => ExcelVerticalAlignment.Bottom
+                            });
                             if (isDuration && cell.Value is double) targetCell.DurationHours();
                             if (cell.NumberFormat is { } numberFormat)
                                 sheet.FormatCell(cell.Row, cell.Column, NumberFormatCode(numberFormat));

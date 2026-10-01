@@ -1,4 +1,4 @@
-"""Extract selected Pages cell fills through pinned independent protobuf schemas.
+"""Extract selected Pages cell fills and layout through pinned independent protobuf schemas.
 
 Requires opt-in numbers-parser 4.19.0. No native Apple export/appearance claim.
 """
@@ -50,7 +50,17 @@ def read_fill(identifier):
         chain.append((current, style))
         current = style.super.parent.identifier if style.super.HasField('parent') else 0
     result = None
+    padding = None
+    vertical = None
     for _, style in reversed(chain):
+        properties = style.cell_properties
+        if properties.HasField('vertical_alignment'):
+            assert properties.vertical_alignment in (0, 1, 2)
+            vertical = ['top', 'middle', 'bottom'][properties.vertical_alignment]
+        if properties.HasField('padding'):
+            # A declared message replaces the whole property; omitted scalar sides default to zero.
+            padding = {side: getattr(properties.padding, side) for side in ('left', 'top', 'right', 'bottom')}
+            assert all(math.isfinite(value) and value >= 0 for value in padding.values())
         if not style.cell_properties.HasField('cell_fill'):
             continue
         fill = style.cell_properties.cell_fill
@@ -65,7 +75,7 @@ def read_fill(identifier):
             assert all(math.isfinite(value) and 0 <= value <= 1 for value in components)
             result = {'kind': 'solid', 'rgbHex': ''.join(f'{math.floor(value * 255 + 0.5):02X}' for value in components)}
     assert result is not None
-    return result, [identifier for identifier, _ in chain]
+    return result, [identifier for identifier, _ in chain], padding, vertical
 
 tables = []
 for identifier, (kind, content) in sorted(records.items()):
@@ -99,13 +109,14 @@ for identifier, (kind, content) in sorted(records.items()):
                     16 if bit == 0 else 8 if bit in (1, 2) else 4
                     for bit in range(5) if flags & (1 << bit))
                 key = struct.unpack_from('<I', buffer, style_offset)[0]
-                fill, chain = read_fill(entries[key])
+                fill, chain, padding, vertical = read_fill(entries[key])
                 cells.append({'row': selected_tile.tileid * 256 + row.tile_row_index + 1,
                               'column': column + 1, 'empty': buffer[offset + 1] == 0,
-                              'styleKey': key, 'styleIdentifiers': chain, 'fill': fill})
+                              'styleKey': key, 'styleIdentifiers': chain, 'fill': fill,
+                              'paddingPoints': padding, 'verticalAlignment': vertical})
     tables.append({'modelIdentifier': identifier, 'name': model.table_name, 'cells': cells})
 assert len(tables) == 3 and sum(len(table['cells']) for table in tables) == 64
 manifest = {'provider': 'numbers-parser', 'providerVersion': '4.19.0',
             'source': {'path': name, 'sha256': source_hash}, 'tables': tables,
-            'limits': 'Selected modern cell fills and inheritance only; table-role defaults, banding, other styles, Apple exports and complete appearance are not qualified.'}
+            'limits': 'Selected modern cell fills, four-sided padding, vertical alignment and inheritance only; table-role defaults, banding, other styles, Apple exports and complete appearance are not qualified.'}
 args.output.write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')

@@ -293,6 +293,11 @@ public static partial class PowerPointIWorkConverter {
                     && cell.RichText is { IsComplete: false })) {
                     return $"Keynote table '{table.Name}' contains formula cached text with incomplete formatting that the PPTX owner cannot preserve.";
                 }
+                if (table.Cells.Any(cell => cell.Padding != null && PaddingPoints(cell.Padding)
+                    .Any(points => Math.Round(points * 12700d) > int.MaxValue
+                        || !allowPartialEditableReconstruction && !IsExactEmu(points)))) {
+                    return $"Keynote table '{table.Name}' has cell padding outside the PPTX margin range or EMU precision.";
+                }
                 if (table.HasPopulatedCoveredMergeCells()) {
                     return $"Keynote table '{table.Name}' contains content in a covered merged cell that the PPTX owner cannot preserve.";
                 }
@@ -347,7 +352,9 @@ public static partial class PowerPointIWorkConverter {
                     || !IsExactEmu(geometry.WidthPoints)
                     || !IsExactEmu(geometry.HeightPoints))
             || projection.Slides.SelectMany(slide => slide.Tables)
-                .Any(table => TableSizingRequiresEmuRounding(table));
+                .Any(table => TableSizingRequiresEmuRounding(table))
+            || projection.Slides.SelectMany(slide => slide.Tables).SelectMany(table => table.Cells)
+                .Any(cell => cell.Padding != null && PaddingPoints(cell.Padding).Any(points => !IsExactEmu(points)));
         var diagnostics = new List<IWorkDiagnostic>();
         if (projection.Slides.SelectMany(slide => slide.Tables).SelectMany(table => table.Cells)
             .Any(cell => cell.Fill != null)) {

@@ -21,6 +21,8 @@ result.Value.Save("converted.pptx");
 
 `IWorkSourceDocument.Open` reads and bounds the source independently of destination policy. `ToPowerPointPresentation` returns the converted presentation directly; `ToPowerPointPresentationResult` also exposes the typed Keynote projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result. `PowerPointIWorkConverter.ConvertKeynoteToPowerPoint*` provides equivalent path and stream convenience entry points.
 
+Selected native cell padding becomes PowerPoint table-cell margins, and top/middle/bottom alignment becomes the cell anchor. Values must fit the PPTX margin range; the partial policy permits EMU rounding with a precision diagnostic.
+
 Individual table row heights and column widths are carried into PPTX. If their total differs from the table’s drawable extent, the adapter scales them proportionally and reports `IWORK_KEYNOTE_TABLE_SIZING_SCALED` as an approximation. Measurements are quantized to EMUs with a separate precision diagnostic.
 
 Choose the acceptance policy explicitly when source details cannot be represented:

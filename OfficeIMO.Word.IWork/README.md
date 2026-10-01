@@ -25,7 +25,7 @@ Qualified body image attachments retain their inline run positions. A qualified 
 
 Individual table row heights and column widths are carried into DOCX in twips under the adapter’s precision policy. A resolved native automatic-resize setting maps row heights to minimum constraints, allowing wrapped cell text to grow the row. Explicit fixed settings retain exact heights; absent settings retain the existing exact-height mapping. Unresolved or malformed settings are diagnosed.
 
-Selected native solid cell fills become DOCX shading. Explicit no-fill overrides clear inherited fills, including on empty cells. Unsupported fills retain source diagnostics and follow the conversion acceptance policy.
+Selected native padding becomes Word cell margins, and top/middle/bottom alignment becomes Word vertical alignment. Source points must fit the Word cell-margin range; the partial policy permits twip rounding with a precision diagnostic. Selected native solid cell fills become DOCX shading. Explicit no-fill overrides clear inherited fills, including on empty cells. Unsupported fills retain source diagnostics and follow the conversion acceptance policy.
 
 Choose the acceptance policy explicitly when source details cannot be represented:
 

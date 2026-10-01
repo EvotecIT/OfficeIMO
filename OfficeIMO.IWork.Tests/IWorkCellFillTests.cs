@@ -5,7 +5,7 @@ namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkBoundaryTests {
     [Fact]
-    public void Independent_selected_Pages_cell_fills_survive_saved_DOCX_including_empty_cells() {
+    public void Independent_selected_Pages_cell_fills_and_layout_survive_saved_DOCX_including_empty_cells() {
         using var manifest = JsonDocument.Parse(File.ReadAllText(CorpusFixture("pages-cell-fills.json")));
         using var result = WordIWorkConverter.ConvertPagesToWordResult(CorpusFixture("picodocs/sample-v14.4.pages"),
             conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
@@ -22,6 +22,19 @@ public sealed partial class IWorkBoundaryTests {
                 Assert.Equal(cell.GetProperty("empty").GetBoolean(), source.Kind == IWorkCellKind.Empty);
                 IWorkCellFill fill = Assert.IsType<IWorkCellFill>(source.Fill);
                 var target = reopened.Tables[position].Rows[row - 1].Cells[column - 1];
+                JsonElement inset = cell.GetProperty("paddingPoints");
+                IWorkCellPadding padding = Assert.IsType<IWorkCellPadding>(source.Padding);
+                Assert.Equal(inset.GetProperty("left").GetDouble(), padding.LeftPoints);
+                Assert.Equal(inset.GetProperty("top").GetDouble(), padding.TopPoints);
+                Assert.Equal(inset.GetProperty("right").GetDouble(), padding.RightPoints);
+                Assert.Equal(inset.GetProperty("bottom").GetDouble(), padding.BottomPoints);
+                Assert.Equal((short)(padding.LeftPoints * 20), target.MarginLeftWidth);
+                Assert.Equal((short)(padding.TopPoints * 20), target.MarginTopWidth);
+                Assert.Equal((short)(padding.RightPoints * 20), target.MarginRightWidth);
+                Assert.Equal((short)(padding.BottomPoints * 20), target.MarginBottomWidth);
+                Assert.Equal("middle", cell.GetProperty("verticalAlignment").GetString());
+                Assert.Equal(IWorkCellVerticalAlignment.Middle, source.VerticalAlignment);
+                Assert.Equal(OfficeIMO.Word.WordTableVerticalAlignment.Center, target.VerticalAlignment);
                 JsonElement expected = cell.GetProperty("fill");
                 if (expected.GetProperty("kind").GetString() == "none") {
                     Assert.True(fill.IsNone);
@@ -39,6 +52,10 @@ public sealed partial class IWorkBoundaryTests {
         var validator = new DocumentFormat.OpenXml.Validation.OpenXmlValidator();
         Assert.All(xml.MainDocumentPart!.Document!.Descendants<DocumentFormat.OpenXml.Wordprocessing.Shading>(),
             shading => Assert.Empty(validator.Validate(shading)));
+        Assert.All(xml.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Wordprocessing.TableCellMargin>(),
+            margins => Assert.Empty(validator.Validate(margins)));
+        Assert.All(xml.MainDocumentPart.Document.Descendants<DocumentFormat.OpenXml.Wordprocessing.TableCellVerticalAlignment>(),
+            alignment => Assert.Empty(validator.Validate(alignment)));
     }
 
     [Theory]

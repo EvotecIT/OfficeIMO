@@ -2,14 +2,15 @@ using System.Globalization;
 
 namespace OfficeIMO.IWork;
 
-/// <summary>One materialized value or explicitly filled empty cell shared by Pages, Numbers, and Keynote table projections.</summary>
+/// <summary>One materialized value or explicitly styled empty cell shared by Pages, Numbers, and Keynote table projections.</summary>
 public sealed class IWorkTableCell {
     internal IWorkTableCell(int row, int column, IWorkCellKind kind, object? value,
         string? formula = null, string? error = null, IWorkCellKind? valueKind = null,
         bool formulaIsComplete = false, IWorkTextContent? richText = null,
         bool cachedValueIsComplete = true, bool sourceFormulaIsDeclared = false,
         bool hasDecodeError = false, IWorkNumberFormat? numberFormat = null,
-        string? sourceNumberText = null, bool numericValueIsApproximate = false, Internal.IWorkFormulaDefinition? formulaDefinition = null, IWorkCellFill? fill = null) {
+        string? sourceNumberText = null, bool numericValueIsApproximate = false, Internal.IWorkFormulaDefinition? formulaDefinition = null, IWorkCellFill? fill = null,
+        IWorkCellPadding? padding = null, IWorkCellVerticalAlignment? verticalAlignment = null) {
         Row = row;
         Column = column;
         Kind = kind;
@@ -27,6 +28,8 @@ public sealed class IWorkTableCell {
         NumericValueIsApproximate = numericValueIsApproximate;
         FormulaDefinition = formulaDefinition;
         Fill = fill;
+        Padding = padding;
+        VerticalAlignment = verticalAlignment;
     }
 
     /// <summary>Gets the one-based row position.</summary>
@@ -66,26 +69,34 @@ public sealed class IWorkTableCell {
     /// <see cref="IWorkCellFill.IsNone"/> distinguishes an explicit no-fill override.</summary>
     public IWorkCellFill? Fill { get; }
 
+    /// <summary>Gets selected native padding in points. Null means absent or unresolved; an explicit empty message retains zero on all four sides.</summary>
+    public IWorkCellPadding? Padding { get; }
+
+    /// <summary>Gets selected native vertical alignment. Null means absent or unresolved.</summary>
+    public IWorkCellVerticalAlignment? VerticalAlignment { get; }
+
+    internal bool HasCellFormatting => Fill != null || Padding != null || VerticalAlignment != null;
+
     internal Internal.IWorkFormulaDefinition? FormulaDefinition { get; }
 
     internal IWorkTableCell WithFormula(Internal.IWorkFormulaResult result) =>
         new(Row, Column, Kind, Value, result.Text.Length == 0 ? "=?" : result.Text, Error, ValueKind, result.IsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
-            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill);
+            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment);
 
     internal IWorkTableCell WithNumberFormat(IWorkNumberFormat format) =>
         new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, format,
-            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill);
+            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment);
 
     internal IWorkTableCell WithSourceNumber(string text, bool approximate) =>
         new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
-            text, approximate, FormulaDefinition, Fill);
-    internal IWorkTableCell WithFill(IWorkCellFill fill) =>
+            text, approximate, FormulaDefinition, Fill, Padding, VerticalAlignment);
+    internal IWorkTableCell WithStyle(Internal.IWorkTableCellStyle style) =>
         new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
-            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, fill);
+            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, style.Fill, style.Padding, style.VerticalAlignment);
 
     /// <summary>Gets a culture-invariant display representation of the recovered value or formula.</summary>
     public string DisplayText => Kind switch {
@@ -218,10 +229,10 @@ public sealed class IWorkTable {
     public IWorkGeometry? Geometry { get; }
     /// <summary>Gets the source table accessibility description.</summary>
     public string? AccessibilityDescription { get; }
-    /// <summary>Gets materialized value, diagnostic, or explicitly filled empty cells.</summary>
+    /// <summary>Gets materialized value, diagnostic, or explicitly styled empty cells.</summary>
     public IReadOnlyList<IWorkTableCell> Cells { get; }
 
-    /// <summary>Returns a materialized cell at a one-based position, or null when no value, diagnostic, or supported fill is retained.</summary>
+    /// <summary>Returns a materialized cell at a one-based position, or null when no value, diagnostic, or supported cell formatting is retained.</summary>
     public IWorkTableCell? GetCell(int row, int column) {
         if (row < 1 || row > RowCount) throw new ArgumentOutOfRangeException(nameof(row));
         if (column < 1 || column > ColumnCount) throw new ArgumentOutOfRangeException(nameof(column));

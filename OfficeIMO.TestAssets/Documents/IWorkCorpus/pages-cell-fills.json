@@ -22,7 +22,14 @@
           "fill": {
             "kind": "solid",
             "rgbHex": "D9EAF7"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 1,
@@ -36,7 +43,14 @@
           "fill": {
             "kind": "solid",
             "rgbHex": "D9EAF7"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 1,
@@ -50,7 +64,14 @@
           "fill": {
             "kind": "solid",
             "rgbHex": "D9EAF7"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 1,
@@ -64,7 +85,14 @@
           "fill": {
             "kind": "solid",
             "rgbHex": "D9EAF7"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 2,
@@ -77,7 +105,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 2,
@@ -90,7 +125,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 2,
@@ -103,7 +145,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 2,
@@ -116,7 +165,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 3,
@@ -129,7 +185,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 3,
@@ -142,7 +205,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 3,
@@ -155,7 +225,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 3,
@@ -168,7 +245,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 4,
@@ -181,7 +265,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 4,
@@ -194,7 +285,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 4,
@@ -207,7 +305,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 4,
@@ -220,7 +325,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 5,
@@ -233,7 +345,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 5,
@@ -246,7 +365,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 5,
@@ -259,7 +385,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 5,
@@ -272,7 +405,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         }
       ]
     },
@@ -292,7 +432,14 @@
           "fill": {
             "kind": "solid",
             "rgbHex": "EFEFEF"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 1,
@@ -306,7 +453,14 @@
           "fill": {
             "kind": "solid",
             "rgbHex": "EFEFEF"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 1,
@@ -320,7 +474,14 @@
           "fill": {
             "kind": "solid",
             "rgbHex": "EFEFEF"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 1,
@@ -334,7 +495,14 @@
           "fill": {
             "kind": "solid",
             "rgbHex": "EFEFEF"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 1,
@@ -348,7 +516,14 @@
           "fill": {
             "kind": "solid",
             "rgbHex": "EFEFEF"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 1,
@@ -362,7 +537,14 @@
           "fill": {
             "kind": "solid",
             "rgbHex": "EFEFEF"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 2,
@@ -375,7 +557,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 2,
@@ -388,7 +577,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 2,
@@ -401,7 +597,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 2,
@@ -414,7 +617,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 2,
@@ -427,7 +637,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 2,
@@ -440,7 +657,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 3,
@@ -453,7 +677,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 3,
@@ -466,7 +697,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 3,
@@ -479,7 +717,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 3,
@@ -492,7 +737,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 3,
@@ -505,7 +757,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 3,
@@ -518,7 +777,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 4,
@@ -531,7 +797,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 4,
@@ -544,7 +817,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 4,
@@ -557,7 +837,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 4,
@@ -570,7 +857,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 4,
@@ -583,7 +877,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 4,
@@ -596,7 +897,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         }
       ]
     },
@@ -616,7 +924,14 @@
           "fill": {
             "kind": "solid",
             "rgbHex": "EFEFEF"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 1,
@@ -630,7 +945,14 @@
           "fill": {
             "kind": "solid",
             "rgbHex": "EFEFEF"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 1,
@@ -644,7 +966,14 @@
           "fill": {
             "kind": "solid",
             "rgbHex": "EFEFEF"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 1,
@@ -658,7 +987,14 @@
           "fill": {
             "kind": "solid",
             "rgbHex": "EFEFEF"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 1,
@@ -672,7 +1008,14 @@
           "fill": {
             "kind": "solid",
             "rgbHex": "EFEFEF"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 2,
@@ -685,7 +1028,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 2,
@@ -698,7 +1048,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 2,
@@ -711,7 +1068,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 2,
@@ -724,7 +1088,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 2,
@@ -737,7 +1108,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 3,
@@ -750,7 +1128,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 3,
@@ -763,7 +1148,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 3,
@@ -776,7 +1168,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 3,
@@ -789,7 +1188,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 3,
@@ -802,7 +1208,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 4,
@@ -815,7 +1228,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 4,
@@ -828,7 +1248,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 4,
@@ -841,7 +1268,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 4,
@@ -854,7 +1288,14 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         },
         {
           "row": 4,
@@ -867,10 +1308,17 @@
           ],
           "fill": {
             "kind": "none"
-          }
+          },
+          "paddingPoints": {
+            "left": 4.0,
+            "top": 4.0,
+            "right": 4.0,
+            "bottom": 4.0
+          },
+          "verticalAlignment": "middle"
         }
       ]
     }
   ],
-  "limits": "Selected modern cell fills and inheritance only; table-role defaults, banding, other styles, Apple exports and complete appearance are not qualified."
+  "limits": "Selected modern cell fills, four-sided padding, vertical alignment and inheritance only; table-role defaults, banding, other styles, Apple exports and complete appearance are not qualified."
 }

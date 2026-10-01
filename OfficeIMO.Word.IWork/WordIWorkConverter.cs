@@ -294,67 +294,6 @@ public static partial class WordIWorkConverter {
         }
     }
 
-    private static WordTable? AddTable(WordDocument document, IWorkTable source,
-        IWorkNativeListCatalog nativeLists,
-        WordParagraph? pageHost, WordTable? tableHost, CancellationToken cancellationToken) {
-        if (source.RowCount == 0 || source.ColumnCount == 0) return null;
-        WordTable table = pageHost == null
-            ? document.AddTable(source.RowCount, source.ColumnCount, WordTableStyle.TableGrid)
-            : document.CreateTable(source.RowCount, source.ColumnCount, WordTableStyle.TableGrid);
-        table.Description = source.AccessibilityDescription;
-        if (source.DefaultColumnWidth is > 0 || source.ColumnWidths.Count > 0) {
-            List<int> widths = table.ColumnWidth;
-            table.ColumnWidthType = WordTableWidthUnit.Dxa;
-            for (int column = 1; column <= source.ColumnCount; column++) {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (source.GetColumnWidth(column) is double width) widths[column - 1] = ToSignedTwips(width);
-            }
-            table.ColumnWidth = widths;
-        }
-        for (int row = 1; row <= source.RowCount; row++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (source.GetRowHeight(row) is double height) {
-                if (source.AutoResizeRows == true) table.Rows[row - 1].MinimumHeight = ToSignedTwips(height);
-                else table.Rows[row - 1].Height = ToSignedTwips(height);
-            }
-        }
-        foreach (IWorkTableCell sourceCell in source.Cells) {
-            cancellationToken.ThrowIfCancellationRequested();
-            WordTableCell target = table.Rows[sourceCell.Row - 1].Cells[sourceCell.Column - 1];
-            if (sourceCell.Fill is { } fill) {
-                if (fill.Color is { } color) target.ShadingFillColorHex = color.RgbHex;
-                else target.ShadingPattern = WordShadingPattern.Nil;
-            }
-            bool header = sourceCell.Row <= source.HeaderRowCount
-                || sourceCell.Column <= source.HeaderColumnCount
-                || sourceCell.Row > source.RowCount - source.FooterRowCount;
-            if (sourceCell.RichText is { Paragraphs.Count: > 0 } richText) {
-                bool first = true;
-                AddRichText(richText, _ => {
-                    WordParagraph paragraph = target.AddParagraph(string.Empty,
-                        removeExistingParagraphs: first);
-                    first = false;
-                    return paragraph;
-                }, nativeLists, forceBold: header, cancellationToken: cancellationToken);
-            } else {
-                WordParagraph paragraph = target.AddParagraph(CellText(sourceCell),
-                    removeExistingParagraphs: true);
-                if (header) paragraph.Bold = true;
-            }
-        }
-        foreach (IWorkTableMergeRange merge in source.MergedRanges) {
-            cancellationToken.ThrowIfCancellationRequested();
-            table.MergeCells(merge.FirstRow - 1, merge.FirstColumn - 1,
-                merge.LastRow - merge.FirstRow + 1, merge.LastColumn - merge.FirstColumn + 1);
-        }
-        for (int row = 0; row < Math.Min(source.HeaderRowCount, table.Rows.Count); row++) {
-            table.Rows[row].RepeatHeaderRowAtTheTopOfEachPage = true;
-        }
-        if (tableHost != null) tableHost._table.InsertAfterSelf(table._table);
-        else if (pageHost != null) document.InsertTableAfter(pageHost, table);
-        return table;
-    }
-
     private static WordTextBox AddRichTextBox(WordDocument document, IWorkTextBox source,
         IWorkNativeListCatalog nativeLists, WordParagraph? pageHost, CancellationToken cancellationToken) {
         WordTextBox textBox = pageHost == null

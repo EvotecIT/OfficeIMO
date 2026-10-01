@@ -97,6 +97,11 @@ public static partial class WordIWorkConverter {
                 || table.ColumnWidths.Values.Any(width => !FitsSignedTwips(width, allowPartialEditableReconstruction))) {
                 return $"Pages table '{table.Name}' has sizing outside the DOCX measurement range.";
             }
+            if (table.Cells.Any(cell => cell.Padding != null
+                && PaddingPoints(cell.Padding).Any(points => Math.Round(points * 20d, MidpointRounding.AwayFromZero) > short.MaxValue
+                    || !allowPartialEditableReconstruction && !IsExactDestinationUnit(points, 20d)))) {
+                return $"Pages table '{table.Name}' has cell padding outside the DOCX cell-margin range or twip precision.";
+            }
             if (!allowPartialEditableReconstruction && table.Geometry is { } geometry
                 && (Math.Abs(geometry.LeftPoints) > 0.000001d
                     || Math.Abs(geometry.TopPoints) > 0.000001d
@@ -153,6 +158,13 @@ public static partial class WordIWorkConverter {
         return null;
     }
 
+    private static IEnumerable<double> PaddingPoints(IWorkCellPadding padding) {
+        yield return padding.LeftPoints;
+        yield return padding.TopPoints;
+        yield return padding.RightPoints;
+        yield return padding.BottomPoints;
+    }
+
     private static bool RequiresWordRounding(IWorkPagesProjection projection) =>
         WordTwipMeasurements(projection).Any(value => value.HasValue && !IsExactDestinationUnit(value.Value, 20d))
         || AllPagesText(projection).SelectMany(content => content.Paragraphs).SelectMany(paragraph => paragraph.Runs)
@@ -180,6 +192,9 @@ public static partial class WordIWorkConverter {
             yield return table.DefaultColumnWidth;
             foreach (double height in table.RowHeights.Values) yield return height;
             foreach (double width in table.ColumnWidths.Values) yield return width;
+            foreach (IWorkTableCell cell in table.Cells)
+                if (cell.Padding != null)
+                    foreach (double points in PaddingPoints(cell.Padding)) yield return points;
         }
         foreach (IWorkTextParagraph paragraph in AllPagesText(projection).SelectMany(content => content.Paragraphs)) {
             IWorkParagraphStyle style = paragraph.Style;

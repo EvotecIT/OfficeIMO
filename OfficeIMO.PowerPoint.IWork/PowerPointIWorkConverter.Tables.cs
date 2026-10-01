@@ -25,6 +25,17 @@ public static partial class PowerPointIWorkConverter {
         foreach (IWorkTableCell sourceCell in source.Cells) {
             cancellationToken.ThrowIfCancellationRequested();
             PowerPointTableCell target = table.GetCell(sourceCell.Row - 1, sourceCell.Column - 1);
+            if (sourceCell.Padding is { } padding) {
+                target.PaddingLeftPoints = padding.LeftPoints;
+                target.PaddingTopPoints = padding.TopPoints;
+                target.PaddingRightPoints = padding.RightPoints;
+                target.PaddingBottomPoints = padding.BottomPoints;
+            }
+            if (sourceCell.VerticalAlignment is { } vertical) target.VerticalAlignment = vertical switch {
+                IWorkCellVerticalAlignment.Top => PowerPointTextVerticalAlignment.Top,
+                IWorkCellVerticalAlignment.Middle => PowerPointTextVerticalAlignment.Center,
+                _ => PowerPointTextVerticalAlignment.Bottom
+            };
             if (sourceCell.RichText is { Paragraphs.Count: > 0 } richText) {
                 IReadOnlyList<PowerPointParagraph> paragraphs = target.SetParagraphs(
                     richText.Paragraphs.Select(_ => string.Empty));
@@ -60,6 +71,13 @@ public static partial class PowerPointIWorkConverter {
             source.Geometry?.WidthPoints, width, table.SetColumnWidthPoints, cancellationToken);
         ApplyAxisSizing(source.RowCount, source.RowHeights, source.DefaultRowHeight,
             source.Geometry?.HeightPoints, height, table.SetRowHeightPoints, cancellationToken);
+    }
+
+    private static IEnumerable<double> PaddingPoints(IWorkCellPadding padding) {
+        yield return padding.LeftPoints;
+        yield return padding.TopPoints;
+        yield return padding.RightPoints;
+        yield return padding.BottomPoints;
     }
 
     private static double TableAxisExtent(int count, IReadOnlyDictionary<int, double> sizes,
