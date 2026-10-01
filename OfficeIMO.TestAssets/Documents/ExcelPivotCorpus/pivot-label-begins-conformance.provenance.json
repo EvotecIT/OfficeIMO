@@ -1,0 +1,14 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T06:06:54.2919296Z",
+  "regeneration": "Build/Verification/New-ExcelPivotLabelFilterOracle.ps1",
+  "file": "pivot-label-begins-conformance.xlsx",
+  "sha256": "6465f7350b13de4d5f22de13f1b3d6ce0e1625a947976fb5e77f207f6691f05b",
+  "sourceRange": "Source!A1:B6",
+  "filterType": 17,
+  "criterion": "North",
+  "outputRange": "A4:B7",
+  "grandTotal": 70.0
+}

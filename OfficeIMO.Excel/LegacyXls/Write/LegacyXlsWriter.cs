@@ -843,7 +843,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             if (dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Error) {
-                if (LegacyXlsErrorValue.TryGetCode(rawValue, out byte errorCode)) {
+                if (ExcelErrorCode.TryGetCode(rawValue, out byte errorCode)) {
                     return LegacyXlsCell.Error(row, column, styleIndex, errorCode);
                 }
 
@@ -999,7 +999,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     throw new NotSupportedException($"Native XLS saving requires a cached result for formula cell {address}. Enable formula evaluation before saving or save as .xlsx.");
                 }
 
-                if (LegacyXlsErrorValue.TryGetCode(rawValue, out byte errorCode)) {
+                if (ExcelErrorCode.TryGetCode(rawValue, out byte errorCode)) {
                     return LegacyXlsCell.FormulaError(row, column, styleIndex, errorCode, tokens, formulaExtraData, arrayFormulaPayload, sharedFormulaPayload);
                 }
 

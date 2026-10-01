@@ -271,6 +271,7 @@
               <workflow:ConversionWorkbenchView x:Name="ConversionView" Grid.Row="1" />
             </Grid>
             <workflow:OutputIntakeWorkbenchView Grid.Row="1" IsVisible="{Binding IsOutputMode}" />
+            <Grid Grid.Row="1" IsVisible="{Binding IsInvoiceMode}"><workflow:InvoiceWorkbenchView DataContext="{Binding InvoiceWorkbench}" /></Grid>
             <Grid Grid.Row="1" IsVisible="{Binding IsJobsMode}"><workflow:StudioJobsView DataContext="{Binding Jobs}" /></Grid>
             <workflow:ProvenanceWorkbenchView Grid.Row="1" IsVisible="{Binding IsProvenanceMode}" />
             <workflow:DocumentHealthView x:Name="DocumentHealthView" Grid.Row="1" IsVisible="{Binding IsDocumentHealthMode}" />

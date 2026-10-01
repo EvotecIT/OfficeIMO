@@ -16,294 +16,8 @@ namespace OfficeIMO.CSV;
 /// <summary>
 /// Forward-only reader for CSV rows projected through an optional schema.
 /// </summary>
-internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsvDataReaderPositionMetadata, IDataReaderMappingMetadata, IDataReaderMappingErrorMetadata, IDataReaderFastMappingValues, IDataReaderParallelBatchSource, IDataReaderParallelBatchInfo
+internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata, ICsvDataReaderPositionMetadata, IDataReaderMappingMetadata, IDataReaderMappingErrorMetadata, IDataReaderFastMappingValues, IDataReaderParallelBatchSource, IDataReaderParallelBatchInfo
 {
-#if NET8_0_OR_GREATER
-    bool IDataReaderParallelBatchSource.CanReadParallelBatches =>
-        !_closed && !_checkedForRows && _currentRawRow is null &&
-        _currentStringRow is null && !_hasCurrentTextRow &&
-        _textRowSource is CsvParser.CsvTextDataReaderRowSource { CanTakeParallelBatch: true };
-
-    int IDataReaderParallelBatchSource.PreferredParallelBatchSize =>
-        (_textRowSource as CsvParser.CsvTextDataReaderRowSource)?.PreferredParallelBatchSize ?? 128;
-#else
-    bool IDataReaderParallelBatchSource.CanReadParallelBatches => false;
-
-    int IDataReaderParallelBatchSource.PreferredParallelBatchSize => 128;
-#endif
-
-    bool IDataReaderFastMappingValues.HasOnlyNonNullFastValues => _useDirectTextSourceStrings;
-
-    int IDataReaderParallelBatchInfo.ParallelBatchRowCount =>
-        (_textRowSource as ICsvDataReaderParallelBatchInfo)?.RowCount ?? 0;
-
-    internal bool CanBenefitFromParallelProcessing =>
-        !_closed && _columns.Length != 0 && !_useRawStringValues;
-
-    internal int PreferredParallelProcessingBatchSize =>
-#if NET8_0_OR_GREATER
-        _textRowSource is CsvParser.CsvTextDataReaderRowSource ? 4096 : 256;
-#else
-        256;
-#endif
-
-    internal CancellationToken ProcessingCancellationToken => _processingCancellationToken;
-
-    bool IDataReaderParallelBatchSource.TryReadParallelBatch(
-        int preferredBatchSize,
-        CancellationToken cancellationToken,
-        out DbDataReader? batchReader)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        batchReader = null;
-#if NET8_0_OR_GREATER
-        if (_closed || _checkedForRows || _currentRawRow is not null ||
-            _currentStringRow is not null || _hasCurrentTextRow ||
-            _textRowSource is not CsvParser.CsvTextDataReaderRowSource textRows)
-        {
-            return false;
-        }
-
-        if (!textRows.TryTakeParallelBatch(
-                preferredBatchSize,
-                cancellationToken,
-                out ICsvDataReaderTextRowSource? batchRows))
-        {
-            return false;
-        }
-
-        if (batchRows is null)
-        {
-            return true;
-        }
-
-        int firstRowIndex = _rowIndex;
-        int batchRowCount = (batchRows as ICsvDataReaderParallelBatchInfo)?.RowCount ?? 0;
-        _rowIndex = checked(_rowIndex + batchRowCount);
-        batchReader = new CsvDataReader(
-            _columns,
-            batchRows,
-            _sourceColumnCount,
-            _stringRowOptions!,
-            _culture,
-            _dateTimeFormats,
-            initialRowIndex: firstRowIndex);
-        return true;
-#else
-        return false;
-#endif
-    }
-
-#if NET8_0_OR_GREATER
-    internal bool TryPrepareTextPartitioning(
-        CancellationToken cancellationToken,
-        out CsvParser.CsvTextDataReaderRowSource? source,
-        out int dataStart)
-    {
-        source = null;
-        dataStart = 0;
-        cancellationToken.ThrowIfCancellationRequested();
-        if (_closed || _checkedForRows || _currentRawRow is not null ||
-            _currentStringRow is not null || _hasCurrentTextRow ||
-            _textRowSource is not CsvParser.CsvTextDataReaderRowSource textRows ||
-            !textRows.CanTakeParallelBatch)
-        {
-            return false;
-        }
-
-        dataStart = textRows.PrepareForParallelPartition(cancellationToken);
-        source = textRows;
-        return true;
-    }
-
-    internal bool TryReadCsvRecordBatch(
-        int preferredBatchSize,
-        CancellationToken cancellationToken,
-        out CsvParser.CsvTextDataReaderBatch? batch)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        batch = null;
-        if (_closed || _checkedForRows || _currentRawRow is not null ||
-            _currentStringRow is not null || _hasCurrentTextRow ||
-            _textRowSource is not CsvParser.CsvTextDataReaderRowSource textRows)
-        {
-            return false;
-        }
-
-        if (!textRows.TryTakeParallelBatch(
-                preferredBatchSize,
-                cancellationToken,
-                out ICsvDataReaderTextRowSource? batchRows))
-        {
-            return false;
-        }
-
-        batch = batchRows as CsvParser.CsvTextDataReaderBatch;
-        batch?.SetNullValue(_stringNullValue);
-        return batchRows is null || batch is not null;
-    }
-
-    internal bool IsCurrentFieldMissing(int ordinal)
-    {
-        EnsureOpenRow();
-        if ((uint)ordinal >= (uint)_sourceColumnCount)
-        {
-            throw new IndexOutOfRangeException();
-        }
-
-        if (_textRowSource is not null)
-        {
-            return _textRowSource.IsMissing(ordinal);
-        }
-        if (_currentStringRow is not null)
-        {
-            return ordinal >= _currentStringRow.Count;
-        }
-        return ordinal >= _currentRawRow!.Length;
-    }
-
-    internal string GetCurrentSourceString(int ordinal)
-    {
-        EnsureOpenRow();
-        if ((uint)ordinal >= (uint)_sourceColumnCount)
-        {
-            throw new IndexOutOfRangeException();
-        }
-
-        if (_textRowSource is not null)
-        {
-            return _textRowSource.GetString(ordinal);
-        }
-        if (_currentStringRow is not null)
-        {
-            return ordinal < _currentStringRow.Count ? _currentStringRow[ordinal] : string.Empty;
-        }
-
-        if (_rawRowsAreParsedStringsOnly)
-        {
-            object? value = ordinal < _currentRawRow!.Length ? _currentRawRow[ordinal] : null;
-            return value as string ?? string.Empty;
-        }
-
-        throw new InvalidOperationException(
-            "The current CSV row is not backed by decoded source text.");
-    }
-#endif
-
-    internal CsvDataReaderRawBatch ReadRawBatch(
-        int preferredBatchSize,
-        CancellationToken cancellationToken,
-        out bool reachedEnd)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        int rowCapacity = CsvDataReaderRawBatch.GetBoundedRowCapacity(preferredBatchSize, _columns.Length);
-        var batch = new CsvDataReaderRawBatch(rowCapacity, _columns.Length, includePositions: true);
-        reachedEnd = false;
-        try
-        {
-            while (batch.Count < rowCapacity)
-            {
-                if ((batch.Count & 63) == 0)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                }
-
-                bool hasRow;
-                try
-                {
-                    hasRow = ReadCore(cancellationToken);
-                }
-                catch (Exception exception) when (!(exception is OperationCanceledException))
-                {
-                    batch.SetError(batch.Count, exception);
-                    reachedEnd = true;
-                    break;
-                }
-
-                if (!hasRow)
-                {
-                    reachedEnd = true;
-                    break;
-                }
-
-                if (batch.Count == 0)
-                {
-                    batch.FirstRecordIndex = _rowIndex;
-                }
-
-                int offset = batch.Count * _columns.Length;
-                try
-                {
-                    for (int ordinal = 0; ordinal < _columns.Length; ordinal++)
-                    {
-                        batch.Values[offset + ordinal] = GetRawValue(ordinal);
-                    }
-                }
-                catch (Exception exception) when (!(exception is OperationCanceledException))
-                {
-                    batch.SetError(batch.Count, exception);
-                    reachedEnd = true;
-                    break;
-                }
-
-                batch.SetPosition(batch.Count, PhysicalLineNumber, PhysicalEndLineNumber);
-                batch.Count++;
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-            return batch;
-        }
-        catch
-        {
-            batch.Dispose();
-            throw;
-        }
-    }
-
-    internal CsvDataReaderRawBatch ConvertRawBatch(
-        CsvDataReaderRawBatch batch,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            for (int row = 0; row < batch.Count; row++)
-            {
-                if ((row & 63) == 0)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                }
-
-                int offset = row * _columns.Length;
-                try
-                {
-                    for (int ordinal = 0; ordinal < _columns.Length; ordinal++)
-                    {
-                        batch.Values[offset + ordinal] = CsvDataProjectionConverter.ConvertValue(
-                            batch.Values[offset + ordinal],
-                            _columns[ordinal],
-                            batch.FirstRecordIndex + row,
-                            _culture,
-                            _dateTimeFormats,
-                            _mappingErrorValuePolicy);
-                    }
-                }
-                catch (Exception exception) when (!(exception is OperationCanceledException))
-                {
-                    batch.SetError(row, exception);
-                    break;
-                }
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-            return batch;
-        }
-        catch
-        {
-            batch.Dispose();
-            throw;
-        }
-    }
-
     private const string IsReadOnlyColumn = "IsReadOnly";
     private const string IsRowVersionColumn = "IsRowVersion";
     private const string IsAutoIncrementColumn = "IsAutoIncrement";
@@ -361,13 +75,16 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
         bool rawRowsAreParsedStringsOnly = false,
         IDisposable? rowOwner = null,
         CancellationToken processingCancellationToken = default,
-        CsvLoadOptions? operationCancellationOptions = null)
+        CsvLoadOptions? operationCancellationOptions = null,
+        string? delimiterText = null)
     {
         _columns = columns;
         _rows = rows.GetEnumerator();
         _culture = culture;
         _dateTimeFormats = dateTimeFormats;
         Delimiter = delimiter;
+        DelimiterText = delimiterText ?? (operationCancellationOptions is null
+            ? delimiter.ToString() : CsvParser.GetDelimiterText(operationCancellationOptions));
         _mappingErrorValuePolicy = mappingErrorValuePolicy;
         _rowOwner = rowOwner;
         _stringRowOptions = operationCancellationOptions;
@@ -397,6 +114,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
         _dateTimeFormats = dateTimeFormats;
         _mappingErrorValuePolicy = options.MappingErrorValuePolicy;
         Delimiter = CsvParser.GetDelimiterChar(options);
+        DelimiterText = CsvParser.GetDelimiterText(options);
         _rowOwner = rowOwner;
         _useRawStringValues = CanUseRawStringValues(columns);
         _useDirectValueConversion = CanUseDirectValueConversion(columns);
@@ -426,9 +144,18 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
         _mappingErrorValuePolicy = options.MappingErrorValuePolicy;
         _rowIndex = initialRowIndex;
         Delimiter = CsvParser.GetDelimiterChar(options);
+        DelimiterText = CsvParser.GetDelimiterText(options);
         _useRawStringValues = CanUseRawStringValues(columns);
+#if NET8_0_OR_GREATER
+        if (rows is ICsvAsyncDataReaderRowSource { HasStaticValues: true })
+            _useRawStringValues = false;
+#endif
         _useDirectTextSourceStrings = _useRawStringValues && _stringNullValue is null;
         _useDirectValueConversion = CanUseDirectValueConversion(columns);
+#if NET8_0_OR_GREATER
+        if (rows is ICsvAsyncDataReaderRowSource { HasStaticValues: true })
+            _useDirectValueConversion = false;
+#endif
     }
 
     /// <inheritdoc />
@@ -442,6 +169,9 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
 
     /// <inheritdoc />
     public char Delimiter { get; }
+
+    /// <inheritdoc />
+    public string DelimiterText { get; }
 
     /// <inheritdoc />
     public long RecordNumber => IsPositionedOnRow ? _rowIndex + 1L : 0L;
@@ -851,6 +581,9 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
         if (_columns[ordinal].ConversionKind == CsvDataConversionKind.String)
         {
             if (_textRowSource is not null &&
+#if NET8_0_OR_GREATER
+                _textRowSource is not ICsvAsyncDataReaderRowSource { HasStaticValues: true } &&
+#endif
                 (_stringNullValue is null || !_textRowSource.IsNull(ordinal, _stringNullValue)))
             {
                 var textValue = _textRowSource.GetString(ordinal);
@@ -1089,6 +822,10 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
     /// <inheritdoc />
     public override Task<bool> ReadAsync(CancellationToken cancellationToken)
     {
+#if NET8_0_OR_GREATER
+        if (_textRowSource is ICsvAsyncDataReaderRowSource asynchronousRows)
+            return ReadIncrementalAsync(asynchronousRows, asynchronous: true, cancellationToken).AsTask();
+#endif
         try
         {
             return Task.FromResult(ReadCore(cancellationToken));
@@ -1103,6 +840,39 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
         }
     }
 
+#if NET8_0_OR_GREATER
+    private bool _incrementalReadFailed;
+
+    private async ValueTask<bool> ReadIncrementalAsync(ICsvAsyncDataReaderRowSource rows, bool asynchronous, CancellationToken cancellationToken)
+    {
+        if (_closed) return false;
+        if (_incrementalReadFailed) throw new InvalidOperationException("The CSV reader cannot continue after a failed advance.");
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _processingCancellationToken.ThrowIfCancellationRequested();
+            if (_hasBufferedRow) return ReadSlow(cancellationToken);
+            // Both synchronous and asynchronous failed advances hide the previous row.
+            ClearCurrentRow();
+            bool available = asynchronous
+                ? await rows.ReadAsync(cancellationToken).ConfigureAwait(false)
+                : rows.Read(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            _processingCancellationToken.ThrowIfCancellationRequested();
+            _hasCurrentTextRow = available;
+            _hasRows ??= available;
+            if (available) _rowIndex++;
+            return available;
+        }
+        catch
+        {
+            _incrementalReadFailed = true;
+            ClearCurrentRow();
+            throw;
+        }
+    }
+#endif
+
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override bool Read() => ReadCore(_processingCancellationToken);
@@ -1110,6 +880,10 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool ReadCore(CancellationToken cancellationToken)
     {
+#if NET8_0_OR_GREATER
+        if (_textRowSource is ICsvAsyncDataReaderRowSource asynchronousRows)
+            return ReadIncrementalAsync(asynchronousRows, asynchronous: false, cancellationToken).GetAwaiter().GetResult();
+#endif
         cancellationToken.ThrowIfCancellationRequested();
         _processingCancellationToken.ThrowIfCancellationRequested();
         if (_closed)
@@ -1521,6 +1295,10 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
 
     private object? GetRawValue(int ordinal)
     {
+#if NET8_0_OR_GREATER
+        if (_textRowSource is ICsvAsyncDataReaderRowSource { HasStaticValues: true } asynchronousRows)
+            return asynchronousRows.GetRawValue(ordinal);
+#endif
         if (_textRowSource is not null)
         {
             return _stringNullValue is not null && _textRowSource.IsNull(ordinal, _stringNullValue)

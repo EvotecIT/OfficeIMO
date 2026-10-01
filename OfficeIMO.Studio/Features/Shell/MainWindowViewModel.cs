@@ -175,6 +175,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             publicationGuard: publicationGuard,
             jobHistory: _services.Jobs, storage: _services.Storage, recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite,
             openOutput: openWorkflowOutput);
+        InvoiceWorkbench = new InvoiceWorkbenchViewModel(
+            token => FileDialogs.PickOpenFileAsync(_localizer.GetOrDefault("Invoice.ChooseInput", "Choose invoice XML"),
+                new StudioFileType("Invoice XML", ["xml"], "application/xml"), token),
+            _pickOutputFolder, runner: null, localizer: _localizer, storage: _services.Storage, guard: publicationGuard,
+            jobs: _services.Jobs, recovery: _services.WorkflowRecovery,
+            confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite, openOutput: openWorkflowOutput);
         OutputWorkbench = new OutputIntakeWorkbenchViewModel(
             _pickPdf,
             _pickOutputFolder,
@@ -205,6 +211,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _services.DocumentHistory.Cleared += OnDocumentHistoryCleared;
         _services.Recovery.MaintenanceCompleted += OnRecoveryMaintenanceCompleted;
         ConversionWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
+        InvoiceWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         OutputWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         DocumentHealth.PropertyChanged += OnWorkflowPropertyChanged;
         ProvenanceWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
@@ -284,7 +291,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     public bool CanStartDocumentTransition => !IsWorkspaceBusy && !IsOpening;
 
     public bool CanCancelOperation => IsWorkspaceBusy || IsOpening || ConversionWorkbench.IsBusy ||
-                                      OutputWorkbench.IsBusy || DocumentHealth.IsBusy || ProvenanceWorkbench.IsBusy || OcrWorkbench.IsBusy || OcrSession.IsBusy;
+                                      OutputWorkbench.IsBusy || DocumentHealth.IsBusy || ProvenanceWorkbench.IsBusy || OcrWorkbench.IsBusy || OcrSession.IsBusy || InvoiceWorkbench.IsBusy;
 
     internal string? DocumentPath => _workspace?.Path ?? _session?.Path;
 
@@ -568,12 +575,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _services.Recovery.MaintenanceCompleted -= OnRecoveryMaintenanceCompleted;
         _services.DocumentHistory.Cleared -= OnDocumentHistoryCleared;
         ConversionWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
+        InvoiceWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         OutputWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         DocumentHealth.PropertyChanged -= OnWorkflowPropertyChanged;
         ProvenanceWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         OcrWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         OcrSession.PropertyChanged -= OnWorkflowPropertyChanged;
         ConversionWorkbench.Dispose();
+        InvoiceWorkbench.Dispose();
         Jobs.Dispose();
         OutputWorkbench.Dispose();
         DocumentHealth.Dispose();

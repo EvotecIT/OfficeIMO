@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Faktura xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
+	<Naglowek>
+		<KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
+		<WariantFormularza>3</WariantFormularza>
+		<DataWytworzeniaFa>2026-02-28T00:00:00Z</DataWytworzeniaFa>
+		<SystemInfo>SamploFaktur</SystemInfo>
+	</Naglowek>
+	<Podmiot1>
+		<DaneIdentyfikacyjne>
+			<NIP>9999999999</NIP>
+			<Nazwa>Elektrownia S.A.</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Kwiatowa 1 m. 2</AdresL1>
+			<AdresL2>00-001 Warszawa</AdresL2>
+		</Adres>
+		<DaneKontaktowe>
+			<Email>elektrownia@elektrownia.pl</Email>
+			<Telefon>667444555</Telefon>
+		</DaneKontaktowe>
+	</Podmiot1>
+	<Podmiot2>
+		<DaneIdentyfikacyjne>
+			<NIP>1111111111</NIP>
+			<Nazwa>F.H.U. Jan Kowalski</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Polna 1</AdresL1>
+			<AdresL2>00-001 Warszawa</AdresL2>
+		</Adres>
+		<DaneKontaktowe>
+			<Email>jan@kowalski.pl</Email>
+			<Telefon>555777999</Telefon>
+		</DaneKontaktowe>
+		<NrKlienta>99999999</NrKlienta>
+		<JST>2</JST>
+		<GV>2</GV>
+	</Podmiot2>
+	<Fa>
+		<KodWaluty>PLN</KodWaluty>
+		<P_1>2026-02-28</P_1>
+		<P_1M>Warszawa</P_1M>
+		<P_2>FV2026/02/150</P_2>
+		<OkresFa>
+			<P_6_Od>2026-01-01</P_6_Od>
+			<P_6_Do>2026-02-28</P_6_Do>
+		</OkresFa>
+		<P_13_1>43.60</P_13_1>
+		<P_14_1>10.03</P_14_1>
+		<P_15>53.63</P_15>
+		<Adnotacje>
+			<P_16>2</P_16>
+			<P_17>2</P_17>
+			<P_18>2</P_18>
+			<P_18A>2</P_18A>
+			<Zwolnienie>
+				<P_19N>1</P_19N>
+			</Zwolnienie>
+			<NoweSrodkiTransportu>
+				<P_22N>1</P_22N>
+			</NoweSrodkiTransportu>
+			<P_23>2</P_23>
+			<PMarzy>
+				<P_PMarzyN>1</P_PMarzyN>
+			</PMarzy>
+		</Adnotacje>
+		<RodzajFaktury>VAT</RodzajFaktury>
+		<DodatkowyOpis>
+			<Klucz>Informacja o akcyzie</Klucz>
+			<Wartosc>Od 20 kWh energii elektrycznej czynnej naliczono akcyzę w kwocie 0,10 zł</Wartosc>	
+		</DodatkowyOpis>
+		<FaWiersz>
+			<NrWierszaFa>1</NrWierszaFa>
+			<P_7>Razem za energię czynną</P_7>
+			<P_11>18.00</P_11>
+			<P_12>23</P_12>
+		</FaWiersz>
+		<FaWiersz>
+			<NrWierszaFa>2</NrWierszaFa>
+			<P_7>Razem za usługi dystrybucji</P_7>
+			<P_11>25.60</P_11>
+			<P_12>23</P_12>
+		</FaWiersz>
+		<Rozliczenie>
+			<Obciazenia>
+				<Kwota>0.00</Kwota>
+				<Powod>Odsetki</Powod>
+			</Obciazenia>
+			<SumaObciazen>0.00</SumaObciazen>
+			<Odliczenia>
+				<Kwota>0.00</Kwota>
+				<Powod>Nadpłata</Powod>
+			</Odliczenia>
+			<SumaOdliczen>0.00</SumaOdliczen>	
+			<DoZaplaty>53.63</DoZaplaty>	
+		</Rozliczenie>
+		<Platnosc>
+			<TerminPlatnosci>
+				<Termin>2026-03-15</Termin>
+			</TerminPlatnosci>
+			<FormaPlatnosci>6</FormaPlatnosci>
+			<RachunekBankowy>
+				<NrRB>73111111111111111111111111</NrRB>
+				<NazwaBanku>Bank Bankowości Bankowej S. A.</NazwaBanku>
+				<OpisRachunku>PLN</OpisRachunku>
+			</RachunekBankowy>
+		</Platnosc>
+	</Fa>
+	<Stopka>
+		<Informacje>
+			<StopkaFaktury>Kapiał zakładowy 5 000 000</StopkaFaktury>
+		</Informacje>
+		<Rejestry>
+			<KRS>0000099999</KRS>
+			<REGON>999999999</REGON>
+			<BDO>000099999</BDO>
+		</Rejestry>
+	</Stopka>
+	<Zalacznik>
+		<BlokDanych>
+			<MetaDane>
+				<ZKlucz>Miejsce poboru energii</ZKlucz>
+				<ZWartosc>ul. Polna 1, 00-001 Warszawa</ZWartosc>
+			</MetaDane>
+			<MetaDane>
+				<ZKlucz>Kod PPE</ZKlucz>
+				<ZWartosc>999999999999999999</ZWartosc>
+			</MetaDane>
+			<MetaDane>
+				<ZKlucz>Nr kontrahenta (odbiorcy)</ZKlucz>
+				<ZWartosc>99999999</ZWartosc>
+			</MetaDane>
+			<MetaDane>
+				<ZKlucz>Za okres od</ZKlucz>
+				<ZWartosc>2026-01-01</ZWartosc>
+			</MetaDane>
+			<MetaDane>
+				<ZKlucz>Za okres do</ZKlucz>
+				<ZWartosc>2026-02-28</ZWartosc>
+			</MetaDane>
+			<MetaDane>
+				<ZKlucz>Grupa taryfowa</ZKlucz>
+				<ZWartosc>G11</ZWartosc>
+			</MetaDane>
+			<MetaDane>
+				<ZKlucz>Energia zużyta w roku 2025</ZKlucz>
+				<ZWartosc>999 kWh</ZWartosc>
+			</MetaDane>
+			<MetaDane>
+				<ZKlucz>Energia zużyta w analogicznym okresie poprzedniego roku kalendarzowego</ZKlucz>
+				<ZWartosc>118 kWh</ZWartosc>
+			</MetaDane>
+			<Tabela>
+				<Opis>Odczyty</Opis>
+				<TNaglowek>
+					<Kol Typ="txt">
+						<NKom>Licznik/Strefa</NKom>
+					</Kol>
+					<Kol Typ="date">
+						<NKom>Data</NKom>
+					</Kol>
+					<Kol Typ="int">
+						<NKom>Wskazanie bieżące</NKom>
+					</Kol>
+					<Kol Typ="int">
+						<NKom>Wskazanie poprzednie</NKom>
+					</Kol>
+					<Kol Typ="int">
+						<NKom>Mnożna</NKom>
+					</Kol>
+					<Kol Typ="int">
+						<NKom>Ilość</NKom>
+					</Kol>
+					<Kol Typ="txt">
+						<NKom>Sposób odczytu</NKom>
+					</Kol>
+					<Kol Typ="int">
+						<NKom>Straty</NKom>
+					</Kol>
+					<Kol Typ="int">
+						<NKom>Razem</NKom>
+					</Kol>							
+				</TNaglowek>
+				<Wiersz>
+					<WKom>Licznik rozliczeniowy  energii czynnej nr 99999999</WKom>
+				</Wiersz>
+				<Wiersz>
+					<WKom>całodobowa</WKom>
+					<WKom>2026-02-28</WKom>
+					<WKom>1020</WKom>
+					<WKom>1000</WKom>
+					<WKom>1</WKom>
+					<WKom>20</WKom>
+					<WKom>Fizyczny</WKom>
+					<WKom>0</WKom>	
+					<WKom>20</WKom>					
+				</Wiersz>	
+			</Tabela>
+			<Tabela>
+				<TMetaDane>
+					<TKlucz>Informacja o akcyzie</TKlucz>
+					<TWartosc>Od 20 kWh energii elektrycznej czynnej naliczono akcyzę w kwocie 0,10 zł</TWartosc>
+				</TMetaDane>
+				<Opis>Rozliczenie - sprzedaż energii</Opis>
+				<TNaglowek>
+					<Kol Typ="txt">
+						<NKom>Opis/Strefa</NKom>
+					</Kol>
+					<Kol Typ="txt">
+						<NKom>j. m.</NKom>
+					</Kol>
+					<Kol Typ="int">
+						<NKom>Ilość</NKom>
+					</Kol>
+					<Kol Typ="dec">
+						<NKom>Cena jedn. netto (zł)</NKom>
+					</Kol>
+					<Kol Typ="dec">
+						<NKom>Należność netto (zł)</NKom>
+					</Kol>
+					<Kol Typ="int">
+						<NKom>Stawka VAT(%)</NKom>
+					</Kol>					
+				</TNaglowek>
+				<Wiersz>
+					<WKom>Energia elektryczna czynna</WKom>
+				</Wiersz>
+				<Wiersz>
+					<WKom>całodobowa</WKom>
+					<WKom>kWh</WKom>
+					<WKom>20</WKom>
+					<WKom>0.9000</WKom>
+					<WKom>18.00</WKom>
+					<WKom>23</WKom>					
+				</Wiersz>	
+				<Suma>
+					<SKom>Ogółem wartość - sprzedaż energii:</SKom>
+					<SKom>-</SKom>
+					<SKom>-</SKom>
+					<SKom>-</SKom>
+					<SKom>18.00</SKom>
+					<SKom>-</SKom>
+				</Suma>
+			</Tabela>
+			<Tabela>
+				<Opis>Rozliczenie - usługa dystrybucji energii</Opis>
+				<TNaglowek>
+					<Kol Typ="txt">
+						<NKom>Opis/Strefa</NKom>
+					</Kol>
+					<Kol Typ="txt">
+						<NKom>j. m.</NKom>
+					</Kol>
+					<Kol Typ="date">
+						<NKom>Data</NKom>
+					</Kol>
+					<Kol Typ="int">
+						<NKom>Ilość</NKom>
+					</Kol>
+					<Kol Typ="int">
+						<NKom>Ilość m-cy</NKom>
+					</Kol>
+					<Kol Typ="dec">
+						<NKom>Współczynniki</NKom>
+					</Kol>
+					<Kol Typ="dec">
+						<NKom>Cena jedn. netto (zł)</NKom>
+					</Kol>
+					<Kol Typ="dec">
+						<NKom>Należność netto (zł)</NKom>
+					</Kol>
+					<Kol Typ="int">
+						<NKom>Stawka VAT(%)</NKom>
+					</Kol>					
+				</TNaglowek>
+				<Wiersz>
+					<WKom>Opłata stała sieciowa - układ 1-fazowy</WKom>
+				</Wiersz>
+				<Wiersz>
+					<WKom>-</WKom>
+					<WKom>zł/mc</WKom>
+					<WKom>2026-02-28</WKom>
+					<WKom>-</WKom>
+					<WKom>2</WKom>
+					<WKom>0.0000</WKom>
+					<WKom>7.3000</WKom>
+					<WKom>14.60</WKom>
+					<WKom>23</WKom>					
+				</Wiersz>
+				<Wiersz>
+					<WKom>Opłata przejściowa &lt;500 kWh</WKom>
+				</Wiersz>
+				<Wiersz>
+					<WKom>-</WKom>
+					<WKom>zł/mc</WKom>
+					<WKom>2026-02-28</WKom>
+					<WKom>-</WKom>
+					<WKom>2</WKom>
+					<WKom>0.0000</WKom>
+					<WKom>0.0300</WKom>
+					<WKom>0.06</WKom>
+					<WKom>23</WKom>					
+				</Wiersz>
+				<Wiersz>
+					<WKom>Opłata mocowa &lt;500 kWh</WKom>
+				</Wiersz>
+				<Wiersz>
+					<WKom>-</WKom>
+					<WKom>zł/mc</WKom>
+					<WKom>2026-02-28</WKom>
+					<WKom>-</WKom>
+					<WKom>2</WKom>
+					<WKom>0.0000</WKom>
+					<WKom>0.0000</WKom>
+					<WKom>0.00</WKom>
+					<WKom>23</WKom>					
+				</Wiersz>
+				<Wiersz>
+					<WKom>Opłata zmienna sieciowa</WKom>
+				</Wiersz>
+				<Wiersz>
+					<WKom>całodobowa</WKom>
+					<WKom>kWh</WKom>
+					<WKom>2026-02-28</WKom>
+					<WKom>20</WKom>
+					<WKom>-</WKom>
+					<WKom>-</WKom>
+					<WKom>0.2500</WKom>
+					<WKom>5.00</WKom>
+					<WKom>23</WKom>					
+				</Wiersz>
+				<Wiersz>
+					<WKom>Opłata jakościowa</WKom>
+				</Wiersz>
+				<Wiersz>
+					<WKom>całodobowa</WKom>
+					<WKom>kWh</WKom>
+					<WKom>2026-02-28</WKom>
+					<WKom>20</WKom>
+					<WKom>-</WKom>
+					<WKom>-</WKom>
+					<WKom>0.0400</WKom>
+					<WKom>0.80</WKom>
+					<WKom>23</WKom>					
+				</Wiersz>
+				<Wiersz>
+					<WKom>Opłata OZE</WKom>
+				</Wiersz>
+				<Wiersz>
+					<WKom>całodobowa</WKom>
+					<WKom>kWh</WKom>
+					<WKom>2026-02-28</WKom>
+					<WKom>20</WKom>
+					<WKom>-</WKom>
+					<WKom>-</WKom>
+					<WKom>0.0040</WKom>
+					<WKom>0.08</WKom>
+					<WKom>23</WKom>					
+				</Wiersz>
+				<Wiersz>
+					<WKom>Opłata kogeneracyjna</WKom>
+				</Wiersz>
+				<Wiersz>
+					<WKom>całodobowa</WKom>
+					<WKom>kWh</WKom>
+					<WKom>2026-02-28</WKom>
+					<WKom>20</WKom>
+					<WKom>-</WKom>
+					<WKom>-</WKom>
+					<WKom>0.0030</WKom>
+					<WKom>0.06</WKom>
+					<WKom>23</WKom>					
+				</Wiersz>
+				<Wiersz>
+					<WKom>Opłata abonamentowa</WKom>
+				</Wiersz>
+				<Wiersz>
+					<WKom>-</WKom>
+					<WKom>zł/mc</WKom>
+					<WKom>2026-02-28</WKom>
+					<WKom>-</WKom>
+					<WKom>2</WKom>
+					<WKom>0.0000</WKom>
+					<WKom>2.5000</WKom>
+					<WKom>5.00</WKom>
+					<WKom>23</WKom>					
+				</Wiersz>			
+				<Suma>
+					<SKom>Ogółem wartość - usługa dystrybucji:</SKom>
+					<SKom>-</SKom>
+					<SKom>-</SKom>
+					<SKom>-</SKom>
+					<SKom>-</SKom>
+					<SKom>-</SKom>
+					<SKom>-</SKom>
+					<SKom>25.60</SKom>
+					<SKom>-</SKom>
+				</Suma>
+			</Tabela>
+		</BlokDanych>
+	</Zalacznik>
+</Faktura>
+		

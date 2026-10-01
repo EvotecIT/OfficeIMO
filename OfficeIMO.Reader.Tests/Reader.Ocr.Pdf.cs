@@ -11,6 +11,34 @@ namespace OfficeIMO.Tests;
 
 public sealed class ReaderOcrPdfTests {
     [Fact]
+    public async Task AdaptiveRetryEvidenceAndCoordinatesReachReaderAndPdfConsumers() {
+        OcrRecognitionAttempt Attempt(string name, string text, double confidence) => new(name,
+            new DelegateOcrEngine(name, (_, _) => Task.FromResult(new OcrResult {
+                Text = text, Spans = new[] { new OcrTextSpan {
+                    Level = OcrTextSpanLevel.Word, Text = text, Confidence = confidence,
+                    CoordinateUnit = OcrCoordinateUnit.Normalized,
+                    Region = new OcrRegion { X = .1, Y = .2, Width = .2, Height = .04 }
+                } }
+            }), new OcrEngineCapabilities { SupportsWordSpans = true, SupportsConfidence = true }));
+        var engine = new AdaptiveOcrEngine("adaptive", new[] { Attempt("baseline", "Total10", .1), Attempt("retry", "Total70", 1) });
+        var reader = await CreateReaderImageCandidate().ApplyOcrAsync(engine);
+        OcrResult recognition = Assert.Single(reader.Recognitions).Result;
+        Assert.Equal("Total70", recognition.Text);
+        Assert.Contains(recognition.Diagnostics, item => item.Code == "adaptive-ocr-review-recommended");
+
+        byte[] source = PdfDocument.Create().Image(PdfPngTestImages.CreateRgbPng(230, 230, 230), 220, 90).ToBytes();
+        var review = await PdfDocument.Load(source).PrepareSearchableOcrAsync(engine);
+        var page = Assert.Single(review.Ocr.Pages);
+        var word = Assert.Single(page.Words);
+        Assert.Equal("Total70", word.Text);
+        Assert.Contains(page.ProviderDiagnostics, item => item.Code == "adaptive-ocr-review-recommended");
+        Assert.Equal(review.Ocr.Document.Pages[0].Width * .1, word.X, 5);
+        byte[] searchable = review.ApplyAll().Document.ToBytes();
+        Assert.Equal(PdfPageImageRenderer.RenderPageAsPng(source), PdfPageImageRenderer.RenderPageAsPng(searchable));
+        Assert.Contains("Total70", PdfReadDocument.Open(searchable).ExtractText());
+    }
+
+    [Fact]
     public async Task SharedEngineContract_IsReusableAcrossReaderAndPdfIntegrations() {
         var candidateKinds = new List<string?>();
         var engine = new DelegateOcrEngine(

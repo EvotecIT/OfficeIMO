@@ -74,7 +74,9 @@ Field cases require exact normalized values. Table cases require the expected ce
 
 Deterministic tests cover schema rejection, scope, source identity, bounded planning, cancellation/lifetime, scalar fidelity, evidence projections, compatible transport behavior and response limits. Installed-package validation exercises the packaged dependency graph separately from source builds.
 
-The finite synthetic cases cover selected diagrams and regional columns; they do not establish general diagram comprehension, reading-order accuracy or geometry alignment. Specialist recognition comparison, independently produced real documents, diverse scripts and equivalent-work performance benchmarks remain separate qualification work. Deployment and model-quality evidence must identify the exact model, route and resource profile; missing usage counters remain unknown.
+The separate [native OCR corpus](../OfficeIMO.TestAssets/OcrQuality/README.md) measures hash-bound independent forms and scans, baseline/adaptive text error, confidence false passes, source preservation and raster geometry. These recognition measurements do not qualify hosted semantic answers or source-fact omission.
+
+The finite synthetic cases cover selected diagrams and regional columns; they do not establish general diagram comprehension, reading-order accuracy or geometry alignment. Specialist recognition comparison, independently produced semantic-answer cases, diverse scripts and equivalent-work performance benchmarks remain separate qualification work. Deployment and model-quality evidence must identify the exact model, route and resource profile; missing usage counters remain unknown.
 
 ## Integration boundary
 

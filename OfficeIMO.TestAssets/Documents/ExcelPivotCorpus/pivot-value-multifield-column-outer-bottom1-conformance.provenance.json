@@ -1,0 +1,21 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "producerUiLanguageId": 1033,
+  "producerDecimalSeparator": ".",
+  "producerThousandsSeparator": ",",
+  "hostCulture": "pl-PL",
+  "generatedUtc": "2026-09-28T22:27:49.2302932Z",
+  "regeneration": "Build/Verification/New-ExcelPivotMultiFieldValueOracle.ps1",
+  "file": "pivot-value-multifield-column-outer-bottom1-conformance.xlsx",
+  "sha256": "8c0e11b0354cdd1cf93ca7069f18d700adb98992d02736bb657d2ddb9c6abbf2",
+  "sourceRange": "Source!A1:C7",
+  "filteredField": "Region",
+  "axis": "Column",
+  "filterType": 2,
+  "threshold": 1.0,
+  "threshold2": null,
+  "outputRange": "A4:H7",
+  "grandTotal": 120.0
+}

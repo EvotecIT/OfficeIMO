@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Faktura xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
+	<Naglowek>
+		<KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
+		<WariantFormularza>3</WariantFormularza>
+		<DataWytworzeniaFa>2026-02-15T09:30:47Z</DataWytworzeniaFa>
+		<SystemInfo>Samplofaktur</SystemInfo>
+	</Naglowek>
+	<Podmiot1>
+		<DaneIdentyfikacyjne>
+			<NIP>9999999999</NIP>
+			<Nazwa>ABC Developex sp. z o. o.</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Sadowa 1 m. 3</AdresL1>
+			<AdresL2>00-002 Kraków</AdresL2>
+		</Adres>
+		<DaneKontaktowe>
+			<Email>abc@abc.pl</Email>
+			<Telefon>667444555</Telefon>
+		</DaneKontaktowe>
+	</Podmiot1>
+	<Podmiot2>
+		<DaneIdentyfikacyjne>
+			<NIP>1111111111</NIP>
+			<Nazwa>F.H.U. Jan Kowalski</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Polna 1</AdresL1>
+			<AdresL2>00-001 Warszawa</AdresL2>
+		</Adres>
+		<DaneKontaktowe>
+			<Email>jan@kowalski.pl</Email>
+			<Telefon>555777999</Telefon>
+		</DaneKontaktowe>
+		<JST>2</JST>
+		<GV>2</GV>
+	</Podmiot2>
+	<Podmiot3>
+		<DaneIdentyfikacyjne>
+			<NIP>3333333333</NIP>
+			<Nazwa>F.H.U. Grażyna Kowalska</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Polna 1</AdresL1>
+			<AdresL2>00-001 Warszawa</AdresL2>
+		</Adres>
+		<DaneKontaktowe>
+			<Email>jan@kowalski.pl</Email>
+			<Telefon>555777999</Telefon>
+		</DaneKontaktowe>
+		<Rola>4</Rola>
+		<Udzial>50</Udzial>
+	</Podmiot3>
+	<Fa>
+		<KodWaluty>PLN</KodWaluty>
+		<P_1>2026-03-17</P_1>
+		<P_1M>Warszawa</P_1M>
+		<P_2>FK2026/03/7</P_2>
+		<P_6>2026-02-15</P_6>
+		<P_15>0</P_15>
+		<Adnotacje>
+			<P_16>2</P_16>
+			<P_17>2</P_17>
+			<P_18>2</P_18>
+			<P_18A>2</P_18A>
+			<Zwolnienie>
+				<P_19N>1</P_19N>
+			</Zwolnienie>
+			<NoweSrodkiTransportu>
+				<P_22N>1</P_22N>
+			</NoweSrodkiTransportu>
+			<P_23>2</P_23>
+			<PMarzy>
+				<P_PMarzyN>1</P_PMarzyN>
+			</PMarzy>
+		</Adnotacje>
+		<RodzajFaktury>KOR_ZAL</RodzajFaktury>
+		<PrzyczynaKorekty>korekta wartości zamówienia o -10%</PrzyczynaKorekty>
+		<TypKorekty>3</TypKorekty>
+		<DaneFaKorygowanej>
+			<DataWystFaKorygowanej>2026-02-15</DataWystFaKorygowanej>
+			<NrFaKorygowanej>FZ2026/02/150</NrFaKorygowanej>
+			<NrKSeF>1</NrKSeF>
+			<NrKSeFFaKorygowanej>9999999999-20230908-8BEF280C8D35-4D</NrKSeFFaKorygowanej>
+		</DaneFaKorygowanej>
+		<P_15ZK>30000</P_15ZK>
+		<Zamowienie>
+			<WartoscZamowienia>337635</WartoscZamowienia>
+			<ZamowienieWiersz>
+				<NrWierszaZam>1</NrWierszaZam>
+				<UU_IDZ>aaaa111133339990</UU_IDZ>
+				<P_7Z>mieszkanie 50m^2</P_7Z>
+				<P_8AZ>szt.</P_8AZ>
+				<P_8BZ>1</P_8BZ>
+				<P_9AZ>341666.67</P_9AZ>
+				<P_11NettoZ>341666.67</P_11NettoZ>
+				<P_11VatZ>27333.33</P_11VatZ>
+				<P_12Z>8</P_12Z>
+				<StanPrzedZ>1</StanPrzedZ>
+			</ZamowienieWiersz>
+			<ZamowienieWiersz>
+				<NrWierszaZam>1</NrWierszaZam>
+				<UU_IDZ>aaaa111133339990</UU_IDZ>
+				<P_7Z>mieszkanie 50m^2</P_7Z>
+				<P_8AZ>szt.</P_8AZ>
+				<P_8BZ>1</P_8BZ>
+				<P_9AZ>307500</P_9AZ>
+				<P_11NettoZ>307500</P_11NettoZ>
+				<P_11VatZ>24600</P_11VatZ>
+				<P_12Z>8</P_12Z>
+			</ZamowienieWiersz>
+			<ZamowienieWiersz>
+				<NrWierszaZam>2</NrWierszaZam>
+				<UU_IDZ>aaaa111133339991</UU_IDZ>
+				<P_7Z>usługi dodatkowe</P_7Z>
+				<P_8AZ>szt.</P_8AZ>
+				<P_8BZ>1</P_8BZ>
+				<P_9AZ>5000</P_9AZ>
+				<P_11NettoZ>5000</P_11NettoZ>
+				<P_11VatZ>1150</P_11VatZ>
+				<P_12Z>23</P_12Z>
+				<StanPrzedZ>1</StanPrzedZ>
+			</ZamowienieWiersz>
+			<ZamowienieWiersz>
+				<NrWierszaZam>2</NrWierszaZam>
+				<UU_IDZ>aaaa111133339991</UU_IDZ>
+				<P_7Z>usługi dodatkowe</P_7Z>
+				<P_8AZ>szt.</P_8AZ>
+				<P_8BZ>1</P_8BZ>
+				<P_9AZ>4500</P_9AZ>
+				<P_11NettoZ>4500</P_11NettoZ>
+				<P_11VatZ>1035</P_11VatZ>
+				<P_12Z>23</P_12Z>
+			</ZamowienieWiersz>
+		</Zamowienie>
+	</Fa>
+	<Stopka>
+		<Informacje>
+			<StopkaFaktury>Kapiał zakładowy 5 000 000</StopkaFaktury>
+		</Informacje>
+		<Rejestry>
+			<KRS>0000099999</KRS>
+			<REGON>999999999</REGON>
+			<BDO>000099999</BDO>
+		</Rejestry>
+	</Stopka>
+</Faktura>

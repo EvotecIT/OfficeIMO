@@ -122,15 +122,14 @@ internal sealed class AutomaticRowMappingPlan<
         return instance;
     }
 
-    internal object?[] CaptureReaderValues(DbDataReader reader) {
-        var values = new object?[reader.FieldCount];
-        for (int index = 0; index < values.Length; index++) {
-            values[index] = DBNull.Value;
-        }
+    internal void CaptureReaderValues(DbDataReader reader, object?[] values) => CaptureReaderValues(reader, values, preserveConverterInput: false);
+
+    internal void CaptureReaderValues(DbDataReader reader, object?[] values, bool preserveConverterInput) {
         foreach (MappingBinding binding in _bindings) {
-            values[binding.ColumnIndex] = binding.Property.ReadReaderValue(reader, binding.ColumnIndex);
+            values[binding.ColumnIndex] = preserveConverterInput
+                ? DataReaderMappingValue.Read(reader, binding.ColumnIndex, binding.Property.ValueType)
+                : binding.Property.ReadReaderValue(reader, binding.ColumnIndex);
         }
-        return values;
     }
 
     private bool HasNullReaderValue(DbDataReader reader) {
@@ -334,7 +333,7 @@ internal sealed class AutomaticRowMappingPlan<
                 }
             }
 
-            object? rawValue = reader.GetValue(ordinal);
+            object? rawValue = DataReaderMappingValue.Read(reader, ordinal, ValueType);
             if (!DataValueConverter.TryConvert(
                 ReferenceEquals(rawValue, DBNull.Value) ? null : rawValue,
                 ValueType,

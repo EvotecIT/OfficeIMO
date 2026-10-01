@@ -1,0 +1,400 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "producerCulture": "pl-PL",
+  "generatedUtc": "2026-09-28T13:57:33.1845037Z",
+  "regeneration": "Build/Verification/New-ExcelPivotFixedDateFilterOracle.ps1 -WholeDay",
+  "cases": [
+    {
+      "name": "equal-times",
+      "filterType": 29,
+      "wholeDay": true,
+      "timedSource": true,
+      "blankSource": false,
+      "date1904": false,
+      "first": "2025-01-15T00:00:00.0000000",
+      "second": null,
+      "sourceRange": "Source!A1:B5",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B7",
+      "grandTotal": 15.0,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "15.01.2025",
+          "metric": "10"
+        },
+        {
+          "label": "15.01.2025 08:30",
+          "metric": "5"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "15"
+        }
+      ],
+      "file": "equal-times.xlsx",
+      "sha256": "ad274c6d597fa76b08bf7ae3c120d7b6754b3bcba2bacfc047e455933ada6322"
+    },
+    {
+      "name": "not-equal-times",
+      "filterType": 30,
+      "wholeDay": true,
+      "timedSource": true,
+      "blankSource": false,
+      "date1904": false,
+      "first": "2025-01-15T00:00:00.0000000",
+      "second": null,
+      "sourceRange": "Source!A1:B5",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B7",
+      "grandTotal": 50.0,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "20.03.2025 12:00",
+          "metric": "20"
+        },
+        {
+          "label": "15.01.2026",
+          "metric": "30"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "50"
+        }
+      ],
+      "file": "not-equal-times.xlsx",
+      "sha256": "7ce01269d06e100457df1479eff95e08dd15298c778eaae654fb252c5db154c4"
+    },
+    {
+      "name": "before-times",
+      "filterType": 31,
+      "wholeDay": true,
+      "timedSource": true,
+      "blankSource": false,
+      "date1904": false,
+      "first": "2026-01-15T00:00:00.0000000",
+      "second": null,
+      "sourceRange": "Source!A1:B5",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B8",
+      "grandTotal": 35.0,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "15.01.2025",
+          "metric": "10"
+        },
+        {
+          "label": "15.01.2025 08:30",
+          "metric": "5"
+        },
+        {
+          "label": "20.03.2025 12:00",
+          "metric": "20"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "35"
+        }
+      ],
+      "file": "before-times.xlsx",
+      "sha256": "66f0c48e33a032c392f66318ebc3cded28492530a8ed9b26cce51d667e292222"
+    },
+    {
+      "name": "before-equal-times",
+      "filterType": 32,
+      "wholeDay": true,
+      "timedSource": true,
+      "blankSource": false,
+      "date1904": false,
+      "first": "2026-01-15T00:00:00.0000000",
+      "second": null,
+      "sourceRange": "Source!A1:B5",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B9",
+      "grandTotal": 65.0,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "15.01.2025",
+          "metric": "10"
+        },
+        {
+          "label": "15.01.2025 08:30",
+          "metric": "5"
+        },
+        {
+          "label": "20.03.2025 12:00",
+          "metric": "20"
+        },
+        {
+          "label": "15.01.2026",
+          "metric": "30"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "65"
+        }
+      ],
+      "file": "before-equal-times.xlsx",
+      "sha256": "9fc4d84306746d51897e079c1cc828f6b9d97d0680222bb143e85779d4e5c601"
+    },
+    {
+      "name": "after-times",
+      "filterType": 33,
+      "wholeDay": true,
+      "timedSource": true,
+      "blankSource": false,
+      "date1904": false,
+      "first": "2025-01-15T00:00:00.0000000",
+      "second": null,
+      "sourceRange": "Source!A1:B5",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B7",
+      "grandTotal": 50.0,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "20.03.2025 12:00",
+          "metric": "20"
+        },
+        {
+          "label": "15.01.2026",
+          "metric": "30"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "50"
+        }
+      ],
+      "file": "after-times.xlsx",
+      "sha256": "2ca02cfae3c13b22ddcb3cdcfa5a7b35f62ba648ea8779c75c1d2055a3abb9de"
+    },
+    {
+      "name": "after-equal-times",
+      "filterType": 34,
+      "wholeDay": true,
+      "timedSource": true,
+      "blankSource": false,
+      "date1904": false,
+      "first": "2025-01-15T00:00:00.0000000",
+      "second": null,
+      "sourceRange": "Source!A1:B5",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B9",
+      "grandTotal": 65.0,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "15.01.2025",
+          "metric": "10"
+        },
+        {
+          "label": "15.01.2025 08:30",
+          "metric": "5"
+        },
+        {
+          "label": "20.03.2025 12:00",
+          "metric": "20"
+        },
+        {
+          "label": "15.01.2026",
+          "metric": "30"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "65"
+        }
+      ],
+      "file": "after-equal-times.xlsx",
+      "sha256": "438bfe7ea6e72ec0379e85a35f306205e16e82aec61041dc77e0fa1c47aa120d"
+    },
+    {
+      "name": "between-times",
+      "filterType": 35,
+      "wholeDay": true,
+      "timedSource": true,
+      "blankSource": false,
+      "date1904": false,
+      "first": "2025-01-15T00:00:00.0000000",
+      "second": "2025-03-20T00:00:00.0000000",
+      "sourceRange": "Source!A1:B5",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B8",
+      "grandTotal": 35.0,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "15.01.2025",
+          "metric": "10"
+        },
+        {
+          "label": "15.01.2025 08:30",
+          "metric": "5"
+        },
+        {
+          "label": "20.03.2025 12:00",
+          "metric": "20"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "35"
+        }
+      ],
+      "file": "between-times.xlsx",
+      "sha256": "3dbfb4e746ab73e611626cdbaba29c9c03c19f39e3942c021812edd84988f7a1"
+    },
+    {
+      "name": "not-between-times",
+      "filterType": 36,
+      "wholeDay": true,
+      "timedSource": true,
+      "blankSource": false,
+      "date1904": false,
+      "first": "2025-01-15T00:00:00.0000000",
+      "second": "2025-03-20T00:00:00.0000000",
+      "sourceRange": "Source!A1:B5",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B6",
+      "grandTotal": 30.0,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "15.01.2026",
+          "metric": "30"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "30"
+        }
+      ],
+      "file": "not-between-times.xlsx",
+      "sha256": "85afcd03af0c3dbc0938b3878897ea63db8155ca5ef9e72d0ce9b5d568be5fb0"
+    },
+    {
+      "name": "equal-times-1904",
+      "filterType": 29,
+      "wholeDay": true,
+      "timedSource": true,
+      "blankSource": false,
+      "date1904": true,
+      "first": "2025-01-15T00:00:00.0000000",
+      "second": null,
+      "sourceRange": "Source!A1:B5",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B7",
+      "grandTotal": 15.0,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "15.01.2025",
+          "metric": "10"
+        },
+        {
+          "label": "15.01.2025 08:30",
+          "metric": "5"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "15"
+        }
+      ],
+      "file": "equal-times-1904.xlsx",
+      "sha256": "41e7d95029755cb691a05275c5c29a5beb39cd0450e92aa12a07d65099a3233d"
+    },
+    {
+      "name": "equal-blank",
+      "filterType": 29,
+      "wholeDay": true,
+      "timedSource": false,
+      "blankSource": true,
+      "date1904": false,
+      "first": "2025-01-15T00:00:00.0000000",
+      "second": null,
+      "sourceRange": "Source!A1:B5",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B6",
+      "grandTotal": 10.0,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "15.01.2025",
+          "metric": "10"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "10"
+        }
+      ],
+      "file": "equal-blank.xlsx",
+      "sha256": "b5e147664e8c531a6fb9ecb1bdd34c3ba65b7db44bdf1cd7fdd60208c4a3312a"
+    },
+    {
+      "name": "not-equal-blank",
+      "filterType": 30,
+      "wholeDay": true,
+      "timedSource": false,
+      "blankSource": true,
+      "date1904": false,
+      "first": "2025-01-15T00:00:00.0000000",
+      "second": null,
+      "sourceRange": "Source!A1:B5",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B7",
+      "grandTotal": 50.0,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "20.03.2025",
+          "metric": "20"
+        },
+        {
+          "label": "15.01.2026",
+          "metric": "30"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "50"
+        }
+      ],
+      "file": "not-equal-blank.xlsx",
+      "sha256": "25c917558c788359fbe5585ae1315580d80b262231dedbc5f8ba57fbfe85637d"
+    }
+  ]
+}

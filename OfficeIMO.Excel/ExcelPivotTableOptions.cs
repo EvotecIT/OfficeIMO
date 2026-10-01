@@ -1,8 +1,14 @@
 namespace OfficeIMO.Excel {
     /// <summary>
-    /// Workbook-interaction options for authored pivot tables.
+    /// Layout and workbook-interaction options for authored pivot tables.
     /// </summary>
     public sealed class ExcelPivotTableOptions {
+        /// <summary>
+        /// Gets or sets the zero-based placement of Values among fields on its row or column axis.
+        /// Requires multiple measures. When omitted, Values is placed last.
+        /// </summary>
+        public int? ValuesAxisPosition { get; set; }
+
         /// <summary>
         /// Gets or sets whether Excel should refresh the pivot cache when the workbook opens.
         /// </summary>

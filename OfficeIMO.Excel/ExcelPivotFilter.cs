@@ -21,7 +21,8 @@ namespace OfficeIMO.Excel {
             bool? isPercent = null,
             string? filterValue = null,
             DateTime? dateValue1 = null,
-            DateTime? dateValue2 = null) {
+            DateTime? dateValue2 = null,
+            bool wholeDay = false) {
             FieldName = string.IsNullOrWhiteSpace(fieldName) ? throw new ArgumentNullException(nameof(fieldName)) : fieldName.Trim();
             _type = type;
             Value1 = string.IsNullOrWhiteSpace(value1) ? null : value1;
@@ -34,6 +35,7 @@ namespace OfficeIMO.Excel {
             FilterValue = string.IsNullOrWhiteSpace(filterValue) ? null : filterValue;
             DateValue1 = dateValue1;
             DateValue2 = dateValue2;
+            WholeDay = wholeDay;
         }
 
         /// <summary>Gets the source field name to filter.</summary>
@@ -69,6 +71,18 @@ namespace OfficeIMO.Excel {
         internal DateTime? DateValue1 { get; }
 
         internal DateTime? DateValue2 { get; }
+
+        /// <summary>Gets whether a fixed-date filter matches the entire calendar day.</summary>
+        public bool WholeDay { get; }
+
+        /// <summary>Returns a fixed-date filter that matches entire calendar days.</summary>
+        public ExcelPivotFilter WithWholeDay() {
+            if (!IsFixedDateFilter(_type))
+                throw new InvalidOperationException("Whole-day matching requires a fixed-date pivot filter.");
+            if (WholeDay) return this;
+            return new ExcelPivotFilter(FieldName, _type, Value1, Value2, DataFieldName, Name,
+                Description, IsTop, IsPercent, FilterValue, DateValue1, DateValue2, wholeDay: true);
+        }
 
         /// <summary>Creates a label-equals pivot filter.</summary>
         public static ExcelPivotFilter LabelEquals(string fieldName, string value, string? name = null, string? description = null)
@@ -340,7 +354,8 @@ namespace OfficeIMO.Excel {
 
             string first = FormatDateFilterValue(value1);
             string? second = value2.HasValue ? FormatDateFilterValue(value2.Value) : null;
-            return new ExcelPivotFilter(fieldName, type, first, second, null, name, description, dateValue1: value1, dateValue2: value2);
+            return new ExcelPivotFilter(fieldName, type, first, second, null, name, description,
+                dateValue1: value1, dateValue2: value2);
         }
 
         /// <summary>Creates a dynamic date pivot filter using a supported Open XML pivot filter type.</summary>

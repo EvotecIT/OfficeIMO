@@ -1,0 +1,21 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "producerUiLanguageId": 1033,
+  "producerDecimalSeparator": ".",
+  "producerThousandsSeparator": ",",
+  "hostCulture": "pl-PL",
+  "generatedUtc": "2026-09-28T21:35:00.6828996Z",
+  "regeneration": "Build/Verification/New-ExcelPivotMultiFieldValueOracle.ps1",
+  "file": "pivot-value-multifield-inner-wide-error-top2-conformance.xlsx",
+  "sha256": "bf52394e735ebcea45c032c8e15dadcd3d6f3faeb0c8808af11d446030ba02ed",
+  "sourceRange": "Source!A1:C10",
+  "filteredField": "Product",
+  "axis": "Row",
+  "filterType": 1,
+  "threshold": 2.0,
+  "threshold2": null,
+  "outputRange": "A4:C14",
+  "grandTotal": 210.0
+}

@@ -1,0 +1,27 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-27T12:53:20.7153642Z",
+  "regeneration": "Build/Verification/New-ExcelFormulaConformanceOracle.ps1",
+  "numberTextSeparators": "decimal dot, thousands comma",
+  "dateTextLocale": "Explicit [$-409] English weekday names and month/day patterns; localized year tokens are excluded",
+  "workbooks": [
+    {
+      "file": "function-conformance-1900.xlsx",
+      "dateSystem": "1900",
+      "sha256": "b536a4c319d2ca67a1ef4b58f85aaa94b2a9982aac1029674cb299c510822f03",
+      "cases": 166,
+      "sourceFormulaCells": 1,
+      "unsupportedNamedExpressionCells": 1
+    },
+    {
+      "file": "function-conformance-1904.xlsx",
+      "dateSystem": "1904",
+      "sha256": "222b2421fb8fad8215ae092574a79d085572926f26e7c6522dfd2573e363b0ce",
+      "cases": 166,
+      "sourceFormulaCells": 1,
+      "unsupportedNamedExpressionCells": 1
+    }
+  ]
+}

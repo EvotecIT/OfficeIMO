@@ -3,11 +3,15 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Invoicing.Pdf;
 
 public sealed partial class PdfInvoiceDocument {
-    private static void Paragraph(PdfContentBuilder content, string text) { if (!string.IsNullOrWhiteSpace(text)) content.Paragraph(paragraph => paragraph.Text(text)); }
-    private static void DetailGroup(PdfContentBuilder content, string title, string text, InvoicePdfTheme? theme = null) =>
-        content.Flow(group => { group.H2(title, PdfAlign.Left, theme?.Text); Paragraph(group, text); }, new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.MoveToNextPage });
-    private static void TableGroup(PdfContentBuilder content, string title, IEnumerable<string[]> rows, InvoicePdfTheme? theme = null) =>
-        content.Flow(group => { group.H2(title, PdfAlign.Left, theme?.Text); group.Table(rows, style: DetailTableStyle(theme)); }, new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.MoveToNextPage });
+    private void Paragraph(PdfContentBuilder content, string text) { if (!string.IsNullOrWhiteSpace(text)) content.Paragraph(paragraph => paragraph.Text(text), style: _layout.CompactDetails ? new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 4 } : null); }
+    private void DetailGroup(PdfContentBuilder content, string title, string text, InvoicePdfTheme? theme = null) =>
+        content.Flow(group => { DetailHeading(group, title, theme); Paragraph(group, text); }, new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.MoveToNextPage });
+    private void TableGroup(PdfContentBuilder content, string title, IEnumerable<string[]> rows, InvoicePdfTheme? theme = null) =>
+        content.Flow(group => { DetailHeading(group, title, theme); group.Table(rows, style: DetailTableStyle(theme)); }, new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.MoveToNextPage });
+    private void DetailHeading(PdfContentBuilder content, string title, InvoicePdfTheme? theme) {
+        if (_layout.CompactDetails) content.Paragraph(paragraph => paragraph.Bold(title, theme?.Text), style: new PdfParagraphStyle { SpacingBefore = 4, SpacingAfter = 4 });
+        else content.H2(title, PdfAlign.Left, theme?.Text);
+    }
     private void ComposeDetails(PdfContentBuilder content, InvoicePdfTheme? theme = null) {
         var references = new List<string[]>();
         void Add(string label, string? value) { if (!string.IsNullOrWhiteSpace(value)) references.Add(new[] { label, value! }); }
@@ -29,10 +33,16 @@ public sealed partial class PdfInvoiceDocument {
         }
         if (_invoice.Payee != null) DetailGroup(content, Label(InvoicePdfText.Payee), Party(_invoice.Payee), theme);
         if (_invoice.TaxRepresentative != null) DetailGroup(content, Label(InvoicePdfText.TaxRepresentative), Party(_invoice.TaxRepresentative), theme);
-        if (_invoice.Payments.Count != 0 || _invoice.PaymentTerms != null) {
-            content.H2(Label(InvoicePdfText.Payment), PdfAlign.Left, theme?.Text);
+        if (_invoice.Payments.Count != 0 || _invoice.PaymentTerms != null || _invoice.PaymentReference != null ||
+            _invoice.CreditorIdentifier != null || _invoice.DirectDebitMandateReference != null) {
+            DetailHeading(content, Label(InvoicePdfText.Payment), theme);
+            var independent = new List<string[]>();
+            if (_invoice.PaymentReference != null) independent.Add(new[] { Label(InvoicePdfText.Reference), _invoice.PaymentReference });
+            if (_invoice.CreditorIdentifier != null) independent.Add(new[] { Label(InvoicePdfText.Creditor), _invoice.CreditorIdentifier });
+            if (_invoice.DirectDebitMandateReference != null) independent.Add(new[] { Label(InvoicePdfText.Mandate), _invoice.DirectDebitMandateReference });
+            if (independent.Count != 0) content.Table(independent, style: DetailTableStyle(theme));
             foreach (InvoicePayment payment in _invoice.Payments) {
-                var rows = new List<string[]> { new[] { Label(InvoicePdfText.PaymentMeans), Join(payment.MeansCode, payment.MeansText).Replace("\n", " ") } };
+                var rows = new List<string[]> { new[] { Label(InvoicePdfText.PaymentMeans), PaymentMeans(payment) } };
                 if (payment.Reference != null) rows.Add(new[] { Label(InvoicePdfText.Reference), payment.Reference });
                 if (payment.Account != null) rows.Add(new[] { payment.Account.IsIban ? "IBAN" : Label(InvoicePdfText.Account), Join(payment.Account.Identifier, payment.Account.Name, payment.Account.ProviderIdentifier) });
                 if (payment.MandateReference != null) rows.Add(new[] { Label(InvoicePdfText.Mandate), payment.MandateReference });
@@ -44,7 +54,7 @@ public sealed partial class PdfInvoiceDocument {
             if (_invoice.PaymentTerms != null) Paragraph(content, _invoice.PaymentTerms);
         }
         if (_invoice.Notes.Count != 0) {
-            content.H2(Label(InvoicePdfText.Notes), PdfAlign.Left, theme?.Text);
+            DetailHeading(content, Label(InvoicePdfText.Notes), theme);
             foreach (InvoiceNote note in _invoice.Notes) Paragraph(content, note.SubjectCode == null ? note.Text : note.SubjectCode + ": " + note.Text);
         }
         if (_invoice.SupportingDocuments.Count != 0) {
@@ -54,9 +64,8 @@ public sealed partial class PdfInvoiceDocument {
         }
     }
 
-    private static PdfTableStyle DetailTableStyle(InvoicePdfTheme? theme) => theme == null
-        ? PlainTable()
-        : new PdfTableStyle {
+    private PdfTableStyle DetailTableStyle(InvoicePdfTheme? theme) {
+        PdfTableStyle style = theme == null ? PlainTable() : new PdfTableStyle {
             HeaderRowCount = 0,
             FontSize = 9D,
             SpacingAfter = 10D,
@@ -69,4 +78,7 @@ public sealed partial class PdfInvoiceDocument {
             BodyColumnFills = new List<PdfColor?> { theme.Surface, null },
             ColumnWidthWeights = new List<double> { 1D, 1D }
         };
+        if (_layout.CompactDetails) { style.SpacingAfter = 4; style.CellPaddingY = 2; }
+        return style;
+    }
 }

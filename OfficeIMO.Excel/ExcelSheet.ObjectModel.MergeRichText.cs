@@ -100,6 +100,7 @@ namespace OfficeIMO.Excel {
                 MaterializeDeferredDataSetImportIfNeeded();
             }
             WriteLock(() => {
+                EnsureDynamicArrayCellWritable(row, column);
                 var cell = GetCell(row, column);
                 ClearCellValueMetadata(cell);
                 var inline = new InlineString();

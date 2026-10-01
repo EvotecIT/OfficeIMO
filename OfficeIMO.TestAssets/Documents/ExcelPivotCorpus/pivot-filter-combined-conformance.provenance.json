@@ -1,0 +1,13 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T05:34:32.0566247Z",
+  "regeneration": "Build/Verification/New-ExcelPivotFilterOracle.ps1",
+  "file": "pivot-filter-combined-conformance.xlsx",
+  "sha256": "515028f2d0ecc41d72f217d9d4a864eb55cde534affb0cf04b26c0f69b209933",
+  "sourceRange": "Source!A1:B8",
+  "filter": "combined",
+  "outputRange": "A4:B7",
+  "grandTotal": 100.0
+}

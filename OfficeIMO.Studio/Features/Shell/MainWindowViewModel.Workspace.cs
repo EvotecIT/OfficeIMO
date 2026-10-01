@@ -386,6 +386,7 @@ public sealed partial class MainWindowViewModel {
         _openCancellation?.Cancel();
         CancelComparisonOpen();
         if (ConversionWorkbench.CanCancel) ConversionWorkbench.CancelCommand.Execute(null);
+        if (InvoiceWorkbench.CanCancel) InvoiceWorkbench.CancelCommand.Execute(null);
         if (OutputWorkbench.CanCancel) OutputWorkbench.CancelCommand.Execute(null);
         if (ProvenanceWorkbench.CanCancel) ProvenanceWorkbench.CancelCommand.Execute(null);
         if (DocumentHealth.CanCancel) DocumentHealth.CancelCommand.Execute(null);

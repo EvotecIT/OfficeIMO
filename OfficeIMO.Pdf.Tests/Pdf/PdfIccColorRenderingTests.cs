@@ -820,6 +820,10 @@ public class PdfIccColorRenderingTests {
 
 #if NET8_0_OR_GREATER
     [Fact]
+#if PDF_PERFORMANCE_EVIDENCE
+    [Trait("Category", "ResourcePerformanceEvidence")]
+    [Trait("Category", "Performance")]
+#endif
     public void SeparationImageConversionReusesTintOutputBuffers() {
         var function = new PdfDictionary();
         function.Items["FunctionType"] = new PdfNumber(2);
@@ -840,22 +844,32 @@ public class PdfIccColorRenderingTests {
             out PdfImageColorSpaceNormalization normalization));
         PdfImageColorConversionBuffer conversionBuffer = normalization.CreateConversionBuffer();
         byte[] sample = { 255 };
+#if PDF_PERFORMANCE_EVIDENCE
         // Run through tiered compilation before measuring the steady-state caller-buffer contract.
         for (int index = 0; index < 4096; index++) {
             Assert.True(normalization.TryConvertPixel(sample, 0, null, conversionBuffer, out _));
         }
+#endif
 
         bool converted = true;
         OfficeColor color = OfficeColor.Black;
+#if PDF_PERFORMANCE_EVIDENCE
         long allocated = PdfAllocationTestSupport.MeasureMinimumThreadAllocation(() => {
             for (int index = 0; index < 4096; index++) {
                 converted &= normalization.TryConvertPixel(sample, 0, null, conversionBuffer, out color);
             }
         });
+#else
+        for (int index = 0; index < 2; index++) {
+            converted &= normalization.TryConvertPixel(sample, 0, null, conversionBuffer, out color);
+        }
+#endif
 
         Assert.True(converted);
         Assert.Equal(OfficeColor.FromRgb(0, 255, 0), color);
+#if PDF_PERFORMANCE_EVIDENCE
         Assert.InRange(allocated, 0, 1024);
+#endif
     }
 #endif
 

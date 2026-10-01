@@ -103,6 +103,19 @@ public class PdfInvoiceLocalizationTests {
         Assert.Contains("Seller", text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void PartialCustomPackUsesEnglishForEveryOmittedLabelEvenWithABuiltInCulture() {
+        var custom = InvoicePdfLanguagePack.Create("pl-PL", new Dictionary<InvoicePdfText, string> { [InvoicePdfText.Invoice] = "Custom invoice" });
+        var withCodes = custom.WithCodeDescriptions(units: new Dictionary<string, string> { ["XBX"] = "box" });
+        var english = InvoicePdfLanguagePack.ForCulture("en-GB");
+        foreach (InvoicePdfText label in Enum.GetValues(typeof(InvoicePdfText))) {
+            string expected = label == InvoicePdfText.Invoice ? "Custom invoice" : english[label];
+            Assert.Equal(expected, custom[label]);
+            Assert.Equal(expected, withCodes[label]);
+        }
+        Assert.Equal("Faktura korygująca", InvoicePdfLanguagePack.ForCulture("pl-PL")[InvoicePdfText.CorrectedInvoice]);
+    }
+
     private static PdfOptions MultilingualOptions() {
         string fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont()!;
         Assert.NotNull(fontPath);

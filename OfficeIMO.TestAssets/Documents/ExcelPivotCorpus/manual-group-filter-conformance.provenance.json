@@ -1,0 +1,16 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T04:11:55.9285692Z",
+  "regeneration": "Build/Verification/New-ExcelPivotGroupedFilterOracle.ps1",
+  "source": "manual-group-conformance.xlsx",
+  "file": "manual-group-filter-conformance.xlsx",
+  "sha256": "efd01f8e591983d29a010e2aa90469b684970158cd7d58a06b0fdd31ee9f6b28",
+  "hiddenItems": [
+    "Product2:Carrot",
+    "Product:Apple"
+  ],
+  "outputRange": "A4:C9",
+  "grandTotal": 60.0
+}

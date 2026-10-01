@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "labels": "OcrQuality/labels.json",
+  "labelsSha256": "d33bf7dceadad77cbbab6a5e2e9d118e079f411db90eda3796912b09034a7e77",
+  "sources": [
+    {
+      "file": "OcrQuality/fw9.pdf",
+      "sha256": "2d420cbb4123dcf1fb82595b2359cfbb5d81f00b9df9d359fcc7af361d093f53",
+      "authority": "https://www.irs.gov/pub/irs-pdf/fw9.pdf",
+      "license": "United States federal government form; source PDF retained unchanged"
+    },
+    {
+      "file": "OcrQuality/fw9sp.pdf",
+      "sha256": "ee086e2aa83fb662723b5e2641d9487162a7a9fdc153a84df7c88aa5e1ab9d6c",
+      "authority": "https://www.irs.gov/pub/irs-pdf/fw9sp.pdf",
+      "license": "United States federal government form; source PDF retained unchanged"
+    },
+    {
+      "file": "OcrQuality/fw8ben.pdf",
+      "sha256": "b821dc1172c91b348a65675529cc792782f11fc1ae8579df92d627113203f918",
+      "authority": "https://www.irs.gov/pub/irs-pdf/fw8ben.pdf",
+      "license": "United States federal government form; source PDF retained unchanged"
+    },
+    {
+      "file": "OcrQuality/sf1034.pdf",
+      "sha256": "401c94f09bfce9d1ab717b54d9ed0706511246b3de2c45380ab8560c44966d46",
+      "authority": "https://www.gsa.gov/system/files/SF1034-87c.pdf",
+      "license": "United States federal government form; source PDF retained unchanged"
+    },
+    {
+      "file": "OcrQuality/8071.tif",
+      "sha256": "d4f01cba19c99f8894d94a6d43eb8ed8013f8cf17fc08af9346bb9fb3697d452",
+      "authority": "https://github.com/tesseract-ocr/test/blob/232ff181c66516116ec0e84c4963f70de15050fd/testing/8071_093.3B.tif",
+      "license": "Apache-2.0 upstream test distribution; embedded publication credits retained"
+    },
+    {
+      "file": "OcrQuality/8087.tif",
+      "sha256": "dab6db0f4c32296f313c7f1e7e139b13d7c69be65c64d6016f85ea67ebca9102",
+      "authority": "https://github.com/tesseract-ocr/test/blob/232ff181c66516116ec0e84c4963f70de15050fd/testing/8087_054.3B.tif",
+      "license": "Apache-2.0 upstream test distribution; embedded publication credits retained"
+    },
+    {
+      "file": "ScanQuality/phototest.png",
+      "sha256": "2698c7258099e830829f2a49738cadd2b4147a21397d3d26976a62e37949ba3d",
+      "authority": "https://github.com/tesseract-ocr/test/blob/232ff181c66516116ec0e84c4963f70de15050fd/testing/phototest.tif",
+      "license": "Apache-2.0; derived PNG preparation is recorded in ScanQuality/sources.json"
+    },
+    {
+      "file": "ScanQuality/phototest-shadow-skew.png",
+      "sha256": "3d35e4cc09f647578a8e6b49d18b83ad407f97dc2cab532b9e194346ec22176e",
+      "authority": "https://github.com/tesseract-ocr/test/blob/232ff181c66516116ec0e84c4963f70de15050fd/testing/phototest.tif",
+      "license": "Apache-2.0; derived PNG preparation is recorded in ScanQuality/sources.json"
+    },
+    {
+      "file": "ScanQuality/eurotext.png",
+      "sha256": "08cfbcdc2c2b627fa3aab18bb896c6e109a82ad52ef54d621978368c686f6483",
+      "authority": "https://github.com/tesseract-ocr/test/blob/232ff181c66516116ec0e84c4963f70de15050fd/testing/eurotext.tif",
+      "license": "Apache-2.0; derived PNG preparation is recorded in ScanQuality/sources.json"
+    },
+    {
+      "file": "OcrQuality/8071.txt",
+      "sha256": "29f290e47012a809f5139c796493b3c693e44e009dd8fb3dafe15420e8b4c7d5",
+      "authority": "https://github.com/tesseract-ocr/test/blob/232ff181c66516116ec0e84c4963f70de15050fd/testing/8071_093.3B.txt",
+      "license": "Apache-2.0"
+    },
+    {
+      "file": "OcrQuality/8087.txt",
+      "sha256": "9965c66f974f85c25e51041b47aceed287dd2302abd64d7e969af674dca83edb",
+      "authority": "https://github.com/tesseract-ocr/test/blob/232ff181c66516116ec0e84c4963f70de15050fd/testing/8087_054.3B.txt",
+      "license": "Apache-2.0"
+    }
+  ]
+}

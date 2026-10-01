@@ -1,0 +1,23 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-27T13:03:15.3378810Z",
+  "regeneration": "Build/Verification/New-ExcelDependencyOracle.ps1",
+  "iterationEnabled": false,
+  "circularContract": "Report cycle and its dependent; clear guarded caches and retain formulas. Producer cycle caches are not numeric conformance expectations.",
+  "workbooks": [
+    {
+      "file": "dependency-conformance.xlsx",
+      "sha256": "95ca6723937252cd22e81d948bf1de2d9a86825c2efed9b2584a8706387e149d",
+      "formulaCells": 600,
+      "maximumAcyclicDepth": 300
+    },
+    {
+      "file": "circular-conformance.xlsx",
+      "sha256": "b120dc8f6586c26fb9f7c553eaf89a7bc1185e96e99062a2f670acbf895cb6d8",
+      "formulaCells": 4,
+      "maximumAcyclicDepth": 1
+    }
+  ]
+}

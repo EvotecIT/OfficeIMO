@@ -67,6 +67,20 @@ Table borders follow the Word style and direct cell settings: `nil` suppresses a
 
 Ordinary underlining includes spaces between words. Word's explicit *underline words only* style continues to leave those spaces clear.
 
+Font sizes preserve half-point values, including 10.5 pt. When the run and its styles omit a size, conversion honors the document default. An existing `docDefaults` element without a size uses Word's 10 pt fallback; a document without `docDefaults` uses 12 pt. OfficeIMO-created documents declare an 11 pt default and retain that size.
+
+### Preserve fonts from a trusted template
+
+Balanced conversion substitutes standard PDF fonts for document-selected fonts. This can change line breaks, table text width, and baselines. For a trusted template whose fonts are installed on the host, enable document-font embedding:
+
+```csharp
+var options = new WordToPdfOptions();
+options.ResourcePolicy.AllowDocumentFontEmbedding = true;
+document.SaveAsPdf("template.pdf", options).RequireSuccess();
+```
+
+Both system-font and document-font embedding must be allowed. This setting retains the template's individual font families; `FontFamily` instead selects a conversion-wide default. Substitution warnings identify when the resource policy disables embedding, separately from an unavailable font. Local-file and remote-resource access remain governed by their own policy settings.
+
 Positioned tables in ordinary document flow preserve page, margin, or text anchors, explicit offsets, and text clearances. Following paragraphs use the available space beside the table and return to full width below it. Headings, lists, images, and other structured blocks move below an intersecting table. Positioned tables in multi-column sections retain an approximation warning.
 
 ### Export to bytes or streams

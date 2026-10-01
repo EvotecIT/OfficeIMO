@@ -1,0 +1,15 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T08:49:54.5907443Z",
+  "regeneration": "Build/Verification/New-ExcelPivotFormattedNumericSubtotalOracle.ps1",
+  "file": "pivot-label-number-subtotal-repeat-conformance.xlsx",
+  "sha256": "c25c0af2e6097222dbc6b7c0a643b346ea806c169e02b43325c85ee9ce51fc0c",
+  "sourceRange": "Source!A1:C4",
+  "numberFormat": "#,##0",
+  "repeatLabels": true,
+  "outputRange": "A4:C10",
+  "repeatedLabel": "1,000",
+  "grandTotal": 60.0
+}

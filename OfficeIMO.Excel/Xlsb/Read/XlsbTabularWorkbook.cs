@@ -57,7 +57,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private readonly IReadOnlyList<string> _sharedStrings;
         private readonly int _maxSharedStringItemCharacters;
         private readonly long _maxSharedStringCharacters;
-        private readonly bool[] _dateStyles;
+        private readonly ExcelSerialDateStyle[] _dateStyles;
         private readonly List<XlsbTabularSheet> _sheets;
         private readonly string[] _tableNames;
         private readonly CancellationToken _cancellationToken;
@@ -120,7 +120,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _tableNames = _sheets.Select(static sheet => sheet.Name).ToArray();
             if (metadataOnly) {
                 _sharedStrings = Array.Empty<string>();
-                _dateStyles = Array.Empty<bool>();
+                _dateStyles = Array.Empty<ExcelSerialDateStyle>();
                 cancellationToken.ThrowIfCancellationRequested();
                 return;
             }
@@ -436,7 +436,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             return values;
         }
 
-        private bool[] ReadDateStyles(
+        private ExcelSerialDateStyle[] ReadDateStyles(
             string workbookPartName,
             IReadOnlyDictionary<string, XlsbPackageRelationship> relationships) {
             XlsbPackageRelationship? relationship = XlsbPackagePartReader.GetOptionalSingletonRelationship(
@@ -444,7 +444,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 StylesRelationshipSuffix,
                 "styles");
             if (relationship == null) {
-                return new[] { false };
+                return new[] { ExcelSerialDateStyle.None };
             }
 
             string partName = XlsbPackagePartReader.ResolveTarget(workbookPartName, relationship.Target);
@@ -686,9 +686,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             return cellFormats
                 .Select(format =>
-                    ExcelBuiltInNumberFormats.IsDate(format.NumberFormatId)
-                    || (customFormats.TryGetValue(format.NumberFormatId, out string? code)
-                        && ExcelNumberFormatClassifier.LooksLikeDateFormat(code)))
+                    ExcelNumberFormatClassifier.ClassifySerialDateStyle(format.NumberFormatId,
+                        customFormats.TryGetValue(format.NumberFormatId, out string? code) ? code : null))
                 .ToArray();
         }
 

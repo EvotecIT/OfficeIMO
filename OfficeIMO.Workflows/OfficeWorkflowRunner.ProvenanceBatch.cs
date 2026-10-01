@@ -297,27 +297,7 @@ public sealed partial class OfficeWorkflowRunner {
     private static bool TryFindAncestorOrDescendant(
         string identity,
         SortedSet<string> identities,
-        out string? collisionIdentity) {
-        string? parent = Path.GetDirectoryName(identity);
-        while (!string.IsNullOrEmpty(parent)) {
-            if (identities.Contains(parent)) {
-                collisionIdentity = parent;
-                return true;
-            }
-            string? next = Path.GetDirectoryName(parent);
-            if (string.Equals(next, parent, StringComparison.Ordinal)) break;
-            parent = next;
-        }
-
-        string prefix = identity.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) +
-                        Path.DirectorySeparatorChar;
-        foreach (string candidate in identities.GetViewBetween(prefix, prefix + '\uffff')) {
-            collisionIdentity = candidate;
-            return true;
-        }
-        collisionIdentity = null;
-        return false;
-    }
+        out string? collisionIdentity) => OfficeWorkflowPathIdentity.TryFindAncestorOrDescendant(identity, identities, out collisionIdentity);
 
     private static string? TryResolveBatchRemovalOutput(OfficeProvenanceWorkflowRequest request) {
         try {

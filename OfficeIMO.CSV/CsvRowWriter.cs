@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Buffers;
 using System.Globalization;
 using System.Diagnostics.CodeAnalysis;
 using System.Data;
@@ -48,10 +49,12 @@ public sealed partial class CsvRowWriter : IDisposable
     private readonly bool _useDefaultWritePath;
     private readonly bool _useAlwaysQuotedWritePath;
     private readonly bool _useFormattedValueOptions;
+    private readonly bool _batchFormattedTextDataReader;
     private readonly bool _leaveOpen;
     private readonly StringBuilder? _stringWriterBuffer;
     private readonly StringBuilder _rowBuffer = new(1024);
     private const int WideTextRowThreshold = 20;
+    private const int TextDelimiterDataReaderFlushThreshold = 8 * 1024;
     private IReadOnlyList<string>? _columns;
     private Func<object, object?[], bool>? _propertyProjector;
     private Func<object, string?[], CultureInfo, bool>? _propertyTextProjector;
@@ -74,6 +77,7 @@ public sealed partial class CsvRowWriter : IDisposable
         _delimiterText = CsvWriter.GetDelimiterText(_options);
         _useTextDelimiter = CsvWriter.UsesTextDelimiter(_options);
         _useFormattedValueOptions = _options.NullValue is not null || _options.DateTimeFormat is not null || _options.UseUtc;
+        _batchFormattedTextDataReader = _useTextDelimiter && _useFormattedValueOptions;
         _useDefaultWritePath = !_useTextDelimiter
             && !_useFormattedValueOptions
             && _options.FormulaInjectionPolicy == CsvFormulaInjectionPolicy.Preserve
@@ -208,6 +212,11 @@ public sealed partial class CsvRowWriter : IDisposable
 
         EnsureColumns(columns);
 
+        if (_batchFormattedTextDataReader)
+        {
+            _rowBuffer.Clear();
+        }
+
 #if NET6_0_OR_GREATER
         var defaultFieldKinds = _useDefaultWritePath
             ? CsvWriter.TryCreateDataReaderFieldKinds(reader)
@@ -219,55 +228,141 @@ public sealed partial class CsvRowWriter : IDisposable
 #endif
         var rowValues = new object[fieldCount];
         var useBufferedValues = true;
-        while (true)
+        var completedBufferedLength = 0;
+        char[]? formattedBatch = null;
+        var formattedBatchLength = 0;
+        void FlushFormattedBatch()
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (!reader.Read())
+            if (formattedBatchLength == 0) return;
+            int length = formattedBatchLength;
+            formattedBatchLength = 0;
+            _writer.Write(formattedBatch!, 0, length);
+        }
+        var usesBatchedRecords = _batchFormattedTextDataReader;
+#if NET6_0_OR_GREATER
+        usesBatchedRecords |= defaultFieldKinds != null;
+#endif
+        try
+        {
+            while (true)
             {
-                break;
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!reader.Read())
+                {
+                    break;
+                }
+                cancellationToken.ThrowIfCancellationRequested();
+#if NET6_0_OR_GREATER
+                if (defaultFieldKinds != null)
+                {
+                    CsvWriter.AppendDataReaderRecordBufferedDefault(
+                        _rowBuffer,
+                        reader,
+                        defaultFieldKinds,
+                        _delimiter,
+                        _options.NewLine,
+                        _options.Culture);
+                    completedBufferedLength = _rowBuffer.Length;
+                    if (_rowBuffer.Length >= CsvWriter.DataReaderFlushThreshold)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        completedBufferedLength = 0;
+                        CsvWriter.FlushBufferedContent(_writer, _rowBuffer);
+                    }
+
+                    continue;
+                }
+#endif
+
+                if (useBufferedValues && TryGetReaderValues(reader, rowValues))
+                {
+                    if (_batchFormattedTextDataReader)
+                    {
+                        formattedBatch ??= ArrayPool<char>.Shared.Rent(TextDelimiterDataReaderFlushThreshold);
+                        CsvWriter.AppendDataReaderRecordBuffered(
+                            _rowBuffer, rowValues, _delimiterText, _options.NewLine, _options.Culture,
+                            _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns,
+                            _options.DateTimeFormat, _options.UseUtc, _options.NullValue);
+                        int rowLength = _rowBuffer.Length;
+                        if (rowLength > formattedBatch!.Length - formattedBatchLength)
+                        {
+                            FlushFormattedBatch();
+                        }
+                        if (rowLength > formattedBatch.Length)
+                        {
+                            CsvWriter.FlushBufferedContent(_writer, _rowBuffer);
+                            cancellationToken.ThrowIfCancellationRequested();
+                        }
+                        else
+                        {
+                            _rowBuffer.CopyTo(0, formattedBatch, formattedBatchLength, rowLength);
+                            formattedBatchLength += rowLength;
+                            _rowBuffer.Clear();
+                            if (formattedBatchLength >= TextDelimiterDataReaderFlushThreshold)
+                            {
+                                cancellationToken.ThrowIfCancellationRequested();
+                                FlushFormattedBatch();
+                            }
+                        }
+                    }
+                    else
+                    {
+                        WriteBuffered(rowValues);
+                    }
+
+                    continue;
+                }
+
+                if (useBufferedValues && _batchFormattedTextDataReader)
+                {
+                    FlushFormattedBatch();
+                }
+                useBufferedValues = false;
+                WriteBuffered(fieldCount, reader, static (record, index) =>
+                {
+                    var value = record.GetValue(index);
+                    return ReferenceEquals(value, DBNull.Value) ? null : value;
+                });
             }
-            cancellationToken.ThrowIfCancellationRequested();
+
 #if NET6_0_OR_GREATER
             if (defaultFieldKinds != null)
             {
-                CsvWriter.AppendDataReaderRecordBufferedDefault(
-                    _rowBuffer,
-                    reader,
-                    defaultFieldKinds,
-                    _delimiter,
-                    _options.NewLine,
-                    _options.Culture);
-                if (_rowBuffer.Length >= CsvWriter.DataReaderFlushThreshold)
+                cancellationToken.ThrowIfCancellationRequested();
+                completedBufferedLength = 0;
+                CsvWriter.FlushBufferedContent(_writer, _rowBuffer);
+            }
+#endif
+            if (_batchFormattedTextDataReader)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                FlushFormattedBatch();
+            }
+        }
+        catch
+        {
+            if (formattedBatch != null)
+            {
+                _rowBuffer.Clear();
+                FlushFormattedBatch();
+            }
+            else if (usesBatchedRecords)
+            {
+                _rowBuffer.Length = completedBufferedLength;
+                if (completedBufferedLength != 0)
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
+                    completedBufferedLength = 0;
                     CsvWriter.FlushBufferedContent(_writer, _rowBuffer);
                 }
-
-                continue;
-            }
-#endif
-
-            if (useBufferedValues && TryGetReaderValues(reader, rowValues))
-            {
-                WriteBuffered(rowValues);
-                continue;
             }
 
-            useBufferedValues = false;
-            WriteBuffered(fieldCount, reader, static (record, index) =>
-            {
-                var value = record.GetValue(index);
-                return ReferenceEquals(value, DBNull.Value) ? null : value;
-            });
+            throw;
         }
-
-#if NET6_0_OR_GREATER
-        if (defaultFieldKinds != null)
+        finally
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            CsvWriter.FlushBufferedContent(_writer, _rowBuffer);
+            if (formattedBatch != null)
+                ArrayPool<char>.Shared.Return(formattedBatch, clearArray: true);
         }
-#endif
     }
 
     /// <summary>

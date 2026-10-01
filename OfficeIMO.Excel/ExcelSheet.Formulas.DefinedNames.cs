@@ -5,6 +5,46 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private const int MaxFormulaDefinedNameExpansionDepth = 256;
 
+        private bool TryResolveDefinedNameConstant(string token, out FormulaArgumentValue value) {
+            value = default;
+            if (!TrySplitQualifiedReference(token, out _, out string name) || !IsFormulaDefinedNameToken(name)) return false;
+            var catalog = new FormulaDefinedNameResolutionCatalog(this);
+            var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            ExcelSheet resolutionSheet = this;
+            for (int expansion = 0; expansion < MaxFormulaDefinedNameExpansionDepth; expansion++) {
+                if (!resolutionSheet.TryGetDefinedNameReference(catalog, token, out ExcelSheet defaultSheet,
+                    out string reference, out string identity) || !visited.Add(identity)) return false;
+                if (double.TryParse(reference, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+                    value = new FormulaArgumentValue(number, reference);
+                    return true;
+                }
+                if (reference.Equals("TRUE", StringComparison.OrdinalIgnoreCase) || reference.Equals("FALSE", StringComparison.OrdinalIgnoreCase)) {
+                    bool flag = reference.Equals("TRUE", StringComparison.OrdinalIgnoreCase);
+                    value = new FormulaArgumentValue(flag ? 1d : 0d, flag ? "1" : "0", isBoolean: true);
+                    return true;
+                }
+                if (ExcelFormulaExpressionParser.TryParseTextLiteral(reference, out string text)) {
+                    value = new FormulaArgumentValue(null, text);
+                    return true;
+                }
+                if (TryParseDefinedNameError(reference, catalog, out string error)) {
+                    value = FormulaArgumentValue.Error(error);
+                    return true;
+                }
+                resolutionSheet = defaultSheet;
+                token = reference;
+            }
+            return false;
+        }
+
+        private static bool TryParseDefinedNameError(string reference, FormulaDefinedNameResolutionCatalog catalog, out string error) {
+            if (TryParseFormulaErrorLiteral(reference, out error)) return true;
+            // Excel may save a broken name as a sheet-qualified #REF! value.
+            int separator = reference.Length > 1 ? reference.LastIndexOf('!', reference.Length - 2) : -1;
+            if (separator <= 0 || !catalog.TryGetSheet(NormalizeFormulaSheetName(reference.Substring(0, separator)), out _, out _)) return false;
+            return TryParseFormulaErrorLiteral(reference.Substring(separator + 1), out error);
+        }
+
         private sealed class FormulaDefinedNameResolutionCatalog {
             private readonly List<Sheet> _sheets;
             private readonly HashSet<int> _validSheetIndexes = new HashSet<int>();
@@ -227,9 +267,11 @@ namespace OfficeIMO.Excel {
                 reference = reference.Substring(1).Trim();
             }
 
-            if (reference.Length == 0
-                || ContainsTopLevelFormulaComma(reference)
-                || reference.IndexOf("#REF!", StringComparison.OrdinalIgnoreCase) >= 0) {
+            bool isConstant = ExcelFormulaExpressionParser.TryParseTextLiteral(reference, out _)
+                || TryParseDefinedNameError(reference, catalog, out _);
+            if (reference.Length == 0 || (!isConstant
+                && (ContainsTopLevelFormulaComma(reference)
+                    || reference.IndexOf("#REF!", StringComparison.OrdinalIgnoreCase) >= 0))) {
                 return false;
             }
 
