@@ -54,17 +54,20 @@ public partial class DrawingTests {
     }
 
     [Theory]
-    [InlineData("lime")]
-    [InlineData("url(#gradient)")]
-    public void SvgFilterGraphChargesPolygonCoverageWorkBeforeRasterization(string fill) {
+    [InlineData("lime", false)]
+    [InlineData("url(#gradient)", false)]
+    [InlineData("lime", true)]
+    public void SvgFilterGraphChargesPolygonCoverageWorkBeforeRasterization(string fill, bool nestedSurface) {
         string points = string.Join(" ", Enumerable.Range(0, 250).Select(i => {
             double angle = 2D * Math.PI * i / 250D;
             return FormattableString.Invariant($"{100D + 99D * Math.Cos(angle)},{100D + 99D * Math.Sin(angle)}");
         }));
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><defs>"
             + "<linearGradient id='gradient'><stop offset='0' stop-color='lime'/><stop offset='1' stop-color='blue'/></linearGradient>"
-            + "<filter id='f' filterUnits='userSpaceOnUse' x='0' y='0' width='200' height='200'><feColorMatrix/></filter></defs>"
-            + "<polygon points='" + points + "' fill='" + fill + "' filter='url(#f)'/></svg>";
+            + "<filter id='f' filterUnits='userSpaceOnUse' x='0' y='0' width='" + (nestedSurface ? "1" : "200")
+            + "' height='" + (nestedSurface ? "1" : "200") + "'><feColorMatrix/></filter></defs>"
+            + "<g filter='url(#f)'><polygon points='" + points + "' fill='" + fill + "' "
+            + (nestedSurface ? "style='mix-blend-mode:multiply'" : "") + "/></g></svg>";
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
         Assert.Equal(1, unsupported);
         Assert.Empty(FilterGraphElements(drawing!).OfType<OfficeDrawingImage>());
