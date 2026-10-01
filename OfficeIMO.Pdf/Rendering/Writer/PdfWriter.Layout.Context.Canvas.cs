@@ -337,6 +337,7 @@ internal static partial class PdfWriter {
             if (role == PdfCanvasStructureRole.TableHeaderCell) return "TH";
             if (role == PdfCanvasStructureRole.TableCell) return "TD";
             if (role == PdfCanvasStructureRole.Caption) return "Caption";
+            if (role == PdfCanvasStructureRole.Formula) return "Formula";
             return "Note";
         }
 

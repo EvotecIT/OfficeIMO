@@ -88,7 +88,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             alternativeText,
             link,
             source);
-        mathVisuals.Add(new HtmlRenderLogicalTextGroup(
+        var logicalVisual = new HtmlRenderLogicalTextGroup(
             logicalText,
             contentX,
             contentY,
@@ -96,7 +96,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentSize.Height,
             new[] { drawingVisual },
             0,
-            source));
+            source);
+        mathVisuals.Add(new HtmlRenderSemanticGroup(
+            HtmlRenderSemanticGroupRole.Formula, contentX, contentY, contentSize.Width, contentSize.Height,
+            new[] { logicalVisual }, 0, source, alternativeText: alternativeText));
 
         HtmlResolvedBorderRadii outerRadii = ResolveBoxRadii(style, boxWidth, boxHeight, element, source);
         HtmlResolvedBorderRadii contentRadii = outerRadii.Inset(

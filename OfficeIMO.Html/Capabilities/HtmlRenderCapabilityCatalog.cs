@@ -248,7 +248,7 @@ public static partial class HtmlRenderCapabilityCatalog {
         Qualified("mathml", "MathML", HtmlRenderCapabilityKind.Html,
             HtmlLayoutScope(HtmlCapabilityStage.ParseAndPreserve | HtmlCapabilityStage.Layout | HtmlCapabilityStage.PaintAndOutput, HtmlCapabilitySpecificationIds.MathMlCore),
             Features("math", "mrow", "mtext", "mi", "mn", "mo", "mfrac", "msqrt", "mroot", "msup", "msub", "msubsup", "mmultiscripts", "mprescripts", "mfenced", "mtable", "mtr", "mtd", "menclose", "mphantom", "mover", "munder", "munderover", "semantics", "annotation", "display=block"),
-            "Parses the listed Presentation MathML structures through the shared OfficeIMO.Core expression owner, lays them out as managed vectors with measured inline baselines, retains logical text in the shared scene and SVG text, and maps accessible names plus actual text into PDF output."),
+            "Parses the listed Presentation MathML structures through the shared OfficeIMO.Core expression owner, lays them out as managed vectors with measured inline baselines, retains logical text in the shared scene and SVG text, and maps accessible descriptions into tagged PDF Formula containers while retaining logical actual text. This path does not emit MathML associated files or establish formal PDF conformance."),
         Fallback("mathml-fallback", "MathML", HtmlRenderCapabilityKind.Html,
             HtmlLayoutScope(HtmlCapabilityStage.ParseAndPreserve | HtmlCapabilityStage.Layout | HtmlCapabilityStage.PaintAndOutput, HtmlCapabilitySpecificationIds.MathMlCore),
             Features("unsupported Presentation MathML elements", "Content MathML"),

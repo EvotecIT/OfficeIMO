@@ -43,7 +43,9 @@ public enum HtmlRenderSemanticGroupRole {
     /// <summary>Decorative content intentionally excluded from tagged-PDF structure.</summary>
     Artifact,
     /// <summary>Footnote content associated with a call in the document body.</summary>
-    Footnote
+    Footnote,
+    /// <summary>Mathematical expression with an accessible description.</summary>
+    Formula
 }
 
 /// <summary>Resolved scope of a semantic HTML table header.</summary>
@@ -74,9 +76,11 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
         HtmlRenderTableHeaderScope? headerScope = null,
         double? layoutY = null,
         string? structureElementKey = null,
-        double? layoutHeight = null)
+        double? layoutHeight = null,
+        string? alternativeText = null)
         : base(HtmlRenderVisualKind.SemanticGroup, x, y, width, height, paintOrder, null, source, layoutY, layoutHeight) {
         Role = role;
+        AlternativeText = alternativeText;
         StructureElementKey = structureElementKey;
         ColumnSpan = columnSpan;
         RowSpan = rowSpan;
@@ -98,9 +102,11 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
         HtmlRenderTableHeaderScope? headerScope,
         double layoutY,
         string? structureElementKey,
-        double layoutHeight)
+        double layoutHeight,
+        string? alternativeText)
         : base(HtmlRenderVisualKind.SemanticGroup, x, y, width, height, paintOrder, null, source, layoutY, layoutHeight) {
         Role = role;
+        AlternativeText = alternativeText;
         StructureElementKey = structureElementKey;
         ColumnSpan = columnSpan;
         RowSpan = rowSpan;
@@ -110,6 +116,9 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
 
     /// <summary>Semantic role of this group.</summary>
     public HtmlRenderSemanticGroupRole Role { get; }
+
+    /// <summary>Accessible description retained across paint transforms and page fragments.</summary>
+    public string? AlternativeText { get; }
 
     internal string? StructureElementKey { get; }
 
@@ -132,14 +141,14 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
     public IReadOnlyList<HtmlRenderVisual> Visuals => _visuals;
 
     internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: false), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY + offsetY, StructureElementKey, LayoutHeight);
+        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: false), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY + offsetY, StructureElementKey, LayoutHeight, AlternativeText);
 
     internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: true), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight);
+        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: true), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText);
 
     internal HtmlRenderVisual ProjectPaint(IEnumerable<HtmlRenderVisual> visuals, double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, visuals,
-            paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight);
+            paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText);
 
     private static ReadOnlyCollection<HtmlRenderVisual> OrderVisuals(IEnumerable<HtmlRenderVisual> visuals) {
         if (visuals == null) throw new ArgumentNullException(nameof(visuals));

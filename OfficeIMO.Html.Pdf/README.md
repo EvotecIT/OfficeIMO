@@ -196,7 +196,7 @@ This bounds completed PDF page and object payloads and avoids buffering the fina
 
 ## Paged-media and PDF semantics
 
-The managed path supports named page rules, margin boxes, page counters, running strings, and running elements. It also maps headings and CSS bookmark controls to PDF outlines, maps supported semantic roles to the tagged structure tree, and marks repeated decorative margin content as PDF artifacts.
+The managed path supports named page rules, margin boxes, page counters, running strings, and running elements. It also maps headings and CSS bookmark controls to PDF outlines, maps supported semantic roles to the tagged structure tree, and marks repeated decorative margin content as PDF artifacts. Presentation MathML keeps its vector paint and searchable logical text inside a tagged `Formula` container. Its description follows the shared accessible-name resolution, then `alttext`, then the logical expression. MathML associated files are not emitted by this path.
 
 ```html
 <style>

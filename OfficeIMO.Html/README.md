@@ -412,7 +412,7 @@ exports retain the same scene geometry and page count; font rasterization can di
 Raster decoding preserves encoded color channels and does not automatically apply embedded ICC or
 PNG gamma conversion. Normalize source colors explicitly when color-managed output is required.
 
-The same managed path renders inline or block Presentation MathML as vector content. Fractions, roots, scripts, limits, fences, matrices, enclosures, and annotations retain logical text in the shared scene and searchable PDF output; unsupported structures use a diagnosed child-content fallback.
+The same managed path renders inline or block Presentation MathML as vector content. Fractions, roots, scripts, limits, fences, matrices, enclosures, and annotations retain logical text in the shared scene and searchable PDF output. Tagged PDF output retains a Formula container and its accessible description, including transformed and vertical equations. Unsupported structures use a diagnosed child-content fallback.
 
 For documents that opt into `hyphens:auto`, the managed renderer selects embedded US English
 (`lang="en-US"` or `en`) and reformed German (`lang="de-DE"`, `de`, `de-1996` or `de-DE-1996`)

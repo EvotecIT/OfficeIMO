@@ -643,6 +643,24 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 
 Inline elements participate in normal line wrapping. In tagged output, image and box alternative text is carried into the structure tree.
 
+### Tagged mathematical canvas content
+
+Use the canvas `Formula` role to retain a mathematical expression's description
+and logical text in tagged output. The description is captured when the canvas
+content is built; later edits to the options do not change the document.
+
+```csharp
+byte[] formula = PdfDocument.Create().TaggedPdfCatalogMarkers()
+    .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula,
+        expression => expression.ActualText("x^(2)",
+            paint => paint.Text("x2", 10, 10, 60, 20)),
+        new PdfCanvasStructureOptions { AlternativeText = "x squared" }))
+    .ToBytes();
+```
+
+The role and description do not by themselves establish PDF/UA conformance.
+Validate the complete output against the requested profile.
+
 ### Sections, generated navigation, and bounded stream output
 
 ```csharp

@@ -80,7 +80,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             semanticGroup.RowSpan,
                             semanticGroup.HeaderScope,
                             semanticGroup.LayoutY - start,
-                            semanticGroup.StructureElementKey));
+                            semanticGroup.StructureElementKey, alternativeText: semanticGroup.AlternativeText));
                     }
                     continue;
                 }

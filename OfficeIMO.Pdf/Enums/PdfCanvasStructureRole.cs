@@ -39,7 +39,9 @@ public enum PdfCanvasStructureRole {
     /// <summary>Caption associated with a figure or table.</summary>
     Caption,
     /// <summary>Footnote or endnote content associated with the document body.</summary>
-    Note
+    Note,
+    /// <summary>Mathematical expression; use AlternativeText for its accessible description.</summary>
+    Formula
 }
 
 /// <summary>Scope of a tagged table header cell.</summary>

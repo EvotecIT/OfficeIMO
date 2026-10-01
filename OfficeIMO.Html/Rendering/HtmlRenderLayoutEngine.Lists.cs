@@ -172,7 +172,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 semantic.RowSpan,
                 semantic.HeaderScope,
                 semantic.LayoutY,
-                semantic.StructureElementKey);
+                semantic.StructureElementKey, semantic.LayoutHeight, semantic.AlternativeText);
         }
 
 

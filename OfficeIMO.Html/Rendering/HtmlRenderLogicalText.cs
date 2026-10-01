@@ -4,6 +4,14 @@ using System.Linq;
 namespace OfficeIMO.Html;
 
 internal static class HtmlRenderLogicalText {
+    internal static bool ContainsFormula(IEnumerable<HtmlRenderVisual> visuals) {
+        foreach (HtmlRenderVisual visual in visuals) {
+            if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Formula }) return true;
+            if (LogicalTextChildVisuals(visual) is IEnumerable<HtmlRenderVisual> children && ContainsFormula(children)) return true;
+        }
+        return false;
+    }
+
     internal static bool ContainsText(HtmlRenderVisual visual) {
         var fragments = new List<LogicalTextFragment>();
         CollectLogicalTextFragments(new[] { visual }, fragments);
