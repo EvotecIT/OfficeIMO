@@ -16,7 +16,9 @@
     {
       "task": "exec",
       "id": "sync-pswriteoffice-content",
-      "dependsOn": ["sync-sources"],
+      "dependsOn": [
+        "sync-sources"
+      ],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
@@ -31,7 +33,9 @@
     {
       "task": "exec",
       "id": "build-documentation-catalog",
-      "dependsOn": ["sync-pswriteoffice-content"],
+      "dependsOn": [
+        "sync-pswriteoffice-content"
+      ],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
@@ -44,7 +48,9 @@
     {
       "task": "exec",
       "id": "build-capability-catalog",
-      "dependsOn": ["build-documentation-catalog"],
+      "dependsOn": [
+        "build-documentation-catalog"
+      ],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
@@ -57,7 +63,9 @@
     {
       "task": "exec",
       "id": "build-aot-project-matrix",
-      "dependsOn": ["build-capability-catalog"],
+      "dependsOn": [
+        "build-capability-catalog"
+      ],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
@@ -72,7 +80,9 @@
     {
       "task": "exec",
       "id": "test-capability-claims",
-      "dependsOn": ["build-aot-project-matrix"],
+      "dependsOn": [
+        "build-aot-project-matrix"
+      ],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
@@ -85,7 +95,9 @@
     {
       "task": "exec",
       "id": "test-content-layout-contracts",
-      "dependsOn": ["test-capability-claims"],
+      "dependsOn": [
+        "test-capability-claims"
+      ],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
@@ -98,7 +110,9 @@
     {
       "task": "exec",
       "id": "test-pdf-workflow-content",
-      "dependsOn": ["test-content-layout-contracts"],
+      "dependsOn": [
+        "test-content-layout-contracts"
+      ],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
@@ -111,7 +125,9 @@
     {
       "task": "exec",
       "id": "test-discovery-evidence",
-      "dependsOn": ["test-pdf-workflow-content"],
+      "dependsOn": [
+        "test-pdf-workflow-content"
+      ],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
@@ -124,15 +140,25 @@
     {
       "task": "exec",
       "id": "test-showcase-walkthroughs",
-      "dependsOn": ["test-discovery-evidence"],
+      "dependsOn": [
+        "test-discovery-evidence"
+      ],
       "command": "pwsh",
-      "argsList": ["-NoLogo", "-NoProfile", "-File", "./scripts/Sync-ShowcaseWalkthroughs.ps1", "-Check"],
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Sync-ShowcaseWalkthroughs.ps1",
+        "-Check"
+      ],
       "workingDirectory": "."
     },
     {
       "task": "exec",
       "id": "test-documentation-contracts",
-      "dependsOn": ["test-showcase-walkthroughs"],
+      "dependsOn": [
+        "test-showcase-walkthroughs"
+      ],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
@@ -361,7 +387,9 @@
     {
       "task": "release-hub",
       "id": "build-release-hub",
-      "dependsOn": ["build-word"],
+      "dependsOn": [
+        "build-word"
+      ],
       "source": "github",
       "repo": "EvotecIT/OfficeIMO",
       "tokenEnv": "GITHUB_TOKEN",
@@ -370,11 +398,21 @@
       "maxReleases": 300,
       "pageSize": 100,
       "maxPages": 100,
-      "retainAllStableTagPrefixes": ["Studio-v"],
+      "retainAllStableTagPrefixes": [
+        "Studio-v"
+      ],
       "includePrerelease": true,
       "products": [
-        { "id": "officeimo.word", "name": "OfficeIMO.Word", "order": 10 },
-        { "id": "officeimo.excel", "name": "OfficeIMO.Excel", "order": 20 },
+        {
+          "id": "officeimo.word",
+          "name": "OfficeIMO.Word",
+          "order": 10
+        },
+        {
+          "id": "officeimo.excel",
+          "name": "OfficeIMO.Excel",
+          "order": 20
+        },
         {
           "id": "officeimo.excel.pdf",
           "name": "OfficeIMO.Excel.Pdf",
@@ -390,17 +428,61 @@
           "name": "OfficeIMO.Markdown",
           "order": 40
         },
-        { "id": "officeimo.csv", "name": "OfficeIMO.CSV", "order": 50 },
-        { "id": "officeimo.visio", "name": "OfficeIMO.Visio", "order": 60 },
-        { "id": "officeimo.reader", "name": "OfficeIMO.Reader packages", "order": 70 },
-        { "id": "pswriteoffice", "name": "PSWriteOffice", "order": 80 },
-        { "id": "officeimo.googleworkspace", "name": "OfficeIMO.GoogleWorkspace", "order": 81 },
-        { "id": "officeimo.googleworkspace.drive", "name": "OfficeIMO.GoogleWorkspace.Drive", "order": 82 },
-        { "id": "officeimo.googleworkspace.auth.googleapis", "name": "OfficeIMO.GoogleWorkspace.Auth.GoogleApis", "order": 83 },
-        { "id": "officeimo.googleworkspace.sync", "name": "OfficeIMO.GoogleWorkspace.Sync", "order": 84 },
-        { "id": "officeimo.word.googledocs", "name": "OfficeIMO.Word.GoogleDocs", "order": 85 },
-        { "id": "officeimo.excel.googlesheets", "name": "OfficeIMO.Excel.GoogleSheets", "order": 86 },
-        { "id": "officeimo.powerpoint.googleslides", "name": "OfficeIMO.PowerPoint.GoogleSlides", "order": 87 },
+        {
+          "id": "officeimo.csv",
+          "name": "OfficeIMO.CSV",
+          "order": 50
+        },
+        {
+          "id": "officeimo.visio",
+          "name": "OfficeIMO.Visio",
+          "order": 60
+        },
+        {
+          "id": "officeimo.reader",
+          "name": "OfficeIMO.Reader packages",
+          "order": 70
+        },
+        {
+          "id": "pswriteoffice",
+          "name": "PSWriteOffice",
+          "order": 80
+        },
+        {
+          "id": "officeimo.googleworkspace",
+          "name": "OfficeIMO.GoogleWorkspace",
+          "order": 81
+        },
+        {
+          "id": "officeimo.googleworkspace.drive",
+          "name": "OfficeIMO.GoogleWorkspace.Drive",
+          "order": 82
+        },
+        {
+          "id": "officeimo.googleworkspace.auth.googleapis",
+          "name": "OfficeIMO.GoogleWorkspace.Auth.GoogleApis",
+          "order": 83
+        },
+        {
+          "id": "officeimo.googleworkspace.sync",
+          "name": "OfficeIMO.GoogleWorkspace.Sync",
+          "order": 84
+        },
+        {
+          "id": "officeimo.word.googledocs",
+          "name": "OfficeIMO.Word.GoogleDocs",
+          "order": 85
+        },
+        {
+          "id": "officeimo.excel.googlesheets",
+          "name": "OfficeIMO.Excel.GoogleSheets",
+          "order": 86
+        },
+        {
+          "id": "officeimo.powerpoint.googleslides",
+          "name": "OfficeIMO.PowerPoint.GoogleSlides",
+          "order": 87
+        },
         {
           "id": "officeimo.word.html",
           "name": "OfficeIMO.Word.Html",
@@ -431,8 +513,16 @@
           "name": "OfficeIMO.MarkdownRenderer.Wpf",
           "order": 140
         },
-        { "id": "officeimo.pdf", "name": "OfficeIMO.Pdf", "order": 150 },
-        { "id": "officeimo.studio", "name": "OfficeIMO Studio", "order": 160 }
+        {
+          "id": "officeimo.pdf",
+          "name": "OfficeIMO.Pdf",
+          "order": 150
+        },
+        {
+          "id": "officeimo.studio",
+          "name": "OfficeIMO Studio",
+          "order": 160
+        }
       ],
       "assetRules": [
         {
@@ -449,42 +539,59 @@
         {
           "product": "officeimo.googleworkspace.auth.googleapis",
           "label": "OfficeIMO.GoogleWorkspace.Auth.GoogleApis",
-          "match": ["*OfficeIMO.GoogleWorkspace.Auth.GoogleApis*.nupkg"]
+          "match": [
+            "*OfficeIMO.GoogleWorkspace.Auth.GoogleApis*.nupkg"
+          ]
         },
         {
           "product": "officeimo.googleworkspace.drive",
           "label": "OfficeIMO.GoogleWorkspace.Drive",
-          "match": ["*OfficeIMO.GoogleWorkspace.Drive*.nupkg"]
+          "match": [
+            "*OfficeIMO.GoogleWorkspace.Drive*.nupkg"
+          ]
         },
         {
           "product": "officeimo.googleworkspace.sync",
           "label": "OfficeIMO.GoogleWorkspace.Sync",
-          "match": ["*OfficeIMO.GoogleWorkspace.Sync*.nupkg"]
+          "match": [
+            "*OfficeIMO.GoogleWorkspace.Sync*.nupkg"
+          ]
         },
         {
           "product": "officeimo.word.googledocs",
           "label": "OfficeIMO.Word.GoogleDocs",
-          "match": ["*OfficeIMO.Word.GoogleDocs*.nupkg"]
+          "match": [
+            "*OfficeIMO.Word.GoogleDocs*.nupkg"
+          ]
         },
         {
           "product": "officeimo.excel.googlesheets",
           "label": "OfficeIMO.Excel.GoogleSheets",
-          "match": ["*OfficeIMO.Excel.GoogleSheets*.nupkg"]
+          "match": [
+            "*OfficeIMO.Excel.GoogleSheets*.nupkg"
+          ]
         },
         {
           "product": "officeimo.powerpoint.googleslides",
           "label": "OfficeIMO.PowerPoint.GoogleSlides",
-          "match": ["*OfficeIMO.PowerPoint.GoogleSlides*.nupkg"]
+          "match": [
+            "*OfficeIMO.PowerPoint.GoogleSlides*.nupkg"
+          ]
         },
         {
           "product": "officeimo.googleworkspace",
           "label": "OfficeIMO.GoogleWorkspace",
-          "match": ["*OfficeIMO.GoogleWorkspace*.nupkg"]
+          "match": [
+            "*OfficeIMO.GoogleWorkspace*.nupkg"
+          ]
         },
         {
           "product": "officeimo.word.html",
           "label": "OfficeIMO.Word.Html",
-          "match": ["*OfficeIMO.Word.Html*.zip", "*OfficeIMO.Word.Html*.nupkg"]
+          "match": [
+            "*OfficeIMO.Word.Html*.zip",
+            "*OfficeIMO.Word.Html*.nupkg"
+          ]
         },
         {
           "product": "officeimo.word.markdown",
@@ -497,12 +604,18 @@
         {
           "product": "officeimo.word.pdf",
           "label": "OfficeIMO.Word.Pdf",
-          "match": ["*OfficeIMO.Word.Pdf*.zip", "*OfficeIMO.Word.Pdf*.nupkg"]
+          "match": [
+            "*OfficeIMO.Word.Pdf*.zip",
+            "*OfficeIMO.Word.Pdf*.nupkg"
+          ]
         },
         {
           "product": "officeimo.excel.pdf",
           "label": "OfficeIMO.Excel.Pdf",
-          "match": ["*OfficeIMO.Excel.Pdf*.zip", "*OfficeIMO.Excel.Pdf*.nupkg"]
+          "match": [
+            "*OfficeIMO.Excel.Pdf*.zip",
+            "*OfficeIMO.Excel.Pdf*.nupkg"
+          ]
         },
         {
           "product": "officeimo.markdownrenderer.wpf",
@@ -531,17 +644,26 @@
         {
           "product": "officeimo.pdf",
           "label": "OfficeIMO.Pdf",
-          "match": ["*OfficeIMO.Pdf*.zip", "*OfficeIMO.Pdf*.nupkg"]
+          "match": [
+            "*OfficeIMO.Pdf*.zip",
+            "*OfficeIMO.Pdf*.nupkg"
+          ]
         },
         {
           "product": "officeimo.word",
           "label": "OfficeIMO.Word",
-          "match": ["*OfficeIMO.Word*.zip", "*OfficeIMO.Word*.nupkg"]
+          "match": [
+            "*OfficeIMO.Word*.zip",
+            "*OfficeIMO.Word*.nupkg"
+          ]
         },
         {
           "product": "officeimo.excel",
           "label": "OfficeIMO.Excel",
-          "match": ["*OfficeIMO.Excel*.zip", "*OfficeIMO.Excel*.nupkg"]
+          "match": [
+            "*OfficeIMO.Excel*.zip",
+            "*OfficeIMO.Excel*.nupkg"
+          ]
         },
         {
           "product": "officeimo.powerpoint",
@@ -554,34 +676,51 @@
         {
           "product": "officeimo.markdown",
           "label": "OfficeIMO.Markdown",
-          "match": ["*OfficeIMO.Markdown*.zip", "*OfficeIMO.Markdown*.nupkg"]
+          "match": [
+            "*OfficeIMO.Markdown*.zip",
+            "*OfficeIMO.Markdown*.nupkg"
+          ]
         },
         {
           "product": "officeimo.csv",
           "label": "OfficeIMO.CSV",
-          "match": ["*OfficeIMO.CSV*.zip", "*OfficeIMO.CSV*.nupkg"]
+          "match": [
+            "*OfficeIMO.CSV*.zip",
+            "*OfficeIMO.CSV*.nupkg"
+          ]
         },
         {
           "product": "officeimo.visio",
           "label": "OfficeIMO.Visio",
-          "match": ["*OfficeIMO.Visio*.zip", "*OfficeIMO.Visio*.nupkg"]
+          "match": [
+            "*OfficeIMO.Visio*.zip",
+            "*OfficeIMO.Visio*.nupkg"
+          ]
         },
         {
           "product": "officeimo.reader",
           "label": "OfficeIMO.Reader packages",
-          "match": ["*OfficeIMO.Reader*.zip", "*OfficeIMO.Reader*.nupkg"]
+          "match": [
+            "*OfficeIMO.Reader*.zip",
+            "*OfficeIMO.Reader*.nupkg"
+          ]
         },
         {
           "product": "pswriteoffice",
           "label": "PSWriteOffice",
-          "match": ["*PSWriteOffice*.zip", "*PSWriteOffice*.nupkg"]
+          "match": [
+            "*PSWriteOffice*.zip",
+            "*PSWriteOffice*.nupkg"
+          ]
         }
       ]
     },
     {
       "task": "ecosystem-stats",
       "id": "build-ecosystem-stats",
-      "skipModes": ["dev"],
+      "skipModes": [
+        "dev"
+      ],
       "out": "./data/ecosystem/stats.json",
       "publishPath": "./static/data/ecosystem/stats.json",
       "summaryPath": "./Build/sync-ecosystem-stats-last-run.json",
@@ -595,7 +734,9 @@
     {
       "task": "exec",
       "id": "generate-excel-benchmark-data",
-      "dependsOn": ["build-excel"],
+      "dependsOn": [
+        "build-excel"
+      ],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
@@ -614,7 +755,9 @@
     {
       "task": "exec",
       "id": "generate-benchmark-overview",
-      "dependsOn": ["generate-excel-benchmark-data"],
+      "dependsOn": [
+        "generate-excel-benchmark-data"
+      ],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
@@ -668,7 +811,9 @@
     {
       "task": "exec",
       "id": "verify-excel-benchmark-page",
-      "dependsOn": ["build-site"],
+      "dependsOn": [
+        "build-site"
+      ],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
@@ -681,15 +826,677 @@
       "workingDirectory": "."
     },
     {
+      "task": "dotnet-build",
+      "id": "build-api-adf",
+      "project": "../OfficeIMO.Adf/OfficeIMO.Adf.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-ai",
+      "project": "../OfficeIMO.AI/OfficeIMO.AI.csproj",
+      "configuration": "Release",
+      "framework": "net10.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-ai-intelligence-x",
+      "project": "../OfficeIMO.AI.IntelligenceX/OfficeIMO.AI.IntelligenceX.csproj",
+      "configuration": "Release",
+      "framework": "net10.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-ascii-doc",
+      "project": "../OfficeIMO.AsciiDoc/OfficeIMO.AsciiDoc.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-ascii-doc-markdown",
+      "project": "../OfficeIMO.AsciiDoc.Markdown/OfficeIMO.AsciiDoc.Markdown.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-ascii-doc-pdf",
+      "project": "../OfficeIMO.AsciiDoc.Pdf/OfficeIMO.AsciiDoc.Pdf.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-bibliography",
+      "project": "../OfficeIMO.Bibliography/OfficeIMO.Bibliography.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-chart-forge-x",
+      "project": "../OfficeIMO.ChartForgeX/OfficeIMO.ChartForgeX.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-confluence",
+      "project": "../OfficeIMO.Confluence/OfficeIMO.Confluence.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-core",
+      "project": "../OfficeIMO.Core/OfficeIMO.Core.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-data-arrow",
+      "project": "../OfficeIMO.Data.Arrow/OfficeIMO.Data.Arrow.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-data-generators",
+      "project": "../OfficeIMO.Data.Generators/OfficeIMO.Data.Generators.csproj",
+      "configuration": "Release",
+      "framework": "netstandard2.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-doc-book",
+      "project": "../OfficeIMO.DocBook/OfficeIMO.DocBook.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-drawing-code-glyph-x",
+      "project": "../OfficeIMO.Drawing.CodeGlyphX/OfficeIMO.Drawing.CodeGlyphX.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-drawing-harf-buzz",
+      "project": "../OfficeIMO.Drawing.HarfBuzz/OfficeIMO.Drawing.HarfBuzz.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-email-html",
+      "project": "../OfficeIMO.Email.Html/OfficeIMO.Email.Html.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-epub",
+      "project": "../OfficeIMO.Epub/OfficeIMO.Epub.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-epub-image",
+      "project": "../OfficeIMO.Epub.Image/OfficeIMO.Epub.Image.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-excel-iwork",
+      "project": "../OfficeIMO.Excel.IWork/OfficeIMO.Excel.IWork.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-excel-csv",
+      "project": "../OfficeIMO.Excel.Csv/OfficeIMO.Excel.Csv.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-excel-open-document",
+      "project": "../OfficeIMO.Excel.OpenDocument/OfficeIMO.Excel.OpenDocument.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-excel-google-sheets",
+      "project": "../OfficeIMO.Excel.GoogleSheets/OfficeIMO.Excel.GoogleSheets.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-excel-html",
+      "project": "../OfficeIMO.Excel.Html/OfficeIMO.Excel.Html.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-html-core",
+      "project": "../OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-html-angle-sharp",
+      "project": "../OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-html-pdf",
+      "project": "../OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-html-pdf-browser",
+      "project": "../OfficeIMO.Html.Pdf.Browser/OfficeIMO.Html.Pdf.Browser.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-iwork",
+      "project": "../OfficeIMO.IWork/OfficeIMO.IWork.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-invoicing",
+      "project": "../OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-invoicing-validation",
+      "project": "../OfficeIMO.Invoicing.Validation/OfficeIMO.Invoicing.Validation.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-invoicing-ksef",
+      "project": "../OfficeIMO.Invoicing.KSeF/OfficeIMO.Invoicing.KSeF.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-invoicing-pdf",
+      "project": "../OfficeIMO.Invoicing.Pdf/OfficeIMO.Invoicing.Pdf.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-latex",
+      "project": "../OfficeIMO.Latex/OfficeIMO.Latex.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-latex-markdown",
+      "project": "../OfficeIMO.Latex.Markdown/OfficeIMO.Latex.Markdown.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-latex-pdf",
+      "project": "../OfficeIMO.Latex.Pdf/OfficeIMO.Latex.Pdf.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-markdown-html",
+      "project": "../OfficeIMO.Markdown.Html/OfficeIMO.Markdown.Html.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-markdown-pdf",
+      "project": "../OfficeIMO.Markdown.Pdf/OfficeIMO.Markdown.Pdf.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-rtf-markdown",
+      "project": "../OfficeIMO.Rtf.Markdown/OfficeIMO.Rtf.Markdown.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-markdown-renderer",
+      "project": "../OfficeIMO.MarkdownRenderer/OfficeIMO.MarkdownRenderer.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-markdown-renderer-intelligence-x",
+      "project": "../OfficeIMO.MarkdownRenderer.IntelligenceX/OfficeIMO.MarkdownRenderer.IntelligenceX.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-markdown-renderer-wpf",
+      "project": "../OfficeIMO.MarkdownRenderer.Wpf/OfficeIMO.MarkdownRenderer.Wpf.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-open-document-odp-pdf",
+      "project": "../OfficeIMO.OpenDocument.Odp.Pdf/OfficeIMO.OpenDocument.Odp.Pdf.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-open-document-ods-pdf",
+      "project": "../OfficeIMO.OpenDocument.Ods.Pdf/OfficeIMO.OpenDocument.Ods.Pdf.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-open-document-odt-pdf",
+      "project": "../OfficeIMO.OpenDocument.Odt.Pdf/OfficeIMO.OpenDocument.Odt.Pdf.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-one-note-html",
+      "project": "../OfficeIMO.OneNote.Html/OfficeIMO.OneNote.Html.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-one-note-markdown",
+      "project": "../OfficeIMO.OneNote.Markdown/OfficeIMO.OneNote.Markdown.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-one-note-pdf",
+      "project": "../OfficeIMO.OneNote.Pdf/OfficeIMO.OneNote.Pdf.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-project",
+      "project": "../OfficeIMO.Project/OfficeIMO.Project.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-opml",
+      "project": "../OfficeIMO.Opml/OfficeIMO.Opml.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-provenance-c2pa",
+      "project": "../OfficeIMO.Provenance.C2pa/OfficeIMO.Provenance.C2pa.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-security",
+      "project": "../OfficeIMO.Security/OfficeIMO.Security.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-power-point-iwork",
+      "project": "../OfficeIMO.PowerPoint.IWork/OfficeIMO.PowerPoint.IWork.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-power-point-google-slides",
+      "project": "../OfficeIMO.PowerPoint.GoogleSlides/OfficeIMO.PowerPoint.GoogleSlides.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-power-point-open-document",
+      "project": "../OfficeIMO.PowerPoint.OpenDocument/OfficeIMO.PowerPoint.OpenDocument.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-power-point-html",
+      "project": "../OfficeIMO.PowerPoint.Html/OfficeIMO.PowerPoint.Html.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-power-point-pdf",
+      "project": "../OfficeIMO.PowerPoint.Pdf/OfficeIMO.PowerPoint.Pdf.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-all",
+      "project": "../OfficeIMO.Reader.All/OfficeIMO.Reader.All.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-ascii-doc",
+      "project": "../OfficeIMO.Reader.AsciiDoc/OfficeIMO.Reader.AsciiDoc.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-csv",
+      "project": "../OfficeIMO.Reader.Csv/OfficeIMO.Reader.Csv.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-doc-book",
+      "project": "../OfficeIMO.Reader.DocBook/OfficeIMO.Reader.DocBook.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-email",
+      "project": "../OfficeIMO.Reader.Email/OfficeIMO.Reader.Email.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-excel",
+      "project": "../OfficeIMO.Reader.Excel/OfficeIMO.Reader.Excel.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-epub",
+      "project": "../OfficeIMO.Reader.Epub/OfficeIMO.Reader.Epub.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-html",
+      "project": "../OfficeIMO.Reader.Html/OfficeIMO.Reader.Html.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-image",
+      "project": "../OfficeIMO.Reader.Image/OfficeIMO.Reader.Image.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-iwork",
+      "project": "../OfficeIMO.Reader.IWork/OfficeIMO.Reader.IWork.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-json",
+      "project": "../OfficeIMO.Reader.Json/OfficeIMO.Reader.Json.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-latex",
+      "project": "../OfficeIMO.Reader.Latex/OfficeIMO.Reader.Latex.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-markdown",
+      "project": "../OfficeIMO.Reader.Markdown/OfficeIMO.Reader.Markdown.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-notebook",
+      "project": "../OfficeIMO.Reader.Notebook/OfficeIMO.Reader.Notebook.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-open-document",
+      "project": "../OfficeIMO.Reader.OpenDocument/OfficeIMO.Reader.OpenDocument.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-one-note",
+      "project": "../OfficeIMO.Reader.OneNote/OfficeIMO.Reader.OneNote.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-opml",
+      "project": "../OfficeIMO.Reader.Opml/OfficeIMO.Reader.Opml.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-pdf",
+      "project": "../OfficeIMO.Reader.Pdf/OfficeIMO.Reader.Pdf.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-power-point",
+      "project": "../OfficeIMO.Reader.PowerPoint/OfficeIMO.Reader.PowerPoint.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-rtf",
+      "project": "../OfficeIMO.Reader.Rtf/OfficeIMO.Reader.Rtf.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-subtitles",
+      "project": "../OfficeIMO.Reader.Subtitles/OfficeIMO.Reader.Subtitles.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-visio",
+      "project": "../OfficeIMO.Reader.Visio/OfficeIMO.Reader.Visio.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-web",
+      "project": "../OfficeIMO.Reader.Web/OfficeIMO.Reader.Web.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-word",
+      "project": "../OfficeIMO.Reader.Word/OfficeIMO.Reader.Word.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-xml",
+      "project": "../OfficeIMO.Reader.Xml/OfficeIMO.Reader.Xml.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-yaml",
+      "project": "../OfficeIMO.Reader.Yaml/OfficeIMO.Reader.Yaml.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-reader-zip",
+      "project": "../OfficeIMO.Reader.Zip/OfficeIMO.Reader.Zip.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-rtf",
+      "project": "../OfficeIMO.Rtf/OfficeIMO.Rtf.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-rtf-pdf",
+      "project": "../OfficeIMO.Rtf.Pdf/OfficeIMO.Rtf.Pdf.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-visio-pdf",
+      "project": "../OfficeIMO.Visio.Pdf/OfficeIMO.Visio.Pdf.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-word-iwork",
+      "project": "../OfficeIMO.Word.IWork/OfficeIMO.Word.IWork.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-word-open-document",
+      "project": "../OfficeIMO.Word.OpenDocument/OfficeIMO.Word.OpenDocument.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-word-google-docs",
+      "project": "../OfficeIMO.Word.GoogleDocs/OfficeIMO.Word.GoogleDocs.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-word-html",
+      "project": "../OfficeIMO.Word.Html/OfficeIMO.Word.Html.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-word-markdown",
+      "project": "../OfficeIMO.Word.Markdown/OfficeIMO.Word.Markdown.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-word-rtf",
+      "project": "../OfficeIMO.Word.Rtf/OfficeIMO.Word.Rtf.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-workflows",
+      "project": "../OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-api-zip",
+      "project": "../OfficeIMO.Zip/OfficeIMO.Zip.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
       "task": "apidocs",
       "id": "build-apidocs-word",
-      "dependsOn": ["build-word", "build-site"],
+      "dependsOn": [
+        "build-word",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.Word/bin/Release/net8.0/OfficeIMO.Word.xml",
       "assembly": "../OfficeIMO.Word/bin/Release/net8.0/OfficeIMO.Word.dll",
       "out": "./_site/api/word",
       "title": "OfficeIMO.Word API Reference",
       "baseUrl": "/api/word",
+      "docsHome": "/docs/word/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -702,21 +1509,30 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Word",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "quickStartTypes": "WordDocument,WordParagraph,WordTable,WordSection",
+      "packageId": "OfficeIMO.Word",
+      "relatedContentManifest": "./data/apidocs/word-guides.json"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-excel",
-      "dependsOn": ["build-excel", "build-site"],
+      "dependsOn": [
+        "build-excel",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.Excel/bin/Release/net8.0/OfficeIMO.Excel.xml",
       "assembly": "../OfficeIMO.Excel/bin/Release/net8.0/OfficeIMO.Excel.dll",
       "out": "./_site/api/excel",
       "title": "OfficeIMO.Excel API Reference",
       "baseUrl": "/api/excel",
+      "docsHome": "/docs/excel/",
       "format": "both",
       "legacyAliasMode": "omit",
-      "suppressWarnings": ["PFWEB.APIDOCS.MEMBER.SIGNATURES"],
+      "suppressWarnings": [
+        "PFWEB.APIDOCS.MEMBER.SIGNATURES"
+      ],
       "template": "docs",
       "headerHtml": "./_site/_powerforge/fragments/documentation-shell.html",
       "templateDocsIndex": "./themes/officeimo/layouts/api-reference.html",
@@ -727,18 +1543,25 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Excel",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "quickStartTypes": "ExcelDocument,ExcelSheet",
+      "packageId": "OfficeIMO.Excel",
+      "relatedContentManifest": "./data/apidocs/excel-guides.json"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-markdown",
-      "dependsOn": ["build-markdown", "build-site"],
+      "dependsOn": [
+        "build-markdown",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.Markdown/bin/Release/net8.0/OfficeIMO.Markdown.xml",
       "assembly": "../OfficeIMO.Markdown/bin/Release/net8.0/OfficeIMO.Markdown.dll",
       "out": "./_site/api/markdown",
       "title": "OfficeIMO.Markdown API Reference",
       "baseUrl": "/api/markdown",
+      "docsHome": "/docs/markdown/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -751,18 +1574,25 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Markdown",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "quickStartTypes": "MarkdownDoc,MarkdownNativeDocument",
+      "packageId": "OfficeIMO.Markdown",
+      "relatedContentManifest": "./data/apidocs/markdown-guides.json"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-powerpoint",
-      "dependsOn": ["build-powerpoint", "build-site"],
+      "dependsOn": [
+        "build-powerpoint",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.PowerPoint/bin/Release/net8.0/OfficeIMO.PowerPoint.xml",
       "assembly": "../OfficeIMO.PowerPoint/bin/Release/net8.0/OfficeIMO.PowerPoint.dll",
       "out": "./_site/api/powerpoint",
       "title": "OfficeIMO.PowerPoint API Reference",
       "baseUrl": "/api/powerpoint",
+      "docsHome": "/docs/powerpoint/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -775,18 +1605,25 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.PowerPoint",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "quickStartTypes": "PowerPointPresentation",
+      "packageId": "OfficeIMO.PowerPoint",
+      "relatedContentManifest": "./data/apidocs/powerpoint-guides.json"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-csv",
-      "dependsOn": ["build-csv", "build-site"],
+      "dependsOn": [
+        "build-csv",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.CSV/bin/Release/net8.0/OfficeIMO.CSV.xml",
       "assembly": "../OfficeIMO.CSV/bin/Release/net8.0/OfficeIMO.CSV.dll",
       "out": "./_site/api/csv",
       "title": "OfficeIMO.CSV API Reference",
       "baseUrl": "/api/csv",
+      "docsHome": "/docs/csv/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -799,18 +1636,23 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.CSV",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "packageId": "OfficeIMO.CSV"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-visio",
-      "dependsOn": ["build-visio", "build-site"],
+      "dependsOn": [
+        "build-visio",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.Visio/bin/Release/net8.0/OfficeIMO.Visio.xml",
       "assembly": "../OfficeIMO.Visio/bin/Release/net8.0/OfficeIMO.Visio.dll",
       "out": "./_site/api/visio",
       "title": "OfficeIMO.Visio API Reference",
       "baseUrl": "/api/visio",
+      "docsHome": "/docs/visio/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -823,18 +1665,23 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Visio",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "packageId": "OfficeIMO.Visio"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-pdf",
-      "dependsOn": ["build-pdf", "build-site"],
+      "dependsOn": [
+        "build-pdf",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.Pdf/bin/Release/net8.0/OfficeIMO.Pdf.xml",
       "assembly": "../OfficeIMO.Pdf/bin/Release/net8.0/OfficeIMO.Pdf.dll",
       "out": "./_site/api/pdf",
       "title": "OfficeIMO.Pdf API Reference",
       "baseUrl": "/api/pdf",
+      "docsHome": "/docs/pdf/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -847,18 +1694,25 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Pdf",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "quickStartTypes": "PdfDocument",
+      "packageId": "OfficeIMO.Pdf",
+      "relatedContentManifest": "./data/apidocs/pdf-guides.json"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-html",
-      "dependsOn": ["build-html", "build-site"],
+      "dependsOn": [
+        "build-html",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.Html/bin/Release/net8.0/OfficeIMO.Html.xml",
       "assembly": "../OfficeIMO.Html/bin/Release/net8.0/OfficeIMO.Html.dll",
       "out": "./_site/api/html",
       "title": "OfficeIMO.Html API Reference",
       "baseUrl": "/api/html",
+      "docsHome": "/docs/html/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -871,12 +1725,16 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Html",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "packageId": "OfficeIMO.Html"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-html-rtf",
-      "dependsOn": ["build-html-rtf", "build-site"],
+      "dependsOn": [
+        "build-html-rtf",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.Html.Rtf/bin/Release/net8.0/OfficeIMO.Html.Rtf.xml",
       "assembly": "../OfficeIMO.Html.Rtf/bin/Release/net8.0/OfficeIMO.Html.Rtf.dll",
@@ -896,12 +1754,16 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Html",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "packageId": "OfficeIMO.Html.Rtf"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-mhtml",
-      "dependsOn": ["build-mhtml", "build-site"],
+      "dependsOn": [
+        "build-mhtml",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.Mhtml/bin/Release/net8.0/OfficeIMO.Mhtml.xml",
       "assembly": "../OfficeIMO.Mhtml/bin/Release/net8.0/OfficeIMO.Mhtml.dll",
@@ -921,12 +1783,16 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Mhtml",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "packageId": "OfficeIMO.Mhtml"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-email-image",
-      "dependsOn": ["build-email-image", "build-site"],
+      "dependsOn": [
+        "build-email-image",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.Email.Image/bin/Release/net8.0/OfficeIMO.Email.Image.xml",
       "assembly": "../OfficeIMO.Email.Image/bin/Release/net8.0/OfficeIMO.Email.Image.dll",
@@ -946,12 +1812,16 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Email",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "packageId": "OfficeIMO.Email.Image"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-mhtml-pdf",
-      "dependsOn": ["build-mhtml-pdf", "build-site"],
+      "dependsOn": [
+        "build-mhtml-pdf",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.Mhtml.Pdf/bin/Release/net8.0/OfficeIMO.Mhtml.Pdf.xml",
       "assembly": "../OfficeIMO.Mhtml.Pdf/bin/Release/net8.0/OfficeIMO.Mhtml.Pdf.dll",
@@ -971,18 +1841,23 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Mhtml",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "packageId": "OfficeIMO.Mhtml.Pdf"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-email",
-      "dependsOn": ["build-email", "build-site"],
+      "dependsOn": [
+        "build-email",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.Email/bin/Release/net8.0/OfficeIMO.Email.xml",
       "assembly": "../OfficeIMO.Email/bin/Release/net8.0/OfficeIMO.Email.dll",
       "out": "./_site/api/email",
       "title": "OfficeIMO.Email API Reference",
       "baseUrl": "/api/email",
+      "docsHome": "/docs/email/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -995,18 +1870,23 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Email",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "packageId": "OfficeIMO.Email"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-onenote",
-      "dependsOn": ["build-onenote", "build-site"],
+      "dependsOn": [
+        "build-onenote",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.OneNote/bin/Release/net8.0/OfficeIMO.OneNote.xml",
       "assembly": "../OfficeIMO.OneNote/bin/Release/net8.0/OfficeIMO.OneNote.dll",
       "out": "./_site/api/onenote",
       "title": "OfficeIMO.OneNote API Reference",
       "baseUrl": "/api/onenote",
+      "docsHome": "/docs/onenote/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -1019,18 +1899,23 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.OneNote",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "packageId": "OfficeIMO.OneNote"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-open-document",
-      "dependsOn": ["build-open-document", "build-site"],
+      "dependsOn": [
+        "build-open-document",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.OpenDocument/bin/Release/net8.0/OfficeIMO.OpenDocument.xml",
       "assembly": "../OfficeIMO.OpenDocument/bin/Release/net8.0/OfficeIMO.OpenDocument.dll",
       "out": "./_site/api/open-document",
       "title": "OfficeIMO.OpenDocument API Reference",
       "baseUrl": "/api/open-document",
+      "docsHome": "/docs/open-document/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -1043,18 +1928,23 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.OpenDocument",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "packageId": "OfficeIMO.OpenDocument"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-google-workspace",
-      "dependsOn": ["build-google-workspace", "build-site"],
+      "dependsOn": [
+        "build-google-workspace",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.GoogleWorkspace/bin/Release/net8.0/OfficeIMO.GoogleWorkspace.xml",
       "assembly": "../OfficeIMO.GoogleWorkspace/bin/Release/net8.0/OfficeIMO.GoogleWorkspace.dll",
       "out": "./_site/api/google-workspace",
       "title": "OfficeIMO.GoogleWorkspace API Reference",
       "baseUrl": "/api/google-workspace",
+      "docsHome": "/docs/google-workspace/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -1067,12 +1957,16 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.GoogleWorkspace",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "packageId": "OfficeIMO.GoogleWorkspace"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-google-workspace-drive",
-      "dependsOn": ["build-google-workspace-drive", "build-site"],
+      "dependsOn": [
+        "build-google-workspace-drive",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.GoogleWorkspace.Drive/bin/Release/net8.0/OfficeIMO.GoogleWorkspace.Drive.xml",
       "assembly": "../OfficeIMO.GoogleWorkspace.Drive/bin/Release/net8.0/OfficeIMO.GoogleWorkspace.Drive.dll",
@@ -1092,12 +1986,16 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.GoogleWorkspace.Drive",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "packageId": "OfficeIMO.GoogleWorkspace.Drive"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-google-workspace-auth",
-      "dependsOn": ["build-google-workspace-auth", "build-site"],
+      "dependsOn": [
+        "build-google-workspace-auth",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.GoogleWorkspace.Auth.GoogleApis/bin/Release/net8.0/OfficeIMO.GoogleWorkspace.Auth.GoogleApis.xml",
       "assembly": "../OfficeIMO.GoogleWorkspace.Auth.GoogleApis/bin/Release/net8.0/OfficeIMO.GoogleWorkspace.Auth.GoogleApis.dll",
@@ -1117,12 +2015,16 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.GoogleWorkspace.Auth.GoogleApis",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "packageId": "OfficeIMO.GoogleWorkspace.Auth.GoogleApis"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-google-workspace-sync",
-      "dependsOn": ["build-google-workspace-sync", "build-site"],
+      "dependsOn": [
+        "build-google-workspace-sync",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.GoogleWorkspace.Sync/bin/Release/net8.0/OfficeIMO.GoogleWorkspace.Sync.xml",
       "assembly": "../OfficeIMO.GoogleWorkspace.Sync/bin/Release/net8.0/OfficeIMO.GoogleWorkspace.Sync.dll",
@@ -1142,18 +2044,23 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.GoogleWorkspace.Sync",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "packageId": "OfficeIMO.GoogleWorkspace.Sync"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-reader",
-      "dependsOn": ["build-reader", "build-site"],
+      "dependsOn": [
+        "build-reader",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.Reader.Core/bin/Release/net8.0/OfficeIMO.Reader.Core.xml",
       "assembly": "../OfficeIMO.Reader.Core/bin/Release/net8.0/OfficeIMO.Reader.Core.dll",
       "out": "./_site/api/reader",
       "title": "OfficeIMO.Reader.Core API Reference",
       "baseUrl": "/api/reader",
+      "docsHome": "/docs/reader/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -1166,12 +2073,16 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Reader",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "packageId": "OfficeIMO.Reader.Core"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-ocr",
-      "dependsOn": ["build-ocr", "build-site"],
+      "dependsOn": [
+        "build-ocr",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.Ocr/bin/Release/net8.0/OfficeIMO.Ocr.xml",
       "assembly": "../OfficeIMO.Ocr/bin/Release/net8.0/OfficeIMO.Ocr.dll",
@@ -1191,12 +2102,16 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Ocr",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "packageId": "OfficeIMO.Ocr"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-ocr-process",
-      "dependsOn": ["build-ocr-process", "build-site"],
+      "dependsOn": [
+        "build-ocr-process",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.Ocr.Process/bin/Release/net8.0/OfficeIMO.Ocr.Process.xml",
       "assembly": "../OfficeIMO.Ocr.Process/bin/Release/net8.0/OfficeIMO.Ocr.Process.dll",
@@ -1216,12 +2131,16 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Ocr.Process",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "packageId": "OfficeIMO.Ocr.Process"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-ocr-tesseract",
-      "dependsOn": ["build-ocr-tesseract", "build-site"],
+      "dependsOn": [
+        "build-ocr-tesseract",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.Ocr.Tesseract/bin/Release/net8.0/OfficeIMO.Ocr.Tesseract.xml",
       "assembly": "../OfficeIMO.Ocr.Tesseract/bin/Release/net8.0/OfficeIMO.Ocr.Tesseract.dll",
@@ -1241,12 +2160,16 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Ocr.Tesseract",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "packageId": "OfficeIMO.Ocr.Tesseract"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-reader-ocr",
-      "dependsOn": ["build-reader-ocr", "build-site"],
+      "dependsOn": [
+        "build-reader-ocr",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.Reader.Ocr/bin/Release/net8.0/OfficeIMO.Reader.Ocr.xml",
       "assembly": "../OfficeIMO.Reader.Ocr/bin/Release/net8.0/OfficeIMO.Reader.Ocr.dll",
@@ -1266,12 +2189,16 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Reader",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "packageId": "OfficeIMO.Reader.Ocr"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-pdf-ocr",
-      "dependsOn": ["build-pdf-ocr", "build-site"],
+      "dependsOn": [
+        "build-pdf-ocr",
+        "build-site"
+      ],
       "config": "./site.json",
       "xml": "../OfficeIMO.Pdf.Ocr/bin/Release/net8.0/OfficeIMO.Pdf.Ocr.xml",
       "assembly": "../OfficeIMO.Pdf.Ocr/bin/Release/net8.0/OfficeIMO.Pdf.Ocr.dll",
@@ -1291,12 +2218,16 @@
       "sourceRoot": "..",
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Pdf.Ocr",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "packageId": "OfficeIMO.Pdf.Ocr"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-powershell",
-      "dependsOn": ["build-site", "sync-pswriteoffice-content"],
+      "dependsOn": [
+        "build-site",
+        "sync-pswriteoffice-content"
+      ],
       "config": "./site.json",
       "type": "PowerShell",
       "helpPath": "./data/apidocs/powershell/PSWriteOffice-Help.xml",
@@ -1317,7 +2248,1189 @@
       "nav": "./site.json",
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
-      "injectCriticalCss": true
+      "injectCriticalCss": true,
+      "packageId": "PSWriteOffice"
+    },
+    {
+      "task": "apidocs",
+      "config": "./site.json",
+      "format": "both",
+      "legacyAliasMode": "omit",
+      "template": "docs",
+      "headerHtml": "./_site/_powerforge/fragments/documentation-shell.html",
+      "templateDocsIndex": "./themes/officeimo/layouts/api-reference.html",
+      "templateDocsType": "./themes/officeimo/layouts/api-reference.html",
+      "nav": "./site.json",
+      "navContextPath": "/",
+      "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
+      "sourceRoot": "..",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "injectCriticalCss": true,
+      "id": "build-apidocs-adapters",
+      "dependsOn": [
+        "build-site",
+        "build-api-adf",
+        "build-api-ai",
+        "build-api-ai-intelligence-x",
+        "build-api-ascii-doc",
+        "build-api-ascii-doc-markdown",
+        "build-api-ascii-doc-pdf",
+        "build-api-bibliography",
+        "build-api-chart-forge-x",
+        "build-api-confluence",
+        "build-api-core",
+        "build-api-data-arrow",
+        "build-api-data-generators",
+        "build-api-doc-book",
+        "build-api-drawing-code-glyph-x",
+        "build-api-drawing-harf-buzz",
+        "build-api-email-html",
+        "build-api-epub",
+        "build-api-epub-image",
+        "build-api-excel-iwork",
+        "build-api-excel-csv",
+        "build-api-excel-open-document",
+        "build-api-excel-google-sheets",
+        "build-api-excel-html",
+        "build-excel-pdf",
+        "build-api-html-core",
+        "build-api-html-angle-sharp",
+        "build-api-html-pdf",
+        "build-api-html-pdf-browser",
+        "build-api-iwork",
+        "build-api-invoicing",
+        "build-api-invoicing-validation",
+        "build-api-invoicing-ksef",
+        "build-api-invoicing-pdf",
+        "build-api-latex",
+        "build-api-latex-markdown",
+        "build-api-latex-pdf",
+        "build-api-markdown-html",
+        "build-api-markdown-pdf",
+        "build-api-rtf-markdown",
+        "build-api-markdown-renderer",
+        "build-api-markdown-renderer-intelligence-x",
+        "build-api-markdown-renderer-wpf",
+        "build-api-open-document-odp-pdf",
+        "build-api-open-document-ods-pdf",
+        "build-api-open-document-odt-pdf",
+        "build-api-one-note-html",
+        "build-api-one-note-markdown",
+        "build-api-one-note-pdf",
+        "build-api-project",
+        "build-api-opml",
+        "build-api-provenance-c2pa",
+        "build-api-security",
+        "build-api-power-point-iwork",
+        "build-api-power-point-google-slides",
+        "build-api-power-point-open-document",
+        "build-api-power-point-html",
+        "build-api-power-point-pdf",
+        "build-api-reader-all",
+        "build-api-reader-ascii-doc",
+        "build-api-reader-csv",
+        "build-api-reader-doc-book",
+        "build-api-reader-email",
+        "build-api-reader-excel",
+        "build-api-reader-epub",
+        "build-api-reader-html",
+        "build-api-reader-image",
+        "build-api-reader-iwork",
+        "build-api-reader-json",
+        "build-api-reader-latex",
+        "build-api-reader-markdown",
+        "build-api-reader-notebook",
+        "build-api-reader-open-document",
+        "build-api-reader-one-note",
+        "build-api-reader-opml",
+        "build-api-reader-pdf",
+        "build-api-reader-power-point",
+        "build-api-reader-rtf",
+        "build-api-reader-subtitles",
+        "build-api-reader-visio",
+        "build-api-reader-web",
+        "build-api-reader-word",
+        "build-api-reader-xml",
+        "build-api-reader-yaml",
+        "build-api-reader-zip",
+        "build-api-rtf",
+        "build-api-rtf-pdf",
+        "build-api-visio-pdf",
+        "build-api-word-iwork",
+        "build-api-word-open-document",
+        "build-api-word-google-docs",
+        "build-api-word-html",
+        "build-api-word-markdown",
+        "build-word-pdf",
+        "build-api-word-rtf",
+        "build-api-workflows",
+        "build-api-zip"
+      ],
+      "inputs": [
+        {
+          "id": "adf",
+          "xml": "../OfficeIMO.Adf/bin/Release/net8.0/OfficeIMO.Adf.xml",
+          "assembly": "../OfficeIMO.Adf/bin/Release/net8.0/OfficeIMO.Adf.dll",
+          "out": "./_site/api/adf",
+          "title": "OfficeIMO.Adf API Reference",
+          "baseUrl": "/api/adf",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Adf"
+        },
+        {
+          "id": "ai",
+          "xml": "../OfficeIMO.AI/bin/Release/net10.0/OfficeIMO.AI.xml",
+          "assembly": "../OfficeIMO.AI/bin/Release/net10.0/OfficeIMO.AI.dll",
+          "out": "./_site/api/ai",
+          "title": "OfficeIMO.AI API Reference",
+          "baseUrl": "/api/ai",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.AI"
+        },
+        {
+          "id": "ai-intelligence-x",
+          "xml": "../OfficeIMO.AI.IntelligenceX/bin/Release/net10.0/OfficeIMO.AI.IntelligenceX.xml",
+          "assembly": "../OfficeIMO.AI.IntelligenceX/bin/Release/net10.0/OfficeIMO.AI.IntelligenceX.dll",
+          "out": "./_site/api/ai-intelligence-x",
+          "title": "OfficeIMO.AI.IntelligenceX API Reference",
+          "baseUrl": "/api/ai-intelligence-x",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.AI.IntelligenceX"
+        },
+        {
+          "id": "ascii-doc",
+          "xml": "../OfficeIMO.AsciiDoc/bin/Release/net8.0/OfficeIMO.AsciiDoc.xml",
+          "assembly": "../OfficeIMO.AsciiDoc/bin/Release/net8.0/OfficeIMO.AsciiDoc.dll",
+          "out": "./_site/api/ascii-doc",
+          "title": "OfficeIMO.AsciiDoc API Reference",
+          "baseUrl": "/api/ascii-doc",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.AsciiDoc"
+        },
+        {
+          "id": "ascii-doc-markdown",
+          "xml": "../OfficeIMO.AsciiDoc.Markdown/bin/Release/net8.0/OfficeIMO.AsciiDoc.Markdown.xml",
+          "assembly": "../OfficeIMO.AsciiDoc.Markdown/bin/Release/net8.0/OfficeIMO.AsciiDoc.Markdown.dll",
+          "out": "./_site/api/ascii-doc-markdown",
+          "title": "OfficeIMO.AsciiDoc.Markdown API Reference",
+          "baseUrl": "/api/ascii-doc-markdown",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.AsciiDoc.Markdown"
+        },
+        {
+          "id": "ascii-doc-pdf",
+          "xml": "../OfficeIMO.AsciiDoc.Pdf/bin/Release/net8.0/OfficeIMO.AsciiDoc.Pdf.xml",
+          "assembly": "../OfficeIMO.AsciiDoc.Pdf/bin/Release/net8.0/OfficeIMO.AsciiDoc.Pdf.dll",
+          "out": "./_site/api/ascii-doc-pdf",
+          "title": "OfficeIMO.AsciiDoc.Pdf API Reference",
+          "baseUrl": "/api/ascii-doc-pdf",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.AsciiDoc.Pdf"
+        },
+        {
+          "id": "bibliography",
+          "xml": "../OfficeIMO.Bibliography/bin/Release/net8.0/OfficeIMO.Bibliography.xml",
+          "assembly": "../OfficeIMO.Bibliography/bin/Release/net8.0/OfficeIMO.Bibliography.dll",
+          "out": "./_site/api/bibliography",
+          "title": "OfficeIMO.Bibliography API Reference",
+          "baseUrl": "/api/bibliography",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Bibliography"
+        },
+        {
+          "id": "chart-forge-x",
+          "xml": "../OfficeIMO.ChartForgeX/bin/Release/net8.0/OfficeIMO.ChartForgeX.xml",
+          "assembly": "../OfficeIMO.ChartForgeX/bin/Release/net8.0/OfficeIMO.ChartForgeX.dll",
+          "out": "./_site/api/chart-forge-x",
+          "title": "OfficeIMO.ChartForgeX API Reference",
+          "baseUrl": "/api/chart-forge-x",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.ChartForgeX"
+        },
+        {
+          "id": "confluence",
+          "xml": "../OfficeIMO.Confluence/bin/Release/net8.0/OfficeIMO.Confluence.xml",
+          "assembly": "../OfficeIMO.Confluence/bin/Release/net8.0/OfficeIMO.Confluence.dll",
+          "out": "./_site/api/confluence",
+          "title": "OfficeIMO.Confluence API Reference",
+          "baseUrl": "/api/confluence",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Confluence"
+        },
+        {
+          "id": "core",
+          "xml": "../OfficeIMO.Core/bin/Release/net8.0/OfficeIMO.Core.xml",
+          "assembly": "../OfficeIMO.Core/bin/Release/net8.0/OfficeIMO.Core.dll",
+          "out": "./_site/api/core",
+          "title": "OfficeIMO.Core API Reference",
+          "baseUrl": "/api/core",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Core"
+        },
+        {
+          "id": "data-arrow",
+          "xml": "../OfficeIMO.Data.Arrow/bin/Release/net8.0/OfficeIMO.Data.Arrow.xml",
+          "assembly": "../OfficeIMO.Data.Arrow/bin/Release/net8.0/OfficeIMO.Data.Arrow.dll",
+          "out": "./_site/api/data-arrow",
+          "title": "OfficeIMO.Data.Arrow API Reference",
+          "baseUrl": "/api/data-arrow",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Data.Arrow"
+        },
+        {
+          "id": "data-generators",
+          "xml": "../OfficeIMO.Data.Generators/bin/Release/netstandard2.0/OfficeIMO.Data.Generators.xml",
+          "assembly": "../OfficeIMO.Data.Generators/bin/Release/netstandard2.0/OfficeIMO.Data.Generators.dll",
+          "out": "./_site/api/data-generators",
+          "title": "OfficeIMO.Data.Generators API Reference",
+          "baseUrl": "/api/data-generators",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Data.Generators"
+        },
+        {
+          "id": "doc-book",
+          "xml": "../OfficeIMO.DocBook/bin/Release/net8.0/OfficeIMO.DocBook.xml",
+          "assembly": "../OfficeIMO.DocBook/bin/Release/net8.0/OfficeIMO.DocBook.dll",
+          "out": "./_site/api/doc-book",
+          "title": "OfficeIMO.DocBook API Reference",
+          "baseUrl": "/api/doc-book",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.DocBook"
+        },
+        {
+          "id": "drawing-code-glyph-x",
+          "xml": "../OfficeIMO.Drawing.CodeGlyphX/bin/Release/net8.0/OfficeIMO.Drawing.CodeGlyphX.xml",
+          "assembly": "../OfficeIMO.Drawing.CodeGlyphX/bin/Release/net8.0/OfficeIMO.Drawing.CodeGlyphX.dll",
+          "out": "./_site/api/drawing-code-glyph-x",
+          "title": "OfficeIMO.Drawing.CodeGlyphX API Reference",
+          "baseUrl": "/api/drawing-code-glyph-x",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Drawing.CodeGlyphX"
+        },
+        {
+          "id": "drawing-harf-buzz",
+          "xml": "../OfficeIMO.Drawing.HarfBuzz/bin/Release/net8.0/OfficeIMO.Drawing.HarfBuzz.xml",
+          "assembly": "../OfficeIMO.Drawing.HarfBuzz/bin/Release/net8.0/OfficeIMO.Drawing.HarfBuzz.dll",
+          "out": "./_site/api/drawing-harf-buzz",
+          "title": "OfficeIMO.Drawing.HarfBuzz API Reference",
+          "baseUrl": "/api/drawing-harf-buzz",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Drawing.HarfBuzz"
+        },
+        {
+          "id": "email-html",
+          "xml": "../OfficeIMO.Email.Html/bin/Release/net8.0/OfficeIMO.Email.Html.xml",
+          "assembly": "../OfficeIMO.Email.Html/bin/Release/net8.0/OfficeIMO.Email.Html.dll",
+          "out": "./_site/api/email-html",
+          "title": "OfficeIMO.Email.Html API Reference",
+          "baseUrl": "/api/email-html",
+          "docsHome": "/docs/email/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Email.Html"
+        },
+        {
+          "id": "epub",
+          "xml": "../OfficeIMO.Epub/bin/Release/net8.0/OfficeIMO.Epub.xml",
+          "assembly": "../OfficeIMO.Epub/bin/Release/net8.0/OfficeIMO.Epub.dll",
+          "out": "./_site/api/epub",
+          "title": "OfficeIMO.Epub API Reference",
+          "baseUrl": "/api/epub",
+          "docsHome": "/docs/epub/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Epub"
+        },
+        {
+          "id": "epub-image",
+          "xml": "../OfficeIMO.Epub.Image/bin/Release/net8.0/OfficeIMO.Epub.Image.xml",
+          "assembly": "../OfficeIMO.Epub.Image/bin/Release/net8.0/OfficeIMO.Epub.Image.dll",
+          "out": "./_site/api/epub-image",
+          "title": "OfficeIMO.Epub.Image API Reference",
+          "baseUrl": "/api/epub-image",
+          "docsHome": "/docs/epub/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Epub.Image"
+        },
+        {
+          "id": "excel-iwork",
+          "xml": "../OfficeIMO.Excel.IWork/bin/Release/net8.0/OfficeIMO.Excel.IWork.xml",
+          "assembly": "../OfficeIMO.Excel.IWork/bin/Release/net8.0/OfficeIMO.Excel.IWork.dll",
+          "out": "./_site/api/excel-iwork",
+          "title": "OfficeIMO.Excel.IWork API Reference",
+          "baseUrl": "/api/excel-iwork",
+          "docsHome": "/docs/iwork/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Excel.IWork"
+        },
+        {
+          "id": "excel-csv",
+          "xml": "../OfficeIMO.Excel.Csv/bin/Release/net8.0/OfficeIMO.Excel.Csv.xml",
+          "assembly": "../OfficeIMO.Excel.Csv/bin/Release/net8.0/OfficeIMO.Excel.Csv.dll",
+          "out": "./_site/api/excel-csv",
+          "title": "OfficeIMO.Excel.Csv API Reference",
+          "baseUrl": "/api/excel-csv",
+          "docsHome": "/docs/excel/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Excel.Csv"
+        },
+        {
+          "id": "excel-open-document",
+          "xml": "../OfficeIMO.Excel.OpenDocument/bin/Release/net8.0/OfficeIMO.Excel.OpenDocument.xml",
+          "assembly": "../OfficeIMO.Excel.OpenDocument/bin/Release/net8.0/OfficeIMO.Excel.OpenDocument.dll",
+          "out": "./_site/api/excel-open-document",
+          "title": "OfficeIMO.Excel.OpenDocument API Reference",
+          "baseUrl": "/api/excel-open-document",
+          "docsHome": "/docs/excel/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Excel.OpenDocument"
+        },
+        {
+          "id": "excel-google-sheets",
+          "xml": "../OfficeIMO.Excel.GoogleSheets/bin/Release/net8.0/OfficeIMO.Excel.GoogleSheets.xml",
+          "assembly": "../OfficeIMO.Excel.GoogleSheets/bin/Release/net8.0/OfficeIMO.Excel.GoogleSheets.dll",
+          "out": "./_site/api/excel-google-sheets",
+          "title": "OfficeIMO.Excel.GoogleSheets API Reference",
+          "baseUrl": "/api/excel-google-sheets",
+          "docsHome": "/docs/excel/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Excel.GoogleSheets"
+        },
+        {
+          "id": "excel-html",
+          "xml": "../OfficeIMO.Excel.Html/bin/Release/net8.0/OfficeIMO.Excel.Html.xml",
+          "assembly": "../OfficeIMO.Excel.Html/bin/Release/net8.0/OfficeIMO.Excel.Html.dll",
+          "out": "./_site/api/excel-html",
+          "title": "OfficeIMO.Excel.Html API Reference",
+          "baseUrl": "/api/excel-html",
+          "docsHome": "/docs/excel/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Excel.Html"
+        },
+        {
+          "id": "excel-pdf",
+          "xml": "../OfficeIMO.Excel.Pdf/bin/Release/net8.0/OfficeIMO.Excel.Pdf.xml",
+          "assembly": "../OfficeIMO.Excel.Pdf/bin/Release/net8.0/OfficeIMO.Excel.Pdf.dll",
+          "out": "./_site/api/excel-pdf",
+          "title": "OfficeIMO.Excel.Pdf API Reference",
+          "baseUrl": "/api/excel-pdf",
+          "docsHome": "/docs/excel/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Excel.Pdf"
+        },
+        {
+          "id": "html-core",
+          "xml": "../OfficeIMO.Html.Core/bin/Release/net8.0/OfficeIMO.Html.Core.xml",
+          "assembly": "../OfficeIMO.Html.Core/bin/Release/net8.0/OfficeIMO.Html.Core.dll",
+          "out": "./_site/api/html-core",
+          "title": "OfficeIMO.Html.Core API Reference",
+          "baseUrl": "/api/html-core",
+          "docsHome": "/docs/html/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Html.Core"
+        },
+        {
+          "id": "html-angle-sharp",
+          "xml": "../OfficeIMO.Html.AngleSharp/bin/Release/net8.0/OfficeIMO.Html.AngleSharp.xml",
+          "assembly": "../OfficeIMO.Html.AngleSharp/bin/Release/net8.0/OfficeIMO.Html.AngleSharp.dll",
+          "out": "./_site/api/html-angle-sharp",
+          "title": "OfficeIMO.Html.AngleSharp API Reference",
+          "baseUrl": "/api/html-angle-sharp",
+          "docsHome": "/docs/html/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Html.AngleSharp"
+        },
+        {
+          "id": "html-pdf",
+          "xml": "../OfficeIMO.Html.Pdf/bin/Release/net8.0/OfficeIMO.Html.Pdf.xml",
+          "assembly": "../OfficeIMO.Html.Pdf/bin/Release/net8.0/OfficeIMO.Html.Pdf.dll",
+          "out": "./_site/api/html-pdf",
+          "title": "OfficeIMO.Html.Pdf API Reference",
+          "baseUrl": "/api/html-pdf",
+          "docsHome": "/docs/html/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Html.Pdf"
+        },
+        {
+          "id": "html-pdf-browser",
+          "xml": "../OfficeIMO.Html.Pdf.Browser/bin/Release/net8.0/OfficeIMO.Html.Pdf.Browser.xml",
+          "assembly": "../OfficeIMO.Html.Pdf.Browser/bin/Release/net8.0/OfficeIMO.Html.Pdf.Browser.dll",
+          "out": "./_site/api/html-pdf-browser",
+          "title": "OfficeIMO.Html.Pdf.Browser API Reference",
+          "baseUrl": "/api/html-pdf-browser",
+          "docsHome": "/docs/html/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Html.Pdf.Browser"
+        },
+        {
+          "id": "iwork",
+          "xml": "../OfficeIMO.IWork/bin/Release/net8.0/OfficeIMO.IWork.xml",
+          "assembly": "../OfficeIMO.IWork/bin/Release/net8.0/OfficeIMO.IWork.dll",
+          "out": "./_site/api/iwork",
+          "title": "OfficeIMO.IWork API Reference",
+          "baseUrl": "/api/iwork",
+          "docsHome": "/docs/iwork/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.IWork"
+        },
+        {
+          "id": "invoicing",
+          "xml": "../OfficeIMO.Invoicing/bin/Release/net8.0/OfficeIMO.Invoicing.xml",
+          "assembly": "../OfficeIMO.Invoicing/bin/Release/net8.0/OfficeIMO.Invoicing.dll",
+          "out": "./_site/api/invoicing",
+          "title": "OfficeIMO.Invoicing API Reference",
+          "baseUrl": "/api/invoicing",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Invoicing"
+        },
+        {
+          "id": "invoicing-validation",
+          "xml": "../OfficeIMO.Invoicing.Validation/bin/Release/net8.0/OfficeIMO.Invoicing.Validation.xml",
+          "assembly": "../OfficeIMO.Invoicing.Validation/bin/Release/net8.0/OfficeIMO.Invoicing.Validation.dll",
+          "out": "./_site/api/invoicing-validation",
+          "title": "OfficeIMO.Invoicing.Validation API Reference",
+          "baseUrl": "/api/invoicing-validation",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Invoicing.Validation"
+        },
+        {
+          "id": "invoicing-ksef",
+          "xml": "../OfficeIMO.Invoicing.KSeF/bin/Release/net8.0/OfficeIMO.Invoicing.KSeF.xml",
+          "assembly": "../OfficeIMO.Invoicing.KSeF/bin/Release/net8.0/OfficeIMO.Invoicing.KSeF.dll",
+          "out": "./_site/api/invoicing-ksef",
+          "title": "OfficeIMO.Invoicing.KSeF API Reference",
+          "baseUrl": "/api/invoicing-ksef",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Invoicing.KSeF"
+        },
+        {
+          "id": "invoicing-pdf",
+          "xml": "../OfficeIMO.Invoicing.Pdf/bin/Release/net8.0/OfficeIMO.Invoicing.Pdf.xml",
+          "assembly": "../OfficeIMO.Invoicing.Pdf/bin/Release/net8.0/OfficeIMO.Invoicing.Pdf.dll",
+          "out": "./_site/api/invoicing-pdf",
+          "title": "OfficeIMO.Invoicing.Pdf API Reference",
+          "baseUrl": "/api/invoicing-pdf",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Invoicing.Pdf"
+        },
+        {
+          "id": "latex",
+          "xml": "../OfficeIMO.Latex/bin/Release/net8.0/OfficeIMO.Latex.xml",
+          "assembly": "../OfficeIMO.Latex/bin/Release/net8.0/OfficeIMO.Latex.dll",
+          "out": "./_site/api/latex",
+          "title": "OfficeIMO.Latex API Reference",
+          "baseUrl": "/api/latex",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Latex"
+        },
+        {
+          "id": "latex-markdown",
+          "xml": "../OfficeIMO.Latex.Markdown/bin/Release/net8.0/OfficeIMO.Latex.Markdown.xml",
+          "assembly": "../OfficeIMO.Latex.Markdown/bin/Release/net8.0/OfficeIMO.Latex.Markdown.dll",
+          "out": "./_site/api/latex-markdown",
+          "title": "OfficeIMO.Latex.Markdown API Reference",
+          "baseUrl": "/api/latex-markdown",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Latex.Markdown"
+        },
+        {
+          "id": "latex-pdf",
+          "xml": "../OfficeIMO.Latex.Pdf/bin/Release/net8.0/OfficeIMO.Latex.Pdf.xml",
+          "assembly": "../OfficeIMO.Latex.Pdf/bin/Release/net8.0/OfficeIMO.Latex.Pdf.dll",
+          "out": "./_site/api/latex-pdf",
+          "title": "OfficeIMO.Latex.Pdf API Reference",
+          "baseUrl": "/api/latex-pdf",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Latex.Pdf"
+        },
+        {
+          "id": "markdown-html",
+          "xml": "../OfficeIMO.Markdown.Html/bin/Release/net8.0/OfficeIMO.Markdown.Html.xml",
+          "assembly": "../OfficeIMO.Markdown.Html/bin/Release/net8.0/OfficeIMO.Markdown.Html.dll",
+          "out": "./_site/api/markdown-html",
+          "title": "OfficeIMO.Markdown.Html API Reference",
+          "baseUrl": "/api/markdown-html",
+          "docsHome": "/docs/markdown/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Markdown.Html"
+        },
+        {
+          "id": "markdown-pdf",
+          "xml": "../OfficeIMO.Markdown.Pdf/bin/Release/net8.0/OfficeIMO.Markdown.Pdf.xml",
+          "assembly": "../OfficeIMO.Markdown.Pdf/bin/Release/net8.0/OfficeIMO.Markdown.Pdf.dll",
+          "out": "./_site/api/markdown-pdf",
+          "title": "OfficeIMO.Markdown.Pdf API Reference",
+          "baseUrl": "/api/markdown-pdf",
+          "docsHome": "/docs/markdown/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Markdown.Pdf"
+        },
+        {
+          "id": "rtf-markdown",
+          "xml": "../OfficeIMO.Rtf.Markdown/bin/Release/net8.0/OfficeIMO.Rtf.Markdown.xml",
+          "assembly": "../OfficeIMO.Rtf.Markdown/bin/Release/net8.0/OfficeIMO.Rtf.Markdown.dll",
+          "out": "./_site/api/rtf-markdown",
+          "title": "OfficeIMO.Rtf.Markdown API Reference",
+          "baseUrl": "/api/rtf-markdown",
+          "docsHome": "/docs/rtf/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Rtf.Markdown"
+        },
+        {
+          "id": "markdown-renderer",
+          "xml": "../OfficeIMO.MarkdownRenderer/bin/Release/net8.0/OfficeIMO.MarkdownRenderer.xml",
+          "assembly": "../OfficeIMO.MarkdownRenderer/bin/Release/net8.0/OfficeIMO.MarkdownRenderer.dll",
+          "out": "./_site/api/markdown-renderer",
+          "title": "OfficeIMO.MarkdownRenderer API Reference",
+          "baseUrl": "/api/markdown-renderer",
+          "docsHome": "/docs/markdown/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.MarkdownRenderer"
+        },
+        {
+          "id": "markdown-renderer-intelligence-x",
+          "xml": "../OfficeIMO.MarkdownRenderer.IntelligenceX/bin/Release/net8.0/OfficeIMO.MarkdownRenderer.IntelligenceX.xml",
+          "assembly": "../OfficeIMO.MarkdownRenderer.IntelligenceX/bin/Release/net8.0/OfficeIMO.MarkdownRenderer.IntelligenceX.dll",
+          "out": "./_site/api/markdown-renderer-intelligence-x",
+          "title": "OfficeIMO.MarkdownRenderer.IntelligenceX API Reference",
+          "baseUrl": "/api/markdown-renderer-intelligence-x",
+          "docsHome": "/docs/markdown/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.MarkdownRenderer.IntelligenceX"
+        },
+        {
+          "id": "markdown-renderer-wpf",
+          "xml": "../OfficeIMO.MarkdownRenderer.Wpf/bin/Release/net8.0/OfficeIMO.MarkdownRenderer.Wpf.xml",
+          "assembly": "../OfficeIMO.MarkdownRenderer.Wpf/bin/Release/net8.0/OfficeIMO.MarkdownRenderer.Wpf.dll",
+          "out": "./_site/api/markdown-renderer-wpf",
+          "title": "OfficeIMO.MarkdownRenderer.Wpf API Reference",
+          "baseUrl": "/api/markdown-renderer-wpf",
+          "docsHome": "/docs/markdown/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.MarkdownRenderer.Wpf"
+        },
+        {
+          "id": "open-document-odp-pdf",
+          "xml": "../OfficeIMO.OpenDocument.Odp.Pdf/bin/Release/net8.0/OfficeIMO.OpenDocument.Odp.Pdf.xml",
+          "assembly": "../OfficeIMO.OpenDocument.Odp.Pdf/bin/Release/net8.0/OfficeIMO.OpenDocument.Odp.Pdf.dll",
+          "out": "./_site/api/open-document-odp-pdf",
+          "title": "OfficeIMO.OpenDocument.Odp.Pdf API Reference",
+          "baseUrl": "/api/open-document-odp-pdf",
+          "docsHome": "/docs/open-document/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.OpenDocument.Odp.Pdf"
+        },
+        {
+          "id": "open-document-ods-pdf",
+          "xml": "../OfficeIMO.OpenDocument.Ods.Pdf/bin/Release/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.xml",
+          "assembly": "../OfficeIMO.OpenDocument.Ods.Pdf/bin/Release/net8.0/OfficeIMO.OpenDocument.Ods.Pdf.dll",
+          "out": "./_site/api/open-document-ods-pdf",
+          "title": "OfficeIMO.OpenDocument.Ods.Pdf API Reference",
+          "baseUrl": "/api/open-document-ods-pdf",
+          "docsHome": "/docs/open-document/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.OpenDocument.Ods.Pdf"
+        },
+        {
+          "id": "open-document-odt-pdf",
+          "xml": "../OfficeIMO.OpenDocument.Odt.Pdf/bin/Release/net8.0/OfficeIMO.OpenDocument.Odt.Pdf.xml",
+          "assembly": "../OfficeIMO.OpenDocument.Odt.Pdf/bin/Release/net8.0/OfficeIMO.OpenDocument.Odt.Pdf.dll",
+          "out": "./_site/api/open-document-odt-pdf",
+          "title": "OfficeIMO.OpenDocument.Odt.Pdf API Reference",
+          "baseUrl": "/api/open-document-odt-pdf",
+          "docsHome": "/docs/open-document/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.OpenDocument.Odt.Pdf"
+        },
+        {
+          "id": "one-note-html",
+          "xml": "../OfficeIMO.OneNote.Html/bin/Release/net8.0/OfficeIMO.OneNote.Html.xml",
+          "assembly": "../OfficeIMO.OneNote.Html/bin/Release/net8.0/OfficeIMO.OneNote.Html.dll",
+          "out": "./_site/api/one-note-html",
+          "title": "OfficeIMO.OneNote.Html API Reference",
+          "baseUrl": "/api/one-note-html",
+          "docsHome": "/docs/onenote/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.OneNote.Html"
+        },
+        {
+          "id": "one-note-markdown",
+          "xml": "../OfficeIMO.OneNote.Markdown/bin/Release/net8.0/OfficeIMO.OneNote.Markdown.xml",
+          "assembly": "../OfficeIMO.OneNote.Markdown/bin/Release/net8.0/OfficeIMO.OneNote.Markdown.dll",
+          "out": "./_site/api/one-note-markdown",
+          "title": "OfficeIMO.OneNote.Markdown API Reference",
+          "baseUrl": "/api/one-note-markdown",
+          "docsHome": "/docs/onenote/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.OneNote.Markdown"
+        },
+        {
+          "id": "one-note-pdf",
+          "xml": "../OfficeIMO.OneNote.Pdf/bin/Release/net8.0/OfficeIMO.OneNote.Pdf.xml",
+          "assembly": "../OfficeIMO.OneNote.Pdf/bin/Release/net8.0/OfficeIMO.OneNote.Pdf.dll",
+          "out": "./_site/api/one-note-pdf",
+          "title": "OfficeIMO.OneNote.Pdf API Reference",
+          "baseUrl": "/api/one-note-pdf",
+          "docsHome": "/docs/onenote/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.OneNote.Pdf"
+        },
+        {
+          "id": "project",
+          "xml": "../OfficeIMO.Project/bin/Release/net8.0/OfficeIMO.Project.xml",
+          "assembly": "../OfficeIMO.Project/bin/Release/net8.0/OfficeIMO.Project.dll",
+          "out": "./_site/api/project",
+          "title": "OfficeIMO.Project API Reference",
+          "baseUrl": "/api/project",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Project"
+        },
+        {
+          "id": "opml",
+          "xml": "../OfficeIMO.Opml/bin/Release/net8.0/OfficeIMO.Opml.xml",
+          "assembly": "../OfficeIMO.Opml/bin/Release/net8.0/OfficeIMO.Opml.dll",
+          "out": "./_site/api/opml",
+          "title": "OfficeIMO.Opml API Reference",
+          "baseUrl": "/api/opml",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Opml"
+        },
+        {
+          "id": "provenance-c2pa",
+          "xml": "../OfficeIMO.Provenance.C2pa/bin/Release/net8.0/OfficeIMO.Provenance.C2pa.xml",
+          "assembly": "../OfficeIMO.Provenance.C2pa/bin/Release/net8.0/OfficeIMO.Provenance.C2pa.dll",
+          "out": "./_site/api/provenance-c2pa",
+          "title": "OfficeIMO.Provenance.C2pa API Reference",
+          "baseUrl": "/api/provenance-c2pa",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Provenance.C2pa"
+        },
+        {
+          "id": "security",
+          "xml": "../OfficeIMO.Security/bin/Release/net8.0/OfficeIMO.Security.xml",
+          "assembly": "../OfficeIMO.Security/bin/Release/net8.0/OfficeIMO.Security.dll",
+          "out": "./_site/api/security",
+          "title": "OfficeIMO.Security API Reference",
+          "baseUrl": "/api/security",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Security"
+        },
+        {
+          "id": "power-point-iwork",
+          "xml": "../OfficeIMO.PowerPoint.IWork/bin/Release/net8.0/OfficeIMO.PowerPoint.IWork.xml",
+          "assembly": "../OfficeIMO.PowerPoint.IWork/bin/Release/net8.0/OfficeIMO.PowerPoint.IWork.dll",
+          "out": "./_site/api/power-point-iwork",
+          "title": "OfficeIMO.PowerPoint.IWork API Reference",
+          "baseUrl": "/api/power-point-iwork",
+          "docsHome": "/docs/iwork/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.PowerPoint.IWork"
+        },
+        {
+          "id": "power-point-google-slides",
+          "xml": "../OfficeIMO.PowerPoint.GoogleSlides/bin/Release/net8.0/OfficeIMO.PowerPoint.GoogleSlides.xml",
+          "assembly": "../OfficeIMO.PowerPoint.GoogleSlides/bin/Release/net8.0/OfficeIMO.PowerPoint.GoogleSlides.dll",
+          "out": "./_site/api/power-point-google-slides",
+          "title": "OfficeIMO.PowerPoint.GoogleSlides API Reference",
+          "baseUrl": "/api/power-point-google-slides",
+          "docsHome": "/docs/powerpoint/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.PowerPoint.GoogleSlides"
+        },
+        {
+          "id": "power-point-open-document",
+          "xml": "../OfficeIMO.PowerPoint.OpenDocument/bin/Release/net8.0/OfficeIMO.PowerPoint.OpenDocument.xml",
+          "assembly": "../OfficeIMO.PowerPoint.OpenDocument/bin/Release/net8.0/OfficeIMO.PowerPoint.OpenDocument.dll",
+          "out": "./_site/api/power-point-open-document",
+          "title": "OfficeIMO.PowerPoint.OpenDocument API Reference",
+          "baseUrl": "/api/power-point-open-document",
+          "docsHome": "/docs/powerpoint/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.PowerPoint.OpenDocument"
+        },
+        {
+          "id": "power-point-html",
+          "xml": "../OfficeIMO.PowerPoint.Html/bin/Release/net8.0/OfficeIMO.PowerPoint.Html.xml",
+          "assembly": "../OfficeIMO.PowerPoint.Html/bin/Release/net8.0/OfficeIMO.PowerPoint.Html.dll",
+          "out": "./_site/api/power-point-html",
+          "title": "OfficeIMO.PowerPoint.Html API Reference",
+          "baseUrl": "/api/power-point-html",
+          "docsHome": "/docs/powerpoint/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.PowerPoint.Html"
+        },
+        {
+          "id": "power-point-pdf",
+          "xml": "../OfficeIMO.PowerPoint.Pdf/bin/Release/net8.0/OfficeIMO.PowerPoint.Pdf.xml",
+          "assembly": "../OfficeIMO.PowerPoint.Pdf/bin/Release/net8.0/OfficeIMO.PowerPoint.Pdf.dll",
+          "out": "./_site/api/power-point-pdf",
+          "title": "OfficeIMO.PowerPoint.Pdf API Reference",
+          "baseUrl": "/api/power-point-pdf",
+          "docsHome": "/docs/powerpoint/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.PowerPoint.Pdf"
+        },
+        {
+          "id": "reader-all",
+          "xml": "../OfficeIMO.Reader.All/bin/Release/net8.0/OfficeIMO.Reader.All.xml",
+          "assembly": "../OfficeIMO.Reader.All/bin/Release/net8.0/OfficeIMO.Reader.All.dll",
+          "out": "./_site/api/reader-all",
+          "title": "OfficeIMO.Reader.All API Reference",
+          "baseUrl": "/api/reader-all",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.All"
+        },
+        {
+          "id": "reader-ascii-doc",
+          "xml": "../OfficeIMO.Reader.AsciiDoc/bin/Release/net8.0/OfficeIMO.Reader.AsciiDoc.xml",
+          "assembly": "../OfficeIMO.Reader.AsciiDoc/bin/Release/net8.0/OfficeIMO.Reader.AsciiDoc.dll",
+          "out": "./_site/api/reader-ascii-doc",
+          "title": "OfficeIMO.Reader.AsciiDoc API Reference",
+          "baseUrl": "/api/reader-ascii-doc",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.AsciiDoc"
+        },
+        {
+          "id": "reader-csv",
+          "xml": "../OfficeIMO.Reader.Csv/bin/Release/net8.0/OfficeIMO.Reader.Csv.xml",
+          "assembly": "../OfficeIMO.Reader.Csv/bin/Release/net8.0/OfficeIMO.Reader.Csv.dll",
+          "out": "./_site/api/reader-csv",
+          "title": "OfficeIMO.Reader.Csv API Reference",
+          "baseUrl": "/api/reader-csv",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.Csv"
+        },
+        {
+          "id": "reader-doc-book",
+          "xml": "../OfficeIMO.Reader.DocBook/bin/Release/net8.0/OfficeIMO.Reader.DocBook.xml",
+          "assembly": "../OfficeIMO.Reader.DocBook/bin/Release/net8.0/OfficeIMO.Reader.DocBook.dll",
+          "out": "./_site/api/reader-doc-book",
+          "title": "OfficeIMO.Reader.DocBook API Reference",
+          "baseUrl": "/api/reader-doc-book",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.DocBook"
+        },
+        {
+          "id": "reader-email",
+          "xml": "../OfficeIMO.Reader.Email/bin/Release/net8.0/OfficeIMO.Reader.Email.xml",
+          "assembly": "../OfficeIMO.Reader.Email/bin/Release/net8.0/OfficeIMO.Reader.Email.dll",
+          "out": "./_site/api/reader-email",
+          "title": "OfficeIMO.Reader.Email API Reference",
+          "baseUrl": "/api/reader-email",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.Email"
+        },
+        {
+          "id": "reader-excel",
+          "xml": "../OfficeIMO.Reader.Excel/bin/Release/net8.0/OfficeIMO.Reader.Excel.xml",
+          "assembly": "../OfficeIMO.Reader.Excel/bin/Release/net8.0/OfficeIMO.Reader.Excel.dll",
+          "out": "./_site/api/reader-excel",
+          "title": "OfficeIMO.Reader.Excel API Reference",
+          "baseUrl": "/api/reader-excel",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.Excel"
+        },
+        {
+          "id": "reader-epub",
+          "xml": "../OfficeIMO.Reader.Epub/bin/Release/net8.0/OfficeIMO.Reader.Epub.xml",
+          "assembly": "../OfficeIMO.Reader.Epub/bin/Release/net8.0/OfficeIMO.Reader.Epub.dll",
+          "out": "./_site/api/reader-epub",
+          "title": "OfficeIMO.Reader.Epub API Reference",
+          "baseUrl": "/api/reader-epub",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.Epub"
+        },
+        {
+          "id": "reader-html",
+          "xml": "../OfficeIMO.Reader.Html/bin/Release/net8.0/OfficeIMO.Reader.Html.xml",
+          "assembly": "../OfficeIMO.Reader.Html/bin/Release/net8.0/OfficeIMO.Reader.Html.dll",
+          "out": "./_site/api/reader-html",
+          "title": "OfficeIMO.Reader.Html API Reference",
+          "baseUrl": "/api/reader-html",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.Html"
+        },
+        {
+          "id": "reader-image",
+          "xml": "../OfficeIMO.Reader.Image/bin/Release/net8.0/OfficeIMO.Reader.Image.xml",
+          "assembly": "../OfficeIMO.Reader.Image/bin/Release/net8.0/OfficeIMO.Reader.Image.dll",
+          "out": "./_site/api/reader-image",
+          "title": "OfficeIMO.Reader.Image API Reference",
+          "baseUrl": "/api/reader-image",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.Image"
+        },
+        {
+          "id": "reader-iwork",
+          "xml": "../OfficeIMO.Reader.IWork/bin/Release/net8.0/OfficeIMO.Reader.IWork.xml",
+          "assembly": "../OfficeIMO.Reader.IWork/bin/Release/net8.0/OfficeIMO.Reader.IWork.dll",
+          "out": "./_site/api/reader-iwork",
+          "title": "OfficeIMO.Reader.IWork API Reference",
+          "baseUrl": "/api/reader-iwork",
+          "docsHome": "/docs/iwork/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.IWork"
+        },
+        {
+          "id": "reader-json",
+          "xml": "../OfficeIMO.Reader.Json/bin/Release/net8.0/OfficeIMO.Reader.Json.xml",
+          "assembly": "../OfficeIMO.Reader.Json/bin/Release/net8.0/OfficeIMO.Reader.Json.dll",
+          "out": "./_site/api/reader-json",
+          "title": "OfficeIMO.Reader.Json API Reference",
+          "baseUrl": "/api/reader-json",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.Json"
+        },
+        {
+          "id": "reader-latex",
+          "xml": "../OfficeIMO.Reader.Latex/bin/Release/net8.0/OfficeIMO.Reader.Latex.xml",
+          "assembly": "../OfficeIMO.Reader.Latex/bin/Release/net8.0/OfficeIMO.Reader.Latex.dll",
+          "out": "./_site/api/reader-latex",
+          "title": "OfficeIMO.Reader.Latex API Reference",
+          "baseUrl": "/api/reader-latex",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.Latex"
+        },
+        {
+          "id": "reader-markdown",
+          "xml": "../OfficeIMO.Reader.Markdown/bin/Release/net8.0/OfficeIMO.Reader.Markdown.xml",
+          "assembly": "../OfficeIMO.Reader.Markdown/bin/Release/net8.0/OfficeIMO.Reader.Markdown.dll",
+          "out": "./_site/api/reader-markdown",
+          "title": "OfficeIMO.Reader.Markdown API Reference",
+          "baseUrl": "/api/reader-markdown",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.Markdown"
+        },
+        {
+          "id": "reader-notebook",
+          "xml": "../OfficeIMO.Reader.Notebook/bin/Release/net8.0/OfficeIMO.Reader.Notebook.xml",
+          "assembly": "../OfficeIMO.Reader.Notebook/bin/Release/net8.0/OfficeIMO.Reader.Notebook.dll",
+          "out": "./_site/api/reader-notebook",
+          "title": "OfficeIMO.Reader.Notebook API Reference",
+          "baseUrl": "/api/reader-notebook",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.Notebook"
+        },
+        {
+          "id": "reader-open-document",
+          "xml": "../OfficeIMO.Reader.OpenDocument/bin/Release/net8.0/OfficeIMO.Reader.OpenDocument.xml",
+          "assembly": "../OfficeIMO.Reader.OpenDocument/bin/Release/net8.0/OfficeIMO.Reader.OpenDocument.dll",
+          "out": "./_site/api/reader-open-document",
+          "title": "OfficeIMO.Reader.OpenDocument API Reference",
+          "baseUrl": "/api/reader-open-document",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.OpenDocument"
+        },
+        {
+          "id": "reader-one-note",
+          "xml": "../OfficeIMO.Reader.OneNote/bin/Release/net8.0/OfficeIMO.Reader.OneNote.xml",
+          "assembly": "../OfficeIMO.Reader.OneNote/bin/Release/net8.0/OfficeIMO.Reader.OneNote.dll",
+          "out": "./_site/api/reader-one-note",
+          "title": "OfficeIMO.Reader.OneNote API Reference",
+          "baseUrl": "/api/reader-one-note",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.OneNote"
+        },
+        {
+          "id": "reader-opml",
+          "xml": "../OfficeIMO.Reader.Opml/bin/Release/net8.0/OfficeIMO.Reader.Opml.xml",
+          "assembly": "../OfficeIMO.Reader.Opml/bin/Release/net8.0/OfficeIMO.Reader.Opml.dll",
+          "out": "./_site/api/reader-opml",
+          "title": "OfficeIMO.Reader.Opml API Reference",
+          "baseUrl": "/api/reader-opml",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.Opml"
+        },
+        {
+          "id": "reader-pdf",
+          "xml": "../OfficeIMO.Reader.Pdf/bin/Release/net8.0/OfficeIMO.Reader.Pdf.xml",
+          "assembly": "../OfficeIMO.Reader.Pdf/bin/Release/net8.0/OfficeIMO.Reader.Pdf.dll",
+          "out": "./_site/api/reader-pdf",
+          "title": "OfficeIMO.Reader.Pdf API Reference",
+          "baseUrl": "/api/reader-pdf",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.Pdf"
+        },
+        {
+          "id": "reader-power-point",
+          "xml": "../OfficeIMO.Reader.PowerPoint/bin/Release/net8.0/OfficeIMO.Reader.PowerPoint.xml",
+          "assembly": "../OfficeIMO.Reader.PowerPoint/bin/Release/net8.0/OfficeIMO.Reader.PowerPoint.dll",
+          "out": "./_site/api/reader-power-point",
+          "title": "OfficeIMO.Reader.PowerPoint API Reference",
+          "baseUrl": "/api/reader-power-point",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.PowerPoint"
+        },
+        {
+          "id": "reader-rtf",
+          "xml": "../OfficeIMO.Reader.Rtf/bin/Release/net8.0/OfficeIMO.Reader.Rtf.xml",
+          "assembly": "../OfficeIMO.Reader.Rtf/bin/Release/net8.0/OfficeIMO.Reader.Rtf.dll",
+          "out": "./_site/api/reader-rtf",
+          "title": "OfficeIMO.Reader.Rtf API Reference",
+          "baseUrl": "/api/reader-rtf",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.Rtf"
+        },
+        {
+          "id": "reader-subtitles",
+          "xml": "../OfficeIMO.Reader.Subtitles/bin/Release/net8.0/OfficeIMO.Reader.Subtitles.xml",
+          "assembly": "../OfficeIMO.Reader.Subtitles/bin/Release/net8.0/OfficeIMO.Reader.Subtitles.dll",
+          "out": "./_site/api/reader-subtitles",
+          "title": "OfficeIMO.Reader.Subtitles API Reference",
+          "baseUrl": "/api/reader-subtitles",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.Subtitles"
+        },
+        {
+          "id": "reader-visio",
+          "xml": "../OfficeIMO.Reader.Visio/bin/Release/net8.0/OfficeIMO.Reader.Visio.xml",
+          "assembly": "../OfficeIMO.Reader.Visio/bin/Release/net8.0/OfficeIMO.Reader.Visio.dll",
+          "out": "./_site/api/reader-visio",
+          "title": "OfficeIMO.Reader.Visio API Reference",
+          "baseUrl": "/api/reader-visio",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.Visio"
+        },
+        {
+          "id": "reader-web",
+          "xml": "../OfficeIMO.Reader.Web/bin/Release/net8.0/OfficeIMO.Reader.Web.xml",
+          "assembly": "../OfficeIMO.Reader.Web/bin/Release/net8.0/OfficeIMO.Reader.Web.dll",
+          "out": "./_site/api/reader-web",
+          "title": "OfficeIMO.Reader.Web API Reference",
+          "baseUrl": "/api/reader-web",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.Web"
+        },
+        {
+          "id": "reader-word",
+          "xml": "../OfficeIMO.Reader.Word/bin/Release/net8.0/OfficeIMO.Reader.Word.xml",
+          "assembly": "../OfficeIMO.Reader.Word/bin/Release/net8.0/OfficeIMO.Reader.Word.dll",
+          "out": "./_site/api/reader-word",
+          "title": "OfficeIMO.Reader.Word API Reference",
+          "baseUrl": "/api/reader-word",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.Word"
+        },
+        {
+          "id": "reader-xml",
+          "xml": "../OfficeIMO.Reader.Xml/bin/Release/net8.0/OfficeIMO.Reader.Xml.xml",
+          "assembly": "../OfficeIMO.Reader.Xml/bin/Release/net8.0/OfficeIMO.Reader.Xml.dll",
+          "out": "./_site/api/reader-xml",
+          "title": "OfficeIMO.Reader.Xml API Reference",
+          "baseUrl": "/api/reader-xml",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.Xml"
+        },
+        {
+          "id": "reader-yaml",
+          "xml": "../OfficeIMO.Reader.Yaml/bin/Release/net8.0/OfficeIMO.Reader.Yaml.xml",
+          "assembly": "../OfficeIMO.Reader.Yaml/bin/Release/net8.0/OfficeIMO.Reader.Yaml.dll",
+          "out": "./_site/api/reader-yaml",
+          "title": "OfficeIMO.Reader.Yaml API Reference",
+          "baseUrl": "/api/reader-yaml",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.Yaml"
+        },
+        {
+          "id": "reader-zip",
+          "xml": "../OfficeIMO.Reader.Zip/bin/Release/net8.0/OfficeIMO.Reader.Zip.xml",
+          "assembly": "../OfficeIMO.Reader.Zip/bin/Release/net8.0/OfficeIMO.Reader.Zip.dll",
+          "out": "./_site/api/reader-zip",
+          "title": "OfficeIMO.Reader.Zip API Reference",
+          "baseUrl": "/api/reader-zip",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.Zip"
+        },
+        {
+          "id": "rtf",
+          "xml": "../OfficeIMO.Rtf/bin/Release/net8.0/OfficeIMO.Rtf.xml",
+          "assembly": "../OfficeIMO.Rtf/bin/Release/net8.0/OfficeIMO.Rtf.dll",
+          "out": "./_site/api/rtf",
+          "title": "OfficeIMO.Rtf API Reference",
+          "baseUrl": "/api/rtf",
+          "docsHome": "/docs/rtf/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Rtf"
+        },
+        {
+          "id": "rtf-pdf",
+          "xml": "../OfficeIMO.Rtf.Pdf/bin/Release/net8.0/OfficeIMO.Rtf.Pdf.xml",
+          "assembly": "../OfficeIMO.Rtf.Pdf/bin/Release/net8.0/OfficeIMO.Rtf.Pdf.dll",
+          "out": "./_site/api/rtf-pdf",
+          "title": "OfficeIMO.Rtf.Pdf API Reference",
+          "baseUrl": "/api/rtf-pdf",
+          "docsHome": "/docs/rtf/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Rtf.Pdf"
+        },
+        {
+          "id": "visio-pdf",
+          "xml": "../OfficeIMO.Visio.Pdf/bin/Release/net8.0/OfficeIMO.Visio.Pdf.xml",
+          "assembly": "../OfficeIMO.Visio.Pdf/bin/Release/net8.0/OfficeIMO.Visio.Pdf.dll",
+          "out": "./_site/api/visio-pdf",
+          "title": "OfficeIMO.Visio.Pdf API Reference",
+          "baseUrl": "/api/visio-pdf",
+          "docsHome": "/docs/visio/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Visio.Pdf"
+        },
+        {
+          "id": "word-iwork",
+          "xml": "../OfficeIMO.Word.IWork/bin/Release/net8.0/OfficeIMO.Word.IWork.xml",
+          "assembly": "../OfficeIMO.Word.IWork/bin/Release/net8.0/OfficeIMO.Word.IWork.dll",
+          "out": "./_site/api/word-iwork",
+          "title": "OfficeIMO.Word.IWork API Reference",
+          "baseUrl": "/api/word-iwork",
+          "docsHome": "/docs/iwork/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Word.IWork"
+        },
+        {
+          "id": "word-open-document",
+          "xml": "../OfficeIMO.Word.OpenDocument/bin/Release/net8.0/OfficeIMO.Word.OpenDocument.xml",
+          "assembly": "../OfficeIMO.Word.OpenDocument/bin/Release/net8.0/OfficeIMO.Word.OpenDocument.dll",
+          "out": "./_site/api/word-open-document",
+          "title": "OfficeIMO.Word.OpenDocument API Reference",
+          "baseUrl": "/api/word-open-document",
+          "docsHome": "/docs/word/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Word.OpenDocument"
+        },
+        {
+          "id": "word-google-docs",
+          "xml": "../OfficeIMO.Word.GoogleDocs/bin/Release/net8.0/OfficeIMO.Word.GoogleDocs.xml",
+          "assembly": "../OfficeIMO.Word.GoogleDocs/bin/Release/net8.0/OfficeIMO.Word.GoogleDocs.dll",
+          "out": "./_site/api/word-google-docs",
+          "title": "OfficeIMO.Word.GoogleDocs API Reference",
+          "baseUrl": "/api/word-google-docs",
+          "docsHome": "/docs/word/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Word.GoogleDocs"
+        },
+        {
+          "id": "word-html",
+          "xml": "../OfficeIMO.Word.Html/bin/Release/net8.0/OfficeIMO.Word.Html.xml",
+          "assembly": "../OfficeIMO.Word.Html/bin/Release/net8.0/OfficeIMO.Word.Html.dll",
+          "out": "./_site/api/word-html",
+          "title": "OfficeIMO.Word.Html API Reference",
+          "baseUrl": "/api/word-html",
+          "docsHome": "/docs/word/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Word.Html"
+        },
+        {
+          "id": "word-markdown",
+          "xml": "../OfficeIMO.Word.Markdown/bin/Release/net8.0/OfficeIMO.Word.Markdown.xml",
+          "assembly": "../OfficeIMO.Word.Markdown/bin/Release/net8.0/OfficeIMO.Word.Markdown.dll",
+          "out": "./_site/api/word-markdown",
+          "title": "OfficeIMO.Word.Markdown API Reference",
+          "baseUrl": "/api/word-markdown",
+          "docsHome": "/docs/word/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Word.Markdown"
+        },
+        {
+          "id": "word-pdf",
+          "xml": "../OfficeIMO.Word.Pdf/bin/Release/net8.0/OfficeIMO.Word.Pdf.xml",
+          "assembly": "../OfficeIMO.Word.Pdf/bin/Release/net8.0/OfficeIMO.Word.Pdf.dll",
+          "out": "./_site/api/word-pdf",
+          "title": "OfficeIMO.Word.Pdf API Reference",
+          "baseUrl": "/api/word-pdf",
+          "docsHome": "/docs/word/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Word.Pdf"
+        },
+        {
+          "id": "word-rtf",
+          "xml": "../OfficeIMO.Word.Rtf/bin/Release/net8.0/OfficeIMO.Word.Rtf.xml",
+          "assembly": "../OfficeIMO.Word.Rtf/bin/Release/net8.0/OfficeIMO.Word.Rtf.dll",
+          "out": "./_site/api/word-rtf",
+          "title": "OfficeIMO.Word.Rtf API Reference",
+          "baseUrl": "/api/word-rtf",
+          "docsHome": "/docs/word/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Word.Rtf"
+        },
+        {
+          "id": "workflows",
+          "xml": "../OfficeIMO.Workflows/bin/Release/net8.0/OfficeIMO.Workflows.xml",
+          "assembly": "../OfficeIMO.Workflows/bin/Release/net8.0/OfficeIMO.Workflows.dll",
+          "out": "./_site/api/workflows",
+          "title": "OfficeIMO.Workflows API Reference",
+          "baseUrl": "/api/workflows",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Workflows"
+        },
+        {
+          "id": "zip",
+          "xml": "../OfficeIMO.Zip/bin/Release/net8.0/OfficeIMO.Zip.xml",
+          "assembly": "../OfficeIMO.Zip/bin/Release/net8.0/OfficeIMO.Zip.dll",
+          "out": "./_site/api/zip",
+          "title": "OfficeIMO.Zip API Reference",
+          "baseUrl": "/api/zip",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Zip"
+        }
+      ],
+      "suiteEntries": [
+        {
+          "id": "officeimo",
+          "label": "All OfficeIMO APIs",
+          "href": "/api/"
+        }
+      ]
     },
     {
       "task": "xref-merge",
@@ -1348,7 +3461,8 @@
         "build-apidocs-ocr-tesseract",
         "build-apidocs-reader-ocr",
         "build-apidocs-pdf-ocr",
-        "build-apidocs-powershell"
+        "build-apidocs-powershell",
+        "build-apidocs-adapters"
       ],
       "out": "./data/xrefmap.json",
       "mapFiles": [
@@ -1377,16 +3491,115 @@
         "./_site/api/ocr-tesseract/xrefmap.json",
         "./_site/api/reader-ocr/xrefmap.json",
         "./_site/api/pdf-ocr/xrefmap.json",
-        "./_site/api/powershell/xrefmap.json"
+        "./_site/api/powershell/xrefmap.json",
+        "./_site/api/adf/xrefmap.json",
+        "./_site/api/ai/xrefmap.json",
+        "./_site/api/ai-intelligence-x/xrefmap.json",
+        "./_site/api/ascii-doc/xrefmap.json",
+        "./_site/api/ascii-doc-markdown/xrefmap.json",
+        "./_site/api/ascii-doc-pdf/xrefmap.json",
+        "./_site/api/bibliography/xrefmap.json",
+        "./_site/api/chart-forge-x/xrefmap.json",
+        "./_site/api/confluence/xrefmap.json",
+        "./_site/api/core/xrefmap.json",
+        "./_site/api/data-arrow/xrefmap.json",
+        "./_site/api/data-generators/xrefmap.json",
+        "./_site/api/doc-book/xrefmap.json",
+        "./_site/api/drawing-code-glyph-x/xrefmap.json",
+        "./_site/api/drawing-harf-buzz/xrefmap.json",
+        "./_site/api/email-html/xrefmap.json",
+        "./_site/api/epub/xrefmap.json",
+        "./_site/api/epub-image/xrefmap.json",
+        "./_site/api/excel-iwork/xrefmap.json",
+        "./_site/api/excel-csv/xrefmap.json",
+        "./_site/api/excel-open-document/xrefmap.json",
+        "./_site/api/excel-google-sheets/xrefmap.json",
+        "./_site/api/excel-html/xrefmap.json",
+        "./_site/api/excel-pdf/xrefmap.json",
+        "./_site/api/html-core/xrefmap.json",
+        "./_site/api/html-angle-sharp/xrefmap.json",
+        "./_site/api/html-pdf/xrefmap.json",
+        "./_site/api/html-pdf-browser/xrefmap.json",
+        "./_site/api/iwork/xrefmap.json",
+        "./_site/api/invoicing/xrefmap.json",
+        "./_site/api/invoicing-validation/xrefmap.json",
+        "./_site/api/invoicing-ksef/xrefmap.json",
+        "./_site/api/invoicing-pdf/xrefmap.json",
+        "./_site/api/latex/xrefmap.json",
+        "./_site/api/latex-markdown/xrefmap.json",
+        "./_site/api/latex-pdf/xrefmap.json",
+        "./_site/api/markdown-html/xrefmap.json",
+        "./_site/api/markdown-pdf/xrefmap.json",
+        "./_site/api/rtf-markdown/xrefmap.json",
+        "./_site/api/markdown-renderer/xrefmap.json",
+        "./_site/api/markdown-renderer-intelligence-x/xrefmap.json",
+        "./_site/api/markdown-renderer-wpf/xrefmap.json",
+        "./_site/api/open-document-odp-pdf/xrefmap.json",
+        "./_site/api/open-document-ods-pdf/xrefmap.json",
+        "./_site/api/open-document-odt-pdf/xrefmap.json",
+        "./_site/api/one-note-html/xrefmap.json",
+        "./_site/api/one-note-markdown/xrefmap.json",
+        "./_site/api/one-note-pdf/xrefmap.json",
+        "./_site/api/project/xrefmap.json",
+        "./_site/api/opml/xrefmap.json",
+        "./_site/api/provenance-c2pa/xrefmap.json",
+        "./_site/api/security/xrefmap.json",
+        "./_site/api/power-point-iwork/xrefmap.json",
+        "./_site/api/power-point-google-slides/xrefmap.json",
+        "./_site/api/power-point-open-document/xrefmap.json",
+        "./_site/api/power-point-html/xrefmap.json",
+        "./_site/api/power-point-pdf/xrefmap.json",
+        "./_site/api/reader-all/xrefmap.json",
+        "./_site/api/reader-ascii-doc/xrefmap.json",
+        "./_site/api/reader-csv/xrefmap.json",
+        "./_site/api/reader-doc-book/xrefmap.json",
+        "./_site/api/reader-email/xrefmap.json",
+        "./_site/api/reader-excel/xrefmap.json",
+        "./_site/api/reader-epub/xrefmap.json",
+        "./_site/api/reader-html/xrefmap.json",
+        "./_site/api/reader-image/xrefmap.json",
+        "./_site/api/reader-iwork/xrefmap.json",
+        "./_site/api/reader-json/xrefmap.json",
+        "./_site/api/reader-latex/xrefmap.json",
+        "./_site/api/reader-markdown/xrefmap.json",
+        "./_site/api/reader-notebook/xrefmap.json",
+        "./_site/api/reader-open-document/xrefmap.json",
+        "./_site/api/reader-one-note/xrefmap.json",
+        "./_site/api/reader-opml/xrefmap.json",
+        "./_site/api/reader-pdf/xrefmap.json",
+        "./_site/api/reader-power-point/xrefmap.json",
+        "./_site/api/reader-rtf/xrefmap.json",
+        "./_site/api/reader-subtitles/xrefmap.json",
+        "./_site/api/reader-visio/xrefmap.json",
+        "./_site/api/reader-web/xrefmap.json",
+        "./_site/api/reader-word/xrefmap.json",
+        "./_site/api/reader-xml/xrefmap.json",
+        "./_site/api/reader-yaml/xrefmap.json",
+        "./_site/api/reader-zip/xrefmap.json",
+        "./_site/api/rtf/xrefmap.json",
+        "./_site/api/rtf-pdf/xrefmap.json",
+        "./_site/api/visio-pdf/xrefmap.json",
+        "./_site/api/word-iwork/xrefmap.json",
+        "./_site/api/word-open-document/xrefmap.json",
+        "./_site/api/word-google-docs/xrefmap.json",
+        "./_site/api/word-html/xrefmap.json",
+        "./_site/api/word-markdown/xrefmap.json",
+        "./_site/api/word-pdf/xrefmap.json",
+        "./_site/api/word-rtf/xrefmap.json",
+        "./_site/api/workflows/xrefmap.json",
+        "./_site/api/zip/xrefmap.json"
       ],
       "preferLast": true,
-      "maxReferences": 90000,
+      "maxReferences": 125000,
       "maxDuplicates": 100
     },
     {
       "task": "build",
       "id": "build-site-xref-refresh",
-      "dependsOn": ["merge-xref", "deploy-theme-css"],
+      "dependsOn": [
+        "merge-xref",
+        "deploy-theme-css"
+      ],
       "config": "./site.json",
       "out": "./_site",
       "clean": false
@@ -1394,7 +3607,9 @@
     {
       "task": "exec",
       "id": "verify-content-layout-contracts",
-      "dependsOn": ["build-site-xref-refresh"],
+      "dependsOn": [
+        "build-site-xref-refresh"
+      ],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
@@ -1409,7 +3624,9 @@
     {
       "task": "exec",
       "id": "verify-website-presentation",
-      "dependsOn": ["verify-content-layout-contracts"],
+      "dependsOn": [
+        "verify-content-layout-contracts"
+      ],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
@@ -1426,15 +3643,23 @@
     {
       "task": "verify",
       "id": "verify-site",
-      "dependsOn": ["deploy-theme-css", "verify-excel-benchmark-page", "verify-website-presentation"],
-      "skipModes": ["ci"],
+      "dependsOn": [
+        "deploy-theme-css",
+        "verify-excel-benchmark-page",
+        "verify-website-presentation"
+      ],
+      "skipModes": [
+        "ci"
+      ],
       "config": "./site.json"
     },
     {
       "task": "verify",
       "id": "verify-ci",
       "dependsOn": "verify-website-presentation",
-      "modes": ["ci"],
+      "modes": [
+        "ci"
+      ],
       "config": "./site.json",
       "baseline": "./.powerforge/verify-baseline.json",
       "failOnNewWarnings": true,
@@ -1445,7 +3670,9 @@
       "task": "ecosystem-stats",
       "id": "build-llms-publication-catalog",
       "dependsOn": "verify-ci",
-      "skipModes": ["dev"],
+      "skipModes": [
+        "dev"
+      ],
       "out": "./_temp/llms-publication-catalog.json",
       "publishPath": "",
       "summaryPath": "./_temp/llms-publication-catalog-summary.json",
@@ -1459,7 +3686,9 @@
       "task": "llms",
       "id": "build-llms",
       "dependsOn": "build-llms-publication-catalog",
-      "skipModes": ["dev"],
+      "skipModes": [
+        "dev"
+      ],
       "siteRoot": "./_site",
       "contentKind": "Package",
       "installPolicy": "VerifiedCatalog",
@@ -1488,7 +3717,103 @@
         "./_site/api/google-workspace-auth/index.json",
         "./_site/api/google-workspace-sync/index.json",
         "./_site/api/reader/index.json",
-        "./_site/api/powershell/index.json"
+        "./_site/api/powershell/index.json",
+        "./_site/api/adf/index.json",
+        "./_site/api/ai/index.json",
+        "./_site/api/ai-intelligence-x/index.json",
+        "./_site/api/ascii-doc/index.json",
+        "./_site/api/ascii-doc-markdown/index.json",
+        "./_site/api/ascii-doc-pdf/index.json",
+        "./_site/api/bibliography/index.json",
+        "./_site/api/chart-forge-x/index.json",
+        "./_site/api/confluence/index.json",
+        "./_site/api/core/index.json",
+        "./_site/api/data-arrow/index.json",
+        "./_site/api/data-generators/index.json",
+        "./_site/api/doc-book/index.json",
+        "./_site/api/drawing-code-glyph-x/index.json",
+        "./_site/api/drawing-harf-buzz/index.json",
+        "./_site/api/email-html/index.json",
+        "./_site/api/epub/index.json",
+        "./_site/api/epub-image/index.json",
+        "./_site/api/excel-iwork/index.json",
+        "./_site/api/excel-csv/index.json",
+        "./_site/api/excel-open-document/index.json",
+        "./_site/api/excel-google-sheets/index.json",
+        "./_site/api/excel-html/index.json",
+        "./_site/api/excel-pdf/index.json",
+        "./_site/api/html-core/index.json",
+        "./_site/api/html-angle-sharp/index.json",
+        "./_site/api/html-pdf/index.json",
+        "./_site/api/html-pdf-browser/index.json",
+        "./_site/api/iwork/index.json",
+        "./_site/api/invoicing/index.json",
+        "./_site/api/invoicing-validation/index.json",
+        "./_site/api/invoicing-ksef/index.json",
+        "./_site/api/invoicing-pdf/index.json",
+        "./_site/api/latex/index.json",
+        "./_site/api/latex-markdown/index.json",
+        "./_site/api/latex-pdf/index.json",
+        "./_site/api/markdown-html/index.json",
+        "./_site/api/markdown-pdf/index.json",
+        "./_site/api/rtf-markdown/index.json",
+        "./_site/api/markdown-renderer/index.json",
+        "./_site/api/markdown-renderer-intelligence-x/index.json",
+        "./_site/api/markdown-renderer-wpf/index.json",
+        "./_site/api/open-document-odp-pdf/index.json",
+        "./_site/api/open-document-ods-pdf/index.json",
+        "./_site/api/open-document-odt-pdf/index.json",
+        "./_site/api/one-note-html/index.json",
+        "./_site/api/one-note-markdown/index.json",
+        "./_site/api/one-note-pdf/index.json",
+        "./_site/api/project/index.json",
+        "./_site/api/opml/index.json",
+        "./_site/api/provenance-c2pa/index.json",
+        "./_site/api/security/index.json",
+        "./_site/api/power-point-iwork/index.json",
+        "./_site/api/power-point-google-slides/index.json",
+        "./_site/api/power-point-open-document/index.json",
+        "./_site/api/power-point-html/index.json",
+        "./_site/api/power-point-pdf/index.json",
+        "./_site/api/reader-all/index.json",
+        "./_site/api/reader-ascii-doc/index.json",
+        "./_site/api/reader-csv/index.json",
+        "./_site/api/reader-doc-book/index.json",
+        "./_site/api/reader-email/index.json",
+        "./_site/api/reader-excel/index.json",
+        "./_site/api/reader-epub/index.json",
+        "./_site/api/reader-html/index.json",
+        "./_site/api/reader-image/index.json",
+        "./_site/api/reader-iwork/index.json",
+        "./_site/api/reader-json/index.json",
+        "./_site/api/reader-latex/index.json",
+        "./_site/api/reader-markdown/index.json",
+        "./_site/api/reader-notebook/index.json",
+        "./_site/api/reader-open-document/index.json",
+        "./_site/api/reader-one-note/index.json",
+        "./_site/api/reader-opml/index.json",
+        "./_site/api/reader-pdf/index.json",
+        "./_site/api/reader-power-point/index.json",
+        "./_site/api/reader-rtf/index.json",
+        "./_site/api/reader-subtitles/index.json",
+        "./_site/api/reader-visio/index.json",
+        "./_site/api/reader-web/index.json",
+        "./_site/api/reader-word/index.json",
+        "./_site/api/reader-xml/index.json",
+        "./_site/api/reader-yaml/index.json",
+        "./_site/api/reader-zip/index.json",
+        "./_site/api/rtf/index.json",
+        "./_site/api/rtf-pdf/index.json",
+        "./_site/api/visio-pdf/index.json",
+        "./_site/api/word-iwork/index.json",
+        "./_site/api/word-open-document/index.json",
+        "./_site/api/word-google-docs/index.json",
+        "./_site/api/word-html/index.json",
+        "./_site/api/word-markdown/index.json",
+        "./_site/api/word-pdf/index.json",
+        "./_site/api/word-rtf/index.json",
+        "./_site/api/workflows/index.json",
+        "./_site/api/zip/index.json"
       ],
       "apiLevel": "Summary",
       "name": "OfficeIMO",
@@ -1626,7 +3951,9 @@
       "task": "exec",
       "id": "validate-discovery-artifacts",
       "dependsOn": "build-sitemap",
-      "modes": ["ci"],
+      "modes": [
+        "ci"
+      ],
       "command": "pwsh",
       "argsList": [
         "-NoProfile",
@@ -1641,13 +3968,20 @@
       "task": "optimize",
       "id": "optimize-showcase-previews",
       "dependsOn": "validate-discovery-artifacts",
-      "skipModes": ["dev"],
+      "skipModes": [
+        "dev"
+      ],
       "siteRoot": "./_site",
       "optimizeImages": true,
-      "imageInclude": [ "downloads/showcase/**/preview*.png", "downloads/showcase/**/*-page1.png" ],
+      "imageInclude": [
+        "downloads/showcase/**/preview*.png",
+        "downloads/showcase/**/*-page1.png"
+      ],
       "imageGenerateWebp": true,
       "imagePreferNextGen": true,
-      "imageWidths": [ "480" ],
+      "imageWidths": [
+        "480"
+      ],
       "minifyHtml": false,
       "minifyCss": false,
       "minifyJs": false,
@@ -1657,18 +3991,27 @@
       "task": "optimize",
       "id": "optimize-site",
       "dependsOn": "optimize-showcase-previews",
-      "skipModes": ["dev"],
+      "skipModes": [
+        "dev"
+      ],
       "siteRoot": "./_site",
       "config": "./site.json",
       "criticalCss": "./themes/officeimo/critical.css",
       "minifyHtml": true,
-      "htmlExclude": [ "downloads/showcase/**" ],
+      "htmlExclude": [
+        "downloads/showcase/**"
+      ],
       "minifyCss": true,
       "minifyJs": true,
       "optimizeImages": true,
-      "imageExclude": [ "downloads/showcase/**" ],
+      "imageExclude": [
+        "downloads/showcase/**"
+      ],
       "hashAssets": true,
-      "hashExtensions": [".css", ".js"],
+      "hashExtensions": [
+        ".css",
+        ".js"
+      ],
       "hashExclude": [
         "downloads/showcase/**",
         "**/apps/officeimo-converter/**",
@@ -1732,7 +4075,9 @@
       "task": "exec",
       "id": "test-browser-converter-performance",
       "dependsOn": "verify-browser-converter",
-      "modes": ["ci"],
+      "modes": [
+        "ci"
+      ],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
@@ -1750,7 +4095,9 @@
       "task": "agent-ready",
       "id": "agent-ready",
       "dependsOn": "test-browser-converter-performance",
-      "skipModes": ["dev"],
+      "skipModes": [
+        "dev"
+      ],
       "operation": "prepare",
       "config": "./site.json",
       "siteRoot": "./_site",
@@ -1761,7 +4108,9 @@
       "task": "seo-doctor",
       "id": "seo-doctor-ci",
       "dependsOn": "agent-ready",
-      "modes": ["ci"],
+      "modes": [
+        "ci"
+      ],
       "siteRoot": "./_site",
       "baseline": "./.powerforge/seo-baseline.json",
       "failOnNewIssues": true,
@@ -1784,19 +4133,32 @@
       "task": "audit",
       "id": "audit-ci",
       "dependsOn": "seo-doctor-ci",
-      "modes": ["ci"],
+      "summary": true,
+      "summaryPath": "_reports/audit-summary.json",
+      "sarif": true,
+      "sarifPath": "_reports/audit.sarif.json",
+      "modes": [
+        "ci"
+      ],
       "config": "./site.json",
       "siteRoot": "./_site",
       "baseline": "./.powerforge/audit-baseline.json",
       "failOnNewIssues": true,
       "failOnCategories": "budget,agent-content",
       "checkAgentContentSecurity": true,
-      "agentContentFiles": ["llms.txt", "llms-full.txt", "llms.json"],
+      "agentContentFiles": [
+        "llms.txt",
+        "llms-full.txt",
+        "llms.json"
+      ],
       "agentPublicationCatalog": "./_temp/llms-publication-catalog.json",
       "agentPublicationCatalogMaxAgeHours": 24,
       "agentNuGetOwner": "Evotec",
       "agentPowerShellGalleryOwner": "Przemyslaw.Klys",
-      "agentRequireOwnerVerification": ["nuget:*", "powershellgallery:*"],
+      "agentRequireOwnerVerification": [
+        "nuget:*",
+        "powershellgallery:*"
+      ],
       "maxTotalFiles": 20000,
       "maxFileBytes": 26214400,
       "navSelector": "header nav",
@@ -1809,7 +4171,10 @@
       "task": "doctor",
       "id": "doctor-site",
       "dependsOn": "agent-ready",
-      "skipModes": ["dev", "ci"],
+      "skipModes": [
+        "dev",
+        "ci"
+      ],
       "config": "./site.json",
       "siteRoot": "./_site",
       "noBuild": true,

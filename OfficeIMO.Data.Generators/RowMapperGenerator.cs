@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace OfficeIMO.Data.Generators;
 
+/// <summary>Generates AOT-safe tabular row mappings for types annotated with GenerateRowMapper.</summary>
 [Generator(LanguageNames.CSharp)]
 public sealed class RowMapperGenerator : IIncrementalGenerator {
     private const string GenerateAttributeName = "OfficeIMO.Data.GenerateRowMapperAttribute";
@@ -37,6 +38,8 @@ public sealed class RowMapperGenerator : IIncrementalGenerator {
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    /// <summary>Registers discovery and emission of annotated row mapping types.</summary>
+    /// <param name="context">The incremental source generator initialization context.</param>
     public void Initialize(IncrementalGeneratorInitializationContext context) {
         IncrementalValuesProvider<INamedTypeSymbol> models = context.SyntaxProvider
             .ForAttributeWithMetadataName(

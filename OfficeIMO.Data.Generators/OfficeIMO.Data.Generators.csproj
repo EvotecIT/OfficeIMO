@@ -8,6 +8,7 @@
     <EnableAotAnalyzer>false</EnableAotAnalyzer>
     <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IsPackable>true</IsPackable>
     <IsPublishable>true</IsPublishable>
     <IsRoslynComponent>true</IsRoslynComponent>

@@ -7,9 +7,9 @@
     "testProjectCount": 48,
     "benchmarkProjectCount": 34,
     "validationProjectCount": 35,
-    "apiReferenceCount": 26,
+    "apiReferenceCount": 122,
     "conceptualPageCount": 97,
-    "conceptualWordCount": 44272
+    "conceptualWordCount": 44656
   },
   "categories": [
     {
@@ -201,7 +201,7 @@
       "sourceFileCount": 7,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/adf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Adf"
     },
     {
@@ -214,7 +214,7 @@
       "sourceFileCount": 17,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/ai/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AI"
     },
     {
@@ -240,7 +240,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/ai-intelligence-x/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AI.IntelligenceX"
     },
     {
@@ -253,7 +253,7 @@
       "sourceFileCount": 50,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/ascii-doc/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AsciiDoc"
     },
     {
@@ -266,7 +266,7 @@
       "sourceFileCount": 10,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/ascii-doc-markdown/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AsciiDoc.Markdown"
     },
     {
@@ -279,7 +279,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/ascii-doc-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AsciiDoc.Pdf"
     },
     {
@@ -292,7 +292,7 @@
       "sourceFileCount": 20,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/bibliography/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Bibliography"
     },
     {
@@ -305,7 +305,7 @@
       "sourceFileCount": 25,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/chart-forge-x/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.ChartForgeX"
     },
     {
@@ -318,7 +318,7 @@
       "sourceFileCount": 10,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/confluence/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Confluence"
     },
     {
@@ -331,7 +331,7 @@
       "sourceFileCount": 623,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/core/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Core"
     },
     {
@@ -357,7 +357,7 @@
       "sourceFileCount": 4,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/data-arrow/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Data.Arrow"
     },
     {
@@ -370,7 +370,7 @@
       "sourceFileCount": 1,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/data-generators/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Data.Generators"
     },
     {
@@ -383,7 +383,7 @@
       "sourceFileCount": 7,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/doc-book/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.DocBook"
     },
     {
@@ -396,7 +396,7 @@
       "sourceFileCount": 1,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/drawing-code-glyph-x/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Drawing.CodeGlyphX"
     },
     {
@@ -409,7 +409,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/drawing-harf-buzz/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Drawing.HarfBuzz"
     },
     {
@@ -435,7 +435,7 @@
       "sourceFileCount": 4,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/email/",
-      "apiUrl": null,
+      "apiUrl": "/api/email-html/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Email.Html"
     },
     {
@@ -461,7 +461,7 @@
       "sourceFileCount": 30,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/epub/",
-      "apiUrl": null,
+      "apiUrl": "/api/epub/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Epub"
     },
     {
@@ -474,7 +474,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/epub/",
-      "apiUrl": null,
+      "apiUrl": "/api/epub-image/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Epub.Image"
     },
     {
@@ -500,7 +500,7 @@
       "sourceFileCount": 4,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/excel/",
-      "apiUrl": null,
+      "apiUrl": "/api/excel-csv/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Csv"
     },
     {
@@ -513,7 +513,7 @@
       "sourceFileCount": 32,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/excel/",
-      "apiUrl": null,
+      "apiUrl": "/api/excel-google-sheets/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.GoogleSheets"
     },
     {
@@ -526,7 +526,7 @@
       "sourceFileCount": 18,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/excel/",
-      "apiUrl": null,
+      "apiUrl": "/api/excel-html/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Html"
     },
     {
@@ -539,7 +539,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/iwork/",
-      "apiUrl": null,
+      "apiUrl": "/api/excel-iwork/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.IWork"
     },
     {
@@ -552,7 +552,7 @@
       "sourceFileCount": 16,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/excel/",
-      "apiUrl": null,
+      "apiUrl": "/api/excel-open-document/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.OpenDocument"
     },
     {
@@ -565,7 +565,7 @@
       "sourceFileCount": 23,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/excel/",
-      "apiUrl": null,
+      "apiUrl": "/api/excel-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Pdf"
     },
     {
@@ -643,7 +643,7 @@
       "sourceFileCount": 6,
       "referencingTestProjectCount": 0,
       "docsUrl": "/docs/html/",
-      "apiUrl": null,
+      "apiUrl": "/api/html-angle-sharp/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.AngleSharp"
     },
     {
@@ -656,7 +656,7 @@
       "sourceFileCount": 9,
       "referencingTestProjectCount": 0,
       "docsUrl": "/docs/html/",
-      "apiUrl": null,
+      "apiUrl": "/api/html-core/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Core"
     },
     {
@@ -669,7 +669,7 @@
       "sourceFileCount": 28,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/html/",
-      "apiUrl": null,
+      "apiUrl": "/api/html-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Pdf"
     },
     {
@@ -682,7 +682,7 @@
       "sourceFileCount": 2,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/html/",
-      "apiUrl": null,
+      "apiUrl": "/api/html-pdf-browser/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Pdf.Browser"
     },
     {
@@ -721,7 +721,7 @@
       "sourceFileCount": 57,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/invoicing/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing"
     },
     {
@@ -734,7 +734,7 @@
       "sourceFileCount": 12,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/invoicing-ksef/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing.KSeF"
     },
     {
@@ -747,7 +747,7 @@
       "sourceFileCount": 18,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/invoicing-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing.Pdf"
     },
     {
@@ -760,7 +760,7 @@
       "sourceFileCount": 9,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/invoicing-validation/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing.Validation"
     },
     {
@@ -773,7 +773,7 @@
       "sourceFileCount": 33,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/iwork/",
-      "apiUrl": null,
+      "apiUrl": "/api/iwork/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.IWork"
     },
     {
@@ -786,7 +786,7 @@
       "sourceFileCount": 17,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/latex/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Latex"
     },
     {
@@ -799,7 +799,7 @@
       "sourceFileCount": 5,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/latex-markdown/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Latex.Markdown"
     },
     {
@@ -812,7 +812,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/latex-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Latex.Pdf"
     },
     {
@@ -838,7 +838,7 @@
       "sourceFileCount": 20,
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/markdown/",
-      "apiUrl": null,
+      "apiUrl": "/api/markdown-html/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Markdown.Html"
     },
     {
@@ -851,7 +851,7 @@
       "sourceFileCount": 22,
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/markdown/",
-      "apiUrl": null,
+      "apiUrl": "/api/markdown-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Markdown.Pdf"
     },
     {
@@ -864,7 +864,7 @@
       "sourceFileCount": 36,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/markdown/",
-      "apiUrl": null,
+      "apiUrl": "/api/markdown-renderer/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer"
     },
     {
@@ -877,7 +877,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/markdown/",
-      "apiUrl": null,
+      "apiUrl": "/api/markdown-renderer-intelligence-x/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer.IntelligenceX"
     },
     {
@@ -890,7 +890,7 @@
       "sourceFileCount": 7,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/markdown/",
-      "apiUrl": null,
+      "apiUrl": "/api/markdown-renderer-wpf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer.Wpf"
     },
     {
@@ -1033,7 +1033,7 @@
       "sourceFileCount": 9,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/onenote/",
-      "apiUrl": null,
+      "apiUrl": "/api/one-note-html/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OneNote.Html"
     },
     {
@@ -1046,7 +1046,7 @@
       "sourceFileCount": 6,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/onenote/",
-      "apiUrl": null,
+      "apiUrl": "/api/one-note-markdown/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OneNote.Markdown"
     },
     {
@@ -1059,7 +1059,7 @@
       "sourceFileCount": 7,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/onenote/",
-      "apiUrl": null,
+      "apiUrl": "/api/one-note-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OneNote.Pdf"
     },
     {
@@ -1085,7 +1085,7 @@
       "sourceFileCount": 2,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/open-document/",
-      "apiUrl": null,
+      "apiUrl": "/api/open-document-odp-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument.Odp.Pdf"
     },
     {
@@ -1098,7 +1098,7 @@
       "sourceFileCount": 2,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/open-document/",
-      "apiUrl": null,
+      "apiUrl": "/api/open-document-ods-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument.Ods.Pdf"
     },
     {
@@ -1111,7 +1111,7 @@
       "sourceFileCount": 2,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/open-document/",
-      "apiUrl": null,
+      "apiUrl": "/api/open-document-odt-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.OpenDocument.Odt.Pdf"
     },
     {
@@ -1124,7 +1124,7 @@
       "sourceFileCount": 6,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/opml/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Opml"
     },
     {
@@ -1176,7 +1176,7 @@
       "sourceFileCount": 12,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/powerpoint/",
-      "apiUrl": null,
+      "apiUrl": "/api/power-point-google-slides/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.GoogleSlides"
     },
     {
@@ -1189,7 +1189,7 @@
       "sourceFileCount": 18,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/powerpoint/",
-      "apiUrl": null,
+      "apiUrl": "/api/power-point-html/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.Html"
     },
     {
@@ -1202,7 +1202,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/iwork/",
-      "apiUrl": null,
+      "apiUrl": "/api/power-point-iwork/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.IWork"
     },
     {
@@ -1215,7 +1215,7 @@
       "sourceFileCount": 10,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/powerpoint/",
-      "apiUrl": null,
+      "apiUrl": "/api/power-point-open-document/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.OpenDocument"
     },
     {
@@ -1228,7 +1228,7 @@
       "sourceFileCount": 15,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/powerpoint/",
-      "apiUrl": null,
+      "apiUrl": "/api/power-point-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.Pdf"
     },
     {
@@ -1241,7 +1241,7 @@
       "sourceFileCount": 188,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/project/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Project"
     },
     {
@@ -1254,7 +1254,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/provenance-c2pa/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Provenance.C2pa"
     },
     {
@@ -1267,7 +1267,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-all/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.All"
     },
     {
@@ -1280,7 +1280,7 @@
       "sourceFileCount": 4,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-ascii-doc/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.AsciiDoc"
     },
     {
@@ -1306,7 +1306,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-csv/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Csv"
     },
     {
@@ -1319,7 +1319,7 @@
       "sourceFileCount": 5,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-doc-book/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.DocBook"
     },
     {
@@ -1332,7 +1332,7 @@
       "sourceFileCount": 22,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-email/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Email"
     },
     {
@@ -1345,7 +1345,7 @@
       "sourceFileCount": 9,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-epub/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Epub"
     },
     {
@@ -1358,7 +1358,7 @@
       "sourceFileCount": 5,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-excel/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Excel"
     },
     {
@@ -1371,7 +1371,7 @@
       "sourceFileCount": 5,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-html/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Html"
     },
     {
@@ -1384,7 +1384,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-image/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Image"
     },
     {
@@ -1397,7 +1397,7 @@
       "sourceFileCount": 5,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/iwork/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-iwork/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.IWork"
     },
     {
@@ -1410,7 +1410,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-json/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Json"
     },
     {
@@ -1423,7 +1423,7 @@
       "sourceFileCount": 4,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-latex/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Latex"
     },
     {
@@ -1436,7 +1436,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-markdown/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Markdown"
     },
     {
@@ -1449,7 +1449,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-notebook/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Notebook"
     },
     {
@@ -1475,7 +1475,7 @@
       "sourceFileCount": 10,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-one-note/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.OneNote"
     },
     {
@@ -1488,7 +1488,7 @@
       "sourceFileCount": 6,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-open-document/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.OpenDocument"
     },
     {
@@ -1501,7 +1501,7 @@
       "sourceFileCount": 4,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-opml/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Opml"
     },
     {
@@ -1514,7 +1514,7 @@
       "sourceFileCount": 18,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Pdf"
     },
     {
@@ -1527,7 +1527,7 @@
       "sourceFileCount": 4,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-power-point/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.PowerPoint"
     },
     {
@@ -1540,7 +1540,7 @@
       "sourceFileCount": 8,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-rtf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Rtf"
     },
     {
@@ -1553,7 +1553,7 @@
       "sourceFileCount": 4,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-subtitles/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Subtitles"
     },
     {
@@ -1566,7 +1566,7 @@
       "sourceFileCount": 7,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-visio/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Visio"
     },
     {
@@ -1579,7 +1579,7 @@
       "sourceFileCount": 6,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-web/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Web"
     },
     {
@@ -1592,7 +1592,7 @@
       "sourceFileCount": 6,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-word/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Word"
     },
     {
@@ -1605,7 +1605,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-xml/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Xml"
     },
     {
@@ -1618,7 +1618,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-yaml/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Yaml"
     },
     {
@@ -1631,7 +1631,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/reader/",
-      "apiUrl": null,
+      "apiUrl": "/api/reader-zip/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Zip"
     },
     {
@@ -1644,7 +1644,7 @@
       "sourceFileCount": 229,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/rtf/",
-      "apiUrl": null,
+      "apiUrl": "/api/rtf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Rtf"
     },
     {
@@ -1657,7 +1657,7 @@
       "sourceFileCount": 8,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/rtf/",
-      "apiUrl": null,
+      "apiUrl": "/api/rtf-markdown/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Rtf.Markdown"
     },
     {
@@ -1670,7 +1670,7 @@
       "sourceFileCount": 14,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/rtf/",
-      "apiUrl": null,
+      "apiUrl": "/api/rtf-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Rtf.Pdf"
     },
     {
@@ -1683,7 +1683,7 @@
       "sourceFileCount": 14,
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/security/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Security"
     },
     {
@@ -1735,7 +1735,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/visio/",
-      "apiUrl": null,
+      "apiUrl": "/api/visio-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Visio.Pdf"
     },
     {
@@ -1761,7 +1761,7 @@
       "sourceFileCount": 30,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/word/",
-      "apiUrl": null,
+      "apiUrl": "/api/word-google-docs/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.GoogleDocs"
     },
     {
@@ -1774,7 +1774,7 @@
       "sourceFileCount": 76,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/word/",
-      "apiUrl": null,
+      "apiUrl": "/api/word-html/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Html"
     },
     {
@@ -1787,7 +1787,7 @@
       "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/iwork/",
-      "apiUrl": null,
+      "apiUrl": "/api/word-iwork/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.IWork"
     },
     {
@@ -1800,7 +1800,7 @@
       "sourceFileCount": 29,
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/word/",
-      "apiUrl": null,
+      "apiUrl": "/api/word-markdown/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Markdown"
     },
     {
@@ -1813,7 +1813,7 @@
       "sourceFileCount": 10,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/word/",
-      "apiUrl": null,
+      "apiUrl": "/api/word-open-document/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.OpenDocument"
     },
     {
@@ -1823,10 +1823,10 @@
       "description": "PDF converter for OfficeIMO.Word - Export Word documents to PDF using the first-party OfficeIMO.Pdf engine.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
-      "sourceFileCount": 46,
+      "sourceFileCount": 47,
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/word/",
-      "apiUrl": null,
+      "apiUrl": "/api/word-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Pdf"
     },
     {
@@ -1839,7 +1839,7 @@
       "sourceFileCount": 20,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/word/",
-      "apiUrl": null,
+      "apiUrl": "/api/word-rtf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Rtf"
     },
     {
@@ -1852,7 +1852,7 @@
       "sourceFileCount": 99,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/workflows/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Workflows"
     },
     {
@@ -1865,7 +1865,7 @@
       "sourceFileCount": 5,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
+      "apiUrl": "/api/zip/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Zip"
     }
   ]
