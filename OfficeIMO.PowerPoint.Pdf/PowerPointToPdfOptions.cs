@@ -254,6 +254,13 @@ public sealed class PowerPointToPdfOptions {
     /// </summary>
     internal PdfCore.PdfConversionReport Report { get; private set; } = new PdfCore.PdfConversionReport();
 
+    /// <summary>Creates an independent copy of renderer settings, including PDF options.</summary>
+    public PowerPointToPdfOptions Clone() {
+        var copy = CloneForConversion();
+        copy.PdfOptions = PdfOptions?.Clone();
+        return copy;
+    }
+
     internal PowerPointToPdfOptions CloneForConversion() {
         var clone = (PowerPointToPdfOptions)MemberwiseClone();
         clone.ResourcePolicy = ResourcePolicy.Clone();

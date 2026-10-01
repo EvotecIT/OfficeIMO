@@ -6,6 +6,14 @@ public static class OfficeWorkflow {
     public static OfficeWorkflowBuilder Convert(string inputPath) =>
         Create(OfficeWorkflowOperation.Convert, inputPath);
 
+    /// <summary>Creates an incremental directory conversion batch through the existing route catalog.</summary>
+    public static OfficeConversionBatchBuilder ConvertDirectory(string inputDirectory) =>
+        new(new OfficeConversionBatchRequest { InputDirectory = inputDirectory, OutputDirectory = "" });
+
+    /// <summary>Creates a conversion batch from explicit local files.</summary>
+    public static OfficeConversionBatchBuilder ConvertFiles(params string[] inputPaths) =>
+        new(new OfficeConversionBatchRequest { InputPaths = inputPaths?.ToArray() ?? throw new ArgumentNullException(nameof(inputPaths)), OutputDirectory = "" });
+
     /// <summary>Creates a PDF inspection workflow.</summary>
     public static OfficeWorkflowBuilder Inspect(string inputPath) =>
         Create(OfficeWorkflowOperation.Inspect, inputPath);

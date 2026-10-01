@@ -3,11 +3,29 @@ using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Word.Pdf;
+using OfficeIMO.Markdown.Pdf;
+using OfficeIMO.Rtf.Pdf;
+using System.Text.Json.Serialization;
 
 namespace OfficeIMO.Workflows;
 
 /// <summary>Route-specific settings captured before a conversion starts. Unspecified values retain each route's defaults.</summary>
 public sealed class OfficeWorkflowConversionOptions {
+    /// <summary>Runtime password for encrypted DOCX, XLSX and PPTX inputs. Never serialized into checkpoint settings.</summary>
+    [JsonIgnore]
+    public string? SourcePassword { get; set; }
+    /// <summary>Existing Word renderer settings for DOC and DOCX input.</summary>
+    public WordToPdfOptions? Word { get; set; }
+    /// <summary>Existing Excel renderer settings for XLSX input.</summary>
+    public ExcelToPdfOptions? Excel { get; set; }
+    /// <summary>Existing presentation renderer settings for PPTX input.</summary>
+    public PowerPointToPdfOptions? PowerPoint { get; set; }
+    /// <summary>Existing HTML renderer settings. Workflow resource access remains scoped to the source.</summary>
+    public HtmlToPdfOptions? Html { get; set; }
+    /// <summary>Existing Markdown renderer settings.</summary>
+    public MarkdownToPdfOptions? Markdown { get; set; }
+    /// <summary>Existing RTF renderer settings.</summary>
+    public RtfToPdfOptions? Rtf { get; set; }
     /// <summary>Literal-text settings, valid only for the TXT-to-PDF route.</summary>
     public PdfPlainTextOptions? PlainText { get; set; }
     /// <summary>Known legacy DOC import loss blocks output unless explicitly accepted.</summary>
@@ -31,11 +49,51 @@ public sealed class OfficeWorkflowConversionOptions {
     public OfficeWorkflowConversionOptions Clone() {
         var copy = (OfficeWorkflowConversionOptions)MemberwiseClone();
         copy.PlainText = PlainText?.Clone();
+        copy.Word = Word?.Clone();
+        copy.Excel = Excel?.Clone();
+        copy.PowerPoint = PowerPoint?.Clone();
+        copy.Html = Html?.ClonePdf();
+        copy.Markdown = Markdown?.Clone();
+        copy.Rtf = Rtf?.Clone();
+        return copy;
+    }
+
+    /// <summary>Selects settings applicable to one route in a mixed-format batch.</summary>
+    public OfficeWorkflowConversionOptions ForRoute(string routeId) {
+        OfficeWorkflowRoute route = OfficeWorkflowCatalog.FindExecutable(routeId)
+            ?? throw new ArgumentException("Choose an executable conversion route.", nameof(routeId));
+        routeId = route.Id;
+        var copy = Clone();
+        if (routeId is not "docx-pdf" and not "xlsx-pdf" and not "pptx-pdf") copy.SourcePassword = null;
+        if (routeId is not "doc-pdf" and not "docx-pdf") copy.Word = null;
+        if (routeId != "xlsx-pdf") { copy.Excel = null; copy.WorksheetLayout = null; }
+        if (routeId != "pptx-pdf") copy.PowerPoint = null;
+        if (routeId != "html-pdf") copy.Html = null;
+        if (routeId != "markdown-pdf") copy.Markdown = null;
+        if (routeId != "rtf-pdf") copy.Rtf = null;
+        if (routeId != "txt-pdf") copy.PlainText = null;
+        if (routeId != "doc-pdf") copy.LegacyDocLossPolicy = OfficeConversionLossPolicy.Block;
+        if (!route.SupportsPageSelection) copy.PageRanges = null;
+        if (routeId != "pdf-docx") copy.WordMode = null;
+        if (routeId != "pdf-pptx") copy.PowerPointMode = null;
+        if (copy.WordMode != PdfWordImportMode.VisualPages && copy.PowerPointMode is not
+            PdfPowerPointImportMode.VisualPages and not PdfPowerPointImportMode.HybridVisualAndEditableTables) copy.RasterDpi = null;
+        if (routeId != "pdf-html") copy.HtmlProfile = null;
+        if (!route.SupportsPdfCompression) copy.CompressPdfOutput = false;
         return copy;
     }
 
     internal OfficeWorkflowConversionOptions Snapshot(OfficeWorkflowRoute route) {
         OfficeWorkflowConversionOptions copy = Clone();
+        if (copy.SourcePassword != null && route.Id is not "docx-pdf" and not "xlsx-pdf" and not "pptx-pdf")
+            throw new ArgumentException("A source password is supported for DOCX, XLSX and PPTX conversion.");
+        if ((copy.Word != null && route.Id is not "doc-pdf" and not "docx-pdf") ||
+            (copy.Excel != null && route.Id != "xlsx-pdf") || (copy.PowerPoint != null && route.Id != "pptx-pdf") ||
+            (copy.Html != null && route.Id != "html-pdf") || (copy.Markdown != null && route.Id != "markdown-pdf") ||
+            (copy.Rtf != null && route.Id != "rtf-pdf"))
+            throw new ArgumentException("Renderer settings must match the selected conversion route.");
+        if (copy.Html?.ResourceResolver != null)
+            throw new ArgumentException("Workflow HTML resources use the scoped source resolver. Use the native HTML adapter for runtime custom resolvers.");
         if (copy.PlainText != null && route.Id != "txt-pdf") throw new ArgumentException("Plain-text settings require TXT-to-PDF conversion.");
         if (copy.LegacyDocLossPolicy is not OfficeConversionLossPolicy.Block and not OfficeConversionLossPolicy.Allow ||
             (route.Id != "doc-pdf" && copy.LegacyDocLossPolicy != OfficeConversionLossPolicy.Block))

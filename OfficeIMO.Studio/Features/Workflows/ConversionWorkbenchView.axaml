@@ -52,31 +52,31 @@
           <Button Classes="tool" AutomationProperties.Name="{loc:Loc ConversionWorkbench.ChooseFolder}" Content="{loc:Loc ConversionWorkbench.ChooseFolder}"
                   Command="{Binding ConversionWorkbench.ChooseOutputFolderCommand}"
                   HorizontalAlignment="Left" />
-          <Expander x:Name="ArchivePanel" Header="{loc:Loc Conversion.Archive.Title}" HorizontalAlignment="Stretch">
+          <Expander x:Name="BatchExportPanel" Header="{loc:Loc Conversion.BatchExport.Title}" HorizontalAlignment="Stretch">
             <StackPanel Spacing="8">
-              <TextBlock Text="{loc:Loc Conversion.Archive.Description}" TextWrapping="Wrap" />
-              <StackPanel Spacing="6" IsEnabled="{Binding ConversionWorkbench.Archive.CanEdit}">
-                <TextBlock Text="{loc:Loc Conversion.Archive.Source}" FontWeight="SemiBold" />
-                <TextBox Text="{Binding ConversionWorkbench.Archive.InputDirectory, Mode=TwoWay}" />
-                <Button Classes="tool" Content="{loc:Loc Conversion.Archive.ChooseSource}" Command="{Binding ConversionWorkbench.Archive.ChooseFolderCommand}" CommandParameter="input" />
-                <TextBlock Text="{loc:Loc Conversion.Archive.Output}" FontWeight="SemiBold" />
-                <TextBox Text="{Binding ConversionWorkbench.Archive.OutputDirectory, Mode=TwoWay}" />
-                <Button Classes="tool" Content="{loc:Loc Conversion.Archive.ChooseOutput}" Command="{Binding ConversionWorkbench.Archive.ChooseFolderCommand}" CommandParameter="output" />
-                <TextBlock Text="{loc:Loc Conversion.Archive.Checkpoint}" FontWeight="SemiBold" />
-                <TextBox Text="{Binding ConversionWorkbench.Archive.CheckpointDirectory, Mode=TwoWay}" />
-                <Button Classes="tool" Content="{loc:Loc Conversion.Archive.ChooseCheckpoint}" Command="{Binding ConversionWorkbench.Archive.ChooseFolderCommand}" CommandParameter="state" />
+              <TextBlock Text="{loc:Loc Conversion.BatchExport.Description}" TextWrapping="Wrap" />
+              <StackPanel Spacing="6" IsEnabled="{Binding ConversionWorkbench.BatchExport.CanEdit}">
+                <TextBlock Text="{loc:Loc Conversion.BatchExport.Source}" FontWeight="SemiBold" />
+                <TextBox Text="{Binding ConversionWorkbench.BatchExport.InputDirectory, Mode=TwoWay}" />
+                <Button Classes="tool" Content="{loc:Loc Conversion.BatchExport.ChooseSource}" Command="{Binding ConversionWorkbench.BatchExport.ChooseFolderCommand}" CommandParameter="input" />
+                <TextBlock Text="{loc:Loc Conversion.BatchExport.Output}" FontWeight="SemiBold" />
+                <TextBox Text="{Binding ConversionWorkbench.BatchExport.OutputDirectory, Mode=TwoWay}" />
+                <Button Classes="tool" Content="{loc:Loc Conversion.BatchExport.ChooseOutput}" Command="{Binding ConversionWorkbench.BatchExport.ChooseFolderCommand}" CommandParameter="output" />
+                <TextBlock Text="{loc:Loc Conversion.BatchExport.Checkpoint}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                <TextBox Text="{Binding ConversionWorkbench.BatchExport.CheckpointDirectory, Mode=TwoWay}" />
+                <Button Classes="tool" Content="{loc:Loc Conversion.BatchExport.ChooseCheckpoint}" Command="{Binding ConversionWorkbench.BatchExport.ChooseFolderCommand}" CommandParameter="state" />
                 <TextBlock Text="{loc:Loc Conversion.Text.Encoding}" />
-                <TextBox Text="{Binding ConversionWorkbench.Archive.TextEncoding, Mode=TwoWay}" PlaceholderText="{loc:Loc Conversion.Text.EncodingHint}" />
+                <TextBox Text="{Binding ConversionWorkbench.BatchExport.TextEncoding, Mode=TwoWay}" PlaceholderText="{loc:Loc Conversion.Text.EncodingHint}" />
                 <TextBlock Text="{loc:Loc Conversion.Text.Tabs}" />
-                <NumericUpDown Minimum="1" Maximum="32" Increment="1" Value="{Binding ConversionWorkbench.Archive.TabSize, Mode=TwoWay}" />
-                <CheckBox Content="{loc:Loc Conversion.Archive.AcceptLoss}" IsChecked="{Binding ConversionWorkbench.Archive.AllowLegacyImportLoss, Mode=TwoWay}" />
-                <CheckBox Content="{loc:Loc Conversion.Archive.Retry}" IsChecked="{Binding ConversionWorkbench.Archive.RetryFailed, Mode=TwoWay}" />
+                <NumericUpDown Minimum="1" Maximum="32" Increment="1" Value="{Binding ConversionWorkbench.BatchExport.TabSize, Mode=TwoWay}" />
+                <CheckBox Content="{loc:Loc Conversion.BatchExport.AcceptLoss}" IsChecked="{Binding ConversionWorkbench.BatchExport.AllowLegacyImportLoss, Mode=TwoWay}" />
+                <CheckBox Content="{loc:Loc Conversion.BatchExport.Retry}" IsChecked="{Binding ConversionWorkbench.BatchExport.RetryFailed, Mode=TwoWay}" />
               </StackPanel>
               <WrapPanel>
-                <Button Classes="primary" Content="{loc:Loc Conversion.Archive.Run}" Command="{Binding ConversionWorkbench.Archive.RunCommand}" Margin="0,0,6,6" />
-                <Button Classes="tool" Content="{loc:Loc Conversion.Archive.Cancel}" Command="{Binding ConversionWorkbench.Archive.CancelCommand}" Margin="0,0,0,6" />
+                <Button Classes="primary" Content="{loc:Loc Conversion.BatchExport.Run}" Command="{Binding ConversionWorkbench.BatchExport.RunCommand}" Margin="0,0,6,6" />
+                <Button Classes="tool" Content="{loc:Loc Conversion.BatchExport.Cancel}" Command="{Binding ConversionWorkbench.BatchExport.CancelCommand}" Margin="0,0,0,6" />
               </WrapPanel>
-              <TextBlock Text="{Binding ConversionWorkbench.Archive.Status}" TextWrapping="Wrap" FontSize="12" />
+              <TextBlock Text="{Binding ConversionWorkbench.BatchExport.Status}" TextWrapping="Wrap" FontSize="12" />
             </StackPanel>
           </Expander>
         </StackPanel>
@@ -189,7 +189,7 @@
                      Foreground="{DynamicResource StudioAccentBrush}" FontWeight="SemiBold" TextWrapping="Wrap" />
           <StackPanel Spacing="8" IsEnabled="{Binding ConversionWorkbench.CanEditQueue}">
             <StackPanel Spacing="8" IsEnabled="{Binding ConversionWorkbench.SelectedJob.CanEditOptions}">
-              <CheckBox IsVisible="{Binding ConversionWorkbench.SelectedJob.IsLegacyWordExport}" Content="{loc:Loc Conversion.Archive.AcceptLoss}" IsChecked="{Binding ConversionWorkbench.SelectedJob.AllowLegacyImportLoss, Mode=TwoWay}" />
+              <CheckBox IsVisible="{Binding ConversionWorkbench.SelectedJob.IsLegacyWordExport}" Content="{loc:Loc Conversion.BatchExport.AcceptLoss}" IsChecked="{Binding ConversionWorkbench.SelectedJob.AllowLegacyImportLoss, Mode=TwoWay}" />
               <StackPanel IsVisible="{Binding ConversionWorkbench.SelectedJob.IsPlainTextExport}" Spacing="4">
                 <TextBlock Text="{loc:Loc Conversion.Text.Encoding}" />
                 <TextBox Text="{Binding ConversionWorkbench.SelectedJob.TextEncoding, Mode=TwoWay}" PlaceholderText="{loc:Loc Conversion.Text.EncodingHint}" />
