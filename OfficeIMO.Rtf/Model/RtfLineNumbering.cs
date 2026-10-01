@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Section line-numbering settings.
 /// </summary>
-public sealed class RtfLineNumbering {
+public sealed partial class RtfLineNumbering {
     /// <summary>Line-number increment modulus. A value of 0 represents no line numbering.</summary>
     public int? CountBy { get; set; }
 

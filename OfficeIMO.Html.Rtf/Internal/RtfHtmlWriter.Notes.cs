@@ -36,7 +36,7 @@ internal static partial class RtfHtmlWriter {
                 builder.Append("<br>");
             }
 
-            AppendInlines(builder, note.Paragraphs[index].Inlines, options, document);
+            AppendInlines(builder, note.Paragraphs[index].Inlines, options, document, note.Paragraphs[index]);
         }
         builder.Append("</span>");
     }

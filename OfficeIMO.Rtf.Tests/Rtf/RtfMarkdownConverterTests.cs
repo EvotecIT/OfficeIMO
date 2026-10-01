@@ -370,8 +370,8 @@ public class RtfMarkdownConverterTests {
             """).ToRtf();
 
         Assert.Contains(@"\listoverridecount0", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\listoverridecount2", rtf, StringComparison.Ordinal);
-        Assert.Equal(2, CountOccurrences(rtf, @"{\lfolevel"));
+        Assert.Contains(@"\listoverridecount9", rtf, StringComparison.Ordinal);
+        Assert.Equal(9, CountOccurrences(rtf, @"{\lfolevel"));
         Assert.Contains(@"{\lfolevel\listoverridestartat1\levelstartat5}", rtf, StringComparison.Ordinal);
     }
 

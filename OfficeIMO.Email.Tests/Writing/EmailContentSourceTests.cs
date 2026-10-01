@@ -308,8 +308,15 @@ public sealed class EmailContentSourceTests {
 
 #if NET8_0_OR_GREATER
     [Fact]
-    public void StreamingReaderKeepsLargeAttachmentRetainedMemoryBounded() {
+#if EMAIL_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+#endif
+    public void StreamingReaderExternalizesFileAttachmentContent() {
+#if EMAIL_PERFORMANCE_EVIDENCE
         const int payloadLength = 16 * 1024 * 1024 + 31;
+#else
+        const int payloadLength = 257;
+#endif
         string path = Path.Combine(Path.GetTempPath(),
             string.Concat("officeimo-stream-budget-", Guid.NewGuid().ToString("N"), ".eml"));
         try {
@@ -317,23 +324,35 @@ public sealed class EmailContentSourceTests {
                 new GeneratedContentSource(payloadLength, allowSynchronous: true), payloadLength,
                 EmailFileFormat.Eml);
             new EmailDocumentWriter().Write(document, path, EmailFileFormat.Eml);
+#if EMAIL_PERFORMANCE_EVIDENCE
             ForceCollection();
             long before = GC.GetTotalMemory(forceFullCollection: false);
+#endif
             using EmailReadResult result = new EmailDocumentReader(new EmailReaderOptions(
                 maxInputBytes: 32L * 1024 * 1024,
                 maxAttachmentBytes: 24L * 1024 * 1024,
                 maxTotalAttachmentBytes: 24L * 1024 * 1024)).ReadStreaming(path);
+#if EMAIL_PERFORMANCE_EVIDENCE
             ForceCollection();
             long retainedGrowth = Math.Max(0, GC.GetTotalMemory(forceFullCollection: false) - before);
+#endif
             EmailAttachment attachment = Assert.Single(result.Document.Attachments);
 
             Assert.True(result.UsesFileBackedContent);
             Assert.Null(attachment.Content);
             Assert.Equal(payloadLength, attachment.ContentSource!.Length);
+#if EMAIL_PERFORMANCE_EVIDENCE
             long maximumRetainedGrowth = (payloadLength / 2L) + (1024L * 1024L);
             Assert.True(retainedGrowth <= maximumRetainedGrowth,
                 $"Retained managed memory grew by {retainedGrowth:N0} bytes for a {payloadLength:N0}-byte attachment; " +
                 $"the bounded allowance was {maximumRetainedGrowth:N0} bytes.");
+#else
+            using (Stream content = attachment.OpenContentStream()) {
+                AssertGeneratedContent(content, payloadLength);
+            }
+            result.Dispose();
+            Assert.Throws<ObjectDisposedException>(() => attachment.OpenContentStream());
+#endif
         } finally {
             try { if (File.Exists(path)) File.Delete(path); }
             catch (IOException) { }
@@ -437,11 +456,13 @@ public sealed class EmailContentSourceTests {
         }
     }
 
+#if EMAIL_PERFORMANCE_EVIDENCE
     private static void ForceCollection() {
         GC.Collect();
         GC.WaitForPendingFinalizers();
         GC.Collect();
     }
+#endif
 
     private sealed class GeneratedContentSource : IEmailContentSource {
         private readonly int _length;

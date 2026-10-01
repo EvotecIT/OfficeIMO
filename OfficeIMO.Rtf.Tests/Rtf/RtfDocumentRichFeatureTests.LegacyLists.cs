@@ -172,7 +172,7 @@ public partial class RtfDocumentRichFeatureTests {
         RtfReadResult read = RtfDocument.Read(rtf);
 
         Assert.Contains(@"{\listtext \f0 1.\tab }", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\pard\pn\pnlvlbody\ls3\ilvl0\ql Item\par", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\pard\ls3\ilvl0\ql Item\par", rtf, StringComparison.Ordinal);
         RtfParagraph roundTrip = Assert.Single(read.Document.Paragraphs);
         Assert.Equal("Item", roundTrip.ToPlainText());
         Assert.NotNull(roundTrip.ListText);

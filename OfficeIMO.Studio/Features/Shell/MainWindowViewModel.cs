@@ -41,6 +41,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     private bool _disposed;
     private bool _discardOnNextTransition;
     private readonly StudioApplicationServices _services;
+    // Background completions belong to this application, even after its dispatcher shuts down.
+    private readonly Avalonia.Threading.Dispatcher _uiDispatcher = Avalonia.Threading.Dispatcher.UIThread;
     private readonly IStudioLocalizer _localizer;
     private StudioCommandCatalog? _commands;
     private readonly bool _persistDocumentViews;

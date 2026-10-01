@@ -242,10 +242,19 @@ public sealed class OpenDocumentConversionContracts {
 
 #if NET8_0_OR_GREATER
     [Fact]
+#if OPENDOCUMENT_CONVERTERS_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+    [Trait("Category", "ResourcePerformanceEvidence")]
+#endif
     public void DeepNestedInlineNodesUseBoundedAllocationInOdtAndOdp() {
+#if OPENDOCUMENT_CONVERTERS_PERFORMANCE_EVIDENCE
         const int depth = 96;
         const long allocationLimit = 32 * 1024 * 1024;
         var characters = new char[256 * 1024];
+#else
+        const int depth = 4;
+        var characters = new char[32];
+#endif
         var random = new Random(12345);
         for (int index = 0; index < characters.Length; index++) {
             characters[index] = (char)('a' + random.Next(26));
@@ -258,10 +267,14 @@ public sealed class OpenDocumentConversionContracts {
         span.AddText(payload);
         OdtParagraph odtParagraph = Assert.Single(OdtDocument.Load(new MemoryStream(odt.ToBytes())).Paragraphs);
 
+#if OPENDOCUMENT_CONVERTERS_PERFORMANCE_EVIDENCE
         long before = GC.GetAllocatedBytesForCurrentThread();
+#endif
         IReadOnlyList<OdtInlineNode> odtNodes = odtParagraph.InlineNodes;
+#if OPENDOCUMENT_CONVERTERS_PERFORMANCE_EVIDENCE
         long odtAllocation = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.InRange(odtAllocation, 0, allocationLimit);
+#endif
         OdtInlineNode odtNode = Assert.Single(odtNodes);
         for (int index = 1; index < depth; index++) odtNode = Assert.Single(odtNode.Children);
         Assert.Equal(payload, Assert.Single(odtNode.Children).Text);
@@ -275,10 +288,14 @@ public sealed class OpenDocumentConversionContracts {
         OdpParagraph odpParagraph = Assert.Single(Assert.IsType<OdpTextBox>(
             Assert.Single(OdpPresentation.Load(new MemoryStream(odp.ToBytes())).Slides[0].Shapes)).Paragraphs);
 
+#if OPENDOCUMENT_CONVERTERS_PERFORMANCE_EVIDENCE
         before = GC.GetAllocatedBytesForCurrentThread();
+#endif
         IReadOnlyList<OdpInlineNode> odpNodes = odpParagraph.InlineNodes;
+#if OPENDOCUMENT_CONVERTERS_PERFORMANCE_EVIDENCE
         long odpAllocation = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.InRange(odpAllocation, 0, allocationLimit);
+#endif
         OdpInlineNode odpNode = Assert.Single(odpNodes);
         for (int index = 1; index < depth; index++) odpNode = Assert.Single(odpNode.Children);
         Assert.Equal(payload, Assert.Single(odpNode.Children).Text);

@@ -133,7 +133,7 @@ public sealed partial class RtfLosslessEditor {
         AddOptionalFileNumber(children, "frelative", fileReference.RelativePathStart);
         AddOptionalFileNumber(children, "fosnum", fileReference.OperatingSystemNumber);
         AddFileSourceControls(children, fileReference.Sources);
-        children.Add(new RtfText(0, " " + fileReference.Path, " " + RtfTextEncoding.EncodeText(fileReference.Path)));
+        children.Add(CreateEncodedText(0, " " + fileReference.Path, " " + RtfTextEncoding.EncodeText(fileReference.Path)));
         return new RtfGroup(0, children);
     }
 

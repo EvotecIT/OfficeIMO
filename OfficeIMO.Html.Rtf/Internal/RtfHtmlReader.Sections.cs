@@ -42,7 +42,7 @@ internal static partial class RtfHtmlReader {
         }
 
         private void AddSectionBlock(IRtfBlock block) {
-            if (_currentSection != null && _cell == null) {
+            if (_currentSection != null && _cell == null && !_currentSection.Blocks.Contains(block)) {
                 _currentSection.AddParsedBlock(block);
             }
         }
@@ -64,6 +64,7 @@ internal static partial class RtfHtmlReader {
                 }
 
                 var color = new RtfColor(ToByte(red.Value), ToByte(green.Value), ToByte(blue.Value)) {
+                    IsAutomatic = ReadBool(values, prefix + ".automatic") == true,
                     ThemeColor = ReadEnum<RtfThemeColor>(values, prefix + ".theme"),
                     Tint = ReadInt(values, prefix + ".tint"),
                     Shade = ReadInt(values, prefix + ".shade")
@@ -117,9 +118,9 @@ internal static partial class RtfHtmlReader {
             pageSetup.PageNumberPositionXTwips = ReadInt(values, prefix + ".pageNumberX");
             pageSetup.PageNumberPositionYTwips = ReadInt(values, prefix + ".pageNumberY");
             pageSetup.PageNumberFormat = ReadEnum<RtfPageNumberFormat>(values, prefix + ".pageNumberFormat");
-            pageSetup.Landscape = ReadBool(values, prefix + ".landscape") == true;
-            pageSetup.DifferentFirstPageHeaderFooter = ReadBool(values, prefix + ".differentFirstPage") == true;
-            pageSetup.RtlGutter = ReadBool(values, prefix + ".rtlGutter") == true;
+            pageSetup.DirectLandscape = ReadBool(values, prefix + ".landscape");
+            pageSetup.DirectDifferentFirstPageHeaderFooter = ReadBool(values, prefix + ".differentFirstPage");
+            pageSetup.DirectRtlGutter = ReadBool(values, prefix + ".rtlGutter");
             ApplyPageBorders(pageSetup.PageBorders, values, prefix + ".borders");
         }
 

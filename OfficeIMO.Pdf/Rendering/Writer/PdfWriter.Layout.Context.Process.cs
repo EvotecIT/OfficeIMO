@@ -18,6 +18,7 @@ internal static partial class PdfWriter {
                 if (block is PageBlock pageBlock) {
                     pendingFloatingBookmarks.Clear();
                     FlushPage(pageDirty || HasCurrentPageNonContentObjects());
+                    PadSectionStart(pageBlock.Options.PageStartParity);
                     optionsStack.Push(pageBlock.Options);
                     pageGroupStack.Push(currentPageGroupId);
                     currentOpts = pageBlock.Options;

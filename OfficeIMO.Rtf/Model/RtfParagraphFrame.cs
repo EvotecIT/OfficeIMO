@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Absolute positioning and frame metadata for an RTF paragraph.
 /// </summary>
-public sealed class RtfParagraphFrame {
+public sealed partial class RtfParagraphFrame {
     /// <summary>Frame width in twips, represented by <c>\absw</c>.</summary>
     public int? WidthTwips { get; set; }
 

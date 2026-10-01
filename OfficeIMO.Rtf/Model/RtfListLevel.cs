@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Level inside an RTF list definition.
 /// </summary>
-public sealed class RtfListLevel {
+public sealed partial class RtfListLevel {
     /// <summary>Creates a list level.</summary>
     public RtfListLevel(int levelIndex, RtfListKind kind = RtfListKind.Decimal) {
         if (levelIndex < 0) throw new ArgumentOutOfRangeException(nameof(levelIndex), "List level cannot be negative.");
@@ -53,10 +53,10 @@ public sealed class RtfListLevel {
     /// <summary>Whether picture bullets should keep their original size.</summary>
     public bool PictureNoSize { get; set; }
 
-    /// <summary>Marker text from <c>\leveltext</c>.</summary>
+    /// <summary>Marker template from <c>\leveltext</c>, with %1 through %9 denoting the corresponding level number.</summary>
     public string? Text { get; set; }
 
-    /// <summary>Marker number placeholders from <c>\levelnumbers</c>.</summary>
+    /// <summary>One-based placeholder offsets from <c>\levelnumbers</c>. Null lets normalized output derive the offsets from <see cref="Text"/>.</summary>
     public string? Numbers { get; set; }
 
     /// <summary>Left indentation in twips.</summary>

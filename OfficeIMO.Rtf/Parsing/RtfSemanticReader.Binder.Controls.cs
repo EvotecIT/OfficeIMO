@@ -12,6 +12,7 @@ internal static partial class RtfSemanticReader {
         }
 
         private void ApplyControlWord(RtfControlWord control, CharacterState state) {
+            if (RtfTextDecoder.ConsumeFallback(state)) return;
             if (TryApplyTabStopControl(control, state)) return;
             if (TryApplyBreakControl(control, state)) return;
             if (TryApplySectionControl(control, state)) return;
@@ -85,7 +86,6 @@ internal static partial class RtfSemanticReader {
 
                     RtfParagraph? pendingListText = state.PendingListTextAfterReset;
                     state.ResetParagraph();
-                    state.AnsiCodePage = ResolveFontCodePage(_document.Settings.DefaultFontId, state.DocumentAnsiCodePage);
                     if (pendingLegacyNumbering != null) {
                         ApplyLegacyNumberingToState(state, pendingLegacyNumbering);
                     }
@@ -137,7 +137,7 @@ internal static partial class RtfSemanticReader {
                     state.OutlineLevel = control.Parameter;
                     return;
                 case "tab":
-                    AppendText("\t", state);
+                    AppendText(RtfTextDecoder.Flush(state) + "\t", state);
                     return;
                 case "chpgn":
                     AppendGeneratedText(RtfGeneratedTextKind.PageNumber, state);
@@ -174,7 +174,7 @@ internal static partial class RtfSemanticReader {
                 case "rtlmark":
                 case "zwj":
                 case "zwnj":
-                    AppendText(GetSpecialCharacterText(control.Name), state);
+                    AppendText(RtfTextDecoder.Flush(state) + GetSpecialCharacterText(control.Name), state);
                     return;
                 case "qc":
                     state.Alignment = RtfTextAlignment.Center;
@@ -343,10 +343,10 @@ internal static partial class RtfSemanticReader {
                     state.AnsiCodePage = ResolveFontCodePage(control.Parameter, state.DocumentAnsiCodePage);
                     return;
                 case "cf":
-                    state.ForegroundColorIndex = control.Parameter.GetValueOrDefault() == 0 ? null : control.Parameter;
+                    state.ForegroundColorIndex = control.Parameter;
                     return;
                 case "highlight":
-                    state.HighlightColorIndex = control.Parameter.GetValueOrDefault() == 0 ? null : control.Parameter;
+                    state.HighlightColorIndex = control.Parameter;
                     return;
                 case "cs":
                     state.CharacterStyleId = control.Parameter;
@@ -356,9 +356,17 @@ internal static partial class RtfSemanticReader {
                     return;
                 case "s":
                     state.ParagraphStyleId = control.Parameter;
+                    if (state.UseDefaultCharacterFormatting) {
+                        state.UseDefaultCharacterFormatting = false;
+                        state.DirectBold = null;
+                        state.DirectItalic = null;
+                        state.DirectHidden = null;
+                        state.DirectUnderlineStyle = null;
+                    }
                     return;
                 case "ls":
                     state.ListId = control.Parameter;
+                    state.ListKind = control.Parameter.GetValueOrDefault() == 0 ? RtfListKind.None : RtfListKind.Decimal;
                     ApplyListOverride(state);
                     return;
                 case "ilvl":
@@ -366,7 +374,7 @@ internal static partial class RtfSemanticReader {
                         ? Math.Min(8, Math.Max(0, control.Parameter.Value))
                         : null;
                     ApplyListLevel(state);
-                    if (state.ListKind == RtfListKind.None) {
+                    if (state.ListKind == RtfListKind.None && state.ListId != 0) {
                         state.ListKind = RtfListKind.Decimal;
                     }
                     return;

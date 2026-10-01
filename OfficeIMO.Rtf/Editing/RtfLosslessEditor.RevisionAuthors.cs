@@ -118,7 +118,7 @@ public sealed partial class RtfLosslessEditor {
     private static RtfGroup CreateRevisionAuthorGroup(string name) {
         string value = name + ";";
         return new RtfGroup(0, new RtfNode[] {
-            new RtfText(0, value, RtfTextEncoding.EncodeText(value))
+            CreateEncodedText(0, value, RtfTextEncoding.EncodeText(value))
         });
     }
 

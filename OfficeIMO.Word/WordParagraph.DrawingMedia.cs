@@ -24,13 +24,13 @@ using Wpg = DocumentFormat.OpenXml.Office2010.Word.DrawingGroup;
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
         /// <summary>
-        /// Gets the first image associated with this run, if any.
+        /// Gets the first independent image associated with this run, if any. Group-owned images remain part of their group.
         /// </summary>
         public WordImage? Image {
             get => EnumerateImages().FirstOrDefault();
         }
 
-        /// <summary>Enumerates every DrawingML or VML image represented by this run.</summary>
+        /// <summary>Enumerates independent DrawingML or VML images represented by this run.</summary>
         internal IEnumerable<WordImage> EnumerateImages() {
             if (_run == null) yield break;
 
@@ -54,7 +54,7 @@ namespace OfficeIMO.Word {
                          element => element is V.Shape direct
                              ? new[] { direct }
                              : element.Descendants<V.Shape>())) {
-                if (shape.GetFirstChild<V.ImageData>() != null) {
+                if (!shape.Ancestors<V.Group>().Any() && shape.GetFirstChild<V.ImageData>() != null) {
                     yield return new WordImage(_document, _paragraph, _run, shape);
                 }
             }
@@ -63,7 +63,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Enumerates direct run content while selecting the active markup-compatibility branch.
         /// </summary>
-        private IEnumerable<DocumentFormat.OpenXml.OpenXmlElement> EnumerateEffectiveRunContent() {
+        internal IEnumerable<DocumentFormat.OpenXml.OpenXmlElement> EnumerateEffectiveRunContent() {
             foreach (OpenXmlElement child in VisibleSourceRunChildren()) {
                 if (child is not AlternateContent alternateContent) {
                     yield return child;
@@ -165,7 +165,7 @@ namespace OfficeIMO.Word {
                     // DrawingML text boxes
                     var drawing = VisibleSourceRunChildren().OfType<WordDrawing>().FirstOrDefault();
                     if (drawing is not null) {
-                        if (drawing.Descendants<Wps.TextBoxInfo2>().Any()) {
+                        if (drawing.Descendants<Wps.TextBoxInfo2>().Any(box => !box.Ancestors<Wpg.WordprocessingGroup>().Any())) {
                             return new WordTextBox(_document, _paragraph, _run, selectedDrawing: drawing);
                         }
                     }
@@ -176,11 +176,12 @@ namespace OfficeIMO.Word {
                         DocumentFormat.OpenXml.OpenXmlCompositeElement? branch =
                             WordAlternateContentResolver.SelectBranch(ac);
                         if (branch is not null) {
-                            bool branchHasTextBox = branch.Descendants<Wps.TextBoxInfo2>().Any() || branch.Descendants<V.TextBox>().Any();
+                            bool branchHasTextBox = branch.Descendants<Wps.TextBoxInfo2>().Any(box => !box.Ancestors<Wpg.WordprocessingGroup>().Any()) ||
+                                branch.Descendants<V.TextBox>().Any(box => !box.Ancestors<V.Group>().Any());
                             if (branchHasTextBox) {
                                 return new WordTextBox(_document, _paragraph, _run,
                                     selectedAlternateContent: ac,
-                                    selectedVmlTextBox: branch.Descendants<V.TextBox>().FirstOrDefault());
+                                    selectedVmlTextBox: branch.Descendants<V.TextBox>().FirstOrDefault(box => !box.Ancestors<V.Group>().Any()));
                             }
                             bool hasShape = branch.Descendants<Wps.WordprocessingShape>().Any() ||
                                 branch.Descendants<V.Shape>().Any(s => !s.Descendants<V.ImageData>().Any() && !s.Descendants<V.TextBox>().Any());
@@ -195,7 +196,7 @@ namespace OfficeIMO.Word {
                     }
 
                     // VML text boxes
-                    if (VisibleSourceRunDescendants<V.TextBox>().FirstOrDefault() is { } vmlTextBox) {
+                    if (VisibleSourceRunDescendants<V.TextBox>().FirstOrDefault(box => !box.Ancestors<V.Group>().Any()) is { } vmlTextBox) {
                         return new WordTextBox(_document, _paragraph, _run, selectedVmlTextBox: vmlTextBox);
                     }
                 }
@@ -213,10 +214,11 @@ namespace OfficeIMO.Word {
                         return null;
                     }
                     // VML shapes
-                    OpenXmlElement? vmlShape = VisibleSourceRunChildren()
+                    OpenXmlElement? vmlShape = EnumerateEffectiveRunContent()
                         .SelectMany(child => child.Descendants().Prepend(child))
-                        .FirstOrDefault(element => element is V.Rectangle or V.RoundRectangle or V.Oval or V.Line or V.PolyLine ||
-                            element is V.Shape shape && !shape.Descendants<V.ImageData>().Any() && !shape.Descendants<V.TextBox>().Any());
+                        .FirstOrDefault(element => !element.Ancestors<V.Group>().Any() &&
+                            (element is V.Rectangle or V.RoundRectangle or V.Oval or V.Line or V.PolyLine ||
+                            element is V.Shape shape && !shape.Descendants<V.ImageData>().Any() && !shape.Descendants<V.TextBox>().Any()));
                     if (vmlShape != null)
                         return new WordShape(_document, _paragraph, _run, selectedVmlShape: vmlShape);
 

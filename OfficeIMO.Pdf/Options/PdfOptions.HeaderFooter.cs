@@ -1,6 +1,16 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfOptions {
+    /// <summary>Uses visible page-number parity for odd/even headers and footers. First-page variants still refer to the first physical page of each section. The default uses section-relative page parity.</summary>
+    public bool UsePageNumberParityForHeaderFooter { get; set; }
+
+    internal int GetHeaderFooterVariantPageNumber(int sectionPageNumber, int visiblePageNumber) {
+        if (!UsePageNumberParityForHeaderFooter || (sectionPageNumber == 1 && DifferentFirstPageHeaderFooter)) {
+            return sectionPageNumber;
+        }
+        return visiblePageNumber % 2 == 0 ? 2 : 3;
+    }
+
     /// <summary>When true, renders header text using <see cref="HeaderFormat"/>.</summary>
     public bool ShowHeader { get; set; }
     /// <summary>Header text format, supports {page} and {pages}. Default: empty.</summary>

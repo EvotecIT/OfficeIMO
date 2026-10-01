@@ -5,7 +5,7 @@ namespace OfficeIMO.Word {
     /// Manages run property settings.
     /// </summary>
     public partial class WordParagraph {
-        private RunProperties? ScopedRunProperties => _stdRun != null
+        internal RunProperties? ScopedRunProperties => _stdRun != null
             ? _stdRun.SdtContentRun?.Descendants<Run>().FirstOrDefault()?.GetFirstChild<RunProperties>()
             : IsHyperLink ? Hyperlink?._runProperties : _runProperties;
         private static bool IsOnOffPropertyEnabled(OnOffType? property) {

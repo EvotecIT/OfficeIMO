@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// RGB color entry used by an RTF document.
 /// </summary>
-public sealed class RtfColor {
+public sealed partial class RtfColor {
     /// <summary>
     /// Initializes a color.
     /// </summary>
@@ -21,6 +21,9 @@ public sealed class RtfColor {
 
     /// <summary>Blue component.</summary>
     public byte Blue { get; }
+
+    /// <summary>Whether this entry is an empty automatic-color slot rather than an explicit RGB color.</summary>
+    public bool IsAutomatic { get; internal set; }
 
     /// <summary>Optional theme color token associated with this RGB color.</summary>
     public RtfThemeColor? ThemeColor { get; set; }

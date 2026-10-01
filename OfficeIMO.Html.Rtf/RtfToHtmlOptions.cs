@@ -24,11 +24,12 @@ public sealed partial class RtfToHtmlOptions {
     };
 
     /// <summary>
-    /// Creates options for a trusted OfficeIMO HTML round trip. The output can contain private
+    /// Creates a complete HTML document for a trusted OfficeIMO round trip, including document-level metadata. The output can contain private
     /// metadata and binary payloads and must not be published without sanitization.
     /// </summary>
     public static RtfToHtmlOptions CreateRoundTripProfile() => new RtfToHtmlOptions {
         ExportProfile = RtfHtmlExportProfile.DocumentRoundTrip,
+        FragmentOnly = false,
         UrlPolicy = HtmlUrlPolicy.CreateOfficeIMOProfile(),
         IncludeRoundTripMetadata = true,
         EmbedImagesAsDataUri = true,

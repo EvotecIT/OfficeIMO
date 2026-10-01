@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Raw control word carried by an RTF <c>\ffdata</c> destination.
 /// </summary>
-public sealed class RtfFormFieldDataControl {
+public sealed partial class RtfFormFieldDataControl {
     /// <summary>Creates a form-field data control.</summary>
     public RtfFormFieldDataControl(string name, int? parameter = null, bool hasParameter = false) {
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Form-field data control name cannot be empty.", nameof(name));

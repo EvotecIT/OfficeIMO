@@ -363,7 +363,7 @@ public partial class RtfDocumentRichFeatureTests {
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.Read(rtf);
 
-        Assert.Contains(@"\super 1{\footnote\pard\ql Footnote text\par", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\super 1{\footnote\pard\ql \chftn Footnote text}", rtf, StringComparison.Ordinal);
         Assert.Equal("Body1 after", Assert.Single(read.Document.Paragraphs).ToPlainText());
         RtfRun referenceRun = read.Document.Paragraphs[0].Runs.Single(run => run.Text == "1");
         Assert.Equal(RtfVerticalPosition.Superscript, referenceRun.VerticalPosition);
@@ -385,7 +385,7 @@ public partial class RtfDocumentRichFeatureTests {
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
         RtfReadResult read = RtfDocument.Read(rtf);
 
-        Assert.Contains(@"\super i{\endnote\pard\ql Endnote text\par", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\super i{\footnote\ftnalt\pard\ql \chftn Endnote text}", rtf, StringComparison.Ordinal);
         Assert.Equal("Bodyi after", Assert.Single(read.Document.Paragraphs).ToPlainText());
         RtfRun referenceRun = read.Document.Paragraphs[0].Runs.Single(run => run.Text == "i");
         Assert.Equal(RtfVerticalPosition.Superscript, referenceRun.VerticalPosition);

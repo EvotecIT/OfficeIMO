@@ -41,13 +41,19 @@ internal static partial class RtfHtmlWriter {
             builder.Append(EncodeAttribute(content));
             builder.Append("\" data-officeimo-rtf-kind=\"");
             builder.Append(FormatHeaderFooterKind(headerFooter.Kind));
+            for (int index = 0; index < document.Sections.Count; index++) {
+                if (!document.Sections[index].HeaderFooters.Contains(headerFooter)) continue;
+                builder.Append("\" data-officeimo-rtf-section-index=\"");
+                builder.Append(index.ToString(CultureInfo.InvariantCulture));
+                break;
+            }
             builder.Append("\">");
         }
     }
 
     private static string? EncodeHeaderFooterContent(RtfHeaderFooter headerFooter, RtfToHtmlOptions options, RtfDocument document) {
         if (headerFooter.Paragraphs.Count == 0) {
-            return null;
+            return string.Empty;
         }
 
         string newline = options.GetNewLine();

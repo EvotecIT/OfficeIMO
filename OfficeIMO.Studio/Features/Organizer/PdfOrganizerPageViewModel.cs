@@ -89,6 +89,7 @@ public sealed partial class PdfOrganizerPageViewModel : ObservableObject, IDispo
     }
 
     private async Task LoadAsync() {
+        Dispatcher uiDispatcher = Dispatcher.UIThread;
         CancelLoad();
         long generation = ++_loadGeneration;
         var cancellation = new CancellationTokenSource();
@@ -105,7 +106,7 @@ public sealed partial class PdfOrganizerPageViewModel : ObservableObject, IDispo
                 image = new Bitmap(stream);
             }
 
-            await Dispatcher.UIThread.InvokeAsync(() => {
+            await uiDispatcher.InvokeAsync(() => {
                 if (!_disposed && _attached && generation == _loadGeneration && !token.IsCancellationRequested) {
                     Scene = scene;
                     ReplaceImage(image);
@@ -116,13 +117,15 @@ public sealed partial class PdfOrganizerPageViewModel : ObservableObject, IDispo
         } catch (OperationCanceledException) {
             // Virtualization or a document refresh superseded this load.
         } catch (Exception ex) {
-            await Dispatcher.UIThread.InvokeAsync(() => {
+            await uiDispatcher.InvokeAsync(() => {
                 if (!_disposed && _attached && generation == _loadGeneration) Error = ex.Message;
             });
         } finally {
-            await Dispatcher.UIThread.InvokeAsync(() => {
-                if (!_disposed && generation == _loadGeneration) IsLoading = false;
-            });
+            if (!_disposed) {
+                await uiDispatcher.InvokeAsync(() => {
+                    if (!_disposed && generation == _loadGeneration) IsLoading = false;
+                });
+            }
         }
     }
 

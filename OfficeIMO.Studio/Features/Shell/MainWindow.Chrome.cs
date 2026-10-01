@@ -37,7 +37,7 @@ public sealed partial class MainWindow {
     private void OnJobRecordChanged(object? sender, PropertyChangedEventArgs e) {
         if (e.PropertyName != nameof(Features.Workflows.StudioJobRecord.IsActive) ||
             sender is not Features.Workflows.StudioJobRecord { IsActive: false } record) return;
-        Dispatcher.UIThread.Post(() => ShowJobToast(record));
+        this.Dispatcher.Post(() => ShowJobToast(record));
     }
 
     private void ShowJobToast(Features.Workflows.StudioJobRecord record) {
@@ -53,7 +53,7 @@ public sealed partial class MainWindow {
         if (this.TryFindResource("Studio" + tone + "Brush", ActualThemeVariant, out object? foreground) && foreground is Avalonia.Media.IBrush brush) JobToastIcon.Foreground = brush;
         if (this.TryFindResource("Studio" + tone + "SoftBrush", ActualThemeVariant, out object? background) && background is Avalonia.Media.IBrush soft) JobToastBadge.Background = soft;
         JobToast.IsVisible = true;
-        Dispatcher.UIThread.Post(() => {
+        this.Dispatcher.Post(() => {
             JobToast.Opacity = 1;
             JobToast.RenderTransform = TransformOperations.Parse("translateY(0px)");
         }, DispatcherPriority.Render);
@@ -147,7 +147,7 @@ public sealed partial class MainWindow {
     private void ShowToast() {
         if (!OperationToast.IsVisible) {
             OperationToast.IsVisible = true;
-            Dispatcher.UIThread.Post(() => {
+            this.Dispatcher.Post(() => {
                 if (!OperationToast.IsVisible) return;
                 OperationToast.Opacity = 1;
                 OperationToast.RenderTransform = TransformOperations.Parse("translateY(0px)");

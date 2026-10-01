@@ -98,6 +98,7 @@ internal static partial class PdfWriter {
             y = yStart;
             currentPage = new LayoutResult.Page { Options = options, PageGroupId = currentPageGroupId };
             sb.Clear();
+            behindTextCanvases.Clear();
             pageDirty = false;
             for (int i = 0; i < activeLayers.Count; i++) {
                 BeginLayerContent(activeLayers[i]);
@@ -106,6 +107,24 @@ internal static partial class PdfWriter {
 
         private void EnsurePage() {
             if (currentPage == null) StartPage(currentOpts);
+        }
+
+        private void PadSectionStart(PdfPageParity? parity) {
+            if (!parity.HasValue || pages.Count == 0) return;
+            bool nextPageIsEven = (pages.Count + 1) % 2 == 0;
+            if (nextPageIsEven == (parity == PdfPageParity.Even)) return;
+            PdfOptions previous = pages[pages.Count - 1].Options;
+            StartPage(new PdfOptions {
+                PageWidth = previous.PageWidth,
+                PageHeight = previous.PageHeight,
+                MarginLeft = previous.MarginLeft,
+                MarginRight = previous.MarginRight,
+                MarginTop = previous.MarginTop,
+                MarginBottom = previous.MarginBottom,
+                ShowHeader = false,
+                ShowPageNumbers = false
+            });
+            FlushPage(force: true);
         }
 
         private bool HasCurrentPageNonContentObjects() =>
@@ -130,6 +149,12 @@ internal static partial class PdfWriter {
             }
             for (int i = activeLayers.Count - 1; i >= 0; i--) {
                 sb.Append("EMC\n");
+            }
+            if (behindTextCanvases.Count > 0) {
+                var background = new StringBuilder();
+                foreach (var canvas in behindTextCanvases.OrderBy(item => item.ZOrder)) background.Append(canvas.Content);
+                sb.Insert(0, background.ToString());
+                behindTextCanvases.Clear();
             }
             currentPage.Content = pageContents.Store(sb);
             pages.Add(currentPage);

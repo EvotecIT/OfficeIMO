@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Document-level or section-level footnote and endnote numbering settings.
 /// </summary>
-public sealed class RtfNoteSettings {
+public sealed partial class RtfNoteSettings {
     /// <summary>Beginning footnote number.</summary>
     public int? FootnoteStartNumber { get; set; }
 

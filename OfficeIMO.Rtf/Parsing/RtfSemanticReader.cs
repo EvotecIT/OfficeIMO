@@ -11,6 +11,7 @@ internal static partial class RtfSemanticReader {
         var diagnostics = new List<RtfDiagnostic>(tree.Diagnostics);
         var binder = new Binder(options, diagnostics, cancellationToken);
         RtfDocument document = binder.Bind(tree.Root);
+        document.RecordReadNormalizationDiagnostics(diagnostics);
         return new RtfReadResult(document, tree, diagnostics.AsReadOnly());
     }
 
@@ -35,9 +36,9 @@ internal static partial class RtfSemanticReader {
         private RowBoxMeasurements _currentRowSpacing = new RowBoxMeasurements();
         private int _inlineCaptureDepth;
         private bool _hasSemanticSections;
+        private CharacterState? _finalParagraphState;
+        private bool _hasStandaloneBlockParagraph;
         private int? _currentSectionColumnNumber;
-        private Dictionary<int, RtfListOverride> _listOverridesById = null!;
-        private Dictionary<int, RtfListDefinition> _listDefinitionsById = null!;
         private Dictionary<int, RtfFont> _fontsById = null!;
         private readonly List<NestedTableContext> _nestedTableContexts = new List<NestedTableContext>();
         private readonly HashSet<int> _nestedTableBoundaryLevels = new HashSet<int>();
@@ -49,6 +50,7 @@ internal static partial class RtfSemanticReader {
         }
 
         public RtfDocument Bind(RtfGroup root) {
+            root = NormalizeExplicitFirstColor(root);
             _document = RtfDocument.Create();
             RtfControlWord? ansiCodePageControl = FindAnsiCodePageControl(root);
             RtfDocumentCharacterSet? characterSet = FindDocumentCharacterSet(root);
@@ -67,7 +69,7 @@ internal static partial class RtfSemanticReader {
             _document.ReplaceColors(ReadColorTable(root));
             _document.ReplaceStyles(ReadStylesheet(root, ansiCodePage, unicodeSkipCount));
             _document.ReplaceListDefinitions(ReadListDefinitions(root, ansiCodePage, unicodeSkipCount));
-            _document.ReplaceListOverrides(ReadListOverrides(root));
+            _document.ReplaceListOverrides(ReadListOverrides(root, ansiCodePage, unicodeSkipCount));
             _document.ReplaceRevisionAuthors(ReadRevisionAuthors(root, ansiCodePage, unicodeSkipCount));
             _document.RevisionRootSaveId = ReadRevisionRootSaveId(root);
             _document.ReplaceRevisionSaveIds(ReadRevisionSaveIds(root));
@@ -77,22 +79,22 @@ internal static partial class RtfSemanticReader {
                 _diagnostics.Add(new RtfDiagnostic(RtfDiagnosticSeverity.Warning, "RTF106", "File-table references were blocked by the configured read policy.", root.Position));
             }
             _document.ReplaceXmlNamespaces(ReadXmlNamespaces(root, ansiCodePage, unicodeSkipCount));
-            _listDefinitionsById = CreateListDefinitionLookup(_document.ListDefinitions);
-            _listOverridesById = CreateListOverrideLookup(_document.ListOverrides);
             ReadPageSetup(root, _document.PageSetup);
             ReadNoteSettings(root, _document.NoteSettings);
             ReadDocumentSettings(root, _document.Settings);
             ReadInfo(root, _document.Info, ansiCodePage, unicodeSkipCount);
             _document.ReplaceUserProperties(ReadUserProperties(root, ansiCodePage, unicodeSkipCount));
             _document.ReplaceDocumentVariables(ReadDocumentVariables(root, ansiCodePage, unicodeSkipCount));
-            _document.HtmlEncapsulation = ReadHtmlEncapsulation(root, ansiCodePage, unicodeSkipCount);
+            RtfHtmlEncapsulation? htmlEncapsulation = ReadHtmlEncapsulation(root, ansiCodePage, unicodeSkipCount: 1);
             _currentParagraph = new RtfParagraph();
             _currentSection = new RtfSection();
 
             bool hasExplicitAnsiCodePage = ansiCodePageControl != null;
-            WalkGroup(root, CreateInitialState(ansiCodePage, hasExplicitAnsiCodePage, unicodeSkipCount), depth: 0, allowDestinationSkip: true);
-            FlushParagraphIfNeeded(force: true, CreateInitialState(ansiCodePage, hasExplicitAnsiCodePage, unicodeSkipCount));
+            WalkGroup(root, CreateInitialState(ansiCodePage, hasExplicitAnsiCodePage, unicodeSkipCount: 1), depth: 0, allowDestinationSkip: true);
+            FlushParagraphIfNeeded(force: _document.Blocks.Count == 0,
+                _finalParagraphState ?? CreateInitialState(ansiCodePage, hasExplicitAnsiCodePage, unicodeSkipCount));
             CompleteOpenSection();
+            _document.HtmlEncapsulation = htmlEncapsulation;
             return _document;
         }
 
@@ -204,6 +206,10 @@ internal static partial class RtfSemanticReader {
 
             bool isIgnorableDestination = RtfDestinationRegistry.IsIgnorableDestinationGroup(group);
             if (allowDestinationSkip && (RtfDestinationRegistry.ShouldSkipSemanticBinding(destination) || isIgnorableDestination)) {
+                if (RtfDestinationRegistry.IsUnsupportedSemanticDestination(destination) ||
+                    (isIgnorableDestination && !RtfDestinationRegistry.IsKnown(destination))) {
+                    _document.RecordUnboundDestination(destination, group.Position);
+                }
                 if (_options.WarnOnUnsupportedDestinations &&
                     (RtfDestinationRegistry.IsUnsupportedSemanticDestination(destination) ||
                      (isIgnorableDestination && !RtfDestinationRegistry.IsKnown(destination)))) {
@@ -218,6 +224,7 @@ internal static partial class RtfSemanticReader {
                 _limits.CheckCancellation();
                 switch (node) {
                     case RtfGroup childGroup:
+                        childState.SkipCharacters = 0;
                         if (childGroup.Destination == "pn") {
                             ReadLegacyNumbering(childGroup, childState);
                         } else if (childGroup.Destination == "listtext") {
@@ -235,27 +242,34 @@ internal static partial class RtfSemanticReader {
                     case RtfControlSymbol symbol:
                         ApplyControlSymbol(symbol, childState);
                         break;
+                    case RtfBinary:
+                        RtfTextDecoder.ConsumeFallback(childState);
+                        break;
                 }
             }
+            childState.SkipCharacters = 0;
+            AppendText(RtfTextDecoder.Flush(childState), childState);
+            if (depth == 0) _finalParagraphState = childState;
         }
 
         private static RtfGroup? FindUnicodeAlternative(RtfGroup group) => group.Children.OfType<RtfGroup>().FirstOrDefault(child => child.Destination == "ud");
 
         private void ApplyControlSymbol(RtfControlSymbol symbol, CharacterState state) {
+            if (symbol.Symbol != '\'' && RtfTextDecoder.ConsumeFallback(state)) return;
             switch (symbol.Symbol) {
                 case '\\':
                 case '{':
                 case '}':
-                    AppendText(symbol.Symbol.ToString(), state);
+                    AppendText(RtfTextDecoder.Flush(state) + symbol.Symbol, state);
                     return;
                 case '~':
-                    AppendText("\u00A0", state);
+                    AppendText(RtfTextDecoder.Flush(state) + "\u00A0", state);
                     return;
                 case '_':
-                    AppendText("\u2011", state);
+                    AppendText(RtfTextDecoder.Flush(state) + "\u2011", state);
                     return;
                 case '-':
-                    AppendText("\u00AD", state);
+                    AppendText(RtfTextDecoder.Flush(state) + "\u00AD", state);
                     return;
                 case '\'':
                     if (symbol.Parameter.HasValue) {
@@ -301,26 +315,17 @@ internal static partial class RtfSemanticReader {
         }
 
         private void AppendText(string text, CharacterState state) {
-            if (state.PendingAnsiLeadByte.HasValue) {
-                text = "\uFFFD" + text;
-                state.PendingAnsiLeadByte = null;
-            }
-
             if (string.IsNullOrEmpty(text)) return;
-            if (IsFormattingTrivia(text)) return;
-            if (state.PendingHighSurrogate.HasValue) {
-                text = "\uFFFD" + text;
-                state.PendingHighSurrogate = null;
-            }
 
             ApplyParagraphState(_currentParagraph, state);
             var run = new RtfRun(text) {
-                Bold = state.Bold,
-                Italic = state.Italic,
-                UnderlineStyle = state.UnderlineStyle,
+                UseDefaultCharacterFormatting = state.UseDefaultCharacterFormatting,
+                DirectBold = state.DirectBold,
+                DirectItalic = state.DirectItalic,
+                DirectUnderlineStyle = state.DirectUnderlineStyle,
                 Strike = state.Strike,
                 DoubleStrike = state.DoubleStrike,
-                Hidden = state.Hidden,
+                DirectHidden = state.DirectHidden,
                 Outline = state.Outline,
                 Shadow = state.Shadow,
                 Emboss = state.Emboss,
@@ -355,42 +360,11 @@ internal static partial class RtfSemanticReader {
         }
 
         private void AppendAnsiText(string text, CharacterState state) {
-            if (string.IsNullOrEmpty(text)) return;
-            int start = ConsumeAnsiFallbackBytes(state, text.Length);
-            if (start >= text.Length) return;
-            if (state.PendingAnsiLeadByte.HasValue) {
-                if (text[start] <= byte.MaxValue) {
-                    byte lead = state.PendingAnsiLeadByte.Value;
-                    state.PendingAnsiLeadByte = null;
-                    AppendText(RtfAnsiCodePage.DecodeBytes(state.AnsiCodePage, new[] { lead, (byte)text[start] }), state);
-                    start++;
-                } else {
-                    state.PendingAnsiLeadByte = null;
-                    AppendText("\uFFFD", state);
-                }
-            }
-
-            if (start < text.Length) {
-                AppendText(RtfAnsiCodePage.DecodeText(state.AnsiCodePage, text.Substring(start)), state);
-            }
+            AppendText(RtfTextDecoder.DecodeAnsiText(text, state), state);
         }
 
         private void AppendAnsiByte(int value, CharacterState state) {
-            if (ConsumeAnsiFallbackBytes(state, 1) == 1) return;
-            byte current = (byte)(value & 0xFF);
-            if (state.PendingAnsiLeadByte.HasValue) {
-                byte lead = state.PendingAnsiLeadByte.Value;
-                state.PendingAnsiLeadByte = null;
-                AppendText(RtfAnsiCodePage.DecodeBytes(state.AnsiCodePage, new[] { lead, current }), state);
-                return;
-            }
-
-            if (RtfAnsiCodePage.IsLeadByte(state.AnsiCodePage, current)) {
-                state.PendingAnsiLeadByte = current;
-                return;
-            }
-
-            AppendText(RtfAnsiCodePage.DecodeByte(state.AnsiCodePage, current), state);
+            AppendText(RtfTextDecoder.DecodeAnsiByte(value, state), state);
         }
 
         private void AppendGeneratedText(RtfGeneratedTextKind kind, CharacterState state) {
@@ -399,7 +373,7 @@ internal static partial class RtfSemanticReader {
         }
 
         private static void ApplyParagraphState(RtfParagraph paragraph, CharacterState state) {
-            paragraph.Alignment = state.Alignment;
+            paragraph.DirectAlignment = state.DirectAlignment;
             paragraph.Direction = state.ParagraphDirection;
             paragraph.StyleId = state.ParagraphStyleId;
             paragraph.ListId = state.ListId;
@@ -425,10 +399,10 @@ internal static partial class RtfSemanticReader {
             CopyParagraphBorder(state.LeftBorder, paragraph.LeftBorder);
             CopyParagraphBorder(state.BottomBorder, paragraph.BottomBorder);
             CopyParagraphBorder(state.RightBorder, paragraph.RightBorder);
-            paragraph.PageBreakBefore = state.PageBreakBefore;
-            paragraph.KeepWithNext = state.KeepWithNext;
-            paragraph.KeepLinesTogether = state.KeepLinesTogether;
-            paragraph.SuppressLineNumbers = state.SuppressLineNumbers;
+            paragraph.DirectPageBreakBefore = state.DirectPageBreakBefore;
+            paragraph.DirectKeepWithNext = state.DirectKeepWithNext;
+            paragraph.DirectKeepLinesTogether = state.DirectKeepLinesTogether;
+            paragraph.DirectSuppressLineNumbers = state.DirectSuppressLineNumbers;
             paragraph.AutoHyphenation = state.AutoHyphenation;
             paragraph.ContextualSpacing = state.ContextualSpacing;
             paragraph.AdjustRightIndent = state.AdjustRightIndent;
@@ -441,23 +415,19 @@ internal static partial class RtfSemanticReader {
         }
 
         private static void CopyParagraphBorder(RtfParagraphBorder source, RtfParagraphBorder destination) {
-            destination.Style = source.Style;
+            destination.DirectStyle = source.DirectStyle;
             destination.Width = source.Width;
             destination.ColorIndex = source.ColorIndex;
         }
 
-        private static bool IsFormattingTrivia(string text) {
-            for (int i = 0; i < text.Length; i++) {
-                if (text[i] != '\r' && text[i] != '\n') {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
         private void FlushParagraphIfNeeded(bool force, CharacterState state) {
             if (_inlineCaptureDepth > 0) return;
+            if (_currentNote == null && _currentHeaderFooter == null && _currentShape == null &&
+                _currentRow == null && _nestedTableContexts.Count == 0 && _hasStandaloneBlockParagraph) {
+                _hasStandaloneBlockParagraph = false;
+                // A standalone picture or shape already represents the paragraph's content.
+                if (_currentParagraph.Inlines.Count == 0) return;
+            }
             if (!force && _currentParagraph.Inlines.Count == 0) return;
             ApplyParagraphState(_currentParagraph, state);
             state.PendingLegacyNumberingAfterReset.Clear();
@@ -465,7 +435,7 @@ internal static partial class RtfSemanticReader {
             state.ListText = null;
             state.PendingListTextAfterReset = null;
             if (_currentNote != null) {
-                if (_currentParagraph.Inlines.Count > 0) {
+                if (force || _currentParagraph.Inlines.Count > 0) {
                     CountSemanticBlock();
                     _currentNote.AddParsedParagraph(_currentParagraph);
                 }
@@ -476,7 +446,7 @@ internal static partial class RtfSemanticReader {
             }
 
             if (_currentHeaderFooter != null) {
-                if (_currentParagraph.Inlines.Count > 0) {
+                if (force || _currentParagraph.Inlines.Count > 0) {
                     CountSemanticBlock();
                     _currentHeaderFooter.AddParsedParagraph(_currentParagraph);
                 }
@@ -487,7 +457,7 @@ internal static partial class RtfSemanticReader {
             }
 
             if (_currentShape != null) {
-                if (_currentParagraph.Inlines.Count > 0) {
+                if (force || _currentParagraph.Inlines.Count > 0) {
                     CountSemanticBlock();
                     _currentShape.AddParsedTextBoxParagraph(_currentParagraph);
                 }
@@ -498,7 +468,7 @@ internal static partial class RtfSemanticReader {
             }
 
             if (_nestedTableContexts.Count > 0) {
-                if (_currentParagraph.Inlines.Count > 0) {
+                if (force || _currentParagraph.Inlines.Count > 0) {
                     CountSemanticBlock();
                     _nestedTableContexts[_nestedTableContexts.Count - 1].CurrentCellBlocks.Add(_currentParagraph);
                 }
@@ -515,51 +485,15 @@ internal static partial class RtfSemanticReader {
                 return;
             }
 
-            if (_currentParagraph.Inlines.Count > 0 || (_document.Blocks.Count == 0 && _document.Paragraphs.Count == 0)) {
+            if (force || _currentParagraph.Inlines.Count > 0) {
                 AddDocumentBlock(_currentParagraph);
             }
 
             _currentParagraph = new RtfParagraph();
         }
 
-        private static int ConsumeAnsiFallbackBytes(CharacterState state, int availableBytes) {
-            int skip = Math.Min(state.SkipCharacters, availableBytes);
-            state.SkipCharacters -= skip;
-            return skip;
-        }
-
         private void AppendUnicodeValue(int value, CharacterState state) {
-            int unsigned = value < 0 ? value + 65536 : value;
-            char codeUnit = (char)unsigned;
-
-            if (char.IsHighSurrogate(codeUnit)) {
-                if (state.PendingHighSurrogate.HasValue) {
-                    state.PendingHighSurrogate = null;
-                    AppendText("\uFFFD", state);
-                }
-
-                state.PendingHighSurrogate = codeUnit;
-                return;
-            }
-
-            if (char.IsLowSurrogate(codeUnit)) {
-                if (state.PendingHighSurrogate.HasValue) {
-                    char highSurrogate = state.PendingHighSurrogate.Value;
-                    state.PendingHighSurrogate = null;
-                    AppendText(new string(new[] { highSurrogate, codeUnit }), state);
-                } else {
-                    AppendText("\uFFFD", state);
-                }
-
-                return;
-            }
-
-            if (state.PendingHighSurrogate.HasValue) {
-                state.PendingHighSurrogate = null;
-                AppendText("\uFFFD", state);
-            }
-
-            AppendText(codeUnit.ToString(), state);
+            AppendText(RtfTextDecoder.DecodeUnicode(value, state), state);
         }
 
         private RtfImage? ReadPicture(RtfGroup group) {
@@ -569,6 +503,7 @@ internal static partial class RtfSemanticReader {
             int? sourceHeight = null;
             int? desiredWidth = null;
             int? desiredHeight = null;
+            int? scaleX = null, scaleY = null, cropLeft = null, cropTop = null, cropRight = null, cropBottom = null;
             var data = new List<byte>();
             long imageBytes = 0;
 
@@ -603,6 +538,12 @@ internal static partial class RtfSemanticReader {
                         case "pichgoal":
                             desiredHeight = control.Parameter;
                             break;
+                        case "picscalex": scaleX = control.Parameter; break;
+                        case "picscaley": scaleY = control.Parameter; break;
+                        case "piccropl": cropLeft = control.Parameter; break;
+                        case "piccropt": cropTop = control.Parameter; break;
+                        case "piccropr": cropRight = control.Parameter; break;
+                        case "piccropb": cropBottom = control.Parameter; break;
                     }
                 } else if (node is RtfBinary binary) {
                     _limits.AddImageBytes(ref imageBytes, binary.Data.Length, binary.Position);
@@ -624,7 +565,9 @@ internal static partial class RtfSemanticReader {
                 SourceWidth = sourceWidth,
                 SourceHeight = sourceHeight,
                 DesiredWidthTwips = desiredWidth,
-                DesiredHeightTwips = desiredHeight
+                DesiredHeightTwips = desiredHeight,
+                ScaleXPercent = scaleX, ScaleYPercent = scaleY,
+                CropLeftTwips = cropLeft, CropTopTwips = cropTop, CropRightTwips = cropRight, CropBottomTwips = cropBottom
             };
         }
 

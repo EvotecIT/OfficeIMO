@@ -44,7 +44,7 @@ public partial class MainWindow {
         }
         async Task AuthorizeProvider(CancellationToken cancellation) {
             cancellation.ThrowIfCancellationRequested();
-            await Dispatcher.UIThread.InvokeAsync(Authorize, DispatcherPriority.Normal, cancellation);
+            await this.Dispatcher.InvokeAsync(Authorize, DispatcherPriority.Normal, cancellation);
         }
         Authorize();
         byte[] bytes = Encoding.UTF8.GetBytes(text);

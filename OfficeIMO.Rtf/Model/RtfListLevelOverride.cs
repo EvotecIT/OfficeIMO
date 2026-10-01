@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Per-level override metadata inside an RTF list override table entry.
 /// </summary>
-public sealed class RtfListLevelOverride {
+public sealed partial class RtfListLevelOverride {
     /// <summary>Zero-based list level targeted by this override when the source format identifies it explicitly.</summary>
     public int? LevelIndex { get; set; }
 
@@ -16,6 +16,9 @@ public sealed class RtfListLevelOverride {
     /// <summary>Overridden starting number from <c>\levelstartat</c>, when present.</summary>
     public int? StartAt { get; set; }
 
+    /// <summary>Replacement level formatting when <see cref="OverrideFormat"/> is true.</summary>
+    public RtfListLevel? Formatting { get; set; }
+
     /// <summary>Returns whether this override contains any semantic value.</summary>
-    public bool HasAnyValue => OverrideFormat.HasValue || OverrideStartAt.HasValue || StartAt.HasValue;
+    public bool HasAnyValue => OverrideFormat.HasValue || OverrideStartAt.HasValue || StartAt.HasValue || Formatting != null;
 }

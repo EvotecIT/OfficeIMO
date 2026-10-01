@@ -180,7 +180,7 @@ public sealed partial class RtfLosslessEditor {
     private static RtfText CreateStyleNameText(string name, bool includeLeadingSeparator = true) {
         string separator = includeLeadingSeparator ? " " : string.Empty;
         string text = separator + name + ";";
-        return new RtfText(0, text, separator + RtfTextEncoding.EncodeText(name) + ";");
+        return CreateEncodedText(0, text, separator + RtfTextEncoding.EncodeText(name) + ";");
     }
 
     private static int GetStylesheetInsertIndex(List<RtfNode> children) {

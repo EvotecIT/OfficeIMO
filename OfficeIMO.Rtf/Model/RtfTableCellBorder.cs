@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Border formatting for one side of an RTF table cell.
 /// </summary>
-public sealed class RtfTableCellBorder {
+public sealed partial class RtfTableCellBorder {
     /// <summary>Border line style.</summary>
     public RtfTableCellBorderStyle Style { get; set; } = RtfTableCellBorderStyle.None;
 

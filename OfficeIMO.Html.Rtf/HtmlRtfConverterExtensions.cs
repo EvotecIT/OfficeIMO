@@ -20,6 +20,7 @@ public static partial class HtmlRtfConverterExtensions {
         effectiveOptions.DocumentOutput.Validate();
 
         if (effectiveOptions.PreferEncapsulatedHtml &&
+            document.IsHtmlEncapsulationCurrent &&
             document.HtmlEncapsulation != null &&
             !string.IsNullOrWhiteSpace(document.HtmlEncapsulation.Html)) {
             var importOptions = HtmlToRtfOptions.CreateUntrustedHtmlProfile();
@@ -43,6 +44,12 @@ public static partial class HtmlRtfConverterExtensions {
             return RtfHtmlWriter.Write(imported.RequireValue(), effectiveOptions);
         }
 
+        if (effectiveOptions.PreferEncapsulatedHtml && document.HtmlEncapsulation != null) {
+            effectiveOptions.AddDiagnostic("RtfHtmlEncapsulationInvalidated",
+                "Semantic edits invalidated the original encapsulated HTML; current RTF content was converted.",
+                severity: HtmlRtfConversionDiagnosticSeverity.Warning, action: RtfConversionAction.Omitted);
+        }
+        effectiveOptions.ConversionReport.Merge(document.GetStyleConversionDiagnostics());
         return RtfHtmlWriter.Write(document, effectiveOptions);
     }
 

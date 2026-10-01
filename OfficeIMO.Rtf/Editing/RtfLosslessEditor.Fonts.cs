@@ -130,9 +130,9 @@ public sealed partial class RtfLosslessEditor {
         AddFontDestination(children, "panose", font.Panose);
         AddFontDestination(children, "fname", font.NonTaggedName);
         AddFontEmbedding(children, font.Embedding);
-        children.Add(new RtfText(0, " " + font.Name, " " + RtfTextEncoding.EncodeText(font.Name)));
+        children.Add(CreateEncodedText(0, " " + font.Name, " " + RtfTextEncoding.EncodeText(font.Name)));
         AddFontDestination(children, "falt", font.AlternateName);
-        children.Add(new RtfText(0, ";", ";"));
+        children.Add(CreateEncodedText(0, ";", ";"));
         return new RtfGroup(0, children);
     }
 
@@ -191,7 +191,7 @@ public sealed partial class RtfLosslessEditor {
         children.Add(new RtfGroup(0, new RtfNode[] {
             new RtfControlSymbol(0, '*', null, hasParameter: false, rawText: @"\*"),
             new RtfControlWord(0, destination, null, hasParameter: false, rawText: "\\" + destination + " "),
-            new RtfText(0, value!.Trim(), RtfTextEncoding.EncodeText(value!.Trim()))
+            CreateEncodedText(0, value!.Trim(), RtfTextEncoding.EncodeText(value!.Trim()))
         }));
     }
 
@@ -219,14 +219,14 @@ public sealed partial class RtfLosslessEditor {
             AddOptionalFontNumber(fileChildren, "cpg", embedding.FileCodePage);
             if (!string.IsNullOrWhiteSpace(embedding.FileName)) {
                 string trimmedFileName = embedding.FileName!.Trim();
-                fileChildren.Add(new RtfText(0, " " + trimmedFileName, " " + RtfTextEncoding.EncodeText(trimmedFileName)));
+                fileChildren.Add(CreateEncodedText(0, " " + trimmedFileName, " " + RtfTextEncoding.EncodeText(trimmedFileName)));
             }
 
             embeddingChildren.Add(new RtfGroup(0, fileChildren));
         }
 
         if (embedding.Data.Length > 0) {
-            embeddingChildren.Add(new RtfText(0, " " + FormatHexBytes(embedding.Data), " " + FormatHexBytes(embedding.Data)));
+            embeddingChildren.Add(CreateEncodedText(0, " " + FormatHexBytes(embedding.Data), " " + FormatHexBytes(embedding.Data)));
         }
 
         children.Add(new RtfGroup(0, embeddingChildren));

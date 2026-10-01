@@ -259,35 +259,7 @@ internal static class PdfOptimizationFileAssembler {
     private static void WriteBigEndian(byte[] destination, int offset, long value, int length) { for (int i = length - 1; i >= 0; i--) { destination[offset + i] = (byte)(value & 0xFF); value >>= 8; } }
     private static void Write(Stream output, byte[] bytes) => output.Write(bytes, 0, bytes.Length);
     internal static byte[] CompressFlate(byte[] data, CancellationToken cancellationToken) {
-        const int chunkSize = 64 * 1024;
-        cancellationToken.ThrowIfCancellationRequested();
-        using var output = new MemoryStream();
-        output.WriteByte(0x78);
-        output.WriteByte(0x9C);
-        using (var deflate = new DeflateStream(output, CompressionLevel.Optimal, true)) {
-            for (int offset = 0; offset < data.Length; offset += chunkSize) {
-                cancellationToken.ThrowIfCancellationRequested();
-                deflate.Write(data, offset, Math.Min(chunkSize, data.Length - offset));
-            }
-        }
-        uint adler = Adler32(data, cancellationToken);
-        output.WriteByte((byte)(adler >> 24));
-        output.WriteByte((byte)(adler >> 16));
-        output.WriteByte((byte)(adler >> 8));
-        output.WriteByte((byte)adler);
-        return output.ToArray();
-    }
-
-    private static uint Adler32(byte[] data, CancellationToken cancellationToken) {
-        const int chunkSize = 64 * 1024;
-        const uint mod = 65521;
-        uint a = 1, b = 0;
-        for (int i = 0; i < data.Length; i++) {
-            if (i % chunkSize == 0) cancellationToken.ThrowIfCancellationRequested();
-            a = (a + data[i]) % mod;
-            b = (b + a) % mod;
-        }
-        return (b << 16) | a;
+        return PdfFlateEncoder.Compress(data, cancellationToken);
     }
 
     private sealed class ObjectStreamPack { internal int ObjectNumber { get; set; } internal List<int> ObjectIds { get; } = new List<int>(); }

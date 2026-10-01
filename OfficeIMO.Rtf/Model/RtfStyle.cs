@@ -3,8 +3,8 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Minimal semantic representation of an RTF stylesheet entry.
 /// </summary>
-public sealed class RtfStyle {
-    private readonly List<RtfTabStop> _tabStops = new List<RtfTabStop>();
+public sealed partial class RtfStyle {
+    private List<RtfTabStop> _tabStops = new List<RtfTabStop>();
 
     /// <summary>Creates a stylesheet entry.</summary>
     public RtfStyle(int id, string name, RtfStyleKind kind = RtfStyleKind.Paragraph) {
@@ -14,7 +14,7 @@ public sealed class RtfStyle {
     }
 
     /// <summary>RTF style id.</summary>
-    public int Id { get; }
+    public int Id { get; internal set; }
 
     /// <summary>Human-readable style name.</summary>
     public string Name { get; set; }
@@ -30,6 +30,12 @@ public sealed class RtfStyle {
 
     /// <summary>Optional linked style id.</summary>
     public int? LinkedStyleId { get; set; }
+
+    /// <summary>Optional list-instance reference inherited by paragraphs using this style.</summary>
+    public int? ListId { get; set; }
+
+    /// <summary>Optional zero-based list level inherited by paragraphs using this style.</summary>
+    public int? ListLevel { get; set; }
 
     /// <summary>Optional shortcut key metadata from the stylesheet <c>{\*\keycode ...}</c> group.</summary>
     public RtfStyleKeyCode? KeyCode { get; set; }
@@ -75,6 +81,9 @@ public sealed class RtfStyle {
 
     /// <summary>Optional direct italic setting carried by the stylesheet entry.</summary>
     public bool? Italic { get; set; }
+
+    /// <summary>Optional hidden-text formatting represented by <c>\v</c>. This is separate from style-list visibility.</summary>
+    public bool? TextHidden { get; set; }
 
     /// <summary>Optional direct underline setting carried by the stylesheet entry.</summary>
     public RtfUnderlineStyle? UnderlineStyle { get; set; }
@@ -140,16 +149,16 @@ public sealed class RtfStyle {
     public RtfShadingPattern ShadingPattern { get; set; } = RtfShadingPattern.None;
 
     /// <summary>Top paragraph border carried by the stylesheet entry.</summary>
-    public RtfParagraphBorder TopBorder { get; } = new RtfParagraphBorder();
+    public RtfParagraphBorder TopBorder { get; private set; } = new RtfParagraphBorder();
 
     /// <summary>Left paragraph border carried by the stylesheet entry.</summary>
-    public RtfParagraphBorder LeftBorder { get; } = new RtfParagraphBorder();
+    public RtfParagraphBorder LeftBorder { get; private set; } = new RtfParagraphBorder();
 
     /// <summary>Bottom paragraph border carried by the stylesheet entry.</summary>
-    public RtfParagraphBorder BottomBorder { get; } = new RtfParagraphBorder();
+    public RtfParagraphBorder BottomBorder { get; private set; } = new RtfParagraphBorder();
 
     /// <summary>Right paragraph border carried by the stylesheet entry.</summary>
-    public RtfParagraphBorder RightBorder { get; } = new RtfParagraphBorder();
+    public RtfParagraphBorder RightBorder { get; private set; } = new RtfParagraphBorder();
 
     /// <summary>Optional page-break-before setting carried by the stylesheet entry.</summary>
     public bool? PageBreakBefore { get; set; }
@@ -182,13 +191,13 @@ public sealed class RtfStyle {
     public int? OutlineLevel { get; set; }
 
     /// <summary>Word 6/95 legacy paragraph numbering metadata carried by this stylesheet entry.</summary>
-    public RtfLegacyNumbering LegacyNumbering { get; } = new RtfLegacyNumbering();
+    public RtfLegacyNumbering LegacyNumbering { get; private set; } = new RtfLegacyNumbering();
 
     /// <summary>Absolute positioning, text wrapping, and drop-cap metadata carried by the stylesheet entry.</summary>
-    public RtfParagraphFrame Frame { get; } = new RtfParagraphFrame();
+    public RtfParagraphFrame Frame { get; private set; } = new RtfParagraphFrame();
 
     /// <summary>Table row and cell formatting carried by a table stylesheet entry.</summary>
-    public RtfTableRow TableRowFormat { get; } = new RtfTableRow();
+    public RtfTableRow TableRowFormat { get; private set; } = new RtfTableRow();
 
     /// <summary>Adds a paragraph tab stop to this stylesheet entry.</summary>
     public RtfTabStop AddTabStop(int positionTwips, RtfTabAlignment alignment = RtfTabAlignment.Left, RtfTabLeader leader = RtfTabLeader.None) {

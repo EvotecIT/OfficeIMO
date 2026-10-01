@@ -3,8 +3,8 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Header or footer content for an RTF document.
 /// </summary>
-public sealed class RtfHeaderFooter {
-    private readonly List<RtfParagraph> _paragraphs = new List<RtfParagraph>();
+public sealed partial class RtfHeaderFooter {
+    private List<RtfParagraph> _paragraphs = new List<RtfParagraph>();
 
     internal RtfHeaderFooter(RtfHeaderFooterKind kind) {
         Kind = kind;

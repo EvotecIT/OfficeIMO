@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Character border formatting for an RTF text run.
 /// </summary>
-public sealed class RtfCharacterBorder {
+public sealed partial class RtfCharacterBorder {
     /// <summary>Border line style.</summary>
     public RtfParagraphBorderStyle Style { get; set; } = RtfParagraphBorderStyle.None;
 

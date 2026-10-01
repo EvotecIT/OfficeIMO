@@ -144,6 +144,7 @@ internal static partial class RtfSemanticReader {
             }
 
             AddDocumentBlock(shape);
+            _hasStandaloneBlockParagraph = true;
         }
     }
 }

@@ -8,21 +8,36 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
+#if EXCEL_PERFORMANCE_EVIDENCE
+        [Trait("Category", "Performance")]
+        [Trait("Category", "ExcelPerformanceEvidence")]
+#endif
         [Fact]
         public void Test_StructuralRows_FormulaQuoteScanningRemainsLinear() {
-            string quotedSheetName = "'" + new string('"', 50_000) + "'";
+#if EXCEL_PERFORMANCE_EVIDENCE
+            const int quoteCount = 50_000;
+#else
+            const int quoteCount = 64;
+#endif
+            string quotedSheetName = "'" + new string('"', quoteCount) + "'";
             string formula = quotedSheetName + "!A5+\"A5\"+A5";
+#if EXCEL_PERFORMANCE_EVIDENCE
             var stopwatch = Stopwatch.StartNew();
+#endif
 
             string rewritten = ExcelSheet.RewriteFormulaReferencesOutsideStrings(
                 formula,
                 segment => segment.Replace("A5", "A6"));
+#if EXCEL_PERFORMANCE_EVIDENCE
             stopwatch.Stop();
+#endif
 
             Assert.Equal(quotedSheetName + "!A6+\"A5\"+A6", rewritten);
+#if EXCEL_PERFORMANCE_EVIDENCE
             Assert.True(
                 stopwatch.Elapsed < TimeSpan.FromSeconds(5),
                 $"Formula scanning took {stopwatch.Elapsed}.");
+#endif
         }
 
         [Fact]

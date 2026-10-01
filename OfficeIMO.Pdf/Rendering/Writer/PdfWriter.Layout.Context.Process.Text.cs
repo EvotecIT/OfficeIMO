@@ -63,7 +63,7 @@ internal static partial class PdfWriter {
                 EnsurePage();
                 RecordFlowPlacement(y);
                 if (lineIndex == 0) captureFirstPlacement?.Invoke();
-                if (lineIndex == 0 && headingStyle?.AnchoredCanvas is { } headingCanvas) RenderCanvasBlock(headingCanvas);
+                if (lineIndex == 0 && headingStyle?.AnchoredCanvas is { } headingCanvas) RenderParagraphCanvas(headingCanvas, y);
                 pageDirty = true;
                 if (lineIndex == 0 && currentOpts.CreateOutlineFromHeadings) {
                     currentPage!.Bookmarks.Add(new PageBookmark { Level = hb.Level, Title = hb.Text, Y = y });
@@ -291,8 +291,9 @@ internal static partial class PdfWriter {
                 }
 
                 bool sliceStartsAtFirstLine = lineIndex == 0;
-                RecordFlowPlacement(y - (floatingLineGaps?[lineIndex] ?? 0D));
-                if (sliceStartsAtFirstLine && paragraphStyle?.AnchoredCanvas is { } paragraphCanvas) RenderCanvasBlock(paragraphCanvas);
+                double firstLineTop = y - (floatingLineGaps?[lineIndex] ?? 0D);
+                RecordFlowPlacement(firstLineTop);
+                if (sliceStartsAtFirstLine && paragraphStyle?.AnchoredCanvas is { } paragraphCanvas) RenderParagraphCanvas(paragraphCanvas, firstLineTop);
                 pageDirty = true;
                 var paragraphFont = ChooseNormal(currentOpts.DefaultFont);
                 int? markedContentId = RegisterTextStructureElement("P");

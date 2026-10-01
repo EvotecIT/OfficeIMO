@@ -141,12 +141,12 @@ public partial class WordRtfConverterTests {
         RtfImage image = Assert.IsType<RtfImage>(Assert.Single(rtfDocument.Blocks));
         Assert.Equal(RtfImageFormat.Png, image.Format);
         Assert.Equal(png, image.Data);
-        Assert.Equal(32, image.SourceWidth);
-        Assert.Equal(16, image.SourceHeight);
+        Assert.Equal(1, image.SourceWidth);
+        Assert.Equal(1, image.SourceHeight);
         Assert.Equal(480, image.DesiredWidthTwips);
         Assert.Equal(240, image.DesiredHeightTwips);
         Assert.Equal("Pixel image", image.Description);
-        Assert.Contains(@"{\pict\pngblip\picw32\pich16\picwgoal480\pichgoal240", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"{\pict\pngblip\picw1\pich1\picwgoal480\pichgoal240", rtf, StringComparison.Ordinal);
         Assert.Contains("89504e470d0a1a0a", rtf, StringComparison.Ordinal);
 
         using WordDocument semanticBridge = rtfDocument.ToWordDocument();
@@ -183,14 +183,14 @@ public partial class WordRtfConverterTests {
                 RtfImage image = Assert.IsType<RtfImage>(inline);
                 Assert.Equal(RtfImageFormat.Png, image.Format);
                 Assert.Equal(png, image.Data);
-                Assert.Equal(24, image.SourceWidth);
-                Assert.Equal(12, image.SourceHeight);
+                Assert.Equal(1, image.SourceWidth);
+                Assert.Equal(1, image.SourceHeight);
                 Assert.Equal(360, image.DesiredWidthTwips);
                 Assert.Equal(180, image.DesiredHeightTwips);
                 Assert.Equal("Inline pixel", image.Description);
             },
             inline => Assert.Equal(" after", Assert.IsType<RtfRun>(inline).Text));
-        Assert.Contains(@"{\pict\pngblip\picw24\pich12\picwgoal360\pichgoal180", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"{\pict\pngblip\picw1\pich1\picwgoal360\pichgoal180", rtf, StringComparison.Ordinal);
         Assert.Equal("Before  after", string.Concat(roundTrip.Paragraphs.Select(item => item.Text)));
         Assert.Single(roundTrip.Images);
 
@@ -923,8 +923,8 @@ public partial class WordRtfConverterTests {
         Assert.True(rtfTable.Rows[0].Cells[0].NoWrap);
         Assert.True(rtfTable.Rows[0].Cells[0].FitText);
         Assert.Equal(RtfTableCellVerticalAlignment.Bottom, rtfTable.Rows[1].Cells[2].VerticalAlignment);
-        Assert.Equal(1, rtfTable.Rows[0].Cells[0].BackgroundColorIndex);
-        Assert.Equal(2, rtfTable.Rows[0].Cells[0].ShadingForegroundColorIndex);
+        Assert.Equal("#E6F2FF", rtfDocument.GetColor(rtfTable.Rows[0].Cells[0].BackgroundColorIndex!.Value)!.ToString());
+        Assert.Equal("#00AA55", rtfDocument.GetColor(rtfTable.Rows[0].Cells[0].ShadingForegroundColorIndex!.Value)!.ToString());
         Assert.Equal(3750, rtfTable.Rows[0].Cells[0].ShadingPatternPercent);
         Assert.Equal(RtfShadingPattern.None, rtfTable.Rows[0].Cells[0].ShadingPattern);
         Assert.Equal(120, rtfTable.Rows[0].Cells[0].PaddingTopTwips);
@@ -933,16 +933,16 @@ public partial class WordRtfConverterTests {
         Assert.Equal(300, rtfTable.Rows[0].Cells[0].PaddingRightTwips);
         Assert.Equal(RtfTableCellBorderStyle.Single, rtfTable.Rows[0].Cells[0].TopBorder.Style);
         Assert.Equal(12, rtfTable.Rows[0].Cells[0].TopBorder.Width);
-        Assert.Equal(3, rtfTable.Rows[0].Cells[0].TopBorder.ColorIndex);
+        Assert.Equal("#4472C4", rtfDocument.GetColor(rtfTable.Rows[0].Cells[0].TopBorder.ColorIndex!.Value)!.ToString());
         Assert.Equal(RtfTableCellBorderStyle.Double, rtfTable.Rows[0].Cells[0].LeftBorder.Style);
         Assert.Equal(8, rtfTable.Rows[0].Cells[0].LeftBorder.Width);
-        Assert.Equal(2, rtfTable.Rows[0].Cells[0].LeftBorder.ColorIndex);
+        Assert.Equal("#00AA55", rtfDocument.GetColor(rtfTable.Rows[0].Cells[0].LeftBorder.ColorIndex!.Value)!.ToString());
         Assert.Equal(RtfTableCellBorderStyle.Dotted, rtfTable.Rows[0].Cells[0].TopLeftToBottomRightBorder.Style);
         Assert.Equal(6, rtfTable.Rows[0].Cells[0].TopLeftToBottomRightBorder.Width);
-        Assert.Equal(3, rtfTable.Rows[0].Cells[0].TopLeftToBottomRightBorder.ColorIndex);
+        Assert.Equal("#4472C4", rtfDocument.GetColor(rtfTable.Rows[0].Cells[0].TopLeftToBottomRightBorder.ColorIndex!.Value)!.ToString());
         Assert.Equal(RtfTableCellBorderStyle.Dashed, rtfTable.Rows[0].Cells[0].TopRightToBottomLeftBorder.Style);
         Assert.Equal(10, rtfTable.Rows[0].Cells[0].TopRightToBottomLeftBorder.Width);
-        Assert.Equal(2, rtfTable.Rows[0].Cells[0].TopRightToBottomLeftBorder.ColorIndex);
+        Assert.Equal("#00AA55", rtfDocument.GetColor(rtfTable.Rows[0].Cells[0].TopRightToBottomLeftBorder.ColorIndex!.Value)!.ToString());
         Assert.Contains(@"\trqc", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\trftsWidth2\trwWidth4250", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\trhdr", rtf, StringComparison.Ordinal);
@@ -954,15 +954,15 @@ public partial class WordRtfConverterTests {
         Assert.Contains(@"\cltxtbrlv", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\clftsWidth3\clwWidth1800", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\clNoWrap\clFitText", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\clcbpat1\clcfpat2\clshdng3750", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\clcbpat{rtfTable.Rows[0].Cells[0].BackgroundColorIndex}\clcfpat{rtfTable.Rows[0].Cells[0].ShadingForegroundColorIndex}\clshdng3750", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\clpadt120\clpadft3", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\clpadl180\clpadfl3", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\clpadb240\clpadfb3", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\clpadr300\clpadfr3", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\clbrdrt\brdrs\brdrw12\brdrcf3", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\clbrdrl\brdrdb\brdrw8\brdrcf2", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\cldglu\brdrdot\brdrw6\brdrcf3", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\cldgll\brdrdash\brdrw10\brdrcf2", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\clbrdrt\brdrs\brdrw12\brdrcf{rtfTable.Rows[0].Cells[0].TopBorder.ColorIndex}", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\clbrdrl\brdrdb\brdrw8\brdrcf{rtfTable.Rows[0].Cells[0].LeftBorder.ColorIndex}", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\cldglu\brdrdot\brdrw6\brdrcf{rtfTable.Rows[0].Cells[0].TopLeftToBottomRightBorder.ColorIndex}", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\cldgll\brdrdash\brdrw10\brdrcf{rtfTable.Rows[0].Cells[0].TopRightToBottomLeftBorder.ColorIndex}", rtf, StringComparison.Ordinal);
 
         WordTable roundTripTable = Assert.Single(roundTrip.Tables);
         Assert.Equal(WordTableAlignment.Center, roundTripTable.Alignment);

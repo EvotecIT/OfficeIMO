@@ -24,7 +24,7 @@ public sealed partial class PdfPageCanvas {
         foreach (Rect bounds in FormAnchorBounds) context.DrawRectangle(null, new Pen(new SolidColorBrush(PageAccent), 2D), bounds.Inflate(3D));
     }
 
-    private void QueueFormAnchorReveal() => Dispatcher.UIThread.Post(() => {
+    private void QueueFormAnchorReveal() => this.Dispatcher.Post(() => {
         if (_disposed || Scene is not { } scene || FormAnchorBounds.FirstOrDefault() is not { Width: > 0, Height: > 0 } area ||
             Bounds.Width <= 0 || Bounds.Height <= 0) return;
         double x = Bounds.Width / Math.Max(1D, scene.Drawing.Width);

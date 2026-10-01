@@ -163,9 +163,9 @@ public class WordRtfCharacterFormattingTests {
         using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
-        Assert.Contains(rtfParagraph.Runs, run => run.Text == "Marked" && run.HighlightColorIndex == 1);
-        Assert.Contains(@"{\colortbl;\red255\green255\blue0;}", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\highlight1 Marked", rtf, StringComparison.Ordinal);
+        RtfRun marked = Assert.Single(rtfParagraph.Runs, run => run.Text == "Marked");
+        Assert.Equal("#FFFF00", rtfDocument.GetColor(marked.HighlightColorIndex!.Value)!.ToString());
+        Assert.Contains($@"\highlight{marked.HighlightColorIndex} Marked", rtf, StringComparison.Ordinal);
         Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Marked" && run.Highlight == WordHighlightColor.Yellow);
     }
 
@@ -198,10 +198,9 @@ public class WordRtfCharacterFormattingTests {
         Assert.Contains(rtfDocument.Colors, color => color.Red == 0x44 && color.Green == 0x72 && color.Blue == 0xC4);
         RtfRun styledRun = Assert.Single(Assert.Single(rtfDocument.Paragraphs).Runs, run => run.Text == "Styled");
         Assert.Equal(1, styledRun.FontId);
-        Assert.Equal(1, styledRun.ForegroundColorIndex);
+        Assert.Equal("#4472C4", rtfDocument.GetColor(styledRun.ForegroundColorIndex!.Value)!.ToString());
         Assert.Contains(@"{\fonttbl{\f0 Calibri;}{\f1 Consolas;}}", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"{\colortbl;\red68\green114\blue196;}", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\f1 \cf1 Styled", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\f1 \cf{styledRun.ForegroundColorIndex} Styled", rtf, StringComparison.Ordinal);
         Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Styled" && run.FontFamily == "Consolas" && run.ColorHex == "4472C4");
     }
 

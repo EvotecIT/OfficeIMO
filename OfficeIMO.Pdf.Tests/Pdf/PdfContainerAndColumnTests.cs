@@ -6,6 +6,34 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfContainerAndColumnTests {
     [Fact]
+    public void Columns_PageBreakRestartsAtTheFirstColumnAndHonorsThePageLimit() {
+        PdfDocument Build(PdfOptions? options = null) => PdfDocument.Create(options).Columns(columns => {
+            columns.Text("Left first").ColumnBreak().Text("Right first");
+            columns.PageBreak();
+            columns.Text("Left second").ColumnBreak().Text("Right second");
+        });
+        byte[] bytes = Build(new PdfOptions { CompressContentStreams = false }).ToBytes();
+        PdfReadDocument read = PdfReadDocument.Open(bytes);
+        Assert.Equal(2, read.Pages.Count);
+        Assert.Contains("Left first", read.Pages[0].ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Right first", read.Pages[0].ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Left second", read.Pages[1].ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Right second", read.Pages[1].ExtractText(), StringComparison.Ordinal);
+        Assert.Throws<InvalidDataException>(() => Build(new PdfOptions { MaxGeneratedPages = 1 }).ToBytes());
+    }
+
+    [Fact]
+    public void Columns_LeadingBreakLeavesTheFirstColumnEmpty() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Columns(columns => columns.ColumnBreak().Text("Right only"),
+                new PdfMultiColumnOptions { Gap = 24 }).ToBytes();
+        using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        Assert.Equal(1, read.NumberOfPages);
+        Assert.Equal(318, read.GetPage(1).Letters[0].StartBaseLine.X, 1);
+        Assert.Contains("Right only", read.GetPage(1).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Columns_DistributesBlocksAcrossEqualFramesAndSupportsExplicitBreak() {
         byte[] bytes = PdfDocument.Create()
             .Columns(columns => {

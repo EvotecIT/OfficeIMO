@@ -68,5 +68,6 @@ internal static partial class RtfHtmlWriter {
         AddNullableBool(values, prefix + ".overrideFormat", levelOverride.OverrideFormat);
         AddNullableBool(values, prefix + ".overrideStartAt", levelOverride.OverrideStartAt);
         AddNullableInt(values, prefix + ".startAt", levelOverride.StartAt);
+        if (levelOverride.Formatting != null) AddListLevel(values, prefix + ".formatting", levelOverride.Formatting);
     }
 }

@@ -9,6 +9,18 @@ namespace OfficeIMO.Tests;
 [Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderRtfModularTests {
     [Fact]
+    public void DocumentReaderRtf_ReportsMissingStylesInChunksAndRichDocuments() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("Unknown style").StyleId = 9;
+        var result = RtfReaderAdapter.ReadResult(document);
+        Assert.Contains(result.Report.Diagnostics, item => item.Code == "RtfStyleReferenceMissing");
+        Assert.Contains(result.Value[0].Warnings!, item => item.StartsWith("RtfStyleReferenceMissing:", StringComparison.Ordinal));
+        Assert.Throws<RtfConversionLossException>(() => result.RequireNoLoss());
+        var rich = RtfReaderAdapter.ReadDocument(document);
+        Assert.Contains(rich.Diagnostics, item => item.Code == "RtfStyleReferenceMissing");
+    }
+
+    [Fact]
     public void DocumentReaderRtf_RichResult_MapsMetadataLinksFormsTablesAndImagePayloads() {
         RtfDocument document = RtfDocument.Create();
         document.Info.Title = "Rich RTF";

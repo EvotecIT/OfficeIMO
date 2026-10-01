@@ -76,7 +76,7 @@ public static partial class WordRtfConverterExtensions {
             document.Margins.FooterDistance = ToUInt32Value(rtfDocument.PageSetup.FooterDistanceTwips.Value);
         }
 
-        document.DifferentFirstPage = rtfDocument.PageSetup.DifferentFirstPageHeaderFooter;
+        ApplyFirstPageHeaderFooterSelection(document.Sections[0], rtfDocument.PageSetup.DifferentFirstPageHeaderFooter);
         document.RtlGutter = rtfDocument.PageSetup.RtlGutter;
         ApplyPageNumbering(rtfDocument.PageSetup, document.Sections[0]);
         ApplyPageBorders(rtfDocument.PageSetup.PageBorders, document.Sections[0], rtfDocument);

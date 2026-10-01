@@ -3,9 +3,9 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// RTF table cell.
 /// </summary>
-public sealed class RtfTableCell {
-    private readonly List<RtfParagraph> _paragraphs = new List<RtfParagraph>();
-    private readonly List<IRtfBlock> _blocks = new List<IRtfBlock>();
+public sealed partial class RtfTableCell {
+    private List<RtfParagraph> _paragraphs = new List<RtfParagraph>();
+    private List<IRtfBlock> _blocks = new List<IRtfBlock>();
 
     /// <summary>Paragraphs in the cell.</summary>
     public IReadOnlyList<RtfParagraph> Paragraphs => _paragraphs.AsReadOnly();
@@ -68,22 +68,22 @@ public sealed class RtfTableCell {
     public int? PaddingRightTwips { get; set; }
 
     /// <summary>Top cell border.</summary>
-    public RtfTableCellBorder TopBorder { get; } = new RtfTableCellBorder();
+    public RtfTableCellBorder TopBorder { get; private set; } = new RtfTableCellBorder();
 
     /// <summary>Left cell border.</summary>
-    public RtfTableCellBorder LeftBorder { get; } = new RtfTableCellBorder();
+    public RtfTableCellBorder LeftBorder { get; private set; } = new RtfTableCellBorder();
 
     /// <summary>Bottom cell border.</summary>
-    public RtfTableCellBorder BottomBorder { get; } = new RtfTableCellBorder();
+    public RtfTableCellBorder BottomBorder { get; private set; } = new RtfTableCellBorder();
 
     /// <summary>Right cell border.</summary>
-    public RtfTableCellBorder RightBorder { get; } = new RtfTableCellBorder();
+    public RtfTableCellBorder RightBorder { get; private set; } = new RtfTableCellBorder();
 
     /// <summary>Diagonal cell border from top-left to bottom-right.</summary>
-    public RtfTableCellBorder TopLeftToBottomRightBorder { get; } = new RtfTableCellBorder();
+    public RtfTableCellBorder TopLeftToBottomRightBorder { get; private set; } = new RtfTableCellBorder();
 
     /// <summary>Diagonal cell border from top-right to bottom-left.</summary>
-    public RtfTableCellBorder TopRightToBottomLeftBorder { get; } = new RtfTableCellBorder();
+    public RtfTableCellBorder TopRightToBottomLeftBorder { get; private set; } = new RtfTableCellBorder();
 
     /// <summary>Sets cell padding in twips.</summary>
     public RtfTableCell SetPadding(int? topTwips = null, int? leftTwips = null, int? bottomTwips = null, int? rightTwips = null) {
