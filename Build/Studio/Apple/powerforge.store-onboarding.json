@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/Schemas/powerforge.release.schema.json",
+  "SchemaVersion": 1,
+  "AppleApps": {
+    "ProjectRoot": "../../..",
+    "TeamId": "8ZPGZ79T7J",
+    "Configuration": "Release",
+    "Archive": false,
+    "Upload": false,
+    "PrepareDistribution": false,
+    "SelectBuildForDistribution": false,
+    "SyncMetadata": false,
+    "SyncAppInfo": false,
+    "SyncScreenshots": false,
+    "DistributeTestFlight": false,
+    "SubmitTestFlightBetaReview": false,
+    "SubmitForReview": false,
+    "ReleaseApprovedVersion": false,
+    "GovernanceConfigPath": "Build/Studio/Apple/appstoreconnect-governance.json",
+    "AppInfoConfigPath": "Build/Studio/Apple/appstoreconnect-app-info.json",
+    "MetadataConfigPaths": [ "Build/Studio/Apple/appstoreconnect-metadata-macos.json" ],
+    "Apps": []
+  }
+}

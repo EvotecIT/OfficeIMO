@@ -1,0 +1,12 @@
+{
+  "appId": "6818096229",
+  "versionString": "1.0",
+  "platform": "macOS",
+  "locale": "en-US",
+  "metadata": {
+    "description": "Open, read, and work with PDFs using OfficeIMO Studio. Keep several documents in tabs, search text, add annotations, organize pages, fill supported form fields, and save your work.\n\nDocument processing runs on your device. The optional document assistant uses a provider and model you choose; remote document processing requires your permission. Provider accounts, service terms, and availability apply separately.\n\nOfficeIMO Studio is free and open source under the MIT License. Source code and community support are available at https://github.com/EvotecIT/OfficeIMO.\n\nPrivacy: https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Studio/PRIVACY.md",
+    "keywords": "pdf,reader,documents,annotation,forms,pages,open source",
+    "marketingUrl": "https://officeimo.com/studio/",
+    "supportUrl": "https://github.com/EvotecIT/OfficeIMO/issues"
+  }
+}

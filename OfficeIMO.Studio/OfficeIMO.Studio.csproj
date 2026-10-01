@@ -46,4 +46,13 @@
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Studio.Tests" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\LICENSE" Link="Licenses\OfficeIMO-MIT.txt"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\OfficeIMO.Core\Licenses\libvpx-LICENSE.txt" Link="Licenses\libvpx-LICENSE.txt"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="OPEN_SOURCE.md" Link="Licenses\OPEN_SOURCE.md"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
