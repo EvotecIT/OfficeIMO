@@ -1,4 +1,5 @@
 using OfficeIMO.IWork;
+using OfficeIMO.IWork.Internal;
 
 namespace OfficeIMO.Reader.IWork;
 
@@ -9,6 +10,7 @@ internal sealed partial class IWorkReadProjection {
     private readonly ReaderOptions _readerOptions;
     private readonly ReaderIWorkOptions _options;
     private readonly CancellationToken _cancellationToken;
+    private readonly IWorkProjectionBudget _imageBudget;
     private readonly List<ReaderChunk> _chunks = new();
     private readonly List<OfficeDocumentBlock> _blocks = new();
     private readonly List<ReaderTable> _tables = new();
@@ -35,6 +37,7 @@ internal sealed partial class IWorkReadProjection {
         _readerOptions = readerOptions;
         _options = options;
         _cancellationToken = cancellationToken;
+        _imageBudget = new IWorkProjectionBudget((options.ReadOptions ?? new IWorkReadOptions()).Clone());
     }
 
     internal void AddNumbers(IWorkNumbersProjection source) {

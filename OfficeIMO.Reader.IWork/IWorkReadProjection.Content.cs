@@ -3,11 +3,11 @@ using OfficeIMO.IWork;
 namespace OfficeIMO.Reader.IWork;
 
 internal sealed partial class IWorkReadProjection {
-    private void AddTable(OfficeDocumentPage page, IWorkTable source) {
+    private ReaderLocation? AddTable(OfficeDocumentPage page, IWorkTable source) {
         _cancellationToken.ThrowIfCancellationRequested();
         ReportUnsupportedRotation(page, source.Geometry, "table");
         int tableIndex = _pageTables[page].Count;
-        if (source.RowCount == 0 || source.ColumnCount == 0) return;
+        if (source.RowCount == 0 || source.ColumnCount == 0) return null;
         int remainingCells = _options.MaximumProjectedTableCells - _projectedTableCells;
         if (remainingCells == 0) {
             if (!_reportedTableBudgetExhausted) {
@@ -20,7 +20,7 @@ internal sealed partial class IWorkReadProjection {
                     Location = Location(page)
                 });
             }
-            return;
+            return null;
         }
         int columnCount = Math.Min(Math.Min(source.ColumnCount, _options.MaximumTableColumns),
             remainingCells);
@@ -160,6 +160,7 @@ internal sealed partial class IWorkReadProjection {
                 Location = location
             });
         }
+        return tableBlockLocation;
     }
 
     private static ReaderTableDiagnostics? TableDiagnostics(IWorkTable source) {
@@ -193,8 +194,10 @@ internal sealed partial class IWorkReadProjection {
             ? cell.CachedDisplayText
             : cell.DisplayText;
 
-    private void AddImage(OfficeDocumentPage page, IWorkImageAsset source, bool includeAnchorBlock = false) {
+    private ReaderLocation AddImage(OfficeDocumentPage page, IWorkImageAsset source, bool includeAnchorBlock = false) {
         _cancellationToken.ThrowIfCancellationRequested();
+        _imageBudget.AddImage();
+        if (_options.IncludeImagePayloads) _imageBudget.AddProjectedImageBytes(source.Length);
         ReportUnsupportedRotation(page, source.Geometry, "image");
         string id = "iwork-a" + (_assets.Count + 1).ToString("D6", CultureInfo.InvariantCulture);
         var asset = new OfficeDocumentAsset {
@@ -233,6 +236,7 @@ internal sealed partial class IWorkReadProjection {
                 Location = asset.Location
             });
         }
+        return asset.Location;
     }
 
     private void AddRunLinks(OfficeDocumentPage page,

@@ -93,6 +93,70 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Reader_counts_repeated_inline_image_uses_before_allocating_assets(bool byteLimit) {
+        using var package = InlineImagePackage("repeatedDrawable");
+        var limits = new IWorkReadOptions {
+            MaximumProjectedImages = byteLimit ? 2 : 1,
+            MaximumProjectedImageBytes = byteLimit ? ValidPreviewPng().Length : 1024
+        };
+        var source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages, limits).ReadPages();
+        Assert.Single(source.Images);
+        Assert.Equal(2, source.Body.Paragraphs.SelectMany(paragraph => paragraph.Runs).Count(run => run.InlineObject != null));
+        package.Position = 0;
+        InvalidDataException failure = Assert.Throws<InvalidDataException>(() => IWorkReaderAdapter.ReadDocument(package, "sample.pages",
+            new ReaderOptions(), new ReaderIWorkOptions { ReadOptions = limits, IncludeImagePayloads = true }, CancellationToken.None));
+        Assert.Contains(byteLimit ? "Projected destination image data" : "iWork image count", failure.Message);
+    }
+
+    [Theory]
+    [InlineData("linkedRun")]
+    [InlineData("linkedMarker")]
+    public void Reader_preserves_links_on_inline_attachment_runs_against_the_image_block(string fixture) {
+        using var package = InlineImagePackage(fixture);
+        var result = IWorkReaderAdapter.ReadDocument(package, "sample.pages", new ReaderOptions(),
+            new ReaderIWorkOptions(), CancellationToken.None);
+        OfficeDocumentLink link = Assert.Single(result.Links);
+        Assert.Equal("https://example.test/inline", link.Uri);
+        OfficeDocumentBlock image = result.Blocks.First(block => block.Kind == "image");
+        Assert.Equal(image.Id, link.Location.BlockAnchor);
+    }
+
+    [Fact]
+    public void Reader_preserves_repeated_inline_image_positions_within_the_image_use_limits() {
+        using var package = InlineImagePackage("repeatedDrawable");
+        byte[] expected = ValidPreviewPng();
+        var result = IWorkReaderAdapter.ReadDocument(package, "sample.pages", new ReaderOptions(),
+            new ReaderIWorkOptions { IncludeImagePayloads = true,
+                ReadOptions = new IWorkReadOptions { MaximumProjectedImages = 2, MaximumProjectedImageBytes = 2L * expected.Length } },
+            CancellationToken.None);
+        Assert.Equal(2, result.Assets.Count);
+        Assert.All(result.Assets, asset => Assert.Equal(expected, asset.PayloadBytes));
+        Assert.Equal(result.Blocks.Where(block => block.Kind == "image").Select(block => block.Id),
+            result.Assets.Select(asset => asset.Location.BlockAnchor));
+    }
+
+    [Fact]
+    public void Reader_preserves_links_on_inline_table_runs_against_the_emitted_table_block() {
+        IWorkSourceDocument source = IWorkSourceDocument.Open(CorpusFixture("picodocs/sample-v14.4.pages"));
+        var original = source.ReadPages();
+        var table = original.Drawables.First(drawable => drawable.Kind == IWorkPagesDrawableKind.Table);
+        IWorkTextParagraph paragraph = original.Body.Paragraphs.First(value => value.Runs.Any(run =>
+            run.InlineObject?.Drawable.RecordIdentifier == table.Table!.SourceIdentity!.RecordIdentifier));
+        var body = new IWorkTextContent(new[] { new IWorkTextParagraph(paragraph.Runs.Select(run =>
+            new IWorkTextRun(run.Text, run.Style, "https://example.test/table", run.InlineObject)).ToArray(),
+            paragraph.Style, null, -1, null, IWorkParagraphBreakKind.None) }, true, true);
+        var pages = new IWorkPagesProjection(source, body, Array.Empty<IWorkPagesSection>(),
+            Array.Empty<IWorkTextBox>(), Array.Empty<IWorkImageAsset>(), new[] { table.Table! }, new[] { table },
+            original.PageLayout, Array.Empty<IWorkDiagnostic>(), true);
+        var result = new OfficeDocumentReadResult();
+        var projection = new IWorkReadProjection(result, "sample.pages", new ReaderOptions(), new ReaderIWorkOptions(), CancellationToken.None);
+        projection.AddPages(pages); projection.Complete(source);
+        Assert.Equal(Assert.Single(result.Blocks, block => block.Kind == "table").Id, Assert.Single(result.Links).Location.BlockAnchor);
+    }
+
+    [Theory]
     [InlineData("missingAttachment")]
     [InlineData("missingDrawable")]
     [InlineData("offsetInsideSurrogate")]
@@ -122,10 +186,11 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     private static MemoryStream InlineImagePackage(string? defect = null) {
-        const string text = "😀before \ufffc middle \ufffc after";
+        bool markerOnly = defect == "linkedMarker";
+        string text = markerOnly ? "\ufffc" : "😀before \ufffc middle \ufffc after";
         byte[] Entry(int offset, ulong target) => BytesField(1, Message(VarintField(1, (ulong)offset), ReferenceField(2, target)));
-        byte[] attachments = Message(Entry(defect == "offsetInsideSurrogate" ? 1 : 9, defect == "missingAttachment" ? 999ul : 20ul),
-            Entry(defect == "duplicateOffset" ? 9 : 18, 21));
+        byte[] attachments = Message(Entry(markerOnly ? 0 : defect == "offsetInsideSurrogate" ? 1 : 9, defect == "missingAttachment" ? 999ul : 20ul),
+            markerOnly ? Array.Empty<byte>() : Entry(defect == "duplicateOffset" ? 9 : 18, 21));
         byte[] Attachment(ulong drawable, bool moved) => Message(ReferenceField(1, drawable), VarintField(2, 0),
             FloatField(3, moved ? 1f : 0f), VarintField(4, 0), FloatField(5, 0f), defect == "unknownEnvelope" ? VarintField(6, 1) : Array.Empty<byte>());
         byte[] geometry = Message(BytesField(1, Message(FloatField(1, 0f), FloatField(2, 0f))),
@@ -133,10 +198,12 @@ public sealed partial class IWorkBoundaryTests {
         byte[] image = Message(BytesField(1, Message(BytesField(1, geometry))), BytesField(11, Message(VarintField(1, 10))));
         byte[] records = Message(
             ArchiveRecord(1, 10000, Message(ReferenceField(4, 2)), new ulong[] { 2 }),
-            ArchiveRecord(2, 2001, Message(StringField(3, text), BytesField(9, attachments)), new ulong[] { 20, 21 }),
+            ArchiveRecord(2, 2001, Message(StringField(3, text), BytesField(9, attachments), defect is "linkedRun" or "linkedMarker"
+                ? BytesField(11, Message(Entry(markerOnly ? 0 : 9, 50), BytesField(1, Message(VarintField(1, markerOnly ? 1ul : 10ul))))) : Array.Empty<byte>()), markerOnly ? new ulong[] { 20 } : new ulong[] { 20, 21 }),
             ArchiveRecord(20, 2003, Attachment(defect == "missingDrawable" ? 999ul : 30ul, defect == "nonzeroPlacement"), new ulong[] { 30 }),
-            ArchiveRecord(21, 2003, Attachment(31, false), new ulong[] { 31 }),
+            ArchiveRecord(21, 2003, Attachment(defect == "repeatedDrawable" ? 30ul : 31ul, false), new ulong[] { defect == "repeatedDrawable" ? 30ul : 31ul }),
             ArchiveRecord(30, 3005, image), ArchiveRecord(31, 3005, image),
+            ArchiveRecord(50, 2032, Message(StringField(2, "https://example.test/inline"))),
             ArchiveRecord(40, 11006, Message(BytesField(4, Message(VarintField(1, 10), StringField(3, "image.png"), StringField(4, "image.png"))))));
         return CreatePackage(("Index/Document.iwa", FrameIwa(records)), ("Data/image.png", ValidPreviewPng()));
     }

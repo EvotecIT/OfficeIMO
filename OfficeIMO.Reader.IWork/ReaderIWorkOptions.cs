@@ -4,7 +4,7 @@ namespace OfficeIMO.Reader.IWork;
 
 /// <summary>Controls the bounded Reader projection of Pages, Numbers, and Keynote sources.</summary>
 public sealed class ReaderIWorkOptions {
-    /// <summary>Gets or sets the source package and semantic limits.</summary>
+    /// <summary>Gets or sets the source package, semantic, and emitted Reader image-use limits. Repeated Reader image uses count separately; payload bytes are charged before copying.</summary>
     public IWorkReadOptions? ReadOptions { get; set; }
 
     /// <summary>Gets or sets the maximum number of columns materialized in each Reader table. Default: 256.</summary>

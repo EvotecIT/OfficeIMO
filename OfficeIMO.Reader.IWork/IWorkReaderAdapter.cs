@@ -70,7 +70,9 @@ internal static class IWorkReaderAdapter {
             Source = new OfficeDocumentSource { Path = path },
             CapabilitiesUsed = new[] { "officeimo.reader.iwork", "officeimo.iwork.semantic-source" }
         };
-        var projection = new IWorkReadProjection(result, path, readerOptions, options,
+        ReaderIWorkOptions destinationOptions = options.Clone();
+        destinationOptions.ReadOptions = source.Options;
+        var projection = new IWorkReadProjection(result, path, readerOptions, destinationOptions,
             cancellationToken);
         switch (source.Kind) {
             case IWorkDocumentKind.Pages:

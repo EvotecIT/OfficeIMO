@@ -21,8 +21,11 @@ internal sealed partial class IWorkReadProjection {
                 Flush();
                 ulong identifier = run.InlineObject.Drawable.RecordIdentifier;
                 if (drawableLookup.TryGetValue(identifier, out IWorkPagesDrawable? drawable)) {
-                    AddDrawable(drawable, inline: true); inlineDrawables.Add(identifier);
+                    ReaderLocation? location = AddDrawable(drawable, inline: true);
+                    if (run.Hyperlink != null) AddLink(page, run.Hyperlink, location ?? Location(page));
+                    inlineDrawables.Add(identifier);
                 } else {
+                    AddRunLinks(page, new[] { run });
                     _diagnostics.Add(new OfficeDocumentDiagnostic {
                         Category = OfficeDocumentDiagnosticCategory.Content, Code = "IWORK_READER_INLINE_OBJECT_UNAVAILABLE",
                         Message = "A Pages inline attachment has no supported projected drawable.",
@@ -59,18 +62,17 @@ internal sealed partial class IWorkReadProjection {
         }
         AddDiagnostics(source.Diagnostics);
 
-        void AddDrawable(IWorkPagesDrawable drawable, bool inline = false) {
+        ReaderLocation? AddDrawable(IWorkPagesDrawable drawable, bool inline = false) {
             switch (drawable.Kind) {
                 case IWorkPagesDrawableKind.TextBox:
                     AddTextBox(page, drawable.TextBox!, "text-box");
                     break;
                 case IWorkPagesDrawableKind.Image:
-                    AddImage(page, drawable.Image!, includeAnchorBlock: inline);
-                    break;
+                    return AddImage(page, drawable.Image!, includeAnchorBlock: inline);
                 case IWorkPagesDrawableKind.Table:
-                    AddTable(page, drawable.Table!);
-                    break;
+                    return AddTable(page, drawable.Table!);
             }
+            return null;
         }
     }
 
