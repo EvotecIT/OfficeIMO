@@ -121,6 +121,10 @@ public static partial class OfficeSvgDrawingReader {
             if (filterElement == null
                 || !filterElement.Name.LocalName.Equals("filter", StringComparison.OrdinalIgnoreCase)) return false;
             List<XElement> primitives = filterElement.Elements().ToList();
+            if (TryParseSvgFilterGraph(filterElement, primitives, out SvgFilterGraph? graph)) {
+                effect = new SvgFilterEffect(graph!);
+                return true;
+            }
             if (primitives.Count == 1
                 && primitives[0].Name.LocalName.Equals("feDropShadow", StringComparison.OrdinalIgnoreCase)) {
                 return TryParseDropShadowFilter(primitives[0], out effect);
@@ -219,6 +223,12 @@ public static partial class OfficeSvgDrawingReader {
         out OfficeDrawing result) {
         result = source;
         if (effect == null) return true;
+        if (effect.Graph != null) {
+            if (TryApplySvgFilterGraph(source, effect.Graph, references, transform, out result)) return true;
+            unsupported++;
+            result = source;
+            return false;
+        }
         if (effect.Kind == SvgFilterEffectKind.DropShadow && ContainsUntintableFilterPaint(source)) {
             unsupported++;
             return false;
@@ -328,10 +338,16 @@ public static partial class OfficeSvgDrawingReader {
     private enum SvgFilterEffectKind {
         DropShadow,
         GaussianBlur,
-        Offset
+        Offset,
+        Graph
     }
 
     private sealed class SvgFilterEffect {
+        internal SvgFilterEffect(SvgFilterGraph graph) {
+            Kind = SvgFilterEffectKind.Graph;
+            Graph = graph;
+        }
+
         internal SvgFilterEffect(
             SvgFilterEffectKind kind,
             double offsetX,
@@ -348,6 +364,7 @@ public static partial class OfficeSvgDrawingReader {
         }
 
         internal SvgFilterEffectKind Kind { get; }
+        internal SvgFilterGraph? Graph { get; }
         internal double OffsetX { get; }
         internal double OffsetY { get; }
         internal double BlurRadius { get; }

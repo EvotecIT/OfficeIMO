@@ -4,6 +4,9 @@ namespace OfficeIMO.Drawing;
 /// Controls bounded SVG import limits for trusted inputs that legitimately contain many elements.
 /// </summary>
 public sealed class OfficeSvgDrawingReaderOptions {
+    /// <summary>Cancellation observed during SVG import and managed filter processing.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; set; }
+
     /// <summary>
     /// Font family used by SVG text that does not declare one. The default preserves
     /// the existing shared-drawing contract; browser-oriented hosts can select a

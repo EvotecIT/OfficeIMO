@@ -34,6 +34,7 @@ public static partial class OfficeSvgDrawingReader {
             return;
         }
         foreach (XElement element in parent.Elements()) {
+            references.CancellationToken.ThrowIfCancellationRequested();
             AddElement(element, drawing, inherited, paintServers, references, inheritedTransform, viewX, viewY,
                 maximumElements, maximumViewportDimension, maximumViewportPixels, depth,
                 ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);

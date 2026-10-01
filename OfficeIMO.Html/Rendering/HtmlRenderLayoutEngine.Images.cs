@@ -250,6 +250,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double? viewportWidth = null,
         double? viewportHeight = null) {
         var readerOptions = new OfficeSvgDrawingReaderOptions {
+            CancellationToken = _cancellationToken,
             ViewportWidth = viewportWidth,
             ViewportHeight = viewportHeight,
             DefaultFontFamily = _options.DefaultFontFamily,
