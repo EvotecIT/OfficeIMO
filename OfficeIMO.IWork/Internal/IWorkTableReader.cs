@@ -484,7 +484,11 @@ internal static partial class IWorkTableReader {
 
         IWorkTable CreateTable() => new(name, rows, columns, cells,
             headerRows, headerColumns, footerRows, defaultRowHeight, defaultColumnWidth,
-            mergedRanges, geometry, accessibilityDescription, sourceIdentity, omittedTextUnits, rowHeights, columnWidths, IWorkFormulaReader.ReadTableIdentifier(message), model);
+            mergedRanges, geometry, accessibilityDescription, sourceIdentity, omittedTextUnits, rowHeights, columnWidths, IWorkFormulaReader.ReadTableIdentifier(message), model,
+            message.FieldCount(6) == 1 && message.FieldCount(7) == 1
+                && new[] { 6, 7, 9, 10, 11 }.All(field => message.FieldCount(field) <= 1
+                    && !message.HasUnexpectedWireKind(field, IWorkWireKind.Varint))
+                && (long)headerRows + footerRows <= rows);
     }
 
     private static void MarkDuplicateTile(IWorkArchiveRecord model,

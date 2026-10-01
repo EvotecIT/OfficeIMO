@@ -35,24 +35,29 @@ public static partial class ExcelIWorkConverter {
     }
 
     private static Dictionary<IWorkTableCell, string> BindExcelFormulas(IWorkNumbersProjection projection,
-        Dictionary<IWorkTable, ExcelSheet> tables, CancellationToken cancellationToken, out string? limitation) {
-        IReadOnlyDictionary<Guid, string> qualifiers = IWorkFormulaTableBindings.Create(tables.Keys,
+        Dictionary<IWorkTable, ExcelSheet> tables, CancellationToken cancellationToken, out string? limitation, out long boundedBodyFormulaCount) {
+        IReadOnlyDictionary<Guid, IWorkFormulaTableBinding> qualifiers = IWorkFormulaTableBindings.Create(tables.Keys,
             table => {
                 string? name = IWorkFormulaReader.QuoteTableName(tables[table].Name, 8192);
                 return name != null ? name + "!" : null;
-            }, cancellationToken);
+            }, cancellationToken, boundBodyRanges: true);
         var formulas = new Dictionary<IWorkTableCell, string>();
         limitation = null;
-        foreach (IWorkTable table in tables.Keys) foreach (IWorkTableCell cell in table.Cells) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (!cell.FormulaIsComplete || cell.Formula == null) continue;
-            IWorkFormulaResult? result = cell.FormulaDefinition?.Render(qualifiers, projection.FormulaBudget!);
-            string text = result?.Text ?? cell.Formula;
-            if (result?.IsComplete == false || text.Length > 8192) {
-                limitation = $"Numbers table '{table.Name}' contains a formula that cannot be bound within the XLSX formula limits.";
-                return formulas;
+        boundedBodyFormulaCount = 0;
+        foreach (IWorkTable table in tables.Keys) {
+            var own = new IWorkFormulaTableBinding(table, string.Empty, true);
+            foreach (IWorkTableCell cell in table.Cells) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!cell.FormulaIsComplete || cell.Formula == null) continue;
+                IWorkFormulaResult? result = cell.FormulaDefinition?.Render(qualifiers, projection.FormulaBudget!, own);
+                string text = result?.Text ?? cell.Formula;
+                if (result?.IsComplete == false || text.Length > 8192) {
+                    limitation = $"Numbers table '{table.Name}' contains a formula that cannot be bound within the supported XLSX reference or formula limits.";
+                    return formulas;
+                }
+                if (result?.HasBoundedBodyRanges == true) boundedBodyFormulaCount++;
+                formulas.Add(cell, text);
             }
-            formulas.Add(cell, text);
         }
         return formulas;
     }

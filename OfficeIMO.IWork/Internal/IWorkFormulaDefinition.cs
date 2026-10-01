@@ -8,8 +8,8 @@ internal sealed class IWorkFormulaDefinition {
         _formula = formula; _row = row; _column = column;
         _maximumNodes = maximumNodes; _maximumCharacters = maximumCharacters;
     }
-    internal IWorkFormulaResult Render(IReadOnlyDictionary<Guid, string> qualifiers, IWorkProjectionBudget budget) {
+    internal IWorkFormulaResult Render(IReadOnlyDictionary<Guid, IWorkFormulaTableBinding> qualifiers, IWorkProjectionBudget budget, IWorkFormulaTableBinding? owningTable = null) {
         budget.AddFormulaRenderingOperations(IWorkFormulaReader.MeasureRenderingOperations(_formula, _maximumNodes));
-        return IWorkFormulaReader.Render(_formula, _row, _column, _maximumNodes, _maximumCharacters, qualifiers);
+        return IWorkFormulaReader.Render(_formula, _row, _column, _maximumNodes, _maximumCharacters, qualifiers, owningTable);
     }
 }

@@ -2,10 +2,11 @@ namespace OfficeIMO.IWork.Internal;
 
 internal static partial class IWorkFormulaReader {
     private static string RenderColonTract(IWorkWireMessage node, int row, int column, int maximumCharacters,
-        IReadOnlyDictionary<Guid, string>? tableQualifiers, ref bool complete) {
+        IReadOnlyDictionary<Guid, IWorkFormulaTableBinding>? tableQualifiers, IWorkFormulaTableBinding? owningTable,
+        ref bool complete, ref bool boundedBodyRanges, ref bool needsLocalBodyBinding) {
         IWorkWireMessage? tract = IWorkObjectIndex.TryGetMessage(node, 40, out bool malformedTract);
         if (malformedTract || tract == null) { complete = false; return "#REF!"; }
-        int firstColumn, lastColumn, firstRow, lastRow;
+        int? firstColumn, lastColumn, firstRow, lastRow;
         bool firstColumnAbsolute, lastColumnAbsolute, firstRowAbsolute, lastRowAbsolute;
         if (node.HasField(33)) {
             IWorkWireMessage? sticky = IWorkObjectIndex.TryGetMessage(node, 33, out bool malformedSticky);
@@ -13,26 +14,22 @@ internal static partial class IWorkFormulaReader {
                 || !TrySticky(sticky, 1, out firstRowAbsolute) || !TrySticky(sticky, 2, out firstColumnAbsolute)
                 || !TrySticky(sticky, 3, out lastRowAbsolute) || !TrySticky(sticky, 4, out lastColumnAbsolute)
                 || !TryEndpointRange(tract, 1, 3, column, firstColumnAbsolute, lastColumnAbsolute,
-                    out firstColumn, out lastColumn)
+                    32767, out firstColumn, out lastColumn)
                 || !TryEndpointRange(tract, 2, 4, row, firstRowAbsolute, lastRowAbsolute,
-                    out firstRow, out lastRow)) { complete = false; return "#REF!"; }
+                    int.MaxValue, out firstRow, out lastRow)) { complete = false; return "#REF!"; }
         } else {
-            if (!TryRange(tract, 3, 1, column, out firstColumn, out lastColumn, out firstColumnAbsolute)
-                || !TryRange(tract, 4, 2, row, out firstRow, out lastRow, out firstRowAbsolute)) {
+            if (!TryRange(tract, 3, 1, column, out int legacyFirstColumn, out int legacyLastColumn, out firstColumnAbsolute)
+                || !TryRange(tract, 4, 2, row, out int legacyFirstRow, out int legacyLastRow, out firstRowAbsolute)) {
                 complete = false; return "#REF!";
             }
+            firstColumn = legacyFirstColumn; lastColumn = legacyLastColumn;
+            firstRow = legacyFirstRow; lastRow = legacyLastRow;
             lastColumnAbsolute = firstColumnAbsolute; lastRowAbsolute = firstRowAbsolute;
         }
-        string first = CellAddress(firstColumn, firstRow, firstColumnAbsolute, firstRowAbsolute);
-        string last = CellAddress(lastColumn, lastRow, lastColumnAbsolute, lastRowAbsolute);
-        if (first == "#REF!" || last == "#REF!") { complete = false; return "#REF!"; }
-        string address = first == last ? first : first + ":" + last;
-        if (!node.HasField(28)) return address;
-        Guid? identifier = ReadReferencedTableIdentifier(node);
-        if (!identifier.HasValue || tableQualifiers == null
-            || !tableQualifiers.TryGetValue(identifier.Value, out string? qualifier))
-            return PreserveUnresolvedTableReference(node, address, ref complete);
-        return Bound(qualifier + address, maximumCharacters, ref complete);
+        if (!firstColumn.HasValue || !firstRow.HasValue) needsLocalBodyBinding = true;
+        return BindTableReference(node, firstColumn, lastColumn, firstRow, lastRow,
+            firstColumnAbsolute, lastColumnAbsolute, firstRowAbsolute, lastRowAbsolute, maximumCharacters,
+            tableQualifiers, owningTable, ref complete, ref boundedBodyRanges);
     }
 
     private static bool TrySticky(IWorkWireMessage sticky, int field, out bool absolute) {
@@ -42,10 +39,12 @@ internal static partial class IWorkFormulaReader {
     }
 
     private static bool TryEndpointRange(IWorkWireMessage tract, int relativeField, int absoluteField, int origin,
-        bool firstAbsolute, bool lastAbsolute, out int first, out int last) {
-        first = last = 0;
+        bool firstAbsolute, bool lastAbsolute, int wholeAxisSentinel, out int? first, out int? last) {
+        first = last = null;
         if (!TryCoordinateRange(tract, relativeField, relative: true, out long? relativeBegin, out long? relativeEnd)
             || !TryCoordinateRange(tract, absoluteField, relative: false, out long? absoluteBegin, out long? absoluteEnd)) return false;
+        // An absent relative axis with the exact native absolute sentinel spans the table body.
+        if (!relativeBegin.HasValue && absoluteBegin == wholeAxisSentinel && absoluteEnd == wholeAxisSentinel) return true;
         long? begin = firstAbsolute ? absoluteBegin : relativeBegin + origin;
         long? end = lastAbsolute ? absoluteEnd : relativeEnd + origin;
         if (!begin.HasValue || !end.HasValue || begin < 0 || end < begin || end > int.MaxValue) return false;

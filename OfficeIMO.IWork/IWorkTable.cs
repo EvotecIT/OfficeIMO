@@ -131,10 +131,11 @@ public sealed class IWorkTable {
         IReadOnlyList<IWorkObjectIdentity>? omittedTextUnits = null,
         IReadOnlyDictionary<int, double>? rowHeights = null,
         IReadOnlyDictionary<int, double>? columnWidths = null,
-        Guid? formulaIdentifier = null, IWorkArchiveRecord? modelRecord = null) {
+        Guid? formulaIdentifier = null, IWorkArchiveRecord? modelRecord = null, bool bodyMetadataIsComplete = true) {
         Name = name;
         FormulaIdentifier = formulaIdentifier;
         ModelRecord = modelRecord;
+        BodyMetadataIsComplete = bodyMetadataIsComplete;
         RowCount = rowCount;
         ColumnCount = columnCount;
         HeaderRowCount = headerRowCount;
@@ -154,12 +155,13 @@ public sealed class IWorkTable {
         Cells = Array.AsReadOnly(_cells.Values.OrderBy(cell => cell.Row).ThenBy(cell => cell.Column).ToArray());
     }
 
+    internal bool BodyMetadataIsComplete { get; }
     internal Guid? FormulaIdentifier { get; }
     internal IWorkArchiveRecord? ModelRecord { get; }
     internal IWorkTable WithCells(IReadOnlyList<IWorkTableCell> cells) =>
         new(Name, RowCount, ColumnCount, cells, HeaderRowCount, HeaderColumnCount, FooterRowCount,
             DefaultRowHeight, DefaultColumnWidth, MergedRanges, Geometry, AccessibilityDescription,
-            SourceIdentity, OmittedTextUnits, RowHeights, ColumnWidths, FormulaIdentifier, ModelRecord);
+            SourceIdentity, OmittedTextUnits, RowHeights, ColumnWidths, FormulaIdentifier, ModelRecord, BodyMetadataIsComplete);
 
     /// <summary>Gets the source table name.</summary>
     public string Name { get; }

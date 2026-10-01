@@ -96,7 +96,7 @@ public static partial class ExcelIWorkConverter {
             Dictionary<IWorkTableCell, string>? preparedFormulas = null;
             if (editable) {
                 preparedTables = CreateTableWorksheets(document, projection, worksheetMappings, nameMode, cancellationToken);
-                preparedFormulas = BindExcelFormulas(projection, preparedTables, cancellationToken, out string? formulaLimitation);
+                preparedFormulas = BindExcelFormulas(projection, preparedTables, cancellationToken, out string? formulaLimitation, out long boundedBodyFormulaCount);
                 if (formulaLimitation != null) {
                     if (mode == IWorkConversionMode.EditableOnly) throw new NotSupportedException(formulaLimitation);
                     preview = source.PreferredRasterPreview;
@@ -105,6 +105,11 @@ public static partial class ExcelIWorkConverter {
                     destinationDiagnostics = new[] { new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                         "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED", formulaLimitation) };
                     document.Dispose(); document = ExcelDocument.Create(); worksheetMappings.Clear(); editable = false;
+                } else if (boundedBodyFormulaCount > 0) {
+                    destinationDiagnostics = destinationDiagnostics.Concat(new[] { new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                        "IWORK_NUMBERS_TABLE_BODY_RANGE_APPROXIMATED",
+                        boundedBodyFormulaCount + " formula(s) use explicit ranges over the current Numbers table body, excluding header columns or header/footer rows. Native named-axis labels and automatic table expansion are not preserved.",
+                        lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation) }).ToArray();
                 }
             }
             if (editable) {

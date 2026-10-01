@@ -12,16 +12,17 @@ internal static partial class IWorkNumbersReader {
             string? tableName = IWorkFormulaReader.QuoteTableName(table.Name, source.Options.MaximumFormulaCharacters);
             labels.Add(table, sheetName != null && tableName != null ? sheetName + "::" + tableName + "::" : null);
         }
-        IReadOnlyDictionary<Guid, string> qualifiers = IWorkFormulaTableBindings.Create(labels.Keys,
+        IReadOnlyDictionary<Guid, IWorkFormulaTableBinding> qualifiers = IWorkFormulaTableBindings.Create(labels.Keys,
             table => labels[table], source.CancellationToken);
         var resolved = new Dictionary<IWorkTable, IWorkTable>();
         foreach (IWorkTable table in labels.Keys) {
             var cells = new List<IWorkTableCell>(table.Cells.Count);
+            var own = new IWorkFormulaTableBinding(table, string.Empty, false);
             foreach (IWorkTableCell cell in table.Cells) {
                 source.CancellationToken.ThrowIfCancellationRequested();
                 if (cell.FormulaDefinition == null) cells.Add(cell);
                 else {
-                    IWorkFormulaResult result = cell.FormulaDefinition.Render(qualifiers, budget);
+                    IWorkFormulaResult result = cell.FormulaDefinition.Render(qualifiers, budget, own);
                     budget.AddTextCharacters(result.Text.Length);
                     cells.Add(cell.WithFormula(result));
                 }

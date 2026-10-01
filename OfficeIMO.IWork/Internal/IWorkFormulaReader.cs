@@ -3,15 +3,17 @@ using System.Globalization;
 namespace OfficeIMO.IWork.Internal;
 
 internal sealed class IWorkFormulaResult {
-    internal IWorkFormulaResult(string text, bool isComplete, bool hasTableReferences = false) {
+    internal IWorkFormulaResult(string text, bool isComplete, bool requiresTableBinding = false, bool hasBoundedBodyRanges = false) {
         Text = text;
         IsComplete = isComplete;
-        HasTableReferences = hasTableReferences;
+        RequiresTableBinding = requiresTableBinding;
+        HasBoundedBodyRanges = hasBoundedBodyRanges;
     }
 
     internal string Text { get; }
     internal bool IsComplete { get; }
-    internal bool HasTableReferences { get; }
+    internal bool RequiresTableBinding { get; }
+    internal bool HasBoundedBodyRanges { get; }
 }
 
 internal static partial class IWorkFormulaReader {
@@ -54,12 +56,12 @@ internal static partial class IWorkFormulaReader {
     };
 
     internal static IWorkFormulaResult Render(IWorkWireMessage formula, int zeroBasedRow, int zeroBasedColumn,
-        int maximumNodes, int maximumCharacters, IReadOnlyDictionary<Guid, string>? tableQualifiers = null) {
+        int maximumNodes, int maximumCharacters, IReadOnlyDictionary<Guid, IWorkFormulaTableBinding>? tableQualifiers = null, IWorkFormulaTableBinding? owningTable = null) {
         if (!TryReadNodes(formula, maximumNodes, out IReadOnlyList<IWorkWireMessage> nodes))
             return new IWorkFormulaResult(string.Empty, false);
 
         var stack = new List<Operand>();
-        bool complete = true;
+        bool complete = true, boundedBodyRanges = false, needsLocalBodyBinding = false;
         foreach (IWorkWireMessage node in nodes) {
             if (node.FieldCount(1) != 1
                 || node.HasUnexpectedWireKind(1, IWorkWireKind.Varint)) complete = false;
@@ -154,7 +156,7 @@ internal static partial class IWorkFormulaReader {
                 case 63:
                 case 64:
                 case 65:
-                    stack.Add(new Operand(RenderReference(node, zeroBasedRow, zeroBasedColumn, ref complete),
+                    stack.Add(new Operand(RenderReference(node, zeroBasedRow, zeroBasedColumn, maximumCharacters, tableQualifiers, owningTable, type == 36, ref complete, ref boundedBodyRanges, ref needsLocalBodyBinding),
                         PrimaryPrecedence));
                     break;
                 case 29:
@@ -197,7 +199,7 @@ internal static partial class IWorkFormulaReader {
                 case 35:
                     break;
                 case 67:
-                    stack.Add(new Operand(RenderColonTract(node, zeroBasedRow, zeroBasedColumn, maximumCharacters, tableQualifiers, ref complete),
+                    stack.Add(new Operand(RenderColonTract(node, zeroBasedRow, zeroBasedColumn, maximumCharacters, tableQualifiers, owningTable, ref complete, ref boundedBodyRanges, ref needsLocalBodyBinding),
                         PrimaryPrecedence));
                     break;
                 case 69: {
@@ -213,10 +215,10 @@ internal static partial class IWorkFormulaReader {
             }
         }
 
-        bool hasTableReferences = nodes.Any(node => node.HasField(28));
-        if (stack.Count != 1) return new IWorkFormulaResult(string.Empty, false, hasTableReferences);
+        bool requiresTableBinding = needsLocalBodyBinding || nodes.Any(node => node.HasField(28));
+        if (stack.Count != 1) return new IWorkFormulaResult(string.Empty, false, requiresTableBinding, boundedBodyRanges);
         string text = stack[0].Text;
-        return new IWorkFormulaResult(text.Length == 0 ? string.Empty : "=" + text, complete && text.Length > 0, hasTableReferences);
+        return new IWorkFormulaResult(text.Length == 0 ? string.Empty : "=" + text, complete && text.Length > 0, requiresTableBinding, boundedBodyRanges);
     }
 
     internal static long MeasureRenderingOperations(IWorkWireMessage formula, int maximumNodes) {
@@ -323,7 +325,9 @@ internal static partial class IWorkFormulaReader {
         return symbol != null;
     }
 
-    private static string RenderReference(IWorkWireMessage node, int row, int column, ref bool complete) {
+    private static string RenderReference(IWorkWireMessage node, int row, int column, int maximumCharacters,
+        IReadOnlyDictionary<Guid, IWorkFormulaTableBinding>? tableQualifiers, IWorkFormulaTableBinding? owningTable, bool supportsBodyBinding,
+        ref bool complete, ref bool boundedBodyRanges, ref bool needsLocalBodyBinding) {
         IWorkWireMessage? columnMessage = IWorkObjectIndex.TryGetMessage(node, 26, out bool malformedColumn);
         IWorkWireMessage? rowMessage = IWorkObjectIndex.TryGetMessage(node, 27, out bool malformedRow);
         if (malformedColumn || malformedRow
@@ -350,11 +354,20 @@ internal static partial class IWorkFormulaReader {
         }
         string address = CellAddress(resolvedColumn, resolvedRow, absoluteColumn, absoluteRow);
         if (resolvedColumn == null || resolvedRow == null) address += ":" + address;
-        return PreserveUnresolvedTableReference(node, address, ref complete);
+        // Only the independently qualified missing-axis form is enabled here.
+        if (resolvedColumn != null && resolvedRow != null)
+            return PreserveUnresolvedTableReference(node, address, ref complete);
+        if (!supportsBodyBinding) {
+            complete = false; return PreserveUnresolvedTableReference(node, address, ref complete);
+        }
+        needsLocalBodyBinding = true;
+        return BindTableReference(node, resolvedColumn, resolvedColumn, resolvedRow, resolvedRow,
+            absoluteColumn, absoluteColumn, absoluteRow, absoluteRow, maximumCharacters,
+            tableQualifiers, owningTable, ref complete, ref boundedBodyRanges);
     }
 
     // Dropping a declared table identity would turn an external reference into a
-    // complete local formula or merge. Keep it unresolved until identity binding is supported.
+    // complete local formula or merge. Keep unsupported or unresolved identities incomplete.
     private static string PreserveUnresolvedTableReference(IWorkWireMessage node, string address,
         ref bool complete) {
         if (!node.HasField(28)) return address;

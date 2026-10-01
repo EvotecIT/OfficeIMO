@@ -217,7 +217,7 @@ internal static partial class IWorkTableReader {
                     options.MaximumFormulaNodes));
             result = IWorkFormulaReader.Render(formula, row - 1, column - 1,
                 options.MaximumFormulaNodes, options.MaximumFormulaCharacters);
-            if (result.HasTableReferences) definition = new IWorkFormulaDefinition(formula, row - 1, column - 1,
+            if (result.RequiresTableBinding) definition = new IWorkFormulaDefinition(formula, row - 1, column - 1,
                 options.MaximumFormulaNodes, options.MaximumFormulaCharacters);
         } else {
             result = new IWorkFormulaResult("=?", false);

@@ -111,13 +111,91 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(IWorkFormulaReader.Render(formula, 0, 0, 10, 100).IsComplete);
     }
 
-    private static MemoryStream CrossBindingPackage(int defect = 0, bool uncached = false, bool shortNames = false, bool unnamedTarget = false) {
+    [Theory]
+    [InlineData(27)]
+    [InlineData(64)]
+    public void Unqualified_reference_node_families_do_not_export_unbounded_local_axes(int nodeType) {
+        byte[] node = Message(VarintField(1, (ulong)nodeType), BytesField(26, Message(VarintField(1, 0), VarintField(2, 1))));
+        var formula = IWorkProtobuf.Parse(BytesField(1, BytesField(1, node)), new IWorkReadOptions());
+        Assert.False(IWorkFormulaReader.Render(formula, 0, 0, 10, 100).IsComplete);
+    }
+
+    [Theory]
+    [InlineData(1, "A$2:A$3")]
+    [InlineData(2, "$B1:$D1")]
+    [InlineData(3, "$A$2:$B$3")]
+    [InlineData(4, "$B$1:$D$2")]
+    public void Whole_axis_references_exclude_target_headers_and_footers_and_report_fixed_extents(int representation, string address) {
+        using MemoryStream package = CrossBindingPackage(bodyReference: representation);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
+            conversionOptions: new IWorkConversionOptions { NormalizeWorksheetNames = true });
+        Assert.False(result.IsVisualFallback);
+        string target = result.WorksheetMappings[1].DestinationName;
+        Assert.Equal("SUM('" + target.Replace("'", "''") + "'!" + address + ")", result.Value.Sheets[0].GetFormulaText(1, 1));
+        Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_TABLE_BODY_RANGE_APPROXIMATED"
+            && d.LossKind == global::OfficeIMO.OfficeConversionLossKind.Approximation);
+        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+    }
+
+    [Theory]
+    [InlineData(1, "A$2:A$3")]
+    [InlineData(2, "$B1:$D1")]
+    [InlineData(3, "$A$2:$B$3")]
+    [InlineData(4, "$B$1:$D$2")]
+    public void Table_local_whole_axis_references_use_the_same_body_owner(int representation, string address) {
+        using MemoryStream package = CrossBindingPackage(shortNames: true, bodyReference: representation, localBodyReference: true);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        Assert.True(result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.FormulaIsComplete);
+        Assert.Equal("SUM(" + address + ")", result.Value.Sheets[0].GetFormulaText(1, 1));
+        Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_TABLE_BODY_RANGE_APPROXIMATED");
+        using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
+        using var reopened = global::OfficeIMO.Excel.ExcelDocument.Load(saved);
+        Assert.Equal("SUM(" + address + ")", reopened.Sheets[0].GetFormulaText(1, 1));
+        Assert.Equal(13d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+    }
+
+    [Fact]
+    public void Ambiguous_target_body_metadata_retains_cache_without_guessing_header_exclusions() {
+        using MemoryStream package = CrossBindingPackage(shortNames: true, bodyReference: 1, ambiguousBodyMetadata: true);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
+            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        Assert.False(result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.FormulaIsComplete);
+        Assert.Null(result.Value.Sheets[0].GetFormulaText(1, 1));
+        Assert.Equal(13d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_TABLE_BODY_RANGE_APPROXIMATED");
+    }
+
+    [Fact]
+    public void Empty_target_body_uses_destination_fallback_instead_of_inventing_a_nonempty_range() {
+        using MemoryStream package = CrossBindingPackage(shortNames: true, bodyReference: 1, emptyBody: true);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        Assert.True(result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.FormulaIsComplete);
+        Assert.True(result.IsVisualFallback);
+        Assert.Empty(result.WorksheetMappings);
+        Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_TABLE_BODY_RANGE_APPROXIMATED");
+        Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED");
+    }
+
+    private static MemoryStream CrossBindingPackage(int defect = 0, bool uncached = false, bool shortNames = false, bool unnamedTarget = false, int bodyReference = 0, bool ambiguousBodyMetadata = false, bool emptyBody = false, bool localBodyReference = false) {
         const string targetId = "00112233-4455-6677-8899-aabbccddeeff";
         byte[] uuid = Message(VarintField(2, 0x33221100), VarintField(3, 0x77665544),
             VarintField(4, 0xbbaa9988), VarintField(5, 0xffeeddcc));
+        byte[] external = localBodyReference ? Array.Empty<byte>() : BytesField(28, BytesField(1, uuid));
         byte[] range = Message(BytesField(3, Message(VarintField(1, 0), VarintField(2, 1))),
             BytesField(4, Message(VarintField(1, 0), VarintField(2, 1))));
-        byte[] reference = Message(VarintField(1, 67), BytesField(40, range), BytesField(28, BytesField(1, uuid)));
+        byte[] reference = Message(VarintField(1, 67), BytesField(40, range), external);
+        if (bodyReference != 0) {
+            bool columns = bodyReference is 1 or 3;
+            if (bodyReference <= 2) reference = Message(VarintField(1, 36),
+                BytesField(columns ? 26 : 27, Message(VarintField(1, 0), VarintField(2, 0))), external);
+            else {
+                byte[] axis = BytesField(columns ? 3 : 4, Message(VarintField(1, 0), VarintField(2, 1)));
+                byte[] absent = BytesField(columns ? 4 : 3, VarintField(1, columns ? (ulong)int.MaxValue : 32767UL));
+                byte[] sticky = Message(VarintField(columns ? 2 : 1, 1), VarintField(columns ? 4 : 3, 1));
+                reference = Message(VarintField(1, 67), BytesField(33, sticky), BytesField(40, Message(axis, absent)),
+                    external);
+            }
+        }
         byte[] formula = BytesField(1, Message(BytesField(1, reference),
             BytesField(1, Message(VarintField(1, 16), VarintField(2, 168), VarintField(3, 1)))));
         var records = new List<byte[]> { ArchiveRecord(1, 1, ReferenceField(1, 2)) };
@@ -130,13 +208,18 @@ public sealed partial class IWorkBoundaryTests {
             string name = shortNames ? index == 0 ? "Source" : "Target" + index
                 : index == 0 ? "Source" : index == 1 ? "Totals /" : "Totals ?";
             if (index == 1 && unnamedTarget) name = string.Empty;
-            var spec = new TableSpec(name, 2, 2, 13d, hasFormula: index == 0,
+            bool bodyTable = index == (localBodyReference ? 0 : 1) && bodyReference != 0;
+            int rows = bodyTable ? 4 : 2;
+            int columns = bodyTable ? 4 : 2;
+            var spec = new TableSpec(name, rows, columns, 13d, hasFormula: index == 0,
                 formulaWithoutCachedValue: uncached && index == 0);
             byte[] store = BytesField(3, BytesField(1, Message(VarintField(1, 0), ReferenceField(2, tile))));
             if (index == 0) store = Message(store, ReferenceField(6, 30));
             records.Add(ArchiveRecord(info, 6000, ReferenceField(2, model)));
             records.Add(ArchiveRecord(model, 6001, Message(StringField(1, id), StringField(8, name),
-                VarintField(6, 2), VarintField(7, 2), BytesField(4, store))));
+                VarintField(6, (ulong)rows), VarintField(7, (ulong)columns), BytesField(4, store),
+                bodyTable ? Message(VarintField(9, emptyBody ? 3UL : 1UL),
+                    VarintField(10, 1), VarintField(11, 1), ambiguousBodyMetadata ? VarintField(9, 2) : Array.Empty<byte>()) : Array.Empty<byte>())));
             records.Add(ArchiveRecord(tile, 6002, BytesField(5, CreateBncRow(spec))));
         }
         records.Add(ArchiveRecord(30, 6201, BytesField(3, Message(VarintField(1, 0), BytesField(5, formula)))));
