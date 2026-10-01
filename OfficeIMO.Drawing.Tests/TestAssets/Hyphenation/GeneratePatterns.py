@@ -23,7 +23,7 @@ for language, counts in expected.items():
     assert (len(patterns), len(exceptions)) == counts
     assert all(all(c.isalpha() or c in '0123456789.' for c in p) for p in patterns)
     url = f'https://raw.githubusercontent.com/hyphenation/tex-hyphen/{commit}/hyph-utf8/tex/generic/hyph-utf8/patterns/tex/{path.name}'
-    header = '\n'.join('#' + line[1:] for line in text.split('\\patterns', 1)[0].splitlines() if line.startswith('%'))
+    header = '\n'.join('#' + line[1:].rstrip() for line in text.split('\\patterns', 1)[0].splitlines() if line.startswith('%'))
     content = f'# Derived resource; pattern tokens and exceptions unchanged.\n# Source: {url}\n{header}\n'
     content += '\n'.join(patterns) + '\n'
     content += ''.join('!' + word + '\n' for word in exceptions)
