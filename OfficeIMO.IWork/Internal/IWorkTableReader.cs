@@ -432,7 +432,8 @@ internal static partial class IWorkTableReader {
                         checked((int)zeroBasedRow + 1), column + 1,
                         strings, richStrings, formulas, numberFormats, cellStyles, textStyles, source.Options, projectionBudget,
                         formulaRichStringIdentifiers, nonFormulaRichStringIdentifiers);
-                    if (cell.Kind == IWorkCellKind.Empty && !cell.HasCellFormatting) continue;
+                    if (cell.Kind == IWorkCellKind.Empty && !cell.HasCellFormatting
+                        && cell.UnsupportedFeatures == IWorkCellUnsupportedFeatures.None) continue;
                     if (materializedCellCount >= source.Options.MaximumMaterializedCells) {
                         throw new InvalidDataException($"iWork cell count exceeds the configured source-wide limit of {source.Options.MaximumMaterializedCells}.");
                     }
@@ -449,6 +450,9 @@ internal static partial class IWorkTableReader {
                     }
                     cells.Add(cell);
                     materializedCellCount++;
+                    if (cell.UnsupportedFeatures != IWorkCellUnsupportedFeatures.None)
+                        references.Declarations.Record(tile, TileRowPath(rowPosition) + "/6", rowInfo.FieldCount(6),
+                            IWorkSourceDeclarationIssueKind.UnsupportedField);
                 }
             }
         }
@@ -501,6 +505,13 @@ internal static partial class IWorkTableReader {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_TABLE_NUMERIC_VALUE_APPROXIMATED",
                 $"{approximateNumberCount} Decimal128 values in table '{name}' exceed fifteen significant digits; exact source coefficient/exponent text is retained beside the recovered numeric values.",
                 model.EntryPath, model.Identifier, global::OfficeIMO.OfficeConversionLossKind.Approximation));
+        }
+        int unsupportedFeatureCount = cells.Count(cell => cell.UnsupportedFeatures != IWorkCellUnsupportedFeatures.None);
+        if (unsupportedFeatureCount > 0) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_TABLE_CELL_FEATURES_UNASSESSED",
+                $"{unsupportedFeatureCount} selected cells in table '{name}' declare conditional styles, applied conditional rules or comments that are not assessed or reconstructed. Recoverable values remain available; this count does not identify omitted content objects.",
+                model.EntryPath, model.Identifier, global::OfficeIMO.OfficeConversionLossKind.Unassessed));
         }
         int errorCount = cells.Count(cell => cell.HasDecodeError);
         if (errorCount > 0) {

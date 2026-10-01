@@ -9,7 +9,9 @@ public enum IWorkSourceDeclarationIssueKind {
     /// <summary>A decoded declaration has invalid metadata needed to select its content.</summary>
     InvalidSelectionMetadata,
     /// <summary>A decoded declaration contains an invalid or unsupported value.</summary>
-    InvalidValue
+    InvalidValue,
+    /// <summary>A selected readable field contains features that the projection does not assess.</summary>
+    UnsupportedField
 }
 
 /// <summary>One selected source path whose declarations could not be assessed. It does not identify references or omitted objects.</summary>

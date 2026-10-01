@@ -63,7 +63,7 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
         if (SourceDeclarationIssues.Count > 0) {
             fidelityDiagnostics.Add(new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
                 "IWORK_SOURCE_DECLARATIONS_UNASSESSED",
-                SourceDeclarationIssues.Count + " selected source path(s) contain unreadable or rejected declarations. Their nested references and content coverage remain unknown; these are not omitted-object counts.",
+                SourceDeclarationIssues.Count + " selected source path(s) contain unreadable, rejected or unsupported declarations. Their nested references and content coverage remain unknown; these are not omitted-object counts.",
                 global::OfficeIMO.OfficeConversionLossKind.Unassessed,
                 "OfficeIMO.IWork"));
         }

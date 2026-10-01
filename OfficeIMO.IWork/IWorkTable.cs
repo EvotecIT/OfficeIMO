@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace OfficeIMO.IWork;
 
-/// <summary>One materialized value or explicitly styled empty cell shared by Pages, Numbers, and Keynote table projections.</summary>
+/// <summary>One materialized value or empty cell with selected styles or unsupported features shared by Pages, Numbers, and Keynote table projections.</summary>
 public sealed partial class IWorkTableCell {
     internal IWorkTableCell(int row, int column, IWorkCellKind kind, object? value,
         string? formula = null, string? error = null, IWorkCellKind? valueKind = null,
@@ -10,7 +10,7 @@ public sealed partial class IWorkTableCell {
         bool cachedValueIsComplete = true, bool sourceFormulaIsDeclared = false,
         bool hasDecodeError = false, IWorkNumberFormat? numberFormat = null,
         string? sourceNumberText = null, bool numericValueIsApproximate = false, Internal.IWorkFormulaDefinition? formulaDefinition = null, IWorkCellFill? fill = null,
-        IWorkCellPadding? padding = null, IWorkCellVerticalAlignment? verticalAlignment = null, IWorkParagraphStyle? paragraphStyle = null, bool hasSelectedTextStyle = false, bool hasUnresolvedFill = false) {
+        IWorkCellPadding? padding = null, IWorkCellVerticalAlignment? verticalAlignment = null, IWorkParagraphStyle? paragraphStyle = null, bool hasSelectedTextStyle = false, bool hasUnresolvedFill = false, IWorkCellUnsupportedFeatures unsupportedFeatures = IWorkCellUnsupportedFeatures.None) {
         Row = row;
         Column = column;
         Kind = kind;
@@ -33,6 +33,7 @@ public sealed partial class IWorkTableCell {
         ParagraphStyle = paragraphStyle;
         HasSelectedTextStyle = hasSelectedTextStyle;
         HasUnresolvedFill = hasUnresolvedFill;
+        UnsupportedFeatures = unsupportedFeatures;
     }
 
     /// <summary>Gets the one-based row position.</summary>
@@ -80,6 +81,8 @@ public sealed partial class IWorkTableCell {
 
     /// <summary>Gets the supported explicitly selected paragraph style, or null when absent or unresolved. Table defaults are available through <see cref="IWorkTable.GetParagraphStyle"/>.</summary>
     public IWorkParagraphStyle? ParagraphStyle { get; }
+    /// <summary>Gets readable selected conditional-style, applied-rule and comment fields whose contents remain unassessed. None does not establish complete fidelity; undecoded cells are covered by their decode issues.</summary>
+    public IWorkCellUnsupportedFeatures UnsupportedFeatures { get; }
     internal bool HasSelectedTextStyle { get; }
     internal bool HasUnresolvedFill { get; }
     internal bool HasCellFormatting => HasUnresolvedFill || Fill != null || Padding != null || VerticalAlignment != null || HasSelectedTextStyle;
@@ -89,26 +92,31 @@ public sealed partial class IWorkTableCell {
     internal IWorkTableCell WithFormula(Internal.IWorkFormulaResult result) =>
         new(Row, Column, Kind, Value, result.Text.Length == 0 ? "=?" : result.Text, Error, ValueKind, result.IsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
-            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, HasUnresolvedFill);
+            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, HasUnresolvedFill, UnsupportedFeatures);
 
     internal IWorkTableCell WithNumberFormat(IWorkNumberFormat format) =>
         new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, format,
-            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, HasUnresolvedFill);
+            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, HasUnresolvedFill, UnsupportedFeatures);
 
     internal IWorkTableCell WithSourceNumber(string text, bool approximate) =>
         new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
-            text, approximate, FormulaDefinition, Fill, Padding, VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, HasUnresolvedFill);
+            text, approximate, FormulaDefinition, Fill, Padding, VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, HasUnresolvedFill, UnsupportedFeatures);
     internal IWorkTableCell WithStyle(Internal.IWorkTableCellStyle style) =>
         new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
-            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, style.Fill, style.Padding, style.VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, !style.FillIsComplete);
+            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, style.Fill, style.Padding, style.VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, !style.FillIsComplete, UnsupportedFeatures);
 
     internal IWorkTableCell WithParagraphStyle(IWorkParagraphStyle? style) =>
         new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
-            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment, style, true, HasUnresolvedFill);
+            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment, style, true, HasUnresolvedFill, UnsupportedFeatures);
+
+    internal IWorkTableCell WithUnsupportedFeatures(IWorkCellUnsupportedFeatures features) =>
+        new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
+            RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
+            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill, Padding, VerticalAlignment, ParagraphStyle, HasSelectedTextStyle, HasUnresolvedFill, features);
 
     /// <summary>Gets a culture-invariant display representation of the recovered value or formula.</summary>
     public string DisplayText => Kind switch {

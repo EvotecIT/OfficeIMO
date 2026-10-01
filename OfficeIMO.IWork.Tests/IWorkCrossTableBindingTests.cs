@@ -176,7 +176,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED");
     }
 
-    private static MemoryStream CrossBindingPackage(int defect = 0, bool uncached = false, bool shortNames = false, bool unnamedTarget = false, int bodyReference = 0, bool ambiguousBodyMetadata = false, bool emptyBody = false, bool localBodyReference = false) {
+    private static MemoryStream CrossBindingPackage(int defect = 0, bool uncached = false, bool shortNames = false, bool unnamedTarget = false, int bodyReference = 0, bool ambiguousBodyMetadata = false, bool emptyBody = false, bool localBodyReference = false, byte[]? sourceCellPayload = null) {
         const string targetId = "00112233-4455-6677-8899-aabbccddeeff";
         byte[] uuid = Message(VarintField(2, 0x33221100), VarintField(3, 0x77665544),
             VarintField(4, 0xbbaa9988), VarintField(5, 0xffeeddcc));
@@ -220,7 +220,10 @@ public sealed partial class IWorkBoundaryTests {
                 VarintField(6, (ulong)rows), VarintField(7, (ulong)columns), BytesField(4, store),
                 bodyTable ? Message(VarintField(9, emptyBody ? 3UL : 1UL),
                     VarintField(10, 1), VarintField(11, 1), ambiguousBodyMetadata ? VarintField(9, 2) : Array.Empty<byte>()) : Array.Empty<byte>())));
-            records.Add(ArchiveRecord(tile, 6002, BytesField(5, CreateBncRow(spec))));
+            byte[] row = index == 0 && sourceCellPayload != null
+                ? Message(VarintField(1, 0), BytesField(6, sourceCellPayload), BytesField(7, new byte[] { 0, 0 }))
+                : CreateBncRow(spec);
+            records.Add(ArchiveRecord(tile, 6002, BytesField(5, row)));
         }
         records.Add(ArchiveRecord(30, 6201, BytesField(3, Message(VarintField(1, 0), BytesField(5, formula)))));
         records.Add(ArchiveRecord(2, 2, Message(sheet.ToArray())));

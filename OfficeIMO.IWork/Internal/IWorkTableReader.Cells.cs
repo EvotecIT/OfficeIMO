@@ -46,12 +46,20 @@ internal static partial class IWorkTableReader {
         }
         // Only a complete, supported header establishes formula presence. Keep decode errors
         // as errors instead of inventing an expression or a recovered cache.
-        return cell.Kind == IWorkCellKind.Error && (flags & (1u << 9)) != 0
+        cell = cell.Kind == IWorkCellKind.Error && (flags & (1u << 9)) != 0
             ? new IWorkTableCell(row, column, IWorkCellKind.Error, null,
                 error: cell.Error, sourceFormulaIsDeclared: true,
                 hasDecodeError: cell.HasDecodeError, fill: cell.Fill,
                 padding: cell.Padding, verticalAlignment: cell.VerticalAlignment, paragraphStyle: cell.ParagraphStyle, hasSelectedTextStyle: cell.HasSelectedTextStyle, hasUnresolvedFill: cell.HasUnresolvedFill)
             : cell;
+        // DecodeModernCell validated the entire selected storage before these selectors
+        // can establish feature presence. Their catalogs are deliberately not traversed.
+        IWorkCellUnsupportedFeatures features = IWorkCellUnsupportedFeatures.None;
+        if ((flags & (1u << 7)) != 0) features |= IWorkCellUnsupportedFeatures.ConditionalStyle;
+        if ((flags & (1u << 8)) != 0) features |= IWorkCellUnsupportedFeatures.AppliedConditionalRule;
+        if ((flags & (1u << 19)) != 0) features |= IWorkCellUnsupportedFeatures.Comment;
+        return !cell.HasDecodeError && features != IWorkCellUnsupportedFeatures.None
+            ? cell.WithUnsupportedFeatures(features) : cell;
     }
 
     private static IWorkTableCell DecodeModernCell(byte[] buffer, int offset, int endOffset,
