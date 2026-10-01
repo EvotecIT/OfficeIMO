@@ -2,11 +2,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
     internal sealed class LegacyDocPicture {
         private readonly byte[] _imageBytes;
 
-        internal LegacyDocPicture(byte[] imageBytes, string contentType, double widthPixels, double heightPixels) {
+        internal LegacyDocPicture(byte[] imageBytes, string contentType, double widthPixels, double heightPixels,
+            OfficeIMO.Drawing.OfficeImageSourceCrop crop = default) {
             _imageBytes = imageBytes == null ? throw new ArgumentNullException(nameof(imageBytes)) : (byte[])imageBytes.Clone();
             ContentType = contentType ?? throw new ArgumentNullException(nameof(contentType));
             WidthPixels = widthPixels;
             HeightPixels = heightPixels;
+            Crop = crop;
         }
 
         internal byte[] ImageBytes => (byte[])_imageBytes.Clone();
@@ -18,6 +20,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal double WidthPixels { get; }
 
         internal double HeightPixels { get; }
+
+        internal OfficeIMO.Drawing.OfficeImageSourceCrop Crop { get; }
 
         internal string FileName => ContentType.ToLowerInvariant() switch {
             "image/png" => "legacy-picture.png",

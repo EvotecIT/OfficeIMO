@@ -145,6 +145,15 @@ officeimo tabular convert input.csv output.xlsx
 officeimo tabular convert workbook.xlsb output.tsv --sheet Data
 officeimo tabular convert pipe-delimited.csv output.csv --delimiter '|' --output-delimiter ','
 
+# Analyze embedded Word images without writing a file
+officeimo workflow optimize-images input.docx --analyze
+
+# Optimize a separate Word copy, or choose a .pdf output
+officeimo workflow optimize-images input.docx --output optimized.docx --mode both --dpi 144 --quality 85
+
+# Process an explicit batch; each output is independently staged and reopened
+officeimo workflow optimize-images first.docx second.docx --output-directory optimized --format pdf --mode both
+
 # Export selected PDF pages to validated images
 officeimo workflow export-pages report.pdf --output .\report-pages --pages 1-3,last --format png
 

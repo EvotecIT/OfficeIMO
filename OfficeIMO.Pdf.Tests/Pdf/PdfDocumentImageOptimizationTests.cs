@@ -5,6 +5,33 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfDocumentImageOptimizationTests {
+    [Theory]
+    [InlineData(false, 144, 72)]
+    [InlineData(true, 144, 72)]
+    public void ImageOptimizationCoversBothStretchedAndCroppedSourceAxes(bool crop, int width, int height) {
+        var options = new PdfOptions { ImageOptimization = new() { Enabled = true, TargetDpi = 72, KeepOriginalWhenNotSmaller = false } };
+        var document = PdfDocument.Create(options);
+        document.Canvas(canvas => canvas.Image(CreateJpeg(400, 200), 40, 50, 72, crop ? 36 : 72,
+            new PdfImageStyle { Fit = OfficeImageFit.Stretch, SourceCrop = crop ? new PdfImageSourceCrop(0.5, 0, 0, 0) : null }));
+        var image = Assert.Single(PdfImageExtractor.ExtractImages(document.ToBytes()));
+        Assert.Equal(width, image.Width);
+        Assert.Equal(height, image.Height);
+    }
+    [Fact]
+    public void ImageOptimization_RecompressesJpegWithoutReducingPixels() {
+        byte[] jpeg = CreateJpeg(400, 200);
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+            ImageOptimization = new PdfImageOptimizationOptions {
+                Enabled = true, Mode = OfficeImageOptimizationMode.Recompress,
+                TargetDpi = 72, JpegQuality = 35
+            }
+        }).Image(jpeg, 72, 36).ToBytes();
+        PdfExtractedImage image = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
+        Assert.Equal(400, image.Width);
+        Assert.Equal(200, image.Height);
+        Assert.True(image.Bytes.Length < jpeg.Length);
+    }
+
     [Fact]
     public void ImageOptimization_DownsamplesToLaidOutPlacementResolution() {
         byte[] jpeg = CreateJpeg(400, 200);
@@ -85,6 +112,9 @@ public class PdfDocumentImageOptimizationTests {
         Assert.Equal(1.25, clone.ImageOptimization!.DownsampleThreshold);
         Assert.Equal(OfficeRasterResamplingMode.NearestNeighbor, clone.ImageOptimization.ResamplingMode);
         Assert.False(clone.ImageOptimization.KeepOriginalWhenNotSmaller);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfOptions {
+            ImageOptimization = new() { MetadataPolicy = (OfficeImageMetadataPolicy)99 }
+        });
     }
 
     private static byte[] CreateJpeg(int width, int height) {

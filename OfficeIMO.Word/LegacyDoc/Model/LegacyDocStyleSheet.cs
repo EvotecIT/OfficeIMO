@@ -40,6 +40,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             int cstd = LegacyDocFib.ReadUInt16(tableStream, stshifOffset);
             int cbStdBaseInFile = LegacyDocFib.ReadUInt16(tableStream, stshifOffset + 2);
+            string? defaultFont = null;
+            if (cbStshi >= 18) {
+                int fontIndex = LegacyDocFib.ReadUInt16(tableStream, stshifOffset + 12);
+                if (fontIndex < fontFamilies.Count) defaultFont = fontFamilies[fontIndex];
+            }
             if (cstd < 0 || cbStdBaseInFile < 8) {
                 warning = "The DOC stylesheet header contains an unsupported standard style base size.";
                 return Empty;
@@ -60,7 +65,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     break;
                 }
 
-                if (TryReadParagraphStyle(tableStream, offset, cbStd, cbStdBaseInFile, styleIndex, usedStyleIds, fontFamilies, out LegacyDocParagraphStyle? style)) {
+                if (TryReadParagraphStyle(tableStream, offset, cbStd, cbStdBaseInFile, styleIndex, usedStyleIds, fontFamilies, defaultFont, out LegacyDocParagraphStyle? style)) {
                     styles[styleIndex] = style!;
                 }
 
@@ -81,6 +86,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             ushort styleIndex,
             HashSet<string> usedStyleIds,
             IReadOnlyList<string> fontFamilies,
+            string? defaultFont,
             out LegacyDocParagraphStyle? style) {
             style = null;
             if (count < cbStdBaseInFile) {
@@ -116,6 +122,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 fontFamilies,
                 out LegacyDocParagraphFormat paragraphFormat,
                 out LegacyDocCharacterFormat characterFormat);
+            if (styleIndex == 0) characterFormat = characterFormat.WithDefaultFont(defaultFont);
 
             if (TryMapBuiltInParagraphStyle(sti, name!, out WordParagraphStyles builtInStyle)) {
                 style = LegacyDocParagraphStyle.ForBuiltIn(styleIndex, name!, builtInStyle, basedOnStyleIndex, nextParagraphStyleIndex, paragraphFormat, characterFormat);

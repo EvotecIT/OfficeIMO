@@ -43,7 +43,7 @@ public static class WordCompatibilityCatalog {
             Subset("Controls.InlineContentControls", "Controls", "Inline content controls containing supported run-level content.",
                 "DOC has no Open XML content-control carrier; supported content is converted to equivalent editable story content."),
             NativeWithVisualFallback("Drawing.InlinePictures", "Drawing", "Inline raster and metafile pictures.",
-                "Supported encodings write as editable inline DOC pictures. If the native writer rejects a modern picture or effect, PreferVisual and BestEffort create static page images; PreservationOnly can also retain the source carrier."),
+                "Supported encodings and inset source crops write as editable inline DOC pictures. Rotated, mirrored, or effect-bearing pictures require a qualified visual fallback. PreferVisual and BestEffort create static page images when native writing rejects the picture; PreservationOnly can also retain the source carrier."),
             VisualFallback("Drawing.FloatingObjects", "Drawing", "Floating pictures, text boxes, AutoShapes, groups, and drawing anchors.",
                 "Binary OfficeArt is detected or preserved. Modern-to-DOC conversion either blocks or creates deterministic static page images after an omission-free render; PreservationOnly can also retain the source carrier."),
             VisualFallback("Drawing.Charts", "Drawing", "Embedded Word charts and chart previews.",

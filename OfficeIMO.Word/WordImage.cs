@@ -145,7 +145,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the content type of the embedded image part, or an empty string for external images.
         /// </summary>
-        public string ContentType => _imagePart?.ContentType ?? string.Empty;
+        public string ContentType => ResolveImagePart()?.ContentType ?? string.Empty;
 
         /// <summary>
         /// Gets the URI of the externally linked image.
@@ -173,7 +173,7 @@ namespace OfficeIMO.Word {
                 string? title = _vmlImageData?.Title?.Value;
                 return !string.IsNullOrWhiteSpace(title)
                     ? title
-                    : _imagePart?.Uri.ToString().Split('/').LastOrDefault();
+                    : ResolveImagePart()?.Uri.ToString().Split('/').LastOrDefault();
             }
             set {
                 if (value == null) throw new ArgumentNullException(nameof(value));

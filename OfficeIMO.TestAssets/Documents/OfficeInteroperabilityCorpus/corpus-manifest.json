@@ -257,6 +257,12 @@
           "sha256": "8308e70b4ad26b55ddebb32cc6ce41d17e489b678e1839f68b246b6080adf425",
           "approvedReport": "ComSimpleParagraphs.import-report.md",
           "focus": ["Word-authored paragraphs", "FIB and piece table projection"]
+        },
+        {
+          "file": "ComCroppedInlinePicture.doc",
+          "sha256": "2249f6c125080587baf21855e812f9e9c6cfeba98e3070a658c087743ca6e318",
+          "approvedReport": "ComCroppedInlinePicture.import-report.md",
+          "focus": ["Word-authored inline picture crop", "default font resolution", "image optimization and native saving"]
         }
       ]
     },

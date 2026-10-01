@@ -4,14 +4,14 @@
   "summary": {
     "corpusCount": 5,
     "recordCount": 67,
-    "verifiedArtifactCount": 94
+    "verifiedArtifactCount": 95
   },
   "corpora": [
     {
       "id": "office-binary-interoperability",
       "owner": "OfficeIMO.TestAssets",
       "manifest": "OfficeIMO.TestAssets/Documents/OfficeInteroperabilityCorpus/corpus-manifest.json",
-      "manifestSha256": "0072fc1b9ee59bf89843cf26ddae9ddb06e17077e195ea1be9936aa18128a366",
+      "manifestSha256": "2cf9ab5392aac059cdb2162775569742a0f1dd2aa7dc2eb8f1c268595263a16d",
       "recordCount": 7,
       "diffPolicy": {
         "kind": "package-and-semantic",

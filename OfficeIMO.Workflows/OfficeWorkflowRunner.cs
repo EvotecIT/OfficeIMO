@@ -202,6 +202,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         return request.Operation switch {
+            OfficeWorkflowOperation.AnalyzeWordImages or OfficeWorkflowOperation.OptimizeWordImages => OptimizeWordImages(request, diagnostics, cancellationToken),
             OfficeWorkflowOperation.ScanCleanup => CleanScan(request, diagnostics, cancellationToken),
             OfficeWorkflowOperation.SignPdf => SignPdf(request, cancellationToken),
             OfficeWorkflowOperation.ProtectPdf or OfficeWorkflowOperation.RemovePdfProtection => ChangeProtection(request, cancellationToken),
@@ -531,6 +532,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                     if (info.PageCount == 0) throw new InvalidOperationException("Generated PDF has no pages.");
                     break;
                 }
+            case ".doc":
             case ".docx":
                 await using (FileStream stream = OpenStagedArtifact(stagingPath))
                 using (WordDocument document = await WordDocument.LoadAsync(
@@ -695,6 +697,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
     private static string NormalizeExtension(string extension) => extension.StartsWith('.') ? extension : "." + extension;
 
     private static string DescribeOperation(OfficeWorkflowOperation operation) => operation switch {
+        OfficeWorkflowOperation.AnalyzeWordImages => "Analyzing embedded Word images",
+        OfficeWorkflowOperation.OptimizeWordImages => "Optimizing embedded Word images in a separate copy",
         OfficeWorkflowOperation.ScanCleanup => "Preparing reviewed scan page appearances",
         OfficeWorkflowOperation.SignPdf => "Signing and verifying a separate PDF copy",
         OfficeWorkflowOperation.ProtectPdf => "Creating and verifying a protected PDF copy",
@@ -756,5 +760,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         PdfExternalSignatureOptions? OutputSignatureOptions = null,
         IPdfSignatureCryptographyProvider? OutputSignatureValidator = null,
         OfficeWorkflowConversionOptions? ConversionOptions = null,
-        OfficeScanCleanupOptions? ScanCleanup = null);
+        OfficeScanCleanupOptions? ScanCleanup = null,
+        WordImageOptimizationOptions? WordImageOptimization = null);
 }
