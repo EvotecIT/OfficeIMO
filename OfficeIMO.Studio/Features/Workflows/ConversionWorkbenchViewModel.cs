@@ -40,12 +40,19 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         _pickOutputFolder = pickOutputFolder;
         _runner = runner ?? new OfficeWorkflowRunner();
         _publicationGuard = publicationGuard;
+        _localizer = localizer ?? StudioLocalization.Current;
+        Archive = new PdfArchiveViewModel(pickOutputFolder, publicationGuard, () => IsBusy, _localizer);
+        Archive.PropertyChanged += (_, change) => {
+            if (change.PropertyName == nameof(PdfArchiveViewModel.Status)) Status = Archive.Status;
+            if (change.PropertyName == nameof(PdfArchiveViewModel.IsBusy)) {
+                OnPropertyChanged(nameof(CanRun)); OnPropertyChanged(nameof(CanRetryFailed)); OnIsBusyChanged(IsBusy);
+            }
+        };
         _jobHistory = jobHistory;
         _storage = storage;
         _recoveryStore = recoveryStore;
         _confirmProviderWrite = confirmProviderWrite ?? (_ => Task.FromResult(false));
         _openOutput = openOutput;
-        _localizer = localizer ?? StudioLocalization.Current;
         Routes = OfficeWorkflowCatalog.ExecutableRoutes.Select(route => new ConversionRouteChoice(route, _localizer)).ToArray();
         Profiles = [
             new(OfficeWorkflowOutputProfile.Faithful, T("Profile.Faithful.Label", "Faithful"), T("Profile.Faithful.Description", "Preserve authored content and visual features where the format owner supports them.")),
@@ -58,13 +65,15 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
             new(OfficeWorkflowConflictPolicy.Fail, T("Conflict.Fail.Label", "Stop that job"), T("Conflict.Fail.Description", "Report the collision without changing the existing file.")),
             new(OfficeWorkflowConflictPolicy.Replace, T("Conflict.Replace.Label", "Replace after validation"), T("Conflict.Replace.Description", "Replace only after the new artifact passes reopen validation."))
         ];
-        SelectedRoute = Routes.First();
+        SelectedRoute = Routes.Single(route => route.Route.Id == "docx-pdf");
         SelectedProfile = Profiles[0];
         SelectedConflict = ConflictPolicies[0];
         Status = T("Status.FilesFirst", "Add files or drop them here. Studio lists the conversions available for them.");
     }
 
     public IReadOnlyList<ConversionRouteChoice> Routes { get; }
+    /// <summary>Durable local DOC/DOCX/TXT folder processing.</summary>
+    public PdfArchiveViewModel Archive { get; }
 
     public IReadOnlyList<WorkflowProfileChoice> Profiles { get; }
 
@@ -106,20 +115,21 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     private string _status = string.Empty;
 
     public bool HasJobs => Jobs.Count > 0;
-    public bool CanRun => !IsBusy && Jobs.Any(job => job.State == ConversionJobState.Queued);
-    public bool CanRetryFailed => !IsBusy && Jobs.Any(job => job.CanRetry);
+    public bool CanRun => CanEditQueue && Jobs.Any(job => job.State == ConversionJobState.Queued);
+    public bool CanRetryFailed => CanEditQueue && Jobs.Any(job => job.CanRetry);
     public bool CanCancel => IsBusy;
     public bool CanChooseConflictPolicy => string.IsNullOrWhiteSpace(OutputFolder) || _storage?.UsesProviderPublication(OutputFolder) != true;
     partial void OnOutputFolderChanged(string value) {
         if (!CanChooseConflictPolicy) SelectedConflict = ConflictPolicies.Single(choice => choice.Value == OfficeWorkflowConflictPolicy.Replace);
         OnPropertyChanged(nameof(CanChooseConflictPolicy));
     }
-    public bool CanEditQueue => !IsBusy;
+    public bool CanEditQueue => !IsBusy && !Archive.IsBusy;
     public string QueueSummary => Jobs.Count == 0
         ? T("Queue.Empty", "No jobs")
         : _localizer.Format("Conversion.Queue.Count", Jobs.Count);
 
     partial void OnIsBusyChanged(bool value) {
+        Archive.RefreshHostState();
         OnPropertyChanged(nameof(CanCancel));
         OnPropertyChanged(nameof(CanEditQueue));
         OnPropertyChanged(nameof(CanRetryFailed));
@@ -150,8 +160,9 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     /// <summary>Queues one file for the route that turns its format into the requested target extension.</summary>
     internal bool QueueForTarget(string path, string targetExtension) {
         if (IsBusy || !CanEditQueue) return false;
-        ConversionRouteChoice? route = Routes.FirstOrDefault(choice => Accepts(choice, path) &&
-            string.Equals(NormalizeExtension(choice.Route.TargetExtension), NormalizeExtension(targetExtension), StringComparison.OrdinalIgnoreCase));
+        string name = _storage?.Describe(path).Name ?? Path.GetFileName(path);
+        var preferred = OfficeWorkflowCatalog.Find(Path.GetExtension(name), targetExtension, executableOnly: true);
+        ConversionRouteChoice? route = Routes.FirstOrDefault(choice => choice.Route.Id == preferred?.Id);
         if (route is null) return false;
         SelectedRoute = route;
         AddPaths([path]);
@@ -181,8 +192,12 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
             string fileName = _storage?.Describe(path).Name ?? Path.GetFileName(path);
             ConversionRouteChoice? route = Accepts(SelectedRoute, path) ? SelectedRoute : null;
             if (route is null && matchAnyRoute) {
-                ConversionRouteChoice[] matches = Routes.Where(choice => Accepts(choice, path)).Take(2).ToArray();
+                ConversionRouteChoice[] matches = Routes.Where(choice => Accepts(choice, path)).ToArray();
                 if (matches.Length == 1) route = matches[0];
+                else if (matches.Length > 1 && matches.All(choice => choice.Route.TargetExtension == matches[0].Route.TargetExtension)) {
+                    var preferred = OfficeWorkflowCatalog.Find(Path.GetExtension(fileName), matches[0].Route.TargetExtension, executableOnly: true);
+                    route = matches.FirstOrDefault(choice => choice.Route.Id == preferred?.Id);
+                }
             }
             if (route is null) {
                 unmatched.Add(path);
@@ -360,6 +375,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     private void Cancel() => _cancellation?.Cancel();
 
     public void Dispose() {
+        Archive.Dispose();
         _cancellation?.Cancel();
         ClearOutputPreview();
     }

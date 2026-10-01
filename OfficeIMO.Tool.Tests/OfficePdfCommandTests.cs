@@ -10,6 +10,8 @@ namespace OfficeIMO.Tool.Tests;
 public sealed class OfficePdfCommandTests {
     [Theory]
     [InlineData(".docx")]
+    [InlineData(".doc")]
+    [InlineData(".txt")]
     [InlineData(".xlsx")]
     [InlineData(".pptx")]
     public async Task ConvertUsesTheOwningOfficePdfAdapterAndWritesAReadableArtifact(string extension) {
@@ -412,6 +414,15 @@ public sealed class OfficePdfCommandTests {
 
     private static void CreateSource(string path, string extension) {
         switch (extension) {
+            case ".txt":
+                File.WriteAllText(path, "# Tool literal text <b>content</b>");
+                break;
+            case ".doc":
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Tool legacy Word conversion");
+                    document.Save(path);
+                }
+                break;
             case ".docx":
                 using (WordDocument document = WordDocument.Create(path)) {
                     document.AddParagraph("Tool Word conversion");

@@ -8,15 +8,15 @@ internal static class ConvertCommand {
 OfficeIMO.Tool - document conversion
 
 Usage:
-  officeimo convert <input.docx|input.xlsx|input.pptx> [output.pdf] [--force]
+  officeimo convert <input.doc|input.docx|input.txt|input.xlsx|input.pptx> [output.pdf] [--force]
                     [--max-input-bytes <bytes>] [--max-output-bytes <bytes>]
                     [--max-characters-in-part <characters>]
   officeimo convert <input> <output.md|output.markdown|output.json>
                     [--assets <directory>] [--max-input-bytes <bytes>] [--force]
 
-PDF output uses the first-party Word, Excel, or PowerPoint PDF adapter.
+PDF output uses the first-party format adapters and literal text converter.
 Markdown and JSON output use the OfficeIMO Reader pipeline.
-The default destination for DOCX, XLSX, and PPTX input is a sibling PDF file.
+The default destination for DOC, DOCX, TXT, XLSX, and PPTX input is a sibling PDF file.
 """;
 
     internal static async Task<int> RunAsync(
@@ -123,7 +123,12 @@ internal sealed class ConvertRoute {
                     break;
                 case "--max-output-bytes":
                 case "--max-characters-in-part":
+                case "--text-encoding":
+                case "--tab-size":
                     _ = NextValue(args, ref index, token);
+                    hasPdfOnlyOption = true;
+                    break;
+                case "--allow-legacy-loss":
                     hasPdfOnlyOption = true;
                     break;
                 case "--force":

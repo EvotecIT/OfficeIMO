@@ -234,21 +234,42 @@ public sealed class WorkflowViewModelTests {
         Assert.Empty(viewModel.Jobs);
     }
 
-    [Fact]
-    public void DroppedConvertibleInputsUseTheirExecutableRoutes() {
+    [Theory]
+    [InlineData("docx-pdf", "txt-pdf")]
+    [InlineData("html-pdf", "html-pdf")]
+    [InlineData("txt-pdf", "txt-pdf")]
+    public void DroppedConvertibleInputsUseTheirExecutableRoutes(string selectedRoute, string textRoute) {
         using var scope = new TestDirectory();
         using var viewModel = new ConversionWorkbenchViewModel(
             _ => Task.FromResult<IReadOnlyList<string>>([]),
             _ => Task.FromResult<string?>(scope.Path));
-        viewModel.SelectedRoute = viewModel.Routes.Single(route => route.Route.Id == "docx-pdf");
+        viewModel.SelectedRoute = viewModel.Routes.Single(route => route.Route.Id == selectedRoute);
         string html = Path.Combine(scope.Path, "page.html");
         string text = Path.Combine(scope.Path, "notes.txt");
 
         Assert.True(viewModel.AddDroppedPaths([html, text]));
 
         Assert.Equal(2, viewModel.Jobs.Count);
+        Assert.Equal(textRoute, viewModel.Jobs.Single(job => job.InputPath == text).Route.Route.Id);
+        Assert.Equal("html-pdf", viewModel.Jobs.Single(job => job.InputPath == html).Route.Route.Id);
         Assert.All(viewModel.Jobs, job => Assert.Contains(
             Path.GetExtension(job.InputPath), job.Route.Route.SourceExtensions, StringComparer.OrdinalIgnoreCase));
+        Assert.False(viewModel.HasUnmatchedInputs);
+    }
+
+    [Theory]
+    [InlineData("notes.txt", ".pdf", "txt-pdf")]
+    [InlineData("page.html", ".pdf", "html-pdf")]
+    [InlineData("report.pdf", ".docx", "pdf-docx")]
+    public void TargetedConversionUsesTheSharedExtensionDefault(string name, string target, string expectedRoute) {
+        using var scope = new TestDirectory();
+        using var viewModel = new ConversionWorkbenchViewModel(
+            _ => Task.FromResult<IReadOnlyList<string>>([]),
+            _ => Task.FromResult<string?>(scope.Path));
+
+        Assert.True(viewModel.QueueForTarget(Path.Combine(scope.Path, name), target));
+
+        Assert.Equal(expectedRoute, Assert.Single(viewModel.Jobs).Route.Route.Id);
         Assert.False(viewModel.HasUnmatchedInputs);
     }
 

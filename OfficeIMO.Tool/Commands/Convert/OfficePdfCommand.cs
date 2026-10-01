@@ -15,9 +15,10 @@ internal static class OfficePdfCommand {
 OfficeIMO.Tool - Office to PDF
 
 Usage:
-  officeimo convert <input.docx|input.xlsx|input.pptx> [output.pdf] [--output <file.pdf>] [--force]
+  officeimo convert <input.doc|input.docx|input.txt|input.xlsx|input.pptx> [output.pdf] [--output <file.pdf>] [--force]
                     [--max-input-bytes <bytes>] [--max-output-bytes <bytes>]
                     [--max-characters-in-part <characters>]
+                    [--text-encoding <name>] [--tab-size 1..32] [--allow-legacy-loss]
 
 The command uses the first-party OfficeIMO Word, Excel, or PowerPoint PDF adapter.
 Package structure, Open XML part size, and PDF output are bounded by default.
@@ -53,7 +54,7 @@ Conversion diagnostics are written to standard error.
                     bufferSize: 81920,
                     options: FileOptions.Asynchronous | FileOptions.SequentialScan)) {
                     using var boundedOutput = new OfficePdfOutputLimitStream(destination, parsed.MaxOutputBytes);
-                    result = Convert(inputPath, boundedOutput, parsed);
+                    result = await ConvertAsync(inputPath, boundedOutput, parsed, cancellationToken).ConfigureAwait(false);
                     await boundedOutput.FlushAsync(cancellationToken).ConfigureAwait(false);
                 }
 
@@ -68,6 +69,9 @@ Conversion diagnostics are written to standard error.
                     await standardError.WriteLineAsync(
                         warning.Severity + " " + warning.Code + " [" + warning.Source + "]: " + warning.Message).ConfigureAwait(false);
                 }
+                foreach (IOfficeConversionReport stage in result.ConversionReports.Take(result.ConversionReports.Count - 1))
+                    foreach (OfficeConversionFidelityDiagnostic finding in stage.FidelityDiagnostics)
+                        await standardError.WriteLineAsync(finding.Code + " [" + finding.Source + "]: " + finding.Message).ConfigureAwait(false);
                 if (result.HasLoss && result.Warnings.Count == 0) {
                     await standardError.WriteLineAsync("Warning SourceContentLoss: the source conversion reported possible content loss.").ConfigureAwait(false);
                 }
@@ -114,10 +118,10 @@ Conversion diagnostics are written to standard error.
         }
     }
 
-    private static PdfSaveResult Convert(
+    private static async Task<PdfSaveResult> ConvertAsync(
         string inputPath,
         Stream output,
-        OfficePdfArguments arguments) {
+        OfficePdfArguments arguments, CancellationToken cancellationToken) {
         OfficePackageSecurityOptions packageSecurity = OfficePackageSecurityOptions.SecureDefaults;
         packageSecurity.MaxPackageBytes = arguments.MaxInputBytes;
         packageSecurity.MaxXmlCharactersInPart = arguments.MaxCharactersInPart;
@@ -126,6 +130,20 @@ Conversion diagnostics are written to standard error.
         };
 
         switch (Path.GetExtension(inputPath).ToLowerInvariant()) {
+            case ".doc": {
+                using var source = File.OpenRead(inputPath);
+                return await LegacyDocPdfConverter.ToPdfDocumentResult(source,
+                    importOptions: new OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions {
+                        MaxInputBytes = (int)Math.Min(int.MaxValue, arguments.MaxInputBytes)
+                    }, lossPolicy: arguments.AllowLegacyLoss ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block,
+                    cancellationToken: cancellationToken).SaveResultAsync(output, cancellationToken).ConfigureAwait(false);
+            }
+            case ".txt": {
+                using var source = File.OpenRead(inputPath);
+                return await PdfPlainTextConverter.ToPdfDocumentResult(source, new PdfPlainTextOptions {
+                    EncodingName = arguments.TextEncoding, TabSize = arguments.TabSize
+                }, arguments.MaxInputBytes, cancellationToken).SaveResultAsync(output, cancellationToken).ConfigureAwait(false);
+            }
             case ".docx":
                 using (WordDocument document = WordDocument.Load(inputPath, new WordLoadOptions {
                     AccessMode = DocumentAccessMode.ReadOnly,
@@ -133,7 +151,7 @@ Conversion diagnostics are written to standard error.
                     PackageSecurity = packageSecurity,
                     OpenSettings = openSettings
                 })) {
-                    return document.SaveAsPdfResult(output);
+                    return await document.SaveAsPdfResultAsync(output, cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
             case ".xlsx":
                 using (ExcelDocument document = ExcelDocument.Load(inputPath, new ExcelLoadOptions {
@@ -142,7 +160,7 @@ Conversion diagnostics are written to standard error.
                     PackageSecurity = packageSecurity,
                     OpenSettings = openSettings
                 })) {
-                    return document.SaveAsPdfResult(output);
+                    return await document.SaveAsPdfResultAsync(output, cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
             case ".pptx":
                 using (PowerPointPresentation presentation = PowerPointPresentation.Load(inputPath, new PowerPointLoadOptions {
@@ -151,10 +169,10 @@ Conversion diagnostics are written to standard error.
                     PackageSecurity = packageSecurity,
                     OpenSettings = openSettings
                 })) {
-                    return presentation.SaveAsPdfResult(output);
+                    return await presentation.SaveAsPdfResultAsync(output, cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
             default:
-                throw new OfficePdfUsageException("The convert command supports DOCX, XLSX, and PPTX input.");
+                throw new OfficePdfUsageException("The convert command supports DOC, DOCX, TXT, XLSX, and PPTX input.");
         }
     }
 

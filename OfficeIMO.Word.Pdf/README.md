@@ -5,6 +5,23 @@
 
 `OfficeIMO.Word.Pdf` exports `OfficeIMO.Word` documents to PDF through the first-party `OfficeIMO.Pdf` engine and imports parser-supported PDF logical content into editable Word documents. It is the adapter layer: Word stays responsible for the `.docx` model, while PDF layout, reading, diagnostics, and writing stay in `OfficeIMO.Pdf`.
 
+## Legacy DOC to PDF
+
+`LegacyDocPdfConverter` composes bounded binary DOC import with the Word PDF adapter. It blocks known import loss by default and retains the import report separately from PDF rendering diagnostics:
+
+```csharp
+using OfficeIMO.Word.Pdf;
+
+using var source = File.OpenRead("archive.doc");
+var conversion = LegacyDocPdfConverter.ToPdfDocumentResult(source);
+conversion.SaveResult("archive.pdf").RequireSuccess();
+foreach (var report in conversion.SourceConversionReports)
+    foreach (var finding in report.FidelityDiagnostics)
+        Console.WriteLine($"{finding.Code}: {finding.Message}");
+```
+
+Pass `lossPolicy: OfficeIMO.OfficeConversionLossPolicy.Allow` only when accepting the reported import reductions. Import errors still block output. The adapter always collects unsupported-content findings, even if the supplied import options disable reporting. Its fidelity is limited by both the legacy importer and the Word PDF renderer; it does not guarantee exact Microsoft Word pagination or rendering of every binary DOC feature.
+
 ## Install
 
 ```powershell
@@ -246,7 +263,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Convert | 1 | 1 | 0 | 0 | 0 | 0 |
+| Convert | 1 | 2 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Word.Pdf` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->
