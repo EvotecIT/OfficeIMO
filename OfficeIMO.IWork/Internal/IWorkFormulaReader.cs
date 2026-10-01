@@ -46,6 +46,7 @@ internal static partial class IWorkFormulaReader {
         [86] = new("MEDIAN", 1, 255),
         [87] = new("MID", 3, 3),
         [88] = new("MIN", 1, 255),
+        [89] = new("MINA", 1, 255),
         [90] = new("MINUTE", 1, 1),
         [97] = new("NOW", 0, 0),
         [102] = new("OR", 1, 255),

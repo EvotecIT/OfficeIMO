@@ -118,6 +118,11 @@
       "sampleArgumentCount": 1
     },
     {
+      "index": 89,
+      "name": "MINA",
+      "sampleArgumentCount": 1
+    },
+    {
       "index": 90,
       "name": "MINUTE",
       "sampleArgumentCount": 1
@@ -235,10 +240,6 @@
     "computedCurrentRangeValue": "cat,dog,hamster"
   },
   "unqualifiedIdentities": [
-    {
-      "index": 89,
-      "name": "MINA"
-    },
     {
       "index": 101,
       "name": "OFFSET"

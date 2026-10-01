@@ -397,7 +397,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            var numbers = values.Where(value => value.Number.HasValue).Select(value => value.Number!.Value).ToList();
+            var numbers = values.Where(value => value.IsNumericAggregateValue).Select(value => value.Number!.Value).ToList();
             if (functionCode == 2) {
                 result = numbers.Count;
                 return true;
@@ -454,7 +454,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            var numbers = matched.Where(value => value.Number.HasValue).Select(value => value.Number!.Value).ToList();
+            var numbers = matched.Where(value => value.IsNumericAggregateValue).Select(value => value.Number!.Value).ToList();
             if (function == "SUMIF") {
                 result = numbers.Sum();
                 return true;

@@ -633,6 +633,10 @@ Author `TEXTJOIN` through the normal cell and array-formula APIs. The writer sto
 
 `Calculate()` supports both empty-cell policies, quoted worksheet names with punctuation, and typed error propagation through `TEXTJOIN`, `CONCAT` and `CONCATENATE`. Ordinary text such as `#N/A` remains text. Joined results above the 32,767-character cell-text limit become `#VALUE!`. The evaluator remains bounded by its supported expression and range contracts. Rejected prefix expansion preserves existing cells and in-cell images.
 
+### Referenced values in aggregates
+
+`Calculate()` preserves referenced types for numeric aggregates. `MINA`, `MAXA` and `AVERAGEA` include Boolean values as one or zero and referenced text as zero, skip blank cells, and preserve typed errors. Empty `MINA` and `MAXA` ranges return zero; empty `AVERAGEA` ranges return `#DIV/0!`. Ordinary numeric aggregates skip referenced Boolean and text values, including numeric-looking strings. Scalar numeric coercion remains available. Positional statistical helpers require numeric-only ranges; mixed-type series remain unevaluated rather than losing their paired coordinates.
+
 ### Preflight a workbook before choosing a workflow
 
 ```csharp

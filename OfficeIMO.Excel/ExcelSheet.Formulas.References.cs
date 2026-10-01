@@ -265,27 +265,6 @@ namespace OfficeIMO.Excel {
             builder.Clear();
         }
 
-        private static bool TryConvertFormulaAValues(IReadOnlyList<FormulaArgumentValue> values, out List<double> numbers) {
-            numbers = new List<double>();
-            foreach (var value in values) {
-                if (value.IsUnresolvedFormula || value.IsError) {
-                    numbers.Clear();
-                    return false;
-                }
-
-                if (value.Number.HasValue) {
-                    numbers.Add(value.Number.Value);
-                    continue;
-                }
-
-                if (value.Text != null) {
-                    numbers.Add(0d);
-                }
-            }
-
-            return true;
-        }
-
         private bool TryResolveNumericOperand(string token, out double value) {
             token = token.Trim();
             if (double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out value)) {
@@ -992,15 +971,22 @@ namespace OfficeIMO.Excel {
                 return FormulaArgumentValue.Error(value.CachedText ?? value.Value?.ToString() ?? "#VALUE!");
             }
 
+            ExcelCellDataKind sourceKind = value.Kind;
+            if (sourceKind == ExcelCellDataKind.Formula) {
+                sourceKind = cell?.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean ? ExcelCellDataKind.Boolean
+                    : cell?.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.String ? ExcelCellDataKind.Text
+                    : value.Value is double ? ExcelCellDataKind.Number : ExcelCellDataKind.Text;
+            }
+
             if (value.Value is double d) {
-                return new FormulaArgumentValue(d, value.CachedText);
+                return new FormulaArgumentValue(d, value.CachedText, sourceCellKind: sourceKind);
             }
 
             if (double.TryParse(value.CachedText, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
-                return new FormulaArgumentValue(parsed, value.CachedText);
+                return new FormulaArgumentValue(parsed, value.CachedText, sourceCellKind: sourceKind);
             }
 
-            return new FormulaArgumentValue(null, value.Value?.ToString());
+            return new FormulaArgumentValue(null, value.Value?.ToString(), sourceCellKind: sourceKind);
         }
 
         private static string? NormalizeFormulaCellReference(string? reference) {

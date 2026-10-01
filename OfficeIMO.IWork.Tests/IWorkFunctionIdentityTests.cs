@@ -20,7 +20,6 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Theory]
-    [InlineData(89, 1)] // Native MINA; previously exported as MINUTE.
     [InlineData(101, 3)] // Native OFFSET; previously exported as OR.
     [InlineData(112, 2)] // PROB cannot use ROUND's signature.
     [InlineData(119, 1)] // RANDBETWEEN cannot use SECOND's signature.

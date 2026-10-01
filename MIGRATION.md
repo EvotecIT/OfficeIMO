@@ -9,6 +9,12 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## Numbers MINA and typed Excel aggregates
+
+Numbers `MINA` uses its independently qualified native identifier and supports one-to-255 arguments. It retains an editable XLSX formula and its valid numeric cache. Native Apple export and recalculation evidence for this addition remain open.
+
+The shared Excel evaluator preserves referenced cell types when calculating aggregates. `MINA`, `MAXA` and `AVERAGEA` include Boolean values as one or zero and referenced text as zero; blank cells are skipped and genuine errors remain typed errors. Empty `MINA` and `MAXA` ranges return zero; empty `AVERAGEA` ranges return `#DIV/0!`. Ordinary numeric aggregates skip referenced Boolean and text values, including numeric-looking text. Positional statistical helpers retain their numeric-only range boundary, so mixed-type ranges remain unevaluated. Recalculate workbooks whose caches depend on these cases.
+
 ## Excel and iWork TEXTJOIN formulas
 
 Numbers `TEXTJOIN` expressions with qualified operands now retain editable XLSX formulas and typed caches. The shared Excel writer stores authored `TEXTJOIN` calls as `_xlfn.TEXTJOIN`, including nested calls. Code comparing exact formula strings from `GetFormulaText` must account for this prefix. Existing prefixes, string literals, quoted worksheet names and structured references retain their text. Formula-prefix expansion that exceeds the 8,192-character storage limit raises an argument error for direct Excel authoring; iWork conversion uses its destination fallback policy instead of truncating the expression.

@@ -23,7 +23,7 @@ samples = {'ABS': 1, 'AND': 1, 'AVERAGE': 1, 'COLUMN': 0, 'COUNT': 1,
            'COUNTA': 1, 'COUNTBLANK': 1, 'COUNTIF': 2, 'DATE': 3, 'DAY': 1,
            'FALSE': 0, 'FIND': 2, 'HOUR': 1, 'HYPERLINK': 2, 'IF': 3,
            'INDEX': 2, 'LEFT': 1, 'LEN': 1, 'MAX': 1, 'MEDIAN': 1,
-           'MID': 3, 'MIN': 1, 'MINUTE': 1, 'NOW': 0, 'OR': 2, 'PI': 0,
+           'MID': 3, 'MIN': 1, 'MINA': 1, 'MINUTE': 1, 'NOW': 0, 'OR': 2, 'PI': 0,
            'POWER': 2, 'RIGHT': 1, 'ROUND': 2, 'SECOND': 1, 'SUM': 1, 'SUMIF': 2, 'TEXTJOIN': 3}
 identities = [{'index': index, 'name': name, 'sampleArgumentCount': samples[name]}
               for index, name in FUNCTION_MAP.items() if name in samples]
@@ -69,6 +69,6 @@ manifest = {'upstream': 'https://github.com/masaccio/numbers-parser',
             'qualification': 'Independent function identities plus three unmodified native expressions and caches; synthetic argument samples do not qualify evaluation. No Apple export, recalculation or appearance oracle.',
             'identities': identities, 'nativeCases': native_cases, 'textJoinCase': text_join,
             'unqualifiedIdentities': [{'index': index, 'name': FUNCTION_MAP.get(index)}
-                                     for index in [89, 101, 112, 119, 169]]}
+                                     for index in [101, 112, 119, 169]]}
 args.output.write_text(json.dumps(manifest, indent=2) + '\n')
 print(f'Extracted {len(identities)} identities and {len(native_cases) + 1} native expressions')

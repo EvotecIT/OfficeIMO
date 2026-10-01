@@ -183,7 +183,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            var numbers = arguments.Where(value => value.Number.HasValue).Select(value => value.Number!.Value).ToList();
+            var numbers = arguments.Where(value => value.IsNumericAggregateValue).Select(value => value.Number!.Value).ToList();
             if (function == "AVEDEV" || function == "DEVSQ") {
                 if (numbers.Count == 0) {
                     return false;

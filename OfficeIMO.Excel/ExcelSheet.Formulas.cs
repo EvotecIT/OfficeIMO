@@ -626,6 +626,11 @@ namespace OfficeIMO.Excel {
                         return true;
                     }
 
+                    if ((function == "AVERAGEA" || function == "MINA" || function == "MAXA")
+                        && TryEvaluateAValueAggregate(function, args, out result)) {
+                        return true;
+                    }
+
                     if (TryEvaluateTextFunction(function, args, out result)) {
                         return true;
                     }
@@ -812,6 +817,12 @@ namespace OfficeIMO.Excel {
                         return true;
                     }
 
+                    if (function == "AVERAGEA" || function == "MINA" || function == "MAXA") {
+                        if (!TryEvaluateAValueAggregate(function, args, out FormulaArgumentValue aggregate) || !aggregate.Number.HasValue) return false;
+                        result = aggregate.Number.Value;
+                        return true;
+                    }
+
                     if (!TryResolveFormulaArguments(args, out var values) || values.Any(value => value.IsUnresolvedFormula)) {
                         return false;
                     }
@@ -821,21 +832,9 @@ namespace OfficeIMO.Excel {
                         return true;
                     }
 
-                    var numbers = values.Where(v => v.Number.HasValue).Select(v => v.Number!.Value).ToList();
-                    if (function == "AVERAGEA" || function == "MINA" || function == "MAXA") {
-                        if (!TryConvertFormulaAValues(values, out var aValues) || aValues.Count == 0) {
-                            return false;
-                        }
-
-                        if (function == "AVERAGEA") {
-                            result = aValues.Average();
-                            return IsFinite(result);
-                        }
-
-                        result = function == "MINA" ? aValues.Min() : aValues.Max();
-                        return IsFinite(result);
-                    }
-
+                    bool numericReferencesOnly = function is "SUM" or "AVERAGE" or "MIN" or "MAX" or "COUNT" or "PRODUCT" or "MEDIAN";
+                    var numbers = values.Where(v => v.Number.HasValue && (!numericReferencesOnly || v.IsNumericAggregateValue))
+                        .Select(v => v.Number!.Value).ToList();
                     if (function == "COUNT") {
                         result = numbers.Count;
                         return true;
