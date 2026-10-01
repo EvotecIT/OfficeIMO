@@ -2,14 +2,17 @@ using System;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>AV1 7.14.6 Main-8 narrow/wide filtering across one sample boundary.</summary>
+/// <summary>AV1 7.14.6 Main-8/Main10 narrow/wide filtering across one sample boundary.</summary>
 /// <remarks>The owning frame validates geometry and retains this fixed scratch. Reads are captured
 /// before writes so wide taps never consume their own modified samples.</remarks>
 internal static class OfficeAv1DeblockFilter {
     internal static void Apply(ushort[] pixels,int offset,int step,int size,bool chroma,
-        int limit,int blimit,int threshold,int[] scratch) {
+        int limit,int blimit,int threshold,int bitDepth,int[] scratch) {
+        if(bitDepth!=8 && bitDepth!=10) throw new ArgumentOutOfRangeException(nameof(bitDepth));
         if(size!=4 && size!=8 && size!=16 || chroma && size==16 || step<1 || scratch.Length<32)
             throw new ArgumentOutOfRangeException(nameof(size));
+        int scale=1<<(bitDepth-8),bias=128*scale;
+        limit*=scale;blimit*=scale;threshold*=scale;
         int count=size==4?2:chroma?3:size==8?4:7;
         if(offset-(long)count*step<0 || offset+(long)(count-1)*step>=pixels.Length)
             throw new FormatException("AV1 deblocking footprint exceeds its plane.");
@@ -21,10 +24,10 @@ internal static class OfficeAv1DeblockFilter {
             if(Math.Abs(scratch[6-i]-scratch[7-i])>limit || Math.Abs(scratch[7+i]-scratch[6+i])>limit) return;
         bool flat=size>4;
         for(int i=1;i<Math.Min(count,4);i++)
-            flat&=Math.Abs(scratch[6-i]-p0)<=1 && Math.Abs(scratch[7+i]-q0)<=1;
+            flat&=Math.Abs(scratch[6-i]-p0)<=scale && Math.Abs(scratch[7+i]-q0)<=scale;
         bool flat2=flat && size==16;
         if(flat2) for(int i=4;i<7;i++)
-            flat2&=Math.Abs(scratch[6-i]-p0)<=1 && Math.Abs(scratch[7+i]-q0)<=1;
+            flat2&=Math.Abs(scratch[6-i]-p0)<=scale && Math.Abs(scratch[7+i]-q0)<=scale;
         if(flat) {
             int n=flat2?6:chroma?2:3,bits=flat2?4:3,n2=flat2 || chroma?1:0;
             for(int i=-n;i<n;i++) {
@@ -36,15 +39,16 @@ internal static class OfficeAv1DeblockFilter {
             return;
         }
         bool hev=Math.Abs(p1-p0)>threshold || Math.Abs(q1-q0)>threshold;
-        int f=Clamp((hev?Clamp(p1-q1):0)+3*(q0-p0));
-        int a=Clamp(f+4)>>3,b=Clamp(f+3)>>3;
-        pixels[offset]=(ushort)(Clamp(q0-128-a)+128);
-        pixels[offset-step]=(ushort)(Clamp(p0-128+b)+128);
+        int f=Clamp((hev?Clamp(p1-q1,bias):0)+3*(q0-p0),bias);
+        // Narrow-filter rounding is defined in sample units; these offsets do not scale with depth.
+        int a=Clamp(f+4,bias)>>3,b=Clamp(f+3,bias)>>3;
+        pixels[offset]=(ushort)(Clamp(q0-bias-a,bias)+bias);
+        pixels[offset-step]=(ushort)(Clamp(p0-bias+b,bias)+bias);
         if(!hev) {
             int outer=(a+1)>>1;
-            pixels[offset+step]=(ushort)(Clamp(q1-128-outer)+128);
-            pixels[offset-2*step]=(ushort)(Clamp(p1-128+outer)+128);
+            pixels[offset+step]=(ushort)(Clamp(q1-bias-outer,bias)+bias);
+            pixels[offset-2*step]=(ushort)(Clamp(p1-bias+outer,bias)+bias);
         }
     }
-    private static int Clamp(int value)=>Math.Max(-128,Math.Min(127,value));
+    private static int Clamp(int value,int bias)=>Math.Max(-bias,Math.Min(bias-1,value));
 }

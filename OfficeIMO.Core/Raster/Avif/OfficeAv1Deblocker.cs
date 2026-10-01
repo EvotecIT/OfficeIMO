@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>Retains only the Main-8 intra metadata needed for the normative frame deblocking pass.</summary>
+/// <summary>Retains only the Main-8/Main10 intra metadata needed for the normative frame deblocking pass.</summary>
 internal sealed class OfficeAv1Deblocker {
     private readonly OfficeAv1StillFrame _frame;
     private readonly byte[] _levels;
@@ -14,7 +14,7 @@ internal sealed class OfficeAv1Deblocker {
         (long)frame.MiRows*frame.MiCols*(monochrome?10:11)/2+1024;
     internal OfficeAv1Deblocker(OfficeAv1StillFrame frame,bool monochrome,OfficeRasterDecodeOptions options) {
         options.CancellationToken.ThrowIfCancellationRequested();
-        if(frame.BitDepth!=8) throw new FormatException("AV1 high-bit-depth deblocking is not qualified.");
+        if(frame.BitDepth!=8 && frame.BitDepth!=10) throw new FormatException("Invalid AV1 deblocking bit depth.");
         if(options.RetainedManagedBytes>OfficeRasterGuards.MaximumDecodedBytes-ContextBytes(frame,monochrome))
             throw new FormatException("AV1 deblocking contexts exceed retained memory.");
         if(frame.LoopFilterSharpness<0 || frame.LoopFilterSharpness>7) throw new FormatException("Invalid AV1 filter sharpness.");
@@ -69,7 +69,7 @@ internal sealed class OfficeAv1Deblocker {
                     int limit=Math.Max(1,sharp>0?Math.Min(9-sharp,level>>shift):level);
                     for(int i=0;i<4;i++) {
                         int offset=((y>>sub)+(pass==0?i:0))*pitch+(x>>sub)+(pass==1?i:0);
-                        OfficeAv1DeblockFilter.Apply(planes[p],offset,pass==0?1:pitch,width,p>0,limit,2*(level+2)+limit,level>>4,_scratch);
+                        OfficeAv1DeblockFilter.Apply(planes[p],offset,pass==0?1:pitch,width,p>0,limit,2*(level+2)+limit,level>>4,_frame.BitDepth,_scratch);
                     }
                 }
             }

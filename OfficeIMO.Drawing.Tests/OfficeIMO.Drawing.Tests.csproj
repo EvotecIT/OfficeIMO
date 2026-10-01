@@ -53,6 +53,7 @@
     <None Update="TestAssets\Avif\reconstruction-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\reconstruction-main10-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\deblock-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="TestAssets\Avif\deblock-main10-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\cdef-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\restored-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\color-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />

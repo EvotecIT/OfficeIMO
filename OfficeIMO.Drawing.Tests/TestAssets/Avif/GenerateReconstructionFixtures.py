@@ -6,6 +6,30 @@ from GenerateTileFixtures import COMMIT,INPUTS,run,digest
 
 SOURCE='653fe4bc6556f48064e20058057f231902bd9740c66a8930c33a059f4273ac51'
 
+def prepare_decoder(here,work,bit_depth,native_source,native_build,patch_name,executable_name):
+    source=native_source.resolve() if native_source else work/'native-aom'
+    build=native_build.resolve() if native_build else work/'native-build'
+    patch=here/patch_name
+    if not native_source:
+        if not source.exists():run(['git','clone','--depth','1','--branch','v3.13.1','https://aomedia.googlesource.com/aom',source])
+        assert subprocess.check_output(['git','-C',source,'rev-parse','HEAD'],text=True).strip()==COMMIT
+        with (work/'native-configure.log').open('w') as log:
+            run(['cmake','-S',source,'-B',build,'-DCMAKE_BUILD_TYPE=Release','-DAOM_TARGET_CPU=generic','-DENABLE_DOCS=0','-DENABLE_TESTS=0','-DENABLE_EXAMPLES=0','-DENABLE_TOOLS=0','-DCONFIG_AV1_ENCODER=1','-DCONFIG_AV1_HIGHBITDEPTH=1','-DCONFIG_MULTITHREAD=0','-DCONFIG_RUNTIME_CPU_DETECT=0'],stdout=log,stderr=subprocess.STDOUT)
+        with (work/'native-build.log').open('w') as log:run(['cmake','--build',build,'-j','4'],stdout=log,stderr=subprocess.STDOUT)
+    assert digest((source/'av1/decoder/decodeframe.c').read_bytes())==SOURCE
+    if bit_depth==10 and '#define CONFIG_AV1_HIGHBITDEPTH 1' not in (build/'config/aom_config.h').read_text():
+        raise ValueError('Native build lacks high-bit-depth support')
+    for name in ['LICENSE','PATENTS']:shutil.copyfile(source/name,work/name)
+    # Access-only observation in a copied decoder unit; never patch the reusable producer/build.
+    probe=work/'observation';unit=probe/'av1/decoder/decodeframe.c';unit.parent.mkdir(parents=True,exist_ok=True)
+    shutil.copyfile(source/'av1/decoder/decodeframe.c',unit)
+    run(['patch','--batch','--forward','-p1','-i',patch],cwd=probe)
+    obj=work/'decodeframe-probe.o';compiler=shutil.which('clang')
+    run([compiler,'-std=c99','-O2','-DNDEBUG','-I',source,'-I',build,'-I',here,'-c',unit,'-o',obj])
+    executable=work/executable_name
+    run([compiler,'-std=c11','-Wall','-Wextra','-Werror','-O2','-I',source,here/'ReadTileTrace.c',obj,build/'libaom.a','-lm','-o',executable])
+    return source,build,executable
+
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--work-dir',required=True,type=pathlib.Path)
@@ -16,27 +40,9 @@ def main():
     args=ap.parse_args()
     if bool(args.native_source)!=bool(args.native_build):ap.error('Native source and build must be supplied together')
     here=pathlib.Path(__file__).resolve().parent;repo=here.parents[2];work=args.work_dir.resolve();work.mkdir(parents=True,exist_ok=True)
-    source=args.native_source.resolve() if args.native_source else work/'native-aom'
-    build=args.native_build.resolve() if args.native_build else work/'native-build'
-    patch=here/'TraceReconstruction.patch'
-    if not args.native_source:
-        if not source.exists():run(['git','clone','--depth','1','--branch','v3.13.1','https://aomedia.googlesource.com/aom',source])
-        assert subprocess.check_output(['git','-C',source,'rev-parse','HEAD'],text=True).strip()==COMMIT
-        with (work/'native-configure.log').open('w') as log:
-            run(['cmake','-S',source,'-B',build,'-DCMAKE_BUILD_TYPE=Release','-DAOM_TARGET_CPU=generic','-DENABLE_DOCS=0','-DENABLE_TESTS=0','-DENABLE_EXAMPLES=0','-DENABLE_TOOLS=0','-DCONFIG_AV1_ENCODER=1','-DCONFIG_AV1_HIGHBITDEPTH=1','-DCONFIG_MULTITHREAD=0','-DCONFIG_RUNTIME_CPU_DETECT=0'],stdout=log,stderr=subprocess.STDOUT)
-        with (work/'native-build.log').open('w') as log:run(['cmake','--build',build,'-j','4'],stdout=log,stderr=subprocess.STDOUT)
-    assert digest((source/'av1/decoder/decodeframe.c').read_bytes())==SOURCE
-    if args.bit_depth==10 and '#define CONFIG_AV1_HIGHBITDEPTH 1' not in (build/'config/aom_config.h').read_text():
-        raise ValueError('Native build lacks high-bit-depth support')
-    for name in ['LICENSE','PATENTS']:shutil.copyfile(source/name,work/name)
-    # Access-only observation in a copied decoder unit; never patch the reusable producer/build.
-    probe=work/'observation';unit=probe/'av1/decoder/decodeframe.c';unit.parent.mkdir(parents=True,exist_ok=True)
-    shutil.copyfile(source/'av1/decoder/decodeframe.c',unit)
-    run(['patch','--batch','--forward','-p1','-i',patch],cwd=probe)
-    obj=work/'decodeframe-probe.o';compiler=shutil.which('clang')
-    run([compiler,'-std=c99','-O2','-DNDEBUG','-I',source,'-I',build,'-I',here,'-c',unit,'-o',obj])
-    executable=work/'read-reconstructed-frame'
-    run([compiler,'-std=c11','-Wall','-Wextra','-Werror','-O2','-I',source,here/'ReadTileTrace.c',obj,build/'libaom.a','-lm','-o',executable])
+    source,build,executable=prepare_decoder(here,work,args.bit_depth,args.native_source,args.native_build,
+        'TraceReconstruction.patch','read-reconstructed-frame')
+    compiler=shutil.which('clang')
     encoder=work/'encode-reconstruction-controls'
     run([compiler,'-std=c11','-Wall','-Wextra','-Werror','-O2','-I',source,here/'EncodeReconstructionControls.c',build/'libaom.a','-lm','-o',encoder])
     inputs=INPUTS if args.bit_depth==8 else [

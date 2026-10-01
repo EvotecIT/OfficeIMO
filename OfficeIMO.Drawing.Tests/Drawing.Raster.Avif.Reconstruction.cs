@@ -52,29 +52,31 @@ public sealed class DrawingAv1ReconstructionTests {
         }
     }
     [Theory]
-    [InlineData("avif-opaque")]
-    [InlineData("avif-main10-420-full")]
-    public void FrameFailureCannotPublishPartialPlanesAndLimitsRejectBeforeAllocation(string name) {
+    [InlineData("avif-opaque",false)]
+    [InlineData("avif-main10-420-full",false)]
+    [InlineData("avif-opaque",true)]
+    [InlineData("avif-main10-420-full",true)]
+    public void FrameFailureCannotPublishPartialPlanesAndLimitsRejectBeforeAllocation(string name,bool deblocked) {
         var (bytes,sequence,frame)=Read(name,false);
-        Assert.Throws<FormatException>(()=>OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,new OfficeRasterDecodeOptions {RetainedManagedBytes=long.MaxValue}));
-        Assert.Throws<FormatException>(()=>OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,new OfficeRasterDecodeOptions {RetainedManagedBytes=OfficeRasterGuards.MaximumDecodedBytes-500000}));
-        Assert.Throws<FormatException>(()=>OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,new OfficeRasterDecodeOptions {MaximumDecodedPixels=frame.Width*frame.Height-1}));
-        Assert.Throws<FormatException>(()=>OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,new OfficeRasterDecodeOptions {MaximumEncodedBytes=bytes.Length-1}));
-        Assert.Throws<FormatException>(()=>OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,new OfficeRasterDecodeOptions {MaximumInspectionWorkPixels=1}));
+        var stage=deblocked?OfficeAv1ReconstructionStage.Deblocked:OfficeAv1ReconstructionStage.Unfiltered;
+        Assert.Throws<FormatException>(()=>OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,new OfficeRasterDecodeOptions {RetainedManagedBytes=long.MaxValue},stage));
+        Assert.Throws<FormatException>(()=>OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,new OfficeRasterDecodeOptions {RetainedManagedBytes=OfficeRasterGuards.MaximumDecodedBytes-500000},stage));
+        Assert.Throws<FormatException>(()=>OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,new OfficeRasterDecodeOptions {MaximumDecodedPixels=frame.Width*frame.Height-1},stage));
+        Assert.Throws<FormatException>(()=>OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,new OfficeRasterDecodeOptions {MaximumEncodedBytes=bytes.Length-1},stage));
+        Assert.Throws<FormatException>(()=>OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,new OfficeRasterDecodeOptions {MaximumInspectionWorkPixels=1},stage));
         using var cancel=new CancellationTokenSource();cancel.Cancel();
-        Assert.Throws<OperationCanceledException>(()=>OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,new OfficeRasterDecodeOptions {CancellationToken=cancel.Token}));
+        Assert.Throws<OperationCanceledException>(()=>OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,new OfficeRasterDecodeOptions {CancellationToken=cancel.Token},stage));
         var tile=frame.Tiles[0];frame.Tiles=new[] {new OfficeAv1Tile(tile.Offset,tile.Length-1,tile.MiRowStart,tile.MiRowEnd,tile.MiColStart,tile.MiColEnd)};
-        Assert.Throws<FormatException>(()=>OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,new OfficeRasterDecodeOptions()));
-        frame.Tiles=Array.Empty<OfficeAv1Tile>();Assert.Throws<FormatException>(()=>OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,new OfficeRasterDecodeOptions()));
+        Assert.Throws<FormatException>(()=>OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,new OfficeRasterDecodeOptions(),stage));
+        frame.Tiles=Array.Empty<OfficeAv1Tile>();Assert.Throws<FormatException>(()=>OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,new OfficeRasterDecodeOptions(),stage));
     }
     [Fact]
-    public void UnfilteredTenBitPlanesCannotEnterUnqualifiedFiltersOrEightBitComposition() {
+    public void TenBitPlanesCannotEnterUnqualifiedFiltersOrEightBitComposition() {
         var (bytes,sequence,frame)=Read("avif-main10-420-full",false);var options=new OfficeRasterDecodeOptions();
         var result=OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,options);
-        foreach(var stage in new[] {OfficeAv1ReconstructionStage.Deblocked,OfficeAv1ReconstructionStage.Cdef,
+        foreach(var stage in new[] {OfficeAv1ReconstructionStage.Cdef,
             OfficeAv1ReconstructionStage.Upscaled,OfficeAv1ReconstructionStage.Restored})
             Assert.Throws<FormatException>(()=>OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,options,stage));
-        Assert.Throws<FormatException>(()=>new OfficeAv1Deblocker(frame,false,options));
         Assert.Throws<FormatException>(()=>new OfficeAv1Cdef(frame,false,64,options));
         Assert.Throws<FormatException>(()=>new OfficeAv1Restorer(frame,sequence,64,options));
         Assert.Throws<FormatException>(()=>new OfficeAv1Upscaler(frame,sequence,64,options));
