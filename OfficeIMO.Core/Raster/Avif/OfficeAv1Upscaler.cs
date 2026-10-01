@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>Normative Main-8 horizontal superresolution with immutable input and bounded owned output.</summary>
+/// <summary>Normative Main-8/Main10 horizontal superresolution with immutable input and bounded owned output.</summary>
 /// <remarks>AV1 section 7.16. Samples clamp to the reconstructed MI extent, including its coded-edge padding.</remarks>
 internal sealed class OfficeAv1Upscaler {
     private static readonly int[,] Filters = {
@@ -72,7 +72,7 @@ internal sealed class OfficeAv1Upscaler {
         { 0, 1, -2, 4, 127, -3, 1, 0 },
         { 0, 0, -1, 2, 128, -1, 0, 0 }
     };
-    private readonly int _width, _upscaledWidth, _height, _miWidth, _planes;
+    private readonly int _width, _upscaledWidth, _height, _miWidth, _planes, _maximumSample;
     private readonly CancellationToken _cancellation;
     private readonly long _workLimit;
     private long _work;
@@ -88,7 +88,8 @@ internal sealed class OfficeAv1Upscaler {
     internal OfficeAv1Upscaler(OfficeAv1StillFrame frame, OfficeAv1StillSequence sequence, int sb,
         OfficeRasterDecodeOptions options) {
         options.Validate(); options.CancellationToken.ThrowIfCancellationRequested();
-        if(frame.BitDepth!=8 || sequence.BitDepth!=8) throw new FormatException("AV1 high-bit-depth superresolution is not qualified.");
+        if((sequence.BitDepth!=8 && sequence.BitDepth!=10) || frame.BitDepth!=sequence.BitDepth)
+            throw new FormatException("Invalid or inconsistent AV1 superresolution bit depth.");
         if (!sequence.SuperResolution || frame.Width < 1 || frame.Width >= frame.UpscaledWidth ||
             frame.SuperResolutionDenominator < 9 || frame.SuperResolutionDenominator > 16 ||
             frame.Width != ((long)frame.UpscaledWidth * 8 + frame.SuperResolutionDenominator / 2) / frame.SuperResolutionDenominator ||
@@ -98,6 +99,7 @@ internal sealed class OfficeAv1Upscaler {
             throw new FormatException("Invalid or unbounded AV1 superresolution dimensions.");
         _width = frame.Width; _upscaledWidth = frame.UpscaledWidth; _height = frame.Height;
         _miWidth = frame.MiCols * 4; _planes = sequence.Monochrome ? 1 : 3;
+        _maximumSample = (1 << sequence.BitDepth) - 1;
         Stride = (_upscaledWidth + sb - 1) / sb * sb; Rows = (_height + sb - 1) / sb * sb;
         _cancellation = options.CancellationToken; _workLimit = options.MaximumInspectionWorkPixels;
     }
@@ -133,7 +135,7 @@ internal sealed class OfficeAv1Upscaler {
                     int position = -16384 + initial + x * step, sample = position >> 14, phase = (position & 16383) >> 8;
                     int sum = 0;
                     for (int k = 0; k < 8; k++) sum += input[p][y * pitch + Math.Max(0, Math.Min(maximumX, sample + k - 3))] * Filters[phase, k];
-                    output[p][y * outPitch + x] = (ushort)Math.Max(0, Math.Min(255, (sum + 64) >> 7));
+                    output[p][y * outPitch + x] = (ushort)Math.Max(0, Math.Min(_maximumSample, (sum + 64) >> 7));
                 }
             }
         }
