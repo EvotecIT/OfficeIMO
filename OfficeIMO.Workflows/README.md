@@ -286,6 +286,12 @@ Set `ExpectedSourceSha256` to the SHA-256 hex digest of a reviewed snapshot to r
 
 ## Convert a document
 
+The executable conversion routes run in process through the OfficeIMO format and
+rendering packages. They do not launch an external office suite or document
+converter. Independent producer files and compatibility checks belong to
+validation; they are not prerequisites for running these conversions.
+
+
 ```csharp
 using OfficeIMO.Workflows;
 

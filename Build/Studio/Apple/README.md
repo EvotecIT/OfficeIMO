@@ -22,11 +22,12 @@ iPadOS uses the iOS store entry. The Mac entry is a separate native application
 binary under the same record. An iPhone app running on Apple silicon does not
 qualify the native Mac product.
 
-`powerforge.store-onboarding.json` wires the governance and metadata files for
-onboarding. It has no archive targets: PowerForge's current Apple archive lane
-requires Xcode projects, while Studio is built with .NET. `apple-release Doctor`,
-`Advance`, and submission require an implemented archive backend and actual
-targets; an empty `Apps` array is not a shipping release configuration.
+`powerforge.store-onboarding.json` owns remote setup without build targets.
+`powerforge.release.json` selects the native .NET Mac App Store archive target;
+its `DotNetPublishInstallerId` routes through PowerForge's shared MacApp packager.
+The selected `powerforge.dotnetpublish.json` builds a self-contained Apple silicon
+single-file host with native libraries kept outside the executable for signing.
+No GUI adaptation or mobile placeholder host is part of this configuration.
 
 Load the existing App Store Connect environment from the trusted builder, then
 use the shared engine for the supported governance operations:
@@ -65,13 +66,63 @@ Local proof uses explicit ad-hoc signing. A public artifact requires all of the 
 
 ## Mac App Store
 
-`AppStore.entitlements` is a prepared sandbox profile, not an active release lane. It permits user-selected document read/write, outbound connections for approved online operations, and the JIT permission required by the current runtime.
+`AppStore.entitlements` enables the App Sandbox, user-selected document read/write,
+app-scoped bookmarks, outbound connections, and JIT support. Store builds use
+`OfficeIMOStudioDistribution=MacAppStore`: app data stays in the Apple container,
+external Tesseract discovery and printer command execution are blocked with a
+contextual explanation. In-process document conversions and print-PDF preparation
+remain available. Document conversions do not require external office
+applications or converters.
 
-The Store lane remains blocked until the shared PowerForge owner can package externally built macOS apps without an application-local script. That owner must embed a provisioning profile when the selected capabilities require one, sign with an Apple distribution identity, create and validate the installer package with a Mac installer distribution identity, and upload the exact package to the record above. These identities, profiles, and credentials remain outside the repository. In particular, never commit App Store Connect API private keys (`AuthKey_*.p8`), signing certificates or private-key bundles (`*.p12` or `*.pfx`), provisioning profiles, keychains, passwords, or authentication exports. Store them only in the trusted builder's secret and keychain facilities.
+The shared packager places the host and native code in `Contents/MacOS`, notices
+and data in `Contents/Resources`, signs nested Mach-O code before the app, and
+creates a signed `.pkg` with `productbuild`. It checks the app's distribution
+team, installer signature, and the expanded installer payload. Runtime code must
+use bundle resource paths for external content; Store data is not beside the host.
 
-The App Sandbox changes product capabilities. Studio currently discovers and starts external tools such as Tesseract, LibreOffice, and Pandoc. A Store build must not assume it can execute arbitrary user-installed binaries. Each feature must instead use a permitted bundled and signed helper or be disabled with a contextual explanation and a direct-download alternative. File access must flow through user-selected URLs and retained security-scoped access where a later session needs the same document. Store builds use App Store updates; they do not run a parallel self-updater.
+Use the PowerForge CLI built from the shared source containing this backend:
 
-Before submission, validate receipt handling, container paths, privacy disclosures, accessibility, localization screenshots, clean install/update/uninstall behavior, and the complete rendered state matrix on a Store-signed build.
+```text
+powerforge apple-release Archive --config Build/Studio/Apple/powerforge.release.json --plan --summary --output json
+powerforge apple-release Archive --config Build/Studio/Apple/powerforge.release.json --summary --output json
+```
+
+The second command creates a signed package and `.xcarchive` locally. It requires
+an Apple distribution application identity and a Mac installer distribution
+identity for team `8ZPGZ79T7J`. A development certificate can qualify sandbox
+behavior but cannot produce a Store installer. Install credentials on the trusted
+builder; never commit private keys, certificates, keychains, or provisioning
+profiles. If capabilities require a profile, set `ProvisioningProfilePath` to a
+builder-local path within the configured project root. The packager rejects
+expired, wrong-team, wrong-bundle and development profiles.
+
+Keep marketing version and build number identical in the release target and
+MacApp configuration. This backend uses explicit versions; Xcode project
+generation, automatic version mutation, and the Swift exact-package snapshot
+mode do not apply. Archive creation is the supported local preparation boundary;
+export/upload and Store ingestion need qualification with distribution identities.
+Upload, metadata synchronization, review submission and release are disabled.
+
+Before submission, qualify user-selected open/save, retained bookmarks after
+relaunch, recovery and recent documents, network features, clean install/update,
+and accessibility on the final Store-signed build. Capture screenshots from that
+build. Store builds use Apple's update channel.
+
+The privacy policy is maintained in `OfficeIMO.Studio/PRIVACY.md` and the public
+website page `Website/content/pages/studio-privacy.md`. Publish the policy before
+syncing its URL. Local document processing, container diagnostics and settings
+must be distinguished from optional remote assistance: the selected provider
+receives questions and document evidence, and its account and retention terms
+apply. Review provider behavior and Apple's optional-collection exceptions before
+answering the privacy questionnaire; do not infer a blanket "data not collected"
+answer from local processing.
+
+Apple's [required-reason API guidance](https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api)
+covers iOS, iPadOS, tvOS, visionOS and watchOS. Assess the actual mobile host and
+its SDKs before declaring reasons. Studio uses file timestamps for container
+recovery/signatures and selected-document thumbnail invalidation. Avalonia's
+native macOS storage provider creates and resolves security-scoped bookmarks.
+These observations are inputs to qualification, not a completed mobile manifest.
 
 Studio's protected-PDF features use application-level cryptography, including
 BouncyCastle. Assess that exact graph for export compliance; do not set
@@ -82,10 +133,14 @@ not a privacy audit, especially when remote document assistance is enabled.
 
 ## Open-source distribution
 
-The app publishes the repository MIT license, the WebM/libvpx notice, and
+The app publishes the repository MIT license, WebM/libvpx license and patent grant,
+sRGB profile terms, and
 [the open-source explanation](../../../OfficeIMO.Studio/OPEN_SOURCE.md) under
-`Licenses/`. The macOS bundler retains published files in
-`Contents/MacOS/Licenses/`. Preserve these files when producing store packages.
+`Licenses/`. Store packages retain these files in
+`Contents/Resources/Licenses/`, alongside generated `THIRD_PARTY_NOTICES.txt` and
+`runtime-package-inventory.json`. `third-party-notices.json` binds reviewed
+license text hashes to exact published package versions. Dependency upgrades
+require refreshed coverage; unknown versions fail packaging.
 Review every managed and native dependency in the exact published artifact and
 include its required notices before distribution. The website dependency
 inventory identifies packages; it does not prove notice coverage for a binary.

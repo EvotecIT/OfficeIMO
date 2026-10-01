@@ -1,4 +1,8 @@
-# OfficeIMO Studio privacy
+---
+title: "OfficeIMO Studio privacy"
+description: "How OfficeIMO Studio processes documents, stores local data, and connects to optional document assistant providers."
+slug: studio/privacy
+---
 
 OfficeIMO Studio opens and processes documents on your device. Opening, reading,
 editing, converting, and saving a document does not send it to Evotec.

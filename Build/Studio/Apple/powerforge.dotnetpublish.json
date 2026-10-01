@@ -1,0 +1,89 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/Schemas/powerforge.dotnetpublish.schema.json",
+  "SchemaVersion": 1,
+  "DotNet": {
+    "ProjectRoot": "../../..",
+    "Configuration": "Release",
+    "Restore": true,
+    "Build": false,
+    "NoRestoreInPublish": false,
+    "NoBuildInPublish": false,
+    "LockedOutputGuard": false,
+    "AllowOutputOutsideProjectRoot": false,
+    "MsBuildProperties": {
+      "OfficeIMOStudioDistribution": "MacAppStore",
+      "IncludeNativeLibrariesForSelfExtract": "false",
+      "IncludeAllContentForSelfExtract": "false",
+      "PublishTrimmed": "false",
+      "UseArtifactsOutput": "true",
+      "ArtifactsPath": "Artifacts/Studio/Apple/build",
+      "Version": "1.0.0"
+    }
+  },
+  "Targets": [
+    {
+      "Name": "Studio.macOS.AppStore",
+      "Kind": "Desktop",
+      "ProjectPath": "OfficeIMO.Studio/OfficeIMO.Studio.csproj",
+      "Publish": {
+        "Framework": "net10.0",
+        "Runtimes": [
+          "osx-arm64"
+        ],
+        "Style": "PortableCompat",
+        "UseStaging": true,
+        "ClearOutput": true,
+        "KeepSymbols": false,
+        "KeepDocs": false,
+        "Zip": false,
+        "ZipNameTemplate": "OfficeIMO-Studio-{rid}-{style}.zip",
+        "OutputPath": "Artifacts/Studio/Apple/publish/{rid}"
+      }
+    }
+  ],
+  "Installers": [
+    {
+      "Id": "OfficeIMO.Studio.macOS.AppStore",
+      "Kind": "MacApp",
+      "PrepareFromTarget": "Studio.macOS.AppStore",
+      "Runtimes": [
+        "osx-arm64"
+      ],
+      "Frameworks": [
+        "net10.0"
+      ],
+      "Styles": [
+        "PortableCompat"
+      ],
+      "OutputPath": "Artifacts/Studio/Apple/packages/{rid}",
+      "OutputName": "OfficeIMO-Studio-{rid}-appstore.pkg",
+      "MacApp": {
+        "BundleIdentifier": "com.evotec.officeimo.studio",
+        "BundleName": "OfficeIMO Studio",
+        "Version": "1.0",
+        "BuildNumber": "1",
+        "Executable": "OfficeIMO.Studio",
+        "IconPath": "OfficeIMO.Studio/Assets/OfficeIMO.Studio.png",
+        "MinimumSystemVersion": "13.0",
+        "Category": "public.app-category.productivity",
+        "Copyright": "Copyright \u00a9 Evotec",
+        "DocumentExtensions": [
+          "pdf",
+          "docx",
+          "xlsx",
+          "pptx"
+        ],
+        "CodesignIdentity": "Apple Distribution: Evotec Services sp z o.o. (8ZPGZ79T7J)",
+        "HardenedRuntime": true,
+        "Timestamp": false,
+        "EntitlementsPath": "Build/Studio/Apple/AppStore.entitlements",
+        "AppStore": true,
+        "TeamId": "8ZPGZ79T7J",
+        "InstallerSigningIdentity": "3rd Party Mac Developer Installer: Evotec Services sp z o.o. (8ZPGZ79T7J)",
+        "ThirdPartyNoticesManifestPath": "Build/Studio/Apple/third-party-notices.json",
+        "DependenciesPath": "Artifacts/Studio/Apple/build/bin/OfficeIMO.Studio/release_osx-arm64/OfficeIMO.Studio.deps.json"
+      }
+    }
+  ],
+  "Outputs": {}
+}

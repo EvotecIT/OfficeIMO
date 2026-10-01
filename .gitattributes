@@ -105,3 +105,7 @@ OfficeIMO.TestAssets/OcrQuality/*.pdf -text -diff
 OfficeIMO.TestAssets/OcrQuality/*.tif -text -diff
 OfficeIMO.TestAssets/OcrQuality/*.txt -text -whitespace
 OfficeIMO.TestAssets/OcrQuality/*.json -text
+
+# Reviewed upstream license texts are hash-bound packaging inputs. Preserve their
+# bytes and original whitespace across checkout platforms.
+OfficeIMO.Studio/Licenses/ThirdParty/* -text -whitespace

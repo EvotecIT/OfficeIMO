@@ -215,7 +215,7 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
         }
     }
     private static async Task<IOcrEngine> CreateEngineAsync(TesseractOcrLanguage languages, bool provision, CancellationToken token) =>
-        (await TesseractOcr.CreateSessionAsync(new() { Languages = languages, ProvisionMissingLanguageData = provision }, token).ConfigureAwait(false)).Engine;
+        (await StudioOcrProvider.CreateSessionAsync(new() { Languages = languages, ProvisionMissingLanguageData = provision }, token).ConfigureAwait(false)).Engine;
     private void NotifyCommands() {
         OnPropertyChanged(nameof(HasItems)); OnPropertyChanged(nameof(SetupHint));
         OnPropertyChanged(nameof(CanRun)); OnPropertyChanged(nameof(CanRetry));

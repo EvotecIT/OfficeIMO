@@ -1,0 +1,376 @@
+{
+  "SchemaVersion": 1,
+  "Packages": [
+    {
+      "Package": "Microsoft.NETCore.App.Runtime.osx-arm64/10.0.12",
+      "License": "MIT",
+      "Authors": "Microsoft",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Microsoft.NETCore.App.Runtime.osx-arm64-10.0.12-THIRD-PARTY-NOTICES.TXT",
+          "Sha256": "66f1d4e44973185519bb4aa8a9718eb22fc7af2cc532e3ae9cfc4c127ee7fc54",
+          "Source": "Microsoft.NETCore.App.Runtime.osx-arm64/10.0.12/THIRD-PARTY-NOTICES.TXT"
+        },
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Microsoft.NETCore.App.Runtime.osx-arm64-10.0.12-LICENSE.TXT",
+          "Sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310",
+          "Source": "Microsoft.NETCore.App.Runtime.osx-arm64/10.0.12/LICENSE.TXT"
+        }
+      ]
+    },
+    {
+      "Package": "AngleSharp/1.7.1",
+      "License": "MIT",
+      "Authors": "AngleSharp",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/AngleSharp-1.7.1-LICENSE.txt",
+          "Sha256": "6da3ab781b570d2c45102e74b366c0be0eb758ed0205c3b23093d6ac2231d394",
+          "Source": "https://raw.githubusercontent.com/AngleSharp/AngleSharp/fbfd8dbf5670ad77a986ebf128377693ecfa4e08/LICENSE"
+        }
+      ]
+    },
+    {
+      "Package": "AngleSharp.Css/1.0.1",
+      "License": "MIT",
+      "Authors": "AngleSharp.Css",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/AngleSharp.Css-1.0.1-LICENSE.txt",
+          "Sha256": "6da3ab781b570d2c45102e74b366c0be0eb758ed0205c3b23093d6ac2231d394",
+          "Source": "https://raw.githubusercontent.com/AngleSharp/AngleSharp.Css/bd736dbccbc3a2b9737c7c9285d10c1142e92663/LICENSE"
+        }
+      ]
+    },
+    {
+      "Package": "Avalonia/12.1.3",
+      "License": "MIT",
+      "Authors": "Avalonia Team",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Avalonia-12.1.3-LICENSE.txt",
+          "Sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b",
+          "Source": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/8eeda4f6f546165b3f72e63c9f42247abb306905/licence.md"
+        }
+      ]
+    },
+    {
+      "Package": "Avalonia.Desktop/12.1.3",
+      "License": "MIT",
+      "Authors": "Avalonia Team",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Avalonia.Desktop-12.1.3-LICENSE.txt",
+          "Sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b",
+          "Source": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/8eeda4f6f546165b3f72e63c9f42247abb306905/licence.md"
+        }
+      ]
+    },
+    {
+      "Package": "Avalonia.FreeDesktop/12.1.3",
+      "License": "MIT",
+      "Authors": "Avalonia Team",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Avalonia.FreeDesktop-12.1.3-LICENSE.txt",
+          "Sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b",
+          "Source": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/8eeda4f6f546165b3f72e63c9f42247abb306905/licence.md"
+        }
+      ]
+    },
+    {
+      "Package": "Avalonia.FreeDesktop.AtSpi/12.1.3",
+      "License": "MIT",
+      "Authors": "Avalonia Team",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Avalonia.FreeDesktop.AtSpi-12.1.3-LICENSE.txt",
+          "Sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b",
+          "Source": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/8eeda4f6f546165b3f72e63c9f42247abb306905/licence.md"
+        }
+      ]
+    },
+    {
+      "Package": "Avalonia.HarfBuzz/12.1.3",
+      "License": "MIT",
+      "Authors": "Avalonia Team",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Avalonia.HarfBuzz-12.1.3-LICENSE.txt",
+          "Sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b",
+          "Source": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/8eeda4f6f546165b3f72e63c9f42247abb306905/licence.md"
+        }
+      ]
+    },
+    {
+      "Package": "Avalonia.Native/12.1.3",
+      "License": "MIT",
+      "Authors": "Avalonia Team",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Avalonia.Native-12.1.3-LICENSE.txt",
+          "Sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b",
+          "Source": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/8eeda4f6f546165b3f72e63c9f42247abb306905/licence.md"
+        }
+      ]
+    },
+    {
+      "Package": "Avalonia.Remote.Protocol/12.1.3",
+      "License": "MIT",
+      "Authors": "Avalonia Team",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Avalonia.Remote.Protocol-12.1.3-LICENSE.txt",
+          "Sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b",
+          "Source": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/8eeda4f6f546165b3f72e63c9f42247abb306905/licence.md"
+        }
+      ]
+    },
+    {
+      "Package": "Avalonia.Skia/12.1.3",
+      "License": "MIT",
+      "Authors": "Avalonia Team",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Avalonia.Skia-12.1.3-LICENSE.txt",
+          "Sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b",
+          "Source": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/8eeda4f6f546165b3f72e63c9f42247abb306905/licence.md"
+        }
+      ]
+    },
+    {
+      "Package": "Avalonia.Themes.Fluent/12.1.3",
+      "License": "MIT",
+      "Authors": "Avalonia Team",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Avalonia.Themes.Fluent-12.1.3-LICENSE.txt",
+          "Sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b",
+          "Source": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/8eeda4f6f546165b3f72e63c9f42247abb306905/licence.md"
+        }
+      ]
+    },
+    {
+      "Package": "Avalonia.Win32/12.1.3",
+      "License": "MIT",
+      "Authors": "Avalonia Team",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Avalonia.Win32-12.1.3-LICENSE.txt",
+          "Sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b",
+          "Source": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/8eeda4f6f546165b3f72e63c9f42247abb306905/licence.md"
+        }
+      ]
+    },
+    {
+      "Package": "Avalonia.X11/12.1.3",
+      "License": "MIT",
+      "Authors": "Avalonia Team",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Avalonia.X11-12.1.3-LICENSE.txt",
+          "Sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b",
+          "Source": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/8eeda4f6f546165b3f72e63c9f42247abb306905/licence.md"
+        }
+      ]
+    },
+    {
+      "Package": "BouncyCastle.Cryptography/2.7.0",
+      "License": "MIT",
+      "Authors": "Legion of the Bouncy Castle Inc.",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/BouncyCastle.Cryptography-2.7.0-LICENSE.md",
+          "Sha256": "0e01f1549c9022f406392ac2947d32223b7c2e977d21ea2f8c182fdeb4dae5fd",
+          "Source": "BouncyCastle.Cryptography/2.7.0/LICENSE.md"
+        }
+      ]
+    },
+    {
+      "Package": "CommunityToolkit.Mvvm/8.4.2",
+      "License": "MIT",
+      "Authors": "Microsoft",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/CommunityToolkit.Mvvm-8.4.2-License.md",
+          "Sha256": "1e1101b893f295b4526da2c167e4234610f1078e2fe43a0e814c1a883656877b",
+          "Source": "CommunityToolkit.Mvvm/8.4.2/License.md"
+        },
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/CommunityToolkit.Mvvm-8.4.2-ThirdPartyNotices.txt",
+          "Sha256": "79498b27081bbec29c504798c727761e0898963259fb7421ea587a758e803ed3",
+          "Source": "CommunityToolkit.Mvvm/8.4.2/ThirdPartyNotices.txt"
+        }
+      ]
+    },
+    {
+      "Package": "DocumentFormat.OpenXml/3.5.1",
+      "License": "MIT",
+      "Authors": "Microsoft",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/DocumentFormat.OpenXml-3.5.1-LICENSE.txt",
+          "Sha256": "ed03ba352313a4ba7019d5bed4bd3218ac17f3e44442a3bb1aaff54dcca9a2bc",
+          "Source": "https://raw.githubusercontent.com/dotnet/Open-XML-SDK/3139fdfd27414548a41555f7848d5728f6e71a42/LICENSE"
+        }
+      ]
+    },
+    {
+      "Package": "DocumentFormat.OpenXml.Framework/3.5.1",
+      "License": "MIT",
+      "Authors": "Microsoft",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/DocumentFormat.OpenXml.Framework-3.5.1-LICENSE.txt",
+          "Sha256": "ed03ba352313a4ba7019d5bed4bd3218ac17f3e44442a3bb1aaff54dcca9a2bc",
+          "Source": "https://raw.githubusercontent.com/dotnet/Open-XML-SDK/3139fdfd27414548a41555f7848d5728f6e71a42/LICENSE"
+        }
+      ]
+    },
+    {
+      "Package": "HarfBuzzSharp/8.3.1.3",
+      "License": "MIT",
+      "Authors": "Microsoft",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/HarfBuzzSharp-8.3.1.3-LICENSE.txt",
+          "Sha256": "bc2eb4f37d574f9b1b67da2b17e14d151618850527d78f7323239e7518df5b77",
+          "Source": "HarfBuzzSharp/8.3.1.3/LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "Package": "HarfBuzzSharp.NativeAssets.macOS/8.3.1.3",
+      "License": "MIT",
+      "Authors": "Microsoft",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/HarfBuzzSharp.NativeAssets.macOS-8.3.1.3-THIRD-PARTY-NOTICES.txt",
+          "Sha256": "98acf9d4d6083959988c884f630cdff760f94bfeb9acf57774653e08c23d1e45",
+          "Source": "HarfBuzzSharp.NativeAssets.macOS/8.3.1.3/THIRD-PARTY-NOTICES.txt"
+        },
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/HarfBuzzSharp.NativeAssets.macOS-8.3.1.3-LICENSE.txt",
+          "Sha256": "bc2eb4f37d574f9b1b67da2b17e14d151618850527d78f7323239e7518df5b77",
+          "Source": "HarfBuzzSharp.NativeAssets.macOS/8.3.1.3/LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "Package": "IntelligenceX/0.1.1",
+      "License": "MIT",
+      "Authors": "Przemyslaw Klys",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/IntelligenceX-0.1.1-LICENSE.txt",
+          "Sha256": "e3e49d486b8cd7481333fb81563c35e35ab8bd9526b7b94794454588ab667a30",
+          "Source": "https://raw.githubusercontent.com/EvotecIT/IntelligenceX/76baf2bb7ea7640b5f9605bed181b544531b2ca6/LICENSE"
+        }
+      ]
+    },
+    {
+      "Package": "MicroCom.Runtime/0.11.6",
+      "License": "MIT",
+      "Authors": "MicroCom.Runtime",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/MicroCom.Runtime-0.11.6-LICENSE.txt",
+          "Sha256": "6ee769c9ac4dac9abb16b98b1341e9528ff9f4ab685481410d3376d14148f3a9",
+          "Source": "https://raw.githubusercontent.com/kekekeks/MicroCom/76785efcafd91b5902fd19dd11145f6dd655b7b4/LICENSE"
+        }
+      ]
+    },
+    {
+      "Package": "SkiaSharp/3.119.4",
+      "License": "MIT",
+      "Authors": "Microsoft",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/SkiaSharp-3.119.4-LICENSE.txt",
+          "Sha256": "bc2eb4f37d574f9b1b67da2b17e14d151618850527d78f7323239e7518df5b77",
+          "Source": "SkiaSharp/3.119.4/LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "Package": "SkiaSharp.NativeAssets.macOS/3.119.4",
+      "License": "MIT",
+      "Authors": "Microsoft",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/SkiaSharp.NativeAssets.macOS-3.119.4-THIRD-PARTY-NOTICES.txt",
+          "Sha256": "98acf9d4d6083959988c884f630cdff760f94bfeb9acf57774653e08c23d1e45",
+          "Source": "SkiaSharp.NativeAssets.macOS/3.119.4/THIRD-PARTY-NOTICES.txt"
+        },
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/SkiaSharp.NativeAssets.macOS-3.119.4-LICENSE.txt",
+          "Sha256": "bc2eb4f37d574f9b1b67da2b17e14d151618850527d78f7323239e7518df5b77",
+          "Source": "SkiaSharp.NativeAssets.macOS/3.119.4/LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "Package": "System.IO.Packaging/10.0.8",
+      "License": "MIT",
+      "Authors": "Microsoft",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/System.IO.Packaging-10.0.8-THIRD-PARTY-NOTICES.TXT",
+          "Sha256": "66f1d4e44973185519bb4aa8a9718eb22fc7af2cc532e3ae9cfc4c127ee7fc54",
+          "Source": "System.IO.Packaging/10.0.8/THIRD-PARTY-NOTICES.TXT"
+        },
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Microsoft.NETCore.App.Runtime.osx-arm64-10.0.12-LICENSE.TXT",
+          "Sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310",
+          "Source": "Microsoft.NETCore.App.Runtime.osx-arm64/10.0.12/LICENSE.TXT"
+        }
+      ]
+    },
+    {
+      "Package": "System.Security.Cryptography.Pkcs/10.0.10",
+      "License": "MIT",
+      "Authors": "Microsoft",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/System.Security.Cryptography.Pkcs-10.0.10-THIRD-PARTY-NOTICES.TXT",
+          "Sha256": "66f1d4e44973185519bb4aa8a9718eb22fc7af2cc532e3ae9cfc4c127ee7fc54",
+          "Source": "System.Security.Cryptography.Pkcs/10.0.10/THIRD-PARTY-NOTICES.TXT"
+        },
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Microsoft.NETCore.App.Runtime.osx-arm64-10.0.12-LICENSE.TXT",
+          "Sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310",
+          "Source": "Microsoft.NETCore.App.Runtime.osx-arm64/10.0.12/LICENSE.TXT"
+        }
+      ]
+    },
+    {
+      "Package": "System.Security.Cryptography.Xml/10.0.10",
+      "License": "MIT",
+      "Authors": "Microsoft",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/System.Security.Cryptography.Xml-10.0.10-THIRD-PARTY-NOTICES.TXT",
+          "Sha256": "66f1d4e44973185519bb4aa8a9718eb22fc7af2cc532e3ae9cfc4c127ee7fc54",
+          "Source": "System.Security.Cryptography.Xml/10.0.10/THIRD-PARTY-NOTICES.TXT"
+        },
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Microsoft.NETCore.App.Runtime.osx-arm64-10.0.12-LICENSE.TXT",
+          "Sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310",
+          "Source": "Microsoft.NETCore.App.Runtime.osx-arm64/10.0.12/LICENSE.TXT"
+        }
+      ]
+    },
+    {
+      "Package": "Tmds.DBus.Protocol/0.94.1",
+      "License": "MIT",
+      "Authors": "Tom Deseyn",
+      "Files": [
+        {
+          "Path": "OfficeIMO.Studio/Licenses/ThirdParty/Tmds.DBus.Protocol-0.94.1-LICENSE.txt",
+          "Sha256": "aca3b49277abcc7886ccb2f115603a9f5b15fc3f96019a10c00f2974098b210c",
+          "Source": "https://raw.githubusercontent.com/tmds/Tmds.DBus/b4a7fed0b878f74cb54f7cca84d2889af4e596ba/COPYING"
+        }
+      ]
+    }
+  ]
+}
