@@ -7,9 +7,20 @@ public sealed class PdfImageOptimizationOptions {
     private double _targetDpi = 144D;
     private double _downsampleThreshold = 1.1D;
     private int _jpegQuality = 85;
+    private OfficeImageOptimizationMode _mode;
 
     /// <summary>Enables managed placement-aware image optimization. Disabled by default.</summary>
     public bool Enabled { get; set; }
+
+    /// <summary>Selects placement downsampling, same-size JPEG recompression, or both. Defaults to downsampling.</summary>
+    public OfficeImageOptimizationMode Mode {
+        get => _mode;
+        set {
+            if (value < OfficeImageOptimizationMode.Downsample || value > OfficeImageOptimizationMode.DownsampleAndRecompress)
+                throw new System.ArgumentOutOfRangeException(nameof(Mode));
+            _mode = value;
+        }
+    }
 
     /// <summary>Target image resolution in pixels per inch. Defaults to 144.</summary>
     public double TargetDpi {
@@ -53,13 +64,32 @@ public sealed class PdfImageOptimizationOptions {
     /// <summary>Keeps the original encoded payload when optimized bytes are not smaller.</summary>
     public bool KeepOriginalWhenNotSmaller { get; set; } = true;
 
+    /// <summary>Metadata behavior for rewritten images. Defaults to preservation.</summary>
+    public OfficeImageMetadataPolicy MetadataPolicy { get; set; } = OfficeImageMetadataPolicy.Preserve;
+    /// <summary>Metadata categories retained by selective copying.</summary>
+    public OfficeImageMetadataKinds MetadataSelection { get; set; } = OfficeImageMetadataKinds.All;
+    /// <summary>Permits reported metadata loss. False preserves the original image if metadata would be lost.</summary>
+    public bool AllowMetadataLoss { get; set; }
+
     /// <summary>Creates an independent copy of these options.</summary>
-    public PdfImageOptimizationOptions Clone() => new PdfImageOptimizationOptions {
+    public PdfImageOptimizationOptions Clone() {
+        if (ResamplingMode < OfficeRasterResamplingMode.NearestNeighbor || ResamplingMode > OfficeRasterResamplingMode.Lanczos3)
+            throw new System.ArgumentOutOfRangeException(nameof(ResamplingMode));
+        if (MetadataPolicy < OfficeImageMetadataPolicy.Preserve || MetadataPolicy > OfficeImageMetadataPolicy.SelectiveCopy)
+            throw new System.ArgumentOutOfRangeException(nameof(MetadataPolicy));
+        if ((MetadataSelection & ~OfficeImageMetadataKinds.All) != 0)
+            throw new System.ArgumentOutOfRangeException(nameof(MetadataSelection));
+        return new PdfImageOptimizationOptions {
         Enabled = Enabled,
+        Mode = Mode,
         TargetDpi = TargetDpi,
         DownsampleThreshold = DownsampleThreshold,
         ResamplingMode = ResamplingMode,
         JpegQuality = JpegQuality,
-        KeepOriginalWhenNotSmaller = KeepOriginalWhenNotSmaller
-    };
+        KeepOriginalWhenNotSmaller = KeepOriginalWhenNotSmaller,
+        MetadataPolicy = MetadataPolicy,
+        MetadataSelection = MetadataSelection,
+        AllowMetadataLoss = AllowMetadataLoss
+        };
+    }
 }

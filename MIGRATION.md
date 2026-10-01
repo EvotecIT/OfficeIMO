@@ -88,6 +88,12 @@ Applications that validate capability schema versions must accept version 6.
 Directory-package handlers register `ReadDirectoryBundle`; ordinary path handlers
 continue to accept files. The document-result schema remains version 8.
 
+## TXT workflow conversion uses literal text
+
+When `OfficeWorkflowRequest` omits `ConversionRouteId`, converting a `.txt` source to PDF selects `txt-pdf`. Markup is printed literally, and spacing and tab columns are preserved. Applications that store HTML in `.txt` files should explicitly select `ConversionRouteId = "html-pdf"` to retain HTML interpretation.
+
+Automatic literal-text decoding recognizes Unicode BOMs and otherwise requires valid UTF-8. Set `ConversionOptions.PlainText.EncodingName` when a source uses another known encoding; invalid byte sequences fail conversion instead of becoming replacement characters.
+
 ## RTF HTML round-trip output
 
 Semantic RTF writing defaults to `RtfWriteOptions.MaterializeStyleFormatting = true`. Supported effective style values are written as body controls for native Word appearance. Reopening the output treats those values as direct formatting. Set this option to `false` when retaining editable style inheritance is the priority. `ToRtfResult()` reports `RtfNormalizationFormattingInheritanceMaterialized` when it materializes values; strict callers must explicitly accept that loss or select inheritance-preserving output.

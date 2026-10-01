@@ -8,7 +8,7 @@ internal static class ConvertCommand {
 OfficeIMO.Tool - document conversion
 
 Usage:
-  officeimo convert <input.docx|input.xlsx|input.pptx> [output.pdf] [--force]
+  officeimo convert <input.doc|input.docx|input.txt|input.xlsx|input.pptx> [output.pdf] [--force]
                     [--max-input-bytes <bytes>] [--max-output-bytes <bytes>]
                     [--max-characters-in-part <characters>]
   officeimo convert <input.pages|input.numbers|input.key> [output.docx|output.xlsx|output.pptx]
@@ -18,12 +18,12 @@ Usage:
   officeimo convert <input> <output.md|output.markdown|output.json>
                     [--assets <directory>] [--max-input-bytes <bytes>] [--force]
 
-PDF output uses the first-party Word, Excel, or PowerPoint PDF adapter.
+PDF output uses the first-party format adapters and literal text converter.
 Apple OOXML output uses the shared iWork workflow adapter and writes structured JSON evidence.
 Defaults reject partial editable reconstruction and previews without known complete coverage.
-Apple workflow conversion accepts ZIP files; directory bundles can be read as Markdown or JSON.
+Apple workflow conversion accepts ZIP files and directory bundles.
 Markdown and JSON output use the OfficeIMO Reader pipeline.
-The default destination for DOCX, XLSX, and PPTX input is a sibling PDF file.
+The default destination for DOC, DOCX, TXT, XLSX, and PPTX input is a sibling PDF file.
 """;
 
     internal static async Task<int> RunAsync(
@@ -149,7 +149,12 @@ internal sealed class ConvertRoute {
                     hasAppleOnlyOption = true;
                     break;
                 case "--max-characters-in-part":
+                case "--text-encoding":
+                case "--tab-size":
                     _ = NextValue(args, ref index, token);
+                    hasPdfOnlyOption = true;
+                    break;
+                case "--allow-legacy-loss":
                     hasPdfOnlyOption = true;
                     break;
                 case "--force":

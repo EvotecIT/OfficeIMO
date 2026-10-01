@@ -74,6 +74,29 @@ public sealed partial class OfficeWorkflowRunner {
         byte[] bytes;
         bool hasLoss = false;
         switch (route.Id) {
+            case "doc-pdf": {
+                using var source = new MemoryStream(input, writable: false);
+                PdfDocumentConversionResult conversion = LegacyDocPdfConverter.ToPdfDocumentResult(source,
+                    importOptions: new OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions {
+                        MaxInputBytes = (int)Math.Min(int.MaxValue, request.Limits.MaximumInputBytes)
+                    }, lossPolicy: settings.LegacyDocLossPolicy, cancellationToken: cancellationToken);
+                bytes = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
+                hasLoss = conversion.HasLoss;
+                AddPdfWarnings(conversion.Warnings, diagnostics);
+                foreach (IOfficeConversionReport report in conversion.SourceConversionReports)
+                    foreach (OfficeConversionFidelityDiagnostic finding in report.FidelityDiagnostics)
+                        diagnostics.Add(new OfficeWorkflowDiagnostic(finding.Code, finding.Message,
+                            finding.LossKind == OfficeConversionLossKind.None ? OfficeWorkflowDiagnosticSeverity.Information : OfficeWorkflowDiagnosticSeverity.Warning,
+                            "import", new Dictionary<string, string> { ["source"] = finding.Source, ["lossKind"] = finding.LossKind.ToString() }));
+                break;
+            }
+            case "txt-pdf": {
+                PdfDocumentConversionResult conversion = PdfPlainTextConverter.ToPdfDocumentResult(input, settings.PlainText, cancellationToken);
+                bytes = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
+                hasLoss = conversion.HasLoss;
+                AddPdfWarnings(conversion.Warnings, diagnostics);
+                break;
+            }
             case "docx-pdf":
                 using (var source = new MemoryStream(input, writable: false))
                 using (WordDocument document = WordDocument.LoadAsync(

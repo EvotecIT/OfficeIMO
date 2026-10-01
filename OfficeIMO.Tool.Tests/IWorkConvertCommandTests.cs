@@ -8,7 +8,6 @@ public sealed class IWorkConvertCommandTests {
     [Theory]
     [InlineData("nim-iwork/simple.pages", "docx")]
     [InlineData("nim-iwork/simple.numbers", "xlsx")]
-    [InlineData("keynotekit/tabledeck-v15.2.1.key", "pptx")]
     public async Task Apple_default_destinations_publish_OOXML_and_serialize_typed_fidelity(string fixture, string target) {
         using var files = new Files(fixture);
         var result = await RunAsync("convert", files.Input);
@@ -21,6 +20,28 @@ public sealed class IWorkConvertCommandTests {
         Assert.Contains(json.RootElement.GetProperty("conversionEvidence").GetProperty("fidelityDiagnostics").EnumerateArray(),
             diagnostic => diagnostic.GetProperty("lossKind").GetString() == "Unassessed");
         Assert.Contains(json.RootElement.GetProperty("diagnostics").EnumerateArray(), diagnostic => diagnostic.GetProperty("code").GetString() == "OutputReopened");
+    }
+
+    [Fact]
+    public async Task Keynote_table_requires_explicit_partial_acceptance_and_reports_pagination_loss() {
+        using var files = new Files("keynotekit/tabledeck-v15.2.1.key");
+        var rejected = await RunAsync("convert", files.Input);
+        Assert.Equal((int)OfficeImoToolExitCode.UnsupportedInput, rejected.Code);
+        string destination = Path.ChangeExtension(files.Input, ".pptx");
+        Assert.False(File.Exists(destination));
+
+        var accepted = await RunAsync("convert", files.Input, "--allow-partial");
+        Assert.Equal(0, accepted.Code);
+        using JsonDocument json = JsonDocument.Parse(accepted.Output);
+        Assert.True(json.RootElement.GetProperty("succeeded").GetBoolean());
+        Assert.Equal(destination, json.RootElement.GetProperty("outputPath").GetString());
+        Assert.Contains(json.RootElement.GetProperty("diagnostics").EnumerateArray(),
+            diagnostic => diagnostic.GetProperty("code").GetString() == "OutputReopened");
+        JsonElement evidence = json.RootElement.GetProperty("conversionEvidence");
+        Assert.Equal("True", evidence.GetProperty("facts").GetProperty("partialEditableReconstruction").GetString());
+        Assert.Contains(evidence.GetProperty("fidelityDiagnostics").EnumerateArray(), diagnostic =>
+            diagnostic.GetProperty("code").GetString() == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED"
+            && diagnostic.GetProperty("lossKind").GetString() == "Omission");
     }
 
     [Fact]

@@ -69,7 +69,8 @@ The DOC reader projects supported content into the normal OfficeIMO Word model. 
 | Comments with readable comment tables | Projected |
 | Revision-tracking settings | Projected |
 | Scalar core, application, and custom properties | Projected |
-| Pictures, drawings, text boxes, and richer visual payloads | Diagnosed as preserve-only unless a supported projection exists |
+| Supported inline pictures and inset source crops | Projected as editable images; unsupported transforms and effects are diagnosed |
+| Floating drawings, text boxes, and richer visual payloads | Diagnosed as preserve-only unless a supported projection exists |
 | VBA, ActiveX, embedded packages, and OLE objects | Diagnosed as preserve-only |
 | Damaged, encrypted, or unsupported binary structures | Rejected or diagnosed before output |
 
@@ -79,7 +80,9 @@ A readable feature is not automatically writable to DOC. DOCX can represent a br
 
 The native writer covers the tested binary subset, including paragraphs and runs, common formatting, styles, sections and page setup, supported headers and footers, simple tables and supported nesting, bookmarks, supported hyperlinks and static fields, footnotes and endnotes, and scalar document properties.
 
-The writer preflights the complete document before committing output. Unsupported destination features—such as comments, tracked revision markup, images, drawings, embedded objects, unsupported content-control shapes, or richer table/story structures—raise `NotSupportedException` and leave an existing destination intact.
+The writer also covers supported inline pictures and inset source crops. `OptimizeImages` can downsample or recompress their projected media before a native DOC save. Default fonts and Normal style formatting are materialized in the native stylesheet.
+
+The writer preflights the complete document before committing output. Unsupported destination features, including floating drawings, rotated or mirrored inline pictures, unsupported image effects, embedded objects, and richer table/story structures, raise `NotSupportedException` and leave an existing destination intact. The [generated capability matrix](Compatibility/generated/word-legacy-doc.md) lists the current feature families.
 
 When an application needs a non-throwing gate before selecting a destination, run the real encoder without committing a file:
 

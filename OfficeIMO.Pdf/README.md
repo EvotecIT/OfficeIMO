@@ -7,6 +7,23 @@
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
+## Literal text to PDF
+
+`PdfPlainTextConverter` renders TXT content without interpreting Markdown or HTML:
+
+```csharp
+using OfficeIMO.Pdf;
+
+using var source = File.OpenRead("report.txt");
+var conversion = PdfPlainTextConverter.ToPdfDocumentResult(source,
+    new PdfPlainTextOptions { TabSize = 4 }, maximumInputBytes: 64L * 1024 * 1024);
+conversion.SaveResult("report.pdf").RequireSuccess();
+```
+
+The converter detects UTF-8, UTF-16 and UTF-32 byte order marks and otherwise decodes strict UTF-8. `EncodingName` selects an explicit encoding available in the host; a conflicting BOM or invalid byte sequence fails conversion. Seekable input position is restored and the caller's stream remains open.
+
+Lines, blank lines and repeated spaces are preserved. Tabs advance to source-column stops, form feeds start pages, long lines wrap, and empty input produces one blank page. Defaults are ten-point Courier, 16 million decoded/expanded characters and 10,000 generated pages. `PdfPlainTextOptions.PdfOptions` controls fonts and page geometry. Supply embedded font bytes for characters outside the selected font's coverage; unsupported glyphs fail output rather than publishing replacement text.
+
 ## Install
 
 ```powershell
@@ -2013,6 +2030,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Inspect | 3 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 2 | 0 | 0 | 0 | 0 | 1 |
 | Remove | 2 | 0 | 0 | 0 | 0 | 0 |
+| Convert | 0 | 1 | 0 | 0 | 0 | 0 |
 | Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Pdf` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

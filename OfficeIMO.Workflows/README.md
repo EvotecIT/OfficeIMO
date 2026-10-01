@@ -10,6 +10,32 @@ The package does not add a second document or PDF engine. Desktop applications, 
 
 `OfficeWorkflowConversionRegistration` adds an implementation of an existing canonical route to a runner. It cannot replace built-in owners. Opt-in converters accept captured ZIP/file streams, write to a bounded caller-owned output stream, and return immutable `OfficeWorkflowConversionEvidence`. Current opt-in destination formats are DOCX, XLSX, and PPTX. `OfficeWorkflowResult.ConversionEvidence` retains fidelity categories and compact source facts; successful reopen does not establish visual equivalence.
 
+## Restartable PDF archives
+
+`OfficePdfArchiveWorkflow` discovers DOC, DOCX and TXT files incrementally and converts a bounded number concurrently. Source, output and checkpoint directories must be separate local trees. The runner skips filesystem links and names outputs with the full relative source filename plus `.pdf`, so `report.doc` and `report.docx` cannot collide.
+
+```csharp
+using OfficeIMO.Workflows;
+
+var request = new OfficePdfArchiveRequest {
+    InputDirectory = Path.GetFullPath("Documents"),
+    OutputDirectory = Path.GetFullPath("PDF"),
+    CheckpointDirectory = Path.GetFullPath("PDF-State"),
+    MaximumConcurrency = 2
+};
+OfficePdfArchiveResult result = await OfficePdfArchiveWorkflow.RunAsync(request,
+    cancellationToken: cancellationToken);
+Console.WriteLine($"Completed {result.Completed}; reused {result.Reused}; failed {result.Failed}");
+```
+
+Rerunning the same request verifies source and PDF hashes before reusing completed items. Before final publication, the runner flushes the validated staged PDF and records its hash and staging identity. A restart can finish that recorded move or verify a PDF already moved before its final checkpoint was written. Changed completed sources, changed or missing PDFs, and existing PDFs without a bound receipt require operator inspection; the runner never replaces them automatically. Cancellation keeps completed files and pending publications. Use `RetryFailed = true` to retry recorded failures, including a corrected failed source. A checkpoint belongs to its captured conversion settings and engine binaries; changed settings or binaries require a new checkpoint and output directory. Newly added source files are discovered on each run; this is not a frozen inventory of the original directory. A process interruption before the publication intent is written can leave a hidden staging file; it does not authorize replacing a final PDF.
+
+Per-file limits default to 64 MiB input and 256 MiB output. Concurrency must be 1–8. Default selection and text limits allow one million files, 16 million decoded/expanded characters per TXT file, and 10,000 generated TXT pages; the typed request can set these limits. These are resource bounds, not a measured throughput guarantee. A host can supply `publicationGuard` to protect output and checkpoint destinations. `IProgress<OfficePdfArchiveItemResult>` callbacks may arrive concurrently; avoid retaining every item in memory.
+
+Known legacy DOC import loss blocks conversion unless `AllowLegacyImportLoss` explicitly accepts it. Import findings and PDF render findings remain visible in item diagnostics. Checkpoints retain up to 32 non-information diagnostics, with a total count when truncated. TXT uses Unicode BOM detection or strict UTF-8, preserves literal markup and spacing, expands tabs, honors form feeds and wraps long lines. Set `TextEncoding` and `TabSize` when the source requires them. DOCX rendering has the Word/PDF adapter's documented fidelity limits; completion does not establish exact Microsoft Word pagination.
+
+Studio exposes the same runner under **Convert → PDF archive**. The CLI uses `officeimo workflow archive --request archive.json`. PowerShell 7.4 or newer exposes it through PSWriteOffice's `Export-OfficePdfArchive`.
+
 ## Email evidence and conversation dossiers
 
 `EmailEvidenceWorkflow` produces a portable ZIP containing `report.html`, `report.md`, `manifest.json`
@@ -289,6 +315,31 @@ OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new() {
 ```
 
 Set `ExpectedSourceSha256` to the SHA-256 hex digest of a reviewed snapshot to reject a source that changed before export. Provider inputs and destinations use the same snapshot, confirmation, recovery, and publication guards as other workflows. To retain the visible source and add searchable text, use the searchable OCR workflow instead.
+
+## Optimize embedded Word images
+
+```csharp
+using OfficeIMO.Drawing;
+using OfficeIMO.Word;
+using OfficeIMO.Workflows;
+
+var runner = new OfficeWorkflowRunner();
+OfficeWorkflowResult result = await runner.RunAsync(new OfficeWorkflowRequest {
+    Operation = OfficeWorkflowOperation.OptimizeWordImages,
+    InputPath = "input.docx",
+    OutputPath = "optimized.docx", // .doc or .pdf also selects that output format
+    ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
+    WordImageOptimization = new WordImageOptimizationOptions {
+        Mode = OfficeImageOptimizationMode.DownsampleAndRecompress,
+        TargetDpi = 144,
+        JpegQuality = 85
+    }
+});
+```
+
+The runner snapshots the source, optimizes through `OfficeIMO.Word`, reopens the staged output through its format owner, and publishes a separate copy atomically. Source replacement and publication over any batch source are refused. `AnalyzeWordImages` returns per-media diagnostics without publishing a file. `RunBatchAsync` accepts up to 250 requests, snapshots options before execution, and publishes each item independently.
+
+DOCX and supported legacy DOC inputs can produce DOCX, native DOC, or PDF. Incomplete legacy projections block output; analysis warns that its inventory covers only projected pictures. The native DOC writer preflights destination support. Word reports encoded-media savings; `InputBytes` and `OutputBytes` measure actual files. PDF generation after Word optimization retains its default image policy to avoid a second JPEG quality reduction. [Word image options and preservation rules](../OfficeIMO.Word/README.md#images) apply to every host.
 
 ## Convert a document
 

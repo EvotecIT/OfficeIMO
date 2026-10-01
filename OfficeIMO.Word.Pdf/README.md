@@ -5,6 +5,23 @@
 
 `OfficeIMO.Word.Pdf` exports `OfficeIMO.Word` documents to PDF through the first-party `OfficeIMO.Pdf` engine and imports parser-supported PDF logical content into editable Word documents. It is the adapter layer: Word stays responsible for the `.docx` model, while PDF layout, reading, diagnostics, and writing stay in `OfficeIMO.Pdf`.
 
+## Legacy DOC to PDF
+
+`LegacyDocPdfConverter` composes bounded binary DOC import with the Word PDF adapter. It blocks known import loss by default and retains the import report separately from PDF rendering diagnostics:
+
+```csharp
+using OfficeIMO.Word.Pdf;
+
+using var source = File.OpenRead("archive.doc");
+var conversion = LegacyDocPdfConverter.ToPdfDocumentResult(source);
+conversion.SaveResult("archive.pdf").RequireSuccess();
+foreach (var report in conversion.SourceConversionReports)
+    foreach (var finding in report.FidelityDiagnostics)
+        Console.WriteLine($"{finding.Code}: {finding.Message}");
+```
+
+Pass `lossPolicy: OfficeIMO.OfficeConversionLossPolicy.Allow` only when accepting the reported import reductions. Import errors still block output. The adapter always collects unsupported-content findings, even if the supplied import options disable reporting. Its fidelity is limited by both the legacy importer and the Word PDF renderer; it does not guarantee exact Microsoft Word pagination or rendering of every binary DOC feature.
+
 ## Install
 
 ```powershell
@@ -96,6 +113,30 @@ byte[] pdfBytes = document.ToPdfBytes();
 using var stream = File.Create("invoice.pdf");
 document.SaveAsPdf(stream);
 ```
+
+### Optimize images during PDF export
+
+```csharp
+using OfficeIMO.Drawing;
+using OfficeIMO.Pdf;
+using OfficeIMO.Word;
+using OfficeIMO.Word.Pdf;
+
+using var document = WordDocument.Load("input.docx");
+byte[] pdf = document.ToPdfBytes(new WordToPdfOptions {
+    PdfOptions = new PdfOptions {
+        ImageOptimization = new PdfImageOptimizationOptions {
+            Enabled = true,
+            Mode = OfficeImageOptimizationMode.DownsampleAndRecompress,
+            TargetDpi = 144,
+            JpegQuality = 85
+        }
+    }
+});
+File.WriteAllBytes("output.pdf", pdf);
+```
+
+PDF image optimization is opt-in and leaves Word source media unchanged. `Downsample` uses the final source-image placement, including crop/fit expansion; `Recompress` retains pixels and re-encodes JPEGs; `DownsampleAndRecompress` applies both. The shared managed codecs handle static PNG/JPEG/BMP/GIF/TIFF/WebP input. Multi-frame/page payloads and unsupported formats remain outside static optimization. Candidates that would grow or lose metadata are preserved by default; `AllowMetadataLoss` permits reported metadata loss. Image optimization decisions appear as information diagnostics in the PDF layout report. This export policy is separate from the lossless optimizer for existing PDFs.
 
 ### Capture conversion warnings without throwing away the report
 
@@ -246,7 +287,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Convert | 1 | 1 | 0 | 0 | 0 | 0 |
+| Convert | 1 | 2 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Word.Pdf` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

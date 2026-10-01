@@ -26,6 +26,12 @@ internal static class OfficeConversionSupportAssessments {
                 "Modern IWA support is a bounded read-only source adapter; unsupported records, advanced layout, media, formulas, and producer-specific effects may require visual fallbacks or remain diagnostic evidence.");
         }
         return routeId switch {
+        "doc-pdf" => Targeted(
+            "Legacy DOC import and first-party PDF rendering retain separate fidelity reports; known import loss blocks conversion by default.",
+            "Only the supported Word 97-2003 import subset is projected. Preserved-only graphics and richer structures cannot be rendered; Word pagination may differ."),
+        "txt-pdf" => Targeted(
+            "Literal text conversion uses the canonical PDF flow engine, strict decoding, source whitespace and bounded pagination.",
+            "Long lines wrap to page width. Unicode appearance depends on supplied fonts; no Markdown, HTML or ANSI interpretation occurs."),
         "docx-pdf" => Advanced(
             "Realistic DOCX fixtures cover paragraphs, lists, tables, drawings, pagination, tagged output, portable fonts, and deterministic conversion reports.",
             "Complex floating layout, advanced DrawingML, SmartArt, field behavior, and exact Microsoft Word pagination are not fully reproduced."),

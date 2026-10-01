@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.VisualTree;
+using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Features.Shell;
 using OfficeIMO.Studio.Features.Workflows;
 using OfficeIMO.Studio.Infrastructure.Preferences;
@@ -9,6 +10,45 @@ using OfficeIMO.Studio.Infrastructure.Preferences;
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class ConversionQueueVisualTests {
+    [Theory]
+    [InlineData(900, 650)]
+    [InlineData(1400, 850)]
+    public async Task DroppedTextUsesLiteralConversionAndVisibleTextOptions(int width, int height) {
+        using var app = TestAppBuilder.StartSession();
+        await app.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            string source = Path.Combine(services.Paths.Root, "notes.txt");
+            const string literal = "<h1>Keep these tags literal</h1>";
+            Directory.CreateDirectory(services.Paths.Root);
+            File.WriteAllText(source, literal);
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+            var queue = model.ConversionWorkbench;
+            var view = new ConversionWorkbenchView { DataContext = model };
+            var window = new Window { Width = width, Height = height, Content = view };
+            try {
+                window.Show();
+                Assert.True(queue.AddDroppedPaths([source]));
+                var job = Assert.Single(queue.Jobs);
+                Assert.Equal("txt-pdf", job.Route.Route.Id);
+                Assert.False(queue.HasUnmatchedInputs);
+                job.TextEncoding = "utf-8";
+                Layout(window, width, height);
+                Assert.Contains(view.GetVisualDescendants().OfType<TextBox>(), control =>
+                    control.IsEffectivelyVisible && control.Text == "utf-8");
+                var run = ButtonFor(view, queue.RunQueueCommand);
+                CheckBounds(window, run);
+                Capture(window, width, false, "dropped-text");
+                run.Command!.Execute(null);
+                await queue.RunQueueCommand.ExecutionTask!;
+                Assert.Equal(ConversionJobState.Completed, job.State);
+                Assert.Equal(literal, PdfReadDocument.Open(File.ReadAllBytes(job.OutputPath!)).ExtractText().Trim());
+                Layout(window, width, height);
+                Capture(window, width, false, "literal-completed");
+            } finally { window.Close(); }
+            return true;
+        }, CancellationToken.None);
+    }
+
     [Theory]
     [InlineData(840, 500, false)]
     [InlineData(1160, 700, true)]

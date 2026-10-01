@@ -27,7 +27,11 @@ public enum OfficeWorkflowOperation {
     /// <summary>Create a separate PDF with a cryptographically verified certificate signature.</summary>
     SignPdf,
     /// <summary>Create an explicitly reviewed raster PDF from prepared scan pages.</summary>
-    ScanCleanup
+    ScanCleanup,
+    /// <summary>Analyze Word embedded-image candidates without publishing an artifact.</summary>
+    AnalyzeWordImages,
+    /// <summary>Optimize embedded Word media and publish a separate Word or PDF copy.</summary>
+    OptimizeWordImages
 }
 
 /// <summary>Controls how an existing output path is handled.</summary>
@@ -195,6 +199,9 @@ public sealed class OfficeWorkflowRequest {
     /// <summary>Explicit scan preparation and raster-output acknowledgement for ScanCleanup.</summary>
     public OfficeScanCleanupOptions? ScanCleanup { get; set; }
 
+    /// <summary>Embedded-media settings for AnalyzeWordImages and OptimizeWordImages.</summary>
+    public OfficeIMO.Word.WordImageOptimizationOptions? WordImageOptimization { get; set; }
+
     /// <summary>Requested output file. Inspect does not require one; compare emits HTML when one is supplied.</summary>
     public string? OutputPath { get; set; }
 
@@ -337,7 +344,7 @@ public sealed class OfficeWorkflowRoute {
 /// <summary>Canonical desktop/service conversion route view.</summary>
 public static class OfficeWorkflowCatalog {
     private static readonly HashSet<string> ExecutableIds = new(StringComparer.Ordinal) {
-        "docx-pdf", "xlsx-pdf", "pptx-pdf", "html-pdf",
+        "doc-pdf", "txt-pdf", "docx-pdf", "xlsx-pdf", "pptx-pdf", "html-pdf",
         "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html"
     };
 
@@ -370,6 +377,8 @@ public static class OfficeWorkflowCatalog {
         string source = NormalizeExtension(sourceExtension);
         string target = NormalizeExtension(targetExtension);
         IReadOnlyList<OfficeWorkflowRoute> routes = executableOnly ? ExecutableRoutesValue : AllRoutesValue;
+        // A literal text file defaults to literal conversion. Markup remains available through Via(routeId).
+        if (source == ".txt" && target == ".pdf") return routes.FirstOrDefault(route => route.Id == "txt-pdf");
         OfficeWorkflowRoute? match = null;
         foreach (OfficeWorkflowRoute route in routes) {
             if (!route.SourceExtensions.Contains(source, StringComparer.OrdinalIgnoreCase) ||

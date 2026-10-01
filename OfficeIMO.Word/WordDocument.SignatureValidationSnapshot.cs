@@ -546,18 +546,8 @@ namespace OfficeIMO.Word {
         private static IEnumerable<OpenXmlPart> EnumerateSignatureSnapshotParts(
             OpenXmlPartContainer container,
             int maxPackageParts) {
-            var pending = new Stack<OpenXmlPart>(container.Parts.Select(pair => pair.OpenXmlPart));
-            var visited = new HashSet<Uri>();
-            while (pending.Count > 0) {
-                OpenXmlPart part = pending.Pop();
-                if (!visited.Add(part.Uri)) continue;
-                if (visited.Count > maxPackageParts) {
-                    throw new SignatureValidationSnapshotResourceException(
-                        "The OPC package contains more than " + maxPackageParts + " parts during validation snapshot creation.");
-                }
-                yield return part;
-                foreach (IdPartPair child in part.Parts) pending.Push(child.OpenXmlPart);
-            }
+            return WordPackageParts.Enumerate(container, maxPackageParts,
+                message => new SignatureValidationSnapshotResourceException(message));
         }
 
         private sealed class SignatureValidationSnapshotResourceException : Exception {

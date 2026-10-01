@@ -394,6 +394,13 @@ namespace OfficeIMO.Word {
                     restartNumbering: sectionFormat.EndnoteRestart.ToOfficeEnum(),
                     startNumber: sectionFormat.EndnoteStart);
             }
+            // Setters may append properties after page geometry. Restore schema order
+            // before saving the projected DOCX model.
+            OpenXmlElement[] properties = section._sectionProperties.ChildElements.ToArray();
+            section._sectionProperties.RemoveAllChildren();
+            foreach (OpenXmlElement property in properties) {
+                if (!section._sectionProperties.AddChild(property, false)) section._sectionProperties.Append(property);
+            }
         }
 
         private static void ApplyLegacyDocSectionPageBorders(WordSection section, LegacyDocParagraphBorders borders) {
@@ -1032,6 +1039,13 @@ namespace OfficeIMO.Word {
                 picture.HeightPixels,
                 WordImageTextWrapping.InLineWithText,
                 "Imported legacy DOC inline picture");
+            if (picture.Crop.HasCrop) {
+                var addedPicture = paragraph._paragraph.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Last();
+                addedPicture.BlipFill!.SourceRectangle = new DocumentFormat.OpenXml.Drawing.SourceRectangle {
+                    Left = (int)Math.Round(picture.Crop.Left * 100000), Right = (int)Math.Round(picture.Crop.Right * 100000),
+                    Top = (int)Math.Round(picture.Crop.Top * 100000), Bottom = (int)Math.Round(picture.Crop.Bottom * 100000)
+                };
+            }
             if (legacyRun.Revision.HasValue) {
                 Run? sourceRun = paragraph._paragraph.Elements<Run>()
                     .LastOrDefault(run => run.Elements<DocumentFormat.OpenXml.Wordprocessing.Drawing>()

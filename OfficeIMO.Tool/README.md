@@ -93,11 +93,43 @@ input and 64 MiB of returned artifacts. `--max-input-bytes` and
 to 16 MiB. For the pinned authority downloads and runtime requirements, see the
 [standards validator guide](../OfficeIMO.Invoicing.Validation/README.md).
 
+## PDF archive conversion and printing
+
+DOC conversion blocks known legacy import loss by default; `--allow-legacy-loss` explicitly accepts the reported reductions. TXT conversion treats HTML and Markdown as literal text, detects Unicode BOMs and otherwise uses strict UTF-8. Use `--text-encoding` and `--tab-size` for explicit text settings. The adapter's diagnostics remain on standard error.
+
+For a restartable directory archive, save this request as `archive.json`. Resolve relative paths from the directory where the command runs:
+
+```json
+{
+  "InputDirectory": "./Documents",
+  "OutputDirectory": "./PDF",
+  "CheckpointDirectory": "./PDF-State",
+  "MaximumConcurrency": 2
+}
+```
+
+```powershell
+officeimo workflow archive --request archive.json
+# Rerun the same request to verify and reuse completed files.
+officeimo workflow archive --request archive.json --retry-failed
+
+officeimo workflow printers
+officeimo workflow printers --paper-sources "Office printer"
+officeimo workflow print report.pdf --printer "Office printer" --pages 1-3 `
+  --pages-per-sheet 2 --copies 1 --duplex long
+```
+
+Source, output and checkpoint trees must be separate. Changed completed inputs, altered/missing outputs and existing outputs without a verified receipt require inspection; the archive never replaces them automatically. Settings and engine binaries are bound to the checkpoint. Item failures produce a nonzero exit code while completed files remain resumable. See [the archive contract](../OfficeIMO.Workflows/README.md#restartable-pdf-archives) for resource limits, diagnostics and engine-change handling.
+
+Printer submission uses prepared raster sheets. The returned job identifier proves queue acceptance; physical delivery is unconfirmed. After an interrupted submission, check the queue before retrying. Windows file printers require `--output-file` naming a new local file. macOS/Linux delivery uses the existing CUPS service boundary and requires its command-line tools.
+
 ## Common workflows
 
 ```powershell
 # Office documents to PDF
 officeimo convert report.docx report.pdf
+officeimo convert archive.doc archive.pdf
+officeimo convert report.txt report.pdf --text-encoding utf-8 --tab-size 4
 officeimo convert workbook.xlsx workbook.pdf
 officeimo convert deck.pptx deck.pdf
 
@@ -123,6 +155,15 @@ officeimo tabular schema workbook.xlsx --sheet Data
 officeimo tabular convert input.csv output.xlsx
 officeimo tabular convert workbook.xlsb output.tsv --sheet Data
 officeimo tabular convert pipe-delimited.csv output.csv --delimiter '|' --output-delimiter ','
+
+# Analyze embedded Word images without writing a file
+officeimo workflow optimize-images input.docx --analyze
+
+# Optimize a separate Word copy, or choose a .pdf output
+officeimo workflow optimize-images input.docx --output optimized.docx --mode both --dpi 144 --quality 85
+
+# Process an explicit batch; each output is independently staged and reopened
+officeimo workflow optimize-images first.docx second.docx --output-directory optimized --format pdf --mode both
 
 # Export selected PDF pages to validated images
 officeimo workflow export-pages report.pdf --output .\report-pages --pages 1-3,last --format png
