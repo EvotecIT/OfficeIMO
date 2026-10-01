@@ -35,18 +35,14 @@ public partial class WordDocument {
         Comments? existing = main.WordprocessingCommentsPart?.Comments;
         CommentsEx? existingEx = main.WordprocessingCommentsExPart?.CommentsEx;
         long maximumId = 0;
-        uint maximumParagraphId = 0;
+        WordCommentIdentityPlan identities = WordCommentIdentityPlan.Prepare(existing, existingEx, cancellationToken);
+        uint maximumParagraphId = identities.LastParagraphIdentifier;
         foreach (Comment comment in existing?.Elements<Comment>() ?? Enumerable.Empty<Comment>()) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!long.TryParse(comment.Id?.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long identifier)
                 || identifier > int.MaxValue)
                 throw new InvalidOperationException("An existing comment identifier is outside the supported integer range.");
             maximumId = Math.Max(maximumId, identifier);
-            foreach (Paragraph paragraph in comment.Elements<Paragraph>()) ObserveParagraphId(paragraph.ParagraphId?.Value);
-        }
-        foreach (CommentEx comment in existingEx?.Elements<CommentEx>() ?? Enumerable.Empty<CommentEx>()) {
-            cancellationToken.ThrowIfCancellationRequested();
-            ObserveParagraphId(comment.ParaId?.Value);
         }
         if (maximumId > int.MaxValue - definitions.Count || (ulong)maximumParagraphId + (uint)definitions.Count > uint.MaxValue)
             throw new InvalidOperationException("The comment identity range is exhausted.");
@@ -65,6 +61,7 @@ public partial class WordDocument {
         cancellationToken.ThrowIfCancellationRequested();
         Comments destination = WordComment.GetCommentsPart(this);
         CommentsEx destinationEx = WordComment.GetCommentsExPart(this);
+        identities.Apply(destinationEx);
         for (int index = 0; index < prepared.Count; index++) {
             var item = prepared[index];
             item.Comment.AppendTo(destination, destinationEx);
@@ -74,9 +71,5 @@ public partial class WordDocument {
         destinationEx.Save();
         return prepared.Select(item => item.Comment).ToArray();
 
-        void ObserveParagraphId(string? value) {
-            if (uint.TryParse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint identifier))
-                maximumParagraphId = Math.Max(maximumParagraphId, identifier);
-        }
     }
 }

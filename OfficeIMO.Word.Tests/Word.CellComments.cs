@@ -9,6 +9,86 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordCellCommentTests {
     [Fact]
+    public void Legacy_extension_states_and_reply_links_survive_assignment_of_missing_paragraph_identities() {
+        using var bytes = new MemoryStream();
+        using (var initial = WordDocument.Create()) {
+            initial.AddParagraph("First target").AddComment("Old", "", "Resolved root");
+            Assert.Single(initial.Comments).MarkResolved();
+            initial.AddParagraph("Second target").AddComment("Old", "", "Open root");
+            initial.Comments.Single(c => c.Text == "Open root").AddReply("Other", "", "Original reply");
+            initial.AddTable(1, 1);
+            initial.Save(bytes);
+        }
+        bytes.Position = 0;
+        using (var legacy = WordprocessingDocument.Open(bytes, true)) {
+            foreach (Comment comment in legacy.MainDocumentPart!.WordprocessingCommentsPart!.Comments!.Elements<Comment>())
+                foreach (Paragraph paragraph in comment.Elements<Paragraph>()) paragraph.ParagraphId = null;
+            legacy.MainDocumentPart.WordprocessingCommentsPart.Comments.Save();
+        }
+        bytes.Position = 0;
+        using var document = WordDocument.Load(bytes);
+        document.AddCellComments(new[] { new WordCellComment(document.Tables[0].Rows[0].Cells[0], "New", "", "New root") });
+        Assert.True(document.Comments.Single(c => c.Text == "Resolved root").IsResolved);
+        Assert.Equal("Original reply", Assert.Single(document.Comments.Single(c => c.Text == "Open root").Replies).Text);
+        document.Comments.Single(c => c.Text == "New root").DeleteThread();
+        using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
+        using var reopened = WordDocument.Load(saved);
+        Assert.True(reopened.Comments.Single(c => c.Text == "Resolved root").IsResolved);
+        Assert.Equal("Original reply", Assert.Single(reopened.Comments.Single(c => c.Text == "Open root").Replies).Text);
+        saved.Position = 0;
+        using var artifact = WordprocessingDocument.Open(saved, false);
+        foreach (Comment comment in artifact.MainDocumentPart!.WordprocessingCommentsPart!.Comments!.Elements<Comment>()) {
+            string? identifier = comment.Elements<Paragraph>().First().ParagraphId?.Value;
+            Assert.False(string.IsNullOrEmpty(identifier));
+            Assert.Single(artifact.MainDocumentPart.WordprocessingCommentsExPart!.CommentsEx!
+                .Elements<DocumentFormat.OpenXml.Office2013.Word.CommentEx>(), c => c.ParaId?.Value == identifier);
+        }
+        Assert.Empty(new OpenXmlValidator(DocumentFormat.OpenXml.FileFormatVersions.Office2019).Validate(artifact));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Appending_comments_to_legacy_roots_preserves_thread_resolution_and_removal_isolation(bool useExistingParagraphApi) {
+        using var legacyBytes = new MemoryStream();
+        using (var initial = WordDocument.Create()) {
+            initial.AddParagraph("Legacy target").AddComment("Old", "", "Legacy root");
+            initial.AddTable(1, 1);
+            initial.Save(legacyBytes);
+        }
+        legacyBytes.Position = 0;
+        using (var legacy = WordprocessingDocument.Open(legacyBytes, true)) {
+            var main = legacy.MainDocumentPart!;
+            Assert.Single(main.WordprocessingCommentsPart!.Comments!.Elements<Comment>()).Elements<Paragraph>().Single().ParagraphId = null;
+            main.WordprocessingCommentsPart.Comments.Save();
+            main.DeletePart(main.WordprocessingCommentsExPart!);
+        }
+        legacyBytes.Position = 0;
+        using var document = WordDocument.Load(legacyBytes);
+        Assert.Null(Assert.Single(document.Comments).ParaId);
+        if (useExistingParagraphApi) document.AddParagraph("New target").AddComment("New", "", "New root");
+        else document.AddCellComments(new[] { new WordCellComment(document.Tables[0].Rows[0].Cells[0], "New", "", "New root") });
+        WordComment oldRoot = document.Comments.Single(c => c.Text == "Legacy root");
+        WordComment newRoot = document.Comments.Single(c => c.Text == "New root");
+        Assert.NotNull(oldRoot.ParaId);
+        Assert.NotEqual(oldRoot.ParaId, newRoot.ParaId);
+        newRoot.AddReply("New", "", "New reply");
+        oldRoot.MarkResolved();
+        Assert.Empty(oldRoot.Replies);
+        Assert.Equal("New reply", Assert.Single(newRoot.Replies).Text);
+        Assert.NotEqual(true, newRoot.IsResolved);
+        oldRoot.Remove();
+        using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
+        using var reopened = WordDocument.Load(saved);
+        WordComment retained = reopened.Comments.Single(c => c.Text == "New root");
+        Assert.Equal("New reply", Assert.Single(retained.Replies).Text);
+        Assert.NotEqual(true, retained.IsResolved);
+        saved.Position = 0;
+        using var artifact = WordprocessingDocument.Open(saved, false);
+        Assert.Empty(new OpenXmlValidator(DocumentFormat.OpenXml.FileFormatVersions.Office2019).Validate(artifact));
+    }
+
+    [Fact]
     public void Cell_comment_batches_preserve_content_dates_anchors_and_existing_threads_when_reopened() {
         using var document = WordDocument.Create();
         WordTable first = document.AddTable(2, 2);

@@ -77,6 +77,8 @@ document.Save("review.docx");
 
 Targets must be attached cells in this document's body. Empty cells, empty comment text and empty author names are supported. A null creation date leaves the timestamp unspecified. Line feeds, tabs and whitespace are preserved; carriage returns, U+2028 and invalid XML characters are rejected instead of silently normalized. `WordCellComment.CanPreserveText` checks the plain-text contract before importing content. Invalid input and cancellation before batch application do not add comments. Cancellation is checked during enumeration and preparation; once application starts, the batch finishes without cancellation checks between anchors.
 
+Appending comments to older DOCX files assigns missing paragraph identities to existing roots before adding modern metadata. Existing replies and resolved states retain their own comment associations.
+
 ## What it does
 
 - Creates, loads, edits, saves, and appends `.docx` documents.
