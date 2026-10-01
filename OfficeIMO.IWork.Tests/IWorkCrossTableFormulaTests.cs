@@ -91,7 +91,7 @@ public sealed class IWorkCrossTableFormulaCorpusTests {
         "Documents", "IWorkCorpus", "numbers-parser", "cross-table-formulas." + extension);
 
     [Fact]
-    public void Independent_cross_table_rectangles_keep_caches_without_becoming_local_formulas() {
+    public void Independent_cross_table_rectangles_resolve_identity_and_preserve_mixed_endpoints() {
         using var manifest = JsonDocument.Parse(File.ReadAllText(Fixture("json")));
         string hash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Fixture("numbers")))).ToLowerInvariant();
         Assert.Equal(manifest.RootElement.GetProperty("sourceSha256").GetString(), hash);
@@ -104,14 +104,15 @@ public sealed class IWorkCrossTableFormulaCorpusTests {
             IWorkTableCell cell = Assert.Single(table.Cells, c => c.Row == expected.GetProperty("row").GetInt32()
                 && c.Column == expected.GetProperty("column").GetInt32());
             Assert.Equal(IWorkCellKind.Formula, cell.Kind);
-            Assert.False(cell.FormulaIsComplete);
+            Assert.True(cell.FormulaIsComplete);
+            Assert.Equal("=COUNTA('Main Sheet'::'Food Table'::" + expected.GetProperty("referenceAddress").GetString() + ")", cell.Formula);
             Assert.Equal(expected.GetProperty("cachedValue").GetDouble(), Assert.IsType<double>(cell.Value));
             Assert.True(cell.CachedValueIsComplete);
         }
     }
 
     [Fact]
-    public void Saved_partial_conversion_keeps_independent_cross_table_caches_and_reports_loss() {
+    public void Saved_cross_table_formulas_use_actual_worksheet_names_and_preserve_caches() {
         using var manifest = JsonDocument.Parse(File.ReadAllText(Fixture("json")));
         using var converted = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture("numbers"),
             conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
@@ -134,11 +135,14 @@ public sealed class IWorkCrossTableFormulaCorpusTests {
                 f.TableIdentity?.RecordIdentifier == table.SourceIdentity!.RecordIdentifier
                 && f.Row == expected.GetProperty("row").GetInt32() && f.Column == expected.GetProperty("column").GetInt32());
             Assert.True(status.ExpressionIsAssessed);
-            Assert.False(status.ExpressionIsComplete);
+            Assert.True(status.ExpressionIsComplete);
             Assert.Equal(IWorkFormulaCacheStatus.Complete, status.CacheStatus);
-            Assert.Null(sheet.GetFormulaText(expected.GetProperty("row").GetInt32(),
-                expected.GetProperty("column").GetInt32()));
-            Assert.Equal(ExcelCellDataKind.Number, cell.Kind);
+            string target = Assert.Single(converted.WorksheetMappings, m =>
+                m.SourceSheetName == expected.GetProperty("targetSheet").GetString()
+                && m.SourceTableName == expected.GetProperty("targetTable").GetString()).DestinationName;
+            Assert.Equal("COUNTA('" + target.Replace("'", "''") + "'!" + expected.GetProperty("referenceAddress").GetString() + ")",
+                sheet.GetFormulaText(expected.GetProperty("row").GetInt32(), expected.GetProperty("column").GetInt32()));
+            Assert.Equal(ExcelCellDataKind.Formula, cell.Kind);
             Assert.Equal(expected.GetProperty("cachedValue").GetDouble(), Assert.IsType<double>(cell.Value));
         }
     }

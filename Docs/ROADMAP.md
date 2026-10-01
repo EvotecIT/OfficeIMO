@@ -85,7 +85,7 @@ The [source-reader support matrix](officeimo.iwork-support-matrix.md) owns the c
 ### I3: everyday semantic coverage
 
 - [ ] Resolve Pages inline-object anchors and deepen floating tables, wrapping, section layout, and page-layout documents through the existing Word/Drawing owners.
-- [ ] Deepen Numbers cross-table references, currency symbols, locale placement and accounting alignment, custom formats, fraction and scientific negative styles/grouping beyond the [qualified numeric subset](officeimo.iwork-support-matrix.md#editable-semantic-coverage), exact automatic decimal selection, cell styles, hidden row/column state, automatic row sizing, and chart interchange through shared Excel/chart owners. Extend numeric display formatting into Pages and Keynote destination tables.
+- [ ] Extend Numbers single-cell, named and whole-row/column cross-table references beyond the qualified finite rectangular subset, currency symbols, locale placement and accounting alignment, custom formats, fraction and scientific negative styles/grouping beyond the [qualified numeric subset](officeimo.iwork-support-matrix.md#editable-semantic-coverage), exact automatic decimal selection, cell styles, hidden row/column state, automatic row sizing, and chart interchange through shared Excel/chart owners. Extend numeric display formatting into Pages and Keynote destination tables.
 - [ ] Deepen Keynote backgrounds, master/layout inheritance, grouped shapes, crops/masks, and presenter-note fidelity through shared PowerPoint/Drawing owners. Report unsupported builds and animations explicitly.
 
 ### I4: shared consumer integration

@@ -11,8 +11,10 @@ public sealed partial class IWorkNumbersProjection {
         IReadOnlyList<IWorkDiagnostic> diagnostics, bool supportsEditableReconstruction,
         IWorkObjectIdentity? sourceIdentity = null, IReadOnlyList<IWorkObjectIdentity>? omittedUnits = null,
         IReadOnlyList<IWorkSourceReferenceIssue>? referenceIssues = null,
-        IReadOnlyList<IWorkSourceDeclarationIssue>? declarationIssues = null) {
+        IReadOnlyList<IWorkSourceDeclarationIssue>? declarationIssues = null,
+        IWorkProjectionBudget? formulaBudget = null) {
         _source = source;
+        FormulaBudget = formulaBudget;
         SourceIdentity = sourceIdentity;
         OmittedSourceUnits = Array.AsReadOnly((omittedUnits ?? Array.Empty<IWorkObjectIdentity>()).ToArray());
         SourceReferenceIssues = Array.AsReadOnly((referenceIssues ?? Array.Empty<IWorkSourceReferenceIssue>()).ToArray());
@@ -21,6 +23,8 @@ public sealed partial class IWorkNumbersProjection {
         Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
         _supportsEditableReconstruction = supportsEditableReconstruction;
     }
+
+    internal IWorkProjectionBudget? FormulaBudget { get; }
 
     /// <summary>Gets sheets in source order.</summary>
     public IReadOnlyList<IWorkNumbersSheet> Sheets { get; }
@@ -77,7 +81,7 @@ public sealed partial class IWorkSourceDocument {
     }
 }
 
-internal static class IWorkNumbersReader {
+internal static partial class IWorkNumbersReader {
     private const uint DocumentArchive = 1;
     private const uint SheetArchive = 2;
     private const uint TableInfoArchive = 6000;
@@ -200,7 +204,7 @@ internal static class IWorkNumbersReader {
                 if (drawable.MessageType == TableInfoArchive) {
                     projectionBudget.AddTable();
                     IWorkTable? table = IWorkTableReader.Read(source, drawable, projectionBudget, references, diagnostics,
-                        ref materializedCellCount, ref supportsEditableReconstruction);
+                        ref materializedCellCount, ref supportsEditableReconstruction, deferFormulaAssessment: true);
                     if (table != null) {
                         tables.Add(table);
                         orderedDrawables.Add(new IWorkNumbersDrawable(table));
@@ -295,6 +299,7 @@ internal static class IWorkNumbersReader {
             sheets.Add(new IWorkNumbersSheet(sheetName ?? string.Empty, tables, textBoxes,
                 orderedDrawables, new IWorkObjectIdentity(sheetRecord)));
         }
+        BindTableFormulas(source, sheets, projectionBudget, diagnostics, ref supportsEditableReconstruction);
         if (sheets.Count == 0) {
             supportsEditableReconstruction = false;
             if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_SHEET_MISSING")) {
@@ -305,7 +310,7 @@ internal static class IWorkNumbersReader {
             }
         }
         return new IWorkNumbersProjection(source, sheets, diagnostics, supportsEditableReconstruction,
-            new IWorkObjectIdentity(document), omittedUnits, references.Issues, references.Declarations.Issues);
+            new IWorkObjectIdentity(document), omittedUnits, references.Issues, references.Declarations.Issues, projectionBudget);
     }
 
     private static void MarkTextMetadataUnsupported(IWorkArchiveRecord record,

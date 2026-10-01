@@ -20,7 +20,7 @@ The complete upstream license notices are reproduced in `OfficeIMO.IWork/THIRD-P
 python Build/IWork/extract-cross-table-formula-fixture.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/cross-table-formulas.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/cross-table-formulas.json
 ```
 
-OfficeIMO tests verify that unresolved table identities never become complete local formulas and that saved/reopened partial XLSX output retains the numeric caches without editable formulas. This is independent reference and cache evidence; native Apple export, appearance and editable cross-table reconstruction remain unqualified.
+OfficeIMO tests compare all sixteen reconstructed source ranges and saved/reopened XLSX expressions with the manifest, preserving mixed endpoint flags and numeric caches. Separate boundary tests cover forward targets, normalized colliding names, and missing, inactive or ambiguous identities; unresolved targets never become complete local formulas. This qualifies the finite rectangular subset through independent reference and cache evidence. Native Apple export, appearance, recalculation and cache freshness remain unqualified.
 
 ## Individual table dimensions
 

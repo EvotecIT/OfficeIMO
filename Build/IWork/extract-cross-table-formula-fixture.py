@@ -38,9 +38,11 @@ for row in range(25, 41):
     target_sheet = next(s for s in document.sheets if any(t._table_id == target_id for t in s.tables))
     target_table = next(t for t in target_sheet.tables if t._table_id == target_id)
     assert cell.value == 6.0
+    assert cell.formula.startswith("COUNTA(Food Table::") and cell.formula.endswith(")")
+    reference_address = cell.formula[len("COUNTA(Food Table::"):-1]
     cases.append({"sourceSheet": sheet.name, "sourceTable": table.name,
                   "row": row + 1, "column": 1, "sourceFormula": cell.formula,
-                  "cachedValue": cell.value, "targetSheet": target_sheet.name,
+                  "cachedValue": cell.value, "referenceAddress": reference_address, "targetSheet": target_sheet.name,
                   "targetTable": target_table.name, "targetUuid": target_uuid,
                   "nodeType": 67})
 manifest = {"upstream": "https://github.com/masaccio/numbers-parser",

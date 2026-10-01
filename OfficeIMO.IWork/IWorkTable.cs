@@ -9,7 +9,7 @@ public sealed class IWorkTableCell {
         bool formulaIsComplete = false, IWorkTextContent? richText = null,
         bool cachedValueIsComplete = true, bool sourceFormulaIsDeclared = false,
         bool hasDecodeError = false, IWorkNumberFormat? numberFormat = null,
-        string? sourceNumberText = null, bool numericValueIsApproximate = false) {
+        string? sourceNumberText = null, bool numericValueIsApproximate = false, Internal.IWorkFormulaDefinition? formulaDefinition = null) {
         Row = row;
         Column = column;
         Kind = kind;
@@ -25,6 +25,7 @@ public sealed class IWorkTableCell {
         NumberFormat = numberFormat;
         SourceNumberText = sourceNumberText;
         NumericValueIsApproximate = numericValueIsApproximate;
+        FormulaDefinition = formulaDefinition;
     }
 
     /// <summary>Gets the one-based row position.</summary>
@@ -37,9 +38,11 @@ public sealed class IWorkTableCell {
     public IWorkCellKind ValueKind { get; }
     /// <summary>Gets the typed cached value, when one was recovered.</summary>
     public object? Value { get; }
-    /// <summary>Gets the reconstructed formula, including its leading equals sign, or a visible marker when incomplete.</summary>
+    /// <summary>Gets the reconstructed source formula, including its leading equals sign, or a visible marker when incomplete.</summary>
+    /// <remarks>Bound Numbers table references use quoted source sheet and table labels.
+    /// Destination adapters render those references using their actual destination names.</remarks>
     public string? Formula { get; }
-    /// <summary>Gets whether <see cref="Formula"/> is a complete editable expression.</summary>
+    /// <summary>Gets whether <see cref="Formula"/> is a complete reconstructed source expression.</summary>
     public bool FormulaIsComplete { get; }
     /// <summary>Gets whether a supported source cell header declares a formula, even when its contents could not be decoded.</summary>
     public bool SourceFormulaIsDeclared { get; }
@@ -58,15 +61,22 @@ public sealed class IWorkTableCell {
     /// <summary>Gets whether a source Decimal128 value exceeds the fifteen-significant-digit portable numeric contract. The recovered double remains available and conversion reports an approximation.</summary>
     public bool NumericValueIsApproximate { get; }
 
+    internal Internal.IWorkFormulaDefinition? FormulaDefinition { get; }
+
+    internal IWorkTableCell WithFormula(Internal.IWorkFormulaResult result) =>
+        new(Row, Column, Kind, Value, result.Text.Length == 0 ? "=?" : result.Text, Error, ValueKind, result.IsComplete,
+            RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
+            SourceNumberText, NumericValueIsApproximate, FormulaDefinition);
+
     internal IWorkTableCell WithNumberFormat(IWorkNumberFormat format) =>
         new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, format,
-            SourceNumberText, NumericValueIsApproximate);
+            SourceNumberText, NumericValueIsApproximate, FormulaDefinition);
 
     internal IWorkTableCell WithSourceNumber(string text, bool approximate) =>
         new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
-            text, approximate);
+            text, approximate, FormulaDefinition);
     /// <summary>Gets a culture-invariant display representation of the recovered value or formula.</summary>
     public string DisplayText => Kind switch {
         IWorkCellKind.Boolean => Convert.ToBoolean(Value, CultureInfo.InvariantCulture) ? "TRUE" : "FALSE",
@@ -120,8 +130,11 @@ public sealed class IWorkTable {
         string? accessibilityDescription = null, IWorkObjectIdentity? sourceIdentity = null,
         IReadOnlyList<IWorkObjectIdentity>? omittedTextUnits = null,
         IReadOnlyDictionary<int, double>? rowHeights = null,
-        IReadOnlyDictionary<int, double>? columnWidths = null) {
+        IReadOnlyDictionary<int, double>? columnWidths = null,
+        Guid? formulaIdentifier = null, IWorkArchiveRecord? modelRecord = null) {
         Name = name;
+        FormulaIdentifier = formulaIdentifier;
+        ModelRecord = modelRecord;
         RowCount = rowCount;
         ColumnCount = columnCount;
         HeaderRowCount = headerRowCount;
@@ -140,6 +153,13 @@ public sealed class IWorkTable {
         foreach (IWorkTableCell cell in cells) _cells[Key(cell.Row, cell.Column)] = cell;
         Cells = Array.AsReadOnly(_cells.Values.OrderBy(cell => cell.Row).ThenBy(cell => cell.Column).ToArray());
     }
+
+    internal Guid? FormulaIdentifier { get; }
+    internal IWorkArchiveRecord? ModelRecord { get; }
+    internal IWorkTable WithCells(IReadOnlyList<IWorkTableCell> cells) =>
+        new(Name, RowCount, ColumnCount, cells, HeaderRowCount, HeaderColumnCount, FooterRowCount,
+            DefaultRowHeight, DefaultColumnWidth, MergedRanges, Geometry, AccessibilityDescription,
+            SourceIdentity, OmittedTextUnits, RowHeights, ColumnWidths, FormulaIdentifier, ModelRecord);
 
     /// <summary>Gets the source table name.</summary>
     public string Name { get; }

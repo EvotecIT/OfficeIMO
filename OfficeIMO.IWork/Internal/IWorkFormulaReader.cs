@@ -3,13 +3,15 @@ using System.Globalization;
 namespace OfficeIMO.IWork.Internal;
 
 internal sealed class IWorkFormulaResult {
-    internal IWorkFormulaResult(string text, bool isComplete) {
+    internal IWorkFormulaResult(string text, bool isComplete, bool hasTableReferences = false) {
         Text = text;
         IsComplete = isComplete;
+        HasTableReferences = hasTableReferences;
     }
 
     internal string Text { get; }
     internal bool IsComplete { get; }
+    internal bool HasTableReferences { get; }
 }
 
 internal static partial class IWorkFormulaReader {
@@ -52,7 +54,7 @@ internal static partial class IWorkFormulaReader {
     };
 
     internal static IWorkFormulaResult Render(IWorkWireMessage formula, int zeroBasedRow, int zeroBasedColumn,
-        int maximumNodes, int maximumCharacters) {
+        int maximumNodes, int maximumCharacters, IReadOnlyDictionary<Guid, string>? tableQualifiers = null) {
         if (!TryReadNodes(formula, maximumNodes, out IReadOnlyList<IWorkWireMessage> nodes))
             return new IWorkFormulaResult(string.Empty, false);
 
@@ -195,7 +197,7 @@ internal static partial class IWorkFormulaReader {
                 case 35:
                     break;
                 case 67:
-                    stack.Add(new Operand(RenderColonTract(node, zeroBasedRow, zeroBasedColumn, ref complete),
+                    stack.Add(new Operand(RenderColonTract(node, zeroBasedRow, zeroBasedColumn, maximumCharacters, tableQualifiers, ref complete),
                         PrimaryPrecedence));
                     break;
                 case 69: {
@@ -211,9 +213,10 @@ internal static partial class IWorkFormulaReader {
             }
         }
 
-        if (stack.Count != 1) return new IWorkFormulaResult(string.Empty, false);
+        bool hasTableReferences = nodes.Any(node => node.HasField(28));
+        if (stack.Count != 1) return new IWorkFormulaResult(string.Empty, false, hasTableReferences);
         string text = stack[0].Text;
-        return new IWorkFormulaResult(text.Length == 0 ? string.Empty : "=" + text, complete && text.Length > 0);
+        return new IWorkFormulaResult(text.Length == 0 ? string.Empty : "=" + text, complete && text.Length > 0, hasTableReferences);
     }
 
     internal static long MeasureRenderingOperations(IWorkWireMessage formula, int maximumNodes) {
@@ -405,59 +408,6 @@ internal static partial class IWorkFormulaReader {
         column = resolvedColumn.Value;
         row = resolvedRow.Value;
         return true;
-    }
-
-    private static string RenderColonTract(IWorkWireMessage node, int row, int column, ref bool complete) {
-        IWorkWireMessage? tract = IWorkObjectIndex.TryGetMessage(node, 40, out bool malformedTract);
-        if (malformedTract || tract == null) {
-            complete = false;
-            return "#REF!";
-        }
-        if (!TryRange(tract, 3, 1, column, out int firstColumn, out int lastColumn, out bool absoluteColumn)
-            || !TryRange(tract, 4, 2, row, out int firstRow, out int lastRow, out bool absoluteRow)) {
-            complete = false;
-            return "#REF!";
-        }
-        string first = CellAddress(firstColumn, firstRow, absoluteColumn, absoluteRow);
-        string last = CellAddress(lastColumn, lastRow, absoluteColumn, absoluteRow);
-        if (first == "#REF!" || last == "#REF!") complete = false;
-        return PreserveUnresolvedTableReference(node,
-            first == last ? first : first + ":" + last, ref complete);
-    }
-
-    private static bool TryRange(IWorkWireMessage tract, int absoluteField, int relativeField, int origin,
-        out int first, out int last, out bool absolute) {
-        if (TryAbsoluteRange(tract, absoluteField, out first, out last)) {
-            absolute = true;
-            return true;
-        }
-        absolute = false;
-        IReadOnlyList<IWorkWireMessage> ranges = IWorkObjectIndex.TryGetMessages(tract, relativeField, out bool malformed);
-        if (malformed || ranges.Count != 1
-            || ranges[0].FieldCount(1) != 1 || ranges[0].FieldCount(2) > 1
-            || ranges[0].HasUnexpectedWireKind(1, IWorkWireKind.Varint)
-            || ranges[0].HasUnexpectedWireKind(2, IWorkWireKind.Varint)) {
-            first = last = 0;
-            return false;
-        }
-        ulong rawBegin = ranges[0].GetUnsigned(1) ?? 0;
-        ulong rawEnd = ranges[0].GetUnsigned(2) ?? rawBegin;
-        if (rawBegin > uint.MaxValue || rawEnd > uint.MaxValue) {
-            first = last = 0;
-            return false;
-        }
-        int begin = unchecked((int)(uint)rawBegin);
-        int end = unchecked((int)(uint)rawEnd);
-        long resolvedFirst = (long)origin + begin;
-        long resolvedLast = (long)origin + end;
-        if (resolvedFirst < 0 || resolvedFirst > int.MaxValue
-            || resolvedLast < resolvedFirst || resolvedLast > int.MaxValue) {
-            first = last = 0;
-            return false;
-        }
-        first = (int)resolvedFirst;
-        last = (int)resolvedLast;
-        return first >= 0 && last >= first;
     }
 
     private static bool TryAbsoluteRange(IWorkWireMessage tract, int field, out int first, out int last) {

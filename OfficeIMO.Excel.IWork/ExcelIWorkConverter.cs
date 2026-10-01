@@ -92,32 +92,32 @@ public static partial class ExcelIWorkConverter {
             ? ExcelSheetNameValidationMode.Sanitize : ExcelSheetNameValidationMode.Strict;
         ExcelDocument document = ExcelDocument.Create();
         try {
+            Dictionary<IWorkTable, ExcelSheet>? preparedTables = null;
+            Dictionary<IWorkTableCell, string>? preparedFormulas = null;
+            if (editable) {
+                preparedTables = CreateTableWorksheets(document, projection, worksheetMappings, nameMode, cancellationToken);
+                preparedFormulas = BindExcelFormulas(projection, preparedTables, cancellationToken, out string? formulaLimitation);
+                if (formulaLimitation != null) {
+                    if (mode == IWorkConversionMode.EditableOnly) throw new NotSupportedException(formulaLimitation);
+                    preview = source.PreferredRasterPreview;
+                    if (preview == null) throw new NotSupportedException(formulaLimitation + " The source has no raster preview.");
+                    settings.ValidateVisualPreview(preview);
+                    destinationDiagnostics = new[] { new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                        "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED", formulaLimitation) };
+                    document.Dispose(); document = ExcelDocument.Create(); worksheetMappings.Clear(); editable = false;
+                }
+            }
             if (editable) {
                 for (int sheetIndex = 0; sheetIndex < projection.Sheets.Count; sheetIndex++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     IWorkNumbersSheet sourceSheet = projection.Sheets[sheetIndex];
-                    if (sourceSheet.TextBoxes.Count > 0 || sourceSheet.Tables.Count == 0) {
-                        ExcelSheet textSheet = document.AddWorksheet(sourceSheet.Name, nameMode);
-                        worksheetMappings.Add(new NumbersWorksheetMapping(sheetIndex + 1, sourceSheet.Name,
-                            null, null, sourceSheet.Name, textSheet.Name));
-                        for (int index = 0; index < sourceSheet.TextBoxes.Count; index++) {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            textSheet.CellAt(index + 1, 1).SetValue(sourceSheet.TextBoxes[index]);
-                        }
-                    }
                     for (int tableIndex = 0; tableIndex < sourceSheet.Tables.Count; tableIndex++) {
                         cancellationToken.ThrowIfCancellationRequested();
                         IWorkTable table = sourceSheet.Tables[tableIndex];
-                        string tableSheetName = sourceSheet.Tables.Count == 1
-                            && sourceSheet.TextBoxes.Count == 0
-                                ? sourceSheet.Name
-                                : sourceSheet.Name + " - "
-                                    + (table.Name.Length > 0 ? table.Name : $"Table {tableIndex + 1}");
-                        ExcelSheet sheet = document.AddWorksheet(tableSheetName, nameMode);
-                        worksheetMappings.Add(new NumbersWorksheetMapping(sheetIndex + 1, sourceSheet.Name,
-                            tableIndex + 1, table.Name, tableSheetName, sheet.Name));
+                        ExcelSheet sheet = preparedTables![table];
                         foreach (IWorkTableCell cell in table.Cells) {
                             cancellationToken.ThrowIfCancellationRequested();
+                            string? formula = preparedFormulas!.TryGetValue(cell, out string? boundFormula) ? boundFormula : null;
                             bool isDuration = cell.Kind == IWorkCellKind.Duration
                                 || cell.Kind == IWorkCellKind.Formula
                                     && cell.ValueKind == IWorkCellKind.Duration;
@@ -139,10 +139,10 @@ public static partial class ExcelIWorkConverter {
                                 if (IsNativeExcelError(errorText)) {
                                     sheet.CellError(cell.Row, cell.Column, errorText);
                                 } else if (cell.Kind == IWorkCellKind.Formula
-                                    && cell.FormulaIsComplete
-                                    && !string.IsNullOrEmpty(cell.Formula)) {
+                                    && formula != null
+                                    && !string.IsNullOrEmpty(formula)) {
                                     sheet.CellFormulaWithTextCache(cell.Row, cell.Column,
-                                        cell.Formula!, errorText);
+                                        formula!, errorText);
                                     formulaWritten = true;
                                 } else {
                                     targetCell.SetValue(errorText);
@@ -151,10 +151,10 @@ public static partial class ExcelIWorkConverter {
                                 && cell.ValueKind == IWorkCellKind.Text
                                 && value is string cachedText
                                 && cell.CachedValueIsComplete
-                                && cell.FormulaIsComplete
-                                && !string.IsNullOrEmpty(cell.Formula)) {
+                                && formula != null
+                                && !string.IsNullOrEmpty(formula)) {
                                 sheet.CellFormulaWithTextCache(cell.Row, cell.Column,
-                                    cell.Formula!, cachedText);
+                                    formula!, cachedText);
                                 formulaWritten = true;
                             } else if (cell.Kind != IWorkCellKind.Formula
                                 || cell.Value != null && cell.CachedValueIsComplete) {
@@ -176,9 +176,9 @@ public static partial class ExcelIWorkConverter {
                                 || cell.Row > table.RowCount - table.FooterRowCount) {
                                 targetCell.SetBold();
                             }
-                            if (cell.Kind == IWorkCellKind.Formula && cell.FormulaIsComplete
-                                && !string.IsNullOrEmpty(cell.Formula) && !formulaWritten) {
-                                targetCell.SetFormula(cell.Formula!);
+                            if (cell.Kind == IWorkCellKind.Formula && formula != null
+                                && !string.IsNullOrEmpty(formula) && !formulaWritten) {
+                                targetCell.SetFormula(formula!);
                             }
                             if (isDuration && cell.Value is double) targetCell.DurationHours();
                             if (cell.NumberFormat is { } numberFormat)
@@ -370,7 +370,7 @@ public static partial class ExcelIWorkConverter {
                     if (text?.Length > 32_767) {
                         return $"Numbers table '{table.Name}' contains text longer than the XLSX cell limit of 32,767 characters.";
                     }
-                    if (cell.FormulaIsComplete && cell.Formula?.Length > 8192) {
+                    if (cell.FormulaDefinition == null && cell.FormulaIsComplete && cell.Formula?.Length > 8192) {
                         return $"Numbers table '{table.Name}' contains a formula longer than the XLSX limit of 8,192 characters.";
                     }
                     if ((cell.Kind == IWorkCellKind.DateTime

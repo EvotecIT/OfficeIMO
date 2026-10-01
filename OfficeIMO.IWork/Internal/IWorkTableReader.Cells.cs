@@ -210,11 +210,14 @@ internal static partial class IWorkTableReader {
         bool cachedValueIsComplete = true,
         IWorkTextContent? richText = null) {
         IWorkFormulaResult result;
+        IWorkFormulaDefinition? definition = null;
         if (formulas.TryGetValue(formulaIdentifier, out IWorkWireMessage? formula)) {
             projectionBudget.AddFormulaRenderingOperations(
                 IWorkFormulaReader.MeasureRenderingOperations(formula,
                     options.MaximumFormulaNodes));
             result = IWorkFormulaReader.Render(formula, row - 1, column - 1,
+                options.MaximumFormulaNodes, options.MaximumFormulaCharacters);
+            if (result.HasTableReferences) definition = new IWorkFormulaDefinition(formula, row - 1, column - 1,
                 options.MaximumFormulaNodes, options.MaximumFormulaCharacters);
         } else {
             result = new IWorkFormulaResult("=?", false);
@@ -226,7 +229,7 @@ internal static partial class IWorkTableReader {
             formula: formulaText, valueKind: cachedValueKind,
             formulaIsComplete: result.IsComplete,
             richText: richText,
-            cachedValueIsComplete: cachedValueIsComplete);
+            cachedValueIsComplete: cachedValueIsComplete, formulaDefinition: definition);
     }
 
     private static IWorkTableCell FiniteNumber(int row, int column, double value, bool hasFormula,

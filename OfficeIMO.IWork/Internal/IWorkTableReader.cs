@@ -14,7 +14,7 @@ internal static partial class IWorkTableReader {
         IWorkProjectionBudget projectionBudget, IWorkSourceReferenceIssueCollector references,
         List<IWorkDiagnostic> diagnostics,
         ref int materializedCellCount,
-        ref bool supportsEditableReconstruction) {
+        ref bool supportsEditableReconstruction, bool deferFormulaAssessment = false) {
         IWorkWireMessage recordMessage;
         try {
             recordMessage = source.Index.Message(tableRecord);
@@ -122,7 +122,7 @@ internal static partial class IWorkTableReader {
         }
         return ReadTable(source, source.Index, model, modelMessage, geometry, projectionBudget, references,
             diagnostics, accessibilityDescription, ref materializedCellCount,
-            ref supportsEditableReconstruction, new IWorkObjectIdentity(tableRecord));
+            ref supportsEditableReconstruction, new IWorkObjectIdentity(tableRecord), deferFormulaAssessment);
     }
 
     private static IWorkTable ReadTable(IWorkSourceDocument source, IWorkObjectIndex index,
@@ -131,7 +131,7 @@ internal static partial class IWorkTableReader {
         IWorkSourceReferenceIssueCollector references,
         List<IWorkDiagnostic> diagnostics,
         string? accessibilityDescription,
-        ref int materializedCellCount, ref bool supportsEditableReconstruction, IWorkObjectIdentity sourceIdentity) {
+        ref int materializedCellCount, ref bool supportsEditableReconstruction, IWorkObjectIdentity sourceIdentity, bool deferFormulaAssessment) {
         if (HasUnsupportedTableScalarEncoding(message)) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -479,39 +479,12 @@ internal static partial class IWorkTableReader {
                 $"{errorCount} cells in table '{name}' could not be decoded completely.", model.EntryPath, model.Identifier,
                 global::OfficeIMO.OfficeConversionLossKind.Unassessed));
         }
-        int incompleteCachedFormulaCount = cells.Count(cell => cell.Kind == IWorkCellKind.Formula
-            && !cell.FormulaIsComplete && cell.Value != null);
-        if (incompleteCachedFormulaCount > 0) {
-            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_TABLE_FORMULA_PARTIAL",
-                $"{incompleteCachedFormulaCount} formulas in table '{name}' retain typed cached values because their expressions were not reconstructed completely.",
-                model.EntryPath, model.Identifier));
-        }
-        int incompleteFormulaCacheCount = cells.Count(cell => cell.Kind == IWorkCellKind.Formula
-            && !cell.CachedValueIsComplete && cell.Value != null);
-        if (incompleteFormulaCacheCount > 0) {
-            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
-                "IWORK_TABLE_FORMULA_CACHE_PARTIAL",
-                $"{incompleteFormulaCacheCount} formula cached values in table '{name}' are partial; only complete expressions can be reconstructed as editable formulas.",
-                model.EntryPath, model.Identifier));
-            if (cells.Any(cell => cell.Kind == IWorkCellKind.Formula
-                && !cell.CachedValueIsComplete && !cell.FormulaIsComplete)) {
-                supportsEditableReconstruction = false;
-            }
-        }
-        int incompleteUncachedFormulaCount = cells.Count(cell => cell.Kind == IWorkCellKind.Formula
-            && (!cell.FormulaIsComplete || !cell.CachedValueIsComplete) && cell.Value == null);
-        if (incompleteUncachedFormulaCount > 0) {
-            supportsEditableReconstruction = false;
-            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
-                "IWORK_TABLE_FORMULA_UNSUPPORTED",
-                $"{incompleteUncachedFormulaCount} formulas in table '{name}' have neither a complete expression nor a cached value; editable reconstruction is incomplete.",
-                model.EntryPath, model.Identifier));
-        }
+        if (!deferFormulaAssessment) AssessFormulas(cells, name, model, diagnostics, ref supportsEditableReconstruction);
         return CreateTable();
 
         IWorkTable CreateTable() => new(name, rows, columns, cells,
             headerRows, headerColumns, footerRows, defaultRowHeight, defaultColumnWidth,
-            mergedRanges, geometry, accessibilityDescription, sourceIdentity, omittedTextUnits, rowHeights, columnWidths);
+            mergedRanges, geometry, accessibilityDescription, sourceIdentity, omittedTextUnits, rowHeights, columnWidths, IWorkFormulaReader.ReadTableIdentifier(message), model);
     }
 
     private static void MarkDuplicateTile(IWorkArchiveRecord model,

@@ -11,7 +11,7 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 ## iWork cross-table ranges
 
-Cross-table rectangular formulas retain cached values instead of exporting a local formula after losing the source table qualifier. Inspect `FormulaIsComplete` and the conversion report before relying on editable expressions; use the preserved cache while cross-table reconstruction remains unsupported. Merge declarations that reference another table are rejected and reported through `SourceDeclarationIssues` instead of being applied locally.
+Finite rectangular cross-table references now resolve unique native identities among selected tables. `IWorkTableCell.Formula` contains source sheet/table labels; use the Excel adapter to render references with the actual worksheet names, including normalized names and collision suffixes. `FormulaIsComplete` assesses reconstructed source semantics, not a formula string ready to paste into an arbitrary workbook. Source and destination binding both count toward `MaximumFormulaRenderingOperations`. Missing, inactive, malformed or ambiguous targets and unsupported reference families retain valid caches with incomplete expressions. Merge declarations that reference another table remain rejected and reported through `SourceDeclarationIssues`.
 
 ## iWork high-precision numeric recovery
 
