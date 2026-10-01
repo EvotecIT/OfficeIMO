@@ -23,6 +23,8 @@ result.Value.Save("converted.xlsx");
 
 Individual row heights and column widths are carried into XLSX. Heights remain in points; widths use Excel character units. Out-of-range dimensions are rejected before destination creation.
 
+Supported modern number and percentage formats keep numeric values and formula caches numeric. XLSX retains explicit decimal places, digit grouping, and minus, red, or parenthesized negative styles. Numbers' automatic decimal mode maps to fifteen optional decimal places and emits `IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED`; significant-digit selection and scientific notation can differ. Currency, custom, fraction, scientific, and other format families remain outside this subset. Unsupported selected formats emit `IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED` and require the partial-reconstruction policy to retain raw editable values.
+
 Choose the acceptance policy explicitly when source details cannot be represented:
 
 ```csharp

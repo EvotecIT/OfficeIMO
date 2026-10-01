@@ -1,6 +1,3 @@
-using OfficeIMO.Drawing;
-using PdfCore = OfficeIMO.Pdf;
-
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
         private static string FormatCellValue(object? value, ExcelCellStyleSnapshot? style, string emptyCellText) {
@@ -58,32 +55,8 @@ namespace OfficeIMO.Excel.Pdf {
                 return null;
             }
 
-            normalized = GetNumberFormatSection(formatCode, GetNumberFormatSectionIndex(number)).Trim();
-            if (normalized.Length == 0 ||
-                string.Equals(normalized, "General", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(normalized, "@", StringComparison.Ordinal)) {
-                return null;
-            }
-
-            if (normalized.IndexOf('%') >= 0) {
-                int decimals = CountDecimalPlaces(normalized);
-                bool wrapPercent = ShouldWrapNegativeNumber(normalized, number);
-                double percentNumber = wrapPercent ? Math.Abs(number) : number;
-                string numeric = (percentNumber * 100D).ToString(decimals > 0 ? "N" + decimals.ToString(CultureInfo.InvariantCulture) : "N0", CultureInfo.InvariantCulture);
-                if (wrapPercent) {
-                    return "(" + numeric + "%)";
-                }
-
-                return numeric + "%";
-            }
-
-            bool useGrouping = normalized.IndexOf(',') >= 0;
-            int decimalPlaces = CountDecimalPlaces(normalized);
-            string numberFormat = (useGrouping ? "N" : "F") + decimalPlaces.ToString(CultureInfo.InvariantCulture);
-            bool wrapNumber = ShouldWrapNegativeNumber(normalized, number);
-            double displayNumber = wrapNumber ? Math.Abs(number) : number;
-            string numericValue = ApplyQuotedLiterals(normalized, displayNumber.ToString(numberFormat, CultureInfo.InvariantCulture));
-            return wrapNumber ? "(" + numericValue + ")" : numericValue;
+            return ExcelNumberFormatDisplay.FormatNumericText(number, style.NumberFormatId,
+                formatCode, number.ToString(CultureInfo.InvariantCulture));
         }
 
         private static bool TryFormatElapsedDuration(double value, string formatCode, out string? text) {
@@ -228,73 +201,6 @@ namespace OfficeIMO.Excel.Pdf {
             return formatCode;
         }
 
-        private static int GetNumberFormatSectionIndex(double number) {
-            if (number < 0D) {
-                return 1;
-            }
-
-            return number == 0D ? 2 : 0;
-        }
-
-        private static bool ShouldWrapNegativeNumber(string formatCode, double value) =>
-            value < 0D && formatCode.IndexOf('(') >= 0 && formatCode.IndexOf(')') > formatCode.IndexOf('(');
-
-        private static int CountDecimalPlaces(string formatCode) {
-            int decimalIndex = formatCode.IndexOf('.');
-            if (decimalIndex < 0) {
-                return 0;
-            }
-
-            int count = 0;
-            for (int i = decimalIndex + 1; i < formatCode.Length; i++) {
-                char ch = formatCode[i];
-                if (ch == '0' || ch == '#') {
-                    count++;
-                    continue;
-                }
-
-                break;
-            }
-
-            return count;
-        }
-
-        private static string ApplyQuotedLiterals(string formatCode, string numericValue) {
-            string prefix = string.Empty;
-            string suffix = string.Empty;
-            int index = 0;
-            while (index < formatCode.Length) {
-                int quoteStart = formatCode.IndexOf('"', index);
-                if (quoteStart < 0) {
-                    break;
-                }
-
-                int quoteEnd = formatCode.IndexOf('"', quoteStart + 1);
-                if (quoteEnd <= quoteStart + 1) {
-                    break;
-                }
-
-                string literal = formatCode.Substring(quoteStart + 1, quoteEnd - quoteStart - 1);
-                bool hasPlaceholderBefore = HasNumberPlaceholder(formatCode, 0, quoteStart);
-                if (hasPlaceholderBefore) {
-                    if (quoteStart > 0 && char.IsWhiteSpace(formatCode[quoteStart - 1])) {
-                        suffix += " ";
-                    }
-
-                    suffix += literal;
-                } else {
-                    prefix += literal;
-                    if (quoteEnd + 1 < formatCode.Length && char.IsWhiteSpace(formatCode[quoteEnd + 1])) {
-                        prefix += " ";
-                    }
-                }
-
-                index = quoteEnd + 1;
-            }
-
-            return prefix + numericValue + suffix;
-        }
-
         private static string ReplaceUnquotedIgnoreCase(string value, string oldValue, string newValue) {
             var builder = new System.Text.StringBuilder(value.Length);
             bool inQuote = false;
@@ -337,17 +243,6 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             return builder.ToString();
-        }
-
-        private static bool HasNumberPlaceholder(string formatCode, int start, int end) {
-            for (int i = start; i < end && i < formatCode.Length; i++) {
-                char ch = formatCode[i];
-                if (ch == '0' || ch == '#' || ch == '?') {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         private static string ToDotNetDateTimeFormat(string excelFormat) {

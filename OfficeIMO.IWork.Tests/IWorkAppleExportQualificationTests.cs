@@ -70,6 +70,35 @@ public sealed class IWorkAppleExportQualificationTests {
     private static readonly XNamespace Spreadsheet = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 
     [Fact]
+    public void Numbers_percentage_formula_keeps_numeric_cache_and_percentage_style_after_save() {
+        string corpus = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus");
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(
+            Path.Combine(corpus, "numbers-parser", "test-10-formulas.numbers"));
+        using var saved = new MemoryStream();
+        result.Value.Save(saved); saved.Position = 0;
+        using var converted = new ZipArchive(saved, ZipArchiveMode.Read, leaveOpen: true);
+        using var native = ZipFile.OpenRead(Path.Combine(corpus, "native-exports", "numbers-formulas-v14.5.xlsx"));
+        XElement actual = ReadCells(converted, 2)["B9"];
+        XElement oracle = ReadCells(native, 2)["B10"];
+        Assert.Equal("0.5", actual.Element(Spreadsheet + "v")!.Value);
+        Assert.Equal(oracle.Element(Spreadsheet + "v")!.Value, actual.Element(Spreadsheet + "v")!.Value);
+        Assert.NotNull(actual.Element(Spreadsheet + "f"));
+        Assert.Contains("%", ReadNumberFormat(native, oracle));
+        Assert.Contains("%", ReadNumberFormat(converted, actual));
+    }
+
+    private static string ReadNumberFormat(ZipArchive archive, XElement cell) {
+        using Stream stream = archive.GetEntry("xl/styles.xml")!.Open();
+        XElement styles = XDocument.Load(stream).Root!;
+        int index = int.Parse(cell.Attribute("s")?.Value ?? "0", CultureInfo.InvariantCulture);
+        string id = styles.Element(Spreadsheet + "cellXfs")!.Elements().ElementAt(index)
+            .Attribute("numFmtId")!.Value;
+        return styles.Element(Spreadsheet + "numFmts")?.Elements().FirstOrDefault(format =>
+            format.Attribute("numFmtId")?.Value == id)?.Attribute("formatCode")?.Value
+            ?? (id == "9" ? "0%" : id == "10" ? "0.00%" : "General");
+    }
+
+    [Fact]
     public void Numbers_declared_sizes_stay_within_the_pinned_native_grid_comparison_bounds() {
         string corpus = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus");
         string references = Path.Combine(corpus, "native-exports");

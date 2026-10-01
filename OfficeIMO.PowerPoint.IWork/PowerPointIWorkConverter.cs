@@ -349,6 +349,12 @@ public static partial class PowerPointIWorkConverter {
             || projection.Slides.SelectMany(slide => slide.Tables)
                 .Any(table => TableSizingRequiresEmuRounding(table));
         var diagnostics = new List<IWorkDiagnostic>();
+        if (projection.Slides.SelectMany(slide => slide.Tables).SelectMany(table => table.Cells)
+            .Any(cell => cell.NumberFormat != null)) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_NUMBER_FORMAT_OMITTED",
+                "PPTX table cells retain raw cached values without the source numeric display formats. Semantic number formats remain available on the source projection.",
+                lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission));
+        }
         if (projection.Slides.SelectMany(slide => slide.Tables).Any(table =>
             AxisSizingIsScaled(table.ColumnCount, table.ColumnWidths, table.DefaultColumnWidth, table.Geometry?.WidthPoints)
             || AxisSizingIsScaled(table.RowCount, table.RowHeights, table.DefaultRowHeight, table.Geometry?.HeightPoints))) {

@@ -22,17 +22,19 @@ internal sealed class IWorkTableCatalogIndex {
         int totalFields;
         int identifierFields;
         int metadataFields;
+        int bncFields;
         try {
             declaredEntries = IWorkProtobuf.CountFields(list.Payload, 3,
                 source.Options.MaximumProtobufFieldCount, out totalFields);
             identifierFields = IWorkProtobuf.CountFields(list.Payload, 1, source.Options.MaximumProtobufFieldCount);
             metadataFields = IWorkProtobuf.CountFields(list.Payload, 2, source.Options.MaximumProtobufFieldCount);
+            bncFields = IWorkProtobuf.CountFields(list.Payload, 5, source.Options.MaximumProtobufFieldCount);
         } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             references.Declarations.Record(list, "$", null);
             return result;
         }
-        if (identifierFields > 1 || metadataFields > 1
-            || totalFields - declaredEntries != identifierFields + metadataFields) {
+        if (identifierFields > 1 || metadataFields > 1 || bncFields > 1
+            || totalFields - declaredEntries != identifierFields + metadataFields + bncFields) {
             references.Declarations.Record(list, "$", null, IWorkSourceDeclarationIssueKind.RejectedMessageSet);
             return result;
         }
@@ -41,6 +43,13 @@ internal sealed class IWorkTableCatalogIndex {
         }
         budget.AddTableCatalogEntries(declaredEntries);
         IWorkWireMessage message = source.Index.Message(list);
+        // TableDataList's optional is_new_for_bnc marker is shared catalog metadata.
+        // It is a Boolean, not another declaration or a segmented catalog.
+        if (bncFields != 0 && (message.HasUnexpectedWireKind(5, IWorkWireKind.Varint)
+                || message.GetUnsigned(5) is not { } bnc || bnc > 1)) {
+            references.Declarations.Record(list, "5", bncFields, IWorkSourceDeclarationIssueKind.InvalidValue);
+            return result;
+        }
         result.EnvelopeIsComplete = result.IsComplete = true;
         var seen = new HashSet<uint>();
         int position = 0;

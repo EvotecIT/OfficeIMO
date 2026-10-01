@@ -106,6 +106,7 @@ internal sealed class IWorkWireMessage {
     internal bool HasField(int field) => Values(field).Count > 0;
 
     internal int FieldCount(int field) => Values(field).Count;
+    internal int TotalFieldCount => _fields.Values.Sum(values => values.Count);
 
     internal IEnumerable<IWorkWireValue> EnumerateValues(int field) => Values(field);
 

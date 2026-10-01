@@ -330,7 +330,10 @@ namespace OfficeIMO.Excel.Pdf {
                         ? destinationName
                         : null;
                     IReadOnlyList<WorksheetImageExportData>? cellImages = GetCellImages(imagesByCellReference, cellReferences, row, column);
-                    cells.Add(CreatePdfCell(text, style, tableVisual, hyperlink, span, sheetDestinations, cellDestinations, sheetName, cellDestinationName, cellImages, defaultFontFamily, fontScale, preserveWorksheetNoWrap));
+                    string? formatColor = style != null && values[row, column] is { } value && TryGetDouble(value, out double number)
+                        ? ExcelNumberFormatDisplay.GetNumericFormatColor(number, style.NumberFormatId, style.NumberFormatCode)
+                        : null;
+                    cells.Add(CreatePdfCell(text, style, tableVisual, hyperlink, span, sheetDestinations, cellDestinations, sheetName, cellDestinationName, cellImages, defaultFontFamily, fontScale, preserveWorksheetNoWrap, formatColor));
                 }
 
                 yield return cells.ToArray();
@@ -375,10 +378,10 @@ namespace OfficeIMO.Excel.Pdf {
                 : null;
         }
 
-        private static PdfCore.PdfTableCell CreatePdfCell(string text, ExcelCellStyleSnapshot? style, StructuredTableCellVisual? tableVisual, ExcelHyperlinkSnapshot? hyperlink, MergeSpan? span, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, string sheetName, string? cellDestinationName, IReadOnlyList<WorksheetImageExportData>? cellImages, PdfCore.PdfStandardFont defaultFontFamily, double fontScale, bool preserveWorksheetNoWrap) {
+        private static PdfCore.PdfTableCell CreatePdfCell(string text, ExcelCellStyleSnapshot? style, StructuredTableCellVisual? tableVisual, ExcelHyperlinkSnapshot? hyperlink, MergeSpan? span, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, string sheetName, string? cellDestinationName, IReadOnlyList<WorksheetImageExportData>? cellImages, PdfCore.PdfStandardFont defaultFontFamily, double fontScale, bool preserveWorksheetNoWrap, string? formatColor) {
             int rowSpan = span?.RowSpan ?? 1;
             int columnSpan = span?.ColumnSpan ?? 1;
-            PdfCore.PdfColor? textColor = ToPdfColor(style?.FontColorHex) ?? ToPdfColor(tableVisual?.Text);
+            PdfCore.PdfColor? textColor = ToPdfColor(formatColor) ?? ToPdfColor(style?.FontColorHex) ?? ToPdfColor(tableVisual?.Text);
             bool bold = style?.Bold == true || tableVisual?.Bold == true;
             string? linkUri = hyperlink?.IsExternal == true ? hyperlink.Target : null;
             string? linkDestinationName = TryGetInternalHyperlinkDestinationName(hyperlink, sheetName, sheetDestinations, cellDestinations, out string? destinationName)

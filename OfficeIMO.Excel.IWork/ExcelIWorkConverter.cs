@@ -56,6 +56,14 @@ public static partial class ExcelIWorkConverter {
                     lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation)
             }).ToArray();
         }
+        if (editable && projection.Sheets.SelectMany(sheet => sheet.Tables).SelectMany(table => table.Cells)
+            .Any(cell => cell.NumberFormat is { DecimalPlaces: null })) {
+            destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED",
+                    "Numbers automatic decimal formats use up to fifteen optional decimal places in XLSX. Significant-digit selection and scientific notation can differ; numeric values and formula caches are unchanged.",
+                    lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation)
+            }).ToArray();
+        }
         if (editable && settings.AllowPartialEditableReconstruction &&
             (!projection.HasEditableContent || projection.Diagnostics.Any(diagnostic =>
                 diagnostic.Severity != IWorkDiagnosticSeverity.Information))) {
@@ -171,6 +179,8 @@ public static partial class ExcelIWorkConverter {
                                 targetCell.SetFormula(cell.Formula!);
                             }
                             if (isDuration && cell.Value is double) targetCell.DurationHours();
+                            if (cell.NumberFormat is { } numberFormat)
+                                sheet.FormatCell(cell.Row, cell.Column, NumberFormatCode(numberFormat));
                         }
                         foreach (IWorkTableMergeRange merge in table.MergedRanges) {
                             cancellationToken.ThrowIfCancellationRequested();

@@ -8,7 +8,7 @@ public sealed class IWorkTableCell {
         string? formula = null, string? error = null, IWorkCellKind? valueKind = null,
         bool formulaIsComplete = false, IWorkTextContent? richText = null,
         bool cachedValueIsComplete = true, bool sourceFormulaIsDeclared = false,
-        bool hasDecodeError = false) {
+        bool hasDecodeError = false, IWorkNumberFormat? numberFormat = null) {
         Row = row;
         Column = column;
         Kind = kind;
@@ -21,6 +21,7 @@ public sealed class IWorkTableCell {
         Error = error;
         HasDecodeError = hasDecodeError;
         RichText = richText;
+        NumberFormat = numberFormat;
     }
 
     /// <summary>Gets the one-based row position.</summary>
@@ -47,6 +48,12 @@ public sealed class IWorkTableCell {
     public bool HasDecodeError { get; }
     /// <summary>Gets source rich text for a text or formula cell, including runs, styles, and hyperlinks when recovered.</summary>
     public IWorkTextContent? RichText { get; }
+    /// <summary>Gets the supported source numeric format. Null means absent or unresolved; source diagnostics distinguish unsupported declarations. Raw display text does not apply this format.</summary>
+    public IWorkNumberFormat? NumberFormat { get; }
+
+    internal IWorkTableCell WithNumberFormat(IWorkNumberFormat format) =>
+        new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
+            RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, format);
     /// <summary>Gets a culture-invariant display representation of the recovered value or formula.</summary>
     public string DisplayText => Kind switch {
         IWorkCellKind.Boolean => Convert.ToBoolean(Value, CultureInfo.InvariantCulture) ? "TRUE" : "FALSE",

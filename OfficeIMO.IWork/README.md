@@ -133,6 +133,8 @@ There is deliberately no Pages, Numbers, or Keynote writer. OfficeIMO will not e
 
 See the [iWork support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md) for the version corpus, limits, semantic coverage, and known boundaries.
 
+`IWorkTableCell.NumberFormat` exposes supported modern number and percentage semantics: decimal places (`null` for automatic), digit grouping, and negative-value style. It does not change `Value`, `DisplayText`, or `CachedDisplayText`. The Excel adapter applies this metadata to numeric XLSX cells; the Word and PowerPoint adapters retain raw cached table text and report omitted numeric display formatting. Unsupported selected numeric formats retain source diagnostics and physical catalog-declaration evidence when a declaration can be identified.
+
 ## Target frameworks and dependencies
 
 `OfficeIMO.IWork` targets .NET Standard 2.0, .NET 8, .NET 10, and .NET Framework 4.7.2 on Windows. The source reader depends only on `OfficeIMO.Core`; its IWA, Snappy, protobuf-envelope, and package readers are first-party implementations. Destination projection is opt-in through `OfficeIMO.Word.IWork`, `OfficeIMO.Excel.IWork`, or `OfficeIMO.PowerPoint.IWork`.

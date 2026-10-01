@@ -59,6 +59,13 @@ public static partial class WordIWorkConverter {
         }
         int reconstructedSectionCount = 1 + projection.Body.Paragraphs.Count(paragraph =>
             paragraph.BreakKind == IWorkParagraphBreakKind.Section);
+        if (editable && projection.Tables.SelectMany(table => table.Cells).Any(cell => cell.NumberFormat != null)) {
+            destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_NUMBER_FORMAT_OMITTED",
+                    "DOCX table cells retain raw cached values without the source numeric display formats. Semantic number formats remain available on the source projection.",
+                    lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission)
+            }).ToArray();
+        }
         if (editable && projection.Sections.Count > reconstructedSectionCount) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_SECTION_CONTENT_OMITTED",

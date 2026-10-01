@@ -7,7 +7,7 @@ internal static partial class IWorkTableReader {
     private static IWorkTableCell DecodeCell(byte[] buffer, int offset, int endOffset,
         int row, int column,
         IReadOnlyDictionary<uint, string> strings, IWorkTableRichTextCatalog richStrings,
-        IReadOnlyDictionary<uint, IWorkWireMessage> formulas,
+        IReadOnlyDictionary<uint, IWorkWireMessage> formulas, IWorkTableNumberFormatCatalog numberFormats,
         IWorkReadOptions options, IWorkProjectionBudget projectionBudget,
         HashSet<uint> formulaRichStringIdentifiers, HashSet<uint> nonFormulaRichStringIdentifiers) {
         if (offset < 0 || endOffset < offset || endOffset > buffer.Length
@@ -19,6 +19,22 @@ internal static partial class IWorkTableReader {
         IWorkTableCell cell = DecodeModernCell(buffer, offset, endOffset, row, column, type, flags,
             strings, richStrings, formulas, options, projectionBudget,
             formulaRichStringIdentifiers, nonFormulaRichStringIdentifiers);
+        if (!cell.HasDecodeError && type is 2 or 10
+            && cell.Kind is IWorkCellKind.Number or IWorkCellKind.Formula
+            && (flags & ((1u << 13) | (1u << 14))) != 0) {
+            // Currency selection takes precedence over numeric selection in modern storage.
+            // Until that family is qualified, retain the value without applying an inactive numeric format.
+            if ((flags & (1u << 14)) != 0) {
+                numberFormats.MarkUnsupportedSelection();
+                return cell;
+            }
+            int formatOffset = offset + 12;
+            for (int bit = 0; bit < 13; bit++)
+                if ((flags & (1u << bit)) != 0) formatOffset += CellValueFieldSize(bit);
+            // DecodeModernCell already checked all selected fields against this record's boundary.
+            IWorkNumberFormat? format = numberFormats.Read(IWorkProtobuf.ReadUInt32(buffer, formatOffset));
+            if (format != null) cell = cell.WithNumberFormat(format);
+        }
         // Only a complete, supported header establishes formula presence. Keep decode errors
         // as errors instead of inventing an expression or a recovered cache.
         return cell.Kind == IWorkCellKind.Error && (flags & (1u << 9)) != 0
@@ -52,7 +68,7 @@ internal static partial class IWorkTableReader {
         bool hasFormula = false;
         for (int bit = 0; bit < 21; bit++) {
             if ((flags & (1u << bit)) == 0) continue;
-            int size = bit == 0 ? 16 : bit is 1 or 2 ? 8 : 4;
+            int size = CellValueFieldSize(bit);
             if (position < 0 || position > endOffset - size) return Error(row, column, "Truncated cell value field.");
             switch (bit) {
                 case 0:
@@ -183,6 +199,8 @@ internal static partial class IWorkTableReader {
                 return Error(row, column, $"Unknown cell type {type}.");
         }
     }
+
+    private static int CellValueFieldSize(int bit) => bit == 0 ? 16 : bit is 1 or 2 ? 8 : 4;
 
     private static IWorkTableCell Formula(int row, int column, uint formulaIdentifier,
         IReadOnlyDictionary<uint, IWorkWireMessage> formulas, IWorkReadOptions options,

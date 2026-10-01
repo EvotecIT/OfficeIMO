@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Text;
 
 namespace OfficeIMO.Excel {
-    internal static class ExcelNumberFormatDisplay {
+    internal static partial class ExcelNumberFormatDisplay {
         private const char LiteralPunctuationMarker = '\u0001';
 
         internal static string FormatNumericText(
@@ -677,7 +677,7 @@ namespace OfficeIMO.Excel {
 
         private static string[] SplitNumberFormatSections(string formatCode) {
             var sections = new List<string>();
-            var builder = new StringBuilder(formatCode.Length);
+            var builder = new StringBuilder(Math.Min(formatCode.Length, 256));
             bool inQuote = false;
             for (int i = 0; i < formatCode.Length; i++) {
                 char ch = formatCode[i];
@@ -699,6 +699,9 @@ namespace OfficeIMO.Excel {
 
                 if (!inQuote && ch == ';') {
                     sections.Add(builder.ToString());
+                    // Excel has at most four sections. Never expand arbitrary trailing
+                    // segments from an imported number format into an unbounded list.
+                    if (sections.Count == 4) return sections.ToArray();
                     builder.Clear();
                     continue;
                 }
