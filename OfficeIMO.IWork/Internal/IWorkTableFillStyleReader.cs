@@ -1,13 +1,13 @@
 namespace OfficeIMO.IWork.Internal;
 
-/// <summary>Reads applicable unbanded role fills through the shared inheritance and fill decoders.</summary>
+/// <summary>Reads applicable role and banded body fills through the shared inheritance and fill decoders.</summary>
 internal sealed class IWorkTableFillStyleReader {
     internal bool FullyReconstructed { get; private set; } = true;
     internal IWorkTableFillStyles Defaults { get; }
 
     internal IWorkTableFillStyleReader(IWorkSourceDocument source, IWorkArchiveRecord model,
         IWorkWireMessage message, IWorkProjectionBudget budget, IWorkSourceReferenceIssueCollector references,
-        int rows, int columns, int headerRows, int headerColumns, int footerRows, bool defaultsSupported) {
+        int rows, int columns, int headerRows, int headerColumns, int footerRows, bool defaultsSupported, IWorkCellFill? bandedBodyFill) {
         bool hasCells = rows > 0 && columns > 0;
         if (!defaultsSupported) {
             FullyReconstructed = !hasCells;
@@ -18,8 +18,9 @@ internal sealed class IWorkTableFillStyleReader {
         Defaults = new IWorkTableFillStyles(
             ReadRole(18, hasCells && rows > headerRows + footerRows && columns > headerColumns),
             ReadRole(19, hasCells && headerRows > 0),
-            ReadRole(20, hasCells && rows > headerRows && headerColumns > 0),
-            ReadRole(21, hasCells && footerRows > 0 && columns > headerColumns));
+            ReadRole(20, hasCells && rows > headerRows + footerRows && headerColumns > 0),
+            ReadRole(21, hasCells && footerRows > 0),
+            hasCells && rows > headerRows + footerRows && columns > headerColumns ? bandedBodyFill : null);
 
         IWorkCellFill? ReadRole(int field, bool applicable) {
             if (!applicable || !message.HasField(field)) return null;

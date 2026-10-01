@@ -5,16 +5,19 @@ namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkBoundaryTests {
     [Theory]
-    [InlineData(IWorkDocumentKind.Pages)]
-    [InlineData(IWorkDocumentKind.Numbers)]
-    [InlineData(IWorkDocumentKind.Keynote)]
-    public void Unbanded_role_fills_preserve_sparse_defaults_and_selected_overrides_in_saved_destinations(IWorkDocumentKind kind) {
-        using var package = RoleFillPackage(kind);
+    [InlineData(IWorkDocumentKind.Pages, false)]
+    [InlineData(IWorkDocumentKind.Numbers, false)]
+    [InlineData(IWorkDocumentKind.Keynote, false)]
+    [InlineData(IWorkDocumentKind.Pages, true)]
+    [InlineData(IWorkDocumentKind.Numbers, true)]
+    [InlineData(IWorkDocumentKind.Keynote, true)]
+    public void Role_and_banded_fills_preserve_sparse_defaults_and_selected_overrides_in_saved_destinations(IWorkDocumentKind kind, bool banded) {
+        using var package = RoleFillPackage(kind, banded: banded);
         var source = IWorkSourceDocument.Open(package);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         IWorkTable table;
-        string?[] expected = { "FF0000", "00FF00", "0000FF", "FFFF00", null, "0000FF" };
+        string?[] expected = { "FF0000", "FFFF00", banded ? "808080" : "0000FF", "FFFF00", null, "0000FF" };
         (int Row, int Column)[] positions = { (1, 1), (4, 1), (3, 2), (4, 2), (2, 2), (2, 3) };
         if (kind == IWorkDocumentKind.Pages) {
             using var result = source.ToWordDocumentResult(policy);
@@ -56,7 +59,9 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Theory]
-    [InlineData("banded")]
+    [InlineData("missing-band-fill")]
+    [InlineData("band-gradient")]
+    [InlineData("duplicate-band-fill")]
     [InlineData("bad-banding")]
     [InlineData("missing-role")]
     [InlineData("wrong-role-type")]
@@ -76,7 +81,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Null(table.GetFill(3, 2));
             Assert.True(table.GetFill(2, 2)!.IsNone); // Supported explicit selection survives rejected defaults.
         }
-        if (defect != "banded") Assert.NotEmpty(projection.SourceDeclarationIssues.Concat<object>(projection.SourceReferenceIssues));
+        if (defect != "missing-band-fill") Assert.NotEmpty(projection.SourceDeclarationIssues.Concat<object>(projection.SourceReferenceIssues));
     }
 
     [Fact]
@@ -115,7 +120,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Empty(reopened.ValidateDocument());
     }
 
-    private static MemoryStream RoleFillPackage(IWorkDocumentKind kind, string? defect = null, int rows = 4, int columns = 3) {
+    private static MemoryStream RoleFillPackage(IWorkDocumentKind kind, string? defect = null, int rows = 4, int columns = 3, bool banded = false, bool roleDefaults = true) {
         var records = new List<byte[]>();
         if (kind == IWorkDocumentKind.Pages) {
             records.Add(ArchiveRecord(1, 10000, ReferenceField(4, 2), new ulong[] { 2, 10 }));
@@ -134,8 +139,9 @@ public sealed partial class IWorkBoundaryTests {
         var role = ReferenceField(18, defect == "missing-role" ? 99UL : 41UL);
         byte[] store = Message(ReferenceField(5, 13), BytesField(3, BytesField(1, Message(VarintField(1, 0), ReferenceField(2, 12)))));
         records.Add(ArchiveRecord(11, 6001, Message(VarintField(6, (ulong)rows), VarintField(7, (ulong)columns),
-            VarintField(9, 1), VarintField(10, 1), VarintField(11, 1), BytesField(4, store), ReferenceField(3, 40), role,
-            defect == "duplicate-role" ? role : Array.Empty<byte>(), ReferenceField(19, 42), ReferenceField(20, 43), ReferenceField(21, 44))));
+            VarintField(9, 1), VarintField(10, 1), VarintField(11, 1), BytesField(4, store), ReferenceField(3, 40), roleDefaults ? role : Array.Empty<byte>(),
+            defect == "duplicate-role" ? role : Array.Empty<byte>(),
+            roleDefaults ? Message(ReferenceField(19, 42), ReferenceField(20, 43), ReferenceField(21, 44)) : Array.Empty<byte>())));
         byte[] empty = new byte[16]; empty[0] = 5; empty[8] = 0x20; empty[12] = 1;
         byte[] inherited = (byte[])empty.Clone(); inherited[12] = 2;
         byte[] number = new byte[20]; number[0] = 5; number[1] = 2; number[8] = 2; Buffer.BlockCopy(BitConverter.GetBytes(42d), 0, number, 12, 8);
@@ -147,9 +153,14 @@ public sealed partial class IWorkBoundaryTests {
             BytesField(3, Message(VarintField(1, 1), ReferenceField(4, defect == "unresolved-selected" ? 99UL : 30UL))),
             BytesField(3, Message(VarintField(1, 2), ReferenceField(4, 31))))));
         records.Add(FillStyle(30, Array.Empty<byte>())); records.Add(FillStyle(31, null));
+        bool activeBand = banded || defect is "missing-band-fill" or "band-gradient" or "duplicate-band-fill" or "inherited-band";
+        byte[] bandFill = BytesField(2, defect == "band-gradient" ? BytesField(2, Message()) : FillColor(0.5f, 0.5f, 0.5f));
         records.Add(ArchiveRecord(40, 6003, Message(BytesField(1, ReferenceField(3, 45)),
-            BytesField(11, VarintField(1, defect == "banded" ? 1UL : defect == "bad-banding" ? 2UL : 0UL)))));
-        records.Add(ArchiveRecord(45, 6003, BytesField(11, VarintField(1, 1)))); // Child disables inherited banding.
+            BytesField(11, Message(VarintField(1, defect == "bad-banding" ? 2UL : activeBand ? 1UL : 0UL),
+                activeBand && defect is not ("missing-band-fill" or "inherited-band") ? bandFill : Array.Empty<byte>(),
+                defect == "duplicate-band-fill" ? bandFill : defect == "inactive-band-gradient" ? BytesField(2, BytesField(2, Message())) : Array.Empty<byte>())))));
+        records.Add(ArchiveRecord(45, 6003, BytesField(11, Message(VarintField(1, 1),
+            defect == "inherited-band" ? bandFill : Array.Empty<byte>())))); // Child can disable inherited banding.
         records.Add(defect == "wrong-role-type" ? ArchiveRecord(41, 2022, Message())
             : FillStyle(41, defect == "role-gradient" ? BytesField(2, Message()) : null, defect == "role-cycle" ? 41UL : 46UL));
         records.Add(FillStyle(46, FillColor(0, 0, 1)));

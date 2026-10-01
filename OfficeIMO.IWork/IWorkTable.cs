@@ -199,11 +199,11 @@ public sealed class IWorkTable {
             DefaultRowHeight, DefaultColumnWidth, MergedRanges, Geometry, AccessibilityDescription,
             SourceIdentity, OmittedTextUnits, RowHeights, ColumnWidths, FormulaIdentifier, ModelRecord, BodyMetadataIsComplete, AutoResizeRows, TextStyles, FillStyles);
 
-    /// <summary>Gets supported unbanded table-region fill defaults without materializing empty source cells.</summary>
+    /// <summary>Gets supported table-region and alternating body-row fill defaults without materializing empty source cells.</summary>
     public IWorkTableFillStyles FillStyles { get; }
 
     /// <summary>Gets the effective supported fill at a one-based position. Selected fills, including explicit no-fill,
-    /// override region defaults. Unresolved selected fills suppress defaults. Header rows precede header columns, then footers and body.</summary>
+    /// override region defaults. Unresolved selected fills suppress defaults. Header and footer rows precede header columns. Banding applies only to body cells.</summary>
     public IWorkCellFill? GetFill(int row, int column) {
         if (row < 1 || row > RowCount) throw new ArgumentOutOfRangeException(nameof(row));
         if (column < 1 || column > ColumnCount) throw new ArgumentOutOfRangeException(nameof(column));
@@ -211,8 +211,9 @@ public sealed class IWorkTable {
         if (cell?.HasUnresolvedFill == true) return null;
         if (cell?.Fill != null) return cell.Fill;
         if (row <= HeaderRowCount) return FillStyles.HeaderRow;
-        if (column <= HeaderColumnCount) return FillStyles.HeaderColumn;
         if (row > RowCount - FooterRowCount) return FillStyles.FooterRow;
+        if (column <= HeaderColumnCount) return FillStyles.HeaderColumn;
+        if ((row - HeaderRowCount) % 2 == 0 && FillStyles.BandedBody != null) return FillStyles.BandedBody;
         return FillStyles.Body;
     }
 

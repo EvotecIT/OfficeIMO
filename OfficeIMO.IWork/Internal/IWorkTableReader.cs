@@ -174,13 +174,13 @@ internal static partial class IWorkTableReader {
             source.Options.MaximumTableMergedRanges, source.Options.MaximumFormulaNodes,
             model, references, diagnostics, ref supportsEditableReconstruction);
         bool? autoResizeRows = ReadTableStyleSettings(index, model, message, projectionBudget, references,
-            diagnostics, ref supportsEditableReconstruction, out bool fillDefaultsSupported);
+            diagnostics, ref supportsEditableReconstruction, out bool fillDefaultsSupported, out IWorkCellFill? bandedBodyFill);
         var fillStyles = new IWorkTableFillStyleReader(source, model, message, projectionBudget, references,
-            rows, columns, headerRows, headerColumns, footerRows, fillDefaultsSupported);
+            rows, columns, headerRows, headerColumns, footerRows, fillDefaultsSupported, bandedBodyFill);
         if (!fillStyles.FullyReconstructed) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_TABLE_FILL_DEFAULTS_UNSUPPORTED",
-                "Table-region fill defaults are unresolved, unsupported or banded; selected cell fills and values remain available.",
+                "Table-region fill defaults are unresolved or unsupported; selected cell fills and values remain available.",
                 model.EntryPath, model.Identifier, global::OfficeIMO.OfficeConversionLossKind.Unassessed));
         }
         var rowHeights = new Dictionary<int, double>();

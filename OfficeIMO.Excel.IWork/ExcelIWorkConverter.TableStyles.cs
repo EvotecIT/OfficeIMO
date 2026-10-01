@@ -11,7 +11,7 @@ public static partial class ExcelIWorkConverter {
 
     private static bool HasTableFillDefaults(IWorkTable table) =>
         table.FillStyles.Body != null || table.FillStyles.HeaderRow != null
-        || table.FillStyles.HeaderColumn != null || table.FillStyles.FooterRow != null;
+        || table.FillStyles.HeaderColumn != null || table.FillStyles.FooterRow != null || table.FillStyles.BandedBody != null;
 
     private static void ApplyTableStyles(ExcelSheet sheet, IWorkTable table, CancellationToken token) {
         if (!TableParagraphStyles(table).Any() && !HasTableFillDefaults(table)) return;

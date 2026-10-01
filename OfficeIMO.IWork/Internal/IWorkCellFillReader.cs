@@ -1,13 +1,13 @@
 namespace OfficeIMO.IWork.Internal;
 
-/// <summary>Decodes the supported cell FillArchive subset for selected and role styles.</summary>
+/// <summary>Decodes the supported cell FillArchive subset for selected styles, role defaults and body-row bands.</summary>
 internal static class IWorkCellFillReader {
     internal static void Read(IWorkArchiveRecord owner, IWorkWireMessage properties,
-        IWorkSourceReferenceIssueCollector references, ref IWorkCellFill? fill, ref bool complete) {
-        if (!properties.HasField(1)) return;
-        IWorkWireMessage? declaration = IWorkObjectIndex.TryGetMessage(properties, 1, out bool malformed);
-        bool valid = !malformed && properties.FieldCount(1) == 1
-            && !properties.HasUnexpectedWireKind(1, IWorkWireKind.Bytes) && declaration != null;
+        IWorkSourceReferenceIssueCollector references, ref IWorkCellFill? fill, ref bool complete, int field = 1) {
+        if (!properties.HasField(field)) return;
+        IWorkWireMessage? declaration = IWorkObjectIndex.TryGetMessage(properties, field, out bool malformed);
+        bool valid = !malformed && properties.FieldCount(field) == 1
+            && !properties.HasUnexpectedWireKind(field, IWorkWireKind.Bytes) && declaration != null;
         IWorkColor? color = null;
         if (valid && declaration!.TotalFieldCount > 0) {
             valid = declaration.TotalFieldCount == 1 && declaration.FieldCount(1) == 1
@@ -15,7 +15,7 @@ internal static class IWorkCellFillReader {
                 && color is { Alpha: byte.MaxValue } && IsSupportedColor(declaration);
         }
         if (!valid) {
-            references.Declarations.Record(owner, "11/1", properties.FieldCount(1),
+            references.Declarations.Record(owner, "11/" + field.ToString(System.Globalization.CultureInfo.InvariantCulture), properties.FieldCount(field),
                 IWorkSourceDeclarationIssueKind.InvalidValue);
             complete = false;
             return;

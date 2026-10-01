@@ -119,7 +119,7 @@ internal sealed partial class IWorkReadProjection {
         }
         bool hasFormula = false;
         bool hasUnrepresentedStyle = source.FillStyles.Body != null || source.FillStyles.HeaderRow != null
-            || source.FillStyles.HeaderColumn != null || source.FillStyles.FooterRow != null || new[] { source.TextStyles.Body, source.TextStyles.HeaderRow,
+            || source.FillStyles.HeaderColumn != null || source.FillStyles.FooterRow != null || source.FillStyles.BandedBody != null || new[] { source.TextStyles.Body, source.TextStyles.HeaderRow,
             source.TextStyles.HeaderColumn, source.TextStyles.FooterRow }.Any(style => style != null);
         foreach (IWorkTableCell cell in source.Cells) {
             _cancellationToken.ThrowIfCancellationRequested();

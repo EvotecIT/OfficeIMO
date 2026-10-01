@@ -162,3 +162,15 @@ python Build/IWork/extract-keynote-table-fill-defaults.py OfficeIMO.TestAssets/D
 ```
 
 All nine saved/reopened PPTX cells preserve explicit no-fill and suppress destination theme backgrounds. This qualifies source declarations and saved properties; role intersections, banded appearance, Apple exports and complete styling remain unqualified.
+
+## Native Numbers table banding
+
+`native-exports/numbers-banding-v14.5.numbers` is an OfficeIMO-authored fixture saved by Numbers 14.5, covered by the repository MIT license. Three eight-row tables vary the header-row count from zero to two and retain one header column and one footer row. Row seven's “Footer” label is body content; the actual footer is the empty eighth row. No selected cell-fill overrides are stored.
+
+The matching Apple XLSX and three-page PDF exports qualify the alternating body-row pattern and region intersections. The XLSX inserts a table-title row. The manifest records all 72 native position fills, source and export hashes, producer version, export settings and limits. Reproduce the source/schema and XLSX oracle extraction with pinned opt-in numbers-parser 4.19.0:
+
+```sh
+python Build/IWork/extract-numbers-banding.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-banding-v14.5.json
+```
+
+This evidence covers opaque sRGB region and band fills in this fixture. It does not establish complete appearance, selected override behavior in Apple exports, other producer versions, or Pages and Keynote banded exports.
