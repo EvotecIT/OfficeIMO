@@ -51,10 +51,10 @@ document.Save();
 ## What it does
 
 - Creates and edits workbooks, worksheets, cells, ranges, tables, styles, hyperlinks, formulas, names, comments, images, charts, filters, and page setup.
-- Reads tabular values through the forward-only `ExcelDocument.OpenDataReader(...)` API and typed `ExcelSheet.RowsAs<T>(...)` helpers.
+- Reads tabular values through the forward-only `ExcelDocument.OpenDataReader(...)` API and typed `ExcelSheet.RowsAs<T>(...)` helpers. Numeric cells and formula caches retain stored double precision across range, streaming, and typed reads; numeric-looking text retains its text type.
 - Edits loaded workbooks through the normal worksheet, cell, range, table, and fluent authoring APIs.
 - Handles practical workbook hygiene such as table/filter conflicts, safe table names, deterministic save order, and feature inspection.
-- Renders supported numeric display formats consistently in PDF and image export, including optional decimals, scientific mantissa precision and exponent sign/case/padding, and red negative-number sections. Quoted or escaped exponent letters and decimal points remain literals. Numeric-looking text retains its type, contents, and font color. Other number-format colors are not projected.
+- Renders supported numeric display formats consistently in PDF and image export, including mixed fractions that retain whole values beyond `Int64`, optional decimals, scientific mantissa precision and exponent sign/case/padding, and red negative-number sections. Quoted or escaped exponent letters and decimal points remain literals. Numeric-looking text retains its type, contents, and font color. Other number-format colors are not projected.
 - Applies optional shared package-security policy before parsing Open XML, XLSB, or compound XLS files.
 - Includes parallel execution controls for heavy export and autofit workloads while serializing the Open XML mutation phase safely.
 

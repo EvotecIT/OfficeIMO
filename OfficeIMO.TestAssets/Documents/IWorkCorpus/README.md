@@ -54,6 +54,16 @@ python Build/IWork/create-scientific-format-fixture.py OfficeIMO.TestAssets/Docu
 
 The scientific and numeric-format generators share `fixture_number_values.py` to derive portable numeric values and precision evidence from the stored finite Decimal128 coefficient and exponent. OfficeIMO tests compare source metadata and exact numeric values, then save/reopen XLSX and check display text. This is independent-producer evidence, without an Apple native export or appearance claim. Regenerated identifiers and timestamps can change package bytes; compare semantic manifest cases. The existing numbers-parser MIT notice covers the template and implementation.
 
+## Fraction formats
+
+`numbers-parser/fraction-formats.numbers` is produced by numbers-parser 4.19.0 using `Build/IWork/create-fraction-format-fixture.py`. Its generated manifest records twenty-six cases across all nine denominator modes, stored numeric precision, source metadata, and reopened producer display strings. Eighteen display examples qualify the independent oracle. Eight destination alternatives cover negative whole parts, rollover, and midpoint ties where the producer's output loses information, remains unnormalized, or differs in rounding policy. Those alternatives qualify OfficeIMO's reported display approximation, without claiming producer or Apple appearance equivalence.
+
+```bash
+python Build/IWork/create-fraction-format-fixture.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/fraction-formats.numbers
+```
+
+The generator reuses `fixture_number_values.py` for exact Decimal128 text and portable numeric values. The near-quarter-midpoint example retains the value actually stored by the writer, which lies below the midpoint. Tests compare saved/reopened XLSX numeric types, values, format codes, and image-snapshot text. Regenerated identifiers and timestamps can change bytes; compare semantic manifest cases. The existing numbers-parser MIT notice covers the template and implementation.
+
 ## Independent Apple exports
 
 `native-exports/numbers-formulas-v14.5.json` records exports of `numbers-parser/test-10-formulas.numbers` made with Apple Numbers 14.5 (build 7045.0.17). The unmodified XLSX and PDF references include artifact hashes, export settings, source licensing, font provenance, and qualification limits. Numbers exports one worksheet per table and inserts a title row; the manifest accounts for that row when comparing source coordinates and formulas.
@@ -84,6 +94,7 @@ The extractor accepts this pinned two-table fixture only, verifies the PDF hash 
 | `numbers-parser/currency-formats.numbers` | `6f45fa942ab26b2e9a3c2487fec491d5c43e85cfe1c191520134d5b64ac61475` |
 | `numbers-parser/number-formats.numbers` | `1fb277a6897c0fc4387cd50a51c57de0a08323b694b98a5926b9bc5190717b1f` |
 | `numbers-parser/scientific-formats.numbers` | `23bfaa5cf394c46ec5192e9612aca75c29f00e84331f11ffc338ef338aa5847d` |
+| `numbers-parser/fraction-formats.numbers` | `da140e7eeac3122505690af655a5896aa056573dd15826a2f84d035388fbff55` |
 | `numbers-parser/issue-102-v15.1.numbers` | `88a9fa7be095d03004478393a87a4a97602d7468f839d067ec9118c524c55176` |
 | `numbers-parser/test-10-formulas.numbers` | `dd85bad68898ce5b065f277c0b9be1f3c32d696e3baa6b09d3614bbd35a5249f` |
 | `numbers-parser/test-9-merges.numbers` | `d640c0012d629834161827cb2f564d0966d24e159586f82426a69c12a8f334cf` |

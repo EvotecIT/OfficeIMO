@@ -393,7 +393,7 @@ namespace OfficeIMO.Excel {
                 && (cell.CellFormula == null || _opt.UseCachedFormulaResult);
             if (canPreserveDateSerial
                 && Styles.IsDateLike(styleIndex!.Value)
-                && (TryParseInvariantDoubleFast(rawText, out double serial)
+                && (TryParseInvariantDouble(rawText, out double serial)
                     || double.TryParse(
                         rawText,
                         NumberStyles.Float | NumberStyles.AllowThousands,

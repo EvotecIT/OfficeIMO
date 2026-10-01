@@ -13,6 +13,14 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 Finite Decimal128 values above fifteen significant digits now retain numeric recovery instead of forcing visual fallback. Inspect `IWorkTableCell.NumericValueIsApproximate` before consuming values that must retain exact source precision; `SourceNumberText` holds the exact normalized coefficient/exponent value. Conversion reports use `IWORK_TABLE_NUMERIC_VALUE_APPROXIMATED` with `Approximation` fidelity, and formula cache assessments use `Approximate`. `RequireNoLoss()` rejects this approximation. Overflow, nonzero underflow and unsupported special encodings remain decode failures.
 
+## Stored Excel numeric precision
+
+Range, streaming, typed-object, and PDF reads use correctly rounded conversion of stored numeric text. Values immediately beside a rounding boundary retain their stored double value; for example, `0.6249999999999999` remains below `0.625` and displays as `2/4` under a fixed-quarter fraction format. Numeric formula caches use the same conversion. Explicit decimal conversion and numeric-looking text retain their existing contracts.
+
+## iWork fraction reconstruction
+
+`IWorkNumberFormatKind.Fraction` and `IWorkFractionAccuracy` add denominator precision to the shared numeric model. `IWorkNumberFormat.DecimalPlaces == null` can now identify a fraction; inspect `Kind` before treating null as automatic decimal mode. The Excel adapter retains editable numeric values and applies mixed-fraction codes with explicit minus and zero sections. `IWORK_NUMBERS_FRACTION_DISPLAY_APPROXIMATED` reports rounding, normalization, and spacing differences; `RequireNoLoss()` rejects this approximation. Nondefault fraction negative styles, grouping, and other controls still require the partial-reconstruction policy. DOCX and PPTX table conversion retains raw cached text and reports numeric-format omission.
+
 ## iWork scientific reconstruction
 
 `IWorkNumberFormatKind.Scientific` is an additive enum member. Supported scientific selections retain typed values and formula caches and convert to editable XLSX with zero-to-thirty mantissa decimal places and an `E+00` exponent. Automatic precision reports `IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED`; `RequireNoLoss()` rejects that approximation. Nondefault scientific negative styles and grouping still require the partial-reconstruction policy. DOCX and PPTX table conversion retains raw cached text and reports numeric-format omission.

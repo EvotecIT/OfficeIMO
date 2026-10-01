@@ -404,7 +404,7 @@ namespace OfficeIMO.Excel {
                 && binding.NeedsDateStyleConversion
                 && styleIndex is not null
                 && Styles.IsDateLike(styleIndex.Value)) {
-                if (TryParseInvariantDoubleFast(rawText, out var oa)
+                if (TryParseInvariantDouble(rawText, out var oa)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa)) {
                     DateTime dateValue = FromExcelSerialDate(oa);
                     if (binding.SetDateTime != null && binding.BindingKind == TypedBindingKind.DateTime) {

@@ -892,7 +892,7 @@ namespace OfficeIMO.Excel {
                 objectValue = null;
 
                 bool parsedNumber = double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, _options.Culture, out double number)
-                    || TryParseInvariantDoubleFast(value, out number)
+                    || TryParseInvariantDouble(value, out number)
                     || double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number);
                 if (parsedNumber
                     && dateStyle

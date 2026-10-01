@@ -66,7 +66,9 @@ internal sealed class IWorkTableNumberFormatCatalog {
                         && code is { Length: 3 } && code.All(value => value is >= (byte)'A' and <= (byte)'Z');
                     if (supportedShape) currencyCode = System.Text.Encoding.ASCII.GetString(code!);
                 }
-                if (supportedShape && (currency ? type == 257 : type is 256 or 258 or 259)
+                if (!currency && type == 262) {
+                    format = ReadFractionFormat(message);
+                } else if (supportedShape && (currency ? type == 257 : type is 256 or 258 or 259)
                     && (decimals <= 30 || decimals == 253) && negative <= 3 && grouping <= 1
                     && (type != 259 || negative == 0 && grouping == 0)
                     && accounting <= 1 && (accounting == 0 || negative == 0)) {
@@ -75,7 +77,8 @@ internal sealed class IWorkTableNumberFormatCatalog {
                             : type == 258 ? IWorkNumberFormatKind.Percentage : IWorkNumberFormatKind.Number,
                         decimals == 253 ? null : (int)decimals, grouping == 1, (IWorkNegativeNumberStyle)negative,
                         currencyCode, accounting == 1);
-                } else {
+                }
+                if (format == null) {
                     _references.Declarations.Record(_list!, path, 1, IWorkSourceDeclarationIssueKind.InvalidValue);
                 }
             } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
@@ -90,6 +93,34 @@ internal sealed class IWorkTableNumberFormatCatalog {
         _resolved.Add((key, currency), format);
         if (format == null) FullyReconstructed = false;
         return format;
+    }
+
+    private static IWorkNumberFormat? ReadFractionFormat(IWorkWireMessage message) {
+        if (message.FieldCount(1) != 1 || message.FieldCount(11) != 1
+            || message.TotalFieldCount != message.FieldCount(1) + message.FieldCount(11)
+                + message.FieldCount(4) + message.FieldCount(5)) return null;
+        foreach (int field in new[] { 1, 4, 5, 11 }) {
+            if (message.FieldCount(field) > 1 || message.HasUnexpectedWireKind(field, IWorkWireKind.Varint)) return null;
+        }
+        // Only the default minus/no-grouping subset is qualified. Decimal,
+        // currency, scaling and custom controls cannot be ignored for fractions.
+        if ((message.GetUnsigned(4) ?? 0) != 0 || (message.GetUnsigned(5) ?? 0) != 0) return null;
+        IWorkFractionAccuracy? accuracy = message.GetUnsigned(11) switch {
+            0xffffffff => IWorkFractionAccuracy.OneDigitDenominator,
+            0xfffffffe => IWorkFractionAccuracy.TwoDigitDenominator,
+            0xfffffffd => IWorkFractionAccuracy.ThreeDigitDenominator,
+            2 => IWorkFractionAccuracy.Halves,
+            4 => IWorkFractionAccuracy.Quarters,
+            8 => IWorkFractionAccuracy.Eighths,
+            16 => IWorkFractionAccuracy.Sixteenths,
+            10 => IWorkFractionAccuracy.Tenths,
+            100 => IWorkFractionAccuracy.Hundredths,
+            _ => null
+        };
+        return accuracy is IWorkFractionAccuracy selected
+            ? new IWorkNumberFormat(IWorkNumberFormatKind.Fraction, null, false, IWorkNegativeNumberStyle.Minus,
+                fractionAccuracy: selected)
+            : null;
     }
 
     private void Initialize() {
