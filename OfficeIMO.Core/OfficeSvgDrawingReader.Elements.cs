@@ -162,6 +162,7 @@ public static partial class OfficeSvgDrawingReader {
                     maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
                     ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
             }
+            OfficeDrawing linkContent = target;
             if (hasEffects) {
                 TryApplySvgFilter(target, filterEffect, references, transform, maximumElements, ref visited, ref unsupported, out target);
                 drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
@@ -169,7 +170,7 @@ public static partial class OfficeSvgDrawingReader {
                 drawing.AddDrawingForClippedRendering(target, 0D, 0D, null);
             }
             if (capturesLink) {
-                TryAddSvgLink(element, target, drawing, ref unsupported);
+                TryAddSvgLink(element, linkContent, drawing, ref unsupported);
             }
             return;
         }

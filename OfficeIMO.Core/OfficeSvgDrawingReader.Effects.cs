@@ -47,6 +47,10 @@ public static partial class OfficeSvgDrawingReader {
         if (!string.IsNullOrWhiteSpace(filterValue)
             && !filterValue!.Trim().Equals("none", StringComparison.OrdinalIgnoreCase)) {
             if (TryResolveSvgFilter(filterValue, references, out filterEffect)) {
+                if (filterEffect?.Graph != null) {
+                    filterEffect.Graph.ViewX = viewX;
+                    filterEffect.Graph.ViewY = viewY;
+                }
                 // A zero-alpha shadow leaves the source unchanged. Omitting it
                 // avoids retaining sample and wrapper scenes that never render.
                 if (filterEffect?.Kind == SvgFilterEffectKind.DropShadow && filterEffect.Opacity <= 0D) {
@@ -277,6 +281,14 @@ public static partial class OfficeSvgDrawingReader {
             filtered.AddEffectDrawing(blurred, OfficeTransform.Identity);
             if (effect.Kind == SvgFilterEffectKind.DropShadow) {
                 filtered.AddEffectDrawing(source, OfficeTransform.Identity);
+            }
+        }
+        if (TryGetSvgFilterGeometryBounds(source.Elements, out SvgInteractiveBounds geometry)) {
+            foreach (OfficeDrawingElement element in filtered.Elements) {
+                if (element is OfficeDrawingEffectGroup group && group.Transform.TryInvert(out OfficeTransform inverse)) {
+                    SvgInteractiveBounds local = geometry.Transform(inverse);
+                    group.UnfilteredGeometryBounds = (local.Left, local.Top, local.Right, local.Bottom);
+                }
             }
         }
         result = filtered;

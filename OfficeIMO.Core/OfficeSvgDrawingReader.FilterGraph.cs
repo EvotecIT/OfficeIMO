@@ -20,6 +20,7 @@ public static partial class OfficeSvgDrawingReader {
     private sealed class SvgFilterGraph {
         internal readonly List<SvgFilterNode> Nodes = new();
         internal bool Linear = true, UserRegion;
+        internal double ViewX, ViewY;
         internal string X = "-10%", Y = "-10%", Width = "120%", Height = "120%";
     }
 
@@ -44,14 +45,14 @@ public static partial class OfficeSvgDrawingReader {
         for (int index = 0; index < primitives.Count; index++) {
             XElement p = primitives[index];
             if (p.Name.Namespace != filter.Name.Namespace || p.HasElements ||
-                p.Attributes().Any(a => a.Name.LocalName is "x" or "y" or "width" or "height") ||
+                p.Attributes().Any(a => a.Name.LocalName is "x" or "y" or "width" or "height" or "no-composite") ||
                 !TryFilterColorSpace(p, out bool primitiveLinear) || primitiveLinear != linear ||
                 !TryFilterInput(p.Attribute("in")?.Value, index, results, out int input)) return false;
             var node = new SvgFilterNode { Input = input };
             switch (p.Name.LocalName) {
                 case "feGaussianBlur":
                     node.Operation = SvgFilterOperation.Blur;
-                    if (!TryParseNumberList(p.Attribute("stdDeviation")?.Value ?? "0", out IReadOnlyList<double> deviations) ||
+                    if (!TryParseNumberList(p.Attribute("stdDeviation")?.Value ?? "0", 2, out IReadOnlyList<double> deviations) ||
                         deviations.Count is < 1 or > 2 || deviations.Any(d => !FiniteFilterNumber(d) || d < 0D || d > 64D) ||
                         (p.Attribute("edgeMode")?.Value ?? "none") != "none") return false;
                     node.X = deviations[0]; node.Y = deviations.Count == 2 ? deviations[1] : deviations[0];
@@ -65,7 +66,7 @@ public static partial class OfficeSvgDrawingReader {
                     node.Operation = SvgFilterOperation.Matrix;
                     if ((p.Attribute("type")?.Value ?? "matrix") != "matrix") return false;
                     string values = p.Attribute("values")?.Value ?? "1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0";
-                    if (!TryParseNumberList(values, out IReadOnlyList<double> matrix) || matrix.Count != 20 ||
+                    if (!TryParseNumberList(values, 20, out IReadOnlyList<double> matrix) || matrix.Count != 20 ||
                         matrix.Any(d => !FiniteFilterNumber(d) || Math.Abs(d) > 10000D)) return false;
                     node.Matrix = matrix.ToArray();
                     break;

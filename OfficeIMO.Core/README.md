@@ -246,6 +246,22 @@ dimension is rejected. Authored dimensions are checked independently because a
 raster fallback may still allocate from them. An authored `viewBox` still supplies
 the drawing coordinates.
 
+Routed SVG filters on non-text shape/group content support `SourceGraphic`,
+`SourceAlpha`, preceding named results, Gaussian blur, offset, matrix color transforms,
+source-over composition and separable blend modes. These operations use managed RGBA
+buffers at one pixel per drawing unit, then retain a PNG in the scene. The default
+filter color space is linear RGB; a uniform `sRGB` declaration is also supported.
+The filter region clips every input/result and the final paint. Simple unrouted
+blur/offset/drop-shadow filters retain their existing vector approximation.
+
+Managed filter graphs accept at most 32 primitives, blur deviation up to 64 drawing
+pixels per axis, and cumulative document work/intermediate-surface limits. Rotated
+or sheared graphs, explicit primitive subregions, mixed filter color spaces,
+unsupported primitives and graphs containing text, logical `ActualText`, links or
+pattern cells report unsupported features and preserve source geometry. Links on
+the filtered container retain their original geometry. Pass
+`OfficeSvgDrawingReaderOptions.CancellationToken` to cancel import and filter work.
+
 ```csharp
 using OfficeIMO.Drawing;
 

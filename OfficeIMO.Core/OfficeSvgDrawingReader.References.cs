@@ -79,7 +79,7 @@ public static partial class OfficeSvgDrawingReader {
         private const int MaximumExpandedTextCharacters = 131_072;
         private int _expandedTextCharacters;
         private int _patternStrokeOperations;
-        private const double MaximumIntermediateSurfacePixels = 64_000_000D;
+        internal const double MaximumIntermediateSurfacePixels = 64_000_000D;
         private double _intermediateSurfacePixels;
         private double _filterPixelWork;
         private const long MaximumEmbeddedRasterBytes = 64L * 1024L * 1024L;

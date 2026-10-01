@@ -48,5 +48,10 @@ public sealed class OfficeDrawingEffectGroup : OfficeDrawingElement {
     /// <summary>Optional detached vector soft mask.</summary>
     public OfficeDrawingSoftMask? SoftMask { get; }
 
-    internal override OfficeDrawingElement CloneElement() => new OfficeDrawingEffectGroup(_drawing, Transform, BlendMode, SoftMask, Opacity);
+    // Filter geometry before paint expansion, in the group's pre-transform space.
+    internal (double Left, double Top, double Right, double Bottom)? UnfilteredGeometryBounds { get; set; }
+
+    internal override OfficeDrawingElement CloneElement() => new OfficeDrawingEffectGroup(_drawing, Transform, BlendMode, SoftMask, Opacity) {
+        UnfilteredGeometryBounds = UnfilteredGeometryBounds
+    };
 }
