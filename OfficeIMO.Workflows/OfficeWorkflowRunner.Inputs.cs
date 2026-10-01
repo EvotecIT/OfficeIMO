@@ -40,7 +40,7 @@ public sealed partial class OfficeWorkflowRunner {
         }
 
         if (request.InputStream is not null && outputPath is null &&
-            request.Operation is not (OfficeWorkflowOperation.Inspect or OfficeWorkflowOperation.RepairPlan or OfficeWorkflowOperation.Compare)) {
+            request.Operation is not (OfficeWorkflowOperation.Inspect or OfficeWorkflowOperation.RepairPlan or OfficeWorkflowOperation.Compare or OfficeWorkflowOperation.AnalyzeWordImages)) {
             throw new ArgumentException("A provider input requires an explicit output destination.", nameof(request));
         }
         if (request.ComparisonStream is not null && request.Operation != OfficeWorkflowOperation.Compare) {
@@ -62,6 +62,20 @@ public sealed partial class OfficeWorkflowRunner {
                 throw new ArgumentException(
                     $"The {route.Id} route currently supports only the Faithful output profile.",
                     nameof(request));
+            }
+        } else if (request.Operation is OfficeWorkflowOperation.AnalyzeWordImages or OfficeWorkflowOperation.OptimizeWordImages) {
+            string extension = Path.GetExtension(inputName).ToLowerInvariant();
+            if (extension is not (".docx" or ".doc"))
+                throw new ArgumentException("Word image optimization accepts DOCX or supported legacy DOC input.", nameof(request));
+            if (request.OutputProfile != OfficeWorkflowOutputProfile.Faithful)
+                throw new ArgumentException("Word image optimization uses explicit image settings with the Faithful output profile.", nameof(request));
+            if (request.Operation == OfficeWorkflowOperation.AnalyzeWordImages) {
+                if (outputPath != null) throw new ArgumentException("Image analysis does not publish an artifact.", nameof(request));
+            } else {
+                outputPath ??= Path.Combine(Path.GetDirectoryName(inputPath)!, Path.GetFileNameWithoutExtension(inputPath) + ".optimized" + extension);
+                string outputExtension = Path.GetExtension(outputName ?? outputPath).ToLowerInvariant();
+                if (outputExtension is not (".docx" or ".doc" or ".pdf"))
+                    throw new ArgumentException("Choose a DOCX, supported legacy DOC, or PDF output.", nameof(request));
             }
         } else if (request.Operation == OfficeWorkflowOperation.Compare) {
             if (string.IsNullOrWhiteSpace(request.ComparisonPath)) throw new ArgumentException("PDF comparison requires a second input path.", nameof(request));
@@ -92,6 +106,10 @@ public sealed partial class OfficeWorkflowRunner {
         if (request.ConversionOptions is not null && route is null)
             throw new ArgumentException("Conversion settings are valid only for conversion operations.", nameof(request));
         OfficeWorkflowConversionOptions? conversionOptions = request.ConversionOptions?.Snapshot(route!);
+        bool wordImages = request.Operation is OfficeWorkflowOperation.AnalyzeWordImages or OfficeWorkflowOperation.OptimizeWordImages;
+        if (!wordImages && request.WordImageOptimization != null)
+            throw new ArgumentException("Word image settings are valid only for Word image operations.", nameof(request));
+        var wordImageOptimization = wordImages ? (request.WordImageOptimization ?? new OfficeIMO.Word.WordImageOptimizationOptions()).Clone() : null;
         OfficeScanCleanupOptions? scanCleanup = request.ScanCleanup?.Snapshot();
         if ((request.Operation == OfficeWorkflowOperation.ScanCleanup) != (scanCleanup != null))
             throw new ArgumentException("ScanCleanup requires scan settings; other operations cannot accept them.", nameof(request));
@@ -133,7 +151,7 @@ public sealed partial class OfficeWorkflowRunner {
         var outputOptions = CreatePdfLoadOptions(outputPassword, limits.MaximumOutputBytes);
         if (encryption?.AesCryptographyProvider is not null) outputOptions = OfficeIMO.Pdf.PdfLoadOptions.WithAesCryptographyProvider(outputOptions, encryption.AesCryptographyProvider);
         OfficeWorkflowStreamInput? inputStream = request.InputStream;
-        if ((request.Operation is OfficeWorkflowOperation.ExtractPages or OfficeWorkflowOperation.ScanCleanup || securityOutput || signing) && inputStream is null) {
+        if ((request.Operation is OfficeWorkflowOperation.ExtractPages or OfficeWorkflowOperation.ScanCleanup || securityOutput || signing || wordImages) && inputStream is null) {
             inputStream = new OfficeWorkflowStreamInput(Path.GetFileName(inputPath), token => {
                 token.ThrowIfCancellationRequested();
                 return Task.FromResult<Stream>(new FileStream(inputPath, FileMode.Open, FileAccess.Read, FileShare.Read));
@@ -155,7 +173,7 @@ public sealed partial class OfficeWorkflowRunner {
             outputOptions,
             request.PublicationGuard,
             inputStream, request.ComparisonStream, request.OutputStream, pages, encryption, request.PdfOwnerPassword ?? request.PdfPassword,
-            request.OutputSigner, signatureOptions, request.OutputSignatureValidator, conversionOptions, scanCleanup);
+            request.OutputSigner, signatureOptions, request.OutputSignatureValidator, conversionOptions, scanCleanup, wordImageOptimization);
     }
 
     private static string ValidateInputLocation(string location, OfficeWorkflowStreamInput? stream) {

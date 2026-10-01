@@ -27,7 +27,11 @@ public enum OfficeWorkflowOperation {
     /// <summary>Create a separate PDF with a cryptographically verified certificate signature.</summary>
     SignPdf,
     /// <summary>Create an explicitly reviewed raster PDF from prepared scan pages.</summary>
-    ScanCleanup
+    ScanCleanup,
+    /// <summary>Analyze Word embedded-image candidates without publishing an artifact.</summary>
+    AnalyzeWordImages,
+    /// <summary>Optimize embedded Word media and publish a separate Word or PDF copy.</summary>
+    OptimizeWordImages
 }
 
 /// <summary>Controls how an existing output path is handled.</summary>
@@ -192,6 +196,9 @@ public sealed class OfficeWorkflowRequest {
     public OfficeWorkflowConversionOptions? ConversionOptions { get; set; }
     /// <summary>Explicit scan preparation and raster-output acknowledgement for ScanCleanup.</summary>
     public OfficeScanCleanupOptions? ScanCleanup { get; set; }
+
+    /// <summary>Embedded-media settings for AnalyzeWordImages and OptimizeWordImages.</summary>
+    public OfficeIMO.Word.WordImageOptimizationOptions? WordImageOptimization { get; set; }
 
     /// <summary>Requested output file. Inspect does not require one; compare emits HTML when one is supplied.</summary>
     public string? OutputPath { get; set; }

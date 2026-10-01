@@ -17,5 +17,8 @@ public enum PdfLayoutDiagnosticKind {
     SkippedContent,
 
     /// <summary>Source content was rendered using a simplified approximation.</summary>
-    SimplifiedContent
+    SimplifiedContent,
+
+    /// <summary>An explicitly requested encoded-image optimization was applied or skipped.</summary>
+    ImageOptimization
 }

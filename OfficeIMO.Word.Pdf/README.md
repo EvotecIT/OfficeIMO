@@ -97,6 +97,30 @@ using var stream = File.Create("invoice.pdf");
 document.SaveAsPdf(stream);
 ```
 
+### Optimize images during PDF export
+
+```csharp
+using OfficeIMO.Drawing;
+using OfficeIMO.Pdf;
+using OfficeIMO.Word;
+using OfficeIMO.Word.Pdf;
+
+using var document = WordDocument.Load("input.docx");
+byte[] pdf = document.ToPdfBytes(new WordToPdfOptions {
+    PdfOptions = new PdfOptions {
+        ImageOptimization = new PdfImageOptimizationOptions {
+            Enabled = true,
+            Mode = OfficeImageOptimizationMode.DownsampleAndRecompress,
+            TargetDpi = 144,
+            JpegQuality = 85
+        }
+    }
+});
+File.WriteAllBytes("output.pdf", pdf);
+```
+
+PDF image optimization is opt-in and leaves Word source media unchanged. `Downsample` uses the final source-image placement, including crop/fit expansion; `Recompress` retains pixels and re-encodes JPEGs; `DownsampleAndRecompress` applies both. The shared managed codecs handle static PNG/JPEG/BMP/GIF/TIFF/WebP input. Multi-frame/page payloads and unsupported formats remain outside static optimization. Candidates that would grow or lose metadata are preserved by default; `AllowMetadataLoss` permits reported metadata loss. Image optimization decisions appear as information diagnostics in the PDF layout report. This export policy is separate from the lossless optimizer for existing PDFs.
+
 ### Capture conversion warnings without throwing away the report
 
 ```csharp

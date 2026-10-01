@@ -244,7 +244,7 @@ namespace OfficeIMO.Word {
 
         private static void ReplaceStyleProperty<T>(OpenXmlCompositeElement parent, T replacement) where T : OpenXmlElement {
             RemoveStyleProperties<T>(parent);
-            parent.Append(replacement);
+            if (!parent.AddChild(replacement, false)) parent.Append(replacement);
         }
 
         private static void ReplaceStyleOnOffProperty<T>(OpenXmlCompositeElement parent, bool enabled, bool specified) where T : OnOffType, new() {
