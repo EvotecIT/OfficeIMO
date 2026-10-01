@@ -650,12 +650,12 @@ and logical text in tagged output. The description is captured when the canvas
 content is built; later edits to the options do not change the document.
 
 ```csharp
-byte[] formula = PdfDocument.Create().TaggedPdfCatalogMarkers()
+byte[] formula = PdfDocument.Create(pdf => pdf.Content(content => content
     .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula,
         expression => expression.ActualText("x^(2)",
             paint => paint.Text("x2", 10, 10, 60, 20)),
-        new PdfCanvasStructureOptions { AlternativeText = "x squared" }))
-    .ToBytes();
+        new PdfCanvasStructureOptions { AlternativeText = "x squared" }))),
+    new PdfOptions().EnableTaggedPdfCatalogMarkers()).ToBytes();
 ```
 
 The role and description do not by themselves establish PDF/UA conformance.
