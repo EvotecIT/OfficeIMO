@@ -122,8 +122,9 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v6
+      - name: Restore NuGet packages
+        id: build-nuget-cache
+        uses: actions/cache/restore@v6
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
@@ -153,6 +154,13 @@ jobs:
           $project = 'OfficeIMO.Examples/OfficeIMO.Examples.csproj'
           dotnet restore $project
           dotnet build $project --configuration $env:BUILD_CONFIGURATION --no-restore
+
+      - name: Save default-branch NuGet cache
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && steps.build-nuget-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.nuget/packages
+          key: ${{ steps.build-nuget-cache.outputs.cache-primary-key }}
 
   html-package-consumers:
     name: 'OfficeIMO HTML packed API consumers'
