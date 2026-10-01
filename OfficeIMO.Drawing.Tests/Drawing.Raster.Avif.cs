@@ -107,7 +107,7 @@ public sealed class DrawingAvifTests {
         payload[sizeByte - item.Offset - 1] &= unchecked((byte)~2); // Clear frame OBU size flag.
         Buffer.BlockCopy(original, sizeByte + 1, payload, sizeByte - item.Offset, original.Length - sizeByte - 1);
         var remaining = new OfficeAvifImageItem(item.Id, item.Width, item.Height, 0, payload.Length,
-            item.Configuration, item.Monochrome, item.ColorDescription);
+            item.Configuration, item.IsAlpha, item.ColorDescription);
         Assert.True(OfficeAv1StillSequenceReader.TryRead(payload, remaining, options, out var noSizeSequence));
         Assert.Equal(sequence.FrameLength, noSizeSequence!.FrameLength);
         Assert.Equal(payload.Length, noSizeSequence.FrameOffset + noSizeSequence.FrameLength);
@@ -138,7 +138,7 @@ public sealed class DrawingAvifTests {
         byte[] configuration = (byte[])color.Configuration.Clone();
         if (monochrome) configuration[2] |= 16;
         var item = new OfficeAvifImageItem(color.Id, color.Width, color.Height, color.Offset, color.Length,
-            configuration, monochrome, null);
+            configuration, false, null);
         Assert.False(OfficeAv1StillSequenceReader.TryRead(bytes, item, options, out _));
     }
 

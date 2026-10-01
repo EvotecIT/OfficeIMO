@@ -113,7 +113,7 @@ public sealed class DrawingAv1FrameTests {
     public void FrameChecksActualIspeDimensionsPixelBudgetAndCancellation() {
         var (bytes, item, sequence) = ReadFixture("avif-opaque", false);
         var mismatch = new OfficeAvifImageItem(item.Id, 48, item.Height, item.Offset, item.Length,
-            item.Configuration, item.Monochrome, item.ColorDescription);
+            item.Configuration, item.IsAlpha, item.ColorDescription);
         Assert.False(OfficeAv1StillFrameReader.TryRead(bytes, mismatch, sequence, new OfficeRasterDecodeOptions(), out _));
         Assert.False(OfficeAv1StillFrameReader.TryRead(bytes, item, sequence,
             new OfficeRasterDecodeOptions { MaximumDecodedPixels = 1616 }, out _));
@@ -202,7 +202,7 @@ public sealed class DrawingAv1FrameTests {
     }
 
     private static (OfficeAvifImageItem Item, OfficeAv1StillSequence Sequence) SyntaxItem(byte[] payload, int width, int height) =>
-        (new OfficeAvifImageItem(1, width, height, 0, payload.Length, new byte[] { 129, 0, 28, 0 }, true, null),
+        (new OfficeAvifImageItem(1, width, height, 0, payload.Length, new byte[] { 129, 0, 28, 0 }, false, null),
         new OfficeAv1StillSequence { MaximumWidth = width, MaximumHeight = height, Monochrome = true, FrameLength = payload.Length });
 
     private sealed class HeaderWriter {

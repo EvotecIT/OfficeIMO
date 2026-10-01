@@ -9,6 +9,10 @@ public sealed class DrawingAvifPublicDecodeTests {
     [Theory]
     [InlineData("avif-opaque")]
     [InlineData("avif-alpha")]
+    [InlineData("avif-monochrome-full")]
+    [InlineData("avif-monochrome-limited")]
+    [InlineData("avif-monochrome-full-alpha")]
+    [InlineData("avif-monochrome-limited-alpha")]
     public void DefaultByteAndStreamDecodePreservesIndependentPixelsAndSelection(string name) {
         byte[] bytes=File.ReadAllBytes(Asset(name+".avif")),saved=(byte[])bytes.Clone(),expected=File.ReadAllBytes(Asset(name+".rgba"));
         var codec=new RejectingCodec();var options=new OfficeRasterDecodeOptions {ImageCodec=codec};
@@ -21,7 +25,8 @@ public sealed class DrawingAvifPublicDecodeTests {
         Assert.True(OfficeImageReader.TryValidateContent(bytes,name+".avif",out var metadata));Assert.Equal(49,metadata.Width);Assert.Equal(33,metadata.Height);
         Assert.True(OfficeRasterContainerInspector.TryInspect(bytes,out var inspected));Assert.Equal(1,inspected!.Count);
         Assert.Equal(expected.Length,image!.PixelBuffer.Length);
-        for(int i=0;i<expected.Length;i++)Assert.InRange(Math.Abs(expected[i]-image.PixelBuffer[i]),0,i%4==3?0:3);
+        int rgbTolerance = name.StartsWith("avif-monochrome-", StringComparison.Ordinal) ? 1 : 3;
+        for(int i=0;i<expected.Length;i++)Assert.InRange(Math.Abs(expected[i]-image.PixelBuffer[i]),0,i%4==3?0:rgbTolerance);
         using var stream=new MemoryStream(bytes);Assert.True(OfficeRasterImageDecoder.TryDecode(stream,options,out var streamImage,out _));
         Assert.Equal(0,stream.Position);Assert.Equal(image.PixelBuffer,streamImage!.PixelBuffer);
         Assert.Equal(saved,bytes);Assert.Equal(0,codec.Calls);
@@ -29,9 +34,11 @@ public sealed class DrawingAvifPublicDecodeTests {
         Assert.Null(missing);Assert.Equal(1,selection.FrameCount);
     }
 
-    [Fact]
-    public void PixelEncodedRetainedAndCanceledRequestsCannotReachTheCallerCodec() {
-        byte[] bytes=File.ReadAllBytes(Asset("avif-alpha.avif"));var codec=new RejectingCodec();
+    [Theory]
+    [InlineData("avif-alpha")]
+    [InlineData("avif-monochrome-limited-alpha")]
+    public void PixelEncodedRetainedAndCanceledRequestsCannotReachTheCallerCodec(string name) {
+        byte[] bytes=File.ReadAllBytes(Asset(name + ".avif"));var codec=new RejectingCodec();
         foreach(var options in new[] {
             new OfficeRasterDecodeOptions {MaximumDecodedPixels=49*33-1},
             new OfficeRasterDecodeOptions {MaximumEncodedBytes=bytes.Length-1},

@@ -3,14 +3,14 @@ namespace OfficeIMO.Drawing;
 /// <summary>Validated item locations and properties borrowed from one bounded AVIF payload.</summary>
 internal sealed class OfficeAvifImageItem {
     internal OfficeAvifImageItem(uint id, int width, int height, int offset, int length,
-        byte[] configuration, bool monochrome, OfficeAvifColorDescription? colorDescription) {
+        byte[] configuration, bool isAlpha, OfficeAvifColorDescription? colorDescription) {
         Id = id;
         Width = width;
         Height = height;
         Offset = offset;
         Length = length;
         Configuration = configuration;
-        Monochrome = monochrome;
+        IsAlpha = isAlpha;
         ColorDescription = colorDescription;
     }
 
@@ -20,7 +20,9 @@ internal sealed class OfficeAvifImageItem {
     internal int Offset { get; }
     internal int Length { get; }
     internal byte[] Configuration { get; }
-    internal bool Monochrome { get; }
+    internal bool Monochrome => Configuration.Length >= 3 && (Configuration[2] & 16) != 0;
+    /// <summary>Auxiliary-alpha role is established by item references and auxC, independently of plane count.</summary>
+    internal bool IsAlpha { get; }
     internal OfficeAvifColorDescription? ColorDescription { get; }
 }
 

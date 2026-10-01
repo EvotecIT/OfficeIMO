@@ -107,7 +107,7 @@ public sealed class DrawingAv1RestoredFrameTests {
         if(c.TryGetProperty("inputBase64",out var input)) {
             bytes=Convert.FromBase64String(input.GetString()!);var native=c.GetProperty("cdef");bool mono=c.GetProperty("monochrome").GetBoolean();
             item=new OfficeAvifImageItem(1,c.GetProperty("restored").GetProperty("width").GetInt32(),native.GetProperty("height").GetInt32(),0,bytes.Length,
-                new byte[] {0x81,(byte)native.GetProperty("level").GetInt32(),(byte)(mono?28:12),0},mono,null);
+                new byte[] {0x81,(byte)native.GetProperty("level").GetInt32(),(byte)(mono?28:12),0},false,null);
         } else {
             bytes=File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory,"TestAssets","Avif",name+".avif"));
             Assert.True(OfficeAvifContainerReader.TryRead(bytes,options,out var container));item=alpha?container!.Alpha!:container!.Color;

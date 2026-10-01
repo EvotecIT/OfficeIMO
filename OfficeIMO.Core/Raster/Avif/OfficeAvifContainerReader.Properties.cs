@@ -55,7 +55,7 @@ internal sealed partial class OfficeAvifContainerReader {
         Require(_types.TryGetValue(id, out string? type) && type == "av01");
         Require(_locations.TryGetValue(id, out var location));
         Require(_associations.TryGetValue(id, out var properties));
-        int width = 0, height = 0;
+        int width = 0, height = 0, pixelChannels = 0;
         byte[]? configuration = null;
         OfficeAvifColorDescription? color = null;
         bool hasAuxiliaryType = false;
@@ -81,8 +81,9 @@ internal sealed partial class OfficeAvifContainerReader {
                     // Initial path is 8-bit Main profile: no high-bit-depth planes or extra config OBUs yet.
                     Require((configuration[1] >> 5) == 0 && (configuration[2] & 0xE0) == 0 && configuration[3] == 0);
                     Require((configuration[2] & 0x0C) == 0x0C);
-                    Require(((configuration[2] & 0x10) != 0) == alpha);
-                    if (alpha) Require((configuration[2] & 3) == 0);
+                    bool monochrome = (configuration[2] & 0x10) != 0;
+                    Require(!alpha || monochrome);
+                    if (monochrome) Require((configuration[2] & 3) == 0);
                     break;
                 case "pixi": {
                     Require(seen.Add(property.Type));
@@ -90,7 +91,8 @@ internal sealed partial class OfficeAvifContainerReader {
                     Require(flags == 0);
                     var cursor = new Cursor(this, p, property.End);
                     int channels = (int)cursor.Integer(1);
-                    Require(channels == (alpha ? 1 : 3));
+                    Require(channels is 1 or 3);
+                    pixelChannels = channels;
                     for (int i = 0; i < channels; i++) Require(cursor.Integer(1) == 8);
                     cursor.End();
                     break;
@@ -115,6 +117,8 @@ internal sealed partial class OfficeAvifContainerReader {
             }
         }
         Require(width > 0 && height > 0 && configuration != null && (!alpha || hasAuxiliaryType));
+        // pixi may precede av1C in the association list; validate their agreement after reading both.
+        Require(pixelChannels == 0 || pixelChannels == ((configuration![2] & 0x10) != 0 ? 1 : 3));
         return new OfficeAvifImageItem(id, width, height, location.Offset, location.Length, configuration!, alpha, color);
     }
 

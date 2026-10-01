@@ -113,7 +113,7 @@ internal static class OfficeAv1StillSequenceReader {
         Require(config.Length == 4 && config[0] == 0x81 && config[1] == result.Level);
         int format = (result.Monochrome ? 16 : 0) | 12 | result.ChromaSamplePosition;
         Require(config[2] == format && config[3] == 0);
-        Require(result.Monochrome == item.Monochrome && (!item.Monochrome || fullRange));
+        Require(result.Monochrome == item.Monochrome && (!item.IsAlpha || (result.Monochrome && fullRange)));
         return result;
     }
 
