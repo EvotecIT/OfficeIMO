@@ -139,8 +139,21 @@ namespace OfficeIMO.Excel.Pdf {
                 case byte byteValue:
                     number = byteValue;
                     return true;
+                case sbyte sbyteValue:
+                    number = sbyteValue;
+                    return true;
+                case ushort ushortValue:
+                    number = ushortValue;
+                    return true;
+                case uint uintValue:
+                    number = uintValue;
+                    return true;
+                case ulong ulongValue:
+                    number = ulongValue;
+                    return true;
                 default:
-                    return double.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number);
+                    number = default;
+                    return false;
             }
         }
 

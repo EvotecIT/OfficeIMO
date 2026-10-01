@@ -213,10 +213,10 @@ namespace OfficeIMO.Excel {
                     string rawText = sheet.TryGetCellText(row.Index, column.Index, out string cellText)
                         ? cellText
                         : string.Empty;
+                    ExcelVisualCellValueKind valueKind = ResolveVisualCellValueKind(valueData, style);
                     string text = string.IsNullOrEmpty(rawText)
                         ? string.Empty
-                        : FormatCellDisplayText(rawText, style, sheet.Document.DateSystem);
-                    ExcelVisualCellValueKind valueKind = ResolveVisualCellValueKind(valueData, rawText, style);
+                        : FormatCellDisplayText(rawText, valueKind, style, sheet.Document.DateSystem);
                     IReadOnlyList<ExcelVisualTextRun> richTextRuns = covered
                         ? Array.Empty<ExcelVisualTextRun>()
                         : BuildRichTextRuns(sheet.GetRichText(row.Index, column.Index));
@@ -429,9 +429,10 @@ namespace OfficeIMO.Excel {
                 string rawText = sheet.TryGetCellText(merge.StartRow, merge.StartColumn, out string cellText)
                     ? cellText
                     : string.Empty;
+                ExcelVisualCellValueKind valueKind = ResolveVisualCellValueKind(valueData, style);
                 string text = string.IsNullOrEmpty(rawText)
                     ? string.Empty
-                    : FormatCellDisplayText(rawText, style, sheet.Document.DateSystem);
+                    : FormatCellDisplayText(rawText, valueKind, style, sheet.Document.DateSystem);
                 hyperlinkMap.TryGetValue(A1.CellReference(merge.StartRow, merge.StartColumn), out ExcelHyperlinkSnapshot? hyperlink);
                 cells.Add(new ExcelVisualCell(
                     merge.StartRow,
@@ -445,7 +446,7 @@ namespace OfficeIMO.Excel {
                     coveredByMerge: false,
                     hyperlink,
                     BuildRichTextRuns(sheet.GetRichText(merge.StartRow, merge.StartColumn)),
-                    ResolveVisualCellValueKind(valueData, rawText, style)));
+                    valueKind));
             }
         }
 
@@ -1879,8 +1880,9 @@ namespace OfficeIMO.Excel {
             return Math.Max(1D, Math.Round(definition.Height.Value * 96D / 72D, 2));
         }
 
-        private static string FormatCellDisplayText(string text, ExcelCellStyleSnapshot style, ExcelDateSystem dateSystem) {
-            if (string.IsNullOrEmpty(text) || style.NumberFormatId == 0U) {
+        private static string FormatCellDisplayText(string text, ExcelVisualCellValueKind valueKind, ExcelCellStyleSnapshot style, ExcelDateSystem dateSystem) {
+            if ((valueKind != ExcelVisualCellValueKind.Number && valueKind != ExcelVisualCellValueKind.Date)
+                || string.IsNullOrEmpty(text) || style.NumberFormatId == 0U) {
                 return text;
             }
 
@@ -1889,7 +1891,7 @@ namespace OfficeIMO.Excel {
                 : text;
         }
 
-        private static ExcelVisualCellValueKind ResolveVisualCellValueKind(ExcelCellData data, string rawText, ExcelCellStyleSnapshot style) {
+        private static ExcelVisualCellValueKind ResolveVisualCellValueKind(ExcelCellData data, ExcelCellStyleSnapshot style) {
             switch (data.Kind) {
                 case ExcelCellDataKind.Blank:
                     return ExcelVisualCellValueKind.Blank;
@@ -1902,7 +1904,7 @@ namespace OfficeIMO.Excel {
                 case ExcelCellDataKind.Number:
                     return IsDateLikeNumericCell(style) ? ExcelVisualCellValueKind.Date : ExcelVisualCellValueKind.Number;
                 case ExcelCellDataKind.Formula:
-                    return TryResolveFormulaVisualValueKind(data, rawText, style, out ExcelVisualCellValueKind formulaKind)
+                    return TryResolveFormulaVisualValueKind(data, style, out ExcelVisualCellValueKind formulaKind)
                         ? formulaKind
                         : ExcelVisualCellValueKind.Text;
                 default:
@@ -1910,9 +1912,8 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static bool TryResolveFormulaVisualValueKind(ExcelCellData data, string rawText, ExcelCellStyleSnapshot style, out ExcelVisualCellValueKind valueKind) {
-            string? cachedText = string.IsNullOrEmpty(data.CachedText) ? rawText : data.CachedText;
-            if (data.Value is double || double.TryParse(cachedText, NumberStyles.Float, CultureInfo.InvariantCulture, out _)) {
+        private static bool TryResolveFormulaVisualValueKind(ExcelCellData data, ExcelCellStyleSnapshot style, out ExcelVisualCellValueKind valueKind) {
+            if (data.Value is double) {
                 valueKind = IsDateLikeNumericCell(style) ? ExcelVisualCellValueKind.Date : ExcelVisualCellValueKind.Number;
                 return true;
             }

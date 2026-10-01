@@ -277,9 +277,6 @@ namespace OfficeIMO.Excel {
 
             int percentPlaceholders = CountPercentPlaceholders(section);
             bool thousands = lower.Contains("#,##") || lower.Contains(",##");
-            bool currency = normalized.IndexOf('$') >= 0
-                || normalized.IndexOf('\u20AC') >= 0
-                || normalized.IndexOf('\u00A3') >= 0;
             DecimalPlaceInfo decimalPlaces = GetDecimalPlaceInfo(lower);
             double displayValue = value;
             for (int i = 0; i < percentPlaceholders; i++) {
@@ -295,7 +292,7 @@ namespace OfficeIMO.Excel {
                 displayValue = Math.Abs(displayValue);
             }
 
-            string numericFormat = thousands || currency
+            string numericFormat = thousands
                 ? "N" + decimalPlaces.Maximum.ToString(CultureInfo.InvariantCulture)
                 : "F" + decimalPlaces.Maximum.ToString(CultureInfo.InvariantCulture);
             string text = displayValue.ToString(numericFormat, CultureInfo.InvariantCulture);

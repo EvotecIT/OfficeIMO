@@ -34,7 +34,9 @@ namespace OfficeIMO.Excel {
 
             string? cached = cell.CellValue?.Text;
             if (cell.CellFormula != null) {
-                object? formulaValue = double.TryParse(cached, NumberStyles.Float, CultureInfo.InvariantCulture, out double cachedNumber)
+                var cacheType = cell.DataType?.Value;
+                object? formulaValue = (cacheType == null || cacheType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number)
+                    && double.TryParse(cached, NumberStyles.Float, CultureInfo.InvariantCulture, out double cachedNumber)
                     ? cachedNumber
                     : cached;
                 return new ExcelCellData(ExcelCellDataKind.Formula, formulaValue, cell.CellFormula.Text, cached);
