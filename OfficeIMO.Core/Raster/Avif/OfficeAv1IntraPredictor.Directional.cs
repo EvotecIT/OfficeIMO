@@ -3,9 +3,9 @@ using System;
 namespace OfficeIMO.Drawing;
 
 internal sealed partial class OfficeAv1IntraPredictor {
-    private void Directional(byte[] output,int w,int h,int angle,OfficeAv1PredictionEdges edges,bool filter,bool smooth) {
+    private void Directional(ushort[] output,int w,int h,int angle,OfficeAv1PredictionEdges edges,bool filter,bool smooth) {
         if((angle<=90 && edges.AboveCount==0) || (angle>=180 && edges.LeftCount==0)) {
-            byte value=angle<=90?(edges.LeftCount>0?edges.Left[0]:(byte)127):(edges.AboveCount>0?edges.Above[0]:(byte)129);
+            ushort value=angle<=90?(edges.LeftCount>0?edges.Left[0]:(ushort)(_middle-1)):(edges.AboveCount>0?edges.Above[0]:(ushort)(_middle+1));
             for(int y=0;y<h;y++) {_cancellation.ThrowIfCancellationRequested();for(int x=0;x<w;x++) output[y*w+x]=value;}
             return;
         }
@@ -40,7 +40,7 @@ internal sealed partial class OfficeAv1IntraPredictor {
                     int idx=(x+1)*dy,b=(idx>>(6-upLeft))+(y<<upLeft),max=(w+h-1)<<upLeft;
                     v=b<max?Interpolate(_left,b,((idx<<upLeft)>>1)&31):_left[Origin+max];
                 }
-                output[y*w+x]=(byte)v;
+                output[y*w+x]=(ushort)v;
             }
         }
     }

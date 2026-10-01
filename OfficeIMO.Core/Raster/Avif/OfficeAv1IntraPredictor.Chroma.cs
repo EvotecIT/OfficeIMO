@@ -4,7 +4,7 @@ namespace OfficeIMO.Drawing;
 
 internal sealed partial class OfficeAv1IntraPredictor {
     /// <summary>Predicts CfL from a bounded reconstructed luma region, extending its final row/column at frame edges.</summary>
-    internal OfficeAv1Prediction PredictChromaFromLuma(int size,int alpha,byte dc,byte[] luma,int stride,
+    internal OfficeAv1Prediction PredictChromaFromLuma(int size,int alpha,ushort dc,ushort[] luma,int stride,
         int sourceWidth,int sourceHeight,int subX,int subY) {
         var d=Dimensions(size);int w=d.Width,h=d.Height;
         if(luma==null) throw new ArgumentNullException(nameof(luma));
@@ -13,16 +13,17 @@ internal sealed partial class OfficeAv1IntraPredictor {
            (sourceWidth&subX)!=0 || (sourceHeight&subY)!=0 || stride<sourceWidth || stride>64 ||
            luma.Length>4096 || (long)(sourceHeight-1)*stride+sourceWidth>luma.Length)
             throw new FormatException("Invalid AV1 chroma-from-luma source or scaling.");
+        ValidateSample(dc);
         int sum=0;
         for(int y=0;y<h;y++) {
             _cancellation.ThrowIfCancellationRequested();int sy=Math.Min(y<<subY,sourceHeight-(1<<subY));
             for(int x=0;x<w;x++) {
                 int sx=Math.Min(x<<subX,sourceWidth-(1<<subX)),value=0;
-                for(int dy=0;dy<=subY;dy++) for(int dx=0;dx<=subX;dx++) value+=luma[(sy+dy)*stride+sx+dx];
+                for(int dy=0;dy<=subY;dy++) for(int dx=0;dx<=subX;dx++) {int sample=luma[(sy+dy)*stride+sx+dx];ValidateSample(sample);value+=sample;}
                 value<<=3-subX-subY;_luma[y*w+x]=value;sum+=value;
             }
         }
-        int average=(sum+w*h/2)/(w*h);var output=new byte[w*h];
+        int average=(sum+w*h/2)/(w*h);var output=new ushort[w*h];
         for(int y=0;y<h;y++) {
             _cancellation.ThrowIfCancellationRequested();
             for(int x=0;x<w;x++) {int scaled=alpha*(_luma[y*w+x]-average);scaled=scaled<0?-((-scaled+32)>>6):(scaled+32)>>6;output[y*w+x]=Clip(dc+scaled);}
@@ -39,7 +40,8 @@ internal sealed partial class OfficeAv1IntraPredictor {
         int colors=plane==0?palette.SizeY:palette.SizeUv;
         if(colors<2 || colors>8 || offsetX<0 || offsetY<0 || offsetX>width-w || offsetY>height-h)
             throw new FormatException("Invalid AV1 palette prediction region.");
-        var output=new byte[w*h];
+        for(int i=0;i<colors;i++) ValidateSample(palette.Color(plane,i));
+        var output=new ushort[w*h];
         for(int y=0;y<h;y++) {
             _cancellation.ThrowIfCancellationRequested();
             for(int x=0;x<w;x++) {

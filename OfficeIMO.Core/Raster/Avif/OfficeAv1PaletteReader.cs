@@ -11,11 +11,12 @@ internal sealed partial class OfficeAv1PaletteReader {
     private readonly OfficeAv1TileGeometry _geometry;
     private readonly bool _screen, _filter;
     private readonly CancellationToken _cancellation;
-    private readonly byte[] _aboveSizes, _leftSizes, _aboveColors, _leftColors;
+    private readonly byte[] _aboveSizes, _leftSizes;
+    private readonly ushort[] _aboveColors, _leftColors;
     private readonly int[][] _hasY = CreateHasY(), _hasUv = CreateHasUv(), _sizeY = CreateSizeY(), _sizeUv = CreateSizeUv();
     private readonly int[][] _indexY = CreateIndexY(), _indexUv = CreateIndexUv(), _useFilter = CreateUseFilter();
     private readonly int[] _filterModes = { 8949, 12776, 17211, 29558, 32768, 0 };
-    private readonly byte[] _cache = new byte[16];
+    private readonly ushort[] _cache = new ushort[16];
     private readonly int[] _scores = new int[8], _order = new int[8];
     private bool _pending, _failed;
     private OfficeAv1BlockRegion _block;
@@ -37,8 +38,8 @@ internal sealed partial class OfficeAv1PaletteReader {
         int cols = tile.MiColEnd - tile.MiColStart, rows = tile.MiRowEnd - tile.MiRowStart;
         _aboveSizes = new byte[OfficeRasterGuards.EnsureByteArrayLength(cols * 2, ref retained, limit)];
         _leftSizes = new byte[OfficeRasterGuards.EnsureByteArrayLength(rows * 2, ref retained, limit)];
-        _aboveColors = new byte[OfficeRasterGuards.EnsureByteArrayLength(cols * 16, ref retained, limit)];
-        _leftColors = new byte[OfficeRasterGuards.EnsureByteArrayLength(rows * 16, ref retained, limit)];
+        _aboveColors = new ushort[OfficeRasterGuards.EnsureByteArrayLength(cols * 32, ref retained, limit) / 2];
+        _leftColors = new ushort[OfficeRasterGuards.EnsureByteArrayLength(rows * 32, ref retained, limit) / 2];
     }
 
     internal OfficeAv1Palette Read(OfficeAv1SymbolReader symbols, OfficeAv1BlockRegion block, OfficeAv1IntraModes modes) {
@@ -47,7 +48,7 @@ internal sealed partial class OfficeAv1PaletteReader {
         _geometry.Validate(block);
         if (_pending) throw new InvalidOperationException("Complete the current AV1 palette leaf first.");
         try {
-            byte[] y = Array.Empty<byte>(), u = Array.Empty<byte>(), v = Array.Empty<byte>();
+            ushort[] y = Array.Empty<ushort>(), u = Array.Empty<ushort>(), v = Array.Empty<ushort>();
             int filterMode = -1;
             if (!modes.UseIntraBlockCopy) {
                 bool paletteAllowed = _screen && block.Width * block.Height >= 64 && block.Width <= 64 && block.Height <= 64;
@@ -94,7 +95,7 @@ internal sealed partial class OfficeAv1PaletteReader {
         _pending = false; _palette = null;
     }
 
-    private static void Publish(byte[] sizes, byte[] colors, int cell, int plane, int count, OfficeAv1Palette palette) {
+    private static void Publish(byte[] sizes, ushort[] colors, int cell, int plane, int count, OfficeAv1Palette palette) {
         sizes[cell * 2 + plane] = (byte)count;
         for (int i = 0; i < count; i++) colors[cell * 16 + plane * 8 + i] = palette.Color(plane, i);
     }

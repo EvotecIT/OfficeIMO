@@ -135,7 +135,7 @@ public sealed class DrawingAv1CoefficientTests {
         var values=new int[actual.Width*actual.Height];foreach(var pair in expected.GetProperty("values").EnumerateArray())values[pair[0].GetInt32()]=pair[1].GetInt32();
         Assert.Equal(values,Enumerable.Range(0,actual.Count).Select(actual.Value).ToArray());
     }
-    private static OfficeAv1Palette Palette(OfficeAv1BlockRegion b,int filter)=>new OfficeAv1Palette(Array.Empty<byte>(),Array.Empty<byte>(),Array.Empty<byte>(),Array.Empty<byte>(),Array.Empty<byte>(),b.Width,b.Height,filter);
+    private static OfficeAv1Palette Palette(OfficeAv1BlockRegion b,int filter)=>new OfficeAv1Palette(Array.Empty<ushort>(),Array.Empty<ushort>(),Array.Empty<ushort>(),Array.Empty<byte>(),Array.Empty<byte>(),b.Width,b.Height,filter);
     private static OfficeAv1BlockPrelude Prelude(bool skip,bool lossless,int q)=>new OfficeAv1BlockPrelude(skip,0,lossless,0,q,new int[4]);
     private static int[] Ints(JsonElement value)=>value.EnumerateArray().Select(v=>v.GetInt32()).ToArray();
     private static byte[] Hex(string value)=>Enumerable.Range(0,value.Length/2).Select(i=>Convert.ToByte(value.Substring(i*2,2),16)).ToArray();

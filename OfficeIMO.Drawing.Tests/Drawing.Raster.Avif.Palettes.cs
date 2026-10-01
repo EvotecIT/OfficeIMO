@@ -108,7 +108,7 @@ public sealed class DrawingAv1PaletteTests {
         Assert.Equal(expected.GetProperty("filter").GetInt32(), actual.FilterMode);
         var colors = new[] { Hex(expected.GetProperty("y").GetString()!), Hex(expected.GetProperty("u").GetString()!), Hex(expected.GetProperty("v").GetString()!) };
         Assert.Equal(colors[0].Length, actual.SizeY); Assert.Equal(colors[1].Length, actual.SizeUv);
-        for (int plane = 0; plane < 3; plane++) Assert.Equal(colors[plane], Enumerable.Range(0, colors[plane].Length).Select(i => actual.Color(plane, i)).ToArray());
+        for (int plane = 0; plane < 3; plane++) Assert.Equal(colors[plane].Select(x => (ushort)x), Enumerable.Range(0, colors[plane].Length).Select(i => actual.Color(plane, i)).ToArray());
         foreach (bool chroma in new[] { false, true }) {
             byte[] map = Hex(expected.GetProperty(chroma ? "mapUv" : "mapY").GetString()!);
             int width = chroma ? actual.ChromaWidth : actual.Width;

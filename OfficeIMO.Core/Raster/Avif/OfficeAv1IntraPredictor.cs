@@ -3,20 +3,24 @@ using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>Sequential Main-8 prediction owner over explicitly available reconstructed edges.</summary>
+/// <summary>Sequential 8/10-bit prediction owner over explicitly available reconstructed edges.</summary>
 /// <remarks>The reconstruction consumer derives availability from tile and decode order, and budgets
 /// retained outputs separately. Input edges are copied before filtering; results never expose scratch.</remarks>
 internal sealed partial class OfficeAv1IntraPredictor {
     internal const long ContextBytes=12288;
     private const int Origin=2;
     private readonly int[] _above,_left,_copy,_neighbors,_luma;
+    private readonly int _maximumSample,_middle;
     private readonly long _retained;
     private readonly long _maximumPixels;
     private readonly CancellationToken _cancellation;
 
-    internal OfficeAv1IntraPredictor(OfficeRasterDecodeOptions options) {
+    /// <summary>Snapshots the supported sample depth and reserves reusable scratch before any prediction.</summary>
+    internal OfficeAv1IntraPredictor(int bitDepth,OfficeRasterDecodeOptions options) {
         if(options==null) throw new ArgumentNullException(nameof(options));
         options.Validate();options.CancellationToken.ThrowIfCancellationRequested();
+        if(bitDepth!=8 && bitDepth!=10) throw new FormatException("Unsupported AV1 prediction bit depth.");
+        _maximumSample=(1<<bitDepth)-1;_middle=1<<(bitDepth-1);
         const long context=ContextBytes; // reusable edges, CfL samples, numeric facts and object/array overhead
         if(options.RetainedManagedBytes>OfficeRasterGuards.MaximumDecodedBytes-context)
             throw new FormatException("AV1 prediction contexts exceed the retained-memory limit.");
@@ -41,7 +45,7 @@ internal sealed partial class OfficeAv1IntraPredictor {
            (angleDelta!=0 && (mode<OfficeAv1IntraMode.Vertical || mode>OfficeAv1IntraMode.Diagonal67)))
             throw new FormatException("Invalid AV1 intra prediction mode or angle.");
         Prepare(edges,w,h);
-        var result=new byte[w*h];
+        var result=new ushort[w*h];
         if(filterMode>=0) Recursive(result,w,h,filterMode);
         else if(mode>=OfficeAv1IntraMode.Vertical && mode<=OfficeAv1IntraMode.Diagonal67)
             Directional(result,w,h,ModeAngles[(int)mode]+3*angleDelta,edges,enableEdgeFilter,smoothNeighbors);
@@ -53,7 +57,7 @@ internal sealed partial class OfficeAv1IntraPredictor {
         _cancellation.ThrowIfCancellationRequested();
         if((uint)size>=19) throw new FormatException("Invalid AV1 prediction transform size.");
         int w=OfficeAv1TransformSize.Width(size),h=OfficeAv1TransformSize.Height(size);
-        if(w*h>_maximumPixels || w*h+24>OfficeRasterGuards.MaximumDecodedBytes-_retained)
+        if(w*h>_maximumPixels || 2L*w*h+64>OfficeRasterGuards.MaximumDecodedBytes-_retained)
             throw new FormatException("AV1 prediction output exceeds its pixel or retained-memory limit.");
         return (w,h);
     }
@@ -66,16 +70,19 @@ internal sealed partial class OfficeAv1IntraPredictor {
            e.Above.Length<e.AboveCount+e.AboveRightCount || e.Left.Length<e.LeftCount+e.BelowLeftCount)
             throw new FormatException("Invalid AV1 prediction edge availability or storage.");
         int top=e.AboveCount+e.AboveRightCount,left=e.LeftCount+e.BelowLeftCount;
-        int corner=e.AboveCount>0 && e.LeftCount>0?e.Corner:e.AboveCount>0?e.Above[0]:e.LeftCount>0?e.Left[0]:128;
+        for(int i=0;i<top;i++) ValidateSample(e.Above[i]);
+        for(int i=0;i<left;i++) ValidateSample(e.Left[i]);
+        if(e.AboveCount>0 && e.LeftCount>0) ValidateSample(e.Corner);
+        int corner=e.AboveCount>0 && e.LeftCount>0?e.Corner:e.AboveCount>0?e.Above[0]:e.LeftCount>0?e.Left[0]:_middle;
         _above[Origin-1]=_left[Origin-1]=corner;
         for(int i=0;i<w+h;i++) {
-            _above[Origin+i]=top>0?e.Above[Math.Min(i,top-1)]:left>0?e.Left[0]:127;
-            _left[Origin+i]=left>0?e.Left[Math.Min(i,left-1)]:top>0?e.Above[0]:129;
+            _above[Origin+i]=top>0?e.Above[Math.Min(i,top-1)]:left>0?e.Left[0]:_middle-1;
+            _left[Origin+i]=left>0?e.Left[Math.Min(i,left-1)]:top>0?e.Above[0]:_middle+1;
         }
     }
 
-    private void Basic(byte[] output,int w,int h,OfficeAv1IntraMode mode,bool top,bool left) {
-        int dc=128;
+    private void Basic(ushort[] output,int w,int h,OfficeAv1IntraMode mode,bool top,bool left) {
+        int dc=_middle;
         if(mode==OfficeAv1IntraMode.Dc) {
             int count=0,sum=0;
             if(top) {for(int x=0;x<w;x++) sum+=_above[Origin+x];count+=w;}
@@ -95,12 +102,12 @@ internal sealed partial class OfficeAv1IntraPredictor {
                     v=mode==OfficeAv1IntraMode.Smooth?(vertical+horizontal+256)>>9:
                         mode==OfficeAv1IntraMode.SmoothVertical?(vertical+128)>>8:(horizontal+128)>>8;
                 }
-                output[y*w+x]=(byte)v;
+                output[y*w+x]=(ushort)v;
             }
         }
     }
 
-    private void Recursive(byte[] output,int w,int h,int mode) {
+    private void Recursive(ushort[] output,int w,int h,int mode) {
         for(int y=0;y<h;y+=2) {
             _cancellation.ThrowIfCancellationRequested();
             for(int x=0;x<w;x+=4) {
@@ -114,17 +121,20 @@ internal sealed partial class OfficeAv1IntraPredictor {
             }
         }
     }
-    private static byte Clip(int value)=>(byte)Math.Max(0,Math.Min(255,value));
+    private void ValidateSample(int value) {
+        if((uint)value>(uint)_maximumSample) throw new FormatException("AV1 prediction sample exceeds its bit depth.");
+    }
+    private ushort Clip(int value)=>(ushort)Math.Max(0,Math.Min(_maximumSample,value));
 }
 
 /// <summary>Raw top/left samples, their available prefixes and optional continuations; no ownership transfer.</summary>
 internal readonly struct OfficeAv1PredictionEdges {
-    internal OfficeAv1PredictionEdges(byte[] above,byte[] left,byte corner,int aboveCount,int leftCount,int aboveRightCount=0,int belowLeftCount=0) {
+    internal OfficeAv1PredictionEdges(ushort[] above,ushort[] left,ushort corner,int aboveCount,int leftCount,int aboveRightCount=0,int belowLeftCount=0) {
         Above=above;Left=left;Corner=corner;AboveCount=aboveCount;LeftCount=leftCount;AboveRightCount=aboveRightCount;BelowLeftCount=belowLeftCount;
     }
-    internal byte[] Above {get;}
-    internal byte[] Left {get;}
-    internal byte Corner {get;}
+    internal ushort[] Above {get;}
+    internal ushort[] Left {get;}
+    internal ushort Corner {get;}
     internal int AboveCount {get;}
     internal int LeftCount {get;}
     internal int AboveRightCount {get;}
@@ -133,10 +143,10 @@ internal readonly struct OfficeAv1PredictionEdges {
 
 /// <summary>Immutable row-major prediction samples, before residual addition and final clipping.</summary>
 internal sealed class OfficeAv1Prediction {
-    private readonly byte[] _values;
-    internal OfficeAv1Prediction(int width,int height,byte[] values) {Width=width;Height=height;_values=values;}
+    private readonly ushort[] _values;
+    internal OfficeAv1Prediction(int width,int height,ushort[] values) {Width=width;Height=height;_values=values;}
     internal int Width {get;}
     internal int Height {get;}
     internal int Count=>_values.Length;
-    internal byte Value(int index)=>_values[index];
+    internal ushort Value(int index)=>_values[index];
 }

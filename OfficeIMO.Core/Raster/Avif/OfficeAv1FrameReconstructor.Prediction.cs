@@ -17,7 +17,7 @@ internal sealed partial class OfficeAv1FrameReconstructor {
         int sx=b.X*2,sy=b.Y*2,w=Math.Min(64,_maxLumaX-sx),h=Math.Min(64,_maxLumaY-sy);
         if(w<2 || h<2) throw new FormatException("AV1 CfL has no reconstructed luma extent.");
         for(int row=0;row<h;row++) {
-            _cancellation.ThrowIfCancellationRequested();Array.Copy(_pixels[0],(sy+row)*_stride+sx,_luma,row*w,w);
+            _cancellation.ThrowIfCancellationRequested();for(int col=0;col<w;col++) _luma[row*w+col]=_pixels[0][(sy+row)*_stride+sx+col];
         }
         return _predictor.PredictChromaFromLuma(b.Size,p==1?_block.Modes.CflAlphaU:_block.Modes.CflAlphaV,
             prediction.Value(0),_luma,w,w,h,1,1);

@@ -12,7 +12,8 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
     private readonly OfficeRasterDecodeOptions _tileOptions;
     private readonly CancellationToken _cancellation;
     private readonly byte[][] _pixels;
-    private readonly byte[] _yModes,_uvModes,_above,_left,_luma;
+    private readonly byte[] _yModes,_uvModes;
+    private readonly ushort[] _above,_left,_luma;
     private readonly bool[][] _decoded;
     private readonly OfficeAv1IntraPredictor _predictor;
     private readonly OfficeAv1ResidualTransform _residual;
@@ -33,7 +34,7 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
         if(frame==null) throw new ArgumentNullException(nameof(frame));
         if(options==null) throw new ArgumentNullException(nameof(options));
         options.Validate();options.CancellationToken.ThrowIfCancellationRequested();
-        // Header recognition must not route wider samples into byte-sized prediction/filter owners.
+        // Wider prediction is qualified separately; byte-sized frame planes and filters still reject Main10.
         if(sequence.BitDepth!=8 || frame.BitDepth!=8)
             throw new FormatException("AV1 high-bit-depth reconstruction is not qualified.");
         if(stage<OfficeAv1ReconstructionStage.Unfiltered || stage>OfficeAv1ReconstructionStage.Restored)
@@ -63,7 +64,7 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
             throw new FormatException("AV1 reconstruction exceeds aggregate retained memory.");
         _tileOptions=options.WithAdditionalRetainedManagedBytes(owned);
         var child=options.WithAdditionalRetainedManagedBytes(storage+scratch+tileContext+bytes.LongLength+filter);
-        _predictor=new OfficeAv1IntraPredictor(child.WithAdditionalRetainedManagedBytes(OfficeAv1ResidualTransform.ContextBytes));
+        _predictor=new OfficeAv1IntraPredictor(sequence.BitDepth,child.WithAdditionalRetainedManagedBytes(OfficeAv1ResidualTransform.ContextBytes));
         _residual=new OfficeAv1ResidualTransform(frame,child.WithAdditionalRetainedManagedBytes(OfficeAv1IntraPredictor.ContextBytes));
         if(deblock!=0) _deblocker=new OfficeAv1Deblocker(frame,sequence.Monochrome,
             options.WithAdditionalRetainedManagedBytes(owned-deblock+tileContext+bytes.LongLength));
@@ -77,7 +78,7 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
         for(int p=0;p<_pixels.Length;p++) _pixels[p]=new byte[checked((_stride>>(p>0?1:0))*(_rows>>(p>0?1:0)))];
         _yModes=new byte[frame.MiRows*frame.MiCols];_uvModes=new byte[_yModes.Length];
         _decoded=new[] {new bool[34*34],new bool[34*34],new bool[34*34]};
-        _above=new byte[128];_left=new byte[128];_luma=new byte[4096];
+        _above=new ushort[128];_left=new ushort[128];_luma=new ushort[4096];
     }
 
     /// <summary>Decodes every declared tile. Throws without exposing partial output on any failure.</summary>

@@ -37,7 +37,7 @@ internal sealed class OfficeAv1TileReader {
         // Reserve all simultaneously live contexts, including one-leaf temporaries, before allocating any.
         // The partition owner has no options parameter; its CDFs and border storage are included here.
         long preludeBytes=1024+axis+(frame.SegmentationEnabled?area:0);
-        long modeBytes=8192+axis, paletteBytes=16384+18*axis, transformBytes=65536+3*axis;
+        long modeBytes=8192+axis, paletteBytes=16384+34*axis, transformBytes=65536+3*axis;
         long coefficientBytes=196608+4*axis, motionBytes=frame.AllowIntraBlockCopy?4096+8*area:0;
         const long restorationBytes=2048;
         long all=ContextBytes(frame,tile);
@@ -59,7 +59,7 @@ internal sealed class OfficeAv1TileReader {
     internal static long ContextBytes(OfficeAv1StillFrame frame,OfficeAv1Tile tile) {
         long axis=(long)(tile.MiColEnd-tile.MiColStart)+(tile.MiRowEnd-tile.MiRowStart);
         long area=(long)(tile.MiColEnd-tile.MiColStart)*(tile.MiRowEnd-tile.MiRowStart);
-        return 293888+28*axis+(frame.SegmentationEnabled?area:0)+(frame.AllowIntraBlockCopy?4096+8*area:0);
+        return 293888+44*axis+(frame.SegmentationEnabled?area:0)+(frame.AllowIntraBlockCopy?4096+8*area:0);
     }
 
     /// <summary>Consumes the bounded tile once. CompleteTile is called only after the mandatory trailing bits pass.</summary>
