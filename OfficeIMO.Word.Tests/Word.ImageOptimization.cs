@@ -10,6 +10,29 @@ namespace OfficeIMO.Tests;
 
 public class WordImageOptimizationTests {
     [Fact]
+    public void AnalysisUsesPerImageLimitWithoutRetainingTransactionCandidates() {
+        using WordDocument word = WordDocument.Create();
+        var first = Insert(word.AddParagraph(), 96, 48);
+        var second = Insert(word.AddParagraph(), 96, 48);
+        byte[] before = first.ToBytes();
+        var options = new WordImageOptimizationOptions { KeepOriginalWhenNotSmaller = false };
+        var baseline = word.AnalyzeImageOptimization(options);
+        Assert.Equal(2, baseline.OptimizedCount);
+        options.MaxStagedBytes = baseline.Images.Max(item => item.OriginalBytes + item.FinalBytes) + 1;
+        Assert.True(options.MaxStagedBytes < baseline.Images.Sum(item => item.OriginalBytes + item.FinalBytes));
+        var report = word.AnalyzeImageOptimization(options);
+        Assert.Equal(baseline.BytesSaved, report.BytesSaved);
+        Assert.False(report.Applied);
+        Assert.Equal(before, first.ToBytes());
+        Assert.Equal(before, second.ToBytes());
+        Assert.Throws<InvalidDataException>(() => word.OptimizeImages(options));
+        Assert.Equal(before, first.ToBytes());
+        Assert.Equal(before, second.ToBytes());
+        options.MaxImageBytes = before.Length - 1;
+        Assert.Throws<InvalidDataException>(() => word.AnalyzeImageOptimization(options));
+    }
+
+    [Fact]
     public void SignedAndReadOnlyDocumentsAllowAnalysisButBlockMutation() {
         using WordDocument word = WordDocument.Create();
         var image = Insert(word.AddParagraph(), 96, 48);

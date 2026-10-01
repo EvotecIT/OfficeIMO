@@ -37,7 +37,7 @@ public partial class WordDocument {
             token.ThrowIfCancellationRequested();
             using Stream stream = media.Part.GetStream(FileMode.Open, FileAccess.Read);
             byte[] original = OfficeStreamReader.ReadAllBytes(stream, token,
-                Math.Min(policy.MaxImageBytes, policy.MaxStagedBytes - retainedBytes));
+                apply ? Math.Min(policy.MaxImageBytes, policy.MaxStagedBytes - retainedBytes) : policy.MaxImageBytes);
             var info = OfficeImageReader.TryIdentify(original, media.Part.Uri.ToString(), out OfficeImageInfo identified)
                 ? identified : new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
             WordImageOptimizationStatus? preserve = media.References == 0 ? WordImageOptimizationStatus.Unreferenced : null;
@@ -76,8 +76,10 @@ public partial class WordDocument {
                 info, replace ? candidate.Final : info, candidate.Metadata));
             if (replace) {
                 byte[] bytes = candidate.Bytes;
-                retainedBytes = checked(retainedBytes + original.LongLength + bytes.LongLength);
-                if (retainedBytes > policy.MaxStagedBytes) throw new InvalidDataException("Image optimization exceeds the staged-byte limit.");
+                if (apply) {
+                    retainedBytes = checked(retainedBytes + original.LongLength + bytes.LongLength);
+                    if (retainedBytes > policy.MaxStagedBytes) throw new InvalidDataException("Image optimization exceeds the staged-byte limit.");
+                }
                 if (!OfficeImageReader.TryValidateContent(bytes, null, out _))
                     throw new InvalidDataException("The optimized image candidate failed content validation.");
                 if (apply) staged.Add(new WordImagePartReplacement(media.Part, original, bytes,
