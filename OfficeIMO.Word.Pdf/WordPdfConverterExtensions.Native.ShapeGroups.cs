@@ -12,6 +12,10 @@ namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private const string NativeWordGroupNamespace = "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup";
 
+        private static bool HasNativeParagraphShapeGroups(IReadOnlyList<WordParagraph> runs) =>
+            runs.Any(run => run.EnumerateEffectiveRunContent().SelectMany(child => child.Descendants().Prepend(child))
+                .Any(child => child is V.Group || child.NamespaceUri == NativeWordGroupNamespace && child.LocalName == "wgp"));
+
         /// <summary>Projects a group as one object, retaining its child coordinate system and paragraph anchor.</summary>
         private static void RenderNativeParagraphShapeGroups(INativePdfFlow pdf, WordParagraph paragraph,
             IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, PdfCore.PdfParagraphStyle style) {
@@ -74,7 +78,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void AddNativeGroupCanvas(PdfCore.PdfParagraphStyle style, PdfCore.PdfPageCanvas canvas, bool paragraphRelative, uint zOrder = 0) {
+        private static void AddNativeGroupCanvas(PdfCore.PdfParagraphStyle style, PdfCore.PdfPageCanvas canvas, bool paragraphRelative, long zOrder) {
             var combined = new PdfCore.PdfPageCanvas();
             if (style.AnchoredCanvas != null) combined.AddItems(style.AnchoredCanvas.Items);
             IReadOnlyList<PdfCore.PdfCanvasItem> items = paragraphRelative
@@ -87,8 +91,9 @@ namespace OfficeIMO.Word.Pdf {
             WordToPdfOptions? options, PdfCore.PdfParagraphStyle style) {
             Dictionary<string, string> vmlStyle = ParseNativeVmlStyle(group.Style?.Value);
             if (IsNativeVmlHidden(group)) return;
+            long zIndex = 0;
             bool supportedLayer = vmlStyle.TryGetValue("z-index", out string? z) &&
-                double.TryParse(z, NumberStyles.Float, CultureInfo.InvariantCulture, out double zIndex) && zIndex < 0D;
+                long.TryParse(z, NumberStyles.Integer, CultureInfo.InvariantCulture, out zIndex) && zIndex < 0;
             bool pageX = vmlStyle.TryGetValue("mso-position-horizontal-relative", out string? horizontal) && horizontal == "page";
             bool pageY = vmlStyle.TryGetValue("mso-position-vertical-relative", out string? vertical) && vertical == "page";
             if (!supportedLayer || !pageX || (!pageY && vertical != null && vertical != "text")) {
@@ -99,7 +104,7 @@ namespace OfficeIMO.Word.Pdf {
                 pdf.PageSize.Width, pdf.PageSize.Height, 0D, 0D);
             var canvas = new PdfCore.PdfPageCanvas();
             if (RenderNativeVmlGroup(canvas, paragraph._document, group, frame, pdf.PageSize.Width, pdf.PageSize.Height))
-                AddNativeGroupCanvas(style, canvas, paragraphRelative: !pageY);
+                AddNativeGroupCanvas(style, canvas, paragraphRelative: !pageY, zOrder: zIndex);
             else WarnNativeGroup(options, "NativeShapeGroupUnsupported", "The legacy shape group produced no visible content.");
         }
 

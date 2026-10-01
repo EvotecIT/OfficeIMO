@@ -11,11 +11,11 @@ internal sealed class PdfCanvasParagraphAnchorItem : PdfCanvasItem {
 
 /// <summary>Paints anchored drawing content below all body text on its final page.</summary>
 internal sealed class PdfCanvasBehindTextItem : PdfCanvasItem {
-    internal PdfCanvasBehindTextItem(IReadOnlyList<PdfCanvasItem> items, uint zOrder) : base(0D, 0D) {
+    internal PdfCanvasBehindTextItem(IReadOnlyList<PdfCanvasItem> items, long zOrder) : base(0D, 0D) {
         Items = items;
         ZOrder = zOrder;
     }
 
     internal IReadOnlyList<PdfCanvasItem> Items { get; }
-    internal uint ZOrder { get; }
+    internal long ZOrder { get; }
 }

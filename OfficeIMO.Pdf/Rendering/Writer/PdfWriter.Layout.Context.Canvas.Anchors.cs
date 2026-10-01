@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private readonly List<(uint ZOrder, string Content)> behindTextCanvases = new();
+        private readonly List<(long ZOrder, string Content)> behindTextCanvases = new();
         private double? paragraphCanvasTop;
 
         private void RenderParagraphCanvas(PdfCanvasBlock canvas, double top) {

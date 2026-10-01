@@ -294,6 +294,91 @@ public sealed class PdfShapeGroupTests {
         return alternate;
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LegacyGroupsPreserveDeclaredStackOrderRatherThanParagraphOrder(bool whitespaceOnly) {
+        using WordDocument word = WordDocument.Create();
+        foreach (var item in new[] { (Z: -1, Color: "green"), (Z: -2, Color: "red") }) {
+            var group = new V.Group {
+                Style = $"position:absolute;margin-left:72pt;margin-top:72pt;width:40pt;height:20pt;z-index:{item.Z};mso-position-horizontal-relative:page;mso-position-vertical-relative:page",
+                CoordinateSize = "40,20"
+            };
+            group.Append(new V.Rectangle { Style = "position:absolute;left:0;top:0;width:40;height:20", FillColor = item.Color, Stroked = false });
+            word.AddParagraph(whitespaceOnly ? " " : "X")._run!.Append(new W.Picture(group));
+        }
+        var result = word.ToPdfDocumentResult();
+        var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
+        SaveEvidence(pdf, "legacy-stack-order-" + whitespaceOnly);
+        AssertPixel(Render(pdf, 1), 100, 80, 0, 128, 0);
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeShapeGroupUnsupported");
+    }
+
+    [Theory]
+    [InlineData(0, 500)]
+    [InlineData(1400, 200)]
+    public void ParagraphGroupFollowsTextClearedBelowFloatingTable(int tableOffset, int pageHeight) {
+        using WordDocument word = WordDocument.Create();
+        var table = word.AddTable(1, 1);
+        table.LayoutMode = WordTableLayoutMode.Fixed;
+        table.WidthType = WordTableWidthUnit.Dxa;
+        table.Width = 6400;
+        table.Rows[0].Height = 900;
+        table.Rows[0].Cells[0].Paragraphs[0].Text = "Floating";
+        table._tableProperties!.TablePositionProperties = new W.TablePositionProperties {
+            HorizontalAnchor = W.HorizontalAnchorValues.Margin, VerticalAnchor = W.VerticalAnchorValues.Text,
+            TablePositionY = tableOffset, BottomFromText = 180
+        };
+        var paragraph = word.AddParagraph();
+        paragraph.AddShapeGroup(new[] {
+            new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 24, 12) { FillColorHex = "FF0000" },
+            new WordShapeGroupItem(WordShapeType.Ellipse, 24, 0, 12, 12) { FillColorHex = "00FF00" }
+        }, 10, 0);
+        var anchor = paragraph._run!.Descendants<DW.Anchor>().Single();
+        anchor.BehindDoc = true;
+        anchor.RemoveAllChildren<DW.WrapSquare>();
+        anchor.Append(new DW.WrapNone());
+        anchor.VerticalPosition!.RelativeFrom = DW.VerticalRelativePositionValues.Paragraph;
+        paragraph.AddText("ANCHOR " + string.Join(" ", Enumerable.Range(0, 40).Select(index => "word" + index)));
+        var result = word.ToPdfDocumentResult(new WordToPdfOptions {
+            IncludePageNumbers = false, PageSize = new PdfCore.PageSize(400, pageHeight), Margins = PdfCore.PageMargins.Uniform(40)
+        });
+        var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
+        var page = Assert.Single(pdf.Reader.Pages(), item => pdf.Reader.Text(PdfCore.PdfPageSelection.From(item.PageNumber)).Contains("ANCHOR"));
+        var bitmap = Render(pdf, page.PageNumber);
+        byte[] pixels = bitmap.GetPixels();
+        int redRow = Enumerable.Range(0, bitmap.Height).First(row => pixels[(row * bitmap.Width + 15) * 4] > 250 && pixels[(row * bitmap.Width + 15) * 4 + 1] < 5);
+        var span = Assert.Single(PdfCore.PdfReadDocument.Open(pdf.ToBytes()).Pages[page.PageNumber - 1].GetTextSpans(), item => item.Text.Contains("ANCHOR"));
+        Assert.InRange(pageHeight - span.Y - redRow, 0D, span.FontSize + 5D);
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeShapeGroupUnsupported");
+        SaveEvidence(pdf, "floating-table-group-" + tableOffset);
+    }
+
+    [Theory]
+    [InlineData(WordListStyle.Bulleted)]
+    [InlineData(WordListStyle.Numbered)]
+    public void ListParagraphKeepsItsGroupedDrawingAndMarker(WordListStyle listStyle) {
+        using WordDocument word = WordDocument.Create();
+        var paragraph = word.AddList(listStyle).AddItem("List anchor");
+        paragraph.AddShapeGroup(new[] {
+            new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 24, 12) { FillColorHex = "FF0000" },
+            new WordShapeGroupItem(WordShapeType.Ellipse, 24, 0, 12, 12) { FillColorHex = "00FF00" }
+        }, 10, 0);
+        var anchor = paragraph._run!.Descendants<DW.Anchor>().Single();
+        anchor.BehindDoc = true;
+        anchor.RemoveAllChildren<DW.WrapSquare>();
+        anchor.Append(new DW.WrapNone());
+        anchor.VerticalPosition!.RelativeFrom = DW.VerticalRelativePositionValues.Paragraph;
+        var result = word.ToPdfDocumentResult();
+        var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());
+        AssertPixel(Render(pdf, 1), 15, 75, 255, 0, 0);
+        Assert.Contains("List anchor", pdf.Reader.Text());
+        if (listStyle == WordListStyle.Numbered) Assert.Contains("1.", pdf.Reader.Text());
+        else Assert.Contains("•", pdf.Reader.Text());
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeShapeGroupUnsupported");
+        SaveEvidence(pdf, "list-group-" + listStyle);
+    }
+
     private static OfficeRasterImage Render(PdfCore.PdfDocument pdf, int page) {
         byte[] bytes = pdf.Render.Pages(PdfCore.PdfPageSelection.From(page), new PdfCore.PdfPageRenderOptions { Dpi = 72 })[0].Bytes!;
         Assert.True(OfficePngReader.TryDecode(bytes, out var bitmap));

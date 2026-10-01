@@ -99,7 +99,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             List<WordParagraph> runs = GetNativeRuns(paragraph);
-            if (runs.Any(run => run.IsImage)) {
+            if (runs.Any(run => run.IsImage) || HasNativeParagraphShapeGroups(runs)) {
                 return false;
             }
 

@@ -291,8 +291,9 @@ internal static partial class PdfWriter {
                 }
 
                 bool sliceStartsAtFirstLine = lineIndex == 0;
-                RecordFlowPlacement(y - (floatingLineGaps?[lineIndex] ?? 0D));
-                if (sliceStartsAtFirstLine && paragraphStyle?.AnchoredCanvas is { } paragraphCanvas) RenderParagraphCanvas(paragraphCanvas, y);
+                double firstLineTop = y - (floatingLineGaps?[lineIndex] ?? 0D);
+                RecordFlowPlacement(firstLineTop);
+                if (sliceStartsAtFirstLine && paragraphStyle?.AnchoredCanvas is { } paragraphCanvas) RenderParagraphCanvas(paragraphCanvas, firstLineTop);
                 pageDirty = true;
                 var paragraphFont = ChooseNormal(currentOpts.DefaultFont);
                 int? markedContentId = RegisterTextStructureElement("P");

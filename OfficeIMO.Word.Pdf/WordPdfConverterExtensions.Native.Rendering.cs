@@ -149,8 +149,9 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             RenderNativeParagraphImages(pdf, paragraph, runs, objectAlign, options, style);
-            needsAnchorLine = style.AnchoredCanvas != null && !hasRenderableRuns &&
-                string.IsNullOrEmpty(renderContent) && marker == null && paragraphFootnoteNumbers.Count == 0;
+            needsAnchorLine = style.AnchoredCanvas != null &&
+                !runs.Any(run => IsNativeRenderableTextRun(run, paragraph) && !string.IsNullOrWhiteSpace(run.Text)) &&
+                string.IsNullOrWhiteSpace(renderContent) && marker == null && paragraphFootnoteNumbers.Count == 0;
             RenderNativeRunCharts(pdf, runChartDrawings, objectAlign,
                 chartOnly && directChartDrawing == null ? style.SpacingBefore : 2D,
                 chartOnly ? style.SpacingAfter ?? 0D : 0D);
