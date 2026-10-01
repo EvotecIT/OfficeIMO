@@ -177,6 +177,10 @@ namespace OfficeIMO.Tests {
                 document.AddPivotSlicerCache("SalesPivot", "Region", "ExplicitRegion"));
         }
 
+#if EXCEL_PERFORMANCE_EVIDENCE
+        [Trait("Category", "Performance")]
+        [Trait("Category", "ExcelPerformanceEvidence")]
+#endif
         [Fact]
         public void Test_PivotInteractionCaches_BoundDefaultNameSearchToExistingCaches() {
             using ExcelDocument document = ExcelDocument.Create();
@@ -193,7 +197,11 @@ namespace OfficeIMO.Tests {
                 dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
 
             WorkbookPart workbookPart = document._spreadSheetDocument.WorkbookPart!;
+#if EXCEL_PERFORMANCE_EVIDENCE
             const int existingCount = 512;
+#else
+            const int existingCount = 64;
+#endif
             for (int suffix = 1; suffix <= existingCount; suffix++) {
                 string name = suffix == 1 ? "Slicer_Region" : "Slicer_Region_" + suffix;
                 WriteExtendedPart(
@@ -210,13 +218,19 @@ namespace OfficeIMO.Tests {
             var existingNames = new HashSet<string>(existing.Select(cache => cache.Name), StringComparer.OrdinalIgnoreCase);
             int expectedSuffix = Enumerable.Range(2, existing.Count + 1)
                 .First(suffix => !existingNames.Contains("Slicer_Region_" + suffix));
+#if EXCEL_PERFORMANCE_EVIDENCE
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+#endif
             document.AddPivotSlicerCache("SalesPivot", "Region");
+#if EXCEL_PERFORMANCE_EVIDENCE
             stopwatch.Stop();
+#endif
 
             Assert.Contains(document.GetWorkbookSlicerCaches(), cache =>
                 cache.Name == "Slicer_Region_" + expectedSuffix);
+#if EXCEL_PERFORMANCE_EVIDENCE
             Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), stopwatch.Elapsed.ToString());
+#endif
         }
 
         [Fact]

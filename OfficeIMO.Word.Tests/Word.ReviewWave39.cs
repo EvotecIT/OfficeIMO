@@ -94,28 +94,44 @@ namespace OfficeIMO.Tests {
             Assert.False(limitation.TargetContainsShape);
         }
 
+#if WORD_PERFORMANCE_EVIDENCE
+        [Trait("Category", "Performance")]
+        [Trait("Category", "WordPerformanceEvidence")]
+#endif
         [Fact]
         public void MailMergeOccurrenceDiscoveryDoesNotIndexEveryIrrelevantElement() {
+#if WORD_PERFORMANCE_EVIDENCE
+            const int paragraphCount = 20_000;
             var body = new Body();
-            for (int index = 0; index < 20_000; index++) {
+#else
+            const int paragraphCount = 16;
+            using WordDocument document = WordDocument.Create();
+            Body body = document._wordprocessingDocument.MainDocumentPart!.Document.Body!;
+#endif
+            for (int index = 0; index < paragraphCount; index++) {
                 body.Append(new Paragraph(new Run(new Text("noise"))));
             }
             MethodInfo discover = typeof(WordMailMerge).GetMethod(
                 "DiscoverMergeFieldOccurrences", BindingFlags.NonPublic | BindingFlags.Static)
                 ?? throw new InvalidOperationException("Merge-field discovery helper was not found.");
 
-#if !NET472
+#if WORD_PERFORMANCE_EVIDENCE && !NET472
             long before = GC.GetAllocatedBytesForCurrentThread();
 #endif
             var occurrences = (IEnumerable)(discover.Invoke(null, new object[] { body })
                 ?? throw new InvalidOperationException("Merge-field discovery did not return a result."));
             int count = occurrences.Cast<object>().Count();
-#if !NET472
+#if WORD_PERFORMANCE_EVIDENCE && !NET472
             long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 #endif
 
             Assert.Equal(0, count);
-#if !NET472
+#if !WORD_PERFORMANCE_EVIDENCE
+            WordMailMergeTemplateInspection inspection = WordMailMerge.InspectTemplate(document, Array.Empty<string>());
+            Assert.Empty(inspection.MergeFieldNames);
+            Assert.Empty(inspection.Issues);
+#endif
+#if WORD_PERFORMANCE_EVIDENCE && !NET472
             Assert.True(allocated < 6L * 1024 * 1024,
                 "Merge-field discovery allocated " + allocated + " bytes for irrelevant elements.");
 #endif

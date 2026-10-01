@@ -174,19 +174,33 @@ namespace OfficeIMO.Tests {
             Assert.Equal(3, noTotalData.Series.Count);
         }
 
+#if EXCEL_PERFORMANCE_EVIDENCE
+        [Trait("Category", "Performance")]
+        [Trait("Category", "ExcelPerformanceEvidence")]
+#endif
         [Fact]
         public void Test_WaterfallChart_BatchesLargePointLabelSets() {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.ModernChartRecipes.LargeWaterfall.xlsx");
+#if EXCEL_PERFORMANCE_EVIDENCE
             const int pointCount = 2_000;
+#else
+            const int pointCount = 4;
+#endif
             string[] categories = Enumerable.Range(0, pointCount).Select(index => "P" + index).ToArray();
             double[] changes = Enumerable.Range(0, pointCount).Select(index => index % 2 == 0 ? 1D : -1D).ToArray();
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Waterfall");
+#if EXCEL_PERFORMANCE_EVIDENCE
                 var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+#endif
                 sheet.AddWaterfallChart(categories, changes, 1, 1);
+#if EXCEL_PERFORMANCE_EVIDENCE
                 stopwatch.Stop();
+#endif
+#if EXCEL_PERFORMANCE_EVIDENCE
                 Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(10), stopwatch.Elapsed.ToString());
+#endif
                 document.Save();
             }
 
@@ -195,9 +209,9 @@ namespace OfficeIMO.Tests {
                 .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()
                 .ChartSpace.Descendants<C.BarChart>()
                 .Single(candidate => candidate.Elements<C.BarChartSeries>().Count() == 4);
-            Assert.Equal(1_000, chart.Elements<C.BarChartSeries>().ElementAt(1)
+            Assert.Equal(pointCount / 2, chart.Elements<C.BarChartSeries>().ElementAt(1)
                 .GetFirstChild<C.DataLabels>()!.Elements<C.DataLabel>().Count());
-            Assert.Equal(1_000, chart.Elements<C.BarChartSeries>().ElementAt(2)
+            Assert.Equal(pointCount / 2, chart.Elements<C.BarChartSeries>().ElementAt(2)
                 .GetFirstChild<C.DataLabels>()!.Elements<C.DataLabel>().Count());
         }
 
