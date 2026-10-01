@@ -57,6 +57,7 @@
     <None Update="TestAssets\Avif\cdef-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\cdef-main10-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\restored-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="TestAssets\Avif\restored-main10-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\upscaled-main10-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\color-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\*.avif" CopyToOutputDirectory="PreserveNewest" />

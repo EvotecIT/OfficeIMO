@@ -42,7 +42,7 @@ public sealed class DrawingAvifMain10HeaderTests {
         Assert.True(OfficeImageReader.TryIdentifyByContent(bytes, name + ".avif", out var metadata));
         Assert.Equal(49, metadata.Width); Assert.Equal(33, metadata.Height);
         Assert.False(OfficeImageReader.TryValidateContent(bytes, name + ".avif", out _));
-        Assert.Throws<FormatException>(() => OfficeAv1FrameReconstructor.Decode(bytes, sequence, frame, options, OfficeAv1ReconstructionStage.Restored));
+        Assert.Equal(10, OfficeAv1FrameReconstructor.Decode(bytes, sequence, frame, options, OfficeAv1ReconstructionStage.Restored).BitDepth);
         var codec = new AcceptingCodec();
         Assert.False(OfficeRasterImageDecoder.TryDecode(bytes, new OfficeRasterDecodeOptions { ImageCodec = codec }, out var image, out _));
         Assert.Null(image); Assert.Equal(0, codec.Calls);

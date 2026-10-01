@@ -3,20 +3,27 @@ using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>Main-8 Wiener and self-guided restoration, with immutable stripe-aware sample sources.</summary>
+/// <summary>Main-8/Main10 Wiener and self-guided restoration, with immutable stripe-aware sample sources.</summary>
 /// <remarks>Normative AV1 sections 7.17.2–6. Scratch is reused for at most 64x64 output samples.</remarks>
 internal sealed class OfficeAv1RestorationFilter {
+    internal const long ContextBytes=157696;
     private static readonly int[,] SgrParameters={
         {2,12,1,4},{2,15,1,6},{2,18,1,8},{2,21,1,9},{2,24,1,10},{2,29,1,11},
         {2,36,1,12},{2,45,1,13},{2,56,1,14},{2,68,1,15},{0,0,1,5},{0,0,1,8},
         {0,0,1,11},{0,0,1,14},{2,30,0,0},{2,75,0,0}};
-    private readonly int[] _a=new int[66*66],_b=new int[66*66],_sum=new int[71*71],_squares=new int[71*71];
+    private readonly int[] _a=new int[66*66],_b=new int[66*66],_sum=new int[71*71];
+    // A complete ten-bit squared prefix exceeds Int32 even though each queried box fits.
+    private readonly long[] _squares=new long[71*71];
     private readonly int[] _flt0=new int[64*64],_flt1=new int[64*64],_intermediate=new int[70*64];
     private readonly int[] _horizontal=new int[7],_vertical=new int[7];
     private readonly CancellationToken _cancellation;
+    private readonly int _bitDepth,_maximumSample,_wienerOffset;
     private ushort[] _deblocked=Array.Empty<ushort>(),_cdef=Array.Empty<ushort>();
     private int _stride,_planeWidth,_planeHeight,_stripeStart,_stripeEnd;
-    internal OfficeAv1RestorationFilter(CancellationToken cancellation) { _cancellation=cancellation; }
+    internal OfficeAv1RestorationFilter(int bitDepth,CancellationToken cancellation) {
+        if(bitDepth!=8 && bitDepth!=10) throw new FormatException("Invalid AV1 restoration bit depth.");
+        _bitDepth=bitDepth;_maximumSample=(1<<bitDepth)-1;_wienerOffset=1<<(bitDepth+3);_cancellation=cancellation;
+    }
 
     /// <summary>Reads deblocked samples outside the stripe and CDEF samples inside, without output feedback.</summary>
     internal void Apply(ushort[] deblocked,ushort[] cdef,ushort[] output,int stride,int planeWidth,int planeHeight,
@@ -52,7 +59,7 @@ internal sealed class OfficeAv1RestorationFilter {
             _cancellation.ThrowIfCancellationRequested();
             for(int c=0;c<width;c++) {
                 int sum=0;for(int t=0;t<7;t++) sum+=_horizontal[t]*Sample(x+c+t-3,y+r-3);
-                _intermediate[r*width+c]=Math.Max(-2048,Math.Min(6143,(sum+4)>>3));
+                _intermediate[r*width+c]=Math.Max(-_wienerOffset,Math.Min(3*_wienerOffset-1,(sum+4)>>3));
             }
         }
         for(int r=0;r<height;r++) {
@@ -70,8 +77,8 @@ internal sealed class OfficeAv1RestorationFilter {
         int pitch=width+7,patchWidth=width+6,patchHeight=height+6;
         Array.Clear(_sum,0,pitch);Array.Clear(_squares,0,pitch);
         for(int r=0;r<patchHeight;r++) {
-            _cancellation.ThrowIfCancellationRequested();int sum=0,square=0;
-            _sum[(r+1)*pitch]=_squares[(r+1)*pitch]=0;
+            _cancellation.ThrowIfCancellationRequested();int sum=0;long square=0;
+            _sum[(r+1)*pitch]=0;_squares[(r+1)*pitch]=0;
             for(int c=0;c<patchWidth;c++) {
                 int v=Sample(x+c-3,y+r-3);sum+=v;square+=v*v;
                 _sum[(r+1)*pitch+c+1]=_sum[r*pitch+c+1]+sum;
@@ -97,8 +104,10 @@ internal sealed class OfficeAv1RestorationFilter {
             _cancellation.ThrowIfCancellationRequested();
             for(int c=-1;c<=width;c++) {
                 int top=r+3-radius,left=c+3-radius,bottom=r+4+radius,right=c+4+radius;
-                int sum=Area(_sum,pitch,top,left,bottom,right),square=Area(_squares,pitch,top,left,bottom,right);
-                long variance=Math.Max(0,(long)square*n-(long)sum*sum),z=(variance*scale+(1<<19))>>20;
+                int sum=Area(_sum,pitch,top,left,bottom,right);long square=Area(_squares,pitch,top,left,bottom,right);
+                // Normalize variance to eight-bit precision; retain the original sum for the mean term.
+                long normalizedSquare=_bitDepth==8?square:(square+8)>>4,normalizedSum=_bitDepth==8?sum:(sum+2)>>2;
+                long variance=Math.Max(0,normalizedSquare*n-normalizedSum*normalizedSum),z=(variance*scale+(1<<19))>>20;
                 int a=z>=255?256:z==0?1:(int)((z*256+z/2)/(z+1));
                 int index=(r+1)*abPitch+c+1;_a[index]=a;
                 _b[index]=(int)(((long)(256-a)*sum*reciprocal+(1<<11))>>12);
@@ -119,5 +128,7 @@ internal sealed class OfficeAv1RestorationFilter {
     }
     private static int Area(int[] integral,int pitch,int top,int left,int bottom,int right)=>
         integral[bottom*pitch+right]-integral[top*pitch+right]-integral[bottom*pitch+left]+integral[top*pitch+left];
-    private static ushort Clip(int value)=>(ushort)Math.Max(0,Math.Min(255,value));
+    private static long Area(long[] integral,int pitch,int top,int left,int bottom,int right)=>
+        integral[bottom*pitch+right]-integral[top*pitch+right]-integral[bottom*pitch+left]+integral[top*pitch+left];
+    private ushort Clip(int value)=>(ushort)Math.Max(0,Math.Min(_maximumSample,value));
 }

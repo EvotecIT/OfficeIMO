@@ -1,11 +1,12 @@
 /* Opt-in native producer: odd-sized still frames with texture/noise and native-selected restoration. */
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include "aom/aom_encoder.h"
 #include "aom/aomcx.h"
 int main(int argc,char **argv) {
-  if(argc!=3)return 2;const int mode=atoi(argv[2]),w=mode>=3?513:193,h=mode>=16?513:mode==5?513:mode>=3?257:137,mono=mode==2 || mode==14 || mode==19;
-  if(mode<0 || mode>19)return 2;
+  if(argc!=3 && argc!=4)return 2;const int depth=argc==4?atoi(argv[3]):8,mode=atoi(argv[2]),w=mode>=3?513:193,h=mode>=16?513:mode==5?513:mode>=3?257:137,mono=mode==2 || mode==14 || mode==19;
+  if(mode<0 || mode>19 || (depth!=8 && depth!=10))return 2;
   aom_codec_enc_cfg_t cfg;
   if(aom_codec_enc_config_default(aom_codec_av1_cx(),&cfg,AOM_USAGE_GOOD_QUALITY))return 3;
   cfg.g_w=w;cfg.g_h=h;cfg.g_threads=1;cfg.g_timebase.num=1;cfg.g_timebase.den=1;
@@ -19,12 +20,13 @@ int main(int argc,char **argv) {
     cfg.rc_superres_mode=AOM_SUPERRES_FIXED;
     cfg.rc_superres_denominator=cfg.rc_superres_kf_denominator=13;
   }
-  aom_codec_ctx_t enc;if(aom_codec_enc_init(&enc,aom_codec_av1_cx(),&cfg,0))return 4;
+  if(depth==10) {cfg.g_bit_depth=AOM_BITS_10;cfg.g_input_bit_depth=10;}
+  aom_codec_ctx_t enc;if(aom_codec_enc_init(&enc,aom_codec_av1_cx(),&cfg,depth==10?AOM_CODEC_USE_HIGHBITDEPTH:0))return 4;
   if(aom_codec_control(&enc,AOME_SET_CPUUSED,mode>=16?0:2) || aom_codec_control(&enc,AV1E_SET_ENABLE_INTRABC,0) ||
      aom_codec_control(&enc,AV1E_SET_ENABLE_PALETTE,0) || aom_codec_control(&enc,AV1E_SET_ENABLE_RESTORATION,1) ||
      aom_codec_control(&enc,AV1E_SET_SUPERBLOCK_SIZE,(mode==14 || mode==15 || mode==19?AOM_SUPERBLOCK_SIZE_128X128:AOM_SUPERBLOCK_SIZE_64X64)) ||
      aom_codec_control(&enc,AV1E_SET_TILE_COLUMNS,1) || aom_codec_control(&enc,AV1E_SET_COLOR_RANGE,mono?1:0))return 5;
-  aom_image_t *image=aom_img_alloc(NULL,AOM_IMG_FMT_I420,w,h,1);if(!image)return 6;
+  aom_image_t *image=aom_img_alloc(NULL,depth==10?AOM_IMG_FMT_I42016:AOM_IMG_FMT_I420,w,h,1);if(!image)return 6;
   unsigned int random=7;
   for(int p=0;p<3;p++) {
     int width=(w+(p?1:0))>>(p?1:0),height=(h+(p?1:0))>>(p?1:0);
@@ -32,7 +34,9 @@ int main(int argc,char **argv) {
       random=random*1664525u+1013904223u;
       int base=mode==4?64+(x/16%2)*96:mode>=3?96+(x*17+y*23+p*11)%31:
           mode==1?48+((x*3+y*2+p*17)%127):64+((x/12+y/9+p)%3)*45;
-      image->planes[p][y*image->stride[p]+x]=(unsigned char)(base+(int)(random>>(mode>=3?26:28)));
+      int value=base+(int)(random>>(mode>=3?26:28));
+      if(depth==10)((uint16_t *)(image->planes[p]+y*image->stride[p]))[x]=(uint16_t)((value<<2)+((x+3*y+p)&3));
+      else image->planes[p][y*image->stride[p]+x]=(unsigned char)value;
     }
   }
   FILE *out=fopen(argv[1],"wb");if(!out)return 7;

@@ -21,11 +21,12 @@ internal sealed class OfficeAv1Restorer {
             units+=(long)Math.Max(((((frame.Height+(1<<sub)-1)>>sub)+size/2)/size),1)*
                 Math.Max(((((frame.UpscaledWidth+(1<<sub)-1)>>sub)+size/2)/size),1);
         }
-        return pixels*4+units*64+133120;
+        return pixels*4+units*64+OfficeAv1RestorationFilter.ContextBytes;
     }
     internal OfficeAv1Restorer(OfficeAv1StillFrame frame,OfficeAv1StillSequence sequence,int sb,OfficeRasterDecodeOptions options) {
         options.CancellationToken.ThrowIfCancellationRequested();
-        if(frame.BitDepth!=8 || sequence.BitDepth!=8) throw new FormatException("AV1 high-bit-depth restoration is not qualified.");
+        if((sequence.BitDepth!=8 && sequence.BitDepth!=10) || frame.BitDepth!=sequence.BitDepth)
+            throw new FormatException("Invalid or inconsistent AV1 restoration bit depth.");
         if(options.RetainedManagedBytes>OfficeRasterGuards.MaximumDecodedBytes-ContextBytes(frame,sequence.Monochrome,sb))
             throw new FormatException("AV1 restoration exceeds retained memory.");
         _width=frame.UpscaledWidth;_height=frame.Height;_cancellation=options.CancellationToken;_workLimit=options.MaximumInspectionWorkPixels;
@@ -39,7 +40,7 @@ internal sealed class OfficeAv1Restorer {
             _cols[p]=Math.Max((((_width+(1<<sub)-1)>>sub)+size/2)/size,1);
             _units[p]=new OfficeAv1RestorationUnit[_rows[p]*_cols[p]];_assigned[p]=new bool[_units[p].Length];
         }
-        _filter=new OfficeAv1RestorationFilter(_cancellation);
+        _filter=new OfficeAv1RestorationFilter(sequence.BitDepth,_cancellation);
     }
     internal void Unit(OfficeAv1RestorationUnit unit) {
         _cancellation.ThrowIfCancellationRequested();int p=unit.Plane;

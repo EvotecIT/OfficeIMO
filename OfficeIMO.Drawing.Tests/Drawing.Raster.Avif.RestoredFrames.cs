@@ -55,17 +55,19 @@ public sealed class DrawingAv1RestoredFrameTests {
             }
         }
     }
-    [Fact]
-    public void KernelsMatchNativeForAllSelfGuidedSetsAndWienerSignedExtremes() {
-        using var fixture=Open();var filter=new OfficeAv1RestorationFilter(default);
+    [Theory]
+    [InlineData(8)]
+    [InlineData(10)]
+    public void KernelsMatchNativeForAllSelfGuidedSetsAndWienerSignedExtremes(int depth) {
+        using var fixture=Open(depth);var filter=new OfficeAv1RestorationFilter(depth,default);
         foreach(var c in fixture.RootElement.GetProperty("kernels").EnumerateArray()) {
             var taps=c.GetProperty("taps");int type=c.GetProperty("type").GetInt32();
             var unit=new OfficeAv1RestorationUnit(0,0,0,type,c.GetProperty("set").GetInt32(),
                 taps[0][0].GetInt32(),taps[0][1].GetInt32(),taps[0][2].GetInt32(),taps[1][0].GetInt32(),taps[1][1].GetInt32(),taps[1][2].GetInt32(),
                 c.GetProperty("x0").GetInt32(),c.GetProperty("x1").GetInt32());
-            ushort[] input=Hex(c.GetProperty("input").GetString()!),output=(ushort[])input.Clone();
+            ushort[] input=Hex(c.GetProperty("input").GetString()!,depth),output=(ushort[])input.Clone();
             filter.Apply(input,input,output,76,76,76,0,75,6,6,c.GetProperty("width").GetInt32(),c.GetProperty("height").GetInt32(),unit);
-            Assert.True(output.SequenceEqual(Hex(c.GetProperty("output").GetString()!)),
+            Assert.True(output.SequenceEqual(Hex(c.GetProperty("output").GetString()!,depth)),
                 $"Restoration kernel type {type}, set {unit.SgrSet}, weights {unit.X0}/{unit.X1}, taps {taps}");
         }
     }
@@ -83,25 +85,31 @@ public sealed class DrawingAv1RestoredFrameTests {
         Assert.NotNull(OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,options,OfficeAv1ReconstructionStage.Cdef));
         Assert.Throws<FormatException>(()=>OfficeAv1FrameReconstructor.Decode(bytes,sequence,frame,options,OfficeAv1ReconstructionStage.Restored));
     }
-    [Fact]
-    public void FilterRejectsOutputFeedbackAndObservesCancellationBeforeWriting() {
-        using var fixture=Open();var c=fixture.RootElement.GetProperty("kernels").EnumerateArray().First(v=>v.GetProperty("type").GetInt32()==3);
-        ushort[] source=Hex(c.GetProperty("input").GetString()!),original=(ushort[])source.Clone();
+    [Theory]
+    [InlineData(8)]
+    [InlineData(10)]
+    public void FilterRejectsOutputFeedbackAndObservesCancellationBeforeWriting(int depth) {
+        using var fixture=Open(depth);var c=fixture.RootElement.GetProperty("kernels").EnumerateArray().First(v=>v.GetProperty("type").GetInt32()==3);
+        ushort[] source=Hex(c.GetProperty("input").GetString()!,depth),original=(ushort[])source.Clone();
         var unit=new OfficeAv1RestorationUnit(0,0,0,3,c.GetProperty("set").GetInt32(),0,0,0,0,0,0,
             c.GetProperty("x0").GetInt32(),c.GetProperty("x1").GetInt32());
-        var filter=new OfficeAv1RestorationFilter(default);
+        var filter=new OfficeAv1RestorationFilter(depth,default);
         Assert.Throws<FormatException>(()=>filter.Apply(source,source,source,76,76,76,0,75,6,6,17,9,unit));
         Assert.Equal(original,source);
-        using var cancellation=new CancellationTokenSource();filter=new OfficeAv1RestorationFilter(cancellation.Token);
+        using var cancellation=new CancellationTokenSource();filter=new OfficeAv1RestorationFilter(depth,cancellation.Token);
         ushort[] output=(ushort[])source.Clone();cancellation.Cancel();
         Assert.Throws<OperationCanceledException>(()=>filter.Apply(source,source,output,76,76,76,0,75,6,6,17,9,unit));
         Assert.Equal(original,output);
     }
-    private static JsonDocument Open() {
-        using var input=File.OpenRead(Path.Combine(AppContext.BaseDirectory,"TestAssets","Avif","restored-reference.json.gz"));
+    private static JsonDocument Open(int depth=8) {
+        using var input=File.OpenRead(Path.Combine(AppContext.BaseDirectory,"TestAssets","Avif",depth==10?"restored-main10-reference.json.gz":"restored-reference.json.gz"));
         using var gzip=new GZipStream(input,CompressionMode.Decompress);return JsonDocument.Parse(gzip);
     }
-    private static ushort[] Hex(string value)=>Enumerable.Range(0,value.Length/2).Select(i=>(ushort)Convert.ToByte(value.Substring(i*2,2),16)).ToArray();
+    private static ushort[] Hex(string value,int depth=8) {
+        int bytes=depth==10?2:1;
+        return Enumerable.Range(0,value.Length/(2*bytes)).Select(i=>(ushort)(Convert.ToByte(value.Substring(i*2*bytes,2),16)+
+            (bytes==2?Convert.ToByte(value.Substring(i*4+2,2),16)*256:0))).ToArray();
+    }
     private static (byte[],OfficeAv1StillSequence,OfficeAv1StillFrame) Read(JsonElement c,string name,bool alpha) {
         byte[] bytes;OfficeAvifImageItem item;var options=new OfficeRasterDecodeOptions();
         if(c.TryGetProperty("inputBase64",out var input)) {
