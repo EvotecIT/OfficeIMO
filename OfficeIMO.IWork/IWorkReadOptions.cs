@@ -65,7 +65,7 @@ public sealed class IWorkReadOptions {
     /// <summary>Gets or sets the maximum combined string and formula catalog entries decoded across one iWork source.</summary>
     public int MaximumTableCatalogEntries { get; set; } = 100_000;
 
-    /// <summary>Gets or sets the maximum combined table dimension headers and bucket references decoded across one iWork source.</summary>
+    /// <summary>Gets or sets the maximum combined table dimension headers, bucket references, hidden-state declarations and filter references inspected across one iWork source.</summary>
     public int MaximumTableDimensionEntries { get; set; } = 1_100_000;
 
     /// <summary>Gets or sets the maximum number of projected sheets across one Numbers source.</summary>

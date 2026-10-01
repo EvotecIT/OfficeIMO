@@ -64,6 +64,16 @@ python Build/IWork/extract-function-identities.py OfficeIMO.TestAssets/Documents
 
 The existing numbers-parser MIT notice covers the provider and fixture. The manifest does not qualify Apple export, appearance, recalculation or cache freshness.
 
+## Empty hidden-state extents and disabled filters
+
+`empty-hidden-states.json` describes five table models in the unchanged `nim-iwork/simple.numbers`, `picodocs/sample-v14.4.pages` and `keynotekit/tabledeck-v15.2.1.key` packages. Their pinned provenance and license notices above apply. Independent numbers-parser 4.19.0 schemas verify empty base/summary hidden states, correct axis directions, zero hidden counts and ten disabled filter sets without rules. Reproduce the manifest without rewriting the packages:
+
+```bash
+python Build/IWork/extract-empty-hidden-states.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/empty-hidden-states.json
+```
+
+OfficeIMO checks the source hashes, selected model identities and absence of new visibility warnings or declaration failures. This qualifies the empty/disabled path; positive selectors use synthetic format-boundary tests. Hidden positions, active filtering, collapsed groups and Apple export equivalence remain unqualified.
+
 ## Individual table dimensions
 
 `numbers-parser/individual-dimensions.numbers` is produced by numbers-parser 4.19.0 using `Build/IWork/create-dimension-fixture.py`. It declares three row heights (20, 10, and 30 points) and two column widths (40 and 20 points), with source labels in the first column. The generator reopens the package through the independent producer; OfficeIMO tests read the declared dimensions and save/reopen the XLSX result. This fixture also exercises the valid seven-field tile envelope with the wide-row flag. It qualifies declared dimensions, not Apple automatic row sizing or visual equivalence.

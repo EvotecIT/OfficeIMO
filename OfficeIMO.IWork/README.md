@@ -50,7 +50,9 @@ Selected modern cell styles expose `IWorkTableCell.Fill`, including supported so
 
 Shared tables expose explicit `RowHeights` and `ColumnWidths` as read-only maps keyed by one-based positions, measured in points. `GetRowHeight(row)` and `GetColumnWidth(column)` return an explicit size or the table default. Native zero-size entries use the default. `MaximumTableDimensionEntries` bounds dimension headers and bucket references across the source. Unsupported sizing records remain in source evidence and emit a diagnostic.
 
-Positive native hidden/filtered row or column counts, and malformed count declarations, emit `IWORK_TABLE_VISIBILITY_UNASSESSED` and require explicit partial conversion for editable output. Partial output and Reader can include content hidden in the source. Counts do not identify which positions are hidden; visibility reconstruction and hidden-state extent records remain outside the qualified subset.
+Positive native hidden/filtered row or column counts, and malformed count declarations, emit `IWORK_TABLE_VISIBILITY_UNASSESSED` and require explicit partial conversion for editable output. Partial output and Reader can include content hidden in the source. Counts do not identify which positions are hidden and can be zero even when native hidden-state records select content.
+
+Selected base/summary hidden-state flags, collapsed-group and other unqualified extent declarations, active filters, and unreadable visibility envelopes emit `IWORK_TABLE_HIDDEN_STATES_UNASSESSED`. Empty extents, false selectors and disabled filter sets retain the existing editable path; disabled rules are not traversed. `MaximumTableDimensionEntries` also bounds hidden-state declarations and filter references. Hidden positions, filtering behavior and collapsed-group reconstruction remain unqualified.
 
 Path and stream entry points use the same bounded parser. Stream and byte-array overloads detect the application kind from bounded package content. Pass an expected `IWorkDocumentKind` when the caller already knows the route and wants a mismatch rejected:
 
