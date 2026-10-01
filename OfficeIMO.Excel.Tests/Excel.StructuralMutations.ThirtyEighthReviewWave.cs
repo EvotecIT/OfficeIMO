@@ -47,18 +47,33 @@ namespace OfficeIMO.Tests {
             Assert.Equal("existing", allowed.SecurityDescriptor);
         }
 
+#if EXCEL_PERFORMANCE_EVIDENCE
+        [Trait("Category", "Performance")]
+        [Trait("Category", "ExcelPerformanceEvidence")]
+#endif
         [Fact]
         public void Test_FormulaSyntaxTree_ParsesLongPrefixWithoutQuadraticReferenceSearch() {
-            string formula = "=" + string.Concat(Enumerable.Repeat("1+", 16_000)) + "A1";
+#if EXCEL_PERFORMANCE_EVIDENCE
+            const int termCount = 16_000;
+#else
+            const int termCount = 8;
+#endif
+            string formula = "=" + string.Concat(Enumerable.Repeat("1+", termCount)) + "A1";
+#if EXCEL_PERFORMANCE_EVIDENCE
             var stopwatch = Stopwatch.StartNew();
+#endif
 
             ExcelFormulaSyntaxTree tree = ExcelFormulaSyntaxTree.Parse(formula);
 
+#if EXCEL_PERFORMANCE_EVIDENCE
             stopwatch.Stop();
+#endif
             ExcelFormulaReferenceSyntax reference = Assert.Single(tree.Nodes.OfType<ExcelFormulaReferenceSyntax>());
             Assert.Equal("A1", reference.Text);
             Assert.Equal(formula, tree.Text);
+#if EXCEL_PERFORMANCE_EVIDENCE
             Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5), $"Parsing took {stopwatch.Elapsed}.");
+#endif
         }
 
         [Fact]

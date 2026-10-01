@@ -2,9 +2,6 @@ using System;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
-        private static double GetContainmentAwareTextSimilarity(string source, string target) =>
-            GetContainmentAwareTextSimilarity(source, target, null);
-
         private static double GetContainmentAwareTextSimilarity(
             string source,
             string target,
@@ -64,9 +61,6 @@ namespace OfficeIMO.Word {
 
             return normalized;
         }
-
-        private static double GetBoundedTextSimilarity(string source, string target) =>
-            GetBoundedTextSimilarity(source, target, null);
 
         private static double GetBoundedTextSimilarity(
             string source,
