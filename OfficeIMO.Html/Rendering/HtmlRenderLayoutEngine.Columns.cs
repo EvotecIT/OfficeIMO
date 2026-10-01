@@ -49,8 +49,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         MultiColumnPlan plan = BuildMultiColumnPlan(children, targetHeight, _options.MaxColumnCount, throwOnLimit: true);
         EnsureMultiColumnLimit(plan.ColumnCount);
-        double contentHeight = declaredHeight ?? Math.Max(targetHeight, plan.UsedHeight);
+        IReadOnlyList<double> columnPageBreaks = Array.Empty<double>();
+        if (style.OverflowX == "visible" && style.OverflowY == "visible") {
+            plan = ResolvePagedColumnOverflow(plan, requestedCount, targetHeight, out columnPageBreaks);
+        }
+        double contentHeight = columnPageBreaks.Count > 0
+            ? Math.Max(declaredHeight ?? targetHeight, plan.UsedHeight)
+            : declaredHeight ?? Math.Max(targetHeight, plan.UsedHeight);
         double boxHeight = ResolveBoxHeight(contentHeight, boxWidth, style);
+        if (columnPageBreaks.Count > 0) boxHeight = Math.Max(boxHeight, contentHeight + style.VerticalInsets);
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
         var visuals = new List<HtmlRenderVisual>();
         double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
@@ -98,6 +105,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             source,
             breakOffsets,
             pageName: style.PageName,
+            forcedBreaks: columnPageBreaks.Select(offset => new HtmlRenderForcedBreak(contentY + offset, HtmlPageBreakTarget.Page)),
             runningStringAssignments: EnumerateMultiColumnRunningStringAssignments(plan, contentY)
                 .Concat(positionedRunningStringAssignments)
                 .OrderBy(assignment => assignment.OrderOffset));
