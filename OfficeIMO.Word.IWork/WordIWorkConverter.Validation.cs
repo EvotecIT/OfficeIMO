@@ -7,6 +7,8 @@ public static partial class WordIWorkConverter {
         bool allowPartialEditableReconstruction) {
         const long MaximumDestinationTableCells = 1_000_000;
         long destinationTableCells = 0;
+        string? inlineLimitation = FindInlineObjectLimitation(projection);
+        if (inlineLimitation != null) return inlineLimitation;
         if (projection.TextBoxObjects.Any(textBox => textBox.Hyperlink != null)
             || projection.Images.Any(image => image.Hyperlink != null)) {
             return "Pages contains a drawable hyperlink that cannot be represented by the DOCX owner.";

@@ -106,6 +106,9 @@ public static partial class WordIWorkConverter {
                 var pageHosts = new Dictionary<int, WordParagraph>();
                 var pageTableAnchors = new Dictionary<int, WordTable>();
                 int currentPageIndex = 1;
+                var inlineDrawables = new HashSet<ulong>(projection.Body.Paragraphs.SelectMany(paragraph => paragraph.Runs)
+                    .Where(run => run.InlineObject != null).Select(run => run.InlineObject!.Drawable.RecordIdentifier));
+                var drawableLookup = projection.Drawables.ToDictionary(DrawableIdentifier);
                 AddRichText(projection.Body, value => {
                         WordParagraph paragraph = document.AddParagraph(value);
                         if (!pageHosts.ContainsKey(currentPageIndex)) {
@@ -125,13 +128,16 @@ public static partial class WordIWorkConverter {
                             semanticSections.Add(section);
                             currentPageIndex++;
                         }
-                    }, cancellationToken: cancellationToken);
+                    }, cancellationToken: cancellationToken, addInlineObject: (paragraph, run) =>
+                        AddInlineObject(document, paragraph, drawableLookup[run.InlineObject!.Drawable.RecordIdentifier],
+                            nativeLists, contentWidth, contentHeight, cancellationToken));
                 if (projection.PageLayout != null) {
                     foreach (WordSection section in document.Sections) ApplyPageLayout(section, projection.PageLayout);
                 }
                 for (int drawableIndex = 0; drawableIndex < projection.Drawables.Count; drawableIndex++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     IWorkPagesDrawable sourceDrawable = projection.Drawables[drawableIndex];
+                    if (inlineDrawables.Contains(DrawableIdentifier(sourceDrawable))) continue;
                     WordParagraph? pageHost = sourceDrawable.PageIndex.HasValue
                         && pageHosts.TryGetValue(sourceDrawable.PageIndex.Value, out WordParagraph? host)
                             ? host
@@ -383,7 +389,8 @@ public static partial class WordIWorkConverter {
         IWorkNativeListCatalog nativeLists,
         Func<WordParagraph>? addPageBreak = null,
         Action<IWorkParagraphBreakKind>? addSectionBreak = null,
-        bool forceBold = false, CancellationToken cancellationToken = default) {
+        bool forceBold = false, CancellationToken cancellationToken = default,
+        Action<WordParagraph, IWorkTextRun>? addInlineObject = null) {
         ulong? previousListIdentifier = null;
         bool hasPreviousListParagraph = false;
         foreach (IWorkTextParagraph sourceParagraph in content.Paragraphs) {
@@ -404,7 +411,8 @@ public static partial class WordIWorkConverter {
             }
             foreach (IWorkTextRun sourceRun in sourceParagraph.Runs) {
                 cancellationToken.ThrowIfCancellationRequested();
-                AddStyledTextRun(paragraph, sourceRun, forceBold);
+                if (sourceRun.InlineObject != null) addInlineObject?.Invoke(paragraph, sourceRun);
+                else AddStyledTextRun(paragraph, sourceRun, forceBold);
             }
             if (sourceParagraph.BreakKind == IWorkParagraphBreakKind.Page) addPageBreak?.Invoke();
             else if (sourceParagraph.BreakKind is IWorkParagraphBreakKind.Section

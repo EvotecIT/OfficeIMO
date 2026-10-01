@@ -9,6 +9,12 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## Pages body attachment placement
+
+Pages conversion inserts qualified zero-offset body images inline and standalone tables between their surrounding paragraphs. Reconvert sources whose earlier DOCX output appended these objects after the body. `IWorkTextRun.InlineObject` identifies marker-only source runs and retains the original UTF-16 offset and native record identities. Do not infer that an empty run has no content when this property is set.
+
+Reader retains attachment order and emits image-anchor blocks even when alternative text is absent. Their assets reference the block anchors. Mixed text/object paragraphs become multiple ordered blocks with `IWORK_READER_INLINE_PARAGRAPH_SPLIT`; callers that require paragraph layout must use the source model or Word conversion. Unsupported attachment containers, placement modes and destination combinations still require the existing partial/fallback policy.
+
 ## Numbers MINA and typed Excel aggregates
 
 Numbers `MINA` uses its independently qualified native identifier and supports one-to-255 arguments. It retains an editable XLSX formula and its valid numeric cache. Native Apple export and recalculation evidence for this addition remain open.

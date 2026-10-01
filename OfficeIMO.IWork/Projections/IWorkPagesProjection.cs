@@ -234,7 +234,7 @@ internal static partial class IWorkPagesReader {
                     body.EntryPath, body.Identifier));
                 omittedUnits.Add(new IWorkObjectIdentity(body));
             } else {
-                bodyContent = IWorkTextReader.Read(index, body, projectionBudget, references);
+                bodyContent = IWorkTextReader.Read(index, body, projectionBudget, references, resolveInlineObjects: true);
                 if (!bodyContent.IsComplete) MarkTextIncomplete(body, diagnostics, ref supportsEditableReconstruction, bodyContent);
                 int maximumSectionCount = bodyContent.Paragraphs.Count(paragraph =>
                     paragraph.BreakKind == IWorkParagraphBreakKind.Section) + 1;
@@ -245,7 +245,7 @@ internal static partial class IWorkPagesReader {
 
         IReadOnlyList<IWorkArchiveRecord> documentDrawables = CollectDocumentDrawables(index, document,
             documentMessage, projectionBudget, references, out IReadOnlyDictionary<ulong, int> drawablePageIndexes,
-            out bool drawableGraphComplete);
+            out bool drawableGraphComplete, bodyContent);
         if (!drawableGraphComplete) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,

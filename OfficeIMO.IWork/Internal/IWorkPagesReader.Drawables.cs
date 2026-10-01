@@ -6,7 +6,7 @@ internal static partial class IWorkPagesReader {
     private static IReadOnlyList<IWorkArchiveRecord> CollectDocumentDrawables(IWorkObjectIndex index,
         IWorkArchiveRecord document, IWorkWireMessage documentMessage,
         IWorkProjectionBudget projectionBudget, IWorkSourceReferenceIssueCollector references,
-        out IReadOnlyDictionary<ulong, int> pageIndexes, out bool complete) {
+        out IReadOnlyDictionary<ulong, int> pageIndexes, out bool complete, IWorkTextContent body) {
         complete = true;
         var identifiers = new HashSet<ulong>();
         var ordered = new List<IWorkArchiveRecord>();
@@ -103,6 +103,11 @@ internal static partial class IWorkPagesReader {
                     }
                 }
             }
+        }
+        foreach (IWorkInlineObject inlineObject in body.Paragraphs.SelectMany(paragraph => paragraph.Runs)
+                     .Where(run => run.InlineObject != null).Select(run => run.InlineObject!)) {
+            IWorkArchiveRecord? drawable = index.Find(inlineObject.Drawable.RecordIdentifier);
+            if (drawable != null) Add(drawable);
         }
         var reachable = new HashSet<ulong>(index.ReachableFrom(document).Select(record => record.Identifier));
         foreach (IWorkArchiveRecord record in index.PrimaryRecords.Where(record =>

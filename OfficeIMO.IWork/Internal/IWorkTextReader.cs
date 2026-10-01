@@ -9,13 +9,22 @@ internal static partial class IWorkTextReader {
 
     internal static IWorkTextContent Read(IWorkObjectIndex index, IWorkArchiveRecord storage,
         IWorkProjectionBudget projectionBudget, IWorkSourceReferenceIssueCollector references,
-        bool tolerateStyleDepth = false) {
+        bool tolerateStyleDepth = false, bool resolveInlineObjects = false) {
         IWorkWireMessage message = index.Message(storage);
         bool textComplete = true;
         string text = ReadText(message, projectionBudget, ref textComplete);
         bool hasInvalidSourceText = !textComplete;
         bool hasUnresolvedInlineObjects = text.IndexOf('\ufffc') >= 0 || text.IndexOf('\ufffb') >= 0;
         bool complete = true;
+        IReadOnlyDictionary<int, IWorkInlineObject> inlineObjects = new Dictionary<int, IWorkInlineObject>();
+        if (resolveInlineObjects) {
+            inlineObjects = ReadInlineObjects(index, message, text, storage, projectionBudget, references, out bool attachmentsComplete);
+            complete &= attachmentsComplete;
+            hasUnresolvedInlineObjects = !attachmentsComplete;
+            for (int offset = 0; offset < text.Length; offset++) {
+                if (text[offset] == '\ufffb' || text[offset] == '\ufffc' && !inlineObjects.ContainsKey(offset)) hasUnresolvedInlineObjects = true;
+            }
+        }
         IReadOnlyList<AttributeBoundary> paragraphStyles = ReadObjectTable(message, 5, text.Length,
             storage, projectionBudget, references, ref complete);
         IReadOnlyList<AttributeBoundary> listStyles = ReadObjectTable(message, 7, text.Length,
@@ -29,6 +38,7 @@ internal static partial class IWorkTextReader {
             Cached<(int Level, string? Label)>>();
         var textStyleCache = new Dictionary<TextStyleCacheKey, Cached<IWorkTextStyle>>();
         var hyperlinkCache = new Dictionary<ulong, Cached<string?>>();
+        var inlineOffsets = new SortedSet<int>(inlineObjects.Keys);
         var paragraphs = new List<IWorkTextParagraph>();
         foreach (TextSpan paragraph in ParagraphSpans(text)) {
             projectionBudget.AddTextItem();
@@ -43,6 +53,11 @@ internal static partial class IWorkTextReader {
             var boundaries = new SortedSet<int> { paragraph.Start, paragraph.End };
             AddBoundaries(boundaries, characterStyles, paragraph.Start, paragraph.End);
             AddBoundaries(boundaries, hyperlinks, paragraph.Start, paragraph.End);
+            if (paragraph.End > paragraph.Start) {
+                foreach (int offset in inlineOffsets.GetViewBetween(paragraph.Start, paragraph.End - 1)) {
+                    boundaries.Add(offset); boundaries.Add(offset + 1);
+                }
+            }
             int[] ordered = boundaries
                 .Where(boundary => !SplitsSurrogatePair(text, boundary))
                 .ToArray();
@@ -52,9 +67,10 @@ internal static partial class IWorkTextReader {
                 int start = ordered[runIndex];
                 int end = ordered[runIndex + 1];
                 if (end <= start) continue;
-                string runText = NormalizeInlineText(text.Substring(start, end - start),
+                inlineObjects.TryGetValue(start, out IWorkInlineObject? inlineObject);
+                string runText = inlineObject != null ? string.Empty : NormalizeInlineText(text.Substring(start, end - start),
                     projectionBudget, ref textComplete);
-                if (runText.Length == 0) continue;
+                if (runText.Length == 0 && inlineObject == null) continue;
                 projectionBudget.AddTextItem();
                 ulong? characterStyleId = ObjectAt(characterStyles, start, carryMissing: false);
                 IWorkTextStyle characterStyle = ResolveTextStyle(index, characterStyleId,
@@ -66,7 +82,7 @@ internal static partial class IWorkTextReader {
                 string? hyperlink = ResolveHyperlink(index,
                     ObjectAt(hyperlinks, start, carryMissing: false), projectionBudget,
                     hyperlinkCache, references, ref complete);
-                runs.Add(new IWorkTextRun(runText, characterStyle, hyperlink));
+                runs.Add(new IWorkTextRun(runText, characterStyle, hyperlink, inlineObject));
             }
             paragraphs.Add(new IWorkTextParagraph(runs, paragraphStyle, listStyleId,
                 listLevel, listLabel, paragraph.BreakKind));

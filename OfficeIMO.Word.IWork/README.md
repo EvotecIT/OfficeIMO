@@ -21,6 +21,8 @@ result.Value.Save("converted.docx");
 
 `IWorkSourceDocument.Open` reads and bounds the source independently of destination policy. `ToWordDocument` returns the converted document directly; `ToWordDocumentResult` also exposes the typed Pages projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result. `WordIWorkConverter.ConvertPagesToWord*` provides equivalent path and stream convenience entry points.
 
+Qualified body image attachments retain their inline run positions. A qualified table attachment occupies its own paragraph and becomes a Word table between the surrounding body paragraphs. Nonzero placement modes, tables mixed with other paragraph content, repeated attachment positions for one drawable, and attachment-run hyperlinks remain unsupported. Other source or destination limits can still require the explicit partial policy.
+
 Individual table row heights and column widths are carried into DOCX in twips under the adapter’s precision policy.
 
 Choose the acceptance policy explicitly when source details cannot be represented:

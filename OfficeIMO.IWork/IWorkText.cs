@@ -130,10 +130,11 @@ public sealed class IWorkParagraphStyle {
 
 /// <summary>One contiguous rich-text run.</summary>
 public sealed class IWorkTextRun {
-    internal IWorkTextRun(string text, IWorkTextStyle style, string? hyperlink) {
+    internal IWorkTextRun(string text, IWorkTextStyle style, string? hyperlink, IWorkInlineObject? inlineObject = null) {
         Text = text;
         Style = style;
         Hyperlink = hyperlink;
+        InlineObject = inlineObject;
     }
 
     /// <summary>Gets run text.</summary>
@@ -142,6 +143,8 @@ public sealed class IWorkTextRun {
     public IWorkTextStyle Style { get; }
     /// <summary>Gets an external hyperlink target, when present.</summary>
     public string? Hyperlink { get; }
+    /// <summary>Gets the drawable attachment at this run's source position, or null for an ordinary text run.</summary>
+    public IWorkInlineObject? InlineObject { get; }
 }
 
 /// <summary>One paragraph in an iWork rich-text storage.</summary>

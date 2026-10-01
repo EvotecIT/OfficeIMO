@@ -193,7 +193,7 @@ internal sealed partial class IWorkReadProjection {
             ? cell.CachedDisplayText
             : cell.DisplayText;
 
-    private void AddImage(OfficeDocumentPage page, IWorkImageAsset source) {
+    private void AddImage(OfficeDocumentPage page, IWorkImageAsset source, bool includeAnchorBlock = false) {
         _cancellationToken.ThrowIfCancellationRequested();
         ReportUnsupportedRotation(page, source.Geometry, "image");
         string id = "iwork-a" + (_assets.Count + 1).ToString("D6", CultureInfo.InvariantCulture);
@@ -215,11 +215,12 @@ internal sealed partial class IWorkReadProjection {
         };
         _assets.Add(asset);
         _pageAssets[page].Add(asset);
-        if (!string.IsNullOrWhiteSpace(source.AccessibilityDescription)) {
-            string description = source.AccessibilityDescription!;
-            AddBlock(page, "image", description, EscapeMarkdown(description, _cancellationToken), null, null,
+        if (includeAnchorBlock || !string.IsNullOrWhiteSpace(source.AccessibilityDescription)) {
+            string description = source.AccessibilityDescription ?? string.Empty;
+            ReaderLocation blockLocation = AddBlock(page, "image", description, EscapeMarkdown(description, _cancellationToken), null, null,
                 markdownPart: (offset, length) => EscapeMarkdown(description.Substring(offset, length), _cancellationToken),
                 region: asset.Region);
+            if (includeAnchorBlock) asset.Location.BlockAnchor = blockLocation.BlockAnchor;
         }
         if (source.Hyperlink != null) AddLink(page, source.Hyperlink, asset.Location,
             region: asset.Region);
