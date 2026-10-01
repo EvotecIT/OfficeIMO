@@ -1477,6 +1477,7 @@ jobs:
       - name: Pack and install the .NET tool
         run: |
           dotnet pack OfficeIMO.Tool/OfficeIMO.Tool.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --output artifacts/tool-package -p:PackageVersion=0.0.0-local
+          python3 Build/validate_mcp_registry.py package artifacts/tool-package/OfficeIMO.Tool.0.0.0-local.nupkg
           dotnet tool install OfficeIMO.Tool --tool-path artifacts/tool-install --version 0.0.0-local --add-source artifacts/tool-package
 
       - name: Exercise the installed command surface

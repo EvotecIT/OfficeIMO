@@ -1,6 +1,6 @@
 {
   "name": "officeimo-document-tools",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Inspect, search, selectively fetch, and convert local documents and mail stores with OfficeIMO.",
   "author": {
     "name": "EvotecIT"
