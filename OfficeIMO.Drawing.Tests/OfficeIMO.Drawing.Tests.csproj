@@ -42,6 +42,7 @@
     <None Update="TestAssets\Avif\palette-reference.json" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\transform-reference.json" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\coefficient-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="TestAssets\Avif\copy-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\*.avif" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\StaticPdfGaps\*.avif" Link="TestAssets\Avif\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\ScanQuality\**\*" Link="ScanQuality\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
