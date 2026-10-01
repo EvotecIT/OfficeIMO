@@ -85,6 +85,8 @@ Use the PowerForge CLI built from the shared source containing this backend:
 ```text
 powerforge apple-release Archive --config Build/Studio/Apple/powerforge.release.json --plan --summary --output json
 powerforge apple-release Archive --config Build/Studio/Apple/powerforge.release.json --summary --output json
+powerforge apple-release Rehearse --config Build/Studio/Apple/powerforge.release.json --plan --summary --output json
+powerforge apple-release Rehearse --config Build/Studio/Apple/powerforge.release.json --summary --output json
 ```
 
 The second command creates a signed package and `.xcarchive` locally. It requires
@@ -111,9 +113,17 @@ profile when its certificate changes or the profile expires.
 Keep marketing version and build number identical in the release target and
 MacApp configuration. This backend uses explicit versions; Xcode project
 generation, automatic version mutation, and the Swift exact-package snapshot
-mode do not apply. Archive creation is the supported local preparation boundary;
-export/upload and Store ingestion need qualification with distribution identities.
-Upload, metadata synchronization, review submission and release are disabled.
+mode do not apply. `Archive` prepares the signed app and installer. `Rehearse`
+also runs Xcode's local App Store export and retains the exported package without
+uploading it. Local export does not prove Apple ingestion; verify the exact build
+reaches `VALID` after an authorized upload. Upload, metadata synchronization,
+review submission and release are disabled in this configuration.
+
+Use a development-signed sandbox build for local interaction checks and
+TestFlight for the Store-distributed build. Apple does not support reliably
+launching an App Store distribution-signed app directly, especially with
+restricted entitlements; a production-profile launch rejection is not runtime
+qualification. See [Apple's certificate guidance](https://developer.apple.com/documentation/technotes/tn3161-inside-code-signing-certificates).
 
 Before submission, qualify user-selected open/save, retained bookmarks after
 relaunch, recovery and recent documents, network features, clean install/update,
