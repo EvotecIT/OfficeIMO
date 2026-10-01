@@ -24,7 +24,9 @@
     "Apps": [],
     "Automation": {
       "ReceiptPath": "Artifacts/Studio/Apple/release-receipt.json",
-      "PlanReceiptPath": "Artifacts/Studio/Apple/release-plan.json"
+      "PlanReceiptPath": "Artifacts/Studio/Apple/release-plan.json",
+      "ReceiptHistoryPath": "Artifacts/Studio/Apple/receipts",
+      "LockPath": "Artifacts/Studio/Apple/release.lock"
     }
   }
 }
