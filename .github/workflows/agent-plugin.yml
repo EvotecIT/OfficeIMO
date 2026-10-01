@@ -60,7 +60,7 @@ jobs:
       - name: Build the shared CLI
         working-directory: .powerforge-agent-plugin-build
         run: dotnet build PowerForge.Cli/PowerForge.Cli.csproj -c Release -f net10.0 --nologo
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - name: Validate MCP Registry metadata
