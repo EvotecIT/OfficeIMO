@@ -198,6 +198,7 @@ internal static partial class IWorkTableReader {
         IWorkTableRichTextCatalog richStrings = IWorkTableRichTextCatalog.Create(source, store, model,
             projectionBudget, references);
         var numberFormats = new IWorkTableNumberFormatCatalog(source, store, model, projectionBudget, references);
+        var cellFills = new IWorkTableCellFillCatalog(source, store, model, projectionBudget, references);
         IReadOnlyDictionary<uint, IWorkWireMessage> formulas = ReadFormulas(source, store, model, references,
             projectionBudget,
             out bool formulaStorageComplete, out bool formulaCatalogEnvelopeComplete);
@@ -415,9 +416,9 @@ internal static partial class IWorkTableReader {
                     int offset = hasWideOffsets ? checked(encodedOffset * 4) : encodedOffset;
                     IWorkTableCell cell = DecodeCell(buffer, offset, cellLimits[offset],
                         checked((int)zeroBasedRow + 1), column + 1,
-                        strings, richStrings, formulas, numberFormats, source.Options, projectionBudget,
+                        strings, richStrings, formulas, numberFormats, cellFills, source.Options, projectionBudget,
                         formulaRichStringIdentifiers, nonFormulaRichStringIdentifiers);
-                    if (cell.Kind == IWorkCellKind.Empty) continue;
+                    if (cell.Kind == IWorkCellKind.Empty && cell.Fill == null) continue;
                     if (materializedCellCount >= source.Options.MaximumMaterializedCells) {
                         throw new InvalidDataException($"iWork cell count exceeds the configured source-wide limit of {source.Options.MaximumMaterializedCells}.");
                     }
@@ -462,6 +463,12 @@ internal static partial class IWorkTableReader {
                 model.EntryPath, model.Identifier));
         }
 
+        if (!cellFills.FullyReconstructed) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_TABLE_CELL_FILL_UNSUPPORTED",
+                "Selected cell fills contain unsupported or unresolved declarations; cell values remain available.",
+                model.EntryPath, model.Identifier, global::OfficeIMO.OfficeConversionLossKind.Unassessed));
+        }
         if (!numberFormats.FullyReconstructed) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED",

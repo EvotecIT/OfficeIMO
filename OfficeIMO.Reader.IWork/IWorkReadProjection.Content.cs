@@ -122,6 +122,7 @@ internal sealed partial class IWorkReadProjection {
         foreach (IWorkTableCell cell in source.Cells) {
             _cancellationToken.ThrowIfCancellationRequested();
             hasFormula |= cell.Kind == IWorkCellKind.Formula;
+            hasUnrepresentedStyle |= cell.Fill != null;
             if (cell.RichText is not { } richText) continue;
             hasUnrepresentedStyle |= !richText.IsComplete;
             bool isProjected = cell.Row <= headerRows + dataRows && cell.Column <= columnCount
@@ -155,7 +156,7 @@ internal sealed partial class IWorkReadProjection {
             _diagnostics.Add(new OfficeDocumentDiagnostic {
                 Category = OfficeDocumentDiagnosticCategory.Content,
                 Code = "IWORK_READER_TABLE_STYLE_PARTIAL",
-                Message = $"Table '{source.Name}' is projected as plain Reader table text; source rich-text cell formatting is unresolved or cannot be represented in Reader output.",
+                Message = $"Table '{source.Name}' is projected as plain Reader table text; source cell fills or rich-text formatting are unresolved or cannot be represented in Reader output.",
                 Source = "OfficeIMO.Reader.IWork",
                 Location = location
             });
@@ -167,7 +168,7 @@ internal sealed partial class IWorkReadProjection {
         if (source.Geometry is not { } geometry) return null;
         long sourceArea = (long)source.RowCount * source.ColumnCount;
         int expectedCells = (int)Math.Min(sourceArea, int.MaxValue);
-        int filledCells = source.Cells.Count;
+        int filledCells = source.Cells.Count(cell => cell.Kind != IWorkCellKind.Empty);
         int missingCells = (int)Math.Min(Math.Max(0, sourceArea - filledCells), int.MaxValue);
         return new ReaderTableDiagnostics {
             Confidence = 1,

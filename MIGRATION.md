@@ -29,7 +29,7 @@ The shared evaluator handles punctuation in quoted worksheet names, propagates t
 
 ## iWork formula function identities
 
-Reconvert Numbers inputs that use `MINUTE`, `OR`, `PI`, `ROUND`, `SECOND`, or `SUMIF`; their native identifiers now resolve to the correct function names. Previous output could omit these expressions or contain an incorrectly named editable formula. Native `MINA`, `OFFSET`, `PROB`, `RANDBETWEEN`, and unrecognized identifiers remain incomplete and retain valid caches. Inspect `FormulaIsComplete` and `IWORK_TABLE_FORMULA_PARTIAL` before relying on editable formulas. `POWER` expressions are reconstructed with their typed caches.
+Reconvert Numbers inputs that use `MINUTE`, `OR`, `PI`, `ROUND`, `SECOND`, or `SUMIF`; their native identifiers now resolve to the correct function names. Previous output could omit these expressions or contain an incorrectly named editable formula. Native `OFFSET`, `PROB`, `RANDBETWEEN`, and unrecognized identifiers remain incomplete and retain valid caches. Inspect `FormulaIsComplete` and `IWORK_TABLE_FORMULA_PARTIAL` before relying on editable formulas. `POWER` expressions are reconstructed with their typed caches.
 
 ## iWork cross-table ranges
 
@@ -42,6 +42,12 @@ Finite Decimal128 values above fifteen significant digits now retain numeric rec
 ## Stored Excel numeric precision
 
 Range, streaming, typed-object, and PDF reads use correctly rounded conversion of stored numeric text. Values immediately beside a rounding boundary retain their stored double value; for example, `0.6249999999999999` remains below `0.625` and displays as `2/4` under a fixed-quarter fraction format. Numeric formula caches use the same conversion. Explicit decimal conversion and numeric-looking text retain their existing contracts.
+
+## iWork selected cell fills
+
+`IWorkTable.Cells` and `GetCell` can now return empty cells that carry a supported selected native fill. Check `Kind == IWorkCellKind.Empty` when distinguishing values from formatting; their display text is empty. `Fill == null` means absent or unresolved, while `Fill.IsNone` represents an explicit no-fill override. Styled empty cells count toward `MaximumMaterializedCells`.
+
+Reconvert Pages tables to retain selected solid fills and no-fill overrides in DOCX. Unsupported fills can require the existing partial-reconstruction policy; inspect `IWORK_TABLE_CELL_FILL_UNSUPPORTED`. Numbers and Keynote keep the source fill but report its omission from editable destination tables.
 
 ## iWork fraction reconstruction
 

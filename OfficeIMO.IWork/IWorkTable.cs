@@ -2,14 +2,14 @@ using System.Globalization;
 
 namespace OfficeIMO.IWork;
 
-/// <summary>One materialized, non-empty cell shared by Pages, Numbers, and Keynote table projections.</summary>
+/// <summary>One materialized value or explicitly filled empty cell shared by Pages, Numbers, and Keynote table projections.</summary>
 public sealed class IWorkTableCell {
     internal IWorkTableCell(int row, int column, IWorkCellKind kind, object? value,
         string? formula = null, string? error = null, IWorkCellKind? valueKind = null,
         bool formulaIsComplete = false, IWorkTextContent? richText = null,
         bool cachedValueIsComplete = true, bool sourceFormulaIsDeclared = false,
         bool hasDecodeError = false, IWorkNumberFormat? numberFormat = null,
-        string? sourceNumberText = null, bool numericValueIsApproximate = false, Internal.IWorkFormulaDefinition? formulaDefinition = null) {
+        string? sourceNumberText = null, bool numericValueIsApproximate = false, Internal.IWorkFormulaDefinition? formulaDefinition = null, IWorkCellFill? fill = null) {
         Row = row;
         Column = column;
         Kind = kind;
@@ -26,6 +26,7 @@ public sealed class IWorkTableCell {
         SourceNumberText = sourceNumberText;
         NumericValueIsApproximate = numericValueIsApproximate;
         FormulaDefinition = formulaDefinition;
+        Fill = fill;
     }
 
     /// <summary>Gets the one-based row position.</summary>
@@ -61,22 +62,31 @@ public sealed class IWorkTableCell {
     /// <summary>Gets whether a source Decimal128 value exceeds the fifteen-significant-digit portable numeric contract. The recovered double remains available and conversion reports an approximation.</summary>
     public bool NumericValueIsApproximate { get; }
 
+    /// <summary>Gets the supported selected native cell fill. Null means absent or unresolved;
+    /// <see cref="IWorkCellFill.IsNone"/> distinguishes an explicit no-fill override.</summary>
+    public IWorkCellFill? Fill { get; }
+
     internal Internal.IWorkFormulaDefinition? FormulaDefinition { get; }
 
     internal IWorkTableCell WithFormula(Internal.IWorkFormulaResult result) =>
         new(Row, Column, Kind, Value, result.Text.Length == 0 ? "=?" : result.Text, Error, ValueKind, result.IsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
-            SourceNumberText, NumericValueIsApproximate, FormulaDefinition);
+            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill);
 
     internal IWorkTableCell WithNumberFormat(IWorkNumberFormat format) =>
         new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, format,
-            SourceNumberText, NumericValueIsApproximate, FormulaDefinition);
+            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, Fill);
 
     internal IWorkTableCell WithSourceNumber(string text, bool approximate) =>
         new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
             RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
-            text, approximate, FormulaDefinition);
+            text, approximate, FormulaDefinition, Fill);
+    internal IWorkTableCell WithFill(IWorkCellFill fill) =>
+        new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
+            RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
+            SourceNumberText, NumericValueIsApproximate, FormulaDefinition, fill);
+
     /// <summary>Gets a culture-invariant display representation of the recovered value or formula.</summary>
     public string DisplayText => Kind switch {
         IWorkCellKind.Boolean => Convert.ToBoolean(Value, CultureInfo.InvariantCulture) ? "TRUE" : "FALSE",
@@ -208,10 +218,10 @@ public sealed class IWorkTable {
     public IWorkGeometry? Geometry { get; }
     /// <summary>Gets the source table accessibility description.</summary>
     public string? AccessibilityDescription { get; }
-    /// <summary>Gets materialized non-empty or diagnostic cells.</summary>
+    /// <summary>Gets materialized value, diagnostic, or explicitly filled empty cells.</summary>
     public IReadOnlyList<IWorkTableCell> Cells { get; }
 
-    /// <summary>Returns a materialized cell at a one-based position, or null when the source cell is empty.</summary>
+    /// <summary>Returns a materialized cell at a one-based position, or null when no value, diagnostic, or supported fill is retained.</summary>
     public IWorkTableCell? GetCell(int row, int column) {
         if (row < 1 || row > RowCount) throw new ArgumentOutOfRangeException(nameof(row));
         if (column < 1 || column > ColumnCount) throw new ArgumentOutOfRangeException(nameof(column));

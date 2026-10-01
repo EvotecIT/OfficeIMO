@@ -36,7 +36,7 @@ internal static class IWorkStyleReader {
             }
             chain.Add((record, message));
             IWorkWireMessage? super = IWorkObjectIndex.TryGetMessage(message, 1, out bool malformedSuper);
-            if (malformedSuper || message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
+            if (malformedSuper || message.FieldCount(1) > 1 || message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
                 || message.HasField(1) && super == null) {
                 references.Declarations.Record(record, "1", message.FieldCount(1));
                 complete = false;

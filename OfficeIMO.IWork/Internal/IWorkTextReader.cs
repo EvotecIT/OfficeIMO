@@ -385,41 +385,7 @@ internal static partial class IWorkTextReader {
     }
 
     private static bool TryColor(IWorkWireMessage owner, int field, out IWorkColor? color,
-        ref bool complete) {
-        color = null;
-        bool hasColor = owner.HasField(field);
-        IWorkWireMessage? message = IWorkObjectIndex.TryGetMessage(owner, field, out bool malformedColor);
-        if (owner.HasUnexpectedWireKind(field, IWorkWireKind.Bytes)
-            || malformedColor || hasColor && message == null) {
-            complete = false;
-            return false;
-        }
-        if (message == null) return false;
-        bool hasWhite = message.HasField(11);
-        bool hasAnyRgb = message.HasField(3) || message.HasField(4) || message.HasField(5);
-        bool hasCompleteRgb = message.HasField(3) && message.HasField(4) && message.HasField(5);
-        float? white = message.GetFloat(11);
-        float red = white ?? message.GetFloat(3) ?? 0;
-        float green = white ?? message.GetFloat(4) ?? 0;
-        float blue = white ?? message.GetFloat(5) ?? 0;
-        float alpha = message.GetFloat(6) ?? 1;
-        if (new[] { 3, 4, 5, 6, 11 }.Any(component =>
-                message.FieldCount(component) > 1
-                || message.HasUnexpectedWireKind(component, IWorkWireKind.Fixed32)
-                || message.HasField(component) && !message.GetFloat(component).HasValue)
-            || hasWhite == hasAnyRgb
-            || hasAnyRgb && !hasCompleteRgb
-            || !new[] { red, green, blue, alpha }.All(IsNormalizedColorComponent)) {
-            complete = false;
-            return false;
-        }
-        color = new IWorkColor(Component(red), Component(green), Component(blue), AlphaComponent(alpha));
-        return true;
-    }
-
-    private static byte AlphaComponent(float value) => value >= 1f
-        ? byte.MaxValue
-        : (byte)Math.Floor(Math.Max(0f, value) * byte.MaxValue);
+        ref bool complete) => IWorkColorReader.TryRead(owner, field, out color, ref complete);
 
     private static void OverlayFinite(IWorkWireMessage message, int field, Action<double> apply,
         ref bool complete) {
@@ -474,9 +440,6 @@ internal static partial class IWorkTextReader {
         _ => IWorkParagraphBreakKind.None
     };
 
-    private static bool IsNormalizedColorComponent(float value) =>
-        IsFinite(value) && value >= 0f && value <= 1f;
-
     private static string NormalizeInlineText(string value, IWorkProjectionBudget projectionBudget,
         ref bool complete) {
         if (value.IndexOf('\ufffc') >= 0 || value.IndexOf('\ufffb') >= 0) complete = false;
@@ -508,8 +471,6 @@ internal static partial class IWorkTextReader {
         : (double?)null;
     private static bool IsFinitePositive(float value) => IsFinite(value) && value > 0;
     private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
-    private static byte Component(float value) => (byte)Math.Round(Math.Max(0, Math.Min(1, value)) * 255,
-        MidpointRounding.AwayFromZero);
 
     private readonly struct Cached<T> {
         internal Cached(T value, bool isComplete) {

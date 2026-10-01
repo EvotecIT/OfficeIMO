@@ -321,6 +321,10 @@ public static partial class WordIWorkConverter {
         foreach (IWorkTableCell sourceCell in source.Cells) {
             cancellationToken.ThrowIfCancellationRequested();
             WordTableCell target = table.Rows[sourceCell.Row - 1].Cells[sourceCell.Column - 1];
+            if (sourceCell.Fill is { } fill) {
+                if (fill.Color is { } color) target.ShadingFillColorHex = color.RgbHex;
+                else target.ShadingPattern = WordShadingPattern.Nil;
+            }
             bool header = sourceCell.Row <= source.HeaderRowCount
                 || sourceCell.Column <= source.HeaderColumnCount
                 || sourceCell.Row > source.RowCount - source.FooterRowCount;

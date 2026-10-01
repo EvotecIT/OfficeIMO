@@ -350,6 +350,12 @@ public static partial class PowerPointIWorkConverter {
                 .Any(table => TableSizingRequiresEmuRounding(table));
         var diagnostics = new List<IWorkDiagnostic>();
         if (projection.Slides.SelectMany(slide => slide.Tables).SelectMany(table => table.Cells)
+            .Any(cell => cell.Fill != null)) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_CELL_FILL_OMITTED",
+                "Selected native cell fills remain on the source projection and are omitted from PPTX table reconstruction.",
+                lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission));
+        }
+        if (projection.Slides.SelectMany(slide => slide.Tables).SelectMany(table => table.Cells)
             .Any(cell => cell.NumberFormat != null)) {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_NUMBER_FORMAT_OMITTED",
                 "PPTX table cells retain raw cached values without the source numeric display formats. Semantic number formats remain available on the source projection.",

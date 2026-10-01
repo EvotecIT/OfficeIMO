@@ -32,6 +32,16 @@ python Build/IWork/extract-pages-table-sizing.py OfficeIMO.TestAssets/Documents/
 
 Saved/reopened DOCX retains the declared 16.5-point heights as minimum constraints, so wrapped cell content can increase row height. The embedded package preview provides a bounded visual counterexample to treating these rows as fixed. This qualifies the source setting and destination constraint; native Apple export, complete styling and pagination remain unqualified.
 
+## Pages selected cell fills
+
+`pages-cell-fills.json` records 64 selected modern cell-style keys, parent chains and solid/no-fill declarations across the same three native Pages tables. It includes four empty cells whose explicit fills must survive sparse projection. Reproduce it with the pinned independent numbers-parser 4.19.0 schemas:
+
+```bash
+python Build/IWork/extract-pages-cell-fills.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/pages-cell-fills.json
+```
+
+Saved/reopened DOCX compares each selected fill with this manifest. Empty fill declarations clear parent colors; table-role defaults and banding are outside this evidence. Native Apple export and complete appearance remain unqualified.
+
 ## Cross-table rectangular formulas
 
 `numbers-parser/cross-table-formulas.numbers` is the unmodified upstream `tests/data/create-formulas.numbers` at revision `1c6c5c3d2e29a9abb601596678089f0a6c85d64c`, covered by the existing numbers-parser MIT notice. Its adjacent JSON manifest records sixteen `COUNTA` formulas with cross-table rectangular references, all combinations of absolute and relative endpoint coordinates, native target UUIDs and cached numeric values. `Build/IWork/extract-cross-table-formula-fixture.py` reads the pinned package through numbers-parser 4.19.0 to reproduce the manifest without rewriting the source:

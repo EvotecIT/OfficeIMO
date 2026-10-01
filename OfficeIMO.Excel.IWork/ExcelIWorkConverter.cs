@@ -43,6 +43,14 @@ public static partial class ExcelIWorkConverter {
                     "Some formula-cell rich text, paragraph formatting, list markers, run links, highlights, or transparent colors cannot be represented in XLSX; source paragraphs and runs remain available on the iWork projection.")
             }).ToArray();
         }
+        if (editable && projection.Sheets.SelectMany(sheet => sheet.Tables).SelectMany(table => table.Cells)
+            .Any(cell => cell.Fill != null)) {
+            destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_CELL_FILL_OMITTED",
+                    "Selected native cell fills remain on the source projection and are omitted from XLSX table reconstruction.",
+                    lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission)
+            }).ToArray();
+        }
         long approximatedErrorCount = editable
             ? projection.Sheets.SelectMany(sheet => sheet.Tables).SelectMany(table => table.Cells)
                 .LongCount(cell => (cell.Kind == IWorkCellKind.Error

@@ -46,6 +46,8 @@ foreach (IWorkSourceDeclarationIssue issue in report.SourceDeclarationIssues) {
 
 Pages body runs expose qualified drawable attachments through `IWorkTextRun.InlineObject`. The attachment keeps its original zero-based UTF-16 `CharacterOffset`, native attachment identity, and referenced drawable identity. Marker-only runs have empty `Text`; use `InlineObject` to distinguish them from ordinary text. Supported zero-offset image and standalone-table placement is described in the [support matrix](../Docs/officeimo.iwork-support-matrix.md#pages-inline-attachments).
 
+Selected modern cell styles expose `IWorkTableCell.Fill`, including supported solid colors and explicit no-fill overrides. Empty cells carrying these fills remain in `Cells` with `Kind == Empty` and count toward the materialized-cell budget. Filter by `Kind` when counting value cells. Missing or unsupported selected fills retain source diagnostics; table defaults, banding and complete cell styling are outside this qualified subset.
+
 Shared tables expose explicit `RowHeights` and `ColumnWidths` as read-only maps keyed by one-based positions, measured in points. `GetRowHeight(row)` and `GetColumnWidth(column)` return an explicit size or the table default. Native zero-size entries use the default. `MaximumTableDimensionEntries` bounds dimension headers and bucket references across the source. Unsupported sizing records remain in source evidence and emit a diagnostic.
 
 Path and stream entry points use the same bounded parser. Stream and byte-array overloads detect the application kind from bounded package content. Pass an expected `IWorkDocumentKind` when the caller already knows the route and wants a mismatch rejected:

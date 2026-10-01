@@ -210,7 +210,7 @@ public sealed class IWorkCorpusTests {
             diagnostic => diagnostic.Code == "IWORK_PAGES_TEXT_UNSUPPORTED");
         Assert.Equal(3, pages.Tables.Count);
         Assert.Equal((5, 4), (pages.Tables[0].RowCount, pages.Tables[0].ColumnCount));
-        Assert.Equal(18, pages.Tables[0].Cells.Count);
+        Assert.Equal(18, pages.Tables[0].Cells.Count(cell => cell.Kind != IWorkCellKind.Empty));
         Assert.Equal(4, pages.Tables[2].Cells.Count(cell => cell.Kind == IWorkCellKind.Formula));
         IWorkImageAsset image = Assert.Single(pages.Images);
         Assert.Equal("image/png", image.MediaType);
@@ -229,7 +229,7 @@ public sealed class IWorkCorpusTests {
             new[] { "Paragraph", "Text + style", "Heading 1", "Preserve reading order" },
             new[] { "Image", "Binary asset", "PNG 1000×520", "Alt text may or may not survive conversion" },
             new[] { "Hyperlink", "URL target", "https://developer.apple.com", "External link relationship" },
-            new[] { "Empty cell", null, null, "Importer should not crash" }
+            new[] { "Empty cell", string.Empty, string.Empty, "Importer should not crash" }
         };
         for (int row = 1; row <= expected.Length; row++) {
             for (int column = 1; column <= expected[row - 1].Length; column++) {
