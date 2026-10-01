@@ -2,7 +2,7 @@ using System;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>Normative AV1 8-bit quantization facts, independent of reference-code runtime packages.</summary>
+/// <summary>Normative AV1 8-bit and 10-bit quantization facts, independent of reference-code runtime packages.</summary>
 internal static partial class OfficeAv1QuantizationTables {
     internal const int MatrixBytes=15*2*3344;
     private static readonly int[] Offsets={0,16,80,336,336,1360,1392,1424,1552,1680,2192,336,336,2704,2768,2832,3088,1680,2192};

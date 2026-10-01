@@ -25,7 +25,7 @@ ROWS=[0,0,1,1,0,1,1,1,1,2,2,0,2,1,2,1]
 COLS=[0,1,0,1,1,0,1,1,1,2,0,2,1,2,1,2]
 def digest(data): return hashlib.sha256(data).hexdigest()
 def run(args,**kwargs): return subprocess.run([str(x) for x in args],check=True,**kwargs)
-def cases():
+def cases(bit_depth=8):
     result=[]
     for size,(w,h) in enumerate(zip(WIDTHS,HEIGHTS)):
         for kind in range(16):
@@ -48,39 +48,59 @@ def cases():
                 assert len(params)==23
                 result.append({'parameters':params,'coefficients':coeff})
     for pattern in range(8):
-        coeff=[(i*7+pattern*3)%7-3 for i in range(16)];params=[0,0,pattern%3,0,0,0,pattern%8,0,0,0,1,pattern%15,pattern%15,pattern%15,0,0,0,0,0,0,1,16,16]
+        coeff=[((i*7+pattern*3)%7-3)*(64 if bit_depth==10 else 1) for i in range(16)];params=[0,0,pattern%3,0,0,0,pattern%8,0,0,0,1,pattern%15,pattern%15,pattern%15,0,0,0,0,0,0,1,16,16]
         result.append({'parameters':params,'coefficients':coeff})
     # All-zero and segment/delta clamp cases use independent native reconstruction too.
     result.append({'parameters':[0,0,0,120,48,1,7,1,1,-255,1,0,0,0,0,0,0,0,0,1,1,0,16],'coefficients':[0]*16})
+    # Dense ADST4 input can satisfy b7 while violating the required s/x stage precision.
+    result.append({'parameters':[0,2,0,255,255,0,0,0,0,0,0,15,15,15,0,0,0,0,0,0,0,4,16],'coefficients':[64]*4+[0]*12})
     return result
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--work-dir',required=True,type=pathlib.Path);p.add_argument('--spec-text',required=True,type=pathlib.Path);p.add_argument('--output',type=pathlib.Path);p.add_argument('--core-tables-dir',type=pathlib.Path);p.add_argument('--cc',default='clang');a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--work-dir',required=True,type=pathlib.Path);p.add_argument('--spec-text',required=True,type=pathlib.Path);p.add_argument('--output',type=pathlib.Path);p.add_argument('--core-tables-dir',type=pathlib.Path);p.add_argument('--cc',default='clang');p.add_argument('--bit-depth',type=int,choices=(8,10),default=8);p.add_argument('--native-source',type=pathlib.Path);p.add_argument('--native-build',type=pathlib.Path);a=p.parse_args()
     here=pathlib.Path(__file__).resolve().parent;work=a.work_dir.resolve();work.mkdir(parents=True,exist_ok=True);source=work/'native-aom';build=work/'native-build';patch=here/'TraceInverseTransform.patch'
-    if not source.exists(): run(['git','clone','--depth','1','--branch','v3.13.1','https://aomedia.googlesource.com/aom',source])
-    if subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip()!=COMMIT: raise ValueError('Unexpected native revision')
-    for name,expected in SOURCES.items():
-        if digest(subprocess.check_output(['git','-C',str(source),'show','HEAD:'+name]))!=expected: raise ValueError('Unexpected native source: '+name)
-    diff=subprocess.check_output(['git','-C',str(source),'diff','HEAD','--no-ext-diff','--unified=0'])
-    if diff and diff!=patch.read_bytes(): raise ValueError('Unexpected native edits')
-    if not diff: run(['git','-C',source,'apply','--unidiff-zero',patch])
+    if bool(a.native_source)!=bool(a.native_build): raise ValueError('Supply both native source and build')
+    if a.native_source:
+        # Observe three real native translation units without changing the retained producer source/build.
+        source=a.native_source.resolve();build=a.native_build.resolve()
+        for name,expected in SOURCES.items():
+            if digest((source/name).read_bytes())!=expected: raise ValueError('Unexpected native source: '+name)
+        if '#define CONFIG_AV1_HIGHBITDEPTH 1' not in (build/'config/aom_config.h').read_text():
+            raise ValueError('Native build lacks high-bit-depth support')
+        probes=work/'native-probes'
+        if probes.exists(): raise ValueError('Use a new work directory for the observation source')
+        for name in ('av1/common/av1_inv_txfm2d.c','av1/common/av1_inv_txfm1d.c','av1/decoder/decodetxb.c'):
+            target=probes/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(source/name,target)
+        run(['patch','--batch','--forward','-p1','-i',patch],cwd=probes)
+    else:
+        if not source.exists(): run(['git','clone','--depth','1','--branch','v3.13.1','https://aomedia.googlesource.com/aom',source])
+        if subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip()!=COMMIT: raise ValueError('Unexpected native revision')
+        for name,expected in SOURCES.items():
+            if digest(subprocess.check_output(['git','-C',str(source),'show','HEAD:'+name]))!=expected: raise ValueError('Unexpected native source: '+name)
+        diff=subprocess.check_output(['git','-C',str(source),'diff','HEAD','--no-ext-diff','--unified=0'])
+        if diff and diff!=patch.read_bytes(): raise ValueError('Unexpected native edits')
+        if not diff: run(['git','-C',source,'apply','--unidiff-zero',patch])
+        with (work/'native-configure.log').open('w') as log:
+            run(['cmake','-S',source,'-B',build,'-DCMAKE_BUILD_TYPE=Release','-DENABLE_DOCS=0','-DENABLE_TESTS=0','-DENABLE_EXAMPLES=0','-DENABLE_TOOLS=0','-DCONFIG_AV1_ENCODER=0','-DCONFIG_MULTITHREAD=0','-DCONFIG_RUNTIME_CPU_DETECT=0','-DCONFIG_AV1_HIGHBITDEPTH=1','-DCMAKE_C_FLAGS=-I'+str(here)],stdout=log,stderr=subprocess.STDOUT)
+        with (work/'native-build.log').open('w') as log: run(['cmake','--build',build,'-j','4'],stdout=log,stderr=subprocess.STDOUT)
     facts=tables(a.spec_text,work/'numeric-tables')
     if a.core_tables_dir: tables(a.spec_text,a.core_tables_dir)
-    with (work/'native-configure.log').open('w') as log:
-        run(['cmake','-S',source,'-B',build,'-DCMAKE_BUILD_TYPE=Release','-DENABLE_DOCS=0','-DENABLE_TESTS=0','-DENABLE_EXAMPLES=0','-DENABLE_TOOLS=0','-DCONFIG_AV1_ENCODER=0','-DCONFIG_MULTITHREAD=0','-DCONFIG_RUNTIME_CPU_DETECT=0','-DCMAKE_C_FLAGS=-I'+str(here)],stdout=log,stderr=subprocess.STDOUT)
-    with (work/'native-build.log').open('w') as log: run(['cmake','--build',build,'-j','4'],stdout=log,stderr=subprocess.STDOUT)
-    executable=work/'read-residual-reference';driver=here/'ReadResidualReference.c'
-    run([shutil.which(a.cc),'-std=c11','-Wall','-Wextra','-Werror','-O2','-I',source,'-I',build,driver,build/'libaom.a','-lm','-o',executable])
-    data=cases();input_path=work/'cases.bin';flat=[len(data)]+[x for c in data for x in c['parameters']+c['coefficients']];input_path.write_bytes(struct.pack('<'+'i'*len(flat),*flat))
-    matrix=work/'native-matrices.bin';native=run([executable,input_path,matrix],stdout=subprocess.PIPE,text=True).stdout
+    executable=work/'read-residual-reference';driver=here/'ReadResidualReference.c';objects=[]
+    if a.native_source:
+        for name in ('av1/common/av1_inv_txfm2d.c','av1/common/av1_inv_txfm1d.c','av1/decoder/decodetxb.c'):
+            obj=work/(pathlib.Path(name).stem+'.o');objects.append(obj)
+            run([shutil.which(a.cc),'-std=c99','-O2','-DNDEBUG','-I',source,'-I',build,'-I',here,'-c',probes/name,'-o',obj])
+    run([shutil.which(a.cc),'-std=c11','-Wall','-Wextra','-Werror','-O2','-I',source,'-I',build,driver,*objects,build/'libaom.a','-lm','-o',executable])
+    data=cases(a.bit_depth);input_path=work/'cases.bin';flat=[len(data)]+[x for c in data for x in c['parameters']+c['coefficients']];input_path.write_bytes(struct.pack('<'+'i'*len(flat),*flat))
+    matrix=work/'native-matrices.bin';native=run([executable,input_path,matrix,a.bit_depth],stdout=subprocess.PIPE,text=True).stdout
     (work/'native-results.jsonl').write_text(native);records=[json.loads(line) for line in native.splitlines()];numeric=records.pop(0)
     if digest(matrix.read_bytes())!=facts['matrixSha256']: raise ValueError('Specification/native quantizer matrices differ')
     assert len(records)==len(data)
     for i,(case,result) in enumerate(zip(data,records)):
-        assert result['scenario']==i;case['residual']=result['residual'];case['pixels']=result['pixels']
-    fixture={'reference':'AOM v3.13.1 actual C inverse transforms and native quantization facts','nativeCommit':COMMIT,'numericFacts':numeric,'matrixSha256':facts['matrixSha256'],'cases':data}
+        assert result['scenario']==i;case['conforming']=result['conforming'];case['residual']=result['residual'];case['pixels']=result['pixels']
+    fixture={'bitDepth':a.bit_depth,'reference':'AOM v3.13.1 actual C inverse transforms and native quantization facts','nativeCommit':COMMIT,'numericFacts':numeric,'matrixSha256':facts['matrixSha256'],'cases':data}
     canonical=(json.dumps(fixture,separators=(',',':'))+'\n').encode();output=a.output.resolve() if a.output else work/'residual-reference.json.gz';output.write_bytes(gzip.compress(canonical,mtime=0))
-    assets=['ReadResidualReference.c','OfficeInverseProbe.h','OfficeInverseProbe.inc','OfficeDequantProbe.inc','TraceInverseTransform.patch','GenerateResidualFixtures.py','GenerateResidualTables.py']
-    receipt={'nativeCommit':COMMIT,'sourceSha256':SOURCES,'assetsSha256':{n:digest((here/n).read_bytes()) for n in assets},'numericFacts':facts,'fixtureSha256':digest(output.read_bytes()),'canonicalJsonSha256':digest(canonical),'cases':len(data),'residualSamples':sum(len(c['residual']) for c in data),'transformSizes':sorted(set(c['parameters'][0] for c in data)),'transformTypes':sorted(set(c['parameters'][1] for c in data)),'losslessCases':sum(c['parameters'][20] for c in data)}
+    assets=['ReadResidualReference.c','OfficeInverseProbe.h','OfficeRangeProbe.h','OfficeInverseProbe.inc','OfficeDequantProbe.inc','TraceInverseTransform.patch','GenerateResidualFixtures.py','GenerateResidualTables.py']
+    receipt={'nativeCommit':COMMIT,'nativeBuild':{'configurationSha256':digest((build/'config/aom_config.h').read_bytes()),'librarySha256':digest((build/'libaom.a').read_bytes()),'reused':bool(a.native_source)},'sourceSha256':SOURCES,'assetsSha256':{n:digest((here/n).read_bytes()) for n in assets},'numericFacts':facts,'fixtureSha256':digest(output.read_bytes()),'canonicalJsonSha256':digest(canonical),'bitDepth':a.bit_depth,'nonconformingCases':sum(not c['conforming'] for c in data),'cases':len(data),'residualSamples':sum(len(c['residual']) for c in data),'transformSizes':sorted(set(c['parameters'][0] for c in data)),'transformTypes':sorted(set(c['parameters'][1] for c in data)),'losslessCases':sum(c['parameters'][20] for c in data)}
     (work/'residual-oracle-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n');print(json.dumps(receipt,indent=2))
 if __name__=='__main__': main()

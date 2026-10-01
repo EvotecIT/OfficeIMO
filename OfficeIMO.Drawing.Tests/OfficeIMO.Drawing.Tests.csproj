@@ -46,6 +46,7 @@
     <None Update="TestAssets\Avif\tile-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\restoration-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\residual-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="TestAssets\Avif\residual-main10-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\prediction-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\reconstruction-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\deblock-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />

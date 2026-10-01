@@ -23,7 +23,7 @@ def tables(spec,output):
         raise ValueError('Unexpected quantization fact dimensions')
     output.mkdir(parents=True,exist_ok=True)
     code='// Generated numeric facts: AV1 1.0.0 Errata 1, sections 7.12.2 and 9.5.3.\n// Regenerate with GenerateResidualTables.py and the pinned specification text.\nnamespace OfficeIMO.Drawing;\n\ninternal static partial class OfficeAv1QuantizationTables {\n'
-    for name,values in [('Dc',dc[:256]),('Ac',ac[:256])]:
+    for name,values in [('Dc',dc[:256]),('Ac',ac[:256]),('Dc10',dc[256:512]),('Ac10',ac[256:512])]:
         code+='    internal static readonly short[] '+name+'={\n'
         code+=''.join('        '+','.join(map(str,values[i:i+16]))+',\n' for i in range(0,len(values),16))
         code+='    };\n'

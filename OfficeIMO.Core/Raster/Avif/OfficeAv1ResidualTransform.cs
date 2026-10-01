@@ -3,12 +3,12 @@ using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>Tile-owned quantization snapshot and reusable Main-8 residual transform scratch.</summary>
+/// <summary>Tile-owned quantization snapshot and reusable Main-8/Main-10 residual transform scratch.</summary>
 /// <remarks>Sequential use only. Returned residuals are immutable; callers budget retained results separately.
 /// Prediction and final sample clipping belong to the reconstruction consumer.</remarks>
 internal sealed class OfficeAv1ResidualTransform {
-    internal const long ContextBytes=4096+OfficeAv1QuantizationTables.MatrixBytes;
-    private readonly int _baseQ;
+    internal const long ContextBytes=5120+OfficeAv1QuantizationTables.MatrixBytes;
+    private readonly int _baseQ,_bitDepth;
     private readonly bool _deltaQ;
     private readonly int[] _dc,_ac,_altQ,_matrix;
     private readonly bool[] _lossless;
@@ -24,12 +24,12 @@ internal sealed class OfficeAv1ResidualTransform {
         if(options.RetainedManagedBytes>OfficeRasterGuards.MaximumDecodedBytes-context)
             throw new FormatException("AV1 residual contexts exceed the retained-memory limit.");
         if(frame.Width<1 || frame.Width>65536 || frame.Height<1 || frame.Height>65536 ||
-           (long)frame.Width*frame.Height>options.MaximumDecodedPixels || (uint)frame.BaseQIndex>255)
+           (long)frame.Width*frame.Height>options.MaximumDecodedPixels || (uint)frame.BaseQIndex>255 || (frame.BitDepth!=8 && frame.BitDepth!=10))
             throw new FormatException("Invalid AV1 residual frame geometry or quantizer.");
         _retained=options.RetainedManagedBytes+context;_cancellation=options.CancellationToken;
         _dc=new int[3];_ac=new int[3];_altQ=new int[8];_matrix=new int[3];_lossless=new bool[8];
         _line=new int[64];_copy=new int[64];
-        _baseQ=frame.BaseQIndex;_deltaQ=frame.DeltaQPresent;
+        _baseQ=frame.BaseQIndex;_bitDepth=frame.BitDepth;_deltaQ=frame.DeltaQPresent;
         _dc[0]=frame.DeltaQYDc;_dc[1]=frame.DeltaQUDc;_dc[2]=frame.DeltaQVDc;
         _ac[1]=frame.DeltaQUAc;_ac[2]=frame.DeltaQVAc;
         bool zeroDeltas=true;
@@ -63,7 +63,9 @@ internal sealed class OfficeAv1ResidualTransform {
         if(storage>OfficeRasterGuards.MaximumDecodedBytes-_retained)
             throw new FormatException("AV1 coefficient and residual storage exceed the retained-memory limit.");
         int qindex=ClipQ((_deltaQ?prelude.CurrentQIndex:_baseQ)+_altQ[prelude.SegmentId]);
-        int dc=OfficeAv1QuantizationTables.Dc[ClipQ(qindex+_dc[plane])],ac=OfficeAv1QuantizationTables.Ac[ClipQ(qindex+_ac[plane])];
+        var dcTable=_bitDepth==8?OfficeAv1QuantizationTables.Dc:OfficeAv1QuantizationTables.Dc10;
+        var acTable=_bitDepth==8?OfficeAv1QuantizationTables.Ac:OfficeAv1QuantizationTables.Ac10;
+        int dc=dcTable[ClipQ(qindex+_dc[plane])],ac=acTable[ClipQ(qindex+_ac[plane])];
         int denom=w*h>1024?4:w*h>256?2:1;
         int level=lossless || type>=9?15:_matrix[plane];
         var values=new int[w*h];
@@ -76,10 +78,11 @@ internal sealed class OfficeAv1ResidualTransform {
                 if(level<15) q=(OfficeAv1QuantizationTables.Weight(level,plane>0,block.Size,row*tw+col)*q+16)>>5;
                 long magnitude=(Math.Abs((long)input)*q & 0xffffff)/denom;
                 long signed=input<0?-magnitude:magnitude;
-                values[row*w+col]=(int)Math.Max(-32768,Math.Min(32767,signed));
+                int limit=1<<(_bitDepth+7);
+                values[row*w+col]=(int)Math.Max(-limit,Math.Min(limit-1,signed));
             }
         }
-        OfficeAv1InverseTransform.Apply(values,block.Size,type,lossless,_line,_copy,_cancellation);
+        OfficeAv1InverseTransform.Apply(values,block.Size,type,lossless,_bitDepth,_line,_copy,_cancellation);
         _cancellation.ThrowIfCancellationRequested();
         return new OfficeAv1ResidualBlock(block,values);
     }
