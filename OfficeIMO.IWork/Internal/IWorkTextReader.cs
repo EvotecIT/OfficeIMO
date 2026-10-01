@@ -146,29 +146,9 @@ internal static partial class IWorkTextReader {
         for (int styleIndex = chain.Count - 1; styleIndex >= 0; styleIndex--) {
             IWorkWireMessage message = chain[styleIndex].Message;
             ApplyStyleName(message, value => data.Name = value, projectionBudget, chain[styleIndex].Record, references, ref resolvedCompletely);
-            IReadOnlyList<ulong> labelTypes;
-            if (message.HasUnexpectedWireKind(11, IWorkWireKind.Varint, IWorkWireKind.Bytes)) {
-                resolvedCompletely = false;
-                labelTypes = Array.Empty<ulong>();
-            } else {
-                try {
-                    labelTypes = message.GetRepeatedUnsigned(11, packed: true);
-                } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
-                    resolvedCompletely = false;
-                    labelTypes = Array.Empty<ulong>();
-                }
-            }
-            if (labelTypes.Count > 0) data.LabelTypes = labelTypes;
-            if (message.HasUnexpectedWireKind(16, IWorkWireKind.Bytes)) resolvedCompletely = false;
-            var labels = new List<string>();
-            foreach (byte[] bytes in message.EnumerateRepeatedBytes(16)) {
-                if (!TryDecodeUtf8(bytes, projectionBudget, out string decodedLabel)) resolvedCompletely = false;
-                else labels.Add(decodedLabel);
-            }
-            if (labels.Count > 0) data.Labels = labels;
-            if (message.HasUnexpectedWireKind(13, IWorkWireKind.Fixed32)) resolvedCompletely = false;
-            IReadOnlyList<float> indents = message.GetRepeatedFloat(13);
-            if (indents.Count > 0) data.LeftIndents = indents;
+            OverlayList(message, data, projectionBudget,
+                new StylePropertyEvidence(chain[styleIndex].Record, "", references.Declarations),
+                ref resolvedCompletely);
         }
         int level = ResolveListLevel(data, paragraphLeftIndentPoints, ref resolvedCompletely);
         ulong labelType = level >= 0 && level < data.LabelTypes.Count
@@ -185,6 +165,38 @@ internal static partial class IWorkTextReader {
         cache.Add(cacheKey, new Cached<(int Level, string? Label)>(result, resolvedCompletely));
         if (!resolvedCompletely) complete = false;
         return result;
+    }
+
+    // Each repeated field is one level-indexed vector. Removing a rejected entry would
+    // assign its readable siblings to different levels, so only valid vectors overlay a parent.
+    private static void OverlayList(IWorkWireMessage message, ListStyleData data,
+        IWorkProjectionBudget projectionBudget, StylePropertyEvidence evidence, ref bool complete) {
+        bool typesComplete = !message.HasUnexpectedWireKind(11, IWorkWireKind.Varint, IWorkWireKind.Bytes);
+        IReadOnlyList<ulong> types = Array.Empty<ulong>();
+        if (typesComplete) {
+            try {
+                types = message.GetRepeatedUnsigned(11, packed: true);
+                typesComplete = types.All(type => type <= 3); // None, image, string, number.
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
+                typesComplete = false;
+            }
+        }
+        if (!typesComplete) { evidence.Record(message, 11); complete = false; }
+        else if (types.Count > 0) data.LabelTypes = types;
+
+        bool labelsComplete = !message.HasUnexpectedWireKind(16, IWorkWireKind.Bytes);
+        var labels = new List<string>();
+        foreach (byte[] bytes in message.EnumerateRepeatedBytes(16)) {
+            if (TryDecodeUtf8(bytes, projectionBudget, out string label)) labels.Add(label);
+            else labelsComplete = false;
+        }
+        if (!labelsComplete) { evidence.Record(message, 16); complete = false; }
+        else if (labels.Count > 0) data.Labels = labels;
+
+        IReadOnlyList<float> indents = message.GetRepeatedFloat(13);
+        if (message.HasUnexpectedWireKind(13, IWorkWireKind.Fixed32) || indents.Any(indent => !IsFinite(indent))) {
+            evidence.Record(message, 13); complete = false;
+        } else if (indents.Count > 0) data.LeftIndents = indents;
     }
 
     private static int ResolveListLevel(ListStyleData data, double? paragraphLeftIndentPoints,
