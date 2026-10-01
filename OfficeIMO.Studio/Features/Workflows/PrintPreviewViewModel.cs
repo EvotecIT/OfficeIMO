@@ -63,7 +63,7 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
         _localizer = localizer ?? StudioLocalization.Current;
         _storage = storage ?? new StudioStorageAccess();
         _readSnapshot = readSnapshot ?? ReadStorageSnapshotAsync;
-        _printers = printers ?? new PdfPrinterService();
+        _printers = printers ?? StudioPrinterService.Create();
         _pickPrintFile = pickPrintFile ?? (_ => Task.FromResult<string?>(null));
         _jobHistory = jobHistory;
         PaperChoices = [
