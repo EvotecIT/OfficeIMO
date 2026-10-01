@@ -14,12 +14,12 @@ internal sealed class OfficeAv1RestorationFilter {
     private readonly int[] _flt0=new int[64*64],_flt1=new int[64*64],_intermediate=new int[70*64];
     private readonly int[] _horizontal=new int[7],_vertical=new int[7];
     private readonly CancellationToken _cancellation;
-    private byte[] _deblocked=Array.Empty<byte>(),_cdef=Array.Empty<byte>();
+    private ushort[] _deblocked=Array.Empty<ushort>(),_cdef=Array.Empty<ushort>();
     private int _stride,_planeWidth,_planeHeight,_stripeStart,_stripeEnd;
     internal OfficeAv1RestorationFilter(CancellationToken cancellation) { _cancellation=cancellation; }
 
     /// <summary>Reads deblocked samples outside the stripe and CDEF samples inside, without output feedback.</summary>
-    internal void Apply(byte[] deblocked,byte[] cdef,byte[] output,int stride,int planeWidth,int planeHeight,
+    internal void Apply(ushort[] deblocked,ushort[] cdef,ushort[] output,int stride,int planeWidth,int planeHeight,
         int stripeStart,int stripeEnd,int x,int y,int width,int height,OfficeAv1RestorationUnit unit) {
         _cancellation.ThrowIfCancellationRequested();
         if(ReferenceEquals(output,deblocked) || ReferenceEquals(output,cdef) || stride<planeWidth || planeWidth<1 || planeHeight<1 ||
@@ -39,7 +39,7 @@ internal sealed class OfficeAv1RestorationFilter {
         if(y>_stripeEnd) return _deblocked[Math.Min(_stripeEnd+2,y)*_stride+x];
         return _cdef[y*_stride+x];
     }
-    private void Wiener(byte[] output,int x,int y,int width,int height,OfficeAv1RestorationUnit unit) {
+    private void Wiener(ushort[] output,int x,int y,int width,int height,OfficeAv1RestorationUnit unit) {
         for(int pass=0;pass<2;pass++) {
             int[] filter=pass==0?_vertical:_horizontal;filter[3]=128;
             for(int t=0;t<3;t++) {
@@ -63,7 +63,7 @@ internal sealed class OfficeAv1RestorationFilter {
             }
         }
     }
-    private void SelfGuided(byte[] output,int x,int y,int width,int height,OfficeAv1RestorationUnit unit) {
+    private void SelfGuided(ushort[] output,int x,int y,int width,int height,OfficeAv1RestorationUnit unit) {
         int set=unit.SgrSet;
         if((uint)set>=16 || unit.X0<-96 || unit.X0>31 || unit.X1<-32 || unit.X1>95 ||
            (set>=10 && set<=13 && unit.X0!=0)) throw new FormatException("Invalid AV1 self-guided coefficients.");
@@ -119,5 +119,5 @@ internal sealed class OfficeAv1RestorationFilter {
     }
     private static int Area(int[] integral,int pitch,int top,int left,int bottom,int right)=>
         integral[bottom*pitch+right]-integral[top*pitch+right]-integral[bottom*pitch+left]+integral[top*pitch+left];
-    private static byte Clip(int value)=>(byte)Math.Max(0,Math.Min(255,value));
+    private static ushort Clip(int value)=>(ushort)Math.Max(0,Math.Min(255,value));
 }

@@ -59,12 +59,12 @@ public sealed class DrawingAvifColorTests {
         return (OfficeAv1FrameReconstructor.Decode(bytes,sequence!,frame!,options,OfficeAv1ReconstructionStage.Restored),sequence!.Color);
     }
     private static OfficeAv1ReconstructedFrame Padded(int width,int height,byte[][] source) {
-        int stride=(width+63)/64*64,rows=(height+63)/64*64;var planes=new byte[source.Length][];
+        int stride=(width+63)/64*64,rows=(height+63)/64*64;var planes=new ushort[source.Length][];
         for(int p=0;p<source.Length;p++) {
             int sub=p==0?0:1,w=(width+sub)>>sub,h=(height+sub)>>sub,pitch=stride>>sub;
-            planes[p]=new byte[pitch*(rows>>sub)];for(int y=0;y<h;y++)Buffer.BlockCopy(source[p],y*w,planes[p],y*pitch,w);
+            planes[p]=new ushort[pitch*(rows>>sub)];for(int y=0;y<h;y++)for(int x=0;x<w;x++)planes[p][y*pitch+x]=source[p][y*w+x];
         }
-        return new OfficeAv1ReconstructedFrame(width,height,stride,rows,planes);
+        return new OfficeAv1ReconstructedFrame(width,height,stride,rows,8,planes);
     }
     private static void Compare(byte[] expected,byte[] actual,int tolerance,string name) {
         Assert.Equal(expected.Length,actual.Length);

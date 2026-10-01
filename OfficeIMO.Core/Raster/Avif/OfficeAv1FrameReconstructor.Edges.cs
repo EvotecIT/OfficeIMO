@@ -32,7 +32,7 @@ internal sealed partial class OfficeAv1FrameReconstructor {
         int bl=left && nLeft==b.Height && below?Math.Min(Math.Min(b.Height,b.Width),(_frame.MiRows*4>>sub)-b.Y-b.Height):0;
         for(int i=0;i<nTop+tr;i++) _above[i]=_pixels[p][(b.Y-1)*stride+b.X+i];
         for(int i=0;i<nLeft+bl;i++) _left[i]=_pixels[p][(b.Y+i)*stride+b.X-1];
-        byte corner=top && left?_pixels[p][(b.Y-1)*stride+b.X-1]:(byte)128;
+        ushort corner=top && left?_pixels[p][(b.Y-1)*stride+b.X-1]:(ushort)(1<<(_sequence.BitDepth-1));
         return new OfficeAv1PredictionEdges(_above,_left,corner,nTop,nLeft,tr,bl);
     }
     private bool SmoothNeighbors(int plane) {

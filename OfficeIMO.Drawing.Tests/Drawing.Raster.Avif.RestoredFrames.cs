@@ -63,7 +63,7 @@ public sealed class DrawingAv1RestoredFrameTests {
             var unit=new OfficeAv1RestorationUnit(0,0,0,type,c.GetProperty("set").GetInt32(),
                 taps[0][0].GetInt32(),taps[0][1].GetInt32(),taps[0][2].GetInt32(),taps[1][0].GetInt32(),taps[1][1].GetInt32(),taps[1][2].GetInt32(),
                 c.GetProperty("x0").GetInt32(),c.GetProperty("x1").GetInt32());
-            byte[] input=Hex(c.GetProperty("input").GetString()!),output=(byte[])input.Clone();
+            ushort[] input=Hex(c.GetProperty("input").GetString()!),output=(ushort[])input.Clone();
             filter.Apply(input,input,output,76,76,76,0,75,6,6,c.GetProperty("width").GetInt32(),c.GetProperty("height").GetInt32(),unit);
             Assert.True(output.SequenceEqual(Hex(c.GetProperty("output").GetString()!)),
                 $"Restoration kernel type {type}, set {unit.SgrSet}, weights {unit.X0}/{unit.X1}, taps {taps}");
@@ -74,7 +74,7 @@ public sealed class DrawingAv1RestoredFrameTests {
         using var fixture=Open();var c=fixture.RootElement.GetProperty("cases").EnumerateArray().First(v=>
             v.GetProperty("restored").GetProperty("restoration").EnumerateArray().Any(u=>u.GetProperty("type").GetInt32()!=0));
         string name=c.GetProperty("name").GetString()!;var (bytes,sequence,frame)=Read(c,name,c.GetProperty("alpha").GetBoolean());
-        int sb=sequence.Use128Superblock?128:64;long storage=(long)((frame.Width+sb-1)/sb*sb)*((frame.Height+sb-1)/sb*sb)*(sequence.Monochrome?2:3)/2+
+        int sb=sequence.Use128Superblock?128:64;long storage=(long)((frame.Width+sb-1)/sb*sb)*((frame.Height+sb-1)/sb*sb)*(sequence.Monochrome?2:3)+
             (long)frame.MiRows*frame.MiCols*2;
         long cdef=sequence.Cdef && !frame.CodedLossless && !frame.AllowIntraBlockCopy?OfficeAv1Cdef.ContextBytes(frame,sequence.Monochrome,sb):0;
         long reserve=storage+131072+OfficeAv1IntraPredictor.ContextBytes+OfficeAv1ResidualTransform.ContextBytes+
@@ -86,14 +86,14 @@ public sealed class DrawingAv1RestoredFrameTests {
     [Fact]
     public void FilterRejectsOutputFeedbackAndObservesCancellationBeforeWriting() {
         using var fixture=Open();var c=fixture.RootElement.GetProperty("kernels").EnumerateArray().First(v=>v.GetProperty("type").GetInt32()==3);
-        byte[] source=Hex(c.GetProperty("input").GetString()!),original=(byte[])source.Clone();
+        ushort[] source=Hex(c.GetProperty("input").GetString()!),original=(ushort[])source.Clone();
         var unit=new OfficeAv1RestorationUnit(0,0,0,3,c.GetProperty("set").GetInt32(),0,0,0,0,0,0,
             c.GetProperty("x0").GetInt32(),c.GetProperty("x1").GetInt32());
         var filter=new OfficeAv1RestorationFilter(default);
         Assert.Throws<FormatException>(()=>filter.Apply(source,source,source,76,76,76,0,75,6,6,17,9,unit));
         Assert.Equal(original,source);
         using var cancellation=new CancellationTokenSource();filter=new OfficeAv1RestorationFilter(cancellation.Token);
-        byte[] output=(byte[])source.Clone();cancellation.Cancel();
+        ushort[] output=(ushort[])source.Clone();cancellation.Cancel();
         Assert.Throws<OperationCanceledException>(()=>filter.Apply(source,source,output,76,76,76,0,75,6,6,17,9,unit));
         Assert.Equal(original,output);
     }
@@ -101,7 +101,7 @@ public sealed class DrawingAv1RestoredFrameTests {
         using var input=File.OpenRead(Path.Combine(AppContext.BaseDirectory,"TestAssets","Avif","restored-reference.json.gz"));
         using var gzip=new GZipStream(input,CompressionMode.Decompress);return JsonDocument.Parse(gzip);
     }
-    private static byte[] Hex(string value)=>Enumerable.Range(0,value.Length/2).Select(i=>Convert.ToByte(value.Substring(i*2,2),16)).ToArray();
+    private static ushort[] Hex(string value)=>Enumerable.Range(0,value.Length/2).Select(i=>(ushort)Convert.ToByte(value.Substring(i*2,2),16)).ToArray();
     private static (byte[],OfficeAv1StillSequence,OfficeAv1StillFrame) Read(JsonElement c,string name,bool alpha) {
         byte[] bytes;OfficeAvifImageItem item;var options=new OfficeRasterDecodeOptions();
         if(c.TryGetProperty("inputBase64",out var input)) {

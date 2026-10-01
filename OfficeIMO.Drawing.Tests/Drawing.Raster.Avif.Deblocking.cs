@@ -30,8 +30,8 @@ public sealed class DrawingAv1DeblockingTests {
     public void NarrowAndWideKernelsMatchNativeMasksRoundingAndUntouchedPixels() {
         using var fixture=Open();var scratch=new int[32];int changed=0,reversedChanged=0;
         foreach(var c in fixture.RootElement.GetProperty("kernels").EnumerateArray()) {
-            byte[] pixels=Hex(c.GetProperty("input").GetString()!);
-            byte[] expected=Hex(c.GetProperty("output").GetString()!);
+            ushort[] pixels=Hex(c.GetProperty("input").GetString()!);
+            ushort[] expected=Hex(c.GetProperty("output").GetString()!);
             bool horizontal=c.GetProperty("pass").GetInt32()!=0;int step=horizontal?16:1;
             for(int i=0;i<4;i++) OfficeAv1DeblockFilter.Apply(pixels,8*16+8+i*(horizontal?1:16),step,
                 c.GetProperty("size").GetInt32(),c.GetProperty("chroma").GetBoolean(),c.GetProperty("limit").GetInt32(),
@@ -48,7 +48,7 @@ public sealed class DrawingAv1DeblockingTests {
     [Fact]
     public void FilterMetadataSharesTheAggregateRetainedBudget() {
         var (bytes,sequence,frame)=Read("multitile",false);int sb=sequence.Use128Superblock?128:64;
-        long storage=(long)((frame.Width+sb-1)/sb*sb)*((frame.Height+sb-1)/sb*sb)*(sequence.Monochrome?2:3)/2+
+        long storage=(long)((frame.Width+sb-1)/sb*sb)*((frame.Height+sb-1)/sb*sb)*(sequence.Monochrome?2:3)+
             (long)frame.MiRows*frame.MiCols*2;
         long reserve=storage+131072+OfficeAv1IntraPredictor.ContextBytes+OfficeAv1ResidualTransform.ContextBytes+
             frame.Tiles.Max(t=>OfficeAv1TileReader.ContextBytes(frame,t))+bytes.LongLength;
@@ -60,7 +60,7 @@ public sealed class DrawingAv1DeblockingTests {
         using var input=File.OpenRead(Path.Combine(AppContext.BaseDirectory,"TestAssets","Avif","deblock-reference.json.gz"));
         using var gzip=new GZipStream(input,CompressionMode.Decompress);return JsonDocument.Parse(gzip);
     }
-    private static byte[] Hex(string value)=>Enumerable.Range(0,value.Length/2).Select(i=>Convert.ToByte(value.Substring(i*2,2),16)).ToArray();
+    private static ushort[] Hex(string value)=>Enumerable.Range(0,value.Length/2).Select(i=>(ushort)Convert.ToByte(value.Substring(i*2,2),16)).ToArray();
     private static (byte[],OfficeAv1StillSequence,OfficeAv1StillFrame) ReadControl(JsonElement c,JsonElement input) {
         byte[] bytes=Convert.FromBase64String(input.GetString()!);var native=c.GetProperty("unfiltered");
         var item=new OfficeAvifImageItem(1,native.GetProperty("width").GetInt32(),native.GetProperty("height").GetInt32(),0,bytes.Length,

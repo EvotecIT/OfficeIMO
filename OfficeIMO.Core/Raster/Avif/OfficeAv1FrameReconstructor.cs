@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>One-shot Main-8 reconstruction into owned padded planes through the selected pipeline stage.</summary>
+/// <summary>One-shot Main-8/Main10 reconstruction into owned padded planes through the selected pipeline stage.</summary>
 /// <remarks>Only a completely terminated set of tiles publishes a result. All partial pixels stay private.
 /// Color/alpha composition and public raster integration are separate owners.</remarks>
 internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsumer {
@@ -11,7 +11,7 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
     private readonly OfficeAv1StillSequence _sequence;
     private readonly OfficeRasterDecodeOptions _tileOptions;
     private readonly CancellationToken _cancellation;
-    private readonly byte[][] _pixels;
+    private readonly ushort[][] _pixels;
     private readonly byte[] _yModes,_uvModes;
     private readonly ushort[] _above,_left,_luma;
     private readonly bool[][] _decoded;
@@ -21,7 +21,7 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
     private readonly OfficeAv1Cdef? _cdef;
     private readonly OfficeAv1Restorer? _restorer;
     private readonly OfficeAv1Upscaler? _upscaler;
-    private readonly int _stride,_rows,_sb;
+    private readonly int _stride,_rows,_sb,_maximumSample;
     private OfficeAv1Tile _tile;
     private OfficeAv1TileBlock _block;
     private int _sbRow=-1,_sbCol=-1,_index,_maxLumaX,_maxLumaY;
@@ -34,18 +34,21 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
         if(frame==null) throw new ArgumentNullException(nameof(frame));
         if(options==null) throw new ArgumentNullException(nameof(options));
         options.Validate();options.CancellationToken.ThrowIfCancellationRequested();
-        // Wider prediction is qualified separately; byte-sized frame planes and filters still reject Main10.
-        if(sequence.BitDepth!=8 || frame.BitDepth!=8)
-            throw new FormatException("AV1 high-bit-depth reconstruction is not qualified.");
+        if((sequence.BitDepth!=8 && sequence.BitDepth!=10) || frame.BitDepth!=sequence.BitDepth)
+            throw new FormatException("Invalid or inconsistent AV1 reconstruction bit depth.");
+        // Wider storage/prediction/residuals are qualified; Main10 frame filtering remains separate work.
+        if(sequence.BitDepth==10 && stage!=OfficeAv1ReconstructionStage.Unfiltered)
+            throw new FormatException("AV1 high-bit-depth frame filtering is not qualified.");
         if(stage<OfficeAv1ReconstructionStage.Unfiltered || stage>OfficeAv1ReconstructionStage.Restored)
             throw new ArgumentOutOfRangeException(nameof(stage));
         if(frame.Width<1 || frame.Width>65536 || frame.UpscaledWidth<frame.Width || frame.UpscaledWidth>65536 || frame.Height<1 || frame.Height>65536 ||
            frame.MiCols!=((frame.Width+7)/8)*2 || frame.MiRows!=((frame.Height+7)/8)*2 ||
-           (long)frame.UpscaledWidth*frame.Height>options.MaximumDecodedPixels || bytes.Length>options.MaximumEncodedBytes)
+           (long)frame.UpscaledWidth*frame.Height>Math.Min(options.MaximumDecodedPixels,options.MaximumInspectionWorkPixels) || bytes.Length>options.MaximumEncodedBytes)
             throw new FormatException("AV1 reconstruction exceeds frame or input limits.");
         _frame=frame;_sequence=sequence;_cancellation=options.CancellationToken;_sb=sequence.Use128Superblock?128:64;
+        _maximumSample=(1<<sequence.BitDepth)-1;
         _stride=(frame.Width+_sb-1)/_sb*_sb;_rows=(frame.Height+_sb-1)/_sb*_sb;
-        long tileContext=ValidateTiles(frame,_sb),storage=(long)_stride*_rows*(sequence.Monochrome?2:3)/2+
+        long tileContext=ValidateTiles(frame,_sb),storage=(long)_stride*_rows*(sequence.Monochrome?2:3)+
             (long)frame.MiRows*frame.MiCols*2;
         // Reserve edges/maps/CfL and the live prediction/residual results, including array/object overhead.
         const long scratch=131072;
@@ -74,8 +77,8 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
             options.WithAdditionalRetainedManagedBytes(owned-upscale+tileContext+bytes.LongLength));
         if(restoration!=0) _restorer=new OfficeAv1Restorer(frame,sequence,_sb,
             options.WithAdditionalRetainedManagedBytes(owned-restoration+tileContext+bytes.LongLength));
-        _pixels=new byte[sequence.Monochrome?1:3][];
-        for(int p=0;p<_pixels.Length;p++) _pixels[p]=new byte[checked((_stride>>(p>0?1:0))*(_rows>>(p>0?1:0)))];
+        _pixels=new ushort[sequence.Monochrome?1:3][];
+        for(int p=0;p<_pixels.Length;p++) _pixels[p]=new ushort[checked((_stride>>(p>0?1:0))*(_rows>>(p>0?1:0)))];
         _yModes=new byte[frame.MiRows*frame.MiCols];_uvModes=new byte[_yModes.Length];
         _decoded=new[] {new bool[34*34],new bool[34*34],new bool[34*34]};
         _above=new ushort[128];_left=new ushort[128];_luma=new ushort[4096];
@@ -94,7 +97,7 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
         owner._deblocker?.Apply(owner._pixels,owner._stride);
         owner._restorer?.CaptureDeblocked(owner._pixels,owner._stride);
         owner._cdef?.Apply(owner._pixels,owner._stride);
-        byte[][] pixels=owner._pixels;int stride=owner._stride,rows=owner._rows,width=frame.Width;
+        ushort[][] pixels=owner._pixels;int stride=owner._stride,rows=owner._rows,width=frame.Width;
         if(owner._upscaler!=null) {
             owner._restorer?.UpscaleDeblocked(owner._upscaler,owner._stride);
             pixels=owner._upscaler.Apply(pixels,owner._stride);
@@ -102,7 +105,7 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
         }
         owner._restorer?.Apply(pixels,stride);
         owner._cancellation.ThrowIfCancellationRequested();
-        return new OfficeAv1ReconstructedFrame(width,frame.Height,stride,rows,pixels);
+        return new OfficeAv1ReconstructedFrame(width,frame.Height,stride,rows,sequence.BitDepth,pixels);
     }
 
     private static long ValidateTiles(OfficeAv1StillFrame f,int sb) {
@@ -141,7 +144,7 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
             for(int x=0;x<b.Width;x++) {
                 int v=prediction==null?CopySample(b,x,y):prediction.Value(y*b.Width+x);
                 if(residual!=null) v+=residual.Value(y*b.Width+x);
-                _pixels[b.Plane][(b.Y+y)*stride+b.X+x]=(byte)Math.Max(0,Math.Min(255,v));
+                _pixels[b.Plane][(b.Y+y)*stride+b.X+x]=(ushort)Math.Max(0,Math.Min(_maximumSample,v));
             }
         }
         if(b.Plane==0) {_maxLumaX=b.X+b.Width;_maxLumaY=b.Y+b.Height;}
@@ -169,19 +172,20 @@ internal enum OfficeAv1ReconstructionStage { Unfiltered, Deblocked, Cdef, Upscal
 
 /// <summary>Immutable owned reconstructed planes. Padded samples are retained for subsequent filter owners.</summary>
 internal sealed class OfficeAv1ReconstructedFrame {
-    private readonly byte[][] _planes;
+    private readonly ushort[][] _planes;
     private readonly int _stride,_rows;
-    internal OfficeAv1ReconstructedFrame(int width,int height,int stride,int rows,byte[][] planes) {
-        Width=width;Height=height;_stride=stride;_rows=rows;_planes=planes;
+    internal OfficeAv1ReconstructedFrame(int width,int height,int stride,int rows,int bitDepth,ushort[][] planes) {
+        Width=width;Height=height;BitDepth=bitDepth;_stride=stride;_rows=rows;_planes=planes;
     }
     internal int Width {get;}
     internal int Height {get;}
+    internal int BitDepth {get;}
     internal int PlaneCount=>_planes.Length;
     /// <summary>Owned plane storage charged while another decode/composition owner is live.</summary>
     internal long StorageBytes {
-        get { long bytes=0;foreach(byte[] plane in _planes)bytes+=plane.LongLength;return bytes; }
+        get { long bytes=0;foreach(ushort[] plane in _planes)bytes+=plane.LongLength*2;return bytes; }
     }
-    internal byte Value(int plane,int x,int y) {
+    internal ushort Value(int plane,int x,int y) {
         if((uint)plane>=(uint)_planes.Length) throw new ArgumentOutOfRangeException(nameof(plane));
         int sub=plane==0?0:1;
         if((uint)x>=(uint)(_stride>>sub) || (uint)y>=(uint)(_rows>>sub)) throw new ArgumentOutOfRangeException();

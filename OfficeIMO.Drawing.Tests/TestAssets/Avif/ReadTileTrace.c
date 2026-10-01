@@ -21,14 +21,23 @@ int main(int argc,char **argv) {
   }
   aom_codec_iter_t iter=NULL;
   aom_image_t *image=aom_codec_get_frame(&decoder,&iter);
-  if(!image || image->bit_depth!=8 || (image->fmt & AOM_IMG_FMT_HIGHBITDEPTH)) return 7;
+  if(!image || (image->bit_depth!=8 && image->bit_depth!=10) ||
+     ((image->fmt & AOM_IMG_FMT_HIGHBITDEPTH)!=0)!=(image->bit_depth==10)) return 7;
   FILE *output=fopen(argv[2],"wb");if(!output) return 8;
   int planes=image->monochrome?1:3;
   printf("{\"width\":%u,\"height\":%u,\"planes\":%d,\"depth\":%u,\"planeBytes\":[",image->d_w,image->d_h,planes,image->bit_depth);
   for(int p=0;p<planes;p++) {
     int w=(image->d_w+(p?1:0))>>(p?1:0),h=(image->d_h+(p?1:0))>>(p?1:0);
-    printf("%s%d",p?",":"",w*h);
-    for(int y=0;y<h;y++) if(fwrite(image->planes[p]+y*image->stride[p],1,(size_t)w,output)!=(size_t)w) return 8;
+    printf("%s%d",p?",":"",w*h*(image->bit_depth==10?2:1));
+    for(int y=0;y<h;y++) {
+      if(image->bit_depth==8) {
+        if(fwrite(image->planes[p]+y*image->stride[p],1,(size_t)w,output)!=(size_t)w) return 8;
+      } else {
+        const uint16_t *row=(const uint16_t *)(image->planes[p]+y*image->stride[p]);
+        for(int x=0;x<w;x++) {uint8_t le[2]={(uint8_t)row[x],(uint8_t)(row[x]>>8)};
+          if(fwrite(le,1,2,output)!=2) return 8;}
+      }
+    }
   }
   printf("]}\n"); if(fclose(output)) return 8;
   if(aom_codec_get_frame(&decoder,&iter)!=NULL) return 9;

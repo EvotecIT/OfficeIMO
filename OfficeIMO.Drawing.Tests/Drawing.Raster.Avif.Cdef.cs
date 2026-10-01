@@ -50,7 +50,7 @@ public sealed class DrawingAv1CdefTests {
             Assert.Equal(c.GetProperty("direction").GetInt32(),direction);Assert.Equal(c.GetProperty("variance").GetInt32(),variance);
         }
         foreach(var c in fixture.RootElement.GetProperty("kernels").EnumerateArray()) {
-            byte[] input=Hex(c.GetProperty("input").GetString()!),output=(byte[])input.Clone();int x=c.GetProperty("x").GetInt32();
+            ushort[] input=Hex(c.GetProperty("input").GetString()!),output=(ushort[])input.Clone();int x=c.GetProperty("x").GetInt32();
             OfficeAv1CdefFilter.Apply(input,output,12,x,c.GetProperty("y").GetInt32(),c.GetProperty("size").GetInt32(),
                 c.GetProperty("width").GetInt32(),c.GetProperty("height").GetInt32(),c.GetProperty("primary").GetInt32(),
                 c.GetProperty("secondary").GetInt32(),c.GetProperty("damping").GetInt32(),c.GetProperty("direction").GetInt32());
@@ -64,7 +64,7 @@ public sealed class DrawingAv1CdefTests {
     public void ImmutableFilterInputSharesTheAggregateRetainedBudget() {
         using var fixture=Open();var c=fixture.RootElement.GetProperty("cases").EnumerateArray().Single(v=>v.GetProperty("name").GetString()=="odd-color");
         var (bytes,sequence,frame)=Read(c,"odd-color",false);int sb=sequence.Use128Superblock?128:64;
-        long storage=(long)((frame.Width+sb-1)/sb*sb)*((frame.Height+sb-1)/sb*sb)*3/2+(long)frame.MiRows*frame.MiCols*2;
+        long storage=(long)((frame.Width+sb-1)/sb*sb)*((frame.Height+sb-1)/sb*sb)*3+(long)frame.MiRows*frame.MiCols*2;
         long reserve=storage+131072+OfficeAv1IntraPredictor.ContextBytes+OfficeAv1ResidualTransform.ContextBytes+
             OfficeAv1Deblocker.ContextBytes(frame,false)+frame.Tiles.Max(t=>OfficeAv1TileReader.ContextBytes(frame,t))+bytes.LongLength;
         var options=new OfficeRasterDecodeOptions {RetainedManagedBytes=OfficeRasterGuards.MaximumDecodedBytes-reserve-8192};
@@ -75,7 +75,7 @@ public sealed class DrawingAv1CdefTests {
         using var input=File.OpenRead(Path.Combine(AppContext.BaseDirectory,"TestAssets","Avif", "cdef-reference.json.gz"));
         using var gzip=new GZipStream(input,CompressionMode.Decompress);return JsonDocument.Parse(gzip);
     }
-    private static byte[] Hex(string value)=>Enumerable.Range(0,value.Length/2).Select(i=>Convert.ToByte(value.Substring(i*2,2),16)).ToArray();
+    private static ushort[] Hex(string value)=>Enumerable.Range(0,value.Length/2).Select(i=>(ushort)Convert.ToByte(value.Substring(i*2,2),16)).ToArray();
     private static (byte[],OfficeAv1StillSequence,OfficeAv1StillFrame) Read(JsonElement c,string name,bool alpha) {
         byte[] bytes;OfficeAvifImageItem item;var options=new OfficeRasterDecodeOptions();
         if(c.TryGetProperty("inputBase64",out var input)) {

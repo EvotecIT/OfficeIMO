@@ -12,10 +12,11 @@ internal sealed class OfficeAv1Cdef {
     private readonly CancellationToken _cancellation;
     internal static long ContextBytes(OfficeAv1StillFrame frame,bool monochrome,int sb) {
         long pixels=(long)((frame.Width+sb-1)/sb*sb)*((frame.Height+sb-1)/sb*sb)*(monochrome?2:3)/2;
-        return pixels+(long)frame.MiRows*frame.MiCols+((frame.MiRows+15)/16)*((frame.MiCols+15)/16)+2048;
+        return pixels*2+(long)frame.MiRows*frame.MiCols+((frame.MiRows+15)/16)*((frame.MiCols+15)/16)+2048;
     }
     internal OfficeAv1Cdef(OfficeAv1StillFrame frame,bool monochrome,int sb,OfficeRasterDecodeOptions options) {
         options.CancellationToken.ThrowIfCancellationRequested();
+        if(frame.BitDepth!=8) throw new FormatException("AV1 high-bit-depth CDEF is not qualified.");
         if(options.RetainedManagedBytes>OfficeRasterGuards.MaximumDecodedBytes-ContextBytes(frame,monochrome,sb))
             throw new FormatException("AV1 CDEF contexts exceed retained memory.");
         if(frame.CdefBits<0 || frame.CdefBits>3 || frame.CdefDamping<3 || frame.CdefDamping>6)
@@ -46,13 +47,13 @@ internal sealed class OfficeAv1Cdef {
         }
     }
     /// <summary>All neighborhoods read a separately charged snapshot; modified pixels never feed later blocks.</summary>
-    internal void Apply(byte[][] planes,int stride) {
-        var input=new byte[planes.Length][];
+    internal void Apply(ushort[][] planes,int stride) {
+        var input=new ushort[planes.Length][];
         for(int p=0;p<planes.Length;p++) {
             _cancellation.ThrowIfCancellationRequested();int pitch=stride>>(p>0?1:0);
-            input[p]=new byte[planes[p].Length];
+            input[p]=new ushort[planes[p].Length];
             for(int y=0;y<planes[p].Length/pitch;y++) {
-                _cancellation.ThrowIfCancellationRequested();Buffer.BlockCopy(planes[p],y*pitch,input[p],y*pitch,pitch);
+                _cancellation.ThrowIfCancellationRequested();Array.Copy(planes[p],y*pitch,input[p],y*pitch,pitch);
             }
         }
         for(int r=0;r<_rows;r+=2) {

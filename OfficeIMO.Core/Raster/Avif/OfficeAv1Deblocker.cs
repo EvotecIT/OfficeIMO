@@ -14,6 +14,7 @@ internal sealed class OfficeAv1Deblocker {
         (long)frame.MiRows*frame.MiCols*(monochrome?10:11)/2+1024;
     internal OfficeAv1Deblocker(OfficeAv1StillFrame frame,bool monochrome,OfficeRasterDecodeOptions options) {
         options.CancellationToken.ThrowIfCancellationRequested();
+        if(frame.BitDepth!=8) throw new FormatException("AV1 high-bit-depth deblocking is not qualified.");
         if(options.RetainedManagedBytes>OfficeRasterGuards.MaximumDecodedBytes-ContextBytes(frame,monochrome))
             throw new FormatException("AV1 deblocking contexts exceed retained memory.");
         if(frame.LoopFilterSharpness<0 || frame.LoopFilterSharpness>7) throw new FormatException("Invalid AV1 filter sharpness.");
@@ -43,7 +44,7 @@ internal sealed class OfficeAv1Deblocker {
         }
     }
     /// <summary>Filters vertical boundaries before horizontal boundaries; no partial result is published.</summary>
-    internal void Apply(byte[][] planes,int stride) {
+    internal void Apply(ushort[][] planes,int stride) {
         _cancellation.ThrowIfCancellationRequested();
         if(_frame.AllowIntraBlockCopy || (_frame.LoopFilterLevels[0]==0 && _frame.LoopFilterLevels[1]==0)) return;
         for(int p=0;p<planes.Length;p++) {

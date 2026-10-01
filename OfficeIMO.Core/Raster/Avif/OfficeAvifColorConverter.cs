@@ -8,6 +8,8 @@ internal static class OfficeAvifColorConverter {
     internal static OfficeRasterImage Compose(OfficeAv1ReconstructedFrame frame, OfficeAvifColorDescription color,
         OfficeAv1ReconstructedFrame? alpha, OfficeRasterDecodeOptions options) {
         options.Validate(); options.CancellationToken.ThrowIfCancellationRequested();
+        if(frame.BitDepth!=8 || (alpha!=null && alpha.BitDepth!=8))
+            throw new FormatException("AVIF high-bit-depth composition is not qualified.");
         if (!OfficeRasterGuards.TryEnsurePixelCount(frame.Width, frame.Height, options.MaximumDecodedPixels, out int pixels) ||
             (frame.PlaneCount != 1 && frame.PlaneCount != 3) ||
             (alpha != null && (alpha.Width != frame.Width || alpha.Height != frame.Height || alpha.PlaneCount != 1)) ||
@@ -40,7 +42,7 @@ internal static class OfficeAvifColorConverter {
                 rgba[index] = Channel(luma + 2 * (1 - kr) * cr);
                 rgba[index + 1] = Channel(luma - 2 * (kr * (1 - kr) * cr + kb * (1 - kb) * cb) / kg);
                 rgba[index + 2] = Channel(luma + 2 * (1 - kb) * cb);
-                rgba[index + 3] = alpha == null ? (byte)255 : alpha.Value(0, x, y);
+                rgba[index + 3] = alpha == null ? (byte)255 : (byte)alpha.Value(0, x, y);
             }
         }
         options.CancellationToken.ThrowIfCancellationRequested();

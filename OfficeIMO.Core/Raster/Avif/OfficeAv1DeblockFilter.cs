@@ -6,7 +6,7 @@ namespace OfficeIMO.Drawing;
 /// <remarks>The owning frame validates geometry and retains this fixed scratch. Reads are captured
 /// before writes so wide taps never consume their own modified samples.</remarks>
 internal static class OfficeAv1DeblockFilter {
-    internal static void Apply(byte[] pixels,int offset,int step,int size,bool chroma,
+    internal static void Apply(ushort[] pixels,int offset,int step,int size,bool chroma,
         int limit,int blimit,int threshold,int[] scratch) {
         if(size!=4 && size!=8 && size!=16 || chroma && size==16 || step<1 || scratch.Length<32)
             throw new ArgumentOutOfRangeException(nameof(size));
@@ -32,18 +32,18 @@ internal static class OfficeAv1DeblockFilter {
                 for(int j=-n;j<=n;j++) sum+=scratch[7+Math.Max(-n-1,Math.Min(n,i+j))]*(Math.Abs(j)<=n2?2:1);
                 scratch[16+i+n]=(sum+(1<<(bits-1)))>>bits;
             }
-            for(int i=-n;i<n;i++) pixels[offset+i*step]=(byte)scratch[16+i+n];
+            for(int i=-n;i<n;i++) pixels[offset+i*step]=(ushort)scratch[16+i+n];
             return;
         }
         bool hev=Math.Abs(p1-p0)>threshold || Math.Abs(q1-q0)>threshold;
         int f=Clamp((hev?Clamp(p1-q1):0)+3*(q0-p0));
         int a=Clamp(f+4)>>3,b=Clamp(f+3)>>3;
-        pixels[offset]=(byte)(Clamp(q0-128-a)+128);
-        pixels[offset-step]=(byte)(Clamp(p0-128+b)+128);
+        pixels[offset]=(ushort)(Clamp(q0-128-a)+128);
+        pixels[offset-step]=(ushort)(Clamp(p0-128+b)+128);
         if(!hev) {
             int outer=(a+1)>>1;
-            pixels[offset+step]=(byte)(Clamp(q1-128-outer)+128);
-            pixels[offset-2*step]=(byte)(Clamp(p1-128+outer)+128);
+            pixels[offset+step]=(ushort)(Clamp(q1-128-outer)+128);
+            pixels[offset-2*step]=(ushort)(Clamp(p1-128+outer)+128);
         }
     }
     private static int Clamp(int value)=>Math.Max(-128,Math.Min(127,value));

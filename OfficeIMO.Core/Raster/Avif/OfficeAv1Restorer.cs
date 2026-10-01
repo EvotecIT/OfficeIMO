@@ -12,7 +12,7 @@ internal sealed class OfficeAv1Restorer {
     private readonly OfficeAv1RestorationFilter _filter;
     private readonly CancellationToken _cancellation;
     private readonly long _workLimit;
-    private byte[][]? _deblocked;
+    private ushort[][]? _deblocked;
     internal static long ContextBytes(OfficeAv1StillFrame frame,bool monochrome,int sb) {
         long pixels=(long)((frame.UpscaledWidth+sb-1)/sb*sb)*((frame.Height+sb-1)/sb*sb)*(monochrome?2:3)/2,units=0;
         for(int p=0;p<(monochrome?1:3);p++) if(frame.RestorationTypes[p]!=0) {
@@ -21,10 +21,11 @@ internal sealed class OfficeAv1Restorer {
             units+=(long)Math.Max(((((frame.Height+(1<<sub)-1)>>sub)+size/2)/size),1)*
                 Math.Max(((((frame.UpscaledWidth+(1<<sub)-1)>>sub)+size/2)/size),1);
         }
-        return pixels*2+units*64+133120;
+        return pixels*4+units*64+133120;
     }
     internal OfficeAv1Restorer(OfficeAv1StillFrame frame,OfficeAv1StillSequence sequence,int sb,OfficeRasterDecodeOptions options) {
         options.CancellationToken.ThrowIfCancellationRequested();
+        if(frame.BitDepth!=8 || sequence.BitDepth!=8) throw new FormatException("AV1 high-bit-depth restoration is not qualified.");
         if(options.RetainedManagedBytes>OfficeRasterGuards.MaximumDecodedBytes-ContextBytes(frame,sequence.Monochrome,sb))
             throw new FormatException("AV1 restoration exceeds retained memory.");
         _width=frame.UpscaledWidth;_height=frame.Height;_cancellation=options.CancellationToken;_workLimit=options.MaximumInspectionWorkPixels;
@@ -49,17 +50,17 @@ internal sealed class OfficeAv1Restorer {
         if(_assigned[p][index]) throw new FormatException("Duplicate AV1 restoration unit.");
         _units[p][index]=unit;_assigned[p][index]=true;
     }
-    internal void CaptureDeblocked(byte[][] pixels,int stride) { _deblocked=Copy(pixels,stride); }
+    internal void CaptureDeblocked(ushort[][] pixels,int stride) { _deblocked=Copy(pixels,stride); }
     /// <summary>Applies the same normative upscaler to deblocked stripe samples before restoration.</summary>
     internal void UpscaleDeblocked(OfficeAv1Upscaler upscaler,int stride) {
         if(_deblocked==null) throw new InvalidOperationException("AV1 restoration requires deblocked stripe sources.");
         _deblocked=upscaler.Apply(_deblocked,stride);
     }
-    internal void Apply(byte[][] pixels,int stride) {
+    internal void Apply(ushort[][] pixels,int stride) {
         if(_deblocked==null) throw new InvalidOperationException("AV1 restoration requires deblocked stripe sources.");
         for(int p=0;p<_assigned.Length;p++) for(int i=0;i<_assigned[p].Length;i++)
             if(!_assigned[p][i]) throw new FormatException("Incomplete AV1 restoration unit grid.");
-        byte[][] source=Copy(pixels,stride);long work=0;
+        ushort[][] source=Copy(pixels,stride);long work=0;
         for(int p=0;p<pixels.Length;p++) if(_types[p]!=0) {
             int sub=p==0?0:1,width=(_width+(1<<sub)-1)>>sub,height=(_height+(1<<sub)-1)>>sub;
             for(int y=0;y<height;) {
@@ -79,11 +80,11 @@ internal sealed class OfficeAv1Restorer {
         }
         _cancellation.ThrowIfCancellationRequested();
     }
-    private byte[][] Copy(byte[][] pixels,int stride) {
-        var copy=new byte[pixels.Length][];
+    private ushort[][] Copy(ushort[][] pixels,int stride) {
+        var copy=new ushort[pixels.Length][];
         for(int p=0;p<pixels.Length;p++) {
-            _cancellation.ThrowIfCancellationRequested();int pitch=stride>>(p==0?0:1);copy[p]=new byte[pixels[p].Length];
-            for(int y=0;y<pixels[p].Length/pitch;y++) {_cancellation.ThrowIfCancellationRequested();Buffer.BlockCopy(pixels[p],y*pitch,copy[p],y*pitch,pitch);}
+            _cancellation.ThrowIfCancellationRequested();int pitch=stride>>(p==0?0:1);copy[p]=new ushort[pixels[p].Length];
+            for(int y=0;y<pixels[p].Length/pitch;y++) {_cancellation.ThrowIfCancellationRequested();Array.Copy(pixels[p],y*pitch,copy[p],y*pitch,pitch);}
         }
         return copy;
     }

@@ -83,11 +83,12 @@ internal sealed class OfficeAv1Upscaler {
         if (frame.UpscaledWidth < 1 || frame.UpscaledWidth > 65536 || frame.Height < 1 || frame.Height > 65536 ||
             (sb != 64 && sb != 128)) throw new FormatException("Invalid AV1 upscaled storage dimensions.");
         return (long)((frame.UpscaledWidth + sb - 1) / sb * sb) * ((frame.Height + sb - 1) / sb * sb) *
-            (monochrome ? 2 : 3) / 2 + 4096;
+            (monochrome ? 2 : 3) + 4096;
     }
     internal OfficeAv1Upscaler(OfficeAv1StillFrame frame, OfficeAv1StillSequence sequence, int sb,
         OfficeRasterDecodeOptions options) {
         options.Validate(); options.CancellationToken.ThrowIfCancellationRequested();
+        if(frame.BitDepth!=8 || sequence.BitDepth!=8) throw new FormatException("AV1 high-bit-depth superresolution is not qualified.");
         if (!sequence.SuperResolution || frame.Width < 1 || frame.Width >= frame.UpscaledWidth ||
             frame.SuperResolutionDenominator < 9 || frame.SuperResolutionDenominator > 16 ||
             frame.Width != ((long)frame.UpscaledWidth * 8 + frame.SuperResolutionDenominator / 2) / frame.SuperResolutionDenominator ||
@@ -102,7 +103,7 @@ internal sealed class OfficeAv1Upscaler {
     }
 
     /// <summary>Upscales a complete immutable coded frame. Each invocation is charged to the owner's work bound.</summary>
-    internal byte[][] Apply(byte[][] input, int stride) {
+    internal ushort[][] Apply(ushort[][] input, int stride) {
         _cancellation.ThrowIfCancellationRequested();
         if (input.Length != _planes || stride < _miWidth || (stride & 1) != 0)
             throw new FormatException("Invalid AV1 superresolution source planes.");
@@ -115,13 +116,13 @@ internal sealed class OfficeAv1Upscaler {
             if (input[p] == null || (long)(stride >> sub) * height > input[p].Length)
                 throw new FormatException("Incomplete AV1 superresolution source plane.");
         }
-        var output = new byte[_planes][];
+        var output = new ushort[_planes][];
         for (int p = 0; p < _planes; p++) {
             _cancellation.ThrowIfCancellationRequested();
             int sub = p == 0 ? 0 : 1, width = (_width + (1 << sub) - 1) >> sub;
             int upscaled = (_upscaledWidth + (1 << sub) - 1) >> sub, height = (_height + (1 << sub) - 1) >> sub;
             int pitch = stride >> sub, outPitch = Stride >> sub, maximumX = (_miWidth >> sub) - 1;
-            output[p] = new byte[checked(outPitch * (Rows >> sub))];
+            output[p] = new ushort[checked(outPitch * (Rows >> sub))];
             int step = (int)(((long)width * 16384 + upscaled / 2) / upscaled);
             int error = upscaled * step - width * 16384;
             int initial = (int)((-((long)(upscaled - width) * 8192) + upscaled / 2) / upscaled) + 128 - error / 2;
@@ -132,7 +133,7 @@ internal sealed class OfficeAv1Upscaler {
                     int position = -16384 + initial + x * step, sample = position >> 14, phase = (position & 16383) >> 8;
                     int sum = 0;
                     for (int k = 0; k < 8; k++) sum += input[p][y * pitch + Math.Max(0, Math.Min(maximumX, sample + k - 3))] * Filters[phase, k];
-                    output[p][y * outPitch + x] = (byte)Math.Max(0, Math.Min(255, (sum + 64) >> 7));
+                    output[p][y * outPitch + x] = (ushort)Math.Max(0, Math.Min(255, (sum + 64) >> 7));
                 }
             }
         }

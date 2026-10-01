@@ -10,7 +10,7 @@ internal static class OfficeAv1CdefFilter {
         {{1,1},{2,2}},{{1,0},{2,1}},{{1,0},{2,0}},{{1,0},{2,-1}}};
 
     /// <summary>Finds direction and variance using the owner's reusable bounded scratch.</summary>
-    internal static int FindDirection(byte[] pixels,int stride,int offset,int[] partial,int[] cost,out int variance) {
+    internal static int FindDirection(ushort[] pixels,int stride,int offset,int[] partial,int[] cost,out int variance) {
         if(stride<8 || offset<0 || offset+(long)7*stride+7>=pixels.Length || partial.Length<120 || cost.Length<8)
             throw new FormatException("Invalid AV1 CDEF direction footprint.");
         Array.Clear(partial,0,120);Array.Clear(cost,0,8);
@@ -38,7 +38,7 @@ internal static class OfficeAv1CdefFilter {
     }
 
     /// <summary>Filters one 8x8 or subsampled 4x4 block, reading only the immutable input plane.</summary>
-    internal static void Apply(byte[] input,byte[] output,int stride,int x0,int y0,int size,
+    internal static void Apply(ushort[] input,ushort[] output,int stride,int x0,int y0,int size,
         int width,int height,int primary,int secondary,int damping,int direction) {
         if(ReferenceEquals(input,output) || (size!=4 && size!=8) || primary<0 || primary>15 ||
            (secondary!=0 && secondary!=1 && secondary!=2 && secondary!=4) || damping<2 || damping>6 ||
@@ -55,10 +55,10 @@ internal static class OfficeAv1CdefFilter {
                 for(int d=-2;d<=2;d+=4)
                     Add(input,stride,x,y,width,height,(direction+d)&7,k,sign,value,secondary,k==0?2:1,secondaryShift,ref sum,ref min,ref max);
             }
-            output[y*stride+x]=(byte)Math.Max(min,Math.Min(max,value+((8+sum-(sum<0?1:0))>>4)));
+            output[y*stride+x]=(ushort)Math.Max(min,Math.Min(max,value+((8+sum-(sum<0?1:0))>>4)));
         }
     }
-    private static void Add(byte[] input,int stride,int x,int y,int width,int height,int direction,int k,int sign,
+    private static void Add(ushort[] input,int stride,int x,int y,int width,int height,int direction,int k,int sign,
         int value,int strength,int tap,int shift,ref int sum,ref int min,ref int max) {
         int ny=y+sign*Directions[direction,k,0],nx=x+sign*Directions[direction,k,1];
         if((uint)ny>=(uint)height || (uint)nx>=(uint)width) return;

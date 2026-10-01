@@ -18,13 +18,13 @@ public sealed class DrawingAv1SuperresolutionTests {
             var frame=new OfficeAv1StillFrame {Width=coded,UpscaledWidth=width,Height=height,
                 MiCols=2*((coded+7)/8),MiRows=2*((height+7)/8),SuperResolutionDenominator=c.GetProperty("denominator").GetInt32()};
             var sequence=new OfficeAv1StillSequence {SuperResolution=true,Monochrome=plane==0};
-            int stride=(coded+63)/64*64;var input=new byte[sequence.Monochrome?1:3][];
-            for(int p=0;p<input.Length;p++)input[p]=new byte[(stride>>(p==0?0:1))*(64>>(p==0?0:1))];
-            byte[] samples=Hex(c.GetProperty("input").GetString()!),expected=Hex(c.GetProperty("output").GetString()!);
+            int stride=(coded+63)/64*64;var input=new ushort[sequence.Monochrome?1:3][];
+            for(int p=0;p<input.Length;p++)input[p]=new ushort[(stride>>(p==0?0:1))*(64>>(p==0?0:1))];
+            ushort[] samples=Hex(c.GetProperty("input").GetString()!),expected=Hex(c.GetProperty("output").GetString()!);
             int rows=(height+sub)>>sub,columns=frame.MiCols*4>>sub,pitch=stride>>sub,outWidth=(width+sub)>>sub;
-            for(int y=0;y<rows;y++)Buffer.BlockCopy(samples,y*sourcePitch,input[plane],y*pitch,columns);
-            byte[] saved=(byte[])input[plane].Clone();var owner=new OfficeAv1Upscaler(frame,sequence,64,new OfficeRasterDecodeOptions());
-            byte[][] result=owner.Apply(input,stride);Assert.Equal(saved,input[plane]);
+            for(int y=0;y<rows;y++)Array.Copy(samples,y*sourcePitch,input[plane],y*pitch,columns);
+            ushort[] saved=(ushort[])input[plane].Clone();var owner=new OfficeAv1Upscaler(frame,sequence,64,new OfficeRasterDecodeOptions());
+            ushort[][] result=owner.Apply(input,stride);Assert.Equal(saved,input[plane]);
             for(int y=0;y<rows;y++)for(int x=0;x<outWidth;x++)
                 Assert.True(expected[y*outWidth+x]==result[plane][y*(owner.Stride>>sub)+x],
                     $"Scale {frame.SuperResolutionDenominator}, width {width}, plane {plane}, tiles {c.GetProperty("tiles")}, ({x},{y})");
@@ -37,7 +37,7 @@ public sealed class DrawingAv1SuperresolutionTests {
         Assert.Throws<FormatException>(()=>new OfficeAv1Upscaler(frame,sequence,64,new OfficeRasterDecodeOptions {MaximumDecodedPixels=98}));
         Assert.Throws<FormatException>(()=>new OfficeAv1Upscaler(frame,sequence,64,new OfficeRasterDecodeOptions {
             RetainedManagedBytes=OfficeRasterGuards.MaximumDecodedBytes-OfficeAv1Upscaler.ContextBytes(frame,true,64)+1}));
-        var source=new[] {new byte[64*64]};byte[] saved=(byte[])source[0].Clone();
+        var source=new[] {new ushort[64*64]};ushort[] saved=(ushort[])source[0].Clone();
         var limited=new OfficeAv1Upscaler(frame,sequence,64,new OfficeRasterDecodeOptions {MaximumInspectionWorkPixels=98});
         Assert.Throws<FormatException>(()=>limited.Apply(source,64));
         var cumulative=new OfficeAv1Upscaler(frame,sequence,64,new OfficeRasterDecodeOptions {MaximumInspectionWorkPixels=99});
@@ -45,5 +45,5 @@ public sealed class DrawingAv1SuperresolutionTests {
         using var cancellation=new CancellationTokenSource();var owner=new OfficeAv1Upscaler(frame,sequence,64,new OfficeRasterDecodeOptions {CancellationToken=cancellation.Token});
         cancellation.Cancel();Assert.Throws<OperationCanceledException>(()=>owner.Apply(source,64));Assert.Equal(saved,source[0]);
     }
-    private static byte[] Hex(string value)=>Enumerable.Range(0,value.Length/2).Select(i=>Convert.ToByte(value.Substring(i*2,2),16)).ToArray();
+    private static ushort[] Hex(string value)=>Enumerable.Range(0,value.Length/2).Select(i=>(ushort)Convert.ToByte(value.Substring(i*2,2),16)).ToArray();
 }
