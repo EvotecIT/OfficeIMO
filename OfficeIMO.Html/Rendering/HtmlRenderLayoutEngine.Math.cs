@@ -45,24 +45,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var mathOptions = new OfficeMathRenderOptions {
             Font = style.Font,
             Color = style.Color,
-            Padding = 1D,
+            Padding = 0D,
             RuleGap = Math.Max(1D, style.Font.Size * 0.125D),
             RuleThickness = Math.Max(0.75D, style.Font.Size / 16D),
             MatrixGap = Math.Max(4D, style.Font.Size * 0.5D),
-            Dpi = HtmlRenderOptions.CssPixelsPerInch
+            // CSS sizes are already drawing units, so no point-to-pixel conversion is applied here.
+            Dpi = 72D,
+            DisplayStyle = !shrinkToFit,
+            Fonts = _fonts
         };
-        OfficeMathLayoutMetrics metrics = OfficeMathRenderer.Measure(expression, mathOptions);
-        OfficeDrawing drawing = OfficeMathRenderer.Render(expression, mathOptions);
+        if (bool.TryParse(element.GetAttribute("displaystyle"), out bool authoredDisplayStyle)) {
+            mathOptions.DisplayStyle = authoredDisplayStyle;
+        }
+        OfficeMathLayoutMetrics metrics = OfficeMathRenderer.Measure(expression, mathOptions, _cancellationToken);
+        OfficeDrawing drawing = OfficeMathRenderer.Render(expression, mathOptions, _cancellationToken);
         double intrinsicWidth = drawing.Width;
         double intrinsicHeight = drawing.Height;
-        if (shrinkToFit) {
-            double targetHeight = ResolveInlineMathTargetHeight(expression, style);
-            if (targetHeight > 0D && targetHeight < intrinsicHeight) {
-                double inlineScale = targetHeight / intrinsicHeight;
-                intrinsicWidth *= inlineScale;
-                intrinsicHeight = targetHeight;
-            }
-        }
         ReplacedContentSize contentSize = ResolveReplacedContentSize(style, intrinsicWidth, intrinsicHeight, hasIntrinsicSize: true);
         double boxWidth = contentSize.Width + style.HorizontalInsets;
         double boxHeight = contentSize.Height + style.VerticalInsets;
@@ -71,7 +69,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var visuals = new List<HtmlRenderVisual>();
         var mathVisuals = new List<HtmlRenderVisual>();
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
-        double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
+        double alignmentSpace = !shrinkToFit && !style.ExplicitWidth.HasValue
+            ? Math.Max(0D, containingWidth - style.MarginLeft - style.MarginRight - boxWidth) : 0D;
+        double alignmentOffset = style.Alignment == OfficeTextAlignment.Center ? alignmentSpace / 2D
+            : style.Alignment == OfficeTextAlignment.Right ? alignmentSpace : 0D;
+        double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft + alignmentOffset;
         double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         string logicalText = expression.ToPlainText();
         string alternativeText = ResolveMathAlternativeText(element, logicalText);
@@ -126,9 +128,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         baseline = style.MarginTop
             + style.BorderTopWidth
             + style.PaddingTop
-            + (shrinkToFit
-                ? contentSize.Height * 0.61D
-                : (mathOptions.Padding + metrics.Baseline) * scaleY);
+            + (mathOptions.Padding + metrics.Baseline) * scaleY;
         double outerHeight = style.MarginTop + boxHeight + style.MarginBottom;
         baseline = Math.Min(outerHeight, Math.Max(0D, baseline));
         double flowWidth = shrinkToFit
@@ -144,23 +144,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
             source,
             pageName: style.PageName);
         return true;
-    }
-
-    private static double ResolveInlineMathTargetHeight(OfficeMathExpression expression, HtmlRenderBoxStyle style) {
-        double factor = ResolveInlineMathHeightFactor(expression);
-        return factor <= 0D ? 0D : style.Font.Size * factor;
-    }
-
-    private static double ResolveInlineMathHeightFactor(OfficeMathExpression expression) {
-        double factor = expression.Kind switch {
-            OfficeMathKind.Fraction => 1.45D,
-            OfficeMathKind.Radical => 1.05D,
-            _ => 0D
-        };
-        for (int index = 0; index < expression.Children.Count; index++) {
-            factor = Math.Max(factor, ResolveInlineMathHeightFactor(expression.Children[index]));
-        }
-        return factor;
     }
 
     private bool TryAddInlineMathRun(

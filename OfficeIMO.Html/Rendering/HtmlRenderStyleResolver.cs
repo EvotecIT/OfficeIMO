@@ -251,7 +251,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             DecorationColor = propagatedUnderline && !ownsUnderline
                 ? parent!.DecorationColor
                 : ResolveColor(element, computed.GetValue("text-decoration-color"), color, pseudoElement, "text-decoration-color"),
-            Alignment = tag == "caption" && (string.IsNullOrWhiteSpace(computed.GetValue("text-align")) || computed.IsImplicitlyInheritedValue("text-align"))
+            Alignment = (tag == "caption" || (tag == "math" && display == "block"))
+                && (string.IsNullOrWhiteSpace(computed.GetValue("text-align")) || computed.IsImplicitlyInheritedValue("text-align"))
                 ? OfficeTextAlignment.Center
                 : ResolveAlignment(computed.GetValue("text-align"), direction, parent?.Alignment),
             LineHeight = ResolveComputedLineHeight(computed, fontSize, parent),

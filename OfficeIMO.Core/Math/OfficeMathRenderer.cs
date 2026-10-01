@@ -1,69 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
-
-/// <summary>Settings for dependency-free mathematical layout and drawing.</summary>
-public sealed class OfficeMathRenderOptions {
-    /// <summary>Base mathematical font.</summary>
-    public OfficeFontInfo Font { get; set; } = new OfficeFontInfo("Cambria Math", 18D);
-
-    /// <summary>Foreground color.</summary>
-    public OfficeColor Color { get; set; } = OfficeColor.Black;
-
-    /// <summary>Optional canvas background.</summary>
-    public OfficeColor? BackgroundColor { get; set; }
-
-    /// <summary>Padding around the expression in drawing units.</summary>
-    public double Padding { get; set; } = 8D;
-
-    /// <summary>Relative scale applied to scripts, limits, and root indices.</summary>
-    public double ScriptScale { get; set; } = 0.7D;
-
-    /// <summary>Gap around fraction and decoration rules.</summary>
-    public double RuleGap { get; set; } = 2D;
-
-    /// <summary>Thickness of fraction, radical, bar, and box rules.</summary>
-    public double RuleThickness { get; set; } = 1D;
-
-    /// <summary>Horizontal and vertical gap between matrix cells.</summary>
-    public double MatrixGap { get; set; } = 8D;
-
-    /// <summary>DPI used by deterministic text measurement.</summary>
-    public double Dpi { get; set; } = OfficeTextMeasurer.DefaultDpi;
-
-    /// <summary>Creates a detached copy.</summary>
-    public OfficeMathRenderOptions Clone() => new OfficeMathRenderOptions {
-        Font = Font,
-        Color = Color,
-        BackgroundColor = BackgroundColor,
-        Padding = Padding,
-        ScriptScale = ScriptScale,
-        RuleGap = RuleGap,
-        RuleThickness = RuleThickness,
-        MatrixGap = MatrixGap,
-        Dpi = Dpi
-    };
-
-    internal void Validate() {
-        Positive(Font.Size, nameof(Font));
-        NonNegative(Padding, nameof(Padding));
-        Positive(ScriptScale, nameof(ScriptScale));
-        NonNegative(RuleGap, nameof(RuleGap));
-        Positive(RuleThickness, nameof(RuleThickness));
-        NonNegative(MatrixGap, nameof(MatrixGap));
-        Positive(Dpi, nameof(Dpi));
-    }
-
-    private static void Positive(double value, string name) {
-        if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0D) throw new ArgumentOutOfRangeException(name);
-    }
-
-    private static void NonNegative(double value, string name) {
-        if (double.IsNaN(value) || double.IsInfinity(value) || value < 0D) throw new ArgumentOutOfRangeException(name);
-    }
-}
 
 /// <summary>Measured bounds and baseline of a mathematical expression.</summary>
 public readonly struct OfficeMathLayoutMetrics {
@@ -84,22 +24,30 @@ public readonly struct OfficeMathLayoutMetrics {
 }
 
 /// <summary>Renders the shared mathematical expression tree into the shared drawing scene.</summary>
-public static class OfficeMathRenderer {
+public static partial class OfficeMathRenderer {
     /// <summary>Measures an expression using deterministic, dependency-free font metrics.</summary>
-    public static OfficeMathLayoutMetrics Measure(OfficeMathExpression expression, OfficeMathRenderOptions? options = null) {
+    public static OfficeMathLayoutMetrics Measure(OfficeMathExpression expression, OfficeMathRenderOptions? options = null) =>
+        Measure(expression, options, CancellationToken.None);
+
+    /// <summary>Measures an expression with cancellable bounded font-outline work.</summary>
+    public static OfficeMathLayoutMetrics Measure(OfficeMathExpression expression, OfficeMathRenderOptions? options, CancellationToken cancellationToken) {
         if (expression == null) throw new ArgumentNullException(nameof(expression));
         OfficeMathRenderOptions effective = options?.Clone() ?? new OfficeMathRenderOptions();
         effective.Validate();
-        LayoutBox box = new LayoutEngine(effective).Layout(expression, 1D);
+        LayoutBox box = new LayoutEngine(effective, !effective.DisplayStyle, cancellationToken).Layout(expression, 1D);
         return new OfficeMathLayoutMetrics(box.Width, box.Height, box.Baseline);
     }
 
     /// <summary>Creates a tightly sized drawing containing an expression.</summary>
-    public static OfficeDrawing Render(OfficeMathExpression expression, OfficeMathRenderOptions? options = null) {
+    public static OfficeDrawing Render(OfficeMathExpression expression, OfficeMathRenderOptions? options = null) =>
+        Render(expression, options, CancellationToken.None);
+
+    /// <summary>Creates a drawing with cancellable bounded font-outline work.</summary>
+    public static OfficeDrawing Render(OfficeMathExpression expression, OfficeMathRenderOptions? options, CancellationToken cancellationToken) {
         if (expression == null) throw new ArgumentNullException(nameof(expression));
         OfficeMathRenderOptions effective = options?.Clone() ?? new OfficeMathRenderOptions();
         effective.Validate();
-        LayoutBox box = new LayoutEngine(effective).Layout(expression, 1D);
+        LayoutBox box = new LayoutEngine(effective, !effective.DisplayStyle, cancellationToken).Layout(expression, 1D);
         double width = Math.Max(1D, box.Width + effective.Padding * 2D);
         double height = Math.Max(1D, box.Height + effective.Padding * 2D);
         var drawing = new OfficeDrawing(width, height);
@@ -119,12 +67,18 @@ public static class OfficeMathRenderer {
         OfficeMathExpression expression,
         double x,
         double y,
-        OfficeMathRenderOptions? options = null) {
+        OfficeMathRenderOptions? options = null) =>
+        AddToDrawing(drawing, expression, x, y, options, CancellationToken.None);
+
+    /// <summary>Adds an expression with cancellable bounded font-outline work.</summary>
+    public static OfficeMathLayoutMetrics AddToDrawing(
+        OfficeDrawing drawing, OfficeMathExpression expression, double x, double y,
+        OfficeMathRenderOptions? options, CancellationToken cancellationToken) {
         if (drawing == null) throw new ArgumentNullException(nameof(drawing));
         if (expression == null) throw new ArgumentNullException(nameof(expression));
         OfficeMathRenderOptions effective = options?.Clone() ?? new OfficeMathRenderOptions();
         effective.Validate();
-        LayoutBox box = new LayoutEngine(effective).Layout(expression, 1D);
+        LayoutBox box = new LayoutEngine(effective, !effective.DisplayStyle, cancellationToken).Layout(expression, 1D);
         if (x < 0D || y < 0D || x + box.Width > drawing.Width || y + box.Height > drawing.Height) {
             throw new ArgumentOutOfRangeException(nameof(expression), "The mathematical expression must fit inside the drawing bounds.");
         }
@@ -133,6 +87,7 @@ public static class OfficeMathRenderer {
     }
 
     private static void Paint(OfficeDrawing drawing, LayoutBox box, double x, double y, OfficeMathRenderOptions options) {
+        drawing.Fonts.AddRange(options.Fonts);
         for (int index = 0; index < box.Commands.Count; index++) {
             LayoutCommand command = box.Commands[index];
             if (command.Kind == LayoutCommandKind.Text) {
@@ -140,7 +95,9 @@ public static class OfficeMathRenderer {
                 double textWidth = Math.Max(0.01D, command.Width);
                 drawing.AddPositionedText(command.Text!, x + command.X, y + command.Y, textWidth,
                     Math.Max(0.01D, command.Height), options.Font.WithSize(command.FontSize), options.Color,
-                    OfficeTextAlignment.Left, command.Height, textWidth);
+                    OfficeTextAlignment.Left, command.Height, textWidth,
+                    OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal,
+                    0, 1D, command.Baseline - command.FontSize);
             } else if (command.Kind == LayoutCommandKind.Line) {
                 OfficeShape line = OfficeShape.Line(x + command.X, y + command.Y, x + command.X2, y + command.Y2);
                 line.StrokeColor = options.Color;
@@ -156,16 +113,27 @@ public static class OfficeMathRenderer {
         }
     }
 
-    private sealed class LayoutEngine {
+    private sealed partial class LayoutEngine {
         private readonly OfficeMathRenderOptions _options;
         private readonly OfficeTextMeasurer _measurer;
+        private readonly bool _compact;
+        private readonly CancellationToken _cancellationToken;
+        private LayoutEngine? _compactEngine;
 
-        internal LayoutEngine(OfficeMathRenderOptions options) {
+        internal LayoutEngine(OfficeMathRenderOptions options, bool compact, CancellationToken cancellationToken) {
             _options = options;
+            _compact = compact;
+            _cancellationToken = cancellationToken;
             _measurer = OfficeTextMeasurer.Create(options.Font);
         }
 
+        private LayoutBox CompactLayout(OfficeMathExpression expression, double scale) =>
+            (_compact ? this : (_compactEngine ??= new LayoutEngine(_options, true, _cancellationToken))).Layout(expression, scale);
+
+        private double FontSize(double scale) => _options.Font.Size * _options.Dpi / 72D * scale;
+
         internal LayoutBox Layout(OfficeMathExpression expression, double scale) {
+            _cancellationToken.ThrowIfCancellationRequested();
             switch (expression.Kind) {
                 case OfficeMathKind.Text:
                 case OfficeMathKind.Identifier:
@@ -205,16 +173,6 @@ public static class OfficeMathRenderer {
             }
         }
 
-        private LayoutBox Text(string text, double scale) {
-            double fontSize = _options.Font.Size * scale;
-            OfficeTextMeasurementStyle style = _measurer.CreateStyle(_options.Font.WithSize(fontSize), _options.Dpi);
-            double width = Math.Max(fontSize * 0.2D, _measurer.MeasureWidth(text, style));
-            double height = Math.Max(fontSize, _measurer.MeasureLineHeight(style));
-            var box = new LayoutBox(width, height, height * 0.78D);
-            if (!string.IsNullOrEmpty(text)) box.Commands.Add(LayoutCommand.TextCommand(text, 0D, 0D, width, height, fontSize));
-            return box;
-        }
-
         private LayoutBox Row(IReadOnlyList<OfficeMathExpression> children, double scale) {
             if (children.Count == 0) return Text(string.Empty, scale);
             var boxes = new List<LayoutBox>(children.Count);
@@ -223,6 +181,13 @@ public static class OfficeMathRenderer {
             double width = 0D;
             for (int index = 0; index < children.Count; index++) {
                 LayoutBox child = Layout(children[index], scale);
+                double operatorSpace = index > 0 && index + 1 < children.Count
+                    ? BinaryOperatorSpace(children[index], scale) : 0D;
+                if (operatorSpace > 0D) {
+                    var spaced = new LayoutBox(child.Width + operatorSpace * 2D, child.Height, child.Baseline);
+                    spaced.Add(child, operatorSpace, 0D);
+                    child = spaced;
+                }
                 boxes.Add(child);
                 baseline = Math.Max(baseline, child.Baseline);
                 descent = Math.Max(descent, child.Height - child.Baseline);
@@ -237,15 +202,33 @@ public static class OfficeMathRenderer {
             return result;
         }
 
+        private double MathAxis(double scale) =>
+            _options.Fonts.TryResolveFaceForText("x", _options.Font.FamilyName, _options.Font.Style,
+                FontSize(scale), out _)
+                ? Text("x", scale).Baseline / 2D : FontSize(scale) * 0.25D;
+
+        private double BinaryOperatorSpace(OfficeMathExpression expression, double scale) {
+            if (expression.Kind != OfficeMathKind.Operator) return 0D;
+            // Bounded binary/relation spacing; prefix/suffix operators are excluded by Row.
+            return expression.Text switch {
+                "+" or "-" or "−" or "×" or "÷" => FontSize(scale) * 2D / 9D,
+                "=" or "<" or ">" or "≤" or "≥" => FontSize(scale) * 5D / 18D,
+                _ => 0D
+            };
+        }
+
         private LayoutBox Fraction(OfficeMathExpression expression, double scale) {
-            LayoutBox numerator = Layout(expression.Children[0], scale * 0.92D);
-            LayoutBox denominator = Layout(expression.Children[1], scale * 0.92D);
-            double gap = _options.RuleGap * scale;
-            double inset = Math.Max(2D * scale, _options.RuleThickness);
+            double childScale = _compact ? scale * _options.ScriptScale : scale;
+            LayoutBox numerator = CompactLayout(expression.Children[0], childScale);
+            LayoutBox denominator = CompactLayout(expression.Children[1], childScale);
+            double gap = _options.RuleGap * scale * (_compact ? 1D : 2D);
+            double inset = Math.Max(1D * scale, _options.RuleThickness / 2D);
             double width = Math.Max(numerator.Width, denominator.Width) + inset * 2D;
             double ruleY = numerator.Height + gap;
             double denominatorY = ruleY + _options.RuleThickness + gap;
-            var box = new LayoutBox(width, denominatorY + denominator.Height, denominatorY + denominator.Baseline);
+            // A stacked fraction shares the parent math axis, rather than the denominator baseline.
+            double baseline = ruleY + MathAxis(scale);
+            var box = new LayoutBox(width, Math.Max(denominatorY + denominator.Height, baseline), baseline);
             box.Add(numerator, (width - numerator.Width) / 2D, 0D);
             box.Commands.Add(LayoutCommand.Line(inset / 2D, ruleY, width - inset / 2D, ruleY));
             box.Add(denominator, (width - denominator.Width) / 2D, denominatorY);
@@ -258,20 +241,22 @@ public static class OfficeMathRenderer {
             double indexWidth = 0D;
             LayoutBox? index = null;
             if (expression.Children.Count == 2) {
-                index = Layout(expression.Children[1], scale * _options.ScriptScale);
+                index = CompactLayout(expression.Children[1], scale * _options.ScriptScale);
                 indexWidth = index.Width * 0.65D;
             }
             double gap = _options.RuleGap * scale;
             double top = gap + _options.RuleThickness;
             double width = indexWidth + radical.Width + content.Width + gap;
-            double height = Math.Max(radical.Height, top + content.Height);
             double baseline = Math.Max(radical.Baseline, top + content.Baseline);
+            double radicalY = baseline - radical.Baseline;
+            double contentY = baseline - content.Baseline;
+            double height = Math.Max(Math.Max(radicalY + radical.Height, contentY + content.Height), index?.Height ?? 0D);
             var box = new LayoutBox(width, height, baseline);
             if (index != null) box.Add(index, 0D, 0D);
-            box.Add(radical, indexWidth, baseline - radical.Baseline);
+            box.Add(radical, indexWidth, radicalY);
             double contentX = indexWidth + radical.Width;
-            box.Add(content, contentX, top);
-            box.Commands.Add(LayoutCommand.Line(contentX, gap, width, gap));
+            box.Add(content, contentX, contentY);
+            box.Commands.Add(LayoutCommand.Line(contentX, Math.Max(gap, contentY - _options.RuleThickness), width, Math.Max(gap, contentY - _options.RuleThickness)));
             return box;
         }
 
@@ -279,14 +264,14 @@ public static class OfficeMathRenderer {
             LayoutBox basis = Layout(expression.Children[0], scale);
             int subIndex = hasSubscript ? 1 : -1;
             int superIndex = hasSuperscript ? (hasSubscript ? 2 : 1) : -1;
-            LayoutBox? sub = subIndex >= 0 ? Layout(expression.Children[subIndex], scale * _options.ScriptScale) : null;
-            LayoutBox? sup = superIndex >= 0 ? Layout(expression.Children[superIndex], scale * _options.ScriptScale) : null;
+            LayoutBox? sub = subIndex >= 0 ? CompactLayout(expression.Children[subIndex], scale * _options.ScriptScale) : null;
+            LayoutBox? sup = superIndex >= 0 ? CompactLayout(expression.Children[superIndex], scale * _options.ScriptScale) : null;
             double scriptWidth = Math.Max(sub?.Width ?? 0D, sup?.Width ?? 0D);
             double supHeight = sup?.Height ?? 0D;
-            double baseline = Math.Max(basis.Baseline + supHeight * 0.45D, supHeight);
+            double baseline = Math.Max(basis.Baseline, sup == null ? 0D : sup.Baseline + FontSize(scale) * 0.48D);
             double basisY = baseline - basis.Baseline;
             double subY = basisY + basis.Baseline + (basis.Height - basis.Baseline) * 0.35D;
-            double height = Math.Max(basisY + basis.Height, sub == null ? 0D : subY + sub.Height);
+            double height = Math.Max(Math.Max(basisY + basis.Height, supHeight), sub == null ? 0D : subY + sub.Height);
             var box = new LayoutBox(basis.Width + scriptWidth, height, baseline);
             box.Add(basis, 0D, basisY);
             if (sup != null) box.Add(sup, basis.Width, 0D);
@@ -296,13 +281,13 @@ public static class OfficeMathRenderer {
 
         private LayoutBox LeftScripts(OfficeMathExpression expression, double scale) {
             LayoutBox basis = Layout(expression.Children[0], scale);
-            LayoutBox sub = Layout(expression.Children[1], scale * _options.ScriptScale);
-            LayoutBox sup = Layout(expression.Children[2], scale * _options.ScriptScale);
+            LayoutBox sub = CompactLayout(expression.Children[1], scale * _options.ScriptScale);
+            LayoutBox sup = CompactLayout(expression.Children[2], scale * _options.ScriptScale);
             double scriptWidth = Math.Max(sub.Width, sup.Width);
-            double baseline = Math.Max(basis.Baseline + sup.Height * 0.45D, sup.Height);
+            double baseline = Math.Max(basis.Baseline, sup.Baseline + FontSize(scale) * 0.48D);
             double basisY = baseline - basis.Baseline;
             double subY = basisY + basis.Baseline + (basis.Height - basis.Baseline) * 0.35D;
-            double height = Math.Max(basisY + basis.Height, subY + sub.Height);
+            double height = Math.Max(Math.Max(basisY + basis.Height, sup.Height), subY + sub.Height);
             var box = new LayoutBox(scriptWidth + basis.Width, height, baseline);
             box.Add(sup, scriptWidth - sup.Width, 0D);
             box.Add(sub, scriptWidth - sub.Width, subY);
@@ -312,7 +297,7 @@ public static class OfficeMathRenderer {
 
         private LayoutBox Limit(OfficeMathExpression expression, double scale, bool over) {
             LayoutBox basis = Layout(expression.Children[0], scale);
-            LayoutBox limit = Layout(expression.Children[1], scale * _options.ScriptScale);
+            LayoutBox limit = CompactLayout(expression.Children[1], scale * _options.ScriptScale);
             double gap = _options.RuleGap * scale;
             double width = Math.Max(basis.Width, limit.Width);
             double basisY = over ? limit.Height + gap : 0D;
@@ -332,8 +317,8 @@ public static class OfficeMathRenderer {
 
         private LayoutBox Nary(OfficeMathExpression expression, double scale) {
             LayoutBox symbol = Text(expression.Character ?? "∑", scale * 1.35D);
-            LayoutBox? lower = expression.NaryLowerLimit != null ? Layout(expression.NaryLowerLimit, scale * _options.ScriptScale) : null;
-            LayoutBox? upper = expression.NaryUpperLimit != null ? Layout(expression.NaryUpperLimit, scale * _options.ScriptScale) : null;
+            LayoutBox? lower = expression.NaryLowerLimit != null ? CompactLayout(expression.NaryLowerLimit, scale * _options.ScriptScale) : null;
+            LayoutBox? upper = expression.NaryUpperLimit != null ? CompactLayout(expression.NaryUpperLimit, scale * _options.ScriptScale) : null;
             double operatorWidth = Math.Max(symbol.Width, Math.Max(lower?.Width ?? 0D, upper?.Width ?? 0D));
             double upperHeight = upper?.Height ?? 0D;
             double operatorHeight = upperHeight + symbol.Height + (lower?.Height ?? 0D);
@@ -473,16 +458,17 @@ public static class OfficeMathRenderer {
         internal double Width { get; private set; }
         internal double Height { get; private set; }
         internal double FontSize { get; private set; }
+        internal double Baseline { get; private set; }
 
-        internal static LayoutCommand TextCommand(string text, double x, double y, double width, double height, double fontSize) =>
-            new LayoutCommand { Kind = LayoutCommandKind.Text, Text = text, X = x, Y = y, Width = width, Height = height, FontSize = fontSize };
+        internal static LayoutCommand TextCommand(string text, double x, double y, double width, double height, double fontSize, double baseline) =>
+            new LayoutCommand { Kind = LayoutCommandKind.Text, Text = text, X = x, Y = y, Width = width, Height = height, FontSize = fontSize, Baseline = baseline };
         internal static LayoutCommand Line(double x1, double y1, double x2, double y2) =>
             new LayoutCommand { Kind = LayoutCommandKind.Line, X = x1, Y = y1, X2 = x2, Y2 = y2 };
         internal static LayoutCommand Rectangle(double x, double y, double width, double height) =>
             new LayoutCommand { Kind = LayoutCommandKind.Rectangle, X = x, Y = y, Width = width, Height = height };
         internal LayoutCommand Translate(double x, double y) => new LayoutCommand {
             Kind = Kind, Text = Text, X = X + x, Y = Y + y, X2 = X2 + x, Y2 = Y2 + y,
-            Width = Width, Height = Height, FontSize = FontSize
+            Width = Width, Height = Height, FontSize = FontSize, Baseline = Baseline
         };
     }
 

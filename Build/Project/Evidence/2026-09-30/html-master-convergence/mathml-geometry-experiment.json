@@ -1,0 +1,78 @@
+{
+  "recordedUtc": "2026-10-01T23:05:48.396202+00:00",
+  "baseline": "b361ddcbdf37f49014317064b5ae3760b3dd7fdf",
+  "branch": "feature/mathml-geometry",
+  "state": "unfinished experiment; preserved for migration, not qualified for integration or publication",
+  "scope": "Core measurement/paint units, scoped font ink metrics and compact/display sizing; HTML math sizing/alignment; drawing baseline projection into PDF",
+  "sourceFiles": [
+    {
+      "path": "OfficeIMO.Core/Math/OfficeMathRenderer.cs",
+      "bytes": 28888,
+      "sha256": "c248e6d7a538a5e8dbad9ef66269e569b97bc077318f2b836cf510af648f7d33"
+    },
+    {
+      "path": "OfficeIMO.Html.Pdf/HtmlPdfRenderedConverter.cs",
+      "bytes": 72712,
+      "sha256": "417661de5a2f561c2d78517aa619e840d058e2018f7b9291f0233f9387f20368"
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.Math.cs",
+      "bytes": 10810,
+      "sha256": "cfb41d803f99cbdaea4ec9b0db5b6d075168e378d0737b19b2241784cd506832"
+    },
+    {
+      "path": "OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.cs",
+      "bytes": 91136,
+      "sha256": "b0a3310379d9060555f26207f5990f63e52c92e5f032f4ed08da256b961db2d9"
+    },
+    {
+      "path": "OfficeIMO.Core/Math/OfficeMathRenderOptions.cs",
+      "bytes": 3089,
+      "sha256": "e2fdb2544180fe7b9f926aeb10629e077530c5431cb4eb643d448379a9294650"
+    },
+    {
+      "path": "OfficeIMO.Core/Math/OfficeMathRenderer.FontMetrics.cs",
+      "bytes": 2306,
+      "sha256": "45d48b0fa73aebdc3f0a116e01846ddeaf6f92e36e8bf334c2cc20aba9022316"
+    }
+  ],
+  "focusedProof": {
+    "target": "net10.0",
+    "command": "dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj -c Release -f net10.0 --no-restore --filter FullyQualifiedName~HtmlMathMl",
+    "counters": {
+      "total": "24",
+      "executed": "24",
+      "passed": "23",
+      "failed": "1",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "failures": [
+      {
+        "testName": "OfficeIMO.Tests.HtmlRenderingTests.HtmlMathMl_InlineFractionAndRootTrackBrowserBaselineGeometry",
+        "message": "Expected the fraction top to stay close to adjacent text; fraction=(139,0,10.804,43.17), text=(0,7.960000000000001,146,24)."
+      }
+    ],
+    "trxSha256": "5cf1287be1f0430c7fe7a016bbad42d66d3b79a15a5e10ee90e76d3b4e839758",
+    "artifact": "Ignore/HtmlUnknownPageQualification/static-gap-mathml-geometry-work-4ca132c17/tests/html-math-focused-2.trx"
+  },
+  "independentLocalReview": "not run for this experimental candidate",
+  "qualification": "No broad/clean-source/H4/NASA/package/platform/budget qualification of these runtime edits. Existing validated branch remains unchanged.",
+  "retainedProbe": "Ignore/HtmlUnknownPageQualification/static-gap-mathml-geometry-work-4ca132c17",
+  "nextStep": "Reproduce and fix default-font fraction geometry without weakening the existing assertion; add meaningful Core/HTML/PDF regressions, independently inspect final paint, then review and run declared qualification gates.",
+  "notes": [
+    "Candidate-1/2 screenshots precede later operator/centering/radical changes; do not treat them as final-head visual proof.",
+    "Frozen Chromium uses generic math font; explicit synthetic fixture uses FixtureSans. Root without a radical glyph is not an independent radical oracle.",
+    "Point-to-drawing-unit defaults and new public options require compatibility proof and documentation before integration."
+  ]
+}

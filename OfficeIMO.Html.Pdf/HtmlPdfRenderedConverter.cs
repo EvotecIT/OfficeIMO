@@ -1152,12 +1152,15 @@ internal static partial class HtmlPdfRenderedConverter {
                     baseline: text.Baseline,
                     baselineLevel: text.BaselineLevel,
                     baselineScale: text.BaselineScale,
-                    baselineOffset: text.BaselineOffset * scaleY,
+                    // Drawing baseline offsets move ink within its frame; they must not
+                    // translate the frame/clip as a CSS script displacement would.
+                    baselineOffset: 0D,
                     decorationColor: text.DecorationColor,
                     featureSettings: text.FeatureSettings,
                     fontPalette: text.FontPalette);
                 AddText(target, projectedText, webFonts, conversionReport,
-                    visual.X + visual.Width, asSpan: true, logicalTextOwned: false, cancellationToken);
+                    visual.X + visual.Width, asSpan: true, logicalTextOwned: false, cancellationToken,
+                    baselineFontSize: Math.Max(0.001D, (text.Font.Size + text.BaselineOffset) * scaleY));
             }
             FlushShapes();
         }
