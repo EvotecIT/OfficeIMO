@@ -86,26 +86,47 @@ public sealed class WordOdtTableContentTests {
         Assert.Empty(result.ValidateDocument());
     }
 
-    [Fact]
-    public void NestedListDoesNotMoveContinuationOrFollowingParentItem() {
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    public void NestedListInheritsItsLevelStyleAndKeepsParentOrder(bool inCell, bool nestedOrdered) {
         OdtDocument source = OdtDocument.Create();
         OdtList list = source.AddList(true);
         list.AddItem("Parent").AddParagraph("Continuation");
         list.AddItem("Next parent");
         XElement root = source.Package.GetXml("content.xml").Descendants(OdfNamespaces.Text + "list").Single();
+        XElement definition = source.Package.GetXml("content.xml").Descendants(OdfNamespaces.Text + "list-style").Single();
+        definition.Add(new XElement(OdfNamespaces.Text + (nestedOrdered ? "list-level-style-number" : "list-level-style-bullet"),
+            new XAttribute(OdfNamespaces.Text + "level", 2), nestedOrdered
+                ? new XAttribute(OdfNamespaces.Style + "num-format", "1")
+                : new XAttribute(OdfNamespaces.Text + "bullet-char", "•")));
         XElement first = root.Elements(OdfNamespaces.Text + "list-item").First();
         first.Elements(OdfNamespaces.Text + "p").First().AddAfterSelf(new XElement(OdfNamespaces.Text + "list",
-            new XAttribute(OdfNamespaces.Text + "style-name", (string)root.Attribute(OdfNamespaces.Text + "style-name")!),
             new XElement(OdfNamespaces.Text + "list-item", new XElement(OdfNamespaces.Text + "p", "Nested"))));
+        if (inCell) {
+            XElement cell = source.AddTable(1, 1).Cell(0, 0).Element;
+            cell.RemoveNodes();
+            root.Remove();
+            cell.Add(root);
+        }
         source.Package.MarkXmlDirty("content.xml");
         using WordDocument result = source.ToWordDocumentResult(new WordOpenDocumentConversionOptions {
             LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }).Value;
-        Paragraph[] paragraphs = result.OpenXmlDocument.MainDocumentPart!.Document!.Body!.Elements<Paragraph>().ToArray();
+        Paragraph[] paragraphs = result.OpenXmlDocument.MainDocumentPart!.Document!.Body!.Descendants<Paragraph>()
+            .Where(paragraph => paragraph.InnerText.Length > 0).ToArray();
         Assert.Equal(new[] { "Parent", "Nested", "Continuation", "Next parent" }, paragraphs.Select(p => p.InnerText));
         Assert.Equal(1, paragraphs[1].ParagraphProperties!.NumberingProperties!.NumberingLevelReference!.Val!.Value);
         Assert.Null(paragraphs[2].ParagraphProperties?.NumberingProperties);
         Assert.Equal(paragraphs[0].ParagraphProperties!.NumberingProperties!.NumberingId!.Val!.Value,
             paragraphs[3].ParagraphProperties!.NumberingProperties!.NumberingId!.Val!.Value);
+        var numbering = result.OpenXmlDocument.MainDocumentPart.NumberingDefinitionsPart!.Numbering!;
+        int nestedId = paragraphs[1].ParagraphProperties!.NumberingProperties!.NumberingId!.Val!.Value;
+        int abstractId = numbering.Elements<NumberingInstance>().Single(instance => instance.NumberID!.Value == nestedId)
+            .AbstractNumId!.Val!.Value;
+        NumberFormatValues format = numbering.Elements<AbstractNum>().Single(style => style.AbstractNumberId!.Value == abstractId)
+            .Elements<Level>().Single(level => level.LevelIndex!.Value == 1).NumberingFormat!.Val!.Value;
+        Assert.Equal(!nestedOrdered, format == NumberFormatValues.Bullet);
     }
 
     [Fact]
