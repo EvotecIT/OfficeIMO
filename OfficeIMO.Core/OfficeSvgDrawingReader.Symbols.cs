@@ -13,6 +13,8 @@ public static partial class OfficeSvgDrawingReader {
         SvgPaintServerRegistry paintServers,
         SvgElementReferenceRegistry references,
         OfficeTransform inheritedTransform,
+        double parentViewX,
+        double parentViewY,
         int maximumElements,
         double maximumViewportDimension,
         double maximumViewportPixels,
@@ -21,13 +23,20 @@ public static partial class OfficeSvgDrawingReader {
         ref int pathCommands,
         ref bool pathCommandLimitExceeded,
         ref int unsupported) {
-        if (!TryParseNumberList(symbol.Attribute("viewBox")?.Value, out IReadOnlyList<double> viewBox)
+        string? viewBoxText = symbol.Attribute("viewBox")?.Value;
+        bool hasViewBox = viewBoxText is not null;
+        IReadOnlyList<double> viewBox = Array.Empty<double>();
+        if (hasViewBox && (!TryParseNumberList(viewBoxText, out viewBox)
             || viewBox.Count != 4
             || viewBox[2] <= 0D
             || viewBox[3] <= 0D
-            || !IsSupportedSvgViewport(viewBox[2], viewBox[3], maximumViewportDimension, maximumViewportPixels)
-            || !TrySymbolLength(use, symbol, "width", viewBox[2], out double width)
-            || !TrySymbolLength(use, symbol, "height", viewBox[3], out double height)
+            || !IsSupportedSvgViewport(viewBox[2], viewBox[3], maximumViewportDimension, maximumViewportPixels))) {
+            unsupported++;
+            return;
+        }
+
+        if (!TrySymbolLength(use, symbol, "width", hasViewBox ? viewBox[2] : drawing.Width, out double width)
+            || !TrySymbolLength(use, symbol, "height", hasViewBox ? viewBox[3] : drawing.Height, out double height)
             || !TryOptionalUseLength(use, "x", out double x)
             || !TryOptionalUseLength(use, "y", out double y)
             || width <= 0D
@@ -37,13 +46,19 @@ public static partial class OfficeSvgDrawingReader {
             return;
         }
 
-        if (!TryParsePreserveAspectRatio(
+        SvgAspectAlignment alignment = SvgAspectAlignment.None;
+        bool slice = false;
+        if (hasViewBox && !TryParsePreserveAspectRatio(
                 use.Attribute("preserveAspectRatio")?.Value ?? symbol.Attribute("preserveAspectRatio")?.Value,
-                out SvgAspectAlignment alignment,
-                out bool slice)) {
+                out alignment,
+                out slice)) {
             unsupported++;
             return;
         }
+
+        // Without a viewBox, a symbol keeps the viewport's user coordinates: its
+        // width/height clip content but do not scale it or apply aspect alignment.
+        if (!hasViewBox) viewBox = new[] { 0D, 0D, width, height };
 
         var symbolBudget = references.CaptureSurfaceBudget();
         if (!references.TryChargeNestedViewport(width, height, viewBox[2], viewBox[3])) {
@@ -70,7 +85,7 @@ public static partial class OfficeSvgDrawingReader {
         }
         var clipped = new OfficeDrawing(width, height);
         clipped.AddClippedDrawing(viewport, 0D, 0D, OfficeClipPath.Rectangle(width, height));
-        drawing.AddEffectDrawing(clipped, OfficeTransform.Translate(x, y).Then(inheritedTransform));
+        drawing.AddEffectDrawing(clipped, OfficeTransform.Translate(x - parentViewX, y - parentViewY).Then(inheritedTransform));
     }
 
     private static OfficeTransform ResolveViewportTransform(
