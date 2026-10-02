@@ -94,3 +94,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 The complete rows for `OfficeIMO.Excel.Html` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->
+
+## Generic table presentation
+
+Generic HTML tables, including ARIA tables, import as editable worksheet cells with supported spans. Column widths and wrapped row heights reflect the imported content. Authored captions remain below the native grid, preserving a single whole-caption hyperlink; partially linked captions report their limitation. Image hyperlinks report omission because worksheet picture hyperlinks are not supported.
