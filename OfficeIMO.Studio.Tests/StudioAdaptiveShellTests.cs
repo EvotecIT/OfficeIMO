@@ -119,16 +119,20 @@ public sealed class StudioAdaptiveShellTests {
             var window = new MainWindow();
             try {
                 window.Show();
-                var file = NativeMenu.GetMenu(window)!.Items.OfType<NativeMenuItem>().First().Menu!;
+                var rootMenu = NativeMenu.GetMenu(window)!;
+                var file = rootMenu.Items.OfType<NativeMenuItem>().First().Menu!;
                 var save = file.Items.OfType<NativeMenuItem>().Single(item => ReferenceEquals(item.Command, window.ViewModel.Commands["Save"]));
                 Assert.False(save.Command!.CanExecute(null));
                 await window.TabHost.OpenDocumentAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "openpreserve-pdfa1b-text.pdf"));
                 var document = window.ViewModel;
+                Assert.Equal("openpreserve-pdfa1b-text.pdf", window.Title);
                 file = NativeMenu.GetMenu(window)!.Items.OfType<NativeMenuItem>().First().Menu!;
                 Assert.Contains(file.Items.OfType<NativeMenuItem>(), item => ReferenceEquals(item.Command, document.Commands["SaveAs"]) && item.Command.CanExecute(null));
                 await window.TabHost.CloseSelectedTabAsync();
+                Assert.Same(rootMenu, NativeMenu.GetMenu(window));
                 file = NativeMenu.GetMenu(window)!.Items.OfType<NativeMenuItem>().First().Menu!;
                 Assert.DoesNotContain(file.Items.OfType<NativeMenuItem>(), item => ReferenceEquals(item.Command, document.Commands["SaveAs"]));
+                Assert.Equal("OfficeIMO Studio", window.Title);
             } finally { window.Close(); }
             return true;
         }, CancellationToken.None);
