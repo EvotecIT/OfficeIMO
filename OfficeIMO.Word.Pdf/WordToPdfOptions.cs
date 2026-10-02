@@ -234,6 +234,13 @@ namespace OfficeIMO.Word.Pdf {
             return this;
         }
 
+        /// <summary>Creates an independent copy of renderer settings, including PDF options.</summary>
+        public WordToPdfOptions Clone() {
+            var copy = CloneForConversion();
+            copy.PdfOptions = PdfOptions?.Clone();
+            return copy;
+        }
+
         internal WordToPdfOptions CloneForConversion() {
             var clone = new WordToPdfOptions {
                 CancellationToken = CancellationToken,

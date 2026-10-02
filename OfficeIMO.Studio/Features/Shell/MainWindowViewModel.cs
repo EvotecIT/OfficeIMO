@@ -213,7 +213,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _services.DocumentHistory.Cleared += OnDocumentHistoryCleared;
         _services.Recovery.MaintenanceCompleted += OnRecoveryMaintenanceCompleted;
         ConversionWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
-        ConversionWorkbench.Archive.PropertyChanged += OnWorkflowPropertyChanged;
+        ConversionWorkbench.BatchExport.PropertyChanged += OnWorkflowPropertyChanged;
         InvoiceWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         OutputWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         DocumentHealth.PropertyChanged += OnWorkflowPropertyChanged;
@@ -293,7 +293,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     public bool CanStartDocumentTransition => !IsWorkspaceBusy && !IsOpening;
 
-    public bool CanCancelOperation => IsWorkspaceBusy || IsOpening || ConversionWorkbench.IsBusy || ConversionWorkbench.Archive.IsBusy ||
+    public bool CanCancelOperation => IsWorkspaceBusy || IsOpening || ConversionWorkbench.IsBusy || ConversionWorkbench.BatchExport.IsBusy ||
                                       OutputWorkbench.IsBusy || DocumentHealth.IsBusy || ProvenanceWorkbench.IsBusy || OcrWorkbench.IsBusy || OcrSession.IsBusy || InvoiceWorkbench.IsBusy;
 
     internal string? DocumentPath => _workspace?.Path ?? _session?.Path;
@@ -578,7 +578,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _services.Recovery.MaintenanceCompleted -= OnRecoveryMaintenanceCompleted;
         _services.DocumentHistory.Cleared -= OnDocumentHistoryCleared;
         ConversionWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
-        ConversionWorkbench.Archive.PropertyChanged -= OnWorkflowPropertyChanged;
+        ConversionWorkbench.BatchExport.PropertyChanged -= OnWorkflowPropertyChanged;
         InvoiceWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         OutputWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         DocumentHealth.PropertyChanged -= OnWorkflowPropertyChanged;

@@ -4,31 +4,54 @@
 
 The package does not add a second document or PDF engine. Desktop applications, command-line tools, and services can share this workflow contract while keeping their user-interface and hosting code thin.
 
-## Restartable PDF archives
+## Single conversions and file batches
 
-`OfficePdfArchiveWorkflow` discovers DOC, DOCX and TXT files incrementally and converts a bounded number concurrently. Source, output and checkpoint directories must be separate local trees. The runner skips filesystem links and names outputs with the full relative source filename plus `.pdf`, so `report.doc` and `report.docx` cannot collide.
+`OfficeWorkflowRunner` executes the routes in `OfficeWorkflowCatalog.ExecutableRoutes`. Directory and selected-file batches use those same routes, profiles, renderer options, diagnostics and publication policies. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown and RTF. Other targets use the existing PDF-to-DOCX/XLSX/PPTX/HTML routes. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
 
 ```csharp
+using OfficeIMO.Pdf;
 using OfficeIMO.Workflows;
 
-var request = new OfficePdfArchiveRequest {
-    InputDirectory = Path.GetFullPath("Documents"),
-    OutputDirectory = Path.GetFullPath("PDF"),
-    CheckpointDirectory = Path.GetFullPath("PDF-State"),
-    MaximumConcurrency = 2
+var options = new OfficeWorkflowConversionOptions {
+    PlainText = new PdfPlainTextOptions { TabSize = 4 }
 };
-OfficePdfArchiveResult result = await OfficePdfArchiveWorkflow.RunAsync(request,
-    cancellationToken: cancellationToken);
-Console.WriteLine($"Completed {result.Completed}; reused {result.Reused}; failed {result.Failed}");
+var runner = new OfficeWorkflowRunner();
+var single = await runner.RunAsync(new OfficeWorkflowRequest {
+    Operation = OfficeWorkflowOperation.Convert,
+    InputPath = "report.txt", OutputPath = "report.pdf", ConversionOptions = options
+}, cancellationToken: cancellationToken);
+
+OfficeConversionBatchResult batch = await OfficeWorkflow.ConvertDirectory("Documents")
+    .ToDirectory("PDF")
+    .WithConversionOptions(options)
+    .WithConcurrency(2)
+    .RunAsync(runner, cancellationToken: cancellationToken);
+
+// Selected files use the same batch API; the target need not be PDF.
+var html = await OfficeWorkflow.ConvertFiles("report.pdf", "appendix.pdf")
+    .ToDirectory("HTML", ".html")
+    .RunAsync(runner, cancellationToken: cancellationToken);
 ```
 
-Rerunning the same request verifies source and PDF hashes before reusing completed items. Before final publication, the runner flushes the validated staged PDF and records its hash and staging identity. A restart can finish that recorded move or verify a PDF already moved before its final checkpoint was written. Changed completed sources, changed or missing PDFs, and existing PDFs without a bound receipt require operator inspection; the runner never replaces them automatically. Cancellation keeps completed files and pending publications. Use `RetryFailed = true` to retry recorded failures, including a corrected failed source. A checkpoint belongs to its captured conversion settings and engine binaries; changed settings or binaries require a new checkpoint and output directory. Newly added source files are discovered on each run; this is not a frozen inventory of the original directory. A process interruption before the publication intent is written can leave a hidden staging file; it does not authorize replacing a final PDF.
+`Word`, `Excel`, `PowerPoint`, `Html`, `Markdown`, `Rtf` and `PlainText` accept their owning adapter's typed options. A mixed batch selects the settings applicable to each route. Explicit renderer options take precedence over the cross-format `OutputProfile`. For ambiguous source extensions, use `.Via("html-pdf")` or `ConversionRouteId` on the request; TXT otherwise remains literal text. Encrypted Office inputs use `ConversionOptions.SourcePassword`; PDF inputs use `PdfPassword`. Passwords remain runtime inputs and are not stored in checkpoints.
 
-Per-file limits default to 64 MiB input and 256 MiB output. Concurrency must be 1–8. Default selection and text limits allow one million files, 16 million decoded/expanded characters per TXT file, and 10,000 generated TXT pages; the typed request can set these limits. These are resource bounds, not a measured throughput guarantee. A host can supply `publicationGuard` to protect output and checkpoint destinations. `IProgress<OfficePdfArchiveItemResult>` callbacks may arrive concurrently; avoid retaining every item in memory.
+Ordinary batches support the existing `Fail`, `Rename` and `Replace` conflict policies. Directory discovery is incremental and skips filesystem links. Outputs retain the full relative source filename plus the target extension, so `report.doc` and `report.docx` have distinct PDF names. Explicit files retain relative paths when `InputDirectory` supplies their common root; otherwise they use their filenames, and destination collisions follow the selected policy.
 
-Known legacy DOC import loss blocks conversion unless `AllowLegacyImportLoss` explicitly accepts it. Import findings and PDF render findings remain visible in item diagnostics. Checkpoints retain up to 32 non-information diagnostics, with a total count when truncated. TXT uses Unicode BOM detection or strict UTF-8, preserves literal markup and spacing, expands tabs, honors form feeds and wraps long lines. Set `TextEncoding` and `TabSize` when the source requires them. DOCX rendering has the Word/PDF adapter's documented fidelity limits; completion does not establish exact Microsoft Word pagination.
+## Optional checkpoints
 
-Studio exposes the same runner under **Convert → PDF archive**. The CLI uses `officeimo workflow archive --request archive.json`. PowerShell 7.4 or newer exposes it through PSWriteOffice's `Export-OfficePdfArchive`.
+Add `.WithCheckpoint("PDF-State")` to the builder, or set `CheckpointDirectory` on `OfficeConversionBatchRequest`, for restartable execution. Source, output and checkpoint trees must be separate local folders. For selected HTML files and Markdown files with local resources enabled, output and checkpoint folders must also be outside each file's resource tree, including an explicit Markdown `BaseDirectory`. Checkpoint jobs require `Fail`: recorded completed artifacts are immutable and verified by source, rendering-settings, local-resource and output hashes before reuse.
+
+Before publication, the runner flushes validated staged output and records its hash and staging identity. Restart can finish that recorded move or verify an output moved before the final receipt was written. Changed completed sources or settings, altered/missing outputs and outputs without a bound receipt fail the item for inspection. `RetryFailed` permits retrying recorded failures, including corrected failed inputs. Completed files and recorded pending publications survive cancellation. An interruption before publication intent is recorded can leave a hidden staging file; inspect it before removing it.
+
+Checkpoint reuse verifies a **recorded artifact**; it does not rerender it or promise that a newer renderer would produce identical bytes. Compatible engine updates do not invalidate completed receipts. The checkpoint schema, host, source/output roots, target and per-item rendering inputs define compatibility. Execution concurrency, selection and byte/file budgets may change; the new budgets still apply when verifying artifacts. New source files are discovered on each run.
+
+HTML and enabled local Markdown resources are conservatively fingerprinted within the source root, with at most 256 regular files and an aggregate input-byte budget. Every filename is included because Markdown identifies image formats from their bytes. Resource trees cannot contain links; checkpointed Markdown also requires `RestrictLocalImagesToBaseDirectory`. A changed CSS, image or font invalidates reuse. Checkpoints exclude remote resources and runtime resource, text-shaping or cryptography callbacks because their output cannot be identified from captured settings; use an ordinary batch or the native adapter for those cases. Workflow HTML resource resolution remains scoped to the source; custom HTML resolvers belong to the native adapter.
+
+Per-document defaults are 64 MiB input and 256 MiB output; concurrency accepts 1–32. `MaximumFiles` bounds discovered files, including skipped files, and defaults to one million. Discovery beyond this bound stops the run while preserving completed output. These are configurable resource bounds, not throughput guarantees. TXT defaults to strict BOM-aware decoding, literal markup, tab expansion and bounded wrapping; `PlainText` carries its encoding and layout limits. Legacy DOC import loss blocks output unless `LegacyDocLossPolicy = OfficeConversionLossPolicy.Allow` accepts reported reductions.
+
+`IProgress<OfficeConversionBatchItemResult>` callbacks can arrive concurrently; consume or stream them without retaining a whole inventory. The result contains bounded counts. Checkpoints retain up to 32 non-information diagnostics and report truncation. A host can supply `publicationGuard` to protect output and checkpoint destinations. Conversion completion retains each adapter's fidelity limits and does not prove exact Microsoft Office pagination.
+
+Studio exposes **Convert → Batch PDF export**. The CLI uses `officeimo workflow batch`; PSWriteOffice uses `Export-OfficeDocumentPdf -InputDirectory ... -OutputDirectory ...` or selected file pipelines on PowerShell 7.4 or newer.
 
 ## Email evidence and conversation dossiers
 
