@@ -26,7 +26,7 @@ internal sealed class IWorkTableTextStyleReader {
         IWorkParagraphStyle? ReadRole(int field, bool applicable) {
             if (!applicable || !message.HasField(field)) return null;
             source.CancellationToken.ThrowIfCancellationRequested();
-            IWorkArchiveRecord? record = references.ReadOne(model, message, field);
+            IWorkArchiveRecord? record = references.ReadOne(model, message, field, allowedType: static type => type == 2022);
             bool complete = message.FieldCount(field) == 1
                 && !message.HasUnexpectedWireKind(field, IWorkWireKind.Bytes)
                 && record?.MessageType == 2022;

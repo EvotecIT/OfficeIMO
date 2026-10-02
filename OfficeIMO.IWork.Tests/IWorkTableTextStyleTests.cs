@@ -166,7 +166,13 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(projection.Diagnostics, d => d.Code == "IWORK_TABLE_TEXT_STYLE_UNSUPPORTED"
             && d.LossKind == global::OfficeIMO.OfficeConversionLossKind.Unassessed);
         Assert.DoesNotContain(projection.Diagnostics, d => d.Code == "IWORK_TABLE_CELL_FILL_UNSUPPORTED" || d.Code == "IWORK_TABLE_CELL_LAYOUT_UNSUPPORTED");
-
+        if (defect == "wrong-type") {
+            var issue = Assert.Single(projection.SourceReferenceIssues);
+            Assert.Equal(IWorkSourceReferenceIssueKind.UnexpectedTargetType, issue.Kind);
+            Assert.Equal(13ul, issue.Owner.RecordIdentifier);
+            Assert.Equal("3[1]/4", issue.FieldPath);
+            Assert.Equal(30ul, issue.TargetIdentifier);
+        }
     }
 
     [Theory]

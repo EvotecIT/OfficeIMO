@@ -1,13 +1,15 @@
 namespace OfficeIMO.IWork;
 
-/// <summary>Why a declared reference in an assessed content path was not resolved.</summary>
+/// <summary>Why a declared reference was not resolved for an assessed content path.</summary>
 public enum IWorkSourceReferenceIssueKind {
     /// <summary>The reference identifies an object that is absent from the source index.</summary>
     MissingTarget,
     /// <summary>The declared value is not a valid, unambiguous native object reference.</summary>
     MalformedReference,
     /// <summary>The reader rejected the containing reference set, so this otherwise readable reference was not selected.</summary>
-    RejectedReferenceSet
+    RejectedReferenceSet,
+    /// <summary>The referenced object exists, but its native message type is not supported by the selected content path.</summary>
+    UnexpectedTargetType
 }
 
 /// <summary>One unresolved declared source-field occurrence, reported once even when its owner is selected repeatedly.</summary>

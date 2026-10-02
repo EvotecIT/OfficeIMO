@@ -22,7 +22,7 @@ internal sealed class IWorkTableCellStyleCatalog(IWorkSourceDocument source, IWo
             return null;
         }
         string path = IWorkTableCatalogIndex.EntryPath(entry.Position) + "/4";
-        IWorkArchiveRecord? style = references.ReadOne(_list!, entry.Message, 4, path);
+        IWorkArchiveRecord? style = references.ReadOne(_list!, entry.Message, 4, path, static type => type == 6004);
         bool complete = entry.Message.TotalFieldCount == entry.Message.FieldCount(1)
                 + entry.Message.FieldCount(2) + entry.Message.FieldCount(4)
             && entry.Message.FieldCount(2) <= 1
@@ -121,7 +121,7 @@ internal sealed class IWorkTableCellStyleCatalog(IWorkSourceDocument source, IWo
         if (!_catalogComplete) complete = false;
         if (!_entries.TryGetValue(key, out var entry)) { complete = false; return null; }
         string path = IWorkTableCatalogIndex.EntryPath(entry.Position) + "/4";
-        IWorkArchiveRecord? record = references.ReadOne(_list!, entry.Message, 4, path);
+        IWorkArchiveRecord? record = references.ReadOne(_list!, entry.Message, 4, path, static type => type == 2022);
         if (entry.Message.TotalFieldCount != entry.Message.FieldCount(1)
                 + entry.Message.FieldCount(2) + entry.Message.FieldCount(4)
             || entry.Message.FieldCount(2) > 1

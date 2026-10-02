@@ -43,7 +43,8 @@ public sealed class IWorkWorkflowTests {
         int referenceIssues = int.Parse(evidence.Facts["sourceReferenceIssueCount"]);
         Assert.Equal(referenceIssues, int.Parse(evidence.Facts["sourceMissingReferenceTargetCount"])
             + int.Parse(evidence.Facts["sourceMalformedReferenceCount"])
-            + int.Parse(evidence.Facts["sourceRejectedReferenceSetCount"]));
+            + int.Parse(evidence.Facts["sourceRejectedReferenceSetCount"])
+            + int.Parse(evidence.Facts["sourceUnexpectedReferenceTargetTypeCount"]));
         IWorkSourceDocument coreSource = IWorkSourceDocument.Open(files.Input);
         int declarationIssues = coreSource.Kind switch {
             IWorkDocumentKind.Pages => coreSource.ReadPages().SourceDeclarationIssues.Count,
@@ -62,6 +63,51 @@ public sealed class IWorkWorkflowTests {
         Assert.Contains(evidence.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
         Assert.Throws<InvalidOperationException>(evidence.RequireNoLoss);
         Assert.Equal(new FileInfo(files.Input).Length, result.InputBytes);
+    }
+
+    [Fact]
+    public async Task Wrong_type_style_evidence_survives_conversion_disposal_and_destination_reopen() {
+        using var files = new Files("pages", "docx");
+        // A paragraph body selects a character attribute whose target is a list style.
+        byte[] storage = Join(B(3, System.Text.Encoding.UTF8.GetBytes("Value")),
+            B(8, B(1, Join(V(1, 0), R(2, 3)))));
+        byte[] records = Join(A(1, 10000, R(4, 2)), A(2, 2001, storage), A(3, 2023, []));
+        byte[] literal = records.Length <= 60 ? [(byte)((records.Length - 1) << 2)]
+            : [(byte)(60 << 2), (byte)(records.Length - 1)];
+        byte[] block = Join(U((ulong)records.Length), literal, records);
+        using (var zip = new System.IO.Compression.ZipArchive(File.Create(files.Input), System.IO.Compression.ZipArchiveMode.Create)) {
+            using var entry = zip.CreateEntry("Index/Document.iwa").Open();
+            entry.Write(Join([0, (byte)block.Length, (byte)(block.Length >> 8), 0], block));
+        }
+        var runner = IWorkWorkflow.CreateRunner(conversionOptions: new IWorkConversionOptions {
+            AllowPartialEditableReconstruction = true
+        });
+        OfficeWorkflowResult result = await runner.RunAsync(files.Request("pages-docx"));
+        Assert.True(result.Succeeded, result.Summary);
+        var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
+        Assert.Equal("1", evidence.Facts["sourceReferenceIssueCount"]);
+        Assert.Equal("1", evidence.Facts["sourceUnexpectedReferenceTargetTypeCount"]);
+        Assert.Equal("0", evidence.Facts["sourceMissingReferenceTargetCount"]);
+        Assert.Equal("0", evidence.Facts["sourceMalformedReferenceCount"]);
+        Assert.Equal("0", evidence.Facts["sourceRejectedReferenceSetCount"]);
+        Assert.Contains(evidence.FidelityDiagnostics, d => d.Code == "IWORK_SOURCE_REFERENCES_UNRESOLVED"
+            && d.LossKind == OfficeConversionLossKind.Unassessed);
+        using var reopened = OfficeIMO.Word.WordDocument.Load(files.Output);
+        Assert.Contains(reopened.Paragraphs, paragraph => paragraph.Text == "Value");
+
+        static byte[] Join(params byte[][] values) => values.SelectMany(value => value).ToArray();
+        static byte[] U(ulong value) {
+            var bytes = new List<byte>();
+            do { byte next = (byte)(value & 127); value >>= 7; bytes.Add(value == 0 ? next : (byte)(next | 128)); } while (value != 0);
+            return bytes.ToArray();
+        }
+        static byte[] V(int field, ulong value) => Join(U((ulong)(field << 3)), U(value));
+        static byte[] B(int field, byte[] value) => Join(U((ulong)((field << 3) | 2)), U((ulong)value.Length), value);
+        static byte[] R(int field, ulong target) => B(field, V(1, target));
+        static byte[] A(ulong id, ulong type, byte[] value) {
+            byte[] info = Join(V(1, id), B(2, Join(V(1, type), V(3, (ulong)value.Length))));
+            return Join(U((ulong)info.Length), info, value);
+        }
     }
 
     [Fact]

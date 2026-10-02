@@ -12,8 +12,12 @@ internal sealed class IWorkSourceReferenceIssueCollector(IWorkSourceDocument sou
     internal IWorkSourceDeclarationIssueCollector Declarations { get; } = new(source);
 
     internal IWorkArchiveRecord? ReadOne(IWorkArchiveRecord owner, IWorkWireMessage message,
-        int field, string? path = null) {
+        int field, string? path = null, Func<uint, bool>? allowedType = null) {
         IWorkArchiveRecord? result = source.Index.Dereference(message, field);
+        if (result != null && allowedType != null && !allowedType(result.MessageType)) {
+            Record(owner, message, field, path, rejectedSet: false, allowedType);
+            return null;
+        }
         if (result == null && message.HasField(field))
             Record(owner, message, field, path, rejectedSet: message.FieldCount(field) > 1);
         return result;
@@ -32,7 +36,7 @@ internal sealed class IWorkSourceReferenceIssueCollector(IWorkSourceDocument sou
     }
 
     private void Record(IWorkArchiveRecord owner, IWorkWireMessage message, int field,
-        string? path, bool rejectedSet) {
+        string? path, bool rejectedSet, Func<uint, bool>? allowedType = null) {
         string fieldPath = path ?? field.ToString(CultureInfo.InvariantCulture);
         var fieldKey = (owner.Identifier, fieldPath);
         // Shared text/template archives may be selected more than once. Their physical
@@ -62,9 +66,12 @@ internal sealed class IWorkSourceReferenceIssueCollector(IWorkSourceDocument sou
                     malformed = true;
                 }
             }
+            IWorkArchiveRecord? target = identifier is { } id ? source.Index.Find(id) : null;
             IWorkSourceReferenceIssueKind? kind = malformed ? IWorkSourceReferenceIssueKind.MalformedReference
                 : rejectedSet ? IWorkSourceReferenceIssueKind.RejectedReferenceSet
-                : identifier is { } id && source.Index.Find(id) == null ? IWorkSourceReferenceIssueKind.MissingTarget
+                : identifier.HasValue && target == null ? IWorkSourceReferenceIssueKind.MissingTarget
+                : target != null && allowedType != null && !allowedType(target.MessageType)
+                    ? IWorkSourceReferenceIssueKind.UnexpectedTargetType
                 : null;
             if (kind is { } issueKind)
                 _issues.Add(new IWorkSourceReferenceIssue(identity, fieldPath, position, identifier, issueKind));

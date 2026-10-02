@@ -72,6 +72,7 @@ public static class IWorkWorkflow {
             ["sourceMissingReferenceTargetCount"] = report.SourceReferenceIssues.Count(issue => issue.Kind == IWorkSourceReferenceIssueKind.MissingTarget).ToString(CultureInfo.InvariantCulture),
             ["sourceMalformedReferenceCount"] = report.SourceReferenceIssues.Count(issue => issue.Kind == IWorkSourceReferenceIssueKind.MalformedReference).ToString(CultureInfo.InvariantCulture),
             ["sourceRejectedReferenceSetCount"] = report.SourceReferenceIssues.Count(issue => issue.Kind == IWorkSourceReferenceIssueKind.RejectedReferenceSet).ToString(CultureInfo.InvariantCulture),
+            ["sourceUnexpectedReferenceTargetTypeCount"] = report.SourceReferenceIssues.Count(issue => issue.Kind == IWorkSourceReferenceIssueKind.UnexpectedTargetType).ToString(CultureInfo.InvariantCulture),
             ["sourceFormulaCellCount"] = report.FormulaSummary.TotalCount.ToString(CultureInfo.InvariantCulture),
             ["sourceCompleteFormulaExpressionCount"] = report.FormulaSummary.CompleteExpressionCount.ToString(CultureInfo.InvariantCulture),
             ["sourceIncompleteFormulaExpressionCount"] = report.FormulaSummary.IncompleteExpressionCount.ToString(CultureInfo.InvariantCulture),

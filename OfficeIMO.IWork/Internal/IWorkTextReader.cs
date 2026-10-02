@@ -26,13 +26,13 @@ internal static partial class IWorkTextReader {
             }
         }
         IReadOnlyList<AttributeBoundary> paragraphStyles = ReadObjectTable(message, 5, text.Length,
-            storage, projectionBudget, references, ref complete);
+            storage, projectionBudget, references, ref complete, static type => type == ParagraphStyleArchive);
         IReadOnlyList<AttributeBoundary> listStyles = ReadObjectTable(message, 7, text.Length,
-            storage, projectionBudget, references, ref complete);
+            storage, projectionBudget, references, ref complete, static type => type == ListStyleArchive);
         IReadOnlyList<AttributeBoundary> characterStyles = ReadObjectTable(message, 8, text.Length,
-            storage, projectionBudget, references, ref complete);
+            storage, projectionBudget, references, ref complete, static type => type is CharacterStyleArchive or ParagraphStyleArchive);
         IReadOnlyList<AttributeBoundary> hyperlinks = ReadObjectTable(message, 11, text.Length,
-            storage, projectionBudget, references, ref complete);
+            storage, projectionBudget, references, ref complete, static type => type == HyperlinkArchive);
         var paragraphStyleCache = new Dictionary<ulong, Cached<IWorkParagraphStyle>>();
         var listStyleCache = new Dictionary<(ulong Identifier, double? LeftIndentPoints),
             Cached<(int Level, string? Label)>>();

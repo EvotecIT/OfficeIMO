@@ -3,7 +3,7 @@ namespace OfficeIMO.IWork.Internal;
 internal static partial class IWorkTextReader {
     private static IReadOnlyList<AttributeBoundary> ReadObjectTable(IWorkWireMessage storage,
         int field, int textLength, IWorkArchiveRecord owner, IWorkProjectionBudget projectionBudget,
-        IWorkSourceReferenceIssueCollector references, ref bool complete) {
+        IWorkSourceReferenceIssueCollector references, ref bool complete, Func<uint, bool>? allowedType = null) {
         if (!storage.HasField(field)) return Array.Empty<AttributeBoundary>();
         string tablePath = field.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (storage.HasUnexpectedWireKind(field, IWorkWireKind.Bytes)) {
@@ -70,7 +70,7 @@ internal static partial class IWorkTextReader {
                 // including declarations at the end of the text. Preserve physical indexes.
                 references.ReadOne(owner, entry, 2,
                     field.ToString(System.Globalization.CultureInfo.InvariantCulture) + "/1["
-                    + entryIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]/2");
+                    + entryIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]/2", allowedType);
             }
             bool malformedReference = false;
             IWorkWireMessage? reference = hasObject

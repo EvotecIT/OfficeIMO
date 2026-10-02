@@ -25,7 +25,7 @@ internal sealed class IWorkTableFillStyleReader {
         IWorkCellFill? ReadRole(int field, bool applicable) {
             if (!applicable || !message.HasField(field)) return null;
             source.CancellationToken.ThrowIfCancellationRequested();
-            IWorkArchiveRecord? record = references.ReadOne(model, message, field);
+            IWorkArchiveRecord? record = references.ReadOne(model, message, field, allowedType: static type => type == 6004);
             bool complete = message.FieldCount(field) == 1
                 && !message.HasUnexpectedWireKind(field, IWorkWireKind.Bytes) && record?.MessageType == 6004;
             IWorkCellFill? fill = null;

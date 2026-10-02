@@ -8,7 +8,7 @@ internal static partial class IWorkTableReader {
         fillDefaultsSupported = true;
         bandedBodyFill = null;
         if (!message.HasField(3)) return null;
-        IWorkArchiveRecord? style = references.ReadOne(model, message, 3);
+        IWorkArchiveRecord? style = references.ReadOne(model, message, 3, allowedType: static type => type == 6003);
         bool complete = message.FieldCount(3) == 1
             && !message.HasUnexpectedWireKind(3, IWorkWireKind.Bytes) && style?.MessageType == 6003;
         bool? autoResizeRows = null;

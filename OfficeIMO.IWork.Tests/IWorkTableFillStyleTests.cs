@@ -82,6 +82,13 @@ public sealed partial class IWorkBoundaryTests {
             Assert.True(table.GetFill(2, 2)!.IsNone); // Supported explicit selection survives rejected defaults.
         }
         if (defect != "missing-band-fill") Assert.NotEmpty(projection.SourceDeclarationIssues.Concat<object>(projection.SourceReferenceIssues));
+        if (defect == "wrong-role-type") {
+            var issue = Assert.Single(projection.SourceReferenceIssues);
+            Assert.Equal(IWorkSourceReferenceIssueKind.UnexpectedTargetType, issue.Kind);
+            Assert.Equal(11ul, issue.Owner.RecordIdentifier);
+            Assert.Equal("18", issue.FieldPath);
+            Assert.Equal(41ul, issue.TargetIdentifier);
+        }
     }
 
     [Fact]
