@@ -16,6 +16,25 @@ namespace OfficeIMO.Tests {
     public partial class Word {
 
         [Fact]
+        public void WordImage_EmbedsOpaqueVp8AsPngAndReopens() {
+            const string vp8 = "UklGRjwAAABXRUJQVlA4IDAAAADQAQCdASoQABAAAUAmJaACdLoB+AADsAD+8ut//NgVzXPv9//S4P0uD9Lg/9KQAAA=";
+            using var document = WordDocument.Create();
+            using (var image = new MemoryStream(Convert.FromBase64String(vp8))) {
+                document.AddParagraph().AddImage(image, "sample.webp", 16, 16, description: "Red sample");
+            }
+
+            using var packageStream = new MemoryStream(document.ToBytes());
+            using WordprocessingDocument package = WordprocessingDocument.Open(packageStream, false);
+            ImagePart imagePart = Assert.Single(package.MainDocumentPart!.ImageParts);
+            Assert.Equal("image/png", imagePart.ContentType);
+            using var embedded = new MemoryStream();
+            imagePart.GetStream().CopyTo(embedded);
+            Assert.True(OfficePngReader.TryDecode(embedded.ToArray(), out var decoded));
+            Assert.Equal(16, decoded!.Width);
+            Assert.Equal(16, decoded.Height);
+        }
+
+        [Fact]
         public void Test_AddSvgImage_UsesSharedImageFormatForSvgBlipExtension() {
             string filePath = Path.Combine(_directoryWithFiles, "AddSvgImageUsesSharedFormat.docx");
             string imagePath = Path.Combine(_directoryWithImages, "Sample.svg");

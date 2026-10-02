@@ -28,6 +28,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int? spacingBeforeTwips = null;
             int? spacingAfterTwips = null;
             int? lineSpacingTwips = null;
+            bool lineSpacingIsMultiple = false;
             int? leftIndentTwips = null;
             int? rightIndentTwips = null;
             int? firstLineIndentTwips = null;
@@ -67,7 +68,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         alignment = ReadSupportedParagraphAlignment(justification);
                         break;
                     case SpacingBetweenLines spacing:
-                        ReadSupportedParagraphSpacing(spacing, out spacingBeforeTwips, out spacingAfterTwips, out lineSpacingTwips);
+                        ReadSupportedParagraphSpacing(spacing, out spacingBeforeTwips, out spacingAfterTwips, out lineSpacingTwips, out lineSpacingIsMultiple);
                         break;
                     case Indentation indentation:
                         ReadSupportedParagraphIndentation(indentation, out leftIndentTwips, out rightIndentTwips, out firstLineIndentTwips);
@@ -197,7 +198,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 null,
                 paragraphShading,
                 paragraphBorders,
-                outlineLevel: paragraphOutlineLevel);
+                outlineLevel: paragraphOutlineLevel,
+                lineSpacingIsMultiple: lineSpacingIsMultiple);
         }
 
         private static byte ReadSupportedVerticalCharacterAlignment(TextAlignment textAlignment) {
@@ -512,7 +514,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             SpacingBetweenLines spacing,
             out int? spacingBeforeTwips,
             out int? spacingAfterTwips,
-            out int? lineSpacingTwips) {
+            out int? lineSpacingTwips,
+            out bool lineSpacingIsMultiple) {
             if ((spacing.BeforeAutoSpacing?.Value ?? false) || (spacing.AfterAutoSpacing?.Value ?? false)) {
                 throw new NotSupportedException("Native DOC saving currently supports paragraph spacing only as explicit twip values, not automatic spacing.");
             }
@@ -521,14 +524,22 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException("Native DOC saving currently supports paragraph before/after spacing only as twip values, not line-count spacing.");
             }
 
-            LineSpacingRuleValues? lineRule = spacing.LineRule?.Value;
-            if (lineRule == LineSpacingRuleValues.Auto) {
-                throw new NotSupportedException("Native DOC saving currently supports exact or at-least paragraph line spacing, not automatic multiplier spacing.");
-            }
-
             spacingBeforeTwips = ReadOptionalInt32Twips(spacing.Before?.Value, "paragraph spacing before");
             spacingAfterTwips = ReadOptionalInt32Twips(spacing.After?.Value, "paragraph spacing after");
             lineSpacingTwips = ReadOptionalInt32Twips(spacing.Line?.Value, "paragraph line spacing");
+            LineSpacingRuleValues lineRule = spacing.LineRule?.Value ?? LineSpacingRuleValues.Auto;
+            lineSpacingIsMultiple = lineSpacingTwips.HasValue && lineRule == LineSpacingRuleValues.Auto;
+            if (lineSpacingTwips.HasValue) {
+                if (lineSpacingTwips < 0 || lineSpacingTwips > 31680)
+                    throw new NotSupportedException("Native DOC line spacing must be between 0 and 31680.");
+                if (lineRule == LineSpacingRuleValues.Exact) {
+                    // DOC represents exact spacing with a negative LSPD value;
+                    // zero would instead mean at-least single spacing.
+                    if (lineSpacingTwips.Value == 0)
+                        throw new NotSupportedException("Native DOC saving cannot represent exact zero line spacing. Use a positive exact spacing value.");
+                    lineSpacingTwips = -lineSpacingTwips.Value;
+                }
+            }
         }
 
         private static void ReadSupportedParagraphIndentation(

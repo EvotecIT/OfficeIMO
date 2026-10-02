@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>
-/// Describes a file embedded in a generated PDF and optionally associated with the document catalog.
+/// Describes a file embedded in a generated PDF and associated with the document catalog or a canvas structure element.
 /// </summary>
 public sealed class PdfEmbeddedFile {
     private readonly byte[] _data;
@@ -85,6 +85,15 @@ public sealed class PdfEmbeddedFile {
     internal PdfEmbeddedFile Clone() {
         return new PdfEmbeddedFile(FileName, _data, MimeType, Relationship, Description, CreationDate, ModificationDate);
     }
+
+    internal bool HasSameDescriptionAndData(PdfEmbeddedFile other) =>
+        string.Equals(FileName, other.FileName, StringComparison.Ordinal)
+        && string.Equals(MimeType, other.MimeType, StringComparison.Ordinal)
+        && string.Equals(Description, other.Description, StringComparison.Ordinal)
+        && Relationship == other.Relationship
+        && CreationDate == other.CreationDate
+        && ModificationDate == other.ModificationDate
+        && _data.SequenceEqual(other._data);
 
     private static void ValidateFileName(string? value, string paramName) {
         Guard.NotNullOrWhiteSpace(value, paramName);

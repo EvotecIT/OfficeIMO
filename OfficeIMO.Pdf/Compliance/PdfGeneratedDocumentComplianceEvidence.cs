@@ -24,6 +24,8 @@ internal sealed class PdfGeneratedDocumentComplianceEvidence {
         OptionalContentLayerCount = optionalContentLayerCount;
     }
 
+    public int FormulasMissingAlternativeText { get; set; }
+
     public System.Collections.Generic.IReadOnlyList<PdfStandardFont> StandardFonts { get; }
 
     public System.Collections.Generic.IReadOnlyList<PdfGeneratedFontComplianceEvidence> FontUsages { get; }
@@ -33,6 +35,10 @@ internal sealed class PdfGeneratedDocumentComplianceEvidence {
     public System.Collections.Generic.IReadOnlyList<PdfGeneratedDrawingAccessibilityEvidence> Drawings { get; }
 
     public System.Collections.Generic.IReadOnlyList<PdfGeneratedFormAccessibilityEvidence> Forms { get; }
+
+    public PdfFileVersion? EffectiveFileVersion { get; init; }
+
+    public System.Collections.Generic.IReadOnlyList<PdfEmbeddedFile> StructureAssociatedFiles { get; init; } = System.Array.Empty<PdfEmbeddedFile>();
 
     public int PageCount { get; }
 

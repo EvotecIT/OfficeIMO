@@ -412,6 +412,10 @@ namespace OfficeIMO.Word.Html {
             if (options.MaxImageBytes.HasValue && length > options.MaxImageBytes.Value) {
                 throw new HtmlResourceLimitException($"Resource length {length} bytes exceeds limit {options.MaxImageBytes.Value} bytes.");
             }
+            if (options.MaxDecodedImagePixels.HasValue) {
+                using var imageStream = File.OpenRead(path);
+                EnsureDecodedImageWithinLimits(imageStream, options);
+            }
             ReserveImageBytes(length, options);
             return length;
         }
@@ -472,6 +476,7 @@ namespace OfficeIMO.Word.Html {
                         AddDiagnostic(options, "ImageResourceTooLarge", "Image data URI exceeded the configured byte limit and was replaced with alt text when available.", "data:image");
                         return false;
                     }
+                    using (var inspectionStream = new MemoryStream(bytes, writable: false)) EnsureDecodedImageWithinLimits(inspectionStream, options);
                     if (!TryReserveImageBytes(bytes.LongLength, options, "data:image")) {
                         return false;
                     }
@@ -991,6 +996,7 @@ namespace OfficeIMO.Word.Html {
         private byte[] FetchBytes(Uri uri, HtmlToWordOptions options) {
             string cacheKey = uri.AbsoluteUri;
             if (_remoteImageBytesCache.TryGetValue(cacheKey, out byte[]? cachedBytes)) {
+                using (var imageStream = new MemoryStream(cachedBytes, writable: false)) EnsureDecodedImageWithinLimits(imageStream, options);
                 ReserveImageBytes(cachedBytes.LongLength, options);
                 return cachedBytes;
             }

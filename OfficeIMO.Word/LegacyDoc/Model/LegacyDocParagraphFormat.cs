@@ -59,12 +59,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocParagraphShading? paragraphShading = null,
             LegacyDocParagraphBorders? paragraphBorders = null,
             byte? outlineLevel = null,
-            LegacyDocCharacterFormat? paragraphMarkFormat = null) {
+            LegacyDocCharacterFormat? paragraphMarkFormat = null,
+            bool lineSpacingIsMultiple = false) {
             Alignment = alignment;
             StyleIndex = styleIndex;
             SpacingBeforeTwips = spacingBeforeTwips;
             SpacingAfterTwips = spacingAfterTwips;
             LineSpacingTwips = lineSpacingTwips;
+            LineSpacingIsMultiple = lineSpacingIsMultiple;
             LeftIndentTwips = leftIndentTwips;
             RightIndentTwips = rightIndentTwips;
             FirstLineIndentTwips = firstLineIndentTwips;
@@ -176,6 +178,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal int? SpacingAfterTwips { get; }
 
         internal int? LineSpacingTwips { get; }
+
+        /// <summary>When true, LineSpacingTwips stores 240ths of a line rather than twips.</summary>
+        internal bool LineSpacingIsMultiple { get; }
 
         internal int? LeftIndentTwips { get; }
 
@@ -352,6 +357,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && SpacingBeforeTwips == other.SpacingBeforeTwips
                 && SpacingAfterTwips == other.SpacingAfterTwips
                 && LineSpacingTwips == other.LineSpacingTwips
+                && LineSpacingIsMultiple == other.LineSpacingIsMultiple
                 && LeftIndentTwips == other.LeftIndentTwips
                 && RightIndentTwips == other.RightIndentTwips
                 && FirstLineIndentTwips == other.FirstLineIndentTwips
@@ -419,6 +425,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + SpacingBeforeTwips.GetHashCode();
             hash = (hash * 31) + SpacingAfterTwips.GetHashCode();
             hash = (hash * 31) + LineSpacingTwips.GetHashCode();
+            hash = (hash * 31) + LineSpacingIsMultiple.GetHashCode();
             hash = (hash * 31) + LeftIndentTwips.GetHashCode();
             hash = (hash * 31) + RightIndentTwips.GetHashCode();
             hash = (hash * 31) + FirstLineIndentTwips.GetHashCode();
@@ -572,7 +579,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 ParagraphShading,
                 ParagraphBorders,
                 OutlineLevel,
-                paragraphMarkFormat);
+                paragraphMarkFormat,
+                lineSpacingIsMultiple: LineSpacingIsMultiple);
         }
 
         private static bool TableCellWidthsEqual(IReadOnlyList<int> first, IReadOnlyList<int> second) {

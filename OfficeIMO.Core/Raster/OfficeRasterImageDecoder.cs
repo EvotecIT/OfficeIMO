@@ -12,7 +12,7 @@ namespace OfficeIMO.Drawing;
 /// to pixels. Normalize color-managed source images before decoding when matching a managed
 /// display or print pipeline is required.
 /// </remarks>
-public static class OfficeRasterImageDecoder {
+public static partial class OfficeRasterImageDecoder {
     /// <summary>
     /// Human-readable summary of raster formats currently decoded by the managed renderer.
     /// </summary>
@@ -149,17 +149,22 @@ public static class OfficeRasterImageDecoder {
 
         if (format == OfficeImageFormat.Tiff) {
             bool decoded = OfficeTiffCodec.TryDecodePage(bytes, effective.FrameIndex, effective, out image);
+            bool callerDecoded = false;
+            if (!decoded) decoded = callerDecoded = TryDecodeWithOptionalCodec(bytes, effective, container, out image);
             string? diagnostic = decoded && frameCount > 1
                 ? "The selected TIFF page was decoded; remaining pages were not retained in the static raster result."
                 : decoded ? null : "The requested TIFF page could not be decoded.";
-            info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, decoded, diagnostic, container);
+            info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, decoded, diagnostic, container) { UsedCallerCodec = callerDecoded };
             return decoded;
         }
 
         if (format == OfficeImageFormat.Webp && container.IsAnimated) {
-            info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, false,
-                "Animated WebP pixel decoding remains an explicit caller-codec boundary.", container);
-            return false;
+            bool decoded = TryDecodeWithOptionalCodec(bytes, effective, container, out image);
+            info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, decoded,
+                decoded
+                    ? "The caller codec decoded the first WebP frame; animation playback was not retained."
+                    : "Animated WebP pixel decoding remains an explicit caller-codec boundary.", container) { UsedCallerCodec = decoded };
+            return decoded;
         }
 
         effective.CancellationToken.ThrowIfCancellationRequested();
@@ -175,9 +180,15 @@ public static class OfficeRasterImageDecoder {
             _ => false
         };
         success = success && IsDecodedImageWithinLimit(image, effective.MaximumDecodedPixels);
+        // Static WebP belongs to the managed decoder. A failed VP8/ALPH stream
+        // must not become valid merely because a caller codec was supplied.
+        // Animated WebP has its explicit inspected caller-codec path above.
+        bool usedCallerCodec = false;
+        if (!success && format != OfficeImageFormat.Webp)
+            success = usedCallerCodec = TryDecodeWithOptionalCodec(bytes, effective, container, out image);
         if (!success) image = null;
         info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, success,
-            success ? null : "Raster bytes are not supported by the managed decoder subset or exceed configured limits.", container);
+            success ? null : "Raster bytes are not supported by the managed decoder subset or exceed configured limits.", container) { UsedCallerCodec = usedCallerCodec };
         return success;
     }
 

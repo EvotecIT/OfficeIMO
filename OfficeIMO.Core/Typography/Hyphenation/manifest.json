@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "upstreamCommit": "5684c0f51c0b81133db2efbe60a408b4155a3ff5",
+  "resources": [
+    {
+      "language": "en-us",
+      "source": "https://raw.githubusercontent.com/hyphenation/tex-hyphen/5684c0f51c0b81133db2efbe60a408b4155a3ff5/hyph-utf8/tex/generic/hyph-utf8/patterns/tex/hyph-en-us.tex",
+      "sourceSha256": "f4ffcd96c5cbc886bdad23f95dcae8edc3cd3620eae62f7946eceda97c4e68f8",
+      "resource": "OfficeIMO.Core/Typography/Hyphenation/en-us.patterns",
+      "resourceSha256": "55411aef231f351d06752425949e00921847868c2bb537ef5d1bb875558166c5",
+      "patterns": 4938,
+      "exceptions": 14
+    },
+    {
+      "language": "de-1996",
+      "source": "https://raw.githubusercontent.com/hyphenation/tex-hyphen/5684c0f51c0b81133db2efbe60a408b4155a3ff5/hyph-utf8/tex/generic/hyph-utf8/patterns/tex/hyph-de-1996.tex",
+      "sourceSha256": "374ad1ce3263f8a2791ec070ef9b516c532dae64456f3fb656e617e8ae53a9d3",
+      "resource": "OfficeIMO.Core/Typography/Hyphenation/de-1996.patterns",
+      "resourceSha256": "80dc5b36ea78f33a07960b60e5272f7234826cc9858ea9841a4448947c00d9a4",
+      "patterns": 36709,
+      "exceptions": 0
+    }
+  ]
+}

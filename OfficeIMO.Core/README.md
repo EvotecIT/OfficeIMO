@@ -229,6 +229,22 @@ checks matrix RGB, ICC v4 LUT RGB, and CMYK LUT swatches against LittleCMS.
 `OfficeImageOptimizer` still preserves or reports ICC metadata according to its metadata policy.
 It does not call the raster converter or claim that re-encoded pixels were normalized to sRGB.
 
+Routed SVG filters on non-text shape/group content support `SourceGraphic`,
+`SourceAlpha`, preceding named results, Gaussian blur, offset, matrix color transforms,
+source-over composition and separable blend modes. These operations use managed RGBA
+buffers at one pixel per drawing unit, then retain a PNG in the scene. The default
+filter color space is linear RGB; a uniform `sRGB` declaration is also supported.
+The filter region clips every input/result and the final paint. Simple unrouted
+blur/offset/drop-shadow filters retain their existing vector approximation.
+
+Managed filter graphs accept at most 32 primitives, blur deviation up to 64 drawing
+pixels per axis, and cumulative document work/intermediate-surface limits. Rotated
+or sheared graphs, explicit primitive subregions, mixed filter color spaces,
+unsupported primitives and graphs containing text, logical `ActualText`, links or
+pattern cells report unsupported features and preserve source geometry. Links on
+the filtered container retain their original geometry. Pass
+`OfficeSvgDrawingReaderOptions.CancellationToken` to cancel import and filter work.
+
 The SVG drawing reader supports a single rectangle, rounded rectangle, circle, ellipse, polygon, or
 path inside a `userSpaceOnUse` clip path, including transforms and even-odd filling. Compound clip
 unions, `objectBoundingBox` clips, and referenced or text clip geometry report unsupported features.
@@ -533,6 +549,28 @@ if (metrics.WidthPixels > 240) {
 }
 ```
 
+### Language-pattern hyphenation
+
+`OfficeTextHyphenationPatterns.GetBreakpoints(token, language)` returns optional UTF-16 breaks in
+the original word using embedded US English (`en-US`, alias `en`) or reformed German (`de-DE`,
+aliases `de`, `de-1996`, `de-DE-1996`) resources. It preserves case, surrounding punctuation and
+Unicode source offsets. The resources enforce two letters before a break, and three after it for
+US English or two for German. Empty/unsupported tags, internal punctuation, digits and tokens
+longer than 512 UTF-16 code units produce no automatic breaks. Other regional English and German
+spelling tags are unsupported.
+
+```csharp
+using OfficeIMO.Drawing;
+
+IReadOnlyList<int> breaks = OfficeTextHyphenationPatterns.GetBreakpoints("representation", "en-US");
+// 3, 5, 8, 10; the caller decides which permitted break fits the line.
+```
+
+Renderers can use the same Core result through their existing hyphenation callbacks. The explicit
+`OfficeTextHyphenationLexicon` remains available for application-owned dictionaries. Embedded
+resources are versioned in `Typography/Hyphenation/manifest.json`; their copyright and permission
+notices are retained in [the third-party notices](THIRD-PARTY-NOTICES.md).
+
 ### Reusable ink
 
 ```csharp
@@ -803,6 +841,16 @@ Set `OfficeDrawingRasterRenderOptions.ThrowOnImageDecodeFailure` to `true` when 
 - **OfficeIMO:** This is the shared foundation; it does not depend on another OfficeIMO runtime package.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+
+### Inspected caller raster decoding
+
+`OfficeRasterDecodeOptions.ImageCodec` supplies a trusted decoder for inspected
+payloads outside the managed subset. The shared boundary validates resource limits,
+frame selection and returned dimensions, preserves input bytes, and observes
+cancellation before and after the callback. Static WebP decoding failures do not
+fall through to a caller codec. Animated WebP can select frame zero and reports
+discarded animation. Drawing exports retain caller provenance and distinguish
+visible failure placeholders from decoded source pixels.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

@@ -78,4 +78,9 @@
     <Reference Include="System.Net.Http" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Typography/Hyphenation/*.patterns" LogicalName="OfficeIMO.Core.Hyphenation.%(Filename)" />
+    <None Include="Typography/Hyphenation/manifest.json" Pack="true" PackagePath="Typography/Hyphenation/" />
+  </ItemGroup>
+
 </Project>

@@ -6,6 +6,34 @@ using System.Xml.Linq;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeSvgDrawingReader {
+    private static void AddSvgFilteredDrawing(OfficeDrawing drawing, OfficeDrawing filtered,
+        SvgFilterEffect? filter, OfficeBlendMode blend, OfficeDrawingSoftMask? mask) {
+        // A managed graph already has its own filter-region clip. An identity
+        // effect surface would prematurely clip it to the SVG viewport before
+        // an enclosing graph can sample or translate the outside paint.
+        if (filter?.Graph != null && blend == OfficeBlendMode.Normal && mask == null) {
+            drawing.AddDrawingForClippedRendering(filtered, 0D, 0D, null);
+        } else if (filter?.Graph != null && filtered.Elements.Count == 1 && filtered.Elements[0] is OfficeDrawingGroup region) {
+            if (region.ClipPath.Kind == OfficeClipPathKind.Empty) {
+                drawing.AddDrawingForClippedRendering(filtered, 0D, 0D, null);
+                return;
+            }
+            // Real blend/mask effects still require an offscreen surface. Size it
+            // to the graph's paint region, not the unrelated containing viewport.
+            var local = new OfficeDrawing(region.ClipPath.Width, region.ClipPath.Height);
+            local.AddDrawingForClippedRendering(filtered, -region.X, -region.Y, null);
+            if (mask != null) {
+                var localMask = new OfficeDrawing(local.Width, local.Height);
+                localMask.AddDrawingForClippedRendering(mask.InnerDrawing, -region.X, -region.Y, null);
+                mask = new OfficeDrawingSoftMask(localMask, mask.Mode);
+            }
+            drawing.AddEffectDrawing(local, OfficeTransform.Translate(region.X, region.Y), blend, mask);
+            ((OfficeDrawingEffectGroup)drawing.Elements[drawing.Elements.Count - 1]).UnfilteredGeometryBounds = region.UnfilteredGeometryBounds;
+        } else {
+            drawing.AddEffectDrawing(filtered, OfficeTransform.Identity, blend, mask);
+        }
+    }
+
     private static bool TryResolveSvgEffects(
         XElement element,
         double width,
@@ -47,6 +75,10 @@ public static partial class OfficeSvgDrawingReader {
         if (!string.IsNullOrWhiteSpace(filterValue)
             && !filterValue!.Trim().Equals("none", StringComparison.OrdinalIgnoreCase)) {
             if (TryResolveSvgFilter(filterValue, references, out filterEffect)) {
+                if (filterEffect?.Graph != null) {
+                    filterEffect.Graph.ViewX = viewX;
+                    filterEffect.Graph.ViewY = viewY;
+                }
                 // A zero-alpha shadow leaves the source unchanged. Omitting it
                 // avoids retaining sample and wrapper scenes that never render.
                 if (filterEffect?.Kind == SvgFilterEffectKind.DropShadow && filterEffect.Opacity <= 0D) {
@@ -121,6 +153,10 @@ public static partial class OfficeSvgDrawingReader {
             if (filterElement == null
                 || !filterElement.Name.LocalName.Equals("filter", StringComparison.OrdinalIgnoreCase)) return false;
             List<XElement> primitives = filterElement.Elements().ToList();
+            if (TryParseSvgFilterGraph(filterElement, primitives, out SvgFilterGraph? graph)) {
+                effect = new SvgFilterEffect(graph!);
+                return true;
+            }
             if (primitives.Count == 1
                 && primitives[0].Name.LocalName.Equals("feDropShadow", StringComparison.OrdinalIgnoreCase)) {
                 return TryParseDropShadowFilter(primitives[0], out effect);
@@ -219,6 +255,12 @@ public static partial class OfficeSvgDrawingReader {
         out OfficeDrawing result) {
         result = source;
         if (effect == null) return true;
+        if (effect.Graph != null) {
+            if (TryApplySvgFilterGraph(source, effect.Graph, references, transform, out result)) return true;
+            unsupported++;
+            result = source;
+            return false;
+        }
         if (effect.Kind == SvgFilterEffectKind.DropShadow && ContainsUntintableFilterPaint(source)) {
             unsupported++;
             return false;
@@ -267,6 +309,14 @@ public static partial class OfficeSvgDrawingReader {
             filtered.AddEffectDrawing(blurred, OfficeTransform.Identity);
             if (effect.Kind == SvgFilterEffectKind.DropShadow) {
                 filtered.AddEffectDrawing(source, OfficeTransform.Identity);
+            }
+        }
+        if (TryGetSvgFilterGeometryBounds(source.Elements, out SvgInteractiveBounds geometry)) {
+            foreach (OfficeDrawingElement element in filtered.Elements) {
+                if (element is OfficeDrawingEffectGroup group && group.Transform.TryInvert(out OfficeTransform inverse)) {
+                    SvgInteractiveBounds local = geometry.Transform(inverse);
+                    group.UnfilteredGeometryBounds = (local.Left, local.Top, local.Right, local.Bottom);
+                }
             }
         }
         result = filtered;
@@ -328,10 +378,16 @@ public static partial class OfficeSvgDrawingReader {
     private enum SvgFilterEffectKind {
         DropShadow,
         GaussianBlur,
-        Offset
+        Offset,
+        Graph
     }
 
     private sealed class SvgFilterEffect {
+        internal SvgFilterEffect(SvgFilterGraph graph) {
+            Kind = SvgFilterEffectKind.Graph;
+            Graph = graph;
+        }
+
         internal SvgFilterEffect(
             SvgFilterEffectKind kind,
             double offsetX,
@@ -348,6 +404,7 @@ public static partial class OfficeSvgDrawingReader {
         }
 
         internal SvgFilterEffectKind Kind { get; }
+        internal SvgFilterGraph? Graph { get; }
         internal double OffsetX { get; }
         internal double OffsetY { get; }
         internal double BlurRadius { get; }

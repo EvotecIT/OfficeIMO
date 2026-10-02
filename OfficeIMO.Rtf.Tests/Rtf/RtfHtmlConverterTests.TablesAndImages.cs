@@ -1,5 +1,6 @@
 using OfficeIMO.Rtf;
 using OfficeIMO.Html;
+using OfficeIMO.Drawing;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
@@ -83,7 +84,7 @@ public partial class RtfHtmlConverterTests {
 
         string html = document.ToHtml(RtfHtmlTestOptions.CreateRoundTripFragment());
 
-        Assert.Equal("<table><thead><tr><th style=\"background-color:#F2F2F2;width:25%;vertical-align:middle;\"><p>Name</p></th><th style=\"width:72pt;\"><p>Value</p></th></tr></thead><tbody><tr><td style=\"background-color:#FFF2CC;vertical-align:bottom;\"><p>Pulse</p></td><td><p>72</p></td></tr></tbody></table>", html);
+        Assert.Equal("<table><thead><tr><th style=\"background-color:#F2F2F2;width:25%;vertical-align:middle;\"><p>Name</p></th><th style=\"width:72pt;\"><p>Value</p></th></tr></thead><tbody><tr><td style=\"background-color:#FFF2CC;vertical-align:bottom;\"><p>Pulse</p></td><td><p>72</p></td></tr></tbody></table>", RtfHtmlTableTestMarkup.WithoutRowMetadata(html));
     }
 
     [Fact]
@@ -161,7 +162,7 @@ public partial class RtfHtmlConverterTests {
 
         string html = document.ToHtml(RtfHtmlTestOptions.CreateRoundTripFragment());
 
-        Assert.Equal("<table><tbody><tr><td colspan=\"2\"><p>Panel</p></td><td rowspan=\"2\"><p>Flag</p></td></tr><tr><td><p>Pulse</p></td><td><p>72</p></td></tr></tbody></table>", html);
+        Assert.Equal("<table><tbody><tr><td colspan=\"2\"><p>Panel</p></td><td rowspan=\"2\"><p>Flag</p></td></tr><tr><td><p>Pulse</p></td><td><p>72</p></td></tr></tbody></table>", RtfHtmlTableTestMarkup.WithoutRowMetadata(html));
     }
 
     [Fact]
@@ -220,7 +221,7 @@ public partial class RtfHtmlConverterTests {
 
         string html = document.ToHtml(RtfHtmlTestOptions.CreateRoundTripFragment());
 
-        Assert.Equal("<table><tbody><tr><td style=\"padding-top:6pt;padding-left:12pt;padding-bottom:3pt;padding-right:9pt;border-top:1pt solid #0C2238;border-left:1pt solid #0C2238;border-bottom:2pt dashed #FF0000;border-right:1pt double #0C2238;\"><p>Value</p></td></tr></tbody></table>", html);
+        Assert.Equal("<table><tbody><tr><td style=\"padding-top:6pt;padding-left:12pt;padding-bottom:3pt;padding-right:9pt;border-top:1pt solid #0C2238;border-left:1pt solid #0C2238;border-bottom:2pt dashed #FF0000;border-right:1pt double #0C2238;\"><p>Value</p></td></tr></tbody></table>", RtfHtmlTableTestMarkup.WithoutRowMetadata(html));
     }
 
     [Fact]
@@ -262,7 +263,7 @@ public partial class RtfHtmlConverterTests {
 
         string html = document.ToHtml(RtfHtmlTestOptions.CreateRoundTripFragment());
 
-        Assert.Equal("<table><tbody><tr><td style=\"background-color:#FFF2CC;width:30%;vertical-align:middle;white-space:nowrap;--officeimo-rtf-cell-nowrap:true;\"><p>Result</p></td></tr></tbody></table>", html);
+        Assert.Equal("<table><tbody><tr><td style=\"background-color:#FFF2CC;width:30%;vertical-align:middle;white-space:nowrap;--officeimo-rtf-cell-nowrap:true;\"><p>Result</p></td></tr></tbody></table>", RtfHtmlTableTestMarkup.WithoutRowMetadata(html));
     }
 
     [Fact]
@@ -312,7 +313,7 @@ public partial class RtfHtmlConverterTests {
 
         string html = document.ToHtml(RtfHtmlTestOptions.CreateRoundTripFragment());
 
-        Assert.Equal("<table><tbody><tr style=\"background-color:#F2F2F2;text-align:right;width:80%;height:24pt;padding-top:3pt;padding-left:6pt;padding-bottom:5pt;padding-right:4pt;\"><td><p>Result</p></td></tr></tbody></table>", html);
+        Assert.Equal("<table><tbody><tr style=\"background-color:#F2F2F2;text-align:right;width:80%;height:24pt;padding-top:3pt;padding-left:6pt;padding-bottom:5pt;padding-right:4pt;\"><td><p>Result</p></td></tr></tbody></table>", RtfHtmlTableTestMarkup.WithoutRowMetadata(html));
     }
 
     [Fact]
@@ -338,6 +339,41 @@ public partial class RtfHtmlConverterTests {
         Assert.Equal(48, roundTripImage.SourceHeight);
         Assert.Equal(2400, roundTripImage.DesiredWidthTwips);
         Assert.Equal(1200, roundTripImage.DesiredHeightTwips);
+    }
+
+    [Fact]
+    public void HtmlImageEmbeddedDpiPreventsUnnecessaryFitting() {
+        byte[] photo = OfficePngWriter.Encode(new OfficeRasterImage(1200, 1200, OfficeColor.White),
+            new OfficePngEncodeOptions { WritePhysicalResolution = true, DpiX = 300, DpiY = 300 });
+        var result = HtmlConversionDocument.Parse("<img src='data:image/png;base64," + Convert.ToBase64String(photo) + "'>").ToRtfDocumentResult();
+        RtfImage image = Assert.Single(result.RequireValue().Paragraphs.SelectMany(p => p.Inlines).OfType<RtfImage>());
+        Assert.Null(image.DesiredWidthTwips);
+        Assert.Null(image.DesiredHeightTwips);
+        Assert.DoesNotContain(result.RtfDiagnostics, d => d.Code == "HtmlRtfImageFittedToPage");
+    }
+
+    [Fact]
+    public void Html_ToRtfDocument_Fits_Unstyled_Large_Image_Within_Page_Text_Area() {
+        byte[] photo = OfficePngWriter.Encode(new OfficeRasterImage(960, 640, OfficeColor.White));
+        byte[] icon = OfficePngWriter.Encode(new OfficeRasterImage(16, 11, OfficeColor.White));
+        string html = "<p><img src=\"data:image/png;base64," + Convert.ToBase64String(photo)
+            + "\" alt=\"Photo\"></p><p><img src=\"data:image/png;base64," + Convert.ToBase64String(icon)
+            + "\" alt=\"Icon\"></p>";
+
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        RtfImage large = Assert.Single(result.RequireValue().Paragraphs[0].Inlines.OfType<RtfImage>());
+        RtfImage small = Assert.Single(result.RequireValue().Paragraphs[1].Inlines.OfType<RtfImage>());
+
+        Assert.Equal(960, large.SourceWidth);
+        Assert.Equal(640, large.SourceHeight);
+        Assert.Equal(8640, large.DesiredWidthTwips);
+        Assert.Equal(5760, large.DesiredHeightTwips);
+        Assert.Null(small.DesiredWidthTwips);
+        Assert.Null(small.DesiredHeightTwips);
+        Assert.Contains(result.RtfDiagnostics, diagnostic => diagnostic.Code == "HtmlRtfImageFittedToPage");
+        RtfImage reopened = Assert.IsType<RtfImage>(RtfDocument.Read(result.RequireValue().ToRtf()).Document.Blocks[0]);
+        Assert.Equal(large.DesiredWidthTwips, reopened.DesiredWidthTwips);
+        Assert.Equal(large.DesiredHeightTwips, reopened.DesiredHeightTwips);
     }
 
     [Fact]

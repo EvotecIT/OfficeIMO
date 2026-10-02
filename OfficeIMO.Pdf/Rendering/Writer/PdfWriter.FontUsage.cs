@@ -149,7 +149,13 @@ internal static partial class PdfWriter {
             pagesWithPrintProductionBoxes,
             annotationCount,
             externalReferenceCount,
-            optionalContentLayerCount);
+            optionalContentLayerCount) {
+            FormulasMissingAlternativeText = layout.Pages.SelectMany(page => page.StructElements)
+                .Count(element => element.StructureType == "Formula" && string.IsNullOrWhiteSpace(element.AlternativeText)),
+            EffectiveFileVersion = RequireStructureAssociatedFileVersion(layout, options),
+            StructureAssociatedFiles = layout.Pages.SelectMany(page => page.StructElements)
+                .SelectMany(element => element.AssociatedFiles).ToArray()
+        };
     }
 
     private static bool UsesLayoutFontResource(LayoutResult layout, LayoutResult.Page page, byte[] pageContent, string resourceName) {

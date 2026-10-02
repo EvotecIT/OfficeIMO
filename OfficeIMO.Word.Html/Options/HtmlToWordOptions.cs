@@ -36,6 +36,7 @@ namespace OfficeIMO.Word.Html {
                 ImageProcessing = ImageProcessingMode.EmbedDataUriOnly,
                 ResourceTimeout = TimeSpan.FromSeconds(5),
                 MaxImageBytes = 5L * 1024L * 1024L,
+                MaxDecodedImagePixels = 4_000_000,
                 MaxTotalImageBytes = 20L * 1024L * 1024L,
                 MaxHtmlNodes = 10000,
                 MaxHtmlDepth = 64,
@@ -176,6 +177,13 @@ namespace OfficeIMO.Word.Html {
         /// When exceeded, the image is skipped, alt text is inserted when available, and a diagnostic is emitted.
         /// </summary>
         public long? MaxImageBytes { get; set; }
+
+        /// <summary>
+        /// Maximum pixels in raster images normalized during import, including WebP.
+        /// Images embedded without pixel decoding retain their existing byte limits.
+        /// Null uses the shared decoder limit; the untrusted profile uses four million pixels.
+        /// </summary>
+        public long? MaxDecodedImagePixels { get; set; }
 
         /// <summary>
         /// Optional maximum number of image bytes allowed across a single HTML import operation, including SVG images.
@@ -418,6 +426,7 @@ namespace OfficeIMO.Word.Html {
                 MaxConcurrentResourceLoads = MaxConcurrentResourceLoads,
                 TextBackgroundMode = TextBackgroundMode,
                 MaxImageBytes = MaxImageBytes,
+                MaxDecodedImagePixels = MaxDecodedImagePixels,
                 MaxTotalImageBytes = MaxTotalImageBytes,
                 MaxRemoteImageCandidateProbes = MaxRemoteImageCandidateProbes,
                 MaxImageSourceCandidates = MaxImageSourceCandidates,

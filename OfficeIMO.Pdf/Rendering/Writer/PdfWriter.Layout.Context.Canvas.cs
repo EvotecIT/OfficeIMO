@@ -304,6 +304,7 @@ internal static partial class PdfWriter {
                     options.ColumnSpan,
                     options.RowSpan,
                     options.AlternativeText);
+                if (structureElement != null) structureElement.AssociatedFiles = options.AssociatedFileSnapshots;
                 if (options.StructureElementKey != null && structureElement != null) {
                     canvasStructureElements[structureKey] = structureElement;
                 }
@@ -336,6 +337,7 @@ internal static partial class PdfWriter {
             if (role == PdfCanvasStructureRole.TableHeaderCell) return "TH";
             if (role == PdfCanvasStructureRole.TableCell) return "TD";
             if (role == PdfCanvasStructureRole.Caption) return "Caption";
+            if (role == PdfCanvasStructureRole.Formula) return "Formula";
             return "Note";
         }
 

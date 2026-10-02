@@ -36,8 +36,9 @@ public partial class WordDocument {
         foreach (var media in inventory.Images.Values.OrderBy(image => image.Part.Uri.ToString(), StringComparer.Ordinal)) {
             token.ThrowIfCancellationRequested();
             using Stream stream = media.Part.GetStream(FileMode.Open, FileAccess.Read);
-            byte[] original = OfficeStreamReader.ReadAllBytes(stream, token,
-                apply ? Math.Min(policy.MaxImageBytes, policy.MaxStagedBytes - retainedBytes) : policy.MaxImageBytes);
+            // Only replacement candidates consume the transaction budget. A preserved
+            // image still needs its independent per-image read limit after that budget is full.
+            byte[] original = OfficeStreamReader.ReadAllBytes(stream, token, policy.MaxImageBytes);
             var info = OfficeImageReader.TryIdentify(original, media.Part.Uri.ToString(), out OfficeImageInfo identified)
                 ? identified : new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
             WordImageOptimizationStatus? preserve = media.References == 0 ? WordImageOptimizationStatus.Unreferenced : null;
@@ -69,7 +70,8 @@ public partial class WordDocument {
                     MetadataSelection = policy.MetadataSelection
                 }, media.Part.Uri.ToString());
             token.ThrowIfCancellationRequested();
-            bool replace = candidate.Changed && (!candidate.Metadata.HasLoss || policy.AllowMetadataLoss);
+            bool removesMetadata = candidate.Metadata.HasLoss || candidate.Metadata.Stripped != OfficeImageMetadataKinds.None;
+            bool replace = candidate.Changed && (!removesMetadata || policy.AllowMetadataLoss);
             var status = candidate.Changed && !replace ? WordImageOptimizationStatus.MetadataLoss : MapImageOptimizationStatus(candidate.Status);
             items.Add(new WordImageOptimizationItem(media.Part.Uri.ToString(), media.References, status,
                 original.LongLength, replace ? candidate.FinalEncodedLength : original.LongLength,

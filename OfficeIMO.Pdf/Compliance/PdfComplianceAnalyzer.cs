@@ -41,28 +41,29 @@ internal static partial class PdfComplianceAnalyzer {
             return new PdfComplianceReadinessReport(profile, GetDisplayName(profile), requirements.AsReadOnly());
         }
 
+        PdfFileVersion effectiveFileVersion = generatedEvidence?.EffectiveFileVersion ?? options.FileVersion;
         if (RequiresPdf17FileVersion(profile)) {
-            AddFileVersionRequirement(requirements, options);
+            AddFileVersionRequirement(requirements, effectiveFileVersion);
         }
 
         if (RequiresPdf20FileVersion(profile)) {
-            AddPdf20FileVersionRequirement(requirements, options);
+            AddPdf20FileVersionRequirement(requirements, effectiveFileVersion);
         }
 
         if (profile == PdfComplianceProfile.PdfX1A2003) {
             Add(requirements, "pdf-file-version", "PDF 1.4 file header",
-                options.FileVersion == PdfFileVersion.Pdf14,
+                effectiveFileVersion == PdfFileVersion.Pdf14,
                 "Generated output is configured for a PDF 1.4 file header.",
                 "Set PdfOptions.FileVersion to Pdf14 for PDF/X-1a:2003.");
         } else if (profile == PdfComplianceProfile.PdfX4) {
             Add(requirements, "pdf-file-version", "PDF 1.6 file header",
-                options.FileVersion == PdfFileVersion.Pdf16,
+                effectiveFileVersion == PdfFileVersion.Pdf16,
                 "Generated output is configured for a PDF 1.6 file header.",
                 "Set PdfOptions.FileVersion to Pdf16 for PDF/X-4.");
         }
 
         if (IsPdfA(profile) || IsElectronicInvoice(profile)) {
-            AddPdfARequirements(requirements, profile, options, generatedFontSnapshot, generatedFontUsageSnapshot);
+            AddPdfARequirements(requirements, profile, options, generatedFontSnapshot, generatedFontUsageSnapshot, generatedEvidence);
         }
 
         if (RequiresUnicodeMapping(profile) || IsElectronicInvoice(profile)) {
@@ -70,7 +71,7 @@ internal static partial class PdfComplianceAnalyzer {
         }
 
         if (RequiresAccessibility(profile)) {
-            AddAccessibilityRequirements(requirements, profile, options, documentTitle, hasDocumentMetadataEvidence, generatedImageSnapshot, generatedDrawingSnapshot, generatedFormSnapshot);
+            AddAccessibilityRequirements(requirements, profile, options, documentTitle, hasDocumentMetadataEvidence, generatedImageSnapshot, generatedDrawingSnapshot, generatedFormSnapshot, generatedEvidence?.FormulasMissingAlternativeText);
         }
 
         if (IsElectronicInvoice(profile)) {
@@ -84,9 +85,9 @@ internal static partial class PdfComplianceAnalyzer {
         return new PdfComplianceReadinessReport(profile, GetDisplayName(profile), requirements.AsReadOnly());
     }
 
-    private static void AddFileVersionRequirement(List<PdfComplianceRequirement> requirements, PdfOptions options) {
+    private static void AddFileVersionRequirement(List<PdfComplianceRequirement> requirements, PdfFileVersion fileVersion) {
         Add(requirements, "pdf-file-version", "PDF 1.7 file header",
-            options.FileVersion == PdfFileVersion.Pdf17,
+            fileVersion == PdfFileVersion.Pdf17,
             "Generated output is configured for a PDF 1.7 file header.",
             "Set PdfOptions.FileVersion or PdfDocument.FileVersion(...) to PdfFileVersion.Pdf17 for PDF/A-2, PDF/A-3, PDF/UA-1, and e-invoice profile groundwork.");
     }
@@ -250,9 +251,9 @@ internal static partial class PdfComplianceAnalyzer {
         profile == PdfComplianceProfile.PdfA4F ||
         profile == PdfComplianceProfile.PdfUa2;
 
-    private static void AddPdf20FileVersionRequirement(List<PdfComplianceRequirement> requirements, PdfOptions options) {
+    private static void AddPdf20FileVersionRequirement(List<PdfComplianceRequirement> requirements, PdfFileVersion fileVersion) {
         Add(requirements, "pdf-file-version", "PDF 2.0 file header",
-            options.FileVersion == PdfFileVersion.Pdf20,
+            fileVersion == PdfFileVersion.Pdf20,
             "Generated output is configured for a PDF 2.0 file header.",
             "Set PdfOptions.FileVersion or PdfDocument.FileVersion(...) to PdfFileVersion.Pdf20 for PDF/A-4 and PDF/UA-2 groundwork.");
     }
