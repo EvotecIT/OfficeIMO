@@ -15,6 +15,90 @@
   "qualification": "Native node-36 target identities and mixed coordinates, plus selected scalar function nodes; independent computations agree with numeric/text/Boolean caches. Scalar text cases use ASCII literals. Build metadata is retained in this manifest. No Apple export/render oracle. Numeric INT/MOD/SQRT/SIGN/TRUNC/ROUNDUP/ROUNDDOWN expressions include unary negatives, subtraction, optional and signed digit arguments and nested ABS; independent numeric/decimal computations agree with native caches. EXP/LN/LOG/LOG10 cases include optional/explicit bases, nesting and exponentiation. Their exact producer caches are retained; independent transcendental computations use the recorded relative/absolute tolerance, not exact binary equality. Ten CEILING/FLOOR expressions qualify signed multiples, zero significance and native omitted node-22 operands. Independent decimal computations agree exactly with stored Decimal128 coefficient/exponent values. Raw cache bytes and the independent provider float (which can add a binary rounding step) are retained separately. Five PRODUCT/RADIANS/SUMSQ expressions qualify scalar numeric operands and one explicit numeric text literal; Three additional reference cases qualify PRODUCT over A1:E1 and SUMSQ with numeric and blank cross-table cells. Unions and arrays are not covered.",
   "cases": [
     {
+      "sourceSheet": "Information",
+      "sourceTable": "Tests",
+      "row": 3,
+      "column": 2,
+      "sourceFormula": "ISBLANK(Data::A1)",
+      "cachedValue": true,
+      "computedCurrentValue": true,
+      "targetSheet": "Information",
+      "targetTable": "Data",
+      "references": [
+        {
+          "address": "A1",
+          "row": 1,
+          "column": 1,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "546b6795458a9d8d454b41f0ede32e33"
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Information",
+      "sourceTable": "Tests",
+      "row": 4,
+      "column": 2,
+      "sourceFormula": "ISBLANK(Data::A2)",
+      "cachedValue": false,
+      "computedCurrentValue": false,
+      "targetSheet": "Information",
+      "targetTable": "Data",
+      "references": [
+        {
+          "address": "A2",
+          "row": 2,
+          "column": 1,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "546b6795458a9d8d454b41f0ede32e33"
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Information",
+      "sourceTable": "Tests",
+      "row": 11,
+      "column": 2,
+      "sourceFormula": "ISNUMBER(Data::A1)",
+      "cachedValue": false,
+      "computedCurrentValue": false,
+      "targetSheet": "Information",
+      "targetTable": "Data",
+      "references": [
+        {
+          "address": "A1",
+          "row": 1,
+          "column": 1,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "546b6795458a9d8d454b41f0ede32e33"
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Information",
+      "sourceTable": "Tests",
+      "row": 12,
+      "column": 2,
+      "sourceFormula": "ISNUMBER(Data::B1)",
+      "cachedValue": true,
+      "computedCurrentValue": true,
+      "targetSheet": "Information",
+      "targetTable": "Data",
+      "references": [
+        {
+          "address": "B1",
+          "row": 1,
+          "column": 2,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "546b6795458a9d8d454b41f0ede32e33"
+        }
+      ]
+    },
+    {
       "sourceSheet": "Reference",
       "sourceTable": "Tests",
       "row": 18,
@@ -369,6 +453,79 @@
     }
   ],
   "scalarFunctionCases": [
+    {
+      "sourceSheet": "Information",
+      "sourceTable": "Tests",
+      "row": 2,
+      "column": 2,
+      "sourceFormula": "ISBLANK(\"\")",
+      "cachedValue": false,
+      "computedCurrentValue": false,
+      "functionIndex": 69,
+      "functionName": "ISBLANK",
+      "argumentCount": 1
+    },
+    {
+      "sourceSheet": "Information",
+      "sourceTable": "Tests",
+      "row": 5,
+      "column": 2,
+      "sourceFormula": "ISERROR(1\u00f70)",
+      "cachedValue": true,
+      "computedCurrentValue": true,
+      "functionIndex": 70,
+      "functionName": "ISERROR",
+      "argumentCount": 1,
+      "excelFormula": "ISERROR(1/0)"
+    },
+    {
+      "sourceSheet": "Information",
+      "sourceTable": "Tests",
+      "row": 10,
+      "column": 2,
+      "sourceFormula": "ISNUMBER(123)",
+      "cachedValue": true,
+      "computedCurrentValue": true,
+      "functionIndex": 304,
+      "functionName": "ISNUMBER",
+      "argumentCount": 1
+    },
+    {
+      "sourceSheet": "Information",
+      "sourceTable": "Tests",
+      "row": 13,
+      "column": 2,
+      "sourceFormula": "ISTEXT(\"123\")",
+      "cachedValue": true,
+      "computedCurrentValue": true,
+      "functionIndex": 305,
+      "functionName": "ISTEXT",
+      "argumentCount": 1
+    },
+    {
+      "sourceSheet": "Information",
+      "sourceTable": "Tests",
+      "row": 14,
+      "column": 2,
+      "sourceFormula": "ISTEXT(123)",
+      "cachedValue": false,
+      "computedCurrentValue": false,
+      "functionIndex": 305,
+      "functionName": "ISTEXT",
+      "argumentCount": 1
+    },
+    {
+      "sourceSheet": "Text",
+      "sourceTable": "Tests",
+      "row": 6,
+      "column": 2,
+      "sourceFormula": "CONCATENATE(\"The\",\" \",\"sun\",\" \",\"will\",\" \",\"come\",\" \",\"up\",\" \",\"tomorrow.\")",
+      "cachedValue": "The sun will come up tomorrow.",
+      "computedCurrentValue": "The sun will come up tomorrow.",
+      "functionIndex": 25,
+      "functionName": "CONCATENATE",
+      "argumentCount": 11
+    },
     {
       "sourceSheet": "Reference",
       "sourceTable": "Tests",

@@ -26,8 +26,8 @@ if version('numbers-parser') != '4.19.0':
 source_hash = hashlib.sha256(args.source.read_bytes()).hexdigest()
 qualified = {
     '4ce0593faa61bf159bde0752ade1fa202afcd142317ba16fdec8eb71a7149170':
-        ('test-all-formulas.numbers', [('Reference', 18), ('Reference', 19), ('Reference', 49), ('Reference', 52), ('Reference', 53), ('Reference', 14), ('Reference', 83), ('Reference', 84), ('Math', 97), ('Math', 153), ('Math', 154), ('Math', 141), ('Statistical', 37)],
-         [('Reference', 16), ('Reference', 17), ('Reference', 48), ('Reference', 50), ('Reference', 51), ('Text', 9), ('Text', 10), ('Text', 21), ('Text', 43)]),
+        ('test-all-formulas.numbers', [('Information', 3), ('Information', 4), ('Information', 11), ('Information', 12), ('Reference', 18), ('Reference', 19), ('Reference', 49), ('Reference', 52), ('Reference', 53), ('Reference', 14), ('Reference', 83), ('Reference', 84), ('Math', 97), ('Math', 153), ('Math', 154), ('Math', 141), ('Statistical', 37)],
+         [('Information', 2), ('Information', 5), ('Information', 10), ('Information', 13), ('Information', 14), ('Text', 6), ('Reference', 16), ('Reference', 17), ('Reference', 48), ('Reference', 50), ('Reference', 51), ('Text', 9), ('Text', 10), ('Text', 21), ('Text', 43)]),
     '3deb8e3b868be60d7b8924336d2839fcd690db2b138e6c2170d6c22c4aca48dc':
         ('test-extra-formulas.numbers', [('Formulas', 29), ('Formulas', 79), ('Formulas', 102)],
          [('Formulas', 95), ('Formulas', 145)])
@@ -70,6 +70,12 @@ for sheet_name, row in selections:
         else:
             assert name in ('ROW', 'COLUMN')
             computed = references[0]['row' if name == 'ROW' else 'column']
+    elif sheet_name == 'Information':
+        assert len(references) == 1 and nodes[-1].AST_function_node_numArgs == 1
+        value = target.cell(references[0]['row'] - 1, references[0]['column'] - 1).value
+        name = FUNCTION_MAP[nodes[-1].AST_function_node_index]
+        assert name in ('ISBLANK', 'ISNUMBER')
+        computed = value is None if name == 'ISBLANK' else type(value) in (int, float)
     elif sheet_name == 'Math' and row == 97:
         assert cell.formula == 'PRODUCT(Data::A1:E1)'
         computed = math.prod(target.cell(0, column).value for column in range(5))
@@ -104,8 +110,18 @@ for sheet_name, row in scalar_selections:
     assert function.AST_node_type == 16
     name = FUNCTION_MAP[function.AST_function_node_index]
     arguments = nodes[:-1]
-    assert function.AST_function_node_numArgs == len(arguments)
-    if name == 'ROW':
+    if name != 'ISERROR':
+        assert function.AST_function_node_numArgs == len(arguments)
+    if name == 'ISERROR':
+        assert function.AST_function_node_numArgs == 1
+        assert [n.AST_node_type for n in arguments] == [17, 17, 4]
+        assert arguments[0].AST_number_node_number == 1 and arguments[1].AST_number_node_number == 0
+        assert cell.formula == 'ISERROR(1÷0)'
+        computed = True  # A finite numerator divided by zero is an error.
+    elif name in ('ISBLANK', 'ISNUMBER', 'ISTEXT'):
+        assert len(arguments) == 1 and arguments[0].AST_node_type in (17, 19)
+        computed = False if name == 'ISBLANK' else arguments[0].AST_node_type == (17 if name == 'ISNUMBER' else 19)
+    elif name == 'ROW':
         assert len(arguments) == 0
         computed = float(row)
     elif name in ('ROWS', 'COLUMNS'):
@@ -119,7 +135,9 @@ for sheet_name, row in scalar_selections:
         values = [n.AST_string_node_string for n in arguments]
         # These fixtures contain ASCII arguments; they do not qualify locale/Unicode casing.
         assert all(value.isascii() for value in values)
-        if name == 'EXACT':
+        if name == 'CONCATENATE':
+            computed = ''.join(values)
+        elif name == 'EXACT':
             assert len(values) == 2
             computed = values[0] == values[1]
         elif name == 'LOWER':
@@ -136,7 +154,9 @@ for sheet_name, row in scalar_selections:
                          'sourceFormula': cell.formula, 'cachedValue': cell.value,
                          'computedCurrentValue': computed,
                          'functionIndex': function.AST_function_node_index,
-                         'functionName': name, 'argumentCount': len(arguments)})
+                         'functionName': name, 'argumentCount': function.AST_function_node_numArgs})
+    if name == 'ISERROR':
+        scalar_cases[-1]['excelFormula'] = 'ISERROR(1/0)'
 def stored_decimal128(cell):
     # Inspect the unchanged v5 buffer exposed by the independent reader. Its
     # float unpacker multiplies by a binary 10**exponent, which can add a rounding

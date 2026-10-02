@@ -31,6 +31,7 @@ internal static partial class IWorkFormulaReader {
         [17] = new("CEILING", 2, 2),
         [22] = new("COLUMN", 0, 1),
         [23] = new("COLUMNS", 1, 1),
+        [25] = new("CONCATENATE", 1, 255),
         [30] = new("COUNT", 1, 255),
         [31] = new("COUNTA", 1, 255),
         [32] = new("COUNTBLANK", 1, 1),
@@ -47,6 +48,8 @@ internal static partial class IWorkFormulaReader {
         [62] = new("IF", 2, 3),
         [63] = new("INDEX", 2, 4),
         [65] = new("INT", 1, 1),
+        [69] = new("ISBLANK", 1, 1),
+        [70] = new("ISERROR", 1, 1),
         [76] = new("LEFT", 1, 2),
         [77] = new("LEN", 1, 1),
         [78] = new("LN", 1, 1),
@@ -87,6 +90,8 @@ internal static partial class IWorkFormulaReader {
         [157] = new("TRUNC", 1, 2),
         [158] = new("UPPER", 1, 1),
         [SumFunctionIndex] = new("SUM", 1, 255),
+        [304] = new("ISNUMBER", 1, 1),
+        [305] = new("ISTEXT", 1, 1),
         [328] = new("TEXTJOIN", 3, 254)
     };
 

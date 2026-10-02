@@ -94,11 +94,9 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
         string qualifier = "'" + expected.GetProperty("targetSheet").GetString()!.Replace("'", "''") + "'::'"
             + expected.GetProperty("targetTable").GetString()!.Replace("'", "''") + "'::";
         Assert.Equal("=" + expected.GetProperty("sourceFormula").GetString()!.Replace("Data::", qualifier), cell.Formula);
-        object value = expected.GetProperty("cachedValue").ValueKind == JsonValueKind.String
-            ? expected.GetProperty("cachedValue").GetString()! : expected.GetProperty("cachedValue").GetDouble();
+        object value = ScalarValue(expected.GetProperty("cachedValue"));
         Assert.Equal(value, cell.Value); Assert.True(cell.CachedValueIsComplete);
-        object computed = expected.GetProperty("computedCurrentValue").ValueKind == JsonValueKind.String
-            ? expected.GetProperty("computedCurrentValue").GetString()! : expected.GetProperty("computedCurrentValue").GetDouble();
+        object computed = ScalarValue(expected.GetProperty("computedCurrentValue"));
         Assert.Equal(value, computed);
         return table;
     }
@@ -109,7 +107,8 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
             .GetCell(expected.GetProperty("row").GetInt32(), expected.GetProperty("column").GetInt32())!;
         Assert.True(cell.FormulaIsComplete);
         Assert.True(cell.CachedValueIsComplete);
-        string expression = expected.GetProperty("sourceFormula").GetString()!;
+        string expression = expected.TryGetProperty("excelFormula", out JsonElement excelFormula)
+            ? excelFormula.GetString()! : expected.GetProperty("sourceFormula").GetString()!;
         // Native decimal and recovered round-trip exponent literals can represent
         // the same number. Compare their invariant numeric values, not display choice.
         if (normalizeNumbers) expression = Regex.Replace(expression,

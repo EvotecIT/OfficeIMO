@@ -43,6 +43,11 @@
       "sampleArgumentCount": 1
     },
     {
+      "index": 25,
+      "name": "CONCATENATE",
+      "sampleArgumentCount": 1
+    },
+    {
       "index": 30,
       "name": "COUNT",
       "sampleArgumentCount": 1
@@ -120,6 +125,16 @@
     {
       "index": 65,
       "name": "INT",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 69,
+      "name": "ISBLANK",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 70,
+      "name": "ISERROR",
       "sampleArgumentCount": 1
     },
     {
@@ -320,6 +335,16 @@
     {
       "index": 168,
       "name": "SUM",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 304,
+      "name": "ISNUMBER",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 305,
+      "name": "ISTEXT",
       "sampleArgumentCount": 1
     },
     {

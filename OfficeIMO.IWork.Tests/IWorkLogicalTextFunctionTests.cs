@@ -52,6 +52,10 @@ public sealed partial class IWorkBoundaryTests {
 
     [Theory]
     [InlineData(49, 2)]
+    [InlineData(69, 1)]
+    [InlineData(70, 1)]
+    [InlineData(304, 1)]
+    [InlineData(305, 1)]
     [InlineData(82, 1)]
     [InlineData(96, 1)]
     [InlineData(155, 1)]
