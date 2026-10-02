@@ -139,13 +139,16 @@ def stored_decimal128(cell):
 numeric_cases = []
 if upstream_path == 'test-all-formulas.numbers':
     table = document.sheets['Math'].tables['Tests']
-    for row in [3, 4, 5, 6, 7, 13, 27, 28, 29, 30, 31, 46, 47, 48, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 125, 126, 127, 128, 129, 164, 165, 166]:
+    for row in [3, 4, 5, 6, 7, 13, 27, 28, 29, 30, 31, 46, 47, 48, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 94, 95, 101, 102, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 125, 126, 127, 128, 129, 152, 164, 165, 166]:
         cell = table.cell(row - 1, 1)
         nodes = model.formula_ast(table._table_id)[cell._formula_id]
         stack, functions = [], []
         for node in nodes:
             if node.AST_node_type == 17:
                 stack.append(node.AST_number_node_number)
+            elif node.AST_node_type == 19:
+                # The selected PRODUCT expression has an explicit numeric text literal.
+                stack.append(float(node.AST_string_node_string))
             elif node.AST_node_type == 22:
                 stack.append(None)  # An explicit omitted operand; not an absent node.
             elif node.AST_node_type == 13:
@@ -172,6 +175,13 @@ if upstream_path == 'test-all-formulas.numbers':
                         assert factor != 0
                         rounding = ROUND_CEILING if name == 'CEILING' else ROUND_FLOOR
                         computed = float((number / factor).to_integral_value(rounding=rounding) * factor)
+                elif name == 'PRODUCT':
+                    computed = math.prod(values)
+                elif name == 'SUMSQ':
+                    computed = sum(value * value for value in values)
+                elif name == 'RADIANS':
+                    assert count == 1
+                    computed = math.radians(values[0])
                 elif name == 'INT':
                     assert count == 1
                     computed = math.floor(values[0])
@@ -206,11 +216,11 @@ if upstream_path == 'test-all-formulas.numbers':
                 stack.append(computed)
                 functions.append({'index': node.AST_function_node_index, 'name': name, 'argumentCount': count})
         assert len(stack) == 1
-        logarithmic = any(f['name'] in ('EXP', 'LN', 'LOG', 'LOG10') for f in functions)
+        transcendental = any(f['name'] in ('EXP', 'LN', 'LOG', 'LOG10', 'RADIANS') for f in functions)
         multiple = any(f['name'] in ('CEILING', 'FLOOR') for f in functions)
         # The producer stores rounded transcendental caches. Preserve those exact
         # caches and record the tolerance used only for independent computation.
-        if logarithmic:
+        if transcendental:
             assert math.isclose(stack[0], cell.value, rel_tol=1e-14, abs_tol=1e-15)
         elif multiple:
             decimal_cache, stored_cache = stored_decimal128(cell)
@@ -221,7 +231,7 @@ if upstream_path == 'test-all-formulas.numbers':
                               'sourceFormula': cell.formula, 'cachedValue': cell.value,
                               'computedCurrentValue': stack[0], 'nodeTypes': [n.AST_node_type for n in nodes],
                               'functions': functions}
-        if logarithmic:
+        if transcendental:
             case['computationTolerance'] = {'relative': 1e-14, 'absolute': 1e-15}
         elif multiple:
             case['providerCachedValue'] = cell.value
@@ -242,5 +252,6 @@ if numeric_cases:
     manifest['qualification'] += ' Numeric INT/MOD/SQRT/SIGN/TRUNC/ROUNDUP/ROUNDDOWN expressions include unary negatives, subtraction, optional and signed digit arguments and nested ABS; independent numeric/decimal computations agree with native caches.'
     manifest['qualification'] += ' EXP/LN/LOG/LOG10 cases include optional/explicit bases, nesting and exponentiation. Their exact producer caches are retained; independent transcendental computations use the recorded relative/absolute tolerance, not exact binary equality.'
     manifest['qualification'] += ' Ten CEILING/FLOOR expressions qualify signed multiples, zero significance and native omitted node-22 operands. Independent decimal computations agree exactly with stored Decimal128 coefficient/exponent values. Raw cache bytes and the independent provider float (which can add a binary rounding step) are retained separately.'
+    manifest['qualification'] += ' Five PRODUCT/RADIANS/SUMSQ expressions qualify scalar numeric operands and one explicit numeric text literal; referenced ranges, unions and arrays are not covered by these cases.'
 args.output.write_text(json.dumps(manifest, indent=2) + '\n')
 print(f'Extracted {len(cases)} reference, {len(scalar_cases)} scalar and {len(numeric_cases)} numeric formulas from {source_hash}')

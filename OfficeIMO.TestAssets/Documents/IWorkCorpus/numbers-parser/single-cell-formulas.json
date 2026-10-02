@@ -12,7 +12,7 @@
     "M12.2-7035.0.159-2",
     "M13.1-7037.0.101-2"
   ],
-  "qualification": "Native node-36 target identities and mixed coordinates, plus selected scalar function nodes; independent computations agree with numeric/text/Boolean caches. Scalar text cases use ASCII literals. Build metadata is retained in this manifest. No Apple export/render oracle. Numeric INT/MOD/SQRT/SIGN/TRUNC/ROUNDUP/ROUNDDOWN expressions include unary negatives, subtraction, optional and signed digit arguments and nested ABS; independent numeric/decimal computations agree with native caches. EXP/LN/LOG/LOG10 cases include optional/explicit bases, nesting and exponentiation. Their exact producer caches are retained; independent transcendental computations use the recorded relative/absolute tolerance, not exact binary equality. Ten CEILING/FLOOR expressions qualify signed multiples, zero significance and native omitted node-22 operands. Independent decimal computations agree exactly with stored Decimal128 coefficient/exponent values. Raw cache bytes and the independent provider float (which can add a binary rounding step) are retained separately.",
+  "qualification": "Native node-36 target identities and mixed coordinates, plus selected scalar function nodes; independent computations agree with numeric/text/Boolean caches. Scalar text cases use ASCII literals. Build metadata is retained in this manifest. No Apple export/render oracle. Numeric INT/MOD/SQRT/SIGN/TRUNC/ROUNDUP/ROUNDDOWN expressions include unary negatives, subtraction, optional and signed digit arguments and nested ABS; independent numeric/decimal computations agree with native caches. EXP/LN/LOG/LOG10 cases include optional/explicit bases, nesting and exponentiation. Their exact producer caches are retained; independent transcendental computations use the recorded relative/absolute tolerance, not exact binary equality. Ten CEILING/FLOOR expressions qualify signed multiples, zero significance and native omitted node-22 operands. Independent decimal computations agree exactly with stored Decimal128 coefficient/exponent values. Raw cache bytes and the independent provider float (which can add a binary rounding step) are retained separately. Five PRODUCT/RADIANS/SUMSQ expressions qualify scalar numeric operands and one explicit numeric text literal; referenced ranges, unions and arrays are not covered by these cases.",
   "cases": [
     {
       "sourceSheet": "Reference",
@@ -921,6 +921,103 @@
     {
       "sourceSheet": "Math",
       "sourceTable": "Tests",
+      "row": 94,
+      "column": 2,
+      "sourceFormula": "PRODUCT(1,2,3,4,5)",
+      "cachedValue": 120.0,
+      "computedCurrentValue": 120.0,
+      "nodeTypes": [
+        17,
+        17,
+        17,
+        17,
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 113,
+          "name": "PRODUCT",
+          "argumentCount": 5
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 95,
+      "column": 2,
+      "sourceFormula": "PRODUCT(1,2,3,4,5,\"2\")",
+      "cachedValue": 240.0,
+      "computedCurrentValue": 240.0,
+      "nodeTypes": [
+        17,
+        17,
+        17,
+        17,
+        17,
+        19,
+        16
+      ],
+      "functions": [
+        {
+          "index": 113,
+          "name": "PRODUCT",
+          "argumentCount": 6
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 101,
+      "column": 2,
+      "sourceFormula": "RADIANS(0)",
+      "cachedValue": 0.0,
+      "computedCurrentValue": 0.0,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 117,
+          "name": "RADIANS",
+          "argumentCount": 1
+        }
+      ],
+      "computationTolerance": {
+        "relative": 1e-14,
+        "absolute": 1e-15
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 102,
+      "column": 2,
+      "sourceFormula": "RADIANS(270)",
+      "cachedValue": 4.71238898038469,
+      "computedCurrentValue": 4.71238898038469,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 117,
+          "name": "RADIANS",
+          "argumentCount": 1
+        }
+      ],
+      "computationTolerance": {
+        "relative": 1e-14,
+        "absolute": 1e-15
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
       "row": 114,
       "column": 2,
       "sourceFormula": "ROUNDDOWN(-3.14159,1)",
@@ -1239,6 +1336,27 @@
           "index": 139,
           "name": "SQRT",
           "argumentCount": 1
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 152,
+      "column": 2,
+      "sourceFormula": "SUMSQ(3,4)",
+      "cachedValue": 25.0,
+      "computedCurrentValue": 25.0,
+      "nodeTypes": [
+        17,
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 147,
+          "name": "SUMSQ",
+          "argumentCount": 2
         }
       ]
     },

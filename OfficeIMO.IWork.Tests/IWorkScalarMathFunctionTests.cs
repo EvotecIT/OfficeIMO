@@ -4,6 +4,9 @@ namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkBoundaryTests {
     [Theory]
+    [InlineData(113, "PRODUCT", 5, 120d)]
+    [InlineData(117, "RADIANS", 1, Math.PI / 180d)]
+    [InlineData(147, "SUMSQ", 2, 5d)]
     [InlineData(17, "CEILING", 2, 2d)]
     [InlineData(55, "FLOOR", 2, 0d)]
     [InlineData(65, "INT", 1, 1d)]
@@ -64,6 +67,7 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Theory]
+    [InlineData(117, 1)]
     [InlineData(17, 2)]
     [InlineData(55, 2)]
     [InlineData(65, 1)]

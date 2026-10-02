@@ -223,6 +223,16 @@
       "sampleArgumentCount": 3
     },
     {
+      "index": 113,
+      "name": "PRODUCT",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 117,
+      "name": "RADIANS",
+      "sampleArgumentCount": 1
+    },
+    {
       "index": 119,
       "name": "RANDBETWEEN",
       "sampleArgumentCount": 2
@@ -266,6 +276,11 @@
       "index": 145,
       "name": "SUMIF",
       "sampleArgumentCount": 2
+    },
+    {
+      "index": 147,
+      "name": "SUMSQ",
+      "sampleArgumentCount": 1
     },
     {
       "index": 155,
