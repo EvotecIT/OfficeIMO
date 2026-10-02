@@ -35,7 +35,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         ref int approximatedRuns, ref int approximatedBookmarkRanges, ref int unsupportedMeasurements,
         ref int approximatedFontFamilyLists, ref int unsupportedFontFamilies,
         ref int mappedFields, ref int unsupportedFields,
-        HashSet<XElement> handledUnsupportedFieldElements, NoteMappingStats notes) {
+        HashSet<XElement> handledFieldElements, NoteMappingStats notes) {
         foreach (OdtParagraph paragraph in source.Paragraphs) {
             WordParagraph converted = target.AddParagraph();
             if (paragraph.HeadingLevel.HasValue)
@@ -43,13 +43,13 @@ public static partial class WordOpenDocumentConversionExtensions {
             CopyParagraph(paragraph, converted, options, textCaseCulture, ref hyperlinks, ref externalHyperlinks,
                 ref images, ref bookmarks, ref approximatedRuns, ref approximatedBookmarkRanges,
                 ref unsupportedMeasurements, ref approximatedFontFamilyLists, ref unsupportedFontFamilies,
-                ref mappedFields, ref unsupportedFields, handledUnsupportedFieldElements, notes, allowNotes: false);
+                ref mappedFields, ref unsupportedFields, handledFieldElements, notes, allowNotes: false);
         }
     }
 
     private static void CopyOdtHeaderFooterFallback(OdtHeaderFooter source, WordHeaderFooter target,
         WordOpenDocumentConversionOptions options, CultureInfo textCaseCulture,
-        HashSet<XElement> handledUnsupportedFieldElements) {
+        HashSet<XElement> handledFieldElements) {
         // The fallback renders the same source story in another page slot; it is not another source item.
         int hyperlinks = 0, externalHyperlinks = 0, images = 0, bookmarks = 0;
         int approximatedRuns = 0, approximatedBookmarkRanges = 0, unsupportedMeasurements = 0;
@@ -58,6 +58,6 @@ public static partial class WordOpenDocumentConversionExtensions {
         CopyOdtHeaderFooter(source, target, options, textCaseCulture, ref hyperlinks, ref externalHyperlinks,
             ref images, ref bookmarks, ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
             ref approximatedFontFamilyLists, ref unsupportedFontFamilies, ref mappedFields, ref unsupportedFields,
-            handledUnsupportedFieldElements, duplicateNotes);
+            handledFieldElements, duplicateNotes);
     }
 }

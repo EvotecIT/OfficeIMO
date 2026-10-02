@@ -46,7 +46,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         ref int bookmarks, ref int approximatedRuns, ref int approximatedBookmarkRanges, ref int unsupportedMeasurements,
         ref int approximatedFontFamilyLists, ref int unsupportedFontFamilies,
         ref int mappedFields, ref int unsupportedFields,
-        HashSet<System.Xml.Linq.XElement> handledUnsupportedFieldElements, NoteMappingStats notes,
+        HashSet<System.Xml.Linq.XElement> handledFieldElements, NoteMappingStats notes,
         OdfConversionReport report, WordTableCell? parentCell = null) {
         int rows = Math.Max(1, source.Rows.Count);
         int columns = Math.Max(1, source.Rows.Select(row => row.Cells.Count).DefaultIfEmpty(1).Max());
@@ -59,39 +59,38 @@ public static partial class WordOpenDocumentConversionExtensions {
                 if (cell.IsCovered) continue;
                 WordTableCell targetCell = target.Rows[row].Cells[column];
                 bool firstBlock = true;
-                WordList? currentList = null;
-                bool? currentOrdered = null;
+                var listState = new OdtListConversionState();
                 foreach (OdtContentBlock block in cell.ReadContentBlocks()) {
                     if (block.Table != null) {
                         ConvertTable(block.Table, targetDocument, options, textCaseCulture, ref hyperlinks, ref externalHyperlinks,
                             ref images, ref bookmarks, ref approximatedRuns, ref approximatedBookmarkRanges,
                             ref unsupportedMeasurements, ref approximatedFontFamilyLists, ref unsupportedFontFamilies,
-                            ref mappedFields, ref unsupportedFields, handledUnsupportedFieldElements, notes, report, targetCell);
+                            ref mappedFields, ref unsupportedFields, handledFieldElements, notes, report, targetCell);
                         report.Add("nested-tables", OdfConversionMappingStatus.Converted, 1);
-                        currentList = null;
-                        currentOrdered = null;
                     } else {
                         WordParagraph targetParagraph;
                         if (block.IsListItem) {
-                            bool ordered = block.IsOrderedList == true;
-                            if (currentList == null || currentOrdered != ordered) {
-                                currentList = targetCell.AddList(ordered ? WordListStyle.Numbered : WordListStyle.Bulleted);
-                                currentOrdered = ordered;
+                            targetParagraph = listState.AddParagraph(block,
+                                ordered => targetCell.AddList(ordered ? WordListStyle.Numbered : WordListStyle.Bulleted),
+                                () => targetCell.AddParagraph(removeExistingParagraphs: firstBlock), paragraph => {
+                                    paragraph._paragraph.Remove();
+                                    targetCell._tableCell.Append(paragraph._paragraph);
+                                }, report, out bool createdList);
+                            if (createdList) {
                                 report.Add("table-cell-lists", OdfConversionMappingStatus.Converted, 1);
                             }
-                            targetParagraph = currentList.AddItem(null, Math.Max(0, Math.Min(8, block.ListLevel)));
-                            if (block.ListLevel > 8) report.Add("list-levels", OdfConversionMappingStatus.Approximated, 1);
                         } else {
-                            currentList = null;
-                            currentOrdered = null;
                             targetParagraph = targetCell.AddParagraph(removeExistingParagraphs: firstBlock);
-                            if (block.Paragraph!.IsHeading) targetParagraph.Style = HeadingStyle(block.Paragraph.HeadingLevel ?? 1);
+                        }
+                        if (block.Paragraph!.IsHeading) {
+                            if (block.Paragraph.HeadingLevel > 9) report.Add("heading-levels", OdfConversionMappingStatus.Approximated, 1);
+                            targetParagraph.Style = HeadingStyle(block.Paragraph.HeadingLevel ?? 1);
                         }
                         CopyParagraph(block.Paragraph!, targetParagraph, options, textCaseCulture, ref hyperlinks,
                             ref externalHyperlinks, ref images, ref bookmarks, ref approximatedRuns,
                             ref approximatedBookmarkRanges, ref unsupportedMeasurements,
                             ref approximatedFontFamilyLists, ref unsupportedFontFamilies,
-                            ref mappedFields, ref unsupportedFields, handledUnsupportedFieldElements, notes);
+                            ref mappedFields, ref unsupportedFields, handledFieldElements, notes);
                     }
                     firstBlock = false;
                 }

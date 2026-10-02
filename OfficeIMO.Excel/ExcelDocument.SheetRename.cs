@@ -334,8 +334,8 @@ namespace OfficeIMO.Excel {
                 && TryReadSheetToken(text, afterFirstToken + 1, out string? secondSheetName, out int afterSecondToken, out bool secondExternal)
                 && afterSecondToken < text.Length
                 && text[afterSecondToken] == '!'
-                && !firstExternal
-                && !secondExternal) {
+                && (!firstExternal || sheetNameMap.ContainsKey(firstSheetName!))
+                && (!secondExternal || sheetNameMap.ContainsKey(secondSheetName!))) {
                 string rewrittenFirst = ResolveMappedSheetName(firstSheetName!, sheetNameMap, out bool firstChanged);
                 string rewrittenSecond = ResolveMappedSheetName(secondSheetName!, sheetNameMap, out bool secondChanged);
                 if (!firstChanged && !secondChanged) {
@@ -347,12 +347,13 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (afterFirstToken >= text.Length || text[afterFirstToken] != '!' || firstExternal) {
+            if (afterFirstToken >= text.Length || text[afterFirstToken] != '!' ||
+                (firstExternal && !sheetNameMap.ContainsKey(firstSheetName!))) {
                 return false;
             }
 
-            // Imported formats may allow ':' inside a sheet name. An explicit
-            // whole-token mapping takes precedence over Excel's 3D range syntax.
+            // Imported formats may allow ':' or ']' inside an internal sheet
+            // name. An explicit whole-token map resolves that ambiguity.
             if (!sheetNameMap.ContainsKey(firstSheetName!) &&
                 TrySplitQuotedThreeDimensionalSheetRange(firstSheetName!, out string? firstRangeSheet, out string? secondRangeSheet)) {
                 string rewrittenFirst = ResolveMappedSheetName(firstRangeSheet!, sheetNameMap, out bool firstChanged);

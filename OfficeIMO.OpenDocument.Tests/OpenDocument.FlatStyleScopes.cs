@@ -48,6 +48,71 @@ public sealed class OpenDocumentFlatStyleScopeTests {
         Assert.True(loaded.Validate().IsValid);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FlatStyleCollisionsPreserveFamilyAndCommonStyleReferences(bool commonTextStyle) {
+        OdtDocument source = OdtDocument.Create();
+        OdtParagraph body = source.AddParagraph("Body");
+        body.Bold = true;
+        OdtParagraph header = source.PageLayout.Header.AddParagraph("Header ");
+        header.Italic = true;
+        OdtSpan span = header.AddSpan("Span");
+        span.Bold = true;
+        foreach (var pair in new[] {
+            (OdfStyleFamily.Paragraph, body.StyleName!, "content.xml"),
+            (OdfStyleFamily.Paragraph, header.StyleName!, "styles.xml"),
+            (OdfStyleFamily.Text, span.StyleName!, "styles.xml") }) {
+            source.Styles.FindInPart(pair.Item1, pair.Item2, pair.Item3)!.Element
+                .SetAttributeValue(OdfNamespaces.Style + "name", "Shared");
+        }
+        if (commonTextStyle) {
+            XElement textStyle = source.Package.GetXml("styles.xml").Root!.Element(OdfNamespaces.Office + "automatic-styles")!
+                .Elements(OdfNamespaces.Style + "style").Single(element => (string?)element.Attribute(OdfNamespaces.Style + "family") == "text");
+            textStyle.Remove();
+            source.Package.GetXml("styles.xml").Root!.Element(OdfNamespaces.Office + "styles")!.Add(textStyle);
+        }
+        body.StyleName = header.StyleName = span.StyleName = "Shared";
+        source.Package.MarkXmlDirty("content.xml");
+        source.Package.MarkXmlDirty("styles.xml");
+        using var stream = new MemoryStream();
+        source.ToFlatXml().Save(stream);
+        stream.Position = 0;
+        OdtDocument loaded = OdtDocument.LoadFlatXml(stream);
+        Assert.True(loaded.ContentBlocks.Single().Paragraph!.Bold);
+        OdtParagraph loadedHeader = loaded.PageLayout.Header.Paragraphs.Single();
+        Assert.True(loadedHeader.Italic);
+        Assert.True(loadedHeader.Spans.Single().Bold);
+        Assert.True(loaded.Validate().IsValid);
+    }
+
+    [Fact]
+    public void IdenticalStylesKeepTheirPartLocalDataStyleDependencies() {
+        OdtDocument source = OdtDocument.Create();
+        OdtParagraph body = source.AddParagraph("Body");
+        body.Bold = true;
+        OdtParagraph header = source.PageLayout.Header.AddParagraph("Header");
+        header.Bold = true;
+        foreach (var part in new[] { "content.xml", "styles.xml" }) {
+            XElement automatic = source.Package.GetXml(part).Root!.Element(OdfNamespaces.Office + "automatic-styles")!;
+            XElement paragraph = automatic.Elements(OdfNamespaces.Style + "style").Single();
+            paragraph.SetAttributeValue(OdfNamespaces.Style + "name", "Shared");
+            paragraph.SetAttributeValue(OdfNamespaces.Style + "data-style-name", "Format");
+            automatic.Add(new XElement(OdfNamespaces.Number + "number-style", new XAttribute(OdfNamespaces.Style + "name", "Format"),
+                new XElement(OdfNamespaces.Number + "number", new XAttribute(OdfNamespaces.Number + "decimal-places", part == "content.xml" ? 1 : 2))));
+            source.Package.MarkXmlDirty(part);
+        }
+        body.StyleName = header.StyleName = "Shared";
+        XDocument flat = source.ToFlatXml();
+        XElement definitions = flat.Root!.Element(OdfNamespaces.Office + "automatic-styles")!;
+        XElement masterParagraph = flat.Descendants(OdfNamespaces.Style + "header").Single().Element(OdfNamespaces.Text + "p")!;
+        XElement masterStyle = definitions.Elements(OdfNamespaces.Style + "style").Single(element =>
+            (string?)element.Attribute(OdfNamespaces.Style + "name") == (string?)masterParagraph.Attribute(OdfNamespaces.Text + "style-name"));
+        XElement format = definitions.Elements(OdfNamespaces.Number + "number-style").Single(element =>
+            (string?)element.Attribute(OdfNamespaces.Style + "name") == (string?)masterStyle.Attribute(OdfNamespaces.Style + "data-style-name"));
+        Assert.Equal("2", (string?)format.Element(OdfNamespaces.Number + "number")!.Attribute(OdfNamespaces.Number + "decimal-places"));
+    }
+
     [Fact]
     public void SparseReadIndexesTrackNativeAndMarkedXmlEditsWithoutExpandingRuns() {
         OdsDocument source = OdsDocument.Create();
