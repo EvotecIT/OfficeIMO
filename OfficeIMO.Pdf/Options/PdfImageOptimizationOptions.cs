@@ -50,7 +50,7 @@ public sealed class PdfImageOptimizationOptions {
     /// <summary>Sampling mode used when source pixels are reduced.</summary>
     public OfficeRasterResamplingMode ResamplingMode { get; set; } = OfficeRasterResamplingMode.Bilinear;
 
-    /// <summary>Quality used when a JPEG source is downsampled. Defaults to 85.</summary>
+    /// <summary>Quality used when a JPEG source is downsampled or recompressed. Defaults to 85.</summary>
     public int JpegQuality {
         get => _jpegQuality;
         set {
@@ -68,7 +68,7 @@ public sealed class PdfImageOptimizationOptions {
     public OfficeImageMetadataPolicy MetadataPolicy { get; set; } = OfficeImageMetadataPolicy.Preserve;
     /// <summary>Metadata categories retained by selective copying.</summary>
     public OfficeImageMetadataKinds MetadataSelection { get; set; } = OfficeImageMetadataKinds.All;
-    /// <summary>Permits reported metadata loss. False preserves the original image if metadata would be lost.</summary>
+    /// <summary>Permits reported metadata loss or deliberate stripping. False preserves the original image if metadata would be removed.</summary>
     public bool AllowMetadataLoss { get; set; }
 
     /// <summary>Creates an independent copy of these options.</summary>
