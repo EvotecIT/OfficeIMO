@@ -80,7 +80,7 @@ A readable feature is not automatically writable to DOC. DOCX can represent a br
 
 The native writer covers the tested binary subset, including paragraphs and runs, common formatting, styles, sections and page setup, supported headers and footers, simple tables and supported nesting, bookmarks, supported hyperlinks and static fields, footnotes and endnotes, and scalar document properties.
 
-The writer also covers supported inline pictures and inset source crops. `OptimizeImages` can downsample or recompress their projected media before a native DOC save. Default fonts and Normal style formatting are materialized in the native stylesheet, including multiple, exact and at-least line spacing. Paragraph boundaries are retained even when adjacent paragraphs have identical formatting.
+The writer also covers supported inline pictures and inset source crops. `OptimizeImages` can downsample or recompress their projected media before a native DOC save. Default fonts and Normal style formatting are materialized in the native stylesheet, including multiple, exact and at-least line spacing. Exact line spacing accepts 1–31,680 twips; exact zero is unrepresentable in DOC and is rejected before writing output. Paragraph boundaries are retained even when adjacent paragraphs have identical formatting.
 
 The writer preflights the complete document before committing output. Unsupported destination features, including floating drawings, rotated or mirrored inline pictures, unsupported image effects, embedded objects, and richer table/story structures, raise `NotSupportedException` and leave an existing destination intact. The [generated capability matrix](Compatibility/generated/word-legacy-doc.md) lists the current feature families.
 

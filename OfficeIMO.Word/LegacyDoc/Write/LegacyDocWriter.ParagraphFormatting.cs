@@ -532,7 +532,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             if (lineSpacingTwips.HasValue) {
                 if (lineSpacingTwips < 0 || lineSpacingTwips > 31680)
                     throw new NotSupportedException("Native DOC line spacing must be between 0 and 31680.");
-                if (lineRule == LineSpacingRuleValues.Exact) lineSpacingTwips = -lineSpacingTwips.Value;
+                if (lineRule == LineSpacingRuleValues.Exact) {
+                    // DOC represents exact spacing with a negative LSPD value;
+                    // zero would instead mean at-least single spacing.
+                    if (lineSpacingTwips.Value == 0)
+                        throw new NotSupportedException("Native DOC saving cannot represent exact zero line spacing. Use a positive exact spacing value.");
+                    lineSpacingTwips = -lineSpacingTwips.Value;
+                }
             }
         }
 

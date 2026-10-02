@@ -9,6 +9,8 @@ public partial class Word {
     [InlineData(WordLineSpacingRule.Auto, 276)]
     [InlineData(WordLineSpacingRule.Exact, 320)]
     [InlineData(WordLineSpacingRule.AtLeast, 360)]
+    [InlineData(WordLineSpacingRule.Auto, 0)]
+    [InlineData(WordLineSpacingRule.AtLeast, 0)]
     public void LegacyDoc_LineSpacingRuleSurvivesNativeSave(WordLineSpacingRule rule, int value) {
         using WordDocument source = WordDocument.Create();
         var first = source.AddParagraph("First");
@@ -37,6 +39,54 @@ public partial class Word {
             Assert.Equal(rule, p.LineSpacingRule);
             Assert.Equal(160, p.LineSpacingAfter);
         });
+    }
+
+    [Theory]
+    [InlineData("body")]
+    [InlineData("header")]
+    [InlineData("Normal")]
+    [InlineData("custom")]
+    public void LegacyDoc_ExactZeroLineSpacingIsRejectedBeforeWriting(string location) {
+        using WordDocument source = WordDocument.Create();
+        var paragraph = source.AddParagraph("Main body");
+        if (location == "header") {
+            source.AddHeadersAndFooters();
+            paragraph = source.Header.Default!.AddParagraph("Header");
+        }
+        if (location is "body" or "header") {
+            paragraph.LineSpacing = 0;
+            paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+        } else {
+            var styles = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            Style style;
+            if (location == "Normal") {
+                style = styles.Elements<Style>().SingleOrDefault(item => item.StyleId?.Value == "Normal")!;
+                if (style == null) {
+                    style = new Style(new StyleName { Val = "Normal" }) {
+                        Type = StyleValues.Paragraph, StyleId = "Normal", Default = true
+                    };
+                    styles.Append(style);
+                }
+            } else {
+                style = new Style(new StyleName { Val = "Exact zero" }) {
+                    Type = StyleValues.Paragraph, StyleId = "ExactZero"
+                };
+                styles.Append(style);
+                paragraph.SetStyleId("ExactZero");
+            }
+            style.StyleParagraphProperties ??= new StyleParagraphProperties();
+            style.StyleParagraphProperties.SpacingBetweenLines = new SpacingBetweenLines {
+                Line = "0", LineRule = LineSpacingRuleValues.Exact
+            };
+        }
+
+        Assert.False(source.AssessLegacyDocWrite().IsSupported);
+        byte[] existing = new byte[] { 1, 2, 3, 4 };
+        using var destination = new MemoryStream();
+        destination.Write(existing, 0, existing.Length);
+        destination.Position = 0;
+        Assert.Throws<NotSupportedException>(() => source.Save(destination, WordFileFormat.Doc));
+        Assert.Equal(existing, destination.ToArray());
     }
 
     [Theory]
