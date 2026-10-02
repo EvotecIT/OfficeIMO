@@ -52,6 +52,7 @@ public static partial class OfficeSvgDrawingReader {
         out int unsupportedFeatureCount) {
         drawing = null;
         unsupportedFeatureCount = 0;
+        options?.CancellationToken.ThrowIfCancellationRequested();
         if (!TryReadBoundedDocument(
                 bytes,
                 options,
@@ -80,7 +81,8 @@ public static partial class OfficeSvgDrawingReader {
             bool pathCommandLimitExceeded = false;
             SvgDefinitionRegistry definitions = SvgDefinitionRegistry.Create(root);
             var paintServers = new SvgPaintServerRegistry(definitions);
-            var references = new SvgElementReferenceRegistry(definitions, options?.ForeignObjectRenderer);
+            var references = new SvgElementReferenceRegistry(definitions, options?.ForeignObjectRenderer,
+                options?.CancellationToken ?? default);
             bool fitsRootViewport = Math.Abs(viewportWidth - viewWidth) < 0.000001D &&
                 Math.Abs(viewportHeight - viewHeight) < 0.000001D;
             // Fitting a viewBox retains its full scene as an effect surface alongside

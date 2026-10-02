@@ -79,8 +79,9 @@ public static partial class OfficeSvgDrawingReader {
         private const int MaximumExpandedTextCharacters = 131_072;
         private int _expandedTextCharacters;
         private int _patternStrokeOperations;
-        private const double MaximumIntermediateSurfacePixels = 64_000_000D;
+        internal const double MaximumIntermediateSurfacePixels = 64_000_000D;
         private double _intermediateSurfacePixels;
+        private double _filterPixelWork;
         private const long MaximumEmbeddedRasterBytes = 64L * 1024L * 1024L;
         private long _embeddedRasterBytes;
         private readonly Dictionary<XAttribute, (byte[] Bytes, string ContentType, OfficeImageInfo Info)> _embeddedRasters =
@@ -101,12 +102,15 @@ public static partial class OfficeSvgDrawingReader {
 
         internal SvgElementReferenceRegistry(
             SvgDefinitionRegistry definitions,
-            OfficeSvgForeignObjectRenderer? foreignObjectRenderer = null) {
+            OfficeSvgForeignObjectRenderer? foreignObjectRenderer = null,
+            System.Threading.CancellationToken cancellationToken = default) {
             _definitions = definitions;
             ForeignObjectRenderer = foreignObjectRenderer;
+            CancellationToken = cancellationToken;
         }
 
         internal OfficeSvgForeignObjectRenderer? ForeignObjectRenderer { get; }
+        internal System.Threading.CancellationToken CancellationToken { get; }
 
         internal XNamespace NativeNamespace => _definitions.NativeNamespace;
 
@@ -139,6 +143,17 @@ public static partial class OfficeSvgDrawingReader {
 
         internal bool TryChargeIntermediateSurface(double width, double height, int surfaces = 1) =>
             TryChargeIntermediatePixels(width * height * surfaces);
+
+        // Float RGBA buffers use four times the bytes of an ordinary RGBA surface.
+        // Charge every result and temporary before allocation, and repeated filter work
+        // cumulatively across the same SVG document.
+        internal bool TryChargeFilterGraph(double pixels, int surfaces, double work) {
+            if (double.IsNaN(work) || double.IsInfinity(work) || work < 0D ||
+                work > MaximumIntermediateSurfacePixels - _filterPixelWork ||
+                !TryChargeIntermediatePixels(pixels * surfaces)) return false;
+            _filterPixelWork += work;
+            return true;
+        }
 
         internal bool TryChargeEffectSurfaces(double width, double height, bool hasSoftMask) =>
             TryChargeIntermediateSurface(width, height, hasSoftMask ? 4 : 1);
