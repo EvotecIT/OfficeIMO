@@ -1,0 +1,72 @@
+{
+  "sourceRevision": "d9121dc0205e230bc72b21d0fbbd9736b0f57109",
+  "application": {
+    "name": "Microsoft Word for Mac",
+    "version": "16.112.4",
+    "build": "16.112.26090911"
+  },
+  "conversion": {
+    "mode": "EditableOnly",
+    "allowPartialEditableReconstruction": true
+  },
+  "documents": [
+    {
+      "source": "iwork-converter/a.pages",
+      "sourceSha256": "8481E3071C8EA1CC9543354BCD1FF66F79E6C2C8686096FA3AE60AB96FD49EBF",
+      "output": "contract.docx",
+      "outputSha256": "172A1FA5D8E724A565C3AB013164451BF48D884FB2654132BD7AA05C5C0C209C",
+      "paragraphs": 45,
+      "tables": 1,
+      "images": 0,
+      "validationErrors": [],
+      "diagnostics": [
+        "IWORK_SOURCE_READ",
+        "IWORK_PAGES_TEXT_UNSUPPORTED",
+        "IWORK_TABLE_MERGE_UNSUPPORTED",
+        "IWORK_TABLE_CELL_LAYOUT_UNSUPPORTED",
+        "IWORK_PAGES_DOCX_PRECISION",
+        "IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED",
+        "IWORK_PAGES_NUMBER_FORMAT_APPROXIMATED",
+        "IWORK_PARTIAL_EDITABLE_RECONSTRUCTION"
+      ]
+    },
+    {
+      "source": "picodocs/sample-v14.4.pages",
+      "sourceSha256": "4714477138D0A4090FC2EE2BA2EBB6ADCD0FB6CE20A28897A6247A8E17D1DDCE",
+      "output": "tables-and-image.docx",
+      "outputSha256": "799A123949C373AF856DC3F71B2FDBBF3CA79870A80F01F917056E7FF82566B4",
+      "paragraphs": 28,
+      "tables": 3,
+      "images": 1,
+      "validationErrors": [],
+      "diagnostics": [
+        "IWORK_SOURCE_READ",
+        "IWORK_PAGES_TEXT_UNSUPPORTED",
+        "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED",
+        "IWORK_TABLE_CELL_FEATURES_UNASSESSED",
+        "IWORK_PAGES_DOCX_PRECISION",
+        "IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED",
+        "IWORK_PAGES_NUMBER_FORMAT_APPROXIMATED",
+        "IWORK_PARTIAL_EDITABLE_RECONSTRUCTION"
+      ]
+    }
+  ],
+  "observations": {
+    "contract.docx": [
+      "Opened without a repair prompt.",
+      "First-page Chinese title, body and table rendered visibly. Word reported the title as SimSun, 26 points, bold and centered. Actual font substitution was not assessed."
+    ],
+    "tables-and-image.docx": [
+      "Opened without a repair prompt; Word reported three pages.",
+      "First-page title, inline emphasis, Unicode and first table rendered visibly. Scrolling showed the embedded quarterly chart and external-link text.",
+      "Comparison with the source package preview shows ordered items rendered as bullets and different pagination. The source preview header and footer are absent from the inspected first page."
+    ]
+  },
+  "limits": [
+    "Manual destination application inspection, not a native Apple DOCX export or full document fidelity qualification.",
+    "Source comparison is limited to the embedded first-page preview.",
+    "Screenshots are retained in the originating task tool history; generated DOCX bytes and conversion harness are task artifacts, not checked-in reference exports.",
+    "No editing, link activation or Word save was performed."
+  ],
+  "licensing": "Existing corpus source licensing and notices apply."
+}

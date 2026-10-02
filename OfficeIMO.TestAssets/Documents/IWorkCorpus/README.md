@@ -30,6 +30,8 @@ The unchanged `nim-iwork/simple.key` fixture exercises a two-slide Keynote 14.5 
 
 The unchanged Pages 14.1 `iwork-converter/a.pages` fixture exercises a 45-paragraph source body through explicitly accepted partial DOCX conversion, save and reopen. The corpus test compares non-empty body paragraphs in order and checks the title's centered alignment, bold styling, 26-point size and declared `SimSun` font family. It validates the saved Open XML document. The fixture declares the font name; this test does not distribute or render that font. Inline objects remain incomplete, and native Apple DOCX export, page count and rendered equivalence remain unqualified.
 
+`pages-word-rendering.json` records a bounded manual inspection of this conversion and `picodocs/sample-v14.4.pages` in Microsoft Word for Mac 16.112.4. Both DOCX files opened without repair prompts; representative titles, body text, a table and the embedded chart rendered visibly. The source first-page preview comparison confirms remaining differences, including ordered items rendered as bullets, omitted header/footer content and pagination. This qualifies destination opening and the inspected content only; native Apple export and rendered equivalence remain unqualified.
+
 ## Pages inline attachment positions
 
 `pages-inline-anchors.json` records five image/table attachment positions from the unmodified `iwork-converter/a.pages` and `picodocs/sample-v14.4.pages` fixtures. The existing provenance, hashes and license notices above apply. Positions are UTF-16 offsets in native text storage, before object-marker removal. The manifest is extracted through the independent numbers-parser 4.19.0 schemas:
