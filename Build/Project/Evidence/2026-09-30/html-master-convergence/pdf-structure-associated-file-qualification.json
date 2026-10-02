@@ -1,0 +1,171 @@
+{
+  "recordedUtc": "2026-10-02T01:41:02.339723+00:00",
+  "sourceCommit": "062d6b03d7a10d20d7764947b8710f3188811780",
+  "baseCommit": "25463b728e8dbf91c0fec65c9ccd87e231eaef2c",
+  "reviewedDiffFingerprint": "85ab3aa1ad2df5ea214176e73df8240bb28a7f2f",
+  "scope": "PDF structure-associated-file owner; supplied payloads associate to individual tags. No HTML source producer.",
+  "contracts": [
+    "Per-tag AF/filespec mapping and recoverable exact supplied bytes.",
+    "Snapshot isolation; identical structure-file deduplication and conflicting filename rejection.",
+    "Buffered/forward-only version floor, tagging opt-out and multipage associations.",
+    "PDF2.0 mixed catalog metadata and MIME requirements.",
+    "Explicit profile checks use generated structure-file inventory and effective association version."
+  ],
+  "validation": {
+    "fullPdfNet10": {
+      "passed": 8636,
+      "failed": 0,
+      "skipped": 0
+    },
+    "fullPdfNet8": {
+      "passed": 8636,
+      "failed": 0,
+      "skipped": 0
+    },
+    "netstandard20Build": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "focusedNet10": 13,
+    "reviewRegressionOldCandidate": {
+      "passed": 9,
+      "failed": 4
+    },
+    "independentInspection": {
+      "inspector": "pypdf and Poppler26.09",
+      "noPaintChangeAt144Dpi": true,
+      "exactPayloadRecovery": true,
+      "artifacts": [
+        {
+          "file": "associated-buffered.pdf",
+          "sha256": "60d2d7a6062f5425e549f984de69a5764c1cb2f62cb7f2f9262176f0b13914be",
+          "header": "%PDF-2.0",
+          "pages": 1,
+          "formulas": [
+            {
+              "description": "x squared",
+              "files": [
+                {
+                  "filespec": 7,
+                  "name": "x-squared.mathml",
+                  "relationship": "/Supplement",
+                  "mime": "/application/mathml+xml",
+                  "sourceSha256": "74718d7d5471599caa1e649e49ac3240864a4c059e4ab445aa25efd1ee77a636",
+                  "exactExpectedSource": true,
+                  "parameters": "None"
+                }
+              ]
+            }
+          ],
+          "text": "x^(2)\n\n\f",
+          "popplerWarnings": ""
+        },
+        {
+          "file": "associated-forward.pdf",
+          "sha256": "59e2c1c25ef0b0cf7bcd98a253acd6d50457ae3ecc8d307b03098a7223ad27a6",
+          "header": "%PDF-2.0",
+          "pages": 1,
+          "formulas": [
+            {
+              "description": "x squared",
+              "files": [
+                {
+                  "filespec": 7,
+                  "name": "x-squared.mathml",
+                  "relationship": "/Supplement",
+                  "mime": "/application/mathml+xml",
+                  "sourceSha256": "74718d7d5471599caa1e649e49ac3240864a4c059e4ab445aa25efd1ee77a636",
+                  "exactExpectedSource": true,
+                  "parameters": "None"
+                }
+              ]
+            }
+          ],
+          "text": "x^(2)\n\n\f",
+          "popplerWarnings": ""
+        },
+        {
+          "file": "associated-mixed.pdf",
+          "sha256": "ec205b1784943bda3edff110649d3a331cf686ae2463b31fb31a7d75c992c4d1",
+          "header": "%PDF-2.0",
+          "pages": 1,
+          "formulas": [
+            {
+              "description": "x squared",
+              "files": [
+                {
+                  "filespec": 7,
+                  "name": "x-squared.mathml",
+                  "relationship": "/Supplement",
+                  "mime": "/application/mathml+xml",
+                  "sourceSha256": "74718d7d5471599caa1e649e49ac3240864a4c059e4ab445aa25efd1ee77a636",
+                  "exactExpectedSource": true,
+                  "parameters": "None"
+                }
+              ]
+            }
+          ],
+          "text": "x^(2)\n\n\f",
+          "popplerWarnings": ""
+        },
+        {
+          "file": "baseline.pdf",
+          "sha256": "753aaf8adf7cd09469fbeb4df4c65f01bdd5779f5a0089ca20b8d64a056f415a",
+          "header": "%PDF-1.4",
+          "pages": 1,
+          "formulas": [
+            {
+              "description": "x squared",
+              "files": []
+            }
+          ],
+          "text": "x^(2)\n\n\f",
+          "popplerWarnings": ""
+        },
+        {
+          "file": "readme-example.pdf",
+          "sha256": "60d2d7a6062f5425e549f984de69a5764c1cb2f62cb7f2f9262176f0b13914be",
+          "header": "%PDF-2.0",
+          "pages": 1,
+          "formulas": [
+            {
+              "description": "x squared",
+              "files": [
+                {
+                  "filespec": 7,
+                  "name": "x-squared.mathml",
+                  "relationship": "/Supplement",
+                  "mime": "/application/mathml+xml",
+                  "sourceSha256": "74718d7d5471599caa1e649e49ac3240864a4c059e4ab445aa25efd1ee77a636",
+                  "exactExpectedSource": true,
+                  "parameters": "None"
+                }
+              ]
+            }
+          ],
+          "text": "x^(2)\n\n\f",
+          "popplerWarnings": ""
+        }
+      ]
+    },
+    "evidenceTools": "pypdf, Poppler26.09, PIL; public README consumer compiled/run. Five PDFs; associated outputs pixel-identical to baseline at144dpi. Mixed output visually inspected."
+  },
+  "localReview": {
+    "selectedFor": "Public API/serialization/compliance and defensive snapshot boundary.",
+    "task": "/root/pdf_structure_file_review",
+    "boundary": "candidate-reviewed",
+    "fullPass": 1,
+    "validatedP2": 2,
+    "remediation": "Mixed catalog metadata; effective version and generated structure-file profile inventory.",
+    "targetedConfirmation": 1,
+    "remainingActionableFindings": 0
+  },
+  "evidenceRoot": "Ignore/HtmlUnknownPageQualification/mathml-associated-file-owner",
+  "remaining": [
+    "Original MathML source capture and HTML Formula adapter mapping remain unimplemented and unqualified.",
+    "No independent PDF/A/PDF/UA conformance proof is established by this checkpoint.",
+    "Existing scoped mathematical geometry qualification remains at345893cd8; no new H4/NASA/budget claim.",
+    "Default mathematical fonts/math-auto/full MATH tables and platform qualification remain open."
+  ],
+  "publication": "Branch checkpoint only; no HTML PR/master merge/release."
+}
