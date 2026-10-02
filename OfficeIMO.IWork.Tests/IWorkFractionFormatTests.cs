@@ -51,7 +51,7 @@ public sealed partial class IWorkBoundaryTests {
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, IWorkDocumentKind.Numbers, visual: false,
             readOptions: new IWorkReadOptions { PreserveSourceRecords = false });
-        Assert.Equal("3[1]/6", Assert.Single(report.SourceDeclarationIssues).FieldPath);
+        Assert.Equal("3[1]/6", Assert.Single(report.SourceDeclarationIssues, d => d.Owner.RecordIdentifier == 13).FieldPath);
         Assert.Empty(report.PreservedRecords);
         Assert.Contains(report.Diagnostics, d => d.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED"
             && d.LossKind == global::OfficeIMO.OfficeConversionLossKind.Unassessed);

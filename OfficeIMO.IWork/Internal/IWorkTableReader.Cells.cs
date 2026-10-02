@@ -37,6 +37,7 @@ internal static partial class IWorkTableReader {
         bool hasNumericFormatTarget = type is 2 or 10
             && cell.Kind is IWorkCellKind.Number or IWorkCellKind.Formula
             || cell.Kind == IWorkCellKind.Empty && selectedBlankFormatBit is 13 or 14 && !hasAmbiguousBlankScalarFormats;
+        bool unresolvedNumericFormat = false;
         if (!cell.HasDecodeError && hasNumericFormatTarget
             && (flags & ((1u << 13) | (1u << 14))) != 0) {
             // Currency selection takes precedence over numeric selection in modern storage.
@@ -49,6 +50,7 @@ internal static partial class IWorkTableReader {
             IWorkNumberFormat? format = numberFormats.Read(IWorkProtobuf.ReadUInt32(buffer, formatOffset),
                 currency ? IWorkNumberFormatKind.Currency : IWorkNumberFormatKind.Number);
             if (format != null) cell = cell.WithNumberFormat(format);
+            else unresolvedNumericFormat = true;
         }
         if (!cell.HasDecodeError && (flags & (1u << 5)) != 0) {
             int styleOffset = offset + 12;
@@ -75,6 +77,7 @@ internal static partial class IWorkTableReader {
         // can establish feature presence or select a comment catalog entry.
         IWorkCellUnsupportedFeatures features = hasAmbiguousBlankScalarFormats
             ? IWorkCellUnsupportedFeatures.AmbiguousNumberFormat : IWorkCellUnsupportedFeatures.None;
+        if (unresolvedNumericFormat) features |= IWorkCellUnsupportedFeatures.NumericFormat;
         if ((flags & (1u << 7)) != 0) features |= IWorkCellUnsupportedFeatures.ConditionalStyle;
         if ((flags & (1u << 8)) != 0) features |= IWorkCellUnsupportedFeatures.AppliedConditionalRule;
         if ((flags & (1u << 15)) != 0 && IsActiveFormat(15)) {

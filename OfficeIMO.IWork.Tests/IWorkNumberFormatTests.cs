@@ -79,13 +79,16 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = NumberFormatPackage(IWorkDocumentKind.Numbers, format);
         IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells);
         Assert.Equal(0.5d, cell.Value); Assert.Null(cell.NumberFormat); Assert.False(cell.HasDecodeError);
+        Assert.Equal(IWorkCellUnsupportedFeatures.NumericFormat, cell.UnsupportedFeatures);
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, IWorkDocumentKind.Numbers, visual: false,
             readOptions: new IWorkReadOptions { PreserveSourceRecords = false });
         Assert.True(report.IsPartialEditableReconstruction);
-        IWorkSourceDeclarationIssue issue = Assert.Single(report.SourceDeclarationIssues);
+        IWorkSourceDeclarationIssue issue = Assert.Single(report.SourceDeclarationIssues, issue => issue.Owner.RecordIdentifier == 13);
         Assert.Equal(13ul, issue.Owner.RecordIdentifier); Assert.Equal("3[1]/6", issue.FieldPath);
         Assert.Equal(1, issue.DeclaredValueCount);
+        AssertTileDeclaration(Assert.Single(report.SourceDeclarationIssues, d => d.Owner.RecordIdentifier == 12),
+            "5[1]/6", 1, IWorkSourceDeclarationIssueKind.UnsupportedField);
         Assert.Empty(report.PreservedRecords);
         Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED"
             && diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Unassessed);
@@ -101,7 +104,7 @@ public sealed partial class IWorkBoundaryTests {
         IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells);
         Assert.Null(cell.NumberFormat); Assert.Equal(0.5d, cell.Value);
         package.Position = 0;
-        var issue = Assert.Single(ConvertUnitReport(package, IWorkDocumentKind.Numbers).SourceDeclarationIssues);
+        var issue = Assert.Single(ConvertUnitReport(package, IWorkDocumentKind.Numbers).SourceDeclarationIssues, d => d.Owner.RecordIdentifier == 13);
         Assert.Equal("3[2]/1", issue.FieldPath);
     }
 
@@ -136,7 +139,7 @@ public sealed partial class IWorkBoundaryTests {
             BytesField(3, FormatEntry(NumericFormat(258, 0)))));
         var cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells);
         Assert.Null(cell.NumberFormat); Assert.Equal(0.5d, cell.Value);
-        package.Position = 0; Assert.Single(ConvertUnitReport(package, IWorkDocumentKind.Numbers).SourceDeclarationIssues);
+        package.Position = 0; Assert.Single(ConvertUnitReport(package, IWorkDocumentKind.Numbers).SourceDeclarationIssues, d => d.Owner.RecordIdentifier == 13);
     }
 
     [Fact]
@@ -167,18 +170,30 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal("", Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
     }
 
-    [Fact]
-    public void Unsupported_empty_numeric_format_is_reported_instead_of_silently_dropped() {
-        using var package = EmptyNumericFormatPackage(IWorkDocumentKind.Numbers, NumericFormat(258, 254));
-        var report = ConvertUnitReport(package, IWorkDocumentKind.Numbers, visual: false);
+    [Theory]
+    [InlineData(IWorkDocumentKind.Pages, false)]
+    [InlineData(IWorkDocumentKind.Numbers, false)]
+    [InlineData(IWorkDocumentKind.Keynote, false)]
+    [InlineData(IWorkDocumentKind.Numbers, true)]
+    public void Unsupported_empty_numeric_format_is_reported_instead_of_silently_dropped(IWorkDocumentKind kind, bool currency) {
+        using var package = EmptyNumericFormatPackage(kind, NumericFormat(258, 254), currency: currency);
+        var cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1.Cells);
+        Assert.Equal(IWorkCellKind.Empty, cell.Kind);
+        Assert.Equal(1, cell.Row); Assert.Equal(1, cell.Column);
+        Assert.Null(cell.NumberFormat);
+        Assert.Equal(IWorkCellUnsupportedFeatures.NumericFormat, cell.UnsupportedFeatures);
+        package.Position = 0;
+        var report = ConvertUnitReport(package, kind, visual: false);
         Assert.True(report.IsPartialEditableReconstruction);
         Assert.Contains(report.SourceDeclarationIssues, issue => issue.Owner.RecordIdentifier == 13 && issue.FieldPath == "3[1]/6");
         Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED");
     }
 
-    [Fact]
-    public void Empty_numeric_formats_consume_the_materialized_cell_budget() {
-        using var package = EmptyNumericFormatPackage(IWorkDocumentKind.Numbers, NumericFormat(258, 2), columns: 2);
+    [Theory]
+    [InlineData(2u)]
+    [InlineData(254u)]
+    public void Empty_numeric_formats_consume_the_materialized_cell_budget(uint decimals) {
+        using var package = EmptyNumericFormatPackage(IWorkDocumentKind.Numbers, NumericFormat(258, decimals), columns: 2);
         Assert.Contains("source-wide limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
             new IWorkReadOptions { MaximumMaterializedCells = 1 }).ReadNumbers()).Message);
     }

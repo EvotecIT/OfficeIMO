@@ -29,13 +29,16 @@ public sealed partial class IWorkBoundaryTests {
         if (field == 6) Assert.False(cell.FormulaIsComplete);
         if (field == 5) Assert.Null(table.GetFill(1, 1));
         if (field == 19) Assert.Null(cell.Comment);
-        if (field == 22) Assert.Null(cell.NumberFormat);
-        if (field == 19) {
+        if (field == 22) {
+            Assert.Null(cell.NumberFormat);
+            Assert.Equal(IWorkCellUnsupportedFeatures.NumericFormat, cell.UnsupportedFeatures);
+        }
+        if (field is 19 or 22) {
             var rowIssue = Assert.Single(projection.SourceDeclarationIssues, item => item.Owner.RecordIdentifier == 12);
             Assert.Equal("5[1]/6", rowIssue.FieldPath);
             Assert.Equal(IWorkSourceDeclarationIssueKind.UnsupportedField, rowIssue.Kind);
         }
-        Assert.Equal(field == 19 ? 2 : 1, projection.SourceDeclarationIssues.Count);
+        Assert.Equal(field is 19 or 22 ? 2 : 1, projection.SourceDeclarationIssues.Count);
         var issue = Assert.Single(projection.SourceDeclarationIssues, item => item.Owner.RecordIdentifier == 13);
         Assert.Equal(13ul, issue.Owner.RecordIdentifier);
         Assert.Equal("1", issue.FieldPath);
