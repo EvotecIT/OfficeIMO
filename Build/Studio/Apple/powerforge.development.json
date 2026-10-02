@@ -1,0 +1,87 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/Schemas/powerforge.dotnetpublish.schema.json",
+  "SchemaVersion": 1,
+  "DotNet": {
+    "ProjectRoot": "../../..",
+    "Configuration": "Debug",
+    "Restore": true,
+    "Build": false,
+    "NoRestoreInPublish": false,
+    "NoBuildInPublish": false,
+    "LockedOutputGuard": false,
+    "AllowOutputOutsideProjectRoot": false,
+    "MsBuildProperties": {
+      "UseArtifactsOutput": "true",
+      "ArtifactsPath": "Artifacts/Studio/Development/build",
+      "PublishTrimmed": "false",
+      "IncludeNativeLibrariesForSelfExtract": "false",
+      "IncludeAllContentForSelfExtract": "false"
+    }
+  },
+  "Targets": [
+    {
+      "Name": "Studio.macOS.Development",
+      "Kind": "Desktop",
+      "ProjectPath": "OfficeIMO.Studio/OfficeIMO.Studio.csproj",
+      "Publish": {
+        "Framework": "net10.0",
+        "Runtimes": [
+          "osx-arm64"
+        ],
+        "Style": "PortableCompat",
+        "UseStaging": true,
+        "ClearOutput": true,
+        "KeepSymbols": false,
+        "KeepDocs": false,
+        "Zip": false,
+        "ZipNameTemplate": "OfficeIMO-Studio-{rid}-{style}.zip",
+        "OutputPath": "Artifacts/Studio/Development/publish/{rid}"
+      }
+    }
+  ],
+  "Installers": [
+    {
+      "Id": "OfficeIMO.Studio.macOS.Development",
+      "Kind": "MacApp",
+      "PrepareFromTarget": "Studio.macOS.Development",
+      "Runtimes": [
+        "osx-arm64"
+      ],
+      "Frameworks": [
+        "net10.0"
+      ],
+      "Styles": [
+        "PortableCompat"
+      ],
+      "OutputPath": "Artifacts/Studio/Development/packages/{rid}",
+      "OutputName": "OfficeIMO-Studio-{rid}-development.zip",
+      "MacApp": {
+        "BundleIdentifier": "com.evotec.officeimo.studio",
+        "BundleName": "OfficeIMO Studio",
+        "Version": "0.1.9767",
+        "BuildNumber": "1",
+        "Executable": "OfficeIMO.Studio",
+        "IconPath": "OfficeIMO.Studio/Assets/OfficeIMO.Studio.png",
+        "MinimumSystemVersion": "13.0",
+        "Category": "public.app-category.productivity",
+        "DocumentExtensions": [
+          "pdf",
+          "docx",
+          "xlsx",
+          "pptx"
+        ],
+        "CodesignIdentity": "Apple Development: Przemyslaw Klys (DQF23K8M4L)",
+        "DevelopmentOnly": true,
+        "TeamId": "8ZPGZ79T7J",
+        "HardenedRuntime": true,
+        "Timestamp": false,
+        "EntitlementsPath": "Build/Studio/Apple/Direct.entitlements"
+      }
+    }
+  ],
+  "Outputs": {
+    "ManifestJsonPath": "Artifacts/Studio/Development/manifest.json",
+    "ManifestTextPath": "Artifacts/Studio/Development/manifest.txt",
+    "RunReportPath": "Artifacts/Studio/Development/run-report.json"
+  }
+}
