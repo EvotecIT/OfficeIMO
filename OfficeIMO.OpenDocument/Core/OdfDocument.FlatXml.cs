@@ -13,6 +13,7 @@ public abstract partial class OdfDocument {
 
         XDocument content = GetXml("content.xml");
         XDocument styles = Package.ContainsEntry("styles.xml") ? GetXml("styles.xml") : OdfPackageTemplates.CreateStyles(Version);
+        styles = PrepareFlatStyleScopes(content, styles);
         XDocument meta = Package.ContainsEntry("meta.xml") ? GetXml("meta.xml") : OdfPackageTemplates.CreateMetadata(Version);
         XDocument settings = Package.ContainsEntry("settings.xml") ? GetXml("settings.xml") : OdfPackageTemplates.CreateSettings(Version);
         AddClone(root, meta.Root?.Element(OdfNamespaces.Office + "meta"));
@@ -85,6 +86,7 @@ public abstract partial class OdfDocument {
         ReplaceContainer(content.Root!, OdfNamespaces.Office + "body", body);
 
         XDocument styles = OdfPackageTemplates.CreateStyles(version);
+        ReplaceContainer(styles.Root!, OdfNamespaces.Office + "font-face-decls", root.Element(OdfNamespaces.Office + "font-face-decls"));
         ReplaceContainer(styles.Root!, OdfNamespaces.Office + "styles", root.Element(OdfNamespaces.Office + "styles"));
         ReplaceContainer(styles.Root!, OdfNamespaces.Office + "master-styles", root.Element(OdfNamespaces.Office + "master-styles"));
         SplitFlatAutomaticStyles(root, content.Root!, styles.Root!);
@@ -193,35 +195,34 @@ public abstract partial class OdfDocument {
             namedStyles.Add(element);
         }
 
-        var styleScopedElements = new HashSet<XElement>();
-        var pendingNames = new Queue<string>();
-        var queuedNames = new HashSet<string>(StringComparer.Ordinal);
-        void QueueReferences(XElement element) {
-            foreach (XAttribute attribute in element.DescendantsAndSelf().Attributes()) {
-                if (queuedNames.Add(attribute.Value)) pendingNames.Enqueue(attribute.Value);
+        HashSet<XElement> Reachable(XElement? references, bool includeLayouts) {
+            var found = new HashSet<XElement>();
+            var pending = new Queue<string>();
+            var queued = new HashSet<string>(StringComparer.Ordinal);
+            void Queue(XElement element) {
+                foreach (XAttribute attribute in element.DescendantsAndSelf().Attributes()) {
+                    if (queued.Add(attribute.Value)) pending.Enqueue(attribute.Value);
+                }
             }
-        }
-
-        XElement? masters = flatRoot.Element(OdfNamespaces.Office + "master-styles");
-        if (masters != null) QueueReferences(masters);
-        foreach (XElement element in automaticStyles) {
-            if (element.Name != OdfNamespaces.Style + "page-layout"
-                && element.Name != OdfNamespaces.Style + "presentation-page-layout") continue;
-            if (styleScopedElements.Add(element)) QueueReferences(element);
-        }
-        while (pendingNames.Count > 0) {
-            string name = pendingNames.Dequeue();
-            if (!stylesByName.TryGetValue(name, out List<XElement>? namedStyles)) continue;
-            foreach (XElement element in namedStyles) {
-                if (styleScopedElements.Add(element)) QueueReferences(element);
+            if (references != null) Queue(references);
+            if (includeLayouts) foreach (XElement element in automaticStyles) {
+                if (element.Name == OdfNamespaces.Style + "page-layout" || element.Name == OdfNamespaces.Style + "presentation-page-layout") {
+                    found.Add(element); Queue(element);
+                }
             }
+            while (pending.Count > 0) {
+                if (!stylesByName.TryGetValue(pending.Dequeue(), out List<XElement>? namedStyles)) continue;
+                foreach (XElement element in namedStyles) if (found.Add(element)) Queue(element);
+            }
+            return found;
         }
-
+        HashSet<XElement> styleScopedElements = Reachable(flatRoot.Element(OdfNamespaces.Office + "master-styles"), true);
+        HashSet<XElement> contentScopedElements = Reachable(flatRoot.Element(OdfNamespaces.Office + "body"), false);
         var styleScoped = new List<XElement>();
         var contentScoped = new List<XElement>();
         foreach (XElement element in automaticStyles) {
-            bool belongsToStyles = styleScopedElements.Contains(element);
-            (belongsToStyles ? styleScoped : contentScoped).Add(new XElement(element));
+            if (styleScopedElements.Contains(element)) styleScoped.Add(new XElement(element));
+            if (contentScopedElements.Contains(element) || !styleScopedElements.Contains(element)) contentScoped.Add(new XElement(element));
         }
 
         ReplaceContainer(contentRoot, OdfNamespaces.Office + "automatic-styles",

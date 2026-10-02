@@ -86,13 +86,51 @@ public sealed class OpenDocumentFormulaTests {
         Assert.True(document.Validate().IsValid);
     }
 
+    [Fact]
+    public void NumberSequencesDistinguishReferencesFromScalarArgumentsAndCountIgnoresErrors() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Cell(0, 0).SetBoolean(true);
+        sheet.Cell(1, 0).SetString("3");
+        sheet.Cell(2, 0).SetNumber(2D);
+        sheet.Cell(3, 0).Formula = "of:=1/0";
+
+        Assert.Equal(2D, OdsFormulaEvaluator.EvaluateExpression(document, "Data", "of:=SUM([.A1:.A3])").Value.AsNumber());
+        Assert.Equal(2D, OdsFormulaEvaluator.EvaluateExpression(document, "Data", "of:=AVERAGE([.A1:.A3])").Value.AsNumber());
+        Assert.Equal(6D, OdsFormulaEvaluator.EvaluateExpression(document, "Data", "of:=SUM(TRUE();\"3\";[.A3])").Value.AsNumber());
+        Assert.Equal(1D, OdsFormulaEvaluator.EvaluateExpression(document, "Data", "of:=COUNT([.A1:.A4])").Value.AsNumber());
+        Assert.False(OdsFormulaEvaluator.EvaluateExpression(document, "Data", "of:=SUM([.A1:.A4])").Success);
+    }
+
+    [Fact]
+    public void ConcatenationBoundsRejectExponentialDependenciesAndAggregateTextWork() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("abcdefgh");
+        for (int row = 1; row < 16; row++) sheet.Cell(row, 0).Formula = $"of:=[.A{row}]&[.A{row}]";
+        var options = new OdsFormulaEvaluationOptions { MaximumResultCharacters = 1000 };
+        OdsFormulaEvaluationResult result = OdsFormulaEvaluator.EvaluateCell(document, "Data", 15, 0, options);
+        Assert.False(result.Success);
+        Assert.Contains("text-result character limit", result.Error);
+        Assert.True(OdsFormulaEvaluator.EvaluateCell(document, "Data", 3, 0, options).Success);
+        OdsFormulaEvaluationResult total = OdsFormulaEvaluator.EvaluateExpression(document, "Data", "of:=\"abc\"&\"def\"&\"ghi\"",
+            new OdsFormulaEvaluationOptions { MaximumTotalResultCharacters = 20 });
+        Assert.False(total.Success);
+        Assert.Contains("total text-result", total.Error);
+        OdsFormulaEvaluationResult count = OdsFormulaEvaluator.EvaluateExpression(document, "Data", "of:=COUNT([.A1])",
+            new OdsFormulaEvaluationOptions { MaximumResultCharacters = 4 });
+        Assert.False(count.Success);
+        Assert.Contains("text-result character limit", count.Error);
+    }
+
     [Theory]
     [InlineData("of:=ROUND(2.5;0)", 3D)]
     [InlineData("of:=ROUND(-2.5;0)", -3D)]
     [InlineData("of:=ROUND(1234;-2)", 1200D)]
     [InlineData("of:=ROUND(1250;-2)", 1300D)]
     [InlineData("of:=ROUND(-1250;-2)", -1300D)]
-    [InlineData("of:=-2^2", -4D)]
+    [InlineData("of:=-2^2", 4D)]
+    [InlineData("of:=2^3^2", 64D)]
     [InlineData("of:=2^-2", 0.25D)]
     public void FormulaEvaluationUsesSpreadsheetNumericSemantics(string formula, double expected) {
         OdsDocument document = OdsDocument.Create();

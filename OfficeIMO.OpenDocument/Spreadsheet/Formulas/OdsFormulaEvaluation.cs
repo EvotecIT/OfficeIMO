@@ -12,13 +12,19 @@ public sealed class OdsFormulaEvaluationOptions {
     public int MaximumDependencyDepth { get; set; } = 64;
     /// <summary>Maximum formula cells updated by one recalculation.</summary>
     public int MaximumFormulaCells { get; set; } = 10_000;
+    /// <summary>Maximum characters in one text result, checked before concatenation.</summary>
+    public int MaximumResultCharacters { get; set; } = 1_000_000;
+    /// <summary>Maximum characters produced or read as text in one evaluation context.</summary>
+    public long MaximumTotalResultCharacters { get; set; } = 16_000_000;
 
     internal OdsFormulaEvaluationOptions Normalize() => new OdsFormulaEvaluationOptions {
         MaximumOperations = Math.Max(1, MaximumOperations),
         MaximumFormulaCharacters = Math.Max(1, MaximumFormulaCharacters),
         MaximumRangeCells = Math.Max(1, MaximumRangeCells),
         MaximumDependencyDepth = Math.Max(1, MaximumDependencyDepth),
-        MaximumFormulaCells = Math.Max(1, MaximumFormulaCells)
+        MaximumFormulaCells = Math.Max(1, MaximumFormulaCells),
+        MaximumResultCharacters = Math.Max(1, MaximumResultCharacters),
+        MaximumTotalResultCharacters = Math.Max(1L, MaximumTotalResultCharacters)
     };
 }
 

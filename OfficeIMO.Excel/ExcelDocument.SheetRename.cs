@@ -351,7 +351,10 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (TrySplitQuotedThreeDimensionalSheetRange(firstSheetName!, out string? firstRangeSheet, out string? secondRangeSheet)) {
+            // Imported formats may allow ':' inside a sheet name. An explicit
+            // whole-token mapping takes precedence over Excel's 3D range syntax.
+            if (!sheetNameMap.ContainsKey(firstSheetName!) &&
+                TrySplitQuotedThreeDimensionalSheetRange(firstSheetName!, out string? firstRangeSheet, out string? secondRangeSheet)) {
                 string rewrittenFirst = ResolveMappedSheetName(firstRangeSheet!, sheetNameMap, out bool firstChanged);
                 string rewrittenSecond = ResolveMappedSheetName(secondRangeSheet!, sheetNameMap, out bool secondChanged);
                 if (!firstChanged && !secondChanged) {

@@ -116,11 +116,15 @@ public sealed class OdpTableCell {
     /// <summary>Paragraphs directly stored in this cell.</summary>
     public IReadOnlyList<OdpParagraph> Paragraphs {
         get {
-            EnsureMaterialized();
             return _element.Elements()
                 .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
-                .Select(element => new OdpParagraph(_presentation, element)).ToList();
+                .Select((element, index) => new OdpParagraph(_presentation, element, () => ResolveParagraphForEdit(index))).ToList();
         }
+    }
+    private XElement ResolveParagraphForEdit(int index) {
+        EnsureMaterialized();
+        Dirty();
+        return _element.Elements().Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h").ElementAt(index);
     }
     /// <summary>Decoded cell text.</summary>
     public string Text {

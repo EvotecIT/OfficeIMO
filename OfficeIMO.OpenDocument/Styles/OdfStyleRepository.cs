@@ -5,6 +5,9 @@ public sealed class OdfStyleRepository {
     private readonly OdfDocument _document;
     private readonly object _indexLock = new object();
     private LookupIndex? _lookupIndex;
+    private HashSet<string>? _allocatedNames;
+    private int _allocatedNamesVersion = -1;
+    private readonly Dictionary<string, int> _nextAutomaticIndex = new Dictionary<string, int>(StringComparer.Ordinal);
 
     internal OdfStyleRepository(OdfDocument document) {
         _document = document;
@@ -30,13 +33,8 @@ public sealed class OdfStyleRepository {
     }
 
     internal OdfStyle? FindDefault(OdfStyleFamily family) {
-        if (!_document.Package.ContainsEntry("styles.xml")) return null;
-        XElement? element = _document.GetXml("styles.xml").Root?
-            .Element(OdfNamespaces.Office + "styles")?
-            .Elements(OdfNamespaces.Style + "default-style")
-            .FirstOrDefault(candidate => TryParseFamily((string?)candidate.Attribute(OdfNamespaces.Style + "family"),
-                out OdfStyleFamily candidateFamily) && candidateFamily == family);
-        return element == null ? null : new OdfStyle(_document, element, "styles.xml", false);
+        return GetLookupIndex().Defaults.TryGetValue(family, out XElement? element)
+            ? new OdfStyle(_document, element, "styles.xml", false) : null;
     }
 
     /// <summary>Finds an automatic style within its owning package part before falling back to common styles.</summary>
@@ -56,6 +54,7 @@ public sealed class OdfStyleRepository {
         XElement container = GetContainer("styles.xml", OdfNamespaces.Office + "styles");
         XElement element = CreateStyleElement(name, family, parentStyleName);
         container.Add(element);
+        _allocatedNames?.Add(name);
         _document.MarkPartDirty("styles.xml");
         return new OdfStyle(_document, element, "styles.xml", false);
     }
@@ -69,13 +68,18 @@ public sealed class OdfStyleRepository {
         if (string.IsNullOrWhiteSpace(prefix)) prefix = "of";
         string normalized = new string(prefix.Where(character => char.IsLetterOrDigit(character) || character == '_' || character == '-').ToArray());
         if (normalized.Length == 0 || !char.IsLetter(normalized[0])) normalized = "of" + normalized;
-        var names = new HashSet<string>(Named.Concat(Automatic).Select(style => style.Name), StringComparer.Ordinal);
-        int index = 1;
+        if (_allocatedNames == null || _allocatedNamesVersion != _document.Package.ExternalXmlEditVersion) {
+            _allocatedNames = new HashSet<string>(Named.Concat(Automatic).Select(style => style.Name), StringComparer.Ordinal);
+            _allocatedNamesVersion = _document.Package.ExternalXmlEditVersion;
+            _nextAutomaticIndex.Clear();
+        }
+        int index = _nextAutomaticIndex.TryGetValue(normalized, out int nextIndex) ? nextIndex : 1;
         string name;
         do {
             name = normalized + index.ToString("D4", CultureInfo.InvariantCulture);
             index++;
-        } while (names.Contains(name));
+        } while (!_allocatedNames.Add(name));
+        _nextAutomaticIndex[normalized] = index;
 
         XElement container = GetContainer(partPath, OdfNamespaces.Office + "automatic-styles");
         XElement element = CreateStyleElement(name, family, parentStyleName);
@@ -103,6 +107,12 @@ public sealed class OdfStyleRepository {
                 : FindNamed(current.Family, current.ParentStyleName!);
         }
         return result;
+    }
+
+    internal IEnumerable<OdfStyle> ResolveWithDefault(OdfStyle? style, OdfStyleFamily family) {
+        if (style != null) foreach (OdfStyle candidate in Resolve(style)) yield return candidate;
+        OdfStyle? fallback = FindDefault(family);
+        if (fallback != null) yield return fallback;
     }
 
     internal OdfColor? ResolveTextBackgroundColor(OdfStyle? style) =>
@@ -147,7 +157,7 @@ public sealed class OdfStyleRepository {
     private OdfColor? ResolveColorOverride(OdfStyle? style,
         Func<OdfStyle, (bool HasValue, OdfColor? Color)> read) {
         if (style == null) return null;
-        foreach (OdfStyle candidate in Resolve(style)) {
+        foreach (OdfStyle candidate in ResolveWithDefault(style, style.Family)) {
             (bool hasValue, OdfColor? color) = read(candidate);
             if (hasValue) return color;
         }

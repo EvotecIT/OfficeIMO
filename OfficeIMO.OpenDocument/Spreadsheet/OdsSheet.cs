@@ -6,6 +6,7 @@ public sealed partial class OdsSheet {
     public const long DefaultMaximumMergeCells = 100_000;
 
     private readonly OdsDocument _document;
+    private int _editExternalVersion = -1;
     private XElement? _lastEditedRow;
     private long _lastEditedRowStart;
     private XElement? _lastEditedCellRow;
@@ -174,30 +175,16 @@ public sealed partial class OdsSheet {
     public OdsCellValue GetValue(long row, long column) {
         if (row < 0) throw new ArgumentOutOfRangeException(nameof(row));
         if (column < 0) throw new ArgumentOutOfRangeException(nameof(column));
-        XElement? rowElement = FindPrototypeRow(row);
-        if (rowElement == null) return OdsCellValue.Empty;
-        long start = 0;
-        foreach (XElement cell in CellElements(rowElement)) {
-            long count = OdsRepeatModel.Read(cell, OdfNamespaces.Table + "number-columns-repeated");
-            if (column < checked(start + count)) return OdsCell.ReadValue(cell);
-            start = checked(start + count);
-        }
-        return OdsCellValue.Empty;
+        XElement? cell = FindPrototypeCell(row, column);
+        return cell == null ? OdsCellValue.Empty : OdsCell.ReadValue(cell);
     }
 
     /// <summary>Reads a formula without splitting or expanding repeat runs.</summary>
     public string? GetFormula(long row, long column) {
         if (row < 0) throw new ArgumentOutOfRangeException(nameof(row));
         if (column < 0) throw new ArgumentOutOfRangeException(nameof(column));
-        XElement? rowElement = FindPrototypeRow(row);
-        if (rowElement == null) return null;
-        long start = 0;
-        foreach (XElement cell in CellElements(rowElement)) {
-            long count = OdsRepeatModel.Read(cell, OdfNamespaces.Table + "number-columns-repeated");
-            if (column < checked(start + count)) return (string?)cell.Attribute(OdfNamespaces.Table + "formula");
-            start = checked(start + count);
-        }
-        return null;
+        XElement? cell = FindPrototypeCell(row, column);
+        return (string?)cell?.Attribute(OdfNamespaces.Table + "formula");
     }
 
     /// <summary>Merges a rectangular cell range and marks non-anchor positions as covered cells.</summary>
@@ -260,6 +247,12 @@ public sealed partial class OdsSheet {
         .Where(column => ReferenceEquals(column.Ancestors(OdfNamespaces.Table + "table").FirstOrDefault(), Element));
 
     private XElement GetRowForEdit(long rowIndex) {
+        if (_editExternalVersion != _document.Package.ExternalXmlEditVersion) {
+            _lastEditedRow = null;
+            _lastEditedCellRow = null;
+            _lastEditedCell = null;
+            _editExternalVersion = _document.Package.ExternalXmlEditVersion;
+        }
         long start = 0;
         IEnumerable<XElement> candidates = RowElements();
         if (_lastEditedRow?.Parent != null && rowIndex >= _lastEditedRowStart) {
@@ -295,16 +288,6 @@ public sealed partial class OdsSheet {
         CacheRow(result, rowIndex);
         Dirty();
         return result;
-    }
-
-    private XElement? FindPrototypeRow(long rowIndex) {
-        long start = 0;
-        foreach (XElement element in RowElements()) {
-            long count = OdsRepeatModel.Read(element, OdfNamespaces.Table + "number-rows-repeated");
-            if (rowIndex < checked(start + count)) return element;
-            start = checked(start + count);
-        }
-        return null;
     }
 
     private XElement GetCellForEdit(XElement row, long columnIndex) {

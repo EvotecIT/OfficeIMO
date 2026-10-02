@@ -167,7 +167,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     }
 
     private static OdsNamedRangeConversionPlan BuildOdsNamedRangeConversionPlan(
-        IReadOnlyList<OdsNamedRange> namedRanges) {
+        IReadOnlyList<OdsNamedRange> namedRanges, IReadOnlyDictionary<string, string> sheetNameMap) {
         var entries = new List<NamedRangeConversionEntry>();
         var outputNames = new Dictionary<string, string>(StringComparer.Ordinal);
         // Excel uses this name as the ownership marker for its hidden chart-data sheet.
@@ -177,7 +177,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         int renamedCount = 0;
 
         foreach (OdsNamedRange named in namedRanges) {
-            string address = SpreadsheetAddressConverter.OpenAddressToExcel(named.CellRangeAddress);
+            string address = ExcelDocument.ReplaceSheetNameReferences(SpreadsheetAddressConverter.OpenAddressToExcel(named.CellRangeAddress), sheetNameMap);
             if (address.Length == 0) continue;
 
             string outputName = ExcelDocument.NormalizeDefinedName(named.Name);

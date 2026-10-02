@@ -102,7 +102,7 @@ public sealed partial class OdtDocument {
         }
     }
 
-    private IEnumerable<OdtContentBlock> EnumerateContentBlocks(XElement container, bool? orderedList = null, int listLevel = 0) {
+    internal IEnumerable<OdtContentBlock> EnumerateContentBlocks(XElement container, bool? orderedList = null, int listLevel = 0) {
         foreach (XElement element in container.Elements()) {
             if (element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h") {
                 yield return OdtContentBlock.FromParagraph(new OdtParagraph(this, element), orderedList.HasValue, orderedList, listLevel);

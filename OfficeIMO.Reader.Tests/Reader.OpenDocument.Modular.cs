@@ -8,6 +8,101 @@ using Xunit;
 namespace OfficeIMO.Reader.Tests;
 
 public class ReaderOpenDocumentModularTests {
+    [Theory]
+    [InlineData("odt")]
+    [InlineData("ods")]
+    [InlineData("odp")]
+    public void RepeatedCellsConsumeAggregateExtractionBudgetBeforeJoiningText(string kind) {
+        OdfDocument document;
+        if (kind == "ods") {
+            OdsDocument spreadsheet = OdsDocument.Create();
+            spreadsheet.AddSheet("Data").Cell(0, 0).SetString(new string('x', 600));
+            document = spreadsheet;
+        } else if (kind == "odp") {
+            OdpPresentation presentation = OdpPresentation.Create();
+            presentation.AddSlide("Data").AddTable(OdfRect.FromCentimeters(1, 1, 10, 5), 1, 1).Cell(0, 0).Text = new string('x', 600);
+            document = presentation;
+        } else {
+            OdtDocument text = OdtDocument.Create();
+            text.AddTable(1, 1).Cell(0, 0).Text = new string('x', 600);
+            document = text;
+        }
+        XDocument flat = document.ToFlatXml();
+        flat.Descendants(OdfNamespaces.Table + "table-row").Single().SetAttributeValue(OdfNamespaces.Table + "number-rows-repeated", 200);
+        flat.Descendants(OdfNamespaces.Table + "table-cell").Single().SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 256);
+        using var stream = new MemoryStream();
+        flat.Save(stream);
+        stream.Position = 0;
+        byte[] bytes = OdfDocument.LoadFlatXml(stream).ToBytes();
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddOpenDocumentHandler(
+            new ReaderOpenDocumentOptions { MaxExtractedCharacters = 1000 }).Build();
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => reader.Read(bytes, "repeated." + kind).ToArray());
+        Assert.Contains("MaxExtractedCharacters", error.Message);
+    }
+
+    [Fact]
+    public void ParagraphCharacterChunksPreserveSurrogatePairsAtTheBoundary() {
+        string payload = new string('x', 299) + "\U0001F600" + new string('y', 400);
+        OdtDocument document = OdtDocument.Create();
+        document.AddParagraph(payload);
+        ReaderChunk[] chunks = CreateReader().Read(document.ToBytes(), "unicode.odt",
+            new ReaderOptions { MaxChars = 300 }).ToArray();
+        Assert.Equal(payload, string.Concat(chunks.Select(chunk => chunk.Text)));
+        Assert.All(chunks, chunk => {
+            Assert.InRange(chunk.Text.Length, 1, 300);
+            Assert.False(char.IsHighSurrogate(chunk.Text[chunk.Text.Length - 1]));
+            Assert.False(char.IsLowSurrogate(chunk.Text[0]));
+        });
+    }
+
+    [Fact]
+    public void RegisteredAdapterUsesOpenPasswordForEncryptedPackages() {
+        OdtDocument document = OdtDocument.Create();
+        document.AddParagraph("Encrypted reader content");
+        byte[] bytes = document.ToBytes(new OdfSaveOptions {
+            Encryption = new OdfEncryptionOptions { Password = "reader-test-password" }
+        });
+        ReaderChunk chunk = Assert.Single(CreateReader().Read(bytes, "encrypted.odt",
+            new ReaderOptions { OpenPassword = "reader-test-password" }));
+        Assert.Equal("Encrypted reader content", chunk.Text);
+        Assert.Throws<OdfEncryptedPackageException>(() => CreateReader().Read(bytes, "encrypted.odt",
+            new ReaderOptions { OpenPassword = "wrong" }).ToArray());
+    }
+
+    [Theory]
+    [InlineData("ods")]
+    [InlineData("odp")]
+    [InlineData("odt")]
+    public void CharacterBudgetSplitsLongBlocksWithoutLosingTextOrTableMetadata(string kind) {
+        string payload = new string('x', 600);
+        OdfDocument document;
+        if (kind == "ods") {
+            OdsDocument sheetDocument = OdsDocument.Create();
+            OdsSheet sheet = sheetDocument.AddSheet("Data");
+            sheet.Cell(0, 0).SetString("Header");
+            sheet.Cell(1, 0).SetString(payload);
+            document = sheetDocument;
+        } else if (kind == "odp") {
+            OdpPresentation slides = OdpPresentation.Create();
+            slides.AddSlide("Title").AddTextBox(OdfRect.FromCentimeters(1, 1, 20, 3), payload);
+            document = slides;
+        } else {
+            OdtDocument text = OdtDocument.Create();
+            text.AddTable(1, 1).Cell(0, 0).Text = payload;
+            document = text;
+        }
+        OfficeDocumentReader reader = CreateReader();
+        ReaderChunk[] chunks = reader.Read(document.ToBytes(), "bounded." + kind,
+            new ReaderOptions { MaxChars = 300 }).ToArray();
+        Assert.True(chunks.Length > 1);
+        Assert.All(chunks, chunk => {
+            Assert.InRange(chunk.Text?.Length ?? 0, 0, 300);
+            Assert.InRange(chunk.Markdown?.Length ?? 0, 0, 300);
+        });
+        Assert.Equal(600, string.Concat(chunks.Select(chunk => chunk.Text)).Count(character => character == 'x'));
+        if (kind != "odp") Assert.Single(chunks.SelectMany(chunk => chunk.Tables ?? Array.Empty<ReaderTable>()));
+    }
+
     [Fact]
     public void RegisteredAdapterClampsImportedHeadingLevels() {
         OdtDocument document = OdtDocument.Create();

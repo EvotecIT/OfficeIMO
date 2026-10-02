@@ -50,12 +50,12 @@ public sealed class OdpInlineNode {
     /// <summary>Ordered content inside a run or hyperlink; empty for leaf nodes.</summary>
     public IReadOnlyList<OdpInlineNode> Children { get; }
 
-    internal static IReadOnlyList<OdpInlineNode> Read(OdpPresentation presentation, XElement paragraph) {
+    internal static IReadOnlyList<OdpInlineNode> Read(OdpPresentation presentation, XElement paragraph, Func<XElement>? materializeForEdit = null) {
         _ = OdfTextCodec.Read(paragraph);
-        return ReadChildren(presentation, paragraph);
+        return ReadChildren(presentation, paragraph, materializeForEdit);
     }
 
-    private static IReadOnlyList<OdpInlineNode> ReadChildren(OdpPresentation presentation, XElement parent) {
+    private static IReadOnlyList<OdpInlineNode> ReadChildren(OdpPresentation presentation, XElement parent, Func<XElement>? materializeForEdit) {
         var result = new List<OdpInlineNode>();
         var plainNodes = new List<XNode>();
 
@@ -76,14 +76,15 @@ public sealed class OdpInlineNode {
                 continue;
             }
             FlushPlain();
+            Func<XElement>? childEdit = OdfElementMutation.ForDescendant(parent, element, materializeForEdit);
             if (element.Name == OdfNamespaces.Text + "span") {
-                var run = new OdpRun(presentation, element);
+                var run = new OdpRun(presentation, element, childEdit);
                 result.Add(new OdpInlineNode(OdpInlineNodeKind.Run, null, run: run,
-                    children: ReadChildren(presentation, element)));
+                    children: ReadChildren(presentation, element, childEdit)));
             } else if (element.Name == OdfNamespaces.Text + "a") {
-                var hyperlink = new OdpHyperlink(presentation, element);
+                var hyperlink = new OdpHyperlink(presentation, element, childEdit);
                 result.Add(new OdpInlineNode(OdpInlineNodeKind.Hyperlink, null, hyperlink: hyperlink,
-                    children: ReadChildren(presentation, element)));
+                    children: ReadChildren(presentation, element, childEdit)));
             } else {
                 result.Add(new OdpInlineNode(OdpInlineNodeKind.Other, OdfTextCodec.Read(element),
                     qualifiedName: element.Name.ToString()));
@@ -108,21 +109,23 @@ public sealed class OdpInlineNode {
 /// <summary>An XML-backed ODP hyperlink. Targets are preserved and never fetched.</summary>
 public sealed class OdpHyperlink {
     private readonly OdpPresentation _presentation;
-    private readonly XElement _element;
+    private XElement _element;
+    private Func<XElement>? _materializeForEdit;
 
-    internal OdpHyperlink(OdpPresentation presentation, XElement element) {
+    internal OdpHyperlink(OdpPresentation presentation, XElement element, Func<XElement>? materializeForEdit = null) {
         _presentation = presentation;
         _element = element;
+        _materializeForEdit = materializeForEdit;
     }
 
     /// <summary>Decoded display text.</summary>
-    public string Text { get => OdfTextCodec.Read(_element); set { OdfTextCodec.Replace(_element, value); Dirty(); } }
+    public string Text { get => OdfTextCodec.Read(_element); set { OdfTextCodec.Replace(EnsureMaterialized(), value); Dirty(); } }
     /// <summary>Ordered text and runs inside this hyperlink.</summary>
-    public IReadOnlyList<OdpInlineNode> InlineNodes => OdpInlineNode.Read(_presentation, _element);
+    public IReadOnlyList<OdpInlineNode> InlineNodes => OdpInlineNode.Read(_presentation, _element, _materializeForEdit == null ? null : EnsureMaterialized);
 
     /// <summary>Appends display text after existing child nodes.</summary>
     public OdpHyperlink AddText(string text) {
-        OdfTextCodec.Append(_element, text);
+        OdfTextCodec.Append(EnsureMaterialized(), text);
         Dirty();
         return this;
     }
@@ -131,13 +134,13 @@ public sealed class OdpHyperlink {
     public OdpRun AddRun(string? text = null) {
         var element = new XElement(OdfNamespaces.Text + "span");
         OdfTextCodec.Append(element, text);
-        _element.Add(element);
+        EnsureMaterialized().Add(element);
         Dirty();
         return new OdpRun(_presentation, element);
     }
     /// <summary>Changes the hyperlink display text casing while preserving its target and text style.</summary>
     public OdpHyperlink TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
-        OdfTextCodec.TransformTextCase(_element, textCase, culture);
+        OdfTextCodec.TransformTextCase(EnsureMaterialized(), textCase, culture);
         Dirty();
         return this;
     }
@@ -146,22 +149,22 @@ public sealed class OdpHyperlink {
         get => (string?)_element.Attribute(OdfNamespaces.XLink + "href") ?? string.Empty;
         set {
             if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Hyperlink target cannot be empty.", nameof(value));
-            _element.SetAttributeValue(OdfNamespaces.XLink + "href", value);
+            EnsureMaterialized().SetAttributeValue(OdfNamespaces.XLink + "href", value);
             Dirty();
         }
     }
     /// <summary>ODF target frame behavior, if authored.</summary>
     public string? TargetFrameName {
         get => (string?)_element.Attribute(OdfNamespaces.Office + "target-frame-name");
-        set { _element.SetAttributeValue(OdfNamespaces.Office + "target-frame-name", NormalizeOptional(value)); Dirty(); }
+        set { EnsureMaterialized().SetAttributeValue(OdfNamespaces.Office + "target-frame-name", NormalizeOptional(value)); Dirty(); }
     }
     /// <summary>Raw XLink show behavior, if authored.</summary>
     public string? ShowBehavior {
         get => (string?)_element.Attribute(OdfNamespaces.XLink + "show");
-        set { _element.SetAttributeValue(OdfNamespaces.XLink + "show", NormalizeOptional(value)); Dirty(); }
+        set { EnsureMaterialized().SetAttributeValue(OdfNamespaces.XLink + "show", NormalizeOptional(value)); Dirty(); }
     }
     /// <summary>Referenced text style name.</summary>
-    public string? StyleName { get => (string?)_element.Attribute(OdfNamespaces.Text + "style-name"); set { _element.SetAttributeValue(OdfNamespaces.Text + "style-name", value); Dirty(); } }
+    public string? StyleName { get => (string?)_element.Attribute(OdfNamespaces.Text + "style-name"); set { EnsureMaterialized().SetAttributeValue(OdfNamespaces.Text + "style-name", value); Dirty(); } }
     /// <summary>Explicit or inherited bold state.</summary>
     public bool? Bold { get => Resolve(style => style.Bold); set => EnsureStyle().Bold = value; }
     /// <summary>Explicit or inherited italic state.</summary>
@@ -210,5 +213,9 @@ public sealed class OdpHyperlink {
     private string? ResolveReference(Func<OdfStyle, string?> selector) =>
         OdfInlineStyleResolver.ResolveReference(_presentation.Styles, _element, "content.xml", selector);
     private static string? NormalizeOptional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
+    private XElement EnsureMaterialized() {
+        if (_materializeForEdit != null) { _element = _materializeForEdit(); _materializeForEdit = null; }
+        return _element;
+    }
     private void Dirty() => _presentation.MarkPartDirty("content.xml");
 }

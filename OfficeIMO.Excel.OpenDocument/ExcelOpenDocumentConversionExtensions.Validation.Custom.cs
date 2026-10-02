@@ -43,7 +43,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     }
 
     private static bool TryApplyOdsCustomValidation(ExcelSheet sheet, string sourceSheetName,
-        string references, OdsValidation validation, OdsValidationConditionSyntax condition) {
+        string references, OdsValidation validation, OdsValidationConditionSyntax condition, IReadOnlyDictionary<string, string> sheetNameMap) {
         if (string.IsNullOrWhiteSpace(condition.FirstOperand)
             || !SpreadsheetRangeReference.TryParse(validation.BaseCellAddress,
                 SpreadsheetAddressDialect.OpenDocument, out SpreadsheetRangeReference? baseCell)
@@ -57,7 +57,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (!OdsPortableValidationFormula.IsSupported(syntax)) return false;
         SpreadsheetFormulaTranslationResult translated = syntax.TranslateTo(SpreadsheetFormulaDialect.ExcelA1);
         if (!translated.IsSuccessful || !translated.Formula.StartsWith("=", StringComparison.Ordinal)) return false;
-        string formula = translated.Formula.Substring(1);
+        string formula = ExcelDocument.ReplaceSheetNameReferences(translated.Formula.Substring(1), sheetNameMap);
         if (formula.Length > ExcelSheet.MaximumDataValidationFormulaLength) return false;
         sheet.ValidationCustomFormula(range!, formula, validation.AllowEmptyCell);
         return true;

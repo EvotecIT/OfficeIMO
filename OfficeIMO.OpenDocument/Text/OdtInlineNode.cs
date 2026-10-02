@@ -80,14 +80,14 @@ public sealed class OdtInlineNode {
     internal static IReadOnlyList<OdtInlineNode> Read(
         OdtDocument document,
         XElement paragraph,
-        string partPath) {
+        string partPath, Func<XElement>? materializeForEdit = null) {
         // Enforce the paragraph-wide decoded-text budget before producing per-node values.
         _ = OdfTextCodec.Read(paragraph);
-        return ReadChildren(document, paragraph, partPath);
+        return ReadChildren(document, paragraph, partPath, materializeForEdit);
     }
 
     private static IReadOnlyList<OdtInlineNode> ReadChildren(
-        OdtDocument document, XElement parent, string partPath) {
+        OdtDocument document, XElement parent, string partPath, Func<XElement>? materializeForEdit) {
         var result = new List<OdtInlineNode>();
         var plainNodes = new List<XNode>();
 
@@ -112,17 +112,18 @@ public sealed class OdtInlineNode {
             }
 
             FlushPlain();
+            Func<XElement>? childEdit = OdfElementMutation.ForDescendant(parent, element, materializeForEdit);
             if (element.Name == OdfNamespaces.Text + "span") {
-                var span = new OdtSpan(document, element, partPath);
+                var span = new OdtSpan(document, element, partPath, childEdit);
                 result.Add(new OdtInlineNode(OdtInlineNodeKind.Span, null, span: span,
-                    children: ReadChildren(document, element, partPath)));
+                    children: ReadChildren(document, element, partPath, childEdit)));
             } else if (element.Name == OdfNamespaces.Text + "a") {
-                var hyperlink = new OdtHyperlink(document, element, partPath);
+                var hyperlink = new OdtHyperlink(document, element, partPath, childEdit);
                 result.Add(new OdtInlineNode(OdtInlineNodeKind.Hyperlink, null, hyperlink: hyperlink,
-                    children: ReadChildren(document, element, partPath)));
+                    children: ReadChildren(document, element, partPath, childEdit)));
             } else if (element.Name == OdfNamespaces.Draw + "frame"
                 && element.Element(OdfNamespaces.Draw + "image") != null) {
-                var image = new OdtImage(document, element, partPath);
+                var image = new OdtImage(document, element, partPath, childEdit);
                 result.Add(new OdtInlineNode(OdtInlineNodeKind.Image, string.Empty, image: image,
                     textContribution: string.Empty));
             } else if (element.Name == OdfNamespaces.Text + "bookmark") {
@@ -133,7 +134,7 @@ public sealed class OdtInlineNode {
                 result.Add(BookmarkNode(OdtInlineNodeKind.BookmarkEnd, element));
             } else if (OdtField.TryGetKind(element.Name, out _)) {
                 result.Add(new OdtInlineNode(OdtInlineNodeKind.Field, OdfTextCodec.Read(element),
-                    field: new OdtField(document, element, partPath)));
+                    field: new OdtField(document, element, partPath, childEdit)));
             } else if (element.Name == OdfNamespaces.Text + "note") {
                 result.Add(new OdtInlineNode(OdtInlineNodeKind.Note, string.Empty,
                     note: new OdtNote(document, element, partPath)));

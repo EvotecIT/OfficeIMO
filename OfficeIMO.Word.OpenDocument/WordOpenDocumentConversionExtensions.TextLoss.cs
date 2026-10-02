@@ -6,8 +6,7 @@ public static partial class WordOpenDocumentConversionExtensions {
     private static int CountNonSolidTextDecorations(OdtDocument document) {
         int count = document.ContentBlocks.Sum(block => block.Paragraph != null
             ? CountNonSolidTextDecorations(block.Paragraph)
-            : block.Table!.Rows.Sum(row => row.Cells.Sum(cell =>
-                cell.Paragraphs.Sum(CountNonSolidTextDecorations))));
+            : EnumerateTableParagraphs(block.Table!).Sum(CountNonSolidTextDecorations));
         count += EnumerateOdtHeaderFooters(document.PageLayout)
             .Where(part => part.IsDisplayed)
             .Sum(part => part.Paragraphs.Sum(CountNonSolidTextDecorations));
@@ -17,8 +16,7 @@ public static partial class WordOpenDocumentConversionExtensions {
     private static int CountUnsupportedWritingModes(OdtDocument document) {
         int count = document.ContentBlocks.Sum(block => block.Paragraph != null
             ? IsUnsupportedWritingMode(block.Paragraph.WritingMode) ? 1 : 0
-            : block.Table!.Rows.Sum(row => row.Cells.Sum(cell =>
-                cell.Paragraphs.Count(paragraph => IsUnsupportedWritingMode(paragraph.WritingMode)))));
+            : EnumerateTableParagraphs(block.Table!).Count(paragraph => IsUnsupportedWritingMode(paragraph.WritingMode)));
         count += EnumerateOdtHeaderFooters(document.PageLayout)
             .Where(part => part.IsDisplayed)
             .Sum(part => part.Paragraphs.Count(paragraph => IsUnsupportedWritingMode(paragraph.WritingMode)));

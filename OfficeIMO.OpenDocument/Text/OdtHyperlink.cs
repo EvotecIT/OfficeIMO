@@ -3,19 +3,22 @@ namespace OfficeIMO.OpenDocument;
 /// <summary>An XML-backed ODT hyperlink. Targets are preserved and never fetched.</summary>
 public sealed class OdtHyperlink {
     private readonly OdtDocument _document;
-    private readonly XElement _element;
+    private XElement _element;
+    private Func<XElement>? _materializeForEdit;
     private readonly string _partPath;
 
-    internal OdtHyperlink(OdtDocument document, XElement element, string partPath = "content.xml") {
+    internal OdtHyperlink(OdtDocument document, XElement element, string partPath = "content.xml", Func<XElement>? materializeForEdit = null) {
         _document = document;
         _element = element;
         _partPath = partPath;
+        _materializeForEdit = materializeForEdit;
     }
 
     /// <summary>Decoded display text.</summary>
     public string Text {
         get => OdfTextCodec.Read(_element);
         set {
+            EnsureMaterialized();
             bool hadNotes = _element.Descendants(OdfNamespaces.Text + "note").Any();
             if (hadNotes) _document.PrepareNoteIndexForMutation();
             OdfTextCodec.Replace(_element, value);
@@ -24,11 +27,11 @@ public sealed class OdtHyperlink {
         }
     }
     /// <summary>Ordered text and spans inside this hyperlink.</summary>
-    public IReadOnlyList<OdtInlineNode> InlineNodes => OdtInlineNode.Read(_document, _element, _partPath);
+    public IReadOnlyList<OdtInlineNode> InlineNodes => OdtInlineNode.Read(_document, _element, _partPath, _materializeForEdit == null ? null : EnsureMaterialized);
 
     /// <summary>Appends display text after existing child nodes.</summary>
     public OdtHyperlink AddText(string text) {
-        OdfTextCodec.Append(_element, text);
+        OdfTextCodec.Append(EnsureMaterialized(), text);
         Dirty();
         return this;
     }
@@ -37,13 +40,13 @@ public sealed class OdtHyperlink {
     public OdtSpan AddSpan(string? text = null) {
         var element = new XElement(OdfNamespaces.Text + "span");
         OdfTextCodec.Append(element, text);
-        _element.Add(element);
+        EnsureMaterialized().Add(element);
         Dirty();
         return new OdtSpan(_document, element, _partPath);
     }
     /// <summary>Changes the hyperlink display text casing while preserving its target and text style.</summary>
     public OdtHyperlink TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
-        OdfTextCodec.TransformTextCase(_element, textCase, culture);
+        OdfTextCodec.TransformTextCase(EnsureMaterialized(), textCase, culture);
         Dirty();
         return this;
     }
@@ -51,6 +54,7 @@ public sealed class OdtHyperlink {
     public string Href {
         get => (string?)_element.Attribute(OdfNamespaces.XLink + "href") ?? string.Empty;
         set {
+            EnsureMaterialized();
             if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Hyperlink target cannot be empty.", nameof(value));
             _element.SetAttributeValue(OdfNamespaces.XLink + "href", value);
             Dirty();
@@ -60,7 +64,7 @@ public sealed class OdtHyperlink {
     /// <summary>Referenced text style name.</summary>
     public string? StyleName {
         get => (string?)_element.Attribute(OdfNamespaces.Text + "style-name");
-        set { _element.SetAttributeValue(OdfNamespaces.Text + "style-name", value); Dirty(); }
+        set { EnsureMaterialized().SetAttributeValue(OdfNamespaces.Text + "style-name", value); Dirty(); }
     }
     /// <summary>Explicit or inherited bold state.</summary>
     public bool? Bold { get => Resolve(style => style.Bold); set => EnsureStyle().Bold = value; }
@@ -104,7 +108,7 @@ public sealed class OdtHyperlink {
         _document.Styles, _element, _partPath, out _);
 
     private OdfStyle EnsureStyle() => _document.Styles.EnsureAutomaticStyle(
-        _element, OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofL", _partPath);
+        EnsureMaterialized(), OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofL", _partPath);
 
     private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct =>
         OdfInlineStyleResolver.Resolve(_document.Styles, _element, _partPath, selector);
@@ -113,4 +117,12 @@ public sealed class OdtHyperlink {
         OdfInlineStyleResolver.ResolveReference(_document.Styles, _element, _partPath, selector);
 
     private void Dirty() => _document.MarkPartDirty(_partPath);
+    private XElement EnsureMaterialized() {
+        if (_materializeForEdit != null) {
+            _element = _materializeForEdit();
+            _materializeForEdit = null;
+        }
+        return _element;
+    }
+
 }

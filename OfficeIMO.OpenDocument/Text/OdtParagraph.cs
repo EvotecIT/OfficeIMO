@@ -21,20 +21,21 @@ public sealed class OdtParagraph {
     private readonly OdtDocument _document;
     private XElement _element;
     private readonly string _partPath;
-    private Func<XElement>? _materializeForNote;
+    private Func<XElement>? _materializeForEdit;
 
     internal OdtParagraph(OdtDocument document, XElement element, string partPath = "content.xml",
-        Func<XElement>? materializeForNote = null) {
+        Func<XElement>? materializeForEdit = null) {
         _document = document;
         _element = element;
         _partPath = partPath;
-        _materializeForNote = materializeForNote;
+        _materializeForEdit = materializeForEdit;
     }
 
     /// <summary>Plain text with ODF spaces, tabs, and line breaks decoded.</summary>
     public string Text {
         get => OdfTextCodec.Read(_element);
         set {
+            EnsureMaterialized();
             bool hadNotes = _element.Descendants(OdfNamespaces.Text + "note").Any();
             if (hadNotes) _document.PrepareNoteIndexForMutation();
             OdfTextCodec.Replace(_element, value);
@@ -47,6 +48,7 @@ public sealed class OdtParagraph {
     public string? StyleName {
         get => (string?)_element.Attribute(OdfNamespaces.Text + "style-name");
         set {
+            EnsureMaterialized();
             _element.SetAttributeValue(OdfNamespaces.Text + "style-name", value);
             Dirty();
         }
@@ -65,6 +67,7 @@ public sealed class OdtParagraph {
         set {
             if (!value.HasValue) throw new ArgumentNullException(nameof(value));
             if (value < 1 || value > 10) throw new ArgumentOutOfRangeException(nameof(value));
+            EnsureMaterialized();
             _element.Name = OdfNamespaces.Text + "h";
             _element.SetAttributeValue(OdfNamespaces.Text + "outline-level", value.Value);
             Dirty();
@@ -74,24 +77,24 @@ public sealed class OdtParagraph {
     /// <summary>Inline text spans in this paragraph.</summary>
     public IReadOnlyList<OdtSpan> Spans => _element.Descendants(OdfNamespaces.Text + "span")
         .Where(IsInParagraphStory)
-        .Select(element => new OdtSpan(_document, element, _partPath)).ToList();
+        .Select(element => new OdtSpan(_document, element, _partPath, ChildEdit(element))).ToList();
 
     /// <summary>Hyperlinks in this paragraph.</summary>
     public IReadOnlyList<OdtHyperlink> Hyperlinks => _element.Descendants(OdfNamespaces.Text + "a")
         .Where(IsInParagraphStory)
-        .Select(element => new OdtHyperlink(_document, element, _partPath)).ToList();
+        .Select(element => new OdtHyperlink(_document, element, _partPath, ChildEdit(element))).ToList();
 
     /// <summary>Native page, count, date, and time fields in paragraph order.</summary>
     public IReadOnlyList<OdtField> Fields => _element.Descendants()
         .Where(element => OdtField.TryGetKind(element.Name, out _) &&
             !element.Ancestors(OdfNamespaces.Text + "note").Any())
-        .Select(element => new OdtField(_document, element, _partPath)).ToList();
+        .Select(element => new OdtField(_document, element, _partPath, ChildEdit(element))).ToList();
 
     /// <summary>
     /// Direct inline nodes in document order. Use this syntax view when mixed plain text,
     /// spans, links, images, or bookmark markers must be processed without flattening.
     /// </summary>
-    public IReadOnlyList<OdtInlineNode> InlineNodes => OdtInlineNode.Read(_document, _element, _partPath);
+    public IReadOnlyList<OdtInlineNode> InlineNodes => OdtInlineNode.Read(_document, _element, _partPath, NeedsMaterialization ? EnsureMaterialized : null);
 
     /// <summary>Footnotes and endnotes referenced from this paragraph, in source order.</summary>
     public IReadOnlyList<OdtNote> Notes => _element.Descendants(OdfNamespaces.Text + "note")
@@ -103,7 +106,7 @@ public sealed class OdtParagraph {
     /// <summary>Embedded image frames in this paragraph.</summary>
     public IReadOnlyList<OdtImage> Images => _element.Descendants(OdfNamespaces.Draw + "frame")
         .Where(element => IsInParagraphStory(element) && element.Element(OdfNamespaces.Draw + "image") != null)
-        .Select(element => new OdtImage(_document, element, _partPath)).ToList();
+        .Select(element => new OdtImage(_document, element, _partPath, ChildEdit(element))).ToList();
 
     private bool IsInParagraphStory(XElement element) => !element.Ancestors()
         .TakeWhile(ancestor => ancestor != _element)
@@ -201,7 +204,7 @@ public sealed class OdtParagraph {
         get {
             OdfStyle? style = StyleName == null ? null : _document.Styles.FindInPart(
                 OdfStyleFamily.Paragraph, StyleName, _partPath);
-            return _document.Styles.ResolveTextBackgroundColor(style);
+            return _document.Styles.ResolveTextBackgroundColor(style ?? _document.Styles.FindDefault(OdfStyleFamily.Paragraph));
         }
         set => EnsureStyle().TextBackgroundColor = value;
     }
@@ -217,7 +220,7 @@ public sealed class OdtParagraph {
         get {
             OdfStyle? style = StyleName == null ? null : _document.Styles.FindInPart(
                 OdfStyleFamily.Paragraph, StyleName, _partPath);
-            return _document.Styles.ResolveBackgroundColor(style);
+            return _document.Styles.ResolveBackgroundColor(style ?? _document.Styles.FindDefault(OdfStyleFamily.Paragraph));
         }
         set => EnsureStyle().BackgroundColor = value;
     }
@@ -276,6 +279,7 @@ public sealed class OdtParagraph {
 
     /// <summary>Appends plain text while encoding ODF whitespace semantics.</summary>
     public OdtParagraph AddText(string text) {
+        EnsureMaterialized();
         OdfTextCodec.Append(_element, text);
         Dirty();
         return this;
@@ -283,6 +287,7 @@ public sealed class OdtParagraph {
 
     /// <summary>Changes stored paragraph text casing while preserving spans, hyperlinks, bookmarks, and images.</summary>
     public OdtParagraph TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
+        EnsureMaterialized();
         OdfTextCodec.TransformTextCase(_element, textCase, culture);
         Dirty();
         return this;
@@ -290,6 +295,7 @@ public sealed class OdtParagraph {
 
     /// <summary>Appends a styled text span.</summary>
     public OdtSpan AddSpan(string? text = null) {
+        EnsureMaterialized();
         var element = new XElement(OdfNamespaces.Text + "span");
         OdfTextCodec.Append(element, text);
         _element.Add(element);
@@ -300,6 +306,7 @@ public sealed class OdtParagraph {
     /// <summary>Appends a hyperlink without resolving or fetching its target.</summary>
     public OdtHyperlink AddHyperlink(string text, string href) {
         if (string.IsNullOrWhiteSpace(href)) throw new ArgumentException("Hyperlink target cannot be empty.", nameof(href));
+        EnsureMaterialized();
         var element = new XElement(OdfNamespaces.Text + "a",
             new XAttribute(OdfNamespaces.XLink + "type", "simple"),
             new XAttribute(OdfNamespaces.XLink + "href", href));
@@ -311,6 +318,7 @@ public sealed class OdtParagraph {
 
     /// <summary>Appends a native ODT field with cached display text.</summary>
     public OdtField AddField(OdtFieldKind kind, string? displayText) {
+        EnsureMaterialized();
         XElement element = OdtField.CreateElement(kind, displayText);
         _element.Add(element);
         Dirty();
@@ -320,6 +328,7 @@ public sealed class OdtParagraph {
     /// <summary>Appends a collapsed bookmark.</summary>
     public OdtParagraph AddBookmark(string name) {
         ValidateBookmarkName(name);
+        EnsureMaterialized();
         _element.Add(new XElement(OdfNamespaces.Text + "bookmark", new XAttribute(OdfNamespaces.Text + "name", name)));
         Dirty();
         return this;
@@ -328,6 +337,7 @@ public sealed class OdtParagraph {
     /// <summary>Appends a bookmark range start marker.</summary>
     public OdtParagraph AddBookmarkStart(string name) {
         ValidateBookmarkName(name);
+        EnsureMaterialized();
         _element.Add(new XElement(OdfNamespaces.Text + "bookmark-start", new XAttribute(OdfNamespaces.Text + "name", name)));
         Dirty();
         return this;
@@ -336,6 +346,7 @@ public sealed class OdtParagraph {
     /// <summary>Appends a bookmark range end marker.</summary>
     public OdtParagraph AddBookmarkEnd(string name) {
         ValidateBookmarkName(name);
+        EnsureMaterialized();
         _element.Add(new XElement(OdfNamespaces.Text + "bookmark-end", new XAttribute(OdfNamespaces.Text + "name", name)));
         Dirty();
         return this;
@@ -348,10 +359,9 @@ public sealed class OdtParagraph {
     public OdtNote AddEndnote(string text) => AddNote(OdtNoteKind.Endnote, text);
 
     private OdtNote AddNote(OdtNoteKind kind, string text) {
-        if (_materializeForNote != null) {
+        if (_materializeForEdit != null) {
             _document.ValidateNoteInsertion(kind, text);
-            _element = _materializeForNote();
-            _materializeForNote = null;
+            EnsureMaterialized();
         } else if (_element.Ancestors().Any(ancestor =>
             ancestor.Name == OdfNamespaces.Table + "table-row" &&
             OdsRepeatModel.Read(ancestor, OdfNamespaces.Table + "number-rows-repeated") > 1 ||
@@ -365,6 +375,7 @@ public sealed class OdtParagraph {
     /// <summary>Appends an inline or paragraph-anchored image.</summary>
     public OdtImage AddImage(byte[] data, string fileName, OdfLength width, OdfLength height,
         OdtImageAnchor anchor = OdtImageAnchor.Inline) {
+        EnsureMaterialized();
         OdtImage image = OdtImage.Create(_document, data, fileName, width, height, anchor);
         _element.Add(image.Element);
         Dirty();
@@ -372,6 +383,7 @@ public sealed class OdtParagraph {
     }
 
     internal OdtParagraph InsertParagraphAfter() {
+        EnsureMaterialized();
         var sibling = new XElement(_element.Name,
             _element.Attributes().Where(attribute => attribute.Name == OdfNamespaces.Text + "style-name"
                 || attribute.Name == OdfNamespaces.Text + "outline-level"));
@@ -382,13 +394,31 @@ public sealed class OdtParagraph {
 
     internal XElement Element => _element;
 
+    private XElement EnsureMaterialized() {
+        if (_materializeForEdit != null) {
+            _element = _materializeForEdit();
+            _materializeForEdit = null;
+        }
+        else if (HasRepeatedAncestor()) {
+            throw new NotSupportedException("Edit repeated table paragraphs through the logical table cell.");
+        }
+        return _element;
+    }
+
+    private bool NeedsMaterialization => _materializeForEdit != null || HasRepeatedAncestor();
+    private bool HasRepeatedAncestor() => _element.Ancestors().Any(ancestor =>
+        ancestor.Name == OdfNamespaces.Table + "table-row" && OdsRepeatModel.Read(ancestor, OdfNamespaces.Table + "number-rows-repeated") > 1 ||
+        ancestor.Name == OdfNamespaces.Table + "table-cell" && OdsRepeatModel.Read(ancestor, OdfNamespaces.Table + "number-columns-repeated") > 1);
+
+    private Func<XElement>? ChildEdit(XElement child) => OdfElementMutation.ForDescendant(
+        _element, child, NeedsMaterialization ? EnsureMaterialized : null);
+
     private OdfStyle EnsureStyle() => _document.Styles.EnsureAutomaticStyle(
-        _element, OdfNamespaces.Text + "style-name", OdfStyleFamily.Paragraph, "ofP", _partPath);
+        EnsureMaterialized(), OdfNamespaces.Text + "style-name", OdfStyleFamily.Paragraph, "ofP", _partPath);
 
     private T? ResolveStyleValue<T>(Func<OdfStyle, T?> selector) where T : struct {
         OdfStyle? style = StyleName == null ? null : _document.Styles.FindInPart(OdfStyleFamily.Paragraph, StyleName, _partPath);
-        if (style == null) return null;
-        foreach (OdfStyle candidate in _document.Styles.Resolve(style)) {
+        foreach (OdfStyle candidate in _document.Styles.ResolveWithDefault(style, OdfStyleFamily.Paragraph)) {
             T? value = selector(candidate);
             if (value.HasValue) return value;
         }
@@ -397,8 +427,7 @@ public sealed class OdtParagraph {
 
     private string? ResolveStyleValue(Func<OdfStyle, string?> selector) {
         OdfStyle? style = StyleName == null ? null : _document.Styles.FindInPart(OdfStyleFamily.Paragraph, StyleName, _partPath);
-        if (style == null) return null;
-        foreach (OdfStyle candidate in _document.Styles.Resolve(style)) {
+        foreach (OdfStyle candidate in _document.Styles.ResolveWithDefault(style, OdfStyleFamily.Paragraph)) {
             string? value = selector(candidate);
             if (value != null) return value;
         }
