@@ -18,5 +18,7 @@ public enum IWorkCellUnsupportedFeatures {
     /// <summary>A text format is unresolved or contains settings beyond the qualified default text format.</summary>
     TextFormat = 32,
     /// <summary>A Boolean format is unresolved or contains settings beyond the qualified default Boolean format.</summary>
-    BooleanFormat = 64
+    BooleanFormat = 64,
+    /// <summary>A blank cell selects numeric or currency formatting alongside another scalar format; effective precedence is unqualified.</summary>
+    AmbiguousNumberFormat = 128
 }

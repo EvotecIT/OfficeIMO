@@ -9,10 +9,9 @@ public sealed partial class IWorkBoundaryTests {
     public void Independent_blank_number_formats_preserve_selected_source_metadata() {
         string root = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "numbers-parser");
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "blank-number-formats.json")));
-        int qualified = 0;
+        int qualified = 0, ambiguous = 0;
         foreach (JsonElement package in manifest.RootElement.GetProperty("packages").EnumerateArray()) {
-            JsonElement[] cells = package.GetProperty("cells").EnumerateArray()
-                .Where(cell => !cell.GetProperty("hasOtherScalarSelector").GetBoolean()).ToArray();
+            JsonElement[] cells = package.GetProperty("cells").EnumerateArray().ToArray();
             if (cells.Length == 0) continue;
             string path = Path.Combine(root, package.GetProperty("source").GetString()!);
             Assert.Equal(package.GetProperty("sourceSha256").GetString(),
@@ -25,6 +24,12 @@ public sealed partial class IWorkBoundaryTests {
                 Assert.NotNull(cell);
                 Assert.Equal(IWorkCellKind.Empty, cell.Kind);
                 Assert.Null(cell.Value);
+                if (expected.GetProperty("hasOtherScalarSelector").GetBoolean()) {
+                    Assert.Null(cell.NumberFormat);
+                    Assert.Equal(IWorkCellUnsupportedFeatures.AmbiguousNumberFormat, cell.UnsupportedFeatures);
+                    ambiguous++;
+                    continue;
+                }
                 Assert.NotNull(cell.NumberFormat);
                 Assert.Equal(expected.GetProperty("formatType").GetInt32() == 258
                     ? IWorkNumberFormatKind.Percentage : IWorkNumberFormatKind.Number, cell.NumberFormat.Kind);
@@ -35,6 +40,7 @@ public sealed partial class IWorkBoundaryTests {
             }
         }
         Assert.Equal(26, qualified);
+        Assert.Equal(9, ambiguous);
     }
 
     [Fact]
