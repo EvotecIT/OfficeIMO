@@ -521,11 +521,12 @@
     "disposition": "Twelve synchronous writers returned eleven distinct paths once. Retry and later full suites passed, but race is not fixed; same existing roadmap item also covers prior asynchronous reproduction."
   },
   "remainingQualification": [
-    "Rebuild comparison/editable/budget tools from clean checkpoint.",
-    "H4 eight held-out cases; frozen NASA all eleven PDF intents,16-page zero-margin/24-image/full-text preservation.",
-    "Unchanged macOS static and ten-operation H10 ceilings.",
-    "Relevant Windows/Linux platform and operation budgets.",
-    "Remaining default math-font/math-auto/MATH-table geometry, original MathML associated files and independently requested PDF/A/PDF/UA policy proof."
+    "Default math-font selection/math-auto and full MATH-table layout.",
+    "Exact original MathML associated-file mapping to Formula structure.",
+    "Explicit requested PDF/A-3b and PDF/UA-1 independently validated output.",
+    "Windows/Linux platform and operation-budget qualification.",
+    "Known pre-existing synchronous/asynchronous concurrent unique-file save race."
   ],
-  "authorization": "No HTML PR, merge to master, release or deployment."
+  "authorization": "No HTML PR, merge to master, release or deployment.",
+  "subsequentQualification": "mathml-geometry-qualification.json"
 }
