@@ -117,5 +117,9 @@ public sealed class DrawingAv1CopyMotionTests {
         using var file=File.OpenRead(Path.Combine(AppContext.BaseDirectory,"TestAssets","Avif","copy-reference.json.gz"));
         using var gzip=new GZipStream(file,CompressionMode.Decompress);return JsonDocument.Parse(gzip);
     }
-    private static byte[] Hex(string hex) => Convert.FromHexString(hex);
+    private static byte[] Hex(string hex) {
+        var bytes = new byte[hex.Length / 2];
+        for (int i = 0; i < bytes.Length; i++) bytes[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
+        return bytes;
+    }
 }

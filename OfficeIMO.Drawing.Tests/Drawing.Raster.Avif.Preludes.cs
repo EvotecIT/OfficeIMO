@@ -155,7 +155,7 @@ public sealed class DrawingAv1PreludeTests {
             SegmentationEnabled=scenario==3||scenario==4,SegmentIdPreSkip=scenario==4,LastActiveSegmentId=7 };
         f.SegmentFeatures[1,6]=true;
         if (f.SegmentationEnabled) f.LosslessSegments[2]=true;
-        if (scenario==5) Array.Fill(f.LosslessSegments,true);
+        if (scenario==5) for (int i=0;i<f.LosslessSegments.Length;i++) f.LosslessSegments[i]=true;
         return f;
     }
     private static int[] State(OfficeAv1BlockPrelude b) => new[] {b.Skip?1:0,b.SegmentId,b.Lossless?1:0,b.CdefIndex,b.CurrentQIndex,b.Filter0,b.Filter1,b.Filter2,b.Filter3};
