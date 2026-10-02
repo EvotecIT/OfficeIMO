@@ -1,0 +1,106 @@
+{
+  "sourceHead": "9aece6c81",
+  "contract": "Authored 20 CSS px tile period and colors; circular clip permits one raster pixel of edge coverage at 96 dpi; filter center compared with independent sRGB decode, linear multiply and sRGB encode; shadow visible outside source and clear outside support. These bounded samples do not establish arbitrary SVG or browser parity.",
+  "checks": [
+    {
+      "file": "officeimo-print-1.png",
+      "tileInteriorSamples": 11544,
+      "tileMaximumChannelError": 0,
+      "circleMaximumPixelCenterRadius": 65.59344479443048,
+      "circleAllowedRadius": 66,
+      "filterExpectedLinearRgbMultiply": [
+        119,
+        9,
+        119
+      ],
+      "filterActual": [
+        119,
+        9,
+        119
+      ],
+      "filterMaximumChannelError": 0,
+      "shadowOutsideSource": [
+        146,
+        146,
+        146
+      ],
+      "outsideFilterSupport": [
+        255,
+        255,
+        255
+      ],
+      "passed": true
+    },
+    {
+      "file": "officeimo-print-scene-page-1.png",
+      "tileInteriorSamples": 11544,
+      "tileMaximumChannelError": 0,
+      "circleMaximumPixelCenterRadius": 64.93458246574009,
+      "circleAllowedRadius": 66,
+      "filterExpectedLinearRgbMultiply": [
+        119,
+        9,
+        119
+      ],
+      "filterActual": [
+        119,
+        9,
+        119
+      ],
+      "filterMaximumChannelError": 0,
+      "shadowOutsideSource": [
+        165,
+        165,
+        165
+      ],
+      "outsideFilterSupport": [
+        255,
+        255,
+        255
+      ],
+      "passed": true
+    }
+  ],
+  "browserDifference": "Chromium filter center (119,13,119) versus independent calculation and OfficeIMO (119,9,119); retained as observed raster/color implementation difference.",
+  "sampleCoordinates": {
+    "svgPageOriginCssPx": [
+      24,
+      72
+    ],
+    "tileInteriorScan": {
+      "x": [
+        36,
+        182
+      ],
+      "y": [
+        84,
+        240
+      ],
+      "excludedModulo20": [
+        0,
+        1,
+        9,
+        10,
+        11,
+        19
+      ]
+    },
+    "clipCenterCssPx": [
+      294,
+      162
+    ],
+    "clipRadiusCssPx": 65,
+    "filterCenterCssPx": [
+      270,
+      140
+    ],
+    "shadowCssPx": [
+      172,
+      152
+    ],
+    "outsideSupportCssPx": [
+      190,
+      152
+    ]
+  }
+}

@@ -90,6 +90,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<string> _reportedStaticRadioGroups = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedStaticRepeatedControlGroups = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedStickySources = new HashSet<string>(StringComparer.Ordinal);
+    private readonly HashSet<string> _reportedHyphenationLanguages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<IElement> _reportedComplexTextShapingElements = new HashSet<IElement>();
     private readonly HtmlShapedTextMeasurementCache _shapedTextMeasurementCache = new HtmlShapedTextMeasurementCache();
     private readonly HashSet<string> _reportedMixedRunningElementMarginBoxes = new HashSet<string>(StringComparer.Ordinal);

@@ -918,6 +918,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private HyphenationToken PrepareHyphenationToken(string paintToken, string logicalToken, HtmlRenderBoxStyle style) {
+        if (style.Hyphens == "auto" && style.WordBreak != "break-all"
+            && _options.TextHyphenationCallback == null
+            && !OfficeTextHyphenationPatterns.SupportsLanguage(style.Language)
+            && logicalToken.Any(char.IsLetter)
+            && _reportedHyphenationLanguages.Add(style.Language ?? string.Empty)) {
+            _diagnostics.Add(ComponentName, "HyphenationLanguageUnsupported",
+                "Automatic hyphenation has no embedded patterns for the effective language; only authored soft hyphens remain available.",
+                HtmlDiagnosticSeverity.Warning, style.Language ?? string.Empty, null,
+                OfficeConversionLossKind.Approximation);
+        }
         if (paintToken.IndexOf('\u00AD') < 0
             && (style.Hyphens != "auto" || (_options.TextHyphenationCallback == null
                 && !OfficeTextHyphenationPatterns.SupportsLanguage(style.Language)))) {

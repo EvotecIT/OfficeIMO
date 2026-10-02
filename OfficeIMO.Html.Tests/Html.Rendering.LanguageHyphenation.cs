@@ -9,26 +9,30 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRendering_DefaultPatternsUseEachRunLanguageAndPreserveLogicalWords() {
         const string html = "<div lang='en-US' style='width:64px;font-size:16px;hyphens:auto'>"
             + "<p>representation</p><p lang='de-DE'>Silbentrennung</p>"
-            + "<p lang='zz'>unsupportedlanguage</p><p style='hyphens:none'>representation</p></div>";
+            + "<p lang='zz'>unsupportedlanguage unsupportedlanguage</p><p style='hyphens:none'>representation</p></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
             new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 200 });
         HtmlRenderText[] text = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToArray();
         Assert.Contains(text, item => item.Text == "repre-");
         Assert.Contains(text, item => item.Text == "Silben-");
         Assert.Contains(text, item => item.Text == "unsupportedlanguage");
+        Assert.Single(rendered.Diagnostics, item => item.Code == "HyphenationLanguageUnsupported");
         Assert.Contains(text, item => item.Text == "representation");
-        Assert.Equal("representationSilbentrennungunsupportedlanguagerepresentation",
+        Assert.Equal("representationSilbentrennungunsupportedlanguageunsupportedlanguagerepresentation",
             string.Concat(rendered.Text.Where(c => !char.IsWhiteSpace(c))));
     }
 
-    [Fact]
-    public void HtmlRendering_CallerHyphenationOverridesEmbeddedPatternsIncludingNoBreaks() {
-        const string html = "<div lang='en-US' style='width:64px;font-size:16px;hyphens:auto'>representation</div>";
+    [Theory]
+    [InlineData("en-US")]
+    [InlineData("zz")]
+    public void HtmlRendering_CallerHyphenationOverridesEmbeddedPatternsIncludingNoBreaks(string language) {
+        string html = "<div lang='" + language + "' style='width:64px;font-size:16px;hyphens:auto'>representation</div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous, ViewportWidth = 200,
             TextHyphenationCallback = _ => Array.Empty<int>()
         });
         Assert.Equal("representation", Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>()).Text);
+        Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == "HyphenationLanguageUnsupported");
     }
 
     [Theory]

@@ -483,7 +483,22 @@
         },
         "requiredMarkersOnce": true,
         "requiredLinksRetained": true,
-        "imageDraws": 0
+        "imageDraws": 0,
+        "independentFlowSequences": {
+          "LONG-NOTE": {
+            "count": 35,
+            "preserved": true
+          },
+          "NOTE-BODY": {
+            "count": 26,
+            "preserved": true
+          },
+          "NOTE-TAIL": {
+            "count": 28,
+            "preserved": true
+          }
+        },
+        "orderingLimit": "Each body/note sequence is preserved. PDF paint order places footnotes after column body content, rather than preserving a single HTML source interleaving. This fixture does not qualify assistive-technology reading order."
       },
       "pdfSha256": "78b33360e7a1284e725354d814d69907cb5b75b4d92ac37426980b10c32d7f08",
       "pages": 3,
@@ -509,7 +524,7 @@
         },
         {
           "requirement": "Manual/none controls; unsupported language has explicit fallback, no invented pattern.",
-          "assessment": "partial: manual/none controls and unhyphenated unsupported-language output observed; no explicit unsupported-language diagnostic emitted"
+          "assessment": "Manual/none controls and unhyphenated unsupported-language output observed. Added HyphenationLanguageUnsupported once per effective unsupported language; caller callbacks suppress the fallback warning. Final clean replay pending."
         },
         {
           "requirement": "Original words preserved semantically; dictionary license/provenance recorded independently.",
@@ -551,7 +566,7 @@
         },
         {
           "requirement": "Independent color-region/clip checks; no fallback-colored silhouette.",
-          "assessment": "partial: all-page visual inspection confirms distinct colors and circular clipping; no numerical region/clip tolerance accepted yet"
+          "assessment": "accepted bounded region check: 11544 interior tile samples match authored RGB exactly in PDF and scene raster; colored clip extent remains within the 65px circle plus one raster pixel. See static-svg-region-checks-20261003.json."
         }
       ],
       "content": {
@@ -587,7 +602,7 @@
         },
         {
           "requirement": "Color matrix/blend produces independent reference color; graph inputs/results honored.",
-          "assessment": "partial: purple matrix/blend output visible; independent numerical color-region comparison remains unqualified"
+          "assessment": "accepted bounded region check: matrix/blend center matches independently computed linear-RGB multiplication exactly; shadow sampled beyond source and absent outside support. Chromium center differs by four green levels; no exact browser-pixel claim."
         }
       ],
       "content": {
