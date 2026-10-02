@@ -125,7 +125,7 @@ internal sealed class IWorkTableNumberFormatCatalog {
 
     private void Initialize() {
         _initialized = true;
-        _list = _references.ReadOne(_model, _store, 22, "4/22");
+        _list = _references.ReadOne(_model, _store, 22, "4/22", static type => type == 6005);
         if (_store.FieldCount(22) != 1 || _list?.MessageType != 6005) {
             FullyReconstructed = false;
             return;

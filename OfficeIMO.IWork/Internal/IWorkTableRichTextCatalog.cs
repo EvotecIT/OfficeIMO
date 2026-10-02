@@ -34,7 +34,7 @@ internal sealed class IWorkTableRichTextCatalog {
         IWorkArchiveRecord model, IWorkProjectionBudget budget, IWorkSourceReferenceIssueCollector references) {
         var catalog = new IWorkTableRichTextCatalog(source.Index, budget, source.Options, references);
         if (!store.HasField(17)) return catalog;
-        IWorkArchiveRecord? list = references.ReadOne(model, store, 17, "4/17");
+        IWorkArchiveRecord? list = references.ReadOne(model, store, 17, "4/17", static type => type == DataListArchive);
         if (store.FieldCount(17) != 1 || list?.MessageType != DataListArchive) {
             catalog.FullyReconstructed = catalog.StructureComplete = false;
             return catalog;
@@ -59,14 +59,14 @@ internal sealed class IWorkTableRichTextCatalog {
         // Cache failed attempts only for declared keys, bounded by the catalog entry limit.
         if (!_attempted.Add(key)) return false;
         IWorkArchiveRecord? wrapper = _references.ReadOne(_list!, entry.Message, 9,
-                "3[" + entry.Position.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]/9");
+                "3[" + entry.Position.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]/9", static type => type == RichTextWrapperArchive);
         if (entry.Message.FieldCount(9) != 1 || wrapper?.MessageType != RichTextWrapperArchive
             || !TryReadRecord(_index, wrapper, _options, _recordMessages, out IWorkWireMessage? wrapperMessage)
             || wrapperMessage == null) {
             FullyReconstructed = false;
             return false;
         }
-        IWorkArchiveRecord? storage = _references.ReadOne(wrapper, wrapperMessage, 1);
+        IWorkArchiveRecord? storage = _references.ReadOne(wrapper, wrapperMessage, 1, allowedType: static type => type == TextStorageArchive);
         if (wrapperMessage.FieldCount(1) != 1 || storage?.MessageType != TextStorageArchive) {
             FullyReconstructed = false;
             return false;

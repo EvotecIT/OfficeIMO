@@ -45,7 +45,7 @@ internal static class IWorkStyleReader {
             if (super == null) break;
             IWorkArchiveRecord? parent = references.ReadOne(record, super, 3, "1/3", allowedType);
             if (super.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)
-                || super.HasField(3) && parent == null) {
+                || super.HasField(3) && (parent == null || !allowedType(parent.MessageType))) {
                 complete = false;
                 break;
             }

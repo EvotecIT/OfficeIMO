@@ -15,7 +15,7 @@ internal sealed class IWorkTableCommentCatalog(IWorkSourceDocument source, IWork
         Initialize();
         if (!_entries.TryGetValue(key, out var entry)) return null;
         string path = IWorkTableCatalogIndex.EntryPath(entry.Position) + "/10";
-        IWorkArchiveRecord? record = references.ReadOne(_list!, entry.Message, 10, path);
+        IWorkArchiveRecord? record = references.ReadOne(_list!, entry.Message, 10, path, static type => type == 3056);
         if (entry.Message.FieldCount(10) != 1 || record?.MessageType != 3056) {
             references.Declarations.Record(_list!, path, entry.Message.FieldCount(10),
                 IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
@@ -33,7 +33,7 @@ internal sealed class IWorkTableCommentCatalog(IWorkSourceDocument source, IWork
     private void Initialize() {
         if (_initialized) return;
         _initialized = true;
-        _list = references.ReadOne(model, store, 19, "4/19");
+        _list = references.ReadOne(model, store, 19, "4/19", static type => type == 6005);
         if (store.FieldCount(19) != 1 || _list?.MessageType != 6005) {
             references.Declarations.Record(model, "4/19", store.FieldCount(19),
                 IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
@@ -99,7 +99,7 @@ internal sealed class IWorkTableCommentCatalog(IWorkSourceDocument source, IWork
                 return null;
             }
         }
-        IWorkArchiveRecord? author = references.ReadOne(record, message, 3);
+        IWorkArchiveRecord? author = references.ReadOne(record, message, 3, allowedType: static type => type == 212);
         if (message.FieldCount(3) != 1 || author?.MessageType != 212) {
             references.Declarations.Record(record, "3", message.FieldCount(3), IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
             return null;

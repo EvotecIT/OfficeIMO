@@ -200,9 +200,9 @@ public sealed partial class IWorkBoundaryTests {
             ArchiveRecord(1, 10000, Message(ReferenceField(4, 2)), new ulong[] { 2 }),
             ArchiveRecord(2, 2001, Message(StringField(3, text), BytesField(9, attachments), defect is "linkedRun" or "linkedMarker"
                 ? BytesField(11, Message(Entry(markerOnly ? 0 : 9, 50), BytesField(1, Message(VarintField(1, markerOnly ? 1ul : 10ul))))) : Array.Empty<byte>()), markerOnly ? new ulong[] { 20 } : new ulong[] { 20, 21 }),
-            ArchiveRecord(20, 2003, Attachment(defect == "missingDrawable" ? 999ul : 30ul, defect == "nonzeroPlacement"), new ulong[] { 30 }),
+            ArchiveRecord(20, defect == "wrongAttachment" ? 2021u : 2003u, Attachment(defect == "missingDrawable" ? 999ul : 30ul, defect == "nonzeroPlacement"), new ulong[] { 30 }),
             ArchiveRecord(21, 2003, Attachment(defect == "repeatedDrawable" ? 30ul : 31ul, false), new ulong[] { defect == "repeatedDrawable" ? 30ul : 31ul }),
-            ArchiveRecord(30, 3005, image), ArchiveRecord(31, 3005, image),
+            ArchiveRecord(30, defect == "wrongDrawable" ? 2021u : 3005u, image), ArchiveRecord(31, 3005, image),
             ArchiveRecord(50, 2032, Message(StringField(2, "https://example.test/inline"))),
             ArchiveRecord(40, 11006, Message(BytesField(4, Message(VarintField(1, 10), StringField(3, "image.png"), StringField(4, "image.png"))))));
         return CreatePackage(("Index/Document.iwa", FrameIwa(records)), ("Data/image.png", ValidPreviewPng()));

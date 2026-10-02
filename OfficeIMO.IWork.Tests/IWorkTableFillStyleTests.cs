@@ -156,7 +156,7 @@ public sealed partial class IWorkBoundaryTests {
             BytesField(5, Message(VarintField(1, 1), VarintField(2, 2), BytesField(6, Message(empty, inherited)), BytesField(7, new byte[] { 255, 255, 0, 0, 16, 0 }))),
             BytesField(5, Message(VarintField(1, 2), VarintField(2, 1), BytesField(6, number), BytesField(7, new byte[] { 255, 255, 0, 0 }))),
             VarintField(6, 5), VarintField(7, 1))));
-        records.Add(ArchiveRecord(13, 6005, Message(VarintField(1, 4),
+        records.Add(ArchiveRecord(13, defect == "wrong-catalog-target-type" ? 2021u : 6005u, Message(VarintField(1, 4),
             BytesField(3, Message(VarintField(1, 1), ReferenceField(4, defect == "unresolved-selected" ? 99UL : 30UL))),
             BytesField(3, Message(VarintField(1, 2), ReferenceField(4, 31))))));
         records.Add(FillStyle(30, Array.Empty<byte>())); records.Add(FillStyle(31, null));

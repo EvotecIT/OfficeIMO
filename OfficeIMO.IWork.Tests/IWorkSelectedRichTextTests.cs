@@ -114,7 +114,7 @@ public sealed partial class IWorkBoundaryTests {
 
     private static MemoryStream SelectedRichTextPackage(IWorkDocumentKind kind, byte[]? attributes = null,
         int failure = -1, byte[]? additionalRecords = null, bool aliases = false, bool duplicateKeys = false,
-        byte[]? catalogPayload = null) {
+        byte[]? catalogPayload = null, int wrongTypeRecord = -1) {
         byte[] cell = new byte[16]; cell[0] = 5; cell[1] = 9;
         WriteUInt32(cell, 8, 1u << 4); WriteUInt32(cell, 12, 1);
         byte[] secondCell = (byte[])cell.Clone(); WriteUInt32(secondCell, 12, 2);
@@ -139,14 +139,14 @@ public sealed partial class IWorkBoundaryTests {
         return CreatePackage(("Index/Document.iwa", FrameIwa(Message(roots,
             ArchiveRecord(10, 6000, Message(BytesField(1, GeometryDrawable(72, 72, 120, 40)),
                 ReferenceField(2, failure == 4 ? 999ul : 11ul))),
-            ArchiveRecord(11, 6001, Message(BytesField(4, store), VarintField(6, 1), VarintField(7, aliases ? 2ul : 1ul))),
+            ArchiveRecord(11, wrongTypeRecord == 11 ? 2021u : 6001u, Message(BytesField(4, store), VarintField(6, 1), VarintField(7, aliases ? 2ul : 1ul))),
             ArchiveRecord(12, 6002, Message(BytesField(5, Message(VarintField(1, 0),
                 BytesField(6, aliases ? Message(cell, secondCell) : cell),
                 BytesField(7, aliases ? new byte[] { 0, 0, 16, 0 } : new byte[] { 0, 0 }))))),
-            ArchiveRecord(13, 6005, catalog),
-            ArchiveRecord(14, 6218, Message(ReferenceField(1, failure == 2 ? 999ul : 15ul))),
-            ArchiveRecord(15, 2001, Message(StringField(3, "Value"), attributes ?? Message())),
-            ArchiveRecord(17, 6218, Message(ReferenceField(1, 18))),
+            ArchiveRecord(13, wrongTypeRecord == 13 ? 2021u : 6005u, catalog),
+            ArchiveRecord(14, wrongTypeRecord == 14 ? 2021u : 6218u, Message(ReferenceField(1, failure == 2 ? 999ul : 15ul))),
+            ArchiveRecord(15, wrongTypeRecord == 15 ? 2021u : 2001u, Message(StringField(3, "Value"), attributes ?? Message())),
+            ArchiveRecord(17, wrongTypeRecord == 17 ? 2021u : 6218u, Message(ReferenceField(1, 18))),
             ArchiveRecord(18, 2001, Message(StringField(3, new string('X', 1000)),
                 AttributeTable(8, AttributeEntry(0, ReferenceField(2, 997))))),
             additionalRecords ?? Message()))), ("preview.png", ValidPreviewPng()));

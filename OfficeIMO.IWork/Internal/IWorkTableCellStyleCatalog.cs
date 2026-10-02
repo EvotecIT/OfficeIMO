@@ -145,7 +145,7 @@ internal sealed class IWorkTableCellStyleCatalog(IWorkSourceDocument source, IWo
 
     private void Initialize() {
         _initialized = true;
-        _list = references.ReadOne(model, store, 5, "4/5");
+        _list = references.ReadOne(model, store, 5, "4/5", static type => type == 6005);
         if (store.FieldCount(5) != 1 || store.HasUnexpectedWireKind(5, IWorkWireKind.Bytes)
             || _list?.MessageType != 6005) {
             _catalogComplete = false;

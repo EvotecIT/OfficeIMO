@@ -5,7 +5,7 @@ internal static partial class IWorkTextReader {
         IWorkWireMessage message, string text, IWorkArchiveRecord storage, IWorkProjectionBudget budget,
         IWorkSourceReferenceIssueCollector references, out bool complete) {
         complete = true;
-        var boundaries = ReadObjectTable(message, 9, text.Length, storage, budget, references, ref complete);
+        var boundaries = ReadObjectTable(message, 9, text.Length, storage, budget, references, ref complete, static type => type == 2003);
         var result = new Dictionary<int, IWorkInlineObject>();
         var duplicateOffsets = new HashSet<int>(boundaries.GroupBy(boundary => boundary.Index)
             .Where(group => group.Count() > 1).Select(group => group.Key));
@@ -31,7 +31,7 @@ internal static partial class IWorkTextReader {
                 continue;
             }
             budget.AddDrawableReferences(1);
-            IWorkArchiveRecord? drawable = references.ReadOne(attachment, payload, 1);
+            IWorkArchiveRecord? drawable = references.ReadOne(attachment, payload, 1, allowedType: static type => type is 3005 or 6000 or 6007);
             // The qualified inline mode uses explicit zero offsets. Other modes stay unresolved.
             bool placement = true;
             foreach (int field in new[] { 2, 3, 4, 5 }) {

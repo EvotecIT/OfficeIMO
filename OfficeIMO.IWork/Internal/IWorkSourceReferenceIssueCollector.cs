@@ -16,7 +16,7 @@ internal sealed class IWorkSourceReferenceIssueCollector(IWorkSourceDocument sou
         IWorkArchiveRecord? result = source.Index.Dereference(message, field);
         if (result != null && allowedType != null && !allowedType(result.MessageType)) {
             Record(owner, message, field, path, rejectedSet: false, allowedType);
-            return null;
+            // Keep the existing target available to the caller's type check and declaration evidence.
         }
         if (result == null && message.HasField(field))
             Record(owner, message, field, path, rejectedSet: message.FieldCount(field) > 1);
@@ -24,13 +24,13 @@ internal sealed class IWorkSourceReferenceIssueCollector(IWorkSourceDocument sou
     }
 
     internal IReadOnlyList<IWorkArchiveRecord> ReadAll(IWorkArchiveRecord owner, IWorkWireMessage message,
-        int field, out int unresolved, string? path = null) {
+        int field, out int unresolved, string? path = null, Func<uint, bool>? allowedType = null) {
         IReadOnlyList<IWorkArchiveRecord> result = source.Index.DereferenceAll(message, field, out unresolved,
             out bool rejectedSet);
-        if (unresolved > 0) {
+        if (unresolved > 0 || allowedType != null && result.Any(record => !allowedType(record.MessageType))) {
             // A malformed repeated field is rejected as a whole by the existing reader. Retain
             // evidence for readable siblings too, without calling their existing targets missing.
-            Record(owner, message, field, path, rejectedSet);
+            Record(owner, message, field, path, rejectedSet, allowedType);
         }
         return result;
     }

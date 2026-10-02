@@ -45,7 +45,7 @@ internal static partial class IWorkTableReader {
         bool modelReferenceComplete = tableInfo.FieldCount(2) == 1
             && !tableInfo.HasUnexpectedWireKind(2, IWorkWireKind.Bytes);
         IWorkArchiveRecord? model = references.ReadOne(tableRecord, tableInfo, 2,
-            tableRecord.MessageType == WordProcessingTableInfoArchive ? "1/2" : "2");
+            tableRecord.MessageType == WordProcessingTableInfoArchive ? "1/2" : "2", static type => type == TableModelArchive);
         if (!modelReferenceComplete || model == null || model.MessageType != TableModelArchive) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -303,7 +303,7 @@ internal static partial class IWorkTableReader {
                 continue;
             }
             IWorkArchiveRecord? tile = references.ReadOne(model, tileEntry, 2,
-                "4/3/1[" + tileEntryPosition.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]/2");
+                "4/3/1[" + tileEntryPosition.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]/2", static type => type == TableTileArchive);
             if (tile == null || tile.MessageType != TableTileArchive) {
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,

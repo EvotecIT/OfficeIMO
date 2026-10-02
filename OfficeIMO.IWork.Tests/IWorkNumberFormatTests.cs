@@ -154,13 +154,13 @@ public sealed partial class IWorkBoundaryTests {
     private static byte[] FormatEntry(byte[] format) => Message(VarintField(1, 1), BytesField(6, format));
 
     private static MemoryStream NumberFormatPackage(IWorkDocumentKind kind, byte[]? format = null, byte[]? catalog = null,
-        double value = 0.5d, bool currency = false) {
+        double value = 0.5d, bool currency = false, uint catalogType = 6005) {
         byte[] cell = new byte[currency ? 28 : 24]; cell[0] = 5; cell[1] = 2;
         WriteUInt32(cell, 8, (1u << 1) | (1u << 13) | (currency ? 1u << 14 : 0u));
         Buffer.BlockCopy(BitConverter.GetBytes(value), 0, cell, 12, 8); WriteUInt32(cell, 20, 1);
         if (currency) WriteUInt32(cell, 24, 1);
         return TableDependencyPackage(kind, ReferenceField(22, 13), cellPayload: cell,
-            additionalRecords: ArchiveRecord(13, 6005, catalog ?? Message(VarintField(1, 2), VarintField(5, 1),
+            additionalRecords: ArchiveRecord(13, catalogType, catalog ?? Message(VarintField(1, 2), VarintField(5, 1),
                 BytesField(3, FormatEntry(format!)))));
     }
 }

@@ -17,7 +17,7 @@ internal static partial class IWorkTableReader {
         if (rowHeaders != null) {
             budget.AddTableDimensionEntries(rowHeaders.FieldCount(2));
             IReadOnlyList<IWorkArchiveRecord> buckets = references.ReadAll(model, rowHeaders, 2,
-                out int unresolved, "4/1/2");
+                out int unresolved, "4/1/2", static type => type == HeaderStorageBucketArchive);
             complete &= unresolved == 0;
             bool rowIndicesComplete = unresolved == 0;
             var seenRows = new HashSet<int>();
@@ -47,7 +47,7 @@ internal static partial class IWorkTableReader {
         }
         if (store.HasField(2)) {
             budget.AddTableDimensionEntries(store.FieldCount(2));
-            IWorkArchiveRecord? bucket = references.ReadOne(model, store, 2, "4/2");
+            IWorkArchiveRecord? bucket = references.ReadOne(model, store, 2, "4/2", static type => type == HeaderStorageBucketArchive);
             if (bucket == null) complete = false;
             else {
                 bool columnIndicesComplete = true;
