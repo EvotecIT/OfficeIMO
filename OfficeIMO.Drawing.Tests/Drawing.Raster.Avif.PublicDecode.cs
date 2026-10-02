@@ -120,6 +120,23 @@ public sealed class DrawingAvifPublicDecodeTests {
             drawing, 1D, OfficeSvgSizeUnit.Pixel, imageCodec: codec));
         Assert.Equal(0, codec.Calls);
     }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RejectedAvifCannotBypassSafetyThroughRasterRenderer(bool truncated) {
+        byte[] bytes = File.ReadAllBytes(Asset("avif-alpha.avif"));
+        if (truncated) Array.Resize(ref bytes, bytes.Length - 1);
+        else {
+            Assert.True(OfficeAvifContainerReader.TryRead(bytes, new OfficeRasterDecodeOptions(), out var container));
+            bytes[container!.Alpha!.Offset] = 0x80;
+        }
+        var codec = new AcceptingCodec();
+        var drawing = new OfficeDrawing(49, 33).AddImageWithInterpolation(bytes, "image/avif",
+            new OfficeImageProjection(new OfficeImagePlacement(0, 0, 49, 33)), interpolate: false);
+        OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions { ImageCodec = codec });
+        Assert.Equal(0, codec.Calls);
+    }
+
     private static int Find(byte[] bytes,string text) {
         byte[] marker=Encoding.ASCII.GetBytes(text);
         for(int i=0;i<=bytes.Length-marker.Length;i++)if(bytes.Skip(i).Take(marker.Length).SequenceEqual(marker))return i;

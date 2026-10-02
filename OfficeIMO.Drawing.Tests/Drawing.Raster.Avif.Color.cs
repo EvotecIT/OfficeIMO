@@ -9,6 +9,15 @@ namespace OfficeIMO.Tests;
 /// <summary>Actual libavif RGBA output protects matrix/range conversion, odd chroma edges and straight alpha.</summary>
 public sealed class DrawingAvifColorTests {
     [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void UnqualifiedChromaPositionsCannotSilentlyUseCenteredInterpolation(int position) {
+        var frame = Padded(2, 2, new[] { new byte[] { 128, 128, 128, 128 }, new byte[] { 128 }, new byte[] { 128 } }, 8);
+        Assert.Throws<NotSupportedException>(() => OfficeAvifColorConverter.Compose(frame,
+            new OfficeAvifColorDescription(2, 2, 6, true), null, new OfficeRasterDecodeOptions(), position));
+    }
+
+    [Theory]
     [InlineData(8)]
     [InlineData(10)]
     public void NativeBilinearColorRowsMatchForEveryMatrixRangeAndAlphaControl(int depth) {
