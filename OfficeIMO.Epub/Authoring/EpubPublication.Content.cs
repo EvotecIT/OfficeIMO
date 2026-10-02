@@ -1,0 +1,192 @@
+namespace OfficeIMO.Epub;
+
+public sealed partial class EpubPublication {
+    /// <summary>Adds a local manifest resource at a canonical container path. Payloads are copied and never executed.</summary>
+    public EpubManifestItem AddResource(string id, string containerPath, string mediaType, byte[] data, string? properties = null) {
+        VerifyAvailableId(id); RequireText(mediaType, nameof(mediaType));
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        string path = VerifyContentPath(containerPath);
+        if (_entries.ContainsKey(path) || Manifest.Any(item => item.Reference.ContainerPath == path)) throw new ArgumentException("Entry path already exists: " + path);
+        if (_entries.Keys.Any(existing => string.Equals(existing.Normalize(NormalizationForm.FormC), path.Normalize(NormalizationForm.FormC), StringComparison.OrdinalIgnoreCase)))
+            throw new ArgumentException("Resource paths must remain distinct after Unicode normalization and case comparison.", nameof(containerPath));
+        if (IsScriptMediaType(mediaType) || HasToken(properties, "scripted"))
+            throw new NotSupportedException("Script authoring is outside the EPUB writer contract.");
+        EnsurePayloadBudget(data, 0);
+        var element = new XElement(Opf + "item", new XAttribute("id", id), new XAttribute("href", RelativeHref(PackagePath, path)),
+            new XAttribute("media-type", mediaType));
+        element.SetAttributeValue("properties", properties);
+        _entries.Add(path, (byte[])data.Clone());
+        _retainedBytes += data.LongLength;
+        RequireSection("manifest").Add(element);
+        return new EpubManifestItem(element, PackagePath);
+    }
+
+    /// <summary>Replaces one local resource payload. Encrypted/obfuscated bytes require an explicit re-keying implementation.</summary>
+    public void UpdateResource(string manifestId, byte[] data) {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        EpubManifestItem item = RequireManifestItem(manifestId);
+        string path = RequireLocalPath(item);
+        ReplaceResourcePayload(path, data);
+    }
+
+    private void ReplaceResourcePayload(string path, byte[] data) {
+        if (_encryption.Any(encryption => encryption.Path == path)) throw new NotSupportedException("Encrypted/obfuscated resource replacement is unsupported.");
+        long previousLength = _entries.TryGetValue(path, out byte[]? previous) ? previous.LongLength : 0;
+        EnsurePayloadBudget(data, previousLength);
+        _entries[path] = (byte[])data.Clone();
+        _retainedBytes += data.LongLength - previousLength;
+        MarkChanged();
+    }
+
+    /// <summary>Returns an independent copy of retained resource bytes, including original font-obfuscated bytes.</summary>
+    public byte[] GetResourceBytes(string manifestId) {
+        string path = RequireLocalPath(RequireManifestItem(manifestId));
+        if (!_entries.TryGetValue(path, out byte[]? data)) throw new InvalidDataException("Resource is missing: " + path);
+        return (byte[])data.Clone();
+    }
+
+    /// <summary>Returns an independent XML content document for targeted editing.</summary>
+    public XDocument GetContentXml(string manifestId) => ParseXml(GetResourceBytes(manifestId), 64L * 1024 * 1024);
+
+    /// <summary>Replaces content XML after validating a supported non-scripted XHTML or SVG root.</summary>
+    public void SetContentXml(string manifestId, XDocument content) {
+        if (content == null) throw new ArgumentNullException(nameof(content));
+        ValidateContent(content, RequireManifestItem(manifestId).MediaType);
+        UpdateResource(manifestId, SerializeXml(content));
+    }
+
+    /// <summary>Adds a well-formed XHTML body fragment as a chapter, with a linear spine position and a TOC entry.</summary>
+    public EpubManifestItem AddChapter(string id, string containerPath, string title, string xhtmlBody,
+        IEnumerable<string>? stylesheets = null, bool linear = true) {
+        RequireText(title, nameof(title));
+        VerifyContentPath(containerPath);
+        if (xhtmlBody == null) throw new ArgumentNullException(nameof(xhtmlBody));
+        XElement body;
+        using (var reader = XmlReader.Create(new StringReader("<body xmlns='" + Html.NamespaceName + "' xmlns:epub='" + Ops.NamespaceName + "'>" + xhtmlBody + "</body>"),
+            new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 64L * 1024 * 1024 })) {
+            body = XElement.Load(reader, LoadOptions.PreserveWhitespace);
+        }
+        var head = new XElement(Html + "head", new XElement(Html + "title", title));
+        foreach (string stylesheet in stylesheets ?? Array.Empty<string>()) {
+            EpubManifestItem style = RequireManifestItem(stylesheet);
+            if (style.MediaType != "text/css") throw new ArgumentException("Stylesheet id must select a CSS resource.", nameof(stylesheets));
+            string path = RequireLocalPath(style);
+            head.Add(new XElement(Html + "link", new XAttribute("rel", "stylesheet"), new XAttribute("type", "text/css"),
+                new XAttribute("href", RelativeHref(containerPath, path))));
+        }
+        var document = new XDocument(new XElement(Html + "html", new XAttribute(XNamespace.Xml + "lang", Language), head, body));
+        ValidateContent(document, "application/xhtml+xml");
+        byte[] chapterBytes = SerializeXml(document);
+        string navPath = NavigationPath();
+        byte[] navBytes = PrepareAppendedNavigation(new EpubNavigationEntry(title, EncodePath(containerPath)), containerPath);
+        if (_encryption.Any(encryption => encryption.Path == navPath)) throw new NotSupportedException("Encrypted navigation cannot be edited.");
+        EnsurePayloadBudget(chapterBytes, 0);
+        EnsurePayloadBudget(navBytes, _entries[navPath].LongLength);
+        if (chapterBytes.LongLength > _maximumRetainedBytes - (_retainedBytes - _entries[navPath].LongLength + navBytes.LongLength))
+            throw new InvalidDataException("Chapter and navigation exceed the publication's retained-byte limit.");
+        EpubManifestItem item = AddResource(id, containerPath, "application/xhtml+xml", chapterBytes);
+        AddSpineItem(id, linear);
+        ReplaceResourcePayload(navPath, navBytes);
+        return item;
+    }
+
+    /// <summary>Adds a UTF-8 stylesheet resource.</summary>
+    public EpubManifestItem AddStylesheet(string id, string containerPath, string css) =>
+        AddResource(id, containerPath, "text/css", new UTF8Encoding(false, true).GetBytes(css ?? throw new ArgumentNullException(nameof(css))));
+
+    /// <summary>Selects a manifest image as the cover, preserving other item properties.</summary>
+    public void SetCoverImage(string manifestId) {
+        EpubManifestItem selected = RequireManifestItem(manifestId);
+        if (!selected.MediaType.StartsWith("image/", StringComparison.Ordinal)) throw new ArgumentException("Cover must be an image resource.");
+        if (PackageVersion == "3.0") {
+            foreach (EpubManifestItem item in Manifest) {
+                string[] tokens = Tokens(item.Properties).Where(token => token != "cover-image").ToArray();
+                item.Properties = string.Join(" ", item.Id == manifestId ? tokens.Concat(new[] { "cover-image" }) : tokens);
+            }
+        } else {
+            XElement metadata = RequireSection("metadata");
+            XElement? cover = metadata.Elements(Opf + "meta").FirstOrDefault(element => (string?)element.Attribute("name") == "cover");
+            if (cover == null) metadata.Add(new XElement(Opf + "meta", new XAttribute("name", "cover"), new XAttribute("content", manifestId)));
+            else cover.SetAttributeValue("content", manifestId);
+        }
+    }
+
+    /// <summary>Adds a distinct reading position for an existing manifest resource.</summary>
+    public EpubSpineItem AddSpineItem(string manifestId, bool linear = true, string? properties = null) {
+        RequireManifestItem(manifestId);
+        if (Spine.Any(position => position.ManifestId == manifestId))
+            throw new InvalidOperationException("New spine positions must not repeat a manifest id. Add a separate chapter resource for repeated content.");
+        var element = new XElement(Opf + "itemref", new XAttribute("idref", manifestId));
+        element.SetAttributeValue("linear", linear ? null : "no"); element.SetAttributeValue("properties", properties);
+        RequireSection("spine").Add(element);
+        return new EpubSpineItem(element);
+    }
+    /// <summary>Moves a reading position while preserving its attributes and repeated references.</summary>
+    public void MoveSpineItem(int fromIndex, int toIndex) {
+        XElement[] items = RequireSection("spine").Elements(Opf + "itemref").ToArray();
+        if (fromIndex < 0 || fromIndex >= items.Length || toIndex < 0 || toIndex >= items.Length) throw new ArgumentOutOfRangeException();
+        if (fromIndex == toIndex) return;
+        XElement moved = items[fromIndex]; moved.Remove();
+        if (fromIndex < toIndex) items[toIndex].AddAfterSelf(moved); else items[toIndex].AddBeforeSelf(moved);
+    }
+    /// <summary>Removes one reading position without deleting its resource.</summary>
+    public void RemoveSpineItem(int index) {
+        XElement[] items = RequireSection("spine").Elements(Opf + "itemref").ToArray();
+        if (index < 0 || index >= items.Length) throw new ArgumentOutOfRangeException(nameof(index));
+        items[index].Remove();
+    }
+    /// <summary>Removes an unreferenced declaration and its payload. Callers must first update content/navigation links.</summary>
+    public void RemoveResource(string manifestId) {
+        EpubManifestItem item = RequireManifestItem(manifestId);
+        string path = RequireLocalPath(item);
+        if (Spine.Any(position => position.ManifestId == manifestId) || Manifest.Any(resource => resource.FallbackId == manifestId || resource.MediaOverlayId == manifestId) ||
+            HasToken(item.Properties, "nav") || HasToken(item.Properties, "cover-image") ||
+            RequireSection("metadata").Elements(Opf + "meta").Any(meta => (string?)meta.Attribute("name") == "cover" && (string?)meta.Attribute("content") == manifestId) ||
+            item.MediaType == "application/x-dtbncx+xml" || _encryption.Any(encryption => encryption.Path == path))
+            throw new InvalidOperationException("Resource is referenced by package structure or protection metadata.");
+        RequireSection("manifest").Elements(Opf + "item").Single(element => (string?)element.Attribute("id") == manifestId).Remove();
+        if (!Manifest.Any(resource => resource.Reference.ContainerPath == path) && _entries.TryGetValue(path, out byte[]? removed)) {
+            _entries.Remove(path); _retainedBytes -= removed.LongLength;
+        }
+    }
+
+    private EpubManifestItem RequireManifestItem(string id) => Manifest.SingleOrDefault(item => item.Id == id)
+        ?? throw new ArgumentException("Manifest id not found: " + id);
+    private static string RequireLocalPath(EpubManifestItem item) => item.Reference.Kind == EpubReferenceKind.Container && item.Reference.ContainerPath != null
+        ? item.Reference.ContainerPath : throw new NotSupportedException("Remote resources have no retained package payload.");
+    private void EnsurePayloadBudget(byte[] data, long replacedLength) {
+        if (data.LongLength > _maximumEntryBytes || data.LongLength > _maximumRetainedBytes - (_retainedBytes - replacedLength))
+            throw new InvalidDataException("Resource exceeds the publication's retained entry/expanded-byte limits.");
+    }
+    private string VerifyContentPath(string path) {
+        if (!EpubReader.TryNormalizeArchiveEntryPath(path, out string normalized) || normalized != path || path.EndsWith("/", StringComparison.Ordinal) ||
+            path == "mimetype" || path == PackagePath || path.StartsWith("META-INF/", StringComparison.Ordinal)) throw new ArgumentException("Resource requires a canonical, non-reserved container path.", nameof(path));
+        var utf8 = new UTF8Encoding(false, true);
+        if (utf8.GetByteCount(path) > 65535 || path.Split('/').Any(segment => utf8.GetByteCount(segment) > 255 || segment.EndsWith(".", StringComparison.Ordinal)))
+            throw new ArgumentException("Path exceeds OCF component limits or ends with a dot.", nameof(path));
+        for (int index = 0; index < path.Length; index++) {
+            int code = char.ConvertToUtf32(path, index);
+            if (code > 0xffff) index++;
+            if (code < 32 || (code >= 127 && code <= 159) || (code >= 0xe000 && code <= 0xf8ff) || code >= 0xf0000 ||
+                (code >= 0xfdd0 && code <= 0xfdef) || (code >= 0xfff0 && code <= 0xffff) || (code & 0xffff) >= 0xfffe ||
+                (code <= 0xffff && "\"*:<>?\\|".IndexOf((char)code) >= 0)) throw new ArgumentException("Path contains a character forbidden by OCF.", nameof(path));
+        }
+        return normalized;
+    }
+    private static string[] Tokens(string? value) => (value ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+    private static bool HasToken(string? value, string token) => Tokens(value).Contains(token, StringComparer.Ordinal);
+    private static bool IsScriptMediaType(string mediaType) => new[] { "application/javascript", "text/javascript", "application/ecmascript", "text/ecmascript", "text/jscript" }
+        .Contains(mediaType.Split(';')[0].Trim(), StringComparer.OrdinalIgnoreCase);
+    private static string EncodePath(string path) => string.Join("/", path.Split('/').Select(Uri.EscapeDataString));
+    private static string RelativeHref(string ownerPath, string targetPath) =>
+        new Uri("epub://package/" + EncodePath(ownerPath)).MakeRelativeUri(new Uri("epub://package/" + EncodePath(targetPath))).OriginalString;
+    private static void ValidateContent(XDocument document, string mediaType) {
+        XName expected = mediaType == "application/xhtml+xml" ? Html + "html" :
+            mediaType == "image/svg+xml" ? XName.Get("svg", "http://www.w3.org/2000/svg") : throw new NotSupportedException("Expected XHTML or SVG content.");
+        if (document.Root?.Name != expected) throw new InvalidDataException("Content document root does not match its declared media type.");
+        if (document.Descendants().Any(element => element.Name.LocalName == "script" ||
+            element.Attributes().Any(attribute => attribute.Name.NamespaceName.Length == 0 &&
+                (attribute.Name.LocalName.StartsWith("on", StringComparison.OrdinalIgnoreCase) || attribute.Name.LocalName == "srcdoc"))))
+            throw new NotSupportedException("Script authoring is outside the EPUB writer contract.");
+    }
+}

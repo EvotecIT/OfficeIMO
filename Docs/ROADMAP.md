@@ -417,7 +417,7 @@ Treat a format as a full OfficeIMO product only when a stable public model can s
 
 ### Full create, read, edit, and write products
 
-- [ ] Promote `OfficeIMO.Epub` from its current bounded read-only content model to EPUB 2/3 authoring and round-trip editing. Add typed metadata, manifest, spine, navigation, chapter, stylesheet, media, accessibility, and fixed-layout declarations; preserve unknown safe resources; reopen every output; and expose conversion through the shared Reader and conversion owners. Keep scripting, DRM, and general encrypted-resource handling outside the authoring contract.
+- [ ] Extend the [EPUB native writer](../OfficeIMO.Epub/README.md#create-a-publication) with manuscript import through shared Word/Markdown/HTML owners and Studio publishing/export. Qualify fixed-page geometry, media-overlay authoring, complete stylesheet resource closure, and a wider independent producer corpus before expanding those support claims. Keep scripting, DRM, and general encrypted-resource editing outside the authoring contract.
 - [ ] Add JATS Archiving and Publishing read, validation, preservation, and conversion, with create/edit/write limited initially to the JATS Article Authoring profile. Preserve namespaced extensions and front/body/back matter that the typed model does not yet understand, report the tag-set/version explicitly, and require schema plus reopen evidence before expanding the authored profile.
 - [ ] Evaluate FictionBook 2 as a lower-priority full XML ebook product after EPUB authoring is stable. Reuse shared document, image, metadata, and Reader contracts, preserve unknown namespaces, and require independently produced fixtures before committing to deterministic write support.
 

@@ -532,14 +532,16 @@ public sealed class OfficeOperationCapabilityCatalogTests {
     }
 
     [Fact]
-    public void EpubLifecycleDoesNotOverstateAuthoringSupport() {
+    public void EpubLifecycleExposesBoundedAuthoringAndPartialValidation() {
         IReadOnlyList<OfficeOperationCapability> rows = OfficeOperationCapabilityCatalog.FindByExtension(".epub");
 
         Assert.Contains(rows, row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" &&
             row.Operation == OfficeOperationKind.Read && row.State == OfficeOperationSupportState.Supported);
-        Assert.All(new[] { OfficeOperationKind.Create, OfficeOperationKind.Edit }, operation =>
+        Assert.All(new[] { OfficeOperationKind.Create, OfficeOperationKind.Edit, OfficeOperationKind.Preserve }, operation =>
             Assert.Contains(rows, row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" &&
-                row.Operation == operation && row.State == OfficeOperationSupportState.Unsupported));
+                row.Operation == operation && row.State == OfficeOperationSupportState.Supported && !string.IsNullOrEmpty(row.Limitation)));
+        Assert.Contains(rows, row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" &&
+            row.Operation == OfficeOperationKind.Validate && row.State == OfficeOperationSupportState.Partial);
     }
 
     [Fact]
