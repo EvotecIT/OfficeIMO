@@ -1713,7 +1713,8 @@ namespace OfficeIMO.Word {
             }
 
             if (paragraphFormat.LineSpacingTwips != null) {
-                paragraph.LineSpacing = paragraphFormat.LineSpacingTwips;
+                var properties = EnsureLegacyDocParagraphProperties(paragraph);
+                ApplyLegacyDocLineSpacing(properties.SpacingBetweenLines ??= new SpacingBetweenLines(), paragraphFormat);
             }
 
             if (paragraphFormat.LeftIndentTwips != null) {
@@ -2197,8 +2198,7 @@ namespace OfficeIMO.Word {
 
             if (paragraphFormat.LineSpacingTwips != null) {
                 spacing ??= new SpacingBetweenLines();
-                spacing.Line = paragraphFormat.LineSpacingTwips.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                spacing.LineRule = LineSpacingRuleValues.AtLeast;
+                ApplyLegacyDocLineSpacing(spacing, paragraphFormat);
             }
 
             if (spacing != null) {

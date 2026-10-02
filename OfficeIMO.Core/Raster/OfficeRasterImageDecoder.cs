@@ -149,10 +149,12 @@ public static partial class OfficeRasterImageDecoder {
 
         if (format == OfficeImageFormat.Tiff) {
             bool decoded = OfficeTiffCodec.TryDecodePage(bytes, effective.FrameIndex, effective, out image);
+            bool callerDecoded = false;
+            if (!decoded) decoded = callerDecoded = TryDecodeWithOptionalCodec(bytes, effective, container, out image);
             string? diagnostic = decoded && frameCount > 1
                 ? "The selected TIFF page was decoded; remaining pages were not retained in the static raster result."
                 : decoded ? null : "The requested TIFF page could not be decoded.";
-            info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, decoded, diagnostic, container);
+            info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, decoded, diagnostic, container) { UsedCallerCodec = callerDecoded };
             return decoded;
         }
 
@@ -161,7 +163,7 @@ public static partial class OfficeRasterImageDecoder {
             info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, decoded,
                 decoded
                     ? "The caller codec decoded the first WebP frame; animation playback was not retained."
-                    : "Animated WebP pixel decoding remains an explicit caller-codec boundary.", container);
+                    : "Animated WebP pixel decoding remains an explicit caller-codec boundary.", container) { UsedCallerCodec = decoded };
             return decoded;
         }
 
@@ -183,14 +185,15 @@ public static partial class OfficeRasterImageDecoder {
         // Static WebP belongs to the managed decoder. A failed VP8/ALPH stream
         // must not become valid merely because a caller codec was supplied.
         // Animated WebP has its explicit inspected caller-codec path above.
+        bool usedCallerCodec = false;
         // AVIF exposes a caller boundary only after both item payloads and the
         // retained/work limits pass; malformed alpha cannot publish color alone.
         if (!success && format != OfficeImageFormat.Webp &&
             (format != OfficeImageFormat.Avif || avifCallerCodecEligible))
-            success = TryDecodeWithOptionalCodec(bytes, effective, container, out image);
+            success = usedCallerCodec = TryDecodeWithOptionalCodec(bytes, effective, container, out image);
         if (!success) image = null;
         info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, success,
-            success ? null : "Raster bytes are not supported by the managed decoder subset or exceed configured limits.", container);
+            success ? null : "Raster bytes are not supported by the managed decoder subset or exceed configured limits.", container) { UsedCallerCodec = usedCallerCodec };
         return success;
     }
 

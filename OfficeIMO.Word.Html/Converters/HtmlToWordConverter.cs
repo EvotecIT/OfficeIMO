@@ -244,6 +244,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static void ValidateResourceConcurrency(HtmlToWordOptions options) {
+            if (options.MaxDecodedImagePixels <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDecodedImagePixels));
             if (options.MaxConcurrentResourceLoads <= 0) {
                 throw new ArgumentOutOfRangeException(
                     nameof(options.MaxConcurrentResourceLoads),

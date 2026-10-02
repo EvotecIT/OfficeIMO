@@ -21,6 +21,23 @@ internal static partial class PdfWriter {
         }
     }
 
+    private static void ValidateStructureAssociatedFileNames(LayoutResult layout, PdfOptions options,
+        CancellationToken cancellationToken) {
+        var catalogNames = new HashSet<string>(options.EmbeddedFileSnapshots.Select(file => file.FileName), StringComparer.Ordinal);
+        var files = new Dictionary<string, PdfEmbeddedFile>(StringComparer.Ordinal);
+        foreach (PageStructElement element in layout.Pages.SelectMany(page => page.StructElements)) {
+            foreach (PdfEmbeddedFile file in element.AssociatedFiles) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (catalogNames.Contains(file.FileName))
+                    throw new InvalidOperationException("A structure-associated file conflicts with a catalog attachment name: " + file.FileName);
+                if (files.TryGetValue(file.FileName, out PdfEmbeddedFile? existing)) {
+                    if (!file.HasSameDescriptionAndData(existing))
+                        throw new InvalidOperationException("Different structure-associated files have the same name: " + file.FileName);
+                } else files.Add(file.FileName, file);
+            }
+        }
+    }
+
     private static List<(string FileName, int FileSpecId)> BuildStructureAssociatedFiles(
         IList<byte[]> objects,
         IReadOnlyList<LayoutResult.Page> pages,

@@ -24,6 +24,8 @@ internal sealed class PdfGeneratedDocumentComplianceEvidence {
         OptionalContentLayerCount = optionalContentLayerCount;
     }
 
+    public int FormulasMissingAlternativeText { get; set; }
+
     public System.Collections.Generic.IReadOnlyList<PdfStandardFont> StandardFonts { get; }
 
     public System.Collections.Generic.IReadOnlyList<PdfGeneratedFontComplianceEvidence> FontUsages { get; }

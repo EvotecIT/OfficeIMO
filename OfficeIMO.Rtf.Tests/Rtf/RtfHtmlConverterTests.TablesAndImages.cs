@@ -342,6 +342,17 @@ public partial class RtfHtmlConverterTests {
     }
 
     [Fact]
+    public void HtmlImageEmbeddedDpiPreventsUnnecessaryFitting() {
+        byte[] photo = OfficePngWriter.Encode(new OfficeRasterImage(1200, 1200, OfficeColor.White),
+            new OfficePngEncodeOptions { WritePhysicalResolution = true, DpiX = 300, DpiY = 300 });
+        var result = HtmlConversionDocument.Parse("<img src='data:image/png;base64," + Convert.ToBase64String(photo) + "'>").ToRtfDocumentResult();
+        RtfImage image = Assert.Single(result.RequireValue().Paragraphs.SelectMany(p => p.Inlines).OfType<RtfImage>());
+        Assert.Null(image.DesiredWidthTwips);
+        Assert.Null(image.DesiredHeightTwips);
+        Assert.DoesNotContain(result.RtfDiagnostics, d => d.Code == "HtmlRtfImageFittedToPage");
+    }
+
+    [Fact]
     public void Html_ToRtfDocument_Fits_Unstyled_Large_Image_Within_Page_Text_Area() {
         byte[] photo = OfficePngWriter.Encode(new OfficeRasterImage(960, 640, OfficeColor.White));
         byte[] icon = OfficePngWriter.Encode(new OfficeRasterImage(16, 11, OfficeColor.White));
@@ -355,8 +366,8 @@ public partial class RtfHtmlConverterTests {
 
         Assert.Equal(960, large.SourceWidth);
         Assert.Equal(640, large.SourceHeight);
-        Assert.Equal(9000, large.DesiredWidthTwips);
-        Assert.Equal(6000, large.DesiredHeightTwips);
+        Assert.Equal(8640, large.DesiredWidthTwips);
+        Assert.Equal(5760, large.DesiredHeightTwips);
         Assert.Null(small.DesiredWidthTwips);
         Assert.Null(small.DesiredHeightTwips);
         Assert.Contains(result.RtfDiagnostics, diagnostic => diagnostic.Code == "HtmlRtfImageFittedToPage");

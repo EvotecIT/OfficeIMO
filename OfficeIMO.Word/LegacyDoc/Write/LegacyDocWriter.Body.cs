@@ -56,7 +56,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 EndnotePosition = endnotePosition;
                 TrackRevisions = trackRevisions;
                 LockRevisionTracking = lockRevisionTracking;
-                LegacyDocWritableBookmarks resolvedBookmarks = bookmarks.WithTerminalCharacterPosition(PieceTableCharacterCount + 1);
+                LegacyDocWritableBookmarks resolvedBookmarks = bookmarks.WithTerminalCharacterPosition(FullText.Length + 2);
                 SttbfBkmk = resolvedBookmarks.SttbfBkmk;
                 PlcfBkf = resolvedBookmarks.PlcfBkf;
                 PlcfBkl = resolvedBookmarks.PlcfBkl;
@@ -107,9 +107,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool HasNoteStories => HasFootnotes || HasEndnotes;
 
-            internal string StoredText => FullText + "\r";
+            // MS-DOC PlcPcd includes an extra terminal mark only when another
+            // document part follows the main body. Otherwise Word displays it.
+            internal bool NeedsTerminalPadding => FullText.Length > Text.Length;
 
-            internal int PieceTableCharacterCount => FullText.Length + 1;
+            internal string StoredText => NeedsTerminalPadding ? FullText + "\r" : FullText;
+
+            internal int PieceTableCharacterCount => FullText.Length + (NeedsTerminalPadding ? 1 : 0);
 
             internal byte[] PlcffndRef { get; }
 
@@ -384,29 +388,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             internal IReadOnlyList<LegacyDocWritableParagraphSegment> CreateParagraphSegments() {
-                if (HasNoteStories || HasComments || HeaderFooterFormattedParagraphs.Count > 0) {
-                    return CreateFootnoteAwareParagraphSegments();
-                }
-
-                var segments = new List<LegacyDocWritableParagraphSegment>();
-                int character = 0;
-                foreach (LegacyDocWritableParagraph paragraph in FormattedParagraphs.OrderBy(item => item.StartCharacter)) {
-                    if (paragraph.StartCharacter > character) {
-                        AddParagraphSegment(segments, character, paragraph.StartCharacter - character, LegacyDocWritableParagraphFormatting.Plain);
-                    }
-
-                    AddParagraphSegment(segments, paragraph.StartCharacter, paragraph.Length, paragraph.Formatting);
-                    character = paragraph.EndCharacter;
-                }
-
-                if (character < PieceTableCharacterCount) {
-                    AddParagraphSegment(segments, character, PieceTableCharacterCount - character, LegacyDocWritableParagraphFormatting.Plain);
-                }
-
-                return segments;
+                // Word finds paragraph boundaries in PAPX, including unformatted paragraphs.
+                return CreateStoryParagraphSegments();
             }
 
-            private IReadOnlyList<LegacyDocWritableParagraphSegment> CreateFootnoteAwareParagraphSegments() {
+            private IReadOnlyList<LegacyDocWritableParagraphSegment> CreateStoryParagraphSegments() {
                 var segments = new List<LegacyDocWritableParagraphSegment>();
                 AddBodyParagraphSegments(segments);
                 AddStoryParagraphSegments(
@@ -569,16 +555,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     return;
                 }
 
-                if (segments.Count > 0) {
-                    LegacyDocWritableParagraphSegment previous = segments[segments.Count - 1];
-                    if (previous.EndCharacter == startCharacter
-                        && formatting.IsInTable != true
-                        && previous.CanMergeWith(formatting)) {
-                        segments[segments.Count - 1] = previous.Extend(length);
-                        return;
-                    }
-                }
-
+                // PAPX boundaries identify paragraphs to Word, even when their properties
+                // are identical. Coalescing them turns paragraph marks into inline breaks.
                 segments.Add(new LegacyDocWritableParagraphSegment(startCharacter, length, formatting));
             }
 

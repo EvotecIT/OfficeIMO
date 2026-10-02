@@ -241,7 +241,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             if (formatting.LineSpacingTwips != null) {
-                AddLineSpacingSprm(grpprl, formatting.LineSpacingTwips.Value);
+                AddLineSpacingSprm(grpprl, formatting.LineSpacingTwips.Value, formatting.LineSpacingIsMultiple);
             }
 
             if (formatting.TabStops.Count > 0) {
@@ -360,9 +360,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             grpprl.Add((byte)((operand >> 24) & 0xFF));
         }
 
-        private static void AddLineSpacingSprm(List<byte> grpprl, int lineSpacingTwips) {
+        private static void AddLineSpacingSprm(List<byte> grpprl, int lineSpacingTwips, bool isMultiple) {
             AddInt16Sprm(grpprl, SprmPDyaLine, lineSpacingTwips);
-            grpprl.Add(0);
+            grpprl.Add(isMultiple ? (byte)1 : (byte)0);
             grpprl.Add(0);
         }
 
@@ -985,12 +985,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             byte? outlineLevel = null,
             int tableDepth = 0,
             bool hasInnerTableCellMarker = false,
-            bool hasInnerTableTerminatingParagraphMarker = false) {
+            bool hasInnerTableTerminatingParagraphMarker = false,
+            bool lineSpacingIsMultiple = false) {
             Alignment = alignment;
             StyleIndex = styleIndex;
             SpacingBeforeTwips = spacingBeforeTwips;
             SpacingAfterTwips = spacingAfterTwips;
             LineSpacingTwips = lineSpacingTwips;
+            LineSpacingIsMultiple = lineSpacingIsMultiple;
             LeftIndentTwips = leftIndentTwips;
             RightIndentTwips = rightIndentTwips;
             FirstLineIndentTwips = firstLineIndentTwips;
@@ -1095,6 +1097,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         internal int? SpacingAfterTwips { get; }
 
         internal int? LineSpacingTwips { get; }
+
+        /// <summary>When true, LineSpacingTwips stores 240ths of a line rather than twips.</summary>
+        internal bool LineSpacingIsMultiple { get; }
 
         internal int? LeftIndentTwips { get; }
 
@@ -1311,7 +1316,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 OutlineLevel,
                 TableDepth,
                 HasInnerTableCellMarker,
-                HasInnerTableTerminatingParagraphMarker);
+                HasInnerTableTerminatingParagraphMarker,
+                lineSpacingIsMultiple: LineSpacingIsMultiple);
         }
 
         internal LegacyDocWritableParagraphFormatting WithInheritedParagraphFormatting(LegacyDocWritableParagraphFormatting inherited) {
@@ -1375,7 +1381,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 OutlineLevel ?? inherited.OutlineLevel,
                 TableDepth > 0 ? TableDepth : inherited.TableDepth,
                 HasInnerTableCellMarker || inherited.HasInnerTableCellMarker,
-                HasInnerTableTerminatingParagraphMarker || inherited.HasInnerTableTerminatingParagraphMarker);
+                HasInnerTableTerminatingParagraphMarker || inherited.HasInnerTableTerminatingParagraphMarker,
+                lineSpacingIsMultiple: LineSpacingTwips.HasValue ? LineSpacingIsMultiple : inherited.LineSpacingIsMultiple);
         }
 
         internal LegacyDocWritableParagraphFormatting WithTableMarkers(
@@ -1455,7 +1462,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 defaultTableCellMargins,
                 defaultTableCellSpacingTwips,
                 outlineLevel: OutlineLevel,
-                tableDepth: 1);
+                tableDepth: 1,
+                lineSpacingIsMultiple: LineSpacingIsMultiple);
         }
 
         internal LegacyDocWritableParagraphFormatting WithNestedTableMarkers(int tableDepth, bool isInnerTableTerminatingParagraph = false) {
@@ -1519,7 +1527,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 outlineLevel: OutlineLevel,
                 tableDepth: tableDepth,
                 hasInnerTableCellMarker: true,
-                hasInnerTableTerminatingParagraphMarker: isInnerTableTerminatingParagraph);
+                hasInnerTableTerminatingParagraphMarker: isInnerTableTerminatingParagraph,
+                lineSpacingIsMultiple: LineSpacingIsMultiple);
         }
 
         public bool Equals(LegacyDocWritableParagraphFormatting other) {
@@ -1528,6 +1537,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 && SpacingBeforeTwips == other.SpacingBeforeTwips
                 && SpacingAfterTwips == other.SpacingAfterTwips
                 && LineSpacingTwips == other.LineSpacingTwips
+                && LineSpacingIsMultiple == other.LineSpacingIsMultiple
                 && LeftIndentTwips == other.LeftIndentTwips
                 && RightIndentTwips == other.RightIndentTwips
                 && FirstLineIndentTwips == other.FirstLineIndentTwips
@@ -1592,6 +1602,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             hash = (hash * 31) + SpacingBeforeTwips.GetHashCode();
             hash = (hash * 31) + SpacingAfterTwips.GetHashCode();
             hash = (hash * 31) + LineSpacingTwips.GetHashCode();
+            hash = (hash * 31) + LineSpacingIsMultiple.GetHashCode();
             hash = (hash * 31) + LeftIndentTwips.GetHashCode();
             hash = (hash * 31) + RightIndentTwips.GetHashCode();
             hash = (hash * 31) + FirstLineIndentTwips.GetHashCode();
@@ -1864,14 +1875,5 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         internal byte[]? PapxOverride { get; }
 
-        internal LegacyDocWritableParagraphSegment Extend(int additionalLength) {
-            return PapxOverride == null
-                ? new LegacyDocWritableParagraphSegment(StartCharacter, Length + additionalLength, Formatting)
-                : new LegacyDocWritableParagraphSegment(StartCharacter, Length + additionalLength, PapxOverride);
-        }
-
-        internal bool CanMergeWith(LegacyDocWritableParagraphFormatting formatting) {
-            return PapxOverride == null && Formatting.Equals(formatting);
-        }
     }
 }

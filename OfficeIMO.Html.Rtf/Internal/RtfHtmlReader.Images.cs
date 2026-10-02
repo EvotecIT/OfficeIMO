@@ -61,14 +61,21 @@ internal static partial class RtfHtmlReader {
                 !OfficeImageReader.TryIdentifyByContent(image.Data, null, out OfficeImageInfo info) ||
                 info.Width <= 0 || info.Height <= 0) return;
 
-            // Unstyled HTML images use their pixel dimensions at 96 CSS dpi. Keep an oversized
-            // image inside a typical A4/Letter text area instead of letting an RTF reader
-            // move it to a mostly empty following page or clip it at the paper edge.
-            const double twipsPerCssPixel = 15D;
-            const double maxTextWidthTwips = 9000D;
-            const double maxTextHeightTwips = 12960D;
-            double naturalWidth = info.Width * twipsPerCssPixel;
-            double naturalHeight = info.Height * twipsPerCssPixel;
+            // Resolve the actual section/document text area, using the RTF defaults
+            // also materialized by RtfDocument.Merge.Sections for omitted page setup.
+            RtfPageSetup page = _document.PageSetup;
+            RtfPageSetup? section = _currentSection?.PageSetup;
+            double maxTextWidthTwips = Math.Max(1D,
+                (section?.PaperWidthTwips ?? page.PaperWidthTwips ?? 12240D)
+                - (section?.MarginLeftTwips ?? page.MarginLeftTwips ?? 1800D)
+                - (section?.MarginRightTwips ?? page.MarginRightTwips ?? 1800D)
+                - (section?.GutterWidthTwips ?? page.GutterWidthTwips ?? 0D));
+            double maxTextHeightTwips = Math.Max(1D,
+                (section?.PaperHeightTwips ?? page.PaperHeightTwips ?? 15840D)
+                - (section?.MarginTopTwips ?? page.MarginTopTwips ?? 1440D)
+                - (section?.MarginBottomTwips ?? page.MarginBottomTwips ?? 1440D));
+            double naturalWidth = info.Width * 1440D / info.DpiX;
+            double naturalHeight = info.Height * 1440D / info.DpiY;
             double scale = Math.Min(1D,
                 Math.Min(maxTextWidthTwips / naturalWidth, maxTextHeightTwips / naturalHeight));
             if (scale >= 1D) return;
