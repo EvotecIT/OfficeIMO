@@ -10,7 +10,7 @@ public static class ProjectWorkEquation {
     /// <summary>Computes the uniform working duration for a fixed amount of work and positive total units.</summary>
     public static decimal DurationMinutes(ProjectWork work, ProjectUnits totalUnits) {
         if (totalUnits.Value <= 0) throw new ArgumentOutOfRangeException(nameof(totalUnits), "Fixed work requires positive allocation units.");
-        return work.Minutes / totalUnits.Value;
+        return work.MultiplyDivide(1, totalUnits.Value).Minutes;
     }
     /// <summary>Computes allocation for fixed work and duration. Zero-duration work cannot be inferred.</summary>
     public static ProjectUnits Units(ProjectWork work, decimal workingMinutes) {

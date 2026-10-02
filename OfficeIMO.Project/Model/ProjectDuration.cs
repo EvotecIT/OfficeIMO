@@ -143,8 +143,11 @@ public readonly struct ProjectWork : IEquatable<ProjectWork> {
         catch (OverflowException) { return new ProjectWork(minutes); }
     }
     internal ProjectWork Scale(decimal factor) {
-        decimal minutes = checked(Minutes * factor);
-        try { return FromQuantities(minutes, checked(Ticks * factor)); }
+        return MultiplyDivide(factor, 1);
+    }
+    internal ProjectWork MultiplyDivide(decimal numerator, decimal denominator) {
+        decimal minutes = checked(Minutes * numerator / denominator);
+        try { return FromQuantities(minutes, checked(Ticks * numerator / denominator)); }
         catch (OverflowException) { return new ProjectWork(minutes); }
     }
     private static ProjectWork FromQuantities(decimal minutes, decimal ticks) =>

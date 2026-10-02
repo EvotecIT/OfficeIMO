@@ -170,10 +170,11 @@ internal sealed partial class ProjectScheduler {
     private ProjectTaskWorkSchedule SummaryTotals(ProjectTask task, ProjectTaskSchedule[] children, decimal duration) {
         var totals = children.Select(c => c.Calculation!).ToArray();
         var work = ProjectWork.Sum(totals.Select(c => c.Work)); var actual = ProjectWork.Sum(totals.Select(c => c.ActualWork));
-        decimal childDuration = totals.Sum(c => c.ActualDuration.Value + c.RemainingDuration.Value);
+        var actualDuration = ProjectWork.Sum(totals.Select(c => ProjectWork.FromMinutes(c.ActualDuration.Value)));
+        var childDuration = ProjectWork.Add(actualDuration, ProjectWork.Sum(totals.Select(c => ProjectWork.FromMinutes(c.RemainingDuration.Value))));
         bool completed = totals.All(c => c.PercentComplete == 100);
         bool hasActuals = task.ActualStart.HasValue || task.ActualFinish.HasValue || task.ActualDuration?.Value > 0 || totals.Any(c => c.HasActuals);
-        decimal fraction = childDuration == 0 ? completed ? 1m : 0m : totals.Sum(c => c.ActualDuration.Value) / childDuration;
+        decimal fraction = childDuration.Minutes == 0 ? completed ? 1m : 0m : ProjectWorkEquation.Units(actualDuration, childDuration.Minutes).Value;
         decimal fixedCost = task.FixedCost ?? 0m;
         decimal actualFixed = (task.FixedCostAccrual ?? ProjectCostAccrual.Prorated) switch {
             ProjectCostAccrual.Start => hasActuals ? fixedCost : 0m,
@@ -186,7 +187,8 @@ internal sealed partial class ProjectScheduler {
             if (cost.HasValue && actualCost.HasValue) cost += task.ActualCost.Value - actualCost.Value;
             actualCost = task.ActualCost;
         }
-        return new ProjectTaskWorkSchedule(work, actual, ProjectWork.Subtract(work, actual), duration * fraction, duration * (1m - fraction),
+        decimal summaryActual = ProjectTimeUnits.MultiplyDivideMinutes(duration, fraction);
+        return new ProjectTaskWorkSchedule(work, actual, ProjectWork.Subtract(work, actual), summaryActual, ProjectTimeUnits.SubtractMinutes(duration, summaryActual),
             cost, actualCost, task.PhysicalPercentComplete, completed: completed, hasActuals: hasActuals);
     }
     private static decimal MinutesBetween(Node node, DateTime start, DateTime finish) => node.Elapsed

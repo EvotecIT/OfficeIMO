@@ -6,7 +6,8 @@ public sealed class ProjectTaskWorkSchedule {
         decimal actualDuration, decimal remainingDuration, decimal? cost, decimal? actualCost, int? physical, bool elapsed = false, bool completed = false, bool hasActuals = false) {
         HasActuals = hasActuals;
         Work = work; ActualWork = actualWork; RemainingWork = remainingWork;
-        ActualDuration = new ProjectDuration(actualDuration, ProjectDurationUnit.Minute, elapsed); RemainingDuration = new ProjectDuration(remainingDuration, ProjectDurationUnit.Minute, elapsed);
+        ActualDuration = ProjectDuration.FromMinutes(actualDuration, ProjectDurationUnit.Minute, elapsed, false, 1);
+        RemainingDuration = ProjectDuration.FromMinutes(remainingDuration, ProjectDurationUnit.Minute, elapsed, false, 1);
         Cost = cost; ActualCost = actualCost; RemainingCost = cost - actualCost;
         PercentComplete = actualDuration + remainingDuration == 0 && completed ? 100 : Percentage(actualDuration, actualDuration + remainingDuration);
         PercentWorkComplete = Percentage(actualWork.Minutes, work.Minutes); PhysicalPercentComplete = physical;

@@ -58,13 +58,14 @@ internal sealed partial class ProjectTaskAllocation {
                 origin = Max(origin, actualTaskEnd.Value);
             origin = BoundRemainingTaskStart(origin);
             var intervals = new List<ProjectAssignmentInterval>(entry.ActualIntervals);
-            decimal regular = entry.Remaining - entry.RemainingOvertime, assignedOvertime = 0m;
+            decimal regular = ProjectTimeUnits.SubtractMinutes(entry.Remaining, entry.RemainingOvertime), assignedOvertime = 0m;
             for (int index = 0; index < entry.Curves.Length; index++) {
                 var curve = entry.Curves[index];
-                decimal overtime = index == entry.Curves.Length - 1 ? entry.RemainingOvertime - assignedOvertime :
-                    regular > 0 ? entry.RemainingOvertime * curve.Work / regular : 0;
+                decimal overtime = index == entry.Curves.Length - 1 ? ProjectTimeUnits.SubtractMinutes(entry.RemainingOvertime, assignedOvertime) :
+                    regular > 0 ? ProjectTimeUnits.MultiplyDivideMinutes(entry.RemainingOvertime, curve.Work, regular) : 0;
                 DateTime from = entry.RemainingCalendar.Add(origin, curve.From), to = entry.RemainingCalendar.Add(origin, curve.To);
-                Expand(entry, entry.RemainingCalendar, from, to, curve.Work + overtime, overtime, false, intervals); assignedOvertime += overtime;
+                Expand(entry, entry.RemainingCalendar, from, to, ProjectTimeUnits.AddMinutes(curve.Work, overtime), overtime, false, intervals);
+                assignedOvertime = ProjectTimeUnits.AddMinutes(assignedOvertime, overtime);
             }
             DateTime start = intervals.Count > 0 ? intervals.Min(i => i.Start) : origin;
             DateTime finish = intervals.Count > 0 ? intervals.Max(i => i.Finish) : entry.RemainingCalendar.Add(origin, span);

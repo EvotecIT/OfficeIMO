@@ -170,4 +170,37 @@ public class ProjectTimePrecisionTests {
         Assert.Equal(TimeSpan.FromSeconds(1), XmlConvert.ToTimeSpan(xml.Descendants(Ns + "ActualWork").Single().Value));
         Assert.Equal(TimeSpan.FromSeconds(1), XmlConvert.ToTimeSpan(xml.Descendants(Ns + "RemainingWork").Single().Value));
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AssignedSecondProgressInfersExactRemainingWorkAndOvertime(bool overtime) {
+        int work = overtime ? 4 : 2, actual = overtime ? 2 : 1;
+        using var document = ProjectDocument.Parse($"<Project xmlns='{Ns}'><StartDate>2026-10-05T08:00:00</StartDate><Tasks><Task><UID>1</UID><Name>Progress</Name><Duration>PT2S</Duration><DurationFormat>3</DurationFormat><ActualDuration>PT1S</ActualDuration><RemainingDuration>PT1S</RemainingDuration><ActualStart>2026-10-05T08:00:00</ActualStart><Work>PT{work}S</Work><ActualWork>PT{actual}S</ActualWork></Task></Tasks></Project>");
+        document.Calendar = document.Calendars.AddStandardWorkingWeek();
+        var resource = document.Resources.AddWork("Engineer"); resource.StandardRate = 60; resource.OvertimeRate = 60;
+        var assignment = document.Assignments.Add(document.Tasks[0], resource, ProjectUnits.Percent(100));
+        assignment.Work = document.Tasks[0].Work; assignment.ActualWork = document.Tasks[0].ActualWork; assignment.ActualStart = document.Tasks[0].ActualStart;
+        if (overtime) {
+            using var times = ProjectDocument.Parse($"<Project xmlns='{Ns}'><Tasks><Task><UID>1</UID><Work>PT2S</Work><ActualWork>PT1S</ActualWork></Task></Tasks></Project>");
+            assignment.OvertimeWork = times.Tasks[0].Work; assignment.ActualOvertimeWork = times.Tasks[0].ActualWork;
+        }
+        document.Recalculate(new ProjectScheduleOptions { CalculateAssignments = true });
+        var xml = XDocument.Parse(document.ToXml(new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        var values = xml.Descendants(Ns + "Assignment").Single();
+        Assert.Equal(TimeSpan.FromSeconds(work), XmlConvert.ToTimeSpan(values.Element(Ns + "Work")!.Value));
+        Assert.Equal(TimeSpan.FromSeconds(actual), XmlConvert.ToTimeSpan(values.Element(Ns + "ActualWork")!.Value));
+        Assert.Equal(TimeSpan.FromSeconds(work - actual), XmlConvert.ToTimeSpan(values.Element(Ns + "RemainingWork")!.Value));
+        if (overtime) Assert.Equal(TimeSpan.FromSeconds(2), XmlConvert.ToTimeSpan(values.Element(Ns + "OvertimeWork")!.Value));
+    }
+
+    [Fact]
+    public void SummaryProgressScalesExactChildDuration() {
+        using var document = ProjectDocument.Parse($"<Project xmlns='{Ns}'><StartDate>2026-10-05T08:00:00</StartDate><Tasks><Task><UID>10</UID><Name>Summary</Name><OutlineLevel>1</OutlineLevel><Summary>1</Summary></Task><Task><UID>1</UID><Name>Progress</Name><OutlineLevel>2</OutlineLevel><Duration>PT2S</Duration><DurationFormat>3</DurationFormat><ActualDuration>PT1S</ActualDuration><RemainingDuration>PT1S</RemainingDuration><ActualStart>2026-10-05T08:00:00</ActualStart></Task></Tasks></Project>");
+        document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Recalculate(new ProjectScheduleOptions { CalculateAssignments = true });
+        var xml = XDocument.Parse(document.ToXml(new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        var summary = xml.Descendants(Ns + "Task").Single(t => t.Element(Ns + "UID")!.Value == "10");
+        Assert.Equal(TimeSpan.FromSeconds(1), XmlConvert.ToTimeSpan(summary.Element(Ns + "ActualDuration")!.Value));
+        Assert.Equal(TimeSpan.FromSeconds(1), XmlConvert.ToTimeSpan(summary.Element(Ns + "RemainingDuration")!.Value));
+    }
 }
