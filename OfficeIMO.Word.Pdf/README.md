@@ -136,7 +136,7 @@ byte[] pdf = document.ToPdfBytes(new WordToPdfOptions {
 File.WriteAllBytes("output.pdf", pdf);
 ```
 
-PDF image optimization is opt-in and leaves Word source media unchanged. `Downsample` uses the final source-image placement, including crop/fit expansion; `Recompress` retains pixels and re-encodes JPEGs; `DownsampleAndRecompress` applies both. The shared managed codecs handle static PNG/JPEG/BMP/GIF/TIFF/WebP input. Multi-frame/page payloads and unsupported formats remain outside static optimization. Candidates that would grow or lose metadata are preserved by default; `AllowMetadataLoss` permits reported metadata loss. Image optimization decisions appear as information diagnostics in the PDF layout report. This export policy is separate from the lossless optimizer for existing PDFs.
+PDF image optimization is opt-in and leaves Word source media unchanged. `Downsample` uses the final source-image placement, including crop/fit expansion; `Recompress` retains pixels and re-encodes JPEGs; `DownsampleAndRecompress` applies both. The shared managed codecs handle static PNG/JPEG/BMP/GIF/TIFF/WebP input. Multi-frame/page payloads and unsupported formats remain outside static optimization. Candidates that would grow or remove metadata are preserved by default; `AllowMetadataLoss` permits reported loss or intentional stripping. Explicit metadata policies also apply when no pixel reduction is needed. The PDF layout report records optimization decisions and warns when metadata is removed. This export policy is separate from the lossless optimizer for existing PDFs.
 
 ### Capture conversion warnings without throwing away the report
 

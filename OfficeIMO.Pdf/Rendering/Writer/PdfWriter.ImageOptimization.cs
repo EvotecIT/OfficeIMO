@@ -25,7 +25,9 @@ internal static partial class PdfWriter {
         bool downsample = options.Mode != OfficeImageOptimizationMode.Recompress &&
             RequiresDownsampling(image.Info, targetWidth, targetHeight, options.DownsampleThreshold);
         bool recompress = options.Mode != OfficeImageOptimizationMode.Downsample && image.Info.Format == OfficeImageFormat.Jpeg;
-        if (!downsample && !recompress) return;
+        bool metadataPolicy = options.MetadataPolicy == OfficeImageMetadataPolicy.Strip ||
+            (options.MetadataPolicy == OfficeImageMetadataPolicy.SelectiveCopy && options.MetadataSelection != OfficeImageMetadataKinds.All);
+        if (!downsample && !recompress && !metadataPolicy) return;
         if (!downsample) {
             targetWidth = image.Info.Width;
             targetHeight = image.Info.Height;
@@ -65,7 +67,8 @@ internal static partial class PdfWriter {
             ReportImageOptimization(documentOptions, image, "ImageOptimizationPreserved", "Original image retained: " + result.Status + ".");
             return;
         }
-        if (result.Metadata.HasLoss && !options.AllowMetadataLoss) {
+        bool removesMetadata = result.Metadata.HasLoss || result.Metadata.Stripped != OfficeImageMetadataKinds.None;
+        if (removesMetadata && !options.AllowMetadataLoss) {
             ReportImageOptimization(documentOptions, image, "ImageOptimizationMetadataLoss", "Original image retained because the candidate would lose metadata.");
             return;
         }
@@ -73,15 +76,21 @@ internal static partial class PdfWriter {
             "Encoded image changed from " + result.OriginalEncodedLength.ToString(CultureInfo.InvariantCulture) + " to " +
             result.FinalEncodedLength.ToString(CultureInfo.InvariantCulture) + " bytes; " +
             result.Final.Width.ToString(CultureInfo.InvariantCulture) + "x" + result.Final.Height.ToString(CultureInfo.InvariantCulture) + " pixels.");
+        if (removesMetadata) {
+            ReportImageOptimization(documentOptions, image, "ImageOptimizationMetadataRemoved",
+                "Image metadata removed: lost " + result.Metadata.Lost + "; stripped " + result.Metadata.Stripped + ".",
+                PdfConversionWarningSeverity.Warning);
+        }
         image.Data = result.Bytes;
         image.Info = result.Final;
         image.PreparedStream = null;
     }
 
-    private static void ReportImageOptimization(PdfOptions options, PageImage image, string code, string message) =>
+    private static void ReportImageOptimization(PdfOptions options, PageImage image, string code, string message,
+        PdfConversionWarningSeverity severity = PdfConversionWarningSeverity.Information) =>
         options.AddLayoutDiagnostic(code, "image at " + image.X.ToString("R", CultureInfo.InvariantCulture) + "," +
             image.Y.ToString("R", CultureInfo.InvariantCulture), message, PdfLayoutDiagnosticKind.ImageOptimization,
-            PdfConversionWarningSeverity.Information, image.X, image.Y, image.W, image.H);
+            severity, image.X, image.Y, image.W, image.H);
 
     private static bool CanOptimizeImageFormat(OfficeImageFormat format) =>
         format == OfficeImageFormat.Png || format == OfficeImageFormat.Jpeg || format == OfficeImageFormat.Bmp ||

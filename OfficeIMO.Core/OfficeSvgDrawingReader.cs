@@ -52,6 +52,7 @@ public static partial class OfficeSvgDrawingReader {
         out int unsupportedFeatureCount) {
         drawing = null;
         unsupportedFeatureCount = 0;
+        options?.CancellationToken.ThrowIfCancellationRequested();
         if (!TryReadBoundedDocument(
                 bytes,
                 options,
@@ -80,7 +81,8 @@ public static partial class OfficeSvgDrawingReader {
             bool pathCommandLimitExceeded = false;
             SvgDefinitionRegistry definitions = SvgDefinitionRegistry.Create(root);
             var paintServers = new SvgPaintServerRegistry(definitions);
-            var references = new SvgElementReferenceRegistry(definitions, options?.ForeignObjectRenderer);
+            var references = new SvgElementReferenceRegistry(definitions, options?.ForeignObjectRenderer,
+                options?.CancellationToken ?? default);
             bool fitsRootViewport = Math.Abs(viewportWidth - viewWidth) < 0.000001D &&
                 Math.Abs(viewportHeight - viewHeight) < 0.000001D;
             // Fitting a viewBox retains its full scene as an effect surface alongside
@@ -177,7 +179,7 @@ public static partial class OfficeSvgDrawingReader {
                 maximumCharactersInDocument: MaximumInputBytes,
                 out XElement root,
                 out int maximumElements,
-                out _,
+                out double maximumViewportDimension,
                 out double maximumViewportPixels,
                 out double viewX,
                 out double viewY,
@@ -188,7 +190,7 @@ public static partial class OfficeSvgDrawingReader {
 
         return !ExceedsSvgElementNestingLimit(root) &&
                !ExceedsSvgDocumentPathCommandLimit(root) &&
-               !ExceedsSvgRenderedExpansionLimits(root, maximumElements, maximumViewportPixels,
+               !ExceedsSvgRenderedExpansionLimits(root, maximumElements, maximumViewportDimension, maximumViewportPixels,
                    viewX, viewY, viewWidth, viewHeight, viewportWidth, viewportHeight);
     }
 
@@ -381,6 +383,7 @@ public static partial class OfficeSvgDrawingReader {
     private static bool ExceedsSvgRenderedExpansionLimits(
         XElement root,
         int maximumElements,
+        double maximumViewportDimension,
         double maximumViewportPixels,
         double viewX,
         double viewY,
@@ -407,9 +410,13 @@ public static partial class OfficeSvgDrawingReader {
                 out double pixelScaleY)) return true;
         int commandCount = 0;
         int elementCount = 0;
-        var rasterWork = new SvgRasterWorkBudget(maximumViewportPixels, viewX, viewY,
+        var rasterWork = new SvgRasterWorkBudget(maximumViewportDimension, maximumViewportPixels, viewX, viewY,
             viewWidth, viewHeight, viewportWidth, viewportHeight, pixelScaleX, pixelScaleY,
-            HasStylesheetNonScalingStrokeDeclaration(root));
+            HasStylesheetNonScalingStrokeDeclaration(root),
+            root.Descendants().Any(element => element.Name.LocalName.Equals("svg", StringComparison.OrdinalIgnoreCase)
+                || (element.Name.LocalName.Equals("symbol", StringComparison.OrdinalIgnoreCase)
+                    && (ReadRasterProjectedAttribute(element, "viewBox") is not null
+                        || element.Descendants().Any(child => child.Name.LocalName.Equals("use", StringComparison.OrdinalIgnoreCase))))));
         var references = new SvgElementReferenceRegistry(SvgDefinitionRegistry.Create(root, useProjectedIds: true));
         string? fill = ResolveInheritedSvgPaint(root, "fill", inherited: null);
         string? stroke = ResolveInheritedSvgPaint(root, "stroke", inherited: null);
@@ -630,6 +637,7 @@ public static partial class OfficeSvgDrawingReader {
                         element,
                         target!,
                         transform,
+                        rasterWork,
                         out OfficeTransform targetTransform)) return false;
                 return TryAddRenderedSvgExpansion(
                     target!,

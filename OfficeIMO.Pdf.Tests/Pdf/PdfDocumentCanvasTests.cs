@@ -443,6 +443,24 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasStructure_FormulaRetainsDescriptionAndContentUnderItsDeclaredParent() {
+        var options = new PdfCanvasStructureOptions { AlternativeText = "x squared" };
+        PdfDocument document = PdfDocument.Create().TaggedPdfCatalogMarkers().Canvas(canvas => canvas
+            .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph
+                .Structure(PdfCanvasStructureRole.Formula, formula => formula
+                    .ActualText("x^(2)", paint => paint.Text("x2", 10D, 10D, 60D, 20D)), options)));
+        options.AlternativeText = "Changed after snapshot";
+        byte[] bytes = document.ToBytes();
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
+        PdfStructureElementInfo formula = Assert.Single(tagged.StructureElements, item => item.StructureType == "Formula");
+        PdfStructureElementInfo paragraph = Assert.Single(tagged.StructureElements, item => item.StructureType == "P");
+        Assert.Equal("x squared", formula.AlternateText);
+        Assert.Equal(paragraph.ObjectNumber, formula.ParentObjectNumber);
+        Assert.NotEmpty(formula.ChildElementObjectNumbers);
+        Assert.Equal("x^(2)", PdfReadDocument.Open(bytes).ExtractText().Trim());
+    }
+
+    [Fact]
     public void CanvasStructure_RejectsInvalidRolesOptionsAndEmptyBuilders() {
         var canvas = new PdfPageCanvas();
 

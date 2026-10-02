@@ -106,10 +106,18 @@ public sealed class OfficeDrawingGroup : OfficeDrawingElement {
     /// <summary>Vertical anchor for the logical text in parent drawing coordinates.</summary>
     public double ActualTextAnchorY { get; }
 
-    internal override OfficeDrawingElement CloneElement() =>
-        ActualText == null
+    // Bounds of geometry before filter paint, relative to the group origin and
+    // before its frame transform. Filter expansion must not change an enclosing
+    // SVG object's bounding box. This metadata does not affect paint or clips.
+    internal (double Left, double Top, double Right, double Bottom)? UnfilteredGeometryBounds { get; set; }
+
+    internal override OfficeDrawingElement CloneElement() {
+        OfficeDrawingGroup clone = ActualText == null
             ? new OfficeDrawingGroup(_drawing, X, Y, ClipPath, ContentOffsetX, ContentOffsetY, FrameTransform)
             : new OfficeDrawingGroup(_drawing, X, Y, ClipPath, ContentOffsetX, ContentOffsetY, FrameTransform, ActualText, ActualTextAnchorX, ActualTextAnchorY);
+        clone.UnfilteredGeometryBounds = UnfilteredGeometryBounds;
+        return clone;
+    }
 
     private static void ValidateFinite(double value, string paramName) {
         if (double.IsNaN(value) || double.IsInfinity(value)) {

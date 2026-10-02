@@ -229,10 +229,31 @@ checks matrix RGB, ICC v4 LUT RGB, and CMYK LUT swatches against LittleCMS.
 `OfficeImageOptimizer` still preserves or reports ICC metadata according to its metadata policy.
 It does not call the raster converter or claim that re-encoded pixels were normalized to sRGB.
 
+Routed SVG filters on non-text shape/group content support `SourceGraphic`,
+`SourceAlpha`, preceding named results, Gaussian blur, offset, matrix color transforms,
+source-over composition and separable blend modes. These operations use managed RGBA
+buffers at one pixel per drawing unit, then retain a PNG in the scene. The default
+filter color space is linear RGB; a uniform `sRGB` declaration is also supported.
+The filter region clips every input/result and the final paint. Simple unrouted
+blur/offset/drop-shadow filters retain their existing vector approximation.
+
+Managed filter graphs accept at most 32 primitives, blur deviation up to 64 drawing
+pixels per axis, and cumulative document work/intermediate-surface limits. Rotated
+or sheared graphs, explicit primitive subregions, mixed filter color spaces,
+unsupported primitives and graphs containing text, logical `ActualText`, links or
+pattern cells report unsupported features and preserve source geometry. Links on
+the filtered container retain their original geometry. Pass
+`OfficeSvgDrawingReaderOptions.CancellationToken` to cancel import and filter work.
+
 The SVG drawing reader supports a single rectangle, rounded rectangle, circle, ellipse, polygon, or
 path inside a `userSpaceOnUse` clip path, including transforms and even-odd filling. Compound clip
 unions, `objectBoundingBox` clips, and referenced or text clip geometry report unsupported features.
 Shape geometry crossing a nested SVG or symbol viewBox is retained until the viewport clip is applied.
+Local symbols without a `viewBox` retain their user coordinates and inherit paint from
+their `use` element. Symbol dimensions clip the content; they do not rescale it.
+Native import resolves omitted dimensions from the containing viewport. Caller-raster
+safety checks require explicit symbol width and height in documents with nested
+viewports or symbol references whose viewport context cannot be resolved by that check.
 
 ```csharp
 using OfficeIMO.Drawing;
@@ -527,6 +548,28 @@ if (metrics.WidthPixels > 240) {
     Console.WriteLine("The label needs wrapping or a smaller font.");
 }
 ```
+
+### Language-pattern hyphenation
+
+`OfficeTextHyphenationPatterns.GetBreakpoints(token, language)` returns optional UTF-16 breaks in
+the original word using embedded US English (`en-US`, alias `en`) or reformed German (`de-DE`,
+aliases `de`, `de-1996`, `de-DE-1996`) resources. It preserves case, surrounding punctuation and
+Unicode source offsets. The resources enforce two letters before a break, and three after it for
+US English or two for German. Empty/unsupported tags, internal punctuation, digits and tokens
+longer than 512 UTF-16 code units produce no automatic breaks. Other regional English and German
+spelling tags are unsupported.
+
+```csharp
+using OfficeIMO.Drawing;
+
+IReadOnlyList<int> breaks = OfficeTextHyphenationPatterns.GetBreakpoints("representation", "en-US");
+// 3, 5, 8, 10; the caller decides which permitted break fits the line.
+```
+
+Renderers can use the same Core result through their existing hyphenation callbacks. The explicit
+`OfficeTextHyphenationLexicon` remains available for application-owned dictionaries. Embedded
+resources are versioned in `Typography/Hyphenation/manifest.json`; their copyright and permission
+notices are retained in [the third-party notices](THIRD-PARTY-NOTICES.md).
 
 ### Reusable ink
 

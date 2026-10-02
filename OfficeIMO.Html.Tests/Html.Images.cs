@@ -17,6 +17,20 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Html {
         [Fact]
+        public void HtmlToWord_EmbedsOpaqueVp8DataImage() {
+            const string vp8 = "UklGRjwAAABXRUJQVlA4IDAAAADQAQCdASoQABAAAUAmJaACdLoB+AADsAD+8ut//NgVzXPv9//S4P0uD9Lg/9KQAAA=";
+            string html = $"<p>Image follows</p><img src=\"data:image/webp;base64,{vp8}\" alt=\"Red sample\" />";
+
+            HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+
+            Assert.Single(result.Value.Images);
+            Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "ImageDataUriInvalid");
+            using var packageStream = new MemoryStream(result.Value.ToBytes());
+            using WordprocessingDocument package = WordprocessingDocument.Open(packageStream, false);
+            Assert.Equal("image/png", Assert.Single(package.MainDocumentPart!.ImageParts).ContentType);
+        }
+
+        [Fact]
         public void HtmlToWord_RelativeImage_UsesBaseUrl() {
             var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(dir);

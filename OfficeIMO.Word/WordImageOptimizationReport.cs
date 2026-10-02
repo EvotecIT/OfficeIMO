@@ -67,6 +67,13 @@ public sealed class WordImageOptimizationReport {
     public int ImageCount => Images.Count;
     /// <summary>Number of applicable candidates; proposed changes when Applied is false.</summary>
     public int OptimizedCount => Images.Count(image => image.Status == WordImageOptimizationStatus.Optimized);
+    /// <summary>
+    /// Combined original and candidate encoded bytes required for transactional replacement.
+    /// Analysis exposes the required <see cref="WordImageOptimizationOptions.MaxStagedBytes"/>
+    /// budget without retaining candidates. Preserved images and temporary decoding buffers are excluded.
+    /// </summary>
+    public long RequiredStagedBytes => Images.Where(image => image.Status == WordImageOptimizationStatus.Optimized)
+        .Sum(image => checked(image.OriginalBytes + image.FinalBytes));
     /// <summary>Signed encoded-media savings, or exact candidate savings during analysis.</summary>
     public long BytesSaved => Images.Sum(image => image.BytesSaved);
 }

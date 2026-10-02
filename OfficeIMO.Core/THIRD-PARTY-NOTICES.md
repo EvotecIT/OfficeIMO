@@ -1,5 +1,18 @@
 # Third-party notices
 
+## Hyphenation patterns
+
+The embedded US English and reformed German resources are derived from
+[`hyphenation/tex-hyphen` at `5684c0f51c0b81133db2efbe60a408b4155a3ff5`](https://github.com/hyphenation/tex-hyphen/tree/5684c0f51c0b81133db2efbe60a408b4155a3ff5/hyph-utf8/tex/generic/hyph-utf8/patterns/tex).
+Pattern tokens and explicit exceptions are unchanged. The resource manifest records source and
+derived-file hashes. Original notices are retained in the embedded data and in
+`Licenses/hyphenation-en-us-LICENSE.txt` and `Licenses/hyphenation-de-1996-LICENSE.txt`.
+
+US English patterns are copyright Gerard D.C. Kuiken and permit redistribution with the copyright
+and permission notice retained. Reformed German patterns are copyright the named
+Deutschsprachige Trennmustermannschaft authors and use the MIT license.
+The resources introduce no TeX or third-party hyphenation runtime dependency.
+
 ## Bouncy Castle C# AES implementation
 
 `Security/ManagedAesBlockCipher.cs` is adapted from `AesLightEngine.cs` in Bouncy Castle C# release 2.7.0:

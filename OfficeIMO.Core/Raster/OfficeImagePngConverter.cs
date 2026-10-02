@@ -21,6 +21,19 @@ public static class OfficeImagePngConverter {
         }
 
         if (image == null) return false;
+        bool orientationSwapsAxes = false;
+        if (decodeInfo.Format == OfficeImageFormat.Webp && imageBytes != null) {
+            OfficeImageOrientation orientation = OfficeRasterOrientation.ReadWebpOrientation(imageBytes, cancellationToken);
+            if (orientation != OfficeImageOrientation.Normal) {
+                long retained = imageBytes.LongLength + (long)image.Width * image.Height * 8;
+                if (effective.RetainedManagedBytes > OfficeRasterGuards.MaximumDecodedBytes - retained) return false;
+                int width = image.Width, height = image.Height;
+                byte[] pixels = OfficeRasterOrientation.Apply(image.PixelBuffer, ref width, ref height,
+                    (int)orientation, cancellationToken, "Oriented image exceeds supported dimensions.");
+                image = OfficeRasterImage.FromOwnedRgba32(width, height, pixels);
+                orientationSwapsAxes = orientation >= OfficeImageOrientation.Transpose;
+            }
+        }
 
         OfficeImageInfo? sourceInfo = null;
         if (imageBytes != null && OfficeImageReader.TryIdentify(imageBytes, null, cancellationToken, out OfficeImageInfo identified)) {
@@ -44,6 +57,11 @@ public static class OfficeImagePngConverter {
             encodeOptions.DpiY = sourceInfo.DpiY;
         } else {
             encodeOptions.WritePhysicalResolution = false;
+        }
+        if (orientationSwapsAxes) {
+            double dpiX = encodeOptions.DpiX;
+            encodeOptions.DpiX = encodeOptions.DpiY;
+            encodeOptions.DpiY = dpiX;
         }
         using var output = new System.IO.MemoryStream();
         OfficePngWriter.EncodeTo(image, output, encodeOptions, cancellationToken);

@@ -47,6 +47,20 @@ internal static partial class RtfHtmlReader {
             _rowSpans.AddRange(state.RowSpans);
         }
 
+        private static bool IsLegacyRoundTripRow(IElement? token) {
+            for (IElement? element = token; element != null; element = element.ParentElement) {
+                if (element.ClassList.Contains("officeimo-rtf-html") ||
+                    element.Attributes.Any(attribute => attribute.Name.StartsWith("data-officeimo-rtf-", StringComparison.OrdinalIgnoreCase)))
+                    return true;
+            }
+            // Older fragment exports may carry only cell or paragraph metadata.
+            // A nested table's metadata must not change its containing row.
+            IElement? table = token?.Closest("table");
+            return token != null && token.QuerySelectorAll("*").Any(element =>
+                element.Closest("table") == table && element.Attributes.Any(attribute =>
+                    attribute.Name.StartsWith("data-officeimo-rtf-", StringComparison.OrdinalIgnoreCase)));
+        }
+
         private void StartRow() {
             StartRow(null, HtmlStyleDeclaration.Empty);
         }
@@ -58,6 +72,9 @@ internal static partial class RtfHtmlReader {
 
             _row = _table!.AddRow();
             _row.RepeatHeader = _tableHead > 0;
+            // Ordinary HTML table rows are kept intact during pagination. RTF
+            // permits a row to split unless this is stated on the row itself.
+            _row.KeepTogether = !IsLegacyRoundTripRow(token);
             _tableColumnIndex = 0;
             _cell = null;
             _cellTextAlignment = null;

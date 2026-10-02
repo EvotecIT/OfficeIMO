@@ -346,9 +346,14 @@ public static partial class OfficeImageReader {
         cancellationToken.ThrowIfCancellationRequested();
         byte[] tiff = new byte[length];
         Buffer.BlockCopy(data, offset, tiff, 0, length);
-        return TryReadTiff(tiff, cancellationToken, out info) &&
-               info.Width == expectedWidth &&
-               info.Height == expectedHeight;
+        if (!TryReadTiff(tiff, cancellationToken, out info)) return false;
+        // TIFF identification uses presentation axes; WebP identification describes
+        // the encoded canvas. Keep its physical resolution on those same raw axes.
+        if (OfficeImageOrientationNormalizer.TryRead(tiff, cancellationToken, out var orientation)
+            && orientation >= OfficeImageOrientation.Transpose) {
+            info = new OfficeImageInfo(OfficeImageFormat.Tiff, info.Height, info.Width, info.DpiY, info.DpiX);
+        }
+        return info.Width == expectedWidth && info.Height == expectedHeight;
     }
 
     private static bool HasValidWebpExif(

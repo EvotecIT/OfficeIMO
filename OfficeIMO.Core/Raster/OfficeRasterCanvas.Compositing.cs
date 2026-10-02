@@ -83,7 +83,7 @@ public sealed partial class OfficeRasterCanvas {
         }
     }
 
-    private static double BlendComponent(double backdrop, double source, OfficeBlendMode mode) {
+    internal static double BlendComponent(double backdrop, double source, OfficeBlendMode mode) {
         switch (mode) {
             case OfficeBlendMode.Multiply: return backdrop * source;
             case OfficeBlendMode.Screen: return backdrop + source - (backdrop * source);
