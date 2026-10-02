@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "recordedUtc": "2026-10-02T02:56:40.435796+00:00",
+  "sourceCommit": "acfe39e8aee338680caf5b375a9e59b8b8e69219",
+  "sourceCleanDuringCorpusAndBudgets": true,
+  "contract": "Preserve exact original standalone MathML when it matches the current DOM; otherwise retain bounded namespace-aware current source with diagnostic. Attach UTF-8 supplements to painted tagged PDF Formula elements.",
+  "provider": "Released AngleSharp token/creation callbacks; no fork-only API or new runtime dependencies.",
+  "validation": {
+    "focusedNet10": 63,
+    "fullHtmlNet8": 4074,
+    "fullHtmlNet10": 4074,
+    "netstandardBuild": "zero warnings/errors",
+    "heldOutCases": 8,
+    "heldOutAcceptanceUnchanged": true,
+    "independentPdf": {
+      "exactOriginalSourceRecovery": true,
+      "formulaAssociations": 1,
+      "sourceBytes": 183,
+      "sourceSha256": "afc2fe1809e23ea7ec13dc69bf9fc63901dbdbb148079c2446e7fedb955b2571",
+      "pdfSha256": "07c715d192e162cb7c2c180c5c7b841cad1158bfdd21d90c45646ba7a27be866",
+      "fullTextIdenticalToAcceptedBaseline": true,
+      "pages": 1,
+      "images": 0,
+      "inspector": "pypdf",
+      "pixelIdenticalToAcceptedBaselineAt144Dpi": true
+    },
+    "nasa": {
+      "baseline": "mathml-geometry-qualification-345893cd8",
+      "allElevenByteIdentical": true,
+      "operations": [
+        {
+          "intent": "officeimo-print",
+          "pages": 19,
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-print-zero-margin",
+          "pages": 16,
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-print-fit-browser-viewport",
+          "pages": 16,
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-print-fit-1200",
+          "pages": 11,
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-print-fit-1200-local-fonts",
+          "pages": 11,
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-print-browser-ua",
+          "pages": 16,
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-print-zero-margin-local-fonts",
+          "pages": 16,
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-screen-media",
+          "pages": 21,
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-screen-media-local-fonts",
+          "pages": 21,
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-screen-snapshot",
+          "pages": 16,
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-screen-snapshot-local-fonts",
+          "pages": 16,
+          "byteIdentical": true
+        }
+      ]
+    },
+    "staticMacosBudgetFailures": [],
+    "h10MacosOperationCount": 10,
+    "h10MacosBudgetFailures": [],
+    "package": {
+      "artifactProduced": true,
+      "packExit": 1,
+      "frameworks": [
+        "net10.0",
+        "net8.0",
+        "netstandard2.0"
+      ],
+      "dependencies": [
+        {
+          "id": "OfficeIMO.Core",
+          "version": "3.4.4",
+          "exclude": "Build,Analyzers"
+        },
+        {
+          "id": "OfficeIMO.Html",
+          "version": "3.4.4",
+          "exclude": "Build,Analyzers"
+        },
+        {
+          "id": "OfficeIMO.Pdf",
+          "version": "3.4.4",
+          "exclude": "Build,Analyzers"
+        },
+        {
+          "id": "OfficeIMO.Core",
+          "version": "3.4.4",
+          "exclude": "Build,Analyzers"
+        },
+        {
+          "id": "OfficeIMO.Html",
+          "version": "3.4.4",
+          "exclude": "Build,Analyzers"
+        },
+        {
+          "id": "OfficeIMO.Pdf",
+          "version": "3.4.4",
+          "exclude": "Build,Analyzers"
+        },
+        {
+          "id": "OfficeIMO.Core",
+          "version": "3.4.4",
+          "exclude": "Build,Analyzers"
+        },
+        {
+          "id": "OfficeIMO.Html",
+          "version": "3.4.4",
+          "exclude": "Build,Analyzers"
+        },
+        {
+          "id": "OfficeIMO.Pdf",
+          "version": "3.4.4",
+          "exclude": "Build,Analyzers"
+        }
+      ],
+      "compatibilityPassed": false,
+      "diagnosis": "3.3.0 baseline targets legacy HtmlPdfSaveOptions/ToPdf and reverse APIs already renamed before this MathML checkpoint. Missing net472 dependencies also reported on macOS. No gate suppression or compatibility wrappers added.",
+      "preexistingEvidence": [
+        "MIGRATION.md existing direct-conversion rename table",
+        "2eff9c656 HtmlPdfConverterExtensions already exposes ToPdfBytes(HtmlToPdfOptions)",
+        "csproj and Directory.Build.targets unchanged by candidate"
+      ],
+      "baselineErrors": 29
+    }
+  },
+  "review": {
+    "boundary": "candidate-reviewed",
+    "reviewer": "/root/mathml_source_review",
+    "fullPass": 1,
+    "targetedConfirmation": 1,
+    "validatedP2Fixed": [
+      "Optional stale-original XML comparison bounds no longer discard valid current source.",
+      "Both normalization/unavailable diagnostics registered in public catalog."
+    ]
+  },
+  "limits": [
+    "Exact lexical preservation requires original standalone XML that still represents current DOM.",
+    "Source unavailable is diagnosed for current XML export outside supported bounds.",
+    "Ordinary associated files require PDF2.0; configured PDF/A-3 groundwork may use PDF1.7.",
+    "No independent PDF/A or PDF/UA conformance certification.",
+    "Default math fonts, math-auto and full MATH-table geometry remain open.",
+    "Windows/Linux qualification remains unfinished.",
+    "macOS pack produced artifact but 3.3.0 baseline compatibility gate failed on pre-existing API renames/net472 reference resolution; release qualification remains open."
+  ],
+  "retainedEvidence": "Ignore/HtmlUnknownPageQualification/mathml-source-mapping",
+  "cleanup": {
+    "recordedUtc": "2026-10-02T02:59:30.991945+00:00",
+    "directoryTargetsRemoved": 120,
+    "fileTargetsRemoved": 242,
+    "bytesRemoved": 2172544604,
+    "allAbsent": true,
+    "preserved": "Final formula PDF/source/render and compact reports; original corpus archives; prior accepted evidence; recovery snapshots; Git/runtime/history and other active task worktrees."
+  },
+  "retainedEvidenceBytes": 3055328
+}
