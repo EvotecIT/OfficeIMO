@@ -19,7 +19,7 @@ internal static partial class IWorkTableReader {
             strings, richStrings, formulas, options, projectionBudget,
             formulaRichStringIdentifiers, nonFormulaRichStringIdentifiers);
         // Catalog entries can remain after a blank cell returns to Automatic.
-        // Native Numbers establishes explicit blank numeric selection through field 12.
+        // Native Numbers establishes explicit blank scalar selection through field 12.
         uint? blankFormatSelection = null;
         if (cell.Kind == IWorkCellKind.Empty && (flags & (1u << 12)) != 0) {
             int selectionOffset = offset + 12;
@@ -27,17 +27,20 @@ internal static partial class IWorkTableReader {
                 if ((flags & (1u << bit)) != 0) selectionOffset += CellValueFieldSize(bit);
             blankFormatSelection = IWorkProtobuf.ReadUInt32(buffer, selectionOffset);
         }
+        int selectedBlankFormatBit = blankFormatSelection switch {
+            1 => 13, 2 => 14, 3 => 15, 4 => 16, 5 => 17, _ => -1
+        };
         bool hasAmbiguousBlankScalarFormats = cell.Kind == IWorkCellKind.Empty
-            && (flags & ((1u << 13) | (1u << 14))) != 0
-            && (blankFormatSelection.HasValue && blankFormatSelection != 1
-                || (flags & ((1u << 14) | (1u << 15) | (1u << 16) | (1u << 17) | (1u << 18))) != 0);
+            && blankFormatSelection.HasValue
+            && (selectedBlankFormatBit < 0 || (flags & (1u << selectedBlankFormatBit)) == 0);
+        bool IsActiveFormat(int bit) => cell.Kind != IWorkCellKind.Empty || selectedBlankFormatBit == bit;
         bool hasNumericFormatTarget = type is 2 or 10
             && cell.Kind is IWorkCellKind.Number or IWorkCellKind.Formula
-            || cell.Kind == IWorkCellKind.Empty && blankFormatSelection == 1 && !hasAmbiguousBlankScalarFormats;
+            || cell.Kind == IWorkCellKind.Empty && selectedBlankFormatBit is 13 or 14 && !hasAmbiguousBlankScalarFormats;
         if (!cell.HasDecodeError && hasNumericFormatTarget
             && (flags & ((1u << 13) | (1u << 14))) != 0) {
             // Currency selection takes precedence over numeric selection in modern storage.
-            bool currency = (flags & (1u << 14)) != 0;
+            bool currency = (flags & (1u << 14)) != 0 && IsActiveFormat(14);
             int selectedBit = currency ? 14 : 13;
             int formatOffset = offset + 12;
             for (int bit = 0; bit < selectedBit; bit++)
@@ -74,24 +77,24 @@ internal static partial class IWorkTableReader {
             ? IWorkCellUnsupportedFeatures.AmbiguousNumberFormat : IWorkCellUnsupportedFeatures.None;
         if ((flags & (1u << 7)) != 0) features |= IWorkCellUnsupportedFeatures.ConditionalStyle;
         if ((flags & (1u << 8)) != 0) features |= IWorkCellUnsupportedFeatures.AppliedConditionalRule;
-        if ((flags & (1u << 15)) != 0) {
+        if ((flags & (1u << 15)) != 0 && IsActiveFormat(15)) {
             int formatOffset = offset + 12;
             for (int bit = 0; bit < 15; bit++)
                 if ((flags & (1u << bit)) != 0) formatOffset += CellValueFieldSize(bit);
             bool compatibleKind = cell.ValueKind == IWorkCellKind.DateTime
-                || cell.ValueKind == IWorkCellKind.Empty && !hasAmbiguousBlankScalarFormats && (flags & (1u << 16)) == 0;
+                || cell.ValueKind == IWorkCellKind.Empty && selectedBlankFormatBit == 15;
             IWorkNumberFormat? format = !cell.HasDecodeError && compatibleKind
                 ? numberFormats.Read(IWorkProtobuf.ReadUInt32(buffer, formatOffset), IWorkNumberFormatKind.DateTime) : null;
             if (format == null) features |= IWorkCellUnsupportedFeatures.DateFormat;
             else cell = cell.WithNumberFormat(format);
         }
-        if ((flags & (1u << 16)) != 0) {
+        if ((flags & (1u << 16)) != 0 && IsActiveFormat(16)) {
             // The complete cell boundary is proven before any selected catalog is read.
             int formatOffset = offset + 12;
             for (int bit = 0; bit < 16; bit++)
                 if ((flags & (1u << bit)) != 0) formatOffset += CellValueFieldSize(bit);
             bool compatibleKind = cell.ValueKind == IWorkCellKind.Duration
-                || cell.ValueKind == IWorkCellKind.Empty && !hasAmbiguousBlankScalarFormats && (flags & (1u << 15)) == 0;
+                || cell.ValueKind == IWorkCellKind.Empty && selectedBlankFormatBit == 16;
             IWorkNumberFormat? format = !cell.HasDecodeError && compatibleKind
                 ? numberFormats.Read(IWorkProtobuf.ReadUInt32(buffer, formatOffset), IWorkNumberFormatKind.Duration) : null;
             if (format == null) features |= IWorkCellUnsupportedFeatures.DurationFormat;
@@ -101,7 +104,7 @@ internal static partial class IWorkTableReader {
             int formatOffset = offset + 12;
             for (int bit = 0; bit < 19; bit++) {
                 if ((flags & (1u << bit)) == 0) continue;
-                if (bit is 17 or 18 && !numberFormats.IsDefaultScalarFormat(
+                if (bit is 17 or 18 && IsActiveFormat(bit) && !numberFormats.IsDefaultScalarFormat(
                         IWorkProtobuf.ReadUInt32(buffer, formatOffset), boolean: bit == 18)) {
                     features |= bit == 17 ? IWorkCellUnsupportedFeatures.TextFormat : IWorkCellUnsupportedFeatures.BooleanFormat;
                 }

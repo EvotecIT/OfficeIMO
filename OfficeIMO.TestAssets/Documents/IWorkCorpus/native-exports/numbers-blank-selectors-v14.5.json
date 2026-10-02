@@ -109,6 +109,36 @@
       "afterStorageHex": "050000000000010040300000010000000100000006000000",
       "difference": "Value-storage bit 12 is added with value 1; numeric format key remains 6."
     },
-    "conclusion": "Catalog selector presence alone does not establish active blank formatting. Reader selection-field handling needs correction."
+    "conclusion": "Field 12 identifies the active blank scalar family: 1 numeric, 2 currency, 3 date/time, 4 duration, 5 text. Retained catalog entries alone do not select a format.",
+    "scalarSequence": {
+      "cell": "Main Sheet / Extra Headers / A8",
+      "action": "Starting from an unchanged disposable source copy, select Currency, Date and Time, Duration, then Automatic in the Cell Format panel, saving after each change without entering a value.",
+      "snapshots": [
+        {
+          "format": "currency",
+          "selection": 2,
+          "source": "numbers-blank-explicit-currency-v14.5.numbers",
+          "sha256": "04b95f517a89288c4fe11a70f6557bcd07ec277173953c683176366bf3cd574d"
+        },
+        {
+          "format": "date",
+          "selection": 3,
+          "source": "numbers-blank-explicit-date-v14.5.numbers",
+          "sha256": "62758ae4a439bb0b011e738160dba8d114de916041a3f355b0fd4f7e373dad8b"
+        },
+        {
+          "format": "duration",
+          "selection": 4,
+          "source": "numbers-blank-explicit-duration-v14.5.numbers",
+          "sha256": "05126a46f9a6d03b765511bfdb70c248de243cc70df6151b25ffb0c585c29b4e"
+        },
+        {
+          "format": "automatic",
+          "selection": null,
+          "source": "numbers-blank-explicit-automatic-v14.5.numbers",
+          "sha256": "d1f095a7abb55e15dc8f02daa96029a7acb935a37a3aebb718100e1ce339bb2a"
+        }
+      ]
+    }
   }
 }

@@ -126,7 +126,8 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Date_format_only_empty_cells_remain_materialized_under_the_existing_cell_budget() {
-        byte[] cell = FeatureCell(empty: true, 1u << 15);
+        byte[] cell = FeatureCell(empty: true, (1u << 12) | (1u << 15));
+        WriteUInt32(cell, 12, 3);
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), cellPayload: cell);
         var selected = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells);
         Assert.Equal(IWorkCellKind.Empty, selected.Kind);

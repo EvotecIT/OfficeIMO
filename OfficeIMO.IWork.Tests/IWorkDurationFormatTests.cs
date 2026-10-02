@@ -168,8 +168,8 @@ public sealed partial class IWorkBoundaryTests {
         Message(VarintField(1, 268), VarintField(7, style), VarintField(15, largest), VarintField(16, smallest), VarintField(40, automatic));
 
     private static MemoryStream EmptyDurationFormatPackage(IWorkDocumentKind kind, int columns = 1) {
-        byte[] cell = new byte[16]; cell[0] = 5;
-        WriteUInt32(cell, 8, 1u << 16); WriteUInt32(cell, 12, 1);
+        byte[] cell = new byte[20]; cell[0] = 5;
+        WriteUInt32(cell, 8, (1u << 12) | (1u << 16)); WriteUInt32(cell, 12, 4); WriteUInt32(cell, 16, 1);
         byte[] offsets = new byte[columns * 2];
         for (int column = 0; column < columns; column++) offsets[column * 2] = (byte)(column * cell.Length);
         return TableDependencyPackage(kind, ReferenceField(22, 13), columns: (ulong)columns,

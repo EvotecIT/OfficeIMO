@@ -163,22 +163,23 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Empty_cells_with_conflicting_temporal_selectors_retain_both_feature_warnings() {
-        byte[] cell = new byte[20]; cell[0] = 5;
-        WriteUInt32(cell, 8, (1u << 15) | (1u << 16)); WriteUInt32(cell, 12, 1); WriteUInt32(cell, 16, 2);
+    public void Empty_cells_select_date_format_without_activating_dormant_duration() {
+        byte[] cell = new byte[24]; cell[0] = 5;
+        WriteUInt32(cell, 8, (1u << 12) | (1u << 15) | (1u << 16)); WriteUInt32(cell, 12, 3); WriteUInt32(cell, 16, 1); WriteUInt32(cell, 20, 2);
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, ReferenceField(22, 13), cellPayload: cell,
             additionalRecords: ArchiveRecord(13, 6005, Message(VarintField(1, 2),
                 BytesField(3, FormatEntry(DateFormat("dd/MM/y"))),
                 BytesField(3, Message(VarintField(1, 2), BytesField(6, DurationFormat()))))));
         var actual = Assert.Single(IWorkSourceDocument.Open(package).ReadNumbers().Sheets[0].Tables[0].Cells);
-        Assert.Null(actual.NumberFormat); Assert.Null(actual.Value);
-        Assert.Equal(IWorkCellUnsupportedFeatures.DateFormat | IWorkCellUnsupportedFeatures.DurationFormat, actual.UnsupportedFeatures);
+        Assert.Equal(IWorkNumberFormatKind.DateTime, actual.NumberFormat!.Kind); Assert.Null(actual.Value);
+        Assert.Equal(IWorkCellUnsupportedFeatures.None, actual.UnsupportedFeatures);
     }
 
     private static MemoryStream DateFormatPackage(IWorkDocumentKind kind, string pattern, DateTime value,
         byte[]? format = null, bool empty = false, int columns = 1, string sheetName = "Sheet") {
-        byte[] cell = new byte[empty ? 16 : 24]; cell[0] = 5; cell[1] = empty ? (byte)0 : (byte)5;
-        WriteUInt32(cell, 8, (empty ? 0u : 1u << 2) | 1u << 15);
+        byte[] cell = new byte[empty ? 20 : 24]; cell[0] = 5; cell[1] = empty ? (byte)0 : (byte)5;
+        WriteUInt32(cell, 8, (empty ? 1u << 12 : 1u << 2) | 1u << 15);
+        if (empty) WriteUInt32(cell, 12, 3);
         if (!empty) Buffer.BlockCopy(BitConverter.GetBytes((value - new DateTime(2001, 1, 1)).TotalSeconds), 0, cell, 12, 8);
         WriteUInt32(cell, cell.Length - 4, 1);
         byte[] offsets = new byte[columns * 2];

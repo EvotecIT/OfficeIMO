@@ -184,17 +184,17 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Empty_currency_selection_remains_unassessed_without_native_selection_qualification() {
+    public void Empty_currency_selection_ignores_inactive_numeric_catalog() {
         using var package = EmptyNumericFormatPackage(IWorkDocumentKind.Numbers, CurrencyFormat("GBP", 2), currency: true);
         var cell = Assert.Single(IWorkSourceDocument.Open(package).ReadNumbers().Sheets[0].Tables[0].Cells);
-        Assert.Null(cell.NumberFormat);
-        Assert.True(cell.UnsupportedFeatures.HasFlag(IWorkCellUnsupportedFeatures.AmbiguousNumberFormat));
+        Assert.Equal("GBP", cell.NumberFormat!.CurrencyCode);
+        Assert.Equal(IWorkCellUnsupportedFeatures.None, cell.UnsupportedFeatures);
     }
 
     private static MemoryStream EmptyNumericFormatPackage(IWorkDocumentKind kind, byte[] format, int columns = 1, bool currency = false) {
         byte[] cell = new byte[currency ? 24 : 20]; cell[0] = 5;
         WriteUInt32(cell, 8, (1u << 12) | (1u << 13) | (currency ? 1u << 14 : 0u));
-        WriteUInt32(cell, 12, 1);
+        WriteUInt32(cell, 12, currency ? 2u : 1u);
         WriteUInt32(cell, 16, currency ? 99u : 1u);
         if (currency) WriteUInt32(cell, 20, 1);
         byte[] offsets = new byte[columns * 2];

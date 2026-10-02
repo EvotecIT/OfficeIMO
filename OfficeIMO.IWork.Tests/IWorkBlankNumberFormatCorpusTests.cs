@@ -9,7 +9,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Independent_blank_number_formats_preserve_selected_source_metadata() {
         string root = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "numbers-parser");
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "blank-number-formats.json")));
-        int qualified = 0, ambiguous = 0, inactive = 0;
+        int qualified = 0, textSelected = 0, inactive = 0;
         foreach (JsonElement package in manifest.RootElement.GetProperty("packages").EnumerateArray()) {
             JsonElement[] cells = package.GetProperty("cells").EnumerateArray().ToArray();
             if (cells.Length == 0) continue;
@@ -26,8 +26,8 @@ public sealed partial class IWorkBoundaryTests {
                 Assert.Null(cell.Value);
                 if (expected.GetProperty("hasOtherScalarSelector").GetBoolean()) {
                     Assert.Null(cell.NumberFormat);
-                    Assert.Equal(IWorkCellUnsupportedFeatures.AmbiguousNumberFormat, cell.UnsupportedFeatures);
-                    ambiguous++;
+                    Assert.Equal(IWorkCellUnsupportedFeatures.None, cell.UnsupportedFeatures);
+                    textSelected++;
                     continue;
                 }
                 if ((expected.GetProperty("flags").GetUInt32() & (1u << 12)) == 0) {
@@ -46,7 +46,7 @@ public sealed partial class IWorkBoundaryTests {
         }
         Assert.Equal(25, qualified);
         Assert.Equal(1, inactive);
-        Assert.Equal(9, ambiguous);
+        Assert.Equal(9, textSelected);
     }
 
     [Fact]
@@ -71,6 +71,29 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal("", target.GetValue<string>());
             Assert.Equal(explicitlySelected, target.GetStyle().NumberFormatCode?.Contains('%') == true);
         }
+    }
+
+    [Theory]
+    [InlineData("currency", IWorkCellUnsupportedFeatures.None)]
+    [InlineData("date", IWorkCellUnsupportedFeatures.DateFormat)]
+    [InlineData("duration", IWorkCellUnsupportedFeatures.DurationFormat)]
+    [InlineData("automatic", IWorkCellUnsupportedFeatures.None)]
+    public void Native_blank_scalar_selection_ignores_retained_inactive_catalogs(string format,
+        IWorkCellUnsupportedFeatures expectedFeatures) {
+        string root = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "native-exports");
+        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "numbers-blank-selectors-v14.5.json")));
+        var snapshot = manifest.RootElement.GetProperty("nativeUiEvidence").GetProperty("scalarSequence")
+            .GetProperty("snapshots").EnumerateArray().Single(s => s.GetProperty("format").GetString() == format);
+        string path = Path.Combine(root, snapshot.GetProperty("source").GetString()!);
+        Assert.Equal(snapshot.GetProperty("sha256").GetString(),
+            Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
+        var projection = IWorkSourceDocument.Open(path).ReadNumbers();
+        var cell = projection.Sheets.Single(s => s.Name == "Main Sheet").Tables.Single(t => t.Name == "Extra Headers").GetCell(8, 1)!;
+        Assert.Equal(IWorkCellKind.Empty, cell.Kind);
+        Assert.Null(cell.Value);
+        Assert.Equal(expectedFeatures, cell.UnsupportedFeatures);
+        if (format == "currency") Assert.Equal(IWorkNumberFormatKind.Currency, cell.NumberFormat!.Kind);
+        else Assert.Null(cell.NumberFormat);
     }
 
     [Fact]
