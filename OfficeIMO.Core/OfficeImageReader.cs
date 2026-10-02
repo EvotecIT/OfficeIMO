@@ -52,7 +52,7 @@ public static partial class OfficeImageReader {
 
     /// <summary>
     /// Validates a complete bounded image payload and returns its metadata. Unlike metadata
-    /// identification, this decodes supported PNG, JPEG, GIF, BMP, TIFF, and WebP payloads and
+    /// identification, this decodes supported PNG, JPEG, GIF, BMP, TIFF, WebP, and AVIF payloads and
     /// validates every ICO entry so structurally plausible but incomplete image bodies are rejected.
     /// </summary>
     public static bool TryValidateContent(Stream stream, string? fileName, out OfficeImageInfo info) {
@@ -146,7 +146,7 @@ public static partial class OfficeImageReader {
 
     /// <summary>
     /// Validates a complete bounded image payload and returns its metadata. Unlike metadata
-    /// identification, this decodes supported PNG, JPEG, GIF, BMP, TIFF, and WebP payloads and
+    /// identification, this decodes supported PNG, JPEG, GIF, BMP, TIFF, WebP, and AVIF payloads and
     /// validates every ICO entry so structurally plausible but incomplete image bodies are rejected.
     /// </summary>
     public static bool TryValidateContent(byte[]? data, string? fileName, out OfficeImageInfo info) {
@@ -189,6 +189,8 @@ public static partial class OfficeImageReader {
                        TryReadWebp(data, out _, validateDecodedAlpha: true, decodedImage: webpImage, cancellationToken: cancellationToken);
             case OfficeImageFormat.Icon:
                 return HasCompleteIconPayload(data, cancellationToken);
+            case OfficeImageFormat.Avif:
+                return OfficeAvifCodec.TryDecode(data, new OfficeRasterDecodeOptions { CancellationToken = cancellationToken }, out _);
             case OfficeImageFormat.Jpeg2000:
             case OfficeImageFormat.Jpeg2000Codestream:
                 cancellationToken.ThrowIfCancellationRequested();
@@ -221,6 +223,7 @@ public static partial class OfficeImageReader {
             TryReadGif(data, out info) ||
             TryReadBmp(data, out info) ||
             TryReadWebp(data, out info, cancellationToken: cancellationToken) ||
+            TryReadAvif(data, cancellationToken, out info) ||
             TryReadTiff(data, cancellationToken, out info) ||
             TryReadIcon(data, cancellationToken, out info) ||
             TryReadPcx(data, out info) ||
@@ -271,6 +274,7 @@ public static partial class OfficeImageReader {
             ".ico" => OfficeImageFormat.Icon,
             ".pcx" => OfficeImageFormat.Pcx,
             ".webp" => OfficeImageFormat.Webp,
+            ".avif" => OfficeImageFormat.Avif,
             ".jp2" => OfficeImageFormat.Jpeg2000,
             ".j2k" or ".j2c" => OfficeImageFormat.Jpeg2000Codestream,
             _ => OfficeImageFormat.Unknown

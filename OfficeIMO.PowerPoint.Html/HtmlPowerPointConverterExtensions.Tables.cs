@@ -12,7 +12,10 @@ public static partial class HtmlPowerPointConverterExtensions {
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
         HtmlToPowerPointOptions options,
-        HtmlSemanticBlock? semanticBlock = null) {
+        HtmlSemanticBlock? semanticBlock = null,
+        double? genericWidth = null,
+        double? genericHeight = null,
+        IReadOnlyList<double>? genericRowHeights = null) {
         if (!budget.TryReserveTableWithShape(out string tableLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "A slide table was omitted because the shared import limit was reached.",
@@ -25,11 +28,17 @@ public static partial class HtmlPowerPointConverterExtensions {
             return top;
         }
 
-        double fallbackWidth = Math.Max(240D, grid.Columns * 150D);
-        double fallbackHeight = Math.Max(70D, grid.Rows * 34D);
+        double fallbackWidth = genericWidth ?? Math.Max(240D, grid.Columns * 150D);
+        double fallbackHeight = genericHeight ?? Math.Max(70D, grid.Rows * 34D);
         ReadSemanticShapeGeometry(tableElement, 64D, top, fallbackWidth, fallbackHeight, budget, result,
             out double left, out double tableTop, out double width, out double height);
         PptCore.PowerPointTable table = slide.AddTablePoints(grid.Rows, grid.Columns, left, tableTop, width, height);
+        if (genericRowHeights?.Count == grid.Rows && !tableElement.HasAttribute("data-officeimo-height")) {
+            double remaining = Math.Max(0D, height - genericRowHeights.Sum());
+            for (int row = 0; row < grid.Rows; row++) {
+                table.SetRowHeightPoints(row, genericRowHeights[row] + (row == grid.Rows - 1 ? remaining : 0D));
+            }
+        }
         foreach (PowerPointHtmlTableCell cell in grid.Cells) {
             PptCore.PowerPointTableCell targetCell = table.GetCell(cell.Row, cell.Column);
             targetCell.Text = cell.Text;
@@ -47,7 +56,7 @@ public static partial class HtmlPowerPointConverterExtensions {
 
         ApplyShapeTransforms(tableElement, table, budget, result);
         result.Tables++;
-        return Math.Max(top + Math.Max(90D, grid.Rows * 40D), tableTop + height + 20D);
+        return Math.Max(top + Math.Max(90D, genericHeight ?? grid.Rows * 40D), tableTop + height + 20D);
     }
 
     private static void ApplySemanticTableFormatting(
@@ -61,21 +70,28 @@ public static partial class HtmlPowerPointConverterExtensions {
                 if (layoutIndex >= layoutCells.Count) return;
                 PowerPointHtmlTableCell layoutCell = layoutCells[layoutIndex++];
                 PptCore.PowerPointTableCell targetCell = target.GetCell(layoutCell.Row, layoutCell.Column);
-                if (RequiresSemanticTableRunProjection(cell.Runs)) {
-                    ApplySemanticRuns(targetCell.Paragraphs[0], cell.Runs, hyperlinkPolicy);
-                }
-                if (cell.IsHeader) {
-                    foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Bold = true;
-                }
-                string fill = NormalizeSemanticColor(cell.Style?.GetValue("background-color"));
-                if (fill.Length > 0) targetCell.FillColor = fill;
-                string color = NormalizeSemanticColor(cell.Style?.GetValue("color"));
-                if (color.Length > 0) {
-                    foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Color = color;
-                }
-                ApplySemanticTableAlignment(targetCell, cell.Style?.GetValue("text-align"));
+                ApplySemanticTableCellFormatting(targetCell, cell, hyperlinkPolicy);
             }
         }
+    }
+
+    private static void ApplySemanticTableCellFormatting(
+        PptCore.PowerPointTableCell targetCell,
+        HtmlSemanticTableCell cell,
+        HtmlUrlPolicy hyperlinkPolicy) {
+        if (RequiresSemanticTableRunProjection(cell.Runs)) {
+            ApplySemanticRuns(targetCell.Paragraphs[0], cell.Runs, hyperlinkPolicy);
+        }
+        if (cell.IsHeader) {
+            foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Bold = true;
+        }
+        string fill = NormalizeSemanticColor(cell.Style?.GetValue("background-color"));
+        if (fill.Length > 0) targetCell.FillColor = fill;
+        string color = NormalizeSemanticColor(cell.Style?.GetValue("color"));
+        if (color.Length > 0) {
+            foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Color = color;
+        }
+        ApplySemanticTableAlignment(targetCell, cell.Style?.GetValue("text-align"));
     }
 
     private static bool RequiresSemanticTableRunProjection(IReadOnlyList<HtmlSemanticRun> runs) =>
@@ -116,6 +132,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         int rowExtent = 0;
         int columnExtent = 0;
 
+        IReadOnlyDictionary<IElement, int> rowSpans = HtmlAccessibilitySemantics.ResolveTableRowSpans(EnumerateDirectTableRows(table));
         foreach (IElement row in EnumerateDirectTableRows(table)) {
             int columnIndex = 0;
             foreach (IElement element in row.Children.Where(IsPowerPointTableCell)) {
@@ -123,8 +140,10 @@ public static partial class HtmlPowerPointConverterExtensions {
                     columnIndex++;
                 }
 
-                int rowSpan = ReadPowerPointSpan(element, "rowspan", result);
-                int columnSpan = ReadPowerPointSpan(element, "colspan", result);
+                int rowSpan = rowSpans.TryGetValue(element, out int remainingRows) ? remainingRows : ReadPowerPointSpan(element,
+                    HtmlAccessibilitySemantics.GetTableSpanAttributeName(element, "rowspan"), result);
+                int columnSpan = ReadPowerPointSpan(element,
+                    HtmlAccessibilitySemantics.GetTableSpanAttributeName(element, "colspan"), result);
                 if ((long)rowSpan * columnSpan > maxTableCells) {
                     AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                         "An HTML table span exceeded the configured MaxTableCells limit; the span was ignored.", lossKind: OfficeConversionLossKind.Approximation);
@@ -190,17 +209,25 @@ public static partial class HtmlPowerPointConverterExtensions {
 
     private static IEnumerable<IElement> EnumerateDirectTableRows(IElement table) {
         foreach (IElement child in table.Children) {
-            if (IsElement(child, "tr")) {
+            if (IsPowerPointTableRow(child)) {
                 yield return child;
-            } else if (IsElement(child, "thead") || IsElement(child, "tbody") || IsElement(child, "tfoot")) {
-                foreach (IElement row in child.Children.Where(element => IsElement(element, "tr"))) {
+            } else if (IsElement(child, "thead") || IsElement(child, "tbody") || IsElement(child, "tfoot")
+                || HtmlAccessibilitySemantics.HasRole(child, "rowgroup")) {
+                foreach (IElement row in child.Children.Where(IsPowerPointTableRow)) {
                     yield return row;
                 }
             }
         }
     }
 
-    private static bool IsPowerPointTableCell(IElement element) => IsElement(element, "th") || IsElement(element, "td");
+    private static bool IsPowerPointTableRow(IElement element) =>
+        IsElement(element, "tr") || HtmlAccessibilitySemantics.HasRole(element, "row");
+
+    private static bool IsPowerPointTableCell(IElement element) =>
+        IsElement(element, "th") || IsElement(element, "td")
+        || HtmlAccessibilitySemantics.HasRole(element, "cell")
+        || HtmlAccessibilitySemantics.HasRole(element, "columnheader")
+        || HtmlAccessibilitySemantics.HasRole(element, "rowheader");
 
     private static int ReadPowerPointSpan(IElement cell, string attributeName, HtmlToPowerPointResult result) {
         string? raw = cell.GetAttribute(attributeName);

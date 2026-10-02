@@ -1,0 +1,36 @@
+diff --git a/av1/encoder/pickrst.c b/av1/encoder/pickrst.c
+index 3913d58..0b799f0 100644
+--- a/av1/encoder/pickrst.c
++++ b/av1/encoder/pickrst.c
+@@ -13,6 +13,7 @@
+ #include <float.h>
+ #include <limits.h>
+ #include <math.h>
++#include <stdlib.h>
+ 
+ #include "config/aom_scale_rtcd.h"
+ #include "config/av1_rtcd.h"
+@@ -2022,6 +2023,9 @@ static void set_restoration_unit_size(AV1_COMMON *cm, RestorationInfo *rsi,
+   int s = 0;
+ #endif  // !COUPLED_CHROMA_FROM_LUMA_RESTORATION
+   int unit_size = luma_unit_size >> s;
++  /* Opt-in producer policy only; decoder and filter kernels are unchanged. */
++  if (is_uv && getenv("OFFICEIMO_AV1_CHROMA_HALF") != NULL)
++    unit_size = luma_unit_size >> 1;
+ 
+   int plane_w, plane_h;
+   av1_get_upsampled_plane_size(cm, is_uv, &plane_w, &plane_h);
+@@ -2058,6 +2062,13 @@ void av1_pick_filter_restoration(const YV12_BUFFER_CONFIG *src, AV1_COMP *cpi) {
+       AOMMAX(min_lr_unit_size, block_size_wide[cm->seq_params->sb_size]);
+ 
+   max_lr_unit_size = AOMMAX(min_lr_unit_size, max_lr_unit_size);
++  const char *office_unit = getenv("OFFICEIMO_AV1_RESTORATION_UNIT");
++  if (office_unit != NULL) {
++    const int size = atoi(office_unit);
++    assert(size == 64 || size == 128 || size == 256);
++    assert(size >= block_size_wide[cm->seq_params->sb_size]);
++    min_lr_unit_size = max_lr_unit_size = size;
++  }
+ 
+   for (int plane = 0; plane < num_planes; ++plane) {
+     cpi->pick_lr_ctxt.rusi[plane] = allocate_search_structs(

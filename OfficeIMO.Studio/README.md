@@ -84,6 +84,16 @@ Connection failures provide the next action when the provider exposes a typed au
 
 Conversations remain in memory and include at most three prior exchanges as bounded context. Changing the document, page scope, model or connection clears the conversation. Closing a tab, hiding the assistant, switching tabs or cancelling discards pending answers. Cancellation stops waiting for a provider and rejects late results; stopping the provider's own computation depends on its cancellation support. The panel docks beside the document in wide windows and opens as a drawer at narrower widths. Questions and answer exports leave the source PDF unchanged.
 
+## Runtime requirements
+
+Studio performs its supported document conversions in process through OfficeIMO's
+format and rendering engines. Installing an external office suite or document
+converter is unnecessary. The packaged desktop editions include the .NET runtime.
+OCR is a separate, optional Tesseract operation. Printer queue delivery uses the
+platform printer service; preparing and saving print sheets works independently.
+The Mac App Store edition provides print-PDF preparation and blocks external OCR
+and printer command-line execution.
+
 ## Capability ownership
 
 Studio does not contain a second document engine:

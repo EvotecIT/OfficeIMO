@@ -368,6 +368,12 @@ DOCX and supported legacy DOC inputs can produce DOCX, native DOC, or PDF. Incom
 
 ## Convert a document
 
+The executable conversion routes run in process through the OfficeIMO format and
+rendering packages. They do not launch an external office suite or document
+converter. Independent producer files and compatibility checks belong to
+validation; they are not prerequisites for running these conversions.
+
+
 ```csharp
 using OfficeIMO.Workflows;
 

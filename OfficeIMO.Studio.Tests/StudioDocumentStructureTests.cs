@@ -327,8 +327,10 @@ public sealed class StudioDocumentStructureTests {
                 // A plain click arrives as the canvas default box; the placement keeps the image proportions.
                 model.Pages[1].CompleteEditorGesture(new PdfEditorGesture(2, 60D, 300D, 220D, 400D, [new PdfEditorVisualPoint(60D, 300D)]));
                 using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-                while (!model.CanUndo) await Task.Delay(10, timeout.Token);
+                // Undo becomes available before the asynchronous placement finishes updating the shell.
+                while (model.IsPlacingFillSignItem && !model.HasError) await Task.Delay(10, timeout.Token);
                 Assert.False(model.HasError, model.ErrorMessage);
+                Assert.True(model.CanUndo);
                 Assert.False(model.IsPlacingFillSignItem);
                 Assert.Equal(PdfEditorTool.Select, model.ActiveEditorTool);
                 Assert.Equal("Signature added", model.OperationStatus);
@@ -559,8 +561,10 @@ public sealed class StudioDocumentStructureTests {
                 await model.CreateSignatureCommand.ExecuteAsync("Signature");
                 model.Pages[0].CompleteEditorGesture(new PdfEditorGesture(1, 60D, 300D, 220D, 400D, [new PdfEditorVisualPoint(60D, 300D)]));
                 using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-                while (!model.CanUndo) await Task.Delay(10, timeout.Token);
+                // Undo becomes available before the asynchronous placement finishes updating the shell.
+                while (model.IsPlacingFillSignItem && !model.HasError) await Task.Delay(10, timeout.Token);
                 Assert.False(model.HasError, model.ErrorMessage);
+                Assert.True(model.CanUndo);
                 Assert.False(model.IsPlacingFillSignItem);
                 return true;
             }, CancellationToken.None);

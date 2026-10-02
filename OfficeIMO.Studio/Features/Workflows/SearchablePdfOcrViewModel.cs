@@ -57,7 +57,7 @@ internal sealed class SearchablePdfOcrService : ISearchablePdfOcrService {
             PublicationGuard = options.PublicationGuard,
             ReviewCorrectionsAsync = options.ReviewCorrectionsAsync
         };
-        TesseractOcrSession session = await TesseractOcr
+        TesseractOcrSession session = await StudioOcrProvider
             .CreateSessionAsync(new TesseractOcrSessionOptions {
                 Languages = options.Languages,
                 ProvisionMissingLanguageData = options.ProvisionMissingLanguageData

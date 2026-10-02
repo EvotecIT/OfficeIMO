@@ -11,6 +11,10 @@
     <LangVersion>Latest</LangVersion>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(OfficeIMOStudioDistribution)' == 'MacAppStore'">
+    <DefineConstants>$(DefineConstants);OFFICEIMO_MAC_APP_STORE</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Avalonia.Headless" Version="12.1.3" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.3" />

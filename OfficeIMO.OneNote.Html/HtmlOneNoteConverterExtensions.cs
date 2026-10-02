@@ -7,7 +7,7 @@ using System.Linq;
 namespace OfficeIMO.OneNote.Html;
 
 /// <summary>Imports prepared ordinary HTML into typed offline OneNote models.</summary>
-public static class HtmlOneNoteConverterExtensions {
+public static partial class HtmlOneNoteConverterExtensions {
     private const string ComponentName = "OfficeIMO.OneNote.Html";
 
     /// <summary>Imports HTML as a OneNote section or throws when an error diagnostic is produced.</summary>
@@ -21,9 +21,57 @@ public static class HtmlOneNoteConverterExtensions {
         resolved.Limits.Validate();
         var section = new OneNoteSection { Name = CleanName(resolved.SectionName, "Imported") };
         var result = new HtmlToOneNoteSectionResult(section);
+        HtmlSemanticDocument semanticDocument = document.SemanticDocument;
+        AngleSharp.Html.Dom.IHtmlDocument sourceDocument = document.CreateNativeDocumentForConversion();
         foreach (HtmlDiagnostic diagnostic in document.Diagnostics) result.AddImportDiagnostic(diagnostic);
-        ImportPages(document.SemanticDocument, section, resolved, result);
+        ReportSkippedStylesheetLinks(sourceDocument, document.MediaContext, result);
+        ReportUnpreservedColumnWidths(sourceDocument, document.MediaContext, document.Limits, result);
+        ImportPages(semanticDocument, section, resolved, result);
         return result;
+    }
+
+    private static void ReportUnpreservedColumnWidths(
+        AngleSharp.Html.Dom.IHtmlDocument sourceDocument, HtmlCssMediaContext mediaContext,
+        HtmlConversionLimits limits, HtmlToOneNoteSectionResult result) {
+        var columns = sourceDocument.QuerySelectorAll("colgroup, col");
+        if (columns.Length == 0) return;
+        var styles = HtmlComputedStyleEngine.Compute(sourceDocument, mediaContext, limits);
+        foreach (var column in columns) {
+            styles.TryGetValue(column, out HtmlComputedStyle? style);
+            bool meaningful = (style?.IsSpecifiedValue("width") != true && IsAuthoredWidth(column.GetAttribute("width")))
+                || !string.IsNullOrWhiteSpace(column.GetAttribute("bgcolor"))
+                || (style != null && (IsAuthoredWidth(style.GetValue("width"))
+                    || (style.IsSpecifiedValue("background-color") && style.GetValue("background-color") != "transparent")
+                    || (style.IsSpecifiedValue("visibility") && style.GetValue("visibility") == "collapse")
+                    || style.Properties.Any(property => property.Key.StartsWith("border-", StringComparison.Ordinal)
+                        && style.IsSpecifiedValue(property.Key) && property.Value != "none" && property.Value != "0px")));
+            if (!meaningful) continue;
+            Add(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                "HTML colgroup and col presentation is not projected to OneNote table columns.",
+                HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Approximation);
+            return;
+        }
+    }
+
+    private static void ReportSkippedStylesheetLinks(
+        AngleSharp.Html.Dom.IHtmlDocument sourceDocument,
+        HtmlCssMediaContext mediaContext,
+        HtmlToOneNoteSectionResult result) {
+        var stylesheetOptions = new HtmlRenderOptions {
+            Mode = mediaContext == HtmlCssMediaContext.Print ? HtmlRenderMode.Paged : HtmlRenderMode.Continuous
+        };
+        foreach (AngleSharp.Dom.IElement link in sourceDocument.QuerySelectorAll("link[href]")) {
+            if (!HtmlRenderStylesheetApplier.IsApplicableStylesheetLink(link, stylesheetOptions)) continue;
+            string href = link.GetAttribute("href") ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(href)) continue;
+            result.AddImportDiagnostic(new HtmlDiagnostic(
+                ComponentName,
+                "HtmlStylesheetLinkSkipped",
+                "An applicable HTML stylesheet link was not loaded by the semantic OneNote importer.",
+                HtmlDiagnosticSeverity.Warning,
+                source: href,
+                lossKind: OfficeConversionLossKind.Omission));
+        }
     }
 
     /// <summary>Imports HTML as a single-section OneNote notebook or throws on conversion errors.</summary>
@@ -181,7 +229,7 @@ public static class HtmlOneNoteConverterExtensions {
 
         var paragraph = new OneNoteParagraph();
         foreach (HtmlSemanticRun sourceRun in runs) {
-            var run = new OneNoteTextRun { Text = sourceRun.Text, Hyperlink = sourceRun.Hyperlink };
+            var run = new OneNoteTextRun { Text = sourceRun.Text, Hyperlink = BoundHyperlink(sourceRun.Hyperlink, result, budget) };
             if (sourceRun.DataAttributes.TryGetValue("data-officeimo-math-format", out string? mathFormat)
                 && string.Equals(mathFormat, "latex", StringComparison.OrdinalIgnoreCase)) {
                 try {
@@ -246,57 +294,6 @@ public static class HtmlOneNoteConverterExtensions {
         return true;
     }
 
-    private static void ImportTable(
-        HtmlSemanticBlock source,
-        IList<OneNoteElement> target,
-        HtmlToOneNoteOptions options,
-        HtmlToOneNoteSectionResult result,
-        HtmlImportBudget budget) {
-        HtmlSemanticTable? sourceTable = source.Table;
-        if (sourceTable == null || sourceTable.Rows.Count == 0) return;
-
-        if (!budget.TryReserveTableWithShape(out string tableLimit)) {
-            Add(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                "An HTML table was omitted because the shared import limit was reached.",
-                HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission,
-                tableLimit);
-            return;
-        }
-        var table = new OneNoteTable { BordersVisible = true };
-        int cells = 0;
-        int maxTableCells = budget.Limits.MaxTableCells;
-        foreach (HtmlSemanticTableRow rowElement in sourceTable.Rows) {
-            var row = new OneNoteTableRow();
-            foreach (HtmlSemanticTableCell cellElement in rowElement.Cells) {
-                if (++cells > maxTableCells) {
-                    Add(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                        "Remaining HTML table cells were omitted because the configured table limit was reached.",
-                        HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission,
-                        "limit=" + maxTableCells);
-                    break;
-                }
-                var cell = new OneNoteTableCell();
-                if (TryParseArgb(cellElement.Style?.GetValue("background-color"), out uint shading)) {
-                    cell.ShadingColorArgb = shading;
-                }
-                OneNoteParagraph? paragraph = CreateParagraph(cellElement.Text, cellElement.Runs, 0, cellElement.Style, result, budget);
-                if (paragraph != null) cell.Content.Add(paragraph);
-                if (options.ImportImages) {
-                    foreach (HtmlSemanticResource resource in cellElement.Resources.Where(item => item.Kind == HtmlResourceKind.Image)) {
-                        ImportImage(resource, cell.Content, result, budget);
-                    }
-                }
-                row.Cells.Add(cell);
-            }
-            if (row.Cells.Count > 0) table.Rows.Add(row);
-            if (cells >= maxTableCells) break;
-        }
-        if (table.Rows.Count == 0) return;
-        target.Add(table);
-        result.Elements++;
-        result.Tables++;
-    }
-
     private static void ImportImage(
         HtmlSemanticResource resource,
         IList<OneNoteElement> target,
@@ -323,6 +320,7 @@ public static class HtmlOneNoteConverterExtensions {
         }
         target.Add(new OneNoteImage {
             AltText = resource.AlternateText,
+            Hyperlink = BoundHyperlink(resource.Hyperlink, result, budget),
             MediaType = dataUri.MediaType,
             FileName = "image" + dataUri.FileExtension,
             Payload = OneNoteBinaryPayload.FromBytes(bytes)
@@ -330,6 +328,14 @@ public static class HtmlOneNoteConverterExtensions {
         result.Elements++;
         result.Images++;
         imageReservation.Commit();
+    }
+
+    private static string? BoundHyperlink(string? hyperlink, HtmlToOneNoteSectionResult result, HtmlImportBudget budget) {
+        if (string.IsNullOrEmpty(hyperlink) || budget.IsMetadataWithinLimit(hyperlink, out _)) return hyperlink;
+        Add(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
+            "An oversized HTML hyperlink was omitted while retaining its content.",
+            HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission);
+        return null;
     }
 
     private static void TrimRuns(OneNoteParagraph paragraph) {

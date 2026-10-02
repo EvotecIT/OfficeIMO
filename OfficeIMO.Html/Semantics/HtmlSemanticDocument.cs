@@ -294,28 +294,36 @@ public sealed class HtmlSemanticRun {
 
 /// <summary>Typed semantic table.</summary>
 public sealed class HtmlSemanticTable {
-    internal HtmlSemanticTable(string caption, IReadOnlyList<HtmlSemanticTableRow> rows) {
+    internal HtmlSemanticTable(string caption, IReadOnlyList<HtmlSemanticRun> captionRuns,
+        IReadOnlyList<HtmlSemanticTableRow> rows) {
         Caption = caption;
+        CaptionRuns = Array.AsReadOnly((captionRuns ?? throw new ArgumentNullException(nameof(captionRuns))).ToArray());
         Rows = Array.AsReadOnly((rows ?? throw new ArgumentNullException(nameof(rows))).ToArray());
     }
 
     /// <summary>Resolved table caption or shared fallback title.</summary>
     public string Caption { get; }
+    /// <summary>Text and inline formatting from an authored caption, empty when the title is a fallback.</summary>
+    public IReadOnlyList<HtmlSemanticRun> CaptionRuns { get; }
     /// <summary>Rows in source order.</summary>
     public IReadOnlyList<HtmlSemanticTableRow> Rows { get; }
 }
 
 /// <summary>One semantic table row.</summary>
 public sealed class HtmlSemanticTableRow {
-    internal HtmlSemanticTableRow(IReadOnlyList<HtmlSemanticTableCell> cells, HtmlSemanticSourceLocation? sourceLocation) {
+    internal HtmlSemanticTableRow(IReadOnlyList<HtmlSemanticTableCell> cells,
+        HtmlSemanticSourceLocation? sourceLocation, int sourceRowIndex) {
         Cells = Array.AsReadOnly((cells ?? throw new ArgumentNullException(nameof(cells))).ToArray());
         SourceLocation = sourceLocation;
+        SourceRowIndex = sourceRowIndex;
     }
 
     /// <summary>Cells in source order.</summary>
     public IReadOnlyList<HtmlSemanticTableCell> Cells { get; }
     /// <summary>Source provenance.</summary>
     public HtmlSemanticSourceLocation? SourceLocation { get; }
+    /// <summary>Zero-based position among authored table rows, including empty rows omitted from this semantic view.</summary>
+    public int SourceRowIndex { get; }
 }
 
 /// <summary>One semantic table cell.</summary>
@@ -355,7 +363,7 @@ public sealed class HtmlSemanticTableCell {
 public sealed class HtmlSemanticResource {
     internal HtmlSemanticResource(HtmlResourceKind kind, string source, string alternateText,
         string mediaType, double? widthPixels, double? heightPixels,
-        HtmlSemanticSourceLocation? sourceLocation) {
+        HtmlSemanticSourceLocation? sourceLocation, string? hyperlink = null) {
         Kind = kind;
         Source = source;
         AlternateText = alternateText;
@@ -363,6 +371,7 @@ public sealed class HtmlSemanticResource {
         WidthPixels = widthPixels;
         HeightPixels = heightPixels;
         SourceLocation = sourceLocation;
+        Hyperlink = hyperlink;
     }
 
     /// <summary>Resource kind.</summary>
@@ -379,4 +388,6 @@ public sealed class HtmlSemanticResource {
     public double? HeightPixels { get; }
     /// <summary>Source provenance.</summary>
     public HtmlSemanticSourceLocation? SourceLocation { get; }
+    /// <summary>Policy-normalized hyperlink on the nearest enclosing HTML anchor, when present.</summary>
+    public string? Hyperlink { get; }
 }

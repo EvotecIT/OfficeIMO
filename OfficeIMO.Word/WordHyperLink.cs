@@ -368,7 +368,7 @@ namespace OfficeIMO.Word {
             return paragraph;
         }
 
-        internal static WordParagraph AddHyperLinkContent(WordParagraph paragraph, IEnumerable<OpenXmlElement> inlineContent, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
+        internal static WordParagraph AddHyperLinkContent(WordParagraph paragraph, IEnumerable<OpenXmlElement> inlineContent, string anchor, bool addStyle = false, string tooltip = "", bool history = true, bool moveContent = false) {
             if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
             if (inlineContent == null) throw new ArgumentNullException(nameof(inlineContent));
 
@@ -380,7 +380,7 @@ namespace OfficeIMO.Word {
                 hyperlink.Tooltip = tooltip;
             }
 
-            AppendInlineContent(hyperlink, inlineContent, addStyle);
+            AppendInlineContent(hyperlink, inlineContent, addStyle, moveContent);
             paragraph._paragraph.Append(hyperlink);
             paragraph._hyperlink = hyperlink;
             return paragraph;
@@ -463,7 +463,7 @@ namespace OfficeIMO.Word {
             return paragraph;
         }
 
-        internal static WordParagraph AddHyperLinkContent(WordParagraph paragraph, IEnumerable<OpenXmlElement> inlineContent, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
+        internal static WordParagraph AddHyperLinkContent(WordParagraph paragraph, IEnumerable<OpenXmlElement> inlineContent, Uri uri, bool addStyle = false, string tooltip = "", bool history = true, bool moveContent = false) {
             if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
             if (inlineContent == null) throw new ArgumentNullException(nameof(inlineContent));
 
@@ -478,19 +478,22 @@ namespace OfficeIMO.Word {
                 hyperlink.Tooltip = tooltip;
             }
 
-            AppendInlineContent(hyperlink, inlineContent, addStyle);
+            AppendInlineContent(hyperlink, inlineContent, addStyle, moveContent);
             paragraph._paragraph.Append(hyperlink);
             paragraph._hyperlink = hyperlink;
             return paragraph;
         }
 
-        private static void AppendInlineContent(Hyperlink hyperlink, IEnumerable<OpenXmlElement> inlineContent, bool addStyle) {
+        private static void AppendInlineContent(Hyperlink hyperlink, IEnumerable<OpenXmlElement> inlineContent, bool addStyle, bool moveContent) {
             foreach (OpenXmlElement element in inlineContent) {
                 if (element is ParagraphProperties) {
                     continue;
                 }
 
-                OpenXmlElement cloned = element.CloneNode(true);
+                // Moving same-story content preserves existing drawing handles and
+                // their ownership. Other consumers retain independent cloned content.
+                OpenXmlElement cloned = moveContent ? element : element.CloneNode(true);
+                if (moveContent) cloned.Remove();
                 if (addStyle) {
                     if (cloned is Run run) {
                         ApplyHyperlinkStyle(run);

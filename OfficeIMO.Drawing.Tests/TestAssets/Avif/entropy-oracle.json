@@ -1,0 +1,48 @@
+{
+  "tag": "v3.13.1",
+  "sourceUrl": "https://aomedia.googlesource.com/aom/+/refs/tags/v3.13.1/",
+  "license": "BSD-2-Clause and AOM Patent License 1.0; fetched LICENSE/PATENTS remain beside opt-in oracle sources",
+  "sourceSha256": {
+    "LICENSE": "4764a286d8b2faeaf42f4418e7d7a28d58fc8fd4d00a3d0a7f44b0a4099de7f2",
+    "PATENTS": "661fb8e504744e95587b556b94a58343448300606a41bea8c7a9b97125696e61",
+    "aom/aom_integer.h": "9af5a90e9cfd1290e2b763647efc7abdb1ad3113382986fcfa300f23176bb106",
+    "aom_dsp/aom_dsp_common.h": "438b026ee7fc0484643ac7ca73246290a77c1384862264df146f669893ee98d9",
+    "aom_dsp/entcode.c": "a5ab717dfc11a235af34ca5b24d94dd9bcea82ce8515f3c1048b34d258c5edec",
+    "aom_dsp/entcode.h": "1970dd29842a5f910ae7e12c0d30a75c1304278570bd2bea53a36dcd5d58c73f",
+    "aom_dsp/entdec.c": "be657c87012853c1b326b47791218481d721f83ce53f3d97653dadb8d6385bf4",
+    "aom_dsp/entdec.h": "c2a2ea92a22678983491ce5718305cf31e85f3a4e8bd9927cea8996406a82f33",
+    "aom_dsp/entenc.c": "24169349d516d326f67eaff0e063191e8658eed8d5021f31358bbac24524160e",
+    "aom_dsp/entenc.h": "cea96bad5d830a5c866b0c9ca56bfd459361261eeb40710a0e4eded5c1fc213e",
+    "aom_dsp/odintrin.h": "20ee5e97ffe6048fdc573c6daa8e161c6bcf2ae4b7be0e991fac89b90d866333",
+    "aom_dsp/prob.h": "1025cb5c67a847dd3cf9600c4e3e655082f4872a4203b8a935554a82888e89b4",
+    "aom_ports/bitops.h": "ea293a6c2ed98f8e60d61f82f35e1597ff868ae4facb79219d63d4ff873b2b08",
+    "aom_ports/mem.h": "7a035100e23d7bcf44b0e45e741bc431b56fdee61bd513e12b595df17eca52c4",
+    "aom_util/endian_inl.h": "b198b0b51cbff86cea0fc5ed4b52a372c056960de33de3a144e7560a84270d7c"
+  },
+  "framePrefixes": [
+    {
+      "name": "avif-opaque",
+      "alpha": false,
+      "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/StaticPdfGaps/avif-opaque.avif",
+      "sha256": "1980b75f79092e557b0fbf28774f87ad39cfc6b13dbecbb3bf6eb60af27c7ad3",
+      "offset": 302,
+      "length": 31
+    },
+    {
+      "name": "avif-alpha",
+      "alpha": true,
+      "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/StaticPdfGaps/avif-alpha.avif",
+      "sha256": "1ac1730fae1498d1d0662bd917e63099393692030139c688f2b66b010b29f3c6",
+      "offset": 447,
+      "length": 43
+    },
+    {
+      "name": "multitile",
+      "alpha": false,
+      "path": "OfficeIMO.Drawing.Tests/TestAssets/Avif/multitile.avif",
+      "sha256": "465ea0b0086c23b60cb6234eba16efdceecc4775cf37854b314020cfb103b25a",
+      "offset": 298,
+      "length": 1189
+    }
+  ]
+}

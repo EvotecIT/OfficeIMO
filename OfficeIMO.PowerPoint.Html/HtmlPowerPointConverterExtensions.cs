@@ -107,7 +107,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             if (!budget.TryReserveSemanticContainer(out string containerLimit)) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                     "Additional semantic slides were omitted because the shared import limit was reached.",
-                    HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, detail: containerLimit);
+                    HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission, detail: containerLimit);
                 break;
             }
 
@@ -144,7 +144,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)
         || string.Equals(value, "1", StringComparison.Ordinal);
 
-    private static void ImportPicture(IElement item, PptCore.PowerPointSlide slide, HtmlToPowerPointResult result, HtmlImportBudget budget, ref double fallbackTop) {
+    private static void ImportPicture(IElement item, PptCore.PowerPointSlide slide, HtmlToPowerPointResult result, HtmlImportBudget budget, HtmlToPowerPointOptions options, ref double fallbackTop, double fallbackLeft = 720D) {
         IElement? image = IsElement(item, "img") && item.HasAttribute("src") ? item : item.QuerySelector("img[src]");
         if (image == null || !HtmlImageDataUri.TryParse(image.GetAttribute("src"), out HtmlImageDataUri dataUri)) {
             return;
@@ -171,7 +171,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         }
 
         ReadPictureSize(item, budget, result, out double width, out double height);
-        ReadPicturePosition(item, 720D, fallbackTop, budget, result, out double left, out double pictureTop);
+        ReadPicturePosition(item, fallbackLeft, fallbackTop, budget, result, out double left, out double pictureTop);
         using var stream = new MemoryStream(bytes);
         PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imagePartType, left, pictureTop, width, height);
         string label = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
@@ -184,10 +184,38 @@ public static partial class HtmlPowerPointConverterExtensions {
             picture.AltText = alt;
         }
 
+        for (IElement? parent = image.ParentElement; parent != null; parent = parent.ParentElement) {
+            if (!IsElement(parent, "a")) continue;
+            ApplyPictureHyperlink(picture, parent.GetAttribute("href"), result, options.NormalizedHyperlinkUrlPolicy ?? options.HyperlinkUrlPolicy);
+            break;
+        }
+
         ApplyPictureTransforms(item, picture, budget, result);
         result.Pictures++;
         imageReservation.Commit();
         fallbackTop = Math.Max(fallbackTop, pictureTop + height + 18D);
+    }
+
+    private static void ApplyPictureHyperlink(PptCore.PowerPointPicture picture, string? target, HtmlToPowerPointResult result, HtmlUrlPolicy policy) {
+        if (target == null || target.Trim().Length == 0) return;
+        string trimmed = HtmlUrlPolicyEvaluator.ResolveUrl(target, null, policy);
+        if (trimmed.Length == 0) return;
+        if (Uri.TryCreate(trimmed, UriKind.Absolute, out Uri? hyperlink)) {
+            picture.Hyperlink = hyperlink;
+            return;
+        }
+        if (trimmed.StartsWith("#slide-", StringComparison.OrdinalIgnoreCase)
+            && Uri.TryCreate(trimmed, UriKind.Relative, out hyperlink)) {
+            try {
+                picture.SetHyperlink(hyperlink);
+                return;
+            } catch (ArgumentException) {
+                // The target slide has not been created or the fragment is invalid.
+            }
+        }
+        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
+            "An image hyperlink was not retained because its relative target cannot be resolved in this presentation.",
+            lossKind: OfficeConversionLossKind.Omission, source: target);
     }
 
     private static void ImportChart(IElement item, PptCore.PowerPointSlide slide, HtmlToPowerPointResult result, HtmlImportBudget budget, ref double fallbackTop) {
