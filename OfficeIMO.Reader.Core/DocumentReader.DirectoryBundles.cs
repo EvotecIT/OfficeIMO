@@ -28,6 +28,7 @@ internal static partial class DocumentReaderEngine {
             throw new IOException($"'{path}' is a directory. Use {nameof(ReadFolder)}(...) to ingest directories.");
         }
         ReaderOptions effective = NormalizeOptions(options);
+        using var readScope = ReaderReadScope.Enter(effective);
         effective.MaxInputBytes = ResolveSelectedHandlerMaxInputBytes(handler, path, effective)
             ?? DefaultUnidentifiedStreamMaxInputBytes;
         OfficeDocumentReadResult result = ValidateDocumentResult(
@@ -43,8 +44,8 @@ internal static partial class DocumentReaderEngine {
         if (effective.ComputeHashes && string.IsNullOrWhiteSpace(source.SourceHash)) {
             throw new InvalidDataException("The directory-package handler must supply a snapshot hash when ComputeHashes is enabled.");
         }
-        return ApplyDetectionDiagnostics(FinalizeHandlerDocumentResult(result, source, effective.ComputeHashes),
-            DetectDirectoryBundle(path));
+        return ReaderReadScope.Complete(ApplyDetectionDiagnostics(FinalizeHandlerDocumentResult(result, source, effective.ComputeHashes),
+            DetectDirectoryBundle(path)));
     }
 
     private static ReaderDetectionResult DetectDirectoryBundle(string path) {

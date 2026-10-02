@@ -13,20 +13,22 @@ public sealed partial class OfficeDocumentReader {
     /// Results retain input order. <paramref name="onCompleted"/> is invoked as individual reads finish and
     /// may run concurrently on worker threads. Cancellation is never converted into a failed outcome.
     /// </remarks>
-    public Task<IReadOnlyList<ReaderDocumentReadOutcome>> ReadDocumentsDetailedAsync(
+    public async Task<IReadOnlyList<ReaderDocumentReadOutcome>> ReadDocumentsDetailedAsync(
         IEnumerable<string> paths,
         ReaderOptions? options = null,
         ReaderBatchOptions? batchOptions = null,
         Action<ReaderDocumentReadOutcome>? onCompleted = null,
         CancellationToken cancellationToken = default) {
-        return ReaderBatchExecutor.ExecuteAsync(
+        options = DocumentReaderEngine.NormalizeOptions(options);
+        using var readScope = ReaderReadScope.Enter(options);
+        return await ReaderBatchExecutor.ExecuteAsync(
             paths,
             batchOptions,
             MaxConcurrentReads,
             MaxConcurrentReads,
             (index, path, token) => ReadDocumentOutcomeAsync(index, path, options, token),
             onCompleted,
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -38,20 +40,22 @@ public sealed partial class OfficeDocumentReader {
     /// threads. Callers that need an input-ordered materialized result should use
     /// <see cref="ReadDocumentsDetailedAsync"/> instead. Cancellation is never converted into a failed outcome.
     /// </remarks>
-    public Task ReadDocumentsAsCompletedAsync(
+    public async Task ReadDocumentsAsCompletedAsync(
         IEnumerable<string> paths,
         Action<ReaderDocumentReadOutcome> onCompleted,
         ReaderOptions? options = null,
         ReaderBatchOptions? batchOptions = null,
         CancellationToken cancellationToken = default) {
-        return ReaderBatchExecutor.ExecuteAsCompletedAsync(
+        options = DocumentReaderEngine.NormalizeOptions(options);
+        using var readScope = ReaderReadScope.Enter(options);
+        await ReaderBatchExecutor.ExecuteAsCompletedAsync(
             paths,
             batchOptions,
             MaxConcurrentReads,
             MaxConcurrentReads,
             (index, path, token) => ReadDocumentOutcomeAsync(index, path, options, token),
             onCompleted,
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<ReaderDocumentReadOutcome> ReadDocumentOutcomeAsync(
@@ -65,7 +69,7 @@ public sealed partial class OfficeDocumentReader {
             return new ReaderDocumentReadOutcome(index, path, document, error: null);
         } catch (OperationCanceledException) {
             throw;
-        } catch (Exception exception) {
+        } catch (Exception exception) when (exception is not ReaderResourceLimitException) {
             return new ReaderDocumentReadOutcome(index, path, document: null, exception);
         }
     }

@@ -57,12 +57,31 @@ internal static class ReaderCapabilityManifestJson {
             WriteString("origin", handler.Origin.ToString(), trailingComma: true);
             WriteString("kind", handler.Kind.ToString(), trailingComma: true);
             WriteStringArray("extensions", handler.Extensions ?? Array.Empty<string>(), trailingComma: true);
+            WritePropertyName("formatQualifications");
+            sb.Append('[');
+            int profileIndex = 0;
+            foreach (var profile in handler.FormatQualifications ?? Array.Empty<ReaderFormatQualification>()) {
+                if (profileIndex++ > 0) sb.Append(',');
+                sb.Append('{'); AppendNewLine(); depth++;
+                WriteString("extension", profile.Extension, true);
+                WriteString("formatId", profile.FormatId, true);
+                WriteString("support", profile.Support.ToString(), true);
+                WriteNullableString("profile", profile.Profile, true);
+                WriteStringArray("preservation", profile.Preservation, true);
+                WriteStringArray("limitations", profile.Limitations, true);
+                WriteStringArray("evidence", profile.Evidence, false);
+                depth--; AppendIndent(); sb.Append('}');
+            }
+            sb.Append("],"); AppendNewLine();
             WriteBoolean("supportsPath", handler.SupportsPath, trailingComma: true);
             WriteBoolean("supportsStream", handler.SupportsStream, trailingComma: true);
+            WriteBoolean("supportsDirectoryBundle", handler.SupportsDirectoryBundle, trailingComma: true);
             WriteBoolean("supportsDocumentPath", handler.SupportsDocumentPath, trailingComma: true);
             WriteBoolean("supportsDocumentStream", handler.SupportsDocumentStream, trailingComma: true);
             WriteBoolean("supportsAsyncPath", handler.SupportsAsyncPath, trailingComma: true);
             WriteBoolean("supportsAsyncStream", handler.SupportsAsyncStream, trailingComma: true);
+            WriteBoolean("supportsIncrementalPath", handler.SupportsIncrementalPath, trailingComma: true);
+            WriteBoolean("supportsIncrementalStream", handler.SupportsIncrementalStream, trailingComma: true);
             WriteString("schemaId", handler.SchemaId ?? ReaderCapabilitySchema.Id, trailingComma: true);
             WriteNumber("schemaVersion", handler.SchemaVersion, trailingComma: true);
             WriteNullableNumber("defaultMaxInputBytes", handler.DefaultMaxInputBytes, trailingComma: true);

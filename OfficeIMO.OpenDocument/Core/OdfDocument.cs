@@ -78,10 +78,10 @@ public abstract partial class OdfDocument {
     public OdfSaveResult Save(string path, OdfSaveOptions? options = null) {
         EnsurePath(path);
         string fullPath = Path.GetFullPath(path);
-        byte[] bytes = Render(options, out OdfSaveReport report);
+        byte[] bytes = Render(options, out OdfSaveReport report, out OdfPackage output);
         OfficeFileCommit.WriteAllBytes(fullPath, bytes);
         _sourcePath = fullPath;
-        CompleteSave();
+        CompleteSave(output);
         return new OdfSaveResult(bytes, report);
     }
 
@@ -91,15 +91,14 @@ public abstract partial class OdfDocument {
         string fullPath = Path.GetFullPath(path);
         byte[] bytes = Render(options, out OdfSaveReport report);
         OfficeFileCommit.WriteAllBytes(fullPath, bytes);
-        CompleteSave();
         return new OdfSaveResult(bytes, report);
     }
 
     /// <summary>Writes to a stream and returns the serialized bytes with entry-level diagnostics.</summary>
     public OdfSaveResult Save(Stream destination, OdfSaveOptions? options = null) {
-        byte[] bytes = Render(options, out OdfSaveReport report);
+        byte[] bytes = Render(options, out OdfSaveReport report, out OdfPackage output);
         OfficeStreamWriter.WriteAllBytes(destination, bytes);
-        CompleteSave();
+        if (_sourcePath == null) CompleteSave(output);
         return new OdfSaveResult(bytes, report);
     }
 
@@ -119,10 +118,10 @@ public abstract partial class OdfDocument {
     public async Task<OdfSaveResult> SaveAsync(string path, OdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         EnsurePath(path);
         string fullPath = Path.GetFullPath(path);
-        byte[] bytes = Render(options, out OdfSaveReport report);
+        byte[] bytes = Render(options, out OdfSaveReport report, out OdfPackage output);
         await OfficeFileCommit.WriteAllBytesAsync(fullPath, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
         _sourcePath = fullPath;
-        CompleteSave();
+        CompleteSave(output);
         return new OdfSaveResult(bytes, report);
     }
 
@@ -132,15 +131,14 @@ public abstract partial class OdfDocument {
         string fullPath = Path.GetFullPath(path);
         byte[] bytes = Render(options, out OdfSaveReport report);
         await OfficeFileCommit.WriteAllBytesAsync(fullPath, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
-        CompleteSave();
         return new OdfSaveResult(bytes, report);
     }
 
     /// <summary>Asynchronously writes to a stream and returns the serialized bytes with entry-level diagnostics.</summary>
     public async Task<OdfSaveResult> SaveAsync(Stream destination, OdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
-        byte[] bytes = Render(options, out OdfSaveReport report);
+        byte[] bytes = Render(options, out OdfSaveReport report, out OdfPackage output);
         await OfficeStreamWriter.WriteAllBytesAsync(destination, bytes, cancellationToken).ConfigureAwait(false);
-        CompleteSave();
+        if (_sourcePath == null) CompleteSave(output);
         return new OdfSaveResult(bytes, report);
     }
 
@@ -168,7 +166,7 @@ public abstract partial class OdfDocument {
 
     /// <summary>Validates package and supported semantic invariants.</summary>
     public OdfValidationResult Validate() {
-        return OdfValidator.Validate(Package);
+        return OdfValidator.Validate(Package.ForValidation());
     }
 
     /// <summary>Inspects supported, preserved, and unsupported document features.</summary>
@@ -195,11 +193,14 @@ public abstract partial class OdfDocument {
         return officeBody.Element(expectedBodyName) ?? throw new InvalidDataException($"OpenDocument body does not contain '{expectedBodyName}'.");
     }
 
-    private byte[] Render(OdfSaveOptions? options, out OdfSaveReport report) {
+    private byte[] Render(OdfSaveOptions? options, out OdfSaveReport report) => Render(options, out report, out _);
+
+    private byte[] Render(OdfSaveOptions? options, out OdfSaveReport report, out OdfPackage output) {
         OdfCompatibilityProfile profile = options?.CompatibilityProfile ?? OdfCompatibilityProfile.Odf14;
         EnsureFirstPageStoriesAreSupported(profile);
-        byte[] bytes = Package.Write(options);
-        report = Package.CreateSaveReport();
+        output = Package.CloneForSerialization(profile);
+        byte[] bytes = output.Write(options);
+        report = output.CreateSaveReport();
         return bytes;
     }
 
@@ -215,8 +216,8 @@ public abstract partial class OdfDocument {
         }
     }
 
-    private void CompleteSave() {
-        Package.AcceptChanges();
+    private void CompleteSave(OdfPackage output) {
+        Package.AcceptSerializedChanges(output);
     }
 
     private static OdfDocument CreateForPackage(OdfPackage package, string? sourcePath) {

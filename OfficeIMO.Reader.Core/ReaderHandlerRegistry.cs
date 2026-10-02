@@ -163,6 +163,9 @@ internal sealed class ReaderHandlerRegistrySnapshot {
 }
 
 internal sealed class ReaderHandlerDescriptor {
+    public IReadOnlyList<ReaderFormatQualification> FormatQualifications { get; private set; } = Array.Empty<ReaderFormatQualification>();
+    public bool SupportsIncrementalPath { get; private set; }
+    public bool SupportsIncrementalStream { get; private set; }
     private const int MaximumInputLimitProbeBytes = 64 * 1024;
 
     private ReaderHandlerDescriptor(
@@ -263,6 +266,10 @@ internal sealed class ReaderHandlerDescriptor {
         if (registration.DefaultMaxInputBytes.HasValue && registration.DefaultMaxInputBytes.Value < 1) {
             throw new ArgumentException("DefaultMaxInputBytes must be greater than 0 when specified.", nameof(registration));
         }
+        if (registration.SupportsIncrementalPath && registration.ReadPath == null ||
+            registration.SupportsIncrementalStream && registration.ReadStream == null) {
+            throw new ArgumentException("Incremental support requires the corresponding chunk delegate.", nameof(registration));
+        }
 
         IReadOnlyList<string> extensions = NormalizeExtensions(registration.Extensions);
         if (extensions.Count == 0 && !registration.UseDetectedKindFallback) {
@@ -304,16 +311,35 @@ internal sealed class ReaderHandlerDescriptor {
             registration.ReadDocumentPathAsync,
             registration.ReadDocumentStreamAsync,
             registration.ProbeStream,
-            registration.ExtensionValidationProbeStream);
+            registration.ExtensionValidationProbeStream) {
+                FormatQualifications = NormalizeQualifications(registration.FormatQualifications, extensions, id),
+                SupportsIncrementalPath = registration.SupportsIncrementalPath,
+                SupportsIncrementalStream = registration.SupportsIncrementalStream
+            };
+    }
+
+    private static IReadOnlyList<ReaderFormatQualification> NormalizeQualifications(
+        IReadOnlyList<ReaderFormatQualification>? profiles, IReadOnlyList<string> extensions, string handlerId) {
+        var byExtension = new Dictionary<string, ReaderFormatQualification>(StringComparer.OrdinalIgnoreCase);
+        foreach (var profile in profiles ?? Array.Empty<ReaderFormatQualification>()) {
+            if (profile == null || !extensions.Contains(profile.Extension, StringComparer.OrdinalIgnoreCase) || byExtension.ContainsKey(profile.Extension))
+                throw new ArgumentException("Format profiles must identify distinct registered extensions.", nameof(profiles));
+            byExtension.Add(profile.Extension, profile);
+        }
+        return Array.AsReadOnly(extensions.Select(extension => byExtension.TryGetValue(extension, out var profile)
+            ? profile : new ReaderFormatQualification(extension, handlerId + extension)).ToArray());
     }
 
     public ReaderHandlerCapability ToCapability() {
         return new ReaderHandlerCapability {
             Id = Id,
+            FormatQualifications = Array.AsReadOnly(FormatQualifications.ToArray()),
             DisplayName = DisplayName,
             Description = Description,
             Origin = Origin,
             Kind = Kind,
+            SupportsIncrementalPath = SupportsIncrementalPath,
+            SupportsIncrementalStream = SupportsIncrementalStream,
             Extensions = Extensions.ToArray(),
             SupportsPath = SupportsPathInput,
             SupportsStream = SupportsStreamInput,

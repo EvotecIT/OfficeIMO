@@ -417,7 +417,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         var sourceValidations = source.Validations
             .GroupBy(validation => validation.Name, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
-        OdsNamedRangeConversionPlan namedRangePlan = BuildOdsNamedRangeConversionPlan(source.NamedRanges);
+        var sheetTargets = source.Sheets.Select(ods => (Source: ods, Target: target.AddWorksheet(ods.Name))).ToList();
+        var sheetNameMap = sheetTargets.ToDictionary(pair => pair.Source.Name, pair => pair.Target.Name, StringComparer.Ordinal);
+        OdsNamedRangeConversionPlan namedRangePlan = BuildOdsNamedRangeConversionPlan(source.NamedRanges, sheetNameMap);
         CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Metadata.Language);
 
         long expandedCells = 0;
@@ -445,8 +447,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         var conditionalPlans = new Dictionary<string, IReadOnlyList<OdsConditionalStylePlan>?>(StringComparer.Ordinal);
         var convertedConditionalStyles = new HashSet<string>(StringComparer.Ordinal);
         int conditionalTargetLimitFailures = 0;
-        foreach (OdsSheet odsSheet in source.Sheets) {
-            ExcelSheet sheet = target.AddWorksheet(odsSheet.Name);
+        foreach (var pair in sheetTargets) {
+            OdsSheet odsSheet = pair.Source;
+            ExcelSheet sheet = pair.Target;
             chartTargets.Add((odsSheet, sheet));
             List<long>? pivotCells = null;
             if (pivotSourceSheets.Contains(odsSheet.Name)) {
@@ -591,7 +594,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                             if (!string.IsNullOrWhiteSpace(cellRun.Formula)) {
                                 var translation = SpreadsheetAddressConverter.OpenFormulaToExcel(cellRun.Formula!);
                                 if (translation.IsSuccessful) {
-                                    converted.SetFormula(namedRangePlan.RewriteFormula(translation.Formula));
+                                    converted.SetFormula(ExcelDocument.ReplaceSheetNameReferences(namedRangePlan.RewriteFormula(translation.Formula), sheetNameMap));
                                     formulas++;
                                 } else {
                                     formulaTranslationFailures++;
@@ -601,7 +604,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                                 string href = cellRun.HyperlinkHref!;
                                 bool convertedHyperlink = false;
                                 if (OdfUriReference.TryDecodeFragment(href, out string fragment)) {
-                                    string location = SpreadsheetAddressConverter.OpenAddressToExcel(fragment);
+                                    string location = ExcelDocument.ReplaceSheetNameReferences(SpreadsheetAddressConverter.OpenAddressToExcel(fragment), sheetNameMap);
                                     if (location.Length == 0 && namedRangePlan.TryResolveName(fragment, out string outputName)) {
                                         location = outputName;
                                     }
@@ -621,7 +624,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                                 if (!string.IsNullOrWhiteSpace(cellRun.Formula)) {
                                     var translation = SpreadsheetAddressConverter.OpenFormulaToExcel(cellRun.Formula!);
                                     if (translation.IsSuccessful) {
-                                        converted.SetFormula(namedRangePlan.RewriteFormula(translation.Formula));
+                                        converted.SetFormula(ExcelDocument.ReplaceSheetNameReferences(namedRangePlan.RewriteFormula(translation.Formula), sheetNameMap));
                                     }
                                 }
                                 if (convertedHyperlink) {
@@ -691,7 +694,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             foreach (KeyValuePair<string, List<string>> entry in validationTargets) {
                 string references = string.Join(" ", entry.Value.Distinct(StringComparer.Ordinal));
                 if (!sourceValidations.TryGetValue(entry.Key, out OdsValidation? validation)
-                    || !TryApplyOdsValidation(sheet, odsSheet.Name, references, validation)) {
+                    || !TryApplyOdsValidation(sheet, odsSheet.Name, references, validation, sheetNameMap)) {
                     unsupportedValidationAssignments += entry.Value.Count;
                     continue;
                 }

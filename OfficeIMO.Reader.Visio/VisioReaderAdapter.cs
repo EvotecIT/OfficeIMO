@@ -306,14 +306,7 @@ internal static partial class VisioReaderAdapter {
         chunk.SourceLengthBytes ??= source.LengthBytes;
         chunk.TokenEstimate ??= EstimateTokenCount(chunk.Markdown ?? chunk.Text);
         if (computeHashes && string.IsNullOrWhiteSpace(chunk.ChunkHash)) {
-            chunk.ChunkHash = ComputeSha256Hex(string.Join("|",
-                chunk.Kind.ToString(),
-                chunk.SourceId ?? string.Empty,
-                chunk.Location.Path ?? string.Empty,
-                chunk.Location.Page?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-                chunk.Location.BlockAnchor ?? string.Empty,
-                chunk.Text ?? string.Empty,
-                chunk.Markdown ?? string.Empty));
+            chunk.ChunkHash = DocumentReaderEngine.ComputeChunkHash(chunk);
         }
         return chunk;
     }

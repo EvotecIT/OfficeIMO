@@ -357,7 +357,7 @@ public sealed class WordOdtFieldConversionTests {
     }
 
     [Fact]
-    public void FieldInUnconvertedNestedTableIsExplicitLoss() {
+    public void FieldInConvertedNestedTablePassesStrictConversion() {
         OdtDocument source = OdtDocument.Create();
         source.AddTable(1, 1);
         var tableNamespace = (System.Xml.Linq.XNamespace)"urn:oasis:names:tc:opendocument:xmlns:table:1.0";
@@ -372,14 +372,14 @@ public sealed class WordOdtFieldConversionTests {
 
         OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
         using WordDocument word = conversion.Value;
-        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "source-text-fields" &&
-            mapping.Status == OdfConversionMappingStatus.Unsupported);
-        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
-            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+        Assert.Equal("2", Assert.Single(word.InspectFields()).ResultText);
+        Assert.False(conversion.Report.HasLoss);
+        using WordDocument strict = source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }).Value;
     }
 
     [Fact]
-    public void FieldInNestedTableCellListIsExplicitLoss() {
+    public void FieldInTableCellListPassesStrictConversion() {
         OdtDocument source = OdtDocument.Create();
         source.AddTable(1, 1);
         var tableNamespace = (System.Xml.Linq.XNamespace)"urn:oasis:names:tc:opendocument:xmlns:table:1.0";
@@ -393,10 +393,10 @@ public sealed class WordOdtFieldConversionTests {
 
         OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
         using WordDocument word = conversion.Value;
-        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "source-text-fields" &&
-            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
-        Assert.Throws<OdfConversionLossException>(() => source.ToWordDocumentResult(
-            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+        Assert.Equal("2", Assert.Single(word.InspectFields()).ResultText);
+        Assert.False(conversion.Report.HasLoss);
+        using WordDocument strict = source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }).Value;
     }
 
     [Fact]

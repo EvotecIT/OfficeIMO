@@ -14,11 +14,8 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
-        for (int i = 1; i < points.Count; i++) {
-            DrawLine(points[i - 1].X, points[i - 1].Y, points[i].X, points[i].Y, color, thickness);
-        }
+        StrokePolyline(points, color, thickness);
     }
-
     /// <summary>
     /// Draws connected line segments through the supplied points using a shared Office stroke dash style.
     /// </summary>
@@ -61,27 +58,8 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
-        List<double> pattern = NormalizeDashPattern(dashPattern);
-        if (pattern.Count == 0) {
-            DrawPolyline(points, color, thickness);
-            return;
-        }
-
-        double cycle = 0D;
-        for (int index = 0; index < pattern.Count; index++) cycle = SaturatingDashCycle(cycle, pattern[index]);
-        double patternPosition = AdvancePatternPosition(0D, dashOffset, cycle);
-        for (int i = 1; i < points.Count; i++) {
-            OfficePoint previous = points[i - 1];
-            OfficePoint current = points[i];
-            if (resetDashPatternForEachSegment) {
-                double segmentPatternPosition = AdvancePatternPosition(0D, dashOffset, cycle);
-                DrawPatternedPathSegment(previous, current, color, thickness, pattern, ref segmentPatternPosition);
-            } else {
-                DrawPatternedPathSegment(previous, current, color, thickness, pattern, ref patternPosition);
-            }
-        }
+        StrokePolyline(points, color, thickness, pattern: dashPattern, offset: dashOffset, reset: resetDashPatternForEachSegment);
     }
-
     /// <summary>
     /// Draws a dashed polyline through the supplied points.
     /// </summary>
@@ -103,36 +81,7 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
-        double patternPosition = 0D;
-        for (int i = 1; i < points.Count; i++) {
-            OfficePoint previous = points[i - 1];
-            OfficePoint current = points[i];
-            if (resetDashPatternForEachSegment) {
-                DrawDashedLine(previous.X, previous.Y, current.X, current.Y, color, thickness, dashLength, gapLength);
-            } else {
-                DrawDashedPathSegment(previous, current, color, thickness, dashLength, gapLength, ref patternPosition);
-            }
-        }
-    }
-
-    private static List<double> NormalizeDashPattern(IReadOnlyList<double>? dashPattern) {
-        List<double> pattern = new();
-        if (dashPattern == null) {
-            return pattern;
-        }
-
-        for (int i = 0; i < dashPattern.Count; i++) {
-            double value = dashPattern[i];
-            if (IsFinite(value) && value > 0D) {
-                pattern.Add(value);
-            }
-        }
-
-        if ((pattern.Count & 1) == 1) {
-            int originalCount = pattern.Count;
-            for (int index = 0; index < originalCount; index++) pattern.Add(pattern[index]);
-        }
-
-        return pattern;
+        NormalizeRasterDashLengths(ref dashLength, ref gapLength);
+        StrokePolyline(points, color, thickness, pattern: new[] { dashLength, gapLength }, reset: resetDashPatternForEachSegment);
     }
 }

@@ -26,6 +26,7 @@ internal static partial class DocumentReaderEngine {
         }
         ValidateFilePath(path);
         ReaderOptions opt = NormalizeOptions(options);
+        using var readScope = ReaderReadScope.Enter(opt);
         EnforceFileSize(path, ResolveInitialMaxInputBytes(path, opt));
 
         HandlerDetectionResolution resolution = await ResolvePathHandlerAsync(path, opt, cancellationToken).ConfigureAwait(false);
@@ -37,7 +38,7 @@ internal static partial class DocumentReaderEngine {
             OfficeDocumentReadResult result = await ValidateDocumentTaskAsync(
                 handler.ReadDocumentPathAsync(path, opt, cancellationToken),
                 handler.Id).ConfigureAwait(false);
-            return EnrichChunks(result.Chunks, source, opt.ComputeHashes, cancellationToken);
+            return EnrichChunks(ReaderReadScope.Complete(result).Chunks, source, opt.ComputeHashes, cancellationToken);
         }
 
         if (resolution.Handler != null && !resolution.Handler.SupportsStreamInput) {
@@ -59,6 +60,7 @@ internal static partial class DocumentReaderEngine {
         CancellationToken cancellationToken = default) {
         ValidateReadableStream(stream);
         ReaderOptions opt = NormalizeOptions(options);
+        using var readScope = ReaderReadScope.Enter(opt);
         string logicalSourceName = NormalizeLogicalSourceName(sourceName, "memory");
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -82,7 +84,7 @@ internal static partial class DocumentReaderEngine {
                 OfficeDocumentReadResult result = await ValidateDocumentTaskAsync(
                     handler.ReadDocumentStreamAsync(readStream, logicalSourceName, opt, cancellationToken),
                     handler.Id).ConfigureAwait(false);
-                return EnrichChunks(result.Chunks, source, opt.ComputeHashes, cancellationToken);
+                return EnrichChunks(ReaderReadScope.Complete(result).Chunks, source, opt.ComputeHashes, cancellationToken);
             }
 
             return Read(readStream, logicalSourceName, opt, cancellationToken).ToArray();
@@ -120,6 +122,7 @@ internal static partial class DocumentReaderEngine {
         }
         ValidateFilePath(path);
         ReaderOptions opt = NormalizeOptions(options);
+        using var readScope = ReaderReadScope.Enter(opt);
         EnforceFileSize(path, ResolveInitialMaxInputBytes(path, opt));
 
         HandlerDetectionResolution resolution = await ResolvePathHandlerAsync(path, opt, cancellationToken).ConfigureAwait(false);
@@ -131,7 +134,7 @@ internal static partial class DocumentReaderEngine {
                 handler.Id).ConfigureAwait(false);
             SourceInfo source = await BuildSourceInfoFromPathAsync(path,
                 ShouldComputeSourceHash(handler, opt), cancellationToken).ConfigureAwait(false);
-            return ApplyDetectionDiagnostics(FinalizeHandlerDocumentResult(result, source, opt.ComputeHashes), resolution.Detection);
+            return ReaderReadScope.Complete(ApplyDetectionDiagnostics(FinalizeHandlerDocumentResult(result, source, opt.ComputeHashes), resolution.Detection));
         }
 
         if (resolution.Handler != null && !resolution.Handler.SupportsStreamInput) {
@@ -153,6 +156,7 @@ internal static partial class DocumentReaderEngine {
         CancellationToken cancellationToken = default) {
         ValidateReadableStream(stream);
         ReaderOptions opt = NormalizeOptions(options);
+        using var readScope = ReaderReadScope.Enter(opt);
         string logicalSourceName = NormalizeLogicalSourceName(sourceName, "memory");
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -176,7 +180,7 @@ internal static partial class DocumentReaderEngine {
                     handler.Id).ConfigureAwait(false);
                 SourceInfo source = await BuildSourceInfoFromStreamAsync(readStream,
                     logicalSourceName, ShouldComputeSourceHash(handler, opt), cancellationToken).ConfigureAwait(false);
-                return ApplyDetectionDiagnostics(FinalizeHandlerDocumentResult(result, source, opt.ComputeHashes), resolution.Detection);
+                return ReaderReadScope.Complete(ApplyDetectionDiagnostics(FinalizeHandlerDocumentResult(result, source, opt.ComputeHashes), resolution.Detection));
             }
 
             return ReadDocument(readStream, logicalSourceName, opt, cancellationToken);

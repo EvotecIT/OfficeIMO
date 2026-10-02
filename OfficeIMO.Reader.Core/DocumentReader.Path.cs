@@ -15,6 +15,7 @@ internal static partial class DocumentReaderEngine {
         if (Directory.Exists(path)) return ReadDirectoryBundle(path, options, cancellationToken).Chunks;
         ValidateFilePath(path);
         ReaderOptions effective = NormalizeOptions(options);
+        using var readScope = ReaderReadScope.Enter(effective);
         EnforceFileSize(path, ResolveInitialMaxInputBytes(path, effective));
         if (!TryResolvePathHandler(
                 path,
@@ -41,7 +42,7 @@ internal static partial class DocumentReaderEngine {
         } else if (handler.ReadDocumentPath != null) {
             OfficeDocumentReadResult result = ValidateDocumentResult(
                 handler.ReadDocumentPath(path, effective, cancellationToken), handler.Id);
-            chunks = result.Chunks ?? Array.Empty<ReaderChunk>();
+            chunks = ReaderReadScope.Complete(result).Chunks ?? Array.Empty<ReaderChunk>();
         } else if (handler.ReadDocumentPathAsync != null) {
             throw CreateAsyncOnlyHandlerException(handler.Id, "path");
         } else if (handler.SupportsStreamInput) {
@@ -66,10 +67,11 @@ internal static partial class DocumentReaderEngine {
         ReaderFolderOptions? folderOptions,
         ReaderOptions? options,
         Action<ReaderProgress>? onProgress,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default,
+        Func<string, ReaderOptions?, CancellationToken, OfficeDocumentReadResult>? read = null) {
         foreach (ReaderSourceDocument document in ReadFolderDocumentsCore(
                      folderPath, folderOptions, options, includeSkippedWarningChunks: true,
-                     onProgress, cancellationToken)) {
+                     onProgress, cancellationToken, read)) {
             foreach (ReaderChunk chunk in document.Chunks) yield return chunk;
         }
     }
@@ -79,9 +81,10 @@ internal static partial class DocumentReaderEngine {
         ReaderFolderOptions? folderOptions = null,
         ReaderOptions? options = null,
         Action<ReaderProgress>? onProgress = null,
-        CancellationToken cancellationToken = default) =>
+        CancellationToken cancellationToken = default,
+        Func<string, ReaderOptions?, CancellationToken, OfficeDocumentReadResult>? read = null) =>
         ReadFolderDocumentsCore(folderPath, folderOptions, options,
-            includeSkippedWarningChunks: false, onProgress, cancellationToken);
+            includeSkippedWarningChunks: false, onProgress, cancellationToken, read);
 
     public static ReaderIngestResult ReadFolderDetailed(
         string folderPath,
@@ -89,7 +92,8 @@ internal static partial class DocumentReaderEngine {
         ReaderOptions? options = null,
         bool includeChunks = true,
         Action<ReaderProgress>? onProgress = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default,
+        Func<string, ReaderOptions?, CancellationToken, OfficeDocumentReadResult>? read = null) {
         var files = new List<ReaderIngestFileResult>();
         List<ReaderChunk>? chunks = includeChunks ? new List<ReaderChunk>() : null;
         var warnings = new List<string>();
@@ -99,7 +103,7 @@ internal static partial class DocumentReaderEngine {
         int chunksProduced = 0;
         foreach (ReaderSourceDocument document in ReadFolderDocumentsCore(
                      folderPath, folderOptions, options, includeSkippedWarningChunks: true,
-                     onProgress, cancellationToken)) {
+                     onProgress, cancellationToken, read)) {
             files.Add(new ReaderIngestFileResult {
                 Path = document.Path,
                 SourceId = document.SourceId,
@@ -141,12 +145,13 @@ internal static partial class DocumentReaderEngine {
         bool includeDocumentChunks = true,
         int? maxReturnedChunks = null,
         Action<ReaderProgress>? onProgress = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default,
+        Func<string, ReaderOptions?, CancellationToken, OfficeDocumentReadResult>? read = null) {
         if (path == null) throw new ArgumentNullException(nameof(path));
         ReaderSourceDocument[] documents = Directory.Exists(path) && !IsRegisteredDirectoryBundle(path)
             ? ReadFolderDocumentsCore(path, folderOptions, options,
-                includeSkippedWarningChunks: true, onProgress, cancellationToken).ToArray()
-            : new[] { ReadSingleDocument(path, options, cancellationToken) };
+                includeSkippedWarningChunks: true, onProgress, cancellationToken, read).ToArray()
+            : new[] { ReadSingleDocument(path, options, cancellationToken, read) };
 
         int remaining = Math.Max(0, maxReturnedChunks ?? int.MaxValue);
         bool truncated = false;
@@ -191,7 +196,8 @@ internal static partial class DocumentReaderEngine {
         ReaderOptions? options,
         bool includeSkippedWarningChunks,
         Action<ReaderProgress>? onProgress,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        Func<string, ReaderOptions?, CancellationToken, OfficeDocumentReadResult>? read = null) {
         if (folderPath == null) throw new ArgumentNullException(nameof(folderPath));
         if (!Directory.Exists(folderPath)) throw new DirectoryNotFoundException($"Directory '{folderPath}' does not exist.");
         ReaderFolderOptions effectiveFolder = NormalizeFolderOptions(folderOptions);
@@ -219,7 +225,7 @@ internal static partial class DocumentReaderEngine {
                     ? ApplyFolderInputBudget(options, remainingBytes) : NormalizeOptions(options);
                 document = remainingBytes == 0
                     ? BuildSourceDocument(source, false, null, new[] { "Skipped before parsing because MaxTotalBytes is exhausted." })
-                    : ReadSingleDocument(file, readOptions, cancellationToken);
+                    : ReadSingleDocument(file, readOptions, cancellationToken, read);
                 if (document.Parsed && effectiveFolder.MaxTotalBytes.HasValue &&
                     (document.SourceLengthBytes ?? 0) > remainingBytes) {
                     document = BuildSourceDocument(source, false, null,
@@ -247,15 +253,20 @@ internal static partial class DocumentReaderEngine {
         NotifyProgress(onProgress, ReaderProgressEventKind.Completed, state, null, null, null);
     }
 
-    private static ReaderSourceDocument ReadSingleDocument(string path, ReaderOptions? options, CancellationToken cancellationToken) {
+    private static ReaderSourceDocument ReadSingleDocument(string path, ReaderOptions? options, CancellationToken cancellationToken,
+        Func<string, ReaderOptions?, CancellationToken, OfficeDocumentReadResult>? read = null) {
         SourceInfo source = BuildSourceInfoFromPath(path, computeHash: false, cancellationToken);
         try {
-            OfficeDocumentReadResult result = ReadDocument(path, options, cancellationToken);
+            OfficeDocumentReadResult result = read == null
+                ? ReadDocument(path, options, cancellationToken)
+                : read(path, options, cancellationToken);
             source.SourceHash = result.Source.SourceHash;
             source.LengthBytes = result.Source.LengthBytes ?? source.LengthBytes;
             source.LastWriteUtc = result.Source.LastWriteUtc ?? source.LastWriteUtc;
             return BuildSourceDocument(source, true, result.Chunks, null);
         } catch (OperationCanceledException) {
+            throw;
+        } catch (ReaderResourceLimitException) {
             throw;
         } catch (Exception exception) {
             string warning = $"Skipped file due read error: {exception.GetType().Name}. {exception.Message}";

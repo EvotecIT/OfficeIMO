@@ -3,7 +3,7 @@ using OfficeIMO.OpenDocument;
 namespace OfficeIMO.Reader.OpenDocument;
 
 internal static partial class OpenDocumentReaderAdapter {
-    private static IEnumerable<ReaderChunk> ReadPresentation(OdpPresentation document, string sourceName, ReaderOptions options, ReaderOpenDocumentOptions formatOptions,
+    private static IEnumerable<ReaderChunk> ReadPresentation(OdpPresentation document, string sourceName, ReaderOptions options, ReaderOpenDocumentOptions formatOptions, ProjectionBudget budget,
         CancellationToken cancellationToken) {
         for (int slideIndex = 0; slideIndex < document.Slides.Count; slideIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -11,14 +11,14 @@ internal static partial class OpenDocumentReaderAdapter {
             var paragraphs = new List<string>();
             var tables = new List<ReaderTable>();
             var warnings = new List<string>();
-            CollectSlideContent(slide.Shapes, sourceName, slideIndex, options, paragraphs, tables, warnings, cancellationToken);
+            CollectSlideContent(slide.Shapes, sourceName, slideIndex, options, paragraphs, tables, warnings, budget, cancellationToken);
             var notes = formatOptions.IncludeSpeakerNotes
-                ? slide.SpeakerNotes?.Paragraphs.Select(paragraph => paragraph.Text.Trim()).Where(text => text.Length > 0).ToArray()
+                ? slide.SpeakerNotes?.Paragraphs.Select(paragraph => budget.Read(paragraph.Text).Trim()).Where(text => text.Length > 0).ToArray()
                 : null;
             if (notes != null && notes.Length > 0) paragraphs.AddRange(notes.Select(text => "Notes: " + text));
             string text = string.Join(Environment.NewLine, paragraphs);
             var markdown = new StringBuilder();
-            markdown.Append("## Slide ").Append(slideIndex + 1).Append(": ").AppendLine(slide.Name);
+            markdown.Append("## Slide ").Append(slideIndex + 1).Append(": ").AppendLine(budget.Read(slide.Name));
             if (paragraphs.Count > 0) markdown.AppendLine().AppendLine(string.Join(Environment.NewLine + Environment.NewLine, paragraphs));
             foreach (ReaderTable table in tables) {
                 markdown.AppendLine().AppendLine(BuildTableMarkdown(table.Columns, table.Rows));
@@ -38,13 +38,13 @@ internal static partial class OpenDocumentReaderAdapter {
     }
 
     private static void CollectSlideContent(IEnumerable<OdpShape> shapes, string sourceName, int slideIndex, ReaderOptions options,
-        List<string> paragraphs, List<ReaderTable> tables, List<string> warnings, CancellationToken cancellationToken) {
+        List<string> paragraphs, List<ReaderTable> tables, List<string> warnings, ProjectionBudget budget, CancellationToken cancellationToken) {
         foreach (OdpShape shape in shapes) {
             cancellationToken.ThrowIfCancellationRequested();
             if (shape is OdpTextBox textBox) {
-                paragraphs.AddRange(textBox.Paragraphs.Select(paragraph => paragraph.Text.Trim()).Where(text => text.Length > 0));
+                paragraphs.AddRange(textBox.Paragraphs.Select(paragraph => budget.Read(paragraph.Text).Trim()).Where(text => text.Length > 0));
             } else if (shape is OdpTable table) {
-                tables.Add(BuildPresentationTable(table, sourceName, slideIndex, tables.Count, options, cancellationToken,
+                tables.Add(BuildPresentationTable(table, sourceName, slideIndex, tables.Count, options, budget, cancellationToken,
                     out bool rowsTruncated, out bool columnsTruncated));
                 if (rowsTruncated && !warnings.Contains("Table rows were truncated due to MaxTableRows.")) {
                     warnings.Add("Table rows were truncated due to MaxTableRows.");
@@ -53,12 +53,12 @@ internal static partial class OpenDocumentReaderAdapter {
                     warnings.Add("Table columns were truncated to 256 columns for bounded extraction.");
                 }
             } else if (shape is OdpGroup group) {
-                CollectSlideContent(group.Shapes, sourceName, slideIndex, options, paragraphs, tables, warnings, cancellationToken);
+                CollectSlideContent(group.Shapes, sourceName, slideIndex, options, paragraphs, tables, warnings, budget, cancellationToken);
             }
         }
     }
 
-    private static ReaderTable BuildPresentationTable(OdpTable table, string sourceName, int slideIndex, int tableIndex, ReaderOptions options,
+    private static ReaderTable BuildPresentationTable(OdpTable table, string sourceName, int slideIndex, int tableIndex, ReaderOptions options, ProjectionBudget budget,
         CancellationToken cancellationToken, out bool rowsTruncated, out bool columnsTruncated) {
         int maxRows = options.MaxTableRows > 0 ? options.MaxTableRows : 200;
         IReadOnlyList<OdpTableRow> sourceRows = table.Rows;
@@ -73,7 +73,7 @@ internal static partial class OpenDocumentReaderAdapter {
         foreach (OdpTableRow row in selectedRows) {
             cancellationToken.ThrowIfCancellationRequested();
             rows.Add(Enumerable.Range(0, columnCount)
-                .Select(index => index < row.Cells.Count ? row.Cells[index].Text : string.Empty).ToArray());
+                .Select(index => index < row.Cells.Count ? budget.Read(row.Cells[index].Text) : string.Empty).ToArray());
         }
         return new ReaderTable {
             Title = table.Name, Kind = "odp-table", Columns = columns, Rows = rows,

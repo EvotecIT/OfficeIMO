@@ -11,6 +11,7 @@ internal sealed partial class OdfPackage {
     private bool _entryGraphChanged;
     private bool _sourceIsEncrypted;
     private bool? _pendingOutputEncrypted;
+    internal int ContentEditVersion { get; private set; }
     internal int ExternalXmlEditVersion { get; private set; }
     internal int StyleLookupVersion { get; private set; }
 
@@ -223,6 +224,7 @@ internal sealed partial class OdfPackage {
     }
 
     internal void MarkXmlDirtyFromDocument(string name) {
+        if (name == "content.xml") ContentEditVersion++;
         GetRequiredEntry(name).MarkDirty();
         if (name == "content.xml" || name == "styles.xml") StyleLookupVersion++;
     }

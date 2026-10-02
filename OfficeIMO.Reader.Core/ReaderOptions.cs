@@ -9,6 +9,22 @@ namespace OfficeIMO.Reader;
 /// Options controlling extraction behavior for <see cref="OfficeDocumentReader"/>.
 /// </summary>
 public sealed class ReaderOptions {
+    /// <summary>Optional aggregate resource budgets for a read, including nested inputs.</summary>
+    public ReaderResourceLimits? ResourceLimits { get; set; }
+
+    /// <summary>
+    /// Creates explicit bounded ingestion defaults: 64 MiB input, 50,000 chunks, 32 Mi characters,
+    /// 100,000 blocks, 512 assets/128 MiB asset payload, and 2,000 nested inputs/256 MiB at depth 8.
+    /// Format-specific security limits continue to apply. Tune these budgets to the host workload.
+    /// </summary>
+    public static ReaderOptions CreateSafeIngestion() => new ReaderOptions {
+        MaxInputBytes = 64L * 1024 * 1024,
+        ResourceLimits = new ReaderResourceLimits {
+            MaxChunks = 50_000, MaxChunkCharacters = 32L * 1024 * 1024, MaxBlocks = 100_000,
+            MaxAssets = 512, MaxAssetBytes = 128L * 1024 * 1024,
+            MaxNestedInputBytes = 256L * 1024 * 1024, MaxNestedDocuments = 2_000, MaxNestedDepth = 8
+        }
+    };
     internal const long DefaultOpenXmlMaxCharactersInPart = 10_000_000L;
     internal const int DefaultDetectionMaxProbeBytes = 64 * 1024;
     internal const int DefaultDetectionMaxContainerEntries = 512;
@@ -27,6 +43,18 @@ public sealed class ReaderOptions {
 
     // Aggregate ingestion limits must not override the actual handler's default input limit.
     internal long? InputByteBudget { get; set; }
+
+    /// <summary>
+    /// Default encoding for plain-text input without a Unicode byte-order mark.
+    /// Null selects UTF-8. A BOM takes precedence. Encoding settings are snapshotted per read.
+    /// </summary>
+    public System.Text.Encoding? TextEncoding { get; set; }
+
+    /// <summary>
+    /// Reject invalid byte sequences in plain-text input. When false, replace them with U+FFFD
+    /// and emit a source decoding warning. Default: false.
+    /// </summary>
+    public bool ThrowOnInvalidTextBytes { get; set; }
 
     /// <summary>
     /// OpenXML security: maximum characters allowed per part when opening OpenXML packages (best-effort).

@@ -4,37 +4,58 @@ using System.Threading;
 namespace OfficeIMO.Reader;
 
 internal static class TextReaderAdapter {
-    internal static IReadOnlyList<ReaderChunk> Read(string path, ReaderInputKind kind, ReaderOptions options, CancellationToken cancellationToken) {
+    internal static IEnumerable<ReaderChunk> Read(string path, ReaderInputKind kind, ReaderOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-        return Read(stream, path, kind, options, cancellationToken);
+        foreach (ReaderChunk chunk in Read(stream, path, kind, options, cancellationToken)) yield return chunk;
     }
 
-    internal static IReadOnlyList<ReaderChunk> Read(Stream stream, string? sourceName, ReaderInputKind kind, ReaderOptions options, CancellationToken cancellationToken) {
+    internal static IEnumerable<ReaderChunk> Read(Stream stream, string? sourceName, ReaderInputKind kind, ReaderOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (stream.CanSeek) stream.Position = 0;
-        using var reader = new StreamReader(stream, Encoding.UTF8, true, 4096, leaveOpen: true);
-        string text = reader.ReadToEnd();
+        var decoding = new ReaderTextDecoding();
+        using var reader = decoding.Open(stream, options, cancellationToken);
         string logicalName = string.IsNullOrWhiteSpace(sourceName) ? "memory" : sourceName!;
-        return Chunk(text, logicalName, kind, options.MaxChars, cancellationToken).ToArray();
+        foreach (ReaderChunk chunk in Chunk(reader, logicalName, kind, options.MaxChars, decoding, cancellationToken)) yield return chunk;
     }
 
-    private static IEnumerable<ReaderChunk> Chunk(string text, string sourceName, ReaderInputKind kind, int maxChars, CancellationToken cancellationToken) {
+    private static IEnumerable<ReaderChunk> Chunk(TextReader reader, string sourceName, ReaderInputKind kind, int maxChars,
+        ReaderTextDecoding decoding, CancellationToken cancellationToken) {
         int limit = Math.Max(256, maxChars);
-        string normalized = (text ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
-        if (normalized.Length == 0) {
-            yield return CreateChunk(string.Empty, sourceName, kind, 0, 1);
-            yield break;
-        }
-
+        var text = new StringBuilder(Math.Min(limit, 4096) + 1);
         int index = 0;
         int line = 1;
-        for (int offset = 0; offset < normalized.Length; offset += limit) {
+        bool afterCr = false;
+        int observedInvalidSequences = 0;
+        while (true) {
             cancellationToken.ThrowIfCancellationRequested();
-            string part = normalized.Substring(offset, Math.Min(limit, normalized.Length - offset));
-            yield return CreateChunk(part, sourceName, kind, index++, line);
+            int value = reader.Read();
+            if (value < 0) break;
+            if (afterCr && value == '\n') { afterCr = false; continue; }
+            afterCr = value == '\r';
+            text.Append(afterCr ? '\n' : (char)value);
+            if (text.Length < limit) continue;
+            int length = char.IsHighSurrogate(text[text.Length - 1]) ? text.Length - 1 : text.Length;
+            string part = text.ToString(0, length);
+            text.Remove(0, length);
+            ReaderChunk chunk = CreateChunk(part, sourceName, kind, index++, line);
+            AddDecodingWarning(chunk, decoding, ref observedInvalidSequences);
+            yield return chunk;
             line += part.Count(static character => character == '\n');
         }
+        if (text.Length > 0 || index == 0) {
+            ReaderChunk chunk = CreateChunk(text.ToString(), sourceName, kind, index, line);
+            AddDecodingWarning(chunk, decoding, ref observedInvalidSequences);
+            yield return chunk;
+        }
+    }
+
+    private static void AddDecodingWarning(ReaderChunk chunk, ReaderTextDecoding decoding, ref int observed) {
+        if (decoding.InvalidSequences <= observed) return;
+        chunk.Warnings = (chunk.Warnings ?? Array.Empty<string>()).Concat(new[] {
+            "Plain-text input contained invalid byte sequences; they were replaced with U+FFFD."
+        }).ToArray();
+        observed = decoding.InvalidSequences;
     }
 
     private static ReaderChunk CreateChunk(string text, string sourceName, ReaderInputKind kind, int index, int startLine) =>

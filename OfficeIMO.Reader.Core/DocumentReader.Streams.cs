@@ -14,6 +14,7 @@ internal static partial class DocumentReaderEngine {
         CancellationToken cancellationToken = default) {
         ValidateReadableStream(stream);
         ReaderOptions effective = NormalizeOptions(options);
+        using var readScope = ReaderReadScope.Enter(effective);
         string logicalName = NormalizeLogicalSourceName(sourceName, "memory");
         Stream readStream = ReaderInputLimits.EnsureSeekableReadStream(
             stream,
@@ -61,7 +62,7 @@ internal static partial class DocumentReaderEngine {
             OfficeDocumentReadResult result = ValidateDocumentResult(
                 handler.ReadDocumentStream(readStream, logicalName, effective, cancellationToken),
                 handler.Id);
-            chunks = result.Chunks ?? Array.Empty<ReaderChunk>();
+            chunks = ReaderReadScope.Complete(result).Chunks ?? Array.Empty<ReaderChunk>();
         } else if (handler.ReadDocumentStreamAsync != null) {
             throw CreateAsyncOnlyHandlerException(handler.Id, "stream");
         } else {

@@ -131,6 +131,9 @@ internal static partial class DocumentReaderEngine {
         var clone = new ReaderOptions {
             MaxInputBytes = source?.MaxInputBytes,
             InputByteBudget = source?.InputByteBudget,
+            ResourceLimits = source?.ResourceLimits?.CloneValidated(),
+            TextEncoding = source?.TextEncoding == null ? null : (Encoding)source.TextEncoding.Clone(),
+            ThrowOnInvalidTextBytes = source?.ThrowOnInvalidTextBytes ?? false,
             OpenXmlMaxCharactersInPart = source == null ? ReaderOptions.DefaultOpenXmlMaxCharactersInPart : source.OpenXmlMaxCharactersInPart,
             MaxOpenXmlImageAssets = source == null ? ReaderOptions.DefaultMaxOpenXmlImageAssets : source.MaxOpenXmlImageAssets,
             OpenPassword = source?.OpenPassword,

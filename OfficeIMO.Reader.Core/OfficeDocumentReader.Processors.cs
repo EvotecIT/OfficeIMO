@@ -37,27 +37,30 @@ public sealed partial class OfficeDocumentReader {
     private async Task<OfficeDocumentReadResult> ExecuteProcessedDocumentAsync(
         Func<Task<OfficeDocumentReadResult>> read,
         bool computeHashes,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        ReaderOptions? options = null) {
         return await ExecuteAsync(async () => {
+            using var readScope = ReaderReadScope.Enter(options);
             OfficeDocumentReadResult document = await read().ConfigureAwait(false);
-            if (ProcessorPipeline.Count == 0) return document;
+            if (ProcessorPipeline.Count == 0) return ReaderReadScope.Complete(document);
             OfficeDocumentSource source = SnapshotSource(document);
             ProcessedChunkAggregateSnapshot aggregates = DocumentReaderEngine.CaptureProcessedChunkAggregates(document);
             OfficeDocumentProcessingResult processed = await ProcessorPipeline
                 .ProcessAsync(document, _processingOptions, cancellationToken)
                 .ConfigureAwait(false);
-            return DocumentReaderEngine.RefreshProcessedChunks(processed.Document, source, aggregates, computeHashes, cancellationToken);
+            return ReaderReadScope.Complete(DocumentReaderEngine.RefreshProcessedChunks(processed.Document, source, aggregates, computeHashes, cancellationToken));
         }, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<IReadOnlyList<ReaderChunk>> ExecuteProcessedChunksAsync(
         Func<Task<OfficeDocumentReadResult>> read,
         bool computeHashes,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        ReaderOptions? options = null) {
         OfficeDocumentReadResult document = await ExecuteProcessedDocumentAsync(
             read,
             computeHashes,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken, options).ConfigureAwait(false);
         return document.Chunks ?? Array.Empty<ReaderChunk>();
     }
 

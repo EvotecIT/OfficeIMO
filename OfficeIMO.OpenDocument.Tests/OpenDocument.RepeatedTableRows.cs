@@ -6,6 +6,62 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OpenDocumentRepeatedTableRowTests {
+    [Theory]
+    [InlineData("text")]
+    [InlineData("bold")]
+    [InlineData("span")]
+    [InlineData("nested-link")]
+    [InlineData("field")]
+    public void EditingAParagraphOrItsChildrenChangesOnlyTheLogicalTextCell(string edit) {
+        OdtDocument document = OdtDocument.Create();
+        OdtTable table = document.AddTable(1, 1, "Repeated");
+        OdtParagraph paragraph = table.Cell(0, 0).Paragraphs.Single();
+        paragraph.Text = "original";
+        paragraph.AddSpan("span").AddHyperlink("link", "https://example.com");
+        paragraph.AddField(OdtFieldKind.Date, "date");
+        table.Element.Descendants(OdfNamespaces.Table + "table-cell").Single()
+            .SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 3);
+        table.Element.Elements(OdfNamespaces.Table + "table-row").Single()
+            .SetAttributeValue(OdfNamespaces.Table + "number-rows-repeated", 3);
+        document.Package.MarkXmlDirty("content.xml");
+        string before = table.Element.ToString();
+        OdtParagraph middle = table.Cell(1, 1).Paragraphs.Single();
+        _ = middle.InlineNodes;
+        _ = middle.Spans;
+        Assert.Equal(before, table.Element.ToString());
+        if (edit == "text") middle.Text = "changed";
+        else if (edit == "bold") middle.Bold = true;
+        else if (edit == "span") middle.Spans[0].Text = "changed";
+        else if (edit == "nested-link") middle.InlineNodes.Single(node => node.Span != null).Children.Single(node => node.Hyperlink != null).Hyperlink!.Href = "https://changed.example";
+        else middle.Fields.Single().DisplayText = "changed";
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(document.ToBytes()));
+        OdtTable result = reopened.Tables.Single();
+        for (int row = 0; row < 3; row++) for (int column = 0; column < 3; column++) {
+            OdtParagraph actual = result.Cell(row, column).Paragraphs.Single();
+            bool changed = row == 1 && column == 1;
+            if (edit == "bold") Assert.Equal(changed ? true : (bool?)null, actual.Bold);
+            else if (edit == "nested-link") Assert.Equal(changed ? "https://changed.example" : "https://example.com", actual.Hyperlinks.Single().Href);
+            else Assert.Equal(changed, actual.Text.Contains("changed"));
+        }
+    }
+
+    [Fact]
+    public void ReadingPresentationParagraphsStaysSparseAndRunEditsAreLogical() {
+        OdpPresentation document = OdpPresentation.Create();
+        OdpTable table = document.AddSlide("Repeated").AddTable(OdfRect.FromCentimeters(1, 1, 8, 4), 1, 1);
+        table.Cell(0, 0).Paragraphs.Single().AddRun("original");
+        table.Element.Descendants(OdfNamespaces.Table + "table-cell").Single()
+            .SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 3);
+        document.Package.MarkXmlDirty("content.xml");
+        string before = table.Element.ToString();
+        OdpParagraph middle = table.Cell(0, 1).Paragraphs.Single();
+        _ = middle.InlineNodes;
+        Assert.Equal(before, table.Element.ToString());
+        middle.Runs.Single().Text = "changed";
+        OdpTable reopened = OdpPresentation.Load(new MemoryStream(document.ToBytes())).Slides.Single().Shapes.OfType<OdpTable>().Single();
+        Assert.Equal(new[] { "original", "changed", "original" }, reopened.Rows[0].Cells.Select(cell => cell.Text));
+    }
+
     [Fact]
     public void TextAndPresentationTablesRejectExcessiveLogicalRepeats() {
         OdtDocument text = OdtDocument.Create();

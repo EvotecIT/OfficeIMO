@@ -121,16 +121,17 @@ internal static partial class RtfReaderAdapter {
         for (int i = 0; i < blocks.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             RtfReaderBlock block = blocks[i];
-            var parts = SplitText(block.Markdown ?? block.Text, maxChars);
-            if (parts.Count == 0) {
-                parts = new[] { string.Empty };
-            }
+            IReadOnlyList<RtfReaderProjection> parts = SplitProjections(block, maxChars);
 
             for (int partIndex = 0; partIndex < parts.Count; partIndex++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                var warnings = MergeWarnings(partIndex == 0 ? documentWarnings : null, block.Warnings, parts.Count > 1 ? "RTF content was split due to MaxChars." : null);
+                var warnings = MergeWarnings(partIndex == 0 ? documentWarnings : null, block.Warnings,
+                    parts.Count > 1 ? "RTF content was split due to MaxChars." : null,
+                    parts[partIndex].Markdown.Length > maxChars
+                        ? "RTF content exceeded MaxChars and its complete projection was preserved as one chunk."
+                        : null);
                 string id = BuildChunkId(block.Kind, block.SourceBlockIndex, partIndex, parts.Count);
-                string markdown = parts[partIndex];
+                string markdown = parts[partIndex].Markdown;
                 yield return EnrichChunk(new ReaderChunk {
                     Id = id,
                     Kind = ReaderInputKind.Rtf,
@@ -141,7 +142,7 @@ internal static partial class RtfReaderAdapter {
                         SourceBlockKind = block.Kind,
                         BlockAnchor = BuildBlockAnchor(block.Kind, block.SourceBlockIndex, partIndex, parts.Count)
                     },
-                    Text = block.Text,
+                    Text = parts[partIndex].Text,
                     Markdown = markdown,
                     Tables = partIndex == 0 ? block.Tables : null,
                     Visuals = partIndex == 0 ? block.Visuals : null,

@@ -11,6 +11,9 @@ namespace OfficeIMO.Reader;
 /// without hard dependencies.
 /// </summary>
 public sealed class ReaderHandlerRegistration {
+    /// <summary>Per-extension extraction declarations. Omitted extensions remain explicitly unqualified.</summary>
+    public IReadOnlyList<ReaderFormatQualification> FormatQualifications { get; set; } = Array.Empty<ReaderFormatQualification>();
+
     /// <summary>
     /// Stable unique identifier for this handler (for example: "officeimo.reader.epub").
     /// </summary>
@@ -58,6 +61,12 @@ public sealed class ReaderHandlerRegistration {
     /// Stream-based reader delegate.
     /// </summary>
     public Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? ReadStream { get; set; }
+
+    /// <summary>Whether ReadPath yields chunks before the complete document is materialized. Default: false.</summary>
+    public bool SupportsIncrementalPath { get; set; }
+
+    /// <summary>Whether ReadStream yields chunks without making a complete input snapshot. Default: false.</summary>
+    public bool SupportsIncrementalStream { get; set; }
 
     /// <summary>
     /// Optional path-based rich document reader delegate. When present,
@@ -159,6 +168,14 @@ public sealed class ReaderHandlerRegistration {
 /// Immutable capability descriptor for configured handlers.
 /// </summary>
 public sealed class ReaderHandlerCapability {
+    /// <summary>Per-extension extraction declarations, independent of delegate availability.</summary>
+    public IReadOnlyList<ReaderFormatQualification> FormatQualifications { get; set; } = Array.Empty<ReaderFormatQualification>();
+
+    /// <summary>Whether the handler supports incremental path output without document processors.</summary>
+    public bool SupportsIncrementalPath { get; set; }
+
+    /// <summary>Whether the handler supports forward incremental stream output without document processors.</summary>
+    public bool SupportsIncrementalStream { get; set; }
     /// <summary>
     /// Stable unique handler identifier.
     /// </summary>

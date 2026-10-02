@@ -21,6 +21,7 @@ internal static partial class DocumentReaderEngine {
         if (!File.Exists(path)) throw new FileNotFoundException($"File '{path}' doesn't exist.", path);
 
         ReaderOptions opt = NormalizeOptions(options);
+        using var readScope = ReaderReadScope.Enter(opt);
         EnforceFileSize(path, ResolveInitialMaxInputBytes(path, opt));
         if (!TryResolvePathHandler(path, opt, cancellationToken,
                 out ReaderHandlerDescriptor handler, out ReaderDetectionResult detection)) {
@@ -29,12 +30,12 @@ internal static partial class DocumentReaderEngine {
         if (handler.ReadDocumentPath != null) {
             OfficeDocumentReadResult result = ValidateDocumentResult(handler.ReadDocumentPath(path, opt, cancellationToken), handler.Id);
             SourceInfo source = BuildSourceInfoFromPath(path, ShouldComputeSourceHash(handler, opt), cancellationToken);
-            return ApplyDetectionDiagnostics(FinalizeHandlerDocumentResult(result, source, opt.ComputeHashes), detection);
+            return ReaderReadScope.Complete(ApplyDetectionDiagnostics(FinalizeHandlerDocumentResult(result, source, opt.ComputeHashes), detection));
         }
 
         ReaderChunk[] chunks = ReadResolvedPath(path, opt, handler, cancellationToken);
-        return BuildChunkDocumentResult(
-            chunks, path, handler.Kind, BuildPathDocumentSource(path, chunks), detection: detection);
+        return ReaderReadScope.Complete(BuildChunkDocumentResult(
+            chunks, path, handler.Kind, BuildPathDocumentSource(path, chunks), detection: detection));
     }
 
     /// <summary>
@@ -49,6 +50,7 @@ internal static partial class DocumentReaderEngine {
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
         ReaderOptions opt = NormalizeOptions(options);
+        using var readScope = ReaderReadScope.Enter(opt);
         string logicalSourceName = NormalizeLogicalSourceName(sourceName, "memory");
         Stream readStream = ReaderInputLimits.EnsureSeekableReadStream(
             stream,
@@ -74,7 +76,7 @@ internal static partial class DocumentReaderEngine {
                     customStreamHandler.Id);
                 SourceInfo source = BuildSourceInfoFromStream(readStream, logicalSourceName,
                     ShouldComputeSourceHash(customStreamHandler, opt), cancellationToken);
-                return ApplyDetectionDiagnostics(FinalizeHandlerDocumentResult(result, source, opt.ComputeHashes), detection);
+                return ReaderReadScope.Complete(ApplyDetectionDiagnostics(FinalizeHandlerDocumentResult(result, source, opt.ComputeHashes), detection));
             }
 
             long position = readStream.Position;
@@ -85,12 +87,12 @@ internal static partial class DocumentReaderEngine {
                 customStreamHandler,
                 cancellationToken);
             if (readStream.CanSeek) readStream.Position = position;
-            return BuildChunkDocumentResult(
+            return ReaderReadScope.Complete(BuildChunkDocumentResult(
                 chunks,
                 logicalSourceName,
                 customStreamHandler.Kind,
                 BuildStreamDocumentSource(readStream, logicalSourceName, chunks),
-                detection: detection);
+                detection: detection));
         } finally {
             if (ownsReadStream) {
                 readStream.Dispose();

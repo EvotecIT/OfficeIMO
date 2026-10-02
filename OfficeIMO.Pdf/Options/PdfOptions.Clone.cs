@@ -69,6 +69,7 @@ public sealed partial class PdfOptions {
                 CloneRenderingProfileFamilyFallbacks(_renderingProfileFamilyFallbacks),
             _renderingProfileDeclaredFallbackCandidates =
                 _renderingProfileDeclaredFallbackCandidates?.ToArray(),
+            _drawingProfileFonts = _drawingProfileFonts?.Clone(),
             _renderingProfileOwnedNamedFamilyNames =
                 _renderingProfileOwnedNamedFamilyNames == null
                     ? null

@@ -31,6 +31,16 @@ The combined registration applies the same immutable legacy options to every leg
 
 Legacy warnings include the detected profile, structured-versus-salvage quality, and feature-level losses. The handler never executes macros or refreshes external links.
 
+## Incremental path reads
+
+`reader.EnumerateChunks(path, options)` yields the existing Excel row chunks on demand and releases the
+workbook when the enumerator is disposed. It opens the OfficeIMO.Excel workbook and metadata but avoids
+building the complete Reader rich graph. Use `ReadDocument` for workbook metadata and assets.
+Stream input and document processors retain the materialized contract.
+
+Registration snapshots `ReaderExcelOptions.ReadOptions`, its culture and execution thresholds.
+Caller-supplied delegates remain caller-owned and must be safe for concurrent use.
+
 ## Targets and dependencies
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows.

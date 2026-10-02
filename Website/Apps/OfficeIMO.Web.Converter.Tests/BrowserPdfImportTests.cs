@@ -246,7 +246,7 @@ public sealed class BrowserPdfImportTests {
         // This snapshot pins Base14 positioned text, exact stroke dashes, and the implicit
         // closure of filled open contours (including the pale green status circle).
         Assert.Equal(
-            "40b85f1d60935aa33496aeefe16fb87cbc2ef8bdde01925075593528d2c803d9",
+            "b0c63c7485378d1349a41a63e3747764c6d7de6e67cfcb8032f93d33b2aec32d",
             Convert.ToHexString(SHA256.HashData(raster.GetPixels())).ToLowerInvariant());
     }
 
@@ -291,11 +291,11 @@ public sealed class BrowserPdfImportTests {
     public void PdfToPowerPoint_VisualMode_RendersEveryBase14TextFamilyWithPinnedBrowserFallback() {
         byte[] pdf = PdfDocument.Create(document => document.Content(content => content
             .Paragraph(p => p.Runs([PdfTextRun.Normal("Helvetica regular", font: PdfStandardFont.Helvetica)]))
-            .Paragraph(p => p.Runs([PdfTextRun.Normal("Helvetica bold italic", font: PdfStandardFont.HelveticaBoldOblique)]))
+            .Paragraph(p => p.Runs([PdfTextRun.BoldItalic("Helvetica bold italic", font: PdfStandardFont.HelveticaBoldOblique)]))
             .Paragraph(p => p.Runs([PdfTextRun.Normal("Times regular", font: PdfStandardFont.TimesRoman)]))
-            .Paragraph(p => p.Runs([PdfTextRun.Normal("Times bold italic", font: PdfStandardFont.TimesBoldItalic)]))
+            .Paragraph(p => p.Runs([PdfTextRun.BoldItalic("Times bold italic", font: PdfStandardFont.TimesBoldItalic)]))
             .Paragraph(p => p.Runs([PdfTextRun.Normal("Courier regular", font: PdfStandardFont.Courier)]))
-            .Paragraph(p => p.Runs([PdfTextRun.Normal("Courier bold italic", font: PdfStandardFont.CourierBoldOblique)]))), new PdfOptions {
+            .Paragraph(p => p.Runs([PdfTextRun.BoldItalic("Courier bold italic", font: PdfStandardFont.CourierBoldOblique)]))), new PdfOptions {
                 PageWidth = 500,
                 PageHeight = 600,
                 MarginLeft = 36,
@@ -323,9 +323,10 @@ public sealed class BrowserPdfImportTests {
         Assert.NotNull(raster);
         Assert.Equal(1000, raster!.Width);
         Assert.Equal(1200, raster.Height);
+        // Pin visual output rather than platform-dependent PNG compression.
         Assert.Equal(
-            "27a76b68f405c3ef41f9f9f98992e36bd88df725a9b95f7a3ad059c16a0b4deb",
-            Convert.ToHexString(SHA256.HashData(renderedPage)).ToLowerInvariant());
+            "f695e7c619d0e60fb4d394dbbf6b4e9e577ddf676605fd93712f6f98650909fa",
+            Convert.ToHexString(SHA256.HashData(raster.GetPixels())).ToLowerInvariant());
     }
 
     private static IEnumerable<OfficeDrawingText> EnumerateText(OfficeDrawing drawing) {

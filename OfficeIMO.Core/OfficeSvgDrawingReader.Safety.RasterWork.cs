@@ -429,7 +429,7 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static readonly string[] RasterTextLayoutProperties = {
-        "font-family", "font-style", "font-weight", "dominant-baseline", "alignment-baseline",
+        "font-family", "font-style", "font-stretch", "font-weight", "dominant-baseline", "alignment-baseline",
         "baseline-shift", "white-space", "letter-spacing", "word-spacing", "direction", "unicode-bidi",
         "writing-mode", "glyph-orientation-horizontal", "glyph-orientation-vertical"
     };

@@ -12,6 +12,45 @@ internal static partial class EmailReaderProjection {
         TryExtension(name)?.ToLowerInvariant() is ".eml" or ".msg" or ".oft" or ".tnef" or ".emlx" or
             ".mbox" or ".mbx" or ".pst" or ".ost" or ".olm";
 
+    private static void AddEmbeddedMessage(EmailAttachment attachment, string attachmentPath,
+        Projection parent, ReaderOptions options, EmailDocumentProjectionCursor cursor, int depth,
+        CancellationToken cancellationToken) {
+        OfficeDocumentReadResult child;
+        Projection projection;
+        using (ReaderReadScope.Enter(options, nested: true)) {
+            ReaderNestedContent.ReserveDecodedInput(attachment.Content?.LongLength ?? Math.Max(0, attachment.Length));
+            var document = attachment.EmbeddedDocument!;
+            projection = new Projection(attachmentPath, document.Format) {
+                IncludeEmbeddedMessageContent = parent.IncludeEmbeddedMessageContent
+            };
+            projection.Documents.Add(document);
+            projection.MailboxEntries.Add(null);
+            AddDocument(document, null, attachmentPath, projection, options, cursor, depth, cancellationToken);
+            var source = new OfficeDocumentSource {
+                Path = attachmentPath,
+                SourceId = "src:" + Hash(attachmentPath),
+                SourceHash = options.ComputeHashes && attachment.Content != null ? Hash(attachment.Content) : null,
+                LengthBytes = attachment.Content?.LongLength ?? attachment.Length
+            };
+            EnrichChunks(projection.Chunks, source, options.ComputeHashes);
+            child = ReaderReadScope.Complete(CreateResult(projection, attachmentPath, source));
+        }
+        ReaderReadScope.RecordNested(attachmentPath, child);
+        foreach (var chunk in child.Chunks) {
+            var flattened = chunk.CopyForContainer();
+            ClearNestedSource(flattened);
+            parent.Chunks.Add(flattened);
+        }
+        parent.Assets.AddRange(projection.Assets);
+        parent.Diagnostics.AddRange(projection.Diagnostics);
+        parent.AttachmentAttempted += projection.AttachmentAttempted;
+        parent.AttachmentSucceeded += projection.AttachmentSucceeded;
+        parent.AttachmentSkipped += projection.AttachmentSkipped;
+        parent.AttachmentEmpty += projection.AttachmentEmpty;
+        parent.AttachmentFailed += projection.AttachmentFailed;
+        parent.EmbeddedAttachmentCount += projection.EmbeddedAttachmentCount;
+    }
+
     private static void AddAttachmentContent(
         EmailAttachment attachment, string fileName, string attachmentPath, string subject,
         ReaderChunk attachmentChunk, Projection projection, ReaderOptions options,
@@ -52,12 +91,18 @@ internal static partial class EmailReaderProjection {
             using Stream stream = decoded != null
                 ? new MemoryStream(EncodeAttachmentProjection(decoded.Text, sourceName), writable: false)
                 : attachment.OpenContentStream();
-            IReadOnlyList<ReaderChunk> nested = hasHandler
-                ? ReaderNestedContent.Read(stream, sourceName, CloneWithoutHashes(options), cancellationToken)
-                : BuildPlainAttachmentChunks(decoded!.Text, options.MaxChars);
+            IReadOnlyList<ReaderChunk> nested;
+            if (hasHandler) {
+                nested = ReaderNestedContent.ReadDocumentInContainer(stream, sourceName, attachmentPath, CloneWithoutHashes(options), cancellationToken).Chunks;
+            } else {
+                using (ReaderReadScope.Enter(options, nested: true)) {
+                    ReaderNestedContent.ReserveDecodedInput(Encoding.UTF8.GetByteCount(decoded!.Text));
+                    nested = BuildPlainAttachmentChunks(decoded.Text, options.MaxChars);
+                }
+            }
 
             for (int index = 0; index < nested.Count; index++) {
-                ReaderChunk child = nested[index];
+                ReaderChunk child = nested[index].CopyForContainer();
                 int blockIndex = cursor.NextBlockIndex++;
                 child.Id = $"email:attachment-content:{blockIndex.ToString("D6", CultureInfo.InvariantCulture)}:{index.ToString("D4", CultureInfo.InvariantCulture)}";
                 child.Location = CloneNestedLocation(child.Location, attachmentPath,
@@ -76,7 +121,7 @@ internal static partial class EmailReaderProjection {
             }
         } catch (OperationCanceledException) {
             throw;
-        } catch (Exception exception) {
+        } catch (Exception exception) when (exception is not ReaderResourceLimitException) {
             projection.AttachmentFailed++;
             AttachmentOutcome(projection, attachmentChunk, attachmentPath, "EMAIL_ATTACHMENT_READER_FAILED",
                 exception.GetType().Name + " while extracting the attachment.", EmailDiagnosticSeverity.Warning);

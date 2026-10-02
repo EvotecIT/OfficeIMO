@@ -64,6 +64,7 @@ public sealed class OfficeDocumentReadResult {
     /// </summary>
     public IReadOnlyList<ReaderChunk> Chunks { get; set; } = Array.Empty<ReaderChunk>();
 
+
     /// <summary>
     /// Document-level metadata entries discovered during reading.
     /// </summary>
@@ -113,6 +114,10 @@ public sealed class OfficeDocumentReadResult {
     /// Warnings and diagnostics emitted during reading.
     /// </summary>
     public IReadOnlyList<OfficeDocumentDiagnostic> Diagnostics { get; set; } = Array.Empty<OfficeDocumentDiagnostic>();
+    /// <summary>Complete rich results for nested documents, scoped by their container-relative or virtual path.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<OfficeDocumentNestedResult> NestedDocuments { get; set; } = Array.Empty<OfficeDocumentNestedResult>();
+
 }
 
 /// <summary>

@@ -52,7 +52,7 @@ public sealed class OfficeDocumentProcessorPipeline {
                 steps[index] = Completed(processor, index);
             } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
                 throw;
-            } catch (Exception exception) {
+            } catch (Exception exception) when (exception is not ReaderResourceLimitException) {
                 if (failureBehavior == OfficeDocumentProcessorFailureBehavior.Throw) {
                     throw new OfficeDocumentProcessorException(processor.Id, index, exception);
                 }
@@ -102,7 +102,7 @@ public sealed class OfficeDocumentProcessorPipeline {
                 steps[index] = Completed(processor, index);
             } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
                 throw;
-            } catch (Exception exception) {
+            } catch (Exception exception) when (exception is not ReaderResourceLimitException) {
                 if (failureBehavior == OfficeDocumentProcessorFailureBehavior.Throw) {
                     throw new OfficeDocumentProcessorException(processor.Id, index, exception);
                 }

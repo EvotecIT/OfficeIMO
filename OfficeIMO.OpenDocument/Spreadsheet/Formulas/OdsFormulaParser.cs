@@ -13,7 +13,7 @@ internal sealed class OdsFormulaParser {
         int prefix = expression.IndexOf(":=", StringComparison.Ordinal);
         if (prefix >= 0) expression = expression.Substring(prefix + 2);
         else if (expression.StartsWith("=", StringComparison.Ordinal)) expression = expression.Substring(1);
-        if (expression.Length > context.Options.MaximumFormulaCharacters) throw new OdsFormulaException("Formula character limit exceeded.");
+        if (expression.Length > context.Options.MaximumFormulaCharacters) throw context.FailLimit("Formula character limit exceeded.");
         _lexer = new OdsFormulaLexer(expression);
         _context = context;
         _sheetName = sheetName;
@@ -43,7 +43,7 @@ internal sealed class OdsFormulaParser {
             Take();
             OdsFormulaValue right = ParseAdditive().RequireScalar();
             OdsFormulaValue scalar = left.RequireScalar();
-            left = Scalar(Propagate(scalar, right) ?? OdsFormulaValue.Text(scalar.AsText() + right.AsText()));
+            left = Scalar(Propagate(scalar, right) ?? _context.Concatenate(scalar, right));
         }
         return left;
     }
@@ -59,18 +59,18 @@ internal sealed class OdsFormulaParser {
     }
 
     private OdsFormulaOperand ParseMultiplicative() {
-        OdsFormulaOperand left = ParseUnary();
+        OdsFormulaOperand left = ParsePower();
         while (_current.Kind == OdsFormulaTokenKind.Star || _current.Kind == OdsFormulaTokenKind.Slash) {
             OdsFormulaTokenKind operation = Take().Kind;
-            OdsFormulaValue right = ParseUnary().RequireScalar();
+            OdsFormulaValue right = ParsePower().RequireScalar();
             left = Scalar(NumericBinary(operation, left.RequireScalar(), right));
         }
         return left;
     }
 
     private OdsFormulaOperand ParsePower() {
-        OdsFormulaOperand left = ParsePostfix();
-        if (_current.Kind == OdsFormulaTokenKind.Caret) {
+        OdsFormulaOperand left = ParseUnary();
+        while (_current.Kind == OdsFormulaTokenKind.Caret) {
             Take();
             EnterSyntax();
             try {
@@ -92,7 +92,7 @@ internal sealed class OdsFormulaParser {
                 return value.Kind == OdsFormulaValueKind.Error ? Scalar(value) : Scalar(Number(-RequireNumber(value)));
             } finally { _syntaxDepth--; }
         }
-        return ParsePower();
+        return ParsePostfix();
     }
 
     private OdsFormulaOperand ParsePostfix() {
@@ -113,7 +113,7 @@ internal sealed class OdsFormulaParser {
                 if (!double.TryParse(lexical, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) throw Error("Invalid number '" + lexical + "'.");
                 return Scalar(Number(number));
             case OdsFormulaTokenKind.String:
-                return Scalar(OdsFormulaValue.Text(Take().Text));
+                return Scalar(_context.Text(Take().Text));
             case OdsFormulaTokenKind.Reference:
                 return ResolveReference(Take().Text);
             case OdsFormulaTokenKind.Identifier:
@@ -157,20 +157,40 @@ internal sealed class OdsFormulaParser {
     private OdsFormulaValue EvaluateFunction(string name, IReadOnlyList<OdsFormulaOperand> arguments) {
         _context.Step();
         string normalized = name.ToUpperInvariant();
+        if (normalized == "TRUE" || normalized == "FALSE") {
+            return arguments.Count == 0 ? OdsFormulaValue.Boolean(normalized == "TRUE")
+                : OdsFormulaValue.Error(normalized + " expects no arguments.");
+        }
         List<OdsFormulaValue> values = Flatten(arguments);
+        if (normalized == "COUNT") {
+            int count = 0;
+            foreach (OdsFormulaOperand argument in arguments) {
+                foreach (OdsFormulaValue value in argument.Values) {
+                    if (value.Kind == OdsFormulaValueKind.Number) count++;
+                    else if (!argument.IsReference && value.Kind != OdsFormulaValueKind.Error && value.Kind != OdsFormulaValueKind.Empty) {
+                        try { value.AsNumber(); count++; } catch (InvalidOperationException) { }
+                    }
+                }
+            }
+            return Number(count);
+        }
         OdsFormulaValue? error = values.FirstOrDefault(value => value.Kind == OdsFormulaValueKind.Error);
         if (error.HasValue && error.Value.Kind == OdsFormulaValueKind.Error) return error.Value;
         var numbers = new List<double>();
-        foreach (OdsFormulaValue value in values) {
-            if (value.Kind == OdsFormulaValueKind.Empty || value.Kind == OdsFormulaValueKind.Text) continue;
-            numbers.Add(RequireNumber(value));
+        if (normalized == "SUM" || normalized == "AVERAGE" || normalized == "MIN" || normalized == "MAX" || normalized == "PRODUCT") {
+            foreach (OdsFormulaOperand argument in arguments) {
+                foreach (OdsFormulaValue value in argument.Values) {
+                    if (argument.IsReference && value.Kind != OdsFormulaValueKind.Number) continue;
+                    if (value.Kind == OdsFormulaValueKind.Empty) continue;
+                    numbers.Add(RequireNumber(value));
+                }
+            }
         }
         switch (normalized) {
             case "SUM": return Number(numbers.Sum());
             case "AVERAGE": return numbers.Count == 0 ? OdsFormulaValue.Error("AVERAGE requires at least one numeric value.") : Number(numbers.Average());
             case "MIN": return Number(numbers.Count == 0 ? 0D : numbers.Min());
             case "MAX": return Number(numbers.Count == 0 ? 0D : numbers.Max());
-            case "COUNT": return Number(values.Count(value => value.Kind == OdsFormulaValueKind.Number));
             case "PRODUCT": return Number(numbers.Count == 0 ? 0D : numbers.Aggregate(1D, (left, right) => left * right));
             case "ABS": return UnaryFunction(normalized, arguments, value => Math.Abs(value));
             case "SQRT": return UnaryFunction(normalized, arguments, value => value < 0D ? double.NaN : Math.Sqrt(value));
@@ -198,7 +218,7 @@ internal sealed class OdsFormulaParser {
 
     private OdsFormulaOperand ResolveReference(string reference) {
         OdsFormulaReference range = OdsFormulaReference.Parse(reference, _sheetName);
-        OdsSheet sheet = _context.Document.GetSheet(range.SheetName) ?? throw Error("Worksheet '" + range.SheetName + "' does not exist.");
+        OdsSheet sheet = _context.GetSheet(range.SheetName) ?? throw Error("Worksheet '" + range.SheetName + "' does not exist.");
         var values = new List<OdsFormulaValue>();
         for (long row = range.FirstRow; row <= range.LastRow; row++) {
             for (long column = range.FirstColumn; column <= range.LastColumn; column++) {
@@ -206,7 +226,7 @@ internal sealed class OdsFormulaParser {
                 values.Add(OdsFormulaEvaluator.EvaluateCell(_context, sheet.Name, row, column, _depth + 1));
             }
         }
-        return values.Count == 1 ? Scalar(values[0]) : OdsFormulaOperand.Range(values);
+        return OdsFormulaOperand.Range(values);
     }
 
     private OdsFormulaValue NumericBinary(OdsFormulaTokenKind operation, OdsFormulaValue left, OdsFormulaValue right) {
@@ -279,17 +299,18 @@ internal sealed class OdsFormulaParser {
     private OdsFormulaException Error(string message) => new OdsFormulaException(message);
     private void EnterSyntax() {
         _syntaxDepth++;
-        if (_syntaxDepth > _context.Options.MaximumDependencyDepth) throw Error("Formula syntax depth limit exceeded.");
+        if (_syntaxDepth > _context.Options.MaximumDependencyDepth) throw _context.FailLimit("Formula syntax depth limit exceeded.");
     }
     private static OdsFormulaOperand Scalar(OdsFormulaValue value) => OdsFormulaOperand.Scalar(value);
     private static bool IsComparison(OdsFormulaTokenKind kind) => kind >= OdsFormulaTokenKind.Equal && kind <= OdsFormulaTokenKind.GreaterOrEqual;
 }
 
 internal sealed class OdsFormulaOperand {
-    private OdsFormulaOperand(IReadOnlyList<OdsFormulaValue> values) { Values = values; }
+    private OdsFormulaOperand(IReadOnlyList<OdsFormulaValue> values, bool isReference = false) { Values = values; IsReference = isReference; }
     internal IReadOnlyList<OdsFormulaValue> Values { get; }
+    internal bool IsReference { get; }
     internal static OdsFormulaOperand Scalar(OdsFormulaValue value) => new OdsFormulaOperand(new[] { value });
-    internal static OdsFormulaOperand Range(IReadOnlyList<OdsFormulaValue> values) => new OdsFormulaOperand(values);
+    internal static OdsFormulaOperand Range(IReadOnlyList<OdsFormulaValue> values) => new OdsFormulaOperand(values, isReference: true);
     internal OdsFormulaValue RequireScalar() {
         if (Values.Count != 1) throw new OdsFormulaException("A range cannot be used as a scalar value in this OpenFormula subset.");
         return Values[0];

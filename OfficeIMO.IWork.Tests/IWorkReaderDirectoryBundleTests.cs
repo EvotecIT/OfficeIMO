@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.IWork;
@@ -35,13 +36,20 @@ public sealed class IWorkReaderDirectoryBundleTests {
             Assert.Equal(result.Source.LengthBytes, chunk.SourceLengthBytes);
         });
         Assert.Equal(result.Chunks.Count, (await reader.ReadAsync(bundle.Path)).Count);
+        Assert.Equal(result.Chunks.Select(chunk => chunk.Text), reader.EnumerateChunks(bundle.Path).Select(chunk => chunk.Text));
         Assert.True(Assert.Single(reader.GetCapabilities()).SupportsDirectoryBundle);
+        using JsonDocument manifest = JsonDocument.Parse(reader.GetCapabilityManifestJson());
+        JsonElement capability = Assert.Single(manifest.RootElement.GetProperty("handlers").EnumerateArray());
+        Assert.True(capability.GetProperty("supportsDirectoryBundle").GetBoolean());
+        Assert.False(capability.GetProperty("supportsIncrementalPath").GetBoolean());
+        Assert.Equal(JsonValueKind.Array, capability.GetProperty("formatQualifications").ValueKind);
         Assert.Equal(ReaderInputKind.IWork, reader.Detect(bundle.Path).Kind);
         Assert.False(reader.Detect(bundle.Path).ContentInspected);
         string trailing = bundle.Path + System.IO.Path.DirectorySeparatorChar;
         Assert.Equal(result.Source.SourceHash, reader.ReadDocument(trailing).Source.SourceHash);
         Assert.Equal(result.Source.SourceHash, (await reader.ReadDocumentAsync(trailing)).Source.SourceHash);
         Assert.Equal(ReaderInputKind.IWork, reader.Detect(trailing).Kind);
+        Assert.Equal(result.Chunks.Select(chunk => chunk.Text), reader.EnumerateChunks(trailing).Select(chunk => chunk.Text));
         Assert.Equal(new[] { bundle.Path }, reader.EnumerateDocumentPaths(new[] { trailing }).ToArray());
         Assert.Equal(1, reader.ReadFolderDetailed(trailing).FilesParsed);
 
@@ -145,6 +153,44 @@ public sealed class IWorkReaderDirectoryBundleTests {
         Assert.Throws<InvalidDataException>(() => reader.ReadDocument(invalid));
         OfficeDocumentReader unregistered = new OfficeDocumentReaderBuilder().Build();
         Assert.Throws<IOException>(() => unregistered.ReadDocument(bundle.Path));
+    }
+
+    [Fact]
+    public void Folder_processors_preserve_empty_bundle_snapshot_metadata() {
+        using var bundle = new ExtractedBundle("nim-iwork/simple.pages", ".pages");
+        int calls = 0;
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddIWorkHandler()
+            .AddProcessor(new DelegateOfficeDocumentProcessor("clear", (document, _) => {
+                calls++;
+                document.Chunks = Array.Empty<ReaderChunk>();
+                return document;
+            })).Build();
+        IWorkSourceDocument source = IWorkSourceDocument.Open(bundle.Path);
+        ReaderIngestResult result = reader.ReadFolderDetailed(bundle.Root);
+        Assert.Equal(1, calls);
+        Assert.Empty(result.Chunks);
+        Assert.Equal(1, result.FilesParsed);
+        Assert.Equal(source.ContainerLengthBytes, result.BytesRead);
+        Assert.Equal(source.ComputePackageContentHash(), Assert.Single(result.Files).SourceHash);
+    }
+
+    [Fact]
+    public async Task Bundle_resource_limits_apply_to_direct_async_and_folder_operations() {
+        using var bundle = new ExtractedBundle("nim-iwork/simple.pages", ".pages");
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
+        var options = new ReaderOptions { ResourceLimits = new ReaderResourceLimits { MaxChunks = 0 } };
+        Assert.Throws<ReaderResourceLimitException>(() => reader.Read(bundle.Path, options).ToArray());
+        Assert.Throws<ReaderResourceLimitException>(() => reader.EnumerateChunks(bundle.Path, options).ToArray());
+        Assert.Throws<ReaderResourceLimitException>(() => reader.ReadDocument(bundle.Path, options));
+        await Assert.ThrowsAsync<ReaderResourceLimitException>(() => reader.ReadDocumentAsync(bundle.Path, options));
+        Assert.Throws<ReaderResourceLimitException>(() => reader.ReadFolderDetailed(bundle.Root, options: options));
+        Assert.Throws<ReaderResourceLimitException>(() => reader.ReadFolderDocuments(bundle.Root, options: options).ToArray());
+        Assert.Throws<ReaderResourceLimitException>(() => reader.ReadPathDocumentsDetailed(bundle.Path, options: options));
+        int chunksPerBundle = reader.ReadDocument(bundle.Path).Chunks.Count;
+        options.ResourceLimits.MaxChunks = chunksPerBundle;
+        Assert.Equal(1, reader.ReadFolderDetailed(bundle.Root, options: options).FilesParsed);
+        ZipFile.ExtractToDirectory(Fixture("nim-iwork/simple.pages"), System.IO.Path.Combine(bundle.Root, "second.pages"));
+        Assert.Throws<ReaderResourceLimitException>(() => reader.ReadFolderDetailed(bundle.Root, options: options));
     }
 
     private static string Fixture(string name) => System.IO.Path.Combine(AppContext.BaseDirectory,

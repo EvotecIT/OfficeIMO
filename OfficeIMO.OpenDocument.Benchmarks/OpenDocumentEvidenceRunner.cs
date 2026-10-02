@@ -61,7 +61,9 @@ internal static class OpenDocumentEvidenceRunner {
                                 $"{format,-3} {operation,-12} {scale.Name,-6} #{iteration,-2} " +
                                 $"{measurement.ElapsedMilliseconds,10:F1} ms " +
                                 $"{measurement.AllocatedBytes / 1048576D,10:F1} MiB alloc " +
-                                $"{measurement.PeakWorkingSetBytes / 1048576D,10:F1} MiB peak " +
+                                (measurement.PeakWorkingSetBytes.HasValue
+                                    ? $"{measurement.PeakWorkingSetBytes.Value / 1048576D,10:F1} MiB peak "
+                                    : "       n/a MiB peak ") +
                                 $"{measurement.OutputBytes / 1048576D,10:F2} MiB output");
                         }
                     }
@@ -111,7 +113,8 @@ internal static class OpenDocumentEvidenceRunner {
         long allocatedBytes = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore;
         using Process process = Process.GetCurrentProcess();
         process.Refresh();
-        long peakWorkingSetBytes = process.PeakWorkingSet64;
+        long peak = process.PeakWorkingSet64;
+        long? peakWorkingSetBytes = peak > 0 ? peak : null;
 
         OpenDocumentContentObservation observation = Validate(format, operation, scale, sourcePath, result);
         return new OpenDocumentEvidenceMeasurement(
@@ -436,7 +439,7 @@ internal sealed record OpenDocumentEvidenceMeasurement(
     long OutputBytes,
     double ElapsedMilliseconds,
     long AllocatedBytes,
-    long PeakWorkingSetBytes,
+    long? PeakWorkingSetBytes,
     long ObservedCount,
     long Checksum);
 

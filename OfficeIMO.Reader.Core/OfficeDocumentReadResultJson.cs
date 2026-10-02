@@ -48,7 +48,8 @@ public static partial class OfficeDocumentReadResultJson {
             "forms",
             "ocrCandidates",
             "visuals",
-            "diagnostics"
+            "diagnostics",
+            "nestedDocuments"
         },
         StringComparer.Ordinal);
 
@@ -71,6 +72,7 @@ public static partial class OfficeDocumentReadResultJson {
         EnsureStringCollection(result.CapabilitiesUsed, "capabilitiesUsed");
         EnsureDiagnosticContracts(result.Diagnostics);
 
+        EnsureAcyclicNestedResults(result, new HashSet<OfficeDocumentReadResult>(), 0);
         ReaderJsonSerializerContext context = CreateContext(indented, propertyNameCaseInsensitive: false);
         return JsonSerializer.Serialize(NormalizeForSerialization(result, schemaId, schemaVersion), context.OfficeDocumentReadResult);
     }
@@ -102,9 +104,7 @@ public static partial class OfficeDocumentReadResultJson {
         string? schemaId = TryReadSchemaId(root);
         int schemaVersion = TryReadSchemaVersion(root);
         OfficeDocumentReadResultSchema.EnsureSupported(schemaId, schemaVersion);
-        EnsureRequiredTopLevelProperties(root);
-        EnsureKnownTopLevelProperties(root);
-        EnsureNestedTransportContracts(root);
+        ValidateTransportEnvelope(root);
 
         ReaderJsonSerializerContext context = CreateContext(indented: false, propertyNameCaseInsensitive: true);
         OfficeDocumentReadResult? result = JsonSerializer.Deserialize(json, context.OfficeDocumentReadResult);
@@ -113,6 +113,7 @@ public static partial class OfficeDocumentReadResultJson {
         }
         EnsureKindSupported(schemaVersion, result.Kind);
         EnsureChunkKindsSupported(schemaVersion, result.Chunks);
+        EnsureNestedDeserializedContracts(result);
         result = NormalizeDeserializedResult(result);
         EnsureDiagnosticContracts(result.Diagnostics);
         return result;
@@ -150,7 +151,8 @@ public static partial class OfficeDocumentReadResultJson {
             Forms = result.Forms ?? Array.Empty<OfficeDocumentFormField>(),
             OcrCandidates = result.OcrCandidates ?? Array.Empty<OfficeDocumentOcrCandidate>(),
             Visuals = result.Visuals ?? Array.Empty<ReaderVisual>(),
-            Diagnostics = NormalizeDiagnostics(result.Diagnostics)
+            Diagnostics = NormalizeDiagnostics(result.Diagnostics),
+            NestedDocuments = NormalizeNestedForSerialization(result, schemaVersion)
         };
     }
 
@@ -313,6 +315,8 @@ public static partial class OfficeDocumentReadResultJson {
         result.OcrCandidates ??= Array.Empty<OfficeDocumentOcrCandidate>();
         result.Visuals ??= Array.Empty<ReaderVisual>();
         result.Diagnostics ??= Array.Empty<OfficeDocumentDiagnostic>();
+        result.NestedDocuments ??= Array.Empty<OfficeDocumentNestedResult>();
+        foreach (var nested in result.NestedDocuments) NormalizeDeserializedResult(nested.Document);
         return result;
     }
 

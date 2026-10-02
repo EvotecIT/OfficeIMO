@@ -24,6 +24,12 @@ OfficeDocumentReadResult result = await webReader.ReadDocumentAsync(
 
 The transport accepts absolute HTTP(S) GET targets only, rejects URI-embedded credentials, checks an optional exact host allowlist, blocks loopback/private/non-routable IP literals by default, caps response bytes at the strictest Web, Reader, or selected-handler limit, applies a request timeout, and bounds concurrent operations per web-reader instance. Query strings are omitted from result metadata unless explicitly enabled.
 
+Source IDs hash the complete final URI, including its query, while query metadata remains redacted by default.
+Chunk IDs include the source ID so distinct downloads with the same filename remain distinct.
+For signed URLs whose query changes without changing the document, set `ReaderWebOptions.SourceKeySelector`
+to an application-owned canonical key, for example `uri => uri.GetLeftPart(UriPartial.Path)` when the path
+alone identifies that document. Do not remove content-selecting query parameters from the canonical key.
+
 Format selection stays with Reader. The logical source name comes from an explicit `sourceName`, the response `Content-Disposition` filename, or the final URI path, in that order. Supply `sourceName` when a download URL has no usable extension and content detection cannot identify the intended modular handler.
 
 > [!IMPORTANT]
