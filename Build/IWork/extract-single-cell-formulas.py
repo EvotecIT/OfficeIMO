@@ -26,7 +26,7 @@ if version('numbers-parser') != '4.19.0':
 source_hash = hashlib.sha256(args.source.read_bytes()).hexdigest()
 qualified = {
     '4ce0593faa61bf159bde0752ade1fa202afcd142317ba16fdec8eb71a7149170':
-        ('test-all-formulas.numbers', [('Reference', 14), ('Reference', 83), ('Reference', 84), ('Math', 141), ('Statistical', 37)],
+        ('test-all-formulas.numbers', [('Reference', 14), ('Reference', 83), ('Reference', 84), ('Math', 97), ('Math', 153), ('Math', 154), ('Math', 141), ('Statistical', 37)],
          [('Text', 9), ('Text', 10), ('Text', 21), ('Text', 43)]),
     '3deb8e3b868be60d7b8924336d2839fcd690db2b138e6c2170d6c22c4aca48dc':
         ('test-extra-formulas.numbers', [('Formulas', 29), ('Formulas', 79), ('Formulas', 102)],
@@ -64,6 +64,13 @@ for sheet_name, row in selections:
         computed = target.cell(references[0]['row'] - 1, references[0]['column'] - 1).value
     elif sheet_name == 'Reference':
         computed = references[0]['column']
+    elif sheet_name == 'Math' and row == 97:
+        assert cell.formula == 'PRODUCT(Data::A1:E1)'
+        computed = math.prod(target.cell(0, column).value for column in range(5))
+    elif sheet_name == 'Math' and row in (153, 154):
+        assert cell.formula == ('SUMSQ(3,4,Data::A1)' if row == 153 else 'SUMSQ(3,4,Data::A1,Data::A13)')
+        assert target.cell('A13').value is None
+        computed = 3**2 + 4**2 + target.cell('A1').value**2
     elif sheet_name == 'Math':
         threshold = target.cell('C2').value
         computed = sum(target.cell(r, 1).value for r in range(1, 5) if target.cell(r, 0).value > threshold)
@@ -252,6 +259,6 @@ if numeric_cases:
     manifest['qualification'] += ' Numeric INT/MOD/SQRT/SIGN/TRUNC/ROUNDUP/ROUNDDOWN expressions include unary negatives, subtraction, optional and signed digit arguments and nested ABS; independent numeric/decimal computations agree with native caches.'
     manifest['qualification'] += ' EXP/LN/LOG/LOG10 cases include optional/explicit bases, nesting and exponentiation. Their exact producer caches are retained; independent transcendental computations use the recorded relative/absolute tolerance, not exact binary equality.'
     manifest['qualification'] += ' Ten CEILING/FLOOR expressions qualify signed multiples, zero significance and native omitted node-22 operands. Independent decimal computations agree exactly with stored Decimal128 coefficient/exponent values. Raw cache bytes and the independent provider float (which can add a binary rounding step) are retained separately.'
-    manifest['qualification'] += ' Five PRODUCT/RADIANS/SUMSQ expressions qualify scalar numeric operands and one explicit numeric text literal; referenced ranges, unions and arrays are not covered by these cases.'
+    manifest['qualification'] += ' Five PRODUCT/RADIANS/SUMSQ expressions qualify scalar numeric operands and one explicit numeric text literal; Three additional reference cases qualify PRODUCT over A1:E1 and SUMSQ with numeric and blank cross-table cells. Unions and arrays are not covered.'
 args.output.write_text(json.dumps(manifest, indent=2) + '\n')
 print(f'Extracted {len(cases)} reference, {len(scalar_cases)} scalar and {len(numeric_cases)} numeric formulas from {source_hash}')
