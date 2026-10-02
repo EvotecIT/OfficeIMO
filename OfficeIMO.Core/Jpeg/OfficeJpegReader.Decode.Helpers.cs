@@ -850,72 +850,9 @@ internal static partial class OfficeJpegReader {
         return true;
     }
 
-    private static byte[] ApplyOrientation(
-        byte[] rgba,
-        ref int width,
-        ref int height,
-        int orientation,
-        CancellationToken cancellationToken) {
-        if (orientation <= 1) return rgba;
-        var srcWidth = width;
-        var srcHeight = height;
-        var destWidth = (orientation >= 5 && orientation <= 8) ? srcHeight : srcWidth;
-        var destHeight = (orientation >= 5 && orientation <= 8) ? srcWidth : srcHeight;
-        var result = OfficeRasterGuards.AllocateRgba32(destWidth, destHeight, JpegDimensionsLimitMessage);
-
-        for (var y = 0; y < destHeight; y++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            for (var x = 0; x < destWidth; x++) {
-                int sx;
-                int sy;
-                switch (orientation) {
-                    case 2:
-                        sx = srcWidth - 1 - x;
-                        sy = y;
-                        break;
-                    case 3:
-                        sx = srcWidth - 1 - x;
-                        sy = srcHeight - 1 - y;
-                        break;
-                    case 4:
-                        sx = x;
-                        sy = srcHeight - 1 - y;
-                        break;
-                    case 5:
-                        sx = y;
-                        sy = x;
-                        break;
-                    case 6:
-                        sx = y;
-                        sy = srcHeight - 1 - x;
-                        break;
-                    case 7:
-                        sx = srcWidth - 1 - y;
-                        sy = srcHeight - 1 - x;
-                        break;
-                    case 8:
-                        sx = srcWidth - 1 - y;
-                        sy = x;
-                        break;
-                    default:
-                        sx = x;
-                        sy = y;
-                        break;
-                }
-
-                var srcIndex = (sy * srcWidth + sx) * 4;
-                var dstIndex = (y * destWidth + x) * 4;
-                result[dstIndex + 0] = rgba[srcIndex + 0];
-                result[dstIndex + 1] = rgba[srcIndex + 1];
-                result[dstIndex + 2] = rgba[srcIndex + 2];
-                result[dstIndex + 3] = rgba[srcIndex + 3];
-            }
-        }
-
-        width = destWidth;
-        height = destHeight;
-        return result;
-    }
+    private static byte[] ApplyOrientation(byte[] rgba, ref int width, ref int height,
+        int orientation, CancellationToken cancellationToken) =>
+        OfficeRasterOrientation.Apply(rgba, ref width, ref height, orientation, cancellationToken, JpegDimensionsLimitMessage);
 
     private static double[,] BuildCosTable() {
         var table = new double[8, 8];

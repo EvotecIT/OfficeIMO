@@ -798,7 +798,7 @@ This is a **trusted-content execution profile**, not an OS sandbox for hostile
 scripts. Host CLR capabilities are not configured. Resource policy covers document
 and fetch loading; it is not a sandbox for every capability an interpreter may
 expose. The tested application profile does not establish general framework
-compatibility. XHR, cookies/credentials and strict OS isolation remain separate runtime work.
+compatibility. Cookies/credentials and strict OS isolation remain separate runtime work.
 
 The retained interpreter has a known async declaration limitation: in a statement
 such as `const before = state, result = await operation()`, an earlier initializer

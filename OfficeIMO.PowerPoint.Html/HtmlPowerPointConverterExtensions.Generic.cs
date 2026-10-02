@@ -127,7 +127,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                                 detail: "hyperlinkRuns=" + omittedLinks);
                         }
                         IEnumerable<string> chunks = singleCellText ? SplitGenericTableText(tableText)
-                            : EnumerateGenericTableTextChunks(block.Table!);
+                            : EnumerateGenericTableTextChunks(block.Table!, budget, result);
                         foreach (string chunk in chunks) {
                             if (NeedsGenericContinuation(contentTop, 130D, slideBottom)) {
                                 if (!TryAddGenericSlide(presentation, result, budget, out slide)) {
@@ -163,7 +163,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                         contentTop = pictureTop = 30D;
                     }
                     pictureTop = Math.Max(pictureTop, contentTop);
-                    ImportPicture(block.SourceElement, slide, result, budget, ref pictureTop, fallbackLeft: 64D);
+                    ImportPicture(block.SourceElement, slide, result, budget, options, ref pictureTop, fallbackLeft: 64D);
                     contentTop = Math.Max(contentTop, pictureTop);
                 }
                 if (slideLimitReached) break;
@@ -180,7 +180,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                             contentTop = pictureTop = 30D;
                         }
                         pictureTop = Math.Max(pictureTop, contentTop);
-                        ImportSemanticResourcePicture(resource, slide, presentation, result, budget, ref pictureTop);
+                        ImportSemanticResourcePicture(resource, slide, presentation, result, budget, options, ref pictureTop);
                         contentTop = Math.Max(contentTop, pictureTop);
                     }
                 }
@@ -247,10 +247,16 @@ public static partial class HtmlPowerPointConverterExtensions {
         }
     }
 
-    private static IEnumerable<string> EnumerateGenericTableTextChunks(HtmlSemanticTable table) {
+    private static IEnumerable<string> EnumerateGenericTableTextChunks(HtmlSemanticTable table, HtmlImportBudget budget, HtmlToPowerPointResult result) {
         for (int row = 0; row < table.Rows.Count; row++) {
             IReadOnlyList<HtmlSemanticTableCell> cells = table.Rows[row].Cells;
             for (int column = 0; column < cells.Count; column++) {
+                if (!budget.IsMetadataWithinLimit(cells[column].Text, out string fieldLimit)) {
+                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
+                        "A table cell was omitted because it exceeded the shared field limit.",
+                        lossKind: OfficeConversionLossKind.Omission, detail: fieldLimit);
+                    continue;
+                }
                 bool firstChunk = true;
                 foreach (string chunk in SplitGenericTableText(cells[column].Text)) {
                     yield return firstChunk ? $"Row {row + 1}, cell {column + 1}: {chunk}" : chunk;
@@ -667,6 +673,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         PptCore.PowerPointPresentation presentation,
         HtmlToPowerPointResult result,
         HtmlImportBudget budget,
+        HtmlToPowerPointOptions options,
         ref double top) {
         if (!HtmlImageDataUri.TryParse(resource.Source, out HtmlImageDataUri dataUri)
             || !TryGetImagePartType(dataUri.MediaType, out OfficeImageFormat imagePartType)) {
@@ -693,7 +700,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         using var stream = new MemoryStream(bytes);
         PptCore.PowerPointPicture picture = slide.AddPicturePoints(stream, imagePartType, 64D, top, width, height);
         if (!string.IsNullOrWhiteSpace(resource.AlternateText)) picture.AltText = resource.AlternateText;
-        ApplyPictureHyperlink(picture, resource.Hyperlink, result);
+        ApplyPictureHyperlink(picture, resource.Hyperlink, result, options.NormalizedHyperlinkUrlPolicy ?? options.HyperlinkUrlPolicy);
         result.Pictures++;
         imageReservation.Commit();
         top += height + 18D;

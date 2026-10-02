@@ -72,7 +72,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                     contentTop = ImportTable(item.Element, slide, contentTop, result, budget, options, item.SemanticBlock);
                     break;
                 case PowerPointSemanticImportKind.Picture:
-                    ImportPicture(item.Element, slide, result, budget, ref pictureTop);
+                    ImportPicture(item.Element, slide, result, budget, options, ref pictureTop);
                     break;
                 case PowerPointSemanticImportKind.Chart:
                     ImportChart(item.Element, slide, result, budget, ref chartTop);

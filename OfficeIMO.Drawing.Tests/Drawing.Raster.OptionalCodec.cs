@@ -6,6 +6,7 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingRasterOptionalCodecTests {
+    private const string IndependentJpegTiff = "SUkqADwAAAD/2P/AABEIABAAEANSEQBHEQBCEQD/2gAMA1IARwBCAAA/APf6+f6+f6KKKKKKKKK//9kACwAAAQMAAQAAABAAAAABAQMAAQAAABAAAAACAQMAAwAAAMYAAAADAQMAAQAAAAcAAAAGAQMAAQAAAAIAAAARAQQAAQAAAAgAAAAVAQMAAQAAAAMAAAAWAQMAAQAAABAAAAAXAQQAAQAAADMAAAAcAQMAAQAAAAEAAABbAQcAIQEAAMwAAAAAAAAACAAIAAgA/9j/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/xAAfAAABBQEBAQEBAQAAAAAAAAAAAQIDBAUGBwgJCgv/xAC1EAACAQMDAgQDBQUEBAAAAX0BAgMABBEFEiExQQYTUWEHInEUMoGRoQgjQrHBFVLR8CQzYnKCCQoWFxgZGiUmJygpKjQ1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4eLj5OXm5+jp6vHy8/T19vf4+fr/2Q==";
     // Independently encoded two-frame 16x16 animation (Pillow 12.3.0, libwebp 1.6.0).
     private const string IndependentAnimatedWebp = "UklGRogAAABXRUJQVlA4WAoAAAACAAAADwAADwAAQU5JTQYAAAAAAAAAAABBTk1GKgAAAAAAAAAAAA8AAA8AAGQAAAJWUDhMEQAAAC8PwAMAB1CoohSv/4GI6H8AAEFOTUYqAAAAAAAAAAAADwAADwAAZAAAAFZQOEwRAAAALw/AAwAHUKjiFaX/gYjofwAA";
 
@@ -125,6 +126,102 @@ public sealed class DrawingRasterOptionalCodecTests {
         Assert.DoesNotContain(svgResult.Diagnostics, x => x.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodedByCallerCodec);
         Assert.Contains("#BE4646", System.Text.Encoding.UTF8.GetString(svgResult.Bytes));
         if (svgCodec != null) Assert.Equal(1, svgCodec.Calls);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void UnsupportedArithmeticJpegRetainsVisiblePlaceholder(bool invalidCodecDimensions) {
+        // libjpeg-turbo 3.2.0 cjpeg -arithmetic; constant 16x12 RGB (30,80,120).
+        byte[] bytes = Convert.FromBase64String("/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/yQARCAAMABADASIAAhEBAxEB/8wACgAQEAUBEBEF/9oADAMBAAIRAxEAPwD/AJafF8ZI/9k=");
+        Assert.True(OfficeImageReader.TryIdentifyByContent(bytes, null, out var source));
+        Assert.Equal(16, source.Width);
+        var drawing = new OfficeDrawing(16, 12).AddImage(bytes, "image/jpeg",
+            new OfficeImageProjection(new OfficeImagePlacement(0, 0, 16, 12)));
+        var result = drawing.ExportImage(OfficeImageExportFormat.Png,
+            new OfficeImageExportOptions { BackgroundColor = OfficeColor.Transparent, ImageCodec = invalidCodecDimensions ? new IncorrectJpegCodec() : null });
+        Assert.True(OfficePngReader.TryDecode(result.Bytes, out var image));
+        Assert.True(image!.GetPixel(8, 6).A > 0);
+        Assert.Contains(result.Diagnostics, x => x.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
+    }
+
+    [Fact]
+    public void InspectedCallerSuccessRetainsProvenanceDiagnostic() {
+        byte[] bytes = Convert.FromBase64String(IndependentAnimatedWebp);
+        var drawing = new OfficeDrawing(16, 16).AddImageWithInterpolation(bytes, "image/webp",
+            new OfficeImageProjection(new OfficeImagePlacement(0, 0, 16, 16)), interpolate: false);
+        foreach (var format in new[] { OfficeImageExportFormat.Png, OfficeImageExportFormat.Svg }) {
+            var result = drawing.ExportImage(format, new OfficeImageExportOptions { ImageCodec = new Codec() });
+            Assert.Contains(result.Diagnostics, d => d.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodedByCallerCodec);
+            Assert.DoesNotContain(result.Diagnostics, d => d.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
+            Assert.Contains(result.Diagnostics, d => d.Code == OfficeImageExportDiagnosticCodes.SourceImageStaticFrameSelected);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SharedDecoderNeverAcceptsFallbackPlaceholders(bool nested) {
+        // Independently encoded 32x32 lossless animation (Pillow/libwebp).
+        byte[] bytes = Convert.FromBase64String("UklGRoQAAABXRUJQVlA4WAoAAAACAAAAHwAAHwAAQU5JTQYAAAAAAAAAAABBTk1GKAAAAAAAAAAAAB8AAB8AAGQAAAJWUDhMDwAAAC8fwAcABxD9j/4HIqL/AQBBTk1GKAAAAAAAAAAAAB8AAB8AAGQAAABWUDhMDwAAAC8fwAcABxDR//4HIqL/AQA=");
+        Assert.True(OfficeRasterContainerInspector.TryInspect(bytes, out var container));
+        Assert.Equal(32, container!.CanvasWidth);
+        IOfficeRasterImageCodec codec = new OfficeRasterImageFallbackCodec();
+        if (nested) codec = new OfficeRasterImageFallbackCodec(codec);
+        Assert.False(OfficeRasterImageDecoder.TryDecode(bytes, new OfficeRasterDecodeOptions { ImageCodec = codec }, out var image, out _));
+        Assert.Null(image);
+        Assert.False(OfficeImagePngConverter.TryConvertToPng(bytes, new OfficeRasterDecodeOptions { ImageCodec = codec }, out _, out _));
+    }
+
+    [Theory]
+    [InlineData(16, true)]
+    [InlineData(1, false)]
+    public void InspectedUnsupportedTiffUsesValidatedFirstPageCallerPixels(int size, bool succeeds) {
+        // Independent Pillow/libtiff JPEG-compressed TIFF, outside managed compression support.
+        byte[] bytes = Convert.FromBase64String(IndependentJpegTiff);
+        Assert.False(OfficeRasterImageDecoder.TryDecode(bytes, out _));
+        var codec = new TiffCodec(size);
+        Assert.Equal(succeeds, OfficeRasterImageDecoder.TryDecode(bytes,
+            new OfficeRasterDecodeOptions { ImageCodec = codec }, out var image, out var info));
+        Assert.Equal(1, codec.Calls);
+        Assert.Equal(succeeds, info.UsedCallerCodec);
+        if (succeeds) Assert.Equal(OfficeColor.Red, image!.GetPixel(8, 8));
+        else Assert.Null(image);
+        Assert.False(OfficeRasterImageDecoder.TryDecode(bytes,
+            new OfficeRasterDecodeOptions { ImageCodec = codec, MaximumDecodedPixels = 1 }, out _, out _));
+        Assert.Equal(1, codec.Calls);
+    }
+
+    private sealed class TiffCodec(int size) : IOfficeRasterImageCodec {
+        internal int Calls;
+        public bool TryDecode(byte[] bytes, string? contentType, out OfficeRasterImage? image) {
+            Calls++;
+            Assert.Equal("image/tiff", contentType);
+            image = new OfficeRasterImage(size, size, OfficeColor.Red);
+            return true;
+        }
+    }
+
+    [Fact]
+    public void OptionalCodecCloneAndOutputMustFitRetainedBudgetBeforeCallback() {
+        byte[] bytes = Convert.FromBase64String(IndependentJpegTiff);
+        Array.Resize(ref bytes, 128 * 1024); // TIFF permits unreferenced trailing data.
+        var codec = new TiffCodec(16);
+        // The inspector's 64 KiB allowance fits, but the 128 KiB provider input clone does not.
+        long retained = OfficeRasterGuards.MaximumDecodedBytes - bytes.Length - 65536 - 1024;
+        var options = new OfficeRasterDecodeOptions { ImageCodec = codec, RetainedManagedBytes = retained };
+        Assert.True(OfficeRasterContainerInspector.TryInspectForDecode(bytes, options, out _, out _));
+        Assert.False(OfficeRasterImageDecoder.TryDecode(bytes,
+            new OfficeRasterDecodeOptions { ImageCodec = codec, RetainedManagedBytes = retained }, out var image, out _));
+        Assert.Null(image);
+        Assert.Equal(0, codec.Calls);
+    }
+
+    private sealed class IncorrectJpegCodec : IOfficeRasterImageCodec {
+        public bool TryDecode(byte[] bytes, string? contentType, out OfficeRasterImage? image) {
+            image = new OfficeRasterImage(1, 1, OfficeColor.Red);
+            return true;
+        }
     }
 
     private sealed class Codec : IOfficeRasterImageCodec {

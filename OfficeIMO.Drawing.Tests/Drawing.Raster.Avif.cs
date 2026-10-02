@@ -47,6 +47,30 @@ public sealed class DrawingAvifTests {
     }
 
     [Fact]
+    public void AuxiliarySubtypePayloadRemainsBoundedAndPreservesPixels() {
+        byte[] original = Fixture("avif-alpha");
+        int auxiliary = Tag(original, "auxC") - 4;
+        int insertion = auxiliary + (int)Read32(original, auxiliary);
+        var bytes = new byte[original.Length + 4];
+        Buffer.BlockCopy(original, 0, bytes, 0, insertion);
+        Buffer.BlockCopy(new byte[] { 1, 2, 3, 4 }, 0, bytes, insertion, 4);
+        Buffer.BlockCopy(original, insertion, bytes, insertion + 4, original.Length - insertion);
+        foreach (string type in new[] { "meta", "iprp", "ipco", "auxC" }) {
+            int box = Tag(bytes, type) - 4;
+            Write32(bytes, box, Read32(bytes, box) + 4);
+        }
+        int location = Tag(bytes, "iloc") + 4;
+        Write32(bytes, location + 14, Read32(bytes, location + 14) + 4);
+        Write32(bytes, location + 28, Read32(bytes, location + 28) + 4);
+        Assert.True(OfficeRasterImageDecoder.TryDecode(original, out var expected));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(bytes, out var actual));
+        Assert.Equal(expected!.PixelBuffer, actual!.PixelBuffer);
+    }
+
+    private static uint Read32(byte[] bytes, int offset) =>
+        ((uint)bytes[offset] << 24) | ((uint)bytes[offset + 1] << 16) | ((uint)bytes[offset + 2] << 8) | bytes[offset + 3];
+
+    [Fact]
     public void ContainerHonorsEncodedPixelAndCancellationLimits() {
         byte[] bytes = Fixture("avif-alpha");
         Assert.False(OfficeAvifContainerReader.TryRead(bytes, new OfficeRasterDecodeOptions { MaximumEncodedBytes = bytes.Length - 1 }, out _));

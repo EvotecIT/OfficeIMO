@@ -10,6 +10,48 @@ namespace OfficeIMO.Tests;
 
 public class WordImageOptimizationTests {
     [Fact]
+    public void ExactStagingBudgetDoesNotRejectPreservedImages() {
+        using WordDocument word = WordDocument.Create();
+        var changed = Insert(word.AddParagraph(), 96, 48);
+        var preserved = Insert(word.AddParagraph(), 800, 400);
+        byte[] original = preserved.ToBytes();
+        var options = new WordImageOptimizationOptions { KeepOriginalWhenNotSmaller = false };
+        var analysis = word.AnalyzeImageOptimization(options);
+        var candidate = Assert.Single(analysis.Images, item => item.Status == WordImageOptimizationStatus.Optimized);
+        Assert.Contains(analysis.Images, item => item.Status == WordImageOptimizationStatus.AlreadySuitable);
+        options.MaxStagedBytes = candidate.OriginalBytes + candidate.FinalBytes;
+        Assert.Equal(options.MaxStagedBytes, analysis.RequiredStagedBytes);
+        var report = word.OptimizeImages(options);
+        Assert.True(report.Applied);
+        Assert.Equal(analysis.BytesSaved, report.BytesSaved);
+        Assert.Equal(original, preserved.ToBytes());
+        Assert.Equal(candidate.Final.Width, OfficeImageReader.Identify(changed.ToBytes()).Width);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MetadataStrippingRequiresExplicitPermission(bool allowLoss) {
+        using WordDocument word = WordDocument.Create();
+        var picture = Insert(word.AddParagraph(), 800, 400, withMetadata: true);
+        byte[] original = picture.ToBytes();
+        var report = word.OptimizeImages(new() {
+            MetadataPolicy = OfficeImageMetadataPolicy.Strip, AllowMetadataLoss = allowLoss
+        });
+        var item = Assert.Single(report.Images);
+        Assert.True((item.Metadata!.Stripped & OfficeImageMetadataKinds.Xmp) != 0);
+        if (allowLoss) {
+            Assert.Equal(WordImageOptimizationStatus.Optimized, item.Status);
+            Assert.DoesNotContain("private image metadata", System.Text.Encoding.UTF8.GetString(picture.ToBytes()));
+            Assert.Equal(item.OriginalBytes + item.FinalBytes, report.RequiredStagedBytes);
+        } else {
+            Assert.Equal(WordImageOptimizationStatus.MetadataLoss, item.Status);
+            Assert.Equal(original, picture.ToBytes());
+            Assert.Equal(0, report.RequiredStagedBytes);
+        }
+    }
+
+    [Fact]
     public void AnalysisUsesPerImageLimitWithoutRetainingTransactionCandidates() {
         using WordDocument word = WordDocument.Create();
         var first = Insert(word.AddParagraph(), 96, 48);
@@ -278,13 +320,14 @@ public class WordImageOptimizationTests {
         Assert.Equal(source, image.ToBytes());
     }
 
-    private static WordImage Insert(WordParagraph paragraph, double width, double height) {
+    private static WordImage Insert(WordParagraph paragraph, double width, double height, bool withMetadata = false) {
         var raster = new OfficeRasterImage(800, 400);
         for (int y = 0; y < raster.Height; y++)
             for (int x = 0; x < raster.Width; x++)
                 raster.SetPixel(x, y, OfficeColor.FromRgb((byte)(x * 17), (byte)(y * 31), (byte)(x * y)));
         byte[] bytes = OfficeJpegCodec.Encode(raster, new OfficeJpegEncodeOptions {
-            Quality = 98, Subsampling = OfficeJpegSubsampling.Y444
+            Quality = 98, Subsampling = OfficeJpegSubsampling.Y444,
+            Metadata = new OfficeJpegMetadata(xmp: withMetadata ? System.Text.Encoding.UTF8.GetBytes("private image metadata") : null)
         });
         using var stream = new MemoryStream(bytes);
         return paragraph.InsertImage(stream, "picture.jpg", width, height);

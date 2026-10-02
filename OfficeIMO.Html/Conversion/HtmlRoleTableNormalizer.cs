@@ -17,17 +17,12 @@ internal static class HtmlRoleTableNormalizer {
         IElement[] tables = document.QuerySelectorAll("[role]")
             .Where(element => element.LocalName != "table" && HtmlAccessibilitySemantics.HasRole(element, "table"))
             .ToArray();
-        if (materializeCss != null) {
-            var styledElements = new HashSet<IElement>();
-            foreach (IElement table in tables.Where(CanNormalizeRoleTable)) {
-                styledElements.Add(table);
-                foreach (IElement descendant in table.QuerySelectorAll("*")) styledElements.Add(descendant);
-            }
+        if (materializeCss != null && tables.Any(CanNormalizeRoleTable)) {
+            // Replacing structure can change sibling, ancestor and relational
+            // selectors outside the table too. Freeze the original document once.
             foreach (IElement element in document.QuerySelectorAll("*")) {
-                if (styledElements.Contains(element)) {
-                    materializeCss(element);
-                    materializedElements?.Add(element);
-                }
+                materializeCss(element);
+                materializedElements?.Add(element);
             }
         }
         for (int index = tables.Length - 1; index >= 0; index--) {
@@ -42,6 +37,17 @@ internal static class HtmlRoleTableNormalizer {
             CopyRoleTableAttributes(table, nativeTable);
             registerNative?.Invoke(table, nativeTable);
             IElement? implicitBody = null;
+            var remainingRows = new Dictionary<IElement, int>();
+            int directRemaining = 0;
+            foreach (IElement child in table.Children.Reverse()) {
+                if (HtmlAccessibilitySemantics.HasRole(child, "rowgroup")) {
+                    directRemaining = 0;
+                    int groupedRemaining = 0;
+                    foreach (IElement row in child.Children.Reverse()) remainingRows[row] = ++groupedRemaining;
+                } else {
+                    remainingRows[child] = ++directRemaining;
+                }
+            }
             foreach (IElement child in table.Children) {
                 if (HtmlAccessibilitySemantics.HasRole(child, "rowgroup")) {
                     implicitBody = null;
@@ -49,7 +55,7 @@ internal static class HtmlRoleTableNormalizer {
                     CopyRoleTableAttributes(child, body);
                     registerNative?.Invoke(child, body);
                     foreach (IElement row in child.Children) {
-                        body.AppendChild(CreateNativeRoleRow(document, row, registerNative, retainOriginalCellElement));
+                        body.AppendChild(CreateNativeRoleRow(document, row, registerNative, retainOriginalCellElement, remainingRows[row]));
                     }
                     nativeTable.AppendChild(body);
                 } else {
@@ -58,7 +64,7 @@ internal static class HtmlRoleTableNormalizer {
                         registerNative?.Invoke(table, implicitBody);
                         nativeTable.AppendChild(implicitBody);
                     }
-                    implicitBody.AppendChild(CreateNativeRoleRow(document, child, registerNative, retainOriginalCellElement));
+                    implicitBody.AppendChild(CreateNativeRoleRow(document, child, registerNative, retainOriginalCellElement, remainingRows[child]));
                 }
             }
             table.Parent.ReplaceChild(nativeTable, table);
@@ -114,7 +120,7 @@ internal static class HtmlRoleTableNormalizer {
 
     private static IElement CreateNativeRoleRow(
         IHtmlDocument document, IElement row, Action<IElement, IElement>? registerNative,
-        bool retainOriginalCellElement) {
+        bool retainOriginalCellElement, int remainingRows) {
         IElement nativeRow = document.CreateElement("tr");
         CopyRoleTableAttributes(row, nativeRow);
         registerNative?.Invoke(row, nativeRow);
@@ -136,6 +142,12 @@ internal static class HtmlRoleTableNormalizer {
                 if (!nativeCell.HasAttribute(span) && cell.HasAttribute("aria-" + span)) {
                     nativeCell.SetAttribute(span, cell.GetAttribute("aria-" + span));
                 }
+            }
+            if (nativeCell.GetAttribute("rowspan")?.Trim() == "0") {
+                nativeCell.SetAttribute("rowspan", remainingRows.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            } else if (HtmlIntegerSemantics.TryParsePositiveInteger(nativeCell.GetAttribute("rowspan"), out int positiveSpan)
+                && positiveSpan > remainingRows) {
+                nativeCell.SetAttribute("rowspan", remainingRows.ToString(System.Globalization.CultureInfo.InvariantCulture));
             }
             if (keepSourceCell) {
                 nativeCell.AppendChild(cell);

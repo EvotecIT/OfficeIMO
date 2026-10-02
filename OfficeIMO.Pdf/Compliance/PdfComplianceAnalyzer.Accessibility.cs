@@ -2,9 +2,17 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfComplianceAnalyzer {
 
-    private static void AddAccessibilityRequirements(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfOptions options, string? documentTitle, bool hasDocumentMetadataEvidence, PdfGeneratedImageAccessibilityEvidence[]? generatedImages, PdfGeneratedDrawingAccessibilityEvidence[]? generatedDrawings, PdfGeneratedFormAccessibilityEvidence[]? generatedForms) {
+    private static void AddAccessibilityRequirements(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfOptions options, string? documentTitle, bool hasDocumentMetadataEvidence, PdfGeneratedImageAccessibilityEvidence[]? generatedImages, PdfGeneratedDrawingAccessibilityEvidence[]? generatedDrawings, PdfGeneratedFormAccessibilityEvidence[]? generatedForms, int? formulasMissingAlternativeText) {
         if (profile == PdfComplianceProfile.PdfUa1 || profile == PdfComplianceProfile.PdfUa2) {
             AddPdfUaIdentificationRequirement(requirements, profile, options);
+            requirements.Add(new PdfComplianceRequirement(
+                "generated-formula-alternative-text", "Generated formula alternate descriptions",
+                formulasMissingAlternativeText == null ? PdfComplianceRequirementStatus.Missing
+                    : formulasMissingAlternativeText == 0 ? PdfComplianceRequirementStatus.Satisfied
+                    : PdfComplianceRequirementStatus.Missing,
+                formulasMissingAlternativeText == null ? "Generate the document to inspect formula descriptions."
+                    : formulasMissingAlternativeText == 0 ? "Every generated formula has an alternate description."
+                    : "Set PdfCanvasStructureOptions.AlternativeText for each meaningful Formula structure."));
             requirements.Add(BuildDocumentTitleRequirement(options, documentTitle, hasDocumentMetadataEvidence));
             requirements.Add(BuildDisplayDocumentTitleRequirement(options));
             requirements.Add(new PdfComplianceRequirement(

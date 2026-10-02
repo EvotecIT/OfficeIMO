@@ -356,7 +356,8 @@ public static partial class OfficeDrawingRasterRenderer {
         bool identifiedManagedRaster = OfficeImageReader.TryIdentifyByContent(bytes, null, out OfficeImageInfo identified) &&
             (identified.Format == OfficeImageFormat.Png || identified.Format == OfficeImageFormat.Jpeg ||
              identified.Format == OfficeImageFormat.Bmp || identified.Format == OfficeImageFormat.Webp ||
-             identified.Format == OfficeImageFormat.Gif || identified.Format == OfficeImageFormat.Tiff);
+             identified.Format == OfficeImageFormat.Gif || identified.Format == OfficeImageFormat.Tiff ||
+             identified.Format == OfficeImageFormat.Avif);
         if (identifiedManagedRaster) {
             if (!OfficeRasterImageDecoder.IsWithinPixelLimit(identified.Width, identified.Height, maximumRasterPixels)) {
                 image = null;
@@ -379,6 +380,8 @@ public static partial class OfficeDrawingRasterRenderer {
             if (!decoded && reservedPixels > 0L) transformedTextBudget.ReleaseIntermediateSurfacePixels(reservedPixels);
         }
         if (decoded && image != null) {
+            if (decodeInfo.UsedCallerCodec && imageCodec is OfficeRasterImageFallbackCodec successfulFallback)
+                successfulFallback.AddCallerCodecDiagnostic(contentType);
             if (decodeInfo.AnimationDiscarded || decodeInfo.FramesOrPagesDiscarded) {
                 diagnosticSink?.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
@@ -417,7 +420,7 @@ public static partial class OfficeDrawingRasterRenderer {
             !OfficeImageReader.HasCompleteJpegPayload(bytes, cancellationToken,
                 requireManagedFrame: true, validateMetadata: true);
         if (identifiedManagedRaster && !callerDecodedJpeg ||
-            OfficeImageReader.HasWebpSignature(bytes) || !callerCodecInputWithinLimit) {
+            OfficeImageReader.HasWebpSignature(bytes) || OfficeImageReader.HasAvifSignature(bytes, cancellationToken) || !callerCodecInputWithinLimit) {
             diagnosticSink?.Add(new OfficeImageExportDiagnostic(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 OfficeImageExportDiagnosticCodes.SourceImageDecodeOmitted,
@@ -453,9 +456,17 @@ public static partial class OfficeDrawingRasterRenderer {
             });
             return true;
         }
-        if (imageCodec == null ||
-            !imageCodec.TryDecode((byte[])bytes.Clone(), contentType, out image) ||
-            image == null) return false;
+        var jpegFallback = callerDecodedJpeg ? imageCodec as OfficeRasterImageFallbackCodec : null;
+        var sourceCodec = jpegFallback != null ? jpegFallback.SourceCodec : imageCodec;
+        bool callerSucceeded = false;
+        try {
+            callerSucceeded = sourceCodec != null &&
+                sourceCodec.TryDecode((byte[])bytes.Clone(), contentType, out image) && image != null;
+        } catch (Exception exception) when (jpegFallback != null &&
+            (exception is ArgumentException || exception is FormatException || exception is InvalidOperationException ||
+             exception is System.IO.IOException || exception is NotSupportedException || exception is OverflowException)) {
+            image = null;
+        }
         cancellationToken.ThrowIfCancellationRequested();
         int expectedWidth = identified.Width;
         int expectedHeight = identified.Height;
@@ -464,12 +475,19 @@ public static partial class OfficeDrawingRasterRenderer {
             expectedWidth = identified.Height;
             expectedHeight = identified.Width;
         }
-        if ((!callerDecodedJpeg || (image.Width == expectedWidth && image.Height == expectedHeight)) &&
+        if (callerSucceeded && image != null && (!callerDecodedJpeg || (image.Width == expectedWidth && image.Height == expectedHeight)) &&
             OfficeRasterImageDecoder.IsWithinPixelLimit(image.Width, image.Height, maximumRasterPixels)) {
             transformedTextBudget.ChargeIntermediateSurfacePixels((long)image.Width * image.Height, maximumRasterPixels);
+            jpegFallback?.AddCallerCodecDiagnostic(contentType);
             return true;
         }
         image = null;
+        if (jpegFallback != null) {
+            int width = Math.Min(32, identified.Width), height = Math.Min(32, identified.Height);
+            transformedTextBudget.ChargeIntermediateSurfacePixels((long)width * height, maximumRasterPixels);
+            image = jpegFallback.CreateFallbackImage(contentType, width, height, decodeInfo.Diagnostic);
+            return true;
+        }
         return false;
     }
 

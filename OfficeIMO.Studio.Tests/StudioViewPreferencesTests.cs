@@ -116,7 +116,8 @@ public sealed class StudioViewPreferencesTests {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
             var app = (App)Application.Current!;
-            var window = new MainWindow();
+            // This contract exercises restoration of the wide, two-pane reading layout.
+            var window = new MainWindow { Width = 1600, Height = 900 };
             try {
                 window.Show();
                 await window.TabHost.OpenDocumentAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "openpreserve-pdfa1b-text.pdf"));

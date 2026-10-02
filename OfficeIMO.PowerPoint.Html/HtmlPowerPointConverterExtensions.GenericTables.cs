@@ -13,7 +13,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         out PowerPointHtmlTableGrid? grid) {
         grid = null;
         HtmlSemanticTable? source = block.Table;
-        if (source == null || source.Rows.Count < 2 || rowHeights.Count != source.Rows.Count
+        if (source == null || source.Rows.Count < 2
             || block.SourceElement.HasAttribute("data-officeimo-left")
             || block.SourceElement.HasAttribute("data-officeimo-top")
             || block.SourceElement.HasAttribute("data-officeimo-height")
@@ -35,7 +35,7 @@ public static partial class HtmlPowerPointConverterExtensions {
     }
 
     private static bool HasGenericTableHeaderRow(HtmlSemanticTable source) =>
-        source.Rows.Count > 1 && source.Rows[0].Cells.Count > 0
+        source.Rows.Count > 1 && source.Rows[0].SourceRowIndex == 0 && source.Rows[0].Cells.Count > 0
         && source.Rows[0].Cells.All(cell => cell.IsHeader);
 
     private static bool TryImportPagedGenericTable(
@@ -126,6 +126,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         int targetRow,
         HtmlToPowerPointOptions options,
         HtmlToPowerPointResult result) {
+        HtmlSemanticTableRow? semanticRow = source.Rows.FirstOrDefault(row => row.SourceRowIndex == sourceRow);
         int sourceCell = 0;
         foreach (PowerPointHtmlTableCell cell in grid.Cells.Where(cell => cell.Row == sourceRow)) {
             PptCore.PowerPointTableCell targetCell = table.GetCell(targetRow, cell.Column);
@@ -134,8 +135,8 @@ public static partial class HtmlPowerPointConverterExtensions {
                 table.MergeCells(targetRow, cell.Column, targetRow, cell.Column + cell.ColumnSpan - 1);
                 result.MergedRanges++;
             }
-            if (sourceCell < source.Rows[sourceRow].Cells.Count) {
-                ApplySemanticTableCellFormatting(targetCell, source.Rows[sourceRow].Cells[sourceCell],
+            if (semanticRow != null && sourceCell < semanticRow.Cells.Count) {
+                ApplySemanticTableCellFormatting(targetCell, semanticRow.Cells[sourceCell],
                     options.NormalizedHyperlinkUrlPolicy ?? options.HyperlinkUrlPolicy);
             }
             TryApplyTargetSemanticRuns(targetCell, cell.Element, options.HyperlinkUrlPolicy);

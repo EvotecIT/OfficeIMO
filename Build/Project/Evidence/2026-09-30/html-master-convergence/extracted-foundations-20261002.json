@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "e323a5a4431e664cf4bc1b41f23e6c4bddf6f986",
+  "masterCommit": "a7ab9dfad33f25ced0b9d7756ad079f8acf007dc",
+  "mergedPullRequests": [
+    2684,
+    2685,
+    2686,
+    2687,
+    2690,
+    2692,
+    2693,
+    2694,
+    2695,
+    2697,
+    2698,
+    2701
+  ],
+  "integrationDelta": "Integrated all twelve qualified extraction PRs. Retained reviewed AVIF, row-group, caption, image-link and source-style fixes; preserved integration-only provider/runtime/layout behavior. Removed five identical Excel tests moved to their own file.",
+  "retainedEvidence": "Ignore/ExtractionQualification/merged-foundations",
+  "remaining": "Static release scope, integrated eighteen-case qualification, math candidate, provider version qualification, packed/platform proof, H10 static/editable evidence, and separate runtime productization remain in Docs/ROADMAP.md.",
+  "priorValidation": {
+    "framework": "net10.0",
+    "filter": "FullyQualifiedName~Hyphenation|FullyQualifiedName~SvgSymbol",
+    "passed": 29,
+    "failed": 0,
+    "buildOverride": "DeterministicSourcePaths=false",
+    "limitation": "The normal Release build fails deterministic SourceRoot mapping on this host. Root cause is unconfirmed: source-control initialization reports matching physical top-level and nested ContainingRoot paths. This focused test override is not package or release qualification."
+  },
+  "validation": {
+    "drawingFocusedNet10": 122,
+    "htmlAdapterFocusedNet10": 173,
+    "h4": {
+      "cases": 8,
+      "status": "Passed",
+      "failures": 0,
+      "path": "Ignore/ExtractionQualification/h4-final-extraction-batch",
+      "officeimoPngArtifacts": 43,
+      "pngByteDifferencesFromPriorIntegration": 0
+    },
+    "review": "Independent read-only integration review found no actionable P0-P2. Original owner reviews and current-head PR CI passed; latest AVIF automatic review was quota-limited and was not retried.",
+    "scope": "Focused integration and H4 proof, not full H10, package publication or browser parity.",
+    "htmlAdapterFocusedNet8": 173
+  },
+  "priorIntegration": {
+    "sourceCommit": "021f8bf70176059a6887f05a14a69869c06e4ddd",
+    "validation": {
+      "framework": "net10.0",
+      "drawingFocusedPassed": 240,
+      "htmlFocusedPassed": 113,
+      "pdfStructurePassed": 17,
+      "rtfPassed": 45,
+      "normalizedRasterBoundaryPassed": {
+        "net8.0": 8,
+        "net10.0": 8
+      },
+      "h4": {
+        "cases": 8,
+        "status": "Passed",
+        "failures": 0,
+        "path": "Ignore/ExtractionQualification/h4-merged-foundations-021f8bf70"
+      },
+      "normalReleaseBuild": "Core passed with zero warnings/errors; subsequent HTML/PDF/RTF tests used normal deterministic settings. Prior SourceRoot failure root cause remains unconfirmed.",
+      "review": "Independent merge review found AVIF pixel-limit bypass; reproduced for data/file/remote sources, fixed and targeted-confirmed.",
+      "scope": "Focused integration and H4 proof; not full H10, package publication or browser parity."
+    }
+  },
+  "cleanup": "All twelve dedicated extraction worktrees and local branches removed after verified merge. Compact native artifacts, consumers and proofs retained under merged-foundations; math and unrelated worktrees preserved."
+}

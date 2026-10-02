@@ -103,7 +103,7 @@ once. Imports with `MaxTotalImageBytes` stay sequential so responses that exceed
 budget can be rejected before their bodies are read.
 
 - `CreateOfficeIMOProfile()` keeps the compatibility-oriented defaults.
-- `CreateUntrustedHtmlProfile()` keeps external document resources offline by default and enables bounded conversion.
+- `CreateUntrustedHtmlProfile()` keeps external document resources offline by default and enables bounded conversion. WebP images normalized to PNG are limited to four million decoded pixels; `MaxDecodedImagePixels` configures this limit independently of encoded-byte limits. Oversized images retain their alternative text and produce a diagnostic.
 - `CreateTrustedDocumentProfile()` enables document-provided stylesheet links for known-good HTML while keeping resource validation.
 - `new HtmlToWordOptions()` embeds data URI images only; use a trusted/compatibility profile or set `ImageProcessing = ImageProcessingMode.Embed` for trusted remote image fetching.
 - Local file images are not loaded by default; use a trusted/compatibility profile or add `Uri.UriSchemeFile` to `AllowedImageUriSchemes` for trusted local files.
@@ -132,6 +132,12 @@ budget can be rejected before their bodies are read.
 - **OfficeIMO:** `OfficeIMO.Word`, `OfficeIMO.Html`, and `OfficeIMO.Core`. The bidirectional mapping, resource policy, and diagnostics are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+
+## Editable tables and images
+
+Structurally supported ARIA tables become native editable Word tables. CSS matching is preserved from the source document before structural normalization. Unsupported role-table structures remain in document flow with an approximation diagnostic; synthetic nodes do not consume source-node/depth limits.
+
+Linked images retain their media relationships, including images reused in headers and footers. Each occurrence keeps its authored dimensions and intrinsic aspect ratio. Images without authored dimensions fit the available content width, and supported CSS maximum widths are respected with proportional scaling and diagnostics. Preformatted newlines become native Word breaks.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

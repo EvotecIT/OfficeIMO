@@ -121,6 +121,8 @@ public sealed class OfficeRasterDecodeOptions {
 
 /// <summary>Typed evidence describing one shared raster decode decision.</summary>
 public sealed class OfficeRasterDecodeInfo {
+    internal bool UsedCallerCodec { get; set; }
+
     internal OfficeRasterDecodeInfo(OfficeImageFormat format, int frameCount, int selectedFrameIndex, bool succeeded, string? diagnostic, OfficeRasterContainerInfo? container = null) {
         Format = format;
         FrameCount = frameCount;

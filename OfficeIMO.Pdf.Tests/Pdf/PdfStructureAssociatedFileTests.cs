@@ -93,6 +93,41 @@ public sealed class PdfStructureAssociatedFileTests {
         Assert.Throws<InvalidOperationException>(() => catalogConflict.ToBytes());
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ConflictingNamesDoNotWriteToForwardOnlyDestination(bool catalogCollision) {
+        var document = PdfDocument.Create(new PdfOptions {
+            TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers,
+            ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly,
+            FileVersion = PdfFileVersion.Pdf17
+        });
+        if (catalogCollision) document.AttachFile("same.xml", Encoding.UTF8.GetBytes(FirstMath), "application/mathml+xml");
+        else document.Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula,
+            nested => nested.Text("x", 20, 20, 40, 20), Supplement("same.xml", FirstMath, "First")));
+        document.Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula,
+            nested => nested.Text("y", 20, 20, 40, 20), Supplement("same.xml", SecondMath, "Second")));
+        using var destination = new MemoryStream();
+        Assert.Throws<InvalidOperationException>(() => document.Save(destination));
+        Assert.Equal(0, destination.Length);
+    }
+
+    [Theory]
+    [InlineData(PdfComplianceProfile.PdfUa1)]
+    [InlineData(PdfComplianceProfile.PdfUa2)]
+    public void FormulaAccessibilityEvidenceRequiresAnAlternateDescription(PdfComplianceProfile profile) {
+        foreach (string? description in new string?[] { null, "x squared" }) {
+            var options = new PdfOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers };
+            var document = PdfDocument.Create(options).Canvas(canvas => canvas.Structure(
+                PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20),
+                new PdfCanvasStructureOptions { AlternativeText = description }));
+            var requirement = Assert.Single(document.AssessCompliance(profile).Requirements,
+                item => item.Id == "generated-formula-alternative-text");
+            Assert.Equal(string.IsNullOrWhiteSpace(description) ? PdfComplianceRequirementStatus.Missing
+                : PdfComplianceRequirementStatus.Satisfied, requirement.Status);
+        }
+    }
+
     [Fact]
     public void UndatedSupplementOmitsOptionalParametersRatherThanInventingDate() {
         byte[] bytes = PdfDocument.Create(new PdfOptions { TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers })

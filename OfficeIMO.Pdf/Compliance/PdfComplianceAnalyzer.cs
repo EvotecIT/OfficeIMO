@@ -71,7 +71,7 @@ internal static partial class PdfComplianceAnalyzer {
         }
 
         if (RequiresAccessibility(profile)) {
-            AddAccessibilityRequirements(requirements, profile, options, documentTitle, hasDocumentMetadataEvidence, generatedImageSnapshot, generatedDrawingSnapshot, generatedFormSnapshot);
+            AddAccessibilityRequirements(requirements, profile, options, documentTitle, hasDocumentMetadataEvidence, generatedImageSnapshot, generatedDrawingSnapshot, generatedFormSnapshot, generatedEvidence?.FormulasMissingAlternativeText);
         }
 
         if (IsElectronicInvoice(profile)) {

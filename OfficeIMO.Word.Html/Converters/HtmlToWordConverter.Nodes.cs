@@ -780,7 +780,7 @@ namespace OfficeIMO.Word.Html {
                                     var inlineContent = BuildLinkedInlineContent(element, doc, section, options,
                                         listStack, fmtAnchor, cell, headerFooter, headingList);
                                     linkParaAnchor = inlineContent.Count > 0
-                                        ? WordHyperLink.AddHyperLinkContent(currentParagraph!, inlineContent, anchor, tooltip: title ?? string.Empty)
+                                        ? WordHyperLink.AddHyperLinkContent(currentParagraph!, inlineContent, anchor, tooltip: title ?? string.Empty, moveContent: true)
                                         : currentParagraph!.AddHyperLink(element.TextContent, anchor);
                                 } else {
                                     linkParaAnchor = currentParagraph!.AddHyperLink(element.TextContent, anchor);
@@ -828,7 +828,7 @@ namespace OfficeIMO.Word.Html {
                                     var inlineContent = BuildLinkedInlineContent(element, doc, section, options,
                                         listStack, fmtExternal, cell, headerFooter, headingList);
                                     linkPara = inlineContent.Count > 0
-                                        ? WordHyperLink.AddHyperLinkContent(currentParagraph!, inlineContent, resolvedUri, tooltip: title ?? string.Empty)
+                                        ? WordHyperLink.AddHyperLinkContent(currentParagraph!, inlineContent, resolvedUri, tooltip: title ?? string.Empty, moveContent: true)
                                         : currentParagraph!.AddHyperLink(element.TextContent, resolvedUri);
                                 } else {
                                     linkPara = currentParagraph!.AddHyperLink(element.TextContent, resolvedUri);

@@ -120,4 +120,12 @@ public partial class Html {
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated &&
             diagnostic.Source == "role=table");
     }
+    [Fact]
+    public void HtmlToWord_AriaRoleTable_PreservesSourceSelectorsOutsideTable() {
+        const string html = "<style>div[role=table] + p {color:red} table + p {color:blue}</style>"
+            + "<div role='table'><div role='row'><div role='cell'>A</div></div></div><p>After</p>";
+        using var document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        var paragraph = Assert.Single(document.Paragraphs, p => p.Text == "After");
+        Assert.Equal("FF0000", paragraph.GetRuns().First().ColorHex);
+    }
 }

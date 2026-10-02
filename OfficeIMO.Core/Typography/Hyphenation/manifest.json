@@ -7,7 +7,7 @@
       "source": "https://raw.githubusercontent.com/hyphenation/tex-hyphen/5684c0f51c0b81133db2efbe60a408b4155a3ff5/hyph-utf8/tex/generic/hyph-utf8/patterns/tex/hyph-en-us.tex",
       "sourceSha256": "f4ffcd96c5cbc886bdad23f95dcae8edc3cd3620eae62f7946eceda97c4e68f8",
       "resource": "OfficeIMO.Core/Typography/Hyphenation/en-us.patterns",
-      "resourceSha256": "bcc077f249ab81e3e7529a263b0bc23edb853dd9de8d14151dab976066e97332",
+      "resourceSha256": "55411aef231f351d06752425949e00921847868c2bb537ef5d1bb875558166c5",
       "patterns": 4938,
       "exceptions": 14
     },

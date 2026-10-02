@@ -163,11 +163,12 @@ public static partial class HtmlPowerPointConverterExtensions {
         int columns = (int)Math.Min(Math.Max(1, budget.Limits.MaxTableCells),
             Math.Max(1L, source.Rows.Take(sourceRows).Select(row => row.Cells.Sum(cell => (long)Math.Max(1, cell.ColumnSpan)))
                 .DefaultIfEmpty(1L).Max()));
-        int rows = sourceRows;
+        int rows = EnumerateDirectTableRows(block.SourceElement)
+            .Take(budget.Limits.MaxTableCells).Count();
         for (int rowIndex = 0; rowIndex < sourceRows; rowIndex++) {
             foreach (HtmlSemanticTableCell cell in source.Rows[rowIndex].Cells) {
                 rows = Math.Max(rows, (int)Math.Min(budget.Limits.MaxTableCells,
-                    (long)rowIndex + Math.Max(1, cell.RowSpan)));
+                    (long)source.Rows[rowIndex].SourceRowIndex + Math.Max(1, cell.RowSpan)));
             }
         }
         double[] rowHeights = Enumerable.Repeat(34D, rows).ToArray();
@@ -175,6 +176,8 @@ public static partial class HtmlPowerPointConverterExtensions {
         var measurers = new Dictionary<(double Size, OfficeFontStyle Style), OfficeTextMeasurer>();
         for (int rowIndex = 0; rowIndex < sourceRows; rowIndex++) {
             HtmlSemanticTableRow row = source.Rows[rowIndex];
+            int authoredRow = row.SourceRowIndex;
+            if (authoredRow >= rows) continue;
             foreach (HtmlSemanticTableCell cell in row.Cells) {
                 double fontSize = 18D;
                 if (TryParseSemanticPixels(cell.Style?.GetValue("font-size"), out double cellPixels)) {
@@ -197,9 +200,9 @@ public static partial class HtmlPowerPointConverterExtensions {
                 OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(cell.Text, fontSize,
                     cellWidth * Math.Min(columns, Math.Max(1, cell.ColumnSpan)), 100000D, 1.2D, 1D, measure,
                     wrap: true, forceSingleLine: false, shrinkToFit: false);
-                int span = Math.Min(rows - rowIndex, Math.Max(1, cell.RowSpan));
+                int span = Math.Min(rows - authoredRow, Math.Max(1, cell.RowSpan));
                 double heightPerRow = Math.Ceiling((layout.Height + 16D) / span);
-                for (int spannedRow = rowIndex; spannedRow < rowIndex + span; spannedRow++) {
+                for (int spannedRow = authoredRow; spannedRow < authoredRow + span; spannedRow++) {
                     rowHeights[spannedRow] = Math.Max(rowHeights[spannedRow], heightPerRow);
                 }
             }

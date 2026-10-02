@@ -8,6 +8,17 @@ namespace OfficeIMO.Tests;
 public partial class DrawingTests {
     private const string OpaqueRedFilterMatrix = "0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1";
 
+    [Fact]
+    public void SvgFilterFractionalIntermediateClipDoesNotMoveOpaqueExcessIntoRegion() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><defs>"
+            + "<filter id='f' filterUnits='userSpaceOnUse' x='2.25' y='0' width='7.75' height='10'>"
+            + "<feColorMatrix/><feOffset dx='2'/></filter></defs>"
+            + "<rect width='10' height='10' fill='red' filter='url(#f)'/></svg>";
+        var raster = OfficeDrawingRasterRenderer.Render(ReadFilterGraph(svg));
+        Assert.InRange(raster.GetPixel(4, 5).A, 1, 254);
+        Assert.Equal(255, raster.GetPixel(5, 5).A);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("style='mix-blend-mode:multiply'")]

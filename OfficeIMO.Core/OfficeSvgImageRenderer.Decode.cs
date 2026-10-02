@@ -12,8 +12,11 @@ public static partial class OfficeSvgImageRenderer {
             ImageCodec = fallback != null ? fallback.SourceCodec : imageCodec,
             CancellationToken = cancellationToken
         };
-        if (OfficeRasterImageDecoder.TryDecode(bytes, options, out raster, out OfficeRasterDecodeInfo info) && raster != null)
+        if (OfficeRasterImageDecoder.TryDecode(bytes, options, out raster, out OfficeRasterDecodeInfo info) && raster != null) {
+            if (info.AnimationDiscarded || info.FramesOrPagesDiscarded) fallback?.AddStaticFrameDiagnostic(info);
+            if (info.UsedCallerCodec) fallback?.AddCallerCodecDiagnostic(contentType);
             return true;
+        }
         cancellationToken.ThrowIfCancellationRequested();
         // Placeholders represent loss, not decoded source pixels. Their dimensions
         // must never participate in the shared container's source validation.

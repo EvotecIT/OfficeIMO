@@ -56,13 +56,21 @@ public sealed class OfficeRasterImageFallbackCodec : IOfficeRasterImageCodec {
         return true;
     }
 
-    private void AddCallerCodecDiagnostic(string? contentType) {
+    internal void AddCallerCodecDiagnostic(string? contentType) {
         string format = string.IsNullOrWhiteSpace(contentType) ? "unknown image data" : contentType!;
         _diagnostics?.Add(new OfficeImageExportDiagnostic(
             OfficeImageExportDiagnosticSeverity.Info,
             OfficeImageExportDiagnosticCodes.SourceImageDecodedByCallerCodec,
             "The caller-supplied codec decoded " + format + ".",
             _source));
+    }
+
+    internal void AddStaticFrameDiagnostic(OfficeRasterDecodeInfo info) {
+        _diagnostics?.Add(new OfficeImageExportDiagnostic(
+            OfficeImageExportDiagnosticSeverity.Warning,
+            OfficeImageExportDiagnosticCodes.SourceImageStaticFrameSelected,
+            info.Diagnostic ?? "The selected static image does not retain animation or other frames/pages.",
+            _source, OfficeConversionLossKind.Omission));
     }
 
     private void AddDiagnostic(string? contentType, string? detail) {

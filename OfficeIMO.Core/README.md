@@ -229,6 +229,22 @@ checks matrix RGB, ICC v4 LUT RGB, and CMYK LUT swatches against LittleCMS.
 `OfficeImageOptimizer` still preserves or reports ICC metadata according to its metadata policy.
 It does not call the raster converter or claim that re-encoded pixels were normalized to sRGB.
 
+Routed SVG filters on non-text shape/group content support `SourceGraphic`,
+`SourceAlpha`, preceding named results, Gaussian blur, offset, matrix color transforms,
+source-over composition and separable blend modes. These operations use managed RGBA
+buffers at one pixel per drawing unit, then retain a PNG in the scene. The default
+filter color space is linear RGB; a uniform `sRGB` declaration is also supported.
+The filter region clips every input/result and the final paint. Simple unrouted
+blur/offset/drop-shadow filters retain their existing vector approximation.
+
+Managed filter graphs accept at most 32 primitives, blur deviation up to 64 drawing
+pixels per axis, and cumulative document work/intermediate-surface limits. Rotated
+or sheared graphs, explicit primitive subregions, mixed filter color spaces,
+unsupported primitives and graphs containing text, logical `ActualText`, links or
+pattern cells report unsupported features and preserve source geometry. Links on
+the filtered container retain their original geometry. Pass
+`OfficeSvgDrawingReaderOptions.CancellationToken` to cancel import and filter work.
+
 The SVG drawing reader supports a single rectangle, rounded rectangle, circle, ellipse, polygon, or
 path inside a `userSpaceOnUse` clip path, including transforms and even-odd filling. Compound clip
 unions, `objectBoundingBox` clips, and referenced or text clip geometry report unsupported features.
@@ -854,6 +870,20 @@ Set `OfficeDrawingRasterRenderOptions.ThrowOnImageDecodeFailure` to `true` when 
 - **OfficeIMO:** This is the shared foundation; it does not depend on another OfficeIMO runtime package.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+
+### Inspected caller raster decoding
+
+`OfficeRasterDecodeOptions.ImageCodec` supplies a trusted decoder for inspected
+payloads outside the managed subset. The shared boundary validates resource limits,
+frame selection and returned dimensions, preserves input bytes, and observes
+cancellation before and after the callback. Static WebP decoding failures do not
+fall through to a caller codec. Animated WebP can select frame zero and reports
+discarded animation. Drawing exports retain caller provenance and distinguish
+visible failure placeholders from decoded source pixels.
+
+### Bounded AVIF still images
+
+AVIF decoding accepts bounded, whole, untransformed 8/10-bit YUV420 color or monochrome grayscale items with reduced or full still-picture headers and optional same-depth full-range monochrome alpha. Full headers use one unlayered operating point, no timing/decoder model, and one shown key frame in a combined frame OBU. Primary grayscale items may use full or limited range; an auxiliary alpha plane must use full range. It produces eight-bit straight-alpha RGBA using the declared CICP range and supported non-constant-luminance matrix. It does not apply ICC, transfer-function or gamut transforms. Image grids, image sequences, twelve-bit coding, crop/rotation properties and applied film grain are outside this decoder contract. The original encoded buffer, reconstruction planes and final pixels share the retained-memory limit; cancellation and work limits apply through reconstruction and composition. Malformed selected items and limit failures cannot invoke a caller codec. A validated item with an unsupported color matrix or vertical/colocated chroma placement may use the explicitly supplied `ImageCodec`; managed YUV420 composition currently qualifies centered/unspecified chroma placement.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

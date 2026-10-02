@@ -53,7 +53,9 @@ OneNoteSection section = result.RequireValue();
 
 Use `ToOneNoteNotebookResult()` to create a one-section notebook. Convenience methods `ToOneNoteSection()` and `ToOneNoteNotebook()` throw when the result contains an error diagnostic. `HtmlToOneNoteOptions.Limits` applies the shared native import budgets before pages, elements, tables, or image bytes are allocated.
 
-The importer applies supported inline and embedded CSS to semantic text and cells. It does not load external stylesheet links; applicable links appear as omissions in the result's conversion report. Inspect that report when the source page relies on linked CSS for its appearance.
+Native HTML and ARIA tables remain editable. Uneven rows and spans become a rectangular grid with blank covered cells and an approximation diagnostic. Authored table and cell widths are bounded to the native page layout; otherwise columns share the available width according to their content. Captions are retained as preceding paragraphs, including bounded links. Image hyperlinks are preserved.
+
+Applicable external stylesheet links and unsupported `colgroup`/`col` widths produce loss diagnostics. Inline styles remain available to the semantic projector.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

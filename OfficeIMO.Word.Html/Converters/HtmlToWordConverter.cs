@@ -204,6 +204,7 @@ namespace OfficeIMO.Word.Html {
             _processedRadioInputs.Clear();
             _cssRules.Clear();
             _imageCache.Clear();
+            _unscaledImageSizes.Clear();
             _computedFontSizePixels.Clear();
             _materializedRoleTableElements.Clear();
             _computedBoxStyles.Clear();
@@ -244,6 +245,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static void ValidateResourceConcurrency(HtmlToWordOptions options) {
+            if (options.MaxDecodedImagePixels <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDecodedImagePixels));
             if (options.MaxConcurrentResourceLoads <= 0) {
                 throw new ArgumentOutOfRangeException(
                     nameof(options.MaxConcurrentResourceLoads),

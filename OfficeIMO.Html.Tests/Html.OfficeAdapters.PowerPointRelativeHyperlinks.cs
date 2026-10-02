@@ -6,6 +6,24 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class HtmlOfficeAdapters {
+    [Theory]
+    [InlineData("<p>{0}</p>")]
+    [InlineData("{0}")]
+    public void PowerPointPictureLinksHonorAdapterPolicy(string wrapper) {
+        const string image = "<img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNg+P//HwAF/gL9HjcXBgAAAABJRU5ErkJggg=='>";
+        var options = new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false };
+        options.HyperlinkUrlPolicy.RestrictUrlSchemes = true;
+        options.HyperlinkUrlPolicy.AllowedUrlSchemes.Clear();
+        options.HyperlinkUrlPolicy.AllowedUrlSchemes.Add("https");
+        options.HyperlinkUrlPolicy.ResolvedUrlTransform = value => value.EndsWith("/reject", StringComparison.Ordinal) ? null : "https://safe.example/rewritten";
+        foreach (string target in new[] { "http://example.test/blocked", "https://example.test/reject", "https://example.test/allowed" }) {
+            string html = string.Format(wrapper, "<a href='" + target + "'>" + image + "</a>");
+            using var presentation = HtmlConversionDocument.Parse(html).ToPowerPointPresentation(options);
+            var picture = Assert.Single(presentation.Slides.SelectMany(slide => slide.Pictures));
+            Assert.Equal(target.EndsWith("/allowed", StringComparison.Ordinal) ? "https://safe.example/rewritten" : null, picture.Hyperlink?.OriginalString);
+        }
+    }
+
     [Fact]
     public void PowerPointHtmlImportsPolicyApprovedRelativeRunHyperlinks() {
         const string html = "<p><a href='#slide-2'>Fragment</a> <a href='/docs'>Root</a> <a href='javascript:alert(1)'>Rejected</a></p>";

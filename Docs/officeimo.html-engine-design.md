@@ -2,20 +2,24 @@
 
 This architecture extends OfficeIMO's HTML engine into a reusable web-document platform. It describes ownership and acceptance contracts; package READMEs and the generated [HTML support matrix](officeimo.html-support-matrix.md) define current supported behavior. Remaining implementation work and its delivery order belong in the [roadmap](ROADMAP.md#independent-html-engine).
 
-The implemented document foundation is documented in the [HTML package README](../OfficeIMO.Html/README.md#inspect-and-edit-owned-html): owned document/node and contextual-fragment snapshots, explicit edits, public DOM migration, and parser/charset provider contracts. `HtmlDocumentEngine` is the provider-neutral entry point, `OfficeIMO.Html.Core` is the dependency-free contract leaf, and `OfficeIMO.Html.AngleSharp` is the current HTML parser provider. The optional runtime adds persistent scripted sessions, bounded resources, fetch and asynchronous XMLHttpRequest, storage, modules, lifecycle events, mutation delivery, locators, DOM actions, waits and independent capture. CSS/layout and the runtime still use replaceable retained providers. Static-renderer qualification retains the established H4/representative corpus. The independently authored H4/advanced-held-out selection now has a checked-in acceptance manifest for screen, print, and screen-to-page output. It requires source-marker preservation and evaluates each selected capability against declared per-case geometry, page, text, pixel, clipping, padding, and alignment criteria on Windows, Linux, and macOS, with [retained visual evidence](../Build/Project/Evidence/2026-09-16/html-h4-visual-acceptance/README.md). Named classifications preserve accepted differences without turning Chromium into a universal oracle. The same workload has enforced cross-platform elapsed, allocation, process-tree memory, output-size, cold-to-warm determinism and cancellation ceilings with [retained calibration evidence](../Build/Project/Evidence/2026-09-15/html-h4-advanced-held-out/README.md). Wider standards coverage, further application qualification and dependency retirement remain open.
+The implemented document foundation is documented in the [HTML package README](../OfficeIMO.Html/README.md#inspect-and-edit-owned-html): owned document/node and contextual-fragment snapshots, explicit edits, public DOM migration, and parser/charset provider contracts. `HtmlDocumentEngine` is the provider-neutral entry point, `OfficeIMO.Html.Core` is the dependency-free contract leaf, and `OfficeIMO.Html.AngleSharp` is the current HTML parser provider. The optional runtime adds persistent scripted sessions, bounded resources, fetch and asynchronous XMLHttpRequest, storage, modules, lifecycle events, mutation delivery, locators, DOM actions, waits and independent capture. CSS/layout and the runtime still use replaceable retained providers. Static-renderer qualification retains the established H4/representative corpus. The independently authored H4/advanced-held-out selection now has a checked-in acceptance manifest for screen, print, and screen-to-page output. It requires source-marker preservation and evaluates each selected capability against declared per-case geometry, page, text, pixel, clipping, padding, and alignment criteria on Windows, Linux, and macOS, with [retained visual evidence](../Build/Project/Evidence/2026-09-16/html-h4-visual-acceptance/README.md). Named classifications preserve accepted differences without turning Chromium into a universal oracle. The same workload has enforced cross-platform elapsed, allocation, process-tree memory, output-size, cold-to-warm determinism and cancellation ceilings with [retained calibration evidence](../Build/Project/Evidence/2026-09-15/html-h4-advanced-held-out/README.md). Wider standards coverage, further application qualification and package adoption remain open. Historical platform evidence retains its recorded source boundary; current-source H10 platform acceptance remains separate.
 
 The objective is to parse, inspect, query, edit, style, lay out, render, and convert HTML through OfficeIMO-owned contracts. OfficeIMO converters, HtmlTinkerX, document readers, and preview hosts should consume the same implementation. Runtime dependencies supply difficult algorithms behind explicit provider boundaries. Replacement is an option justified by product needs and qualification evidence, rather than an obligation to reimplement every dependency.
 
-Delivery prioritizes usable components. Keep AngleSharp, AngleSharp.Css, Jint,
-HarfBuzz, CodePages, and other effective providers behind OfficeIMO-owned contracts.
-Contribute reusable corrections and extension points upstream where practical.
-The interactive runtime consumes exact revisions of the EvotecIT AngleSharp,
-AngleSharp.Js and Jint forks; [the provider development guide](../External/README.md) defines
-source setup and ownership. OfficeIMO does not maintain copied implementations.
-A qualified upstream release can replace a fork. An owned implementation can replace
-a provider when measured product needs justify the work. Neither is a prerequisite
-for releasing useful rendering or runtime capabilities. H5, H6, and H9 describe
-optional independence tracks and their acceptance criteria.
+Delivery prioritizes usable components with retained providers. AngleSharp and
+AngleSharp.Css supply HTML/DOM and CSS capabilities; AngleSharp.Js supplies script
+bindings; Jint supplies JavaScript execution. OfficeIMO owns its public document,
+resource, rendering, conversion and host contracts. Reusable provider defects and
+extension points belong upstream. Temporary forks carry only necessary, tested
+deltas until a qualified upstream release supplies the contract. The [provider
+development guide](../External/README.md) defines source setup and ownership.
+
+There is no planned AngleSharp parser replacement, general CSS-engine rewrite,
+JavaScript interpreter or dependency-free browser milestone. Existing owned syntax
+and document models remain useful for source preservation, policy and stable APIs.
+Keep HarfBuzz, CodePages and other effective providers when needed. Reconsidering a
+provider requires a concrete unmet product need and a separate scope decision;
+removing a dependency is not itself a user outcome.
 
 
 ## Product boundaries
@@ -31,9 +35,9 @@ There are four separately useful products, with different acceptance criteria:
 
 A static page can be complex and still require no JavaScript. A simple-looking page can require scripts to create all its content. Classify inputs by required behavior and captured state, not their appearance or URL.
 
-Playwright is an automation layer over Chromium, Firefox and WebKit. Rendering replacement and automation replacement therefore have different owners and tests. A new engine also cannot prove how a website behaves in those other browsers; cross-browser testing remains a valid development dependency even after the runtime is independent. See [Playwright browser support](https://playwright.dev/docs/browsers).
+Playwright is an automation layer over Chromium, Firefox and WebKit. Rendering replacement and automation replacement therefore have different owners and tests. A new engine also cannot prove how a website behaves in those other browsers; cross-browser testing remains a valid development dependency when OfficeIMO supplies its own runtime host. See [Playwright browser support](https://playwright.dev/docs/browsers).
 
-No stage promises all websites or an identical Playwright API. The browser stage is part of the long-term design, with its own executable scope rather than an indefinite promise hidden inside HTML-to-PDF. The default managed route owns its document, rendering and web-platform contracts while continuing to use qualified upstream libraries behind provider boundaries. A no-third-party runtime profile is a conditional future product, not the default completion gate. Browser execution remains an explicit compatibility choice.
+No stage promises all websites or an identical Playwright API. The browser stage is part of the long-term design, with its own executable scope rather than an indefinite promise hidden inside HTML-to-PDF. The default managed route owns its document, rendering and web-platform contracts while continuing to use qualified upstream libraries behind provider boundaries. Third-party-free execution is outside the adopted product scope. Browser execution remains an explicit compatibility choice.
 
 ## Public adoption boundary
 
@@ -51,26 +55,26 @@ External consumers can adopt the platform at the smallest layer that owns their 
 | Trusted application runtime | Execute a declared JavaScript and web-API profile, interact with the live document, then capture an owned snapshot or render result | Optional runtime package behind the same document, resource, readiness and capture contracts |
 | Provider interoperability | Compare, import or temporarily execute through AngleSharp, a browser or another provider without exposing its objects to normal consumers | Optional adapter selected explicitly and identified in diagnostics |
 
-The target is an independent alternative with its own coherent API, not an AngleSharp-compatible API clone. Existing AngleSharp consumers should receive a deliberate migration guide and, only where real demand exists, narrow import/export adapters. Source compatibility with provider-specific types would preserve the dependency in the public contract and is therefore outside the design.
+The product has its own conversion API over effective upstream implementations. Owned types give consumers stable document and output contracts; they do not make OfficeIMO a replacement for AngleSharp. Provide migration instructions for actual OfficeIMO API changes and narrow provider interop only where consumers need it.
 
 Public adoption requires more than publishing assemblies. Each advertised layer needs a focused README, complete API documentation, a compatibility and versioning policy, runnable small examples, packed-package consumers, supported-target checks, trimming/AOT and browser-WASM evidence where claimed, package-size and transitive-dependency evidence, and diagnostics that identify the selected provider. A feature is advertised only at the layer whose qualification gate it passes.
 
 ## Existing foundation
 
-The package and implementation inventory was refreshed against OfficeIMO source commit `c94e8b97d1e035c58e94bfa8952cb8f5fbf34344` and HtmlTinkerX source commit `04f77ddee2dd5d33bb381e5f921b440710492aad`. These identify the inspected source; they do not establish public-package or runtime qualification.
+The package and implementation inventory is grounded in OfficeIMO source `6f5d0a685710ccb8e742cb27a71e9f75dbbcc9e0`. The [dated reassessment](../Build/Project/Evidence/2026-09-30/html-master-convergence/roadmap-reassessment-20261002.json) records current source, fresh tests/artifacts, provider pins and publication boundaries. HtmlTinkerX remains the external browser owner; no new cross-repository adoption is implied by this inventory.
 
 | Capability | Existing owner and evidence | Design implication |
 | --- | --- | --- |
 | Shared conversion input | [`HtmlConversionDocument`](../OfficeIMO.Html/Engine/HtmlConversionDocument.cs) retains source and lazily builds policy, logical, semantic, style and resource projections | Evolve this facade; preserve explicit trust and conversion profiles |
-| HTML parser | [`HtmlDocumentEngine`](../OfficeIMO.Html/Engine/HtmlDocumentEngine.cs) exposes owned documents and contextual fragments; [`AngleSharpHtmlParser`](../OfficeIMO.Html.AngleSharp/AngleSharpHtmlParser.cs) implements the replaceable provider contract, including isolated foreign and ancestor-form context reconstruction | Qualify replacement parsers against the same owned document, fragment, recovery and resource-limit fixtures |
-| CSS processing | [`HtmlComputedStyleEngine.Rules`](../OfficeIMO.Html/Styles/HtmlComputedStyleEngine.Rules.cs) combines AngleSharp.Css with raw-rule recovery and protected declaration transformations | Own lossless CSS syntax before adding more parser-specific recovery layers |
+| HTML parser | [`HtmlDocumentEngine`](../OfficeIMO.Html/Engine/HtmlDocumentEngine.cs) exposes owned documents and contextual fragments; [`AngleSharpHtmlParser`](../OfficeIMO.Html.AngleSharp/AngleSharpHtmlParser.cs) implements the replaceable provider contract, including isolated foreign and ancestor-form context reconstruction | Qualify provider upgrades and upstream fixes against owned document, fragment, recovery and resource-limit fixtures |
+| CSS processing | [`HtmlComputedStyleEngine.Rules`](../OfficeIMO.Html/Styles/HtmlComputedStyleEngine.Rules.cs) combines AngleSharp.Css with raw-rule recovery and protected declaration transformations | Use owned lossless syntax for source preservation; improve retained CSS behavior upstream and keep rendering-specific recovery bounded |
 | Layout | [`HtmlRenderLayoutEngine`](../OfficeIMO.Html/Rendering/HtmlRenderLayoutEngine.cs) already has block, inline, table, flex, grid, positioning, pagination and related implementations | Audit and adapt existing algorithms behind clearer intermediate representations; avoid a second permanent renderer |
 | Render result | [`HtmlRenderDocument`](../OfficeIMO.Html/Rendering/HtmlRenderDocument.cs) carries shared pages, fonts, text and diagnostics | Extend its scene and semantic mapping rather than add a PDF-specific layout model |
 | Shared graphics and fonts | [`OfficeIMO.Core`](../OfficeIMO.Core/OfficeIMO.Core.csproj) contains the `OfficeIMO.Drawing` namespace; [`OfficeManagedTextShapingProvider`](../OfficeIMO.Core/OfficeManagedTextShapingProvider.cs) explicitly declines some scripts and features | Keep typography and codecs shared across formats; absence of an external package does not imply full shaping coverage |
 | Optional shaping | [`OfficeIMO.Drawing.HarfBuzz`](../OfficeIMO.Drawing.HarfBuzz/OfficeIMO.Drawing.HarfBuzz.csproj) supplies native shaping dependencies | Retain the existing provider contract while expanding managed shaping |
 | PDF | [`OfficeIMO.Html.Pdf`](../OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj) depends on Html, Core and Pdf | HTML owns layout; PDF owns PDF serialization, fonts, tags, security and conformance |
 | Browser bridge | [`OfficeIMO.Html.Pdf.Browser`](../OfficeIMO.Html.Pdf.Browser/OfficeIMO.Html.Pdf.Browser.csproj) references HtmlTinkerX | Keep external browser execution in this optional direction; never make Html depend on its browser bridge |
-| HtmlTinkerX | Its inspected project already references OfficeIMO.Html and OfficeIMO.Markdown.Html, alongside AngleSharp packages, Jint, Playwright and other tools | Migrate workflows incrementally through the existing consumer relationship; HTML-engine independence does not automatically remove every HtmlTinkerX dependency |
+| HtmlTinkerX | Its inspected project already references OfficeIMO.Html and OfficeIMO.Markdown.Html, alongside AngleSharp packages, Jint, Playwright and other tools | Migrate workflows incrementally through the existing consumer relationship; HTML rendering improvements do not remove unrelated HtmlTinkerX dependencies |
 
 Current code is a substantial starting point. This inspection was not a new rendering qualification run. Existing feature names, catalog entries and passing historical tests must be classified as implementation, conformance evidence, or remaining proof gaps before setting a baseline.
 
@@ -80,11 +84,12 @@ The target package graph is acyclic:
 
 ```mermaid
 flowchart BT
-    HC[OfficeIMO.Html.Core: existing DOM leaf, syntax extensions planned]
+    HC[OfficeIMO.Html.Core: owned DOM and syntax contracts]
     OC[OfficeIMO.Core: existing drawing and document primitives]
     H[OfficeIMO.Html: styles, resources, semantics and layout] --> HC
     H --> OC
-    A[OfficeIMO.Html.AngleSharp: existing transitional provider] --> HC
+    A[OfficeIMO.Html.AngleSharp: retained parser provider] --> HC
+    H --> A
     P[OfficeIMO.Html.Pdf: existing adapter] --> H
     P --> PDF[OfficeIMO.Pdf]
     PDF --> OC
@@ -95,23 +100,30 @@ flowchart BT
     B[OfficeIMO.Html.Pdf.Browser: existing external bridge] --> T
 ```
 
-The target graph differs deliberately from the current packaged graph:
+The package roles and supported dependency direction are:
 
 | Package | Current role | Target role |
 | --- | --- | --- |
-| `OfficeIMO.Html.Core` | Publishable MIT contract leaf with no package or project dependencies | Standalone DOM, HTML/CSS syntax, selector and managed parser foundation |
-| `OfficeIMO.Html.AngleSharp` | Publishable temporary parser provider over Core | Optional migration and differential-testing adapter, absent from default dependencies |
+| `OfficeIMO.Html.Core` | Publishable MIT contract leaf with no package or project dependencies | Standalone owned DOM, source-preserving syntax, query and provider contracts |
+| `OfficeIMO.Html.AngleSharp` | Parser provider over Core | Retained default AngleSharp adapter with qualified package upgrades |
 | `OfficeIMO.Html` | Publishable renderer that currently references AngleSharp, AngleSharp.Css, Core and shared OfficeIMO primitives | Owned CSS, resources, semantics, layout and display list over Core and shared drawing primitives |
 | `OfficeIMO.Html.Pdf` | PDF output adapter over Html and OfficeIMO.Pdf | Same thin output direction, consuming an explicit render profile |
-| `OfficeIMO.Html.Pdf.Browser` | Optional HtmlTinkerX/browser bridge | Explicit external-browser provider outside the independent static profile |
-| Optional runtime | Trusted scripted sessions and automation through retained providers | Provider-neutral context, page, observation and action contracts over an owned HTML/CSS/JavaScript runtime |
+| `OfficeIMO.Html.Pdf.Browser` | Optional HtmlTinkerX/browser bridge | Explicit external-browser provider outside the default static profile |
+| Optional runtime | Trusted scripted sessions and automation through retained providers | Owned session, capture and action contracts over AngleSharp/AngleSharp.Js/Jint providers |
 | Optional agent/tool adapters | Not yet a separately productized HTML-runtime surface | Thin model, CLI or MCP adapters over structured observations and actions, with no LLM dependency in the runtime |
 
 `OfficeIMO.Html.Core` is the existing lightweight leaf for owned source buffers, DOM, serialization and provider contracts; HTML/CSS syntax and selector ownership continue to move into it as their implementations mature. It must not depend on graphics, PDF, Office file formats, networking sessions, JavaScript or browser installers. This gives HtmlTinkerX and other parsing or extraction consumers a small dependency graph. Namespaces can distinguish `Dom`, `Css.Syntax` and `Selectors` without creating a package for every folder.
 
 Keep computed styles, semantic projection, resource orchestration and layout in `OfficeIMO.Html` initially. Extract a separate CSS package only if a measured consumer requirement justifies it. Existing graphics primitives remain in `OfficeIMO.Core`; do not create another font or image implementation under Html. Create optional runtime/provider packages only when an executable consumer is ready to use them.
 
-The Html composition layer currently references the AngleSharp provider to supply the default parser. The provider translates into owned nodes and tokens; it does not control the render pipeline. It can remain the implementation across multiple usable releases while the managed parser is built and qualified. The default graph then drops the provider. `OfficeIMO.Html.AngleSharp` may remain as an optional compatibility and differential-testing adapter, but no default package or public consumer contract may require it. Add interop only for a demonstrated consumer requirement; do not preserve provider-specific public APIs by default.
+The Html composition layer references the AngleSharp provider for default parsing.
+It translates into owned nodes and keeps the native projection available for existing
+query/style paths. AngleSharp remains part of the static dependency graph. The
+optional runtime has its own source-linked worker graph and must not load fork and
+package assemblies into the same application context. Qualify upstream version
+updates, remove obsolete fork deltas and validate real packed consumers before
+changing that graph. The absence of a browser binary does not mean absence of
+third-party libraries.
 
 HtmlTinkerX retains website workflows, extraction recipes, sessions, authentication integration and PowerShell/CLI surfaces. Shared DOM/CSS/rendering algorithms move to OfficeIMO. Inspect each remaining HtmlTinkerX dependency by capability: replacing HTML rendering alone does not replace JavaScript minification, DOM diffing, email inlining or every legacy parser surface.
 
@@ -172,13 +184,21 @@ Preserve tree semantics needed for later event dispatch, ranges and shadow trees
 
 ### HTML and CSS parsing
 
-The transitional HTML provider parses once and translates into owned structures. The current adapter retains its native tree alongside an owned document when owned nodes are requested so selectors and conversion can reuse the parsed representation; conversion-only parsing keeps the owned projection lazy. Measure and reduce that retained dual-graph cost before changing providers. Rendering and conversion must not repeatedly serialize and reparse provider DOMs. Keep any old API clone/export path explicit and outside the new fast path.
+The retained HTML provider parses once and translates into owned structures. The current adapter retains its native tree alongside an owned document when owned nodes are requested so selectors and conversion can reuse the parsed representation; conversion-only parsing keeps the owned projection lazy. Measure and reduce that retained dual-graph cost before changing providers. Rendering and conversion must not repeatedly serialize and reparse provider DOMs. Keep any old API clone/export path explicit and outside the new fast path.
 
-The managed HTML parser needs the full selected tree-construction contract: malformed tables and foster parenting, misnested formatting, implied elements, raw text/RCDATA, character references, templates, foreign SVG/MathML content, fragments, quirks mode, and streaming chunk boundaries. A tokenizer alone is insufficient. Decoding must handle the selected BOM, transport, label, replacement and HTML encoding rules, with limits enforced during parsing. Use the [Encoding Standard](https://encoding.spec.whatwg.org/) and HTML parsing rules as references.
+The retained parser's selected contract includes malformed tree repair, contextual
+fragments, templates, foreign SVG/MathML content, document modes and decoding.
+Use standards fixtures and independent trees to identify defects, then fix the
+responsible provider or adapter. Bound source, depth, allocation and cancellation;
+measure dual-graph retention without building a second parser merely to remove it.
 
-Own CSS tokenization and a syntax tree that preserves unknown declarations, nested component values and source spans. Then implement declaration/property grammar, selector matching, cascade and computed values separately. This permits parsing an unsupported feature without treating it as rendered. Use [CSS Syntax](https://www.w3.org/TR/css-syntax-3/) for tokenization and error recovery.
-
-Prioritize CSS replacement when the baseline proves that current recovery transformations block correctness or duplicate substantial grammar. Keep AngleSharp for HTML while owned CSS syntax replaces sentinel rewriting and raw-rule reconciliation. Remove old recovery code only after its regression fixtures pass through the new path.
+Owned CSS syntax preserves source, trivia, unknown declarations and spans. Keep
+syntax acceptance, provider cascade acceptance and actual rendered behavior
+separate. AngleSharp.Css remains the effective style provider. OfficeIMO owns its
+layout-specific used values and diagnostics; reusable grammar/selector corrections
+should improve the provider. Replace recovery transformations only after equivalent
+regressions pass through the chosen implementation. A concrete consumer may justify
+a small owned grammar capability; it does not authorize wholesale CSS replacement.
 
 ### Styles and environment
 
@@ -290,11 +310,11 @@ Distinguish two paths: native layout of captured HTML/CSS/assets, and importing 
 
 ## Browser runtime evolution
 
-The static engine is inert even when the input contains scripts. An optional OfficeIMO runtime owns the public session, execution, readiness and capture contracts. Its implementation supplies realms, DOM bindings, event dispatch, tasks/microtasks, timers, navigation, fetch, storage, origins and invalidation as each profile is qualified. A session has one authoritative live root document. A transitional provider may retain that document in its native representation and produce independent OfficeIMO snapshots at an explicit capture boundary; do not maintain two independently mutable DOMs or expose provider nodes as public session results. A future owned live DOM replaces the provider implementation without changing the session contract.
+The static engine is inert even when the input contains scripts. An optional OfficeIMO runtime owns the public session, execution, readiness and capture contracts. Its implementation supplies realms, DOM bindings, event dispatch, tasks/microtasks, timers, navigation, fetch, storage, origins and invalidation as each profile is qualified. A session has one authoritative live root document. The retained provider may keep that document in its native representation and produce independent OfficeIMO snapshots at an explicit capture boundary; do not maintain two independently mutable DOMs or expose provider nodes as public session results. Preserve this single authoritative live DOM and the explicit immutable capture boundary.
 
-The scripted-document workflow reaches an explicitly ready document, owned interaction and independent rendered or semantic output. `WebApplicationV1` adds bounded modules, fetch, asynchronous XMLHttpRequest, storage, observers, cross-document navigation, reload, history restoration, forms, lifecycle behavior and layout-aware automation while retaining session resource limits and locator handles. Same-origin frame documents run qualified classic and module scripts in isolated globals with per-realm import/module maps, shared source and resource accounting, same-origin parent/top/frame access and bounded JSON-compatible messaging. Static and dynamic JSON imports are qualified through explicit `type: 'json'` attributes and strict JSON MIME checks; other import-attribute module types remain outside the profile. Cross-origin or opaque sandbox frames and sandbox-blocked scripts remain inert. Frame documents are captured as a separate immutable tree and projected into clipped static screen, print and screen-to-page output. The named profile accepts explicitly trusted content and declares its unsupported credential, isolation, layout and input behavior. Retain effective HTML, CSS and JavaScript providers while advancing static CSS and rendering qualification; owned parser and interpreter replacement remain separate tracks. HtmlTinkerX can reuse the engine later, but its current helper APIs, package graph and workflows do not define the runtime's boundary or acceptance criteria.
+The scripted-document workflow reaches an explicitly ready document, owned interaction and independent rendered or semantic output. `WebApplicationV1` adds bounded modules, fetch, asynchronous XMLHttpRequest, storage, observers, cross-document navigation, reload, history restoration, forms, lifecycle behavior and layout-aware automation while retaining session resource limits and locator handles. Same-origin frame documents run qualified classic and module scripts in isolated globals with per-realm import/module maps, shared source and resource accounting, same-origin parent/top/frame access and bounded JSON-compatible messaging. Static and dynamic JSON imports are qualified through explicit `type: 'json'` attributes and strict JSON MIME checks; other import-attribute module types remain outside the profile. Cross-origin or opaque sandbox frames and sandbox-blocked scripts remain inert. Frame documents are captured as a separate immutable tree and projected into clipped static screen, print and screen-to-page output. The named profile accepts explicitly trusted content and declares its unsupported credential, isolation, layout and input behavior. Retain effective HTML, CSS and JavaScript providers while advancing static CSS and rendering qualification; parser and interpreter replacement are outside the adopted scope. HtmlTinkerX can reuse the engine later, but its current helper APIs, package graph and workflows do not define the runtime's boundary or acceptance criteria.
 
-A JavaScript interpreter can execute language code but does not supply a web platform. Evaluate the Jint dependency already present in HtmlTinkerX for the first bounded runtime, preserving a provider boundary. Language testing uses [Test262](https://github.com/tc39/test262); page behavior needs additional DOM and web API tests. Event scheduling follows the [HTML event-loop model](https://html.spec.whatwg.org/multipage/webappapis.html#event-loops).
+A JavaScript interpreter can execute language code but does not supply a web platform. Jint supplies the language engine; qualify the selected version and host integration through the provider boundary. Language testing uses [Test262](https://github.com/tc39/test262); page behavior needs additional DOM and web API tests. Event scheduling follows the [HTML event-loop model](https://html.spec.whatwg.org/multipage/webappapis.html#event-loops).
 
 Admit runtime features through executable profiles:
 
@@ -363,7 +383,11 @@ unsupported APIs and isolation report. The chosen OS mechanism is replaceable
 behind the worker-launch boundary; its presence alone does not imply broad
 browser compatibility.
 
-Removing a third-party JavaScript engine is a later language-runtime project covering parsing, evaluation, modules, promises, built-ins, memory management, internationalization and performance. Start with an interpreter only if the stage has its own funded scope and Test262 acceptance. A JIT is not required to begin; its absence also does not establish adequate performance for real applications. The static product must remain useful and independently releasable throughout.
+OfficeIMO does not plan to implement JavaScript parsing, evaluation, built-ins or
+a JIT. Jint owns those algorithms. OfficeIMO owns admitted web APIs, host resource
+policy, session lifetime and conversion of captured state. Language conformance
+and provider defects need standalone Jint evidence as well as integrated runtime
+proof. Static conversion remains independently releasable.
 
 ### Programmatic browser control and agent integration
 
@@ -399,34 +423,37 @@ The planner may be an LLM, rules engine or application callback. It receives onl
 
 The structured tool surface should include navigation, page observation, locator inspection, click/fill/select/check/focus, keyboard/pointer/scroll, explicit waits, script evaluation when policy permits it, extraction, screenshot/render capture, downloads and final-result submission. Every tool declares required capabilities and returns stable status codes. Whole-page observation must support semantic-only, visual-only and combined modes so a caller can trade cost against fidelity without changing action semantics.
 
-The same automation contract supports three providers during migration:
+The automation contract admits these explicitly selected providers:
 
-1. The OfficeIMO managed runtime over qualified retained providers. H6 and H9 are optional independence profiles if separately justified and completed.
+1. The OfficeIMO runtime host over qualified AngleSharp/AngleSharp.Js/Jint providers.
 2. An explicitly selected external-browser adapter for websites outside the managed compatibility profile.
 3. A consumer-supplied provider implementing the published host/page/action contracts.
 
 Provider switching is never silent. Capability inspection occurs before a workflow starts, every observation and trace records the provider, and unsupported behavior returns a typed result. Cross-provider tests exercise equivalent outcomes rather than assuming identical screenshots, timing or hidden browser behavior.
 
-A local programmatic library is the first product boundary. Hosted browser fleets, residential proxies, stealth behavior, CAPTCHA services, account/profile synchronization and recurring task infrastructure are separate deployment products. They can consume the runtime and automation contracts later but do not belong in the HTML/CSS/JavaScript engine or determine when it is independent.
+A local programmatic library is the first product boundary. Hosted browser fleets, residential proxies, stealth behavior, CAPTCHA services, account/profile synchronization and recurring task infrastructure are separate deployment products. They can consume the runtime and automation contracts later but do not belong in the HTML/CSS/JavaScript engine or gate a bounded local conversion product.
 
-## Independent parser and adoption strategy
+## Retained-provider adoption strategy
 
-OfficeIMO can compete as a web-document and rendering platform before it replaces every provider. It cannot claim to be an independent parser/DOM alternative while the default parsing path still requires AngleSharp. Use four explicit adoption stages:
+The smallest usable product is a document or conversion workflow, not a replacement
+parser. Promote separately: owned parse/query/edit/serialize contracts; static
+rendering and output profiles; optional trusted execution and automation. Each
+needs real packed consumers, dependency/license inspection, migration guidance and
+supported-platform evidence. Existing source builds are not published-package proof.
 
-| Stage | Honest product claim | Exit gate |
-| --- | --- | --- |
-| Owned contract over a provider | Consumers use OfficeIMO document, query, edit and conversion contracts while diagnostics identify AngleSharp as the parser | No provider objects or exceptions escape normal APIs; packed consumers prove the owned surface |
-| Standalone web-document product | Non-Office applications can adopt the small public package and complete supported parse/query/edit/serialize workflows | Public docs, examples, compatibility policy, target/platform proof and package evidence are complete |
-| Managed parser by default | OfficeIMO owns tokenization, tree construction, contextual fragments, decoding and serialization in the default path | Pinned conformance, recovery, hostile-input, streaming, performance and differential gates pass |
-| Independent static distribution | The default static renderer has no third-party runtime packages or browser binaries | CSS, parsing, encoding, typography, resource, layout and output profiles pass through the packed graph |
+Publish the selected DOM/selector scope, source preservation, mutation and snapshot
+semantics, namespace behavior and retention policy. Browser-only APIs belong to
+runtime profiles rather than empty compatibility members in a document API. Keep
+provider selection visible in diagnostics; no silent fallback changes resource,
+execution or trust policy.
 
-The managed parser gate covers the selected WHATWG behavior as an integrated system: tokenizer states, tree construction and repair, fragments with context, templates, quirks/document modes, SVG and MathML foreign content, character references, encoding detection and restart policy, streaming chunk boundaries, serialization, source locations and resource limits. Passing a tokenizer suite alone is insufficient.
-
-The public document product also needs declared selector and DOM scope. Publish the supported selector levels and pseudo-classes, mutation and snapshot rules, collection behavior, namespace handling and source-preservation guarantees. Browser-only APIs such as layout properties, event dispatch, custom elements and shadow DOM belong to separately qualified runtime profiles; they must not appear as empty compatibility members just to resemble another DOM API.
-
-If a managed parser is pursued, use standards fixtures as the primary contract and differential testing as a diagnostic tool. Compare it with the retained provider and independent browser trees, minimize disagreements and resolve them against the chosen standards scope. Add grammar-aware fuzzing, round-trip and mutation fuzzing, allocation and retained-graph measurements, deep/wide/adversarial limits, cancellation latency, trimming/AOT checks and supported-platform runs. Benchmark equivalent parse, query, edit and serialization workloads without changing the requested outcome for one implementation.
-
-If provider retirement is justified, make the packaging change only after the public contract is stable. Keep `OfficeIMO.Html.AngleSharp` as an optional migration, comparison or fallback adapter if users need it, version it separately where practical, and require explicit provider selection. Do not silently fall back to it when a managed parser rejects or limits input; return a typed unsupported or failure result so users can make the policy decision.
+Provider maintenance follows source defect → owner regression → upstream patch →
+released package → OfficeIMO integration → packed consumer. A merged contribution
+may still be absent from the selected package or expose a different API. If a patch
+is declined, retain the smallest justified fork delta with its reason and tests;
+that is not a reason to replace a successful provider. Source pins are development
+evidence. Worker publication requires either qualified official packages or an
+explicit, correctly identified fork-distribution decision.
 
 ## Compatibility profiles and specification governance
 
@@ -500,7 +527,7 @@ Standards upgrades are deliberate releases. Refresh upstream revisions in a dedi
 
 ## Incremental delivery and promotion
 
-The complete managed browser is not the unit of delivery. A release unit is one useful vertical capability slice through the owned contracts: for example contextual fragment parsing, a selector family, one CSS module through computed values and layout, a fragmentation rule across every output, a navigation lifecycle, or one automation action. Provider-backed implementation is acceptable at any stage when the provider is isolated, reported and replaceable. This lets OfficeIMO improve current document, rendering and automation workflows while managed replacements mature independently.
+The complete managed browser is not the unit of delivery. A release unit is one useful vertical capability slice through the owned contracts: for example contextual fragment parsing, a selector family, one CSS module through computed values and layout, a fragmentation rule across every output, a navigation lifecycle, or one automation action. Provider-backed implementation is acceptable at any stage when the provider is isolated, reported and replaceable. This lets OfficeIMO improve current document, rendering and automation workflows without waiting for unrelated runtime features.
 
 Use a promotion ladder for each capability and profile combination:
 
@@ -518,18 +545,18 @@ Every slice must protect both the established behavior and its new claim. Run th
 
 Breaking cleanup remains allowed, but batch it around durable owned contracts and record user action in `MIGRATION.md`. Once a named profile is published as stable, ordinary additions must preserve its qualified behavior. Observable standards changes, removed fallbacks and incompatible default changes use a new profile version or a documented breaking release rather than quietly changing an old manifest.
 
-The long-running engine branch is an integration and full-stack qualification line, not a release gate. Keep it current with the default branch and use it to prove interactions among dependent slices. When a slice reaches its admission gate, replay it on the current default branch as a focused, reviewable change and merge it through the normal OfficeIMO path. Bring the merged result back into the integration line. Do not wait for H6 or H9, and do not merge the accumulated integration branch wholesale unless its remaining diff is itself cohesive and qualified.
+The long-running engine branch is an integration and full-stack qualification line, not a release gate. Keep it current with the default branch and use it to prove interactions among dependent slices. When a slice reaches its admission gate, replay it on the current default branch as a focused, reviewable change and merge it through the normal OfficeIMO path. Bring the merged result back into the integration line. Do not wait for parser or interpreter replacement, and do not merge the accumulated integration branch wholesale unless its remaining diff is itself cohesive and qualified.
 
-## Dependency retirement
+## Provider ownership and maintenance
 
 ### Retained-provider decision baseline
 
-The September 2026 provider baseline and the subsequent owned-document budget gate make three separate decisions. They apply to the retained-provider implementation and must be revisited when a replacement passes the corresponding removal gate.
+The September 2026 provider baseline and the subsequent owned-document budget gate make three separate decisions. They establish the retained-provider direction; newer provider releases must be qualified against the same observable contracts.
 
 | Provider area | Current decision | Evidence and next trigger |
 | --- | --- | --- |
-| AngleSharp HTML parser and static adapter | Retain as the default parser behind `HtmlDocumentEngine`; do not start an HTML parser rewrite without a measured product or qualification trigger | Weak provider projections reduced directly comparable Windows owned-document retention from 638.9 KiB to 204.3 KiB and conversion native-plus-owned retention from 641.9 KiB to 207.0 KiB. Parse, query, edit, serialization and conversion budgets pass at 10, 100 and 1,000 rows on Windows, Linux and macOS; separate in-flight cancellation workloads cover 10,000, 25,000 and 100,000 rows. Reconsider the default only when an owned parser passes the selected HTML recovery, fragment, encoding, hostile-input and performance gates. |
-| AngleSharp.Css syntax provider | Retain for selectors, cascade and computed values; use the owned syntax tree for source-preserving syntax consumers and future migration slices | The first owned lane preserves exact source, trivia, unknown rules and declarations, nested component values, source spans and invalid-input recovery. On the 105-rule Windows workload it takes a 5.400 ms median versus 15.070 ms for AngleSharp.Css syntax, while its richer retained graph is 2,241.2 KiB versus 691.0 KiB. Add property grammar and migrate selected selector/cascade slices before changing the default style path. |
+| AngleSharp HTML parser and static adapter | Retain as the default parser behind `HtmlDocumentEngine`; do not start an HTML parser rewrite without a measured product or qualification trigger | Weak provider projections reduced directly comparable Windows owned-document retention from 638.9 KiB to 204.3 KiB and conversion native-plus-owned retention from 641.9 KiB to 207.0 KiB. Parse, query, edit, serialization and conversion budgets pass at 10, 100 and 1,000 rows on Windows, Linux and macOS; separate in-flight cancellation workloads cover 10,000, 25,000 and 100,000 rows. Retain these recovery, fragment, encoding, hostile-input and performance gates during upstream upgrades. |
+| AngleSharp.Css syntax provider | Retain for selectors, cascade and computed values; use the owned syntax tree for source-preserving syntax consumers and consumer-specific grammar integration | The first owned lane preserves exact source, trivia, unknown rules and declarations, nested component values, source spans and invalid-input recovery. On the 105-rule Windows workload it takes a 5.400 ms median versus 15.070 ms for AngleSharp.Css syntax, while its richer retained graph is 2,241.2 KiB versus 691.0 KiB. Add only demanded property grammar; prefer provider improvements for reusable selector/cascade behavior. |
 | Retained AngleSharp DOM runtime fork | Maintain reusable changes in upstream-based forks and consume exact revisions | AngleSharp, AngleSharp.Js and Jint forks own their source, tests and patch notes. Qualify upgrades against standalone and OfficeIMO runtime tests. Prefer upstream fixes and extension points; track remaining divergence and return to official packages when qualified. Static-parser replacement alone does not retire runtime dependencies. |
 
 Package and source evidence accompanies the baseline in `Build/Project/Evidence/2026-09-15/html-provider-decision`. The enforced current budgets and provider delta are in `Build/Project/Evidence/2026-09-15/html-owned-document-budgets`. Dependency updates remain ordinary qualified maintenance. A newer upstream release is a reason to test and update the retained provider, not by itself a reason to replace or freeze it.
@@ -541,7 +568,7 @@ Replaceability means that the engine can use another implementation without chan
 | Dependency | Boundary to establish now | What remains owned by OfficeIMO |
 | --- | --- | --- |
 | AngleSharp | Parse source/fragment into owned nodes and parse diagnostics | Document identity, mutation, serialization policy, query contract and consumer-facing types |
-| CSS parser | The owned lossless syntax boundary is established; add declaration/property grammar and isolate temporary selector/cascade implementations behind the next owned contracts | Source retention, cascade decisions, computed-value contract and capability reporting |
+| CSS parser | The owned lossless syntax boundary is established; add declaration/property grammar and isolate retained selector/cascade implementation details behind owned consumer contracts | Source retention, cascade decisions, computed-value contract and capability reporting |
 | HarfBuzz | Existing shared shaping request/result contract | Fonts, glyph/cluster/logical-text mapping, lifetime, fallback policy and layout consumption |
 | CodePages | Central encoding resolution/decoding boundary using owned metadata and suitable BCL types | Label policy, BOM/HTML precedence, errors, streaming behavior and limits |
 | Script interpreter | Runtime provider bound to owned host/DOM contracts | Web API behavior, origins, scheduling policy, resource access and process isolation |
@@ -550,23 +577,31 @@ Do not expose provider nodes, native handles or provider exception types as norm
 
 Use capability-specific contracts rather than mirroring every third-party method. Prove the first real implementation through contract fixtures; later run replacement providers against the same fixtures. A fake second parser does not establish replaceability. For CodePages, test actual legacy byte decoding and unavailable-encoding behavior; for shaping, test real glyph/cluster output and lifetime. Package separation follows real deployment and consumer needs, not one package per interface.
 
-### Removal gates
+### Maintenance and distribution gates
 
-These gates apply only if a dependency-free profile is pursued because measured product, maintenance, packaging or performance evidence justifies it. They do not gate the retained-provider product. In that optional profile, independence means no third-party runtime packages or browser binaries; the .NET runtime/BCL, OS services and clearly declared font/Unicode/data resources remain. Test tools and optional providers are separate.
+For each provider, record the selected source/package version, required upstream
+patches, license and actual consumer graph. Validate upstream changes in the owner
+and in OfficeIMO before removing fork code or changing pins. Never publish fork
+assemblies under official upstream identities. Do not substitute a downstream shim
+for a missing released owner contract.
 
-| Dependency | Short-term role | Replacement/removal gate |
+Keep these ownership boundaries:
+
+| Provider or component | Durable responsibility | OfficeIMO responsibility |
 | --- | --- | --- |
-| AngleSharp.Css | Current selector, cascade and computed-style implementation while owned syntax and grammar mature | Selected declaration/property grammar, selector, cascade-trace and computed-value fixtures pass through the owned path; existing protected-token/raw-recovery paths are removed |
-| AngleSharp HTML/DOM | Production parser behind owned contracts | Selected full HTML parsing corpus, fragment/encoding tests, resource bounds and performance gates pass through a qualified replacement |
-| Encoding.CodePages | Current legacy encoding support | Explicit encoding compatibility matrix passes without it, or it remains only in a separately selected encoding provider; never silently narrow accepted inputs |
-| HarfBuzz/native typography | Optional complex shaping | Managed script/font/feature corpus meets text, cluster, glyph and geometry requirements on supported platforms |
-| Playwright/browser binaries | Explicit external execution/capture provider and independent test reference | Static runtime graph excludes them first; later selected interactive workloads pass on the owned runtime |
-| Jint or another script provider | Optional runtime implementation | Owned language runtime passes its versioned language suite and integrated web-runtime corpus within resource/performance budgets |
-| Other HtmlTinkerX tools | Formatting, inlining, alternate parsers, diffing and related workflows | Separate owner and replacement proof for each capability; no blanket removal based on rendering progress |
+| AngleSharp / AngleSharp.Css / AngleSharp.Js | HTML/DOM algorithms, reusable CSS behavior and script bindings | Stable conversion API, style/layout integration and admitted host policy |
+| Jint | JavaScript language execution and engine lifecycle primitives | Realm/session policy, resource access, readiness and capture |
+| HarfBuzz / CodePages | Selected shaping and legacy decoding algorithms | Font/encoding selection, logical-text mapping, limits and diagnostics |
+| HtmlTinkerX / browser | Browser installation, automation and capture | Explicit conversion route and output requirements |
+| Core Drawing / PDF / target formats | Images, typography, scenes, serialization and native format contracts | Thin HTML mapping into the canonical owner |
+| CodeGlyphX / ChartForgeX | Optional barcode/QR and chart generation | Consume their results as content; do not import their engines for generic image or drawing work |
 
-Check complete packed transitive graphs, runtime native assets, browser downloads and data requirements for each supported target. `PrivateAssets` does not remove a runtime need. Do not describe a package as dependency-free just because its project file contains only project references.
-
-Breaking API changes are accepted for this program. Replace public `IHtmlDocument`/`IElement` contracts during the foundation milestone once owned alternatives have end-to-end proof, while AngleSharp remains the parser implementation. Land each coherent break when its replacement is usable and migrate all in-repository consumers in the same change; do not hold every cleanup for one final engine rewrite. Remove superseded paths and do not carry duplicate APIs, obsolete overloads or compatibility wrappers solely to avoid an approved break. Preserve existing document/conversion behavior unless an intentional behavior change is separately documented and validated. Record actual upgrade actions in `MIGRATION.md` and use an appropriate breaking release version; removing the parser dependency itself can happen much later without another public API change.
+Inspect packed transitive graphs, native assets and downloadable resources on
+claimed targets. `PrivateAssets` does not remove a runtime dependency. Breaking
+OfficeIMO API changes still require working replacements, migrated consumers,
+`MIGRATION.md` and an appropriate version decision; owned APIs do not require a
+provider rewrite. Keep the existing public target set unless a separate decision
+changes it.
 
 ## Qualification and failure analysis
 
@@ -603,7 +638,7 @@ Diagnostics should locate the earliest divergent stage: source/token, DOM, winni
 
 The owned document boundary is the stable consumer surface. Continue widening real document and runtime workflows through it rather than exposing provider nodes or creating product-specific DOMs. Keep HtmlTinkerX and other hosts thin; migrate them only when the owning OfficeIMO component is usable and available through an explicit package or source relationship.
 
-Strengthen style, layout, conversion and runtime components through OfficeIMO-owned contracts while effective upstream providers remain behind them. The lossless CSS syntax tree is now the owned input for future declaration/property grammar and selector/cascade slices; it is not yet the renderer's default style path. Consider HTML parser replacement only when measured recovery or capability failures obstruct a required workflow and upstream correction is inadequate. Advance managed typography in the shared graphics owner. Treat static rendering, the selected application profile and optional dependency retirement as separately qualified outcomes.
+Strengthen style, layout, conversion and runtime components through OfficeIMO-owned contracts while effective upstream providers remain behind them. The lossless CSS syntax tree serves source-preserving consumers alongside retained provider behavior. Prioritize measured conversion gaps, upstream maintenance and releasable owner components. Advance typography in the shared graphics owner with optional shaping providers retained. Treat static rendering, editable reconstruction and selected application profiles as separately qualified outcomes.
 
 The owned render request, six named profiles, explicit page selection and retained
 result now form the common static output boundary. Existing continuous image calls
@@ -619,15 +654,6 @@ input-boundary diagnostics to the retained result before packaging.
 
 The table formatting context now carries fixed-width visible descendant contributions into auto track sizing while leaving percentage descendants dependent on the resolved cell width. It classifies header and footer repetition from computed table-group display, removes page boundaries crossed by rowspans or row and group avoidance, admits authored row breaks, and finds common line boundaries for oversized multi-cell rows. Table, row, and cell structure keys survive slicing and repetition, so retained scenes and tagged PDF represent one logical structure across page fragments. An oversized atomic or avoided row uses the shared forced-fragment diagnostic rather than stalling pagination.
 
-Deliver the remaining work in reviewable vertical slices:
+Use the [roadmap delivery order and PR boundaries](ROADMAP.md#delivery-order-and-milestone-refresh): provider maintenance and baseline, independently usable shared owners, the selected static product, unfamiliar-page qualification, editable targets, then optional runtime productization. These outcomes have separate acceptance and publication decisions. There is no parser/interpreter replacement gate.
 
-1. Add selected declaration/property grammar over the owned CSS syntax tree, then migrate selector, cascade-trace and computed-value slices with exact conformance manifests.
-2. Close remaining H4 layout, fragmentation and output gaps profile by profile against frozen browser, geometry, semantic and artifact references.
-3. If evidence justifies H5, complete an integrated managed parser and serializer and switch the default only after conformance, bounds and performance gates pass.
-4. Productize the existing H7-H8 runtime and locator foundation as typed contexts, pages, observations, actions, events, traces and optional agent tools while retained providers remain effective.
-5. Pursue H6 only if the retained-provider static graph presents a measured problem that upstream work cannot resolve; require packed transitive-graph proof on every supported target before advertising independence.
-6. Pursue H9 only if an owned JavaScript implementation has a concrete product case and passes its separate language and web-platform gates. Broader browser compatibility continues through explicit profiles.
-
-Preserve explicit bounds, provider identity and unsupported results throughout. Competitive claims attach to the completed profile or adoption stage, never to the repository as a whole.
-
-The open milestones and their readiness gates are maintained once in the [roadmap](ROADMAP.md#independent-html-engine). A static-engine release, an AngleSharp-free package and an interactive-runtime release are separate reviewable outcomes. Calendar forecasts should follow the first slice and the measured remaining failure classes. Broad browser compatibility remains the largest and least predictable part of the program.
+Preserve explicit bounds, provider identity and unsupported results throughout. Compatibility claims attach to a qualified profile and recorded environment. Broad browser compatibility remains a separately scoped, longer-term product concern.

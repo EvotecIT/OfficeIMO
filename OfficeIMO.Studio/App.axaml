@@ -1,7 +1,7 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:preferences="clr-namespace:OfficeIMO.Studio.Infrastructure.Preferences"
-             x:Class="OfficeIMO.Studio.App">
+             x:Class="OfficeIMO.Studio.App" Name="OfficeIMO Studio">
   <Application.Resources>
     <ResourceDictionary>
       <ResourceDictionary.ThemeDictionaries>
@@ -70,6 +70,7 @@
           <SolidColorBrush x:Key="StudioWindowBrush" Color="#E9EDF2" />
           <SolidColorBrush x:Key="StudioChromeBrush" Color="#E9EDF2" />
           <SolidColorBrush x:Key="StudioPanelBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="StudioDocumentToolbarBrush" Color="#FFFFFF" />
           <SolidColorBrush x:Key="StudioPanelRaisedBrush" Color="#FFFFFF" />
           <SolidColorBrush x:Key="StudioPanelMutedBrush" Color="#F3F5F8" />
           <SolidColorBrush x:Key="StudioCanvasBrush" Color="#DFE3E9" />
@@ -177,6 +178,7 @@
           <SolidColorBrush x:Key="StudioWindowBrush" Color="#101318" />
           <SolidColorBrush x:Key="StudioChromeBrush" Color="#101318" />
           <SolidColorBrush x:Key="StudioPanelBrush" Color="#191E26" />
+          <SolidColorBrush x:Key="StudioDocumentToolbarBrush" Color="#191E26" />
           <SolidColorBrush x:Key="StudioPanelRaisedBrush" Color="#212833" />
           <SolidColorBrush x:Key="StudioPanelMutedBrush" Color="#262D38" />
           <SolidColorBrush x:Key="StudioCanvasBrush" Color="#252B34" />
@@ -284,6 +286,7 @@
           <SolidColorBrush x:Key="StudioWindowBrush" Color="#000000" />
           <SolidColorBrush x:Key="StudioChromeBrush" Color="#000000" />
           <SolidColorBrush x:Key="StudioPanelBrush" Color="#000000" />
+          <SolidColorBrush x:Key="StudioDocumentToolbarBrush" Color="#000000" />
           <SolidColorBrush x:Key="StudioPanelRaisedBrush" Color="#080808" />
           <SolidColorBrush x:Key="StudioPanelMutedBrush" Color="#171717" />
           <SolidColorBrush x:Key="StudioCanvasBrush" Color="#000000" />

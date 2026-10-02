@@ -6,7 +6,7 @@ namespace OfficeIMO.Drawing;
 /// <remarks>Converts channel values using CICP range/matrix metadata. ICC, transfer and gamut transforms are not applied.</remarks>
 internal static class OfficeAvifColorConverter {
     internal static OfficeRasterImage Compose(OfficeAv1ReconstructedFrame frame, OfficeAvifColorDescription color,
-        OfficeAv1ReconstructedFrame? alpha, OfficeRasterDecodeOptions options) {
+        OfficeAv1ReconstructedFrame? alpha, OfficeRasterDecodeOptions options, int chromaSamplePosition = 0) {
         options.Validate(); options.CancellationToken.ThrowIfCancellationRequested();
         if((frame.BitDepth!=8 && frame.BitDepth!=10) || (alpha!=null && alpha.BitDepth!=frame.BitDepth))
             throw new FormatException("Invalid or inconsistent AVIF composition bit depth.");
@@ -18,6 +18,8 @@ internal static class OfficeAvifColorConverter {
         long storage = frame.StorageBytes + (alpha?.StorageBytes ?? 0) + (long)pixels * 4;
         if (options.RetainedManagedBytes > OfficeRasterGuards.MaximumDecodedBytes - storage)
             throw new FormatException("AVIF composition exceeds retained memory.");
+        if (frame.PlaneCount == 3 && chromaSamplePosition != 0)
+            throw new NotSupportedException("AVIF vertical and colocated chroma positions require a caller codec.");
         double kr, kb;
         switch (color.Matrix) {
             case 1: kr = .2126; kb = .0722; break;
