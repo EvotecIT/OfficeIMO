@@ -115,14 +115,13 @@ public sealed partial class EpubPublication {
     }
 
     private static void UpdateContentProperties(EpubManifestItem item, XDocument content, string owner, OfficeIMO.Html.HtmlResourceManifest resources) {
-        var properties = new List<string>(Tokens(item.Properties).Where(token => token != "svg" && token != "mathml" && token != "remote-resources"));
+        // Linked CSS dependencies are not exhaustively traversed, so retain an explicit remote declaration.
+        var properties = new List<string>(Tokens(item.Properties).Where(token => token != "svg" && token != "mathml"));
         if (content.Descendants().Any(element => element.Name.NamespaceName == "http://www.w3.org/2000/svg" && element.Name.LocalName == "svg") && item.MediaType == "application/xhtml+xml") properties.Add("svg");
         if (content.Descendants().Any(element => element.Name.NamespaceName == "http://www.w3.org/1998/Math/MathML")) properties.Add("mathml");
         // Shared HTML discovery also covers inline CSS, srcset, and non-hyperlink resource URLs.
-        if (item.MediaType == "application/xhtml+xml") {
-            if (resources.Resources.Any(resource => resource.Kind != OfficeIMO.Html.HtmlResourceKind.Hyperlink &&
-                EpubReference.Resolve(owner, resource.Source).Kind == EpubReferenceKind.External)) properties.Add("remote-resources");
-        }
+        if (resources.Resources.Any(resource => resource.Kind != OfficeIMO.Html.HtmlResourceKind.Hyperlink &&
+            EpubReference.Resolve(owner, resource.Source).Kind == EpubReferenceKind.External)) properties.Add("remote-resources");
         item.Properties = properties.Count == 0 ? null : string.Join(" ", properties.Distinct(StringComparer.Ordinal));
     }
 }

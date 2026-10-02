@@ -20,6 +20,11 @@ public sealed partial class EpubPublication {
         var entries = new Dictionary<string, byte[]>(_entries, StringComparer.Ordinal);
         bool changed = _changed || modifiedAt.HasValue;
         var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+        if (changed && _originalHasZipSignature) {
+            if (!removeSignatures) throw new InvalidOperationException("Edits invalidate the ZIP directory signature. Explicit signature removal is required.");
+            diagnostics.Add(new OfficeConversionFidelityDiagnostic("EPUB_WRITE_ZIP_SIGNATURE_REMOVED",
+                "Invalidated ZIP central-directory signature was removed by explicit policy.", OfficeConversionLossKind.Omission, "OfficeIMO.Epub"));
+        }
         if (changed && entries.ContainsKey("META-INF/signatures.xml")) {
             if (!removeSignatures) throw new InvalidOperationException("Edits invalidate package signatures. Explicit signature removal is required.");
             entries.Remove("META-INF/signatures.xml");
@@ -85,11 +90,11 @@ public sealed partial class EpubPublication {
     public EpubWriteReport Save(string path, EpubWriteOptions? options = null, CancellationToken cancellationToken = default) {
         EpubWriteResult result = Write(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        OfficeFileCommit.Write(path, stream => {
+        string temporary = OfficeFileCommit.StageAllBytes(path, result.Bytes);
+        try {
             cancellationToken.ThrowIfCancellationRequested();
-            WritePayload(stream, result.Bytes, cancellationToken);
-            cancellationToken.ThrowIfCancellationRequested();
-        });
+            OfficeFileCommit.CommitTemporaryFileAtomically(temporary, path);
+        } finally { OfficeFileCommit.DeleteIfExists(temporary); }
         return result.Report;
     }
     /// <summary>Writes a staged complete artifact to a caller-owned stream. Seekable streams are replaced and rewound.</summary>
@@ -103,7 +108,11 @@ public sealed partial class EpubPublication {
     /// <summary>Asynchronously atomically saves a completed artifact to a file.</summary>
     public async Task<EpubWriteReport> SaveAsync(string path, EpubWriteOptions? options = null, CancellationToken cancellationToken = default) {
         EpubWriteResult result = Write(options, cancellationToken);
-        await OfficeFileCommit.WriteAllBytesAsync(path, result.Bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+        string temporary = await OfficeFileCommit.StageAllBytesAsync(path, result.Bytes, cancellationToken).ConfigureAwait(false);
+        try {
+            cancellationToken.ThrowIfCancellationRequested();
+            OfficeFileCommit.CommitTemporaryFileAtomically(temporary, path);
+        } finally { OfficeFileCommit.DeleteIfExists(temporary); }
         return result.Report;
     }
     /// <summary>Asynchronously writes a staged artifact without closing the destination stream.</summary>

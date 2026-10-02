@@ -18,6 +18,7 @@ public sealed partial class EpubPublication {
     private readonly Dictionary<string, byte[]> _entries;
     private readonly Dictionary<string, byte[]> _originalEntries;
     private readonly byte[]? _originalBytes;
+    private readonly bool _originalHasZipSignature;
     private readonly IReadOnlyList<EpubEncryptionInfo> _encryption;
     private readonly string? _originalIdentifier;
     private bool _changed;
@@ -35,6 +36,7 @@ public sealed partial class EpubPublication {
         _originalBytes = originalBytes;
         _encryption = encryption ?? Array.Empty<EpubEncryptionInfo>();
         limits ??= new EpubPublicationLoadOptions();
+        _originalHasZipSignature = originalBytes != null && OfficeIMO.Provenance.OfficeProvenanceZip.HasCentralDirectorySignature(originalBytes, limits.MaxEntries);
         _maximumRetainedBytes = limits.MaxExpandedBytes;
         _maximumEntryBytes = limits.MaxEntryBytes;
         _retainedBytes = entries.Values.Sum(data => data.LongLength);

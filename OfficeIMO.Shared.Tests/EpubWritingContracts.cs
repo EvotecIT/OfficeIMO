@@ -312,6 +312,156 @@ public sealed class EpubWritingContracts {
         Assert.Throws<NotSupportedException>(() => book.Write());
     }
 
+    [Theory]
+    [InlineData("oversized")]
+    [InlineData("invalid-xml")]
+    [InlineData("invalid-uri")]
+    [InlineData("duplicate")]
+    [InlineData("ambiguous-method")]
+    [InlineData("wrong-namespace")]
+    public async Task EditableLoad_RejectsUnclassifiedProtectionThroughBothLoadPaths(string failure) {
+        string declaration = "<e:EncryptedData><e:EncryptionMethod Algorithm='http://www.idpf.org/2008/embedding'/>" +
+            "<e:CipherData><e:CipherReference URI='EPUB/font.otf'/></e:CipherData></e:EncryptedData>";
+        string encryption = "<encryption xmlns='urn:oasis:names:tc:opendocument:xmlns:container' xmlns:e='http://www.w3.org/2001/04/xmlenc#'>" +
+            declaration + "</encryption>";
+        if (failure == "oversized") encryption = encryption.Replace("</encryption>", "<!--" + new string('x', 4096) + "--></encryption>");
+        if (failure == "invalid-xml") encryption = "<encryption>";
+        if (failure == "invalid-uri") encryption = encryption.Replace("EPUB/font.otf", "https://example.org/font.otf");
+        if (failure == "duplicate") encryption = encryption.Replace(declaration, declaration + declaration);
+        if (failure == "ambiguous-method") encryption = encryption.Replace("<e:CipherData>", "<e:EncryptionMethod Algorithm='urn:other:cipher'/><e:CipherData>");
+        if (failure == "wrong-namespace") encryption = encryption.Replace("http://www.w3.org/2001/04/xmlenc#", "urn:foreign");
+        byte[] source = AddEntries(CreateBook().Write().Bytes,
+            ("EPUB/font.otf", new byte[] { 1, 2, 3 }), ("META-INF/encryption.xml", Encoding.UTF8.GetBytes(encryption)));
+        var limits = new EpubPublicationLoadOptions { MaxMetadataBytes = 4096 };
+        Assert.Throws<InvalidDataException>(() => EpubPublication.Load(new MemoryStream(source), limits));
+        await Assert.ThrowsAsync<InvalidDataException>(() => EpubPublication.LoadAsync(new MemoryStream(source), limits));
+    }
+
+    [Fact]
+    public async Task Save_FileCommitFailurePreservesDestinationAndRemovesStagingFiles() {
+        // Windows sharing locks prevent replacement; Unix permits renaming an open file.
+        if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)) return;
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO-EpubWriter-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "book.epub");
+        try {
+            byte[] original = { 1, 2, 3, 4 };
+            File.WriteAllBytes(path, original);
+            using (var held = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                Assert.ThrowsAny<IOException>(() => CreateBook().Save(path));
+                await Assert.ThrowsAnyAsync<IOException>(() => CreateBook().SaveAsync(path));
+            }
+            Assert.Equal(original, File.ReadAllBytes(path));
+            Assert.Single(Directory.GetFiles(directory));
+        } finally { Directory.Delete(directory, true); }
+    }
+
+    [Fact]
+    public void ZipDirectorySignature_RequiresExplicitRemovalAndReportsOmission() {
+        byte[] source = CreateBook().Write().Bytes;
+        int end = source.Length - 22; // This fixture has no ZIP comment.
+        Assert.Equal(0x06054b50u, BitConverter.ToUInt32(source, end));
+        byte[] signature = { 0x50, 0x4b, 0x05, 0x05, 0x03, 0x00, 0x10, 0x20, 0x30 };
+        byte[] signed = new byte[source.Length + signature.Length];
+        Buffer.BlockCopy(source, 0, signed, 0, end);
+        Buffer.BlockCopy(signature, 0, signed, end, signature.Length);
+        Buffer.BlockCopy(source, end, signed, end + signature.Length, 22);
+        BitConverter.GetBytes(BitConverter.ToUInt32(source, end + 12) + (uint)signature.Length).CopyTo(signed, end + signature.Length + 12);
+        EpubPublication book = EpubPublication.Load(new MemoryStream(signed));
+        Assert.Equal(signed, book.Write().Bytes);
+        book.Title = "Edited";
+        Assert.Throws<InvalidOperationException>(() => book.Write());
+        EpubWriteResult result = book.Write(new EpubWriteOptions { RemoveInvalidatedSignatures = true });
+        Assert.False(OfficeProvenanceZip.HasCentralDirectorySignature(result.Bytes, 100));
+        Assert.True(result.HasLoss);
+        Assert.Contains(result.Report.FidelityDiagnostics, item => item.Code == "EPUB_WRITE_ZIP_SIGNATURE_REMOVED");
+        Assert.Throws<OfficeConversionException>(() => result.RequireNoLoss());
+    }
+
+    [Fact]
+    public void ContentEdits_PreserveRemoteDeclarationsForSvgAndExternalStylesheetDependencies() {
+        EpubPublication book = CreateBook();
+        book.AddResource("illustration", "EPUB/illustration.svg", "image/svg+xml", Encoding.UTF8.GetBytes(
+            "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><style>@font-face { font-family: remote; src: url(https://example.org/font.otf); }</style><text x='1' y='5'>Original</text></svg>"), "remote-resources");
+        book.AddStylesheet("remote-style", "EPUB/remote.css", "@font-face { font-family: remote; src: url(https://example.org/font.otf); }");
+        book.AddChapter("remote-css", "EPUB/remote-css.xhtml", "Remote font", "<p>Original</p>", new[] { "remote-style" });
+        book.Manifest.Single(item => item.Id == "remote-css").Properties = "remote-resources";
+        book = EpubPublication.Load(new MemoryStream(book.Write().Bytes));
+        foreach (string id in new[] { "illustration", "remote-css" }) {
+            XDocument content = book.GetContentXml(id);
+            content.Descendants().First(element => element.Value == "Original").Value = "Edited";
+            book.SetContentXml(id, content);
+        }
+        EpubPublication edited = EpubPublication.Load(new MemoryStream(book.Write().Bytes));
+        Assert.All(new[] { "illustration", "remote-css" }, id =>
+            Assert.Contains("remote-resources", edited.Manifest.Single(item => item.Id == id).Properties!.Split(' ')));
+    }
+
+    [Fact]
+    public void NcxAppend_AllocatesIdsAgainstTheEntireRetainedDocument() {
+        EpubPublication book = CreateBook(EpubVersion.Epub2);
+        XDocument ncx = XDocument.Parse(Encoding.UTF8.GetString(book.GetResourceBytes("navigation")));
+        XNamespace ns = "http://www.daisy.org/z3986/2005/ncx/";
+        XElement[] points = ncx.Descendants(ns + "navPoint").ToArray();
+        points[0].SetAttributeValue("id", "nav-2"); points[1].SetAttributeValue("id", "nav-3");
+        ncx.Root!.Element(ns + "docTitle")!.SetAttributeValue("id", "nav-1");
+        book.UpdateResource("navigation", Encoding.UTF8.GetBytes(ncx.ToString()));
+        book = EpubPublication.Load(new MemoryStream(book.Write().Bytes));
+        book.AddChapter("third", "EPUB/third.xhtml", "Third", "<p>Third</p>");
+        ncx = XDocument.Parse(Encoding.UTF8.GetString(ReadEntry(book.Write().Bytes, "EPUB/toc.ncx")));
+        string[] ids = ncx.Descendants().Attributes("id").Select(attribute => attribute.Value).ToArray();
+        Assert.Equal(ids.Length, ids.Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(new[] { "nav-2", "nav-3" }, ncx.Descendants(ns + "navPoint").Take(2).Attributes("id").Select(attribute => attribute.Value));
+    }
+
+    [Fact]
+    public void NavigationReplacement_PreservesNcxHeadersGuideExtensionsAndHtmlListAttributes() {
+        EpubPublication book = CreateBook(EpubVersion.Epub2);
+        XNamespace ncxNs = "http://www.daisy.org/z3986/2005/ncx/";
+        XNamespace custom = "urn:retained";
+        XDocument ncx = XDocument.Parse(Encoding.UTF8.GetString(book.GetResourceBytes("navigation")));
+        XElement map = ncx.Root!.Element(ncxNs + "navMap")!;
+        map.AddFirst(new XElement(ncxNs + "navInfo", new XAttribute("id", "nav-1"), new XElement(ncxNs + "text", "Retained information")),
+            new XElement(ncxNs + "navLabel", new XElement(ncxNs + "text", "Retained label")), new XElement(custom + "extension", "Retained extension"));
+        ncx.Root.Add(new XElement(ncxNs + "pageList", new XAttribute("id", "page-1"), new XAttribute("class", "retained-pages"),
+            new XElement(ncxNs + "navInfo", new XElement(ncxNs + "text", "Page information")),
+            new XElement(ncxNs + "navLabel", new XElement(ncxNs + "text", "Printed pages")), new XElement(custom + "extension", "Page extension")));
+        book.UpdateResource("navigation", Encoding.UTF8.GetBytes(ncx.ToString()));
+        byte[] source = book.Write().Bytes;
+        XDocument package = XDocument.Parse(Encoding.UTF8.GetString(ReadEntry(source, book.PackagePath)));
+        XNamespace opf = "http://www.idpf.org/2007/opf";
+        package.Root!.Add(new XElement(opf + "guide", new XAttribute(custom + "flag", "retained"), new XElement(custom + "extension", "Guide extension")));
+        source = AddEntries(EpubIntegrityFixtures.ReplaceEntry(source, book.PackagePath, Encoding.UTF8.GetBytes(package.ToString())));
+        book = EpubPublication.Load(new MemoryStream(source));
+        book.SetNavigation(new[] { new EpubNavigationEntry("Replacement", "EPUB/first.xhtml") },
+            new[] { new EpubNavigationEntry("2", "EPUB/second.xhtml#heading") },
+            new[] { new EpubNavigationEntry("Start", "EPUB/first.xhtml", semanticType: "text") });
+        byte[] output = book.Write().Bytes;
+        ncx = XDocument.Parse(Encoding.UTF8.GetString(ReadEntry(output, "EPUB/toc.ncx")));
+        Assert.Equal("Retained information", ncx.Root!.Element(ncxNs + "navMap")!.Element(ncxNs + "navInfo")!.Value);
+        Assert.Equal("Retained label", ncx.Root.Element(ncxNs + "navMap")!.Element(ncxNs + "navLabel")!.Value);
+        Assert.Equal("Retained extension", ncx.Root.Element(ncxNs + "navMap")!.Element(custom + "extension")!.Value);
+        XElement pages = ncx.Root.Element(ncxNs + "pageList")!;
+        Assert.Equal("retained-pages", pages.Attribute("class")!.Value);
+        Assert.Equal("Printed pages", pages.Element(ncxNs + "navLabel")!.Value);
+        Assert.Equal("Page information", pages.Element(ncxNs + "navInfo")!.Value);
+        Assert.Equal("Page extension", pages.Element(custom + "extension")!.Value);
+        string[] ids = ncx.Descendants().Attributes("id").Select(attribute => attribute.Value).ToArray();
+        Assert.Equal(ids.Length, ids.Distinct(StringComparer.Ordinal).Count());
+        XElement guide = XDocument.Parse(Encoding.UTF8.GetString(ReadEntry(output, book.PackagePath))).Root!.Element(opf + "guide")!;
+        Assert.Equal("retained", guide.Attribute(custom + "flag")!.Value);
+        Assert.Equal("Guide extension", guide.Element(custom + "extension")!.Value);
+        Assert.Single(book.Read().TableOfContents); Assert.Single(book.Read().PageList);
+
+        book = CreateBook();
+        XDocument html = book.GetContentXml("navigation");
+        XNamespace xhtml = "http://www.w3.org/1999/xhtml";
+        html.Descendants(xhtml + "ol").First().SetAttributeValue("class", "custom-contents");
+        book.SetContentXml("navigation", html);
+        book.SetNavigation(new[] { new EpubNavigationEntry("Replacement", "EPUB/first.xhtml") });
+        Assert.Equal("custom-contents", book.GetContentXml("navigation").Descendants(xhtml + "ol").First().Attribute("class")!.Value);
+    }
+
     internal static EpubPublication CreateBook(EpubVersion version = EpubVersion.Epub3) {
         EpubPublication book = EpubPublication.Create("A publishing example", "en", "urn:uuid:98c1274a-f755-4ef7-8197-3273a46f1c51", version);
         book.Creator = "Author";

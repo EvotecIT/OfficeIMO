@@ -281,8 +281,9 @@ EPUB 3 vocabulary prefixes, page progression, and rendition-layout declarations 
 available; declaring fixed layout does not generate page geometry.
 
 Accessibility metadata describes supplied content and does not certify conformance.
-The writer adds SVG, MathML, and remote-resource properties discovered in rewritten
-XHTML. Dependencies reached through external stylesheets require correct manifest
+The writer adds SVG and MathML properties discovered in rewritten XHTML and remote-resource
+properties discovered in rewritten XHTML/SVG. Existing remote-resource declarations remain
+intact. Dependencies reached through external stylesheets require correct manifest
 declarations from the caller and independent validation.
 
 ## Edit and preserve a package
@@ -321,11 +322,14 @@ Imported duplicate spine references retain their reading positions and produce
 `EPUB_WRITE_RETAINED_DUPLICATE_SPINE`. This preserves the source's semantics but retains
 its nonconformance; `RequireNoLoss` checks omissions, not EPUB validity.
 
-Editing a signed package fails unless `RemoveInvalidatedSignatures = true` is supplied
-in `EpubWriteOptions`. IDPF/Adobe-obfuscated font bytes remain unchanged when editing
+Editing a package with `signatures.xml` or a ZIP central-directory signature fails unless
+`RemoveInvalidatedSignatures = true` is supplied in `EpubWriteOptions`; removal is reported.
+IDPF/Adobe-obfuscated font bytes remain unchanged when editing
 other content; replacing them or changing their package identity is rejected.
 Unsupported encrypted-resource edits are rejected. Unedited supported imports retain
 their protection metadata and ciphertext; the writer neither decrypts nor re-keys them.
+Editable loading rejects unreadable, over-budget, or ambiguous encryption declarations
+so protection guards cannot be bypassed by incomplete classification.
 
 ## Save validation and limits
 

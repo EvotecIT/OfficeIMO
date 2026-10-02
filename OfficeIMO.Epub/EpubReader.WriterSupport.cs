@@ -39,6 +39,39 @@ internal static partial class EpubReader {
             retained += payload.LongLength;
             entries.Add(pair.Key, payload);
         }
-        return (package.OpfPath, entries, ReadEncryption(index, readOptions, diagnostics, token));
+        return (package.OpfPath, entries, ReadEditableEncryption(index, readOptions, token));
+    }
+
+    // Inspection may skip unreadable declarations. Editing must identify every protected payload.
+    private static IReadOnlyList<EpubEncryptionInfo> ReadEditableEncryption(
+        IReadOnlyDictionary<string, ZipArchiveEntry> index, EpubReadOptions options, CancellationToken token) {
+        if (!index.TryGetValue("META-INF/encryption.xml", out ZipArchiveEntry? entry)) return Array.Empty<EpubEncryptionInfo>();
+        if (entry.Length > options.MaxPackageMetadataBytes ||
+            !TryParseEntryXml(entry, options.MaxPackageMetadataBytes, token, out XDocument? document) ||
+            document?.Root?.Name != XName.Get("encryption", ContainerNamespaceUri))
+            throw new InvalidDataException("Editing requires a readable encryption.xml within MaxMetadataBytes.");
+        XElement root = document.Root;
+        XElement[] declarations = root.Elements(XName.Get("EncryptedData", XmlEncryptionNamespaceUri)).ToArray();
+        if (declarations.Length == 0 || root.Elements().Any(element => !IsXmlEncryptionName(element, "EncryptedData") && !IsXmlEncryptionName(element, "EncryptedKey")) ||
+            root.Descendants(XName.Get("EncryptedData", XmlEncryptionNamespaceUri)).Count() != declarations.Length)
+            throw new InvalidDataException("Editing requires unambiguous encryption declarations.");
+        var results = new List<EpubEncryptionInfo>();
+        var paths = new HashSet<string>(StringComparer.Ordinal);
+        foreach (XElement declaration in declarations) {
+            token.ThrowIfCancellationRequested();
+            XElement[] methods = declaration.Elements(XName.Get("EncryptionMethod", XmlEncryptionNamespaceUri)).ToArray();
+            XElement[] ciphers = declaration.Elements(XName.Get("CipherData", XmlEncryptionNamespaceUri)).ToArray();
+            if (methods.Length != 1 || ciphers.Length != 1 || ciphers[0].Elements().Count() != 1 ||
+                ciphers[0].Elements().Single().Name != XName.Get("CipherReference", XmlEncryptionNamespaceUri))
+                throw new InvalidDataException("Editing requires one encryption algorithm and resource reference per declaration.");
+            XElement reference = ciphers[0].Elements().Single();
+            EpubReference target = EpubReference.Resolve("package.opf", GetUnqualifiedAttribute(reference, "URI"));
+            if (reference.HasElements || target.Kind != EpubReferenceKind.Container || target.ContainerPath == null ||
+                target.Query != null || target.Fragment != null || !index.ContainsKey(target.ContainerPath) || !paths.Add(target.ContainerPath))
+                throw new InvalidDataException("Editing requires distinct, existing container encryption targets without transforms.");
+            string? algorithm = NullIfWhiteSpace(GetUnqualifiedAttribute(methods[0], "Algorithm"));
+            results.Add(new EpubEncryptionInfo { Path = target.ContainerPath, Algorithm = algorithm, Kind = ClassifyEncryption(algorithm) });
+        }
+        return results;
     }
 }

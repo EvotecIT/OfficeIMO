@@ -22,18 +22,23 @@ public sealed partial class EpubPublication {
             XElement root = navigation.Root ?? throw new InvalidDataException("NCX has no root.");
             if (root.Name != Ncx + "ncx") throw new InvalidDataException("Expected an NCX document.");
             XElement map = root.Element(Ncx + "navMap") ?? throw new InvalidDataException("NCX has no navMap.");
+            HashSet<string> ids = NavigationIds(navigation);
             int order = 0;
-            map.ReplaceNodes(BuildNcxNodes(toc, path, 0, ref order));
+            ReplaceNavigationChildren(map, Ncx + "navPoint", BuildNcxNodes(toc, path, 0, ref order, ids));
             XElement? depth = root.Element(Ncx + "head")?.Elements(Ncx + "meta").FirstOrDefault(item => (string?)item.Attribute("name") == "dtb:depth");
             depth?.SetAttributeValue("content", NavigationDepth(toc).ToString(System.Globalization.CultureInfo.InvariantCulture));
             if (pages != null) {
-                XElement? old = root.Element(Ncx + "pageList"); old?.Remove();
-                if (pages.Length != 0) root.Add(new XElement(Ncx + "pageList", new XElement(Ncx + "navLabel", new XElement(Ncx + "text", "Pages")),
-                    pages.Select((page, index) => new XElement(Ncx + "pageTarget", new XAttribute("id", "page-" + (index + 1)),
+                XElement? old = root.Element(Ncx + "pageList");
+                if (pages.Length == 0) old?.Remove();
+                else {
+                    XElement list = old ?? new XElement(Ncx + "pageList", new XElement(Ncx + "navLabel", new XElement(Ncx + "text", "Pages")));
+                    ReplaceNavigationChildren(list, Ncx + "pageTarget", pages.Select((page, index) => new XElement(Ncx + "pageTarget", new XAttribute("id", AllocateNavigationId(ids, "page-", index + 1)),
                         new XAttribute("playOrder", order + index + 1),
                         new XAttribute("type", page.SemanticType ?? "normal"), new XAttribute("value", index + 1),
                         new XElement(Ncx + "navLabel", new XElement(Ncx + "text", page.Label)),
-                        new XElement(Ncx + "content", new XAttribute("src", NavigationHref(path, page)))))));
+                        new XElement(Ncx + "content", new XAttribute("src", NavigationHref(path, page))))));
+                    if (old == null) map.AddAfterSelf(list);
+                }
                 foreach (string name in new[] { "dtb:totalPageCount", "dtb:maxPageNumber" }) {
                     XElement? count = root.Element(Ncx + "head")?.Elements(Ncx + "meta").FirstOrDefault(meta => (string?)meta.Attribute("name") == name);
                     count?.SetAttributeValue("content", pages.Length.ToString(System.Globalization.CultureInfo.InvariantCulture));
@@ -41,9 +46,12 @@ public sealed partial class EpubPublication {
             }
             NormalizeNcxPlayOrder(navigation, path);
             if (guide != null) {
-                if (guide.Length != 0) newGuide = new XElement(Opf + "guide", guide.Select(item => new XElement(Opf + "reference",
-                    new XAttribute("type", item.SemanticType ?? "text"), new XAttribute("title", item.Label),
-                    new XAttribute("href", NavigationHref(PackagePath, item)))));
+                if (guide.Length != 0) {
+                    newGuide = Root.Element(Opf + "guide") is XElement retained ? new XElement(retained) : new XElement(Opf + "guide");
+                    ReplaceNavigationChildren(newGuide, Opf + "reference", guide.Select(item => new XElement(Opf + "reference",
+                        new XAttribute("type", item.SemanticType ?? "text"), new XAttribute("title", item.Label),
+                        new XAttribute("href", NavigationHref(PackagePath, item)))));
+                }
             }
         }
         ReplaceResourcePayload(path, SerializeXml(navigation));
@@ -90,7 +98,7 @@ public sealed partial class EpubPublication {
         } else {
             XElement map = navigation.Root?.Element(Ncx + "navMap") ?? throw new InvalidDataException("NCX navMap is missing.");
             int order = map.Descendants(Ncx + "navPoint").Count();
-            map.Add(BuildNcxNodes(new[] { entry }, path, 0, ref order, pendingPath));
+            map.Add(BuildNcxNodes(new[] { entry }, path, 0, ref order, NavigationIds(navigation), pendingPath));
             NormalizeNcxPlayOrder(navigation, path);
         }
         return SerializeXml(navigation);
@@ -101,9 +109,9 @@ public sealed partial class EpubPublication {
             nav = new XElement(Html + "nav", new XAttribute(Ops + "type", type), new XElement(Html + "h1", heading));
             body.Add(nav);
         }
-        XElement list = new XElement(Html + "ol", BuildHtmlNodes(nodes, path, 0));
         XElement? old = nav.Element(Html + "ol");
-        if (old != null) old.ReplaceWith(list); else nav.Add(list);
+        if (old != null) ReplaceNavigationChildren(old, Html + "li", BuildHtmlNodes(nodes, path, 0));
+        else nav.Add(new XElement(Html + "ol", BuildHtmlNodes(nodes, path, 0)));
     }
     private IEnumerable<XElement> BuildHtmlNodes(IEnumerable<EpubNavigationEntry> nodes, string path, int depth, string? pendingPath = null) {
         if (depth > 64) throw new InvalidDataException("Navigation depth exceeds 64.");
@@ -114,15 +122,15 @@ public sealed partial class EpubPublication {
                 new XElement(Html + "ol", BuildHtmlNodes(node.Children, path, depth + 1, pendingPath)));
         }
     }
-    private IEnumerable<XElement> BuildNcxNodes(IEnumerable<EpubNavigationEntry> nodes, string path, int depth, ref int order, string? pendingPath = null) {
+    private IEnumerable<XElement> BuildNcxNodes(IEnumerable<EpubNavigationEntry> nodes, string path, int depth, ref int order, HashSet<string> ids, string? pendingPath = null) {
         if (depth > 64) throw new InvalidDataException("Navigation depth exceeds 64.");
         var result = new List<XElement>();
         foreach (EpubNavigationEntry node in nodes) {
             int current = ++order;
-            result.Add(new XElement(Ncx + "navPoint", new XAttribute("id", "nav-" + current), new XAttribute("playOrder", current),
+            result.Add(new XElement(Ncx + "navPoint", new XAttribute("id", AllocateNavigationId(ids, "nav-", current)), new XAttribute("playOrder", current),
                 new XElement(Ncx + "navLabel", new XElement(Ncx + "text", node.Label)),
                 new XElement(Ncx + "content", new XAttribute("src", NavigationHref(path, node, pendingPath))),
-                BuildNcxNodes(node.Children, path, depth + 1, ref order, pendingPath)));
+                BuildNcxNodes(node.Children, path, depth + 1, ref order, ids, pendingPath)));
         }
         return result;
     }
@@ -136,6 +144,22 @@ public sealed partial class EpubPublication {
     }
     private static int NavigationDepth(IEnumerable<EpubNavigationEntry> nodes) =>
         nodes.Any() ? 1 + nodes.Max(node => NavigationDepth(node.Children)) : 0;
+
+    private static HashSet<string> NavigationIds(XDocument document) => new HashSet<string>(document.Descendants().Attributes()
+        .Where(attribute => attribute.Name == "id" || attribute.Name == XNamespace.Xml + "id").Select(attribute => attribute.Value), StringComparer.Ordinal);
+
+    private static string AllocateNavigationId(HashSet<string> ids, string prefix, int start) {
+        string candidate;
+        do { candidate = prefix + start++.ToString(System.Globalization.CultureInfo.InvariantCulture); } while (!ids.Add(candidate));
+        return candidate;
+    }
+
+    private static void ReplaceNavigationChildren(XElement parent, XName ownedName, IEnumerable<XElement> replacements) {
+        XElement[] added = replacements.ToArray();
+        XElement[] old = parent.Elements(ownedName).ToArray();
+        if (old.Length == 0) parent.Add(added); else old[0].AddBeforeSelf(added);
+        foreach (XElement child in old) child.Remove();
+    }
 
     private static void NormalizeNcxPlayOrder(XDocument navigation, string path) {
         var targets = new Dictionary<string, int>(StringComparer.Ordinal);
