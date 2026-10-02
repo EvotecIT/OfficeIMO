@@ -149,7 +149,11 @@ internal static partial class PdfWriter {
             pagesWithPrintProductionBoxes,
             annotationCount,
             externalReferenceCount,
-            optionalContentLayerCount);
+            optionalContentLayerCount) {
+            EffectiveFileVersion = RequireStructureAssociatedFileVersion(layout, options),
+            StructureAssociatedFiles = layout.Pages.SelectMany(page => page.StructElements)
+                .SelectMany(element => element.AssociatedFiles).ToArray()
+        };
     }
 
     private static bool UsesLayoutFontResource(LayoutResult layout, LayoutResult.Page page, byte[] pageContent, string resourceName) {

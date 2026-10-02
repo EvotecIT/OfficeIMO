@@ -119,7 +119,7 @@ internal static partial class PdfComplianceAnalyzer {
         PdfOptions options,
         PdfGeneratedDocumentComplianceEvidence? evidence) {
         Add(requirements, "pdfx-no-embedded-files", "PDF/X embedded-file policy",
-            options.EmbeddedFileSnapshots.Count == 0 && options.PortfolioSnapshot == null,
+            options.EmbeddedFileSnapshots.Count == 0 && (evidence?.StructureAssociatedFiles.Count ?? 0) == 0 && options.PortfolioSnapshot == null,
             "No embedded files or portfolio catalog are configured.",
             "Remove embedded files and portfolio configuration from PDF/X output.");
         Add(requirements, "pdfx-no-catalog-actions", "PDF/X catalog action policy",

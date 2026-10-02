@@ -51,7 +51,7 @@ internal static class PdfStructTreeRootDictionaryBuilder {
         return BuildStructElement(parentId, pageId, structureType, markedContentId, null, tableHeaderScope, tableColumnSpan, tableRowSpan, additionalMarkedContentIds, contentStreamObjectId, additionalContentStreamObjectIds);
     }
 
-    internal static string BuildContainerStructElement(int parentId, int pageId, string structureType, IReadOnlyList<int> childElementIds, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, string? alternativeText = null, bool includePageReference = true) {
+    internal static string BuildContainerStructElement(int parentId, int pageId, string structureType, IReadOnlyList<int> childElementIds, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, string? alternativeText = null, bool includePageReference = true, IReadOnlyList<int>? associatedFileIds = null) {
         Guard.NotNullOrWhiteSpace(structureType, nameof(structureType));
         Guard.NotNull(childElementIds, nameof(childElementIds));
         var sb = new StringBuilder();
@@ -73,6 +73,11 @@ internal static class PdfStructTreeRootDictionaryBuilder {
         if (!string.IsNullOrWhiteSpace(alternativeText)) {
             sb.Append(" /Alt ")
                 .Append(PdfSyntaxEscaper.TextString(alternativeText!));
+        }
+
+        if (associatedFileIds != null && associatedFileIds.Count > 0) {
+            sb.Append(" /AF ");
+            AppendReferenceArray(sb, associatedFileIds);
         }
 
         sb.Append(" >>\n");

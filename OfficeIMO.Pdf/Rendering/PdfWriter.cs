@@ -124,13 +124,15 @@ internal static partial class PdfWriter {
             layout.Pages.SelectMany(page => page.FormFields));
         complianceEvidence = CollectGeneratedComplianceEvidence(layout, opts);
         PdfComplianceValidator.ValidateGeneratedDocument(opts, title, complianceEvidence);
+        PdfFileVersion serializationFileVersion = complianceEvidence.EffectiveFileVersion ?? opts.FileVersion;
+        ValidateAssociatedFileMetadata(opts, serializationFileVersion);
 
         // Build indirect objects through either the bounded replay store or the opt-in one-pass object writer.
         bool finalArtifactBuffered = outputStream == null;
         MemoryStream? forwardBuffer = null;
         PdfForwardOnlyObjectStore? forwardOnlyObjects = null;
         if (opts.ObjectSerializationMode == PdfObjectSerializationMode.ForwardOnly) {
-            if (opts.FileVersion < PdfFileVersion.Pdf17) {
+            if (serializationFileVersion < PdfFileVersion.Pdf17) {
                 throw new InvalidOperationException("Forward-only PDF object serialization requires PdfOptions.FileVersion to be PDF 1.7 or newer.");
             }
             if (opts.EncryptionSnapshot != null) {
@@ -146,7 +148,7 @@ internal static partial class PdfWriter {
                 outputStream = new PdfBoundedWriteStream(outputStream, opts.MaxGeneratedOutputBytes,
                     "Generated PDF exceeds the configured output byte limit.");
             }
-            forwardOnlyObjects = new PdfForwardOnlyObjectStore(outputStream, opts.FileVersion, cancellationToken);
+            forwardOnlyObjects = new PdfForwardOnlyObjectStore(outputStream, serializationFileVersion, cancellationToken);
         }
         using IPdfObjectStore objects = (IPdfObjectStore?)forwardOnlyObjects
             ?? new PdfObjectStore(opts.ObjectBufferMemoryLimitBytes);
@@ -1093,6 +1095,8 @@ internal static partial class PdfWriter {
 
         // Pages tree
         ReplaceObject(objects, pagesId, PdfPageTreeBuilder.BuildPagesDictionary(pageIds));
+        IReadOnlyList<PdfEmbeddedFile> embeddedFiles = opts.EmbeddedFileSnapshots;
+        List<(string FileName, int FileSpecId)> structureFileEntries = BuildStructureAssociatedFiles(objects, layout.Pages, embeddedFiles, cancellationToken);
         if (markInfo) {
             BuildGeneratedStructTree(objects, layout.Pages, pageIds, structTreeRootId, opts.Language);
         }
@@ -1128,20 +1132,20 @@ internal static partial class PdfWriter {
 
         int embeddedFilesNameTreeId = 0;
         var associatedFileIds = new List<int>();
-        IReadOnlyList<PdfEmbeddedFile> embeddedFiles = opts.EmbeddedFileSnapshots;
-        if (embeddedFiles.Count > 0) {
+        if (embeddedFiles.Count > 0 || structureFileEntries.Count > 0) {
             var nameTreeEntries = new List<(string FileName, int FileSpecId)>(embeddedFiles.Count);
             foreach (PdfEmbeddedFile embeddedFile in embeddedFiles.OrderBy(file => file.FileName, StringComparer.Ordinal)) {
                 byte[] fileBytes = embeddedFile.DataSnapshot;
                 int embeddedFileId = AddStreamObject(
                     objects,
-                    PdfEmbeddedFileDictionaryBuilder.BuildEmbeddedFileStreamDictionary(embeddedFile, fileBytes),
+                    PdfEmbeddedFileDictionaryBuilder.BuildEmbeddedFileStreamDictionary(embeddedFile, fileBytes, omitUndatedParameters: serializationFileVersion >= PdfFileVersion.Pdf20),
                     fileBytes);
                 int fileSpecId = AddObject(objects, PdfEmbeddedFileDictionaryBuilder.BuildFileSpecificationObject(embeddedFile, embeddedFileId));
                 nameTreeEntries.Add((embeddedFile.FileName, fileSpecId));
                 associatedFileIds.Add(fileSpecId);
             }
 
+            nameTreeEntries.AddRange(structureFileEntries);
             embeddedFilesNameTreeId = AddObject(objects, PdfEmbeddedFileDictionaryBuilder.BuildEmbeddedFilesNameTree(nameTreeEntries));
         }
 
@@ -1219,8 +1223,8 @@ internal static partial class PdfWriter {
         MaterializePendingFontObjects();
 
         PdfFileVersion effectiveFileVersion = requiresPdf16FileVersion
-            ? PdfFileAssembler.RequireAtLeast(opts.FileVersion, PdfFileVersion.Pdf16)
-            : opts.FileVersion;
+            ? PdfFileAssembler.RequireAtLeast(serializationFileVersion, PdfFileVersion.Pdf16)
+            : serializationFileVersion;
         if (portfolioId > 0) {
             effectiveFileVersion = PdfFileAssembler.RequireAtLeast(effectiveFileVersion, PdfFileVersion.Pdf17);
         }
@@ -1228,10 +1232,10 @@ internal static partial class PdfWriter {
             effectiveFileVersion = PdfFileAssembler.RequireAtLeast(effectiveFileVersion, PdfFileVersion.Pdf15);
         }
         if (forwardOnlyObjects != null) {
-            if (effectiveFileVersion > opts.FileVersion) {
+            if (effectiveFileVersion > serializationFileVersion) {
                 throw new InvalidOperationException(
                     "The generated PDF requires " + effectiveFileVersion +
-                    " but the forward-only header was already emitted as " + opts.FileVersion + ".");
+                    " but the forward-only header was already emitted as " + serializationFileVersion + ".");
             }
             bytesWritten = forwardOnlyObjects.Complete(catalogId, infoId);
             var forwardEvidence = new PdfFileAssemblyBufferEvidence(
@@ -1677,7 +1681,8 @@ internal static partial class PdfWriter {
                         element.TableColumnSpan,
                         element.TableRowSpan,
                         element.AlternativeText,
-                        includePageReference: !element.SpansPages);
+                        includePageReference: !element.SpansPages,
+                        associatedFileIds: element.AssociatedFileIds);
                 }
 
                 ReplaceObject(objects, element.ObjectId, structElement);
