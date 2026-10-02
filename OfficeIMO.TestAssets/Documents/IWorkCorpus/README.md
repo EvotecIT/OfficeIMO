@@ -262,3 +262,9 @@ python Build/IWork/extract-duration-format.py OfficeIMO.TestAssets/Documents/IWo
 ```sh
 python Build/IWork/extract-date-formats.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/date-formats.json
 ```
+
+`numbers-parser/duration-ranges.json` retains 20 selected duration declarations and saved caches from the existing hash-pinned corpus: 18 day-only cells and two week/day/hour cells. Whole-day values, including negative values, have independent parser display evidence. Fractional-day rounding and native export/appearance equivalence remain unqualified; week/day/hour declarations remain unassessed by the destination adapters. Regenerate with the pinned opt-in provider:
+
+```sh
+python Build/IWork/extract-duration-ranges.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/duration-ranges.json
+```

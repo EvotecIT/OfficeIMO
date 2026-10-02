@@ -16,7 +16,7 @@ public static partial class ExcelIWorkConverter {
         if (projection.Sheets.SelectMany(sheet => sheet.Tables).SelectMany(table => table.Cells)
             .Any(cell => cell.NumberFormat?.Kind == IWorkNumberFormatKind.Duration)) {
             yield return new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_DURATION_DISPLAY_APPROXIMATED",
-                "Fixed abbreviated hours and minutes use an elapsed XLSX format, retaining total hours, signs, numeric values and formula caches. Source seconds are converted to day serials. Unit spacing and rounding can differ; other duration settings and locale equivalence are unqualified.",
+                "Fixed abbreviated hour/minute durations use an elapsed XLSX format; day-only durations use a numeric whole-day format. Signs, numeric values and formula caches are retained, with source seconds converted to day serials. Fractional days use destination numeric rounding rather than source truncation; unit spacing and rounding can differ; other duration settings and locale equivalence are unqualified.",
                 lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation);
         }
     }

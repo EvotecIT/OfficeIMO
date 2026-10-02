@@ -3,7 +3,8 @@ namespace OfficeIMO.IWork;
 public sealed partial class IWorkNumberFormat {
     internal string ToSpreadsheetFormatCode() {
         if (Kind == IWorkNumberFormatKind.DateTime) return DateTimeFormat!.SpreadsheetFormatCode;
-        if (Kind == IWorkNumberFormatKind.Duration) return "[h]\"h\" m\"m\"";
+        if (Kind == IWorkNumberFormatKind.Duration) return DurationFormat!.LargestUnit == IWorkDurationUnit.Day
+            ? "0\"d\"" : "[h]\"h\" m\"m\"";
         if (Kind == IWorkNumberFormatKind.Fraction) {
             string fraction = FractionAccuracy switch {
                 IWorkFractionAccuracy.OneDigitDenominator => "# ?/?",

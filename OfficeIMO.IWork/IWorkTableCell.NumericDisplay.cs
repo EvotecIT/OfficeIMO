@@ -19,8 +19,14 @@ public sealed partial class IWorkTableCell {
         }
         if (Value is not double number) return false;
         if (NumberFormat.Kind == IWorkNumberFormatKind.Duration) {
-            if (ValueKind != IWorkCellKind.Duration
-                || !SpreadsheetNumberFormatDisplay.TryFormatElapsedValue(number / 86400d, code, out string duration)) return false;
+            if (ValueKind != IWorkCellKind.Duration) return false;
+            if (NumberFormat.DurationFormat!.LargestUnit == IWorkDurationUnit.Day) {
+                string? days = SpreadsheetNumberFormatDisplay.FormatNumericValue(number / 86400d, code);
+                if (days == null) return false;
+                text = days;
+                return true;
+            }
+            if (!SpreadsheetNumberFormatDisplay.TryFormatElapsedValue(number / 86400d, code, out string duration)) return false;
             text = duration;
             return true;
         }

@@ -23,7 +23,8 @@ public sealed class IWorkScalarFormatCorpusTests {
                 cells.Count(c => c.NumberFormat?.Kind == IWorkNumberFormatKind.DateTime
                     || (c.UnsupportedFeatures & IWorkCellUnsupportedFeatures.DateFormat) != 0));
             Assert.Equal(package.GetProperty("selectorCounts").GetProperty("16").GetInt32(),
-                cells.Count(c => (c.UnsupportedFeatures & IWorkCellUnsupportedFeatures.DurationFormat) != 0));
+                cells.Count(c => c.NumberFormat?.Kind == IWorkNumberFormatKind.Duration
+                    || (c.UnsupportedFeatures & IWorkCellUnsupportedFeatures.DurationFormat) != 0));
             foreach (var expected in package.GetProperty("cases").EnumerateArray()) {
                 var table = projection.Sheets.Single(s => s.Name == expected.GetProperty("sheet").GetString())
                     .Tables.Single(t => t.Name == expected.GetProperty("table").GetString());
@@ -35,7 +36,9 @@ public sealed class IWorkScalarFormatCorpusTests {
                 Assert.False(cell.HasDecodeError);
                 bool qualified = expected.GetProperty("isDefaultScalarFormat").GetBoolean()
                     || expected.GetProperty("selectorBit").GetInt32() == 15
-                        && qualifiedDateDeclarations.Contains(expected.GetProperty("formatHex").GetString());
+                        && qualifiedDateDeclarations.Contains(expected.GetProperty("formatHex").GetString())
+                    || expected.GetProperty("selectorBit").GetInt32() == 16
+                        && expected.GetProperty("formatHex").GetString() == "088c0238017802800102c00200";
                 Assert.Equal(qualified
                     ? IWorkCellUnsupportedFeatures.None : feature, cell.UnsupportedFeatures & feature);
                 if (!qualified)

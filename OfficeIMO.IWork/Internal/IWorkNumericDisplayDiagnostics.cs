@@ -14,7 +14,7 @@ internal static class IWorkNumericDisplayDiagnostics {
         }
         if (formatted) yield return new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
             "IWORK_" + sourceLabel + "_NUMBER_FORMAT_APPROXIMATED",
-            destinationLabel + " table cells retain supported invariant numeric, date/time and fixed hour/minute duration display as editable text. Automatic precision, currency symbols and locale placement, fraction spacing, duration unit spacing or rounding, date localization and full source appearance can differ. Raw values, formula caches and formats remain available on the source projection.",
+            destinationLabel + " table cells retain supported invariant numeric, date/time and fixed day-only or hour/minute duration display as editable text. Automatic precision, currency symbols and locale placement, fraction spacing, duration unit spacing or fractional-day rounding, date localization and full source appearance can differ. Raw values, formula caches and formats remain available on the source projection.",
             lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation);
         if (omitted) yield return new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
             "IWORK_" + sourceLabel + "_NUMBER_FORMAT_OMITTED",
