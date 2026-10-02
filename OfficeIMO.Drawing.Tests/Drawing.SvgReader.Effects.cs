@@ -245,7 +245,7 @@ public partial class DrawingTests {
     [Fact]
     public void OfficeSvgDrawingReader_DiagnosesFilterGraphsOutsideTheStaticPrimitiveSubset() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><defs>"
-            + "<filter id='graph'><feGaussianBlur stdDeviation='1' result='blur'/><feBlend in='SourceGraphic' in2='blur'/></filter></defs>"
+            + "<filter id='graph'><feGaussianBlur stdDeviation='1' result='blur'/><feDisplacementMap in='SourceGraphic' in2='blur'/></filter></defs>"
             + "<rect width='10' height='10' fill='red' filter='url(#graph)'/></svg>";
 
         Assert.True(OfficeSvgDrawingReader.TryRead(
