@@ -22,6 +22,7 @@ internal static partial class IWorkKeynoteReader {
             return null;
         }
         AssessBuildDeclarations(message, slide, references, diagnostics, ref supportsEditableReconstruction);
+        AssessTransition(message, slide, references, diagnostics, ref supportsEditableReconstruction);
         foreach (int field in new[] { 7, 42, 5, 6 }) {
             projectionBudget.AddDrawableReferences(IWorkProtobuf.CountFields(
                 slide.Payload, field, projectionBudget.MaximumProtobufFieldCount));
