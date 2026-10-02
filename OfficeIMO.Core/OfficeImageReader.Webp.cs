@@ -9,6 +9,10 @@ public static partial class OfficeImageReader {
 
     internal static bool TryValidateWebpContainer(byte[] data) => TryReadWebp(data, out _);
 
+    // Recognition must remain possible when malformed metadata prevents identification.
+    internal static bool HasWebpSignature(byte[] data) => data.Length >= 12 &&
+        GetAscii(data, 0, 4) == "RIFF" && GetAscii(data, 8, 4) == "WEBP";
+
     private static bool TryReadWebp(
         byte[] data,
         out OfficeImageInfo info,
@@ -16,9 +20,7 @@ public static partial class OfficeImageReader {
         OfficeRasterImage? decodedImage = null,
         CancellationToken cancellationToken = default) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
-        if (data.Length < 20 ||
-            GetAscii(data, 0, 4) != "RIFF" ||
-            GetAscii(data, 8, 4) != "WEBP") {
+        if (data.Length < 20 || !HasWebpSignature(data)) {
             return false;
         }
 
@@ -344,9 +346,14 @@ public static partial class OfficeImageReader {
         cancellationToken.ThrowIfCancellationRequested();
         byte[] tiff = new byte[length];
         Buffer.BlockCopy(data, offset, tiff, 0, length);
-        return TryReadTiff(tiff, cancellationToken, out info) &&
-               info.Width == expectedWidth &&
-               info.Height == expectedHeight;
+        if (!TryReadTiff(tiff, cancellationToken, out info)) return false;
+        // TIFF identification uses presentation axes; WebP identification describes
+        // the encoded canvas. Keep its physical resolution on those same raw axes.
+        if (OfficeImageOrientationNormalizer.TryRead(tiff, cancellationToken, out var orientation)
+            && orientation >= OfficeImageOrientation.Transpose) {
+            info = new OfficeImageInfo(OfficeImageFormat.Tiff, info.Height, info.Width, info.DpiY, info.DpiX);
+        }
+        return info.Width == expectedWidth && info.Height == expectedHeight;
     }
 
     private static bool HasValidWebpExif(

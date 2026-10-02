@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfEmbeddedFileDictionaryBuilder {
-    internal static string BuildEmbeddedFileStreamDictionary(PdfEmbeddedFile file, byte[] data) {
+    internal static string BuildEmbeddedFileStreamDictionary(PdfEmbeddedFile file, byte[] data, bool omitUndatedParameters = false) {
         Guard.NotNull(file, nameof(file));
         Guard.NotNullOrEmpty(data, nameof(data));
         int length = data.Length;
@@ -17,8 +17,13 @@ internal static class PdfEmbeddedFileDictionaryBuilder {
         }
 
         sb.Append(" /Length ")
-            .Append(length.ToString(CultureInfo.InvariantCulture))
-            .Append(" /Params << /Size ")
+            .Append(length.ToString(CultureInfo.InvariantCulture));
+        // Associated files do not require Params. If present, PDF 2.0 requires ModDate;
+        // omit the optional dictionary rather than inventing a source modification date.
+        if (omitUndatedParameters && !file.ModificationDate.HasValue) {
+            return sb.Append(" >>").ToString();
+        }
+        sb.Append(" /Params << /Size ")
             .Append(length.ToString(CultureInfo.InvariantCulture))
             .Append(" /CheckSum ")
             .Append(PdfSyntaxEscaper.HexString(ComputePdfEmbeddedFileChecksum(data)))

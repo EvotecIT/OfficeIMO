@@ -703,6 +703,8 @@ public sealed partial class OfficeDrawing {
                     translatedTransform = translatedTransform.Then(frameTransform.Value.CreateDestinationTransform());
                 }
                 AddEffectDrawing(effectGroup.InnerDrawing, translatedTransform, effectGroup.BlendMode, effectGroup.SoftMask, effectGroup.Opacity);
+                ((OfficeDrawingEffectGroup)_elements[_elements.Count - 1]).UnfilteredGeometryBounds = effectGroup.UnfilteredGeometryBounds;
+                ((OfficeDrawingEffectGroup)_elements[_elements.Count - 1]).IsSvgMarkerPaint = effectGroup.IsSvgMarkerPaint;
             } else if (element is OfficeDrawingLink link) {
                 double linkX = link.X + x;
                 double linkY = link.Y + y;
@@ -881,6 +883,7 @@ public sealed partial class OfficeDrawing {
                     group.ActualTextAnchorX,
                     group.ActualTextAnchorY));
             }
+            ((OfficeDrawingGroup)wrapper._elements[wrapper._elements.Count - 1]).UnfilteredGeometryBounds = group.UnfilteredGeometryBounds;
             AddNestedGroupElement(wrapper, offsetX, offsetY, OfficeClipPath.Rectangle(wrapperWidth, wrapperHeight), 0D, 0D, frameTransform.Value, allowOverflow);
             return;
         }
@@ -890,15 +893,15 @@ public sealed partial class OfficeDrawing {
         }
 
         if (groupTransform.HasValue) {
-            AddNestedGroupElement(group.InnerDrawing, offsetX + group.X, offsetY + group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, groupTransform.Value, allowOverflow, group.ActualText, offsetX + group.ActualTextAnchorX, offsetY + group.ActualTextAnchorY);
+            AddNestedGroupElement(group.InnerDrawing, offsetX + group.X, offsetY + group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, groupTransform.Value, allowOverflow, group.ActualText, offsetX + group.ActualTextAnchorX, offsetY + group.ActualTextAnchorY, group.UnfilteredGeometryBounds);
         } else {
-            AddNestedGroupElement(group.InnerDrawing, offsetX + group.X, offsetY + group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, null, allowOverflow, group.ActualText, offsetX + group.ActualTextAnchorX, offsetY + group.ActualTextAnchorY);
+            AddNestedGroupElement(group.InnerDrawing, offsetX + group.X, offsetY + group.Y, group.ClipPath, group.ContentOffsetX, group.ContentOffsetY, null, allowOverflow, group.ActualText, offsetX + group.ActualTextAnchorX, offsetY + group.ActualTextAnchorY, group.UnfilteredGeometryBounds);
         }
     }
 
-    private void AddNestedGroupElement(OfficeDrawing drawing, double x, double y, OfficeClipPath clipPath, double contentOffsetX, double contentOffsetY, OfficeImageFrameTransform? frameTransform, bool allowOverflow, string? actualText = null, double actualTextAnchorX = 0D, double actualTextAnchorY = 0D) {
+    private void AddNestedGroupElement(OfficeDrawing drawing, double x, double y, OfficeClipPath clipPath, double contentOffsetX, double contentOffsetY, OfficeImageFrameTransform? frameTransform, bool allowOverflow, string? actualText = null, double actualTextAnchorX = 0D, double actualTextAnchorY = 0D, (double Left, double Top, double Right, double Bottom)? unfilteredGeometryBounds = null) {
         if (actualText != null) {
-            _elements.Add(new OfficeDrawingGroup(drawing, x, y, clipPath, contentOffsetX, contentOffsetY, frameTransform, actualText, actualTextAnchorX, actualTextAnchorY));
+            _elements.Add(new OfficeDrawingGroup(drawing, x, y, clipPath, contentOffsetX, contentOffsetY, frameTransform, actualText, actualTextAnchorX, actualTextAnchorY) { UnfilteredGeometryBounds = unfilteredGeometryBounds });
             return;
         }
         if (allowOverflow) {
@@ -908,6 +911,7 @@ public sealed partial class OfficeDrawing {
         } else {
             AddClippedDrawing(drawing, x, y, clipPath, contentOffsetX, contentOffsetY);
         }
+        ((OfficeDrawingGroup)_elements[_elements.Count - 1]).UnfilteredGeometryBounds = unfilteredGeometryBounds;
     }
 
     private static OfficeTransform CreateLocalFrameTransform(OfficeImageFrameTransform frameTransform, double elementX, double elementY) {

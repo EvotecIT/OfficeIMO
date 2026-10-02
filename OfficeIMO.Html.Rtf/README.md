@@ -37,6 +37,14 @@ Bounded, single-surface positioned and floating HTML regions map to editable pag
 
 Dependency footprint: `OfficeIMO.Core`, `OfficeIMO.Html`, and `OfficeIMO.Rtf`.
 
+Unstyled images larger than the effective document or section text area are reduced
+proportionally, using embedded image DPI (96 DPI when absent). The default text area
+is 6 inches wide by 9 inches high. Explicit image
+dimensions are preserved. The result reports `HtmlRtfImageFittedToPage` when fitting
+changes an image. Imported HTML table rows stay together; explicit RTF round-trip
+metadata preserves rows that allow splitting, including identifiable older exports.
+Legacy fragments with no RTF metadata or document wrapper follow ordinary HTML row defaults.
+
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary
 
