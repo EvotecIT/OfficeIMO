@@ -218,6 +218,17 @@ var agenda = slide.AddTextBox("Topics",
 agenda.AddBullets(new[] { "Intro", "KPIs", "Next steps" });
 ```
 
+### Custom paragraph tab stops
+
+`SetTabStops` replaces the paragraph's explicit stops and `TabStops` reads them back. Positions use points; alignment can be left, center, right, or decimal. Passing an empty sequence removes local stops while leaving inherited defaults unchanged.
+
+```csharp
+var paragraph = slide.AddTextBox("Label\t12.50").Paragraphs[0];
+paragraph.SetTabStops(new[] {
+    new PowerPointTabStop(72, PowerPointTabAlignment.Decimal)
+});
+```
+
 ### Images and SVGs
 
 ```csharp

@@ -260,7 +260,8 @@ public static partial class PowerPointIWorkConverter {
                         || !FitsTextCoordinate(style.RightIndentPoints)
                         || Math.Abs(style.RightIndentPoints.GetValueOrDefault()) > 0.000001d
                         || !FitsSpacing(style.SpaceBeforePoints)
-                        || !FitsSpacing(style.SpaceAfterPoints) || !FitsLineSpacing(style.LineSpacingMultiplier)) {
+                        || !FitsSpacing(style.SpaceAfterPoints) || !FitsLineSpacing(style.LineSpacingMultiplier)
+                        || style.TabStops != null && style.TabStops.Any(tab => !FitsTextCoordinate(tab.PositionPoints))) {
                         return $"Keynote slide {slide.Index} contains paragraph formatting outside the PPTX range.";
                     }
                     IEnumerable<IWorkTextStyle> textStyles = paragraph.Runs.Select(run => run.Style).Concat(new[] { style.TextStyle });

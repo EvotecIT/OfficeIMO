@@ -67,7 +67,13 @@
         {
           "fieldPath": "12/25",
           "property": "tabs",
-          "decodedProperties": "tabs {\n  position: 18\n  leader: \"\"\n}"
+          "decodedProperties": "tabs {\n  position: 18\n  leader: \"\"\n}",
+          "tabStops": [
+            {
+              "positionPoints": 18.0,
+              "alignment": 0
+            }
+          ]
         }
       ]
     },
@@ -83,7 +89,13 @@
         {
           "fieldPath": "12/25",
           "property": "tabs",
-          "decodedProperties": "tabs {\n  position: 18\n  leader: \"\"\n}"
+          "decodedProperties": "tabs {\n  position: 18\n  leader: \"\"\n}",
+          "tabStops": [
+            {
+              "positionPoints": 18.0,
+              "alignment": 0
+            }
+          ]
         }
       ]
     },

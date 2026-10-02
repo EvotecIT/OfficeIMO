@@ -142,6 +142,7 @@ public static partial class WordIWorkConverter {
                 || !FitsSignedTwips(style.RightIndentPoints, allowPartialEditableReconstruction)
                 || !FitsUnsignedNullableTwips(style.SpaceBeforePoints, allowPartialEditableReconstruction)
                 || !FitsUnsignedNullableTwips(style.SpaceAfterPoints, allowPartialEditableReconstruction)
+                || style.TabStops != null && style.TabStops.Any(tab => !FitsSignedTwips(tab.PositionPoints, allowPartialEditableReconstruction))
                 || style.LineSpacingMultiplier is double multiplier && (multiplier * 240d < 1d
                     || multiplier > int.MaxValue / 240d
                     || !allowPartialEditableReconstruction && !IsExactDestinationUnit(multiplier, 240d)))
@@ -204,6 +205,7 @@ public static partial class WordIWorkConverter {
             yield return style.RightIndentPoints;
             yield return style.SpaceBeforePoints;
             yield return style.SpaceAfterPoints;
+            if (style.TabStops != null) foreach (var tab in style.TabStops) yield return tab.PositionPoints;
         }
     }
 

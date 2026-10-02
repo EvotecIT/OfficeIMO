@@ -496,7 +496,8 @@ internal static partial class IWorkTableReader {
         if (!deferFormulaAssessment) AssessFormulas(cells, name, model, diagnostics, ref supportsEditableReconstruction);
         return CreateTable();
 
-        IWorkTable CreateTable() => new(name, rows, columns, cells,
+        IWorkTable CreateTable() {
+            IWorkTable table = new(name, rows, columns, cells,
             headerRows, headerColumns, footerRows, defaultRowHeight, defaultColumnWidth,
             mergedRanges, geometry, accessibilityDescription, sourceIdentity, omittedTextUnits, rowHeights, columnWidths, IWorkFormulaReader.ReadTableIdentifier(message), model,
             message.FieldCount(6) == 1 && message.FieldCount(7) == 1
@@ -504,6 +505,9 @@ internal static partial class IWorkTableReader {
                     && !message.HasUnexpectedWireKind(field, IWorkWireKind.Varint))
                 && (long)headerRows + footerRows <= rows, autoResizeRows, textStyles?.Defaults, fillStyles.Defaults,
             hiddenRows.ToArray(), hiddenColumns.ToArray());
+            textStyles?.ChargeCellParagraphUses(table);
+            return table;
+        }
     }
 
     private static void MarkTableTextStyleUnsupported(IWorkArchiveRecord model, List<IWorkDiagnostic> diagnostics,

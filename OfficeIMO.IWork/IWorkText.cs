@@ -90,7 +90,7 @@ public sealed class IWorkParagraphStyle {
     internal IWorkParagraphStyle(string? name, IWorkTextAlignment? alignment,
         double? firstLineIndentPoints, double? leftIndentPoints, double? rightIndentPoints,
         double? spaceBeforePoints, double? spaceAfterPoints, bool? pageBreakBefore,
-        bool? keepWithNext, bool? keepLinesTogether, IWorkTextStyle textStyle, double? lineSpacingMultiplier = null) {
+        bool? keepWithNext, bool? keepLinesTogether, IWorkTextStyle textStyle, double? lineSpacingMultiplier = null, IReadOnlyList<IWorkTabStop>? tabStops = null) {
         Name = name;
         Alignment = alignment;
         FirstLineIndentPoints = firstLineIndentPoints;
@@ -103,6 +103,7 @@ public sealed class IWorkParagraphStyle {
         KeepLinesTogether = keepLinesTogether;
         TextStyle = textStyle;
         LineSpacingMultiplier = lineSpacingMultiplier;
+        TabStops = tabStops;
     }
 
     /// <summary>Gets the source style name, when present.</summary>
@@ -121,6 +122,8 @@ public sealed class IWorkParagraphStyle {
     public double? SpaceAfterPoints { get; }
     /// <summary>Gets explicit positive relative line spacing; null when absent, cleared or unqualified.</summary>
     public double? LineSpacingMultiplier { get; }
+    /// <summary>Gets qualified custom tabs; null means unspecified and an empty list clears inherited source tabs.</summary>
+    public IReadOnlyList<IWorkTabStop>? TabStops { get; }
     /// <summary>Gets whether the paragraph starts on a new page.</summary>
     public bool? PageBreakBefore { get; }
     /// <summary>Gets whether the paragraph should stay with the next paragraph.</summary>

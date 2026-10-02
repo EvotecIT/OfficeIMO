@@ -70,6 +70,8 @@ for identifier in sorted(selected):
                     'property': field, 'decodedProperties': str(message).strip()}
         if field == 'line_spacing' and message.mode == 0 and message.HasField('amount') and not message.HasField('baselineRule'):
             evidence['relativeMultiplier'] = message.amount
+        if field == 'tabs' and message.tabs and all(not tab.leader for tab in message.tabs):
+            evidence['tabStops'] = [{'positionPoints': tab.position, 'alignment': tab.alignment} for tab in message.tabs]
         declarations.append(evidence)
     if declarations:
         styles.append({'recordIdentifier': identifier, 'declarations': declarations})

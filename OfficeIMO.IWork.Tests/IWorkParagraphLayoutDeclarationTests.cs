@@ -11,7 +11,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Selected_line_spacing_and_tabs_require_partial_formatting_and_retain_physical_paths(IWorkDocumentKind kind) {
         using var package = ParagraphLayoutPackage(kind, Message(
             BytesField(13, Message(VarintField(1, 2), FloatField(2, 24))),
-            BytesField(25, BytesField(1, FloatField(1, 18)))));
+            BytesField(25, BytesField(1, Message(FloatField(1, 18), StringField(3, "."))))));
         var text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1.Cells).RichText!;
         Assert.Equal("Value", text.PlainText);
         Assert.False(text.IsFormattingComplete);
@@ -90,7 +90,7 @@ public sealed partial class IWorkBoundaryTests {
         foreach (var style in manifest.RootElement.GetProperty("styles").EnumerateArray()) {
             ulong identifier = style.GetProperty("recordIdentifier").GetUInt64();
             foreach (var declaration in style.GetProperty("declarations").EnumerateArray()) {
-                if (declaration.TryGetProperty("relativeMultiplier", out _)) {
+                if (declaration.TryGetProperty("relativeMultiplier", out _) || declaration.TryGetProperty("tabStops", out _)) {
                     Assert.DoesNotContain(result.Report.SourceDeclarationIssues, item => item.Owner.RecordIdentifier == identifier
                         && item.FieldPath == declaration.GetProperty("fieldPath").GetString());
                     continue;
@@ -107,6 +107,10 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(result.Projection.Body.Paragraphs, paragraph => paragraph.Style.LineSpacingMultiplier == expected);
         Assert.Contains(result.Value.Paragraphs, paragraph => paragraph.LineSpacingRule == OfficeIMO.Word.WordLineSpacingRule.Auto
             && paragraph.LineSpacing == 276);
+        Assert.Contains(result.Projection.Body.Paragraphs, paragraph => paragraph.Style.TabStops?.Any(tab => tab.PositionPoints == 18
+            && tab.Alignment == IWorkTabAlignment.Left) == true);
+        Assert.Contains(result.Value.Paragraphs, paragraph => paragraph.TabStops.Any(tab => tab.Position == 360
+            && tab.Alignment == OfficeIMO.Word.WordTabAlignment.Left));
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Report.IsPartialEditableReconstruction);
     }

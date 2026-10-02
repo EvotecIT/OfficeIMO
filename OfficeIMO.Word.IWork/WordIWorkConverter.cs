@@ -421,6 +421,16 @@ public static partial class WordIWorkConverter {
             paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
             paragraph.LineSpacing = checked((int)Math.Round(multiplier * 240d, MidpointRounding.AwayFromZero));
         }
+        if (style.TabStops != null) {
+            paragraph.ClearTabStops();
+            foreach (var tab in style.TabStops) paragraph.AddTabStop(
+                checked((int)Math.Round(tab.PositionPoints * 20d, MidpointRounding.AwayFromZero)), tab.Alignment switch {
+                    IWorkTabAlignment.Center => WordTabAlignment.Center,
+                    IWorkTabAlignment.Right => WordTabAlignment.Right,
+                    IWorkTabAlignment.Decimal => WordTabAlignment.Decimal,
+                    _ => WordTabAlignment.Left
+                });
+        }
         if (style.PageBreakBefore.HasValue) paragraph.PageBreakBefore = style.PageBreakBefore.Value;
         if (style.KeepWithNext.HasValue) paragraph.KeepWithNext = style.KeepWithNext.Value;
         if (style.KeepLinesTogether.HasValue) paragraph.KeepLinesTogether = style.KeepLinesTogether.Value;

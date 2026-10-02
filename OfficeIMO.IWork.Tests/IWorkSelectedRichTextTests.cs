@@ -114,12 +114,14 @@ public sealed partial class IWorkBoundaryTests {
 
     private static MemoryStream SelectedRichTextPackage(IWorkDocumentKind kind, byte[]? attributes = null,
         int failure = -1, byte[]? additionalRecords = null, bool aliases = false, bool duplicateKeys = false,
-        byte[]? catalogPayload = null, int wrongTypeRecord = -1, uint catalogType = 6005, bool includeCatalogKind = true) {
-        byte[] cell = new byte[16]; cell[0] = 5; cell[1] = 9;
-        WriteUInt32(cell, 8, 1u << 4); WriteUInt32(cell, 12, 1);
+        byte[]? catalogPayload = null, int wrongTypeRecord = -1, uint catalogType = 6005, bool includeCatalogKind = true, string selectedText = "Value", byte[]? modelFields = null,
+        byte[]? storeFields = null, bool selectCellTextStyle = false) {
+        byte[] cell = new byte[selectCellTextStyle ? 20 : 16]; cell[0] = 5; cell[1] = 9;
+        WriteUInt32(cell, 8, (1u << 4) | (selectCellTextStyle ? 1u << 6 : 0)); WriteUInt32(cell, 12, 1);
+        if (selectCellTextStyle) WriteUInt32(cell, 16, 1);
         byte[] secondCell = (byte[])cell.Clone(); WriteUInt32(secondCell, 12, 2);
         byte[] store = Message(BytesField(3, Message(BytesField(1,
-            Message(VarintField(1, 0), ReferenceField(2, 12))))), ReferenceField(17, failure == 3 ? 999ul : 13ul));
+            Message(VarintField(1, 0), ReferenceField(2, 12))))), ReferenceField(17, failure == 3 ? 999ul : 13ul), storeFields ?? Message());
         byte[] roots = kind switch {
             IWorkDocumentKind.Pages => Message(
                 ArchiveRecord(1, 10000, Message(ReferenceField(4, 2)), new ulong[] { 2, 10 }),
@@ -139,13 +141,13 @@ public sealed partial class IWorkBoundaryTests {
         return CreatePackage(("Index/Document.iwa", FrameIwa(Message(roots,
             ArchiveRecord(10, 6000, Message(BytesField(1, GeometryDrawable(72, 72, 120, 40)),
                 ReferenceField(2, failure == 4 ? 999ul : 11ul))),
-            ArchiveRecord(11, wrongTypeRecord == 11 ? 2021u : 6001u, Message(BytesField(4, store), VarintField(6, 1), VarintField(7, aliases ? 2ul : 1ul))),
+            ArchiveRecord(11, wrongTypeRecord == 11 ? 2021u : 6001u, Message(BytesField(4, store), VarintField(6, 1), VarintField(7, aliases ? 2ul : 1ul), modelFields ?? Message())),
             ArchiveRecord(12, 6002, Message(BytesField(5, Message(VarintField(1, 0),
                 BytesField(6, aliases ? Message(cell, secondCell) : cell),
-                BytesField(7, aliases ? new byte[] { 0, 0, 16, 0 } : new byte[] { 0, 0 }))))),
+                BytesField(7, aliases ? new byte[] { 0, 0, (byte)cell.Length, 0 } : new byte[] { 0, 0 }))))),
             ArchiveRecord(13, wrongTypeRecord == 13 ? 2021u : catalogType, catalog),
             ArchiveRecord(14, wrongTypeRecord == 14 ? 2021u : 6218u, Message(ReferenceField(1, failure == 2 ? 999ul : 15ul))),
-            ArchiveRecord(15, wrongTypeRecord == 15 ? 2021u : 2001u, Message(StringField(3, "Value"), attributes ?? Message())),
+            ArchiveRecord(15, wrongTypeRecord == 15 ? 2021u : 2001u, Message(StringField(3, selectedText), attributes ?? Message())),
             ArchiveRecord(17, wrongTypeRecord == 17 ? 2021u : 6218u, Message(ReferenceField(1, 18))),
             ArchiveRecord(18, 2001, Message(StringField(3, new string('X', 1000)),
                 AttributeTable(8, AttributeEntry(0, ReferenceField(2, 997))))),

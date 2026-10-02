@@ -127,6 +127,7 @@ internal sealed class IWorkProjectionBudget {
         long count = content.Paragraphs.Count;
         long characterCount = 0;
         foreach (IWorkTextParagraph paragraph in content.Paragraphs) {
+            count += paragraph.Style.TabStops?.Count ?? 0;
             foreach (IWorkTextRun run in paragraph.Runs) {
                 count++;
                 if (includeCharacters) {

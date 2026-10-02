@@ -57,6 +57,15 @@ document.AsFluent()
 document.Save();
 ```
 
+## Paragraph tab stops
+
+Use `AddTabStop` to configure a paragraph's explicit tab positions in twentieths of a point. `ClearTabStops()` removes those local stops without changing paragraph spacing, alignment, or inherited defaults.
+
+```csharp
+var paragraph = document.AddParagraph("Label\t12.50");
+paragraph.ClearTabStops().AddTabStop(1440, WordTabAlignment.Decimal);
+```
+
 ## Comments on table cells
 
 `AddCellComments` adds root comments across tables in one batch. The cell's direct paragraphs form the anchor range; cell values remain unchanged.

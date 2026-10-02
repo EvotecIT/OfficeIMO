@@ -48,6 +48,7 @@ internal static partial class IWorkTextReader {
             ulong? listStyleId = ObjectAt(listStyles, paragraph.Start, carryMissing: true);
             IWorkParagraphStyle paragraphStyle = ResolveParagraphStyle(index, paragraphStyleId,
                 projectionBudget, paragraphStyleCache, tolerateStyleDepth, references, ref complete);
+            projectionBudget.AddTextItems(paragraphStyle.TabStops?.Count ?? 0);
             (int listLevel, string? listLabel) = ResolveList(index, listStyleId,
                 paragraphStyle.LeftIndentPoints,
                 (int?)ObjectAt(listLevels, paragraph.Start, carryMissing: false),
@@ -314,6 +315,7 @@ internal static partial class IWorkTextReader {
         internal double? SpaceBeforePoints;
         internal double? SpaceAfterPoints;
         internal double? LineSpacingMultiplier;
+        internal IReadOnlyList<IWorkTabStop>? TabStops;
         internal bool? PageBreakBefore;
         internal bool? KeepWithNext;
         internal bool? KeepLinesTogether;
@@ -322,7 +324,7 @@ internal static partial class IWorkTextReader {
         internal IWorkParagraphStyle ToPublic() => new(Name, Alignment,
             FirstLineIndentPoints, LeftIndentPoints, RightIndentPoints,
             SpaceBeforePoints, SpaceAfterPoints, PageBreakBefore, KeepWithNext,
-            KeepLinesTogether, Text.ToPublic(), LineSpacingMultiplier);
+            KeepLinesTogether, Text.ToPublic(), LineSpacingMultiplier, TabStops);
     }
 
     private sealed class TextSpan {

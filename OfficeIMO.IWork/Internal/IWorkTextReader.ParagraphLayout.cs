@@ -2,7 +2,7 @@ namespace OfficeIMO.IWork.Internal;
 
 internal static partial class IWorkTextReader {
     /// <summary>Recovers qualified relative spacing and assesses remaining selected layout messages.</summary>
-    private static void AssessParagraphLayout(IWorkWireMessage message, ParagraphStyleData data, IWorkArchiveRecord record,
+    private static void AssessParagraphLayout(IWorkWireMessage message, ParagraphStyleData data, IWorkProjectionBudget budget, IWorkArchiveRecord record,
         IWorkSourceReferenceIssueCollector references, ref bool complete) {
         var evidence = new StylePropertyEvidence(record, "12/", references.Declarations);
         // TSWP.ParagraphStylePropertiesArchive: line spacing and custom tabs.
@@ -13,6 +13,8 @@ internal static partial class IWorkTextReader {
             bool? clear = ReadBoolean(message, clearField, evidence, ref isComplete);
             if (valueField == 13 && (clear == true || message.HasField(valueField)))
                 data.LineSpacingMultiplier = null;
+            if (valueField == 25 && (clear == true || message.HasField(valueField)))
+                data.TabStops = Array.Empty<IWorkTabStop>();
             if (!message.HasField(valueField)) return;
             if (clear == true || message.FieldCount(valueField) != 1
                 || message.HasUnexpectedWireKind(valueField, IWorkWireKind.Bytes)) {
@@ -25,6 +27,12 @@ internal static partial class IWorkTextReader {
                 && (!message.HasField(clearField) || clear.HasValue)
                 && TryRelativeLineSpacing(value, out double multiplier)) {
                 data.LineSpacingMultiplier = multiplier;
+                return;
+            }
+            if (!malformed && value != null && valueField == 25
+                && (!message.HasField(clearField) || clear.HasValue)
+                && TryTabStops(value, budget, out var tabs)) {
+                data.TabStops = tabs;
                 return;
             }
             references.Declarations.Record(record,

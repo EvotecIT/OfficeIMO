@@ -45,6 +45,6 @@ public static partial class ExcelIWorkConverter {
         style.TextStyle.BackgroundColor != null || style.TextStyle.Color is { Alpha: < byte.MaxValue }
         || style.FirstLineIndentPoints.GetValueOrDefault() != 0 || style.LeftIndentPoints.GetValueOrDefault() != 0
         || style.RightIndentPoints.GetValueOrDefault() != 0 || style.SpaceBeforePoints.GetValueOrDefault() != 0
-        || style.LineSpacingMultiplier.HasValue || style.SpaceAfterPoints.GetValueOrDefault() != 0 || style.PageBreakBefore == true
+        || style.TabStops?.Count > 0 || style.LineSpacingMultiplier.HasValue || style.SpaceAfterPoints.GetValueOrDefault() != 0 || style.PageBreakBefore == true
         || style.KeepWithNext == true || style.KeepLinesTogether == true;
 }

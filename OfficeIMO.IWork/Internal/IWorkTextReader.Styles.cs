@@ -36,7 +36,7 @@ internal static partial class IWorkTextReader {
             }
             if (paragraph != null) {
                 OverlayParagraph(paragraph, data, chain[styleIndex].Record, references, ref resolvedCompletely);
-                AssessParagraphLayout(paragraph, data, chain[styleIndex].Record, references, ref layoutComplete);
+                AssessParagraphLayout(paragraph, data, projectionBudget, chain[styleIndex].Record, references, ref layoutComplete);
             }
         }
         IWorkParagraphStyle result = data.ToPublic();

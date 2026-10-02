@@ -88,6 +88,13 @@ public static partial class PowerPointIWorkConverter {
         if (style.SpaceBeforePoints.HasValue) paragraph.SpaceBeforePoints = style.SpaceBeforePoints;
         if (style.SpaceAfterPoints.HasValue) paragraph.SpaceAfterPoints = style.SpaceAfterPoints;
         if (style.LineSpacingMultiplier.HasValue) paragraph.LineSpacingMultiplier = style.LineSpacingMultiplier;
+        if (style.TabStops != null) paragraph.SetTabStops(style.TabStops.Select(tab => new PowerPointTabStop(tab.PositionPoints,
+            tab.Alignment switch {
+                IWorkTabAlignment.Center => PowerPointTabAlignment.Center,
+                IWorkTabAlignment.Right => PowerPointTabAlignment.Right,
+                IWorkTabAlignment.Decimal => PowerPointTabAlignment.Decimal,
+                _ => PowerPointTabAlignment.Left
+            })));
     }
 
     private sealed class IWorkPowerPointListState {
