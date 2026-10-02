@@ -244,6 +244,7 @@ public sealed partial class EpubDocument {
             MaxChapters = 1,
             MaxChapterBytes = Math.Min(source.MaxChapterBytes ?? long.MaxValue, safety.MaxInputBytes),
             MaxTotalRawHtmlBytes = Math.Min(source.MaxTotalRawHtmlBytes, safety.MaxExpandedPackageBytes),
+            MaxTotalTextCharacters = source.MaxTotalTextCharacters,
             IncludeRawHtml = false,
             IncludeResourceData = true,
             ResourceDataFilter = static (path, mediaType) => IsHtmlMediaType(mediaType) || IsHtmlPath(path),

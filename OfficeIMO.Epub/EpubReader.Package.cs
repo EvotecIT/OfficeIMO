@@ -247,6 +247,7 @@ internal static partial class EpubReader {
             PackageVersion = packageElement == null ? null : NullIfWhiteSpace(GetUnqualifiedAttribute(packageElement, "version")),
             UniqueIdentifierId = packageElement == null ? null : NullIfWhiteSpace(GetUnqualifiedAttribute(packageElement, "unique-identifier"))
         };
+        ReadVocabularyPrefixes(packageElement, package, diagnostics);
 
         bool declaredUniqueIdentifierResolved = false;
         XElement? metadata = packageElement?.Elements().FirstOrDefault(e => IsOpfName(e, "metadata"));
@@ -271,7 +272,7 @@ internal static partial class EpubReader {
                 .Select(element => NullIfWhiteSpace(NormalizeWhitespace(element.Value)))
                 .FirstOrDefault(identifier => identifier != null);
 
-            package.RenditionLayout = ReadPackageRenditionLayout(metadata, diagnostics, opfPath);
+            package.RenditionLayout = ReadPackageRenditionLayout(metadata, package, diagnostics, opfPath);
         }
 
         if (string.IsNullOrWhiteSpace(package.PackageVersion)) {
@@ -362,10 +363,15 @@ internal static partial class EpubReader {
         XElement? spine = packageElement?.Elements().FirstOrDefault(e => IsOpfName(e, "spine"));
         if (spine != null) {
             var tocId = GetUnqualifiedAttribute(spine, "toc");
-            if (!string.IsNullOrWhiteSpace(tocId) &&
-                package.Manifest.TryGetValue(tocId, out var tocManifest) &&
-                string.IsNullOrWhiteSpace(package.NcxPath)) {
-                package.NcxPath = tocManifest.FullPath;
+            if (!string.IsNullOrWhiteSpace(tocId)) {
+                if (package.Manifest.TryGetValue(tocId, out var tocManifest) &&
+                    string.Equals(tocManifest.MediaType, "application/x-dtbncx+xml", StringComparison.OrdinalIgnoreCase)) {
+                    package.NcxPath = tocManifest.FullPath;
+                } else {
+                    package.NcxPath = null;
+                    diagnostics.Warning("epub.ncx.spine-toc-invalid",
+                        $"Spine toc '{tocId}' does not reference an NCX manifest item.", opfPath);
+                }
             }
 
             int index = 0;
@@ -373,7 +379,6 @@ internal static partial class EpubReader {
                 cancellationToken.ThrowIfCancellationRequested();
                 index++;
                 var idRef = GetUnqualifiedAttribute(itemRef, "idref");
-                if (string.IsNullOrWhiteSpace(idRef)) continue;
 
                 var linear = GetUnqualifiedAttribute(itemRef, "linear");
                 var isLinear = !string.Equals(linear, "no", StringComparison.OrdinalIgnoreCase);
@@ -384,7 +389,7 @@ internal static partial class EpubReader {
                     SpineIndex = index,
                     IsLinear = isLinear,
                     Properties = properties,
-                    RenditionLayout = ResolveRenditionLayout(package.RenditionLayout, properties)
+                    RenditionLayout = ResolveRenditionLayout(package, properties)
                 });
             }
         }

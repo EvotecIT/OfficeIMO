@@ -11,16 +11,18 @@ internal static partial class EpubReader {
         EpubPackage? package,
         EpubReadOptions options,
         EpubDiagnosticCollector diagnostics,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        out EpubReadSummary readSummary) {
         var candidates = new List<ChapterCandidate>();
-        var seenPaths = new HashSet<string>(StringComparer.Ordinal);
+        readSummary = new EpubReadSummary { IsSpineBased = package != null && package.Spine.Count > 0 };
 
-        if (package != null && options.PreferSpineOrder && package.Spine.Count > 0) {
+        if (package != null && readSummary.IsSpineBased) {
             foreach (var spineItem in package.Spine.OrderBy(s => s.SpineIndex)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!options.IncludeNonLinearSpineItems && !spineItem.IsLinear) {
                     continue;
                 }
+                readSummary.RequestedChapterCount++;
 
                 if (!package.Manifest.TryGetValue(spineItem.IdRef, out var manifestItem)) {
                     diagnostics.Warning(
@@ -31,6 +33,9 @@ internal static partial class EpubReader {
                 }
 
                 if (!IsChapterManifestItem(manifestItem)) {
+                    diagnostics.Warning("epub.spine.unsupported-media-type",
+                        $"Skipped spine resource '{manifestItem.FullPath}' with unsupported media type '{manifestItem.MediaType}'.",
+                        manifestItem.FullPath, manifestItem.MediaType);
                     continue;
                 }
 
@@ -51,11 +56,6 @@ internal static partial class EpubReader {
                 }
 
                 string chapterPath = manifestItem.FullPath;
-                if (seenPaths.Contains(chapterPath)) {
-                    continue;
-                }
-
-                seenPaths.Add(chapterPath);
                 candidates.Add(new ChapterCandidate {
                     Entry = chapterEntry,
                     Path = chapterPath,
@@ -68,12 +68,13 @@ internal static partial class EpubReader {
             }
         }
 
-        var shouldFallbackScan = candidates.Count == 0 && options.FallbackToHtmlScan;
-        if (!options.PreferSpineOrder) {
-            shouldFallbackScan = true;
-        }
+        bool shouldFallbackScan = !readSummary.IsSpineBased && options.FallbackToHtmlScan;
 
         if (shouldFallbackScan) {
+            readSummary.UsedFallbackScan = true;
+            diagnostics.Warning("epub.chapter.fallback-scan",
+                "Chapters were recovered by scanning the archive because no usable spine was declared; publication completeness cannot be established.",
+                package?.OpfPath);
             IEnumerable<KeyValuePair<string, ZipArchiveEntry>> scanEntries = entryIndex
                 .Where(entry => IsChapterEntry(entry.Key));
             if (options.DeterministicOrder) {
@@ -84,10 +85,9 @@ internal static partial class EpubReader {
             foreach (KeyValuePair<string, ZipArchiveEntry> indexedEntry in scanEntries) {
                 cancellationToken.ThrowIfCancellationRequested();
                 string chapterPath = indexedEntry.Key;
-                if (seenPaths.Contains(chapterPath)) continue;
-
                 manifestByPath.TryGetValue(chapterPath, out var manifestItem);
-                seenPaths.Add(chapterPath);
+                if (manifestItem != null && ContainsSpaceSeparatedToken(manifestItem.Properties, "nav")) continue;
+                readSummary.RequestedChapterCount++;
                 candidates.Add(new ChapterCandidate {
                     Entry = indexedEntry.Value,
                     Path = chapterPath,
@@ -100,7 +100,9 @@ internal static partial class EpubReader {
             }
         }
 
-        return candidates;
+        return !options.PreferSpineOrder && options.DeterministicOrder
+            ? candidates.OrderBy(candidate => candidate.Path, StringComparer.Ordinal).ToList()
+            : candidates;
     }
 
     private static Dictionary<string, ManifestItem> BuildManifestByPath(EpubPackage? package) {
@@ -117,13 +119,10 @@ internal static partial class EpubReader {
     }
 
     private static bool IsChapterManifestItem(ManifestItem item) {
-        if (!string.IsNullOrWhiteSpace(item.MediaType) &&
-            (item.MediaType.IndexOf("xhtml", StringComparison.OrdinalIgnoreCase) >= 0 ||
-             item.MediaType.IndexOf("html", StringComparison.OrdinalIgnoreCase) >= 0)) {
-            return true;
-        }
-
-        return IsChapterEntry(item.FullPath);
+        if (string.Equals(item.MediaType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)) return true;
+        if (string.Equals(item.MediaType, "application/xhtml+xml", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(item.MediaType, "text/html", StringComparison.OrdinalIgnoreCase)) return true;
+        return string.IsNullOrWhiteSpace(item.MediaType) && IsChapterEntry(item.FullPath);
     }
 
     private static bool IsChapterEntry(string? fullName) {
@@ -142,24 +141,26 @@ internal static partial class EpubReader {
         byte[] data = ReadEntryBytesExact(entry, maxBytes, cancellationToken);
         if (data.Length >= 4) {
             if (data[0] == 0x00 && data[1] == 0x00 && data[2] == 0xFE && data[3] == 0xFF) {
-                return BigEndianUtf32.GetString(data, 4, data.Length - 4);
+                return StrictBigEndianUtf32.GetString(data, 4, data.Length - 4);
             }
             if (data[0] == 0xFF && data[1] == 0xFE && data[2] == 0x00 && data[3] == 0x00) {
-                return Encoding.UTF32.GetString(data, 4, data.Length - 4);
+                return StrictUtf32.GetString(data, 4, data.Length - 4);
             }
         }
         if (data.Length >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF) {
-            return Encoding.UTF8.GetString(data, 3, data.Length - 3);
+            return StrictUtf8.GetString(data, 3, data.Length - 3);
         }
         if (data.Length >= 2) {
             if (data[0] == 0xFE && data[1] == 0xFF) {
-                return Encoding.BigEndianUnicode.GetString(data, 2, data.Length - 2);
+                return StrictBigEndianUtf16.GetString(data, 2, data.Length - 2);
             }
             if (data[0] == 0xFF && data[1] == 0xFE) {
-                return Encoding.Unicode.GetString(data, 2, data.Length - 2);
+                return StrictUtf16.GetString(data, 2, data.Length - 2);
             }
         }
-        return Encoding.UTF8.GetString(data);
+        if (data.Length >= 4 && data[0] == 0 && data[1] == '<' && data[2] == 0) return StrictBigEndianUtf16.GetString(data);
+        if (data.Length >= 4 && data[0] == '<' && data[1] == 0 && data[3] == 0) return StrictUtf16.GetString(data);
+        return StrictUtf8.GetString(data);
     }
 
     private static byte[] ReadEntryBytes(
@@ -268,7 +269,7 @@ internal static partial class EpubReader {
         }
     }
 
-    private static bool TryReadChapterMarkup(string content, out ChapterMarkupInfo chapter) {
+    private static bool TryReadChapterMarkup(string content, out ChapterMarkupInfo chapter, CancellationToken cancellationToken) {
         chapter = ChapterMarkupInfo.Empty;
         if (string.IsNullOrWhiteSpace(content)) return false;
 
@@ -290,6 +291,8 @@ internal static partial class EpubReader {
             int excludedTextDepth = -1;
             int titleDepth = -1;
             int headingDepth = -1;
+            int svgTextDepth = -1;
+            bool isSvg = false;
             bool sawBody = false;
             bool hasVisibleText = false;
             bool pendingVisibleSpace = false;
@@ -298,42 +301,54 @@ internal static partial class EpubReader {
             string? baseHref = null;
 
             while (reader.Read()) {
+                cancellationToken.ThrowIfCancellationRequested();
                 switch (reader.NodeType) {
                     case XmlNodeType.Element:
                         string localName = reader.LocalName;
-                        if (!sawBody && localName.Equals("body", StringComparison.OrdinalIgnoreCase)) {
+                        bool isHtmlElement = IsXhtmlNamespace(reader.NamespaceURI);
+                        bool isSvgElement = reader.NamespaceURI == SvgNamespaceUri;
+                        if (reader.Depth == 0) {
+                            isSvg = isSvgElement && localName == "svg";
+                            if (!isSvg && !(isHtmlElement && localName.Equals("html", StringComparison.OrdinalIgnoreCase))) return false;
+                            hasStructuredContent = isSvg;
+                        }
+                        if (!isSvg && !sawBody && reader.Depth == 1 && isHtmlElement &&
+                            localName.Equals("body", StringComparison.OrdinalIgnoreCase)) {
                             sawBody = true;
                             bodyDepth = reader.Depth;
                             visibleTextLength = 0;
                             hasVisibleText = false;
                             pendingVisibleSpace = false;
                         }
-                        if (excludedTextDepth < 0 &&
+                        if (excludedTextDepth < 0 && (isHtmlElement || isSvgElement) &&
                             (localName.Equals("script", StringComparison.OrdinalIgnoreCase) ||
                              localName.Equals("style", StringComparison.OrdinalIgnoreCase))) {
                             excludedTextDepth = reader.Depth;
                         }
-                        if (reader.Depth > 0 && title == null && localName.Equals("title", StringComparison.OrdinalIgnoreCase)) {
+                        if (reader.Depth > 0 && title == null && (isHtmlElement || isSvgElement) && localName.Equals("title", StringComparison.OrdinalIgnoreCase)) {
                             title = new StringBuilder();
                             titleDepth = reader.Depth;
                         }
-                        if (reader.Depth > 0 && heading == null &&
+                        if (reader.Depth > 0 && heading == null && isHtmlElement &&
                             (localName.Equals("h1", StringComparison.OrdinalIgnoreCase) ||
                              localName.Equals("h2", StringComparison.OrdinalIgnoreCase))) {
                             heading = new StringBuilder();
                             headingDepth = reader.Depth;
                         }
-                        if (reader.Depth > 0 && baseHref == null && localName.Equals("base", StringComparison.OrdinalIgnoreCase)) {
+                        if (reader.Depth > 0 && baseHref == null && isHtmlElement && localName.Equals("base", StringComparison.OrdinalIgnoreCase)) {
                             baseHref = NullIfWhiteSpace(GetAttribute(reader, "href"));
                         }
-                        if (reader.Depth > 0 && !hasStructuredContent && IsStructuredChapterElement(localName)) {
+                        if (reader.Depth > 0 && !hasStructuredContent && (isHtmlElement || isSvgElement) && IsStructuredChapterElement(localName)) {
                             hasStructuredContent = true;
                         }
+                        if (isSvgElement && svgTextDepth < 0 && localName == "text") svgTextDepth = reader.Depth;
+                        if (isHtmlElement && IsTextBoundaryElement(localName)) pendingVisibleSpace = hasVisibleText;
                         if (reader.IsEmptyElement) {
                             if (reader.Depth == excludedTextDepth) excludedTextDepth = -1;
                             if (reader.Depth == titleDepth) titleDepth = -1;
                             if (reader.Depth == headingDepth) headingDepth = -1;
                             if (reader.Depth == bodyDepth) bodyDepth = -1;
+                            if (reader.Depth == svgTextDepth) svgTextDepth = -1;
                         }
                         break;
 
@@ -343,26 +358,30 @@ internal static partial class EpubReader {
                     case XmlNodeType.Whitespace:
                         if (titleDepth >= 0 && reader.Depth > titleDepth) title!.Append(reader.Value);
                         if (headingDepth >= 0 && reader.Depth > headingDepth) heading!.Append(reader.Value);
-                        bool withinSelectedScope = sawBody
+                        bool withinSelectedScope = isSvg ? svgTextDepth >= 0 && reader.Depth > svgTextDepth : sawBody
                             ? bodyDepth >= 0 && reader.Depth > bodyDepth
                             : reader.Depth > 0;
-                        bool hasExcludedDirectParent = excludedTextDepth >= 0 && reader.Depth == excludedTextDepth + 1;
-                        if (withinSelectedScope && !hasExcludedDirectParent && !string.IsNullOrWhiteSpace(reader.Value)) {
+                        bool isExcluded = excludedTextDepth >= 0 && reader.Depth > excludedTextDepth;
+                        if (withinSelectedScope && !isExcluded) {
                             AppendNormalizedVisibleText(
                                 visibleText,
                                 ref visibleTextLength,
                                 reader.Value,
                                 ref hasVisibleText,
                                 ref pendingVisibleSpace);
-                            pendingVisibleSpace = hasVisibleText;
                         }
                         break;
 
                     case XmlNodeType.EndElement:
+                        if (IsXhtmlNamespace(reader.NamespaceURI) && IsTextBoundaryElement(reader.LocalName)) pendingVisibleSpace = hasVisibleText;
                         if (reader.Depth == excludedTextDepth) excludedTextDepth = -1;
                         if (reader.Depth == titleDepth) titleDepth = -1;
                         if (reader.Depth == headingDepth) headingDepth = -1;
                         if (reader.Depth == bodyDepth) bodyDepth = -1;
+                        if (reader.Depth == svgTextDepth) {
+                            svgTextDepth = -1;
+                            pendingVisibleSpace = hasVisibleText;
+                        }
                         break;
                 }
             }
@@ -374,7 +393,7 @@ internal static partial class EpubReader {
                 baseHref,
                 hasStructuredContent);
             return true;
-        } catch {
+        } catch (XmlException) {
             chapter = ChapterMarkupInfo.Empty;
             return false;
         } finally {
@@ -411,7 +430,7 @@ internal static partial class EpubReader {
     private static string GetAttribute(XmlReader reader, string attributeName) {
         if (!reader.HasAttributes) return string.Empty;
         while (reader.MoveToNextAttribute()) {
-            if (reader.LocalName.Equals(attributeName, StringComparison.OrdinalIgnoreCase)) {
+            if (reader.NamespaceURI.Length == 0 && reader.LocalName.Equals(attributeName, StringComparison.OrdinalIgnoreCase)) {
                 string value = reader.Value;
                 reader.MoveToElement();
                 return value;
@@ -456,6 +475,18 @@ internal static partial class EpubReader {
         return null;
     }
 
-    private static readonly Encoding BigEndianUtf32 = new UTF32Encoding(bigEndian: true, byteOrderMark: true);
+    private static bool IsTextBoundaryElement(string name) => TextBoundaryElements.Contains(name);
+
+    private static readonly HashSet<string> TextBoundaryElements = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+        "address", "article", "aside", "blockquote", "br", "caption", "dd", "div", "dl", "dt", "fieldset",
+        "figcaption", "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "li", "main",
+        "nav", "ol", "p", "pre", "section", "table", "td", "th", "tr", "ul"
+    };
+
+    private static readonly Encoding StrictUtf8 = new UTF8Encoding(false, true);
+    private static readonly Encoding StrictUtf16 = new UnicodeEncoding(false, true, true);
+    private static readonly Encoding StrictBigEndianUtf16 = new UnicodeEncoding(true, true, true);
+    private static readonly Encoding StrictUtf32 = new UTF32Encoding(false, true, true);
+    private static readonly Encoding StrictBigEndianUtf32 = new UTF32Encoding(true, true, true);
 
 }

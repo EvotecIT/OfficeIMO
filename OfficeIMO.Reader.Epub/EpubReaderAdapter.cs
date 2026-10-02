@@ -18,7 +18,7 @@ internal static partial class EpubReaderAdapter {
         var options = readerOptions ?? new ReaderOptions();
         ReaderInputLimits.EnforceFileSize(epubPath, options.MaxInputBytes);
         var source = BuildSourceMetadataFromPath(epubPath, options.ComputeHashes);
-        var document = EpubDocument.Load(epubPath, CreateStructuredOptions(epubOptions));
+        var document = EpubDocument.Load(epubPath, CreateStructuredOptions(epubOptions), cancellationToken);
         return ReadDocument(document, source, options, cancellationToken);
     }
 
@@ -41,7 +41,7 @@ internal static partial class EpubReaderAdapter {
         var source = BuildSourceMetadataFromStream(parseStream, logicalSourceName, options.ComputeHashes);
         EpubDocument document;
         try {
-            document = EpubDocument.Load(parseStream, CreateStructuredOptions(epubOptions));
+            document = EpubDocument.Load(parseStream, CreateStructuredOptions(epubOptions), cancellationToken);
         } finally {
             if (ownsParseStream) {
                 parseStream.Dispose();

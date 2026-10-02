@@ -88,6 +88,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\OfficeIMO.TestAssets\Documents\Epub\W3cSpine\**\*" Link="w3c\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

@@ -140,11 +140,12 @@ internal static partial class EpubReader {
 
     private static EpubRenditionLayout? ReadPackageRenditionLayout(
         XElement metadata,
+        EpubPackage package,
         EpubDiagnosticCollector diagnostics,
         string opfPath) {
         XElement[] declarations = metadata.Elements()
-            .Where(element => IsName(element, "meta") &&
-                string.Equals(GetAttribute(element, "property"), "rendition:layout", StringComparison.Ordinal))
+            .Where(element => IsOpfName(element, "meta") &&
+                IsRenditionProperty(package, GetUnqualifiedAttribute(element, "property"), "layout"))
             .ToArray();
         if (declarations.Length > 1) {
             diagnostics.Warning(
@@ -162,10 +163,10 @@ internal static partial class EpubReader {
         }
 
         XElement? legacy = metadata.Elements().FirstOrDefault(element =>
-            IsName(element, "meta") &&
-            string.Equals(GetAttribute(element, "name"), "fixed-layout", StringComparison.OrdinalIgnoreCase));
+            IsOpfName(element, "meta") &&
+            string.Equals(GetUnqualifiedAttribute(element, "name"), "fixed-layout", StringComparison.OrdinalIgnoreCase));
         if (legacy != null) {
-            string content = GetAttribute(legacy, "content");
+            string content = GetUnqualifiedAttribute(legacy, "content");
             if (string.Equals(content, "true", StringComparison.OrdinalIgnoreCase)) return EpubRenditionLayout.PrePaginated;
             if (string.Equals(content, "false", StringComparison.OrdinalIgnoreCase)) return EpubRenditionLayout.Reflowable;
         }
@@ -173,15 +174,16 @@ internal static partial class EpubReader {
     }
 
     private static EpubRenditionLayout? ResolveRenditionLayout(
-        EpubRenditionLayout? packageLayout,
+        EpubPackage package,
         string? spineProperties) {
-        if (ContainsSpaceSeparatedToken(spineProperties, "rendition:layout-pre-paginated")) {
+        string[] properties = (spineProperties ?? string.Empty).Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        if (properties.Any(property => IsRenditionProperty(package, property, "layout-pre-paginated"))) {
             return EpubRenditionLayout.PrePaginated;
         }
-        if (ContainsSpaceSeparatedToken(spineProperties, "rendition:layout-reflowable")) {
+        if (properties.Any(property => IsRenditionProperty(package, property, "layout-reflowable"))) {
             return EpubRenditionLayout.Reflowable;
         }
-        return packageLayout;
+        return package.RenditionLayout;
     }
 
     private static bool TryParseRenditionLayout(string? value, out EpubRenditionLayout layout) {

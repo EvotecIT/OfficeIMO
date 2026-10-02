@@ -34,6 +34,45 @@ foreach (string warning in book.Warnings) {
 }
 ```
 
+### Check chapter completeness and limits
+
+`book.ReadSummary` counts selected reading positions, extracted chapters, and skipped
+positions. `IsComplete` means every selected spine position was emitted; it does not
+certify EPUB conformance, rendering fidelity, or retention of every resource.
+Non-linear positions excluded by policy are not counted as requested.
+
+```csharp
+EpubDocument book = EpubDocument.Load("book.epub", new EpubReadOptions {
+    MaxChapters = 500,
+    MaxTotalTextCharacters = 32L * 1024L * 1024L
+});
+
+Console.WriteLine($"{book.ReadSummary.ExtractedChapterCount}/{book.ReadSummary.RequestedChapterCount}");
+if (!book.ReadSummary.IsComplete) {
+    foreach (EpubDiagnostic diagnostic in book.Diagnostics) {
+        Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
+    }
+}
+```
+
+Chapter count, chapter byte, and total text limits produce diagnostics when selected
+content is omitted. Total text is measured in UTF-16 characters and defaults to
+32 Mi characters. Adjust the budget explicitly for larger publications.
+Malformed character encodings are diagnosed and skipped rather than replaced silently.
+
+Spine selection is independent of ordering: repeated references remain distinct
+chapters, and `PreferSpineOrder = false` does not bypass non-linear exclusion.
+Archive recovery scanning applies only when no usable spine is declared, excludes
+declared navigation documents, and sets `UsedFallbackScan`; completeness remains unknown.
+
+SVG spine documents retain their positions, text, and structure. `IncludeRawHtml`
+also retains their original SVG markup in `chapter.Html`. SVG extraction does not
+reproduce fixed-layout page geometry. Inline text remains continuous across formatting
+elements, while block boundaries and explicit whitespace separate text.
+
+The synchronous three-argument `Load` overloads accept a `CancellationToken` for
+package reading and parsing. `LoadAsync` accepts the token through its existing overloads.
+
 ### Inspect package signatures
 
 ```csharp
@@ -131,7 +170,7 @@ Use the three-argument overload with `chapter.BaseHref` when resolving URLs foun
 - Parses `META-INF/container.xml` and OPF package metadata.
 - Follows OPF manifest and spine ordering.
 - Reads hierarchical EPUB 3 navigation and EPUB 2 NCX labels when available.
-- Extracts chapter text from XHTML/XML ASTs.
+- Extracts chapter text from XHTML and SVG content documents.
 - Returns deterministic OPF manifest resources with optional bounded payloads.
 - Resolves package, navigation, and content references through a shared typed URL contract.
 - Emits structured diagnostics and warning messages for malformed, unsafe, encrypted, fixed-layout, or unreadable content.
@@ -207,7 +246,7 @@ foreach (string warning in book.Warnings) {
 
 ## Targets and license
 
-- Targets: `netstandard2.0`, `net8.0`, `net10.0`.
+- Targets: `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
 

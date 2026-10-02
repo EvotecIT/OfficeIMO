@@ -11,6 +11,9 @@ internal static partial class EpubReader {
         public string? Language { get; set; }
         public string? Creator { get; set; }
         public EpubRenditionLayout? RenditionLayout { get; set; }
+        public Dictionary<string, string> VocabularyPrefixes { get; } = new Dictionary<string, string>(StringComparer.Ordinal) {
+            ["rendition"] = "http://www.idpf.org/vocab/rendition/#"
+        };
         public List<EpubMetadataEntry> Metadata { get; } = new List<EpubMetadataEntry>();
         public Dictionary<string, ManifestItem> Manifest { get; } = new Dictionary<string, ManifestItem>(StringComparer.Ordinal);
         public List<SpineItem> Spine { get; } = new List<SpineItem>();
