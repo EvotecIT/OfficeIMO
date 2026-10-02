@@ -98,7 +98,7 @@ The [source-reader support matrix](officeimo.iwork-support-matrix.md) owns the c
 
 ### I4: shared consumer integration
 
-- [ ] Qualify native picker/drop and permission-scoped directory-package intake through the [shared iWork workflow routes](../OfficeIMO.Workflows.IWork/README.md). Preserve source permission scopes, identity and publication-time package membership/content verification. Local directory conversion is covered by the current workflow contract; native sandbox bookmark acceptance follows I5.
+- [ ] Extend the [bounded local macOS package-picker qualification](../OfficeIMO.Studio/README.md) to native drag-and-drop and permission-scoped directory-package intake through the [shared iWork workflow routes](../OfficeIMO.Workflows.IWork/README.md). Preserve source permission scopes, identity and publication-time package membership/content verification. Local directory conversion is covered by the current workflow contract; native sandbox bookmark acceptance follows I5.
 
 ### I5: runtime and Apple host acceptance
 
