@@ -40,6 +40,50 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Pages_template_declarations_do_not_enable_unselected_variants(bool hideFirstPage) {
+        using MemoryStream package = CreatePagesPackageWithHeaderFooterVariants(false, false, hideFirstPage);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        IWorkPagesSection source = Assert.Single(result.Projection.Sections);
+        Assert.True(source.HasFirstPageTemplate);
+        Assert.True(source.HasEvenPageTemplate);
+        Assert.False(source.DifferentFirstPage);
+        Assert.False(source.DifferentOddAndEvenPages);
+        Assert.Equal(hideFirstPage, source.HideFirstPageHeadersAndFooters);
+        using var saved = new MemoryStream();
+        result.Value.Save(saved);
+        saved.Position = 0;
+        using WordDocument reopened = WordDocument.Load(saved);
+        WordSection section = Assert.Single(reopened.Sections);
+        Assert.Equal(hideFirstPage, section.DifferentFirstPage);
+        Assert.False(section.DifferentOddAndEvenPages);
+        Assert.Contains(section.Header.Default!.Paragraphs, p => p.Text == "Default header");
+        Assert.Contains(section.Footer.Default!.Paragraphs, p => p.Text == "Default footer");
+        if (hideFirstPage) {
+            Assert.DoesNotContain(section.Header.First!.Paragraphs, p => !string.IsNullOrEmpty(p.Text));
+            Assert.DoesNotContain(section.Footer.First!.Paragraphs, p => !string.IsNullOrEmpty(p.Text));
+        }
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
+    [Theory]
+    [InlineData(18, 0)]
+    [InlineData(19, 1)]
+    [InlineData(28, 2)]
+    public void Pages_malformed_header_selection_is_diagnosed(int field, int malformedKind) {
+        byte[] flags = malformedKind switch {
+            0 => Message(VarintField(field, 1), VarintField(field, 0)),
+            1 => StringField(field, "true"),
+            _ => VarintField(field, 2)
+        };
+        using MemoryStream package = CreatePagesPackageWithHeaderFooterVariants(selectionFlags: flags);
+        IWorkPagesProjection projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ReadPages();
+        Assert.False(projection.HasEditableContent);
+        Assert.Contains(projection.Diagnostics, d => d.Code == "IWORK_PAGES_HEADER_FOOTER_UNSUPPORTED");
+    }
+
+    [Theory]
     [InlineData("1", PowerPointNumberingScheme.ArabicPlain, 1)]
     [InlineData("1.", PowerPointNumberingScheme.ArabicPeriod, 1)]
     [InlineData("a.", PowerPointNumberingScheme.AlphaLowerCharacterPeriod, 1)]
@@ -87,7 +131,9 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(result.Projection.HasEditableContent);
     }
 
-    private static MemoryStream CreatePagesPackageWithHeaderFooterVariants() {
+    private static MemoryStream CreatePagesPackageWithHeaderFooterVariants(
+        bool differentFirstPage = true, bool differentOddAndEvenPages = true, bool hideFirstPage = false,
+        byte[]? selectionFlags = null) {
         const ulong documentId = 1;
         const ulong bodyId = 2;
         const ulong sectionId = 3;
@@ -100,7 +146,10 @@ public sealed partial class IWorkBoundaryTests {
             ArchiveRecord(bodyId, 2001,
                 Message(StringField(3, "Body"), BytesField(17, sectionTable)), new[] { sectionId }),
             ArchiveRecord(sectionId, 10011,
-                Message(ReferenceField(23, firstTemplateId), ReferenceField(24, evenTemplateId),
+                Message(selectionFlags ?? Message(VarintField(18, differentFirstPage ? 1UL : 0UL),
+                    VarintField(19, differentOddAndEvenPages ? 1UL : 0UL),
+                    VarintField(28, hideFirstPage ? 1UL : 0UL)),
+                    ReferenceField(23, firstTemplateId), ReferenceField(24, evenTemplateId),
                     ReferenceField(25, defaultTemplateId)),
                 new[] { firstTemplateId, evenTemplateId, defaultTemplateId }),
             HeaderFooterTemplate(firstTemplateId, 20, 21),

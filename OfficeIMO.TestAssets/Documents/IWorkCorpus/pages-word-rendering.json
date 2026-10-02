@@ -75,5 +75,12 @@
     "outputSha256": "B9A1E1F390B02708C91211FA5FC0A5E8E8FC0AAB4A280EAB6ABE0781F5D530FA",
     "observation": "In the same Word version, the regenerated first page visibly renders the three ordered items as 1., 2., 3. and retains the preceding bullet list. The file opens without a repair prompt.",
     "limits": "Single decimal list only; paragraph restart/continuation, tiered counters, other scripts and full layout equivalence remain unqualified."
+  },
+  "headerFooterRemediation": {
+    "candidateBaseRevision": "dca2edfdb7e7f7de3ec0df7cd0a28dc645ab3df2",
+    "source": "picodocs/sample-v14.4.pages",
+    "outputSha256": "37C1895212B5ED24336B6FD7FF10D3F208433702BFDBD096E1229EA6D3830D65",
+    "observation": "In the same Word version at 100% zoom, the regenerated document opens without repair. The first-page header and footer are visible, as is the default header on page two. The decimal list remains visibly numbered 1., 2., 3.",
+    "limits": "Default selection on this two-section fixture only. Enabled alternate templates, first-page suppression, section inheritance, Apple exports and full layout equivalence remain unqualified."
   }
 }

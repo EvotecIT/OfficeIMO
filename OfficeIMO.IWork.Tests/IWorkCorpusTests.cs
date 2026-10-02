@@ -324,6 +324,35 @@ public sealed class IWorkCorpusTests {
     }
 
     [Fact]
+    public void Pages_native_default_headers_remain_selected_when_alternate_templates_are_stored() {
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(
+            Fixture("picodocs/sample-v14.4.pages"), conversionOptions: new IWorkConversionOptions {
+                Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true
+            });
+        Assert.Equal(2, result.Projection.Sections.Count);
+        Assert.All(result.Projection.Sections, source => {
+            Assert.True(source.HasFirstPageTemplate);
+            Assert.True(source.HasEvenPageTemplate);
+            Assert.False(source.DifferentFirstPage);
+            Assert.False(source.DifferentOddAndEvenPages);
+            Assert.False(source.HideFirstPageHeadersAndFooters);
+        });
+        using var saved = new MemoryStream();
+        result.Value.Save(saved);
+        saved.Position = 0;
+        using WordDocument reopened = WordDocument.Load(saved);
+        Assert.All(reopened.Sections, section => {
+            Assert.False(section.DifferentFirstPage);
+            Assert.False(section.DifferentOddAndEvenPages);
+        });
+        Assert.Contains(reopened.Sections[0].Header.Default!.Paragraphs,
+            p => p.Text.Contains("Apple Pages Import Fixture"));
+        Assert.Contains(reopened.Sections[0].Footer.Default!.Paragraphs,
+            p => p.Text.Contains("Fixture coverage:"));
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
+    [Fact]
     public void Pages_recovers_embedded_image_and_shared_editable_tables() {
         IWorkPagesProjection pages = IWorkSourceDocument.Open(Fixture("picodocs/sample-v14.4.pages")).ReadPages();
 

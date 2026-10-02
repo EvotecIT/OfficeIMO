@@ -193,3 +193,7 @@ The complete rows for `OfficeIMO.IWork` are published in the [generated operatio
 `IWorkTableCell.Comment` exposes qualified root comments with exact plain `Text`, display `Author`, UTC `CreationDateUtc`, and native comment/author record identities. Comments on empty cells remain materialized and use the existing cell, catalog-entry and text budgets. Catalog, comment and author records are traversed only when selected by a fully decoded cell. Unresolved selectors, replies, invalid timestamps and unsupported record shapes retain `UnsupportedFeatures.Comment` and source diagnostics.
 
 Numbers-to-XLSX conversion writes qualified roots through the Excel threaded-comment owner and retains text, author, timestamp and cell address after reopening. DOCX and PPTX table conversion require explicit partial reconstruction to omit cell comments. Reader reports their omission from its grid. Author colors, collaboration identifiers, native UUID mapping, replies, Apple export equivalence and rendered comment appearance are outside this contract.
+
+### Pages section headers and footers
+
+Pages section projections distinguish stored header/footer templates (`HasFirstPageTemplate`, `HasEvenPageTemplate`, `HasDefaultPageTemplate`) from their selection settings (`DifferentFirstPage`, `DifferentOddAndEvenPages`, `HideFirstPageHeadersAndFooters`). Stored alternate templates may be inactive.

@@ -81,7 +81,7 @@ public sealed partial class IWorkBoundaryTests {
                 Message(ReferenceField(25, firstDefaultTemplateId)),
                 new[] { firstDefaultTemplateId }),
             ArchiveRecord(secondSectionId, 10011,
-                Message(ReferenceField(24, secondEvenTemplateId),
+                Message(VarintField(19, 1), ReferenceField(24, secondEvenTemplateId),
                     ReferenceField(25, secondDefaultTemplateId)),
                 new[] { secondEvenTemplateId, secondDefaultTemplateId }),
             HeaderFooterTemplate(firstDefaultTemplateId, 20, 21),

@@ -171,7 +171,7 @@ public static partial class WordIWorkConverter {
                     }
                 }
                 document.AddCellComments(cellComments, cancellationToken);
-                bool hasAnyEvenPageTemplate = projection.Sections.Any(section => section.HasEvenPageTemplate);
+                bool hasAnyEvenPageTemplate = projection.Sections.Any(section => section.DifferentOddAndEvenPages);
                 for (int sectionIndex = 0; sectionIndex < projection.Sections.Count; sectionIndex++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     IWorkPagesSection sourceSection = projection.Sections[sectionIndex];
@@ -273,23 +273,25 @@ public static partial class WordIWorkConverter {
                 AddRichText(content, footer.AddParagraph, nativeLists, cancellationToken: cancellationToken);
             }
         }
-        if (source.HasFirstPageTemplate) {
+        if (source.DifferentFirstPage || source.HideFirstPageHeadersAndFooters) {
             WordHeader header = target.GetOrCreateHeader(WordHeaderFooterType.First);
             WordFooter footer = target.GetOrCreateFooter(WordHeaderFooterType.First);
-            foreach (IWorkTextContent content in source.FirstPageHeaderContents) {
+            foreach (IWorkTextContent content in source.HideFirstPageHeadersAndFooters
+                         ? Array.Empty<IWorkTextContent>() : source.FirstPageHeaderContents) {
                 AddRichText(content, header.AddParagraph, nativeLists, cancellationToken: cancellationToken);
             }
-            foreach (IWorkTextContent content in source.FirstPageFooterContents) {
+            foreach (IWorkTextContent content in source.HideFirstPageHeadersAndFooters
+                         ? Array.Empty<IWorkTextContent>() : source.FirstPageFooterContents) {
                 AddRichText(content, footer.AddParagraph, nativeLists, cancellationToken: cancellationToken);
             }
         }
         if (hasAnyEvenPageTemplate) {
             WordHeader header = target.GetOrCreateHeader(WordHeaderFooterType.Even);
             WordFooter footer = target.GetOrCreateFooter(WordHeaderFooterType.Even);
-            IReadOnlyList<IWorkTextContent> headerContents = source.HasEvenPageTemplate
+            IReadOnlyList<IWorkTextContent> headerContents = source.DifferentOddAndEvenPages
                 ? source.EvenPageHeaderContents
                 : source.DefaultPageHeaderContents;
-            IReadOnlyList<IWorkTextContent> footerContents = source.HasEvenPageTemplate
+            IReadOnlyList<IWorkTextContent> footerContents = source.DifferentOddAndEvenPages
                 ? source.EvenPageFooterContents
                 : source.DefaultPageFooterContents;
             foreach (IWorkTextContent content in headerContents) {

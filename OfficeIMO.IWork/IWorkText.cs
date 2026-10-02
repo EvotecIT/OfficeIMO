@@ -218,8 +218,13 @@ public sealed class IWorkPagesSection {
         IReadOnlyList<IWorkTextContent>? evenPageHeaders,
         IReadOnlyList<IWorkTextContent>? evenPageFooters,
         IReadOnlyList<IWorkTextContent>? defaultPageHeaders,
-        IReadOnlyList<IWorkTextContent>? defaultPageFooters) {
+        IReadOnlyList<IWorkTextContent>? defaultPageFooters,
+        bool differentFirstPage = false, bool differentOddAndEvenPages = false,
+        bool hideFirstPageHeadersAndFooters = false) {
         Index = index;
+        DifferentFirstPage = differentFirstPage;
+        DifferentOddAndEvenPages = differentOddAndEvenPages;
+        HideFirstPageHeadersAndFooters = hideFirstPageHeadersAndFooters;
         HasFirstPageTemplate = firstPageHeaders != null || firstPageFooters != null;
         HasEvenPageTemplate = evenPageHeaders != null || evenPageFooters != null;
         HasDefaultPageTemplate = defaultPageHeaders != null || defaultPageFooters != null;
@@ -237,6 +242,12 @@ public sealed class IWorkPagesSection {
 
     /// <summary>Gets the zero-based source section index.</summary>
     public int Index { get; }
+    /// <summary>Gets whether the section selects its first-page template instead of the default template.</summary>
+    public bool DifferentFirstPage { get; }
+    /// <summary>Gets whether the section selects its even-page template on even pages.</summary>
+    public bool DifferentOddAndEvenPages { get; }
+    /// <summary>Gets whether headers and footers are hidden on the section's first page.</summary>
+    public bool HideFirstPageHeadersAndFooters { get; }
     /// <summary>Gets whether the source declares a distinct first-page template.</summary>
     public bool HasFirstPageTemplate { get; }
     /// <summary>Gets whether the source declares a distinct even-page template.</summary>

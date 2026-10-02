@@ -546,6 +546,12 @@ internal static partial class IWorkPagesReader {
                 sections.Add(new IWorkPagesSection(sectionIndex++, null, null, null, null, null, null));
                 continue;
             }
+            bool differentFirstPage = ReadSectionSelectionFlag(sectionMessage, section, 18,
+                references, diagnostics, ref supportsEditableReconstruction);
+            bool differentOddAndEvenPages = ReadSectionSelectionFlag(sectionMessage, section, 19,
+                references, diagnostics, ref supportsEditableReconstruction);
+            bool hideFirstPageHeadersAndFooters = ReadSectionSelectionFlag(sectionMessage, section, 28,
+                references, diagnostics, ref supportsEditableReconstruction);
             foreach (int field in new[] {
                          FirstPageTemplateField, EvenPageTemplateField, DefaultPageTemplateField
                      }) {
@@ -595,7 +601,8 @@ internal static partial class IWorkPagesReader {
             }
             sections.Add(new IWorkPagesSection(sectionIndex++,
                 firstPageHeaders, firstPageFooters, evenPageHeaders, evenPageFooters,
-                defaultPageHeaders, defaultPageFooters));
+                defaultPageHeaders, defaultPageFooters, differentFirstPage,
+                differentOddAndEvenPages, hideFirstPageHeadersAndFooters));
         }
     }
 
