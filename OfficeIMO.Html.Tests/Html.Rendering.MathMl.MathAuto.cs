@@ -36,6 +36,26 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(logical, rendered.Text);
         Assert.Equal(OfficeFontStyle.Regular, text.Font.Style);
     }
+    [Theory]
+    [InlineData("", "\U0001D465")]
+    [InlineData("text-transform:inherit", "\U0001D465")]
+    [InlineData("text-transform:unset", "\U0001D465")]
+    [InlineData("text-transform:none", "x")]
+    [InlineData("text-transform:initial", "x")]
+    public void HtmlMathMl_MathAutoDescendantsInheritEffectiveIdentifierStyle(string childStyle, string painted) {
+        var options = new HtmlRenderOptions { AllowSystemFontFallback = false };
+        options.Fonts.Add("math", ManagedTextShapingTestAssets.CreateFont('x', 0x1D465));
+        var rendered = HtmlRenderTestDriver.Render("<math style='text-transform:none'><mi><span style='"
+            + childStyle + "'>x</span></mi></math>", options);
+        var drawing = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        var token = Assert.Single(drawing.Drawing.Elements.OfType<OfficeDrawingText>());
+        Assert.Equal("x", token.Text);
+        Assert.Equal(painted, token.RasterText);
+        var implicitRoot = HtmlRenderTestDriver.Render("<math><mi><span style='" + childStyle + "'>x</span></mi></math>", options);
+        var implicitDrawing = Assert.Single(implicitRoot.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        Assert.Equal(painted, Assert.Single(implicitDrawing.Drawing.Elements.OfType<OfficeDrawingText>()).RasterText);
+    }
+
     [Fact]
     public void HtmlMathMl_MathAutoHonorsPerTokenOverridesAndIgnoresAnnotations() {
         const string html = "<style>.upright{text-transform:none}.mapped{font-family:math;text-transform:math-auto}</style>"

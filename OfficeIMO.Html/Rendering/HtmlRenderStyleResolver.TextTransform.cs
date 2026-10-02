@@ -11,6 +11,7 @@ internal sealed partial class HtmlRenderStyleResolver {
                 ? "none" : "math-auto";
         }
         if (computed.IsResetValue("text-transform")) return "none";
+        if (computed.IsInheritedValue("text-transform")) return inherited;
         string value = computed.GetValue("text-transform");
         return string.IsNullOrWhiteSpace(value) ? inherited : value.Trim().ToLowerInvariant();
     }

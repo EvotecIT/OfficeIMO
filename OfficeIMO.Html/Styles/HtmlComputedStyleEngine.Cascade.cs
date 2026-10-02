@@ -196,9 +196,10 @@ public static partial class HtmlComputedStyleEngine {
             string? inheritedValue;
             return parentProperties != null && parentProperties.TryGetValue(name, out inheritedValue) && !string.IsNullOrWhiteSpace(inheritedValue)
                 ? CssKeywordResolution.ForInheritedValue(inheritedValue)
-                // SVG presentation attributes and caller defaults establish font context later.
+                // SVG/font defaults and MathML token defaults establish effective context later.
                 // Keep explicit inheritance distinct from an initial-value reset even without a CSS parent value.
-                : string.Equals(name, "font-size", StringComparison.OrdinalIgnoreCase)
+                : (string.Equals(name, "font-size", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(name, "text-transform", StringComparison.OrdinalIgnoreCase))
                 ? CssKeywordResolution.ForInheritedValue("inherit")
                 : CssKeywordResolution.Clear;
         }
