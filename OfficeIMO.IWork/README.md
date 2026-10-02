@@ -121,6 +121,8 @@ All conversion modes use the same bounded semantic source read, so package and p
 
 A preview may cover only the first page or a producer-generated composite, and that coverage is exposed on `IWorkPreviewAsset`. Embedded PDF inspection accepts bounded classic cross-reference tables and rejects unvalidated cross-reference streams.
 
+`IWorkTextParagraph.ListMarkerKind` distinguishes native image, literal-text and numbered markers. A text marker such as `1.` stays a literal DOCX bullet and an unordered Reader list; it does not become a counter. PPTX retains single-character text bullets and reports unsupported multi-character markers through destination fallback. Image markers remain unassessed, retain declaration evidence at the selected list-style field `11`, and require explicit partial reconstruction for editable output. Native numbered markers expose the qualified initial format; counters, restarts and continuation remain unqualified.
+
 `IWorkTextParagraph.ListFontName` retains an explicit inherited list-marker font independently of the paragraph and run fonts. A cleared or unspecified font is `null`. DOCX and PPTX adapters preserve explicit marker fonts; Reader reports their omission from Markdown. Rejected child marker-font declarations clear the inherited value and retain source-declaration evidence at list-style field `22` or `23`. Font availability and native rendered glyph equivalence require separate platform qualification.
 
 ## Preservation and authoring boundary

@@ -9,6 +9,12 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## iWork list-marker interpretation
+
+Use `IWorkTextParagraph.ListMarkerKind` when interpreting `ListLabel`; do not infer ordered numbering from a numeric-looking string. Literal markers such as `1.` or `iv.` remain literal DOCX bullets and unordered Reader lists. PPTX uses destination fallback for multi-character text markers. Reconvert earlier imports when those labels were incorrectly turned into counters.
+
+Selected image markers retain incomplete-formatting diagnostics and source-declaration evidence at list-style field `11`. Automatic conversion uses preview fallback unless partial reconstruction is explicitly accepted. Missing native number-format metadata no longer borrows a dormant string label. Initial numbered formats remain available, but native counter and restart behavior still requires qualification.
+
 ## iWork selected cell features and row storage acceptance
 
 Tables with decoded conditional-style, applied-rule or unresolved/unsupported comment selectors now require `AllowPartialEditableReconstruction = true` to retain editable values; automatic conversion otherwise uses its preview fallback. Inspect `IWORK_TABLE_CELL_FEATURES_UNASSESSED` and `IWorkTableCell.UnsupportedFeatures` before accepting partial output. Feature-only empty cells now count against `MaximumMaterializedCells`. Handle the additive `IWorkSourceDeclarationIssueKind.UnsupportedField` enum member when interpreting declaration evidence.

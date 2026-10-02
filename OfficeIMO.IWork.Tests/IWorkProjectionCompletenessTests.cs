@@ -341,7 +341,7 @@ public sealed partial class IWorkBoundaryTests {
             byte[] listEntry = Message(VarintField(1, 0), ReferenceField(2, listStyleId));
             storageFields.Add(BytesField(7, Message(BytesField(1, listEntry))));
             extraRecords.Add(ArchiveRecord(listStyleId, 2023,
-                Message(VarintField(11, 1), StringField(16, listLabel))));
+                Message(VarintField(11, 2), StringField(16, listLabel))));
         }
         if (fontSize.HasValue) {
             const ulong characterStyleId = 7;

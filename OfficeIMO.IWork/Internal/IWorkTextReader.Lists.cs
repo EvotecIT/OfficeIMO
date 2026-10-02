@@ -1,16 +1,16 @@
 namespace OfficeIMO.IWork.Internal;
 
 internal static partial class IWorkTextReader {
-    private static (int Level, string? Label, string? FontName) ResolveList(IWorkObjectIndex index,
+    private static (int Level, string? Label, string? FontName, IWorkListMarkerKind Kind) ResolveList(IWorkObjectIndex index,
         ulong? identifier, double? paragraphLeftIndentPoints, int? explicitLevel,
         IWorkProjectionBudget projectionBudget,
-        Dictionary<(ulong Identifier, double? LeftIndentPoints, int? ExplicitLevel), Cached<(int Level, string? Label, string? FontName)>> cache,
+        Dictionary<(ulong Identifier, double? LeftIndentPoints, int? ExplicitLevel), Cached<(int Level, string? Label, string? FontName, IWorkListMarkerKind Kind)>> cache,
         bool tolerateStyleDepth,
         IWorkSourceReferenceIssueCollector references,
         ref bool complete) {
-        if (!identifier.HasValue) return (-1, null, null);
+        if (!identifier.HasValue) return (-1, null, null, IWorkListMarkerKind.None);
         var cacheKey = (identifier.Value, paragraphLeftIndentPoints, explicitLevel);
-        if (cache.TryGetValue(cacheKey, out Cached<(int Level, string? Label, string? FontName)> cached)) {
+        if (cache.TryGetValue(cacheKey, out Cached<(int Level, string? Label, string? FontName, IWorkListMarkerKind Kind)> cached)) {
             if (!cached.IsComplete) complete = false;
             return cached.Value;
         }
@@ -34,18 +34,25 @@ internal static partial class IWorkTextReader {
         string? selectedLabel = level >= 0 && level < data.Labels.Count
             ? data.Labels[level]
             : null;
-        if (labelType == 3 && level >= 0 && level < data.NumberTypes.Count) {
-            selectedLabel = NumberMarker(data.NumberTypes[level]);
+        if (labelType == 1) {
+            selectedLabel = null;
+            resolvedCompletely = false;
+            if (data.LabelDeclaration != null) data.LabelEvidence.Record(data.LabelDeclaration, 11,
+                IWorkSourceDeclarationIssueKind.UnsupportedField);
+        }
+        if (labelType == 3) {
+            selectedLabel = level >= 0 && level < data.NumberTypes.Count
+                ? NumberMarker(data.NumberTypes[level]) : null;
             // Number kind is recoverable; paragraph-level starts/continuations and
             // tiered numbering are not yet qualified. Keep strict conversion gated.
             resolvedCompletely = false;
         }
         if (labelType != 0 && selectedLabel == null) resolvedCompletely = false;
-        (int Level, string? Label, string? FontName) result = labelType == 0
+        (int Level, string? Label, string? FontName, IWorkListMarkerKind Kind) result = labelType == 0
             || string.Equals(data.Name, "None", StringComparison.OrdinalIgnoreCase)
-            ? (-1, null, null)
-            : (level, selectedLabel, data.FontName);
-        cache.Add(cacheKey, new Cached<(int Level, string? Label, string? FontName)>(result, resolvedCompletely));
+            ? (-1, null, null, IWorkListMarkerKind.None)
+            : (level, selectedLabel, data.FontName, (IWorkListMarkerKind)labelType);
+        cache.Add(cacheKey, new Cached<(int Level, string? Label, string? FontName, IWorkListMarkerKind Kind)>(result, resolvedCompletely));
         if (!resolvedCompletely) complete = false;
         return result;
     }
@@ -65,7 +72,11 @@ internal static partial class IWorkTextReader {
             }
         }
         if (!typesComplete) { evidence.Record(message, 11); complete = false; }
-        else if (types.Count > 0) data.LabelTypes = types;
+        else if (types.Count > 0) {
+            data.LabelTypes = types;
+            data.LabelDeclaration = message;
+            data.LabelEvidence = evidence;
+        }
 
         bool numbersComplete = !message.HasUnexpectedWireKind(15, IWorkWireKind.Varint, IWorkWireKind.Bytes);
         IReadOnlyList<ulong> numbers = Array.Empty<ulong>();
@@ -149,6 +160,8 @@ internal static partial class IWorkTextReader {
     private sealed class ListStyleData {
         internal string? Name;
         internal string? FontName;
+        internal IWorkWireMessage? LabelDeclaration;
+        internal StylePropertyEvidence LabelEvidence;
         internal IReadOnlyList<ulong> LabelTypes = Array.Empty<ulong>();
         internal IReadOnlyList<ulong> NumberTypes = Array.Empty<ulong>();
         internal IReadOnlyList<string> Labels = Array.Empty<string>();

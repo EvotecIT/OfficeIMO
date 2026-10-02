@@ -85,6 +85,8 @@ assert len(sources[0]['storages']) == 1
 assert len(sources[0]['selectedStyles']) == 3
 manifest = {'provider': 'numbers-parser', 'providerVersion': '4.19.0',
             'offsetUnit': 'UTF-16 code units before marker removal',
+            'labelTypeNames': {str(v.number): v.name for v in
+                               ListStyleArchive.DESCRIPTOR.enum_types_by_name['LabelType'].values},
             'numberTypeNames': {str(v.number): v.name for v in
                                 ListStyleArchive.DESCRIPTOR.enum_types_by_name['NumberType'].values},
             'sources': sources,

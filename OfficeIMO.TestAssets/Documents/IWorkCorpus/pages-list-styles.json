@@ -2,6 +2,12 @@
   "provider": "numbers-parser",
   "providerVersion": "4.19.0",
   "offsetUnit": "UTF-16 code units before marker removal",
+  "labelTypeNames": {
+    "0": "kNone",
+    "1": "kImage",
+    "2": "kString",
+    "3": "kNumber"
+  },
   "numberTypeNames": {
     "0": "kNumericDecimal",
     "1": "kNumericDoubleParen",

@@ -217,8 +217,9 @@ internal static partial class IWorkTextReader {
     /// <summary>Identifies a selected style property without treating invalid bytes as references or content counts.</summary>
     private readonly struct StylePropertyEvidence(IWorkArchiveRecord owner, string prefix,
         IWorkSourceDeclarationIssueCollector declarations) {
-        internal void Record(IWorkWireMessage message, int field) =>
+        internal void Record(IWorkWireMessage message, int field,
+            IWorkSourceDeclarationIssueKind kind = IWorkSourceDeclarationIssueKind.InvalidValue) =>
             declarations.Record(owner, prefix + field.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                message.FieldCount(field), IWorkSourceDeclarationIssueKind.InvalidValue);
+                message.FieldCount(field), kind);
     }
 }

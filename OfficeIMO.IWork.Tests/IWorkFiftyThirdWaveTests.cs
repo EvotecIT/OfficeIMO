@@ -91,7 +91,7 @@ public sealed partial class IWorkBoundaryTests {
             ArchiveRecord(1, 10000, Message(ReferenceField(4, 2))),
             ArchiveRecord(2, 2001,
                 Message(StringField(3, "Item"), BytesField(7, listTable))),
-            ArchiveRecord(3, 2023, Message(VarintField(11, 1))));
+            ArchiveRecord(3, 2023, Message(VarintField(11, 2))));
         using MemoryStream package = CreatePackage(
             ("Index/Document.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));

@@ -64,7 +64,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Rejected_list_labels_without_a_parent_do_not_shift_later_labels() {
         using MemoryStream package = ListDeclarationPackage(IWorkDocumentKind.Numbers,
-            Message(VarintField(11, 1), VarintField(11, 1), FloatField(13, 0), FloatField(13, 18),
+            Message(VarintField(11, 2), VarintField(11, 2), FloatField(13, 0), FloatField(13, 18),
                 BytesField(16, new byte[] { 0xff }), StringField(16, "9.")), inherited: false, indent: 0);
         IWorkTextParagraph paragraph = Assert.Single(Assert.Single(ReadSelectedRichTable(
             IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells).RichText!.Paragraphs);
@@ -75,7 +75,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Valid_mixed_packed_and_unpacked_list_types_overlay_parent_vectors() {
         using MemoryStream package = ListDeclarationPackage(IWorkDocumentKind.Numbers,
-            Message(VarintField(11, 0), BytesField(11, new byte[] { 2, 3 }),
+            Message(VarintField(11, 0), BytesField(11, new byte[] { 2, 2 }),
                 FloatField(13, 0), FloatField(13, 18), FloatField(13, 36),
                 StringField(16, ""), StringField(16, "a."), StringField(16, "4.")), indent: 36);
         IWorkTextContent text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package),
@@ -91,7 +91,7 @@ public sealed partial class IWorkBoundaryTests {
     [Theory]
     [InlineData(IWorkDocumentKind.Pages)]
     [InlineData(IWorkDocumentKind.Keynote)]
-    public void Parent_list_level_and_start_survive_saved_partial_editable_output(IWorkDocumentKind kind) {
+    public void Parent_list_level_and_literal_label_survive_saved_partial_editable_output(IWorkDocumentKind kind) {
         using MemoryStream package = InvalidListLabelPackage(kind);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
@@ -111,8 +111,8 @@ public sealed partial class IWorkBoundaryTests {
                 .AbstractNumId!.Val!.Value;
             Level level = Assert.Single(Assert.Single(numbering.Elements<AbstractNum>(),
                 item => item.AbstractNumberId!.Value == abstractId).Elements<Level>(), item => item.LevelIndex!.Value == 1);
-            Assert.Equal(NumberFormatValues.LowerLetter, level.NumberingFormat!.Val!.Value);
-            Assert.Equal(3, level.StartNumberingValue!.Val!.Value);
+            Assert.Equal(NumberFormatValues.Bullet, level.NumberingFormat!.Val!.Value);
+            Assert.Equal("c", level.LevelText!.Val!.Value);
         } else {
             using var result = source.ToPowerPointPresentationResult(policy);
             Assert.True(result.Report.IsPartialEditableReconstruction);
@@ -122,7 +122,8 @@ public sealed partial class IWorkBoundaryTests {
             var paragraph = Assert.Single(Assert.Single(reopened.Slides).Tables).GetCell(0, 0).Paragraphs[0];
             Assert.Equal("Value", paragraph.Text);
             Assert.Equal(1, paragraph.Level);
-            Assert.Equal(3, paragraph.NumberingStartAt);
+            Assert.False(paragraph.IsNumbered);
+            Assert.Equal("c", paragraph.BulletCharacter);
             Assert.Empty(reopened.ValidateDocument());
         }
     }
@@ -208,7 +209,7 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     private static MemoryStream InvalidListLabelPackage(IWorkDocumentKind kind) => ListDeclarationPackage(kind,
-        Message(BytesField(16, new byte[] { 0xff }), StringField(16, "9.")));
+        Message(BytesField(16, new byte[] { 0xff }), StringField(16, "9.")), parentLabel: "c");
 
     private static void AssertListDeclaration(IWorkSourceDeclarationIssue issue, string path, int count) {
         Assert.Equal(19ul, issue.Owner.RecordIdentifier);
@@ -218,12 +219,12 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     private static MemoryStream ListDeclarationPackage(IWorkDocumentKind kind, byte[] fields,
-        bool aliases = false, bool inherited = true, float indent = 18, byte[]? parentFields = null) => SelectedRichTextPackage(kind,
+        bool aliases = false, bool inherited = true, float indent = 18, byte[]? parentFields = null, string parentLabel = "c.") => SelectedRichTextPackage(kind,
             Message(AttributeTable(7, AttributeEntry(0, ReferenceField(2, 19))),
                 AttributeTable(5, AttributeEntry(0, ReferenceField(2, 21)))), aliases: aliases,
             additionalRecords: Message(
                 ArchiveRecord(19, 2023, Message(inherited ? BytesField(1, ReferenceField(3, 20)) : Message(), fields)),
-                ArchiveRecord(20, 2023, Message(VarintField(11, 1), VarintField(11, 1),
-                    FloatField(13, 0), FloatField(13, 18), StringField(16, "1."), StringField(16, "c."), parentFields ?? Message())),
+                ArchiveRecord(20, 2023, Message(VarintField(11, 2), VarintField(11, 2),
+                    FloatField(13, 0), FloatField(13, 18), StringField(16, "1."), StringField(16, parentLabel), parentFields ?? Message())),
                 ArchiveRecord(21, 2022, BytesField(12, FloatField(11, indent)))));
 }

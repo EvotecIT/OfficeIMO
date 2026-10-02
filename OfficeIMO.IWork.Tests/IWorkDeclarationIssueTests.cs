@@ -234,7 +234,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Packed_list_style_value_limit_remains_fatal(IWorkDocumentKind kind) {
         using MemoryStream package = SelectedRichTextPackage(kind,
             AttributeTable(7, AttributeEntry(0, ReferenceField(2, 19))),
-            additionalRecords: ArchiveRecord(19, 2023, Message(BytesField(11, Enumerable.Repeat((byte)1, 9).ToArray()))));
+            additionalRecords: ArchiveRecord(19, 2023, Message(BytesField(11, Enumerable.Repeat((byte)2, 9).ToArray()))));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
             new IWorkReadOptions { MaximumProtobufFieldCount = 8 });
         Assert.Contains("value", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, kind)).Message);

@@ -246,8 +246,8 @@ public static partial class PowerPointIWorkConverter {
                         return $"Keynote slide {slide.Index} contains a list nesting level outside the PPTX range.";
                     }
                     if (paragraph.ListLevel >= 0 && paragraph.ListLabel is { Length: > 0 } label
-                        && (label.Length > 1 || label[0] is >= 'A' and <= 'Z' or >= 'a' and <= 'z')
-                        && !TryParseNumbering(label, out _, out _)) {
+                        && (paragraph.ListMarkerKind == IWorkListMarkerKind.Number
+                            ? !TryParseNumbering(label, out _, out _) : label.Length > 1)) {
                         return $"Keynote slide {slide.Index} contains a list marker that cannot be represented by native PPTX numbering.";
                     }
                     IWorkParagraphStyle style = paragraph.Style;

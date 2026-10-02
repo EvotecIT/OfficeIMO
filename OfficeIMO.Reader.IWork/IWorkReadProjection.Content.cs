@@ -341,7 +341,8 @@ internal sealed partial class IWorkReadProjection {
             builder.Append(value);
         }
         if (offset == 0 && paragraph.ListLevel >= 0) {
-            string marker = MarkdownListMarker(paragraph.ListLabel);
+            string marker = paragraph.ListMarkerKind == IWorkListMarkerKind.Number
+                ? MarkdownListMarker(paragraph.ListLabel) : "-";
             return new string(' ', Math.Min(paragraph.ListLevel, MaximumMarkdownListLevel) * 2)
                 + marker + " " + builder;
         }

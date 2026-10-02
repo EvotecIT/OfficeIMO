@@ -356,7 +356,8 @@ public static partial class WordIWorkConverter {
                 bool startsNewList = !hasPreviousListParagraph
                     || sourceParagraph.ListIdentifier != previousListIdentifier;
                 nativeLists.Apply(paragraph, sourceParagraph.ListLevel,
-                    sourceParagraph.ListLabel, sourceParagraph.ListFontName, startsNewList);
+                    sourceParagraph.ListLabel, sourceParagraph.ListFontName,
+                    sourceParagraph.ListMarkerKind, startsNewList);
                 previousListIdentifier = sourceParagraph.ListIdentifier;
                 hasPreviousListParagraph = true;
             } else {
@@ -470,13 +471,14 @@ public static partial class WordIWorkConverter {
             _document = document;
         }
 
-        internal void Apply(WordParagraph paragraph, int level, string? label, string? fontName, bool startsNewList) {
+        internal void Apply(WordParagraph paragraph, int level, string? label, string? fontName, IWorkListMarkerKind markerKind, bool startsNewList) {
             if (startsNewList || _current == null) {
                 _current = WordList.AddCustomList(_document);
                 _observedLevels.Clear();
             }
             WordList list = _current;
-            WordListLevelKind levelKind = Classify(label);
+            WordListLevelKind levelKind = markerKind == IWorkListMarkerKind.Number
+                ? Classify(label) : WordListLevelKind.Bullet;
             bool targetLevelExists = list.Numbering.Levels.Count > level;
             while (list.Numbering.Levels.Count <= level) {
                 list.Numbering.AddLevel(new WordListLevel(levelKind));
@@ -489,8 +491,8 @@ public static partial class WordIWorkConverter {
                 list.Numbering.Levels[level].SetStartNumberingValue(start);
             }
             if (firstObservation && levelKind == WordListLevelKind.Bullet
-                && !string.IsNullOrWhiteSpace(label)) {
-                list.Numbering.Levels[level].LevelText = label!.Trim();
+                && !string.IsNullOrEmpty(label)) {
+                list.Numbering.Levels[level].LevelText = label;
             }
             if (firstObservation && levelKind != WordListLevelKind.Bullet
                 && IsParenthesized(label)) {

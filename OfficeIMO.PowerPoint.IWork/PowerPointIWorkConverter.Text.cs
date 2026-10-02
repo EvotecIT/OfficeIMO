@@ -60,7 +60,8 @@ public static partial class PowerPointIWorkConverter {
         if (source.ListLevel >= 0) {
             paragraph.Level = Math.Min(8, source.ListLevel);
             if (string.IsNullOrEmpty(source.ListLabel)) paragraph.SetBullet('\u2022');
-            else if (TryParseNumbering(source.ListLabel!, out PowerPointNumberingScheme scheme,
+            else if (source.ListMarkerKind == IWorkListMarkerKind.Number
+                && TryParseNumbering(source.ListLabel!, out PowerPointNumberingScheme scheme,
                          out int start)) {
                 if (startsAtSourceLabel) paragraph.SetNumbered(scheme, start);
                 else paragraph.SetNumbered(scheme);

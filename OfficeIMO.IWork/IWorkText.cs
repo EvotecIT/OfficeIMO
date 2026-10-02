@@ -157,13 +157,15 @@ public sealed class IWorkTextRun {
 public sealed class IWorkTextParagraph {
     internal IWorkTextParagraph(IReadOnlyList<IWorkTextRun> runs, IWorkParagraphStyle style,
         ulong? listIdentifier, int listLevel, string? listLabel,
-        IWorkParagraphBreakKind breakKind, string? listFontName = null) {
+        IWorkParagraphBreakKind breakKind, string? listFontName = null,
+        IWorkListMarkerKind listMarkerKind = IWorkListMarkerKind.Text) {
         Runs = Array.AsReadOnly(runs.ToArray());
         Style = style;
         ListIdentifier = listIdentifier;
         ListLevel = listLevel;
         ListLabel = listLabel;
         ListFontName = listFontName;
+        ListMarkerKind = listLevel < 0 ? IWorkListMarkerKind.None : listMarkerKind;
         BreakKind = breakKind;
     }
 
@@ -180,6 +182,8 @@ public sealed class IWorkTextParagraph {
     public string? ListLabel { get; }
     /// <summary>Gets the explicit marker font, including inherited list-style formatting, or null when unspecified or cleared.</summary>
     public string? ListFontName { get; }
+    /// <summary>Gets the native marker kind; literal text labels are never inferred to be numbering.</summary>
+    public IWorkListMarkerKind ListMarkerKind { get; }
     /// <summary>Gets the delimiter that ended the paragraph.</summary>
     public IWorkParagraphBreakKind BreakKind { get; }
     /// <summary>Gets paragraph text without its terminal delimiter.</summary>

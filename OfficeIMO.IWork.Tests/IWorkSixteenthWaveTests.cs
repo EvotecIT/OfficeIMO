@@ -111,7 +111,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] listTable = Message(
             BytesField(1, Message(VarintField(1, 0), ReferenceField(2, firstListId))),
             BytesField(1, Message(VarintField(1, 4), ReferenceField(2, secondListId))));
-        byte[] listStyle = Message(VarintField(11, 1), StringField(16, "1."));
+        byte[] listStyle = Message(VarintField(11, 2), StringField(16, "1."));
         byte[] records = Message(
             ArchiveRecord(documentId, 10000, Message(ReferenceField(4, bodyId)), new[] { bodyId }),
             ArchiveRecord(bodyId, 2001,

@@ -83,39 +83,19 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(projection.Diagnostics, d => d.Code == "IWORK_PAGES_HEADER_FOOTER_UNSUPPORTED");
     }
 
-    [Theory]
-    [InlineData("1", PowerPointNumberingScheme.ArabicPlain, 1)]
-    [InlineData("1.", PowerPointNumberingScheme.ArabicPeriod, 1)]
-    [InlineData("a.", PowerPointNumberingScheme.AlphaLowerCharacterPeriod, 1)]
-    [InlineData("iv.", PowerPointNumberingScheme.RomanLowerCharacterPeriod, 4)]
-    public void Supported_keynote_ordered_markers_use_native_powerpoint_numbering(
-        string label, PowerPointNumberingScheme expectedScheme, int expectedStart) {
-        using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
-            text: "Item", listLabel: label);
-
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
-        PowerPointParagraph paragraph = Assert.Single(Assert.Single(
-            Assert.Single(result.Value.Slides).TextBoxes).Paragraphs);
-
-        Assert.False(result.IsVisualFallback);
-        Assert.Equal("Item", paragraph.Text);
-        Assert.True(paragraph.IsNumbered);
-        Assert.Equal(expectedScheme, paragraph.NumberingScheme);
-        Assert.Equal(expectedStart, paragraph.NumberingStartAt);
-    }
-
     [Fact]
-    public void Consecutive_keynote_list_items_continue_native_numbering() {
-        using MemoryStream package = CreateKeynotePackageWithNumberedSequence("10.");
+    public void Partial_keynote_numbered_lists_continue_after_the_initial_marker() {
+        using MemoryStream package = CreateKeynotePackageWithNumberedSequence(0);
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = IWorkSourceDocument.Open(package).ToPowerPointPresentationResult(
+            new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         PowerPointParagraph[] paragraphs = Assert.Single(
             Assert.Single(result.Value.Slides).TextBoxes).Paragraphs.ToArray();
 
         Assert.Equal(2, paragraphs.Length);
         Assert.All(paragraphs, paragraph =>
             Assert.Equal(PowerPointNumberingScheme.ArabicPeriod, paragraph.NumberingScheme));
-        Assert.Equal(10, paragraphs[0].NumberingStartAt);
+        Assert.Equal(1, paragraphs[0].NumberingStartAt);
         Assert.Null(paragraphs[1].NumberingStartAt);
         Assert.Equal(new[] { "One", "Two" }, paragraphs.Select(paragraph => paragraph.Text));
     }
@@ -169,7 +149,7 @@ public sealed partial class IWorkBoundaryTests {
                 new[] { headerId, footerId });
     }
 
-    private static MemoryStream CreateKeynotePackageWithNumberedSequence(string label) {
+    private static MemoryStream CreateKeynotePackageWithNumberedSequence(ulong numberKind) {
         const ulong documentId = 1;
         const ulong showId = 2;
         const ulong nodeId = 3;
@@ -190,7 +170,7 @@ public sealed partial class IWorkBoundaryTests {
                 Message(StringField(3, "One\nTwo"), BytesField(7, listTable)),
                 new[] { listStyleId }),
             ArchiveRecord(listStyleId, 2023,
-                Message(VarintField(11, 1), StringField(16, label))));
+                Message(VarintField(11, 3), VarintField(15, numberKind))));
         return CreatePackage(("Index/Slide.iwa", FrameIwa(records)));
     }
 }
