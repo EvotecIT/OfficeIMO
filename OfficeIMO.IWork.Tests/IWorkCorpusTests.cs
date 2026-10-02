@@ -79,7 +79,7 @@ public sealed class IWorkCorpusTests {
         Assert.False(numbers.HasEditableContent);
         Assert.Contains(numbers.Diagnostics, d => d.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED");
         Assert.Equal(IWorkCellUnsupportedFeatures.DateFormat, table.GetCell(3, 3)!.UnsupportedFeatures);
-        Assert.Equal(IWorkCellUnsupportedFeatures.DurationFormat, table.GetCell(5, 3)!.UnsupportedFeatures);
+        Assert.Equal(IWorkCellUnsupportedFeatures.None, table.GetCell(5, 3)!.UnsupportedFeatures);
         Assert.InRange(table.DefaultRowHeight!.Value, 19.92d, 19.94d);
         Assert.Equal(98d, table.DefaultColumnWidth);
         IWorkTableCell arithmetic = table.GetCell(2, 2)!;

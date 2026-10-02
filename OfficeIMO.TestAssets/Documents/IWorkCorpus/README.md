@@ -249,3 +249,10 @@ Reproduce with opt-in numbers-parser 4.19.0:
 ```sh
 python Build/IWork/extract-cell-format-selectors.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/cell-format-selectors.json
 ```
+
+
+`numbers-parser/duration-format.json` qualifies the fixed abbreviated hour/minute selection in source Table 1 C5 of unchanged `test-10-formulas.numbers`. Its source settings, seconds and independent display text agree with the paired Numbers 14.5 XLSX C6 cache and `[h]"h" m"m"` format after the native title-row offset. Other units, styles, automatic selection, negative rounding and locale or appearance equivalence remain unqualified. Existing source/export hashes, licensing and producer provenance apply. Regenerate with the pinned opt-in provider:
+
+```sh
+python Build/IWork/extract-duration-format.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/duration-format.json
+```

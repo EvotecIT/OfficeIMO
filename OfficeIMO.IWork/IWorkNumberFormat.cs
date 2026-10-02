@@ -1,11 +1,11 @@
 namespace OfficeIMO.IWork;
 
-/// <summary>The recovered semantic numeric format of an iWork cell, independent of a destination format code.</summary>
+/// <summary>The recovered semantic numeric or duration format of an iWork cell, independent of a destination format code.</summary>
 public sealed partial class IWorkNumberFormat {
     internal IWorkNumberFormat(IWorkNumberFormatKind kind, int? decimalPlaces,
         bool thousandsSeparator, IWorkNegativeNumberStyle negativeStyle,
         string? currencyCode = null, bool useAccountingStyle = false,
-        IWorkFractionAccuracy? fractionAccuracy = null) {
+        IWorkFractionAccuracy? fractionAccuracy = null, IWorkDurationFormat? durationFormat = null) {
         Kind = kind;
         DecimalPlaces = decimalPlaces;
         ThousandsSeparator = thousandsSeparator;
@@ -13,11 +13,12 @@ public sealed partial class IWorkNumberFormat {
         CurrencyCode = currencyCode;
         UseAccountingStyle = useAccountingStyle;
         FractionAccuracy = fractionAccuracy;
+        DurationFormat = durationFormat;
     }
 
     /// <summary>Gets the source numeric display family.</summary>
     public IWorkNumberFormatKind Kind { get; }
-    /// <summary>Gets the explicit decimal count from zero through thirty, or null for Numbers' automatic mode or a fraction format. Scientific formats apply this count to the mantissa; fractions use FractionAccuracy instead.</summary>
+    /// <summary>Gets the explicit decimal count from zero through thirty, or null for Numbers' automatic mode, fractions or durations. Scientific formats apply this count to the mantissa; fractions use FractionAccuracy instead.</summary>
     public int? DecimalPlaces { get; }
     /// <summary>Gets whether the source requests digit grouping.</summary>
     public bool ThousandsSeparator { get; }
@@ -29,6 +30,8 @@ public sealed partial class IWorkNumberFormat {
     public bool UseAccountingStyle { get; }
     /// <summary>Gets the denominator precision for a fraction format, or null for other numeric families.</summary>
     public IWorkFractionAccuracy? FractionAccuracy { get; }
+    /// <summary>Gets the qualified duration units and label style, or null for other families.</summary>
+    public IWorkDurationFormat? DurationFormat { get; }
 }
 
 /// <summary>Supported iWork numeric format semantics.</summary>
@@ -42,7 +45,9 @@ public enum IWorkNumberFormatKind {
     /// <summary>A numeric value displayed with a mantissa and a base-ten exponent.</summary>
     Scientific,
     /// <summary>A numeric value displayed as a mixed fraction with bounded denominator precision.</summary>
-    Fraction
+    Fraction,
+    /// <summary>An elapsed time whose source value is measured in seconds.</summary>
+    Duration
 }
 
 /// <summary>Supported source treatments of negative numbers.</summary>

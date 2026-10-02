@@ -8,9 +8,16 @@ public sealed partial class IWorkTableCell {
     internal bool TryGetFormattedNumber(out string text, out string? color) {
         text = Kind == IWorkCellKind.Formula && Value != null ? CachedDisplayText : DisplayText;
         color = null;
-        if (NumberFormat == null || ValueKind != IWorkCellKind.Number || Value is not double number
+        if (NumberFormat == null || Value is not double number
             || !CachedValueIsComplete || HasDecodeError || RichText is { Paragraphs.Count: > 0 }) return false;
         string code = NumberFormat.ToSpreadsheetFormatCode();
+        if (NumberFormat.Kind == IWorkNumberFormatKind.Duration) {
+            if (ValueKind != IWorkCellKind.Duration
+                || !SpreadsheetNumberFormatDisplay.TryFormatElapsedValue(number / 86400d, code, out string duration)) return false;
+            text = duration;
+            return true;
+        }
+        if (ValueKind != IWorkCellKind.Number) return false;
         string? formatted = SpreadsheetNumberFormatDisplay.FormatNumericValue(number, code);
         if (formatted == null) return false;
         text = formatted;

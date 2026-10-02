@@ -1,4 +1,5 @@
 using OfficeIMO.IWork;
+using OfficeIMO.IWork.Internal;
 
 namespace OfficeIMO.Reader.IWork;
 
@@ -48,6 +49,10 @@ internal sealed partial class IWorkReadProjection {
             rows.Add(Enumerable.Range(1, columnCount)
                 .Select(column => CellText(source.GetCell(row, column))).ToArray());
         }
+        AddDiagnostics(IWorkNumericDisplayDiagnostics.ForTextTables(source.Cells.Where(cell =>
+                cell.NumberFormat?.Kind == IWorkNumberFormatKind.Duration && cell.Column <= columnCount
+                && (cell.Row <= materializedHeaderRows || cell.Row > headerRows && cell.Row <= headerRows + dataRows)),
+            "READER", "Reader", _cancellationToken));
         bool truncated = headerRows > materializedHeaderRows
             || totalDataRows > dataRows || source.ColumnCount > columnCount;
         _cancellationToken.ThrowIfCancellationRequested();
@@ -202,11 +207,12 @@ internal sealed partial class IWorkReadProjection {
         };
     }
 
-    private static string CellText(IWorkTableCell? cell) => cell == null
-        ? string.Empty
-        : cell.Kind == IWorkCellKind.Formula
-            ? cell.CachedDisplayText
-            : cell.DisplayText;
+    private static string CellText(IWorkTableCell? cell) {
+        if (cell == null) return string.Empty;
+        if (cell.NumberFormat?.Kind == IWorkNumberFormatKind.Duration && cell.TryGetFormattedNumber(out string duration, out _))
+            return duration;
+        return cell.Kind == IWorkCellKind.Formula ? cell.CachedDisplayText : cell.DisplayText;
+    }
 
     private ReaderLocation AddImage(OfficeDocumentPage page, IWorkImageAsset source, bool includeAnchorBlock = false) {
         _cancellationToken.ThrowIfCancellationRequested();

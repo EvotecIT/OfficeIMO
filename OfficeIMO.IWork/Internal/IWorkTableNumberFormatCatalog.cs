@@ -8,7 +8,7 @@ internal sealed partial class IWorkTableNumberFormatCatalog {
     private readonly IWorkProjectionBudget _budget;
     private readonly IWorkSourceReferenceIssueCollector _references;
     private readonly Dictionary<uint, (IWorkWireMessage Message, int Position)> _entries = new();
-    private readonly Dictionary<(uint Key, bool Currency), IWorkNumberFormat?> _resolved = new();
+    private readonly Dictionary<(uint Key, bool Currency, bool Duration), IWorkNumberFormat?> _resolved = new();
     private IWorkArchiveRecord? _list;
     private bool _initialized;
 
@@ -23,10 +23,10 @@ internal sealed partial class IWorkTableNumberFormatCatalog {
 
     internal bool FullyReconstructed { get; private set; } = true;
 
-    internal IWorkNumberFormat? Read(uint key, bool currency = false) {
+    internal IWorkNumberFormat? Read(uint key, bool currency = false, bool duration = false) {
         _source.CancellationToken.ThrowIfCancellationRequested();
         if (!_initialized) Initialize();
-        if (_resolved.TryGetValue((key, currency), out IWorkNumberFormat? cached)) return cached;
+        if (_resolved.TryGetValue((key, currency, duration), out IWorkNumberFormat? cached)) return cached;
         if (!_entries.TryGetValue(key, out var entry)) {
             FullyReconstructed = false;
             return null;
@@ -66,7 +66,9 @@ internal sealed partial class IWorkTableNumberFormatCatalog {
                         && code is { Length: 3 } && code.All(value => value is >= (byte)'A' and <= (byte)'Z');
                     if (supportedShape) currencyCode = System.Text.Encoding.ASCII.GetString(code!);
                 }
-                if (!currency && type == 262) {
+                if (duration) {
+                    format = ReadDurationFormat(message);
+                } else if (!currency && type == 262) {
                     format = ReadFractionFormat(message);
                 } else if (supportedShape && (currency ? type == 257 : type is 256 or 258 or 259)
                     && (decimals <= 30 || decimals == 253) && negative <= 3 && grouping <= 1
@@ -90,7 +92,7 @@ internal sealed partial class IWorkTableNumberFormatCatalog {
             _budget.AddTextCharacters(retainedCode.Length);
             _budget.AddTextItem();
         }
-        _resolved.Add((key, currency), format);
+        _resolved.Add((key, currency, duration), format);
         if (format == null) FullyReconstructed = false;
         return format;
     }

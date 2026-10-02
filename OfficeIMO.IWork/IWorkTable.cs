@@ -63,7 +63,7 @@ public sealed partial class IWorkTableCell {
     public bool HasDecodeError { get; }
     /// <summary>Gets source rich text for a text or formula cell, including runs, styles, and hyperlinks when recovered.</summary>
     public IWorkTextContent? RichText { get; }
-    /// <summary>Gets the supported source numeric format. Null means absent or unresolved; source diagnostics distinguish unsupported declarations. Raw display text does not apply this format.</summary>
+    /// <summary>Gets the supported source numeric or duration format. Null means absent or unresolved; source diagnostics distinguish unsupported declarations. Raw display text does not apply this format.</summary>
     public IWorkNumberFormat? NumberFormat { get; }
     /// <summary>Gets the exact normalized source Decimal128 value in invariant coefficient/exponent notation when <see cref="NumericValueIsApproximate"/> is true. This includes decimal formula caches.</summary>
     public string? SourceNumberText { get; }
@@ -89,7 +89,7 @@ public sealed partial class IWorkTableCell {
     /// <summary>Gets a qualified root cell comment. Replies and unresolved selectors remain in source diagnostics.</summary>
     public IWorkCellComment? Comment { get; }
 
-    internal bool HasCellFormatting => HasUnresolvedFill || Fill != null || Padding != null || VerticalAlignment != null || HasSelectedTextStyle;
+    internal bool HasCellFormatting => NumberFormat != null || HasUnresolvedFill || Fill != null || Padding != null || VerticalAlignment != null || HasSelectedTextStyle;
 
     internal Internal.IWorkFormulaDefinition? FormulaDefinition { get; }
 

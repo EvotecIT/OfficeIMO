@@ -58,7 +58,16 @@ internal static partial class IWorkTableReader {
         if ((flags & (1u << 7)) != 0) features |= IWorkCellUnsupportedFeatures.ConditionalStyle;
         if ((flags & (1u << 8)) != 0) features |= IWorkCellUnsupportedFeatures.AppliedConditionalRule;
         if ((flags & (1u << 15)) != 0) features |= IWorkCellUnsupportedFeatures.DateFormat;
-        if ((flags & (1u << 16)) != 0) features |= IWorkCellUnsupportedFeatures.DurationFormat;
+        if ((flags & (1u << 16)) != 0) {
+            // The complete cell boundary is proven before any selected catalog is read.
+            int formatOffset = offset + 12;
+            for (int bit = 0; bit < 16; bit++)
+                if ((flags & (1u << bit)) != 0) formatOffset += CellValueFieldSize(bit);
+            IWorkNumberFormat? format = !cell.HasDecodeError && cell.ValueKind is IWorkCellKind.Duration or IWorkCellKind.Empty
+                ? numberFormats.Read(IWorkProtobuf.ReadUInt32(buffer, formatOffset), duration: true) : null;
+            if (format == null) features |= IWorkCellUnsupportedFeatures.DurationFormat;
+            else cell = cell.WithNumberFormat(format);
+        }
         if (!cell.HasDecodeError) {
             int formatOffset = offset + 12;
             for (int bit = 0; bit < 19; bit++) {

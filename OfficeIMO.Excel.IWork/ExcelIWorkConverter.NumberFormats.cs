@@ -3,6 +3,15 @@ using OfficeIMO.IWork;
 namespace OfficeIMO.Excel.IWork;
 
 public static partial class ExcelIWorkConverter {
+    private static IEnumerable<IWorkDiagnostic> DurationFormatDiagnostics(IWorkNumbersProjection projection) {
+        if (projection.Sheets.SelectMany(sheet => sheet.Tables).SelectMany(table => table.Cells)
+            .Any(cell => cell.NumberFormat?.Kind == IWorkNumberFormatKind.Duration)) {
+            yield return new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_DURATION_DISPLAY_APPROXIMATED",
+                "Fixed abbreviated hours and minutes use an elapsed XLSX format, retaining total hours, signs, numeric values and formula caches. Source seconds are converted to day serials. Unit spacing and rounding can differ; other duration settings and locale equivalence are unqualified.",
+                lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation);
+        }
+    }
+
     private static IEnumerable<IWorkDiagnostic> CurrencyFormatDiagnostics(IWorkNumbersProjection projection) {
         if (projection.Sheets.SelectMany(sheet => sheet.Tables).SelectMany(table => table.Cells)
             .Any(cell => cell.NumberFormat?.Kind == IWorkNumberFormatKind.Currency)) {
