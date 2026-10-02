@@ -25,17 +25,32 @@ public static partial class HtmlOneNoteConverterExtensions {
         AngleSharp.Html.Dom.IHtmlDocument sourceDocument = document.CreateNativeDocumentForConversion();
         foreach (HtmlDiagnostic diagnostic in document.Diagnostics) result.AddImportDiagnostic(diagnostic);
         ReportSkippedStylesheetLinks(sourceDocument, document.MediaContext, result);
-        ReportUnpreservedColumnWidths(sourceDocument, result);
+        ReportUnpreservedColumnWidths(sourceDocument, document.MediaContext, document.Limits, result);
         ImportPages(semanticDocument, section, resolved, result);
         return result;
     }
 
     private static void ReportUnpreservedColumnWidths(
-        AngleSharp.Html.Dom.IHtmlDocument sourceDocument, HtmlToOneNoteSectionResult result) {
-        if (sourceDocument.QuerySelector("colgroup, col") == null) return;
-        Add(result, HtmlConversionDiagnosticCodes.ContentApproximated,
-            "HTML colgroup and col column definitions are not projected to OneNote table columns.",
-            HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Approximation);
+        AngleSharp.Html.Dom.IHtmlDocument sourceDocument, HtmlCssMediaContext mediaContext,
+        HtmlConversionLimits limits, HtmlToOneNoteSectionResult result) {
+        var columns = sourceDocument.QuerySelectorAll("colgroup, col");
+        if (columns.Length == 0) return;
+        var styles = HtmlComputedStyleEngine.Compute(sourceDocument, mediaContext, limits);
+        foreach (var column in columns) {
+            styles.TryGetValue(column, out HtmlComputedStyle? style);
+            bool meaningful = (style?.IsSpecifiedValue("width") != true && IsAuthoredWidth(column.GetAttribute("width")))
+                || !string.IsNullOrWhiteSpace(column.GetAttribute("bgcolor"))
+                || (style != null && (IsAuthoredWidth(style.GetValue("width"))
+                    || (style.IsSpecifiedValue("background-color") && style.GetValue("background-color") != "transparent")
+                    || (style.IsSpecifiedValue("visibility") && style.GetValue("visibility") == "collapse")
+                    || style.Properties.Any(property => property.Key.StartsWith("border-", StringComparison.Ordinal)
+                        && style.IsSpecifiedValue(property.Key) && property.Value != "none" && property.Value != "0px")));
+            if (!meaningful) continue;
+            Add(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                "HTML colgroup and col presentation is not projected to OneNote table columns.",
+                HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Approximation);
+            return;
+        }
     }
 
     private static void ReportSkippedStylesheetLinks(

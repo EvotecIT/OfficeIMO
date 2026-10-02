@@ -157,6 +157,11 @@ public static partial class HtmlOneNoteConverterExtensions {
         const double defaultWidthHalfInches = 15D;
         double totalWidth = defaultWidthHalfInches;
         string? authoredWidth = source.Style?.GetValue("width");
+        if (source.Style?.IsSpecifiedValue("width") != true && !IsAuthoredWidth(authoredWidth)) {
+            authoredWidth = source.SourceElement.GetAttribute("width");
+            if (double.TryParse(authoredWidth, NumberStyles.Float, CultureInfo.InvariantCulture, out double pixels)
+                && pixels > 0D && !double.IsInfinity(pixels)) authoredWidth += "px";
+        }
         bool hasAuthoredTableWidth = TryParseTableWidth(authoredWidth, defaultWidthHalfInches, out double requestedWidth);
         if (hasAuthoredTableWidth) {
             totalWidth = Math.Min(defaultWidthHalfInches, Math.Max(columns, requestedWidth));

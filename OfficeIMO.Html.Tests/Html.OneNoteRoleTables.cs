@@ -10,6 +10,41 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public class HtmlOneNoteRoleTables {
+    [Theory]
+    [InlineData("<colgroup><col><col></colgroup>", false)]
+    [InlineData("<colgroup span='2'></colgroup>", false)]
+    [InlineData("<colgroup><col width='100' style='width:auto'><col></colgroup>", false)]
+    [InlineData("<style>col { width:100px }</style><colgroup><col><col></colgroup>", true)]
+    [InlineData("<colgroup><col width='100'><col></colgroup>", true)]
+    [InlineData("<colgroup><col style='width:100px'><col></colgroup>", true)]
+    public void OneNoteHtml_ColumnLossRequiresMeaningfulPresentation(string columns, bool loss) {
+        var result = HtmlConversionDocument.Parse("<table>" + columns + "<tr><td>A</td><td>B</td></tr></table>")
+            .ToOneNoteSectionResult();
+        Assert.Equal(loss, result.Report.HasLoss);
+    }
+
+    [Theory]
+    [InlineData("width='480'", 10D)]
+    [InlineData("width='480' style='width:240px'", 5D)]
+    [InlineData("width='480' style='width:auto'", 15D)]
+    public void OneNoteHtml_TableWidthHintSurvivesNativeReopen(string attributes, double expected) {
+        var result = HtmlConversionDocument.Parse("<table " + attributes + "><tr><td>A</td><td>B</td></tr></table>")
+            .ToOneNoteSectionResult();
+        var reopened = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
+        var table = Assert.Single(reopened.Pages.SelectMany(p => p.Outlines).SelectMany(o => o.Children).OfType<OneNoteTable>());
+        Assert.InRange(table.ColumnWidths.Sum(), expected - 0.01, expected + 0.01);
+    }
+
+    [Fact]
+    public void OneNoteHtml_ExplicitRowSpanDoesNotOccupyNextRowGroup() {
+        var result = HtmlConversionDocument.Parse("<table><tbody><tr><td rowspan='2'>A</td></tr></tbody><tbody><tr><td>B</td></tr></tbody></table>")
+            .ToOneNoteSectionResult();
+        var reopened = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
+        var table = Assert.Single(reopened.Pages.SelectMany(p => p.Outlines).SelectMany(o => o.Children).OfType<OneNoteTable>());
+        Assert.All(table.Rows, row => Assert.Single(row.Cells));
+        Assert.Equal("B", string.Concat(table.Rows[1].Cells[0].Content.OfType<OneNoteParagraph>().SelectMany(p => p.Runs).Select(r => r.Text)));
+    }
+
     [Fact]
     public void OneNote_KeepAriaTableRowsEditableAfterSaveAndReload() {
         const string html = "<div role='table' aria-label='Water levels'>"
