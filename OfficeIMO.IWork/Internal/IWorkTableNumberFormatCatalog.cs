@@ -1,7 +1,7 @@
 namespace OfficeIMO.IWork.Internal;
 
-/// <summary>Resolves bounded modern numeric formats only when selected by supported numeric cells.</summary>
-internal sealed class IWorkTableNumberFormatCatalog {
+/// <summary>Resolves bounded selected numeric formats and qualifies default scalar formats.</summary>
+internal sealed partial class IWorkTableNumberFormatCatalog {
     private readonly IWorkSourceDocument _source;
     private readonly IWorkWireMessage _store;
     private readonly IWorkArchiveRecord _model;

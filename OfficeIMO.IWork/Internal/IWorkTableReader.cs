@@ -470,7 +470,7 @@ internal static partial class IWorkTableReader {
         if (!numberFormats.FullyReconstructed) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED",
-                "Selected numeric formats contain unsupported or unresolved declarations; recovered numeric values and formulas remain available.",
+                "Selected cell formats contain unsupported or unresolved declarations; recovered values and formulas remain available.",
                 model.EntryPath, model.Identifier, global::OfficeIMO.OfficeConversionLossKind.Unassessed));
         }
         int approximateNumberCount = cells.Count(cell => cell.NumericValueIsApproximate);
@@ -483,7 +483,7 @@ internal static partial class IWorkTableReader {
         if (unsupportedFeatureCount > 0) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_TABLE_CELL_FEATURES_UNASSESSED",
-                $"{unsupportedFeatureCount} selected cells in table '{name}' declare conditional styles, applied conditional rules or comments that are not assessed or reconstructed. Recoverable values remain available; this count does not identify omitted content objects.",
+                $"{unsupportedFeatureCount} selected cells in table '{name}' declare conditional styles, applied conditional rules, comments or scalar formats that are not assessed or reconstructed. Recoverable values remain available; this count does not identify omitted content objects.",
                 model.EntryPath, model.Identifier, global::OfficeIMO.OfficeConversionLossKind.Unassessed));
         }
         int errorCount = cells.Count(cell => cell.HasDecodeError);

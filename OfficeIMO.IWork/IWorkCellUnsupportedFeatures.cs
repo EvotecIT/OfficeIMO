@@ -10,5 +10,13 @@ public enum IWorkCellUnsupportedFeatures {
     /// <summary>An applied conditional-rule selector is present; its effective formatting remains unassessed.</summary>
     AppliedConditionalRule = 2,
     /// <summary>A comment selector is unresolved or has unsupported content, including replies.</summary>
-    Comment = 4
+    Comment = 4,
+    /// <summary>A date/time format selector is present; its display settings remain unassessed.</summary>
+    DateFormat = 8,
+    /// <summary>A duration format selector is present; its units and display settings remain unassessed.</summary>
+    DurationFormat = 16,
+    /// <summary>A text format is unresolved or contains settings beyond the qualified default text format.</summary>
+    TextFormat = 32,
+    /// <summary>A Boolean format is unresolved or contains settings beyond the qualified default Boolean format.</summary>
+    BooleanFormat = 64
 }

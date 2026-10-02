@@ -239,3 +239,13 @@ python Build/IWork/extract-table-catalog-contract.py OfficeIMO.TestAssets/Docume
 ```
 
 The 312 links across 24 packages all use type `6005` and explicitly declare the kind expected by the owning store field. The independent registry also maps `6201` to `TST.TableDataList`; synthetic selected-value cases exercise that alias for strings, formulas, rich text, styles, comments and number formats. There is no native `6201` sample in this corpus. Model records may be inactive, and the inventory does not qualify selection, Apple exports or rendered appearance.
+
+## Selected scalar format declarations
+
+`numbers-parser/cell-format-selectors.json` records default text/Boolean and selected date/time/duration format metadata from the unchanged `cross-table-formulas.numbers`, `endpoint-formulas.numbers`, `single-cell-formulas.numbers` and `issue-102-v15.1.numbers` packages. Their source hashes and existing provenance/licensing above apply. The extractor retains 15 distinct representative declarations across the packages, their exact serialized format messages and counts of selected format flags. Default text type `260` and Boolean type `1` have no additional fields; date/time type `261` retains patterns and duration type `268` retains unit/style settings. OfficeIMO checks all date/duration selector counts and the representative feature classifications. This qualifies source metadata and default-format acceptance, without Apple export or appearance claims.
+
+Reproduce with opt-in numbers-parser 4.19.0:
+
+```sh
+python Build/IWork/extract-cell-format-selectors.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/cell-format-selectors.json
+```

@@ -23,8 +23,10 @@ public sealed class IWorkAppleExportQualificationTests {
             Assert.Equal(artifact.GetProperty("sha256").GetString(),
                 Hash(Path.Combine(references, artifact.GetProperty("path").GetString()!)));
         }
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(sourcePath);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(sourcePath,
+            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
+        Assert.True(result.Report.IsPartialEditableReconstruction);
         Assert.Equal(2, result.WorksheetMappings.Count);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_NUMBERS_ERROR_VALUE_APPROXIMATED"
@@ -73,7 +75,9 @@ public sealed class IWorkAppleExportQualificationTests {
     public void Numbers_percentage_formula_keeps_numeric_cache_and_percentage_style_after_save() {
         string corpus = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus");
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(
-            Path.Combine(corpus, "numbers-parser", "test-10-formulas.numbers"));
+            Path.Combine(corpus, "numbers-parser", "test-10-formulas.numbers"),
+            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        Assert.True(result.Report.IsPartialEditableReconstruction);
         using var saved = new MemoryStream();
         result.Value.Save(saved); saved.Position = 0;
         using var converted = new ZipArchive(saved, ZipArchiveMode.Read, leaveOpen: true);
@@ -110,8 +114,10 @@ public sealed class IWorkAppleExportQualificationTests {
         foreach (JsonElement artifact in evidence.GetProperty("artifacts").EnumerateArray())
             Assert.Equal(artifact.GetProperty("sha256").GetString(),
                 Hash(Path.Combine(references, artifact.GetProperty("path").GetString()!)));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(sourcePath);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(sourcePath,
+            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
+        Assert.True(result.Report.IsPartialEditableReconstruction);
         var tables = result.Projection.Sheets.SelectMany(sheet => sheet.Tables).ToArray();
         using var saved = new MemoryStream();
         result.Value.Save(saved); saved.Position = 0;

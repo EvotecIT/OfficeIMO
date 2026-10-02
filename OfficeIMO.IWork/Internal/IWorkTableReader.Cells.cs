@@ -57,6 +57,19 @@ internal static partial class IWorkTableReader {
         IWorkCellUnsupportedFeatures features = IWorkCellUnsupportedFeatures.None;
         if ((flags & (1u << 7)) != 0) features |= IWorkCellUnsupportedFeatures.ConditionalStyle;
         if ((flags & (1u << 8)) != 0) features |= IWorkCellUnsupportedFeatures.AppliedConditionalRule;
+        if ((flags & (1u << 15)) != 0) features |= IWorkCellUnsupportedFeatures.DateFormat;
+        if ((flags & (1u << 16)) != 0) features |= IWorkCellUnsupportedFeatures.DurationFormat;
+        if (!cell.HasDecodeError) {
+            int formatOffset = offset + 12;
+            for (int bit = 0; bit < 19; bit++) {
+                if ((flags & (1u << bit)) == 0) continue;
+                if (bit is 17 or 18 && !numberFormats.IsDefaultScalarFormat(
+                        IWorkProtobuf.ReadUInt32(buffer, formatOffset), boolean: bit == 18)) {
+                    features |= bit == 17 ? IWorkCellUnsupportedFeatures.TextFormat : IWorkCellUnsupportedFeatures.BooleanFormat;
+                }
+                formatOffset += CellValueFieldSize(bit);
+            }
+        }
         if (!cell.HasDecodeError && (flags & (1u << 19)) != 0) {
             int commentOffset = offset + 12;
             for (int bit = 0; bit < 19; bit++)

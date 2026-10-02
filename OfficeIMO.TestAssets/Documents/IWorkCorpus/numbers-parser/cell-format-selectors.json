@@ -1,0 +1,249 @@
+{
+  "extractorVersion": "numbers-parser 4.19.0",
+  "qualification": "Independent selected format metadata in unchanged licensed native fixtures; no Apple export, rendering or recalculation qualification.",
+  "packages": [
+    {
+      "source": "cross-table-formulas.numbers",
+      "sourceSha256": "9371c5b1d6ee4dfa17569097f064eba9c67f804d88b48638efbbeeb459d07dd4",
+      "selectorCounts": {
+        "15": 0,
+        "16": 0,
+        "17": 326,
+        "18": 104
+      },
+      "cases": [
+        {
+          "sheet": "Main Sheet",
+          "table": "Extra Column",
+          "row": 1,
+          "column": 1,
+          "selectorBit": 17,
+          "cellType": 3,
+          "formatKey": 1,
+          "formatType": 260,
+          "formatHex": "088402",
+          "formatDeclaration": "format_type: 260\n",
+          "isDefaultScalarFormat": true
+        },
+        {
+          "sheet": "Main Sheet",
+          "table": "Extra Headers",
+          "row": 4,
+          "column": 1,
+          "selectorBit": 18,
+          "cellType": 6,
+          "formatKey": 2,
+          "formatType": 1,
+          "formatHex": "0801",
+          "formatDeclaration": "format_type: 1\n",
+          "isDefaultScalarFormat": true
+        }
+      ]
+    },
+    {
+      "source": "endpoint-formulas.numbers",
+      "sourceSha256": "3deb8e3b868be60d7b8924336d2839fcd690db2b138e6c2170d6c22c4aca48dc",
+      "selectorCounts": {
+        "15": 12,
+        "16": 6,
+        "17": 204,
+        "18": 178
+      },
+      "cases": [
+        {
+          "sheet": "Formulas",
+          "table": "Data",
+          "row": 1,
+          "column": 1,
+          "selectorBit": 17,
+          "cellType": 3,
+          "formatKey": 1,
+          "formatType": 260,
+          "formatHex": "088402",
+          "formatDeclaration": "format_type: 260\n",
+          "isDefaultScalarFormat": true
+        },
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 2,
+          "column": 4,
+          "selectorBit": 18,
+          "cellType": 6,
+          "formatKey": 3,
+          "formatType": 1,
+          "formatHex": "0801",
+          "formatDeclaration": "format_type: 1\n",
+          "isDefaultScalarFormat": true
+        },
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 37,
+          "column": 2,
+          "selectorBit": 15,
+          "cellType": 5,
+          "formatKey": 7,
+          "formatType": 261,
+          "formatHex": "088502720764642f4d4d2f79",
+          "formatDeclaration": "format_type: 261\ndate_time_format: \"dd/MM/y\"\n",
+          "isDefaultScalarFormat": false
+        },
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 41,
+          "column": 2,
+          "selectorBit": 16,
+          "cellType": 7,
+          "formatKey": 8,
+          "formatType": 268,
+          "formatHex": "088c0238017802800102c00200",
+          "formatDeclaration": "format_type: 268\nduration_style: 1\nduration_unit_largest: 2\nduration_unit_smallest: 2\nuse_automatic_duration_units: false\n",
+          "isDefaultScalarFormat": false
+        },
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 56,
+          "column": 2,
+          "selectorBit": 16,
+          "cellType": 7,
+          "formatKey": 13,
+          "formatType": 268,
+          "formatHex": "088c0238017801800104c00200",
+          "formatDeclaration": "format_type: 268\nduration_style: 1\nduration_unit_largest: 1\nduration_unit_smallest: 4\nuse_automatic_duration_units: false\n",
+          "isDefaultScalarFormat": false
+        },
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 140,
+          "column": 2,
+          "selectorBit": 15,
+          "cellType": 5,
+          "formatKey": 19,
+          "formatType": 261,
+          "formatHex": "088502720848483a6d6d3a7373",
+          "formatDeclaration": "format_type: 261\ndate_time_format: \"HH:mm:ss\"\n",
+          "isDefaultScalarFormat": false
+        }
+      ]
+    },
+    {
+      "source": "single-cell-formulas.numbers",
+      "sourceSha256": "4ce0593faa61bf159bde0752ade1fa202afcd142317ba16fdec8eb71a7149170",
+      "selectorCounts": {
+        "15": 66,
+        "16": 14,
+        "17": 676,
+        "18": 520
+      },
+      "cases": [
+        {
+          "sheet": "Information",
+          "table": "Tests",
+          "row": 1,
+          "column": 1,
+          "selectorBit": 17,
+          "cellType": 3,
+          "formatKey": 1,
+          "formatType": 260,
+          "formatHex": "088402",
+          "formatDeclaration": "format_type: 260\n",
+          "isDefaultScalarFormat": true
+        },
+        {
+          "sheet": "Information",
+          "table": "Tests",
+          "row": 2,
+          "column": 2,
+          "selectorBit": 18,
+          "cellType": 6,
+          "formatKey": 2,
+          "formatType": 1,
+          "formatHex": "0801",
+          "formatDeclaration": "format_type: 1\n",
+          "isDefaultScalarFormat": true
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 2,
+          "column": 2,
+          "selectorBit": 15,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatType": 261,
+          "formatHex": "088502720764642f4d4d2f79",
+          "formatDeclaration": "format_type: 261\ndate_time_format: \"dd/MM/y\"\n",
+          "isDefaultScalarFormat": false
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 42,
+          "column": 2,
+          "selectorBit": 16,
+          "cellType": 7,
+          "formatKey": 7,
+          "formatType": 268,
+          "formatHex": "088c0238017802800102c00200",
+          "formatDeclaration": "format_type: 268\nduration_style: 1\nduration_unit_largest: 2\nduration_unit_smallest: 2\nuse_automatic_duration_units: false\n",
+          "isDefaultScalarFormat": false
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 61,
+          "column": 2,
+          "selectorBit": 15,
+          "cellType": 5,
+          "formatKey": 5,
+          "formatType": 261,
+          "formatHex": "0885027206683a6d6d2061",
+          "formatDeclaration": "format_type: 261\ndate_time_format: \"h:mm a\"\n",
+          "isDefaultScalarFormat": false
+        }
+      ]
+    },
+    {
+      "source": "issue-102-v15.1.numbers",
+      "sourceSha256": "88a9fa7be095d03004478393a87a4a97602d7468f839d067ec9118c524c55176",
+      "selectorCounts": {
+        "15": 9,
+        "16": 0,
+        "17": 7,
+        "18": 0
+      },
+      "cases": [
+        {
+          "sheet": "Cats",
+          "table": "Cats",
+          "row": 1,
+          "column": 3,
+          "selectorBit": 17,
+          "cellType": 3,
+          "formatKey": 1,
+          "formatType": 260,
+          "formatHex": "088402",
+          "formatDeclaration": "format_type: 260\n",
+          "isDefaultScalarFormat": true
+        },
+        {
+          "sheet": "Cats",
+          "table": "Cats",
+          "row": 2,
+          "column": 3,
+          "selectorBit": 15,
+          "cellType": 5,
+          "formatKey": 2,
+          "formatType": 261,
+          "formatHex": "088502720a64204d4d4d2079797979",
+          "formatDeclaration": "format_type: 261\ndate_time_format: \"d MMM yyyy\"\n",
+          "isDefaultScalarFormat": false
+        }
+      ]
+    }
+  ]
+}

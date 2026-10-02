@@ -82,7 +82,7 @@ public sealed partial class IWorkTableCell {
 
     /// <summary>Gets the supported explicitly selected paragraph style, or null when absent or unresolved. Table defaults are available through <see cref="IWorkTable.GetParagraphStyle"/>.</summary>
     public IWorkParagraphStyle? ParagraphStyle { get; }
-    /// <summary>Gets readable selected conditional-style, applied-rule and comment fields whose contents remain unassessed. None does not establish complete fidelity; undecoded cells are covered by their decode issues.</summary>
+    /// <summary>Gets readable selected conditional-style, applied-rule, comment and scalar-format fields whose contents remain unassessed. None does not establish complete fidelity; undecoded cells are covered by their decode issues.</summary>
     public IWorkCellUnsupportedFeatures UnsupportedFeatures { get; }
     internal bool HasSelectedTextStyle { get; }
     internal bool HasUnresolvedFill { get; }
