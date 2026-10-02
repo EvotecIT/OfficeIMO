@@ -48,3 +48,9 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 The complete rows for `OfficeIMO.Html.Rtf` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->
+
+Unstyled images larger than the import text-area limit are reduced proportionally to
+6.25 inches wide by 9 inches high, using 96 CSS pixels per inch. Explicit image
+dimensions are preserved. The result reports `HtmlRtfImageFittedToPage` when fitting
+changes an image. Imported HTML table rows stay together; explicit RTF round-trip
+metadata preserves rows that allow splitting, including older metadata.

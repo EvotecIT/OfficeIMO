@@ -31,7 +31,7 @@ internal static partial class RtfHtmlReader {
             }
         }
 
-        private static void ApplyImageSize(IElement token, RtfImage image) {
+        private void ApplyImageSize(IElement token, RtfImage image) {
             string? width = GetAttribute(token, "width");
             if (!string.IsNullOrWhiteSpace(width) && HtmlStyleDeclarationParser.TryParseTwips(width!, out int widthTwips)) {
                 image.DesiredWidthTwips = widthTwips;
@@ -56,6 +56,30 @@ internal static partial class RtfHtmlReader {
             if (style.TableHeightTwips.HasValue) {
                 image.DesiredHeightTwips = style.TableHeightTwips.Value;
             }
+
+            if (image.DesiredWidthTwips.HasValue || image.DesiredHeightTwips.HasValue ||
+                !OfficeImageReader.TryIdentifyByContent(image.Data, null, out OfficeImageInfo info) ||
+                info.Width <= 0 || info.Height <= 0) return;
+
+            // Unstyled HTML images use their pixel dimensions at 96 CSS dpi. Keep an oversized
+            // image inside a typical A4/Letter text area instead of letting an RTF reader
+            // move it to a mostly empty following page or clip it at the paper edge.
+            const double twipsPerCssPixel = 15D;
+            const double maxTextWidthTwips = 9000D;
+            const double maxTextHeightTwips = 12960D;
+            double naturalWidth = info.Width * twipsPerCssPixel;
+            double naturalHeight = info.Height * twipsPerCssPixel;
+            double scale = Math.Min(1D,
+                Math.Min(maxTextWidthTwips / naturalWidth, maxTextHeightTwips / naturalHeight));
+            if (scale >= 1D) return;
+
+            image.SourceWidth = info.Width;
+            image.SourceHeight = info.Height;
+            image.DesiredWidthTwips = Math.Max(1, (int)Math.Round(naturalWidth * scale));
+            image.DesiredHeightTwips = Math.Max(1, (int)Math.Round(naturalHeight * scale));
+            _options.AddDiagnostic("HtmlRtfImageFittedToPage",
+                "An unstyled HTML image was proportionally fitted to the RTF page text area.",
+                HtmlRenderStyleResolver.DescribeSource(token), action: RtfConversionAction.Substituted);
         }
 
         private static bool TryParsePositiveInteger(string value, out int result) {
