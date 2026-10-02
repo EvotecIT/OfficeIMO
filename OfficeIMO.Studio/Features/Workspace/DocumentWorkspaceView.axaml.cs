@@ -10,6 +10,8 @@ namespace OfficeIMO.Studio.Features.Workspace;
 
 public sealed partial class DocumentWorkspaceView : UserControl {
     private bool? _compactLayout;
+    private bool _phoneLayout;
+    private double _availableWidth;
     private MainWindowViewModel? _document;
     private double _navigationWidth = 238D;
     private double _inspectorWidth = 300D;
@@ -33,9 +35,19 @@ public sealed partial class DocumentWorkspaceView : UserControl {
     }
 
     internal void ApplyResponsiveLayout(double width) {
+        _availableWidth = Math.Max(0, width);
+        bool phone = width < 700;
+        bool phoneChanged = _phoneLayout != phone;
+        _phoneLayout = phone;
+        UpdateOverlayWidths();
+        Classes.Set("phone", phone);
+        Grid.SetRow(ContextTools, phone ? 1 : 0);
+        Grid.SetColumn(ContextTools, phone ? 0 : 2);
+        Grid.SetColumnSpan(ContextTools, phone ? 4 : 1);
+        DocumentModePicker.Width = phone ? 130 : 170;
         CommandRow.Classes.Set("compactCommands", width < 1320D);
         bool compact = width < 1100D;
-        if (_compactLayout == compact) return;
+        if (_compactLayout == compact && !phoneChanged) return;
         _compactLayout = compact;
         DocumentModeButtons.IsVisible = !compact;
         DocumentModePicker.IsVisible = compact;
@@ -145,16 +157,32 @@ public sealed partial class DocumentWorkspaceView : UserControl {
         UpdateOrganizerActionBar();
         NavigationPane.IsVisible = navigation;
         InspectorPane.IsVisible = inspector;
-        NavigationSplitter.IsVisible = navigation && !pagesGrid;
-        InspectorSplitter.IsVisible = inspector;
+        NavigationSplitter.IsVisible = navigation && !pagesGrid && !_phoneLayout;
+        InspectorSplitter.IsVisible = inspector && !_phoneLayout;
         NavigationToggle.IsChecked = navigation;
         InspectorToggle.IsChecked = inspector;
+        bool overlay = _phoneLayout && !pagesGrid;
+        Grid.SetColumn(NavigationPane, overlay ? 1 : 0);
+        Grid.SetColumn(InspectorPane, _phoneLayout ? 1 : 2);
+        NavigationPane.ZIndex = overlay ? 10 : 0;
+        InspectorPane.ZIndex = _phoneLayout ? 10 : 0;
+        UpdateOverlayWidths();
+        NavigationPane.HorizontalAlignment = overlay ? Avalonia.Layout.HorizontalAlignment.Left : Avalonia.Layout.HorizontalAlignment.Stretch;
+        InspectorPane.HorizontalAlignment = _phoneLayout ? Avalonia.Layout.HorizontalAlignment.Right : Avalonia.Layout.HorizontalAlignment.Stretch;
+        navigation &= !overlay;
+        inspector &= !_phoneLayout;
         PageViewport.ColumnDefinitions[0].MinWidth = navigation ? 200D : 0D;
         PageViewport.ColumnDefinitions[0].MaxWidth = navigation ? 320D : 0D;
         PageViewport.ColumnDefinitions[2].MinWidth = inspector ? 280D : 0D;
         PageViewport.ColumnDefinitions[2].MaxWidth = inspector ? 380D : 0D;
         PageViewport.ColumnDefinitions[0].Width = new GridLength(navigation ? _navigationWidth : 0D);
         PageViewport.ColumnDefinitions[2].Width = new GridLength(inspector ? _inspectorWidth : 0D);
+    }
+
+    // Width can arrive before Arrange updates Bounds, including when a saved pane opens at startup.
+    private void UpdateOverlayWidths() {
+        NavigationPane.Width = _phoneLayout && !IsPagesGrid ? Math.Min(320, _availableWidth) : double.NaN;
+        InspectorPane.Width = _phoneLayout ? Math.Min(340, _availableWidth) : double.NaN;
     }
 
     private void OnNavigationToggleClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) {

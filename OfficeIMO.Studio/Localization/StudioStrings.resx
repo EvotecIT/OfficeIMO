@@ -2394,4 +2394,27 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Provenance.CreateCopy" xml:space="preserve"><value>Create and verify copy</value></data>
   <data name="Provenance.Export" xml:space="preserve"><value>Export JSON report</value></data>
   <data name="Provenance.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Apple.ToggleSidebar" xml:space="preserve"><value>Show or hide sidebar</value></data>
+  <data name="Apple.OpenDocuments" xml:space="preserve"><value>Open documents</value></data>
+  <data name="Apple.More" xml:space="preserve"><value>More</value></data>
+  <data name="Apple.CloseDocument" xml:space="preserve"><value>Close Document</value></data>
+  <data name="Apple.File" xml:space="preserve"><value>File</value></data>
+  <data name="Apple.Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Apple.View" xml:space="preserve"><value>View</value></data>
+  <data name="Apple.Window" xml:space="preserve"><value>Window</value></data>
+  <data name="Apple.Settings" xml:space="preserve"><value>Settings…</value></data>
+  <data name="Apple.Cut" xml:space="preserve"><value>Cut</value></data>
+  <data name="Apple.Copy" xml:space="preserve"><value>Copy</value></data>
+  <data name="Apple.Paste" xml:space="preserve"><value>Paste</value></data>
+  <data name="Apple.SelectAll" xml:space="preserve"><value>Select All</value></data>
+  <data name="Apple.Find" xml:space="preserve"><value>Find…</value></data>
+  <data name="Apple.Commands" xml:space="preserve"><value>Find a Command…</value></data>
+  <data name="Apple.Minimize" xml:space="preserve"><value>Minimize</value></data>
+  <data name="Apple.FullScreen" xml:space="preserve"><value>Enter Full Screen</value></data>
+  <data name="Apple.LeaveFullScreen" xml:space="preserve"><value>Exit Full Screen</value></data>
+  <data name="Apple.NextTab" xml:space="preserve"><value>Show Next Tab</value></data>
+  <data name="Apple.PreviousTab" xml:space="preserve"><value>Show Previous Tab</value></data>
+  <data name="Apple.ReopenTab" xml:space="preserve"><value>Reopen Closed Tab</value></data>
+  <data name="Apple.Open" xml:space="preserve"><value>Open…</value></data>
+  <data name="Apple.SaveAs" xml:space="preserve"><value>Save As…</value></data>
 </root>
