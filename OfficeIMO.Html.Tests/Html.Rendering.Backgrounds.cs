@@ -514,8 +514,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageTileLimitExceeded);
     }
 
-    [Fact]
-    public void HtmlRender_PropagatesRootBackgroundToTheSurfaceBehindContent() {
+    [Theory]
+    [InlineData(1D)]
+    [InlineData(4D)]
+    public void HtmlRender_PropagatesRootBackgroundToTheSurfaceBehindContent(double scale) {
         const string html = "<style>body{background-color:#123456}</style><p>RootCanvasMarker</p>";
         var options = new HtmlRenderOptions {
             ViewportWidth = 160D,
@@ -526,7 +528,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderPage page = Assert.Single(rendered.Pages);
         HtmlRenderShape surface = Assert.IsType<HtmlRenderShape>(page.Visuals[0]);
         HtmlRenderShape rootBackground = Assert.IsType<HtmlRenderShape>(page.Visuals[1]);
-        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(page.CreateDrawing());
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(page.CreateDrawing(), scale);
 
         Assert.Equal("render-surface", surface.Source);
         Assert.Equal("render-root-background", rootBackground.Source);

@@ -408,6 +408,10 @@ internal static partial class PdfWriter {
         public double X1 { get; set; }
         public double Y1 { get; set; }
         public double R1 { get; set; }
+        public double AlphaLeft { get; set; } = double.PositiveInfinity;
+        public double AlphaBottom { get; set; } = double.PositiveInfinity;
+        public double AlphaRight { get; set; } = double.NegativeInfinity;
+        public double AlphaTop { get; set; } = double.NegativeInfinity;
 
         public bool MatchesAxial(double x0, double y0, double x1, double y1, System.Collections.Generic.IReadOnlyList<OfficeGradientStop> stops) =>
             !IsRadial && MatchesCoordinatesAndStops(x0, y0, 0D, x1, y1, 0D, stops);

@@ -1032,7 +1032,7 @@ public partial class PdfPageImageRendererTests {
 
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
         Assert.Empty(drawing.Elements.OfType<OfficeDrawingText>());
-        Assert.Equal(OfficeColor.Blue, OfficeDrawingRasterRenderer.Render(drawing).GetPixel(24, 94));
+        Assert.Equal(OfficeColor.Blue, OfficeDrawingRasterRenderer.Render(drawing).GetPixel(23, 95));
     }
 
     [Fact]
@@ -1811,7 +1811,7 @@ public partial class PdfPageImageRendererTests {
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
 
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
-        Assert.Equal(OfficeColor.Blue, raster.GetPixel(24, 94));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(23, 95));
     }
 
     [Theory]

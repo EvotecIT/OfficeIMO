@@ -79,6 +79,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         _loca = tables["loca"];
         _maxp = tables["maxp"];
         _name = tables.TryGetValue("name", out var name) ? name : -1;
+        _faceDescriptor = ReadFaceDescriptor(data, tables, tableLengths, FaceStyle);
         _validFormat4Subtables = OfficeOpenTypeCmap.CollectValidFormat4Subtables(
             _data,
             _cmap,
@@ -1117,9 +1118,10 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         List<OfficePoint> output,
         ref int expandedPointCount,
         int maximumPointCount) {
-        var chord = Math.Sqrt((end.X - start.X) * (end.X - start.X) + (end.Y - start.Y) * (end.Y - start.Y));
-        var bend = Math.Sqrt((start.X - 2 * control.X + end.X) * (start.X - 2 * control.X + end.X) + (start.Y - 2 * control.Y + end.Y) * (start.Y - 2 * control.Y + end.Y));
-        var steps = Math.Max(6, Math.Min(18, (int)Math.Ceiling((chord + bend * 2.0) / 120.0)));
+        // Simple and composite glyph control points already carry the output transform.
+        // Flatten in those coordinates so small text and enlarged outlines share a pixel tolerance.
+        var steps = OfficeCurveFlattening.QuadraticSegments(new OfficePoint(start.X, start.Y),
+            new OfficePoint(control.X, control.Y), new OfficePoint(end.X, end.Y), 1D);
         for (var i = 1; i <= steps; i++) {
             var t = i / (double)steps;
             var mt = 1 - t;

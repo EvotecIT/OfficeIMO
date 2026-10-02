@@ -113,11 +113,7 @@ public sealed partial class OfficeRasterCanvas {
             foreach (OfficeColorGlyphContours layer in colorLayers) {
                 inkBottom = Math.Max(inkBottom, FindMaximumContourY(layer.Contours));
                 if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(layer.Contours, originY, size);
-                FillContours(layer.Contours, layer.Color, OfficeFillRule.NonZero);
-                if ((simulatedStyle & OfficeFontStyle.Bold) == OfficeFontStyle.Bold) {
-                    OffsetContours(layer.Contours, size / 24D, 0D);
-                    FillContours(layer.Contours, layer.Color, OfficeFillRule.NonZero);
-                }
+                FillTextContours(layer.Contours, layer.Color, (simulatedStyle & OfficeFontStyle.Bold) != 0 ? size / 24D : 0D);
             }
             DrawVerticalTextDecorations(originX, y, height, inkBottom, size, style,
                 underlineStyle, strikethroughStyle, decorationColor ?? color);
@@ -136,11 +132,7 @@ public sealed partial class OfficeRasterCanvas {
         AlignVerticalContoursToTop(contours, y);
         double contourBottom = FindMaximumContourY(contours);
         if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(contours, originY, size);
-        FillContours(contours, color, OfficeFillRule.NonZero);
-        if ((simulatedStyle & OfficeFontStyle.Bold) == OfficeFontStyle.Bold) {
-            OffsetContours(contours, size / 24D, 0D);
-            FillContours(contours, color, OfficeFillRule.NonZero);
-        }
+        FillTextContours(contours, color, (simulatedStyle & OfficeFontStyle.Bold) != 0 ? size / 24D : 0D);
         DrawVerticalTextDecorations(originX, y, height, contourBottom, size, style,
             underlineStyle, strikethroughStyle, decorationColor ?? color);
         return true;

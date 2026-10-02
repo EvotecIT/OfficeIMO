@@ -26,7 +26,7 @@ public sealed partial class OfficeRasterCanvas {
         }
 
         double size = Math.Max(1D, fontSize);
-        var key = new TextMeasurementKey(text!, size, fontFamily, style, PreservePaintedGlyphOrder);
+        var key = new TextMeasurementKey(text!, size, fontFamily, style, PreservePaintedGlyphOrder, RequestedTextFace(style));
         Dictionary<TextMeasurementKey, double> cache = _textMeasurementCache ??= new Dictionary<TextMeasurementKey, double>();
         if (cache.TryGetValue(key, out double cached)) {
             return cached;
@@ -34,7 +34,7 @@ public sealed partial class OfficeRasterCanvas {
 
         if (_fonts != null) {
             IReadOnlyList<OfficeFontFallbackRun> fallbackRuns =
-                _fonts.PlanFallbackRuns(text, fontFamily, style);
+                _fonts.PlanFallbackRuns(text, fontFamily, RequestedTextFace(style));
             if (ShouldUseFallbackRuns(fallbackRuns, fontFamily)) {
                 double aggregate = 0D;
                 foreach (OfficeFontFallbackRun run in fallbackRuns) {
@@ -68,7 +68,7 @@ public sealed partial class OfficeRasterCanvas {
         if (string.IsNullOrEmpty(text)) return 0D;
         double size = Math.Max(1D, fontSize);
         if (_fonts != null) {
-            IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = _fonts.PlanFallbackRuns(text, fontFamily, style);
+            IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = _fonts.PlanFallbackRuns(text, fontFamily, RequestedTextFace(style));
             if (ShouldUseFallbackRuns(fallbackRuns, fontFamily)) {
                 double aggregate = 0D;
                 foreach ((OfficeFontFallbackRun run, OfficeTextDirection runDirection) in PlanVisualFallbackRuns(text!, fontFamily, style, textDirection)) {
@@ -236,21 +236,13 @@ public sealed partial class OfficeRasterCanvas {
                 foreach (OfficeColorGlyphContours layer in colorLayers) {
                     if (Math.Abs(horizontalScale - 1D) > 0.0001D) ScaleContoursX(layer.Contours, textX, horizontalScale);
                     if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(layer.Contours, top, size);
-                    FillContours(layer.Contours, layer.Color, OfficeFillRule.NonZero);
-                    if ((simulatedStyle & OfficeFontStyle.Bold) == OfficeFontStyle.Bold) {
-                        OffsetContours(layer.Contours, size / 24D, 0D);
-                        FillContours(layer.Contours, layer.Color, OfficeFillRule.NonZero);
-                    }
+                    FillTextContours(layer.Contours, layer.Color, (simulatedStyle & OfficeFontStyle.Bold) != 0 ? size / 24D : 0D);
                 }
             } else {
                 List<List<OfficePoint>> contours = GetResolvedTextContours(value, font, textX, top, size, featureSettings, textDirection);
                 if (Math.Abs(horizontalScale - 1D) > 0.0001D) ScaleContoursX(contours, textX, horizontalScale);
                 if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(contours, top, size);
-                FillContours(contours, color, OfficeFillRule.NonZero);
-                if ((simulatedStyle & OfficeFontStyle.Bold) == OfficeFontStyle.Bold) {
-                    OffsetContours(contours, size / 24D, 0D);
-                    FillContours(contours, color, OfficeFillRule.NonZero);
-                }
+                FillTextContours(contours, color, (simulatedStyle & OfficeFontStyle.Bold) != 0 ? size / 24D : 0D);
             }
 
             OfficeTextDecorationStyle resolvedUnderlineStyle = underlineStyle != OfficeTextDecorationStyle.None
@@ -439,9 +431,8 @@ public sealed partial class OfficeRasterCanvas {
                 rotationCenterY,
                 flipHorizontal,
                 flipVertical);
-            FillContours(contours, color, OfficeFillRule.NonZero);
             if (simulateBold) {
-                contours = TransformTextContours(
+                var shifted = TransformTextContours(
                     GetResolvedTextContours(value, font, x + fontHeight / 24D, outlineTop, fontHeight),
                     bottom,
                     simulateItalic,
@@ -450,7 +441,9 @@ public sealed partial class OfficeRasterCanvas {
                     rotationCenterY,
                     flipHorizontal,
                     flipVertical);
-                FillContours(contours, color, OfficeFillRule.NonZero);
+                FillTextContourUnion(contours, shifted, color);
+            } else {
+                FillTextContours(contours, color);
             }
 
             DrawTextLineDecorations(x, width, top, fontHeight, decorationColor ?? color, rotationRadians, rotationCenterX, rotationCenterY, underlineStyle != OfficeTextDecorationStyle.None ? underlineStyle : underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None, strikethroughStyle != OfficeTextDecorationStyle.None ? strikethroughStyle : strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None, flipHorizontal, flipVertical);
@@ -524,14 +517,15 @@ public sealed partial class OfficeRasterCanvas {
                 top + fontHeight,
                 simulateItalic,
                 transform);
-            FillContours(contours, color, OfficeFillRule.NonZero);
             if (simulateBold) {
-                contours = TransformTextContours(
+                var shifted = TransformTextContours(
                     GetResolvedTextContours(value, font, x + fontHeight / 24D, outlineTop, fontHeight),
                     top + fontHeight,
                     simulateItalic,
                     transform);
-                FillContours(contours, color, OfficeFillRule.NonZero);
+                FillTextContourUnion(contours, shifted, color);
+            } else {
+                FillTextContours(contours, color);
             }
 
             DrawAffineTextLineDecorations(x, width, top, fontHeight, color, transform, underline, strikethrough);
@@ -728,9 +722,7 @@ public sealed partial class OfficeRasterCanvas {
     private IOfficeFontProgram? ResolveTextFont(string? text, string? fontFamily, OfficeFontStyle style, out OfficeFontStyle resolvedStyle) {
         resolvedStyle = OfficeFontStyle.Regular;
         if (_fonts != null) {
-            IOfficeFontProgram? scoped = string.IsNullOrEmpty(text)
-                ? _fonts.Resolve(fontFamily, style, out resolvedStyle)
-                : _fonts.ResolveForText(text!, fontFamily, style, out resolvedStyle);
+            IOfficeFontProgram? scoped = _fonts.ResolveForText(text ?? string.Empty, fontFamily, RequestedTextFace(style), out resolvedStyle);
             if (scoped != null) {
                 return scoped;
             }
@@ -740,179 +732,7 @@ public sealed partial class OfficeRasterCanvas {
             return _font;
         }
 
-        return OfficeTrueTypeFont.TryLoadFontFamilyForText(fontFamily, style, text, out resolvedStyle) ?? _font;
-    }
-
-    private void DrawStrokeText(
-        string text,
-        double anchorX,
-        double centerY,
-        double height,
-        OfficeColor color,
-        bool bold,
-        bool italic,
-        OfficeTextAlignment alignment,
-        double rotationRadians,
-        double rotationCenterX,
-        double rotationCenterY,
-        bool flipHorizontal,
-        bool flipVertical) {
-        if (string.IsNullOrEmpty(text) || color.A == 0 || height <= 0D) {
-            return;
-        }
-
-        double cell = Math.Max(1D, height / 7D);
-        double gap = cell * 0.9D;
-        double width = MeasureStrokeText(text, height);
-        double x = ResolveAnchoredTextX(anchorX, width, alignment);
-        double top = centerY - (height / 2D);
-        double bottom = top + Math.Max(1D, height);
-        foreach (char c in text) {
-            DrawStrokeGlyph(c, x, top, cell, color, bold, italic, bottom, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
-            x += (GlyphWidth(c) * cell) + gap;
-        }
-    }
-
-    private void DrawAffineStrokeText(
-        string text,
-        double anchorX,
-        double centerY,
-        double height,
-        OfficeColor color,
-        bool bold,
-        bool italic,
-        OfficeTextAlignment alignment,
-        OfficeTransform transform) {
-        if (string.IsNullOrEmpty(text) || color.A == 0 || height <= 0D) {
-            return;
-        }
-
-        double cell = Math.Max(1D, height / 7D);
-        double gap = cell * 0.9D;
-        double width = MeasureStrokeText(text, height);
-        double x = ResolveAnchoredTextX(anchorX, width, alignment);
-        double top = centerY - (height / 2D);
-        double bottom = top + Math.Max(1D, height);
-        double strokeScale = GetAffineStrokeScale(transform);
-        foreach (char c in text) {
-            DrawAffineStrokeGlyph(c, x, top, cell, color, bold, italic, bottom, transform, strokeScale);
-            x += (GlyphWidth(c) * cell) + gap;
-        }
-    }
-
-    private void DrawStrokeGlyph(
-        char c,
-        double x,
-        double y,
-        double cell,
-        OfficeColor color,
-        bool bold,
-        bool italic,
-        double bottom,
-        double rotationRadians,
-        double rotationCenterX,
-        double rotationCenterY,
-        bool flipHorizontal,
-        bool flipVertical) {
-        string[] rows = GlyphRows(c);
-        double strokeWidth = Math.Max(1D, bold ? cell * 0.38D : cell * 0.26D);
-        for (int row = 0; row < rows.Length; row++) {
-            string bits = rows[row];
-            for (int col = 0; col < bits.Length; col++) {
-                if (bits[col] != '1') {
-                    continue;
-                }
-
-                OfficePoint current = TransformTextPoint(GlyphPoint(x, y, cell, col, row), bottom, italic, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
-                bool connected = false;
-                if (col + 1 < bits.Length && bits[col + 1] == '1') {
-                    OfficePoint nextPoint = TransformTextPoint(GlyphPoint(x, y, cell, col + 1, row), bottom, italic, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
-                    DrawLine(current.X, current.Y, nextPoint.X, nextPoint.Y, color, strokeWidth);
-                    connected = true;
-                }
-
-                if (row + 1 < rows.Length) {
-                    string next = rows[row + 1];
-                    if (col < next.Length && next[col] == '1') {
-                        OfficePoint nextPoint = TransformTextPoint(GlyphPoint(x, y, cell, col, row + 1), bottom, italic, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
-                        DrawLine(current.X, current.Y, nextPoint.X, nextPoint.Y, color, strokeWidth);
-                        connected = true;
-                    }
-
-                    if (col > 0 && col - 1 < next.Length && next[col - 1] == '1') {
-                        OfficePoint nextPoint = TransformTextPoint(GlyphPoint(x, y, cell, col - 1, row + 1), bottom, italic, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
-                        DrawLine(current.X, current.Y, nextPoint.X, nextPoint.Y, color, strokeWidth);
-                        connected = true;
-                    }
-
-                    if (col + 1 < next.Length && next[col + 1] == '1') {
-                        OfficePoint nextPoint = TransformTextPoint(GlyphPoint(x, y, cell, col + 1, row + 1), bottom, italic, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
-                        DrawLine(current.X, current.Y, nextPoint.X, nextPoint.Y, color, strokeWidth);
-                        connected = true;
-                    }
-                }
-
-                if (!connected) {
-                    DrawEllipse(current.X, current.Y, strokeWidth / 2D, strokeWidth / 2D, color, OfficeColor.Transparent, 0D);
-                }
-            }
-        }
-    }
-
-    private void DrawAffineStrokeGlyph(
-        char c,
-        double x,
-        double y,
-        double cell,
-        OfficeColor color,
-        bool bold,
-        bool italic,
-        double bottom,
-        OfficeTransform transform,
-        double strokeScale) {
-        string[] rows = GlyphRows(c);
-        double strokeWidth = Math.Max(1D, (bold ? cell * 0.38D : cell * 0.26D) * strokeScale);
-        for (int row = 0; row < rows.Length; row++) {
-            string bits = rows[row];
-            for (int col = 0; col < bits.Length; col++) {
-                if (bits[col] != '1') {
-                    continue;
-                }
-
-                OfficePoint current = TransformAffineTextPoint(GlyphPoint(x, y, cell, col, row), bottom, italic, transform);
-                bool connected = false;
-                if (col + 1 < bits.Length && bits[col + 1] == '1') {
-                    OfficePoint nextPoint = TransformAffineTextPoint(GlyphPoint(x, y, cell, col + 1, row), bottom, italic, transform);
-                    DrawLine(current.X, current.Y, nextPoint.X, nextPoint.Y, color, strokeWidth);
-                    connected = true;
-                }
-
-                if (row + 1 < rows.Length) {
-                    string next = rows[row + 1];
-                    if (col < next.Length && next[col] == '1') {
-                        OfficePoint nextPoint = TransformAffineTextPoint(GlyphPoint(x, y, cell, col, row + 1), bottom, italic, transform);
-                        DrawLine(current.X, current.Y, nextPoint.X, nextPoint.Y, color, strokeWidth);
-                        connected = true;
-                    }
-
-                    if (col > 0 && col - 1 < next.Length && next[col - 1] == '1') {
-                        OfficePoint nextPoint = TransformAffineTextPoint(GlyphPoint(x, y, cell, col - 1, row + 1), bottom, italic, transform);
-                        DrawLine(current.X, current.Y, nextPoint.X, nextPoint.Y, color, strokeWidth);
-                        connected = true;
-                    }
-
-                    if (col + 1 < next.Length && next[col + 1] == '1') {
-                        OfficePoint nextPoint = TransformAffineTextPoint(GlyphPoint(x, y, cell, col + 1, row + 1), bottom, italic, transform);
-                        DrawLine(current.X, current.Y, nextPoint.X, nextPoint.Y, color, strokeWidth);
-                        connected = true;
-                    }
-                }
-
-                if (!connected) {
-                    DrawEllipse(current.X, current.Y, strokeWidth / 2D, strokeWidth / 2D, color, OfficeColor.Transparent, 0D);
-                }
-            }
-        }
+        return OfficeTrueTypeFont.TryLoadFontFamilyForText(fontFamily, RequestedTextFace(style), text, out resolvedStyle) ?? _font;
     }
 
     private static double ResolveAnchoredTextX(double anchorX, double width, OfficeTextAlignment alignment) {
@@ -925,79 +745,6 @@ public sealed partial class OfficeRasterCanvas {
         }
 
         return anchorX;
-    }
-
-    private static IReadOnlyList<List<OfficePoint>> TransformTextContours(IReadOnlyList<List<OfficePoint>> contours, double bottom, bool italic, double rotationRadians, double rotationCenterX, double rotationCenterY, bool flipHorizontal, bool flipVertical) {
-        if ((!italic && Math.Abs(rotationRadians) < TextRotationEpsilon && !flipHorizontal && !flipVertical) || contours.Count == 0) {
-            return contours;
-        }
-
-        List<List<OfficePoint>> transformed = new(contours.Count);
-        foreach (List<OfficePoint> contour in contours) {
-            List<OfficePoint> points = new(contour.Count);
-            foreach (OfficePoint point in contour) {
-                points.Add(TransformTextPoint(point, bottom, italic, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical));
-            }
-
-            transformed.Add(points);
-        }
-
-        return transformed;
-    }
-
-    private static IReadOnlyList<List<OfficePoint>> TransformTextContours(IReadOnlyList<List<OfficePoint>> contours, double bottom, bool italic, OfficeTransform transform) {
-        if ((!italic && transform == OfficeTransform.Identity) || contours.Count == 0) {
-            return contours;
-        }
-
-        List<List<OfficePoint>> transformed = new(contours.Count);
-        foreach (List<OfficePoint> contour in contours) {
-            List<OfficePoint> points = new(contour.Count);
-            foreach (OfficePoint point in contour) {
-                OfficePoint skewed = italic ? new OfficePoint(point.X + ((bottom - point.Y) * ItalicShear), point.Y) : point;
-                points.Add(transform.TransformPoint(skewed));
-            }
-
-            transformed.Add(points);
-        }
-
-        return transformed;
-    }
-
-    private static OfficePoint TransformTextPoint(OfficePoint point, double bottom, bool italic, double rotationRadians, double rotationCenterX, double rotationCenterY, bool flipHorizontal, bool flipVertical) {
-        if (!italic && Math.Abs(rotationRadians) < TextRotationEpsilon && !flipHorizontal && !flipVertical) {
-            return point;
-        }
-
-        OfficePoint skewed = italic ? new OfficePoint(point.X + ((bottom - point.Y) * ItalicShear), point.Y) : point;
-        return TransformFramePoint(skewed, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
-    }
-
-    private static OfficePoint TransformFramePoint(OfficePoint point, double rotationRadians, double centerX, double centerY, bool flipHorizontal, bool flipVertical) {
-        OfficePoint transformed = point;
-        if (flipHorizontal) {
-            transformed = new OfficePoint((2D * centerX) - transformed.X, transformed.Y);
-        }
-
-        if (flipVertical) {
-            transformed = new OfficePoint(transformed.X, (2D * centerY) - transformed.Y);
-        }
-
-        return Math.Abs(rotationRadians) < TextRotationEpsilon
-            ? transformed
-            : OfficeGeometry.RotatePoint(transformed, centerX, centerY, rotationRadians);
-    }
-
-    private static OfficePoint TransformAffineTextPoint(OfficePoint point, double bottom, bool italic, OfficeTransform transform) {
-        OfficePoint skewed = italic ? new OfficePoint(point.X + ((bottom - point.Y) * ItalicShear), point.Y) : point;
-        return transform.TransformPoint(skewed);
-    }
-
-    private static double GetAffineStrokeScale(OfficeTransform transform) {
-        double xScale = Math.Sqrt((transform.M11 * transform.M11) + (transform.M12 * transform.M12));
-        double yScale = Math.Sqrt((transform.M21 * transform.M21) + (transform.M22 * transform.M22));
-        double scale = Math.Max(xScale, yScale);
-        return !double.IsNaN(scale) && !double.IsInfinity(scale) && scale > 0D ? scale : 1D;
     }
 
     private static OfficePoint GlyphPoint(double x, double y, double cell, int col, int row) {

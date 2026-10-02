@@ -73,14 +73,4 @@ public sealed partial class OfficeRasterCanvas {
         return true;
     }
 
-    private static double AdvancePatternPosition(double patternPosition, double distance, double cycle) {
-        if (!IsFinite(cycle) || cycle <= 0D) return 0D;
-        double normalizedPosition = IsFinite(patternPosition) ? patternPosition % cycle : 0D;
-        double normalizedDistance = IsFinite(distance) ? distance % cycle : 0D;
-        double distanceUntilWrap = cycle - normalizedPosition;
-        double advanced = normalizedDistance >= distanceUntilWrap
-            ? normalizedDistance - distanceUntilWrap
-            : normalizedPosition + normalizedDistance;
-        return advanced < 0D ? advanced + cycle : advanced;
-    }
 }

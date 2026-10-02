@@ -47,7 +47,8 @@ internal static class PdfVisualResourceDictionaryBuilder {
         double x1,
         double y1,
         IReadOnlyList<OfficeGradientStop> stops,
-        PdfPrintColorTransform? printColorTransform = null) {
+        PdfPrintColorTransform? printColorTransform = null,
+        bool alphaOnly = false) {
         ValidateFinite(x0, nameof(x0));
         ValidateFinite(y0, nameof(y0));
         ValidateFinite(x1, nameof(x1));
@@ -55,9 +56,9 @@ internal static class PdfVisualResourceDictionaryBuilder {
         ValidateStops(stops);
 
         return
-            "<< /ShadingType 2 /ColorSpace " + (printColorTransform == null ? "/DeviceRGB" : "/DeviceCMYK") + " /Coords [" +
+            "<< /ShadingType 2 /ColorSpace " + (alphaOnly ? "/DeviceGray" : printColorTransform == null ? "/DeviceRGB" : "/DeviceCMYK") + " /Coords [" +
             FormatNumber(x0) + " " + FormatNumber(y0) + " " + FormatNumber(x1) + " " + FormatNumber(y1) +
-            "] /Function " + BuildGradientFunction(stops, printColorTransform) + " /Extend [true true] >>\n";
+            "] /Function " + BuildGradientFunction(stops, printColorTransform, alphaOnly) + " /Extend [true true] >>\n";
     }
 
     internal static string BuildRadialShadingObject(
@@ -68,7 +69,8 @@ internal static class PdfVisualResourceDictionaryBuilder {
         double y1,
         double r1,
         IReadOnlyList<OfficeGradientStop> stops,
-        PdfPrintColorTransform? printColorTransform = null) {
+        PdfPrintColorTransform? printColorTransform = null,
+        bool alphaOnly = false) {
         ValidateFinite(x0, nameof(x0));
         ValidateFinite(y0, nameof(y0));
         ValidateRadius(r0, nameof(r0));
@@ -81,25 +83,25 @@ internal static class PdfVisualResourceDictionaryBuilder {
         }
 
         return
-            "<< /ShadingType 3 /ColorSpace " + (printColorTransform == null ? "/DeviceRGB" : "/DeviceCMYK") + " /Coords [" +
+            "<< /ShadingType 3 /ColorSpace " + (alphaOnly ? "/DeviceGray" : printColorTransform == null ? "/DeviceRGB" : "/DeviceCMYK") + " /Coords [" +
             FormatNumber(x0) + " " + FormatNumber(y0) + " " + FormatNumber(r0) + " " +
             FormatNumber(x1) + " " + FormatNumber(y1) + " " + FormatNumber(r1) +
-            "] /Function " + BuildGradientFunction(stops, printColorTransform) + " /Extend [true true] >>\n";
+            "] /Function " + BuildGradientFunction(stops, printColorTransform, alphaOnly) + " /Extend [true true] >>\n";
     }
 
-    private static string BuildGradientFunction(IReadOnlyList<OfficeGradientStop> stops, PdfPrintColorTransform? printColorTransform) {
+    private static string BuildGradientFunction(IReadOnlyList<OfficeGradientStop> stops, PdfPrintColorTransform? printColorTransform, bool alphaOnly) {
         IReadOnlyList<OfficeGradientStop> normalized = HasDuplicateOffsets(stops)
             ? NormalizeGradientStops(stops)
             : stops;
-        if (printColorTransform != null) {
+        if (printColorTransform != null && !alphaOnly) {
             return BuildTransformedGradientFunction(normalized, printColorTransform);
         }
-        if (normalized.Count == 2) return BuildInterpolationFunction(normalized[0].Color, normalized[1].Color, printColorTransform);
+        if (normalized.Count == 2) return BuildInterpolationFunction(normalized[0].Color, normalized[1].Color, printColorTransform, alphaOnly);
 
         var builder = new System.Text.StringBuilder("<< /FunctionType 3 /Domain [0 1] /Functions [");
         for (int index = 1; index < normalized.Count; index++) {
             if (index > 1) builder.Append(' ');
-            builder.Append(BuildInterpolationFunction(normalized[index - 1].Color, normalized[index].Color, printColorTransform));
+            builder.Append(BuildInterpolationFunction(normalized[index - 1].Color, normalized[index].Color, printColorTransform, alphaOnly));
         }
 
         builder.Append("] /Bounds [");
@@ -276,7 +278,11 @@ internal static class PdfVisualResourceDictionaryBuilder {
         return normalized;
     }
 
-    private static string BuildInterpolationFunction(OfficeColor startColor, OfficeColor endColor, PdfPrintColorTransform? printColorTransform) {
+    private static string BuildInterpolationFunction(OfficeColor startColor, OfficeColor endColor, PdfPrintColorTransform? printColorTransform, bool alphaOnly) {
+        if (alphaOnly) {
+            return "<< /FunctionType 2 /Domain [0 1] /C0 [" + FormatNumber(startColor.A / 255D) +
+                "] /C1 [" + FormatNumber(endColor.A / 255D) + "] /N 1 >>";
+        }
         if (printColorTransform == null) {
             return "<< /FunctionType 2 /Domain [0 1] /C0 [" +
                 FormatColorComponent(startColor.R) + " " + FormatColorComponent(startColor.G) + " " + FormatColorComponent(startColor.B) +

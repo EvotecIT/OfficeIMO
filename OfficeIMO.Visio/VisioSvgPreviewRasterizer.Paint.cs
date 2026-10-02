@@ -7,9 +7,9 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Visio {
     internal static partial class VisioSvgPreviewRasterizer {
         private readonly struct SvgPaint {
-            internal static SvgPaint Default => new(OfficeColor.Black, null, null, OfficeColor.Transparent, null, null, 1D, null, 1D, 1D, 1D, OfficeColor.Black, SvgStrokeLineCap.Butt, SvgStrokeLineJoin.Miter, false);
+            internal static SvgPaint Default => new(OfficeColor.Black, null, null, OfficeColor.Transparent, null, null, 1D, null, 1D, 1D, 1D, OfficeColor.Black, SvgStrokeLineCap.Butt, SvgStrokeLineJoin.Miter, false, 4D, 0D);
 
-            private SvgPaint(OfficeColor fill, OfficeLinearGradient? fillGradient, OfficeRadialGradient? fillRadialGradient, OfficeColor stroke, OfficeLinearGradient? strokeGradient, OfficeRadialGradient? strokeRadialGradient, double strokeWidth, IReadOnlyList<double>? dashPattern, double opacity, double fillOpacity, double strokeOpacity, OfficeColor currentColor, SvgStrokeLineCap strokeLineCap, SvgStrokeLineJoin strokeLineJoin, bool nonScalingStroke) {
+            private SvgPaint(OfficeColor fill, OfficeLinearGradient? fillGradient, OfficeRadialGradient? fillRadialGradient, OfficeColor stroke, OfficeLinearGradient? strokeGradient, OfficeRadialGradient? strokeRadialGradient, double strokeWidth, IReadOnlyList<double>? dashPattern, double opacity, double fillOpacity, double strokeOpacity, OfficeColor currentColor, SvgStrokeLineCap strokeLineCap, SvgStrokeLineJoin strokeLineJoin, bool nonScalingStroke, double miterLimit, double dashOffset) {
                 Fill = fill;
                 FillGradient = fillGradient;
                 FillRadialGradient = fillRadialGradient;
@@ -25,6 +25,8 @@ namespace OfficeIMO.Visio {
                 StrokeLineCap = strokeLineCap;
                 StrokeLineJoin = strokeLineJoin;
                 NonScalingStroke = nonScalingStroke;
+                MiterLimit = miterLimit;
+                DashOffset = dashOffset;
             }
 
             internal OfficeColor Fill { get; }
@@ -56,6 +58,8 @@ namespace OfficeIMO.Visio {
             internal SvgStrokeLineJoin StrokeLineJoin { get; }
 
             internal bool NonScalingStroke { get; }
+            internal double MiterLimit { get; }
+            internal double DashOffset { get; }
 
             internal bool HasFill => Fill.A > 0 || FillGradient != null || FillRadialGradient != null;
 
@@ -110,8 +114,16 @@ namespace OfficeIMO.Visio {
                 SvgStrokeLineCap strokeLineCap = ReadStrokeLineCap(element, style, inherited.StrokeLineCap);
                 SvgStrokeLineJoin strokeLineJoin = ReadStrokeLineJoin(element, style, inherited.StrokeLineJoin);
                 bool nonScalingStroke = ReadNonScalingStroke(element, style, inherited.NonScalingStroke);
-                return new SvgPaint(fill, fillGradient, fillRadialGradient, stroke, strokeGradient, strokeRadialGradient, strokeWidth, dashPattern, opacity, fillOpacity, strokeOpacity, currentColor, strokeLineCap, strokeLineJoin, nonScalingStroke);
+                double miterLimit = ReadStrokeNumber(element, style, "stroke-miterlimit", inherited.MiterLimit, 1D);
+                double dashOffset = inherited.DashOffset;
+                string? rawOffset = ReadAttributeOrStyle(element, style, "stroke-dashoffset");
+                if (TryParseLength(rawOffset, GetLengthReference(context, SvgLengthAxis.Diagonal), out double parsedOffset)) dashOffset = parsedOffset;
+                return new SvgPaint(fill, fillGradient, fillRadialGradient, stroke, strokeGradient, strokeRadialGradient, strokeWidth, dashPattern, opacity, fillOpacity, strokeOpacity, currentColor, strokeLineCap, strokeLineJoin, nonScalingStroke, miterLimit, dashOffset);
             }
+
+            private static double ReadStrokeNumber(XElement element, Dictionary<string, string> style, string name, double inherited, double minimum) =>
+                double.TryParse(ReadAttributeOrStyle(element, style, name), NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+                    && !double.IsInfinity(value) && value >= minimum ? value : inherited;
 
             private static string? ReadPaint(XElement element, Dictionary<string, string> style, string name) =>
                 ReadAttributeOrStyle(element, style, name);
@@ -159,9 +171,8 @@ namespace OfficeIMO.Visio {
 
                 List<double> pattern = new(values.Count * 2);
                 for (int i = 0; i < values.Count; i++) {
-                    if (values[i] > 0D && !double.IsNaN(values[i]) && !double.IsInfinity(values[i])) {
-                        pattern.Add(values[i]);
-                    }
+                    if (values[i] < 0D || double.IsNaN(values[i]) || double.IsInfinity(values[i])) return inherited;
+                    pattern.Add(values[i]);
                 }
 
                 if (pattern.Count == 0) {

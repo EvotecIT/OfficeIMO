@@ -8,16 +8,23 @@ internal static partial class PdfWriter {
         System.Collections.Generic.IList<PageShading> shadings,
         OfficeShape shape, double xShape, double bottomY, bool localCoordinates) {
         if (shape.Kind == OfficeShapeKind.Line) return null;
-        if (shape.FillRadialGradient != null) return EnsureRadialShading(shadings, shape.FillRadialGradient);
+        if (shape.FillRadialGradient != null) {
+            string radialName = EnsureRadialShading(shadings, shape.FillRadialGradient);
+            RegisterGradientAlphaBounds(shadings, radialName, shape, xShape, bottomY, localCoordinates);
+            return radialName;
+        }
         OfficeLinearGradient? gradient = shape.FillGradient;
         if (gradient == null) return null;
 
         double originX = localCoordinates ? 0D : xShape;
         double originY = localCoordinates ? 0D : bottomY;
         OfficeLinearGradient projected = gradient.TransformCoordinates(
-            new OfficeTransform(shape.Width, 0D, 0D, -shape.Height, originX, originY + shape.Height));
-        return EnsureAxialShading(shadings, gradient,
+            new OfficeTransform(shape.Width, 0D, 0D, localCoordinates ? shape.Height : -shape.Height,
+                originX, localCoordinates ? 0D : originY + shape.Height));
+        string name = EnsureAxialShading(shadings, gradient,
             projected.StartX, projected.StartY, projected.EndX, projected.EndY);
+        RegisterGradientAlphaBounds(shadings, name, shape, xShape, bottomY, localCoordinates);
+        return name;
     }
 
     private static string EnsureAxialShading(
@@ -78,10 +85,12 @@ internal static partial class PdfWriter {
         ContentStreamBuilder content,
         OfficeIMO.Drawing.OfficeShape shape,
         double x,
-        double y) {
+        double y,
+        bool localCoordinates = false) {
         OfficeRadialGradient gradient = shape.FillRadialGradient!;
         if (gradient.EndRadiusX.Equals(gradient.EndRadiusY)) {
-            content.TransformMatrix(shape.Width, 0D, 0D, shape.Height, x, y);
+            content.TransformMatrix(shape.Width, 0D, 0D, localCoordinates ? -shape.Height : shape.Height,
+                x, localCoordinates ? shape.Height : y);
             return;
         }
 
@@ -89,8 +98,8 @@ internal static partial class PdfWriter {
             shape.Width * gradient.EndRadiusX,
             0D,
             0D,
-            shape.Height * gradient.EndRadiusY,
+            (localCoordinates ? -shape.Height : shape.Height) * gradient.EndRadiusY,
             x + (shape.Width * gradient.EndX),
-            y + (shape.Height * (1D - gradient.EndY)));
+            localCoordinates ? shape.Height * gradient.EndY : y + (shape.Height * (1D - gradient.EndY)));
     }
 }
