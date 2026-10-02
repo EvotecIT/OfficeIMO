@@ -713,8 +713,9 @@ public sealed class HtmlOfficeAdapterLimitTests {
 
         Assert.True(result.Succeeded);
         Assert.Equal(1, result.Sheets);
-        Assert.Equal(4, result.Cells);
+        Assert.Equal(5, result.Cells);
         Assert.Equal("Products", workbook.Sheets[0].Name);
+        Assert.Equal("Products", workbook.Sheets[0].CellAt(4, 1).GetValue<string>());
     }
 
     [Fact]
