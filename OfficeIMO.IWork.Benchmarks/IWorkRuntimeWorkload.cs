@@ -10,7 +10,7 @@ using OfficeIMO.Word.IWork;
 namespace OfficeIMO.IWork.Benchmarks;
 
 /// <summary>Supported iWork workloads and semantic validation; PowerForge owns measurement.</summary>
-public sealed class IWorkRuntimeWorkload {
+public sealed partial class IWorkRuntimeWorkload {
     private readonly IWorkDocumentKind _kind;
     private readonly int _units;
     private readonly byte[] _input;
@@ -64,6 +64,7 @@ public sealed class IWorkRuntimeWorkload {
 
     /// <summary>Checks every source or saved destination unit outside timing; failures fail the lane.</summary>
     public void Validate() {
+        if (_native) { ValidateNative(); return; }
         if (_operation == "LoadProject") {
             if (_projection is IWorkPagesProjection pages) {
                 if (!pages.HasEditableContent) throw new InvalidDataException("Pages input is incomplete.");

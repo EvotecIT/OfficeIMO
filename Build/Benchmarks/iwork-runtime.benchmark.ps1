@@ -7,7 +7,7 @@ $workloads = @{}
 
 New-BenchmarkSuite 'officeimo-iwork-runtime' {
     Set-BenchmarkPolicy -Warmup 2 -Iteration 5 -Order Rotated -OutlierMode None -MemoryCleanup BeforeIteration
-    Add-BenchmarkMetadata Contract 'Deterministic synthetic supported-format ZIP: load/project or load/convert/save. Input generation and full semantic readback are outside timing. No native Apple appearance qualification.'
+    Add-BenchmarkMetadata Contract 'Deterministic synthetic ZIP or pinned native nim-iwork Pages/Numbers fixture: load/project or load/convert/save. Input generation and full semantic readback are outside timing. No native Apple appearance qualification.'
     Add-BenchmarkMetadata Measurement 'PowerForge elapsed time and managed allocation including host invocation. Working-set deltas are not peak or retained memory. Saving uses normal owner APIs.'
     Add-BenchmarkMetadata AffinityPolicy 'Inherited; macOS processor placement is unqualified. Keep competing work idle and record host power mode.'
     Add-BenchmarkMetadata Runtime ([Runtime.InteropServices.RuntimeInformation]::FrameworkDescription)
@@ -19,13 +19,16 @@ New-BenchmarkSuite 'officeimo-iwork-runtime' {
     }
     Add-BenchmarkCaseSource {
         foreach ($factor in $factors) {
-            $size = switch ($factor) { 1 { 'Small' } 10 { 'Medium' } 100 { 'Large' } default { throw 'Unknown iWork workload scale.' } }
+            $size = switch ($factor) { 1 { 'Small' } 10 { 'Medium' } 100 { 'Large' } 0 { 'Native' } default { throw 'Unknown iWork workload scale.' } }
             foreach ($kind in 'Pages', 'Numbers', 'Keynote') {
                 $base = switch ($kind) { Pages { 100 } Numbers { 1000 } Keynote { 10 } }
-                $units = $base * $factor
+                if ($factor -eq 0 -and $kind -eq 'Keynote') { continue }
+                $units = if ($factor -eq 0) { if ($kind -eq 'Pages') { 3 } else { 9 } } else { $base * $factor }
                 $key = "$kind-$units"
-                $workloads[$key] = [OfficeIMO.IWork.Benchmarks.IWorkRuntimeWorkload]::new($kind, $units)
-                [pscustomobject]@{ Name = "$kind-$size"; Kind = $kind; Units = $units; InputSha256 = $workloads[$key].InputSha256 }
+                $workloads[$key] = if ($factor -eq 0) {
+                    [OfficeIMO.IWork.Benchmarks.IWorkRuntimeWorkload]::new($kind, (Join-Path $repositoryRoot 'OfficeIMO.TestAssets/Documents/IWorkCorpus'))
+                } else { [OfficeIMO.IWork.Benchmarks.IWorkRuntimeWorkload]::new($kind, $units) }
+                [pscustomobject]@{ Name = "$kind-$size"; Kind = $kind; Source = $size; Units = $units; InputSha256 = $workloads[$key].InputSha256 }
             }
         }
     }
@@ -33,7 +36,9 @@ New-BenchmarkSuite 'officeimo-iwork-runtime' {
         param($case, $run)
         $key = "$($case.Kind)-$($case.Units)"
         if (-not $workloads.ContainsKey($key)) {
-            $workloads[$key] = [OfficeIMO.IWork.Benchmarks.IWorkRuntimeWorkload]::new($case.Kind, $case.Units)
+            $workloads[$key] = if ($case.Source -eq 'Native') {
+                [OfficeIMO.IWork.Benchmarks.IWorkRuntimeWorkload]::new($case.Kind, (Join-Path $repositoryRoot 'OfficeIMO.TestAssets/Documents/IWorkCorpus'))
+            } else { [OfficeIMO.IWork.Benchmarks.IWorkRuntimeWorkload]::new($case.Kind, $case.Units) }
         }
         $run.Workload = $workloads[$key]
     }

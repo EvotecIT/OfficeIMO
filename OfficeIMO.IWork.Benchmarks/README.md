@@ -4,7 +4,7 @@ This opt-in workload library measures the shared iWork reader and the Word, Exce
 and PowerPoint destination adapters. It stays outside the normal solution and
 correctness CI. [PowerForge](https://github.com/EvotecIT/PSPublishModule) owns
 warmups, rotated iteration order, elapsed and memory counters, artifacts and gates.
-The library owns deterministic inputs and semantic validation.
+The library owns synthetic inputs, pinned native fixtures and semantic validation.
 
 Build from the repository root using the pinned SDK:
 
@@ -36,6 +36,16 @@ checked before a sample succeeds. `-Scale`, `-Kind` and `-Operation` select case
 `-WarmupCount` and `-IterationCount` default to two and five. A quick smoke run uses
 `-Scale Small -WarmupCount 0 -IterationCount 1`.
 
+Use `-Scale Native -Kind Pages,Numbers` for the independent `nim-iwork/simple.pages`
+and `nim-iwork/simple.numbers` fixtures in the [licensed corpus](../OfficeIMO.TestAssets/Documents/IWorkCorpus/README.md).
+Their SHA-256 hashes are checked before execution. Pages validates all three body
+paragraphs, including the empty paragraph; Numbers validates the complete 3×3 grid,
+coordinates, value types and contents. Both operations use the same reader and
+strict editable-conversion path as the synthetic cases. Saved packages are reopened
+before a sample succeeds. These small native inputs complement the scale matrix;
+they do not establish large native-package budgets. Native Keynote runtime cases
+remain unqualified, so `Native` requires an explicit Pages/Numbers kind selection.
+
 Artifacts include raw samples, summaries, CSV tables and environment metadata.
 Case variables retain deterministic input SHA-256 hashes; metadata retains the
 spec, workload and candidate owner assembly hashes. Inspect failures before using
@@ -50,7 +60,8 @@ then omit `-Update` to compare an equivalent run. Use a separate baseline with
 runs on the same idle host; do not infer portable ceilings from one measurement.
 Keep these gates opt-in.
 
-These supported-format synthetic ZIP inputs isolate scaling behavior. They do not
-qualify native Apple exports, rendering, repeated-open retention, cancellation
+Synthetic ZIP inputs isolate scaling behavior; the pinned native inputs exercise
+independent producers. Neither lane qualifies Apple export equivalence, rendering,
+repeated-open retention, cancellation
 latency, managed peaks, trimming/AOT or sandbox/device acceptance. Those contracts
 remain in [I5](../Docs/ROADMAP.md#i5-runtime-and-apple-host-acceptance).

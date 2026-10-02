@@ -2,7 +2,7 @@ param(
     [string] $BinaryRoot = (Join-Path $PSScriptRoot '../../OfficeIMO.IWork.Benchmarks/bin/Release/net8.0'),
     [string] $OutputRoot = (Join-Path $PSScriptRoot '../../Ignore/Benchmarks/IWorkRuntime'),
     [string] $ModulePath = 'PSPublishModule',
-    [ValidateSet('Small', 'Medium', 'Large')] [string[]] $Scale = @('Small', 'Medium', 'Large'),
+    [ValidateSet('Small', 'Medium', 'Large', 'Native')] [string[]] $Scale = @('Small', 'Medium', 'Large'),
     [ValidateSet('Pages', 'Numbers', 'Keynote')] [string[]] $Kind = @('Pages', 'Numbers', 'Keynote'),
     [ValidateSet('LoadProject', 'ConvertSave')] [string[]] $Operation = @('LoadProject', 'ConvertSave'),
     [ValidateRange(0, 100)] [int] $WarmupCount = 2,
@@ -10,12 +10,15 @@ param(
     [switch] $Plan
 )
 $ErrorActionPreference = 'Stop'
+if ('Native' -in $Scale -and 'Keynote' -in $Kind) {
+    throw 'Native runtime cases support Pages and Numbers. Select -Kind Pages,Numbers for -Scale Native.'
+}
 $BinaryRoot = (Resolve-Path -LiteralPath $BinaryRoot).Path
 # Bind the candidate's core before the runner can load another OfficeIMO version.
 [void] [Reflection.Assembly]::LoadFrom((Join-Path $BinaryRoot 'OfficeIMO.Core.dll'))
 Import-Module $ModulePath -ErrorAction Stop
 $caseNames = @(foreach ($size in $Scale) { foreach ($family in $Kind) { "$family-$size" } })
-$factors = @(foreach ($size in $Scale) { switch ($size) { Small { 1 } Medium { 10 } Large { 100 } } })
+$factors = @(foreach ($size in $Scale) { switch ($size) { Small { 1 } Medium { 10 } Large { 100 } Native { 0 } } })
 $result = Invoke-BenchmarkSuite -Path (Join-Path $PSScriptRoot 'iwork-runtime.benchmark.ps1') `
     -OutputRoot $OutputRoot -Variable @{ BinaryRoot = $BinaryRoot; Factors = $factors } `
     -Case $caseNames -Operation $Operation -WarmupCount $WarmupCount -IterationCount $IterationCount -Plan:$Plan
