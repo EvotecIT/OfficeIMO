@@ -19,6 +19,13 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
             AssertSourceScalarFunction(projection, expected);
         foreach (JsonElement expected in manifest.RootElement.GetProperty("numericFunctionCases").EnumerateArray())
             AssertSourceScalarFunction(projection, expected, normalizeNumbers: true);
+        var referenceTable = projection.Sheets.Single(sheet => sheet.Name == "Reference").Tables.Single(table => table.Name == "Tests");
+        foreach (int row in new[] { 20, 54 }) {
+            // Literal-array syntax can be reconstructed even though local evaluation is separate.
+            Assert.True(referenceTable.GetCell(row, 2)!.FormulaIsComplete);
+            Assert.Equal((row == 20 ? "=COLUMNS" : "=ROWS") + "({1,2,3})", referenceTable.GetCell(row, 2)!.Formula);
+            Assert.True(referenceTable.GetCell(row, 2)!.CachedValueIsComplete);
+        }
         using var result = source.ToExcelDocumentResult(new IWorkConversionOptions {
             AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         Assert.True(result.IsVisualFallback);

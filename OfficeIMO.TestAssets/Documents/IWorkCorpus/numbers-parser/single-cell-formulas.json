@@ -17,6 +17,127 @@
     {
       "sourceSheet": "Reference",
       "sourceTable": "Tests",
+      "row": 18,
+      "column": 2,
+      "sourceFormula": "COLUMNS(Data::A1)",
+      "cachedValue": 1.0,
+      "computedCurrentValue": 1,
+      "targetSheet": "Reference",
+      "targetTable": "Data",
+      "references": [
+        {
+          "address": "A1",
+          "row": 1,
+          "column": 1,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "7c31e70db6e7b99b784befbedaa57489"
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Reference",
+      "sourceTable": "Tests",
+      "row": 19,
+      "column": 2,
+      "sourceFormula": "COLUMNS(Data::A1:C5)",
+      "cachedValue": 3.0,
+      "computedCurrentValue": 3,
+      "targetSheet": "Reference",
+      "targetTable": "Data",
+      "references": [
+        {
+          "address": "A1",
+          "row": 1,
+          "column": 1,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "7c31e70db6e7b99b784befbedaa57489"
+        },
+        {
+          "address": "C5",
+          "row": 5,
+          "column": 3,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "7c31e70db6e7b99b784befbedaa57489"
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Reference",
+      "sourceTable": "Tests",
+      "row": 49,
+      "column": 2,
+      "sourceFormula": "ROW(Data::C4)",
+      "cachedValue": 4.0,
+      "computedCurrentValue": 4,
+      "targetSheet": "Reference",
+      "targetTable": "Data",
+      "references": [
+        {
+          "address": "C4",
+          "row": 4,
+          "column": 3,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "7c31e70db6e7b99b784befbedaa57489"
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Reference",
+      "sourceTable": "Tests",
+      "row": 52,
+      "column": 2,
+      "sourceFormula": "ROWS(Data::A1)",
+      "cachedValue": 1.0,
+      "computedCurrentValue": 1,
+      "targetSheet": "Reference",
+      "targetTable": "Data",
+      "references": [
+        {
+          "address": "A1",
+          "row": 1,
+          "column": 1,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "7c31e70db6e7b99b784befbedaa57489"
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Reference",
+      "sourceTable": "Tests",
+      "row": 53,
+      "column": 2,
+      "sourceFormula": "ROWS(Data::A1:C5)",
+      "cachedValue": 5.0,
+      "computedCurrentValue": 5,
+      "targetSheet": "Reference",
+      "targetTable": "Data",
+      "references": [
+        {
+          "address": "A1",
+          "row": 1,
+          "column": 1,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "7c31e70db6e7b99b784befbedaa57489"
+        },
+        {
+          "address": "C5",
+          "row": 5,
+          "column": 3,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "7c31e70db6e7b99b784befbedaa57489"
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Reference",
+      "sourceTable": "Tests",
       "row": 14,
       "column": 2,
       "sourceFormula": "COLUMN(Data::C3)",
@@ -248,6 +369,66 @@
     }
   ],
   "scalarFunctionCases": [
+    {
+      "sourceSheet": "Reference",
+      "sourceTable": "Tests",
+      "row": 16,
+      "column": 2,
+      "sourceFormula": "COLUMNS(\"A1\")",
+      "cachedValue": 1.0,
+      "computedCurrentValue": 1.0,
+      "functionIndex": 23,
+      "functionName": "COLUMNS",
+      "argumentCount": 1
+    },
+    {
+      "sourceSheet": "Reference",
+      "sourceTable": "Tests",
+      "row": 17,
+      "column": 2,
+      "sourceFormula": "COLUMNS(123)",
+      "cachedValue": 1.0,
+      "computedCurrentValue": 1.0,
+      "functionIndex": 23,
+      "functionName": "COLUMNS",
+      "argumentCount": 1
+    },
+    {
+      "sourceSheet": "Reference",
+      "sourceTable": "Tests",
+      "row": 48,
+      "column": 2,
+      "sourceFormula": "ROW()",
+      "cachedValue": 48.0,
+      "computedCurrentValue": 48.0,
+      "functionIndex": 129,
+      "functionName": "ROW",
+      "argumentCount": 0
+    },
+    {
+      "sourceSheet": "Reference",
+      "sourceTable": "Tests",
+      "row": 50,
+      "column": 2,
+      "sourceFormula": "ROWS(\"A1\")",
+      "cachedValue": 1.0,
+      "computedCurrentValue": 1.0,
+      "functionIndex": 130,
+      "functionName": "ROWS",
+      "argumentCount": 1
+    },
+    {
+      "sourceSheet": "Reference",
+      "sourceTable": "Tests",
+      "row": 51,
+      "column": 2,
+      "sourceFormula": "ROWS(123)",
+      "cachedValue": 1.0,
+      "computedCurrentValue": 1.0,
+      "functionIndex": 130,
+      "functionName": "ROWS",
+      "argumentCount": 1
+    },
     {
       "sourceSheet": "Text",
       "sourceTable": "Tests",

@@ -26,8 +26,8 @@ if version('numbers-parser') != '4.19.0':
 source_hash = hashlib.sha256(args.source.read_bytes()).hexdigest()
 qualified = {
     '4ce0593faa61bf159bde0752ade1fa202afcd142317ba16fdec8eb71a7149170':
-        ('test-all-formulas.numbers', [('Reference', 14), ('Reference', 83), ('Reference', 84), ('Math', 97), ('Math', 153), ('Math', 154), ('Math', 141), ('Statistical', 37)],
-         [('Text', 9), ('Text', 10), ('Text', 21), ('Text', 43)]),
+        ('test-all-formulas.numbers', [('Reference', 18), ('Reference', 19), ('Reference', 49), ('Reference', 52), ('Reference', 53), ('Reference', 14), ('Reference', 83), ('Reference', 84), ('Math', 97), ('Math', 153), ('Math', 154), ('Math', 141), ('Statistical', 37)],
+         [('Reference', 16), ('Reference', 17), ('Reference', 48), ('Reference', 50), ('Reference', 51), ('Text', 9), ('Text', 10), ('Text', 21), ('Text', 43)]),
     '3deb8e3b868be60d7b8924336d2839fcd690db2b138e6c2170d6c22c4aca48dc':
         ('test-extra-formulas.numbers', [('Formulas', 29), ('Formulas', 79), ('Formulas', 102)],
          [('Formulas', 95), ('Formulas', 145)])
@@ -63,7 +63,13 @@ for sheet_name, row in selections:
     if len(nodes) == 1:
         computed = target.cell(references[0]['row'] - 1, references[0]['column'] - 1).value
     elif sheet_name == 'Reference':
-        computed = references[0]['column']
+        name = FUNCTION_MAP[nodes[-1].AST_function_node_index]
+        if name in ('ROWS', 'COLUMNS'):
+            axis = 'row' if name == 'ROWS' else 'column'
+            computed = abs(references[-1][axis] - references[0][axis]) + 1
+        else:
+            assert name in ('ROW', 'COLUMN')
+            computed = references[0]['row' if name == 'ROW' else 'column']
     elif sheet_name == 'Math' and row == 97:
         assert cell.formula == 'PRODUCT(Data::A1:E1)'
         computed = math.prod(target.cell(0, column).value for column in range(5))
@@ -99,7 +105,13 @@ for sheet_name, row in scalar_selections:
     name = FUNCTION_MAP[function.AST_function_node_index]
     arguments = nodes[:-1]
     assert function.AST_function_node_numArgs == len(arguments)
-    if name == 'NOT':
+    if name == 'ROW':
+        assert len(arguments) == 0
+        computed = float(row)
+    elif name in ('ROWS', 'COLUMNS'):
+        assert len(arguments) == 1 and arguments[0].AST_node_type in (17, 19)
+        computed = 1.0
+    elif name == 'NOT':
         assert len(arguments) == 1 and arguments[0].AST_node_type == 17
         computed = arguments[0].AST_number_node_number == 0
     else:

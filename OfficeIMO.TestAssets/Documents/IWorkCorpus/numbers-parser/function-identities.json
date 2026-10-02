@@ -38,6 +38,11 @@
       "sampleArgumentCount": 0
     },
     {
+      "index": 23,
+      "name": "COLUMNS",
+      "sampleArgumentCount": 1
+    },
+    {
       "index": 30,
       "name": "COUNT",
       "sampleArgumentCount": 1
@@ -256,6 +261,16 @@
       "index": 128,
       "name": "ROUNDUP",
       "sampleArgumentCount": 2
+    },
+    {
+      "index": 129,
+      "name": "ROW",
+      "sampleArgumentCount": 0
+    },
+    {
+      "index": 130,
+      "name": "ROWS",
+      "sampleArgumentCount": 1
     },
     {
       "index": 132,

@@ -207,7 +207,13 @@ namespace OfficeIMO.Excel {
 
         private bool TryEvaluateReferenceShapeFunction(string function, string args, out double result) {
             result = 0;
-            var tokens = SplitFormulaArguments(args);
+            if ((function == "ROW" || function == "COLUMN") && string.IsNullOrWhiteSpace(args)) {
+                if (_formulaEvaluationCellReference == null
+                    || !TryParseCellReference(_formulaEvaluationCellReference, out int ownRow, out int ownColumn)) return false;
+                result = function == "ROW" ? ownRow : ownColumn;
+                return true;
+            }
+            var tokens = SplitFormulaArguments(args, preserveEmpty: true);
             if (tokens.Count != 1) {
                 return false;
             }
@@ -237,7 +243,16 @@ namespace OfficeIMO.Excel {
                     out r2,
                     out c2,
                     out _)) {
-                return false;
+                // Scalar literals have one row and one column. Do not turn an
+                // unresolved reference or unsupported array into a scalar value.
+                string literal = tokens[0].Trim();
+                if (!ExcelFormulaExpressionParser.TryParseTextLiteral(literal, out _)
+                    && !(double.TryParse(literal, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+                        && !double.IsNaN(number) && !double.IsInfinity(number))
+                    && !literal.Equals("TRUE", StringComparison.OrdinalIgnoreCase)
+                    && !literal.Equals("FALSE", StringComparison.OrdinalIgnoreCase)) return false;
+                result = 1;
+                return true;
             }
 
             result = function == "ROWS"
