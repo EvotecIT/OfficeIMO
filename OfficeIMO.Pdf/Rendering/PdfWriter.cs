@@ -126,6 +126,7 @@ internal static partial class PdfWriter {
         PdfComplianceValidator.ValidateGeneratedDocument(opts, title, complianceEvidence);
         PdfFileVersion serializationFileVersion = complianceEvidence.EffectiveFileVersion ?? opts.FileVersion;
         ValidateAssociatedFileMetadata(opts, serializationFileVersion);
+        ValidateStructureAssociatedFileNames(layout, opts, cancellationToken);
 
         // Build indirect objects through either the bounded replay store or the opt-in one-pass object writer.
         bool finalArtifactBuffered = outputStream == null;
