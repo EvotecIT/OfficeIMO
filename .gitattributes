@@ -7,6 +7,7 @@ OfficeIMO.Studio.Tests/Run-StorageAcceptance.sh text eol=lf
 # Integrity-labelled document inputs and provider captures must survive Windows
 # checkout without line-ending conversion, including ASCII-only PDF containers.
 OfficeIMO.TestAssets/*Layout/*.pdf -text -diff
+OfficeIMO.Studio.Apple/Resources/*.pdf -text -diff
 OfficeIMO.TestAssets/EnglishLayout/*-provider.tsv -text -diff
 OfficeIMO.TestAssets/ScanQuality/*.pdf -text -diff
 OfficeIMO.TestAssets/ScanQuality/*.tif -text -diff

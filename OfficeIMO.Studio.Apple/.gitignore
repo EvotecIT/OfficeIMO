@@ -1,0 +1,2 @@
+# XcodeGen owns the project; framework binaries are supplied by the build output root.
+*.xcodeproj/

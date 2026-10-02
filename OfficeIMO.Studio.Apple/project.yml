@@ -1,0 +1,102 @@
+name: OfficeIMOStudioApple
+options:
+  bundleIdPrefix: com.evotec.officeimo
+  deploymentTarget:
+    macOS: '26.0'
+    iOS: '26.0'
+settings:
+  base:
+    PRODUCT_MODULE_NAME: StudioApple
+    SWIFT_VERSION: '5.0'
+    MARKETING_VERSION: '0.1'
+    CURRENT_PROJECT_VERSION: '1'
+    GENERATE_INFOPLIST_FILE: NO
+    INFOPLIST_FILE: $(SRCROOT)/Info.plist
+    SWIFT_OBJC_BRIDGING_HEADER: $(SRCROOT)/Bridge/OfficeIMOStudioEngine.h
+    PRODUCT_BUNDLE_IDENTIFIER: com.evotec.officeimo.studio.nativeprototype
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: 8ZPGZ79T7J
+    ENABLE_HARDENED_RUNTIME: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+targets:
+  OfficeIMOStudioMac:
+    type: application
+    platform: macOS
+    sources: [Sources, Resources]
+    dependencies:
+      - framework: ${OFFICEIMO_NATIVE_FRAMEWORK_ROOT}/mac/OfficeIMOStudioEngine.framework
+        embed: true
+        codeSign: true
+    settings:
+      base:
+        PRODUCT_NAME: OfficeIMO Studio Native
+        ARCHS: arm64
+        ENABLE_APP_SANDBOX: YES
+        ENABLE_USER_SELECTED_FILES: readwrite
+  OfficeIMOStudioMobile:
+    type: application
+    platform: iOS
+    sources: [Sources, Resources]
+    dependencies:
+      - framework: ${OFFICEIMO_NATIVE_FRAMEWORK_ROOT}/mobile/OfficeIMOStudioEngine.xcframework
+        embed: true
+        codeSign: true
+    settings:
+      base:
+        PRODUCT_NAME: OfficeIMO Studio Native
+        TARGETED_DEVICE_FAMILY: '1,2'
+        SUPPORTS_MACCATALYST: NO
+  OfficeIMOStudioMacTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: [Tests]
+    dependencies:
+      - target: OfficeIMOStudioMac
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: ""
+        PRODUCT_MODULE_NAME: StudioAppleTests
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/OfficeIMO Studio Native.app/Contents/MacOS/OfficeIMO Studio Native
+        PRODUCT_BUNDLE_IDENTIFIER: com.evotec.officeimo.studio.nativeprototype.tests
+        SWIFT_OBJC_BRIDGING_HEADER: ""
+  OfficeIMOStudioMobileTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [Tests]
+    dependencies:
+      - target: OfficeIMOStudioMobile
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: ""
+        PRODUCT_MODULE_NAME: StudioAppleTests
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/OfficeIMO Studio Native.app/OfficeIMO Studio Native
+        PRODUCT_BUNDLE_IDENTIFIER: com.evotec.officeimo.studio.nativeprototype.tests
+        SWIFT_OBJC_BRIDGING_HEADER: ""
+  OfficeIMOStudioMobileUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: OfficeIMOStudioMobile
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: ""
+        PRODUCT_MODULE_NAME: StudioAppleUITests
+        PRODUCT_BUNDLE_IDENTIFIER: com.evotec.officeimo.studio.nativeprototype.uitests
+        SWIFT_OBJC_BRIDGING_HEADER: ""
+schemes:
+  OfficeIMOStudioMac:
+    build:
+      targets:
+        OfficeIMOStudioMac: all
+    test:
+      targets: [OfficeIMOStudioMacTests]
+  OfficeIMOStudioMobile:
+    build:
+      targets:
+        OfficeIMOStudioMobile: all
+    test:
+      targets: [OfficeIMOStudioMobileTests, OfficeIMOStudioMobileUITests]
