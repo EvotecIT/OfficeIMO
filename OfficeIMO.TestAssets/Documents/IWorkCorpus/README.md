@@ -12,6 +12,10 @@ These package fixtures prove the bounded Pages, Numbers, and Keynote reader agai
 
 The complete upstream license notices are reproduced in `OfficeIMO.IWork/THIRD-PARTY-NOTICES.md`. Fixture provenance and expected semantic assertions live beside the executable corpus tests in `OfficeIMO.IWork.Tests`.
 
+## Keynote multi-slide editable output
+
+The unchanged `nim-iwork/simple.key` fixture exercises a two-slide Keynote 14.5 deck through editable PPTX save and reopen. The corpus test checks slide count and order through each slide's expected title, first-slide bullet content, the second-slide presenter note, and Open XML validation. Conversion explicitly accepts partial editable reconstruction. This extends source-reader evidence to saved destination content; native Apple PPTX export, theme/layout equivalence and rendered appearance remain unqualified.
+
 ## Pages inline attachment positions
 
 `pages-inline-anchors.json` records five image/table attachment positions from the unmodified `iwork-converter/a.pages` and `picodocs/sample-v14.4.pages` fixtures. The existing provenance, hashes and license notices above apply. Positions are UTF-16 offsets in native text storage, before object-marker removal. The manifest is extracted through the independent numbers-parser 4.19.0 schemas:

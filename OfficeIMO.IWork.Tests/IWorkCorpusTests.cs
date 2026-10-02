@@ -159,6 +159,26 @@ public sealed class IWorkCorpusTests {
         Assert.Contains("first bullet", keynote.Slides[0].Body);
         Assert.Equal("second slide", keynote.Slides[1].Title);
         Assert.Contains("note text here", keynote.Slides[1].PresenterNotes, StringComparison.Ordinal);
+
+        // Exercise the real two-slide package through publication and reopen, not
+        // just the source projection or a synthetic presenter-note record.
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(
+            Fixture("nim-iwork/simple.key"), conversionOptions: new IWorkConversionOptions {
+                Mode = IWorkConversionMode.EditableOnly,
+                AllowPartialEditableReconstruction = true
+            });
+        Assert.False(result.IsVisualFallback);
+        using var saved = new MemoryStream();
+        result.Value.Save(saved);
+        saved.Position = 0;
+        using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+        Assert.Equal(2, reopened.Slides.Count);
+        Assert.Empty(reopened.ValidateDocument());
+        Assert.Contains(reopened.Slides[0].TextBoxes, box => box.Text.Contains("hello keynote", StringComparison.Ordinal));
+        Assert.Contains(reopened.Slides[0].TextBoxes, box => box.Text.Contains("first bullet", StringComparison.Ordinal));
+        Assert.Contains(reopened.Slides[1].TextBoxes, box => box.Text.Contains("second slide", StringComparison.Ordinal));
+        Assert.Contains(reopened.Slides[1].Notes.Paragraphs,
+            paragraph => paragraph.Text.Contains("note text here", StringComparison.Ordinal));
     }
 
     [Fact]
