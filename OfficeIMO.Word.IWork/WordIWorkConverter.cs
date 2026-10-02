@@ -492,7 +492,7 @@ public static partial class WordIWorkConverter {
             }
             if (firstObservation && levelKind == WordListLevelKind.Bullet
                 && !string.IsNullOrEmpty(label)) {
-                list.Numbering.Levels[level].LevelText = label;
+                list.Numbering.Levels[level].LevelText = label!;
             }
             if (firstObservation && levelKind != WordListLevelKind.Bullet
                 && IsParenthesized(label)) {

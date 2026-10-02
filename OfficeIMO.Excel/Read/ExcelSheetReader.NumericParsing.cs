@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel {
         // fractional digits with repeated double additions can cross a format
         // midpoint or change a cached value by one or more ULPs.
         private static bool TryParseInvariantDouble(ReadOnlySpan<char> text, out double value) {
-#if NETSTANDARD2_0
+#if NETSTANDARD2_0 || NETFRAMEWORK
             return double.TryParse(text.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out value);
 #else
             return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);

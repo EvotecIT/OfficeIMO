@@ -178,6 +178,16 @@ Finite Decimal128 values remain numeric even when their coefficient exceeds fift
 
 `OfficeIMO.IWork` targets .NET Standard 2.0, .NET 8, .NET 10, and .NET Framework 4.7.2 on Windows. The source reader depends only on `OfficeIMO.Core`; its IWA, Snappy, protobuf-envelope, and package readers are first-party implementations. Destination projection is opt-in through `OfficeIMO.Word.IWork`, `OfficeIMO.Excel.IWork`, or `OfficeIMO.PowerPoint.IWork`.
 
+### Table-cell comments
+
+`IWorkTableCell.Comment` exposes qualified root comments with exact plain `Text`, display `Author`, UTC `CreationDateUtc`, and native comment/author record identities. Comments on empty cells remain materialized and use the existing cell, catalog-entry and text budgets. Catalog, comment and author records are traversed only when selected by a fully decoded cell. Unresolved selectors, replies, invalid timestamps and unsupported record shapes retain `UnsupportedFeatures.Comment` and source diagnostics.
+
+Numbers-to-XLSX conversion writes qualified roots through the Excel threaded-comment owner and retains text, author, timestamp and cell address after reopening. DOCX and PPTX table conversion require explicit partial reconstruction to omit cell comments. Reader reports their omission from its grid. Author colors, collaboration identifiers, native UUID mapping, replies, Apple export equivalence and rendered comment appearance are outside this contract.
+
+### Pages section headers and footers
+
+Pages section projections distinguish stored header/footer templates (`HasFirstPageTemplate`, `HasEvenPageTemplate`, `HasDefaultPageTemplate`) from their selection settings (`DifferentFirstPage`, `DifferentOddAndEvenPages`, `HideFirstPageHeadersAndFooters`). Stored alternate templates may be inactive. `SelectedHeaderContents` and `SelectedFooterContents` expose the semantic inventory selected by those settings. Reader extraction and conversion-report counts use that inventory; it does not establish how many rendered pages use each template.
+
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary
 
@@ -193,13 +203,3 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 The complete rows for `OfficeIMO.IWork` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->
-
-### Table-cell comments
-
-`IWorkTableCell.Comment` exposes qualified root comments with exact plain `Text`, display `Author`, UTC `CreationDateUtc`, and native comment/author record identities. Comments on empty cells remain materialized and use the existing cell, catalog-entry and text budgets. Catalog, comment and author records are traversed only when selected by a fully decoded cell. Unresolved selectors, replies, invalid timestamps and unsupported record shapes retain `UnsupportedFeatures.Comment` and source diagnostics.
-
-Numbers-to-XLSX conversion writes qualified roots through the Excel threaded-comment owner and retains text, author, timestamp and cell address after reopening. DOCX and PPTX table conversion require explicit partial reconstruction to omit cell comments. Reader reports their omission from its grid. Author colors, collaboration identifiers, native UUID mapping, replies, Apple export equivalence and rendered comment appearance are outside this contract.
-
-### Pages section headers and footers
-
-Pages section projections distinguish stored header/footer templates (`HasFirstPageTemplate`, `HasEvenPageTemplate`, `HasDefaultPageTemplate`) from their selection settings (`DifferentFirstPage`, `DifferentOddAndEvenPages`, `HideFirstPageHeadersAndFooters`). Stored alternate templates may be inactive. `SelectedHeaderContents` and `SelectedFooterContents` expose the semantic inventory selected by those settings. Reader extraction and conversion-report counts use that inventory; it does not establish how many rendered pages use each template.

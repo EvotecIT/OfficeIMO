@@ -8,11 +8,6 @@ using OfficeIMO.Workflows.IWork;
 namespace OfficeIMO.Tool.Commands.Convert;
 
 internal static class IWorkConvertCommand {
-    private static readonly JsonSerializerOptions JsonOptions = new() {
-        WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        Converters = { new JsonStringEnumConverter() }
-    };
-
     internal static async Task<int> RunAsync(string[] args, Stream output, TextWriter error, CancellationToken token) {
         try {
             string? input = null, destination = null;
@@ -55,7 +50,7 @@ internal static class IWorkConvertCommand {
                 OutputPath = destination is null ? null : Path.GetFullPath(destination), ConversionRouteId = route,
                 ConflictPolicy = force ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail, Limits = limits
             }, cancellationToken: token).ConfigureAwait(false);
-            await JsonSerializer.SerializeAsync(output, result, JsonOptions, token).ConfigureAwait(false);
+            await JsonSerializer.SerializeAsync(output, result, IWorkConvertJsonContext.Default.OfficeWorkflowResult, token).ConfigureAwait(false);
             if (!result.Succeeded) await error.WriteLineAsync(result.Summary).ConfigureAwait(false);
             return result.Status == OfficeWorkflowStatus.Cancelled ? (int)OfficeImoToolExitCode.Cancelled : result.FailureKind switch {
                 OfficeWorkflowFailureKind.None => (int)OfficeImoToolExitCode.Success,
@@ -80,3 +75,8 @@ internal static class IWorkConvertCommand {
     private static long Positive(string value, string option) => long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out long number) && number > 0
         ? number : throw new ConvertUsageException(option + " requires a positive byte count.");
 }
+
+[JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+    UseStringEnumConverter = true, GenerationMode = JsonSourceGenerationMode.Metadata)]
+[JsonSerializable(typeof(OfficeWorkflowResult))]
+internal sealed partial class IWorkConvertJsonContext : JsonSerializerContext;

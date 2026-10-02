@@ -1413,6 +1413,8 @@ static OfficeProvenanceReport InspectUploadedExcel(byte[] packageBytes) =>
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
 
+`ExcelSheet.AddThreadedComments(...)` adds a batch of roots and replies in input order. It validates the complete ID/parent plan before appending comments, indexes workbook IDs and author names once, and saves each comment/person part once. Replies must reference an existing root or an earlier root in the batch on the same worksheet and cell. `AddThreadedComment(...)` uses the same writer for one item.
+
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary
 
@@ -1432,5 +1434,3 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 The complete rows for `OfficeIMO.Excel` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->
-
-`ExcelSheet.AddThreadedComments(...)` adds a batch of roots and replies in input order. It validates the complete ID/parent plan before appending comments, indexes workbook IDs and author names once, and saves each comment/person part once. Replies must reference an existing root or an earlier root in the batch on the same worksheet and cell. `AddThreadedComment(...)` uses the same writer for one item.

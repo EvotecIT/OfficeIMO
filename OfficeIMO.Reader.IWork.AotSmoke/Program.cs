@@ -82,10 +82,10 @@ static void VerifySource(IWorkSourceDocument source, string name) {
         Require(pages.Paragraphs[0] == "hello pages"
             && pages.Paragraphs.Any(text => text.Contains("second paragraph with some words", StringComparison.Ordinal)),
             "Pages source text changed.");
-        IWorkConversionReport report = pages.CreateConversionReport(IWorkProjectionKind.EditableReconstruction);
-        Require(report.HasLoss && report.PreservedRecords.Count > 0
-            && report.FidelityDiagnostics.Any(diagnostic => diagnostic.Code == "IWORK_RECORD_FIDELITY_UNASSESSED"),
-            "Pages source lost preservation or unassessed-fidelity evidence.");
+        Require(pages.HasRecoverableContent && !pages.HasEditableContent,
+            "Pages partial-reconstruction classification changed.");
+        Reject<InvalidOperationException>(() => pages.CreateConversionReport(IWorkProjectionKind.EditableReconstruction),
+            "Pages complete-reconstruction report for partial source");
     } else if (source.Kind == IWorkDocumentKind.Keynote) {
         IWorkKeynoteProjection keynote = source.ReadKeynote();
         Require(keynote.Slides.Count == 2 && keynote.Slides[0].Title == "hello keynote"

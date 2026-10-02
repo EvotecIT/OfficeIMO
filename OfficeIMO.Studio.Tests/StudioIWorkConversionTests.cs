@@ -95,10 +95,15 @@ public sealed class StudioIWorkConversionTests {
                 var detailsScroll = acceptance.GetVisualAncestors().OfType<ScrollViewer>().First();
                 Point scrollPoint = detailsScroll.TranslatePoint(new Point(detailsScroll.Bounds.Width / 2, detailsScroll.Bounds.Height / 2), window)!.Value;
                 window.MouseWheel(scrollPoint, new Vector(0, -4));
+                acceptance.BringIntoView();
                 await Dispatcher.UIThread.InvokeAsync(() => window.UpdateLayout(), DispatcherPriority.Background);
                 Assert.True(acceptance.IsEffectivelyVisible && acceptance.IsEnabled);
                 Point point = acceptance.TranslatePoint(new Point(10, acceptance.Bounds.Height / 2), window)!.Value;
                 Assert.InRange(point.X, 0, width); Assert.InRange(point.Y, 0, height);
+                var hit = window.InputHitTest(point) as Visual;
+                Assert.True(ReferenceEquals(hit, acceptance)
+                    || hit?.GetVisualAncestors().Contains(acceptance) == true,
+                    "The acceptance checkbox must be reachable by pointer inside the scroll viewport.");
                 Capture(window, "apple-acceptance-" + width);
                 window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left);
                 Assert.True(job.AllowIncompleteVisualPreview);

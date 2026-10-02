@@ -80,6 +80,8 @@ The adapter directly depends on `OfficeIMO.Core`, `OfficeIMO.IWork`, and `Office
 
 See the [iWork support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md) for supported structures and conversion limits.
 
+Qualified Numbers root cell comments retain plain text, display author, UTC creation time and cell address as XLSX threaded comments. Inspect `IWorkTableCell.Comment` on the source projection. Replies and unsupported comment records remain diagnosed; author normalization and empty comment text use destination fallback. See the [table-comment contract](../Docs/officeimo.iwork-support-matrix.md#table-cell-comments).
+
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary
 
@@ -91,5 +93,3 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 The complete rows for `OfficeIMO.Excel.IWork` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->
-
-Qualified Numbers root cell comments retain plain text, display author, UTC creation time and cell address as XLSX threaded comments. Inspect `IWorkTableCell.Comment` on the source projection. Replies and unsupported comment records remain diagnosed; author normalization and empty comment text use destination fallback. See the [table-comment contract](../Docs/officeimo.iwork-support-matrix.md#table-cell-comments).
