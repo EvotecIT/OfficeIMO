@@ -14,11 +14,11 @@ public enum EpubVersion {
 public sealed class EpubPublicationLoadOptions {
     /// <summary>Maximum compressed input bytes.</summary>
     public long MaxInputBytes { get; set; } = 128L * 1024 * 1024;
-    /// <summary>Maximum total expanded bytes retained, including unknown entries.</summary>
+    /// <summary>Maximum total expanded bytes retained, including unknown entries and current selected package XML.</summary>
     public long MaxExpandedBytes { get; set; } = 256L * 1024 * 1024;
     /// <summary>Maximum individual entry bytes.</summary>
     public long MaxEntryBytes { get; set; } = 64L * 1024 * 1024;
-    /// <summary>Maximum package/container XML bytes.</summary>
+    /// <summary>Maximum package/container XML bytes, also enforced on edits to the selected package.</summary>
     public long MaxMetadataBytes { get; set; } = 4L * 1024 * 1024;
     /// <summary>Maximum ZIP entries, including directory entries.</summary>
     public int MaxEntries { get; set; } = 10_000;

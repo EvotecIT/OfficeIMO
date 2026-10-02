@@ -15,6 +15,7 @@ public sealed partial class EpubPublication {
     internal static readonly XNamespace Html = "http://www.w3.org/1999/xhtml";
     internal static readonly XNamespace Ops = "http://www.idpf.org/2007/ops";
     private readonly XDocument _package;
+    private readonly Dictionary<string, EpubManifestItem> _originalManifest;
     private readonly Dictionary<string, byte[]> _entries;
     private readonly Dictionary<string, byte[]> _originalEntries;
     private readonly byte[]? _originalBytes;
@@ -25,12 +26,17 @@ public sealed partial class EpubPublication {
     private DateTimeOffset _modifiedAt;
     private readonly long _maximumRetainedBytes;
     private readonly long _maximumEntryBytes;
+    private readonly long _maximumMetadataBytes;
     private long _retainedBytes;
 
     private EpubPublication(string path, XDocument package, Dictionary<string, byte[]> entries,
         byte[]? originalBytes = null, IReadOnlyList<EpubEncryptionInfo>? encryption = null, EpubPublicationLoadOptions? limits = null) {
         PackagePath = path;
         _package = package;
+        _originalManifest = package.Root!.Element(Opf + "manifest")?.Elements(Opf + "item")
+            .GroupBy(element => (string?)element.Attribute("id") ?? string.Empty, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => new EpubManifestItem(new XElement(group.First()), path), StringComparer.Ordinal)
+            ?? new Dictionary<string, EpubManifestItem>(StringComparer.Ordinal);
         _entries = entries;
         _originalEntries = new Dictionary<string, byte[]>(entries, StringComparer.Ordinal);
         _originalBytes = originalBytes;
@@ -39,6 +45,7 @@ public sealed partial class EpubPublication {
         _originalHasZipSignature = originalBytes != null && OfficeIMO.Provenance.OfficeProvenanceZip.HasCentralDirectorySignature(originalBytes, limits.MaxEntries);
         _maximumRetainedBytes = limits.MaxExpandedBytes;
         _maximumEntryBytes = limits.MaxEntryBytes;
+        _maximumMetadataBytes = limits.MaxMetadataBytes;
         _retainedBytes = entries.Values.Sum(data => data.LongLength);
         if (Root.Name != Opf + "package" || (PackageVersion != "3.0" && PackageVersion != "2.0")) {
             throw new NotSupportedException("Writing supports OPF package versions 2.0 and 3.0.");
@@ -47,6 +54,7 @@ public sealed partial class EpubPublication {
         _originalIdentifier = Identifier;
         _modifiedAt = DateTimeOffset.UtcNow;
         _changed = originalBytes == null;
+        if (originalBytes == null) EnsurePackageBudget(_package);
         _package.Changed += (_, _) => MarkChanged();
     }
 
@@ -119,10 +127,10 @@ public sealed partial class EpubPublication {
     public string PackageVersion => (string?)Root.Attribute("version") ?? string.Empty;
     /// <summary>Typed manifest declarations in package order.</summary>
     public IReadOnlyList<EpubManifestItem> Manifest => Array.AsReadOnly(RequireSection("manifest").Elements(Opf + "item")
-        .Select(item => new EpubManifestItem(item, PackagePath)).ToArray());
+        .Select(item => new EpubManifestItem(item, PackagePath, this)).ToArray());
     /// <summary>Typed reading positions, including repeated resource references.</summary>
     public IReadOnlyList<EpubSpineItem> Spine => Array.AsReadOnly(RequireSection("spine").Elements(Opf + "itemref")
-        .Select(item => new EpubSpineItem(item)).ToArray());
+        .Select(item => new EpubSpineItem(item, this)).ToArray());
     /// <summary>All retained entry paths, including unmanifested extension payloads.</summary>
     public IReadOnlyList<string> EntryPaths => Array.AsReadOnly(_entries.Keys.OrderBy(path => path, StringComparer.Ordinal).ToArray());
     /// <summary>Returns an independent copy of package XML for inspection.</summary>
@@ -157,8 +165,8 @@ public sealed partial class EpubPublication {
         });
         return XDocument.Load(reader, LoadOptions.PreserveWhitespace);
     }
-    internal static byte[] SerializeXml(XDocument document) {
-        using var output = new OfficeBoundedMemoryStream(128L * 1024 * 1024);
+    internal static byte[] SerializeXml(XDocument document, long maximumBytes = 128L * 1024 * 1024) {
+        using var output = new OfficeBoundedMemoryStream(Math.Min(maximumBytes, 128L * 1024 * 1024));
         using (XmlWriter writer = XmlWriter.Create(output, new XmlWriterSettings {
             Encoding = new UTF8Encoding(false, true), Indent = false, NewLineHandling = NewLineHandling.Entitize
         })) document.Save(writer);

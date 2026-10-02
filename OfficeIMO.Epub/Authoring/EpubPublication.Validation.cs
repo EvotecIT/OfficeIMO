@@ -21,9 +21,10 @@ public sealed partial class EpubPublication {
             token.ThrowIfCancellationRequested();
             if (string.IsNullOrWhiteSpace(item.Id) || string.IsNullOrWhiteSpace(item.MediaType) || byId.ContainsKey(item.Id)) throw new InvalidDataException("Manifest ids and media types must be nonempty and unique.");
             byId.Add(item.Id, item);
-            if ((HasToken(item.Properties, "scripted") || IsScriptMediaType(item.MediaType)) &&
-                (!_originalEntries.TryGetValue(item.Reference.ContainerPath ?? string.Empty, out byte[]? retained) ||
-                    !entries.TryGetValue(item.Reference.ContainerPath ?? string.Empty, out byte[]? current) || !retained.SequenceEqual(current)))
+            EpubManifestItem? originalDeclaration = OriginalManifestItem(item.Id);
+            if ((HasToken(item.Properties, "scripted") || IsScriptMediaType(item.MediaType) ||
+                HasToken(originalDeclaration?.Properties, "scripted") || (originalDeclaration != null && IsScriptMediaType(originalDeclaration.MediaType))) &&
+                !IsRetainedScriptDeclaration(item, entries))
                 throw new NotSupportedException("Script authoring is outside the EPUB writer contract.");
             EpubReference reference = item.Reference;
             if (reference.Kind == EpubReferenceKind.Container) {
@@ -31,7 +32,7 @@ public sealed partial class EpubPublication {
             } else if (reference.Kind != EpubReferenceKind.External) throw new InvalidDataException("Invalid manifest reference: " + item.Href);
         }
         foreach (EpubManifestItem item in manifest) {
-            foreach (string? target in new[] { item.FallbackId, item.MediaOverlayId }) {
+            foreach (string? target in new[] { item.FallbackId, item.FallbackStyleId, item.MediaOverlayId }) {
                 if (target != null && !byId.ContainsKey(target)) throw new InvalidDataException("Manifest relationship target missing: " + target);
             }
             var chain = new HashSet<string>(StringComparer.Ordinal) { item.Id };
@@ -41,6 +42,17 @@ public sealed partial class EpubPublication {
                 if (!chain.Add(current.Id)) throw new InvalidDataException("Cyclic manifest fallback chain.");
             }
         }
+        foreach (XAttribute refinement in root.Descendants().Where(element => element.Name == Opf + "meta" || element.Name == Opf + "link").Attributes("refines")) {
+            EpubReference reference = EpubReference.Resolve(PackagePath, refinement.Value);
+            if (reference.Kind != EpubReferenceKind.Container || reference.ContainerPath == null)
+                throw new InvalidDataException("Invalid metadata refinement: " + refinement.Value);
+            if (reference.ContainerPath == PackagePath && (reference.Fragment == null || !ids.Contains(reference.Fragment)))
+                throw new InvalidDataException("Metadata refinement target missing: " + refinement.Value);
+            if (reference.ContainerPath != PackagePath && !entries.ContainsKey(reference.ContainerPath))
+                throw new InvalidDataException("Metadata refinement resource missing: " + refinement.Value);
+        }
+        foreach (XElement binding in root.Element(Opf + "bindings")?.Elements(Opf + "mediaType") ?? Enumerable.Empty<XElement>())
+            if (!byId.ContainsKey((string?)binding.Attribute("handler") ?? string.Empty)) throw new InvalidDataException("Binding handler manifest id missing.");
         XElement[] spine = root.Element(Opf + "spine")!.Elements(Opf + "itemref").ToArray();
         foreach (var repeated in spine.GroupBy(item => (string?)item.Attribute("idref"), StringComparer.Ordinal).Where(group => group.Count() > 1)) {
             if (_originalBytes == null) throw new InvalidDataException("Authored spine positions must have distinct manifest ids.");
@@ -57,8 +69,7 @@ public sealed partial class EpubPublication {
         }
         string navPath = NavigationPath();
         XDocument navigation = ParseXml(entries[navPath], 64L * 1024 * 1024);
-        if (PackageVersion == "3.0" && !navigation.Descendants(Html + "nav").Any(element => HasToken((string?)element.Attribute(Ops + "type"), "toc")))
-            throw new InvalidDataException("An EPUB 3 TOC navigation section is required.");
+        ValidateNavigationDocument(navigation, navPath, manifest, spine.Select(item => (string?)item.Attribute("idref") ?? string.Empty));
         var anchors = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
         var fragmented = new List<(string Owner, EpubReference Reference)>();
         foreach (EpubManifestItem item in manifest.Where(item => item.Reference.Kind == EpubReferenceKind.Container &&
@@ -69,7 +80,8 @@ public sealed partial class EpubPublication {
             XDocument content = path == navPath ? navigation : ParseXml(entries[path], 64L * 1024 * 1024);
             anchors[path] = new HashSet<string>(content.Descendants().Attributes().Where(attribute => attribute.Name == "id" ||
                 attribute.Name == XNamespace.Xml + "id").Select(attribute => attribute.Value), StringComparer.Ordinal);
-            bool rewritten = !_originalEntries.TryGetValue(path, out byte[]? original) || !original.SequenceEqual(entries[path]);
+            bool rewritten = !_originalEntries.TryGetValue(path, out byte[]? original) || !original.SequenceEqual(entries[path]) ||
+                OriginalManifestItem(item.Id)?.MediaType != item.MediaType;
             if (rewritten && item.MediaType != "application/x-dtbncx+xml") {
                 ValidateContent(content, item.MediaType);
                 var resources = OfficeIMO.Html.HtmlResourcePipeline.BuildManifest(content.ToString(SaveOptions.DisableFormatting));
@@ -78,8 +90,12 @@ public sealed partial class EpubPublication {
             }
             ValidateContentReferences(content, path, entries, fragmented, token);
         }
-        foreach (XElement reference in root.Element(Opf + "guide")?.Elements(Opf + "reference") ?? Enumerable.Empty<XElement>())
-            ValidateTarget(EpubReference.Resolve(PackagePath, (string?)reference.Attribute("href") ?? string.Empty), PackagePath, entries, fragmented);
+        foreach (XAttribute reference in PackageResourceReferences(root)) {
+            EpubReference target = EpubReference.Resolve(PackagePath, reference.Value);
+            if (target.ContainerPath != PackagePath) ValidateTarget(target, PackagePath, entries, fragmented);
+            if (reference.Parent?.Name == Opf + "reference" || reference.Parent?.Name == Opf + "site")
+                RequireSpineTarget(target, manifest, spine.Select(item => (string?)item.Attribute("idref") ?? string.Empty), requireContainer: true);
+        }
         foreach (var target in fragmented) {
             token.ThrowIfCancellationRequested();
             if (anchors.TryGetValue(target.Reference.ContainerPath!, out HashSet<string>? idsInTarget) && !idsInTarget.Contains(target.Reference.Fragment!))
@@ -89,7 +105,8 @@ public sealed partial class EpubPublication {
 
     private static void ValidateContentReferences(XDocument content, string owner, IReadOnlyDictionary<string, byte[]> entries,
         List<(string Owner, EpubReference Reference)> fragmented, CancellationToken token) {
-        string? baseHref = content.Descendants(Html + "base").Select(element => (string?)element.Attribute("href")).FirstOrDefault(value => value != null);
+        string? baseHref = content.Root?.Name == Html + "html" ? content.Root.Element(Html + "head")?.Elements(Html + "base")
+            .Select(element => (string?)element.Attribute("href")).FirstOrDefault(value => value != null) : null;
         foreach (XElement element in content.Descendants()) {
             token.ThrowIfCancellationRequested();
             if (element.Name.Namespace != Html && element.Name.NamespaceName != "http://www.w3.org/2000/svg" && element.Name != Ncx + "content") continue;
@@ -121,7 +138,50 @@ public sealed partial class EpubPublication {
         if (content.Descendants().Any(element => element.Name.NamespaceName == "http://www.w3.org/1998/Math/MathML")) properties.Add("mathml");
         // Shared HTML discovery also covers inline CSS, srcset, and non-hyperlink resource URLs.
         if (resources.Resources.Any(resource => resource.Kind != OfficeIMO.Html.HtmlResourceKind.Hyperlink &&
-            EpubReference.Resolve(owner, resource.Source).Kind == EpubReferenceKind.External)) properties.Add("remote-resources");
+            EpubReference.Resolve(owner, resource.ResolvedSource.Length == 0 ? resource.Source : resource.ResolvedSource).Kind == EpubReferenceKind.External)) properties.Add("remote-resources");
         item.Properties = properties.Count == 0 ? null : string.Join(" ", properties.Distinct(StringComparer.Ordinal));
+    }
+
+    private EpubManifestItem? OriginalManifestItem(string id) => _originalManifest.TryGetValue(id, out EpubManifestItem? item) ? item : null;
+
+    private bool IsRetainedScriptDeclaration(EpubManifestItem item, IReadOnlyDictionary<string, byte[]> entries) {
+        EpubManifestItem? original = OriginalManifestItem(item.Id);
+        if (_originalBytes == null || original == null || original.Href != item.Href || original.MediaType != item.MediaType ||
+            HasToken(original.Properties, "scripted") != HasToken(item.Properties, "scripted")) return false;
+        if (item.Reference.Kind == EpubReferenceKind.External) return true;
+        string path = item.Reference.ContainerPath ?? string.Empty;
+        return _originalEntries.TryGetValue(path, out byte[]? retained) && entries.TryGetValue(path, out byte[]? current) && retained.SequenceEqual(current);
+    }
+
+    private bool ReferencesPackageId(string value, string id) {
+        EpubReference reference = EpubReference.Resolve(PackagePath, value);
+        return reference.Kind == EpubReferenceKind.Container && reference.ContainerPath == PackagePath && reference.Fragment == id;
+    }
+
+    private static IEnumerable<XAttribute> PackageResourceReferences(XElement root) => root.Descendants()
+        .Where(element => element.Name == Opf + "link" || element.Name == Opf + "reference" || element.Name == Opf + "site")
+        .Attributes("href").Concat(root.Descendants().Where(element => element.Name == Opf + "meta" || element.Name == Opf + "link").Attributes("refines"));
+
+    private void ValidateNavigationDocument(XDocument navigation, string path, EpubManifestItem[] manifest, IEnumerable<string> spineIds) {
+        if (PackageVersion == "2.0") {
+            if (navigation.Root?.Element(Ncx + "navMap")?.Elements(Ncx + "navPoint").Any() != true)
+                throw new InvalidDataException("A nonempty NCX table of contents is required.");
+            foreach (XAttribute source in navigation.Descendants(Ncx + "content").Attributes("src"))
+                RequireSpineTarget(EpubReference.Resolve(path, source.Value), manifest, spineIds, requireContainer: true);
+            return;
+        }
+        XElement[] tocs = navigation.Descendants(Html + "nav").Where(element => HasToken((string?)element.Attribute(Ops + "type"), "toc")).ToArray();
+        if (tocs.Length != 1 || tocs[0].Element(Html + "ol")?.Elements(Html + "li").Any() != true)
+            throw new InvalidDataException("One nonempty EPUB 3 TOC navigation section is required.");
+        foreach (XElement nav in navigation.Descendants(Html + "nav").Where(element => HasToken((string?)element.Attribute(Ops + "type"), "landmarks")))
+            if (nav.Descendants(Html + "a").Any(anchor => string.IsNullOrWhiteSpace((string?)anchor.Attribute(Ops + "type"))))
+                throw new InvalidDataException("Every landmark link requires a semantic type.");
+        string? baseHref = navigation.Root?.Element(Html + "head")?.Elements(Html + "base").Select(element => (string?)element.Attribute("href")).FirstOrDefault();
+        foreach (XElement anchor in navigation.Descendants().Where(element => element.Name == Html + "a" || element.Name == Html + "area")) {
+            string? href = (string?)anchor.Attribute("href");
+            bool ownedNavigation = anchor.Ancestors(Html + "nav").Any(nav => new[] { "toc", "page-list", "landmarks" }
+                .Any(type => HasToken((string?)nav.Attribute(Ops + "type"), type)));
+            if (href != null) RequireSpineTarget(EpubReference.Resolve(path, baseHref, href), manifest, spineIds, ownedNavigation);
+        }
     }
 }

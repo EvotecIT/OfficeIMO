@@ -8,8 +8,10 @@ public sealed partial class EpubPublication {
         IEnumerable<EpubNavigationEntry>? pageList = null, IEnumerable<EpubNavigationEntry>? landmarks = null) {
         if (tableOfContents == null) throw new ArgumentNullException(nameof(tableOfContents));
         EpubNavigationEntry[] toc = tableOfContents.ToArray();
+        if (toc.Length == 0) throw new InvalidDataException("A nonempty table of contents is required.");
         EpubNavigationEntry[]? pages = pageList?.ToArray();
         EpubNavigationEntry[]? guide = landmarks?.ToArray();
+        if (PackageVersion == "3.0" && guide != null) ValidateLandmarkTypes(guide, 0);
         string path = NavigationPath();
         XDocument navigation = ParseXml(_entries[path], 64L * 1024 * 1024);
         XElement? newGuide = null;
@@ -46,19 +48,30 @@ public sealed partial class EpubPublication {
             }
             NormalizeNcxPlayOrder(navigation, path);
             if (guide != null) {
-                if (guide.Length != 0) {
+                if (guide.Length != 0 || Root.Element(Opf + "guide") != null) {
                     newGuide = Root.Element(Opf + "guide") is XElement retained ? new XElement(retained) : new XElement(Opf + "guide");
                     ReplaceNavigationChildren(newGuide, Opf + "reference", guide.Select(item => new XElement(Opf + "reference",
                         new XAttribute("type", item.SemanticType ?? "text"), new XAttribute("title", item.Label),
                         new XAttribute("href", NavigationHref(PackagePath, item)))));
+                    if (!newGuide.HasAttributes && !newGuide.Nodes().Any()) newGuide = null;
                 }
             }
         }
-        ReplaceResourcePayload(path, SerializeXml(navigation));
+        byte[] payload = SerializeXml(navigation);
+        if (_encryption.Any(encryption => encryption.Path == path)) throw new NotSupportedException("Encrypted navigation cannot be edited.");
+        if (payload.LongLength > _maximumEntryBytes) throw new InvalidDataException("Navigation exceeds the retained entry-byte limit.");
+        long delta = payload.LongLength - _entries[path].LongLength;
         if (PackageVersion == "2.0" && guide != null) {
-            Root.Element(Opf + "guide")?.Remove();
-            if (newGuide != null) Root.Add(newGuide);
-        }
+            EditPackageElement(Root, proposed => {
+                XElement? old = proposed.Element(Opf + "guide");
+                if (old != null && newGuide != null) old.ReplaceWith(new XElement(newGuide));
+                else if (old != null) old.Remove();
+                else if (newGuide != null) proposed.Add(new XElement(newGuide));
+            }, delta);
+        } else EnsurePackageBudget(_package, delta);
+        _entries[path] = payload;
+        _retainedBytes += delta;
+        MarkChanged();
     }
 
     private void InitializeNavigation() {
@@ -77,7 +90,7 @@ public sealed partial class EpubPublication {
                     new XElement(Ncx + "meta", new XAttribute("name", "dtb:maxPageNumber"), new XAttribute("content", "0"))),
                 new XElement(Ncx + "docTitle", new XElement(Ncx + "text", Title)), new XElement(Ncx + "navMap")));
             AddResource("navigation", "EPUB/toc.ncx", "application/x-dtbncx+xml", SerializeXml(navigation));
-            RequireSection("spine").SetAttributeValue("toc", "navigation");
+            EditPackageElement(RequireSection("spine"), proposed => proposed.SetAttributeValue("toc", "navigation"));
         }
     }
     private string NavigationPath() {
@@ -105,6 +118,16 @@ public sealed partial class EpubPublication {
     }
     private void SetHtmlNavigation(XElement body, string type, string heading, EpubNavigationEntry[] nodes, string path) {
         XElement? nav = body.Descendants(Html + "nav").FirstOrDefault(element => HasToken((string?)element.Attribute(Ops + "type"), type));
+        if (nodes.Length == 0 && type != "toc") {
+            if (nav != null) {
+                // Clearing an optional section retains extension attributes/children;
+                // removing its semantic type makes the remaining shell ordinary XHTML.
+                nav.SetAttributeValue(Ops + "type", NormalizeProperties(string.Join(" ", Tokens((string?)nav.Attribute(Ops + "type")).Where(token => token != type))));
+                XElement? list = nav.Element(Html + "ol");
+                if (list != null) ReplaceNavigationChildren(list, Html + "li", Array.Empty<XElement>());
+            }
+            return;
+        }
         if (nav == null) {
             nav = new XElement(Html + "nav", new XAttribute(Ops + "type", type), new XElement(Html + "h1", heading));
             body.Add(nav);
@@ -139,8 +162,27 @@ public sealed partial class EpubPublication {
         EpubReference target = EpubReference.Resolve("package.opf", "/" + node.Target);
         if (target.Kind != EpubReferenceKind.Container || target.ContainerPath == null || (!_entries.ContainsKey(target.ContainerPath) && target.ContainerPath != pendingPath))
             throw new InvalidDataException("Navigation target must be a retained container resource: " + node.Target);
+        if (target.ContainerPath != pendingPath)
+            RequireSpineTarget(target, Manifest, Spine.Select(item => item.ManifestId));
         return RelativeHref(owner, target.ContainerPath) + (target.Query == null ? string.Empty : "?" + target.Query) +
             (target.Fragment == null ? string.Empty : "#" + Uri.EscapeDataString(target.Fragment));
+    }
+    private static void ValidateLandmarkTypes(IEnumerable<EpubNavigationEntry> nodes, int depth) {
+        if (depth > 64) throw new InvalidDataException("Navigation depth exceeds 64.");
+        foreach (EpubNavigationEntry node in nodes) {
+            if (string.IsNullOrWhiteSpace(node.SemanticType)) throw new InvalidDataException("Every landmark link requires a semantic type.");
+            ValidateLandmarkTypes(node.Children, depth + 1);
+        }
+    }
+
+    private static void RequireSpineTarget(EpubReference target, IEnumerable<EpubManifestItem> manifest, IEnumerable<string> spineIds, bool requireContainer = false) {
+        if (target.Kind != EpubReferenceKind.Container) {
+            if (requireContainer) throw new InvalidDataException("Navigation must target container content: " + target.Original);
+            return;
+        }
+        var ids = new HashSet<string>(spineIds, StringComparer.Ordinal);
+        if (!manifest.Any(item => item.Reference.ContainerPath == target.ContainerPath && ids.Contains(item.Id)))
+            throw new InvalidDataException("Navigation content target must be declared in the manifest and spine: " + target.Original);
     }
     private static int NavigationDepth(IEnumerable<EpubNavigationEntry> nodes) =>
         nodes.Any() ? 1 + nodes.Max(node => NavigationDepth(node.Children)) : 0;

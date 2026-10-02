@@ -58,7 +58,10 @@ public sealed partial class EpubPublication {
             throw new InvalidDataException("Package mimetype must contain exactly application/epub+zip.");
         if (entries.Count > maxEntries) throw new InvalidDataException("Output exceeds MaxEntries.");
         ValidatePublication(package, entries, diagnostics, cancellationToken);
-        if (changed) entries[PackagePath] = SerializeXml(package);
+        if (changed) {
+            EnsurePackageBudget(package, entries.Where(entry => entry.Key != PackagePath).Sum(entry => entry.Value.LongLength) - RetainedPayloadBytes);
+            entries[PackagePath] = SerializeXml(package);
+        }
         long expanded = 0;
         foreach (var entry in entries) {
             cancellationToken.ThrowIfCancellationRequested();

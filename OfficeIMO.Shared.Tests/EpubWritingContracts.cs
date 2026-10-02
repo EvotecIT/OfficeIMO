@@ -485,6 +485,11 @@ public sealed class EpubWritingContracts {
         using var source = new ZipArchive(new MemoryStream(package));
         return WriteEntries(source.Entries.Select(entry => (entry.FullName, ReadEntry(package, entry.FullName))).Concat(added));
     }
+    internal static byte[] ReplaceEntry(byte[] package, string path, byte[] payload) {
+        using var source = new ZipArchive(new MemoryStream(package));
+        return WriteEntries(source.Entries.Select(entry => (entry.FullName,
+            entry.FullName == path ? payload : ReadEntry(package, entry.FullName))));
+    }
     private static byte[] WriteEntries(IEnumerable<(string Path, byte[] Data)> entries) => OfficeProvenanceZipWriter.Write(
         entries.OrderBy(entry => entry.Path == "mimetype" ? 0 : 1).ThenBy(entry => entry.Path, StringComparer.Ordinal)
             .Select(entry => new OfficeProvenanceZipWriteEntry(entry.Path, entry.Data.LongLength, entry.Path != "mimetype",

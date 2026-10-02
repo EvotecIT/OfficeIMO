@@ -4,7 +4,12 @@ namespace OfficeIMO.Epub;
 public sealed class EpubManifestItem {
     private readonly XElement _element;
     private readonly string _opfPath;
-    internal EpubManifestItem(XElement element, string opfPath) { _element = element; _opfPath = opfPath; }
+    private readonly EpubPublication? _publication;
+    internal EpubManifestItem(XElement element, string opfPath, EpubPublication? publication = null) { _element = element; _opfPath = opfPath; _publication = publication; }
+    private void Set(XName name, string? value) {
+        if (_publication != null) _publication.SetDeclarationAttribute(_element, name, value);
+        else _element.SetAttributeValue(name, value);
+    }
     /// <summary>Package-local resource identifier.</summary>
     public string Id => (string?)_element.Attribute("id") ?? string.Empty;
     /// <summary>Original OPF-relative resource URL.</summary>
@@ -12,25 +17,31 @@ public sealed class EpubManifestItem {
     /// <summary>Resolved reference using the canonical EPUB URL rules.</summary>
     public EpubReference Reference => EpubReference.Resolve(_opfPath, Href);
     /// <summary>Declared MIME media type.</summary>
-    public string MediaType { get => (string?)_element.Attribute("media-type") ?? string.Empty; set => _element.SetAttributeValue("media-type", value); }
+    public string MediaType { get => (string?)_element.Attribute("media-type") ?? string.Empty; set => Set("media-type", value); }
     /// <summary>Space-separated package properties.</summary>
-    public string? Properties { get => (string?)_element.Attribute("properties"); set => _element.SetAttributeValue("properties", value); }
+    public string? Properties { get => (string?)_element.Attribute("properties"); set => Set("properties", value); }
     /// <summary>Fallback manifest item id, when present.</summary>
-    public string? FallbackId { get => (string?)_element.Attribute("fallback"); set => _element.SetAttributeValue("fallback", value); }
+    public string? FallbackId { get => (string?)_element.Attribute("fallback"); set => Set("fallback", value); }
+    internal string? FallbackStyleId => (string?)_element.Attribute("fallback-style");
     /// <summary>Associated media-overlay manifest item id.</summary>
-    public string? MediaOverlayId { get => (string?)_element.Attribute("media-overlay"); set => _element.SetAttributeValue("media-overlay", value); }
+    public string? MediaOverlayId { get => (string?)_element.Attribute("media-overlay"); set => Set("media-overlay", value); }
 }
 
 /// <summary>One reading position, independent of manifest resource identity.</summary>
 public sealed class EpubSpineItem {
     private readonly XElement _element;
-    internal EpubSpineItem(XElement element) { _element = element; }
+    private readonly EpubPublication? _publication;
+    internal EpubSpineItem(XElement element, EpubPublication? publication = null) { _element = element; _publication = publication; }
+    private void Set(XName name, string? value) {
+        if (_publication != null) _publication.SetDeclarationAttribute(_element, name, value);
+        else _element.SetAttributeValue(name, value);
+    }
     /// <summary>Manifest item selected at this position.</summary>
     public string ManifestId => (string?)_element.Attribute("idref") ?? string.Empty;
     /// <summary>Whether the item participates in the primary reading order.</summary>
-    public bool IsLinear { get => (string?)_element.Attribute("linear") != "no"; set => _element.SetAttributeValue("linear", value ? null : "no"); }
+    public bool IsLinear { get => (string?)_element.Attribute("linear") != "no"; set => Set("linear", value ? null : "no"); }
     /// <summary>Space-separated itemref properties, including layout/page-side declarations.</summary>
-    public string? Properties { get => (string?)_element.Attribute("properties"); set => _element.SetAttributeValue("properties", value); }
+    public string? Properties { get => (string?)_element.Attribute("properties"); set => Set("properties", value); }
 }
 
 /// <summary>One authored navigation node. Targets are container-relative paths with optional fragments.</summary>

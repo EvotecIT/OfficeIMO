@@ -3,7 +3,17 @@ namespace OfficeIMO.Epub;
 public sealed partial class EpubPublication {
     /// <summary>Adds a local manifest resource at a canonical container path. Payloads are copied and never executed.</summary>
     public EpubManifestItem AddResource(string id, string containerPath, string mediaType, byte[] data, string? properties = null) {
+        XElement element = PrepareResourceDeclaration(id, containerPath, mediaType, data, properties);
+        byte[] payload = (byte[])data.Clone();
+        EditPackageElement(RequireSection("manifest"), proposed => proposed.Add(new XElement(element)), data.LongLength);
+        _entries.Add(containerPath, payload);
+        _retainedBytes += data.LongLength;
+        return RequireManifestItem(id);
+    }
+
+    private XElement PrepareResourceDeclaration(string id, string containerPath, string mediaType, byte[] data, string? properties) {
         VerifyAvailableId(id); RequireText(mediaType, nameof(mediaType));
+        VerifyPropertiesVersion(properties);
         if (data == null) throw new ArgumentNullException(nameof(data));
         string path = VerifyContentPath(containerPath);
         if (_entries.ContainsKey(path) || Manifest.Any(item => item.Reference.ContainerPath == path)) throw new ArgumentException("Entry path already exists: " + path);
@@ -11,14 +21,11 @@ public sealed partial class EpubPublication {
             throw new ArgumentException("Resource paths must remain distinct after Unicode normalization and case comparison.", nameof(containerPath));
         if (IsScriptMediaType(mediaType) || HasToken(properties, "scripted"))
             throw new NotSupportedException("Script authoring is outside the EPUB writer contract.");
-        EnsurePayloadBudget(data, 0);
+        if (data.LongLength > _maximumEntryBytes) throw new InvalidDataException("Resource exceeds the publication's retained entry-byte limit.");
         var element = new XElement(Opf + "item", new XAttribute("id", id), new XAttribute("href", RelativeHref(PackagePath, path)),
             new XAttribute("media-type", mediaType));
-        element.SetAttributeValue("properties", properties);
-        _entries.Add(path, (byte[])data.Clone());
-        _retainedBytes += data.LongLength;
-        RequireSection("manifest").Add(element);
-        return new EpubManifestItem(element, PackagePath);
+        element.SetAttributeValue("properties", NormalizeProperties(properties));
+        return element;
     }
 
     /// <summary>Replaces one local resource payload. Encrypted/obfuscated bytes require an explicit re-keying implementation.</summary>
@@ -80,14 +87,19 @@ public sealed partial class EpubPublication {
         string navPath = NavigationPath();
         byte[] navBytes = PrepareAppendedNavigation(new EpubNavigationEntry(title, EncodePath(containerPath)), containerPath);
         if (_encryption.Any(encryption => encryption.Path == navPath)) throw new NotSupportedException("Encrypted navigation cannot be edited.");
-        EnsurePayloadBudget(chapterBytes, 0);
-        EnsurePayloadBudget(navBytes, _entries[navPath].LongLength);
-        if (chapterBytes.LongLength > _maximumRetainedBytes - (_retainedBytes - _entries[navPath].LongLength + navBytes.LongLength))
-            throw new InvalidDataException("Chapter and navigation exceed the publication's retained-byte limit.");
-        EpubManifestItem item = AddResource(id, containerPath, "application/xhtml+xml", chapterBytes);
-        AddSpineItem(id, linear);
-        ReplaceResourcePayload(navPath, navBytes);
-        return item;
+        XElement manifestItem = PrepareResourceDeclaration(id, containerPath, "application/xhtml+xml", chapterBytes, null);
+        var position = new XElement(Opf + "itemref", new XAttribute("idref", id));
+        position.SetAttributeValue("linear", linear ? null : "no");
+        if (navBytes.LongLength > _maximumEntryBytes) throw new InvalidDataException("Navigation exceeds the retained entry-byte limit.");
+        long delta = chapterBytes.LongLength + navBytes.LongLength - _entries[navPath].LongLength;
+        EditPackageElement(Root, proposed => {
+            proposed.Element(Opf + "manifest")!.Add(new XElement(manifestItem));
+            proposed.Element(Opf + "spine")!.Add(new XElement(position));
+        }, delta);
+        _entries.Add(containerPath, chapterBytes);
+        _entries[navPath] = navBytes;
+        _retainedBytes += delta;
+        return RequireManifestItem(id);
     }
 
     /// <summary>Adds a UTF-8 stylesheet resource.</summary>
@@ -99,52 +111,63 @@ public sealed partial class EpubPublication {
         EpubManifestItem selected = RequireManifestItem(manifestId);
         if (!selected.MediaType.StartsWith("image/", StringComparison.Ordinal)) throw new ArgumentException("Cover must be an image resource.");
         if (PackageVersion == "3.0") {
-            foreach (EpubManifestItem item in Manifest) {
-                string[] tokens = Tokens(item.Properties).Where(token => token != "cover-image").ToArray();
-                item.Properties = string.Join(" ", item.Id == manifestId ? tokens.Concat(new[] { "cover-image" }) : tokens);
-            }
+            EditPackageElement(RequireSection("manifest"), proposed => {
+                foreach (XElement item in proposed.Elements(Opf + "item")) {
+                    IEnumerable<string> tokens = Tokens((string?)item.Attribute("properties")).Where(token => token != "cover-image");
+                    if ((string?)item.Attribute("id") == manifestId) tokens = tokens.Concat(new[] { "cover-image" });
+                    item.SetAttributeValue("properties", NormalizeProperties(string.Join(" ", tokens)));
+                }
+            });
         } else {
             XElement metadata = RequireSection("metadata");
             XElement? cover = metadata.Elements(Opf + "meta").FirstOrDefault(element => (string?)element.Attribute("name") == "cover");
-            if (cover == null) metadata.Add(new XElement(Opf + "meta", new XAttribute("name", "cover"), new XAttribute("content", manifestId)));
-            else cover.SetAttributeValue("content", manifestId);
+            if (cover == null) EditPackageElement(metadata, proposed => proposed.Add(new XElement(Opf + "meta", new XAttribute("name", "cover"), new XAttribute("content", manifestId))));
+            else EditPackageElement(cover, proposed => proposed.SetAttributeValue("content", manifestId));
         }
     }
 
     /// <summary>Adds a distinct reading position for an existing manifest resource.</summary>
     public EpubSpineItem AddSpineItem(string manifestId, bool linear = true, string? properties = null) {
         RequireManifestItem(manifestId);
+        VerifyPropertiesVersion(properties);
         if (Spine.Any(position => position.ManifestId == manifestId))
             throw new InvalidOperationException("New spine positions must not repeat a manifest id. Add a separate chapter resource for repeated content.");
         var element = new XElement(Opf + "itemref", new XAttribute("idref", manifestId));
-        element.SetAttributeValue("linear", linear ? null : "no"); element.SetAttributeValue("properties", properties);
-        RequireSection("spine").Add(element);
-        return new EpubSpineItem(element);
+        element.SetAttributeValue("linear", linear ? null : "no"); element.SetAttributeValue("properties", NormalizeProperties(properties));
+        EditPackageElement(RequireSection("spine"), proposed => proposed.Add(new XElement(element)));
+        return new EpubSpineItem(RequireSection("spine").Elements(Opf + "itemref").Last(), this);
     }
     /// <summary>Moves a reading position while preserving its attributes and repeated references.</summary>
     public void MoveSpineItem(int fromIndex, int toIndex) {
         XElement[] items = RequireSection("spine").Elements(Opf + "itemref").ToArray();
         if (fromIndex < 0 || fromIndex >= items.Length || toIndex < 0 || toIndex >= items.Length) throw new ArgumentOutOfRangeException();
         if (fromIndex == toIndex) return;
-        XElement moved = items[fromIndex]; moved.Remove();
-        if (fromIndex < toIndex) items[toIndex].AddAfterSelf(moved); else items[toIndex].AddBeforeSelf(moved);
+        EditPackageElement(RequireSection("spine"), proposed => {
+            XElement[] positions = proposed.Elements(Opf + "itemref").ToArray();
+            XElement moved = positions[fromIndex]; moved.Remove();
+            if (fromIndex < toIndex) positions[toIndex].AddAfterSelf(moved); else positions[toIndex].AddBeforeSelf(moved);
+        });
     }
     /// <summary>Removes one reading position without deleting its resource.</summary>
     public void RemoveSpineItem(int index) {
         XElement[] items = RequireSection("spine").Elements(Opf + "itemref").ToArray();
         if (index < 0 || index >= items.Length) throw new ArgumentOutOfRangeException(nameof(index));
-        items[index].Remove();
+        EditPackageElement(RequireSection("spine"), proposed => proposed.Elements(Opf + "itemref").ElementAt(index).Remove());
     }
     /// <summary>Removes an unreferenced declaration and its payload. Callers must first update content/navigation links.</summary>
     public void RemoveResource(string manifestId) {
         EpubManifestItem item = RequireManifestItem(manifestId);
         string path = RequireLocalPath(item);
-        if (Spine.Any(position => position.ManifestId == manifestId) || Manifest.Any(resource => resource.FallbackId == manifestId || resource.MediaOverlayId == manifestId) ||
+        if (Spine.Any(position => position.ManifestId == manifestId) || Manifest.Any(resource => resource.FallbackId == manifestId || resource.FallbackStyleId == manifestId || resource.MediaOverlayId == manifestId) ||
+            Root.Descendants().Where(element => element.Name == Opf + "meta" || element.Name == Opf + "link")
+                .Attributes("refines").Any(attribute => ReferencesPackageId(attribute.Value, manifestId)) ||
+            PackageResourceReferences(Root).Any(attribute => EpubReference.Resolve(PackagePath, attribute.Value).ContainerPath == path) ||
+            Root.Element(Opf + "bindings")?.Elements(Opf + "mediaType").Any(binding => (string?)binding.Attribute("handler") == manifestId) == true ||
             HasToken(item.Properties, "nav") || HasToken(item.Properties, "cover-image") ||
             RequireSection("metadata").Elements(Opf + "meta").Any(meta => (string?)meta.Attribute("name") == "cover" && (string?)meta.Attribute("content") == manifestId) ||
             item.MediaType == "application/x-dtbncx+xml" || _encryption.Any(encryption => encryption.Path == path))
             throw new InvalidOperationException("Resource is referenced by package structure or protection metadata.");
-        RequireSection("manifest").Elements(Opf + "item").Single(element => (string?)element.Attribute("id") == manifestId).Remove();
+        EditPackageElement(RequireSection("manifest"), proposed => proposed.Elements(Opf + "item").Single(element => (string?)element.Attribute("id") == manifestId).Remove());
         if (!Manifest.Any(resource => resource.Reference.ContainerPath == path) && _entries.TryGetValue(path, out byte[]? removed)) {
             _entries.Remove(path); _retainedBytes -= removed.LongLength;
         }
@@ -155,8 +178,9 @@ public sealed partial class EpubPublication {
     private static string RequireLocalPath(EpubManifestItem item) => item.Reference.Kind == EpubReferenceKind.Container && item.Reference.ContainerPath != null
         ? item.Reference.ContainerPath : throw new NotSupportedException("Remote resources have no retained package payload.");
     private void EnsurePayloadBudget(byte[] data, long replacedLength) {
-        if (data.LongLength > _maximumEntryBytes || data.LongLength > _maximumRetainedBytes - (_retainedBytes - replacedLength))
+        if (data.LongLength > _maximumEntryBytes)
             throw new InvalidDataException("Resource exceeds the publication's retained entry/expanded-byte limits.");
+        EnsurePackageBudget(_package, data.LongLength - replacedLength);
     }
     private string VerifyContentPath(string path) {
         if (!EpubReader.TryNormalizeArchiveEntryPath(path, out string normalized) || normalized != path || path.EndsWith("/", StringComparison.Ordinal) ||
