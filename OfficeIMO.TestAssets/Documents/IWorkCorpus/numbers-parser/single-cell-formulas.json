@@ -12,7 +12,7 @@
     "M12.2-7035.0.159-2",
     "M13.1-7037.0.101-2"
   ],
-  "qualification": "Native node-36 target identities and mixed coordinates; independent current-cell computations agree with numeric/text caches. Build metadata is retained in this manifest. No Apple export/render oracle.",
+  "qualification": "Native node-36 target identities and mixed coordinates, plus selected scalar function nodes; independent computations agree with numeric/text/Boolean caches. Scalar text cases use ASCII literals. Build metadata is retained in this manifest. No Apple export/render oracle.",
   "cases": [
     {
       "sourceSheet": "Reference",
@@ -166,6 +166,56 @@
           "targetUuid": "ef52d6c8000414823a45889c8b607828"
         }
       ]
+    }
+  ],
+  "scalarFunctionCases": [
+    {
+      "sourceSheet": "Text",
+      "sourceTable": "Tests",
+      "row": 9,
+      "column": 2,
+      "sourceFormula": "EXACT(\"HELLO\",\"HELLO\")",
+      "cachedValue": true,
+      "computedCurrentValue": true,
+      "functionIndex": 49,
+      "functionName": "EXACT",
+      "argumentCount": 2
+    },
+    {
+      "sourceSheet": "Text",
+      "sourceTable": "Tests",
+      "row": 10,
+      "column": 2,
+      "sourceFormula": "EXACT(\"hello\",\"hElLo\")",
+      "cachedValue": false,
+      "computedCurrentValue": false,
+      "functionIndex": 49,
+      "functionName": "EXACT",
+      "argumentCount": 2
+    },
+    {
+      "sourceSheet": "Text",
+      "sourceTable": "Tests",
+      "row": 21,
+      "column": 2,
+      "sourceFormula": "LOWER(\"E. E. Cummings\")",
+      "cachedValue": "e. e. cummings",
+      "computedCurrentValue": "e. e. cummings",
+      "functionIndex": 82,
+      "functionName": "LOWER",
+      "argumentCount": 1
+    },
+    {
+      "sourceSheet": "Text",
+      "sourceTable": "Tests",
+      "row": 43,
+      "column": 2,
+      "sourceFormula": "TRIM(\"     First Quarter Earnings    \")",
+      "cachedValue": "First Quarter Earnings",
+      "computedCurrentValue": "First Quarter Earnings",
+      "functionIndex": 155,
+      "functionName": "TRIM",
+      "argumentCount": 1
     }
   ]
 }

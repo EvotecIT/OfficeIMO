@@ -63,6 +63,11 @@
       "sampleArgumentCount": 1
     },
     {
+      "index": 49,
+      "name": "EXACT",
+      "sampleArgumentCount": 2
+    },
+    {
       "index": 52,
       "name": "FALSE",
       "sampleArgumentCount": 0
@@ -103,6 +108,11 @@
       "sampleArgumentCount": 1
     },
     {
+      "index": 82,
+      "name": "LOWER",
+      "sampleArgumentCount": 1
+    },
+    {
       "index": 84,
       "name": "MAX",
       "sampleArgumentCount": 1
@@ -135,6 +145,11 @@
     {
       "index": 90,
       "name": "MINUTE",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 96,
+      "name": "NOT",
       "sampleArgumentCount": 1
     },
     {
@@ -191,6 +206,21 @@
       "index": 145,
       "name": "SUMIF",
       "sampleArgumentCount": 2
+    },
+    {
+      "index": 155,
+      "name": "TRIM",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 156,
+      "name": "TRUE",
+      "sampleArgumentCount": 0
+    },
+    {
+      "index": 158,
+      "name": "UPPER",
+      "sampleArgumentCount": 1
     },
     {
       "index": 168,

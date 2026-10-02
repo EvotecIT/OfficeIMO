@@ -10,7 +10,7 @@
     "M11.1-7031.0.102-2",
     "M12.2-7035.0.159-2"
   ],
-  "qualification": "Native node-36 target identities and mixed coordinates; independent current-cell computations agree with numeric/text caches. Build metadata is retained in this manifest. No Apple export/render oracle.",
+  "qualification": "Native node-36 target identities and mixed coordinates, plus selected scalar function nodes; independent computations agree with numeric/text/Boolean caches. Scalar text cases use ASCII literals. Build metadata is retained in this manifest. No Apple export/render oracle.",
   "cases": [
     {
       "sourceSheet": "Formulas",
@@ -90,6 +90,32 @@
           "targetUuid": "6c7b94d07689558027497541e7701635"
         }
       ]
+    }
+  ],
+  "scalarFunctionCases": [
+    {
+      "sourceSheet": "Formulas",
+      "sourceTable": "Tests",
+      "row": 95,
+      "column": 2,
+      "sourceFormula": "NOT(0)",
+      "cachedValue": true,
+      "computedCurrentValue": true,
+      "functionIndex": 96,
+      "functionName": "NOT",
+      "argumentCount": 1
+    },
+    {
+      "sourceSheet": "Formulas",
+      "sourceTable": "Tests",
+      "row": 145,
+      "column": 2,
+      "sourceFormula": "UPPER(\"wiBble\")",
+      "cachedValue": "WIBBLE",
+      "computedCurrentValue": "WIBBLE",
+      "functionIndex": 158,
+      "functionName": "UPPER",
+      "argumentCount": 1
     }
   ]
 }

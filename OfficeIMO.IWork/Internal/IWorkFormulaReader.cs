@@ -35,6 +35,7 @@ internal static partial class IWorkFormulaReader {
         [33] = new("COUNTIF", 2, 2),
         [39] = new("DATE", 3, 3),
         [41] = new("DAY", 1, 1),
+        [49] = new("EXACT", 2, 2),
         [52] = new("FALSE", 0, 0),
         [53] = new("FIND", 2, 3),
         [60] = new("HOUR", 1, 1),
@@ -43,6 +44,7 @@ internal static partial class IWorkFormulaReader {
         [63] = new("INDEX", 2, 4),
         [76] = new("LEFT", 1, 2),
         [77] = new("LEN", 1, 1),
+        [82] = new("LOWER", 1, 1),
         [84] = new("MAX", 1, 255),
         [85] = new("MAXA", 1, 255),
         [86] = new("MEDIAN", 1, 255),
@@ -50,6 +52,7 @@ internal static partial class IWorkFormulaReader {
         [88] = new("MIN", 1, 255),
         [89] = new("MINA", 1, 255),
         [90] = new("MINUTE", 1, 1),
+        [96] = new("NOT", 1, 1),
         [97] = new("NOW", 0, 0),
         [101] = new("OFFSET", 3, 5),
         [102] = new("OR", 1, 255),
@@ -61,6 +64,9 @@ internal static partial class IWorkFormulaReader {
         [126] = new("ROUND", 2, 2),
         [132] = new("SECOND", 1, 1),
         [145] = new("SUMIF", 2, 3),
+        [155] = new("TRIM", 1, 1),
+        [156] = new("TRUE", 0, 0),
+        [158] = new("UPPER", 1, 1),
         [SumFunctionIndex] = new("SUM", 1, 255),
         [328] = new("TEXTJOIN", 3, 254)
     };

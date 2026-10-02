@@ -13,6 +13,8 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
         IWorkNumbersProjection projection = source.ReadNumbers();
         foreach (JsonElement expected in manifest.RootElement.GetProperty("cases").EnumerateArray())
             AssertSourceCell(projection, expected);
+        foreach (JsonElement expected in manifest.RootElement.GetProperty("scalarFunctionCases").EnumerateArray())
+            AssertSourceScalarFunction(projection, expected);
         using var result = source.ToExcelDocumentResult(new IWorkConversionOptions {
             AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         Assert.True(result.IsVisualFallback);
@@ -41,6 +43,11 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
                 sheet.GetFormulaText(row, column));
             Assert.Equal(expected.GetProperty("cachedValue").GetDouble(), sheet.CellAt(row, column).GetValue<double>());
         }
+        foreach (JsonElement expected in manifest.RootElement.GetProperty("scalarFunctionCases").EnumerateArray()) {
+            AssertSourceScalarFunction(result.Projection, expected);
+            AssertSavedScalarFunction(reopened, reopened.Sheets.Single(sheet => sheet.Name == Name(
+                expected.GetProperty("sourceSheet").GetString()!, expected.GetProperty("sourceTable").GetString()!)), expected);
+        }
         ExcelSheet formulas = reopened.Sheets.Single(sheet => sheet.Name == Name("Formulas", "Tests"));
         ExcelSheet data = reopened.Sheets.Single(sheet => sheet.Name == Name("Formulas", "Data"));
         data.CellValue(3, 3, 80d);
@@ -48,6 +55,13 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
         Assert.Equal(80d, formulas.CellAt(79, 2).GetValue<double>());
         Assert.Equal(80d, formulas.CellAt(102, 2).GetValue<double>());
         Assert.Equal(2d, formulas.CellAt(29, 2).GetValue<double>());
+        foreach (JsonElement expected in manifest.RootElement.GetProperty("scalarFunctionCases").EnumerateArray())
+            AssertSavedScalarFunction(reopened, formulas, expected);
+        formulas.CellFormula(95, 2, "NOT(1)");
+        formulas.CellFormula(145, 2, "UPPER(\"updated\")");
+        Assert.True(reopened.Calculate() > 0);
+        Assert.False(formulas.CellAt(95, 2).GetValue<bool>());
+        Assert.Equal("UPDATED", formulas.CellAt(145, 2).GetValue<string>());
 
         string Name(string sourceSheet, string sourceTable) => result.WorksheetMappings.Single(mapping =>
             mapping.SourceSheetName == sourceSheet && mapping.SourceTableName == sourceTable).DestinationName;
@@ -77,4 +91,28 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
         Assert.Equal(value, computed);
         return table;
     }
+
+    private static void AssertSourceScalarFunction(IWorkNumbersProjection projection, JsonElement expected) {
+        IWorkTableCell cell = projection.Sheets.Single(sheet => sheet.Name == expected.GetProperty("sourceSheet").GetString())
+            .Tables.Single(table => table.Name == expected.GetProperty("sourceTable").GetString())
+            .GetCell(expected.GetProperty("row").GetInt32(), expected.GetProperty("column").GetInt32())!;
+        Assert.True(cell.FormulaIsComplete);
+        Assert.True(cell.CachedValueIsComplete);
+        Assert.Equal("=" + expected.GetProperty("sourceFormula").GetString(), cell.Formula);
+        object value = ScalarValue(expected.GetProperty("cachedValue"));
+        Assert.Equal(value, cell.Value);
+        Assert.Equal(value, ScalarValue(expected.GetProperty("computedCurrentValue")));
+    }
+
+    private static void AssertSavedScalarFunction(ExcelDocument document, ExcelSheet sheet, JsonElement expected) {
+        int row = expected.GetProperty("row").GetInt32(), column = expected.GetProperty("column").GetInt32();
+        Assert.Equal(expected.GetProperty("sourceFormula").GetString(), sheet.GetFormulaText(row, column));
+        object value = ScalarValue(expected.GetProperty("cachedValue"));
+        object actual = value is bool ? sheet.CellAt(row, column).GetValue<bool>() : sheet.CellAt(row, column).GetValue<string>()!;
+        Assert.Equal(value, actual);
+        IWorkFormulaCacheAssertions.HasType(document, document.Sheets.ToList().IndexOf(sheet), "B" + row, value is bool ? "b" : "str");
+    }
+
+    private static object ScalarValue(JsonElement value) => value.ValueKind == JsonValueKind.String
+        ? value.GetString()! : value.GetBoolean();
 }

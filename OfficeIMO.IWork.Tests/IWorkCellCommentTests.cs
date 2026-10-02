@@ -46,7 +46,7 @@ public sealed partial class IWorkBoundaryTests {
             saved.Position = 0;
             using var artifact = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(saved, false);
             Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator(DocumentFormat.OpenXml.FileFormatVersions.Office2019).Validate(artifact));
-            var cellAnchor = Assert.Single(artifact.MainDocumentPart!.Document.Body!
+            var cellAnchor = Assert.Single(artifact.MainDocumentPart!.Document!.Body!
                 .Descendants<DocumentFormat.OpenXml.Wordprocessing.TableCell>());
             Assert.Equal(destination.Id, Assert.Single(cellAnchor.Descendants<DocumentFormat.OpenXml.Wordprocessing.CommentRangeStart>()).Id?.Value);
             Assert.Equal(destination.Id, Assert.Single(cellAnchor.Descendants<DocumentFormat.OpenXml.Wordprocessing.CommentRangeEnd>()).Id?.Value);
@@ -186,7 +186,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(2, result.Value.Comments.Count);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var artifact = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(saved, false);
-        var tables = artifact.MainDocumentPart!.Document.Body!.Elements<DocumentFormat.OpenXml.Wordprocessing.Table>().ToArray();
+        var tables = artifact.MainDocumentPart!.Document!.Body!.Elements<DocumentFormat.OpenXml.Wordprocessing.Table>().ToArray();
         Assert.Equal(2, tables.Length);
         Assert.Equal(2, tables.Select(t => Assert.Single(t.Descendants<DocumentFormat.OpenXml.Wordprocessing.CommentReference>()).Id!.Value).Distinct().Count());
         Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator(DocumentFormat.OpenXml.FileFormatVersions.Office2019).Validate(artifact));

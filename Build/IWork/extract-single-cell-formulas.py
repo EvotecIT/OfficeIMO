@@ -10,6 +10,7 @@ from importlib.metadata import version
 from pathlib import Path
 from zipfile import ZipFile
 from numbers_parser import Document
+from numbers_parser.generated.functionmap import FUNCTION_MAP
 from numbers_parser.numbers_uuid import NumbersUUID
 from numbers_parser.xrefs import xl_rowcol_to_cell
 
@@ -22,9 +23,11 @@ if version('numbers-parser') != '4.19.0':
 source_hash = hashlib.sha256(args.source.read_bytes()).hexdigest()
 qualified = {
     '4ce0593faa61bf159bde0752ade1fa202afcd142317ba16fdec8eb71a7149170':
-        ('test-all-formulas.numbers', [('Reference', 14), ('Reference', 83), ('Reference', 84), ('Math', 141), ('Statistical', 37)]),
+        ('test-all-formulas.numbers', [('Reference', 14), ('Reference', 83), ('Reference', 84), ('Math', 141), ('Statistical', 37)],
+         [('Text', 9), ('Text', 10), ('Text', 21), ('Text', 43)]),
     '3deb8e3b868be60d7b8924336d2839fcd690db2b138e6c2170d6c22c4aca48dc':
-        ('test-extra-formulas.numbers', [('Formulas', 29), ('Formulas', 79), ('Formulas', 102)])
+        ('test-extra-formulas.numbers', [('Formulas', 29), ('Formulas', 79), ('Formulas', 102)],
+         [('Formulas', 95), ('Formulas', 145)])
 }
 if source_hash not in qualified:
     raise RuntimeError('The source differs from the pinned independent fixture.')
@@ -32,7 +35,7 @@ document = Document(str(args.source))
 model = document._model
 targets = {t._table_id: (s, t) for s in document.sheets for t in s.tables}
 cases = []
-upstream_path, selections = qualified[source_hash]
+upstream_path, selections, scalar_selections = qualified[source_hash]
 for sheet_name, row in selections:
     sheet = document.sheets[sheet_name]
     table = sheet.tables['Tests']
@@ -76,6 +79,42 @@ for sheet_name, row in selections:
                   'sourceFormula': cell.formula, 'cachedValue': cell.value,
                   'computedCurrentValue': computed, 'targetSheet': target_sheet.name,
                   'targetTable': target.name, 'references': references})
+scalar_cases = []
+for sheet_name, row in scalar_selections:
+    table = document.sheets[sheet_name].tables['Tests']
+    cell = table.cell(row - 1, 1)
+    nodes = model.formula_ast(table._table_id)[cell._formula_id]
+    function = nodes[-1]
+    assert function.AST_node_type == 16
+    name = FUNCTION_MAP[function.AST_function_node_index]
+    arguments = nodes[:-1]
+    assert function.AST_function_node_numArgs == len(arguments)
+    if name == 'NOT':
+        assert len(arguments) == 1 and arguments[0].AST_node_type == 17
+        computed = arguments[0].AST_number_node_number == 0
+    else:
+        assert all(n.AST_node_type == 19 for n in arguments)
+        values = [n.AST_string_node_string for n in arguments]
+        # These fixtures contain ASCII arguments; they do not qualify locale/Unicode casing.
+        assert all(value.isascii() for value in values)
+        if name == 'EXACT':
+            assert len(values) == 2
+            computed = values[0] == values[1]
+        elif name == 'LOWER':
+            assert len(values) == 1
+            computed = values[0].lower()
+        elif name == 'UPPER':
+            assert len(values) == 1
+            computed = values[0].upper()
+        else:
+            assert name == 'TRIM' and len(values) == 1
+            computed = ' '.join(part for part in values[0].split(' ') if part)
+    assert type(computed) is type(cell.value) and computed == cell.value
+    scalar_cases.append({'sourceSheet': sheet_name, 'sourceTable': table.name, 'row': row, 'column': 2,
+                         'sourceFormula': cell.formula, 'cachedValue': cell.value,
+                         'computedCurrentValue': computed,
+                         'functionIndex': function.AST_function_node_index,
+                         'functionName': name, 'argumentCount': len(arguments)})
 with ZipFile(args.source) as package:
     builds = plistlib.loads(package.read('Metadata/BuildVersionHistory.plist'))
 manifest = {'upstream': 'https://github.com/masaccio/numbers-parser',
@@ -83,7 +122,7 @@ manifest = {'upstream': 'https://github.com/masaccio/numbers-parser',
             'upstreamPath': 'tests/data/' + upstream_path, 'sourceSha256': source_hash,
             'extractorVersion': 'numbers-parser 4.19.0', 'license': 'MIT, copyright Jon Connell',
             'buildVersionHistory': builds,
-            'qualification': 'Native node-36 target identities and mixed coordinates; independent current-cell computations agree with numeric/text caches. Build metadata is retained in this manifest. No Apple export/render oracle.',
-            'cases': cases}
+            'qualification': 'Native node-36 target identities and mixed coordinates, plus selected scalar function nodes; independent computations agree with numeric/text/Boolean caches. Scalar text cases use ASCII literals. Build metadata is retained in this manifest. No Apple export/render oracle.',
+            'cases': cases, 'scalarFunctionCases': scalar_cases}
 args.output.write_text(json.dumps(manifest, indent=2) + '\n')
-print(f'Extracted {len(cases)} independently checked formulas from {source_hash}')
+print(f'Extracted {len(cases)} reference and {len(scalar_cases)} scalar formulas from {source_hash}')
