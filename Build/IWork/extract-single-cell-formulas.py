@@ -5,6 +5,7 @@ Requires opt-in numbers-parser 4.19.0. Apple export and rendering equivalence re
 import argparse
 import hashlib
 import json
+import math
 import plistlib
 from importlib.metadata import version
 from pathlib import Path
@@ -115,6 +116,43 @@ for sheet_name, row in scalar_selections:
                          'computedCurrentValue': computed,
                          'functionIndex': function.AST_function_node_index,
                          'functionName': name, 'argumentCount': len(arguments)})
+numeric_cases = []
+if upstream_path == 'test-all-formulas.numbers':
+    table = document.sheets['Math'].tables['Tests']
+    for row in [46, 47, 48, 70, 71, 72, 73, 128, 129]:
+        cell = table.cell(row - 1, 1)
+        nodes = model.formula_ast(table._table_id)[cell._formula_id]
+        stack, functions = [], []
+        for node in nodes:
+            if node.AST_node_type == 17:
+                stack.append(node.AST_number_node_number)
+            elif node.AST_node_type == 13:
+                stack.append(-stack.pop())
+            else:
+                assert node.AST_node_type == 16
+                count = node.AST_function_node_numArgs
+                name = FUNCTION_MAP[node.AST_function_node_index]
+                values = stack[-count:]
+                del stack[-count:]
+                if name == 'INT':
+                    assert count == 1
+                    computed = math.floor(values[0])
+                elif name == 'MOD':
+                    assert count == 2 and values[1] != 0
+                    computed = values[0] - values[1] * math.floor(values[0] / values[1])
+                elif name == 'SQRT':
+                    assert count == 1 and values[0] >= 0
+                    computed = math.sqrt(values[0])
+                else:
+                    assert name == 'ABS' and count == 1
+                    computed = abs(values[0])
+                stack.append(computed)
+                functions.append({'index': node.AST_function_node_index, 'name': name, 'argumentCount': count})
+        assert len(stack) == 1 and stack[0] == cell.value
+        numeric_cases.append({'sourceSheet': 'Math', 'sourceTable': table.name, 'row': row, 'column': 2,
+                              'sourceFormula': cell.formula, 'cachedValue': cell.value,
+                              'computedCurrentValue': stack[0], 'nodeTypes': [n.AST_node_type for n in nodes],
+                              'functions': functions})
 with ZipFile(args.source) as package:
     builds = plistlib.loads(package.read('Metadata/BuildVersionHistory.plist'))
 manifest = {'upstream': 'https://github.com/masaccio/numbers-parser',
@@ -124,5 +162,8 @@ manifest = {'upstream': 'https://github.com/masaccio/numbers-parser',
             'buildVersionHistory': builds,
             'qualification': 'Native node-36 target identities and mixed coordinates, plus selected scalar function nodes; independent computations agree with numeric/text/Boolean caches. Scalar text cases use ASCII literals. Build metadata is retained in this manifest. No Apple export/render oracle.',
             'cases': cases, 'scalarFunctionCases': scalar_cases}
+if numeric_cases:
+    manifest['numericFunctionCases'] = numeric_cases
+    manifest['qualification'] += ' Nine numeric INT/MOD/SQRT expressions include unary negatives and nested ABS; independent computations agree with native caches.'
 args.output.write_text(json.dumps(manifest, indent=2) + '\n')
-print(f'Extracted {len(cases)} reference and {len(scalar_cases)} scalar formulas from {source_hash}')
+print(f'Extracted {len(cases)} reference, {len(scalar_cases)} scalar and {len(numeric_cases)} numeric formulas from {source_hash}')

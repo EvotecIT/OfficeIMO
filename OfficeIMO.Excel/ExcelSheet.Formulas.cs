@@ -678,6 +678,7 @@ namespace OfficeIMO.Excel {
                     string function = functionCall.Name.ToUpperInvariant();
                     string args = functionCall.Arguments;
                     if (function == "MATCH" || function == "XMATCH") return TryEvaluateMatchValue(function, args, out result);
+                    if (function is "INT" or "MOD" or "SQRT") return TryEvaluateScalarMathValue(function, args, out result);
                     if (function == "PROB") return TryEvaluateProbabilityValue(args, out result);
                     if (function == "RANDBETWEEN") return TryEvaluateRandomBetweenValue(args, out result);
                     if (function == "OFFSET") return TryEvaluateOffsetValue(args, out result);
@@ -777,6 +778,12 @@ namespace OfficeIMO.Excel {
             if (functionCall != null) {
                     string function = functionCall.Name.ToUpperInvariant();
                     string args = functionCall.Arguments;
+                    if (function is "INT" or "MOD" or "SQRT") {
+                        if (!TryEvaluateScalarMathValue(function, args, out FormulaArgumentValue value)) return false;
+                        if (value.IsError) { error = value; return false; }
+                        result = value.Number!.Value;
+                        return true;
+                    }
                     if (function == "PROB" || function == "RANDBETWEEN" || function == "OFFSET") {
                         bool evaluated = function == "PROB" ? TryEvaluateProbabilityValue(args, out FormulaArgumentValue value)
                             : function == "RANDBETWEEN" ? TryEvaluateRandomBetweenValue(args, out value)
@@ -1032,15 +1039,6 @@ namespace OfficeIMO.Excel {
                         return true;
                     }
 
-                    if (function == "INT") {
-                        if (numbers.Count != 1) {
-                            return false;
-                        }
-
-                        result = Math.Floor(numbers[0]);
-                        return true;
-                    }
-
                     if (function == "CEILING.MATH" || function == "FLOOR.MATH") {
                         if (numbers.Count < 1 || numbers.Count > 3 || !TryEvaluateMathRoundFunction(function, numbers, out result)) {
                             return false;
@@ -1071,15 +1069,6 @@ namespace OfficeIMO.Excel {
                         }
 
                         result = value;
-                        return true;
-                    }
-
-                    if (function == "SQRT") {
-                        if (numbers.Count != 1 || numbers[0] < 0) {
-                            return false;
-                        }
-
-                        result = Math.Sqrt(numbers[0]);
                         return true;
                     }
 
@@ -1120,15 +1109,6 @@ namespace OfficeIMO.Excel {
                         }
 
                         result = function == "RADIANS" ? numbers[0] * Math.PI / 180d : numbers[0] * 180d / Math.PI;
-                        return true;
-                    }
-
-                    if (function == "MOD") {
-                        if (numbers.Count != 2 || Math.Abs(numbers[1]) < double.Epsilon) {
-                            return false;
-                        }
-
-                        result = numbers[0] - numbers[1] * Math.Floor(numbers[0] / numbers[1]);
                         return true;
                     }
 

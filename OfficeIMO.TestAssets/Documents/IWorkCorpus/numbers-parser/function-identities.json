@@ -98,6 +98,11 @@
       "sampleArgumentCount": 2
     },
     {
+      "index": 65,
+      "name": "INT",
+      "sampleArgumentCount": 1
+    },
+    {
       "index": 76,
       "name": "LEFT",
       "sampleArgumentCount": 1
@@ -146,6 +151,11 @@
       "index": 90,
       "name": "MINUTE",
       "sampleArgumentCount": 1
+    },
+    {
+      "index": 92,
+      "name": "MOD",
+      "sampleArgumentCount": 2
     },
     {
       "index": 96,
@@ -200,6 +210,11 @@
     {
       "index": 132,
       "name": "SECOND",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 139,
+      "name": "SQRT",
       "sampleArgumentCount": 1
     },
     {

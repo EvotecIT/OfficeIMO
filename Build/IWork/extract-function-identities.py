@@ -22,10 +22,10 @@ assert source_hash == '9371c5b1d6ee4dfa17569097f064eba9c67f804d88b48638efbbeeb45
 samples = {'ABS': 1, 'AND': 1, 'AVERAGE': 1, 'AVERAGEA': 1, 'COLUMN': 0, 'COUNT': 1,
            'COUNTA': 1, 'COUNTBLANK': 1, 'COUNTIF': 2, 'DATE': 3, 'DAY': 1, 'EXACT': 2,
            'FALSE': 0, 'FIND': 2, 'HOUR': 1, 'HYPERLINK': 2, 'IF': 3,
-           'INDEX': 2, 'LEFT': 1, 'LEN': 1, 'LOWER': 1, 'MAX': 1, 'MAXA': 1, 'MEDIAN': 1,
-           'MID': 3, 'MIN': 1, 'MINA': 1, 'MINUTE': 1, 'NOT': 1, 'NOW': 0, 'OFFSET': 3, 'OR': 2, 'PI': 0,
+           'INDEX': 2, 'INT': 1, 'LEFT': 1, 'LEN': 1, 'LOWER': 1, 'MAX': 1, 'MAXA': 1, 'MEDIAN': 1,
+           'MID': 3, 'MIN': 1, 'MINA': 1, 'MINUTE': 1, 'MOD': 2, 'NOT': 1, 'NOW': 0, 'OFFSET': 3, 'OR': 2, 'PI': 0,
            'POWER': 2, 'PROB': 3, 'RANDBETWEEN': 2, 'RIGHT': 1, 'ROUND': 2, 'SECOND': 1,
-           'SUM': 1, 'SUMIF': 2, 'TEXTJOIN': 3, 'TRIM': 1, 'TRUE': 0, 'UPPER': 1}
+           'SQRT': 1, 'SUM': 1, 'SUMIF': 2, 'TEXTJOIN': 3, 'TRIM': 1, 'TRUE': 0, 'UPPER': 1}
 identities = [{'index': index, 'name': name, 'sampleArgumentCount': samples[name]}
               for index, name in FUNCTION_MAP.items() if name in samples]
 assert len(identities) == len(samples)

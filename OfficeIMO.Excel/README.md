@@ -867,6 +867,15 @@ supported function arguments. For example, `SUM(A1,2)*3` and
 and nested function evaluation are bounded to 128 levels; unsupported formulas
 continue to be reported explicitly rather than calculated from stale caches.
 
+`INT`, `MOD` and `SQRT` evaluate finite numeric scalar arguments, including
+references and nested expressions. Boolean operands retain the existing 0/1
+coercion. `INT` floors negative values; `MOD` uses the
+divisor's sign. A negative square root produces `#NUM!`, a zero divisor produces
+`#DIV/0!`, and a nonfinite result produces `#NUM!`. These errors replace old
+numeric caches and propagate through arithmetic and error handlers. Invalid
+argument counts, multi-cell scalar ranges and unsupported operand types remain
+unevaluated.
+
 `OFFSET` resolves a single-cell value or a rectangular reference argument for
 functions such as `SUM`, within worksheet bounds and 32 reference levels.
 Multi-cell scalar results, implicit intersection and spills remain unsupported.

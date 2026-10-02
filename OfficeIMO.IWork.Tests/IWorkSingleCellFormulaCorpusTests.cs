@@ -15,6 +15,8 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
             AssertSourceCell(projection, expected);
         foreach (JsonElement expected in manifest.RootElement.GetProperty("scalarFunctionCases").EnumerateArray())
             AssertSourceScalarFunction(projection, expected);
+        foreach (JsonElement expected in manifest.RootElement.GetProperty("numericFunctionCases").EnumerateArray())
+            AssertSourceScalarFunction(projection, expected);
         using var result = source.ToExcelDocumentResult(new IWorkConversionOptions {
             AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         Assert.True(result.IsVisualFallback);
@@ -114,5 +116,5 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
     }
 
     private static object ScalarValue(JsonElement value) => value.ValueKind == JsonValueKind.String
-        ? value.GetString()! : value.GetBoolean();
+        ? value.GetString()! : value.ValueKind == JsonValueKind.Number ? value.GetDouble() : value.GetBoolean();
 }

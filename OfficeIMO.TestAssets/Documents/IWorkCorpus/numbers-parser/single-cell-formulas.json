@@ -12,7 +12,7 @@
     "M12.2-7035.0.159-2",
     "M13.1-7037.0.101-2"
   ],
-  "qualification": "Native node-36 target identities and mixed coordinates, plus selected scalar function nodes; independent computations agree with numeric/text/Boolean caches. Scalar text cases use ASCII literals. Build metadata is retained in this manifest. No Apple export/render oracle.",
+  "qualification": "Native node-36 target identities and mixed coordinates, plus selected scalar function nodes; independent computations agree with numeric/text/Boolean caches. Scalar text cases use ASCII literals. Build metadata is retained in this manifest. No Apple export/render oracle. Nine numeric INT/MOD/SQRT expressions include unary negatives and nested ABS; independent computations agree with native caches.",
   "cases": [
     {
       "sourceSheet": "Reference",
@@ -216,6 +216,204 @@
       "functionIndex": 155,
       "functionName": "TRIM",
       "argumentCount": 1
+    }
+  ],
+  "numericFunctionCases": [
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 46,
+      "column": 2,
+      "sourceFormula": "INT(-8.9)",
+      "cachedValue": -9.0,
+      "computedCurrentValue": -9,
+      "nodeTypes": [
+        17,
+        13,
+        16
+      ],
+      "functions": [
+        {
+          "index": 65,
+          "name": "INT",
+          "argumentCount": 1
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 47,
+      "column": 2,
+      "sourceFormula": "INT(0)",
+      "cachedValue": 0.0,
+      "computedCurrentValue": 0,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 65,
+          "name": "INT",
+          "argumentCount": 1
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 48,
+      "column": 2,
+      "sourceFormula": "INT(8.9)",
+      "cachedValue": 8.0,
+      "computedCurrentValue": 8,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 65,
+          "name": "INT",
+          "argumentCount": 1
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 70,
+      "column": 2,
+      "sourceFormula": "MOD(-3,-2)",
+      "cachedValue": -1.0,
+      "computedCurrentValue": -1.0,
+      "nodeTypes": [
+        17,
+        13,
+        17,
+        13,
+        16
+      ],
+      "functions": [
+        {
+          "index": 92,
+          "name": "MOD",
+          "argumentCount": 2
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 71,
+      "column": 2,
+      "sourceFormula": "MOD(-3,2)",
+      "cachedValue": 1.0,
+      "computedCurrentValue": 1.0,
+      "nodeTypes": [
+        17,
+        13,
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 92,
+          "name": "MOD",
+          "argumentCount": 2
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 72,
+      "column": 2,
+      "sourceFormula": "MOD(3,-2)",
+      "cachedValue": -1.0,
+      "computedCurrentValue": -1.0,
+      "nodeTypes": [
+        17,
+        17,
+        13,
+        16
+      ],
+      "functions": [
+        {
+          "index": 92,
+          "name": "MOD",
+          "argumentCount": 2
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 73,
+      "column": 2,
+      "sourceFormula": "MOD(3,2)",
+      "cachedValue": 1.0,
+      "computedCurrentValue": 1.0,
+      "nodeTypes": [
+        17,
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 92,
+          "name": "MOD",
+          "argumentCount": 2
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 128,
+      "column": 2,
+      "sourceFormula": "SQRT(16)",
+      "cachedValue": 4.0,
+      "computedCurrentValue": 4.0,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 139,
+          "name": "SQRT",
+          "argumentCount": 1
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 129,
+      "column": 2,
+      "sourceFormula": "SQRT(ABS(-16))",
+      "cachedValue": 4.0,
+      "computedCurrentValue": 4.0,
+      "nodeTypes": [
+        17,
+        13,
+        16,
+        16
+      ],
+      "functions": [
+        {
+          "index": 1,
+          "name": "ABS",
+          "argumentCount": 1
+        },
+        {
+          "index": 139,
+          "name": "SQRT",
+          "argumentCount": 1
+        }
+      ]
     }
   ]
 }
