@@ -234,6 +234,8 @@ public sealed class IWorkPagesSection {
         EvenPageFooterContents = Freeze(evenPageFooters);
         DefaultPageHeaderContents = Freeze(defaultPageHeaders);
         DefaultPageFooterContents = Freeze(defaultPageFooters);
+        SelectedHeaderContents = SelectContents(FirstPageHeaderContents, EvenPageHeaderContents, DefaultPageHeaderContents);
+        SelectedFooterContents = SelectContents(FirstPageFooterContents, EvenPageFooterContents, DefaultPageFooterContents);
         HeaderContents = Array.AsReadOnly(FirstPageHeaderContents
             .Concat(EvenPageHeaderContents).Concat(DefaultPageHeaderContents).ToArray());
         FooterContents = Array.AsReadOnly(FirstPageFooterContents
@@ -266,10 +268,20 @@ public sealed class IWorkPagesSection {
     public IReadOnlyList<IWorkTextContent> DefaultPageHeaderContents { get; }
     /// <summary>Gets rich default odd-page footer storages.</summary>
     public IReadOnlyList<IWorkTextContent> DefaultPageFooterContents { get; }
+    /// <summary>Gets header storages selected by section settings, in first/even/default template order. This is a semantic inventory, not a rendered page count.</summary>
+    public IReadOnlyList<IWorkTextContent> SelectedHeaderContents { get; }
+    /// <summary>Gets footer storages selected by section settings, in first/even/default template order. This is a semantic inventory, not a rendered page count.</summary>
+    public IReadOnlyList<IWorkTextContent> SelectedFooterContents { get; }
     /// <summary>Gets all rich header storages in first/even/default source-template order.</summary>
     public IReadOnlyList<IWorkTextContent> HeaderContents { get; }
     /// <summary>Gets all rich footer storages in first/even/default source-template order.</summary>
     public IReadOnlyList<IWorkTextContent> FooterContents { get; }
+
+    private IReadOnlyList<IWorkTextContent> SelectContents(IReadOnlyList<IWorkTextContent> first,
+        IReadOnlyList<IWorkTextContent> even, IReadOnlyList<IWorkTextContent> defaults) =>
+        Array.AsReadOnly((DifferentFirstPage && !HideFirstPageHeadersAndFooters ? first : Array.Empty<IWorkTextContent>())
+            .Concat(DifferentOddAndEvenPages ? even : Array.Empty<IWorkTextContent>())
+            .Concat(defaults).ToArray());
 
     private static IReadOnlyList<IWorkTextContent> Freeze(
         IReadOnlyList<IWorkTextContent>? contents) =>

@@ -54,8 +54,8 @@ internal sealed partial class IWorkReadProjection {
             if (Identity(drawable) is { } identity && inlineDrawables.Contains(identity.RecordIdentifier)) continue;
             AddDrawable(drawable);
         }
-        foreach (IWorkTextContent header in source.HeaderContents) AddRichContent(page, header, "header");
-        foreach (IWorkTextContent footer in source.FooterContents) AddRichContent(page, footer, "footer");
+        foreach (IWorkTextContent header in source.Sections.SelectMany(section => section.SelectedHeaderContents)) AddRichContent(page, header, "header");
+        foreach (IWorkTextContent footer in source.Sections.SelectMany(section => section.SelectedFooterContents)) AddRichContent(page, footer, "footer");
         if (source.PageLayout is { } layout) {
             page.Width = layout.WidthPoints;
             page.Height = layout.HeightPoints;

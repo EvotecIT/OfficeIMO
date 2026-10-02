@@ -126,8 +126,8 @@ public sealed partial class IWorkPagesProjection {
             kind == IWorkProjectionKind.VisualFallback
                 ? 0
                 : Body.Paragraphs.Count
-                    + ReconstructedSections(reconstructedSectionCount).Sum(section => section.HeaderContents.Sum(content => content.Paragraphs.Count)
-                        + section.FooterContents.Sum(content => content.Paragraphs.Count))
+                    + ReconstructedSections(reconstructedSectionCount).Sum(section => section.SelectedHeaderContents.Sum(content => content.Paragraphs.Count)
+                        + section.SelectedFooterContents.Sum(content => content.Paragraphs.Count))
                     + TextBoxObjects.Count + Images.Count
                     + Tables.Count(table => table.RowCount > 0 && table.ColumnCount > 0)
                     + Tables.Where(table => table.RowCount > 0 && table.ColumnCount > 0).Sum(table => table.Cells.Count),

@@ -7,7 +7,7 @@ public sealed partial class IWorkPagesProjection {
         yield return SourceIdentity;
         if (Body.IsTextComplete || Body.Paragraphs.Count > 0) yield return Body.SourceIdentity;
         foreach (IWorkTextContent content in ReconstructedSections(sectionCount)
-                     .SelectMany(section => section.HeaderContents.Concat(section.FooterContents)))
+                     .SelectMany(section => section.SelectedHeaderContents.Concat(section.SelectedFooterContents)))
             yield return content.SourceIdentity;
         foreach (IWorkTextBox text in TextBoxObjects.Where(text => text.Content.IsTextComplete || text.Content.Paragraphs.Count > 0))
             yield return text.Content.SourceIdentity;
@@ -22,7 +22,7 @@ public sealed partial class IWorkPagesProjection {
         if (!Body.IsTextComplete && Body.Paragraphs.Count == 0) yield return Body.SourceIdentity;
         foreach (IWorkObjectIdentity identity in OmittedSourceUnits) yield return identity;
         foreach (IWorkTextContent content in Sections.Skip(sectionCount ?? Sections.Count)
-                     .SelectMany(section => section.HeaderContents.Concat(section.FooterContents)))
+                     .SelectMany(section => section.SelectedHeaderContents.Concat(section.SelectedFooterContents)))
             yield return content.SourceIdentity;
         foreach (IWorkObjectIdentity identity in Tables.SelectMany(table => table.OmittedTextUnits)) yield return identity;
         foreach (IWorkTable table in Tables.Where(table => table.RowCount == 0 || table.ColumnCount == 0)) {

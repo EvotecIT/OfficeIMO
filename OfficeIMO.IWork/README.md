@@ -196,4 +196,4 @@ Numbers-to-XLSX conversion writes qualified roots through the Excel threaded-com
 
 ### Pages section headers and footers
 
-Pages section projections distinguish stored header/footer templates (`HasFirstPageTemplate`, `HasEvenPageTemplate`, `HasDefaultPageTemplate`) from their selection settings (`DifferentFirstPage`, `DifferentOddAndEvenPages`, `HideFirstPageHeadersAndFooters`). Stored alternate templates may be inactive.
+Pages section projections distinguish stored header/footer templates (`HasFirstPageTemplate`, `HasEvenPageTemplate`, `HasDefaultPageTemplate`) from their selection settings (`DifferentFirstPage`, `DifferentOddAndEvenPages`, `HideFirstPageHeadersAndFooters`). Stored alternate templates may be inactive. `SelectedHeaderContents` and `SelectedFooterContents` expose the semantic inventory selected by those settings. Reader extraction and conversion-report counts use that inventory; it does not establish how many rendered pages use each template.
