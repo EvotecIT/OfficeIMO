@@ -54,6 +54,7 @@ function Get-DocumentationUrl {
         '^OfficeIMO\.Epub' { return '/docs/epub/' }
         '^OfficeIMO\.CSV' { return '/docs/csv/' }
         '^OfficeIMO\.Visio' { return '/docs/visio/' }
+        '^OfficeIMO\.Project' { return '/docs/project/' }
         '^OfficeIMO\.Reader' { return '/docs/reader/' }
         '^OfficeIMO\.GoogleWorkspace|Google(Docs|Sheets|Slides)$' { return '/docs/google-workspace/' }
         default { return '/docs/capabilities/packages/' }

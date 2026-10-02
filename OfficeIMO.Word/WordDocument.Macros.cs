@@ -1,7 +1,5 @@
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Adds support for VBA macros.
-    /// </summary>
+    // Adds support for VBA macros.
     public partial class WordDocument {
         /// <summary>
         /// Provides basic support for VBA macro projects.

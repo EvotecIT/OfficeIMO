@@ -1,0 +1,10 @@
+[
+  {
+    "title": "Read and convert email messages",
+    "url": "/docs/email/",
+    "kind": "guide",
+    "targets": [
+      "OfficeIMO.Email.EmailDocument"
+    ]
+  }
+]

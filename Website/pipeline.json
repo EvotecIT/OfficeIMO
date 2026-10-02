@@ -170,227 +170,165 @@
     },
     {
       "task": "dotnet-build",
-      "id": "build-word",
-      "project": "../OfficeIMO.Word/OfficeIMO.Word.csproj",
+      "id": "build-api-net8-0-optional",
+      "projects": [
+        "../OfficeIMO.Word/OfficeIMO.Word.csproj",
+        "../OfficeIMO.Excel/OfficeIMO.Excel.csproj",
+        "../OfficeIMO.Excel.Pdf/OfficeIMO.Excel.Pdf.csproj",
+        "../OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
+        "../OfficeIMO.Markdown/OfficeIMO.Markdown.csproj",
+        "../OfficeIMO.CSV/OfficeIMO.CSV.csproj",
+        "../OfficeIMO.Visio/OfficeIMO.Visio.csproj",
+        "../OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj",
+        "../OfficeIMO.Ocr/OfficeIMO.Ocr.csproj",
+        "../OfficeIMO.Ocr.Process/OfficeIMO.Ocr.Process.csproj",
+        "../OfficeIMO.Ocr.Tesseract/OfficeIMO.Ocr.Tesseract.csproj",
+        "../OfficeIMO.Reader.Ocr/OfficeIMO.Reader.Ocr.csproj",
+        "../OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
+        "../OfficeIMO.Pdf.Ocr/OfficeIMO.Pdf.Ocr.csproj",
+        "../OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
+        "../OfficeIMO.Html/OfficeIMO.Html.csproj",
+        "../OfficeIMO.Html.Rtf/OfficeIMO.Html.Rtf.csproj",
+        "../OfficeIMO.Mhtml/OfficeIMO.Mhtml.csproj",
+        "../OfficeIMO.Email.Image/OfficeIMO.Email.Image.csproj",
+        "../OfficeIMO.Mhtml.Pdf/OfficeIMO.Mhtml.Pdf.csproj",
+        "../OfficeIMO.Email/OfficeIMO.Email.csproj",
+        "../OfficeIMO.OneNote/OfficeIMO.OneNote.csproj",
+        "../OfficeIMO.OpenDocument/OfficeIMO.OpenDocument.csproj",
+        "../OfficeIMO.GoogleWorkspace/OfficeIMO.GoogleWorkspace.csproj",
+        "../OfficeIMO.GoogleWorkspace.Drive/OfficeIMO.GoogleWorkspace.Drive.csproj",
+        "../OfficeIMO.GoogleWorkspace.Auth.GoogleApis/OfficeIMO.GoogleWorkspace.Auth.GoogleApis.csproj",
+        "../OfficeIMO.GoogleWorkspace.Sync/OfficeIMO.GoogleWorkspace.Sync.csproj"
+      ],
       "configuration": "Release",
       "framework": "net8.0",
       "skipIfProjectMissing": true
     },
     {
       "task": "dotnet-build",
-      "id": "build-excel",
-      "project": "../OfficeIMO.Excel/OfficeIMO.Excel.csproj",
+      "id": "build-api-net8-0",
+      "projects": [
+        "../OfficeIMO.Adf/OfficeIMO.Adf.csproj",
+        "../OfficeIMO.AsciiDoc/OfficeIMO.AsciiDoc.csproj",
+        "../OfficeIMO.AsciiDoc.Markdown/OfficeIMO.AsciiDoc.Markdown.csproj",
+        "../OfficeIMO.AsciiDoc.Pdf/OfficeIMO.AsciiDoc.Pdf.csproj",
+        "../OfficeIMO.Bibliography/OfficeIMO.Bibliography.csproj",
+        "../OfficeIMO.ChartForgeX/OfficeIMO.ChartForgeX.csproj",
+        "../OfficeIMO.Confluence/OfficeIMO.Confluence.csproj",
+        "../OfficeIMO.Core/OfficeIMO.Core.csproj",
+        "../OfficeIMO.Data.Arrow/OfficeIMO.Data.Arrow.csproj",
+        "../OfficeIMO.DocBook/OfficeIMO.DocBook.csproj",
+        "../OfficeIMO.Drawing.CodeGlyphX/OfficeIMO.Drawing.CodeGlyphX.csproj",
+        "../OfficeIMO.Drawing.HarfBuzz/OfficeIMO.Drawing.HarfBuzz.csproj",
+        "../OfficeIMO.Email.Html/OfficeIMO.Email.Html.csproj",
+        "../OfficeIMO.Epub/OfficeIMO.Epub.csproj",
+        "../OfficeIMO.Epub.Image/OfficeIMO.Epub.Image.csproj",
+        "../OfficeIMO.Excel.IWork/OfficeIMO.Excel.IWork.csproj",
+        "../OfficeIMO.Excel.Csv/OfficeIMO.Excel.Csv.csproj",
+        "../OfficeIMO.Excel.OpenDocument/OfficeIMO.Excel.OpenDocument.csproj",
+        "../OfficeIMO.Excel.GoogleSheets/OfficeIMO.Excel.GoogleSheets.csproj",
+        "../OfficeIMO.Excel.Html/OfficeIMO.Excel.Html.csproj",
+        "../OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj",
+        "../OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj",
+        "../OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj",
+        "../OfficeIMO.Html.Pdf.Browser/OfficeIMO.Html.Pdf.Browser.csproj",
+        "../OfficeIMO.IWork/OfficeIMO.IWork.csproj",
+        "../OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj",
+        "../OfficeIMO.Invoicing.Validation/OfficeIMO.Invoicing.Validation.csproj",
+        "../OfficeIMO.Invoicing.KSeF/OfficeIMO.Invoicing.KSeF.csproj",
+        "../OfficeIMO.Invoicing.Pdf/OfficeIMO.Invoicing.Pdf.csproj",
+        "../OfficeIMO.Latex/OfficeIMO.Latex.csproj",
+        "../OfficeIMO.Latex.Markdown/OfficeIMO.Latex.Markdown.csproj",
+        "../OfficeIMO.Latex.Pdf/OfficeIMO.Latex.Pdf.csproj",
+        "../OfficeIMO.Markdown.Html/OfficeIMO.Markdown.Html.csproj",
+        "../OfficeIMO.Markdown.Pdf/OfficeIMO.Markdown.Pdf.csproj",
+        "../OfficeIMO.Rtf.Markdown/OfficeIMO.Rtf.Markdown.csproj",
+        "../OfficeIMO.MarkdownRenderer/OfficeIMO.MarkdownRenderer.csproj",
+        "../OfficeIMO.MarkdownRenderer.IntelligenceX/OfficeIMO.MarkdownRenderer.IntelligenceX.csproj",
+        "../OfficeIMO.MarkdownRenderer.Wpf/OfficeIMO.MarkdownRenderer.Wpf.csproj",
+        "../OfficeIMO.OpenDocument.Odp.Pdf/OfficeIMO.OpenDocument.Odp.Pdf.csproj",
+        "../OfficeIMO.OpenDocument.Ods.Pdf/OfficeIMO.OpenDocument.Ods.Pdf.csproj",
+        "../OfficeIMO.OpenDocument.Odt.Pdf/OfficeIMO.OpenDocument.Odt.Pdf.csproj",
+        "../OfficeIMO.OneNote.Html/OfficeIMO.OneNote.Html.csproj",
+        "../OfficeIMO.OneNote.Markdown/OfficeIMO.OneNote.Markdown.csproj",
+        "../OfficeIMO.OneNote.Pdf/OfficeIMO.OneNote.Pdf.csproj",
+        "../OfficeIMO.Project/OfficeIMO.Project.csproj",
+        "../OfficeIMO.Opml/OfficeIMO.Opml.csproj",
+        "../OfficeIMO.Provenance.C2pa/OfficeIMO.Provenance.C2pa.csproj",
+        "../OfficeIMO.Security/OfficeIMO.Security.csproj",
+        "../OfficeIMO.PowerPoint.IWork/OfficeIMO.PowerPoint.IWork.csproj",
+        "../OfficeIMO.PowerPoint.GoogleSlides/OfficeIMO.PowerPoint.GoogleSlides.csproj",
+        "../OfficeIMO.PowerPoint.OpenDocument/OfficeIMO.PowerPoint.OpenDocument.csproj",
+        "../OfficeIMO.PowerPoint.Html/OfficeIMO.PowerPoint.Html.csproj",
+        "../OfficeIMO.PowerPoint.Pdf/OfficeIMO.PowerPoint.Pdf.csproj",
+        "../OfficeIMO.Reader.All/OfficeIMO.Reader.All.csproj",
+        "../OfficeIMO.Reader.AsciiDoc/OfficeIMO.Reader.AsciiDoc.csproj",
+        "../OfficeIMO.Reader.Csv/OfficeIMO.Reader.Csv.csproj",
+        "../OfficeIMO.Reader.DocBook/OfficeIMO.Reader.DocBook.csproj",
+        "../OfficeIMO.Reader.Email/OfficeIMO.Reader.Email.csproj",
+        "../OfficeIMO.Reader.Excel/OfficeIMO.Reader.Excel.csproj",
+        "../OfficeIMO.Reader.Epub/OfficeIMO.Reader.Epub.csproj",
+        "../OfficeIMO.Reader.Html/OfficeIMO.Reader.Html.csproj",
+        "../OfficeIMO.Reader.Image/OfficeIMO.Reader.Image.csproj",
+        "../OfficeIMO.Reader.IWork/OfficeIMO.Reader.IWork.csproj",
+        "../OfficeIMO.Reader.Json/OfficeIMO.Reader.Json.csproj",
+        "../OfficeIMO.Reader.Latex/OfficeIMO.Reader.Latex.csproj",
+        "../OfficeIMO.Reader.Markdown/OfficeIMO.Reader.Markdown.csproj",
+        "../OfficeIMO.Reader.Notebook/OfficeIMO.Reader.Notebook.csproj",
+        "../OfficeIMO.Reader.OpenDocument/OfficeIMO.Reader.OpenDocument.csproj",
+        "../OfficeIMO.Reader.OneNote/OfficeIMO.Reader.OneNote.csproj",
+        "../OfficeIMO.Reader.Opml/OfficeIMO.Reader.Opml.csproj",
+        "../OfficeIMO.Reader.Pdf/OfficeIMO.Reader.Pdf.csproj",
+        "../OfficeIMO.Reader.PowerPoint/OfficeIMO.Reader.PowerPoint.csproj",
+        "../OfficeIMO.Reader.Rtf/OfficeIMO.Reader.Rtf.csproj",
+        "../OfficeIMO.Reader.Subtitles/OfficeIMO.Reader.Subtitles.csproj",
+        "../OfficeIMO.Reader.Visio/OfficeIMO.Reader.Visio.csproj",
+        "../OfficeIMO.Reader.Web/OfficeIMO.Reader.Web.csproj",
+        "../OfficeIMO.Reader.Word/OfficeIMO.Reader.Word.csproj",
+        "../OfficeIMO.Reader.Xml/OfficeIMO.Reader.Xml.csproj",
+        "../OfficeIMO.Reader.Yaml/OfficeIMO.Reader.Yaml.csproj",
+        "../OfficeIMO.Reader.Zip/OfficeIMO.Reader.Zip.csproj",
+        "../OfficeIMO.Rtf/OfficeIMO.Rtf.csproj",
+        "../OfficeIMO.Rtf.Pdf/OfficeIMO.Rtf.Pdf.csproj",
+        "../OfficeIMO.Visio.Pdf/OfficeIMO.Visio.Pdf.csproj",
+        "../OfficeIMO.Word.IWork/OfficeIMO.Word.IWork.csproj",
+        "../OfficeIMO.Word.OpenDocument/OfficeIMO.Word.OpenDocument.csproj",
+        "../OfficeIMO.Word.GoogleDocs/OfficeIMO.Word.GoogleDocs.csproj",
+        "../OfficeIMO.Word.Html/OfficeIMO.Word.Html.csproj",
+        "../OfficeIMO.Word.Markdown/OfficeIMO.Word.Markdown.csproj",
+        "../OfficeIMO.Word.Rtf/OfficeIMO.Word.Rtf.csproj",
+        "../OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
+        "../OfficeIMO.Zip/OfficeIMO.Zip.csproj"
+      ],
       "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
+      "framework": "net8.0"
     },
     {
       "task": "dotnet-build",
-      "id": "build-excel-pdf",
-      "project": "../OfficeIMO.Excel.Pdf/OfficeIMO.Excel.Pdf.csproj",
+      "id": "build-api-net10-0",
+      "projects": [
+        "../OfficeIMO.AI/OfficeIMO.AI.csproj",
+        "../OfficeIMO.AI.IntelligenceX/OfficeIMO.AI.IntelligenceX.csproj"
+      ],
       "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
+      "framework": "net10.0"
     },
     {
       "task": "dotnet-build",
-      "id": "build-powerpoint",
-      "project": "../OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
+      "id": "build-api-netstandard2-0",
+      "projects": [
+        "../OfficeIMO.Data.Generators/OfficeIMO.Data.Generators.csproj"
+      ],
       "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-markdown",
-      "project": "../OfficeIMO.Markdown/OfficeIMO.Markdown.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-csv",
-      "project": "../OfficeIMO.CSV/OfficeIMO.CSV.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-visio",
-      "project": "../OfficeIMO.Visio/OfficeIMO.Visio.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-reader",
-      "project": "../OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-ocr",
-      "project": "../OfficeIMO.Ocr/OfficeIMO.Ocr.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-ocr-process",
-      "project": "../OfficeIMO.Ocr.Process/OfficeIMO.Ocr.Process.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-ocr-tesseract",
-      "project": "../OfficeIMO.Ocr.Tesseract/OfficeIMO.Ocr.Tesseract.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-reader-ocr",
-      "project": "../OfficeIMO.Reader.Ocr/OfficeIMO.Reader.Ocr.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-pdf",
-      "project": "../OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-pdf-ocr",
-      "project": "../OfficeIMO.Pdf.Ocr/OfficeIMO.Pdf.Ocr.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-word-pdf",
-      "project": "../OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-html",
-      "project": "../OfficeIMO.Html/OfficeIMO.Html.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-html-rtf",
-      "project": "../OfficeIMO.Html.Rtf/OfficeIMO.Html.Rtf.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-mhtml",
-      "project": "../OfficeIMO.Mhtml/OfficeIMO.Mhtml.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-email-image",
-      "project": "../OfficeIMO.Email.Image/OfficeIMO.Email.Image.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-mhtml-pdf",
-      "project": "../OfficeIMO.Mhtml.Pdf/OfficeIMO.Mhtml.Pdf.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-email",
-      "project": "../OfficeIMO.Email/OfficeIMO.Email.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-onenote",
-      "project": "../OfficeIMO.OneNote/OfficeIMO.OneNote.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-open-document",
-      "project": "../OfficeIMO.OpenDocument/OfficeIMO.OpenDocument.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-google-workspace",
-      "project": "../OfficeIMO.GoogleWorkspace/OfficeIMO.GoogleWorkspace.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-google-workspace-drive",
-      "project": "../OfficeIMO.GoogleWorkspace.Drive/OfficeIMO.GoogleWorkspace.Drive.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-google-workspace-auth",
-      "project": "../OfficeIMO.GoogleWorkspace.Auth.GoogleApis/OfficeIMO.GoogleWorkspace.Auth.GoogleApis.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-google-workspace-sync",
-      "project": "../OfficeIMO.GoogleWorkspace.Sync/OfficeIMO.GoogleWorkspace.Sync.csproj",
-      "configuration": "Release",
-      "framework": "net8.0",
-      "skipIfProjectMissing": true
+      "framework": "netstandard2.0"
     },
     {
       "task": "release-hub",
       "id": "build-release-hub",
       "dependsOn": [
-        "build-word"
+        "build-api-net8-0-optional"
       ],
-      "source": "github",
+      "source": "GitHub",
       "repo": "EvotecIT/OfficeIMO",
       "tokenEnv": "GITHUB_TOKEN",
       "out": "./data/release-hub.json",
@@ -735,7 +673,7 @@
       "task": "exec",
       "id": "generate-excel-benchmark-data",
       "dependsOn": [
-        "build-excel"
+        "build-api-net8-0-optional"
       ],
       "command": "pwsh",
       "argsList": [
@@ -773,24 +711,7 @@
       "dependsOn": [
         "sync-sources",
         "test-documentation-contracts",
-        "build-word",
-        "build-excel",
-        "build-excel-pdf",
-        "build-powerpoint",
-        "build-markdown",
-        "build-csv",
-        "build-visio",
-        "build-reader",
-        "build-pdf",
-        "build-word-pdf",
-        "build-html",
-        "build-email",
-        "build-onenote",
-        "build-open-document",
-        "build-google-workspace",
-        "build-google-workspace-drive",
-        "build-google-workspace-auth",
-        "build-google-workspace-sync",
+        "build-api-net8-0-optional",
         "build-release-hub",
         "build-ecosystem-stats",
         "generate-benchmark-overview"
@@ -802,7 +723,9 @@
     {
       "task": "overlay",
       "id": "deploy-theme-css",
-      "dependsOn": "build-site",
+      "dependsOn": [
+        "build-site"
+      ],
       "source": "./themes/officeimo/assets",
       "destination": "./_site/css",
       "clean": false,
@@ -826,668 +749,10 @@
       "workingDirectory": "."
     },
     {
-      "task": "dotnet-build",
-      "id": "build-api-adf",
-      "project": "../OfficeIMO.Adf/OfficeIMO.Adf.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-ai",
-      "project": "../OfficeIMO.AI/OfficeIMO.AI.csproj",
-      "configuration": "Release",
-      "framework": "net10.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-ai-intelligence-x",
-      "project": "../OfficeIMO.AI.IntelligenceX/OfficeIMO.AI.IntelligenceX.csproj",
-      "configuration": "Release",
-      "framework": "net10.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-ascii-doc",
-      "project": "../OfficeIMO.AsciiDoc/OfficeIMO.AsciiDoc.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-ascii-doc-markdown",
-      "project": "../OfficeIMO.AsciiDoc.Markdown/OfficeIMO.AsciiDoc.Markdown.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-ascii-doc-pdf",
-      "project": "../OfficeIMO.AsciiDoc.Pdf/OfficeIMO.AsciiDoc.Pdf.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-bibliography",
-      "project": "../OfficeIMO.Bibliography/OfficeIMO.Bibliography.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-chart-forge-x",
-      "project": "../OfficeIMO.ChartForgeX/OfficeIMO.ChartForgeX.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-confluence",
-      "project": "../OfficeIMO.Confluence/OfficeIMO.Confluence.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-core",
-      "project": "../OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-data-arrow",
-      "project": "../OfficeIMO.Data.Arrow/OfficeIMO.Data.Arrow.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-data-generators",
-      "project": "../OfficeIMO.Data.Generators/OfficeIMO.Data.Generators.csproj",
-      "configuration": "Release",
-      "framework": "netstandard2.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-doc-book",
-      "project": "../OfficeIMO.DocBook/OfficeIMO.DocBook.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-drawing-code-glyph-x",
-      "project": "../OfficeIMO.Drawing.CodeGlyphX/OfficeIMO.Drawing.CodeGlyphX.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-drawing-harf-buzz",
-      "project": "../OfficeIMO.Drawing.HarfBuzz/OfficeIMO.Drawing.HarfBuzz.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-email-html",
-      "project": "../OfficeIMO.Email.Html/OfficeIMO.Email.Html.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-epub",
-      "project": "../OfficeIMO.Epub/OfficeIMO.Epub.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-epub-image",
-      "project": "../OfficeIMO.Epub.Image/OfficeIMO.Epub.Image.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-excel-iwork",
-      "project": "../OfficeIMO.Excel.IWork/OfficeIMO.Excel.IWork.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-excel-csv",
-      "project": "../OfficeIMO.Excel.Csv/OfficeIMO.Excel.Csv.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-excel-open-document",
-      "project": "../OfficeIMO.Excel.OpenDocument/OfficeIMO.Excel.OpenDocument.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-excel-google-sheets",
-      "project": "../OfficeIMO.Excel.GoogleSheets/OfficeIMO.Excel.GoogleSheets.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-excel-html",
-      "project": "../OfficeIMO.Excel.Html/OfficeIMO.Excel.Html.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-html-core",
-      "project": "../OfficeIMO.Html.Core/OfficeIMO.Html.Core.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-html-angle-sharp",
-      "project": "../OfficeIMO.Html.AngleSharp/OfficeIMO.Html.AngleSharp.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-html-pdf",
-      "project": "../OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-html-pdf-browser",
-      "project": "../OfficeIMO.Html.Pdf.Browser/OfficeIMO.Html.Pdf.Browser.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-iwork",
-      "project": "../OfficeIMO.IWork/OfficeIMO.IWork.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-invoicing",
-      "project": "../OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-invoicing-validation",
-      "project": "../OfficeIMO.Invoicing.Validation/OfficeIMO.Invoicing.Validation.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-invoicing-ksef",
-      "project": "../OfficeIMO.Invoicing.KSeF/OfficeIMO.Invoicing.KSeF.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-invoicing-pdf",
-      "project": "../OfficeIMO.Invoicing.Pdf/OfficeIMO.Invoicing.Pdf.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-latex",
-      "project": "../OfficeIMO.Latex/OfficeIMO.Latex.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-latex-markdown",
-      "project": "../OfficeIMO.Latex.Markdown/OfficeIMO.Latex.Markdown.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-latex-pdf",
-      "project": "../OfficeIMO.Latex.Pdf/OfficeIMO.Latex.Pdf.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-markdown-html",
-      "project": "../OfficeIMO.Markdown.Html/OfficeIMO.Markdown.Html.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-markdown-pdf",
-      "project": "../OfficeIMO.Markdown.Pdf/OfficeIMO.Markdown.Pdf.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-rtf-markdown",
-      "project": "../OfficeIMO.Rtf.Markdown/OfficeIMO.Rtf.Markdown.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-markdown-renderer",
-      "project": "../OfficeIMO.MarkdownRenderer/OfficeIMO.MarkdownRenderer.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-markdown-renderer-intelligence-x",
-      "project": "../OfficeIMO.MarkdownRenderer.IntelligenceX/OfficeIMO.MarkdownRenderer.IntelligenceX.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-markdown-renderer-wpf",
-      "project": "../OfficeIMO.MarkdownRenderer.Wpf/OfficeIMO.MarkdownRenderer.Wpf.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-open-document-odp-pdf",
-      "project": "../OfficeIMO.OpenDocument.Odp.Pdf/OfficeIMO.OpenDocument.Odp.Pdf.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-open-document-ods-pdf",
-      "project": "../OfficeIMO.OpenDocument.Ods.Pdf/OfficeIMO.OpenDocument.Ods.Pdf.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-open-document-odt-pdf",
-      "project": "../OfficeIMO.OpenDocument.Odt.Pdf/OfficeIMO.OpenDocument.Odt.Pdf.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-one-note-html",
-      "project": "../OfficeIMO.OneNote.Html/OfficeIMO.OneNote.Html.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-one-note-markdown",
-      "project": "../OfficeIMO.OneNote.Markdown/OfficeIMO.OneNote.Markdown.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-one-note-pdf",
-      "project": "../OfficeIMO.OneNote.Pdf/OfficeIMO.OneNote.Pdf.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-project",
-      "project": "../OfficeIMO.Project/OfficeIMO.Project.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-opml",
-      "project": "../OfficeIMO.Opml/OfficeIMO.Opml.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-provenance-c2pa",
-      "project": "../OfficeIMO.Provenance.C2pa/OfficeIMO.Provenance.C2pa.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-security",
-      "project": "../OfficeIMO.Security/OfficeIMO.Security.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-power-point-iwork",
-      "project": "../OfficeIMO.PowerPoint.IWork/OfficeIMO.PowerPoint.IWork.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-power-point-google-slides",
-      "project": "../OfficeIMO.PowerPoint.GoogleSlides/OfficeIMO.PowerPoint.GoogleSlides.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-power-point-open-document",
-      "project": "../OfficeIMO.PowerPoint.OpenDocument/OfficeIMO.PowerPoint.OpenDocument.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-power-point-html",
-      "project": "../OfficeIMO.PowerPoint.Html/OfficeIMO.PowerPoint.Html.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-power-point-pdf",
-      "project": "../OfficeIMO.PowerPoint.Pdf/OfficeIMO.PowerPoint.Pdf.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-all",
-      "project": "../OfficeIMO.Reader.All/OfficeIMO.Reader.All.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-ascii-doc",
-      "project": "../OfficeIMO.Reader.AsciiDoc/OfficeIMO.Reader.AsciiDoc.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-csv",
-      "project": "../OfficeIMO.Reader.Csv/OfficeIMO.Reader.Csv.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-doc-book",
-      "project": "../OfficeIMO.Reader.DocBook/OfficeIMO.Reader.DocBook.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-email",
-      "project": "../OfficeIMO.Reader.Email/OfficeIMO.Reader.Email.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-excel",
-      "project": "../OfficeIMO.Reader.Excel/OfficeIMO.Reader.Excel.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-epub",
-      "project": "../OfficeIMO.Reader.Epub/OfficeIMO.Reader.Epub.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-html",
-      "project": "../OfficeIMO.Reader.Html/OfficeIMO.Reader.Html.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-image",
-      "project": "../OfficeIMO.Reader.Image/OfficeIMO.Reader.Image.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-iwork",
-      "project": "../OfficeIMO.Reader.IWork/OfficeIMO.Reader.IWork.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-json",
-      "project": "../OfficeIMO.Reader.Json/OfficeIMO.Reader.Json.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-latex",
-      "project": "../OfficeIMO.Reader.Latex/OfficeIMO.Reader.Latex.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-markdown",
-      "project": "../OfficeIMO.Reader.Markdown/OfficeIMO.Reader.Markdown.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-notebook",
-      "project": "../OfficeIMO.Reader.Notebook/OfficeIMO.Reader.Notebook.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-open-document",
-      "project": "../OfficeIMO.Reader.OpenDocument/OfficeIMO.Reader.OpenDocument.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-one-note",
-      "project": "../OfficeIMO.Reader.OneNote/OfficeIMO.Reader.OneNote.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-opml",
-      "project": "../OfficeIMO.Reader.Opml/OfficeIMO.Reader.Opml.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-pdf",
-      "project": "../OfficeIMO.Reader.Pdf/OfficeIMO.Reader.Pdf.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-power-point",
-      "project": "../OfficeIMO.Reader.PowerPoint/OfficeIMO.Reader.PowerPoint.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-rtf",
-      "project": "../OfficeIMO.Reader.Rtf/OfficeIMO.Reader.Rtf.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-subtitles",
-      "project": "../OfficeIMO.Reader.Subtitles/OfficeIMO.Reader.Subtitles.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-visio",
-      "project": "../OfficeIMO.Reader.Visio/OfficeIMO.Reader.Visio.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-web",
-      "project": "../OfficeIMO.Reader.Web/OfficeIMO.Reader.Web.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-word",
-      "project": "../OfficeIMO.Reader.Word/OfficeIMO.Reader.Word.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-xml",
-      "project": "../OfficeIMO.Reader.Xml/OfficeIMO.Reader.Xml.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-yaml",
-      "project": "../OfficeIMO.Reader.Yaml/OfficeIMO.Reader.Yaml.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-reader-zip",
-      "project": "../OfficeIMO.Reader.Zip/OfficeIMO.Reader.Zip.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-rtf",
-      "project": "../OfficeIMO.Rtf/OfficeIMO.Rtf.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-rtf-pdf",
-      "project": "../OfficeIMO.Rtf.Pdf/OfficeIMO.Rtf.Pdf.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-visio-pdf",
-      "project": "../OfficeIMO.Visio.Pdf/OfficeIMO.Visio.Pdf.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-word-iwork",
-      "project": "../OfficeIMO.Word.IWork/OfficeIMO.Word.IWork.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-word-open-document",
-      "project": "../OfficeIMO.Word.OpenDocument/OfficeIMO.Word.OpenDocument.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-word-google-docs",
-      "project": "../OfficeIMO.Word.GoogleDocs/OfficeIMO.Word.GoogleDocs.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-word-html",
-      "project": "../OfficeIMO.Word.Html/OfficeIMO.Word.Html.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-word-markdown",
-      "project": "../OfficeIMO.Word.Markdown/OfficeIMO.Word.Markdown.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-word-rtf",
-      "project": "../OfficeIMO.Word.Rtf/OfficeIMO.Word.Rtf.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-workflows",
-      "project": "../OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
-      "task": "dotnet-build",
-      "id": "build-api-zip",
-      "project": "../OfficeIMO.Zip/OfficeIMO.Zip.csproj",
-      "configuration": "Release",
-      "framework": "net8.0"
-    },
-    {
       "task": "apidocs",
       "id": "build-apidocs-word",
       "dependsOn": [
-        "build-word",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -1507,7 +772,7 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Word",
       "injectCriticalCss": true,
       "quickStartTypes": "WordDocument,WordParagraph,WordTable,WordSection",
@@ -1518,7 +783,7 @@
       "task": "apidocs",
       "id": "build-apidocs-excel",
       "dependsOn": [
-        "build-excel",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -1541,7 +806,7 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Excel",
       "injectCriticalCss": true,
       "quickStartTypes": "ExcelDocument,ExcelSheet",
@@ -1552,7 +817,7 @@
       "task": "apidocs",
       "id": "build-apidocs-markdown",
       "dependsOn": [
-        "build-markdown",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -1572,7 +837,7 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Markdown",
       "injectCriticalCss": true,
       "quickStartTypes": "MarkdownDoc,MarkdownNativeDocument",
@@ -1583,7 +848,7 @@
       "task": "apidocs",
       "id": "build-apidocs-powerpoint",
       "dependsOn": [
-        "build-powerpoint",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -1603,7 +868,7 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.PowerPoint",
       "injectCriticalCss": true,
       "quickStartTypes": "PowerPointPresentation",
@@ -1614,7 +879,7 @@
       "task": "apidocs",
       "id": "build-apidocs-csv",
       "dependsOn": [
-        "build-csv",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -1634,16 +899,17 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.CSV",
       "injectCriticalCss": true,
-      "packageId": "OfficeIMO.CSV"
+      "packageId": "OfficeIMO.CSV",
+      "relatedContentManifest": "./data/apidocs/csv-guides.json"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-visio",
       "dependsOn": [
-        "build-visio",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -1663,16 +929,17 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Visio",
       "injectCriticalCss": true,
-      "packageId": "OfficeIMO.Visio"
+      "packageId": "OfficeIMO.Visio",
+      "relatedContentManifest": "./data/apidocs/visio-guides.json"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-pdf",
       "dependsOn": [
-        "build-pdf",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -1692,7 +959,7 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Pdf",
       "injectCriticalCss": true,
       "quickStartTypes": "PdfDocument",
@@ -1703,7 +970,7 @@
       "task": "apidocs",
       "id": "build-apidocs-html",
       "dependsOn": [
-        "build-html",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -1723,16 +990,17 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Html",
       "injectCriticalCss": true,
-      "packageId": "OfficeIMO.Html"
+      "packageId": "OfficeIMO.Html",
+      "relatedContentManifest": "./data/apidocs/html-guides.json"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-html-rtf",
       "dependsOn": [
-        "build-html-rtf",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -1752,7 +1020,7 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Html",
       "injectCriticalCss": true,
       "packageId": "OfficeIMO.Html.Rtf"
@@ -1761,7 +1029,7 @@
       "task": "apidocs",
       "id": "build-apidocs-mhtml",
       "dependsOn": [
-        "build-mhtml",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -1781,7 +1049,7 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Mhtml",
       "injectCriticalCss": true,
       "packageId": "OfficeIMO.Mhtml"
@@ -1790,7 +1058,7 @@
       "task": "apidocs",
       "id": "build-apidocs-email-image",
       "dependsOn": [
-        "build-email-image",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -1810,7 +1078,7 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Email",
       "injectCriticalCss": true,
       "packageId": "OfficeIMO.Email.Image"
@@ -1819,7 +1087,7 @@
       "task": "apidocs",
       "id": "build-apidocs-mhtml-pdf",
       "dependsOn": [
-        "build-mhtml-pdf",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -1839,7 +1107,7 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Mhtml",
       "injectCriticalCss": true,
       "packageId": "OfficeIMO.Mhtml.Pdf"
@@ -1848,7 +1116,7 @@
       "task": "apidocs",
       "id": "build-apidocs-email",
       "dependsOn": [
-        "build-email",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -1868,16 +1136,17 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Email",
       "injectCriticalCss": true,
-      "packageId": "OfficeIMO.Email"
+      "packageId": "OfficeIMO.Email",
+      "relatedContentManifest": "./data/apidocs/email-guides.json"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-onenote",
       "dependsOn": [
-        "build-onenote",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -1897,7 +1166,7 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.OneNote",
       "injectCriticalCss": true,
       "packageId": "OfficeIMO.OneNote"
@@ -1906,7 +1175,7 @@
       "task": "apidocs",
       "id": "build-apidocs-open-document",
       "dependsOn": [
-        "build-open-document",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -1926,7 +1195,7 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.OpenDocument",
       "injectCriticalCss": true,
       "packageId": "OfficeIMO.OpenDocument"
@@ -1935,7 +1204,7 @@
       "task": "apidocs",
       "id": "build-apidocs-google-workspace",
       "dependsOn": [
-        "build-google-workspace",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -1955,7 +1224,7 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.GoogleWorkspace",
       "injectCriticalCss": true,
       "packageId": "OfficeIMO.GoogleWorkspace"
@@ -1964,7 +1233,7 @@
       "task": "apidocs",
       "id": "build-apidocs-google-workspace-drive",
       "dependsOn": [
-        "build-google-workspace-drive",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -1984,7 +1253,7 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.GoogleWorkspace.Drive",
       "injectCriticalCss": true,
       "packageId": "OfficeIMO.GoogleWorkspace.Drive"
@@ -1993,7 +1262,7 @@
       "task": "apidocs",
       "id": "build-apidocs-google-workspace-auth",
       "dependsOn": [
-        "build-google-workspace-auth",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -2013,7 +1282,7 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.GoogleWorkspace.Auth.GoogleApis",
       "injectCriticalCss": true,
       "packageId": "OfficeIMO.GoogleWorkspace.Auth.GoogleApis"
@@ -2022,7 +1291,7 @@
       "task": "apidocs",
       "id": "build-apidocs-google-workspace-sync",
       "dependsOn": [
-        "build-google-workspace-sync",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -2042,7 +1311,7 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.GoogleWorkspace.Sync",
       "injectCriticalCss": true,
       "packageId": "OfficeIMO.GoogleWorkspace.Sync"
@@ -2051,7 +1320,7 @@
       "task": "apidocs",
       "id": "build-apidocs-reader",
       "dependsOn": [
-        "build-reader",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -2071,16 +1340,17 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Reader",
       "injectCriticalCss": true,
-      "packageId": "OfficeIMO.Reader.Core"
+      "packageId": "OfficeIMO.Reader.Core",
+      "relatedContentManifest": "./data/apidocs/reader-guides.json"
     },
     {
       "task": "apidocs",
       "id": "build-apidocs-ocr",
       "dependsOn": [
-        "build-ocr",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -2100,7 +1370,7 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Ocr",
       "injectCriticalCss": true,
       "packageId": "OfficeIMO.Ocr"
@@ -2109,7 +1379,7 @@
       "task": "apidocs",
       "id": "build-apidocs-ocr-process",
       "dependsOn": [
-        "build-ocr-process",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -2129,7 +1399,7 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Ocr.Process",
       "injectCriticalCss": true,
       "packageId": "OfficeIMO.Ocr.Process"
@@ -2138,7 +1408,7 @@
       "task": "apidocs",
       "id": "build-apidocs-ocr-tesseract",
       "dependsOn": [
-        "build-ocr-tesseract",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -2158,7 +1428,7 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Ocr.Tesseract",
       "injectCriticalCss": true,
       "packageId": "OfficeIMO.Ocr.Tesseract"
@@ -2167,7 +1437,7 @@
       "task": "apidocs",
       "id": "build-apidocs-reader-ocr",
       "dependsOn": [
-        "build-reader-ocr",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -2187,7 +1457,7 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Reader",
       "injectCriticalCss": true,
       "packageId": "OfficeIMO.Reader.Ocr"
@@ -2196,7 +1466,7 @@
       "task": "apidocs",
       "id": "build-apidocs-pdf-ocr",
       "dependsOn": [
-        "build-pdf-ocr",
+        "build-api-net8-0-optional",
         "build-site"
       ],
       "config": "./site.json",
@@ -2216,7 +1486,7 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "includeNamespace": "OfficeIMO.Pdf.Ocr",
       "injectCriticalCss": true,
       "packageId": "OfficeIMO.Pdf.Ocr"
@@ -2264,107 +1534,15 @@
       "navContextPath": "/",
       "css": "/css/app.css,/css/docs.css,/css/api.css,/css/visual-system.css,/css/site-shell.css",
       "sourceRoot": "..",
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/{path}#L{line}",
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/{revision}/{path}#L{line}",
       "injectCriticalCss": true,
       "id": "build-apidocs-adapters",
       "dependsOn": [
         "build-site",
-        "build-api-adf",
-        "build-api-ai",
-        "build-api-ai-intelligence-x",
-        "build-api-ascii-doc",
-        "build-api-ascii-doc-markdown",
-        "build-api-ascii-doc-pdf",
-        "build-api-bibliography",
-        "build-api-chart-forge-x",
-        "build-api-confluence",
-        "build-api-core",
-        "build-api-data-arrow",
-        "build-api-data-generators",
-        "build-api-doc-book",
-        "build-api-drawing-code-glyph-x",
-        "build-api-drawing-harf-buzz",
-        "build-api-email-html",
-        "build-api-epub",
-        "build-api-epub-image",
-        "build-api-excel-iwork",
-        "build-api-excel-csv",
-        "build-api-excel-open-document",
-        "build-api-excel-google-sheets",
-        "build-api-excel-html",
-        "build-excel-pdf",
-        "build-api-html-core",
-        "build-api-html-angle-sharp",
-        "build-api-html-pdf",
-        "build-api-html-pdf-browser",
-        "build-api-iwork",
-        "build-api-invoicing",
-        "build-api-invoicing-validation",
-        "build-api-invoicing-ksef",
-        "build-api-invoicing-pdf",
-        "build-api-latex",
-        "build-api-latex-markdown",
-        "build-api-latex-pdf",
-        "build-api-markdown-html",
-        "build-api-markdown-pdf",
-        "build-api-rtf-markdown",
-        "build-api-markdown-renderer",
-        "build-api-markdown-renderer-intelligence-x",
-        "build-api-markdown-renderer-wpf",
-        "build-api-open-document-odp-pdf",
-        "build-api-open-document-ods-pdf",
-        "build-api-open-document-odt-pdf",
-        "build-api-one-note-html",
-        "build-api-one-note-markdown",
-        "build-api-one-note-pdf",
-        "build-api-project",
-        "build-api-opml",
-        "build-api-provenance-c2pa",
-        "build-api-security",
-        "build-api-power-point-iwork",
-        "build-api-power-point-google-slides",
-        "build-api-power-point-open-document",
-        "build-api-power-point-html",
-        "build-api-power-point-pdf",
-        "build-api-reader-all",
-        "build-api-reader-ascii-doc",
-        "build-api-reader-csv",
-        "build-api-reader-doc-book",
-        "build-api-reader-email",
-        "build-api-reader-excel",
-        "build-api-reader-epub",
-        "build-api-reader-html",
-        "build-api-reader-image",
-        "build-api-reader-iwork",
-        "build-api-reader-json",
-        "build-api-reader-latex",
-        "build-api-reader-markdown",
-        "build-api-reader-notebook",
-        "build-api-reader-open-document",
-        "build-api-reader-one-note",
-        "build-api-reader-opml",
-        "build-api-reader-pdf",
-        "build-api-reader-power-point",
-        "build-api-reader-rtf",
-        "build-api-reader-subtitles",
-        "build-api-reader-visio",
-        "build-api-reader-web",
-        "build-api-reader-word",
-        "build-api-reader-xml",
-        "build-api-reader-yaml",
-        "build-api-reader-zip",
-        "build-api-rtf",
-        "build-api-rtf-pdf",
-        "build-api-visio-pdf",
-        "build-api-word-iwork",
-        "build-api-word-open-document",
-        "build-api-word-google-docs",
-        "build-api-word-html",
-        "build-api-word-markdown",
-        "build-word-pdf",
-        "build-api-word-rtf",
-        "build-api-workflows",
-        "build-api-zip"
+        "build-api-net8-0",
+        "build-api-net10-0",
+        "build-api-netstandard2-0",
+        "build-api-net8-0-optional"
       ],
       "inputs": [
         {
@@ -2904,7 +2082,8 @@
           "baseUrl": "/api/project",
           "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
-          "packageId": "OfficeIMO.Project"
+          "packageId": "OfficeIMO.Project",
+          "relatedContentManifest": "./data/apidocs/project-guides.json"
         },
         {
           "id": "opml",
@@ -3656,7 +2835,9 @@
     {
       "task": "verify",
       "id": "verify-ci",
-      "dependsOn": "verify-website-presentation",
+      "dependsOn": [
+        "verify-website-presentation"
+      ],
       "modes": [
         "ci"
       ],
@@ -3669,7 +2850,9 @@
     {
       "task": "ecosystem-stats",
       "id": "build-llms-publication-catalog",
-      "dependsOn": "verify-ci",
+      "dependsOn": [
+        "verify-ci"
+      ],
       "skipModes": [
         "dev"
       ],
@@ -3685,7 +2868,9 @@
     {
       "task": "llms",
       "id": "build-llms",
-      "dependsOn": "build-llms-publication-catalog",
+      "dependsOn": [
+        "build-llms-publication-catalog"
+      ],
       "skipModes": [
         "dev"
       ],
@@ -3927,7 +3112,9 @@
     {
       "task": "sitemap",
       "id": "build-sitemap",
-      "dependsOn": "build-llms",
+      "dependsOn": [
+        "build-llms"
+      ],
       "siteRoot": "./_site",
       "baseUrl": "https://officeimo.com",
       "apiSitemap": "./_site/api/word/sitemap.xml",
@@ -3950,7 +3137,9 @@
     {
       "task": "exec",
       "id": "validate-discovery-artifacts",
-      "dependsOn": "build-sitemap",
+      "dependsOn": [
+        "build-sitemap"
+      ],
       "modes": [
         "ci"
       ],
@@ -3967,7 +3156,9 @@
     {
       "task": "optimize",
       "id": "optimize-showcase-previews",
-      "dependsOn": "validate-discovery-artifacts",
+      "dependsOn": [
+        "validate-discovery-artifacts"
+      ],
       "skipModes": [
         "dev"
       ],
@@ -3980,7 +3171,7 @@
       "imageGenerateWebp": true,
       "imagePreferNextGen": true,
       "imageWidths": [
-        "480"
+        480
       ],
       "minifyHtml": false,
       "minifyCss": false,
@@ -3990,7 +3181,9 @@
     {
       "task": "optimize",
       "id": "optimize-site",
-      "dependsOn": "optimize-showcase-previews",
+      "dependsOn": [
+        "optimize-showcase-previews"
+      ],
       "skipModes": [
         "dev"
       ],
@@ -4024,7 +3217,9 @@
     {
       "task": "exec",
       "id": "test-browser-converter",
-      "dependsOn": "optimize-site",
+      "dependsOn": [
+        "optimize-site"
+      ],
       "command": "dotnet",
       "argsList": [
         "test",
@@ -4035,31 +3230,46 @@
         "--logger",
         "console;verbosity=minimal"
       ],
-      "workingDirectory": "."
+      "workingDirectory": ".",
+      "skipModes": [
+        "dev"
+      ]
     },
     {
       "task": "dotnet-publish",
       "id": "publish-browser-converter",
-      "dependsOn": "test-browser-converter",
+      "dependsOn": [
+        "test-browser-converter"
+      ],
       "project": "./Apps/OfficeIMO.Web.Converter/OfficeIMO.Web.Converter.csproj",
       "out": "./_temp/converter-publish",
       "clean": true,
       "configuration": "Release",
-      "baseHref": "/apps/officeimo-converter/"
+      "baseHref": "/apps/officeimo-converter/",
+      "skipModes": [
+        "dev"
+      ]
     },
     {
       "task": "overlay",
       "id": "overlay-browser-converter",
-      "dependsOn": "publish-browser-converter",
+      "dependsOn": [
+        "publish-browser-converter"
+      ],
       "source": "./_temp/converter-publish/wwwroot",
       "destination": "./_site/apps/officeimo-converter",
       "clean": true,
-      "include": "**/*, *"
+      "include": "**/*, *",
+      "skipModes": [
+        "dev"
+      ]
     },
     {
       "task": "exec",
       "id": "verify-browser-converter",
-      "dependsOn": "overlay-browser-converter",
+      "dependsOn": [
+        "overlay-browser-converter"
+      ],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
@@ -4069,12 +3279,17 @@
         "-SiteRoot",
         "./_site"
       ],
-      "workingDirectory": "."
+      "workingDirectory": ".",
+      "skipModes": [
+        "dev"
+      ]
     },
     {
       "task": "exec",
       "id": "test-browser-converter-performance",
-      "dependsOn": "verify-browser-converter",
+      "dependsOn": [
+        "verify-browser-converter"
+      ],
       "modes": [
         "ci"
       ],
@@ -4094,7 +3309,9 @@
     {
       "task": "agent-ready",
       "id": "agent-ready",
-      "dependsOn": "test-browser-converter-performance",
+      "dependsOn": [
+        "test-browser-converter-performance"
+      ],
       "skipModes": [
         "dev"
       ],
@@ -4107,7 +3324,9 @@
     {
       "task": "seo-doctor",
       "id": "seo-doctor-ci",
-      "dependsOn": "agent-ready",
+      "dependsOn": [
+        "agent-ready"
+      ],
       "modes": [
         "ci"
       ],
@@ -4132,7 +3351,9 @@
     {
       "task": "audit",
       "id": "audit-ci",
-      "dependsOn": "seo-doctor-ci",
+      "dependsOn": [
+        "seo-doctor-ci"
+      ],
       "summary": true,
       "summaryPath": "_reports/audit-summary.json",
       "sarif": true,
@@ -4140,11 +3361,10 @@
       "modes": [
         "ci"
       ],
-      "config": "./site.json",
       "siteRoot": "./_site",
       "baseline": "./.powerforge/audit-baseline.json",
       "failOnNewIssues": true,
-      "failOnCategories": "budget,agent-content",
+      "failOnCategories": "budget,agent-content,nav,rendered,rendered-layout,rendered-console-error,rendered-request-failure",
       "checkAgentContentSecurity": true,
       "agentContentFiles": [
         "llms.txt",
@@ -4159,18 +3379,48 @@
         "nuget:*",
         "powershellgallery:*"
       ],
-      "maxTotalFiles": 20000,
+      "maxTotalFiles": 25000,
       "maxFileBytes": 26214400,
       "navSelector": "header nav",
       "navCanonicalPath": "index.html",
       "navCanonicalRequired": true,
       "ignoreNav": "apps/officeimo-converter/**,sitemap/index.html,downloads/showcase/**",
-      "requiredRoutes": "/,/docs/,/404.html,/licensing/,/api/,/api/powershell/,/api/powerpoint/,/api/csv/,/api/visio/,/api/pdf/,/api/html/,/api/html-rtf/,/api/mhtml/,/api/email-image/,/api/mhtml-pdf/,/api/email/,/api/onenote/,/api/open-document/,/api/reader/,/api/google-workspace/,/api/google-workspace-drive/,/api/google-workspace-auth/,/api/google-workspace-sync/,/blog/,/showcase/,/compatibility/,/convert/,/convert/guides/,/convert/doc-docx/,/convert/xls-xlsx/,/convert/ppt-pptx/,/solutions/,/solutions/legacy-office-modernization/,/solutions/document-publishing/,/solutions/template-driven-document-generation/,/solutions/outlook-mailbox-migration/,/solutions/offline-onenote-automation/,/solutions/mixed-document-search-rag/,/comparisons/,/comparisons/officeimo-vs-open-xml-sdk/,/comparisons/officeimo-vs-closedxml-epplus/,/comparisons/officeimo-vs-questpdf/,/comparisons/officeimo-vs-syncfusion/,/comparisons/officeimo-vs-gembox/,/comparisons/officeimo-vs-iron-software/,/comparisons/officeimo-vs-office-interop/,/comparisons/officeimo-vs-libreoffice/,/comparisons/officeimo-email-vs-mimekit/,/comparisons/officeimo-onenote-vs-microsoft-graph/,/comparisons/officeimo-reader-vs-document-ingestion-tools/,/products/word/,/products/excel/,/products/powerpoint/,/products/pdf/,/products/email/,/products/onenote/,/products/open-document/,/products/google-workspace/,/products/html/"
+      "requiredRoutes": "/,/docs/,/404.html,/licensing/,/api/,/api/powershell/,/api/powerpoint/,/api/csv/,/api/visio/,/api/pdf/,/api/html/,/api/html-rtf/,/api/mhtml/,/api/email-image/,/api/mhtml-pdf/,/api/email/,/api/onenote/,/api/open-document/,/api/reader/,/api/google-workspace/,/api/google-workspace-drive/,/api/google-workspace-auth/,/api/google-workspace-sync/,/blog/,/showcase/,/compatibility/,/convert/,/convert/guides/,/convert/doc-docx/,/convert/xls-xlsx/,/convert/ppt-pptx/,/solutions/,/solutions/legacy-office-modernization/,/solutions/document-publishing/,/solutions/template-driven-document-generation/,/solutions/outlook-mailbox-migration/,/solutions/offline-onenote-automation/,/solutions/mixed-document-search-rag/,/comparisons/,/comparisons/officeimo-vs-open-xml-sdk/,/comparisons/officeimo-vs-closedxml-epplus/,/comparisons/officeimo-vs-questpdf/,/comparisons/officeimo-vs-syncfusion/,/comparisons/officeimo-vs-gembox/,/comparisons/officeimo-vs-iron-software/,/comparisons/officeimo-vs-office-interop/,/comparisons/officeimo-vs-libreoffice/,/comparisons/officeimo-email-vs-mimekit/,/comparisons/officeimo-onenote-vs-microsoft-graph/,/comparisons/officeimo-reader-vs-document-ingestion-tools/,/products/word/,/products/excel/,/products/powerpoint/,/products/pdf/,/products/email/,/products/onenote/,/products/open-document/,/products/google-workspace/,/products/html/",
+      "rendered": true,
+      "renderedEnsureInstalled": true,
+      "renderedServe": true,
+      "renderedHost": "127.0.0.1",
+      "renderedCheckLayout": true,
+      "renderedMaxPages": 8,
+      "renderedViewports": [
+        {
+          "width": 1280,
+          "height": 800
+        },
+        {
+          "width": 390,
+          "height": 844
+        },
+        {
+          "width": 844,
+          "height": 390
+        }
+      ],
+      "renderedLayoutSelectors": [
+        "main",
+        ".member-card",
+        ".member-card table"
+      ],
+      "renderedInclude": "docs/word/index.html,docs/project/index.html,search/index.html,api/word/officeimo-word-worddocument/index.html,api/excel/officeimo-excel-exceldocument/index.html,api/pdf/officeimo-pdf-pdfdocument/index.html,api/reader/officeimo-reader-officedocumentreaderbuilder/index.html,api/project/officeimo-project-projectdocument/index.html",
+      "noDefaultIgnoreNav": true,
+      "minNavCoveragePercent": 95
     },
     {
       "task": "doctor",
       "id": "doctor-site",
-      "dependsOn": "agent-ready",
+      "dependsOn": [
+        "agent-ready"
+      ],
       "skipModes": [
         "dev",
         "ci"

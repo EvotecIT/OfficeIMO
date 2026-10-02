@@ -76,6 +76,8 @@
   }
 
   async function search(panel, limit) {
+    if (panel.searchController) panel.searchController.abort();
+    panel.searchController = new AbortController();
     var query = panel.querySelector('[data-search-page-input]').value.trim();
     var version = panel.searchVersion = (panel.searchVersion || 0) + 1;
     var meta = panel.querySelector('[data-site-search-meta]');
@@ -88,18 +90,25 @@
       updatePageQuery(panel, '');
       return;
     }
+    if (query.length < 2 && !panel.querySelector('[data-search-package]').value) {
+      panel.querySelector('[data-search-page-results]').replaceChildren();
+      meta.textContent = 'Type at least two characters or choose a package.';
+      return;
+    }
     meta.textContent = 'Searching…';
     try {
       var response = await api.search({ query: query, limit: panel.searchLimit,
         project: panel.querySelector('[data-search-package]').value,
-        kind: panel.querySelector('[data-search-kind]').value });
+        kind: panel.querySelector('[data-search-kind]').value,
+        signal: panel.searchController.signal });
       if (version !== panel.searchVersion) return;
       response.query = query;
       render(panel, response);
-    } catch (_) {
+    } catch (error) {
       if (version !== panel.searchVersion) return;
       panel.querySelector('[data-search-page-results]').replaceChildren();
-      meta.textContent = 'Search is unavailable. Please try again.';
+      if (error.name === 'AbortError') return;
+      meta.textContent = error.code === 'SEARCH_QUERY_TOO_BROAD' ? error.message : 'Search is unavailable. Please try again.';
     }
   }
 
@@ -121,6 +130,7 @@
     panel.querySelector('[data-search-page-input]').placeholder = 'Search methods, types, packages, or tasks…';
     panel.querySelector('[data-search-page-input]').addEventListener('focus', populatePackages, { once: true });
     panel.querySelector('[data-search-page-input]').addEventListener('input', function () {
+      if (panel.searchController) panel.searchController.abort();
       panel.searchVersion = (panel.searchVersion || 0) + 1;
       clearTimeout(panel.searchTimer);
       panel.searchTimer = setTimeout(function () { search(panel); }, 150);
@@ -153,7 +163,10 @@
     });
   });
   dialog.querySelector('[data-site-search-close]').addEventListener('click', function () { dialog.close(); });
-  dialog.addEventListener('close', function () { if (opener && opener.isConnected) opener.focus(); });
+  dialog.addEventListener('close', function () {
+    if (dialogPanel.searchController) dialogPanel.searchController.abort();
+    if (opener && opener.isConnected) opener.focus();
+  });
   window.addEventListener('message', function (event) {
     var frame = document.querySelector('iframe[data-workspace-src]');
     if (event.origin === location.origin && frame && event.source === frame.contentWindow && event.data && event.data.type === 'officeimo:open-search') openSearch(frame);

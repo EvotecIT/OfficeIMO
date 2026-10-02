@@ -3,9 +3,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 using Thm15 = DocumentFormat.OpenXml.Office2013.Theme;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Provides the theme part content.
-    /// </summary>
+    // Provides the theme part content.
     public partial class WordDocument {
         // Generates content of themePart1.
         private static void GenerateThemePart1Content(ThemePart themePart1) {

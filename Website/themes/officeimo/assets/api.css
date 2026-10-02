@@ -845,6 +845,8 @@
 .type-detail-rail,
 .member-section-body {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: 0.7rem;
 }
 
@@ -1137,6 +1139,7 @@
 
 .member-card {
   display: grid;
+  min-width: 0;
   gap: 0.34rem;
   padding: 0.62rem 0.72rem;
   border-radius: 11px;
