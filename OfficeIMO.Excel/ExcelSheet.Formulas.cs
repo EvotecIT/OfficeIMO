@@ -678,7 +678,7 @@ namespace OfficeIMO.Excel {
                     string function = functionCall.Name.ToUpperInvariant();
                     string args = functionCall.Arguments;
                     if (function == "MATCH" || function == "XMATCH") return TryEvaluateMatchValue(function, args, out result);
-                    if (function is "INT" or "MOD" or "SQRT") return TryEvaluateScalarMathValue(function, args, out result);
+                    if (function is "INT" or "MOD" or "SQRT" or "SIGN" or "TRUNC" or "ROUNDUP" or "ROUNDDOWN") return TryEvaluateScalarMathValue(function, args, out result);
                     if (function == "PROB") return TryEvaluateProbabilityValue(args, out result);
                     if (function == "RANDBETWEEN") return TryEvaluateRandomBetweenValue(args, out result);
                     if (function == "OFFSET") return TryEvaluateOffsetValue(args, out result);
@@ -778,7 +778,7 @@ namespace OfficeIMO.Excel {
             if (functionCall != null) {
                     string function = functionCall.Name.ToUpperInvariant();
                     string args = functionCall.Arguments;
-                    if (function is "INT" or "MOD" or "SQRT") {
+                    if (function is "INT" or "MOD" or "SQRT" or "SIGN" or "TRUNC" or "ROUNDUP" or "ROUNDDOWN") {
                         if (!TryEvaluateScalarMathValue(function, args, out FormulaArgumentValue value)) return false;
                         if (value.IsError) { error = value; return false; }
                         result = value.Number!.Value;
@@ -986,15 +986,6 @@ namespace OfficeIMO.Excel {
                         return true;
                     }
 
-                    if (function == "SIGN") {
-                        if (numbers.Count != 1) {
-                            return false;
-                        }
-
-                        result = Math.Sign(numbers[0]);
-                        return true;
-                    }
-
                     if (function == "ROUND") {
                         if (numbers.Count != 2 || !TryGetSupportedDecimalPlaces(numbers[1], out int digits)) {
                             return false;
@@ -1004,38 +995,11 @@ namespace OfficeIMO.Excel {
                         return true;
                     }
 
-                    if (function == "ROUNDUP" || function == "ROUNDDOWN") {
-                        if (numbers.Count != 2 || !TryGetSupportedDecimalPlaces(numbers[1], out int digits)) {
-                            return false;
-                        }
-
-                        double factor = Math.Pow(10, digits);
-                        double shifted = Math.Abs(numbers[0]) * factor;
-                        double rounded = function == "ROUNDUP" ? Math.Ceiling(shifted) : Math.Floor(shifted);
-                        result = Math.Sign(numbers[0]) * rounded / factor;
-                        return true;
-                    }
-
                     if (function == "MROUND") {
                         if (numbers.Count != 2 || !TryEvaluateMRound(numbers[0], numbers[1], out result)) {
                             return false;
                         }
 
-                        return true;
-                    }
-
-                    if (function == "TRUNC") {
-                        if (numbers.Count < 1 || numbers.Count > 2) {
-                            return false;
-                        }
-
-                        int digits = 0;
-                        if (numbers.Count == 2 && !TryGetSupportedDecimalPlaces(numbers[1], out digits)) {
-                            return false;
-                        }
-
-                        double factor = Math.Pow(10, digits);
-                        result = Math.Truncate(numbers[0] * factor) / factor;
                         return true;
                     }
 

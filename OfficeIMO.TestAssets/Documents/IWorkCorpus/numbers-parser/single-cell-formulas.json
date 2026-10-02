@@ -12,7 +12,7 @@
     "M12.2-7035.0.159-2",
     "M13.1-7037.0.101-2"
   ],
-  "qualification": "Native node-36 target identities and mixed coordinates, plus selected scalar function nodes; independent computations agree with numeric/text/Boolean caches. Scalar text cases use ASCII literals. Build metadata is retained in this manifest. No Apple export/render oracle. Nine numeric INT/MOD/SQRT expressions include unary negatives and nested ABS; independent computations agree with native caches.",
+  "qualification": "Native node-36 target identities and mixed coordinates, plus selected scalar function nodes; independent computations agree with numeric/text/Boolean caches. Scalar text cases use ASCII literals. Build metadata is retained in this manifest. No Apple export/render oracle. Numeric INT/MOD/SQRT/SIGN/TRUNC/ROUNDUP/ROUNDDOWN expressions include unary negatives, subtraction, optional and signed digit arguments and nested ABS; independent numeric/decimal computations agree with native caches.",
   "cases": [
     {
       "sourceSheet": "Reference",
@@ -371,6 +371,283 @@
     {
       "sourceSheet": "Math",
       "sourceTable": "Tests",
+      "row": 114,
+      "column": 2,
+      "sourceFormula": "ROUNDDOWN(-3.14159,1)",
+      "cachedValue": -3.1,
+      "computedCurrentValue": -3.1,
+      "nodeTypes": [
+        17,
+        13,
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 127,
+          "name": "ROUNDDOWN",
+          "argumentCount": 2
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 115,
+      "column": 2,
+      "sourceFormula": "ROUNDDOWN(3.14159,3)",
+      "cachedValue": 3.141,
+      "computedCurrentValue": 3.141,
+      "nodeTypes": [
+        17,
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 127,
+          "name": "ROUNDDOWN",
+          "argumentCount": 2
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 116,
+      "column": 2,
+      "sourceFormula": "ROUNDDOWN(3.2,0)",
+      "cachedValue": 3.0,
+      "computedCurrentValue": 3.0,
+      "nodeTypes": [
+        17,
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 127,
+          "name": "ROUNDDOWN",
+          "argumentCount": 2
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 117,
+      "column": 2,
+      "sourceFormula": "ROUNDDOWN(31415.92654,-2)",
+      "cachedValue": 31400.0,
+      "computedCurrentValue": 31400.0,
+      "nodeTypes": [
+        17,
+        17,
+        13,
+        16
+      ],
+      "functions": [
+        {
+          "index": 127,
+          "name": "ROUNDDOWN",
+          "argumentCount": 2
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 118,
+      "column": 2,
+      "sourceFormula": "ROUNDDOWN(76.9,0)",
+      "cachedValue": 76.0,
+      "computedCurrentValue": 76.0,
+      "nodeTypes": [
+        17,
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 127,
+          "name": "ROUNDDOWN",
+          "argumentCount": 2
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 119,
+      "column": 2,
+      "sourceFormula": "ROUNDUP(-3.14159,1)",
+      "cachedValue": -3.2,
+      "computedCurrentValue": -3.2,
+      "nodeTypes": [
+        17,
+        13,
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 128,
+          "name": "ROUNDUP",
+          "argumentCount": 2
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 120,
+      "column": 2,
+      "sourceFormula": "ROUNDUP(3.14159,3)",
+      "cachedValue": 3.142,
+      "computedCurrentValue": 3.142,
+      "nodeTypes": [
+        17,
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 128,
+          "name": "ROUNDUP",
+          "argumentCount": 2
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 121,
+      "column": 2,
+      "sourceFormula": "ROUNDUP(3.2,0)",
+      "cachedValue": 4.0,
+      "computedCurrentValue": 4.0,
+      "nodeTypes": [
+        17,
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 128,
+          "name": "ROUNDUP",
+          "argumentCount": 2
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 122,
+      "column": 2,
+      "sourceFormula": "ROUNDUP(31415.92654,-2)",
+      "cachedValue": 31500.0,
+      "computedCurrentValue": 31500.0,
+      "nodeTypes": [
+        17,
+        17,
+        13,
+        16
+      ],
+      "functions": [
+        {
+          "index": 128,
+          "name": "ROUNDUP",
+          "argumentCount": 2
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 123,
+      "column": 2,
+      "sourceFormula": "ROUNDUP(76.9,0)",
+      "cachedValue": 77.0,
+      "computedCurrentValue": 77.0,
+      "nodeTypes": [
+        17,
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 128,
+          "name": "ROUNDUP",
+          "argumentCount": 2
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 125,
+      "column": 2,
+      "sourceFormula": "SIGN(-0.00001)",
+      "cachedValue": -1.0,
+      "computedCurrentValue": -1,
+      "nodeTypes": [
+        17,
+        13,
+        16
+      ],
+      "functions": [
+        {
+          "index": 133,
+          "name": "SIGN",
+          "argumentCount": 1
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 126,
+      "column": 2,
+      "sourceFormula": "SIGN(10)",
+      "cachedValue": 1.0,
+      "computedCurrentValue": 1,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 133,
+          "name": "SIGN",
+          "argumentCount": 1
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 127,
+      "column": 2,
+      "sourceFormula": "SIGN(4-4)",
+      "cachedValue": 0.0,
+      "computedCurrentValue": 0,
+      "nodeTypes": [
+        17,
+        17,
+        2,
+        16
+      ],
+      "functions": [
+        {
+          "index": 133,
+          "name": "SIGN",
+          "argumentCount": 1
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
       "row": 128,
       "column": 2,
       "sourceFormula": "SQRT(16)",
@@ -411,6 +688,67 @@
         {
           "index": 139,
           "name": "SQRT",
+          "argumentCount": 1
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 164,
+      "column": 2,
+      "sourceFormula": "TRUNC(-8.9)",
+      "cachedValue": -8.0,
+      "computedCurrentValue": -8.0,
+      "nodeTypes": [
+        17,
+        13,
+        16
+      ],
+      "functions": [
+        {
+          "index": 157,
+          "name": "TRUNC",
+          "argumentCount": 1
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 165,
+      "column": 2,
+      "sourceFormula": "TRUNC(0.45)",
+      "cachedValue": 0.0,
+      "computedCurrentValue": 0.0,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 157,
+          "name": "TRUNC",
+          "argumentCount": 1
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 166,
+      "column": 2,
+      "sourceFormula": "TRUNC(8.9)",
+      "cachedValue": 8.0,
+      "computedCurrentValue": 8.0,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 157,
+          "name": "TRUNC",
           "argumentCount": 1
         }
       ]

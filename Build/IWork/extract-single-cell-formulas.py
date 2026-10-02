@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import math
+from decimal import Decimal, ROUND_UP, ROUND_DOWN
 import plistlib
 from importlib.metadata import version
 from pathlib import Path
@@ -119,7 +120,7 @@ for sheet_name, row in scalar_selections:
 numeric_cases = []
 if upstream_path == 'test-all-formulas.numbers':
     table = document.sheets['Math'].tables['Tests']
-    for row in [46, 47, 48, 70, 71, 72, 73, 128, 129]:
+    for row in [46, 47, 48, 70, 71, 72, 73, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 125, 126, 127, 128, 129, 164, 165, 166]:
         cell = table.cell(row - 1, 1)
         nodes = model.formula_ast(table._table_id)[cell._formula_id]
         stack, functions = [], []
@@ -128,6 +129,9 @@ if upstream_path == 'test-all-formulas.numbers':
                 stack.append(node.AST_number_node_number)
             elif node.AST_node_type == 13:
                 stack.append(-stack.pop())
+            elif node.AST_node_type == 2:
+                right, left = stack.pop(), stack.pop()
+                stack.append(left - right)
             else:
                 assert node.AST_node_type == 16
                 count = node.AST_function_node_numArgs
@@ -140,6 +144,17 @@ if upstream_path == 'test-all-formulas.numbers':
                 elif name == 'MOD':
                     assert count == 2 and values[1] != 0
                     computed = values[0] - values[1] * math.floor(values[0] / values[1])
+                elif name == 'SIGN':
+                    assert count == 1
+                    computed = (values[0] > 0) - (values[0] < 0)
+                elif name in ('TRUNC', 'ROUNDUP', 'ROUNDDOWN'):
+                    assert (count in (1, 2) if name == 'TRUNC' else count == 2)
+                    digits = int(values[1]) if count == 2 else 0
+                    assert count == 1 or values[1] == digits
+                    scale = Decimal(10) ** digits
+                    number = Decimal(str(values[0])) * scale
+                    rounding = ROUND_UP if name == 'ROUNDUP' else ROUND_DOWN
+                    computed = float(number.to_integral_value(rounding=rounding) / scale)
                 elif name == 'SQRT':
                     assert count == 1 and values[0] >= 0
                     computed = math.sqrt(values[0])
@@ -164,6 +179,6 @@ manifest = {'upstream': 'https://github.com/masaccio/numbers-parser',
             'cases': cases, 'scalarFunctionCases': scalar_cases}
 if numeric_cases:
     manifest['numericFunctionCases'] = numeric_cases
-    manifest['qualification'] += ' Nine numeric INT/MOD/SQRT expressions include unary negatives and nested ABS; independent computations agree with native caches.'
+    manifest['qualification'] += ' Numeric INT/MOD/SQRT/SIGN/TRUNC/ROUNDUP/ROUNDDOWN expressions include unary negatives, subtraction, optional and signed digit arguments and nested ABS; independent numeric/decimal computations agree with native caches.'
 args.output.write_text(json.dumps(manifest, indent=2) + '\n')
 print(f'Extracted {len(cases)} reference, {len(scalar_cases)} scalar and {len(numeric_cases)} numeric formulas from {source_hash}')

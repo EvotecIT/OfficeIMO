@@ -1,5 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using OfficeIMO.Excel;
 using OfficeIMO.IWork;
 
@@ -16,7 +18,7 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
         foreach (JsonElement expected in manifest.RootElement.GetProperty("scalarFunctionCases").EnumerateArray())
             AssertSourceScalarFunction(projection, expected);
         foreach (JsonElement expected in manifest.RootElement.GetProperty("numericFunctionCases").EnumerateArray())
-            AssertSourceScalarFunction(projection, expected);
+            AssertSourceScalarFunction(projection, expected, normalizeNumbers: true);
         using var result = source.ToExcelDocumentResult(new IWorkConversionOptions {
             AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         Assert.True(result.IsVisualFallback);
@@ -94,13 +96,19 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
         return table;
     }
 
-    private static void AssertSourceScalarFunction(IWorkNumbersProjection projection, JsonElement expected) {
+    private static void AssertSourceScalarFunction(IWorkNumbersProjection projection, JsonElement expected, bool normalizeNumbers = false) {
         IWorkTableCell cell = projection.Sheets.Single(sheet => sheet.Name == expected.GetProperty("sourceSheet").GetString())
             .Tables.Single(table => table.Name == expected.GetProperty("sourceTable").GetString())
             .GetCell(expected.GetProperty("row").GetInt32(), expected.GetProperty("column").GetInt32())!;
         Assert.True(cell.FormulaIsComplete);
         Assert.True(cell.CachedValueIsComplete);
-        Assert.Equal("=" + expected.GetProperty("sourceFormula").GetString(), cell.Formula);
+        string expression = expected.GetProperty("sourceFormula").GetString()!;
+        // Native decimal and recovered round-trip exponent literals can represent
+        // the same number. Compare their invariant numeric values, not display choice.
+        if (normalizeNumbers) expression = Regex.Replace(expression,
+            @"(?<![\w.])(?:\d+(?:\.\d*)?|\.\d+)(?:[Ee][+-]?\d+)?",
+            match => double.Parse(match.Value, CultureInfo.InvariantCulture).ToString("R", CultureInfo.InvariantCulture));
+        Assert.Equal("=" + expression, cell.Formula);
         object value = ScalarValue(expected.GetProperty("cachedValue"));
         Assert.Equal(value, cell.Value);
         Assert.Equal(value, ScalarValue(expected.GetProperty("computedCurrentValue")));

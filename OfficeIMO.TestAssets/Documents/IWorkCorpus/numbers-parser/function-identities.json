@@ -208,8 +208,23 @@
       "sampleArgumentCount": 2
     },
     {
+      "index": 127,
+      "name": "ROUNDDOWN",
+      "sampleArgumentCount": 2
+    },
+    {
+      "index": 128,
+      "name": "ROUNDUP",
+      "sampleArgumentCount": 2
+    },
+    {
       "index": 132,
       "name": "SECOND",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 133,
+      "name": "SIGN",
       "sampleArgumentCount": 1
     },
     {
@@ -231,6 +246,11 @@
       "index": 156,
       "name": "TRUE",
       "sampleArgumentCount": 0
+    },
+    {
+      "index": 157,
+      "name": "TRUNC",
+      "sampleArgumentCount": 1
     },
     {
       "index": 158,

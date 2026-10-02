@@ -876,6 +876,15 @@ numeric caches and propagate through arithmetic and error handlers. Invalid
 argument counts, multi-cell scalar ranges and unsupported operand types remain
 unevaluated.
 
+`SIGN`, `TRUNC`, `ROUNDUP` and `ROUNDDOWN` also use scalar arguments with
+exact supported signatures. `TRUNC` defaults omitted digits to zero. Digit
+arguments are supported from −15 through 15; other values remain unevaluated.
+Directional rounding uses the same decimal normalization as `ROUND`, so exact
+decimal boundaries such as `TRUNC(0.29,2)` and `ROUNDUP(0.07,2)` stay unchanged.
+Large integral values avoid unnecessary scaling, and nonfinite results produce
+`#NUM!` instead of invalid numeric caches. All operands, including supported
+digit bounds, qualify before an argument error is propagated.
+
 `OFFSET` resolves a single-cell value or a rectangular reference argument for
 functions such as `SUM`, within worksheet bounds and 32 reference levels.
 Multi-cell scalar results, implicit intersection and spills remain unsupported.
