@@ -1,6 +1,8 @@
 ---
 title: "OfficeIMO Studio privacy"
-description: "How OfficeIMO Studio processes documents, stores local data, and connects to optional document assistant providers."
+description: "Learn how OfficeIMO Studio processes documents on your device, stores local application data, and connects to optional document assistant providers."
+meta.seo_title: "OfficeIMO Studio privacy and local document data"
+layout: page
 slug: studio/privacy
 ---
 

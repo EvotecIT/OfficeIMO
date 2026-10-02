@@ -12,6 +12,8 @@ Open PDFs in tabs, switch between reading layouts, and find individual text matc
 
 Studio brings the OfficeIMO document engines into a desktop workspace. It works with supported PDF content directly; reconstructing an original Word document from a PDF is a separate conversion task.
 
+Read the [Studio privacy policy](/studio/privacy/) for details about local document processing, saved application data, and optional document assistant connections.
+
 ## Review before you save
 
 - **Edit supported content:** select existing PDF text and images for object-level edits. This is not word-processor paragraph reflow; scanned text requires OCR and remains a separate workflow.
