@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "recordedUtc": "2026-10-02T04:15:57.800622+00:00",
+  "sourceCommit": "754c1112ab20ac3ffe2dce39e79246a8d302b80c",
+  "sourceCleanDuringCorpusAndBudgets": true,
+  "contract": "MathML roots select generic math with regular weight/style and inherited size; authored, inherit/unset and initial/revert CSS retain their qualified behavior. Shared generic selection uses supplied mathematical faces or bounded installed sources.",
+  "validation": {
+    "fullDrawingNet8": 3286,
+    "fullDrawingNet10": 3286,
+    "fullHtmlNet8": 4082,
+    "fullHtmlNet10": 4082,
+    "focusedHtmlNet10": 57,
+    "focusedCoreNet10": 2,
+    "netstandardBuild": "zero warnings/errors",
+    "fourFrameworkHtmlPdfPack": "passed; netstandard2.0/net8.0/net10.0/net472 assets inspected",
+    "heldOutCases": 8,
+    "heldOutAcceptance": "passed unchanged criteria",
+    "independentPdf": {
+      "inspector": "pypdf",
+      "pages": 1,
+      "images": 0,
+      "markers": {
+        "mathml-semantics": true,
+        "FORMULA-PREFIX": true,
+        "FORMULA-SUFFIX": true,
+        "MATH-LINK": true,
+        "END-mathml-semantics": true
+      },
+      "links": [
+        "https://example.test/math-link"
+      ],
+      "formulaCount": 1,
+      "formulaAttachments": [
+        {
+          "bytes": 183,
+          "sha256": "afc2fe1809e23ea7ec13dc69bf9fc63901dbdbb148079c2446e7fedb955b2571",
+          "relationship": "/Supplement",
+          "exactOriginal": true
+        }
+      ],
+      "fullTextIdenticalToPriorQualified": true,
+      "pdfSha256": "4e0367ce7ca56993db978f29d09d92fa397d7a92c9553cd85fc5527a1a366b63",
+      "text": "mathml-semantics\nFORMULA-PREFIX x2 + y\n2\n \n FORMULA-SUFFIX\nMATH-LINK\nEND-mathml-semantics"
+    },
+    "nasa": {
+      "baseline": "mathml-source-mapping/qualification/nasa",
+      "allElevenByteIdentical": true,
+      "operations": [
+        {
+          "intent": "officeimo-print",
+          "pages": 19,
+          "sha256": "0d1a0cca5553fb46da078299da2f4075770034fe97bdf589b8f9cfc475493d4d",
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-print-zero-margin",
+          "pages": 16,
+          "sha256": "bff7edfbca0d9dc21156fdde3f1f76d1297eab6fa8aadd5cb2e86a05695922cf",
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-print-fit-browser-viewport",
+          "pages": 16,
+          "sha256": "7ee3b30f84c3135f9880049e578f9f5249ef1e4ec40eb611fab7b439eaf5ec32",
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-print-fit-1200",
+          "pages": 11,
+          "sha256": "f24cef3837c8df021069cd3f989a02095839d76267d97557825b9cefb006d61f",
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-print-fit-1200-local-fonts",
+          "pages": 11,
+          "sha256": "f24cef3837c8df021069cd3f989a02095839d76267d97557825b9cefb006d61f",
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-print-browser-ua",
+          "pages": 16,
+          "sha256": "bff7edfbca0d9dc21156fdde3f1f76d1297eab6fa8aadd5cb2e86a05695922cf",
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-print-zero-margin-local-fonts",
+          "pages": 16,
+          "sha256": "bff7edfbca0d9dc21156fdde3f1f76d1297eab6fa8aadd5cb2e86a05695922cf",
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-screen-media",
+          "pages": 21,
+          "sha256": "aaed4828e045ee8a40eeb0a9be627b8764e83e9abb6248e524a0795dabbb5612",
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-screen-media-local-fonts",
+          "pages": 21,
+          "sha256": "aaed4828e045ee8a40eeb0a9be627b8764e83e9abb6248e524a0795dabbb5612",
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-screen-snapshot",
+          "pages": 16,
+          "sha256": "b44eabfad72a8b12d2b40fe645cd794fdb7ad77f7a77f3d9910e60618875f9cb",
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-screen-snapshot-local-fonts",
+          "pages": 16,
+          "sha256": "b44eabfad72a8b12d2b40fe645cd794fdb7ad77f7a77f3d9910e60618875f9cb",
+          "byteIdentical": true
+        }
+      ]
+    },
+    "staticMacosBudgetFailures": [],
+    "h10MacosOperationCount": 10,
+    "h10MacosBudgetFailures": [],
+    "explicitMathPdf": {
+      "inspector": "pypdf and Poppler",
+      "pages": 1,
+      "fontNames": [
+        "/Helvetica",
+        "/Helvetica-BoldOblique",
+        "/math-Regular",
+        "/ScopedMath-Regular"
+      ],
+      "mathematicalFaceEmbedded": true,
+      "fullTextPreserved": true,
+      "pdfSha256": "e210a277a1cd00be445990fd2deee0e512fe6a239b501d944d34a16d06e6458d",
+      "resourcePolicy": "balanced default; application-supplied in-memory math face"
+    }
+  },
+  "fonts": {
+    "name": "STIX Two Math",
+    "path": "/System/Library/Fonts/Supplemental/STIXTwoMath.otf",
+    "sha256": "3a5f3f26f40d5698b3c62dd085d48d6663696a3f80825aab8b553d5097518e8c",
+    "bytes": 838652,
+    "outlineFormat": "CFF",
+    "nativeArtifact": "final/native.pdf",
+    "browserArtifact": "final/browser.pdf"
+  },
+  "review": {
+    "fullIndependentReadOnlyPass": 1,
+    "targetedConfirmation": 1,
+    "validatedFindings": [
+      "Repeated static CFF loading double-charged retained font buffers.",
+      "Cambria Math discovery needed the Windows cambria.ttc source.",
+      "CFF/TrueType probes must retain canonical family priority.",
+      "CFF probing must not block reuse of a retained TrueType source at a depleted budget.",
+      "A new variable CFF weight must pay for its new retained program buffers."
+    ],
+    "resolution": "Fixed in one source checkpoint; last two budget findings source-audited and covered by installed static reuse plus existing bounded-loader tests.",
+    "limitations": [
+      "Windows/Linux installed TrueType reuse and native net472 were not executed.",
+      "No installed variable CFF mathematical font was available for an end-to-end cache oracle."
+    ]
+  },
+  "pdfResourcePolicy": {
+    "balanced": "Document-selected installed-font loading remains disabled. Generic math can fall through to PDF fallback fonts when no mathematical face is supplied.",
+    "portable": "Explicitly supplied mathematical faces remain allowed.",
+    "securityPolicyChanged": false
+  },
+  "remaining": [
+    "Default-policy PDF mathematical face selection; current root family/style defaults do not guarantee an installed face in PDF.",
+    "math-auto mathematical italics and full OpenType MATH-table geometry.",
+    "Independent requested PDF/A/PDF/UA conformance proof.",
+    "Windows/Linux operation ceilings and native platform/runtime proof.",
+    "Existing unrelated concurrent unique-file save race."
+  ],
+  "retainedEvidence": "Ignore/HtmlUnknownPageQualification/mathml-default-font",
+  "releaseReady": false,
+  "artifactRetention": {
+    "compactEvidenceRetained": true,
+    "duplicateNasaAndOperationArtifactsRemoved": true,
+    "acceptedSourceArchivesPreserved": true,
+    "retainedMathArtifacts": [
+      "final/native.pdf",
+      "final/native-page.png",
+      "final/browser.pdf",
+      "final/browser.png",
+      "pdf-supplied/native.pdf",
+      "pdf-supplied/native-page.png",
+      "qualification/mathml"
+    ],
+    "reports": "qualification/**/*.json",
+    "cleanupBytes": 2916803881
+  }
+}
