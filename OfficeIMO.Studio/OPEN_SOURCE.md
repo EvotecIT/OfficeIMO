@@ -13,7 +13,11 @@ also apply to distribution through Apple’s services.
 
 Third-party libraries and native components retain their own licenses. The
 WebM/libvpx license and patent grant are included in `libvpx-LICENSE.txt` and
-`libvpx-PATENTS.txt`. The embedded sRGB profile terms are in `sRGB-LICENSE.txt`.
+`libvpx-PATENTS.txt`. The embedded US English and German hyphenation pattern notices
+are in `hyphenation-en-us-LICENSE.txt` and `hyphenation-de-1996-LICENSE.txt`.
+`OfficeIMO.Core-THIRD-PARTY-NOTICES.md` records their provenance and the adapted
+Bouncy Castle AES implementation. The embedded sRGB profile terms are in
+`sRGB-LICENSE.txt`.
 Mac App Store packages also include `THIRD_PARTY_NOTICES.txt` and
 `runtime-package-inventory.json`, generated from the exact published dependency
 graph and reviewed license texts. Packaging fails when a runtime package version

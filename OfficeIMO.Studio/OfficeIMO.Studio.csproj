@@ -54,9 +54,9 @@
   <ItemGroup>
     <Content Include="..\LICENSE" Link="Licenses\OfficeIMO-MIT.txt"
              CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\OfficeIMO.Core\Licenses\libvpx-LICENSE.txt" Link="Licenses\libvpx-LICENSE.txt"
+    <Content Include="..\OfficeIMO.Core\Licenses\*.txt" Link="Licenses\%(Filename)%(Extension)"
              CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\OfficeIMO.Core\Licenses\libvpx-PATENTS.txt" Link="Licenses\libvpx-PATENTS.txt"
+    <Content Include="..\OfficeIMO.Core\THIRD-PARTY-NOTICES.md" Link="Licenses\OfficeIMO.Core-THIRD-PARTY-NOTICES.md"
              CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="..\OfficeIMO.Pdf\Resources\sRGB-LICENSE.txt" Link="Licenses\sRGB-LICENSE.txt"
              CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
