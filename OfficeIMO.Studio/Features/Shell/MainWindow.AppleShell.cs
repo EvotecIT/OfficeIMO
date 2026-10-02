@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Markup.Xaml.Styling;
 
 namespace OfficeIMO.Studio.Features.Shell;
 
@@ -11,6 +12,9 @@ public sealed partial class MainWindow {
     private void InitializeAppleShell() {
         Classes.Set("apple", OperatingSystem.IsMacOS());
         if (OperatingSystem.IsMacOS()) {
+            Resources.MergedDictionaries.Add(new ResourceInclude(new Uri("avares://OfficeIMO.Studio/")) {
+                Source = new Uri("avares://OfficeIMO.Studio/Features/Shell/AppleShellResources.axaml")
+            });
             // Let AppKit own the traffic lights and title. The document toolbar stays below it.
             ExtendClientAreaToDecorationsHint = false;
             FontFamily = new FontFamily("Helvetica Neue");

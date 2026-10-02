@@ -82,8 +82,12 @@ public sealed partial class MainWindow {
             Action("PreviousTab", () => TabHost.SelectRelativeTab(true), "Control+Shift+Tab"),
             new NativeMenuItem(Text("ReopenTab")) { Command = reopen, Gesture = KeyGesture.Parse("Meta+Shift+T") });
         window.Menu!.NeedsUpdate += (_, _) => fullscreen.Header = Text(WindowState == WindowState.FullScreen ? "LeaveFullScreen" : "FullScreen");
-        var menus = new NativeMenu();
+        // AppKit's exporter keeps the attached root menu identity across document switches.
+        var menus = NativeMenu.GetMenu(this);
+        bool attach = menus is null;
+        menus ??= new NativeMenu();
+        menus.Items.Clear();
         foreach (var menu in new[] { file, edit, view, window }) menus.Items.Add(menu);
-        NativeMenu.SetMenu(this, menus);
+        if (attach) NativeMenu.SetMenu(this, menus);
     }
 }

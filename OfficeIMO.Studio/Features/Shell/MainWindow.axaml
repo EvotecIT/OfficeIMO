@@ -12,7 +12,7 @@
         x:Class="OfficeIMO.Studio.Features.Shell.MainWindow"
         x:DataType="shell:MainWindowViewModel"
         x:Name="StudioWindow"
-        Title="OfficeIMO Studio"
+        Title="{Binding DocumentName}"
         Icon="avares://OfficeIMO.Studio/Assets/OfficeIMO.Studio.ico"
         Width="1280"
         Height="820"
@@ -27,7 +27,6 @@
   <Window.Styles>
     <Style Selector="Grid#NavigationRail"><Setter Property="RowSpacing" Value="2" /><Setter Property="Margin" Value="8,4,8,10" /></Style>
     <Style Selector="StackPanel.navLabel"><Setter Property="Spacing" Value="2" /><Setter Property="HorizontalAlignment" Value="Center" /></Style>
-    <StyleInclude Source="avares://OfficeIMO.Studio/Features/Shell/AppleShellStyles.axaml" />
     <Style Selector="ListBox#DocumentTabs ListBoxItem">
       <Setter Property="Padding" Value="0" />
       <Setter Property="Margin" Value="0,0,2,0" />
@@ -100,6 +99,7 @@
     <Style Selector="Button#ThemeToggle PathIcon.sun"><Setter Property="IsVisible" Value="False" /></Style>
     <Style Selector="Button#ThemeToggle.dark PathIcon.sun"><Setter Property="IsVisible" Value="True" /></Style>
     <Style Selector="Button#ThemeToggle.dark PathIcon.moon"><Setter Property="IsVisible" Value="False" /></Style>
+    <StyleInclude Source="avares://OfficeIMO.Studio/Features/Shell/AppleShellStyles.axaml" />
   </Window.Styles>
 
   <Grid x:Name="ShellRoot" RowDefinitions="44,*,Auto" ColumnDefinitions="72,*">

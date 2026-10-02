@@ -1,0 +1,53 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:preferences="using:OfficeIMO.Studio.Infrastructure.Preferences">
+  <!-- Loaded only by the macOS shell. Document paper and semantic status colors stay shared. -->
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Light">
+      <SolidColorBrush x:Key="StudioChromeBrush" Color="#F0F0F2" />
+      <SolidColorBrush x:Key="StudioDocumentToolbarBrush" Color="#F0F0F2" />
+      <SolidColorBrush x:Key="StudioPanelBrush" Color="#FAFAFB" />
+      <SolidColorBrush x:Key="StudioPanelRaisedBrush" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="StudioPanelMutedBrush" Color="#E8E8EC" />
+      <SolidColorBrush x:Key="StudioCanvasBrush" Color="#E3E3E7" />
+      <SolidColorBrush x:Key="StudioFloatingBrush" Color="#FAFAFB" />
+      <SolidColorBrush x:Key="StudioBorderBrush" Color="#D1D1D6" />
+      <SolidColorBrush x:Key="StudioSubtleBorderBrush" Color="#DEDEE3" />
+      <SolidColorBrush x:Key="StudioTextBrush" Color="#242426" />
+      <SolidColorBrush x:Key="StudioMutedTextBrush" Color="#626268" />
+      <SolidColorBrush x:Key="StudioNavTextBrush" Color="#44444A" />
+      <SolidColorBrush x:Key="StudioNavActiveBrush" Color="#DDDEE5" />
+    </ResourceDictionary>
+    <ResourceDictionary x:Key="Dark">
+      <SolidColorBrush x:Key="StudioChromeBrush" Color="#242426" />
+      <SolidColorBrush x:Key="StudioDocumentToolbarBrush" Color="#242426" />
+      <SolidColorBrush x:Key="StudioPanelBrush" Color="#2C2C2E" />
+      <SolidColorBrush x:Key="StudioPanelRaisedBrush" Color="#363638" />
+      <SolidColorBrush x:Key="StudioPanelMutedBrush" Color="#3B3B3F" />
+      <SolidColorBrush x:Key="StudioCanvasBrush" Color="#1C1C1E" />
+      <SolidColorBrush x:Key="StudioFloatingBrush" Color="#363638" />
+      <SolidColorBrush x:Key="StudioBorderBrush" Color="#55555B" />
+      <SolidColorBrush x:Key="StudioSubtleBorderBrush" Color="#424246" />
+      <SolidColorBrush x:Key="StudioTextBrush" Color="#F2F2F7" />
+      <SolidColorBrush x:Key="StudioMutedTextBrush" Color="#B0B0B8" />
+      <SolidColorBrush x:Key="StudioNavTextBrush" Color="#D1D1D6" />
+      <SolidColorBrush x:Key="StudioNavActiveBrush" Color="#45454B" />
+    </ResourceDictionary>
+    <!-- Explicit values prevent the custom HighContrast variant inheriting the softer Mac dark palette. -->
+    <ResourceDictionary x:Key="{x:Static preferences:StudioThemeVariants.HighContrast}">
+      <SolidColorBrush x:Key="StudioChromeBrush" Color="#000000" />
+      <SolidColorBrush x:Key="StudioDocumentToolbarBrush" Color="#000000" />
+      <SolidColorBrush x:Key="StudioPanelBrush" Color="#000000" />
+      <SolidColorBrush x:Key="StudioPanelRaisedBrush" Color="#000000" />
+      <SolidColorBrush x:Key="StudioPanelMutedBrush" Color="#1A1A1A" />
+      <SolidColorBrush x:Key="StudioCanvasBrush" Color="#000000" />
+      <SolidColorBrush x:Key="StudioFloatingBrush" Color="#000000" />
+      <SolidColorBrush x:Key="StudioBorderBrush" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="StudioSubtleBorderBrush" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="StudioTextBrush" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="StudioMutedTextBrush" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="StudioNavTextBrush" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="StudioNavActiveBrush" Color="#333333" />
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

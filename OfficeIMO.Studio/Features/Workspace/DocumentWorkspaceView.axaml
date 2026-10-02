@@ -66,7 +66,7 @@
 
   <Grid RowDefinitions="Auto,*,Auto" Background="{DynamicResource StudioCanvasBrush}">
     <!-- One command row: panes, mode, the mode's tools, and document actions. -->
-    <Border x:Name="CommandRow" Grid.Row="0" IsVisible="{Binding !IsFocusReading}" Background="{DynamicResource StudioPanelBrush}"
+    <Border x:Name="CommandRow" Grid.Row="0" IsVisible="{Binding !IsFocusReading}" Background="{DynamicResource StudioDocumentToolbarBrush}"
             BorderBrush="{DynamicResource StudioSubtleBorderBrush}" BorderThickness="0,0,0,1" Padding="8,7" MinHeight="48">
       <Grid x:Name="DocumentCommandGrid" ColumnDefinitions="Auto,Auto,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="4">
         <ToggleButton x:Name="NavigationToggle" Classes="icon" IsChecked="True" Click="OnNavigationToggleClick" VerticalAlignment="Center"
