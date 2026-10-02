@@ -11,7 +11,7 @@ public sealed partial class ProjectDocument {
             Target.Work = Plan.Work; Target.ActualWork = Plan.ActualWork; Target.RemainingWork = Plan.RemainingWork;
             Target.OvertimeWork = Plan.OvertimeWork; Target.ActualOvertimeWork = Plan.ActualOvertimeWork;
             Target.Cost = Plan.Cost; Target.ActualCost = Plan.ActualCost; Target.RemainingCost = Plan.RemainingCost;
-            Target.PercentWorkComplete = Plan.Work.Minutes == 0 ? 0 : (int)decimal.Round(Plan.ActualWork.Minutes / Plan.Work.Minutes * 100m, 0, MidpointRounding.AwayFromZero);
+            Target.PercentWorkComplete = ProjectTimeUnits.Percentage(Plan.ActualWork, Plan.Work);
             foreach (var value in Target.TimephasedData.Where(v => v.Type.HasValue && ReplacedTypes.Contains(v.Type.Value)).ToArray()) Target.TimephasedData.Remove(value);
             foreach (var value in Values) {
                 var item = Target.TimephasedData.Add(); item.Type = value.Type; item.Uid = Target.Uid;

@@ -9,11 +9,12 @@ public sealed class ProjectTaskWorkSchedule {
         ActualDuration = ProjectDuration.FromMinutes(actualDuration, ProjectDurationUnit.Minute, elapsed, false, 1);
         RemainingDuration = ProjectDuration.FromMinutes(remainingDuration, ProjectDurationUnit.Minute, elapsed, false, 1);
         Cost = cost; ActualCost = actualCost; RemainingCost = cost - actualCost;
-        PercentComplete = actualDuration + remainingDuration == 0 && completed ? 100 : Percentage(actualDuration, actualDuration + remainingDuration);
-        PercentWorkComplete = Percentage(actualWork.Minutes, work.Minutes); PhysicalPercentComplete = physical;
+        var actualTime = ProjectWork.FromMinutes(actualDuration);
+        var totalTime = ProjectWork.Add(actualTime, ProjectWork.FromMinutes(remainingDuration));
+        PercentComplete = totalTime.Minutes == 0 && completed ? 100 : ProjectTimeUnits.Percentage(actualTime, totalTime);
+        PercentWorkComplete = ProjectTimeUnits.Percentage(actualWork, work); PhysicalPercentComplete = physical;
     }
     internal bool HasActuals { get; }
-    private static int Percentage(decimal actual, decimal total) => total <= 0 ? 0 : (int)decimal.Round(Math.Min(100, actual / total * 100), 0, MidpointRounding.AwayFromZero);
     /// <summary>Work-resource assignment total, excluding material quantities.</summary>
     public ProjectWork Work { get; }
     /// <summary>Completed work-resource effort.</summary>

@@ -194,13 +194,70 @@ public class ProjectTimePrecisionTests {
         if (overtime) Assert.Equal(TimeSpan.FromSeconds(2), XmlConvert.ToTimeSpan(values.Element(Ns + "OvertimeWork")!.Value));
     }
 
-    [Fact]
-    public void SummaryProgressScalesExactChildDuration() {
-        using var document = ProjectDocument.Parse($"<Project xmlns='{Ns}'><StartDate>2026-10-05T08:00:00</StartDate><Tasks><Task><UID>10</UID><Name>Summary</Name><OutlineLevel>1</OutlineLevel><Summary>1</Summary></Task><Task><UID>1</UID><Name>Progress</Name><OutlineLevel>2</OutlineLevel><Duration>PT2S</Duration><DurationFormat>3</DurationFormat><ActualDuration>PT1S</ActualDuration><RemainingDuration>PT1S</RemainingDuration><ActualStart>2026-10-05T08:00:00</ActualStart></Task></Tasks></Project>");
+    [Theory]
+    [InlineData("PT2S", "PT1S", "PT1S", 1, 1)]
+    [InlineData("PT1H", "PT20M", "PT40M", 1200, 2400)]
+    public void SummaryProgressScalesExactChildDuration(string total, string actual, string remaining, int actualSeconds, int remainingSeconds) {
+        using var document = ProjectDocument.Parse($"<Project xmlns='{Ns}'><StartDate>2026-10-05T08:00:00</StartDate><Tasks><Task><UID>10</UID><Name>Summary</Name><OutlineLevel>1</OutlineLevel><Summary>1</Summary></Task><Task><UID>1</UID><Name>Progress</Name><OutlineLevel>2</OutlineLevel><Duration>{total}</Duration><DurationFormat>3</DurationFormat><ActualDuration>{actual}</ActualDuration><RemainingDuration>{remaining}</RemainingDuration><ActualStart>2026-10-05T08:00:00</ActualStart></Task></Tasks></Project>");
         document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Recalculate(new ProjectScheduleOptions { CalculateAssignments = true });
         var xml = XDocument.Parse(document.ToXml(new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
         var summary = xml.Descendants(Ns + "Task").Single(t => t.Element(Ns + "UID")!.Value == "10");
-        Assert.Equal(TimeSpan.FromSeconds(1), XmlConvert.ToTimeSpan(summary.Element(Ns + "ActualDuration")!.Value));
-        Assert.Equal(TimeSpan.FromSeconds(1), XmlConvert.ToTimeSpan(summary.Element(Ns + "RemainingDuration")!.Value));
+        Assert.Equal(TimeSpan.FromSeconds(actualSeconds), XmlConvert.ToTimeSpan(summary.Element(Ns + "ActualDuration")!.Value));
+        Assert.Equal(TimeSpan.FromSeconds(remainingSeconds), XmlConvert.ToTimeSpan(summary.Element(Ns + "RemainingDuration")!.Value));
+    }
+
+    [Fact]
+    public void ActualCurveProportionsPreserveExactWorkThroughBaselineCapture() {
+        var start = new DateTime(2026, 10, 5, 8, 0, 0);
+        using var document = ProjectDocument.Parse($"<Project xmlns='{Ns}'><StartDate>2026-10-05T08:00:00</StartDate><Tasks><Task><UID>1</UID><Name>Recorded curve</Name><Duration>PT3S</Duration><DurationFormat>3</DurationFormat><ActualDuration>PT3S</ActualDuration><RemainingDuration>PT0S</RemainingDuration><ActualStart>2026-10-05T08:00:00</ActualStart><Work>PT1M</Work><ActualWork>PT1M</ActualWork></Task></Tasks></Project>");
+        document.Calendar = document.Calendars.AddStandardWorkingWeek();
+        var task = document.Tasks[0];
+        var resource = document.Resources.AddWork("Engineer"); resource.StandardRate = resource.OvertimeRate = 60;
+        var assignment = document.Assignments.Add(task, resource, ProjectUnits.Percent(100));
+        assignment.Work = assignment.ActualWork = task.Work;
+        using var second = ProjectDocument.Parse($"<Project xmlns='{Ns}'><Tasks><Task><UID>1</UID><Work>PT1S</Work></Task></Tasks></Project>");
+        assignment.OvertimeWork = assignment.ActualOvertimeWork = second.Tasks[0].Work;
+        foreach (var spec in new[] { (Type: 2, Seconds: 3, Value: "PT1M"), (Type: 3, Seconds: 1, Value: "PT1S") }) {
+            var curve = assignment.TimephasedData.Add(); curve.Type = spec.Type; curve.Uid = assignment.Uid;
+            curve.Start = start; curve.Finish = start.AddSeconds(spec.Seconds); curve.Value = spec.Value;
+        }
+        var schedule = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true });
+        schedule.Report.ThrowIfErrors();
+        Assert.Equal(new[] { 20m / 60m, 40m / 60m }, schedule.Assignments.Single().Intervals.Select(v => v.Work.Minutes).ToArray());
+        document.CaptureBaseline(schedule);
+        var baseline = assignment.TimephasedData.Where(v => v.Type == 4).OrderBy(v => v.Start).ToArray();
+        Assert.Equal(new[] { TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(40) }, baseline.Select(v => XmlConvert.ToTimeSpan(v.Value!)).ToArray());
+        document.AssessSave(new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }).ThrowIfErrors();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ExactHalfPercentCompletionRoundsAwayFromZero(bool assigned) {
+        using var document = ProjectDocument.Parse($"<Project xmlns='{Ns}'><StartDate>2026-10-05T08:00:00</StartDate><Tasks><Task><UID>1</UID><Name>Progress</Name><Duration>PT4S</Duration><DurationFormat>3</DurationFormat><ActualDuration>PT1.98S</ActualDuration><RemainingDuration>PT2.02S</RemainingDuration><ActualStart>2026-10-05T08:00:00</ActualStart><Work>PT4S</Work><ActualWork>PT1.98S</ActualWork><RemainingWork>PT2.02S</RemainingWork></Task></Tasks></Project>");
+        document.Calendar = document.Calendars.AddStandardWorkingWeek();
+        var task = document.Tasks[0];
+        if (assigned) {
+            var assignment = document.Assignments.Add(task, document.Resources.AddWork("Engineer"), ProjectUnits.Percent(100));
+            assignment.Work = task.Work; assignment.ActualWork = task.ActualWork; assignment.RemainingWork = task.RemainingWork; assignment.ActualStart = task.ActualStart;
+        }
+        document.Recalculate(new ProjectScheduleOptions { CalculateAssignments = true });
+        Assert.Equal(50, task.PercentComplete); Assert.Equal(50, task.PercentWorkComplete);
+        if (assigned) Assert.Equal(50, document.Assignments.Single().PercentWorkComplete);
+    }
+
+    [Fact]
+    public void StoredAnalysisBalancesAndAggregatesExactSecondQuantities() {
+        string tasks = string.Concat(Enumerable.Range(1, 3).Select(uid => $"<Task><UID>{uid}</UID><Name>Progress {uid}</Name><Work>PT2S</Work><ActualWork>PT1S</ActualWork><RemainingWork>PT1S</RemainingWork></Task>"));
+        using var document = ProjectDocument.Parse($"<Project xmlns='{Ns}'><Tasks>{tasks}</Tasks></Project>");
+        var resource = document.Resources.AddWork("Shared");
+        foreach (var task in document.Tasks) {
+            var assignment = document.Assignments.Add(task, resource);
+            assignment.Work = task.Work; assignment.ActualWork = task.ActualWork; assignment.RemainingWork = task.RemainingWork;
+        }
+        var result = document.AnalyzeAssignments();
+        Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "PROJECT_WORK_BALANCE");
+        var totals = Assert.Single(result.Resources);
+        Assert.Equal(.1m, totals.WorkMinutes); Assert.Equal(.05m, totals.ActualWorkMinutes); Assert.Equal(.05m, totals.RemainingWorkMinutes);
     }
 }

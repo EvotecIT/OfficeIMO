@@ -12,7 +12,7 @@ public sealed partial class ProjectDocument {
             cancellationToken.ThrowIfCancellationRequested();
             var task = assignment.Task; var resource = assignment.Resource;
             string location = "/Assignment[UID=" + assignment.Uid + "]";
-            if (assignment.Work is ProjectWork work && assignment.ActualWork is ProjectWork actual && assignment.RemainingWork is ProjectWork remaining && work.Minutes != actual.Minutes + remaining.Minutes)
+            if (assignment.Work is ProjectWork work && assignment.ActualWork is ProjectWork actual && assignment.RemainingWork is ProjectWork remaining && !work.Equals(ProjectWork.Add(actual, remaining)))
                 Warn("PROJECT_WORK_BALANCE", "Stored work differs from actual plus remaining work.", location);
             if (assignment.Cost.HasValue && assignment.ActualCost.HasValue && assignment.RemainingCost.HasValue && assignment.Cost != assignment.ActualCost + assignment.RemainingCost)
                 Warn("PROJECT_COST_BALANCE", "Stored cost differs from actual plus remaining cost.", location);

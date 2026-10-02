@@ -62,7 +62,7 @@ internal sealed partial class ProjectTaskAllocation {
             for (int index = 0; index < entry.Curves.Length; index++) {
                 var curve = entry.Curves[index];
                 decimal overtime = index == entry.Curves.Length - 1 ? ProjectTimeUnits.SubtractMinutes(entry.RemainingOvertime, assignedOvertime) :
-                    regular > 0 ? ProjectTimeUnits.MultiplyDivideMinutes(entry.RemainingOvertime, curve.Work, regular) : 0;
+                    regular > 0 ? ProjectTimeUnits.ScaleMinutesByRatio(entry.RemainingOvertime, curve.Work, regular) : 0;
                 DateTime from = entry.RemainingCalendar.Add(origin, curve.From), to = entry.RemainingCalendar.Add(origin, curve.To);
                 Expand(entry, entry.RemainingCalendar, from, to, ProjectTimeUnits.AddMinutes(curve.Work, overtime), overtime, false, intervals);
                 assignedOvertime = ProjectTimeUnits.AddMinutes(assignedOvertime, overtime);

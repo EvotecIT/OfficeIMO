@@ -150,6 +150,11 @@ public readonly struct ProjectWork : IEquatable<ProjectWork> {
         try { return FromQuantities(minutes, checked(Ticks * numerator / denominator)); }
         catch (OverflowException) { return new ProjectWork(minutes); }
     }
+    /// <summary>Computes a dimensionless ratio from stored ticks when they fit the decimal range.</summary>
+    internal decimal Ratio(ProjectWork total, decimal scale = 1) {
+        try { return checked(Ticks * scale / total.Ticks); }
+        catch (OverflowException) { return checked(Minutes * scale / total.Minutes); }
+    }
     private static ProjectWork FromQuantities(decimal minutes, decimal ticks) =>
         ticks >= 0 && ticks <= long.MaxValue && ticks == decimal.Truncate(ticks) ? FromTicks((long)ticks) : new ProjectWork(minutes);
     internal decimal Ticks => _decoded == null ? checked(Minutes * TimeSpan.TicksPerMinute) : _decoded.Value;

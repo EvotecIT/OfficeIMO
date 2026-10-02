@@ -187,7 +187,8 @@ internal sealed partial class ProjectScheduler {
             if (cost.HasValue && actualCost.HasValue) cost += task.ActualCost.Value - actualCost.Value;
             actualCost = task.ActualCost;
         }
-        decimal summaryActual = ProjectTimeUnits.MultiplyDivideMinutes(duration, fraction);
+        decimal summaryActual = childDuration.Minutes == 0 ? completed ? duration : 0m :
+            ProjectTimeUnits.ScaleMinutesByRatio(duration, actualDuration.Minutes, childDuration.Minutes);
         return new ProjectTaskWorkSchedule(work, actual, ProjectWork.Subtract(work, actual), summaryActual, ProjectTimeUnits.SubtractMinutes(duration, summaryActual),
             cost, actualCost, task.PhysicalPercentComplete, completed: completed, hasActuals: hasActuals);
     }

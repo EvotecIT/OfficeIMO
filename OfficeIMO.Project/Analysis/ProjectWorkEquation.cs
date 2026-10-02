@@ -15,8 +15,7 @@ public static class ProjectWorkEquation {
     /// <summary>Computes allocation for fixed work and duration. Zero-duration work cannot be inferred.</summary>
     public static ProjectUnits Units(ProjectWork work, decimal workingMinutes) {
         if (workingMinutes <= 0) throw new ArgumentOutOfRangeException(nameof(workingMinutes));
-        try { return ProjectUnits.Fraction(work.Ticks / ProjectWork.FromMinutes(workingMinutes).Ticks); }
-        catch (OverflowException) { return ProjectUnits.Fraction(work.Minutes / workingMinutes); }
+        return ProjectUnits.Fraction(work.Ratio(ProjectWork.FromMinutes(workingMinutes)));
     }
     /// <summary>Uniform planned work cost: regular hours times standard hourly rate plus overtime hours times overtime hourly rate plus the assignment's per-use charge, already scaled by work-resource units.</summary>
     public static decimal WorkCost(ProjectWork totalWork, ProjectWork overtimeWork, decimal standardHourlyRate, decimal overtimeHourlyRate, decimal costPerUse = 0) {

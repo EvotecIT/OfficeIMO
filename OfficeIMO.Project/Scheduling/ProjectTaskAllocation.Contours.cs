@@ -56,11 +56,11 @@ internal sealed partial class ProjectTaskAllocation {
             var points = boundaries.ToArray();
             if (points.Length == 1) { Expand(entry, entry.Calendar, points[0], points[0], amount, entry.IsFixedMaterial ? 0 : amount, true, result); continue; }
             for (int i = 1; i < points.Length; i++) {
-                decimal work = duration > 0 ? ProjectTimeUnits.MultiplyDivideMinutes(amount, entry.Calendar.Between(points[i - 1], points[i]), duration) : 0m, overAmount = 0m;
+                decimal work = duration > 0 ? ProjectTimeUnits.ScaleMinutesByRatio(amount, entry.Calendar.Between(points[i - 1], points[i]), duration) : 0m, overAmount = 0m;
                 foreach (var over in overtime.Where(o => o.Start <= points[i - 1] && o.Finish >= points[i])) {
                     decimal span = entry.Calendar.Between(over.Start!.Value, over.Finish!.Value);
                     if (span > 0) overAmount = ProjectTimeUnits.AddMinutes(overAmount,
-                        ProjectTimeUnits.MultiplyDivideMinutes(WorkValue(over), entry.Calendar.Between(points[i - 1], points[i]), span));
+                        ProjectTimeUnits.ScaleMinutesByRatio(WorkValue(over), entry.Calendar.Between(points[i - 1], points[i]), span));
                 }
                 Expand(entry, entry.Calendar, points[i - 1], points[i], work, overAmount, true, result);
             }
