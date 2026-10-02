@@ -18,7 +18,8 @@ internal static class OfficeWorkflowHtmlResourceResolver {
     internal static HtmlToPdfOptions CreateOptions(
         string inputPath,
         long maximumResourceBytes,
-        IReadOnlyDictionary<string, byte[]>? resourceSnapshots = null) {
+        IReadOnlyDictionary<string, byte[]>? resourceSnapshots = null,
+        HtmlToPdfOptions? renderingOptions = null) {
         if (string.IsNullOrWhiteSpace(inputPath)) {
             throw new ArgumentException("Input path cannot be empty.", nameof(inputPath));
         }
@@ -32,15 +33,14 @@ internal static class OfficeWorkflowHtmlResourceResolver {
         HtmlUrlPolicy resourcePolicy = CreateResourcePolicy();
 
         long rendererResourceBudget = Math.Max(1L, maximumResourceBytes);
-        var options = new HtmlToPdfOptions {
-            ResourceUrlPolicy = resourcePolicy,
-            MaxResourceBytes = rendererResourceBudget,
-            MaxTotalResourceBytes = rendererResourceBudget,
-            MaxResourceCount = MaximumReferencedResourceCount,
-            MaxResourceRequests = MaximumReferencedResourceCount * 2,
-            MaxStylesheetImportDepth = MaximumStylesheetImportDepth
-        };
-        options.ResourcePolicy.AllowLocalFileAccess = true;
+        var options = renderingOptions?.ClonePdf() ?? new HtmlToPdfOptions();
+        options.ResourceUrlPolicy = resourcePolicy;
+        options.MaxResourceBytes = Math.Min(options.MaxResourceBytes, rendererResourceBudget);
+        options.MaxTotalResourceBytes = Math.Min(options.MaxTotalResourceBytes, rendererResourceBudget);
+        options.MaxResourceCount = Math.Min(options.MaxResourceCount, MaximumReferencedResourceCount);
+        options.MaxResourceRequests = Math.Min(options.MaxResourceRequests, MaximumReferencedResourceCount * 2);
+        options.MaxStylesheetImportDepth = Math.Min(options.MaxStylesheetImportDepth, MaximumStylesheetImportDepth);
+        options.ResourcePolicy.AllowLocalFileAccess = renderingOptions == null || renderingOptions.ResourcePolicy.AllowLocalFileAccess;
         options.ResourceResolver = (request, cancellationToken) =>
             ResolveAsync(request, physicalRoot, maximumResourceBytes, resourceSnapshots, cancellationToken);
         return options;

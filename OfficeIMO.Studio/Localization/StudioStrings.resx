@@ -2415,26 +2415,26 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Provenance.CreateCopy" xml:space="preserve"><value>Create and verify copy</value></data>
   <data name="Provenance.Export" xml:space="preserve"><value>Export JSON report</value></data>
   <data name="Provenance.Cancel" xml:space="preserve"><value>Cancel</value></data>
-  <data name="Conversion.Archive.Title" xml:space="preserve"><value>PDF archive</value></data>
-  <data name="Conversion.Archive.Description" xml:space="preserve"><value>Run or resume a DOC, DOCX and TXT folder archive.</value></data>
-  <data name="Conversion.Archive.Source" xml:space="preserve"><value>Source folder</value></data>
-  <data name="Conversion.Archive.Output" xml:space="preserve"><value>PDF output folder</value></data>
-  <data name="Conversion.Archive.Checkpoint" xml:space="preserve"><value>Checkpoint folder</value></data>
-  <data name="Conversion.Archive.ChooseSource" xml:space="preserve"><value>Choose source</value></data>
-  <data name="Conversion.Archive.ChooseOutput" xml:space="preserve"><value>Choose output</value></data>
-  <data name="Conversion.Archive.ChooseCheckpoint" xml:space="preserve"><value>Choose checkpoints</value></data>
-  <data name="Conversion.Archive.AcceptLoss" xml:space="preserve"><value>Accept reported DOC import loss</value></data>
-  <data name="Conversion.Archive.Retry" xml:space="preserve"><value>Retry recorded failures</value></data>
-  <data name="Conversion.Archive.Run" xml:space="preserve"><value>Run or resume</value></data>
-  <data name="Conversion.Archive.Cancel" xml:space="preserve"><value>Cancel archive</value></data>
+  <data name="Conversion.BatchExport.Title" xml:space="preserve"><value>Batch PDF export</value></data>
+  <data name="Conversion.BatchExport.Description" xml:space="preserve"><value>Export supported documents to individual PDFs. Add optional checkpoints to resume verified completed work.</value></data>
+  <data name="Conversion.BatchExport.Source" xml:space="preserve"><value>Source folder</value></data>
+  <data name="Conversion.BatchExport.Output" xml:space="preserve"><value>PDF output folder</value></data>
+  <data name="Conversion.BatchExport.Checkpoint" xml:space="preserve"><value>Optional checkpoint folder</value></data>
+  <data name="Conversion.BatchExport.ChooseSource" xml:space="preserve"><value>Choose source</value></data>
+  <data name="Conversion.BatchExport.ChooseOutput" xml:space="preserve"><value>Choose output</value></data>
+  <data name="Conversion.BatchExport.ChooseCheckpoint" xml:space="preserve"><value>Choose checkpoints</value></data>
+  <data name="Conversion.BatchExport.AcceptLoss" xml:space="preserve"><value>Accept reported DOC import loss</value></data>
+  <data name="Conversion.BatchExport.Retry" xml:space="preserve"><value>Retry recorded failures</value></data>
+  <data name="Conversion.BatchExport.Run" xml:space="preserve"><value>Run or resume</value></data>
+  <data name="Conversion.BatchExport.Cancel" xml:space="preserve"><value>Cancel batch</value></data>
   <data name="Conversion.Text.Encoding" xml:space="preserve"><value>TXT encoding</value></data>
   <data name="Conversion.Text.EncodingHint" xml:space="preserve"><value>Unicode BOM or strict UTF-8</value></data>
   <data name="Conversion.Text.Tabs" xml:space="preserve"><value>TXT tab columns</value></data>
-  <data name="Conversion.Archive.Ready" xml:space="preserve"><value>Choose separate source, PDF output and checkpoint folders. DOC, DOCX and TXT files are discovered recursively.</value></data>
-  <data name="Conversion.Archive.LocalOnly" xml:space="preserve"><value>Archive processing requires local filesystem folders.</value></data>
-  <data name="Conversion.Archive.Progress" xml:space="preserve"><value>Completed {0}; failed {1}. Completed files survive cancellation.</value></data>
-  <data name="Conversion.Archive.Running" xml:space="preserve"><value>Running archive. Completed files are checkpointed individually.</value></data>
-  <data name="Conversion.Archive.FinishedResult" xml:space="preserve"><value>Finished: {0} completed, {1} reused, {2} failed. Source and output hashes are verified on rerun.</value></data>
-  <data name="Conversion.Archive.CancelledResult" xml:space="preserve"><value>Cancelled: {0} completed, {1} reused, {2} failed. Source and output hashes are verified on rerun.</value></data>
-  <data name="Conversion.Archive.Cancelled" xml:space="preserve"><value>Archive cancelled. Completed files remain available for resume.</value></data>
+  <data name="Conversion.BatchExport.Ready" xml:space="preserve"><value>Choose source and PDF output folders. Add optional checkpoints to resume mixed-format document export.</value></data>
+  <data name="Conversion.BatchExport.LocalOnly" xml:space="preserve"><value>Batch processing requires local filesystem folders.</value></data>
+  <data name="Conversion.BatchExport.Progress" xml:space="preserve"><value>Completed {0}; failed {1}. Completed files survive cancellation.</value></data>
+  <data name="Conversion.BatchExport.Running" xml:space="preserve"><value>Exporting documents. Checkpointed jobs retain completed files individually.</value></data>
+  <data name="Conversion.BatchExport.FinishedResult" xml:space="preserve"><value>Finished: {0} completed, {1} reused, {2} failed, {3} skipped.</value></data>
+  <data name="Conversion.BatchExport.CancelledResult" xml:space="preserve"><value>Cancelled: {0} completed, {1} reused, {2} failed, {3} skipped.</value></data>
+  <data name="Conversion.BatchExport.Cancelled" xml:space="preserve"><value>Batch cancelled. Completed files remain available.</value></data>
 </root>

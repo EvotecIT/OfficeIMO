@@ -93,25 +93,19 @@ input and 64 MiB of returned artifacts. `--max-input-bytes` and
 to 16 MiB. For the pinned authority downloads and runtime requirements, see the
 [standards validator guide](../OfficeIMO.Invoicing.Validation/README.md).
 
-## PDF archive conversion and printing
+## File batches and printing
 
 DOC conversion blocks known legacy import loss by default; `--allow-legacy-loss` explicitly accepts the reported reductions. TXT conversion treats HTML and Markdown as literal text, detects Unicode BOMs and otherwise uses strict UTF-8. Use `--text-encoding` and `--tab-size` for explicit text settings. The adapter's diagnostics remain on standard error.
 
-For a restartable directory archive, save this request as `archive.json`. Resolve relative paths from the directory where the command runs:
-
-```json
-{
-  "InputDirectory": "./Documents",
-  "OutputDirectory": "./PDF",
-  "CheckpointDirectory": "./PDF-State",
-  "MaximumConcurrency": 2
-}
-```
+Batch conversion uses the existing executable workflow catalog. PDF export selects DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown and RTF; unsupported files are counted as skipped. Checkpoints are optional. Resolve relative paths from the directory where the command runs:
 
 ```powershell
-officeimo workflow archive --request archive.json
-# Rerun the same request to verify and reuse completed files.
-officeimo workflow archive --request archive.json --retry-failed
+officeimo workflow batch --input-directory ./Documents --output ./PDF
+# Enable durable checkpoints; rerun to verify and reuse completed artifacts.
+officeimo workflow batch --input-directory ./Documents --output ./PDF --checkpoint ./PDF-State
+officeimo workflow batch --input-directory ./Documents --output ./PDF --checkpoint ./PDF-State --retry-failed
+# Explicit files and other existing conversion targets use the same command.
+officeimo workflow batch report.pdf appendix.pdf --output ./HTML --target html
 
 officeimo workflow printers
 officeimo workflow printers --paper-sources "Office printer"
@@ -119,7 +113,7 @@ officeimo workflow print report.pdf --printer "Office printer" --pages 1-3 `
   --pages-per-sheet 2 --copies 1 --duplex long
 ```
 
-Source, output and checkpoint trees must be separate. Changed completed inputs, altered/missing outputs and existing outputs without a verified receipt require inspection; the archive never replaces them automatically. Settings and engine binaries are bound to the checkpoint. Item failures produce a nonzero exit code while completed files remain resumable. See [the archive contract](../OfficeIMO.Workflows/README.md#restartable-pdf-archives) for resource limits, diagnostics and engine-change handling.
+Ordinary batches accept `--conflict fail|rename|replace`. Checkpoint jobs require `fail` and separate source, output and state trees. Changed completed inputs/settings/resources, altered or missing outputs and existing outputs without a verified receipt require inspection. Concurrency and execution budgets can change without discarding verified artifacts. Item failures produce a nonzero exit code. See [the batch contract](../OfficeIMO.Workflows/README.md#optional-checkpoints) for resource limits, diagnostics and recorded-artifact reuse across compatible engine updates.
 
 Printer submission uses prepared raster sheets. The returned job identifier proves queue acceptance; physical delivery is unconfirmed. After an interrupted submission, check the queue before retrying. Windows file printers require `--output-file` naming a new local file. macOS/Linux delivery uses the existing CUPS service boundary and requires its command-line tools.
 

@@ -264,6 +264,13 @@ public interface IOfficeWorkflowRunner {
         IEnumerable<OfficeWorkflowRequest> requests,
         IProgress<OfficeWorkflowProgress>? progress = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Runs incremental conversion selection with optional durable completion and publication checkpoints.
+    /// The default implementation uses this runner's single-request execution contract.</summary>
+    Task<OfficeConversionBatchResult> RunBatchAsync(OfficeConversionBatchRequest request,
+        IProgress<OfficeConversionBatchItemResult>? progress = null, CancellationToken cancellationToken = default,
+        IOfficeWorkflowPublicationGuard? publicationGuard = null) =>
+        OfficeConversionBatchExecutor.RunAsync(this, request, progress, cancellationToken, publicationGuard);
 }
 
 /// <summary>One supported conversion route projected from the canonical OfficeIMO capability catalog.</summary>
@@ -344,7 +351,7 @@ public sealed class OfficeWorkflowRoute {
 /// <summary>Canonical desktop/service conversion route view.</summary>
 public static class OfficeWorkflowCatalog {
     private static readonly HashSet<string> ExecutableIds = new(StringComparer.Ordinal) {
-        "doc-pdf", "txt-pdf", "docx-pdf", "xlsx-pdf", "pptx-pdf", "html-pdf",
+        "doc-pdf", "txt-pdf", "docx-pdf", "xlsx-pdf", "pptx-pdf", "html-pdf", "markdown-pdf", "rtf-pdf",
         "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html"
     };
 

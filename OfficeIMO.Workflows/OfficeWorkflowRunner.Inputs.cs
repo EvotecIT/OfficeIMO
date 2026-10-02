@@ -155,9 +155,13 @@ public sealed partial class OfficeWorkflowRunner {
             throw new ArgumentException("The owner password is valid only for protection workflows.", nameof(request));
         if (securityOutput && request.OutputProfile != OfficeWorkflowOutputProfile.Faithful)
             throw new ArgumentException("Protection workflows support only the Faithful output profile.", nameof(request));
-        string? outputPassword = securityOutput ? encryption?.OwnerPassword ?? encryption?.UserPassword : request.PdfPassword;
+        var conversionEncryption = request.Operation == OfficeWorkflowOperation.Convert && route?.TargetExtension == ".pdf"
+            ? conversionOptions?.GetOutputPdfOptions()?.Encryption : null;
+        string? outputPassword = securityOutput ? encryption?.OwnerPassword ?? encryption?.UserPassword
+            : conversionEncryption?.OwnerPassword ?? conversionEncryption?.UserPassword ?? request.PdfPassword;
         var outputOptions = CreatePdfLoadOptions(outputPassword, limits.MaximumOutputBytes);
-        if (encryption?.AesCryptographyProvider is not null) outputOptions = OfficeIMO.Pdf.PdfLoadOptions.WithAesCryptographyProvider(outputOptions, encryption.AesCryptographyProvider);
+        var outputEncryption = encryption ?? conversionEncryption;
+        if (outputEncryption?.AesCryptographyProvider is not null) outputOptions = OfficeIMO.Pdf.PdfLoadOptions.WithAesCryptographyProvider(outputOptions, outputEncryption.AesCryptographyProvider);
         if (localDirectoryPackage && OfficeStorageIdentity.GetLocalPath(outputPath ?? string.Empty) is { } localOutput &&
             OfficePathIdentity.IsSameOrDescendant(localOutput, inputPath))
             throw new ArgumentException("A conversion output cannot be placed inside its source directory package.", nameof(request));

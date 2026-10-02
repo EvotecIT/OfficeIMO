@@ -202,5 +202,5 @@ public sealed class MarkdownToPdfOptions {
     }
 
     /// <summary>Creates an independent copy of these conversion options.</summary>
-    public MarkdownToPdfOptions Clone() => CloneForConversion();
+    public MarkdownToPdfOptions Clone() { var copy = CloneForConversion(); copy.PdfOptions = PdfOptions?.Clone(); return copy; }
 }

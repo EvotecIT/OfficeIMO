@@ -88,6 +88,14 @@ Applications that validate capability schema versions must accept version 6.
 Directory-package handlers register `ReadDirectoryBundle`; ordinary path handlers
 continue to accept files. The document-result schema remains version 8.
 
+## Conversion batches replace the PDF archive surface
+
+Replace `OfficePdfArchiveWorkflow.RunAsync(OfficePdfArchiveRequest)` with `OfficeWorkflowRunner.RunBatchAsync(OfficeConversionBatchRequest)` or `OfficeWorkflow.ConvertDirectory(...).ToDirectory(...).RunAsync()`. The batch uses the existing executable route catalog and can select other targets. Checkpoints are optional; ordinary batches also use the existing rename/replace policies. `OfficeConversionBatchResult` includes skipped counts, and `OfficeConversionBatchItemResult` distinguishes skipped files from failed conversions.
+
+Move text settings into `ConversionOptions.PlainText` and legacy-loss acceptance into `ConversionOptions.LegacyDocLossPolicy`. Word, Excel, PowerPoint, HTML, Markdown and RTF renderer options are passed through their corresponding typed properties. Source passwords are runtime inputs. Create a new checkpoint/output pair when migrating old archive receipts; the batch checkpoint schema does not import them.
+
+Replace `officeimo workflow archive --request archive.json` with `officeimo workflow batch --input-directory Documents --output PDF --checkpoint PDF-State`. JSON archive requests are removed. In PSWriteOffice, replace `Export-OfficePdfArchive` with `Export-OfficeDocumentPdf -InputDirectory ... -OutputDirectory ...`; retain `-CheckpointDirectory` only when restartable execution is needed.
+
 ## TXT workflow conversion uses literal text
 
 When `OfficeWorkflowRequest` omits `ConversionRouteId`, converting a `.txt` source to PDF selects `txt-pdf`. Markup is printed literally, and spacing and tab columns are preserved. Applications that store HTML in `.txt` files should explicitly select `ConversionRouteId = "html-pdf"` to retain HTML interpretation.
