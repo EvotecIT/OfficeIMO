@@ -67,8 +67,7 @@ namespace OfficeIMO.Word {
                 }
 
                 if (paragraphFormat.LineSpacingTwips != null) {
-                    spacing.Line = paragraphFormat.LineSpacingTwips.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    spacing.LineRule = LineSpacingRuleValues.AtLeast;
+                    ApplyLegacyDocLineSpacing(spacing, paragraphFormat);
                 }
             }
 

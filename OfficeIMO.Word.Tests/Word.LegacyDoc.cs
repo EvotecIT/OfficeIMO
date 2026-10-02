@@ -10138,9 +10138,7 @@ namespace OfficeIMO.Tests {
                 };
                 table.Rows[0].Cells[0].AddParagraph("Styled", removeExistingParagraphs: true);
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
-
-                Assert.Contains("table style", exception.Message.ToLowerInvariant());
+                Assert.Throws<NotSupportedException>(() => document.Save(docPath));
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);

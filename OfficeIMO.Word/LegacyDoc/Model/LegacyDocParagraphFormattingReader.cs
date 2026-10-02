@@ -186,6 +186,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? spacingBeforeTwips = null;
             int? spacingAfterTwips = null;
             int? lineSpacingTwips = null;
+            bool lineSpacingIsMultiple = false;
             int? leftIndentTwips = null;
             int? rightIndentTwips = null;
             int? firstLineIndentTwips = null;
@@ -512,8 +513,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                     int dyaLine = ReadInt16(bytes, offset + 2);
                     int fMultLinespace = ReadInt16(bytes, offset + 4);
-                    if (fMultLinespace == 0 && dyaLine > 0) {
+                    if ((fMultLinespace == 0 || fMultLinespace == 1) && dyaLine >= -31680 && dyaLine <= 31680) {
                         lineSpacingTwips = dyaLine;
+                        lineSpacingIsMultiple = fMultLinespace == 1 && dyaLine >= 0;
                     }
 
                     offset += 6;
@@ -734,7 +736,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     paragraphBottomBorder,
                     paragraphRightBorder,
                     paragraphBetweenBorder),
-                outlineLevel);
+                outlineLevel,
+                lineSpacingIsMultiple: lineSpacingIsMultiple);
         }
 
         private static LegacyDocParagraphShading ReadParagraphShading(ushort shd80) {

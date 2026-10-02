@@ -362,7 +362,7 @@ OfficeWorkflowResult result = await runner.RunAsync(new OfficeWorkflowRequest {
 });
 ```
 
-The runner snapshots the source, optimizes through `OfficeIMO.Word`, reopens the staged output through its format owner, and publishes a separate copy atomically. Source replacement and publication over any batch source are refused. `AnalyzeWordImages` returns per-media diagnostics without publishing a file. `RunBatchAsync` accepts up to 250 requests, snapshots options before execution, and publishes each item independently.
+The runner snapshots the source, optimizes through `OfficeIMO.Word`, reopens the staged output through its format owner, and publishes a separate copy atomically. Source replacement and publication over any batch source are refused. `AnalyzeWordImages` returns per-media diagnostics without publishing a file. Diagnostics include dimensions, formats, candidate metadata removal and whether each change was applied. Metadata removal produces a warning, and the inventory exposes `requiredStagedBytes` for budgeting. `RunBatchAsync` accepts up to 250 requests, snapshots options before execution, and publishes each item independently.
 
 DOCX and supported legacy DOC inputs can produce DOCX, native DOC, or PDF. Incomplete legacy projections block output; analysis warns that its inventory covers only projected pictures. The native DOC writer preflights destination support. Word reports encoded-media savings; `InputBytes` and `OutputBytes` measure actual files. PDF generation after Word optimization retains its default image policy to avoid a second JPEG quality reduction. [Word image options and preservation rules](../OfficeIMO.Word/README.md#images) apply to every host.
 
