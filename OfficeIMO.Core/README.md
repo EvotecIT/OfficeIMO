@@ -619,6 +619,8 @@ string latex = OfficeMathMarkup.ToLatex(expression);
 OfficeDrawing mathDrawing = OfficeMathRenderer.Render(expression);
 ```
 
+`OfficeMathRenderOptions.Font.Size` is expressed in points. `Dpi` defaults to 72 and scales both measured and painted glyphs; set it to 96 for a drawing with 96 units per inch. Supply font bytes through `OfficeMathRenderOptions.Fonts` to keep shaping, advances and painted bounds on the same scoped faces. `DisplayStyle = false` selects compact fractions, whose children use `ScriptScale` (0.71 by default); nested fractions reduce only their children rather than shrinking the completed expression. Cancellable overloads of `Measure`, `Render` and `AddToDrawing` accept a `CancellationToken`.
+
 The same immutable expression tree feeds native OneNote math and Word OMML adapters. The shared model includes right and left scripts, centered upper/lower limits, built-up and slashed fractions, delimiter lists, stacks, matrices, equation arrays, n-ary operators, accents, bars, boxes, and phantoms. OneNote maps all of those structures natively. Word maps the lossless OMML subset; `Stack` and `StretchStack` fail with `NotSupportedException` because OMML has no equivalent, and callers can choose `EquationArray` explicitly when that projection is intended. Drawing owns the AST, portable markup, measurement, and visual layout; each document package owns only its native codec. MathML and LaTeX parsing default to a nesting limit of 128 and expose bounded overloads; excessive nesting fails with `OfficeMathParseException.Code == "DRAWING_MATH_DEPTH"`.
 
 ## Find a conversion package

@@ -46,7 +46,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             Font = style.Font,
             Color = style.Color,
             Padding = 0D,
-            RuleGap = Math.Max(1D, style.Font.Size * 0.125D),
+            RuleGap = Math.Max(0.75D, style.Font.Size / 16D),
             RuleThickness = Math.Max(0.75D, style.Font.Size / 16D),
             MatrixGap = Math.Max(4D, style.Font.Size * 0.5D),
             // CSS sizes are already drawing units, so no point-to-pixel conversion is applied here.
@@ -68,11 +68,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         var visuals = new List<HtmlRenderVisual>();
         var mathVisuals = new List<HtmlRenderVisual>();
-        AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
         double alignmentSpace = !shrinkToFit && !style.ExplicitWidth.HasValue
             ? Math.Max(0D, containingWidth - style.MarginLeft - style.MarginRight - boxWidth) : 0D;
         double alignmentOffset = style.Alignment == OfficeTextAlignment.Center ? alignmentSpace / 2D
             : style.Alignment == OfficeTextAlignment.Right ? alignmentSpace : 0D;
+        double boxX = style.MarginLeft + alignmentOffset;
+        AddBoxPaint(visuals, style, boxX, style.MarginTop, boxWidth, boxHeight, element);
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft + alignmentOffset;
         double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         string logicalText = expression.ToPlainText();
@@ -121,7 +122,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentRadii,
             source + ":content-clip");
         ReportReplacedElementFallbacks(style, element);
-        AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
+        AddBoxOutlinePaint(visuals, style, boxX, style.MarginTop, boxWidth, boxHeight, element);
         if (!style.PaintVisible) visuals.Clear();
 
         double scaleY = contentSize.Height / drawing.Height;

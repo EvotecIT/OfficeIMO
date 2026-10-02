@@ -15,7 +15,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style = segment.Run.Style;
         double fontSize = style.Font.Size;
         textY = hasReplacedImage
-            ? lineY + Math.Max(0D, baseline - ResolveTextAscent(style))
+            // Positioned text paints its alphabetic baseline one source em below Y.
+            // The line ascent determines the shared baseline, not the paint-frame origin.
+            ? lineY + baseline - fontSize
             : lineY + Math.Min(0D, (lineHeight - fontSize) / 2D);
         paintHeight = Math.Max(lineHeight, fontSize);
         paintTopOverflow = 0D;

@@ -19,7 +19,8 @@ public sealed class OfficeMathRenderOptions {
     /// <summary>Relative scale applied to scripts, limits, and root indices.</summary>
     public double ScriptScale { get; set; } = 0.71D;
 
-    /// <summary>Gap around fraction and decoration rules.</summary>
+    /// <summary>Minimum gap around compact fraction and decoration rules.
+    /// Display fractions use three times this gap.</summary>
     public double RuleGap { get; set; } = 2D;
 
     /// <summary>Thickness of fraction, radical, bar, and box rules.</summary>

@@ -9,6 +9,10 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## Mathematical drawing dimensions
+
+`OfficeMathRenderOptions.Dpi` defaults to 72 instead of 96, and applies to both measured and painted glyphs. Recompute cached equation bounds with `OfficeMathRenderer.Measure`. Set `Dpi = 96` explicitly when the drawing uses 96 units per inch; it also increases the painted glyph size instead of changing measurement alone. `ScriptScale` defaults to 0.71 instead of 0.7; set 0.7 explicitly if an application requires that scaling factor.
+
 ## HTML table rows exported to RTF
 
 HTML-to-RTF conversion now keeps ordinary table rows together across pages. When

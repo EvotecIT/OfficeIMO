@@ -8,36 +8,37 @@ public static partial class OfficeMathRenderer {
             double size = FontSize(scale);
             OfficeTextMeasurementStyle style = _measurer.CreateStyle(_options.Font.WithSize(size), 72D);
             double width = Math.Max(size * 0.2D, _measurer.MeasureWidth(text, style));
-            double height = Math.Max(size, _measurer.MeasureLineHeight(style));
+            double advance = width;
+            double height = size;
             // Positioned drawing text paints its baseline one source em below the frame top.
             double baseline = size;
-            if (_options.Fonts.TryResolveFaceForText(text, _options.Font.FamilyName,
-                _options.Font.Style, size, out OfficeFontFace? face)) {
-                IOfficeFontProgram font = face!.Program;
-                width = Math.Max(0.01D, font.Measure(text, size));
-                double fontBaseline = font is IOfficeFontBaselineMetrics metrics
-                    ? metrics.BaselineOffset(size) : font.LineHeight(size) * 0.8D;
-                var contours = font is IOfficeBoundedFontProgram bounded
-                    ? bounded.GetTextContoursBounded(text, 0D, -fontBaseline, size, 1_000_000, _cancellationToken)
-                    : font.GetTextContours(text, 0D, -fontBaseline, size);
-                double top = double.PositiveInfinity, bottom = double.NegativeInfinity;
-                foreach (var contour in contours) {
-                    foreach (OfficePoint point in contour) {
-                        _cancellationToken.ThrowIfCancellationRequested();
-                        top = Math.Min(top, point.Y);
-                        bottom = Math.Max(bottom, point.Y);
-                    }
-                }
-                if (!double.IsInfinity(top) && !double.IsInfinity(bottom) && bottom > top) {
-                    baseline = Math.Max(0D, -top);
-                    height = Math.Max(0.01D, bottom - Math.Min(0D, top));
+            if (HasScopedTextCoverage(text, size)) {
+                var ink = _measureScopedText(text, _options.Font.WithSize(size));
+                advance = Math.Max(0.01D, ink.Advance);
+                // Symmetric bearing room keeps centered positioned text at its natural
+                // advance, while the frame contains overhangs and synthetic italic/bold.
+                double bearing = Math.Max(0D, Math.Max(-ink.Left, ink.Right - advance));
+                width = advance + bearing * 2D;
+                if (ink.HasInk) {
+                    baseline = Math.Max(0D, -ink.Top);
+                    height = Math.Max(0.01D, ink.Bottom - ink.Top);
                 }
             }
             var box = new LayoutBox(width, height, baseline);
             if (!string.IsNullOrEmpty(text)) {
-                box.Commands.Add(LayoutCommand.TextCommand(text, 0D, 0D, width, height, size, baseline));
+                box.Commands.Add(LayoutCommand.TextCommand(text, 0D, 0D, width, height, size, baseline, advance));
             }
             return box;
+        }
+
+        private bool HasScopedTextCoverage(string text, double size) {
+            if (text.Length == 0) return false;
+            foreach (OfficeFontFallbackRun run in _options.Fonts.PlanFallbackRuns(text,
+                _options.Font.FamilyName, _options.Font.Style)) {
+                if (!_options.Fonts.TryResolveFaceForText(run.Text, run.FamilyName,
+                    _options.Font.Style, size, out _)) return false;
+            }
+            return true;
         }
     }
 }

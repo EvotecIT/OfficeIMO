@@ -66,7 +66,7 @@ public sealed partial class OfficeRasterCanvas {
         OfficeTextFeatureSettings? featureSettings,
         OfficeTextDirection textDirection) {
         if (string.IsNullOrEmpty(text)) return 0D;
-        double size = Math.Max(1D, fontSize);
+        double size = Math.Max(0.1D, fontSize);
         if (_fonts != null) {
             IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = _fonts.PlanFallbackRuns(text, fontFamily, style);
             if (ShouldUseFallbackRuns(fallbackRuns, fontFamily)) {
@@ -209,7 +209,7 @@ public sealed partial class OfficeRasterCanvas {
         OfficeFontStyle simulatedStyle = style & ~resolvedStyle;
         if (font != null) {
             double measured = MeasureResolvedText(value, font, size, featureSettings, textDirection);
-            double availableWidth = Math.Max(1D, retainOverflow ? width : width - 6D);
+            double availableWidth = Math.Max(retainOverflow ? .01D : 1D, retainOverflow ? width : width - 6D);
             if (!retainOverflow) {
                 while (measured > availableWidth && value.Length > 0) {
                     value = OfficeTextElements.RemoveLast(value);
@@ -238,7 +238,7 @@ public sealed partial class OfficeRasterCanvas {
                     if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(layer.Contours, top, size);
                     FillContours(layer.Contours, layer.Color, OfficeFillRule.NonZero);
                     if ((simulatedStyle & OfficeFontStyle.Bold) == OfficeFontStyle.Bold) {
-                        OffsetContours(layer.Contours, size / 24D, 0D);
+                        OffsetContours(layer.Contours, OfficeSyntheticTextStyle.BoldOffset(size), 0D);
                         FillContours(layer.Contours, layer.Color, OfficeFillRule.NonZero);
                     }
                 }
@@ -248,7 +248,7 @@ public sealed partial class OfficeRasterCanvas {
                 if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(contours, top, size);
                 FillContours(contours, color, OfficeFillRule.NonZero);
                 if ((simulatedStyle & OfficeFontStyle.Bold) == OfficeFontStyle.Bold) {
-                    OffsetContours(contours, size / 24D, 0D);
+                    OffsetContours(contours, OfficeSyntheticTextStyle.BoldOffset(size), 0D);
                     FillContours(contours, color, OfficeFillRule.NonZero);
                 }
             }
@@ -693,7 +693,7 @@ public sealed partial class OfficeRasterCanvas {
             List<OfficePoint> contour = contours[i];
             for (int j = 0; j < contour.Count; j++) {
                 OfficePoint point = contour[j];
-                contour[j] = new OfficePoint(point.X + ((baseY - point.Y) * 0.18D), point.Y);
+                contour[j] = new OfficePoint(point.X + OfficeSyntheticTextStyle.ItalicOffset(baseY, point.Y), point.Y);
             }
         }
     }
@@ -736,6 +736,7 @@ public sealed partial class OfficeRasterCanvas {
             }
         }
 
+        if (_scopedFontResolutionOnly) return null;
         if (string.IsNullOrWhiteSpace(fontFamily)) {
             return ResolveMetricScale(_font);
         }

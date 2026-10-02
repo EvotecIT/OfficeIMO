@@ -115,7 +115,7 @@ public sealed partial class OfficeRasterCanvas {
                 if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(layer.Contours, originY, size);
                 FillContours(layer.Contours, layer.Color, OfficeFillRule.NonZero);
                 if ((simulatedStyle & OfficeFontStyle.Bold) == OfficeFontStyle.Bold) {
-                    OffsetContours(layer.Contours, size / 24D, 0D);
+                    OffsetContours(layer.Contours, OfficeSyntheticTextStyle.BoldOffset(size), 0D);
                     FillContours(layer.Contours, layer.Color, OfficeFillRule.NonZero);
                 }
             }
@@ -138,7 +138,7 @@ public sealed partial class OfficeRasterCanvas {
         if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(contours, originY, size);
         FillContours(contours, color, OfficeFillRule.NonZero);
         if ((simulatedStyle & OfficeFontStyle.Bold) == OfficeFontStyle.Bold) {
-            OffsetContours(contours, size / 24D, 0D);
+            OffsetContours(contours, OfficeSyntheticTextStyle.BoldOffset(size), 0D);
             FillContours(contours, color, OfficeFillRule.NonZero);
         }
         DrawVerticalTextDecorations(originX, y, height, contourBottom, size, style,

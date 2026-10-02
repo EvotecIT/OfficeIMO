@@ -95,7 +95,7 @@ public static partial class OfficeMathRenderer {
                 double textWidth = Math.Max(0.01D, command.Width);
                 drawing.AddPositionedText(command.Text!, x + command.X, y + command.Y, textWidth,
                     Math.Max(0.01D, command.Height), options.Font.WithSize(command.FontSize), options.Color,
-                    OfficeTextAlignment.Left, command.Height, textWidth,
+                    OfficeTextAlignment.Center, command.Height, Math.Max(0.01D, command.Advance),
                     OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal,
                     0, 1D, command.Baseline - command.FontSize);
             } else if (command.Kind == LayoutCommandKind.Line) {
@@ -119,18 +119,21 @@ public static partial class OfficeMathRenderer {
         private readonly bool _compact;
         private readonly CancellationToken _cancellationToken;
         private LayoutEngine? _compactEngine;
+        private readonly Func<string, OfficeFontInfo, (double Advance, double Left, double Top, double Right, double Bottom, bool HasInk)> _measureScopedText;
 
-        internal LayoutEngine(OfficeMathRenderOptions options, bool compact, CancellationToken cancellationToken) {
+        internal LayoutEngine(OfficeMathRenderOptions options, bool compact, CancellationToken cancellationToken,
+            Func<string, OfficeFontInfo, (double Advance, double Left, double Top, double Right, double Bottom, bool HasInk)>? measureScopedText = null) {
             _options = options;
             _compact = compact;
             _cancellationToken = cancellationToken;
             _measurer = OfficeTextMeasurer.Create(options.Font);
+            _measureScopedText = measureScopedText ?? OfficeRasterCanvas.CreateScopedPositionedTextMeasurement(options.Fonts, cancellationToken);
         }
 
         private LayoutBox CompactLayout(OfficeMathExpression expression, double scale) =>
-            (_compact ? this : (_compactEngine ??= new LayoutEngine(_options, true, _cancellationToken))).Layout(expression, scale);
+            (_compact ? this : (_compactEngine ??= new LayoutEngine(_options, true, _cancellationToken, _measureScopedText))).Layout(expression, scale);
 
-        private double FontSize(double scale) => _options.Font.Size * _options.Dpi / 72D * scale;
+        private double FontSize(double scale) => Math.Max(0.1D, _options.Font.Size * _options.Dpi / 72D * scale);
 
         internal LayoutBox Layout(OfficeMathExpression expression, double scale) {
             _cancellationToken.ThrowIfCancellationRequested();
@@ -221,11 +224,13 @@ public static partial class OfficeMathRenderer {
             double childScale = _compact ? scale * _options.ScriptScale : scale;
             LayoutBox numerator = CompactLayout(expression.Children[0], childScale);
             LayoutBox denominator = CompactLayout(expression.Children[1], childScale);
-            double gap = _options.RuleGap * scale * (_compact ? 1D : 2D);
+            // Without font MATH constants, compact fractions use the caller's minimum
+            // rule gap; display fractions use three times that gap (MathML Core fallback).
+            double gap = _options.RuleGap * scale * (_compact ? 1D : 3D);
             double inset = Math.Max(1D * scale, _options.RuleThickness / 2D);
             double width = Math.Max(numerator.Width, denominator.Width) + inset * 2D;
-            double ruleY = numerator.Height + gap;
-            double denominatorY = ruleY + _options.RuleThickness + gap;
+            double ruleY = numerator.Height + gap + _options.RuleThickness / 2D;
+            double denominatorY = ruleY + _options.RuleThickness / 2D + gap;
             // A stacked fraction shares the parent math axis, rather than the denominator baseline.
             double baseline = ruleY + MathAxis(scale);
             var box = new LayoutBox(width, Math.Max(denominatorY + denominator.Height, baseline), baseline);
@@ -459,16 +464,17 @@ public static partial class OfficeMathRenderer {
         internal double Height { get; private set; }
         internal double FontSize { get; private set; }
         internal double Baseline { get; private set; }
+        internal double Advance { get; private set; }
 
-        internal static LayoutCommand TextCommand(string text, double x, double y, double width, double height, double fontSize, double baseline) =>
-            new LayoutCommand { Kind = LayoutCommandKind.Text, Text = text, X = x, Y = y, Width = width, Height = height, FontSize = fontSize, Baseline = baseline };
+        internal static LayoutCommand TextCommand(string text, double x, double y, double width, double height, double fontSize, double baseline, double advance) =>
+            new LayoutCommand { Kind = LayoutCommandKind.Text, Text = text, X = x, Y = y, Width = width, Height = height, FontSize = fontSize, Baseline = baseline, Advance = advance };
         internal static LayoutCommand Line(double x1, double y1, double x2, double y2) =>
             new LayoutCommand { Kind = LayoutCommandKind.Line, X = x1, Y = y1, X2 = x2, Y2 = y2 };
         internal static LayoutCommand Rectangle(double x, double y, double width, double height) =>
             new LayoutCommand { Kind = LayoutCommandKind.Rectangle, X = x, Y = y, Width = width, Height = height };
         internal LayoutCommand Translate(double x, double y) => new LayoutCommand {
             Kind = Kind, Text = Text, X = X + x, Y = Y + y, X2 = X2 + x, Y2 = Y2 + y,
-            Width = Width, Height = Height, FontSize = FontSize, Baseline = Baseline
+            Width = Width, Height = Height, FontSize = FontSize, Baseline = Baseline, Advance = Advance
         };
     }
 

@@ -799,7 +799,8 @@ internal static partial class HtmlPdfRenderedConverter {
         CancellationToken cancellationToken,
         double? baselineFontSize = null,
         bool colorOpacityApplied = false,
-        bool suppressLink = false) {
+        bool suppressLink = false,
+        bool preservePositionedFrame = false) {
         if (visual.Text.Length == 0) return;
         // Canvas and outline writers must anchor a script to the original line's metrics.
         baselineFontSize ??= visual.Font.Size;
@@ -807,7 +808,7 @@ internal static partial class HtmlPdfRenderedConverter {
         if (visual.Y < 0D) {
             HtmlRenderText shifted = (HtmlRenderText)visual.TranslatePaint(0D, -visual.Y, visual.PaintOrder);
             canvas.Effect(OfficeTransform.Translate(0D, visual.Y * PointsPerCssPixel), 1D,
-                nested => AddText(nested, shifted, webFonts, conversionReport, surfaceWidth, asSpan, logicalTextOwned, cancellationToken, baselineFontSize, suppressLink: suppressLink));
+                nested => AddText(nested, shifted, webFonts, conversionReport, surfaceWidth, asSpan, logicalTextOwned, cancellationToken, baselineFontSize, suppressLink: suppressLink, preservePositionedFrame: preservePositionedFrame));
             return;
         }
         string? link = suppressLink || string.IsNullOrWhiteSpace(visual.Text) || IsFragmentLink(visual.LinkUri) ? null : visual.LinkUri;
@@ -815,7 +816,7 @@ internal static partial class HtmlPdfRenderedConverter {
             ? MapNamedDestination(visual.LinkUri!.Substring(1))
             : null;
         double frameWidth = visual.Width;
-        if (visual.TextAdvanceWidth.HasValue) {
+        if (!preservePositionedFrame && visual.TextAdvanceWidth.HasValue) {
             double metricTolerance = Math.Max(
                 visual.Font.Size,
                 visual.TextAdvanceWidth.Value * 0.25D);
@@ -833,7 +834,8 @@ internal static partial class HtmlPdfRenderedConverter {
                     logicalTextOwned,
                     cancellationToken,
                     baselineFontSize.Value,
-                    suppressLink)) {
+                    suppressLink,
+                    preservePositionedFrame)) {
                 return;
             }
         } catch (InvalidOperationException exception) when (
@@ -858,7 +860,7 @@ internal static partial class HtmlPdfRenderedConverter {
         if (!colorOpacityApplied && visual.Color.A < 255) {
             canvas.Effect(OfficeTransform.Identity, visual.Color.A / 255D,
                 nested => AddText(nested, visual, webFonts, conversionReport, surfaceWidth,
-                    asSpan, logicalTextOwned, cancellationToken, baselineFontSize, colorOpacityApplied: true, suppressLink: suppressLink));
+                    asSpan, logicalTextOwned, cancellationToken, baselineFontSize, colorOpacityApplied: true, suppressLink: suppressLink, preservePositionedFrame: preservePositionedFrame));
             return;
         }
         OfficeFontStyle requestedStyle = (visual.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
@@ -1160,7 +1162,8 @@ internal static partial class HtmlPdfRenderedConverter {
                     fontPalette: text.FontPalette);
                 AddText(target, projectedText, webFonts, conversionReport,
                     visual.X + visual.Width, asSpan: true, logicalTextOwned: false, cancellationToken,
-                    baselineFontSize: Math.Max(0.001D, (text.Font.Size + text.BaselineOffset) * scaleY));
+                    baselineFontSize: Math.Max(0.001D, (text.Font.Size + text.BaselineOffset) * scaleY),
+                    preservePositionedFrame: true);
             }
             FlushShapes();
         }

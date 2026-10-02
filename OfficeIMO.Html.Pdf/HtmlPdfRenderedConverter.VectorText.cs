@@ -19,7 +19,8 @@ internal static partial class HtmlPdfRenderedConverter {
         bool logicalTextOwned,
         CancellationToken cancellationToken,
         double baselineFontSize,
-        bool suppressLink) {
+        bool suppressLink,
+        bool preservePositionedFrame) {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeFontStyle requestedStyle = (visual.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (visual.Font.IsItalic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
@@ -47,7 +48,8 @@ internal static partial class HtmlPdfRenderedConverter {
             bool simulateItalic = (requestedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic &&
                 (face.Style & OfficeFontStyle.Italic) != OfficeFontStyle.Italic;
             resolvedRuns.Add(new OutlinedFontRun(run.Text, face, simulateBold, simulateItalic));
-            requiresOutlines |= !face.CanEmbedAsStaticPdfFont ||
+            requiresOutlines |= (preservePositionedFrame && (simulateBold || simulateItalic)) ||
+                !face.CanEmbedAsStaticPdfFont ||
                 !visual.FeatureSettings.IsDefault ||
                 ContainsColorGlyph(face.Program, run.Text);
         }
@@ -202,8 +204,9 @@ internal static partial class HtmlPdfRenderedConverter {
             }
             cancellationToken.ThrowIfCancellationRequested();
             int runPointCount = 0;
-            double italicBottom = runTop + lineHeights[runIndex];
-            double boldOffset = Math.Max(1D, visual.Font.Size / 22D);
+            double italicBottom = runTop + (preservePositionedFrame ? visual.Font.Size : lineHeights[runIndex]);
+            double boldOffset = preservePositionedFrame
+                ? OfficeSyntheticTextStyle.BoldOffset(visual.Font.Size) : Math.Max(1D, visual.Font.Size / 22D);
             int copies = run.SimulateBold ? 2 : 1;
             foreach (OutlinedPaintContours sourceGroup in sourcePaintGroups) {
                 var transformedGroup = new List<List<OfficePoint>>();
@@ -220,7 +223,7 @@ internal static partial class HtmlPdfRenderedConverter {
                         scaleX,
                         italicBottom,
                         run.SimulateItalic,
-                        0D)).ToList();
+                        0D, preservePositionedFrame)).ToList();
                     transformedGroup.Add(transformed);
                     allContours.Add(transformed);
                     if (run.SimulateBold) {
@@ -230,7 +233,7 @@ internal static partial class HtmlPdfRenderedConverter {
                             scaleX,
                             italicBottom,
                             run.SimulateItalic,
-                            boldOffset)).ToList();
+                            boldOffset, preservePositionedFrame)).ToList();
                         transformedGroup.Add(bold);
                         allContours.Add(bold);
                     }
@@ -549,7 +552,12 @@ internal static partial class HtmlPdfRenderedConverter {
         double scaleX,
         double bottom,
         bool simulateItalic,
-        double boldOffset) {
+        double boldOffset, bool preservePositionedFrame) {
+        if (preservePositionedFrame) {
+            double positionedX = originX + ((point.X - originX) * scaleX) + boldOffset;
+            if (simulateItalic) positionedX += OfficeSyntheticTextStyle.ItalicOffset(bottom, point.Y);
+            return new OfficePoint(positionedX, point.Y);
+        }
         double x = point.X + boldOffset;
         if (simulateItalic) x += (bottom - point.Y) * SyntheticItalicShear;
         return new OfficePoint(originX + ((x - originX) * scaleX), point.Y);
