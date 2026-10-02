@@ -8,6 +8,261 @@ namespace OfficeIMO.Tests;
 
 public class HtmlOfficeAdaptersPowerPointTables {
     [Fact]
+    public void PowerPointHtml_ImportsRoleTableAsEditableGrid() {
+        const string html = """
+            <main>
+              <h1>Water service levels</h1>
+              <div role="table" aria-label="Service levels">
+                <div role="rowgroup">
+                  <div role="row"><div role="columnheader">Term</div><div role="columnheader">Definition</div></div>
+                  <div role="row"><div role="cell">Basic water service level</div><div role="cell">Collection time is at most 30 minutes.</div></div>
+                </div>
+              </div>
+            </main>
+            """;
+
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.RequireValue();
+        PowerPointTable table = Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
+        Assert.Equal(presentation.SlideSize.WidthPoints - 128D, table.WidthPoints, 3);
+        Assert.Equal("Term", table.GetCell(0, 0).Text);
+        Assert.Equal("Definition", table.GetCell(0, 1).Text);
+        Assert.Equal("Basic water service level", table.GetCell(1, 0).Text);
+        Assert.Equal("Collection time is at most 30 minutes.", table.GetCell(1, 1).Text);
+    }
+
+    [Fact]
+    public void PowerPointHtml_MovesTallGenericRoleTableToAVisibleSlide() {
+        const string html = """
+            <main>
+              <p>Introductory text before the definitions.</p>
+              <div role="table">
+                <div role="row"><div role="columnheader">Term</div><div role="columnheader">Definition</div></div>
+                <div role="row"><div role="cell">Safely managed</div><div role="cell">Drinking water from an improved source accessible on premises, available when needed, and free from fecal and priority chemical contamination.</div></div>
+                <div role="row"><div role="cell">Basic</div><div role="cell">Drinking water from an improved source, provided collection time is not more than 30 minutes round trip, including getting in line and waiting.</div></div>
+                <div role="row"><div role="cell">Limited</div><div role="cell">Drinking water from an improved source with collection time exceeding 30 minutes round trip, including getting in line and waiting.</div></div>
+                <div role="row"><div role="cell">Unimproved</div><div role="cell">Drinking water from an unprotected dug well or unprotected spring.</div></div>
+                <div role="row"><div role="cell">Surface water</div><div role="cell">Drinking water directly from a river, dam, lake, pond, stream, canal, or irrigation canal.</div></div>
+              </div>
+            </main>
+            """;
+
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.RequireValue();
+        PowerPointTable table = Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
+
+        Assert.Contains(presentation.Slides.Skip(1), slide => slide.Tables.Contains(table));
+        Assert.Equal(30D, table.TopPoints, 3);
+        Assert.Equal("Surface water", table.GetCell(5, 0).Text);
+        Assert.True(table.TopPoints + table.HeightPoints <= presentation.SlideSize.HeightPoints - 30D);
+    }
+
+    [Fact]
+    public void PowerPointHtml_SizesUnevenRowsAndAuthoredWidthForGenericTable() {
+        string definition = string.Join(" ", Enumerable.Repeat("A longer explanation wraps within a narrow cell.", 4));
+        string html = "<div role='table' data-officeimo-width='300'>"
+            + "<div role='row'><div role='cell'>Short</div><div role='cell'>Value</div></div>"
+            + "<div role='row'><div role='cell'>Long</div><div role='cell'>" + definition + "</div></div></div>";
+
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.RequireValue();
+        PowerPointTable table = Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
+
+        Assert.Equal(300D, table.WidthPoints, 3);
+        Assert.True(table.GetRowHeightPoints(1) > table.GetRowHeightPoints(0));
+        Assert.True(table.TopPoints + table.GetRowHeightPoints(0) + table.GetRowHeightPoints(1)
+            <= presentation.SlideSize.HeightPoints - 30D);
+        Assert.Equal(definition, table.GetCell(1, 1).Text);
+    }
+
+    [Fact]
+    public void PowerPointHtml_MeasuresLargeStyledTableRunsBeforePlacingRows() {
+        string text = string.Join(" ", Enumerable.Repeat("Large styled cell text wraps across the table.", 3));
+        string plainHtml = "<table><tr><td>Label</td><td>" + text + "</td></tr></table>";
+        string styledHtml = "<table><tr><td>Label</td><td><span style='font-size:36px'>"
+            + text + "</span></td></tr></table>";
+
+        using PowerPointPresentation plain = OfficeIMO.Html.HtmlConversionDocument.Parse(plainHtml)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic }).RequireValue();
+        using PowerPointPresentation styled = OfficeIMO.Html.HtmlConversionDocument.Parse(styledHtml)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic }).RequireValue();
+        PowerPointTable plainTable = Assert.Single(plain.Slides.SelectMany(slide => slide.Tables));
+        PowerPointTable styledTable = Assert.Single(styled.Slides.SelectMany(slide => slide.Tables));
+
+        Assert.True(styledTable.GetRowHeightPoints(0) > plainTable.GetRowHeightPoints(0));
+        Assert.True(styledTable.GetCell(0, 1).Runs[0].FontSizePoints >= 27D);
+    }
+
+    [Fact]
+    public void PowerPointHtml_PaginatesTallTableAsEditableRowGroups() {
+        string rows = string.Concat(Enumerable.Range(0, 15).Select(index =>
+            "<div role='row'><div role='cell'>Term " + index + "</div><div role='cell'>"
+            + string.Join(" ", Enumerable.Repeat("A long but editable definition.", 4)) + "</div></div>"));
+        string html = "<div role='table'>" + rows + "</div>";
+
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.RequireValue();
+
+        PowerPointTable[] tables = presentation.Slides.SelectMany(slide => slide.Tables).ToArray();
+        Assert.InRange(tables.Length, 2, 15);
+        Assert.Equal(15, tables.Sum(table => table.Rows));
+        Assert.Equal("Term 14", tables.Last().GetCell(tables.Last().Rows - 1, 0).Text);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
+            && diagnostic.Detail?.Contains("projection=paginatedNativeTable", StringComparison.Ordinal) == true);
+        Assert.All(tables, table =>
+            Assert.True(table.TopPoints + table.HeightPoints <= presentation.SlideSize.HeightPoints - 30D));
+    }
+
+    [Fact]
+    public void PowerPointHtml_KeepsTallCaptionAndRepeatsNativeTableHeader() {
+        string rows = string.Concat(Enumerable.Range(1, 15).Select(index =>
+            $"<tr><td>Contaminant {index}</td><td>{index} mg/L</td></tr>"));
+        string html = "<table><caption>List of National Secondary Drinking Water Regulations</caption>"
+            + "<thead><tr><th>Contaminant</th><th>Secondary Standard</th></tr></thead>"
+            + "<tbody>" + rows + "</tbody></table>";
+
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.RequireValue();
+        PowerPointSlide[] tableSlides = presentation.Slides.Where(slide => slide.Tables.Any()).ToArray();
+        Assert.InRange(tableSlides.Length, 2, 5);
+        Assert.Contains(tableSlides[0].TextBoxes, box =>
+            box.Text == "List of National Secondary Drinking Water Regulations");
+        Assert.Equal(16, tableSlides.Sum(slide => slide.Tables.Single().Rows) - tableSlides.Length + 1);
+        Assert.All(tableSlides, slide => {
+            PowerPointTable table = Assert.Single(slide.Tables);
+            Assert.Equal("Contaminant", table.GetCell(0, 0).Text);
+            Assert.Equal("Secondary Standard", table.GetCell(0, 1).Text);
+            Assert.True(table.TopPoints + table.HeightPoints <= presentation.SlideSize.HeightPoints - 30D);
+        });
+        PowerPointTable lastTable = tableSlides.Last().Tables.Single();
+        Assert.Equal("Contaminant 15", lastTable.GetCell(lastTable.Rows - 1, 0).Text);
+
+        using var stream = new MemoryStream();
+        presentation.Save(stream);
+        using PowerPointPresentation reopened = PowerPointPresentation.Load(new MemoryStream(stream.ToArray()));
+        Assert.Equal(tableSlides.Length, reopened.Slides.Sum(slide => slide.Tables.Count()));
+        PowerPointTable reopenedLast = reopened.Slides.Last(slide => slide.Tables.Any()).Tables.Single();
+        Assert.Equal("Contaminant 15", reopenedLast.GetCell(reopenedLast.Rows - 1, 0).Text);
+    }
+
+    [Fact]
+    public void PowerPointHtml_TableLimitOmitsRemainingRowsWithoutDroppingLaterContent() {
+        string rows = string.Concat(Enumerable.Range(1, 20).Select(index =>
+            $"<tr><td>Term {index}</td><td>Standard {index}</td></tr>"));
+        string html = "<table><tr><th>Term</th><th>Standard</th></tr>" + rows
+            + "</table><p>Content after the limited table</p>";
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxTables = 1;
+
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+        using PowerPointPresentation presentation = result.RequireValue();
+
+        Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
+        Assert.Contains(presentation.Slides.SelectMany(slide => slide.TextBoxes), box =>
+            box.Text == "Content after the limited table");
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
+            && diagnostic.Detail?.Contains("firstOmittedRow=", StringComparison.Ordinal) == true);
+    }
+
+    [Fact]
+    public void PowerPointHtml_TableLimitDoesNotAppendAnEmptyContinuationSlide() {
+        string rows = string.Concat(Enumerable.Range(1, 20).Select(index =>
+            $"<tr><td>Term {index}</td><td>Standard {index}</td></tr>"));
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxTables = 1;
+
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(
+                "<table><tr><th>Term</th><th>Standard</th></tr>" + rows + "</table>")
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+        using PowerPointPresentation presentation = result.RequireValue();
+
+        Assert.Single(presentation.Slides);
+        Assert.Single(presentation.Slides[0].Tables);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
+            && diagnostic.Detail?.Contains("firstOmittedRow=", StringComparison.Ordinal) == true);
+    }
+
+    [Fact]
+    public void PowerPointHtml_PagedTablesKeepColumnSpansAndLinkedCellRuns() {
+        string rows = string.Concat(Enumerable.Range(1, 20).Select(index =>
+            index == 20
+                ? "<tr><td>Term 20</td><td><a href='https://example.test/standard'>Final standard</a></td></tr>"
+                : $"<tr><td>Term {index}</td><td>Standard {index}</td></tr>"));
+        string html = "<table><tr><th colspan='2'>Standards</th></tr>" + rows + "</table>";
+
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using var stream = new MemoryStream();
+        using (PowerPointPresentation presentation = result.RequireValue()) presentation.Save(stream);
+        using PowerPointPresentation reopened = PowerPointPresentation.Load(new MemoryStream(stream.ToArray()));
+        PowerPointTable[] tables = reopened.Slides.SelectMany(slide => slide.Tables).ToArray();
+
+        Assert.True(tables.Length > 1);
+        Assert.All(tables, table => Assert.Equal((1, 2), table.GetCell(0, 0).Merge));
+        PowerPointTable lastTable = tables.Last();
+        Assert.Equal("Term 20", lastTable.GetCell(lastTable.Rows - 1, 0).Text);
+        Assert.Contains(lastTable.GetCell(lastTable.Rows - 1, 1).Runs, run =>
+            run.Text == "Final standard" && run.Hyperlink?.OriginalString == "https://example.test/standard");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PowerPointHtml_DoesNotStrandTableHeaderBeforeFirstDataRow(bool includeCaption) {
+        string longValue = string.Join(" ", Enumerable.Repeat("Long description that wraps within the table cell.", 6));
+        string rows = "<tr><td>First data row</td><td>" + longValue + "</td></tr>"
+            + string.Concat(Enumerable.Range(2, 14).Select(index =>
+                $"<tr><td>Term {index}</td><td>Standard {index}</td></tr>"));
+        string caption = includeCaption ? "<caption>Water quality standards</caption>" : string.Empty;
+        string html = "<p data-officeimo-height='320'>Prior content</p><table>" + caption
+            + "<tr><th>Term</th><th>Standard</th></tr>" + rows + "</table>";
+
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.RequireValue();
+        PowerPointSlide firstTableSlide = presentation.Slides.First(slide => slide.Tables.Any());
+        PowerPointTable firstTable = Assert.Single(firstTableSlide.Tables);
+
+        Assert.True(firstTable.Rows >= 2);
+        Assert.Equal("Term", firstTable.GetCell(0, 0).Text);
+        Assert.Equal("First data row", firstTable.GetCell(1, 0).Text);
+        if (includeCaption) {
+            Assert.Contains(firstTableSlide.TextBoxes, box => box.Text == "Water quality standards");
+        }
+    }
+
+    [Fact]
+    public void PowerPointHtml_PreservesRoleTableSpansAndLaterCells() {
+        const string html = """
+            <div role="table" aria-label="Spanned levels">
+              <div role="row"><div role="columnheader" aria-colspan="2">Service</div><div role="columnheader">Definition</div></div>
+              <div role="row"><div role="cell" aria-rowspan="2">Basic</div><div role="cell">30 minutes</div><div role="cell">Improved source</div></div>
+              <div role="row"><div role="cell">Limited</div><div role="cell">Over 30 minutes</div></div>
+            </div>
+            """;
+
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.RequireValue();
+        PowerPointTable table = Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
+        Assert.Equal(2, result.MergedRanges);
+        Assert.Equal((1, 2), table.GetCell(0, 0).Merge);
+        Assert.Equal((2, 1), table.GetCell(1, 0).Merge);
+        Assert.Equal("Definition", table.GetCell(0, 2).Text);
+        Assert.Equal("Limited", table.GetCell(2, 1).Text);
+        Assert.Equal("Over 30 minutes", table.GetCell(2, 2).Text);
+    }
+
+    [Fact]
     public void PowerPointHtml_RoundTripsMergedTableCells() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
