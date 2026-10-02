@@ -169,9 +169,16 @@ public static partial class OfficeSvgDrawingReader {
         for (int y = 0; y < height; y++) {
             token.ThrowIfCancellationRequested();
             for (int x = 0; x < width; x++) {
-                if (left + x + 1D <= region.Left || left + x >= region.Right ||
-                    top + y + 1D <= region.Top || top + y >= region.Bottom)
-                    Array.Clear(pixels, (y * width + x) * 4, 4);
+                double coverageX = Math.Max(0D, Math.Min(left + x + 1D, region.Right) - Math.Max(left + x, region.Left));
+                double coverageY = Math.Max(0D, Math.Min(top + y + 1D, region.Bottom) - Math.Max(top + y, region.Top));
+                float coverage = (float)(coverageX * coverageY);
+                int offset = (y * width + x) * 4;
+                // Filter buffers store premultiplied RGBA. Clip every component so
+                // later offsets cannot move fully opaque fractional edge pixels inward.
+                if (coverage <= 0F) Array.Clear(pixels, offset, 4);
+                else if (coverage < 1F) {
+                    for (int channel = 0; channel < 4; channel++) pixels[offset + channel] *= coverage;
+                }
             }
         }
     }
