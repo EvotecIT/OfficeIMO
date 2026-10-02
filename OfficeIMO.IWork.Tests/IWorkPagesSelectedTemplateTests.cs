@@ -27,12 +27,13 @@ public sealed partial class IWorkBoundaryTests {
         package.Position = 0;
         OfficeDocumentReadResult read = IWorkReaderAdapter.ReadDocument(package, "selection.pages",
             new ReaderOptions(), new ReaderIWorkOptions(), CancellationToken.None);
-        Assert.Contains("Default header", read.Markdown);
-        Assert.Contains("Default footer", read.Markdown);
-        Assert.Equal(first && !hideFirst, read.Markdown.Contains("First header"));
-        Assert.Equal(first && !hideFirst, read.Markdown.Contains("First footer"));
-        Assert.Equal(even, read.Markdown.Contains("Even header"));
-        Assert.Equal(even, read.Markdown.Contains("Even footer"));
+        string markdown = Assert.IsType<string>(read.Markdown);
+        Assert.Contains("Default header", markdown);
+        Assert.Contains("Default footer", markdown);
+        Assert.Equal(first && !hideFirst, markdown.Contains("First header"));
+        Assert.Equal(first && !hideFirst, markdown.Contains("First footer"));
+        Assert.Equal(even, markdown.Contains("Even header"));
+        Assert.Equal(even, markdown.Contains("Even footer"));
         Assert.Equal((reconstructedItems - 1) / 2, section.SelectedHeaderContents.Count);
         Assert.Equal((reconstructedItems - 1) / 2, section.SelectedFooterContents.Count);
     }
