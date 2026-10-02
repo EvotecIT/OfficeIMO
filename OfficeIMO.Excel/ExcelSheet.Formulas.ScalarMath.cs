@@ -29,6 +29,19 @@ namespace OfficeIMO.Excel {
             int digits = 0;
             if (directional && count == 2 && !digitsAreError && !TryGetSupportedDecimalPlaces(numbers[1], out digits)) return false;
             if (firstError.IsError) { result = firstError; return true; }
+            if (function == "FACT") {
+                // 170! is finite in binary64; 171! overflows. Check before casting
+                // or looping so arbitrarily large inputs have bounded work.
+                if (numbers[0] < 0 || numbers[0] >= 171) {
+                    result = FormulaArgumentValue.Error("#NUM!");
+                    return true;
+                }
+                int limit = (int)Math.Truncate(numbers[0]);
+                double factorial = 1;
+                for (int factor = 2; factor <= limit; factor++) factorial *= factor;
+                result = new FormulaArgumentValue(factorial, InvariantNumberText.Get(factorial));
+                return true;
+            }
             if (function is "EVEN" or "ODD") {
                 // Round the magnitude before checking parity: dividing tiny values by
                 // two first can underflow to zero. Large binary64 integers are even.

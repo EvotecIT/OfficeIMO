@@ -12,7 +12,7 @@ from importlib.metadata import version
 from pathlib import Path
 from zipfile import ZipFile
 from numbers_parser import Document
-from numbers_parser.cell import DECIMAL128_BIAS
+from numbers_parser.cell import DECIMAL128_BIAS, ErrorCell
 from numbers_parser.generated.functionmap import FUNCTION_MAP
 from numbers_parser.numbers_uuid import NumbersUUID
 from numbers_parser.xrefs import xl_rowcol_to_cell
@@ -193,9 +193,10 @@ def stored_decimal128(cell):
     return value, {'bytes': data.hex(), 'value': str(value)}
 
 numeric_cases = []
+error_cases = []
 if upstream_path == 'test-all-formulas.numbers':
     table = document.sheets['Math'].tables['Tests']
-    for row in [3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 27, 28, 29, 30, 31, 46, 47, 48, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 83, 84, 85, 86, 87, 88, 94, 95, 101, 102, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 125, 126, 127, 128, 129, 152, 164, 165, 166]:
+    for row in [3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 27, 28, 29, 30, 31, 46, 47, 48, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 83, 84, 85, 86, 87, 88, 94, 95, 101, 102, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 125, 126, 127, 128, 129, 152, 164, 165, 166]:
         cell = table.cell(row - 1, 1)
         nodes = model.formula_ast(table._table_id)[cell._formula_id]
         stack, functions = [], []
@@ -209,6 +210,9 @@ if upstream_path == 'test-all-formulas.numbers':
                 stack.append(None)  # An explicit omitted operand; not an absent node.
             elif node.AST_node_type == 13:
                 stack.append(-stack.pop())
+            elif node.AST_node_type == 1:
+                right, left = stack.pop(), stack.pop()
+                stack.append(left + right)
             elif node.AST_node_type == 2:
                 right, left = stack.pop(), stack.pop()
                 stack.append(left - right)
@@ -231,6 +235,9 @@ if upstream_path == 'test-all-formulas.numbers':
                         assert factor != 0
                         rounding = ROUND_CEILING if name == 'CEILING' else ROUND_FLOOR
                         computed = float((number / factor).to_integral_value(rounding=rounding) * factor)
+                elif name == 'FACT':
+                    assert count == 1 and 0 <= values[0] < 171
+                    computed = float(math.factorial(math.trunc(values[0])))
                 elif name in ('EVEN', 'ODD'):
                     assert count == 1
                     integer = math.ceil(abs(values[0]))
@@ -279,10 +286,11 @@ if upstream_path == 'test-all-formulas.numbers':
                 functions.append({'index': node.AST_function_node_index, 'name': name, 'argumentCount': count})
         assert len(stack) == 1
         transcendental = any(f['name'] in ('EXP', 'LN', 'LOG', 'LOG10', 'RADIANS') for f in functions)
+        approximate = transcendental or any(f['name'] == 'FACT' for f in functions)
         multiple = any(f['name'] in ('CEILING', 'FLOOR') for f in functions)
-        # The producer stores rounded transcendental caches. Preserve those exact
+        # The producer stores rounded transcendental and large factorial caches. Preserve those exact
         # caches and record the tolerance used only for independent computation.
-        if transcendental:
+        if approximate:
             assert math.isclose(stack[0], cell.value, rel_tol=1e-14, abs_tol=1e-15)
         elif multiple:
             decimal_cache, stored_cache = stored_decimal128(cell)
@@ -293,13 +301,22 @@ if upstream_path == 'test-all-formulas.numbers':
                               'sourceFormula': cell.formula, 'cachedValue': cell.value,
                               'computedCurrentValue': stack[0], 'nodeTypes': [n.AST_node_type for n in nodes],
                               'functions': functions}
-        if transcendental:
+        if approximate:
             case['computationTolerance'] = {'relative': 1e-14, 'absolute': 1e-15}
         elif multiple:
             case['providerCachedValue'] = cell.value
             case['storedDecimal128'] = stored_cache
             case['cachedValue'] = float(decimal_cache)
         numeric_cases.append(case)
+    error_cell = table.cell(13, 1)
+    error_nodes = model.formula_ast(table._table_id)[error_cell._formula_id]
+    assert isinstance(error_cell, ErrorCell) and error_cell.formula == 'FACT(-1)'
+    assert [n.AST_node_type for n in error_nodes] == [17, 13, 16]
+    assert error_nodes[0].AST_number_node_number == 1
+    assert FUNCTION_MAP[error_nodes[-1].AST_function_node_index] == 'FACT' and error_nodes[-1].AST_function_node_numArgs == 1
+    error_cases.append({'sourceSheet': 'Math', 'sourceTable': table.name, 'row': 14, 'column': 2,
+                        'sourceFormula': error_cell.formula, 'functionIndex': error_nodes[-1].AST_function_node_index,
+                        'cachedValueKind': 'error', 'qualification': 'Negative factorial is a native error; no destination error-code equivalence is claimed.'})
 with ZipFile(args.source) as package:
     builds = plistlib.loads(package.read('Metadata/BuildVersionHistory.plist'))
 manifest = {'upstream': 'https://github.com/masaccio/numbers-parser',
@@ -309,6 +326,8 @@ manifest = {'upstream': 'https://github.com/masaccio/numbers-parser',
             'buildVersionHistory': builds,
             'qualification': 'Native node-36 target identities and mixed coordinates, plus selected scalar function nodes; independent computations agree with numeric/text/Boolean caches. Scalar text cases use ASCII literals. Build metadata is retained in this manifest. No Apple export/render oracle.',
             'cases': cases, 'scalarFunctionCases': scalar_cases}
+if error_cases:
+    manifest['errorFunctionCases'] = error_cases
 if numeric_cases:
     manifest['numericFunctionCases'] = numeric_cases
     manifest['qualification'] += ' Numeric INT/MOD/SQRT/SIGN/TRUNC/ROUNDUP/ROUNDDOWN expressions include unary negatives, subtraction, optional and signed digit arguments and nested ABS; independent numeric/decimal computations agree with native caches.'

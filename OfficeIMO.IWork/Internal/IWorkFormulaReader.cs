@@ -42,6 +42,7 @@ internal static partial class IWorkFormulaReader {
         [48] = new("EVEN", 1, 1),
         [49] = new("EXACT", 2, 2),
         [50] = new("EXP", 1, 1),
+        [51] = new("FACT", 1, 1),
         [52] = new("FALSE", 0, 0),
         [53] = new("FIND", 2, 3),
         [55] = new("FLOOR", 2, 2),

@@ -678,7 +678,7 @@ namespace OfficeIMO.Excel {
                     string function = functionCall.Name.ToUpperInvariant();
                     string args = functionCall.Arguments;
                     if (function == "MATCH" || function == "XMATCH") return TryEvaluateMatchValue(function, args, out result);
-                    if (function is "INT" or "MOD" or "SQRT" or "SIGN" or "TRUNC" or "ROUNDUP" or "ROUNDDOWN" or "EXP" or "LN" or "LOG" or "LOG10" or "CEILING" or "FLOOR" or "EVEN" or "ODD") return TryEvaluateScalarMathValue(function, args, out result);
+                    if (function is "INT" or "MOD" or "SQRT" or "SIGN" or "TRUNC" or "ROUNDUP" or "ROUNDDOWN" or "EXP" or "LN" or "LOG" or "LOG10" or "CEILING" or "FLOOR" or "EVEN" or "ODD" or "FACT") return TryEvaluateScalarMathValue(function, args, out result);
                     if (function == "PROB") return TryEvaluateProbabilityValue(args, out result);
                     if (function == "RANDBETWEEN") return TryEvaluateRandomBetweenValue(args, out result);
                     if (function == "OFFSET") return TryEvaluateOffsetValue(args, out result);
@@ -778,7 +778,7 @@ namespace OfficeIMO.Excel {
             if (functionCall != null) {
                     string function = functionCall.Name.ToUpperInvariant();
                     string args = functionCall.Arguments;
-                    if (function is "INT" or "MOD" or "SQRT" or "SIGN" or "TRUNC" or "ROUNDUP" or "ROUNDDOWN" or "EXP" or "LN" or "LOG" or "LOG10" or "CEILING" or "FLOOR" or "EVEN" or "ODD") {
+                    if (function is "INT" or "MOD" or "SQRT" or "SIGN" or "TRUNC" or "ROUNDUP" or "ROUNDDOWN" or "EXP" or "LN" or "LOG" or "LOG10" or "CEILING" or "FLOOR" or "EVEN" or "ODD" or "FACT") {
                         if (!TryEvaluateScalarMathValue(function, args, out FormulaArgumentValue value)) return false;
                         if (value.IsError) { error = value; return false; }
                         result = value.Number!.Value;

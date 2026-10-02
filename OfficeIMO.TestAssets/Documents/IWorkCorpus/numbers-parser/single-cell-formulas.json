@@ -635,6 +635,18 @@
       "argumentCount": 1
     }
   ],
+  "errorFunctionCases": [
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 14,
+      "column": 2,
+      "sourceFormula": "FACT(-1)",
+      "functionIndex": 51,
+      "cachedValueKind": "error",
+      "qualification": "Negative factorial is a native error; no destination error-code equivalence is claimed."
+    }
+  ],
   "numericFunctionCases": [
     {
       "sourceSheet": "Math",
@@ -865,6 +877,152 @@
         {
           "index": 50,
           "name": "EXP",
+          "argumentCount": 1
+        }
+      ],
+      "computationTolerance": {
+        "relative": 1e-14,
+        "absolute": 1e-15
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 15,
+      "column": 2,
+      "sourceFormula": "FACT(0)",
+      "cachedValue": 1.0,
+      "computedCurrentValue": 1.0,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 51,
+          "name": "FACT",
+          "argumentCount": 1
+        }
+      ],
+      "computationTolerance": {
+        "relative": 1e-14,
+        "absolute": 1e-15
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 16,
+      "column": 2,
+      "sourceFormula": "FACT(1)",
+      "cachedValue": 1.0,
+      "computedCurrentValue": 1.0,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 51,
+          "name": "FACT",
+          "argumentCount": 1
+        }
+      ],
+      "computationTolerance": {
+        "relative": 1e-14,
+        "absolute": 1e-15
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 17,
+      "column": 2,
+      "sourceFormula": "FACT(1.9)",
+      "cachedValue": 1.0,
+      "computedCurrentValue": 1.0,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 51,
+          "name": "FACT",
+          "argumentCount": 1
+        }
+      ],
+      "computationTolerance": {
+        "relative": 1e-14,
+        "absolute": 1e-15
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 18,
+      "column": 2,
+      "sourceFormula": "FACT(150)+1",
+      "cachedValue": 5.71338395644585e+262,
+      "computedCurrentValue": 5.713383956445855e+262,
+      "nodeTypes": [
+        17,
+        16,
+        17,
+        1
+      ],
+      "functions": [
+        {
+          "index": 51,
+          "name": "FACT",
+          "argumentCount": 1
+        }
+      ],
+      "computationTolerance": {
+        "relative": 1e-14,
+        "absolute": 1e-15
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 19,
+      "column": 2,
+      "sourceFormula": "FACT(150)",
+      "cachedValue": 5.71338395644585e+262,
+      "computedCurrentValue": 5.713383956445855e+262,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 51,
+          "name": "FACT",
+          "argumentCount": 1
+        }
+      ],
+      "computationTolerance": {
+        "relative": 1e-14,
+        "absolute": 1e-15
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 20,
+      "column": 2,
+      "sourceFormula": "FACT(5)",
+      "cachedValue": 120.0,
+      "computedCurrentValue": 120.0,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 51,
+          "name": "FACT",
           "argumentCount": 1
         }
       ],

@@ -894,6 +894,12 @@ Large integral values avoid unnecessary scaling, and nonfinite results produce
 `#NUM!` instead of invalid numeric caches. All operands, including supported
 digit bounds, qualify before an argument error is propagated.
 
+`FACT` evaluates one finite scalar, truncating nonnegative fractions before
+multiplication. Zero returns one. Negative inputs and values at least 171 produce
+`#NUM!`; at most 169 multiplications are needed for a finite result. Large
+factorials use floating-point arithmetic. Typed errors propagate, while
+unsupported operands and signatures preserve existing caches.
+
 `EVEN` and `ODD` round one finite scalar away from zero to the nearest integer
 of the requested parity. `EVEN(0)` is zero and `ODD(0)` is one. Typed errors
 propagate; unsupported operands and argument counts retain existing caches.

@@ -19,6 +19,14 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
             AssertSourceScalarFunction(projection, expected);
         foreach (JsonElement expected in manifest.RootElement.GetProperty("numericFunctionCases").EnumerateArray())
             AssertSourceScalarFunction(projection, expected, normalizeNumbers: true);
+        foreach (JsonElement expected in manifest.RootElement.GetProperty("errorFunctionCases").EnumerateArray()) {
+            IWorkTableCell error = projection.Sheets.Single(sheet => sheet.Name == expected.GetProperty("sourceSheet").GetString())
+                .Tables.Single(table => table.Name == expected.GetProperty("sourceTable").GetString())
+                .GetCell(expected.GetProperty("row").GetInt32(), expected.GetProperty("column").GetInt32())!;
+            Assert.True(error.FormulaIsComplete);
+            Assert.Equal("=" + expected.GetProperty("sourceFormula").GetString(), error.Formula);
+            Assert.Equal(IWorkCellKind.Error, error.ValueKind);
+        }
         var referenceTable = projection.Sheets.Single(sheet => sheet.Name == "Reference").Tables.Single(table => table.Name == "Tests");
         foreach (int row in new[] { 20, 54 }) {
             // Literal-array syntax can be reconstructed even though local evaluation is separate.

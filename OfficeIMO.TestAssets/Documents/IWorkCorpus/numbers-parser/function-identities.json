@@ -98,6 +98,11 @@
       "sampleArgumentCount": 1
     },
     {
+      "index": 51,
+      "name": "FACT",
+      "sampleArgumentCount": 1
+    },
+    {
       "index": 52,
       "name": "FALSE",
       "sampleArgumentCount": 0

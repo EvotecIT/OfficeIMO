@@ -21,7 +21,7 @@ assert source_hash == '9371c5b1d6ee4dfa17569097f064eba9c67f804d88b48638efbbeeb45
 # Counts follow the public function signatures; names/IDs come from the independent provider.
 samples = {'ABS': 1, 'AND': 1, 'AVERAGE': 1, 'AVERAGEA': 1, 'CEILING': 2, 'COLUMN': 0, 'COLUMNS': 1, 'CONCATENATE': 1, 'COUNT': 1,
            'COUNTA': 1, 'COUNTBLANK': 1, 'COUNTIF': 2, 'DATE': 3, 'DAY': 1, 'DEGREES': 1, 'EVEN': 1, 'EXACT': 2,
-           'EXP': 1, 'FALSE': 0, 'FIND': 2, 'FLOOR': 2, 'HOUR': 1, 'HYPERLINK': 2, 'IF': 3, 'IFERROR': 2,
+           'EXP': 1, 'FACT': 1, 'FALSE': 0, 'FIND': 2, 'FLOOR': 2, 'HOUR': 1, 'HYPERLINK': 2, 'IF': 3, 'IFERROR': 2,
            'INDEX': 2, 'INT': 1, 'ISBLANK': 1, 'ISERROR': 1, 'ISNUMBER': 1, 'ISTEXT': 1, 'LEFT': 1, 'LEN': 1, 'LN': 1, 'LOG': 1, 'LOG10': 1, 'LOWER': 1, 'MAX': 1, 'MAXA': 1, 'MEDIAN': 1,
            'MID': 3, 'MIN': 1, 'MINA': 1, 'MINUTE': 1, 'MOD': 2, 'NOT': 1, 'NOW': 0, 'ODD': 1, 'OFFSET': 3, 'OR': 2, 'PI': 0,
            'POWER': 2, 'PROB': 3, 'PRODUCT': 1, 'RADIANS': 1, 'RANDBETWEEN': 2, 'RIGHT': 1, 'ROUND': 2, 'ROUNDDOWN': 2, 'ROUNDUP': 2, 'ROW': 0, 'ROWS': 1, 'SECOND': 1, 'SIGN': 1,
