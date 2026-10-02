@@ -128,7 +128,7 @@ internal static partial class IWorkNumbersReader {
             throw new InvalidDataException($"Numbers sheet count exceeds the configured projection limit of {source.Options.MaximumProjectedSheets}.");
         }
         IReadOnlyList<IWorkArchiveRecord> sheetRecords = references.ReadAll(
-            document, documentMessage, 1, out int unresolvedSheetCount);
+            document, documentMessage, 1, out int unresolvedSheetCount, allowedType: type => type == SheetArchive);
         if (sheetRecords.Count > source.Options.MaximumProjectedSheets) {
             throw new InvalidDataException($"Numbers sheet count exceeds the configured projection limit of {source.Options.MaximumProjectedSheets}.");
         }
@@ -233,7 +233,7 @@ internal static partial class IWorkNumbersReader {
                         && storageOwner.FieldCount(2) == 1
                         && !storageOwner.HasUnexpectedWireKind(2, IWorkWireKind.Bytes);
                     IWorkArchiveRecord? storage = storageOwner != null
-                        ? references.ReadOne(drawable, storageOwner, 2)
+                        ? references.ReadOne(drawable, storageOwner, 2, allowedType: type => type == TextStorageArchive)
                         : null;
                     if (storageReferenceComplete && storage != null && storage.MessageType == TextStorageArchive) {
                         IWorkWireMessage? storageMessage = null;

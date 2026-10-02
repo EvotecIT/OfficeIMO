@@ -220,7 +220,7 @@ internal static partial class IWorkPagesReader {
         }
         bool bodyReferenceComplete = documentMessage.FieldCount(4) == 1
             && !documentMessage.HasUnexpectedWireKind(4, IWorkWireKind.Bytes);
-        IWorkArchiveRecord? body = references.ReadOne(document, documentMessage, 4);
+        IWorkArchiveRecord? body = references.ReadOne(document, documentMessage, 4, allowedType: type => type == TextStorageArchive);
         if (!bodyReferenceComplete || body == null || body.MessageType != TextStorageArchive) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_BODY_MISSING",
@@ -264,8 +264,8 @@ internal static partial class IWorkPagesReader {
                     shape.EntryPath, shape.Identifier));
                 continue;
             }
-            IWorkArchiveRecord? field4Storage = references.ReadOne(shape, shapeMessage, 4);
-            IWorkArchiveRecord? field2Storage = references.ReadOne(shape, shapeMessage, 2);
+            IWorkArchiveRecord? field4Storage = references.ReadOne(shape, shapeMessage, 4, allowedType: type => type == TextStorageArchive);
+            IWorkArchiveRecord? field2Storage = references.ReadOne(shape, shapeMessage, 2, allowedType: type => type == TextStorageArchive);
             IWorkArchiveRecord? storage = field4Storage ?? field2Storage;
             bool hasAmbiguousStorage = shapeMessage.FieldCount(4) > 1
                 || shapeMessage.FieldCount(2) > 1
@@ -523,7 +523,7 @@ internal static partial class IWorkPagesReader {
             List<IWorkTextContent>? defaultPageFooters = null;
             IReadOnlyList<IWorkArchiveRecord> referencedSections = references.ReadAll(
                 body, entry, 2, out int unresolvedSectionCount,
-                "17/1[" + (sectionIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + "]/2");
+                "17/1[" + (sectionIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + "]/2", allowedType: type => type == SectionArchive);
             if (unresolvedSectionCount > 0 || referencedSections.Count != 1
                 || referencedSections[0].MessageType != SectionArchive) {
                 supportsEditableReconstruction = false;
@@ -574,7 +574,7 @@ internal static partial class IWorkPagesReader {
                 }
                 bool templateReferenceComplete = sectionMessage.FieldCount(field) == 1
                     && !sectionMessage.HasUnexpectedWireKind(field, IWorkWireKind.Bytes);
-                IWorkArchiveRecord? archive = references.ReadOne(section, sectionMessage, field);
+                IWorkArchiveRecord? archive = references.ReadOne(section, sectionMessage, field, allowedType: type => type == HeadersFootersArchive);
                 if (!templateReferenceComplete
                     || archive == null || archive.MessageType != HeadersFootersArchive) {
                     supportsEditableReconstruction = false;
@@ -613,7 +613,7 @@ internal static partial class IWorkPagesReader {
         List<IWorkDiagnostic> diagnostics, List<IWorkObjectIdentity> omittedUnits,
         ref bool supportsEditableReconstruction) {
         IReadOnlyList<IWorkArchiveRecord> storages = references.ReadAll(
-            archive, message, field, out int unresolvedStorageCount);
+            archive, message, field, out int unresolvedStorageCount, allowedType: type => type == TextStorageArchive);
         if (unresolvedStorageCount > 0) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
