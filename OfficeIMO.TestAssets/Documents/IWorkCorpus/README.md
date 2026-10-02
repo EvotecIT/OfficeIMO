@@ -12,6 +12,12 @@ These package fixtures prove the bounded Pages, Numbers, and Keynote reader agai
 
 The complete upstream license notices are reproduced in `OfficeIMO.IWork/THIRD-PARTY-NOTICES.md`. Fixture provenance and expected semantic assertions live beside the executable corpus tests in `OfficeIMO.IWork.Tests`.
 
+## Native blank-format export
+
+`native-exports/numbers-blank-selectors-v14.5.xlsx` is an Apple Numbers 14.5 export of the unchanged `numbers-parser/cross-table-formulas.numbers` fixture. The adjacent JSON records source/export hashes, export options and ten blank cells in `Main Sheet - Extra Headers`. Reproduce it by opening a copy of the source in Numbers 14.5, choosing File > Export To > Excel, one worksheet per table, and leaving the summary worksheet and password options off. The native export includes a table-title row, so source A8:A17 maps to destination A9:A18. Existing numbers-parser MIT attribution applies.
+
+The nine numeric/text-selector blanks export with built-in Text format 49 (`@`); the isolated percentage-selector blank exports as General. All ten remain blank. This is evidence of this producer's export behavior, not a general selector-precedence rule: the percentage case shows that native export does not retain every authored blank format. OfficeIMO retains supported isolated formats and reports mixed selections as unassessed. Native populated-value behavior and rendered appearance remain unqualified.
+
 ## Keynote multi-slide editable output
 
 The unchanged `nim-iwork/simple.key` fixture exercises a two-slide Keynote 14.5 deck through editable PPTX save and reopen. The corpus test checks slide count and order through each slide's expected title, first-slide bullet content, the second-slide presenter note, and Open XML validation. Conversion explicitly accepts partial editable reconstruction. This extends source-reader evidence to saved destination content; native Apple PPTX export, theme/layout equivalence and rendered appearance remain unqualified.
