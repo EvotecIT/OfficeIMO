@@ -21,6 +21,7 @@ public static partial class HtmlExcelConverterExtensions {
         int rowOffset = 0;
         int semanticRowIndex = 0;
 
+        IReadOnlyDictionary<IElement, int> rowSpans = HtmlAccessibilitySemantics.ResolveTableRowSpans(EnumerateDirectTableRows(table));
         foreach (IElement row in EnumerateDirectTableRows(table)) {
             int rowIndex = firstRow + rowOffset;
             if (rowIndex > A1.MaxRows) {
@@ -68,8 +69,16 @@ public static partial class HtmlExcelConverterExtensions {
                     cellColumn = columnIndex;
                 }
 
-                int rowSpan = ReadSpan(cell, "rowspan", cellRow, A1.MaxRows, cellRow, cellColumn, result);
-                int columnSpan = ReadSpan(cell, "colspan", cellColumn, A1.MaxColumns, cellRow, cellColumn, result);
+                int rowSpan = ReadSpan(cell,
+                    HtmlAccessibilitySemantics.GetTableSpanAttributeName(cell, "rowspan"),
+                    cellRow, A1.MaxRows, cellRow, cellColumn, result,
+                    // The explicit workbook profile preserves worksheet merges even
+                    // across its presentation-only header/body split. Generic HTML
+                    // follows authored row-group boundaries.
+                    !useSemanticValues && rowSpans.TryGetValue(cell, out int remainingRows) ? remainingRows : (int?)null);
+                int columnSpan = ReadSpan(cell,
+                    HtmlAccessibilitySemantics.GetTableSpanAttributeName(cell, "colspan"),
+                    cellColumn, A1.MaxColumns, cellRow, cellColumn, result);
                 long spanArea = (long)rowSpan * columnSpan;
                 if (spanArea > maxTableCells - occupiedCells.Count) {
                     if (occupiedCells.Count >= maxTableCells) {
@@ -375,16 +384,17 @@ public static partial class HtmlExcelConverterExtensions {
 
     private static IEnumerable<IElement> EnumerateDirectTableRows(IElement table) {
         foreach (IElement child in table.Children) {
-            if (IsElement(child, "tr")) {
+            if (IsTableRow(child)) {
                 yield return child;
                 continue;
             }
 
-            if (!IsElement(child, "thead") && !IsElement(child, "tbody") && !IsElement(child, "tfoot")) {
+            if (!IsElement(child, "thead") && !IsElement(child, "tbody") && !IsElement(child, "tfoot")
+                && !HtmlAccessibilitySemantics.HasRole(child, "rowgroup")) {
                 continue;
             }
 
-            foreach (IElement row in child.Children.Where(candidate => IsElement(candidate, "tr"))) {
+            foreach (IElement row in child.Children.Where(IsTableRow)) {
                 yield return row;
             }
         }
@@ -393,7 +403,14 @@ public static partial class HtmlExcelConverterExtensions {
     private static bool HasDirectTableCells(IElement table) =>
         EnumerateDirectTableRows(table).Any(row => row.Children.Any(IsTableCell));
 
-    private static bool IsTableCell(IElement element) => IsElement(element, "th") || IsElement(element, "td");
+    private static bool IsTableRow(IElement element) =>
+        IsElement(element, "tr") || HtmlAccessibilitySemantics.HasRole(element, "row");
+
+    private static bool IsTableCell(IElement element) =>
+        IsElement(element, "th") || IsElement(element, "td")
+        || HtmlAccessibilitySemantics.HasRole(element, "cell")
+        || HtmlAccessibilitySemantics.HasRole(element, "columnheader")
+        || HtmlAccessibilitySemantics.HasRole(element, "rowheader");
 
     private static int ReadSpan(
         IElement cell,
@@ -402,8 +419,8 @@ public static partial class HtmlExcelConverterExtensions {
         int maximum,
         int cellRow,
         int cellColumn,
-        HtmlToExcelResult result) {
-        string? rawValue = cell.GetAttribute(attributeName);
+        HtmlToExcelResult result, int? resolvedSpan = null) {
+        string? rawValue = resolvedSpan?.ToString(CultureInfo.InvariantCulture) ?? cell.GetAttribute(attributeName);
         if (string.IsNullOrWhiteSpace(rawValue)) {
             return 1;
         }

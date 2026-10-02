@@ -38,6 +38,10 @@ On the ordinary HTML path, bounded positioned, floating, flex, and grid regions 
 
 `SaveAsHtml` and `SaveAsHtmlAsync` write UTF-8 without a byte-order mark to paths or caller-owned streams. For import I/O, use `HtmlConversionDocument.Load(...)` or `LoadAsync(...)`, then call `ToPowerPointPresentation()` or `ToPowerPointPresentationResult()` on the prepared document. Stream overloads leave caller-owned streams open.
 
+## Generic document flow
+
+Generic HTML import divides long paragraphs into editable text boxes across slides and retains supported inline formatting and hyperlinks. Tables with suitable row geometry continue as native tables with repeated header rows. Captions remain separate editable text. Oversized cells and unsupported list pagination produce explicit approximation reports; authored slide geometry remains authoritative.
+
 ## Positioned review
 
 Use `PowerPointHtmlSaveOptions.CreateVisualReviewProfile()` or set `ExportProfile = PowerPointHtmlExportProfile.VisualReview` for a positioned visual representation. `SharedProfile` exposes the corresponding generic engine lane. `DocumentOutput` controls full-document versus fragment output, title, language, theme, default styles, and newlines. Visual-review HTML is intended for inspection, while semantic slide HTML is the importable contract.
