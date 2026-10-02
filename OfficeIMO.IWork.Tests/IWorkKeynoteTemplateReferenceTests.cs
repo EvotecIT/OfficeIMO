@@ -29,6 +29,20 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(partial.Report.Diagnostics, d => d.Code == "IWORK_KEYNOTE_TEMPLATE_UNRESOLVED");
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Keynote_invalid_direct_template_record_does_not_claim_complete_conversion(bool selfReference) {
+        using var package = KeynoteWithBuildDeclarations(Message(ReferenceField(1, 10),
+            ReferenceField(17, selfReference ? 4ul : 12ul)),
+            SlideBackgroundStyle(10, FillColor(1, 0, 0)), ArchiveRecord(12, 5, new byte[] { 0x80 }));
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        Assert.True(result.IsVisualFallback);
+        Assert.Equal("FF0000", result.Projection.Slides[0].BackgroundColor?.RgbHex);
+        Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_KEYNOTE_TEMPLATE_UNRESOLVED");
+        Assert.Contains(result.Report.SourceDeclarationIssues, issue => issue.FieldPath == (selfReference ? "17" : "$"));
+    }
+
     [Fact]
     public void Keynote_valid_template_reference_does_not_select_inactive_template_storage() {
         using var package = KeynoteWithBuildDeclarations(Message(ReferenceField(1, 10), ReferenceField(17, 12)),

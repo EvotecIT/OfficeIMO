@@ -21,7 +21,7 @@ internal static partial class IWorkKeynoteReader {
                 slide.EntryPath, slide.Identifier));
             return null;
         }
-        AssessTemplateReference(slide, message, references, diagnostics, ref supportsEditableReconstruction);
+        AssessTemplateReference(source, slide, message, references, diagnostics, ref supportsEditableReconstruction);
         IWorkCellFill? background = ReadBackground(source, slide, message, projectionBudget, references, diagnostics, ref supportsEditableReconstruction);
         AssessBuildDeclarations(message, slide, references, diagnostics, ref supportsEditableReconstruction);
         AssessTransition(message, slide, references, diagnostics, ref supportsEditableReconstruction);
