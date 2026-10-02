@@ -92,5 +92,23 @@
     "Text selection export does not establish general native selector precedence.",
     "The isolated percentage blank exports as General, so native export does not preserve every source blank format.",
     "No rendered appearance or populated-value behavior is qualified."
-  ]
+  ],
+  "nativeUiEvidence": {
+    "producer": "Apple Numbers 14.5",
+    "sourceTable": "Main Sheet / Extra Headers",
+    "observedBeforeEdit": {
+      "A8": "Automatic",
+      "A9": "Text"
+    },
+    "controlledEdit": {
+      "cell": "A8",
+      "action": "Select Percentage in Cell Format panel and save a disposable copy",
+      "output": "numbers-blank-explicit-percentage-v14.5.numbers",
+      "sha256": "2c309aba907f3987375868489650b5637e9dba3c48c6f48f14e83df6afdff690",
+      "beforeStorageHex": "0500000000000100402000000100000006000000",
+      "afterStorageHex": "050000000000010040300000010000000100000006000000",
+      "difference": "Value-storage bit 12 is added with value 1; numeric format key remains 6."
+    },
+    "conclusion": "Catalog selector presence alone does not establish active blank formatting. Reader selection-field handling needs correction."
+  }
 }

@@ -18,6 +18,8 @@ The complete upstream license notices are reproduced in `OfficeIMO.IWork/THIRD-P
 
 The nine numeric/text-selector blanks export with built-in Text format 49 (`@`); the isolated percentage-selector blank exports as General. All ten remain blank. This is evidence of this producer's export behavior, not a general selector-precedence rule: the percentage case shows that native export does not retain every authored blank format. OfficeIMO retains supported isolated formats and reports mixed selections as unassessed. Native populated-value behavior and rendered appearance remain unqualified.
 
+Native Numbers' Cell Format panel shows source A8 as Automatic and A9 as Text. `numbers-blank-explicit-percentage-v14.5.numbers` is a disposable copy saved after selecting Percentage for A8. The adjacent manifest records the exact before/after storage: selection adds value-storage bit 12 with value `1`, while numeric format key `6` stays unchanged. This demonstrates that a numeric catalog selector alone does not establish active blank formatting. The reader's blank-format selection is not yet qualified against this control; the retained format must not be treated as proven native display behavior.
+
 ## Keynote multi-slide editable output
 
 The unchanged `nim-iwork/simple.key` fixture exercises a two-slide Keynote 14.5 deck through editable PPTX save and reopen. The corpus test checks slide count and order through each slide's expected title, first-slide bullet content, the second-slide presenter note, and Open XML validation. Conversion explicitly accepts partial editable reconstruction. This extends source-reader evidence to saved destination content; native Apple PPTX export, theme/layout equivalence and rendered appearance remain unqualified.
