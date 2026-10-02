@@ -102,5 +102,10 @@
       190,
       152
     ]
+  },
+  "finalReplay": {
+    "sourceHead": "5764ad63ad30d7ed4446de4f7603ae3db48720a1",
+    "allMeasuredArtifactsByteIdentical": true,
+    "retainedDirectory": "Ignore/MathAutoQualification/static-gaps-closure"
   }
 }
