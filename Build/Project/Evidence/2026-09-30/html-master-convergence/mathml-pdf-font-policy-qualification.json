@@ -1,0 +1,270 @@
+{
+  "schemaVersion": 1,
+  "recordedUtc": "2026-10-02T05:25:04.227067+00:00",
+  "sourceCommit": "8b06d7e8bafb6508dda4a826738efb1c5704b532",
+  "sourceCleanDuringQualification": true,
+  "contract": "Balanced HTML PDF permits the fixed library-selected mathematical font family set; source-named host and system-UI font selection remain gated. Parent, iframe and SVG foreignObject fonts/resources share operation accounting. Embedded SVG viewports do not invoke external resolvers or erase prior omission diagnostics.",
+  "validation": {
+    "focusedHtmlNet10": 109,
+    "fullHtmlNet8": 4097,
+    "fullHtmlNet10": 4097,
+    "fourFrameworkHtmlPdfPack": [
+      {
+        "file": "OfficeIMO.Html.Pdf.3.4.4.nupkg",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ],
+        "assemblies": [
+          "lib/net10.0/OfficeIMO.Html.Pdf.dll",
+          "lib/net472/OfficeIMO.Html.Pdf.dll",
+          "lib/net8.0/OfficeIMO.Html.Pdf.dll",
+          "lib/netstandard2.0/OfficeIMO.Html.Pdf.dll"
+        ]
+      }
+    ],
+    "packageWarnings": 0,
+    "heldOutCases": 8,
+    "heldOutAcceptance": "Passed unchanged criteria",
+    "policyArtifacts": {
+      "inspector": "pypdf and Poppler",
+      "allTextIdentical": true,
+      "balancedEqualsExplicitSupplied": true,
+      "optOutsEqualPriorDefault": true,
+      "cases": [
+        {
+          "policy": "balanced",
+          "sha256": "e210a277a1cd00be445990fd2deee0e512fe6a239b501d944d34a16d06e6458d",
+          "pages": 1,
+          "text": "Default \nx\n2\n \nInherited x\n \nAuthored \nx\n2\n ",
+          "fontNames": [
+            "/Helvetica",
+            "/Helvetica-BoldOblique",
+            "/ScopedMath-Regular",
+            "/math-Regular"
+          ]
+        },
+        {
+          "policy": "portable",
+          "sha256": "b4e59f176e3d92fb647b2841b948001a91154d6d56855d3d3cc52b4e61f40df1",
+          "pages": 1,
+          "text": "Default \nx\n2\n \nInherited x\n \nAuthored \nx\n2\n ",
+          "fontNames": [
+            "/Helvetica",
+            "/Helvetica-BoldOblique",
+            "/ScopedMath-Regular"
+          ]
+        },
+        {
+          "policy": "system-disabled",
+          "sha256": "b4e59f176e3d92fb647b2841b948001a91154d6d56855d3d3cc52b4e61f40df1",
+          "pages": 1,
+          "text": "Default \nx\n2\n \nInherited x\n \nAuthored \nx\n2\n ",
+          "fontNames": [
+            "/Helvetica",
+            "/Helvetica-BoldOblique",
+            "/ScopedMath-Regular"
+          ]
+        },
+        {
+          "policy": "fallback-disabled",
+          "sha256": "b4e59f176e3d92fb647b2841b948001a91154d6d56855d3d3cc52b4e61f40df1",
+          "pages": 1,
+          "text": "Default \nx\n2\n \nInherited x\n \nAuthored \nx\n2\n ",
+          "fontNames": [
+            "/Helvetica",
+            "/Helvetica-BoldOblique",
+            "/ScopedMath-Regular"
+          ]
+        },
+        {
+          "policy": "supplied",
+          "sha256": "e210a277a1cd00be445990fd2deee0e512fe6a239b501d944d34a16d06e6458d",
+          "pages": 1,
+          "text": "Default \nx\n2\n \nInherited x\n \nAuthored \nx\n2\n ",
+          "fontNames": [
+            "/Helvetica",
+            "/Helvetica-BoldOblique",
+            "/ScopedMath-Regular",
+            "/math-Regular"
+          ]
+        }
+      ]
+    },
+    "independentPdf": {
+      "inspector": "pypdf",
+      "pages": 1,
+      "images": 0,
+      "formulaCount": 1,
+      "formula": [
+        {
+          "attachments": [
+            {
+              "bytes": 183,
+              "sha256": "afc2fe1809e23ea7ec13dc69bf9fc63901dbdbb148079c2446e7fedb955b2571",
+              "relationship": "/Supplement"
+            }
+          ],
+          "alt": "x squared plus y over two"
+        }
+      ],
+      "links": [
+        "https://example.test/math-link"
+      ],
+      "fullTextIdenticalToPrior": true,
+      "pdfSha256": "6c8fd0111b58c31ff0ee7bb24696e322d802721f12d2f131aa562a05d07a07e2",
+      "text": "mathml-semantics\nFORMULA-PREFIX x2 + y\n2\n \n FORMULA-SUFFIX\nMATH-LINK\nEND-mathml-semantics"
+    },
+    "nasa": {
+      "allElevenByteIdentical": true,
+      "operations": [
+        {
+          "intent": "officeimo-print",
+          "pages": 19,
+          "sha256": "0d1a0cca5553fb46da078299da2f4075770034fe97bdf589b8f9cfc475493d4d",
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-print-zero-margin",
+          "pages": 16,
+          "sha256": "bff7edfbca0d9dc21156fdde3f1f76d1297eab6fa8aadd5cb2e86a05695922cf",
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-print-fit-browser-viewport",
+          "pages": 16,
+          "sha256": "7ee3b30f84c3135f9880049e578f9f5249ef1e4ec40eb611fab7b439eaf5ec32",
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-print-fit-1200",
+          "pages": 11,
+          "sha256": "f24cef3837c8df021069cd3f989a02095839d76267d97557825b9cefb006d61f",
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-print-fit-1200-local-fonts",
+          "pages": 11,
+          "sha256": "f24cef3837c8df021069cd3f989a02095839d76267d97557825b9cefb006d61f",
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-print-browser-ua",
+          "pages": 16,
+          "sha256": "bff7edfbca0d9dc21156fdde3f1f76d1297eab6fa8aadd5cb2e86a05695922cf",
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-print-zero-margin-local-fonts",
+          "pages": 16,
+          "sha256": "bff7edfbca0d9dc21156fdde3f1f76d1297eab6fa8aadd5cb2e86a05695922cf",
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-screen-media",
+          "pages": 21,
+          "sha256": "aaed4828e045ee8a40eeb0a9be627b8764e83e9abb6248e524a0795dabbb5612",
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-screen-media-local-fonts",
+          "pages": 21,
+          "sha256": "aaed4828e045ee8a40eeb0a9be627b8764e83e9abb6248e524a0795dabbb5612",
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-screen-snapshot",
+          "pages": 16,
+          "sha256": "b44eabfad72a8b12d2b40fe645cd794fdb7ad77f7a77f3d9910e60618875f9cb",
+          "byteIdentical": true
+        },
+        {
+          "intent": "officeimo-screen-snapshot-local-fonts",
+          "pages": 16,
+          "sha256": "b44eabfad72a8b12d2b40fe645cd794fdb7ad77f7a77f3d9910e60618875f9cb",
+          "byteIdentical": true
+        }
+      ],
+      "textAndEncodedImagesPreservedByExactPdfByteEquality": true,
+      "zeroMarginImageXObjectsIncludingMasks": 18,
+      "softMaskXObjects": 3,
+      "paintedUniqueRasterXObjects": 15,
+      "pageRasterPlacements": 16,
+      "imageCountDefinition": "Independent raw PDF objects and page images, distinct from the renderer scene-image count in earlier evidence. Exact PDF equality preserves every prior accepted image stream and placement.",
+      "reference": {
+        "intent": "peachpdf-print",
+        "pages": 14,
+        "sha256": "e55a7b64a781ae435828edc1bba23b2309314910695dd9e05fb9ffce67eebe21"
+      }
+    },
+    "staticMacosBudget": {
+      "pairedBaselineCommit": "94b74abb840ac464b63332cc51449db5b0a1f5f2",
+      "candidateCommit": "8b06d7e8bafb6508dda4a826738efb1c5704b532",
+      "baselineFailures": [],
+      "candidateFailures": [],
+      "unchangedCeilings": true,
+      "fingerprintIdenticalToBaseline": true,
+      "earlierSamples": [
+        {
+          "failure": "warm iteration 1: 3005.8 ms > 3000 ms",
+          "otherGatesPassed": true
+        },
+        {
+          "failure": "peak working set: 735641600 > 700000000 bytes",
+          "otherGatesPassed": true
+        }
+      ],
+      "noCeilingRelaxation": true
+    },
+    "h10MacosOperationCount": 10,
+    "h10MacosBudgetFailures": []
+  },
+  "review": {
+    "fullReadOnlyReview": 1,
+    "targetedConfirmation": 1,
+    "initialFingerprint": "2391a7ddc40d3ccffe5bf4e66ef376defba13d60",
+    "targetedFingerprint": "2da557f37359308065f7d909c438fffb2bc2f029",
+    "reviewer": "math_pdf_policy_review",
+    "boundary": "candidate-reviewed; narrow primary correction after targeted confirmation",
+    "findings": [
+      {
+        "priority": "P2",
+        "origin": "pre-existing nested session weakness newly exposed by default balanced mathematical fonts",
+        "reproduction": "Three installed faces accepted across parent and two SVG foreignObject viewports despite budget for one",
+        "resolution": "Embedded render uses same operation HtmlResourceSession, without resolver prefetch",
+        "regressions": "Adaptive installed face limit, deterministic decoded-font and image-count budgets, sync/async resolver isolation"
+      },
+      {
+        "priority": "P2",
+        "origin": "remediation-introduced",
+        "reproduction": "Both sync/async prior used.png warning changed to Info/None",
+        "resolution": "Defer missing CSS image loss only for newly created root sessions",
+        "regressions": "Earlier background omission stays Warning/Omission and RequireNoLoss rejects both sync/async"
+      }
+    ],
+    "focusedFinalPassed": 109,
+    "noAdditionalReviewLoop": true,
+    "residual": "Windows/Linux/native net472 and full goal still unqualified"
+  },
+  "reference": {
+    "version": "0.9.20",
+    "latestStable": "0.9.20",
+    "versionIndexSha256": "9cd1afb8b15b3cb05942c574bedc8392479dc65b914cc715e9bb7a9ccf62b135",
+    "packageSha256": "00dd54b019a6441bacad3ac0bbc7cb27dde604f77c4508b20001eb23441b6393",
+    "license": "BSD-3-Clause",
+    "isolatedBenchmarkOnly": true
+  },
+  "visualAssessment": "Final native math font-policy page and same-source OfficeIMO/Chromium/PeachPDF MathML pages inspected. Default balanced math matches explicit supplied face; math-auto and full MATH geometry remain open. NASA comparator completes this replay; no browser parity claim.",
+  "remaining": [
+    "math-auto mathematical italics and full OpenType MATH-table geometry",
+    "Requested PDF/A/PDF/UA output verified by independent conformance tooling",
+    "Current-source Windows/Linux budgets and native platform/net472 execution",
+    "Remaining named H10 visual/resource/editable qualification gaps",
+    "Separate concurrent unique-file save race"
+  ],
+  "retainedEvidence": "Ignore/HtmlUnknownPageQualification/mathml-pdf-policy",
+  "releaseReady": false,
+  "publication": "Branch checkpoint only; no HTML PR, master merge, release or deployment"
+}
