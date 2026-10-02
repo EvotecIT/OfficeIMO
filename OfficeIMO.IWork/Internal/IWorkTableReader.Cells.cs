@@ -104,9 +104,13 @@ internal static partial class IWorkTableReader {
             int formatOffset = offset + 12;
             for (int bit = 0; bit < 19; bit++) {
                 if ((flags & (1u << bit)) == 0) continue;
-                if (bit is 17 or 18 && IsActiveFormat(bit) && !numberFormats.IsDefaultScalarFormat(
-                        IWorkProtobuf.ReadUInt32(buffer, formatOffset), boolean: bit == 18)) {
-                    features |= bit == 17 ? IWorkCellUnsupportedFeatures.TextFormat : IWorkCellUnsupportedFeatures.BooleanFormat;
+                if (bit is 17 or 18 && IsActiveFormat(bit)) {
+                    if (!numberFormats.IsDefaultScalarFormat(IWorkProtobuf.ReadUInt32(buffer, formatOffset), boolean: bit == 18)) {
+                        features |= bit == 17 ? IWorkCellUnsupportedFeatures.TextFormat : IWorkCellUnsupportedFeatures.BooleanFormat;
+                    } else if (bit == 17 && cell.Kind == IWorkCellKind.Empty) {
+                        cell = cell.WithNumberFormat(new IWorkNumberFormat(IWorkNumberFormatKind.Text,
+                            null, false, IWorkNegativeNumberStyle.Minus));
+                    }
                 }
                 formatOffset += CellValueFieldSize(bit);
             }

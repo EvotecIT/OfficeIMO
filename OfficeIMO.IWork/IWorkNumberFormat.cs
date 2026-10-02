@@ -1,6 +1,6 @@
 namespace OfficeIMO.IWork;
 
-/// <summary>The recovered semantic numeric, date/time or duration format of an iWork cell, independent of a destination format code.</summary>
+/// <summary>The recovered semantic numeric, temporal or text format of an iWork cell, independent of a destination format code.</summary>
 public sealed partial class IWorkNumberFormat {
     internal IWorkNumberFormat(IWorkNumberFormatKind kind, int? decimalPlaces,
         bool thousandsSeparator, IWorkNegativeNumberStyle negativeStyle,
@@ -18,9 +18,9 @@ public sealed partial class IWorkNumberFormat {
         DateTimeFormat = dateTimeFormat;
     }
 
-    /// <summary>Gets the source numeric or temporal display family.</summary>
+    /// <summary>Gets the source scalar display family.</summary>
     public IWorkNumberFormatKind Kind { get; }
-    /// <summary>Gets the explicit decimal count from zero through thirty, or null for Numbers' automatic mode, fractions or temporal formats. Scientific formats apply this count to the mantissa; fractions use FractionAccuracy instead.</summary>
+    /// <summary>Gets the explicit decimal count from zero through thirty, or null for Numbers' automatic mode, fractions, temporal or text formats. Scientific formats apply this count to the mantissa; fractions use FractionAccuracy instead.</summary>
     public int? DecimalPlaces { get; }
     /// <summary>Gets whether the source requests digit grouping.</summary>
     public bool ThousandsSeparator { get; }
@@ -38,7 +38,7 @@ public sealed partial class IWorkNumberFormat {
     public IWorkDateTimeFormat? DateTimeFormat { get; }
 }
 
-/// <summary>Supported iWork numeric and temporal format semantics.</summary>
+/// <summary>Supported iWork numeric, temporal and text format semantics.</summary>
 public enum IWorkNumberFormatKind {
     /// <summary>A decimal number.</summary>
     Number,
@@ -53,7 +53,9 @@ public enum IWorkNumberFormatKind {
     /// <summary>An elapsed time whose source value is measured in seconds.</summary>
     Duration,
     /// <summary>A calendar date or time with a recovered source pattern.</summary>
-    DateTime
+    DateTime,
+    /// <summary>An explicitly selected text format on an empty cell.</summary>
+    Text
 }
 
 /// <summary>Supported source treatments of negative numbers.</summary>

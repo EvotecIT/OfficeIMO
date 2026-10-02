@@ -56,6 +56,29 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Blank_text_format_requires_a_qualified_selected_catalog(bool customSettings) {
+        byte[] cell = FeatureCell(empty: true, (1u << 12) | (1u << 17));
+        WriteUInt32(cell, 12, 5); WriteUInt32(cell, 16, 1);
+        byte[] format = Message(VarintField(1, 260), customSettings ? VarintField(99, 0) : Message());
+        using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, ReferenceField(22, 13), cellPayload: cell,
+            additionalRecords: ArchiveRecord(13, 6005, Message(VarintField(1, 2), BytesField(3, FormatEntry(format)))));
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
+            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        var selected = result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!;
+        Assert.Equal(IWorkCellKind.Empty, selected.Kind);
+        Assert.Equal(customSettings ? IWorkCellUnsupportedFeatures.TextFormat : IWorkCellUnsupportedFeatures.None,
+            selected.UnsupportedFeatures);
+        Assert.Equal(customSettings ? (IWorkNumberFormatKind?)null : IWorkNumberFormatKind.Text, selected.NumberFormat?.Kind);
+        Assert.DoesNotContain(result.Report.FidelityDiagnostics, d => d.Code == "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED");
+        using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
+        using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
+        Assert.Equal(!customSettings, reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode == "@");
+        Assert.Equal("", reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
+    }
+
+    [Theory]
     [InlineData(17)]
     [InlineData(18)]
     public void Unresolved_scalar_format_catalog_keeps_typed_reference_and_feature_evidence(int bit) {

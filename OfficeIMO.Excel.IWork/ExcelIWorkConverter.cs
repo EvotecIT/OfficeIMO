@@ -73,7 +73,7 @@ public static partial class ExcelIWorkConverter {
             }).ToArray();
         }
         if (editable && projection.Sheets.SelectMany(sheet => sheet.Tables).SelectMany(table => table.Cells)
-            .Any(cell => cell.NumberFormat is { DecimalPlaces: null, Kind: not (IWorkNumberFormatKind.Fraction or IWorkNumberFormatKind.Duration or IWorkNumberFormatKind.DateTime) })) {
+            .Any(cell => cell.NumberFormat is { DecimalPlaces: null, Kind: not (IWorkNumberFormatKind.Fraction or IWorkNumberFormatKind.Duration or IWorkNumberFormatKind.DateTime or IWorkNumberFormatKind.Text) })) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED",
                     "Numbers automatic decimal formats use up to fifteen optional fractional places in XLSX; scientific formats apply them to the mantissa. Significant-digit selection, rounding and exponent presentation can differ; numeric values and formula caches are unchanged.",

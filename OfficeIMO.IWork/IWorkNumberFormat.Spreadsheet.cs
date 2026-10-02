@@ -2,6 +2,7 @@ namespace OfficeIMO.IWork;
 
 public sealed partial class IWorkNumberFormat {
     internal string ToSpreadsheetFormatCode() {
+        if (Kind == IWorkNumberFormatKind.Text) return "@";
         if (Kind == IWorkNumberFormatKind.DateTime) return DateTimeFormat!.SpreadsheetFormatCode;
         if (Kind == IWorkNumberFormatKind.Duration) return DurationFormat!.LargestUnit == IWorkDurationUnit.Day
             ? "0\"d\"" : "[h]\"h\" m\"m\"";

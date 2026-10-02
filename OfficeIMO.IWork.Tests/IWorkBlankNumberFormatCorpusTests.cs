@@ -25,7 +25,7 @@ public sealed partial class IWorkBoundaryTests {
                 Assert.Equal(IWorkCellKind.Empty, cell.Kind);
                 Assert.Null(cell.Value);
                 if (expected.GetProperty("hasOtherScalarSelector").GetBoolean()) {
-                    Assert.Null(cell.NumberFormat);
+                    Assert.Equal(IWorkNumberFormatKind.Text, cell.NumberFormat!.Kind);
                     Assert.Equal(IWorkCellUnsupportedFeatures.None, cell.UnsupportedFeatures);
                     textSelected++;
                     continue;
@@ -71,6 +71,28 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal("", target.GetValue<string>());
             Assert.Equal(explicitlySelected, target.GetStyle().NumberFormatCode?.Contains('%') == true);
         }
+    }
+
+    [Fact]
+    public void Explicit_blank_text_formats_match_native_xlsx_after_save_and_reopen() {
+        string root = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus");
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(
+            Path.Combine(root, "numbers-parser", "cross-table-formulas.numbers"),
+            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
+                AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
+        var mapping = result.WorksheetMappings.Single(m => m.SourceSheetName == "Main Sheet" && m.SourceTableName == "Extra Headers");
+        using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
+        using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
+        using var native = OfficeIMO.Excel.ExcelDocument.Load(Path.Combine(root, "native-exports", "numbers-blank-selectors-v14.5.xlsx"));
+        var sheet = reopened.Sheets.Single(s => s.Name == mapping.DestinationName);
+        var reference = native.Sheets.Single(s => s.Name == "Main Sheet - Extra Headers");
+        for (int row = 9; row <= 17; row++) {
+            Assert.Equal("@", reference.CellAt(row + 1, 1).GetStyle().NumberFormatCode);
+            Assert.Equal(reference.CellAt(row + 1, 1).GetStyle().NumberFormatCode,
+                sheet.CellAt(row, 1).GetStyle().NumberFormatCode);
+            Assert.Equal("", sheet.CellAt(row, 1).GetValue<string>());
+        }
+        Assert.Empty(reopened.ValidateOpenXml());
     }
 
     [Theory]
