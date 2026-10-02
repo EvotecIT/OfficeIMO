@@ -136,16 +136,45 @@ public sealed class ReaderIncrementalTests {
         Assert.Contains(chunk.Warnings!, warning => warning.Contains("invalid byte", StringComparison.Ordinal));
         Assert.Throws<DecoderFallbackException>(() => reader.Read(malformed, "invalid.txt",
             new ReaderOptions { ThrowOnInvalidTextBytes = true }).ToArray());
-        Assert.Throws<DecoderFallbackException>(() => reader.Read(new byte[] { 0xff, 0xfe, 0x41 }, "invalid.txt",
+    }
+
+    [Theory]
+    [InlineData(65001, new byte[] { 0xe2, 0x82 })]
+    [InlineData(1200, new byte[] { 0x41 })]
+    [InlineData(1201, new byte[] { 0x00 })]
+    [InlineData(1200, new byte[] { 0x00, 0xd8 })]
+    [InlineData(1201, new byte[] { 0xd8, 0x00 })]
+    [InlineData(12000, new byte[] { 0x41, 0x00, 0x00 })]
+    [InlineData(12001, new byte[] { 0x00, 0x00, 0x00 })]
+    public void IncompleteUnicodeSequencesAtEndOfInputAreReportedOrRejected(int codePage, byte[] tail) {
+        var encoding = Encoding.GetEncoding(codePage);
+        string text = new string('a', 255) + "\U0001F600 tail ";
+        byte[] content = encoding.GetBytes(text).Concat(tail).ToArray();
+        byte[] withBom = encoding.GetPreamble().Concat(content).ToArray();
+        var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().Build();
+        using var input = new CountingStream(withBom, maxRead: 1);
+        var chunks = reader.EnumerateChunks(input, "invalid.txt", new ReaderOptions {
+            ComputeHashes = false, MaxChars = 256, TextEncoding = Encoding.ASCII
+        }).ToArray();
+        Assert.Equal(text + "\ufffd", string.Concat(chunks.Select(chunk => chunk.Text)));
+        Assert.Contains(chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>()),
+            warning => warning.Contains("invalid byte", StringComparison.Ordinal));
+        Assert.True(input.CanRead);
+        Assert.Throws<DecoderFallbackException>(() => reader.Read(withBom, "invalid.txt",
             new ReaderOptions { ThrowOnInvalidTextBytes = true }).ToArray());
+        using var strictInput = new CountingStream(content, maxRead: 1);
+        Assert.Throws<DecoderFallbackException>(() => reader.EnumerateChunks(strictInput, "invalid.txt",
+            new ReaderOptions { ComputeHashes = false, TextEncoding = encoding, ThrowOnInvalidTextBytes = true }).ToArray());
+        Assert.True(strictInput.CanRead);
     }
 
     private sealed class CountingStream : Stream {
         private readonly MemoryStream _inner;
-        internal CountingStream(byte[] bytes) { _inner = new MemoryStream(bytes); }
+        private readonly int _maxRead;
+        internal CountingStream(byte[] bytes, int maxRead = int.MaxValue) { _inner = new MemoryStream(bytes); _maxRead = maxRead; }
         internal long BytesRead { get; private set; }
         public override int Read(byte[] buffer, int offset, int count) {
-            int read = _inner.Read(buffer, offset, count); BytesRead += read; return read;
+            int read = _inner.Read(buffer, offset, Math.Min(count, _maxRead)); BytesRead += read; return read;
         }
         public override bool CanRead => _inner.CanRead;
         public override bool CanSeek => false;

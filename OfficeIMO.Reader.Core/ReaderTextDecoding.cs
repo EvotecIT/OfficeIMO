@@ -6,7 +6,7 @@ namespace OfficeIMO.Reader;
 internal sealed class ReaderTextDecoding {
     internal int InvalidSequences { get; private set; }
 
-    internal StreamReader Open(Stream stream, ReaderOptions options, CancellationToken cancellationToken) {
+    internal TextReader Open(Stream stream, ReaderOptions options, CancellationToken cancellationToken) {
         byte[] prefix = new byte[4];
         int count = 0;
         while (count < prefix.Length) {
@@ -32,8 +32,7 @@ internal sealed class ReaderTextDecoding {
         encoding.DecoderFallback = options.ThrowOnInvalidTextBytes
             ? DecoderFallback.ExceptionFallback
             : new DiagnosticFallback(this);
-        return new StreamReader(new ReaderPrefixStream(stream, prefix, skip, count), encoding,
-            detectEncodingFromByteOrderMarks: false, bufferSize: 4096, leaveOpen: false);
+        return new ReaderDecodedTextReader(new ReaderPrefixStream(stream, prefix, skip, count), encoding, cancellationToken);
     }
 
     private sealed class DiagnosticFallback : DecoderFallback {
