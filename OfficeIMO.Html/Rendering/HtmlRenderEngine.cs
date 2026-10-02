@@ -46,6 +46,20 @@ public static class HtmlRenderEngine {
     }
 
     /// <summary>
+    /// Renders a bounded embedded viewport using its parent operation's resource ledger.
+    /// Resources are not prefetched: nested viewports cannot invoke the parent's resolvers.
+    /// </summary>
+    internal static HtmlRenderDocument RenderEmbedded(
+        HtmlConversionDocument document,
+        HtmlRenderOptions options,
+        HtmlResourceSession resources,
+        CancellationToken cancellationToken) {
+        var request = HtmlRenderRequest.FromLegacy(options, HtmlRenderEncoder.DisplayList, HtmlRenderPageSet.All());
+        HtmlRenderOptions resolved = PrepareOptions(document, request);
+        return ExecuteCore(document, request, resolved, cancellationToken, resources).Document;
+    }
+
+    /// <summary>
     /// Renders a prepared HTML DOM without reparsing source text or mutating the caller's document.
     /// </summary>
     internal static HtmlRenderDocument Render(IHtmlDocument document, HtmlRenderOptions? options = null) =>
@@ -139,7 +153,8 @@ public static class HtmlRenderEngine {
         HtmlRenderOptions resolved,
         IEnumerable<HtmlDiagnostic>? initialDiagnostics,
         HtmlConversionLimits limits,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        HtmlResourceSession? sharedResources = null) {
         resolved.ResponsiveImageCandidateLimit = limits.MaxResponsiveImageCandidates;
         resolved.ResponsiveImageSizesCharacterLimit = limits.MaxResponsiveImageSizesCharacters;
         var diagnostics = new HtmlDiagnosticReport();
@@ -167,14 +182,14 @@ public static class HtmlRenderEngine {
         cancellationToken.ThrowIfCancellationRequested();
         diagnostics.AddRange(manifest.Diagnostics);
         HtmlCssByteBudget cssBudget = HtmlRenderStylesheetApplier.CreateBudget(document, limits, resolved);
-        HtmlResourceSession resources = HtmlRenderResourceLoader.Load(
+        HtmlResourceSession resources = sharedResources ?? HtmlRenderResourceLoader.Load(
             manifest,
             resolved,
             diagnostics,
             limits,
             cancellationToken,
             cssBudget);
-        resources.DeferMissingCssImageLoss();
+        if (sharedResources == null) resources.DeferMissingCssImageLoss();
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderStylesheetApplier.Apply(document, resources, resolved, limits, cssBudget, diagnostics);
         HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
@@ -243,13 +258,14 @@ public static class HtmlRenderEngine {
         HtmlConversionDocument document,
         HtmlRenderRequest request,
         HtmlRenderOptions resolved,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        HtmlResourceSession? sharedResources = null) {
         HtmlRenderInputGuard.ValidateSource(document.SourceHtml, resolved);
         cancellationToken.ThrowIfCancellationRequested();
         IHtmlDocument renderDocument = document.CreateDocumentForRendering();
         HtmlRenderInputGuard.ValidateFormState(document.SourceHtml.Length, renderDocument, resolved, cancellationToken);
         HtmlRenderDocument rendered = RenderDocument(
-            renderDocument, resolved, initialDiagnostics: null, document.Limits, cancellationToken);
+            renderDocument, resolved, initialDiagnostics: null, document.Limits, cancellationToken, sharedResources);
         return HtmlRenderRequestProcessor.Complete(request, rendered, resolved, cancellationToken);
     }
 

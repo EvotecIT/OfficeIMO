@@ -383,6 +383,14 @@ foreach (var diagnostic in svgResult.Diagnostics) {
 
 Resource resolution is opt-in. `PdfResourcePolicy` is the host-access gate for local files, remote resolver calls, data URIs, embedded package resources, and installed fonts. `HtmlUrlPolicy` independently validates URL syntax and schemes; timeouts, byte limits, count limits, and stylesheet-depth limits inherited from `HtmlRenderOptions` bound resources after access is granted. The balanced default allows installed fonts plus bounded data URIs and MHTML package parts, but does not call local or remote resolvers. Portable deterministic mode disables installed-font discovery explicitly.
 
+Under the balanced policy, MathML can use the renderer's fixed mathematical font
+families when a supported installed face is available. CSS cannot use that fallback
+list to select another named host font. `AllowDocumentFontEmbedding` still gates
+document-selected host families and installed system-UI lists. Disable
+`AllowSystemFontEmbedding` or `AllowSystemFontFallback` to prevent installed math
+font loading, or supply an in-memory `math` face for portable output. Font loading
+retains the shared source-byte, decoded-byte and cancellation limits.
+
 ## Command-line conversion
 
 Install `OfficeIMO.Tool` when a script or build pipeline is the desired surface:

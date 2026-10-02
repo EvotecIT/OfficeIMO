@@ -44,6 +44,9 @@ internal static class HtmlRenderSystemFontLoader {
             if (!families.Any(family => OfficeSystemFontFamilyAliases.IsSystemUi(family) || OfficeSystemFontFamilyAliases.IsMath(family))) return;
             foreach (string family in families) {
                 cancellationToken.ThrowIfCancellationRequested();
+                // A PDF target can permit library-selected mathematical fonts without
+                // allowing a document's named host family or system-UI fallback list.
+                if (options.MathOnlySystemFontFallback && !OfficeSystemFontFamilyAliases.IsMath(family)) continue;
                 if (supplied.Contains(family)) continue;
                 if (OfficeSystemFontFamilyAliases.IsMath(family)
                     && supplied.Any(candidate => OfficeSystemFontFamilyAliases.MathFamilyRank(candidate) != int.MaxValue)) continue;

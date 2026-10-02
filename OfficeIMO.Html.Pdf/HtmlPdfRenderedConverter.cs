@@ -115,7 +115,9 @@ internal static partial class HtmlPdfRenderedConverter {
         measurementOptions.SetTextShapingMode(options.TextShapingMode).SetTextShapingProvider(options.TextShapingProvider);
         if (options.FontFamily != null) measurementOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, options.FontFamily);
         renderOptions.AllowSystemFontFallback = renderOptions.AllowSystemFontFallback
-            && options.ResourcePolicy.AllowSystemFontEmbedding && options.ResourcePolicy.AllowDocumentFontEmbedding;
+            && options.ResourcePolicy.AllowSystemFontEmbedding;
+        renderOptions.MathOnlySystemFontFallback = renderOptions.MathOnlySystemFontFallback
+            || !options.ResourcePolicy.AllowDocumentFontEmbedding;
         renderOptions.FallbackTextMeasurement = CreateFallbackTextMeasurement(options, measurementOptions);
         renderOptions.FallbackTextFaceMetrics = CreateFallbackTextFaceMetrics(options, measurementOptions);
         HtmlRenderResourceResolver? embeddedPackageResolver = options.EmbeddedPackageResourceResolver;

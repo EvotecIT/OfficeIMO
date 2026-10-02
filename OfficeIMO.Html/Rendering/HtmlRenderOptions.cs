@@ -58,9 +58,13 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Default font family used when CSS does not select one.</summary>
     public string DefaultFontFamily { get; set; } = "Arial";
 
-    /// <summary>Resolves installed faces in system-UI fallback lists through the owned font
+    /// <summary>Resolves installed faces in system-UI or mathematical fallback lists through the owned font
     /// loader. Disable this for a portable render that uses only supplied/document fonts.</summary>
     public bool AllowSystemFontFallback { get; set; } = true;
+
+    /// <summary>Restricts target-approved installed fallback to the fixed mathematical
+    /// family set; explicit in-memory and document-embedded faces remain available.</summary>
+    internal bool MathOnlySystemFontFallback { get; set; }
 
     /// <summary>Default CSS font size in pixels.</summary>
     public double DefaultFontSize { get; set; } = 16D;
@@ -264,6 +268,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.DefaultFontSize = DefaultFontSize;
         target.FallbackTextMeasurement = FallbackTextMeasurement;
         target.AllowSystemFontFallback = AllowSystemFontFallback;
+        target.MathOnlySystemFontFallback = MathOnlySystemFontFallback;
         target.FallbackTextFaceMetrics = FallbackTextFaceMetrics;
         target.DefaultLineHeight = DefaultLineHeight;
         target.UserAgentStyles = UserAgentStyles;

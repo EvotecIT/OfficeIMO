@@ -337,7 +337,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         nestedOptions.SynchronousResourceResolver = null;
         nestedOptions.AdditionalStylesheets.Clear();
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(nestedDocument, nestedOptions, _cancellationToken);
+        HtmlRenderDocument rendered = HtmlRenderEngine.RenderEmbedded(nestedDocument, nestedOptions, _resources, _cancellationToken);
         _diagnostics.AddRange(rendered.Diagnostics);
         HtmlRenderPage page = rendered.Pages[0];
         OfficeDrawing nested = page.CreateDrawing(_cancellationToken);

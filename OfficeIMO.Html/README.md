@@ -419,11 +419,14 @@ inheriting the surrounding font size. Supply a face named `math`, or a supported
 mathematical family such as `STIX Two Math`, through `HtmlRenderOptions.Fonts` for
 predictable output. When `AllowSystemFontFallback` is enabled, the renderer can
 load supported installed mathematical TrueType or CFF faces within the existing
-font-source, decoded-byte and cancellation limits. Installed families vary by host;
+font-source, decoded-byte and cancellation limits. SVG foreign-object viewports share
+the parent operation's resource-byte and resource-count budgets, including decoded
+fonts, without invoking external resolvers. Installed families vary by host;
 an unavailable face produces a diagnostic and follows the font fallback path.
 HTML-to-PDF also applies `HtmlToPdfOptions.ResourcePolicy`: the balanced PDF policy
-blocks document-selected host fonts. An explicitly supplied `math` face remains
-available under that policy.
+permits renderer-selected mathematical families while blocking document-named host
+fonts. Portable deterministic policy disables installed-font discovery; explicitly
+supplied mathematical faces remain available.
 Authored CSS overrides the defaults. To retain surrounding typography, use
 `math { font-family: inherit; font-weight: inherit; font-style: inherit; }`.
 Automatic mathematical italics and full OpenType MATH-table geometry remain outside

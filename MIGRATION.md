@@ -616,6 +616,11 @@ If a document relies on the previous appearance, add
 Supply a mathematical face through `HtmlRenderOptions.Fonts` when output must be
 independent of installed fonts.
 
+Balanced HTML-to-PDF output can now use a supported installed mathematical face
+without enabling document-selected host fonts. To disable host-dependent font
+selection, use `PdfResourcePolicy.CreatePortableDeterministic()` or set
+`HtmlToPdfOptions.AllowSystemFontFallback = false`.
+
 ### HTML capability inspection
 
 The renderer capability catalog now describes document, CSS, layout, resource,
