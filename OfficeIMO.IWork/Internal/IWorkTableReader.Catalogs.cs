@@ -7,12 +7,12 @@ internal static partial class IWorkTableReader {
         out bool fullyReconstructed) {
         var strings = new Dictionary<uint, string>();
         fullyReconstructed = true;
-        IWorkArchiveRecord? list = references.ReadOne(model, store, 4, "4/4");
-        if (list == null) {
+        IWorkArchiveRecord? list = references.ReadOne(model, store, 4, "4/4", IWorkTableCatalogIndex.IsDataListType);
+        if (list == null || !IWorkTableCatalogIndex.IsDataListType(list.MessageType)) {
             fullyReconstructed = !store.HasField(4);
             return strings;
         }
-        IWorkTableCatalogIndex catalog = IWorkTableCatalogIndex.Read(source, list, projectionBudget, references, "string");
+        IWorkTableCatalogIndex catalog = IWorkTableCatalogIndex.Read(source, list, projectionBudget, references, "string", 1);
         fullyReconstructed = catalog.IsComplete;
         foreach (var entry in catalog.Entries) {
             source.CancellationToken.ThrowIfCancellationRequested();
@@ -36,12 +36,12 @@ internal static partial class IWorkTableReader {
         var formulas = new Dictionary<uint, IWorkWireMessage>();
         fullyReconstructed = true;
         catalogEnvelopeComplete = true;
-        IWorkArchiveRecord? list = references.ReadOne(model, store, 6, "4/6");
-        if (list == null) {
+        IWorkArchiveRecord? list = references.ReadOne(model, store, 6, "4/6", IWorkTableCatalogIndex.IsDataListType);
+        if (list == null || !IWorkTableCatalogIndex.IsDataListType(list.MessageType)) {
             fullyReconstructed = catalogEnvelopeComplete = !store.HasField(6);
             return formulas;
         }
-        IWorkTableCatalogIndex catalog = IWorkTableCatalogIndex.Read(source, list, projectionBudget, references, "formula");
+        IWorkTableCatalogIndex catalog = IWorkTableCatalogIndex.Read(source, list, projectionBudget, references, "formula", 3);
         fullyReconstructed = catalog.IsComplete;
         catalogEnvelopeComplete = catalog.EnvelopeIsComplete;
         foreach (var entry in catalog.Entries) {

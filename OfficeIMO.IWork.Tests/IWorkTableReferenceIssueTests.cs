@@ -59,7 +59,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Rejected_catalog_reference_set_records_readable_sibling_and_malformed_occurrence(int field) {
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers,
             Message(ReferenceField(field, 13), VarintField(field, 13)),
-            additionalRecords: ArchiveRecord(13, field == 4 ? 6200u : 6201u, Message()));
+            additionalRecords: ArchiveRecord(13, field == 4 ? 6005u : 6201u, Message()));
         IWorkNumbersProjection projection = IWorkSourceDocument.Open(package).ReadNumbers();
         Assert.False(projection.HasEditableContent);
         Assert.Equal(2, projection.SourceReferenceIssues.Count);

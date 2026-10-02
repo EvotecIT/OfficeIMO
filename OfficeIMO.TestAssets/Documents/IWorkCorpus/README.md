@@ -229,3 +229,13 @@ python Build/IWork/extract-cell-comments.py OfficeIMO.TestAssets/Documents/IWork
 ```
 
 The three selected roots qualify exact text, display author, timestamps, source record identities and saved/reopened XLSX cell anchors. Synthetic packages cover empty commented cells in all three formats, unresolved references, duplicate keys/text, unsupported replies and text/catalog limits. The fixture contains no replies and is not an Apple export or rendered-appearance oracle.
+
+## Table catalog type and kind evidence
+
+`table-catalog-contract.json` records independent registry aliases, source hashes and declared catalog links across the checked-in native-format corpus. Reproduce it with opt-in numbers-parser 4.19.0:
+
+```sh
+python Build/IWork/extract-table-catalog-contract.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/table-catalog-contract.json
+```
+
+The 312 links across 24 packages all use type `6005` and explicitly declare the kind expected by the owning store field. The independent registry also maps `6201` to `TST.TableDataList`; synthetic selected-value cases exercise that alias for strings, formulas, rich text, styles, comments and number formats. There is no native `6201` sample in this corpus. Model records may be inactive, and the inventory does not qualify selection, Apple exports or rendered appearance.

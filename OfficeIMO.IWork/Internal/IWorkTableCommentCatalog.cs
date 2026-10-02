@@ -33,20 +33,14 @@ internal sealed class IWorkTableCommentCatalog(IWorkSourceDocument source, IWork
     private void Initialize() {
         if (_initialized) return;
         _initialized = true;
-        _list = references.ReadOne(model, store, 19, "4/19", static type => type == 6005);
-        if (store.FieldCount(19) != 1 || _list?.MessageType != 6005) {
+        _list = references.ReadOne(model, store, 19, "4/19", IWorkTableCatalogIndex.IsDataListType);
+        if (store.FieldCount(19) != 1 || _list == null || !IWorkTableCatalogIndex.IsDataListType(_list.MessageType)) {
             references.Declarations.Record(model, "4/19", store.FieldCount(19),
                 IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
             return;
         }
-        IWorkTableCatalogIndex catalog = IWorkTableCatalogIndex.Read(source, _list, budget, references, "comment");
-        IWorkWireMessage? message = ReadMessage(_list);
-        if (message == null || !catalog.EnvelopeIsComplete) return;
-        if (message.FieldCount(1) != 1 || message.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
-            || message.GetUnsigned(1) != 10) {
-            references.Declarations.Record(_list, "1", message.FieldCount(1), IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
-            return;
-        }
+        IWorkTableCatalogIndex catalog = IWorkTableCatalogIndex.Read(source, _list, budget, references, "comment", 10);
+        if (!catalog.EnvelopeIsComplete) return;
         foreach (var entry in catalog.Entries) {
             source.CancellationToken.ThrowIfCancellationRequested();
             if (!catalog.CanResolveKey(entry.Key)) continue;

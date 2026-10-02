@@ -78,7 +78,7 @@ public sealed partial class IWorkBoundaryTests {
         const ulong listId = 1;
         const ulong wrapperId = 2;
         const ulong storageId = 3;
-        byte[] listPayload = Message(BytesField(3, Message(
+        byte[] listPayload = Message(VarintField(1, 8), BytesField(3, Message(
             VarintField(1, 1), ReferenceField(9, wrapperId))));
         byte[] wrapperPayload = malformedWrapper
             ? new byte[] { 0x80 }
@@ -112,7 +112,7 @@ public sealed partial class IWorkBoundaryTests {
         const ulong wrapperId = 2;
         const ulong storageId = 3;
         const ulong missingStyleId = 99;
-        byte[] listPayload = Message(BytesField(3, Message(
+        byte[] listPayload = Message(VarintField(1, 8), BytesField(3, Message(
             VarintField(1, 1), ReferenceField(9, wrapperId))));
         byte[] storagePayload = Message(
             StringField(3, "Value"),
@@ -151,7 +151,7 @@ public sealed partial class IWorkBoundaryTests {
             BytesField(5, Message(BytesField(1, Message(
                 VarintField(1, 0), ReferenceField(2, styleId))))));
         var records = new[] {
-            Record(listId, 6005, Message(BytesField(3, Message(
+            Record(listId, 6005, Message(VarintField(1, 8), BytesField(3, Message(
                 VarintField(1, 1), ReferenceField(9, wrapperId))))),
             Record(wrapperId, 6218, Message(ReferenceField(1, storageId))),
             Record(storageId, 2001, storagePayload),
@@ -179,7 +179,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Aliased_rich_catalog_entries_share_decoding_and_retain_partial_text_status() {
         var options = new IWorkReadOptions();
         var records = new[] {
-            Record(1, 6005, Message(
+            Record(1, 6005, Message(VarintField(1, 8),
                 BytesField(3, Message(VarintField(1, 1), ReferenceField(9, 2))),
                 BytesField(3, Message(VarintField(1, 2), ReferenceField(9, 2))))),
             Record(2, 6218, Message(ReferenceField(1, 3))),
@@ -206,7 +206,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Unused_rich_catalog_aliases_do_not_consume_cell_text_budget() {
         var options = new IWorkReadOptions { MaximumProjectedTextItems = 2 };
         var records = new[] {
-            Record(1, 6005, Message(
+            Record(1, 6005, Message(VarintField(1, 8),
                 BytesField(3, Message(VarintField(1, 1), ReferenceField(9, 2))),
                 BytesField(3, Message(VarintField(1, 2), ReferenceField(9, 2))))),
             Record(2, 6218, Message(ReferenceField(1, 3))),

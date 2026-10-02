@@ -1189,7 +1189,7 @@ public sealed partial class IWorkBoundaryTests {
                         .Concat(Enumerable.Range(0, table.UnexpectedStringCatalogFieldCount)
                             .Select(value => VarintField(4, checked((ulong)value))))
                         .ToArray());
-                records.Add(ArchiveRecord(stringListId, 6200, stringPayload));
+                records.Add(ArchiveRecord(stringListId, 6005, Message(VarintField(1, 1), stringPayload)));
             }
             if (table.DuplicateFormula) {
                 byte[] firstFormula = FormulaConstant(1d);
@@ -1197,7 +1197,7 @@ public sealed partial class IWorkBoundaryTests {
                 byte[] firstEntry = Message(VarintField(1, 0), BytesField(5, firstFormula));
                 byte[] secondEntry = Message(VarintField(1, 0), BytesField(5, secondFormula));
                 records.Add(ArchiveRecord(formulaListId, 6201,
-                    Message(BytesField(3, firstEntry), BytesField(3, secondEntry))));
+                    Message(VarintField(1, 3), BytesField(3, firstEntry), BytesField(3, secondEntry))));
             } else if (table.CompleteFormula || table.FormulaPayload != null) {
                 byte[] formulaEntry = Message(VarintField(1, 0),
                     BytesField(5, table.FormulaPayload
@@ -1205,7 +1205,7 @@ public sealed partial class IWorkBoundaryTests {
                 records.Add(ArchiveRecord(formulaListId, 6201,
                     table.MalformedFormulaCatalog
                         ? new byte[] { 0x80 }
-                        : Message(new[] { BytesField(3, formulaEntry) }
+                        : Message(new[] { VarintField(1, 3), BytesField(3, formulaEntry) }
                         .Concat(Enumerable.Range(0, table.UnexpectedFormulaCatalogFieldCount)
                             .Select(value => VarintField(4, checked((ulong)value))))
                         .ToArray())));

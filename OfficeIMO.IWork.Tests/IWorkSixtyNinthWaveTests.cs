@@ -158,8 +158,8 @@ public sealed partial class IWorkBoundaryTests {
                     VarintField(7, 2), StringField(8, "Table")),
                 new ulong[] { tileId, stringListId }),
             ArchiveRecord(tileId, 6002, Message(BytesField(5, row))),
-            ArchiveRecord(stringListId, 6200,
-                Message(BytesField(3, stringEntry))));
+            ArchiveRecord(stringListId, 6005,
+                Message(VarintField(1, 1), BytesField(3, stringEntry))));
         return CreatePackage(("Index/Document.iwa", FrameIwa(records)));
     }
 

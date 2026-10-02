@@ -225,7 +225,7 @@ public sealed partial class IWorkBoundaryTests {
                 : CreateBncRow(spec);
             records.Add(ArchiveRecord(tile, 6002, BytesField(5, row)));
         }
-        records.Add(ArchiveRecord(30, 6201, BytesField(3, Message(VarintField(1, 0), BytesField(5, formula)))));
+        records.Add(ArchiveRecord(30, 6201, Message(VarintField(1, 3), BytesField(3, Message(VarintField(1, 0), BytesField(5, formula))))));
         records.Add(ArchiveRecord(2, 2, Message(sheet.ToArray())));
         return CreatePackage(("Index/Document.iwa", FrameIwa(Message(records.ToArray()))), ("preview.png", ValidPreviewPng()));
     }

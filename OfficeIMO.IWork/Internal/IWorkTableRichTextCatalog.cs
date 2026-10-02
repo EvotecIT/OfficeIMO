@@ -2,7 +2,6 @@ namespace OfficeIMO.IWork.Internal;
 
 /// <summary>Indexes bounded rich-text declarations and resolves only entries selected by decoded cells.</summary>
 internal sealed class IWorkTableRichTextCatalog {
-    private const uint DataListArchive = 6005;
     private const uint RichTextWrapperArchive = 6218;
     private const uint TextStorageArchive = 2001;
     private readonly IWorkObjectIndex _index;
@@ -34,13 +33,13 @@ internal sealed class IWorkTableRichTextCatalog {
         IWorkArchiveRecord model, IWorkProjectionBudget budget, IWorkSourceReferenceIssueCollector references) {
         var catalog = new IWorkTableRichTextCatalog(source.Index, budget, source.Options, references);
         if (!store.HasField(17)) return catalog;
-        IWorkArchiveRecord? list = references.ReadOne(model, store, 17, "4/17", static type => type == DataListArchive);
-        if (store.FieldCount(17) != 1 || list?.MessageType != DataListArchive) {
+        IWorkArchiveRecord? list = references.ReadOne(model, store, 17, "4/17", IWorkTableCatalogIndex.IsDataListType);
+        if (store.FieldCount(17) != 1 || list == null || !IWorkTableCatalogIndex.IsDataListType(list.MessageType)) {
             catalog.FullyReconstructed = catalog.StructureComplete = false;
             return catalog;
         }
         catalog._list = list;
-        IWorkTableCatalogIndex declarations = IWorkTableCatalogIndex.Read(source, list, budget, references, "rich-text");
+        IWorkTableCatalogIndex declarations = IWorkTableCatalogIndex.Read(source, list, budget, references, "rich-text", 8);
         catalog.FullyReconstructed = catalog.StructureComplete = declarations.IsComplete;
         foreach (var entry in declarations.Entries) {
             source.CancellationToken.ThrowIfCancellationRequested();

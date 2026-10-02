@@ -114,7 +114,7 @@ public sealed partial class IWorkBoundaryTests {
 
     private static MemoryStream SelectedRichTextPackage(IWorkDocumentKind kind, byte[]? attributes = null,
         int failure = -1, byte[]? additionalRecords = null, bool aliases = false, bool duplicateKeys = false,
-        byte[]? catalogPayload = null, int wrongTypeRecord = -1) {
+        byte[]? catalogPayload = null, int wrongTypeRecord = -1, uint catalogType = 6005, bool includeCatalogKind = true) {
         byte[] cell = new byte[16]; cell[0] = 5; cell[1] = 9;
         WriteUInt32(cell, 8, 1u << 4); WriteUInt32(cell, 12, 1);
         byte[] secondCell = (byte[])cell.Clone(); WriteUInt32(secondCell, 12, 2);
@@ -135,7 +135,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] catalog = Message(selectedEntry,
             duplicateKeys ? Message(selectedEntry, selectedEntry)
                 : BytesField(3, Message(VarintField(1, 2), ReferenceField(9, aliases ? 14ul : 17ul))));
-        catalog = catalogPayload ?? catalog;
+        catalog = Message(includeCatalogKind ? VarintField(1, 8) : Message(), catalogPayload ?? catalog);
         return CreatePackage(("Index/Document.iwa", FrameIwa(Message(roots,
             ArchiveRecord(10, 6000, Message(BytesField(1, GeometryDrawable(72, 72, 120, 40)),
                 ReferenceField(2, failure == 4 ? 999ul : 11ul))),
@@ -143,7 +143,7 @@ public sealed partial class IWorkBoundaryTests {
             ArchiveRecord(12, 6002, Message(BytesField(5, Message(VarintField(1, 0),
                 BytesField(6, aliases ? Message(cell, secondCell) : cell),
                 BytesField(7, aliases ? new byte[] { 0, 0, 16, 0 } : new byte[] { 0, 0 }))))),
-            ArchiveRecord(13, wrongTypeRecord == 13 ? 2021u : 6005u, catalog),
+            ArchiveRecord(13, wrongTypeRecord == 13 ? 2021u : catalogType, catalog),
             ArchiveRecord(14, wrongTypeRecord == 14 ? 2021u : 6218u, Message(ReferenceField(1, failure == 2 ? 999ul : 15ul))),
             ArchiveRecord(15, wrongTypeRecord == 15 ? 2021u : 2001u, Message(StringField(3, "Value"), attributes ?? Message())),
             ArchiveRecord(17, wrongTypeRecord == 17 ? 2021u : 6218u, Message(ReferenceField(1, 18))),

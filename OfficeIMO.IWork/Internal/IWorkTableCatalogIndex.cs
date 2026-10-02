@@ -16,7 +16,7 @@ internal sealed class IWorkTableCatalogIndex {
     internal bool CanResolveKey(uint key) => !_unknownKeys && !_ambiguousKeys.Contains(key);
 
     internal static IWorkTableCatalogIndex Read(IWorkSourceDocument source, IWorkArchiveRecord list,
-        IWorkProjectionBudget budget, IWorkSourceReferenceIssueCollector references, string catalogName) {
+        IWorkProjectionBudget budget, IWorkSourceReferenceIssueCollector references, string catalogName, ulong expectedListKind) {
         var result = new IWorkTableCatalogIndex();
         int declaredEntries;
         int totalFields;
@@ -33,7 +33,7 @@ internal sealed class IWorkTableCatalogIndex {
             references.Declarations.Record(list, "$", null);
             return result;
         }
-        if (identifierFields > 1 || metadataFields > 1 || bncFields > 1
+        if (metadataFields > 1 || bncFields > 1
             || totalFields - declaredEntries != identifierFields + metadataFields + bncFields) {
             references.Declarations.Record(list, "$", null, IWorkSourceDeclarationIssueKind.RejectedMessageSet);
             return result;
@@ -43,6 +43,13 @@ internal sealed class IWorkTableCatalogIndex {
         }
         budget.AddTableCatalogEntries(declaredEntries);
         IWorkWireMessage message = source.Index.Message(list);
+        // listType is required. A protobuf scalar default cannot establish its presence.
+        if (identifierFields != 1 || message.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
+            || message.GetUnsigned(1) != expectedListKind) {
+            references.Declarations.Record(list, "1", identifierFields,
+                IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
+            return result;
+        }
         // TableDataList's optional is_new_for_bnc marker is shared catalog metadata.
         // It is a Boolean, not another declaration or a segmented catalog.
         if (bncFields != 0 && (message.HasUnexpectedWireKind(5, IWorkWireKind.Varint)
@@ -89,6 +96,9 @@ internal sealed class IWorkTableCatalogIndex {
         }
         return result;
     }
+
+    /// <summary>Both registry identifiers name TST.TableDataList; the selected store field determines its kind.</summary>
+    internal static bool IsDataListType(uint type) => type is 6005 or 6201;
 
     internal static string EntryPath(int position) => "3[" + position.ToString(CultureInfo.InvariantCulture) + "]";
 }

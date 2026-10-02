@@ -255,12 +255,12 @@ public sealed partial class IWorkBoundaryTests {
         ? SelectedRichTextPackage(kind, catalogPayload: payload) : SelectedCatalogPackage(kind, field, payload);
 
     private static MemoryStream SelectedCatalogPackage(IWorkDocumentKind kind, int field, byte[] payload,
-        bool repeatModel = false) {
+        bool repeatModel = false, uint catalogType = 6005, bool includeCatalogKind = true) {
         byte[] cell = new byte[field == 4 ? 16 : 24]; cell[0] = 5; cell[1] = field == 4 ? (byte)3 : (byte)2;
         WriteUInt32(cell, 8, field == 4 ? 1u << 3 : (1u << 1) | (1u << 9));
         if (field == 4) WriteUInt32(cell, 12, 1);
         else Buffer.BlockCopy(BitConverter.GetBytes(42d), 0, cell, 12, 8);
         return TableDependencyPackage(kind, ReferenceField(field, 13), cellPayload: cell,
-            repeatModel: repeatModel, additionalRecords: ArchiveRecord(13, field == 4 ? 6200u : 6201u, payload));
+            repeatModel: repeatModel, additionalRecords: ArchiveRecord(13, catalogType, Message(includeCatalogKind ? VarintField(1, field == 4 ? 1u : 3u) : Message(), payload)));
     }
 }

@@ -306,7 +306,7 @@ public sealed partial class IWorkBoundaryTests {
             cellStyle ? BytesField(3, Message(VarintField(1, 2), ReferenceField(4, 60))) : Array.Empty<byte>())));
         if (cellStyle) records.Add(FillStyle(60, FillColor(1, 0, 0)));
         if (emptyRichParagraph) {
-            records.Add(ArchiveRecord(14, 6005, BytesField(3, Message(VarintField(1, 1), ReferenceField(9, 15)))));
+            records.Add(ArchiveRecord(14, 6005, Message(VarintField(1, 8), BytesField(3, Message(VarintField(1, 1), ReferenceField(9, 15))))));
             records.Add(ArchiveRecord(15, 6218, ReferenceField(1, 16)));
             records.Add(ArchiveRecord(16, 2001, Message(StringField(3, "\n"),
                 BytesField(5, BytesField(1, Message(VarintField(1, 0), ReferenceField(2, 17)))))));

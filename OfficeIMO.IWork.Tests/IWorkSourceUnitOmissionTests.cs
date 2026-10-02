@@ -117,7 +117,7 @@ public sealed partial class IWorkBoundaryTests {
             ArchiveRecord(11, 6001, Message(BytesField(4, store), VarintField(6, 1), VarintField(7, 1))),
             ArchiveRecord(12, 6002, Message(BytesField(5, Message(VarintField(1, 0),
                 BytesField(6, cell), BytesField(7, new byte[] { 0, 0 }))))),
-            ArchiveRecord(13, 6005, Message(
+            ArchiveRecord(13, 6005, Message(VarintField(1, 8),
                 BytesField(3, Message(VarintField(1, 1), ReferenceField(9, 14))),
                 BytesField(3, Message(VarintField(1, 2), ReferenceField(9, 17))))),
             ArchiveRecord(14, 6218, Message(ReferenceField(1, 15))),

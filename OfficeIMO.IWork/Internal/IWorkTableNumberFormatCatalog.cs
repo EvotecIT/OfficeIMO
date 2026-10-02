@@ -125,22 +125,14 @@ internal sealed class IWorkTableNumberFormatCatalog {
 
     private void Initialize() {
         _initialized = true;
-        _list = _references.ReadOne(_model, _store, 22, "4/22", static type => type == 6005);
-        if (_store.FieldCount(22) != 1 || _list?.MessageType != 6005) {
+        _list = _references.ReadOne(_model, _store, 22, "4/22", IWorkTableCatalogIndex.IsDataListType);
+        if (_store.FieldCount(22) != 1 || _list == null || !IWorkTableCatalogIndex.IsDataListType(_list.MessageType)) {
             FullyReconstructed = false;
             return;
         }
-        IWorkTableCatalogIndex declarations = IWorkTableCatalogIndex.Read(_source, _list, _budget, _references, "number-format");
+        IWorkTableCatalogIndex declarations = IWorkTableCatalogIndex.Read(_source, _list, _budget, _references, "number-format", 2);
         FullyReconstructed = declarations.IsComplete;
         if (!declarations.EnvelopeIsComplete) return;
-        IWorkWireMessage message = _source.Index.Message(_list);
-        if (message.FieldCount(1) != 1 || message.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
-            || message.GetUnsigned(1) != 2) {
-            _references.Declarations.Record(_list, "1", message.FieldCount(1),
-                IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
-            FullyReconstructed = false;
-            return;
-        }
         foreach (var entry in declarations.Entries) {
             _source.CancellationToken.ThrowIfCancellationRequested();
             if (declarations.CanResolveKey(entry.Key)) _entries.Add(entry.Key, (entry.Message, entry.Position));

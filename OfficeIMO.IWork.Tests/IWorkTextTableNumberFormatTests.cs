@@ -44,7 +44,7 @@ public sealed partial class IWorkBoundaryTests {
             Message(ReferenceField(22, 13), ReferenceField(6, 14)), cellPayload: cell,
             additionalRecords: Message(
                 ArchiveRecord(13, 6005, Message(VarintField(1, 2), BytesField(3, FormatEntry(NumericFormat(258, 2))))),
-                ArchiveRecord(14, 6201, Message(BytesField(3, Message(VarintField(1, 0), BytesField(5, FormulaConstant(0.125d))))))));
+                ArchiveRecord(14, 6201, Message(VarintField(1, 3), BytesField(3, Message(VarintField(1, 0), BytesField(5, FormulaConstant(0.125d))))))));
         IWorkTableCell source = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1.Cells);
         Assert.Equal(IWorkCellKind.Formula, source.Kind);
         Assert.Equal("=0.125", source.Formula);

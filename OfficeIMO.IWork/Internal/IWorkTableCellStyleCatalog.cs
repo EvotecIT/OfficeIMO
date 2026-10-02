@@ -145,23 +145,15 @@ internal sealed class IWorkTableCellStyleCatalog(IWorkSourceDocument source, IWo
 
     private void Initialize() {
         _initialized = true;
-        _list = references.ReadOne(model, store, 5, "4/5", static type => type == 6005);
+        _list = references.ReadOne(model, store, 5, "4/5", IWorkTableCatalogIndex.IsDataListType);
         if (store.FieldCount(5) != 1 || store.HasUnexpectedWireKind(5, IWorkWireKind.Bytes)
-            || _list?.MessageType != 6005) {
+            || _list == null || !IWorkTableCatalogIndex.IsDataListType(_list.MessageType)) {
             _catalogComplete = false;
             return;
         }
-        var declarations = IWorkTableCatalogIndex.Read(source, _list, budget, references, "cell-style");
+        var declarations = IWorkTableCatalogIndex.Read(source, _list, budget, references, "cell-style", 4);
         _catalogComplete = declarations.IsComplete;
         if (!declarations.EnvelopeIsComplete) return;
-        IWorkWireMessage message = source.Index.Message(_list);
-        if (message.FieldCount(1) != 1 || message.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
-            || message.GetUnsigned(1) != 4) {
-            references.Declarations.Record(_list, "1", message.FieldCount(1),
-                IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
-            _catalogComplete = false;
-            return;
-        }
         foreach (var entry in declarations.Entries) {
             source.CancellationToken.ThrowIfCancellationRequested();
             if (declarations.CanResolveKey(entry.Key)) _entries.Add(entry.Key, (entry.Message, entry.Position));
