@@ -1,0 +1,47 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/Schemas/powerforge.release.schema.json",
+  "SchemaVersion": 1,
+  "AppleApps": {
+    "ProjectRoot": "../../..",
+    "TeamId": "8ZPGZ79T7J",
+    "Configuration": "Release",
+    "Archive": false,
+    "Upload": false,
+    "PrepareDistribution": false,
+    "SelectBuildForDistribution": false,
+    "SyncMetadata": false,
+    "SyncAppInfo": false,
+    "SyncScreenshots": false,
+    "DistributeTestFlight": false,
+    "SubmitTestFlightBetaReview": false,
+    "SubmitForReview": false,
+    "ReleaseApprovedVersion": false,
+    "GovernanceConfigPath": "Build/Studio/Apple/appstoreconnect-governance.json",
+    "AppInfoConfigPath": "Build/Studio/Apple/appstoreconnect-app-info.json",
+    "MetadataConfigPaths": [
+      "Build/Studio/Apple/appstoreconnect-metadata-macos.json"
+    ],
+    "Apps": [
+      {
+        "Name": "OfficeIMO Studio macOS",
+        "BundleId": "com.evotec.officeimo.studio",
+        "Platform": "macOS",
+        "DistributionRoute": "AppStore",
+        "ProjectPath": "Build/Studio/Apple/powerforge.dotnetpublish.json",
+        "DotNetPublishInstallerId": "OfficeIMO.Studio.macOS.AppStore",
+        "Scheme": "OfficeIMO Studio",
+        "AppStoreConnectAppId": "6818096229",
+        "MarketingVersion": "1.0",
+        "BuildNumber": "1"
+      }
+    ],
+    "ArchiveRoot": "Artifacts/Studio/Apple/archives",
+    "ExportRoot": "Artifacts/Studio/Apple/exports",
+    "Automation": {
+      "ReceiptPath": "Artifacts/Studio/Apple/release-receipt.json",
+      "PlanReceiptPath": "Artifacts/Studio/Apple/release-plan.json",
+      "ReceiptHistoryPath": "Artifacts/Studio/Apple/receipts",
+      "LockPath": "Artifacts/Studio/Apple/release.lock"
+    }
+  }
+}
