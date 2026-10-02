@@ -13,6 +13,7 @@ public static partial class OfficeSvgImageRenderer {
             CancellationToken = cancellationToken
         };
         if (OfficeRasterImageDecoder.TryDecode(bytes, options, out raster, out OfficeRasterDecodeInfo info) && raster != null) {
+            if (info.AnimationDiscarded || info.FramesOrPagesDiscarded) fallback?.AddStaticFrameDiagnostic(info);
             if (info.UsedCallerCodec) fallback?.AddCallerCodecDiagnostic(contentType);
             return true;
         }

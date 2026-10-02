@@ -13,15 +13,23 @@ public static partial class OfficeRasterImageDecoder {
         out OfficeRasterImage? image) {
         image = null;
         options.CancellationToken.ThrowIfCancellationRequested();
-        if (options.ImageCodec == null || options.FrameIndex != 0 ||
+        IOfficeRasterImageCodec? codec = options.ImageCodec;
+        while (codec is OfficeRasterImageFallbackCodec fallback) codec = fallback.SourceCodec;
+        if (codec == null || options.FrameIndex != 0 ||
             !IsWithinPixelLimit(container.CanvasWidth, container.CanvasHeight, options.MaximumDecodedPixels)) return false;
+
+        // Include the original resource, provider-owned clone and expected RGBA
+        // alongside bytes retained by stream conversion before allocating or calling out.
+        long remaining = OfficeRasterGuards.MaximumDecodedBytes - options.RetainedManagedBytes;
+        long ownedBytes = 2L * bytes.Length + 4L * container.CanvasWidth * container.CanvasHeight;
+        if (remaining < ownedBytes) return false;
 
         // Providers may own their input buffer. Preserve the caller's encoded resource.
         byte[] codecBytes = (byte[])bytes.Clone();
         options.CancellationToken.ThrowIfCancellationRequested();
         bool decoded;
         try {
-            decoded = options.ImageCodec.TryDecode(codecBytes, OfficeImageInfo.GetMimeType(container.Format), out image);
+            decoded = codec.TryDecode(codecBytes, OfficeImageInfo.GetMimeType(container.Format), out image);
         } catch (System.Exception exception) when (exception is System.ArgumentException || exception is System.FormatException ||
             exception is System.NotSupportedException || exception is System.IO.IOException ||
             exception is System.InvalidOperationException || exception is System.OverflowException) {

@@ -65,6 +65,14 @@ public sealed class OfficeRasterImageFallbackCodec : IOfficeRasterImageCodec {
             _source));
     }
 
+    internal void AddStaticFrameDiagnostic(OfficeRasterDecodeInfo info) {
+        _diagnostics?.Add(new OfficeImageExportDiagnostic(
+            OfficeImageExportDiagnosticSeverity.Warning,
+            OfficeImageExportDiagnosticCodes.SourceImageStaticFrameSelected,
+            info.Diagnostic ?? "The selected static image does not retain animation or other frames/pages.",
+            _source, OfficeConversionLossKind.Omission));
+    }
+
     private void AddDiagnostic(string? contentType, string? detail) {
         string format = string.IsNullOrWhiteSpace(contentType) ? "unknown image data" : contentType!;
         string message = "Drawing could not decode " + format + "; a visible placeholder was rendered.";
