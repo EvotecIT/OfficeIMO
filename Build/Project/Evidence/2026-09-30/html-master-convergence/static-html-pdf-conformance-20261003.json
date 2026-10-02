@@ -100,5 +100,11 @@
       ],
       "allPngAndSvgIdentical": true
     }
+  },
+  "packageDiagnostic": {
+    "defaultScript": "fails when macOS omits net472 from RTF package but baseline/suppressions include it",
+    "fullFrameworkPack": "passes all existing API compatibility checks with netstandard2.0;net8.0;net10.0;net472 explicitly selected",
+    "packageSha256": "3a44e94e9d264a60d65d8b6959d087704854c32bb2d4226a42b1d267ed35cc8e",
+    "remaining": "Make representative package-consumer validation select the complete declared framework graph; run actual consumers. No API suppression or runtime workaround needed."
   }
 }
