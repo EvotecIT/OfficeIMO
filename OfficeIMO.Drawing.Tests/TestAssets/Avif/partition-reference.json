@@ -1,0 +1,349 @@
+{
+  "producer": "AOM v3.13.1 official default partition tables and entropy encoder/decoder",
+  "nativeSelfCheck": true,
+  "cases": [
+    {
+      "pixels": 8,
+      "context": 0,
+      "updates": false,
+      "operations": 48,
+      "hex": "941211b892dcf825ef29f8730a"
+    },
+    {
+      "pixels": 8,
+      "context": 0,
+      "updates": true,
+      "operations": 48,
+      "hex": "93db9c648da0b28e33fb8a4a10"
+    },
+    {
+      "pixels": 8,
+      "context": 1,
+      "updates": false,
+      "operations": 48,
+      "hex": "691dfa5e6f51c9b5b3ce60eb"
+    },
+    {
+      "pixels": 8,
+      "context": 1,
+      "updates": true,
+      "operations": 48,
+      "hex": "68f81840b19f26db4ddfe7bd80"
+    },
+    {
+      "pixels": 8,
+      "context": 2,
+      "updates": false,
+      "operations": 48,
+      "hex": "5f543808831f0ca7d946fb50a0"
+    },
+    {
+      "pixels": 8,
+      "context": 2,
+      "updates": true,
+      "operations": 48,
+      "hex": "5f2d4cf09c85d7b6cf113d6840"
+    },
+    {
+      "pixels": 8,
+      "context": 3,
+      "updates": false,
+      "operations": 48,
+      "hex": "47a0b19856016b056b42227f"
+    },
+    {
+      "pixels": 8,
+      "context": 3,
+      "updates": true,
+      "operations": 48,
+      "hex": "47b283b8a64c2f86781769a9"
+    },
+    {
+      "pixels": 16,
+      "context": 0,
+      "updates": false,
+      "operations": 48,
+      "hex": "23c44766abf5ab4745758c7de8"
+    },
+    {
+      "pixels": 16,
+      "context": 0,
+      "updates": true,
+      "operations": 48,
+      "hex": "25967318ca802d823cf1e6e640"
+    },
+    {
+      "pixels": 16,
+      "context": 1,
+      "updates": false,
+      "operations": 48,
+      "hex": "04b116c076f7c7519f8a9660"
+    },
+    {
+      "pixels": 16,
+      "context": 1,
+      "updates": true,
+      "operations": 48,
+      "hex": "0564a37f0addb46ab1cc7920"
+    },
+    {
+      "pixels": 16,
+      "context": 2,
+      "updates": false,
+      "operations": 48,
+      "hex": "02c7e78edc666b52212973ab60"
+    },
+    {
+      "pixels": 16,
+      "context": 2,
+      "updates": true,
+      "operations": 48,
+      "hex": "03393d8b17423bccdf56935040"
+    },
+    {
+      "pixels": 16,
+      "context": 3,
+      "updates": false,
+      "operations": 48,
+      "hex": "0047ac75a75d975fc108167e40"
+    },
+    {
+      "pixels": 16,
+      "context": 3,
+      "updates": true,
+      "operations": 48,
+      "hex": "006537ac6b6b8830a769738ac0"
+    },
+    {
+      "pixels": 32,
+      "context": 0,
+      "updates": false,
+      "operations": 48,
+      "hex": "2cdd9b1c9cdb8a23bdd866ee99c0"
+    },
+    {
+      "pixels": 32,
+      "context": 0,
+      "updates": true,
+      "operations": 48,
+      "hex": "2ed0cf51bfa801edfbe15970f8"
+    },
+    {
+      "pixels": 32,
+      "context": 1,
+      "updates": false,
+      "operations": 48,
+      "hex": "028a0d1c62aab14cac6d191698"
+    },
+    {
+      "pixels": 32,
+      "context": 1,
+      "updates": true,
+      "operations": 48,
+      "hex": "0304fe01d6d07707fd805f7ee0"
+    },
+    {
+      "pixels": 32,
+      "context": 2,
+      "updates": false,
+      "operations": 48,
+      "hex": "015cd2b3a377e5c4f2254ca7f160"
+    },
+    {
+      "pixels": 32,
+      "context": 2,
+      "updates": true,
+      "operations": 48,
+      "hex": "01b0f76448496d7f954d410db3"
+    },
+    {
+      "pixels": 32,
+      "context": 3,
+      "updates": false,
+      "operations": 48,
+      "hex": "00020f47604035dec084ca2f38802d13b540"
+    },
+    {
+      "pixels": 32,
+      "context": 3,
+      "updates": true,
+      "operations": 48,
+      "hex": "0004dc50160d453d4619a59f3fb9ff78"
+    },
+    {
+      "pixels": 64,
+      "context": 0,
+      "updates": false,
+      "operations": 48,
+      "hex": "32eede9976b2ead1da46c618be5a60"
+    },
+    {
+      "pixels": 64,
+      "context": 0,
+      "updates": true,
+      "operations": 48,
+      "hex": "352f5fa6f3c8fa9d1065e50a07a0"
+    },
+    {
+      "pixels": 64,
+      "context": 1,
+      "updates": false,
+      "operations": 48,
+      "hex": "011fe30cd6ef3fde9d33fb39d1b680"
+    },
+    {
+      "pixels": 64,
+      "context": 1,
+      "updates": true,
+      "operations": 48,
+      "hex": "016caef17d08cd3cac22a2d9a390"
+    },
+    {
+      "pixels": 64,
+      "context": 2,
+      "updates": false,
+      "operations": 48,
+      "hex": "00b8e092852876331abf91089cd4fd"
+    },
+    {
+      "pixels": 64,
+      "context": 2,
+      "updates": true,
+      "operations": 48,
+      "hex": "00f3dbc2d2359ed2f2409dae2eec80"
+    },
+    {
+      "pixels": 64,
+      "context": 3,
+      "updates": false,
+      "operations": 48,
+      "hex": "00002a58fa397acab9029e2c629a298b079005d18460"
+    },
+    {
+      "pixels": 64,
+      "context": 3,
+      "updates": true,
+      "operations": 48,
+      "hex": "0000d01b0a648e8398bc91b5e24d3427a7ce"
+    },
+    {
+      "pixels": 128,
+      "context": 0,
+      "updates": false,
+      "operations": 48,
+      "hex": "a280eb7e2dfa06fa70cf8e2bd446e86418fa02"
+    },
+    {
+      "pixels": 128,
+      "context": 0,
+      "updates": true,
+      "operations": 48,
+      "hex": "a3f3d91079a9e5578234add46ffdb6"
+    },
+    {
+      "pixels": 128,
+      "context": 1,
+      "updates": false,
+      "operations": 48,
+      "hex": "02ddf33c74e1abda51b32cad3d4d4a9c38"
+    },
+    {
+      "pixels": 128,
+      "context": 1,
+      "updates": true,
+      "operations": 48,
+      "hex": "037ab06b0d206566cfa7d0bf533808"
+    },
+    {
+      "pixels": 128,
+      "context": 2,
+      "updates": false,
+      "operations": 48,
+      "hex": "01b43c8624a1e3f38daafc1c60f2cdaa"
+    },
+    {
+      "pixels": 128,
+      "context": 2,
+      "updates": true,
+      "operations": 48,
+      "hex": "0221a697d243e25941aa9b73a7c940"
+    },
+    {
+      "pixels": 128,
+      "context": 3,
+      "updates": false,
+      "operations": 48,
+      "hex": "00018ca90d51363222591c0fdd2020a4ab172acb48f19b80"
+    },
+    {
+      "pixels": 128,
+      "context": 3,
+      "updates": true,
+      "operations": 48,
+      "hex": "00061527f718708afc9f69e6dee5c981905e"
+    }
+  ],
+  "framePrefixes": [
+    {
+      "name": "avif-opaque",
+      "alpha": false,
+      "offset": 302,
+      "length": 31,
+      "miRows": 10,
+      "miCols": 14,
+      "superblockPixels": 64,
+      "partitions": [
+        {
+          "pixels": 64,
+          "kind": 3
+        },
+        {
+          "pixels": 32,
+          "kind": 0
+        }
+      ]
+    },
+    {
+      "name": "avif-alpha",
+      "alpha": true,
+      "offset": 447,
+      "length": 43,
+      "miRows": 10,
+      "miCols": 14,
+      "superblockPixels": 64,
+      "partitions": [
+        {
+          "pixels": 64,
+          "kind": 3
+        },
+        {
+          "pixels": 32,
+          "kind": 0
+        }
+      ]
+    },
+    {
+      "name": "multitile",
+      "alpha": false,
+      "offset": 298,
+      "length": 1189,
+      "miRows": 32,
+      "miCols": 64,
+      "superblockPixels": 64,
+      "partitions": [
+        {
+          "pixels": 64,
+          "kind": 3
+        },
+        {
+          "pixels": 32,
+          "kind": 3
+        },
+        {
+          "pixels": 16,
+          "kind": 0
+        }
+      ]
+    }
+  ]
+}

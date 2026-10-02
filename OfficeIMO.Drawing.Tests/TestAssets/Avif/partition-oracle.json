@@ -1,0 +1,12 @@
+{
+  "tag": "v3.13.1",
+  "sourceUrl": "https://aomedia.googlesource.com/aom/+/refs/tags/v3.13.1/av1/common/entropymode.c?format=TEXT",
+  "sourceSha256": "13c47672c1e00d77de9b47b5cf7915cf2569a62369bba35dec3ddb5f43f85e24",
+  "entropySourceManifest": "entropy-oracle.json",
+  "license": "BSD-2-Clause and AOM Patent License 1.0; reference sources stay with native-aom LICENSE/PATENTS",
+  "prefixGeometry": {
+    "avif-opaque": { "miRows": 10, "miCols": 14, "superblockPixels": 64 },
+    "avif-alpha": { "miRows": 10, "miCols": 14, "superblockPixels": 64 },
+    "multitile": { "miRows": 32, "miCols": 64, "superblockPixels": 64 }
+  }
+}

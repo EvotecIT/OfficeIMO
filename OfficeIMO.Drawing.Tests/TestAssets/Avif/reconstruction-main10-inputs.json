@@ -1,0 +1,101 @@
+{
+  "reference": "Immutable Main10 libavif/AOM items; version-0 pitm/iloc and auxl extents independently read from frozen boxes.",
+  "inputs": [
+    {
+      "name": "avif-main10-420-full-alpha",
+      "alpha": false,
+      "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/AvifMain10/avif-main10-420-full-alpha.avif",
+      "sha256": "5bf04d2fc1a73fce9e9771698410a39222300cbe05ee039c1c917dbafb2e0638",
+      "offset": 1772,
+      "length": 1602
+    },
+    {
+      "name": "avif-main10-420-full-alpha",
+      "alpha": true,
+      "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/AvifMain10/avif-main10-420-full-alpha.avif",
+      "sha256": "5bf04d2fc1a73fce9e9771698410a39222300cbe05ee039c1c917dbafb2e0638",
+      "offset": 430,
+      "length": 1342
+    },
+    {
+      "name": "avif-main10-420-full",
+      "alpha": false,
+      "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/AvifMain10/avif-main10-420-full.avif",
+      "sha256": "b7b55b2abe014bd36488434b09c9655b5e4fe91e2423353de5ed418816009001",
+      "offset": 275,
+      "length": 1602
+    },
+    {
+      "name": "avif-main10-420-limited-alpha",
+      "alpha": false,
+      "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/AvifMain10/avif-main10-420-limited-alpha.avif",
+      "sha256": "2760d2d626c8836618fa7be2f9bb5a6438f3bdeae16df32779bb4b07dbf25cb3",
+      "offset": 1772,
+      "length": 1542
+    },
+    {
+      "name": "avif-main10-420-limited-alpha",
+      "alpha": true,
+      "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/AvifMain10/avif-main10-420-limited-alpha.avif",
+      "sha256": "2760d2d626c8836618fa7be2f9bb5a6438f3bdeae16df32779bb4b07dbf25cb3",
+      "offset": 430,
+      "length": 1342
+    },
+    {
+      "name": "avif-main10-420-limited",
+      "alpha": false,
+      "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/AvifMain10/avif-main10-420-limited.avif",
+      "sha256": "08c23fa4b880345adf18a4283e7157471ae9a12593effebd0e9e6d646bb034bc",
+      "offset": 275,
+      "length": 1542
+    },
+    {
+      "name": "avif-main10-mono-full-alpha",
+      "alpha": false,
+      "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/AvifMain10/avif-main10-mono-full-alpha.avif",
+      "sha256": "79d8c0266981be6d44b439f477f60558fb5df3a9989d29469b4133e2bec53212",
+      "offset": 1740,
+      "length": 985
+    },
+    {
+      "name": "avif-main10-mono-full-alpha",
+      "alpha": true,
+      "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/AvifMain10/avif-main10-mono-full-alpha.avif",
+      "sha256": "79d8c0266981be6d44b439f477f60558fb5df3a9989d29469b4133e2bec53212",
+      "offset": 398,
+      "length": 1342
+    },
+    {
+      "name": "avif-main10-mono-full",
+      "alpha": false,
+      "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/AvifMain10/avif-main10-mono-full.avif",
+      "sha256": "b0f7e320a35e656beb7ffce553df3a2e19ad4cf8213e62bf905f273a86324a90",
+      "offset": 269,
+      "length": 985
+    },
+    {
+      "name": "avif-main10-mono-limited-alpha",
+      "alpha": false,
+      "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/AvifMain10/avif-main10-mono-limited-alpha.avif",
+      "sha256": "e8787330fa9eba4b2e002ad1143b12362b17f7a2725c846d50fee213ecb14c40",
+      "offset": 1740,
+      "length": 938
+    },
+    {
+      "name": "avif-main10-mono-limited-alpha",
+      "alpha": true,
+      "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/AvifMain10/avif-main10-mono-limited-alpha.avif",
+      "sha256": "e8787330fa9eba4b2e002ad1143b12362b17f7a2725c846d50fee213ecb14c40",
+      "offset": 398,
+      "length": 1342
+    },
+    {
+      "name": "avif-main10-mono-limited",
+      "alpha": false,
+      "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/AvifMain10/avif-main10-mono-limited.avif",
+      "sha256": "3c15e91d90d77429120c6cc31b46d8fa04b213f0da2d1f64b785b8f0dbcfec8d",
+      "offset": 269,
+      "length": 938
+    }
+  ]
+}

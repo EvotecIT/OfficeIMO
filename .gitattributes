@@ -2,6 +2,14 @@
 # Set default behavior to automatically normalize line endings.
 ###############################################################################
 * text=auto
+
+# Raw decoded raster evidence contains arbitrary bytes, including LF without NUL.
+# Windows checkout must not expand those sample values to CRLF.
+*.rgba -text -diff
+*.yuv16 -text -diff
+*.avif -text -diff
+*.obu -text -diff
+*.bin -text -diff
 OfficeIMO.Studio.Tests/Run-StorageAcceptance.sh text eol=lf
 
 # Integrity-labelled document inputs and provider captures must survive Windows

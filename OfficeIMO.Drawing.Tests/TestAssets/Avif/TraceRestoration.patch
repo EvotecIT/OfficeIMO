@@ -1,0 +1,26 @@
+diff --git a/av1/decoder/decodeframe.c b/av1/decoder/decodeframe.c
+index ca9f0a4..5d4be78 100644
+--- a/av1/decoder/decodeframe.c
++++ b/av1/decoder/decodeframe.c
+@@ -1125,0 +1126,2 @@ static TX_SIZE read_tx_size(const MACROBLOCKD *const xd, TX_MODE tx_mode,
++#include "OfficeRestorationProbe.inc"
++
+@@ -1179,0 +1182 @@ static inline void parse_decode_block(AV1Decoder *const pbi,
++  office_trace_reconstruction_leaf(mbmi);
+@@ -5306,0 +5310,6 @@ void av1_decode_tg_tiles_and_wrapup(AV1Decoder *pbi, const uint8_t *data,
++  office_trace_reconstructed_frame(cm);
++  if (cm->features.allow_intrabc || tiles->single_tile_decoding) {
++    office_trace_reconstructed_frame(cm);
++    office_trace_reconstructed_frame(cm);
++  }
++
+@@ -5317,0 +5327,2 @@ void av1_decode_tg_tiles_and_wrapup(AV1Decoder *pbi, const uint8_t *data,
++    office_trace_reconstructed_frame(cm);
++
+@@ -5347,0 +5359,2 @@ void av1_decode_tg_tiles_and_wrapup(AV1Decoder *pbi, const uint8_t *data,
++      office_trace_reconstructed_frame(cm);
++
+@@ -5364,0 +5378 @@ void av1_decode_tg_tiles_and_wrapup(AV1Decoder *pbi, const uint8_t *data,
++      office_trace_reconstructed_frame(cm);
+@@ -5380,0 +5395 @@ void av1_decode_tg_tiles_and_wrapup(AV1Decoder *pbi, const uint8_t *data,
++  office_trace_restored_frame(cm);

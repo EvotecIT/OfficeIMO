@@ -71,6 +71,10 @@ public static class OfficeRasterContainerInspector {
                 if (!OfficeBmpReader.TryValidatePayload(encodedBytes, effective.CancellationToken)) return false;
                 container = CreateStatic(imageInfo);
                 return true;
+            case OfficeImageFormat.Avif:
+                if (enforceAllTiffPagePixelLimits && !OfficeAvifCodec.TryDecode(encodedBytes, effective, out _)) return false;
+                container = CreateStatic(imageInfo);
+                return true;
             default:
                 return false;
         }
