@@ -9,6 +9,10 @@ public static partial class OfficeImageReader {
 
     internal static bool TryValidateWebpContainer(byte[] data) => TryReadWebp(data, out _);
 
+    // Recognition must remain possible when malformed metadata prevents identification.
+    internal static bool HasWebpSignature(byte[] data) => data.Length >= 12 &&
+        GetAscii(data, 0, 4) == "RIFF" && GetAscii(data, 8, 4) == "WEBP";
+
     private static bool TryReadWebp(
         byte[] data,
         out OfficeImageInfo info,
@@ -16,9 +20,7 @@ public static partial class OfficeImageReader {
         OfficeRasterImage? decodedImage = null,
         CancellationToken cancellationToken = default) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
-        if (data.Length < 20 ||
-            GetAscii(data, 0, 4) != "RIFF" ||
-            GetAscii(data, 8, 4) != "WEBP") {
+        if (data.Length < 20 || !HasWebpSignature(data)) {
             return false;
         }
 

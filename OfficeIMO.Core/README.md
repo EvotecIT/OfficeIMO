@@ -842,6 +842,16 @@ Set `OfficeDrawingRasterRenderOptions.ThrowOnImageDecodeFailure` to `true` when 
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
 
+### Inspected caller raster decoding
+
+`OfficeRasterDecodeOptions.ImageCodec` supplies a trusted decoder for inspected
+payloads outside the managed subset. The shared boundary validates resource limits,
+frame selection and returned dimensions, preserves input bytes, and observes
+cancellation before and after the callback. Static WebP decoding failures do not
+fall through to a caller codec. Animated WebP can select frame zero and reports
+discarded animation. Drawing exports retain caller provenance and distinguish
+visible failure placeholders from decoded source pixels.
+
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary
 
