@@ -1,0 +1,26 @@
+{
+  "producer": "Pillow 11.3.0 / libavif 1.3.0",
+  "sha256": "465ea0b0086c23b60cb6234eba16efdceecc4775cf37854b314020cfb103b25a",
+  "size": [
+    256,
+    128
+  ],
+  "generation": "Image.new('RGB',(256,128)); putdata([((x*7+y*3)%256,(x*2+y*5)%256,(x^y)%256) for y in range(128) for x in range(256)]); save(quality=55,speed=6,tile_cols=1,tile_rows=1,autotiling=False,max_threads=2)",
+  "reference": "FFmpeg 8.0.1 trace_headers, then bounded little-endian tile lengths",
+  "frameOffsetInItem": 13,
+  "frameLength": 4818,
+  "headerBytes": 7,
+  "tileGroupHeaderBytes": 1,
+  "tileOffsetsInItem": [
+    23,
+    1214,
+    2431,
+    3623
+  ],
+  "tileLengths": [
+    1189,
+    1215,
+    1192,
+    1208
+  ]
+}

@@ -31,5 +31,7 @@ public enum OfficeImageFormat {
     /// <summary>JPEG 2000 JP2 container image.</summary>
     Jpeg2000,
     /// <summary>Raw JPEG 2000 codestream without a JP2 container.</summary>
-    Jpeg2000Codestream
+    Jpeg2000Codestream,
+    /// <summary>AV1 Image File Format still-item container.</summary>
+    Avif
 }

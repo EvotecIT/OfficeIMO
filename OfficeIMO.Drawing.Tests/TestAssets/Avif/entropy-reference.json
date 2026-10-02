@@ -1,0 +1,406 @@
+{
+  "producer": "AOM v3.13.1 od_ec_encode_cdf_q15/od_ec_encode_bool_q15",
+  "nativeSelfCheck": true,
+  "cases": [
+    {
+      "symbols": 2,
+      "updates": false,
+      "degenerate": false,
+      "operations": 256,
+      "initialCdf": [
+        16384,
+        32768,
+        0
+      ],
+      "finalCdf": [
+        16384,
+        32768,
+        0
+      ],
+      "hex": "00000024af95bdcec98a40484a8a90d706e0a9047b78b2e76f73a92c1ad26b435435c08d411dba72edb9dbda2a05937b4c58d50d5aa4358084cceb6e754481f32b8736563548",
+      "nativeTellBits": 557
+    },
+    {
+      "symbols": 2,
+      "updates": true,
+      "degenerate": false,
+      "operations": 256,
+      "initialCdf": [
+        16384,
+        32768,
+        0
+      ],
+      "finalCdf": [
+        18550,
+        32768,
+        32
+      ],
+      "hex": "00000024b2f245498ff3002c25606d5be48f0262c1197e8372c8c51410c9e0aa79d401ee58edb8cb5fbb7b5e0dc4b3fc410ddce5a17e2dbce15eca187be9c233eee8032b6ba8",
+      "nativeTellBits": 557
+    },
+    {
+      "symbols": 3,
+      "updates": false,
+      "degenerate": false,
+      "operations": 256,
+      "initialCdf": [
+        10922,
+        21845,
+        32768,
+        0
+      ],
+      "finalCdf": [
+        10922,
+        21845,
+        32768,
+        0
+      ],
+      "hex": "00000018549f1a6b7e543e202a071ab8211b433c3e97d7d212342e8820abd8cbf451e21132e5976f4bccea8c273c1bf15479240536dc22bf2c158935c11a8c10917f056c1fa6ae4b49d4fa625f3fb72c881716326ec614d8a0",
+      "nativeTellBits": 707
+    },
+    {
+      "symbols": 3,
+      "updates": true,
+      "degenerate": false,
+      "operations": 256,
+      "initialCdf": [
+        10922,
+        21845,
+        32768,
+        0
+      ],
+      "finalCdf": [
+        11099,
+        21988,
+        32768,
+        32
+      ],
+      "hex": "0000001857b1c664abd0ba47d8018b17cdc9e1d77eb17e106227cd60e69548d053090731238ec6ca2d90d6ea3e47391fe6f24751dd77ff727388898fe5a10657a26719b01879b45fde2ccd588296968c65eba241e2985195a3e0",
+      "nativeTellBits": 715
+    },
+    {
+      "symbols": 4,
+      "updates": false,
+      "degenerate": false,
+      "operations": 256,
+      "initialCdf": [
+        19132,
+        25510,
+        30392,
+        32768,
+        0
+      ],
+      "finalCdf": [
+        19132,
+        25510,
+        30392,
+        32768,
+        0
+      ],
+      "hex": "0000002a5695e2576c144a69198a9f8057bded4111c9a8d1bf69e79c860f427fb93080395a1439d4dc8a485e96ae904eab3ca6f07e5c73310859510d8150ecff4103c54bddd42cf3101daa881f9d308ea9526a61bf9dff252d35d374515c0919088c07cb4f7c098e8f9ae764fa",
+      "nativeTellBits": 871
+    },
+    {
+      "symbols": 4,
+      "updates": true,
+      "degenerate": false,
+      "operations": 256,
+      "initialCdf": [
+        19132,
+        25510,
+        30392,
+        32768,
+        0
+      ],
+      "finalCdf": [
+        10081,
+        19155,
+        28123,
+        32768,
+        32
+      ],
+      "hex": "0000002a58042ef9cf4dc8a81ab91e0188e30b203c0c75b2091c51fe174452f080679c96aeba947bd05ae71bb416e21753dea1752406d983fadf75ac37343b992fd6241796f07b6f34b96fc0a1f7a1b91464df86e24b5ccec56a743332a5c1b9a6318bf837b1",
+      "nativeTellBits": 816
+    },
+    {
+      "symbols": 10,
+      "updates": false,
+      "degenerate": false,
+      "operations": 256,
+      "initialCdf": [
+        15597,
+        20929,
+        24571,
+        26706,
+        27664,
+        28821,
+        29601,
+        30571,
+        31902,
+        32768,
+        0
+      ],
+      "finalCdf": [
+        15597,
+        20929,
+        24571,
+        26706,
+        27664,
+        28821,
+        29601,
+        30571,
+        31902,
+        32768,
+        0
+      ],
+      "hex": "0000002281b6dc1a9576062f52a96ddde2da0b57e52140036e7fcb8ac6bf29c35747f29fde2d9b713a8ffd3004f62267b9c032c83caa62a16cf85f42711dd0a93205944228ad7001bde58ba59926abf3d339b7705c2c09796d576b8adf352b302a330395dc6a1b9bb381101ae6ad07517692353028169eccbd75a5f02d285cc094a7c583be0c9e33c14dcbf57d269451df55602d70377bf2d394b97cb20e11c8f9d0c46aed7a62ad",
+      "nativeTellBits": 1344
+    },
+    {
+      "symbols": 10,
+      "updates": true,
+      "degenerate": false,
+      "operations": 256,
+      "initialCdf": [
+        15597,
+        20929,
+        24571,
+        26706,
+        27664,
+        28821,
+        29601,
+        30571,
+        31902,
+        32768,
+        0
+      ],
+      "finalCdf": [
+        4605,
+        7718,
+        11548,
+        14234,
+        17575,
+        20450,
+        23839,
+        26376,
+        30125,
+        32768,
+        32
+      ],
+      "hex": "000000228280f241bb96e4a79878c9aa329d03c4563000e9f504010f2b5ca2c6e59412fb5fbb7700da05ae023baabc2388b712574afa852195e7f7305fd0a51dff6cfc3354462de390d921205d802093c8d7bd4174a4a5b2ba3cfd084ffc1c580788a658e87fe1a75542664f3ed2c5bfff3b0527e5e1e512969f7481ee3df4d39199a30a62801f4ce178d7b884a52a16fdd10e65a2",
+      "nativeTellBits": 1191
+    },
+    {
+      "symbols": 16,
+      "updates": false,
+      "degenerate": false,
+      "operations": 256,
+      "initialCdf": [
+        2048,
+        4096,
+        6144,
+        8192,
+        10240,
+        12288,
+        14336,
+        16384,
+        18432,
+        20480,
+        22528,
+        24576,
+        26624,
+        28672,
+        30720,
+        32768,
+        0
+      ],
+      "finalCdf": [
+        2048,
+        4096,
+        6144,
+        8192,
+        10240,
+        12288,
+        14336,
+        16384,
+        18432,
+        20480,
+        22528,
+        24576,
+        26624,
+        28672,
+        30720,
+        32768,
+        0
+      ],
+      "hex": "000000046bd40ebeef7e9c986cecb160f219e880cb3840091ab8e93eb5d16b37f793ea2638a22b852690c9008f6f18d301dd8805114bddfc8cb602254f0125e4036dfca8a85adcfc2e143fca4a0a4a04a9eb888040255a3443636c5c47e8aad83a9785781bd83b84b600c2c69b8c3525443a323c0a569aba1c32e284237c077411c24b162fda9b57195ac4a9ba6620f9d8840045102385311f5edd0a7819c8844e5709fd6fd8",
+      "nativeTellBits": 1325
+    },
+    {
+      "symbols": 16,
+      "updates": true,
+      "degenerate": false,
+      "operations": 256,
+      "initialCdf": [
+        2048,
+        4096,
+        6144,
+        8192,
+        10240,
+        12288,
+        14336,
+        16384,
+        18432,
+        20480,
+        22528,
+        24576,
+        26624,
+        28672,
+        30720,
+        32768,
+        0
+      ],
+      "finalCdf": [
+        2470,
+        4683,
+        6988,
+        8178,
+        10371,
+        12727,
+        14962,
+        16385,
+        18716,
+        20931,
+        23394,
+        24648,
+        26848,
+        29288,
+        31517,
+        32768,
+        32
+      ],
+      "hex": "000000046be412d4071de8637c616dfb781e5fc2201722a00c8d600f57232ea49114db49e0c07a02bacf1cbae03ef383d04dcf5061ea8f8fb901a0493e611f6e6cc0ae6f96700ed412c18222daf87be756386b8aa88203d56f46c50ac85a7be2d0b7ddafb90f7416467e7d059379f552be6f36f563ce70ecbb94f8b23cf090b810701fa77f60151a69ff74c4d23087355f112da000638a1e7129083fd7a97e6a110f34ff8ad659d4",
+      "nativeTellBits": 1342
+    },
+    {
+      "symbols": 4,
+      "updates": false,
+      "degenerate": true,
+      "operations": 64,
+      "initialCdf": [
+        100,
+        100,
+        100,
+        32768,
+        0
+      ],
+      "finalCdf": [
+        100,
+        100,
+        100,
+        32768,
+        0
+      ],
+      "hex": "0000000041301f03c01f1e203c0001b807803e1de07800037807803e3bc0f0000b281e0175f781e0000dc03c01eb00227b485c07801d1b807803e3bc0f38001b807a01f1de0780003700f381f1de079ffe1d807803e3cc078010",
+      "nativeTellBits": 716
+    },
+    {
+      "symbols": 2,
+      "updates": false,
+      "degenerate": false,
+      "operations": 1,
+      "initialCdf": [
+        16384,
+        32768,
+        0
+      ],
+      "finalCdf": [
+        16384,
+        32768,
+        0
+      ],
+      "hex": "00000024c0",
+      "nativeTellBits": 34
+    }
+  ],
+  "booleanCases": [
+    {
+      "bits": "0",
+      "hex": "20"
+    },
+    {
+      "bits": "1",
+      "hex": "c0"
+    },
+    {
+      "bits": "00101011",
+      "hex": "2b80"
+    },
+    {
+      "bits": "1111111111111111",
+      "hex": "ffff80"
+    }
+  ],
+  "framePrefixes": [
+    {
+      "name": "avif-opaque",
+      "alpha": false,
+      "offset": 302,
+      "length": 31,
+      "symbol": 3,
+      "finalCdf": [
+        19508,
+        20874,
+        22357,
+        29666,
+        29928,
+        30339,
+        30594,
+        30950,
+        31756,
+        32768,
+        1
+      ]
+    },
+    {
+      "name": "avif-alpha",
+      "alpha": true,
+      "offset": 447,
+      "length": 43,
+      "symbol": 3,
+      "finalCdf": [
+        19508,
+        20874,
+        22357,
+        29666,
+        29928,
+        30339,
+        30594,
+        30950,
+        31756,
+        32768,
+        1
+      ]
+    },
+    {
+      "name": "multitile",
+      "alpha": false,
+      "offset": 298,
+      "length": 1189,
+      "symbol": 3,
+      "finalCdf": [
+        19508,
+        20874,
+        22357,
+        29666,
+        29928,
+        30339,
+        30594,
+        30950,
+        31756,
+        32768,
+        1
+      ]
+    }
+  ]
+}

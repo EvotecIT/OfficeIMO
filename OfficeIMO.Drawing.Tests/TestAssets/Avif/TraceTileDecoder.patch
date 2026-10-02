@@ -1,0 +1,58 @@
+diff --git a/av1/decoder/decodeframe.c b/av1/decoder/decodeframe.c
+index ca9f0a4..c5291a0 100644
+--- a/av1/decoder/decodeframe.c
++++ b/av1/decoder/decodeframe.c
+@@ -67,0 +68 @@
++#include <stdio.h>
+@@ -1181,0 +1183,6 @@ static inline void parse_decode_block(AV1Decoder *const pbi,
++  fprintf(stderr, "{\"event\":\"leaf\",\"block\":[%d,%d,%d,%d],\"skip\":%d,\"segment\":%d,\"q\":%d,\"y\":%d,\"uv\":%d,\"angles\":[%d,%d],\"copy\":%d,\"motion\":[%d,%d],\"palette\":[%d,%d],\"filter\":%d}\n",
++      mi_row,mi_col,mi_size_wide[bsize]*4,mi_size_high[bsize]*4,mbmi->skip_txfm,mbmi->segment_id,xd->current_base_qindex,
++      mbmi->mode,mbmi->uv_mode,mbmi->angle_delta[0],mbmi->angle_delta[1],mbmi->use_intrabc,
++      mbmi->use_intrabc?mbmi->mv[0].as_mv.row:0,mbmi->use_intrabc?mbmi->mv[0].as_mv.col:0,
++      mbmi->palette_mode_info.palette_size[0],mbmi->palette_mode_info.palette_size[1],
++      mbmi->filter_intra_mode_info.use_filter_intra?(int)mbmi->filter_intra_mode_info.filter_intra_mode:-1);
+@@ -1701,0 +1709,14 @@ static inline void loop_restoration_read_sb_coeffs(const AV1_COMMON *const cm,
++  fprintf(stderr, "{\"event\":\"restoration\",\"plane\":%d,\"row\":%d,\"col\":%d,\"type\":%d,\"set\":%d,\"wiener\":[%d,%d,%d,%d,%d,%d],\"xqd\":[%d,%d]}\n",
++      plane,runit_idx/rsi->horz_units,runit_idx%rsi->horz_units,rui->restoration_type,
++      rui->restoration_type==RESTORE_SGRPROJ?rui->sgrproj_info.ep:0,
++      rui->restoration_type==RESTORE_WIENER?rui->wiener_info.vfilter[0]:0,rui->restoration_type==RESTORE_WIENER?rui->wiener_info.vfilter[1]:0,rui->restoration_type==RESTORE_WIENER?rui->wiener_info.vfilter[2]:0,
++      rui->restoration_type==RESTORE_WIENER?rui->wiener_info.hfilter[0]:0,rui->restoration_type==RESTORE_WIENER?rui->wiener_info.hfilter[1]:0,rui->restoration_type==RESTORE_WIENER?rui->wiener_info.hfilter[2]:0,
++      rui->restoration_type==RESTORE_SGRPROJ?rui->sgrproj_info.xqd[0]:0,rui->restoration_type==RESTORE_SGRPROJ?rui->sgrproj_info.xqd[1]:0);
++}
++
++/* Opt-in reference entry point: exercises the native restoration grammar directly. */
++void office_trace_restoration_probe(const AV1_COMMON *cm, MACROBLOCKD *xd,
++                                   aom_reader *r, int plane, int unit);
++void office_trace_restoration_probe(const AV1_COMMON *cm, MACROBLOCKD *xd,
++                                   aom_reader *r, int plane, int unit) {
++  loop_restoration_read_sb_coeffs(cm,xd,r,plane,unit);
+@@ -2734,0 +2756 @@ static inline void decode_tile(AV1Decoder *pbi, ThreadData *const td,
++  fprintf(stderr, "{\"event\":\"tile\",\"extent\":[%d,%d,%d,%d]}\n",tile_info.mi_row_start,tile_info.mi_row_end,tile_info.mi_col_start,tile_info.mi_col_end);
+diff --git a/av1/decoder/decodetxb.c b/av1/decoder/decodetxb.c
+index 17d67cb..14d5e20 100644
+--- a/av1/decoder/decodetxb.c
++++ b/av1/decoder/decodetxb.c
+@@ -12,0 +13 @@
++#include <stdio.h>
+@@ -109,0 +111,13 @@ static inline void read_coeffs_reverse(aom_reader *r, TX_SIZE tx_size,
++
++static void office_trace_coeff(const MACROBLOCKD *xd, int plane, int row, int col,
++                                TX_SIZE size, TX_TYPE type, int eob, const int *q) {
++  int subx = plane ? xd->plane[plane].subsampling_x : 0;
++  int suby = plane ? xd->plane[plane].subsampling_y : 0;
++  int w = get_txb_wide(size), h = get_txb_high(size);
++  fprintf(stderr, "{\"event\":\"residual\",\"block\":[%d,%d,%d,%d],\"type\":%d,\"eob\":%d,\"values\":[",
++      plane, ((xd->mi_col >> subx)+col)*4, ((xd->mi_row >> suby)+row)*4, size, type, eob);
++  for(int y=0; y<h; y++) for(int x=0; x<w; x++)
++      fprintf(stderr, "%s%d", (x || y)?",":"", q[x*h+y]);
++  fprintf(stderr, "]}\n");
++}
++
+@@ -128,0 +143 @@ static uint8_t read_coeffs_txb(const AV1_COMMON *const cm,
++  int office_quant[1024] = {0};
+@@ -153,0 +169 @@ static uint8_t read_coeffs_txb(const AV1_COMMON *const cm,
++    office_trace_coeff(xd,plane,blk_row,blk_col,tx_size,DCT_DCT,0,office_quant);
+@@ -301,0 +318 @@ static uint8_t read_coeffs_txb(const AV1_COMMON *const cm,
++      office_quant[pos] = sign ? -level : level;
+@@ -316,0 +334 @@ static uint8_t read_coeffs_txb(const AV1_COMMON *const cm,
++  office_trace_coeff(xd,plane,blk_row,blk_col,tx_size,tx_type,*eob,office_quant);

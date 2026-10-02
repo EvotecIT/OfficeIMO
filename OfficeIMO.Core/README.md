@@ -822,3 +822,7 @@ cancellation before and after the callback. Static WebP decoding failures do not
 fall through to a caller codec. Animated WebP can select frame zero and reports
 discarded animation. Drawing exports retain caller provenance and distinguish
 visible failure placeholders from decoded source pixels.
+
+### Bounded AVIF still images
+
+AVIF decoding accepts bounded, whole, untransformed 8/10-bit YUV420 color or monochrome grayscale items with reduced or full still-picture headers and optional same-depth full-range monochrome alpha. Full headers use one unlayered operating point, no timing/decoder model, and one shown key frame in a combined frame OBU. Primary grayscale items may use full or limited range; an auxiliary alpha plane must use full range. It produces eight-bit straight-alpha RGBA using the declared CICP range and supported non-constant-luminance matrix. It does not apply ICC, transfer-function or gamut transforms. Image grids, image sequences, twelve-bit coding, crop/rotation properties and applied film grain are outside this decoder contract. The original encoded buffer, reconstruction planes and final pixels share the retained-memory limit; cancellation and work limits apply through reconstruction and composition. Malformed selected items and limit failures cannot invoke a caller codec. A validated item with an unsupported color matrix may use the explicitly supplied `ImageCodec`.

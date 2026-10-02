@@ -1,0 +1,14 @@
+diff --git a/av1/common/cfl.c b/av1/common/cfl.c
+index 7d4f07f..7e1b18c 100644
+--- a/av1/common/cfl.c
++++ b/av1/common/cfl.c
+@@ -435,0 +436,2 @@ void cfl_store_block(MACROBLOCKD *const xd, BLOCK_SIZE bsize, TX_SIZE tx_size) {
++
++#include "OfficeCflProbe.inc"
+diff --git a/av1/common/reconintra.c b/av1/common/reconintra.c
+index 33016a2..c65ed39 100644
+--- a/av1/common/reconintra.c
++++ b/av1/common/reconintra.c
+@@ -1895,0 +1896,2 @@ void av1_init_intra_predictors(void) {
++
++#include "OfficePredictionProbe.inc"

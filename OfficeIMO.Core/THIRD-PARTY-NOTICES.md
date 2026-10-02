@@ -28,3 +28,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 ## WebM VP8 reference
 
 The managed VP8 decoder follows RFC 6386 and was checked against the WebM libwebp reference. The WebM reference license and patent grant are retained in `Licenses/libvpx-LICENSE.txt` and `Licenses/libvpx-PATENTS.txt`. No libwebp or libvpx runtime dependency is introduced.
+
+## AV1 reference data
+
+The managed AVIF decoder implements a bounded AV1 still-image subset. Generated default probability tables are checked against hash-pinned AOM v3.13.1 numeric data; quantizer and prediction tables are generated from the AV1 1.0.0 Errata 1 specification. The AOM reference license and patent notice are retained in `Licenses/aom-LICENSE.txt` and `Licenses/aom-PATENTS.txt`.
+
+Fixture generators under `OfficeIMO.Drawing.Tests/TestAssets/Avif` use isolated native AOM, libavif and dav1d reference tools. They are opt-in test tooling and retain the downloaded references' notices beside their sources. OfficeIMO.Core adds no native codec or external runtime package dependency.

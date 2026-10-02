@@ -78,4 +78,7 @@
     <Reference Include="System.Net.Http" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Raster/Avif/OfficeAv1QuantizerMatrices.bin" LogicalName="OfficeIMO.Core.Av1QuantizerMatrices" />
+  </ItemGroup>
 </Project>
