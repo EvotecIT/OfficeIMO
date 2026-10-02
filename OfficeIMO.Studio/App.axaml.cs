@@ -23,6 +23,7 @@ public sealed partial class App : Application {
         Services ??= StudioApplicationServices.CreateDefault();
         StudioLocalization.Configure(Services.Localizer);
         AvaloniaXamlLoader.Load(this);
+        InitializeNativeApplicationMenu();
         ApplyDensity();
         RequestedThemeVariant = Services.Preferences.Current.Theme switch {
             StudioThemePreference.Light => Avalonia.Styling.ThemeVariant.Light,
@@ -31,14 +32,6 @@ public sealed partial class App : Application {
             _ => Avalonia.Styling.ThemeVariant.Default
         };
         Services.Preferences.Changed += OnPreferencesChanged;
-    }
-
-    private void OnNativeSettingsClick(object? sender, EventArgs eventArgs) {
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: MainWindow window }) {
-            window.ViewModel.ShowSettingsCommand.Execute(null);
-            window.Show();
-            window.Activate();
-        }
     }
 
     private void OnPreferencesChanged(object? sender, EventArgs eventArgs) {

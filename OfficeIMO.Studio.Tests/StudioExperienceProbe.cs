@@ -13,7 +13,7 @@ namespace OfficeIMO.Studio.Tests;
 internal static class StudioExperienceProbe {
     internal static int Run(string root, string scenario, int width, int height, string culture, string theme) {
         if (scenario is not ("provenance" or "home" or "document" or "tabs" or "assistant" or "connections" or "ocr" or "convert" or "invoices" or "invoices-standards" or "watermark" or "watermark-image")
-            || width < 960 || height < 620 || !Enum.TryParse(theme, true, out StudioThemePreference appearance)) return 2;
+            || width < 390 || height < 480 || !Enum.TryParse(theme, true, out StudioThemePreference appearance)) return 2;
         root = Path.GetFullPath(root);
         Directory.CreateDirectory(root);
         var paths = new StudioDataPaths(Path.Combine(root, "profile"));

@@ -1,0 +1,35 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- The same navigation commands use a labelled sidebar on macOS. -->
+  <Style Selector="Window.apple Grid#NavigationRail"><Setter Property="Margin" Value="10,12,10,12" /><Setter Property="RowSpacing" Value="4" /></Style>
+  <Style Selector="Window.apple Grid#NavigationRail ToggleButton.nav"><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="MinHeight" Value="38" /><Setter Property="Padding" Value="12,8" /><Setter Property="CornerRadius" Value="7" /></Style>
+  <Style Selector="Window.apple Grid#NavigationRail StackPanel.navLabel"><Setter Property="Orientation" Value="Horizontal" /><Setter Property="Spacing" Value="12" /><Setter Property="HorizontalAlignment" Value="Left" /></Style>
+  <Style Selector="Window.apple Grid#NavigationRail ToggleButton.nav TextBlock"><Setter Property="FontSize" Value="13" /><Setter Property="MaxWidth" Value="150" /><Setter Property="TextAlignment" Value="Left" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
+  <Style Selector="Window.apple Border.railIndicator"><Setter Property="IsVisible" Value="False" /></Style>
+  <Style Selector="Window.apple Grid#NavigationRail ToggleButton.nav:checked /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioNavActiveBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
+  <Style Selector="Window.apple Grid#NavigationRail ToggleButton.nav:checked"><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
+  <!-- Floating document tabs retain their selected state independently of hover and keyboard focus. -->
+  <Style Selector="Window.apple ListBox#DocumentTabs"><Setter Property="Padding" Value="4" /></Style>
+  <Style Selector="Window.apple ListBox#DocumentTabs ListBoxItem"><Setter Property="Margin" Value="0,0,4,0" /></Style>
+  <Style Selector="Window.apple Border.documentTab">
+    <Setter Property="CornerRadius" Value="9" /><Setter Property="Height" Value="34" />
+    <Setter Property="BorderThickness" Value="1" /><Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Window.apple ListBoxItem:selected Border.documentTab">
+    <Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+    <Setter Property="BoxShadow" Value="0 1 3 0 #18000000" />
+  </Style>
+  <Style Selector="Window.apple ListBoxItem:selected TextBlock.tabTitle"><Setter Property="FontWeight" Value="SemiBold" /></Style>
+  <Style Selector="Window.apple Grid#NavigationRail ToggleButton.nav PathIcon"><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /></Style>
+  <Style Selector="Window.apple Border.floating"><Setter Property="CornerRadius" Value="22" /><Setter Property="Padding" Value="8,5" /></Style>
+  <Style Selector="Window.apple Button.icon, Window.apple ToggleButton.icon"><Setter Property="CornerRadius" Value="8" /></Style>
+  <Style Selector="Window.apple Button#CommandSearchButton"><Setter Property="CornerRadius" Value="9" /></Style>
+  <Style Selector="Window.apple TextBlock.pageTitle"><Setter Property="FontSize" Value="26" /></Style>
+  <Style Selector="Window.apple Border.kbd"><Setter Property="BorderThickness" Value="1" /></Style>
+  <Style Selector="Window.apple Border.kbd TextBlock"><Setter Property="FontFamily" Value="Helvetica Neue" /></Style>
+  <Style Selector="Window.narrow Button.touchNav, Window.narrow ToggleButton.touchNav"><Setter Property="MinHeight" Value="52" /><Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="Padding" Value="2,4" /></Style>
+  <Style Selector="Window.narrow Button.icon, Window.narrow ToggleButton.icon"><Setter Property="MinWidth" Value="44" /><Setter Property="MinHeight" Value="44" /></Style>
+  <Style Selector="Window.narrow Button.tool, Window.narrow Button.primary, Window.narrow ComboBox"><Setter Property="MinHeight" Value="44" /></Style>
+  <Style Selector="Window.narrow Border.kbd"><Setter Property="IsVisible" Value="False" /></Style>
+  <Style Selector="Window.narrow TextBlock.pageTitle"><Setter Property="FontSize" Value="24" /></Style>
+</Styles>
