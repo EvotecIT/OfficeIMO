@@ -62,8 +62,9 @@ public class HtmlMultiFormatReport {
         Assert.Equal(46.75D, usage.CellAt(6, 3).GetValue<double>());
         Assert.Equal("00130", usage.CellAt(5, 2).GetValue<string>());
         Assert.False(usage.CellAt(5, 4).GetValue<bool>());
-        Assert.Equal(new[] { "A2:A3", "A4:A5", "A6:B6", "D6:E6" },
+        Assert.Equal(new[] { "A2:A3", "A4:A5", "A6:B6", "A8:E8", "D6:E6" },
             usage.GetMergedRanges().Select(range => range.A1Range).OrderBy(range => range).ToArray());
+        Assert.Equal("Service usage", usage.CellAt(8, 1).GetValue<string>());
         ExcelSheet actions = Assert.Single(reopened.Sheets, sheet => sheet.Name == "Next actions");
         Assert.True(actions.TryGetCellValueSnapshot(2, 3, out ExcelCellValueSnapshot? due));
         Assert.Equal(new DateTime(2026, 9, 8), due!.DateTimeValue);
