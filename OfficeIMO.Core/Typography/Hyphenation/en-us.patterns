@@ -42,7 +42,7 @@
 # These patterns are based on the Hyphenation Exception Log
 # published in TUGboat, Volume 10 (1989), No. 3, pp. 337-341,
 # and a large number of incorrectly hyphenated words not yet published.
-# If added to Liang's before the closing bracket } of
+# If added to Liang's before the closing bracket } of 
 .ach4
 .ad4der
 .af1t
