@@ -45,8 +45,8 @@ public sealed class ReaderQualifiedCapabilityTests {
     public void TokenizerBridgePreservesUnicodeAndHonorsActualCounts(string sample) {
         string text = string.Concat(Enumerable.Repeat(sample, 20));
         int rangeCalls = 0;
-        var counter = new ReaderDelegateTokenCounter("application.scalar-v1", value => value.EnumerateRunes().Count(),
-            (prefix, source, start, length) => { rangeCalls++; return prefix.EnumerateRunes().Count() + source.Substring(start, length).EnumerateRunes().Count(); });
+        var counter = new ReaderDelegateTokenCounter("application.scalar-v1", CountScalars,
+            (prefix, source, start, length) => { rangeCalls++; return CountScalars(prefix) + CountScalars(source.Substring(start, length)); });
         var result = ReaderHierarchicalChunker.Chunk(new[] { new ReaderChunk { Id = "source", Text = text } },
             new ReaderHierarchicalChunkingOptions { MaxTokens = 8, OverlapTokens = 0, IncludeContextInText = false, TokenCounter = counter });
         Assert.True(rangeCalls > 0);
@@ -57,5 +57,13 @@ public sealed class ReaderQualifiedCapabilityTests {
             Assert.Equal(chunk.Text, new UTF8Encoding(false, true).GetString(new UTF8Encoding(false, true).GetBytes(chunk.Text)));
         });
         Assert.Equal(counter.Id, result.TokenCounterId);
+    }
+
+    private static int CountScalars(string value) {
+        int count = 0;
+        for (int index = 0; index < value.Length; index++, count++) {
+            if (char.IsHighSurrogate(value[index]) && index + 1 < value.Length && char.IsLowSurrogate(value[index + 1])) index++;
+        }
+        return count;
     }
 }

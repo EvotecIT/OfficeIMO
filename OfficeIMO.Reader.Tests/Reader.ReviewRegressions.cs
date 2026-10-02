@@ -181,7 +181,7 @@ public sealed class ReaderReviewRegressionTests {
         byte[] bytes = Encoding.UTF8.GetBytes(new string('a', 100_000));
         var reader = new OfficeDocumentReaderBuilder().AddHandler(new ReaderHandlerRegistration {
             Id = "prefix", Extensions = new[] { ".prefix" }, SupportsIncrementalStream = true,
-            InputLimitProbeBytes = 8, ResolveMaxInputBytesFromPrefix = prefix => { Assert.Equal("aaaaaaaa", Encoding.UTF8.GetString(prefix.Span)); return 200_000; },
+            InputLimitProbeBytes = 8, ResolveMaxInputBytesFromPrefix = prefix => { Assert.Equal("aaaaaaaa", Encoding.UTF8.GetString(prefix.ToArray())); return 200_000; },
             ReadStream = (input, _, _, _) => ReadOne(input)
         }).Build();
         using var input = new CountingStream(bytes);
@@ -213,7 +213,7 @@ public sealed class ReaderReviewRegressionTests {
         var first = reader.ReadDocument(bytes, "one.eml");
         var second = reader.ReadDocument(bytes, "two.eml");
         Assert.Equal(first.Chunks.Select(c => c.Text), second.Chunks.Select(c => c.Text));
-        Assert.All(first.Chunks.Zip(second.Chunks), pair => Assert.NotEqual(pair.First.ChunkHash, pair.Second.ChunkHash));
+        Assert.All(first.Chunks.Zip(second.Chunks, (left, right) => (First: left, Second: right)), pair => Assert.NotEqual(pair.First.ChunkHash, pair.Second.ChunkHash));
         var refreshed = new OfficeDocumentReaderBuilder().AddEmailHandler()
             .AddProcessor(new DelegateOfficeDocumentProcessor("identity", (result, _) => result)).Build()
             .ReadDocument(bytes, "one.eml");
