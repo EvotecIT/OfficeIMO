@@ -15,7 +15,7 @@ public sealed partial class IWorkBoundaryTests {
         IWorkTable table = Assert.Single(Assert.Single(source.ReadNumbers().Sheets).Tables);
         Assert.Equal(new double?[] { 20.0, 10, 30 }, Enumerable.Range(1, 3).Select(table.GetRowHeight));
         Assert.Equal(new double?[] { 40.0, 20 }, Enumerable.Range(1, 2).Select(table.GetColumnWidth));
-        using var result = source.ToExcelDocumentResult();
+        using var result = source.ToExcelDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback, string.Join("; ", result.Report.Diagnostics.Select(d => d.Code + ": " + d.Message)));
         using var saved = new MemoryStream();
         result.Value.Save(saved);

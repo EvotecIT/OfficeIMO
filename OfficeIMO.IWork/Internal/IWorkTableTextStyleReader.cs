@@ -46,7 +46,7 @@ internal sealed class IWorkTableTextStyleReader {
         bool complete = true;
         IWorkArchiveRecord? record = _catalog.ReadTextStyle(key, ref complete);
         IWorkParagraphStyle? style = record == null ? null : _resolver.Read(record.Identifier, ref complete);
-        if (!complete) { FullyReconstructed = false; _catalog.RecordTextStyleFailure(key); style = null; }
+        if (!complete) { FullyReconstructed = false; _catalog.RecordTextStyleFailure(key); }
         _selected.Add(key, style);
         return style;
     }

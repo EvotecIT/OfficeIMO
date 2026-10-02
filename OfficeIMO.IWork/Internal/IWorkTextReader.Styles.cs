@@ -3,16 +3,17 @@ namespace OfficeIMO.IWork.Internal;
 internal static partial class IWorkTextReader {
     private static IWorkParagraphStyle ResolveParagraphStyle(IWorkObjectIndex index,
         ulong? identifier, IWorkProjectionBudget projectionBudget,
-        Dictionary<ulong, Cached<IWorkParagraphStyle>> cache,
+        Dictionary<ulong, ParagraphStyleCacheEntry> cache,
         bool tolerateStyleDepth,
         IWorkSourceReferenceIssueCollector references,
         ref bool complete) {
         if (!identifier.HasValue) return new ParagraphStyleData().ToPublic();
-        if (cache.TryGetValue(identifier.Value, out Cached<IWorkParagraphStyle> cached)) {
+        if (cache.TryGetValue(identifier.Value, out ParagraphStyleCacheEntry cached)) {
             if (!cached.IsComplete) complete = false;
             return cached.Value;
         }
         bool resolvedCompletely = true;
+        bool layoutComplete = true;
         var data = new ParagraphStyleData();
         var chain = IWorkStyleReader.ReadChain(index, identifier.Value,
             projectionBudget.MaximumTextStyleInheritanceDepth,
@@ -33,11 +34,14 @@ internal static partial class IWorkTextReader {
                 references.Declarations.Record(chain[styleIndex].Record, "12", message.FieldCount(12));
                 resolvedCompletely = false;
             }
-            if (paragraph != null) OverlayParagraph(paragraph, data, chain[styleIndex].Record, references, ref resolvedCompletely);
+            if (paragraph != null) {
+                OverlayParagraph(paragraph, data, chain[styleIndex].Record, references, ref resolvedCompletely);
+                AssessUnmappedParagraphLayout(paragraph, chain[styleIndex].Record, references, ref layoutComplete);
+            }
         }
         IWorkParagraphStyle result = data.ToPublic();
-        cache.Add(identifier.Value, new Cached<IWorkParagraphStyle>(result, resolvedCompletely));
-        if (!resolvedCompletely) complete = false;
+        cache.Add(identifier.Value, new ParagraphStyleCacheEntry(result, resolvedCompletely && layoutComplete, resolvedCompletely));
+        if (!resolvedCompletely || !layoutComplete) complete = false;
         return result;
     }
 

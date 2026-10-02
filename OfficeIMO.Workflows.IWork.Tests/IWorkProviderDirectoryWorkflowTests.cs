@@ -14,9 +14,6 @@ public sealed class IWorkProviderDirectoryWorkflowTests {
     public async Task Provider_packages_convert_from_opaque_locations(string kind, string route, string target) {
         using var package = new Package(kind, target);
         var request = package.Request(route);
-        if (kind == "key") request.RegisteredConversionSettings = new IWorkWorkflowSettings {
-            ConversionOptions = new() { AllowPartialEditableReconstruction = true }
-        };
         var result = await IWorkWorkflow.CreateRunner().RunAsync(request);
         Assert.True(result.Succeeded, result.Summary);
         Assert.Contains(result.Diagnostics, d => d.Code == "OutputReopened");
@@ -156,6 +153,9 @@ public sealed class IWorkProviderDirectoryWorkflowTests {
         internal OfficeWorkflowRequest Request(string route, int maximumEntries = 10000) => new() {
             Operation = OfficeWorkflowOperation.Convert, ConversionRouteId = route,
             InputPath = "provider://selected/package", OutputPath = Output,
+            RegisteredConversionSettings = new IWorkWorkflowSettings {
+                ConversionOptions = new() { AllowPartialEditableReconstruction = true, RequireCompleteVisualCoverage = true }
+            },
             InputDirectoryPackage = new("source." + _kind, new(Enumerate), new Guard(() => { RootChecks++; return !RootChanged; }), maximumEntries)
         };
         private async IAsyncEnumerable<OfficeWorkflowDirectoryEntry> Enumerate(OfficeWorkflowDirectoryReadOptions options,

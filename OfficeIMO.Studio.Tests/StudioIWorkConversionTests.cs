@@ -38,12 +38,12 @@ public sealed class StudioIWorkConversionTests {
             Assert.False(job.AllowIncompleteVisualPreview);
             Assert.False(job.AllowPartialEditableReconstruction);
             await queue.RunQueueCommand.ExecuteAsync(null);
+            // These native styles contain paragraph layout that requires explicit partial acceptance.
+            Assert.Equal(ConversionJobState.Failed, job.State);
+            Assert.False(job.HasOutput);
+            job.AllowPartialEditableReconstruction = true;
+            await queue.RetryFailedCommand.ExecuteAsync(null);
             if (route == "keynote-pptx") {
-                // This native table's paragraph pagination needs explicit partial acceptance.
-                Assert.Equal(ConversionJobState.Failed, job.State);
-                Assert.False(job.HasOutput);
-                job.AllowPartialEditableReconstruction = true;
-                await queue.RetryFailedCommand.ExecuteAsync(null);
                 Assert.Contains(job.ConversionEvidence!.FidelityDiagnostics,
                     diagnostic => diagnostic.Code == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED");
             }
@@ -139,6 +139,7 @@ public sealed class StudioIWorkConversionTests {
             var queue = model.ConversionWorkbench;
             queue.AddDroppedPaths([source]);
             var job = Assert.Single(queue.Jobs);
+            job.AllowPartialEditableReconstruction = true;
             var view = new ConversionWorkbenchView { DataContext = model };
             var window = new Window { Width = width, Height = height, Content = view };
             try {
@@ -195,6 +196,7 @@ public sealed class StudioIWorkConversionTests {
             var queue = model.ConversionWorkbench;
             queue.AddDroppedPaths([source]);
             var job = Assert.Single(queue.Jobs);
+            job.AllowPartialEditableReconstruction = true;
             await queue.RunQueueCommand.ExecuteAsync(null);
             Assert.Equal(ConversionJobState.Completed, job.State);
             // Supply the retained workflow-fact boundary for a single undecoded declaration.

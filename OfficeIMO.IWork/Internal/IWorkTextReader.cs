@@ -35,7 +35,7 @@ internal static partial class IWorkTextReader {
             storage, projectionBudget, references, ref complete, static type => type is CharacterStyleArchive or ParagraphStyleArchive);
         IReadOnlyList<AttributeBoundary> hyperlinks = ReadObjectTable(message, 11, text.Length,
             storage, projectionBudget, references, ref complete, static type => type == HyperlinkArchive);
-        var paragraphStyleCache = new Dictionary<ulong, Cached<IWorkParagraphStyle>>();
+        var paragraphStyleCache = new Dictionary<ulong, ParagraphStyleCacheEntry>();
         var listStyleCache = new Dictionary<(ulong Identifier, double? LeftIndentPoints, int? ExplicitLevel),
             Cached<(int Level, string? Label)>>();
         var textStyleCache = new Dictionary<TextStyleCacheKey, Cached<IWorkTextStyle>>();

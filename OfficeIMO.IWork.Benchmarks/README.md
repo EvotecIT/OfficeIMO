@@ -30,7 +30,7 @@ processor placement. Defaults use inherited placement; macOS affinity is unquali
 
 `LoadProject` opens a ZIP and materializes its selected projection. `ConvertSave`
 opens, converts and saves through the normal destination API. Input construction
-and full semantic readback are outside measurement. Conversion requires a complete
+and full semantic readback are outside measurement. Synthetic conversion requires a complete
 editable reconstruction report; saved DOCX, XLSX and PPTX packages are reopened and
 checked before a sample succeeds. `-Scale`, `-Kind` and `-Operation` select cases;
 `-WarmupCount` and `-IterationCount` default to two and five. A quick smoke run uses
@@ -41,7 +41,10 @@ and `nim-iwork/simple.numbers` fixtures in the [licensed corpus](../OfficeIMO.Te
 Their SHA-256 hashes are checked before execution. Pages validates all three body
 paragraphs, including the empty paragraph; Numbers validates the complete 3×3 grid,
 coordinates, value types and contents. Both operations use the same reader and
-strict editable-conversion path as the synthetic cases. Saved packages are reopened
+editable-conversion owners as the synthetic cases, with explicit partial reconstruction
+for unassessed paragraph layout. They still reject preview fallback and verify all
+listed content. The conversion policy is recorded in case variables so these runs
+are not compared with earlier strict-policy samples. Saved packages are reopened
 before a sample succeeds. These small native inputs complement the scale matrix;
 they do not establish large native-package budgets. Native Keynote runtime cases
 remain unqualified, so `Native` requires an explicit Pages/Numbers kind selection.

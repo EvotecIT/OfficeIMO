@@ -15,9 +15,6 @@ public sealed class IWorkDirectoryWorkflowTests {
         using var bundle = new Bundle(kind, target);
         var request = bundle.Request(route);
         request.InputPath += Path.DirectorySeparatorChar;
-        if (kind == "key") request.RegisteredConversionSettings = new IWorkWorkflowSettings {
-            ConversionOptions = new IWorkConversionOptions { AllowPartialEditableReconstruction = true, RequireCompleteVisualCoverage = true }
-        };
         var result = await IWorkWorkflow.CreateRunner().RunAsync(request);
         Assert.True(result.Succeeded, result.Summary);
         Assert.True(File.Exists(bundle.Output));
@@ -189,7 +186,10 @@ public sealed class IWorkDirectoryWorkflowTests {
         public string Input { get; }
         public string Output { get; }
         public OfficeWorkflowRequest Request(string route) => new() { Operation = OfficeWorkflowOperation.Convert,
-            InputPath = Input, OutputPath = Output, ConversionRouteId = route };
+            InputPath = Input, OutputPath = Output, ConversionRouteId = route,
+            RegisteredConversionSettings = new IWorkWorkflowSettings {
+                ConversionOptions = new() { AllowPartialEditableReconstruction = true, RequireCompleteVisualCoverage = true }
+            } };
         public void Dispose() => Directory.Delete(Root, recursive: true);
     }
 }

@@ -40,7 +40,7 @@ public sealed class IWorkNumberFormatCorpusTests {
     [Fact]
     public void Independent_number_formats_survive_saved_xlsx_and_match_producer_display_text() {
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Fixture("json")));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture("numbers"));
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture("numbers"), conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED");
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED");
@@ -64,7 +64,7 @@ public sealed class IWorkNumberFormatCorpusTests {
 
     [Fact]
     public void Independent_red_number_styles_reach_the_image_snapshot() {
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture("numbers"));
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture("numbers"), conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         ExcelRangeVisualSnapshot snapshot = reopened.Sheets[0].Range("B1:B13").CreateVisualSnapshot();

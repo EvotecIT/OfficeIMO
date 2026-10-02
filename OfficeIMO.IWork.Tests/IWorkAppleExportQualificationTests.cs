@@ -26,7 +26,8 @@ public sealed class IWorkAppleExportQualificationTests {
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(sourcePath,
             conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
-        Assert.False(result.Report.IsPartialEditableReconstruction);
+        Assert.True(result.Report.IsPartialEditableReconstruction);
+        Assert.Contains(result.Report.SourceDeclarationIssues, issue => issue.FieldPath == "12/13" || issue.FieldPath == "12/25");
         Assert.Equal(2, result.WorksheetMappings.Count);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_NUMBERS_ERROR_VALUE_APPROXIMATED"
@@ -77,7 +78,8 @@ public sealed class IWorkAppleExportQualificationTests {
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(
             Path.Combine(corpus, "numbers-parser", "test-10-formulas.numbers"),
             conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
-        Assert.False(result.Report.IsPartialEditableReconstruction);
+        Assert.True(result.Report.IsPartialEditableReconstruction);
+        Assert.Contains(result.Report.SourceDeclarationIssues, issue => issue.FieldPath == "12/13" || issue.FieldPath == "12/25");
         using var saved = new MemoryStream();
         result.Value.Save(saved); saved.Position = 0;
         using var converted = new ZipArchive(saved, ZipArchiveMode.Read, leaveOpen: true);
@@ -117,7 +119,8 @@ public sealed class IWorkAppleExportQualificationTests {
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(sourcePath,
             conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
-        Assert.False(result.Report.IsPartialEditableReconstruction);
+        Assert.True(result.Report.IsPartialEditableReconstruction);
+        Assert.Contains(result.Report.SourceDeclarationIssues, issue => issue.FieldPath == "12/13" || issue.FieldPath == "12/25");
         var tables = result.Projection.Sheets.SelectMany(sheet => sheet.Tables).ToArray();
         using var saved = new MemoryStream();
         result.Value.Save(saved); saved.Position = 0;

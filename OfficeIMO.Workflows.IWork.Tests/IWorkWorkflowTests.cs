@@ -16,9 +16,6 @@ public sealed class IWorkWorkflowTests {
         OfficeWorkflowRunner runner = IWorkWorkflow.CreateRunner();
         Assert.Contains(runner.ConversionRoutes, item => item.Id == route && item.CanExecute);
         var request = files.Request(route);
-        if (source == "key") request.RegisteredConversionSettings = new IWorkWorkflowSettings {
-            ConversionOptions = new IWorkConversionOptions { AllowPartialEditableReconstruction = true, RequireCompleteVisualCoverage = true }
-        };
         OfficeWorkflowResult result = await runner.RunAsync(request);
         Assert.True(result.Succeeded, result.Summary);
         Assert.True(File.Exists(files.Output));
@@ -129,7 +126,9 @@ public sealed class IWorkWorkflowTests {
         policy.RequireCompleteVisualCoverage = false;
         policy.Mode = IWorkConversionMode.EditableOnly;
         reading.MaximumPackageBytes = 1;
-        OfficeWorkflowResult result = await runner.RunAsync(files.Request("pages-docx"));
+        var request = files.Request("pages-docx");
+        request.RegisteredConversionSettings = null; // Exercise the runner's captured policy.
+        OfficeWorkflowResult result = await runner.RunAsync(request);
         Assert.False(result.Succeeded);
         Assert.Contains("complete", result.Summary, StringComparison.OrdinalIgnoreCase);
         Assert.False(File.Exists(files.Output));
@@ -385,7 +384,10 @@ public sealed class IWorkWorkflowTests {
         public string Input { get; }
         public string Output { get; }
         public OfficeWorkflowRequest Request(string route) => new() { InputPath = Input, OutputPath = Output,
-            Operation = OfficeWorkflowOperation.Convert, ConversionRouteId = route };
+            Operation = OfficeWorkflowOperation.Convert, ConversionRouteId = route,
+            RegisteredConversionSettings = new IWorkWorkflowSettings {
+                ConversionOptions = new() { AllowPartialEditableReconstruction = true, RequireCompleteVisualCoverage = true }
+            } };
         public void Dispose() => Directory.Delete(Root, recursive: true);
     }
 }

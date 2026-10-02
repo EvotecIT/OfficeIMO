@@ -65,8 +65,9 @@ public sealed class StudioIWorkProviderPackageTests {
                     frame.Save(Path.Combine(visual, $"package-intake-{width}.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
                 }
             } finally { window.Close(); }
-            await queue.RunQueueCommand.ExecuteAsync(null);
             var job = Assert.Single(queue.Jobs);
+            job.AllowPartialEditableReconstruction = true;
+            await queue.RunQueueCommand.ExecuteAsync(null);
             Assert.Equal(replace ? ConversionJobState.Failed : ConversionJobState.Completed, job.State);
             Assert.Equal(!replace, job.HasOutput);
             Assert.Contains(job.Diagnostics, d => d.Code == "SourceSnapshot" && d.Details["snapshotKind"] == "DirectoryPackage");

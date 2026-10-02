@@ -115,7 +115,8 @@ public sealed class IWorkCorpusTests {
     public void Reads_current_pages_text_and_preserves_unrecognized_records() {
         IWorkSourceDocument source = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.pages"));
         IWorkPagesProjection pages = source.ReadPages();
-        IWorkConversionReport report = pages.CreateConversionReport(IWorkProjectionKind.EditableReconstruction);
+        using var converted = source.ToWordDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        IWorkConversionReport report = converted.Report;
 
         Assert.Equal("hello pages", pages.Paragraphs[0]);
         Assert.Contains(pages.Paragraphs, paragraph => paragraph.Contains(
@@ -148,7 +149,8 @@ public sealed class IWorkCorpusTests {
             Fixture("numbers-parser/test-10-formulas.numbers")).ReadNumbers();
         IWorkTable table = numbers.Sheets[0].Tables[0];
 
-        Assert.True(numbers.HasEditableContent);
+        Assert.False(numbers.HasEditableContent);
+        Assert.True(numbers.HasRecoverableContent);
         Assert.DoesNotContain(numbers.Diagnostics, d => d.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED");
         Assert.Equal(IWorkCellUnsupportedFeatures.None, table.GetCell(3, 3)!.UnsupportedFeatures);
         Assert.Equal("dd/MM/y HH:mm", table.GetCell(3, 3)!.NumberFormat!.DateTimeFormat!.SourcePattern);
@@ -171,14 +173,15 @@ public sealed class IWorkCorpusTests {
         IWorkNumbersProjection numbers = IWorkSourceDocument.Open(Fixture(RelativePath)).ReadNumbers();
         IWorkTable first = numbers.Sheets[0].Tables[0];
 
-        Assert.True(numbers.HasEditableContent);
+        Assert.False(numbers.HasEditableContent);
+        Assert.True(numbers.HasRecoverableContent);
         Assert.Equal(5, first.MergedRanges.Count);
         Assert.Contains(first.MergedRanges, merge => merge.FirstRow == 2 && merge.FirstColumn == 1
             && merge.LastRow == 2 && merge.LastColumn == 2);
         Assert.Contains(first.MergedRanges, merge => merge.FirstRow == 7 && merge.FirstColumn == 4
             && merge.LastRow == 8 && merge.LastColumn == 5);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture(RelativePath));
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture(RelativePath), conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.Equal(5, result.Value.Sheets[0].GetMergedRanges().Count);
         Assert.Contains(result.Value.Sheets[0].GetMergedRanges(), merge => merge.A1Range == "A2:B2");
@@ -200,7 +203,7 @@ public sealed class IWorkCorpusTests {
             conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
 
         Assert.False(result.IsVisualFallback);
-        Assert.False(result.Report.IsPartialEditableReconstruction);
+        Assert.True(result.Report.IsPartialEditableReconstruction);
         ExcelSheet first = result.Value.Sheets[0];
         Assert.Equal("A1+A2", first.GetFormulaText(2, 2));
         Assert.Equal("SUM(A1:A2)", first.GetFormulaText(6, 2));
@@ -454,7 +457,8 @@ public sealed class IWorkCorpusTests {
             Fixture("keynotekit/tabledeck-v15.2.1.key")).ReadKeynote();
         IWorkTable table = Assert.Single(Assert.Single(tableDeck.Slides).Tables);
 
-        Assert.True(tableDeck.HasEditableContent);
+        Assert.False(tableDeck.HasEditableContent);
+        Assert.True(tableDeck.HasRecoverableContent);
         Assert.Equal((3, 3), (table.RowCount, table.ColumnCount));
         Assert.Equal("Product", table.GetCell(1, 1)!.Value);
         Assert.Equal(24_000d, Assert.IsType<double>(table.GetCell(2, 3)!.Value), 10);
@@ -510,8 +514,8 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Owner_adapters_save_and_reopen_semantic_or_visual_outputs() {
-        using var pages = WordIWorkConverter.ConvertPagesToWordResult(Fixture("nim-iwork/simple.pages"));
-        using var numbers = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture("nim-iwork/simple.numbers"));
+        using var pages = WordIWorkConverter.ConvertPagesToWordResult(Fixture("nim-iwork/simple.pages"), conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var numbers = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture("nim-iwork/simple.numbers"), conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         using var keynote = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(Fixture("nim-iwork/simple.key"));
 
         Assert.False(pages.IsVisualFallback);
@@ -589,7 +593,8 @@ public sealed class IWorkCorpusTests {
     public void Can_disable_unsupported_record_reporting_without_discarding_the_source_records() {
         IWorkSourceDocument source = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.pages"),
             new IWorkReadOptions { PreserveSourceRecords = false });
-        IWorkConversionReport report = source.ReadPages().CreateConversionReport(IWorkProjectionKind.EditableReconstruction);
+        using var converted = source.ToWordDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        IWorkConversionReport report = converted.Report;
 
         Assert.NotEmpty(source.Records);
         Assert.Empty(report.PreservedRecords);

@@ -49,17 +49,24 @@ public sealed partial class IWorkRuntimeWorkload {
         }
         if (operation != "ConvertSave") throw new ArgumentException("Unknown iWork workload operation.", nameof(operation));
         using var saved = new MemoryStream();
+        var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = _native };
         if (_kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult();
-            result.Report.RequireCompleteEditableReconstruction(); result.Value.Save(saved);
+            using var result = source.ToWordDocumentResult(policy);
+            ValidateConversionPolicy(result.Report); result.Value.Save(saved);
         } else if (_kind == IWorkDocumentKind.Numbers) {
-            using var result = source.ToExcelDocumentResult();
-            result.Report.RequireCompleteEditableReconstruction(); result.Value.Save(saved);
+            using var result = source.ToExcelDocumentResult(policy);
+            ValidateConversionPolicy(result.Report); result.Value.Save(saved);
         } else {
-            using var result = source.ToPowerPointPresentationResult();
-            result.Report.RequireCompleteEditableReconstruction(); result.Value.Save(saved);
+            using var result = source.ToPowerPointPresentationResult(policy);
+            ValidateConversionPolicy(result.Report); result.Value.Save(saved);
         }
         _output = saved.ToArray();
+    }
+
+    private void ValidateConversionPolicy(IWorkConversionReport report) {
+        if (report.ProjectionKind != IWorkProjectionKind.EditableReconstruction)
+            throw new InvalidDataException("Runtime workload requires editable output.");
+        if (!_native) report.RequireCompleteEditableReconstruction();
     }
 
     /// <summary>Releases materialized results after validation; retains input and verified-unit metadata.</summary>

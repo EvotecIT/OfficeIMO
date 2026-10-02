@@ -39,7 +39,7 @@ public sealed class IWorkDateTimeFormatCorpusTests {
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "numbers-parser", "date-formats.json")));
         var package = manifest.RootElement.GetProperty("packages").EnumerateArray()
             .Single(p => p.GetProperty("source").GetString() == "numbers-parser/test-10-formulas.numbers");
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(Path.Combine(root, package.GetProperty("source").GetString()!));
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(Path.Combine(root, package.GetProperty("source").GetString()!), conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_DATE_DISPLAY_APPROXIMATED");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;

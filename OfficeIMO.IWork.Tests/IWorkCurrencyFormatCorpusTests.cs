@@ -38,7 +38,7 @@ public sealed class IWorkCurrencyFormatCorpusTests {
     [Fact]
     public void Saved_currency_amounts_keep_identifiers_and_explicit_display_approximation() {
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Fixture("json")));
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture("numbers"));
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture("numbers"), conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED");
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_CURRENCY_DISPLAY_APPROXIMATED"
