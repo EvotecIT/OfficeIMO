@@ -99,6 +99,7 @@ internal static partial class IWorkTextReader {
     private static void OverlayText(IWorkWireMessage message, TextStyleData data,
         IWorkProjectionBudget projectionBudget, IWorkArchiveRecord record,
         IWorkSourceReferenceIssueCollector references, ref bool complete) {
+        AssessUnmappedTypography(message, record, references.Declarations, ref complete);
         var evidence = new StylePropertyEvidence(record, "11/", references.Declarations);
         OverlayFlag(message, 1, value => data.Bold = value, evidence, ref complete);
         OverlayFlag(message, 2, value => data.Italic = value, evidence, ref complete);
