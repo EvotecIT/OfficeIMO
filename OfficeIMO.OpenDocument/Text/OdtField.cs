@@ -15,13 +15,15 @@ public enum OdtFieldKind {
 /// <summary>An XML-backed ODT field with cached display text.</summary>
 public sealed class OdtField {
     private readonly OdtDocument _document;
-    private readonly XElement _element;
+    private XElement _element;
+    private Func<XElement>? _materializeForEdit;
     private readonly string _partPath;
 
-    internal OdtField(OdtDocument document, XElement element, string partPath) {
+    internal OdtField(OdtDocument document, XElement element, string partPath, Func<XElement>? materializeForEdit = null) {
         _document = document;
         _element = element;
         _partPath = partPath;
+        _materializeForEdit = materializeForEdit;
     }
 
     /// <summary>The field's native ODF kind.</summary>
@@ -37,6 +39,7 @@ public sealed class OdtField {
     public string DisplayText {
         get => OdfTextCodec.Read(_element);
         set {
+            EnsureMaterialized();
             // ODF fields have text-only content in the schema. Whitespace elements
             // used by paragraphs would turn a simple field into invalid XML.
             _element.Value = value ?? string.Empty;
@@ -49,6 +52,7 @@ public sealed class OdtField {
         get => OdfBoolean.TryParseXml((string?)_element.Attribute(OdfNamespaces.Text + "fixed"),
             out bool value) && value;
         set {
+            EnsureMaterialized();
             if (Kind == OdtFieldKind.PageCount && value)
                 throw new NotSupportedException("ODT page-count fields cannot be fixed.");
             _element.SetAttributeValue(OdfNamespaces.Text + "fixed", value ? "true" : null);
@@ -89,4 +93,12 @@ public sealed class OdtField {
         element.Value = displayText ?? string.Empty;
         return element;
     }
+    private XElement EnsureMaterialized() {
+        if (_materializeForEdit != null) {
+            _element = _materializeForEdit();
+            _materializeForEdit = null;
+        }
+        return _element;
+    }
+
 }

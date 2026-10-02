@@ -37,38 +37,61 @@ internal static partial class OpenDocumentReaderAdapter {
 
     private static IEnumerable<ReaderChunk> ReadDocument(OdfDocument document, string sourceName, ReaderOptions options, ReaderOpenDocumentOptions formatOptions,
         CancellationToken cancellationToken) {
+        foreach (ReaderChunk source in ReadUnboundedDocument(document, sourceName, options, formatOptions, new ProjectionBudget(formatOptions.MaxExtractedCharacters), cancellationToken)) {
+            int limit = options.MaxChars > 0 ? options.MaxChars : 8000;
+            if (Math.Max(source.Text?.Length ?? 0, source.Markdown?.Length ?? 0) <= limit) {
+                yield return source;
+                continue;
+            }
+            ReaderChunkHierarchyResult split = ReaderHierarchicalChunker.Chunk(new[] { source }, new ReaderHierarchicalChunkingOptions {
+                MaxTokens = limit, OverlapTokens = 0, MaxInputChunks = 1,
+                IncludeContextInText = false, TokenCounter = CharacterCounter.Instance
+            }, cancellationToken);
+            if (split.Diagnostics.Any(diagnostic => diagnostic.Code == "hierarchical-output-chunk-limit")) {
+                throw new InvalidDataException("OpenDocument character chunking exceeded the output chunk limit.");
+            }
+            foreach (ReaderChunk chunk in split.Chunks) {
+                chunk.TokenEstimate = ReaderHeuristicTokenCounter.Instance.CountTokens(chunk.Text ?? string.Empty);
+                yield return chunk;
+            }
+        }
+    }
+
+    private sealed class ProjectionBudget {
+        private long _remaining;
+        internal ProjectionBudget(long maximum) {
+            if (maximum < 1) throw new ArgumentOutOfRangeException(nameof(ReaderOpenDocumentOptions.MaxExtractedCharacters));
+            _remaining = maximum;
+        }
+        internal string Read(string text) {
+            if (text.Length > _remaining) throw new InvalidDataException("OpenDocument extraction exceeds MaxExtractedCharacters.");
+            _remaining -= text.Length;
+            return text;
+        }
+    }
+
+    private sealed class CharacterCounter : IReaderTokenCounter {
+        internal static readonly CharacterCounter Instance = new CharacterCounter();
+        public string Id => "officeimo.reader.characters";
+        public int CountTokens(string text) => text.Length;
+    }
+
+    private static IEnumerable<ReaderChunk> ReadUnboundedDocument(OdfDocument document, string sourceName, ReaderOptions options, ReaderOpenDocumentOptions formatOptions, ProjectionBudget budget,
+        CancellationToken cancellationToken) {
         if (document is OdtDocument text) {
-            foreach (ReaderChunk chunk in ReadTextDocument(text, sourceName, options, cancellationToken)) yield return chunk;
+            foreach (ReaderChunk chunk in ReadTextDocument(text, sourceName, options, budget, cancellationToken)) yield return chunk;
         } else if (document is OdsDocument spreadsheet) {
-            foreach (ReaderChunk chunk in ReadSpreadsheet(spreadsheet, sourceName, options, formatOptions, cancellationToken)) yield return chunk;
+            foreach (ReaderChunk chunk in ReadSpreadsheet(spreadsheet, sourceName, options, formatOptions, budget, cancellationToken)) yield return chunk;
         } else if (document is OdpPresentation presentation) {
-            foreach (ReaderChunk chunk in ReadPresentation(presentation, sourceName, options, formatOptions, cancellationToken)) yield return chunk;
+            foreach (ReaderChunk chunk in ReadPresentation(presentation, sourceName, options, formatOptions, budget, cancellationToken)) yield return chunk;
         }
     }
 
     private static OdfLoadOptions CreateOpenOptions(ReaderOptions options, ReaderOpenDocumentOptions formatOptions) {
-        var result = new OdfLoadOptions();
+        var result = new OdfLoadOptions { Password = options.OpenPassword };
         if (options.MaxInputBytes.HasValue) result.MaxPackageBytes = options.MaxInputBytes.Value;
         if (formatOptions.MaxXmlCharacters.HasValue) result.MaxXmlCharacters = formatOptions.MaxXmlCharacters.Value;
         return result;
-    }
-
-    private static IEnumerable<string> SplitText(string text, int maxChars) {
-        if (string.IsNullOrWhiteSpace(text)) yield break;
-        int size = maxChars > 0 ? maxChars : 8000;
-        int index = 0;
-        while (index < text.Length) {
-            int length = Math.Min(size, text.Length - index);
-            int end = index + length;
-            if (end < text.Length) {
-                int split = text.LastIndexOf(' ', end - 1, length);
-                if (split > index + Math.Min(128, size / 4)) end = split;
-            }
-            string piece = text.Substring(index, end - index).Trim();
-            if (piece.Length > 0) yield return piece;
-            index = end;
-            while (index < text.Length && char.IsWhiteSpace(text[index])) index++;
-        }
     }
 
     private static string BuildId(string sourceName, string kind, int index, int part = 0) {

@@ -3,50 +3,44 @@ using OfficeIMO.OpenDocument;
 namespace OfficeIMO.Reader.OpenDocument;
 
 internal static partial class OpenDocumentReaderAdapter {
-    private static IEnumerable<ReaderChunk> ReadTextDocument(OdtDocument document, string sourceName, ReaderOptions options,
+    private static IEnumerable<ReaderChunk> ReadTextDocument(OdtDocument document, string sourceName, ReaderOptions options, ProjectionBudget budget,
         CancellationToken cancellationToken) {
         var headings = new string?[10];
         int blockIndex = 0;
         foreach (OdtContentBlock block in document.ContentBlocks) {
             cancellationToken.ThrowIfCancellationRequested();
             if (block.Table != null) {
-                yield return BuildTableChunk(block.Table, sourceName, blockIndex, options, cancellationToken);
+                yield return BuildTableChunk(block.Table, sourceName, blockIndex, options, budget, cancellationToken);
                 blockIndex++;
                 continue;
             }
 
             OdtParagraph paragraph = block.Paragraph!;
-            string text = paragraph.Text.Trim();
+            string text = budget.Read(paragraph.Text).Trim();
             int headingLevel = Math.Max(1, Math.Min(10, paragraph.HeadingLevel ?? 1));
             if (paragraph.IsHeading) {
                 headings[headingLevel - 1] = text;
                 for (int index = headingLevel; index < headings.Length; index++) headings[index] = null;
             }
             string? headingPath = string.Join(" > ", headings.Where(value => !string.IsNullOrWhiteSpace(value))!);
-            int part = 0;
-            foreach (string piece in SplitText(text, options.MaxChars)) {
-                string markdown = paragraph.IsHeading
-                    ? new string('#', Math.Min(6, headingLevel)) + " " + piece
-                    : piece;
-                yield return new ReaderChunk {
-                    Id = BuildId(sourceName, paragraph.IsHeading ? "heading" : "paragraph", blockIndex, part++),
-                    Kind = ReaderInputKind.OpenDocument,
-                    Location = new ReaderLocation {
-                        Path = sourceName,
-                        BlockIndex = blockIndex,
-                        SourceBlockIndex = blockIndex,
-                        SourceBlockKind = paragraph.IsHeading ? "heading" : "paragraph",
-                        HeadingPath = headingPath
-                    },
-                    Text = piece,
-                    Markdown = markdown
-                };
-            }
+            if (text.Length > 0) yield return new ReaderChunk {
+                Id = BuildId(sourceName, paragraph.IsHeading ? "heading" : "paragraph", blockIndex),
+                Kind = ReaderInputKind.OpenDocument,
+                Location = new ReaderLocation {
+                    Path = sourceName,
+                    BlockIndex = blockIndex,
+                    SourceBlockIndex = blockIndex,
+                    SourceBlockKind = paragraph.IsHeading ? "heading" : "paragraph",
+                    HeadingPath = headingPath
+                },
+                Text = text,
+                Markdown = paragraph.IsHeading ? new string('#', Math.Min(6, headingLevel)) + " " + text : text
+            };
             blockIndex++;
         }
     }
 
-    private static ReaderChunk BuildTableChunk(OdtTable table, string sourceName, int blockIndex, ReaderOptions options,
+    private static ReaderChunk BuildTableChunk(OdtTable table, string sourceName, int blockIndex, ReaderOptions options, ProjectionBudget budget,
         CancellationToken cancellationToken) {
         IReadOnlyList<OdtTableRow> rows = table.Rows;
         int maximumRows = options.MaxTableRows > 0 ? options.MaxTableRows : 200;
@@ -61,7 +55,7 @@ internal static partial class OpenDocumentReaderAdapter {
         foreach (OdtTableRow row in selectedRows) {
             cancellationToken.ThrowIfCancellationRequested();
             values.Add(Enumerable.Range(0, columnCount)
-                .Select(index => index < row.Cells.Count ? row.Cells[index].Text : string.Empty).ToArray());
+                .Select(index => index < row.Cells.Count ? budget.Read(row.Cells[index].Text) : string.Empty).ToArray());
         }
         var readerTable = new ReaderTable {
             Title = table.Name,

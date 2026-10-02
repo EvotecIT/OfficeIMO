@@ -46,8 +46,8 @@ public static class OdfCapabilityCatalog {
             "Basic shape attribute animations and fade-in effects can be authored and inspected; advanced timing trees remain preservation-oriented."),
         new OdfCapability("flat-xml", "Flat OpenDocument XML", OdfCapabilityLevel.Limited,
             "FODT, FODS, and FODP-style single XML documents can be opened and written, including embedded raster image binary data; package-only and exotic embedded-object features may not project losslessly."),
-        new OdfCapability("encryption", "OpenDocument encryption", OdfCapabilityLevel.DetectedUnsupported,
-            "Manifest encryption is detected before editing and rejected; native key derivation, decryption, and encryption are not implemented."),
+        new OdfCapability("encryption", "OpenDocument encryption", OdfCapabilityLevel.Limited,
+            "Password loading and saving support the bounded AES-256-CBC, PBKDF2-HMAC-SHA1 ODF profile, with classified failures and explicit protection removal. Other encryption profiles are rejected; independent copies retain the source protection contract."),
         new OdfCapability("digital-signatures", "OpenDocument digital signatures", OdfCapabilityLevel.Limited,
             "Unchanged signature entries are retained and changed signed documents fail unless invalidated signatures are explicitly removed. The bounded OfficeIMO XML package-manifest profile can be created and cryptographically validated through an explicit security provider; arbitrary producer profiles remain inspection or preservation oriented.")
     };

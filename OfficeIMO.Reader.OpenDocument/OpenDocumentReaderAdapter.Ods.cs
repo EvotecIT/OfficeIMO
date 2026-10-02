@@ -4,7 +4,7 @@ using OfficeIMO.Spreadsheet;
 namespace OfficeIMO.Reader.OpenDocument;
 
 internal static partial class OpenDocumentReaderAdapter {
-    private static IEnumerable<ReaderChunk> ReadSpreadsheet(OdsDocument document, string sourceName, ReaderOptions options, ReaderOpenDocumentOptions formatOptions,
+    private static IEnumerable<ReaderChunk> ReadSpreadsheet(OdsDocument document, string sourceName, ReaderOptions options, ReaderOpenDocumentOptions formatOptions, ProjectionBudget budget,
         CancellationToken cancellationToken) {
         int blockIndex = 0;
         IEnumerable<OdsSheet> selected = document.Sheets;
@@ -25,7 +25,7 @@ internal static partial class OpenDocumentReaderAdapter {
             int columnCount = (int)Math.Min(sourceColumns, MaximumTableColumns);
             long headerRow = range.FirstRow;
             string[] columns = Enumerable.Range(0, columnCount).Select(index => {
-                string value = formatOptions.HeadersInFirstRow ? sheet.GetValue(headerRow, range.FirstColumn + index).ToString() : string.Empty;
+                string value = formatOptions.HeadersInFirstRow ? budget.Read(sheet.GetValue(headerRow, range.FirstColumn + index).ToString()) : string.Empty;
                 return value.Length == 0 ? "Column " + (index + 1).ToString(CultureInfo.InvariantCulture) : value;
             }).ToArray();
             long dataStart = checked(range.FirstRow + (formatOptions.HeadersInFirstRow ? 1 : 0));
@@ -36,7 +36,7 @@ internal static partial class OpenDocumentReaderAdapter {
                 cancellationToken.ThrowIfCancellationRequested();
                 long row = dataStart + rowOffset;
                 rows.Add(Enumerable.Range(0, columnCount)
-                    .Select(columnOffset => sheet.GetValue(row, range.FirstColumn + columnOffset).ToString()).ToArray());
+                    .Select(columnOffset => budget.Read(sheet.GetValue(row, range.FirstColumn + columnOffset).ToString())).ToArray());
             }
             string a1Range = ToA1(range.FirstRow, range.FirstColumn) + ":" + ToA1(range.LastRow, range.LastColumn);
             var location = new ReaderLocation {

@@ -9,6 +9,14 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## OpenDocument independent saves and formula results
+
+`SaveCopy` and `SaveCopyAsync` leave the attached source and its pending edits unchanged. `Serialize`, `ToBytes`, and `ToStream` also preserve the source version, signatures, and encryption state. Stream saves behave this way when the document has a source path. Use a path-based `Save` or `SaveAsync` when the output should become the document's accepted state. Removing encryption from a copy does not authorize overwriting the encrypted source without a password or explicit removal option.
+
+The ODS evaluator follows OpenFormula precedence: `-2^2` evaluates to `4`, and `2^3^2` evaluates to `64`. Aggregate functions distinguish scalar arguments from references; `COUNT` ignores referenced errors. Call `Recalculate` explicitly to refresh caches that depend on these corrected results. Oversized text results return an evaluation error under `MaximumResultCharacters` and `MaximumTotalResultCharacters`.
+
+ODT-to-Word conversion enforces aggregate table expansion limits before allocation. Adjust `WordOpenDocumentConversionOptions` for trusted larger workloads. Reader OpenDocument format settings belong to `ReaderOpenDocumentOptions`, passed to `AddOpenDocumentHandler`; generic size and password settings remain in `ReaderOptions`.
+
 ## Conversion batches replace the PDF archive surface
 
 Replace `OfficePdfArchiveWorkflow.RunAsync(OfficePdfArchiveRequest)` with `OfficeWorkflowRunner.RunBatchAsync(OfficeConversionBatchRequest)` or `OfficeWorkflow.ConvertDirectory(...).ToDirectory(...).RunAsync()`. The batch uses the existing executable route catalog and can select other targets. Checkpoints are optional; ordinary batches also use the existing rename/replace policies. `OfficeConversionBatchResult` includes skipped counts, and `OfficeConversionBatchItemResult` distinguishes skipped files from failed conversions.

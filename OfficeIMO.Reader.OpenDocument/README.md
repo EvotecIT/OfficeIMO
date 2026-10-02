@@ -20,7 +20,11 @@ The handler emits:
 - bounded sheet/table chunks for ODS, including sheet and A1-range locations;
 - slide-aligned ODP chunks with tables and optional speaker notes.
 
-`ReaderOptions.MaxTableRows`, `MaxChars`, `ExcelHeadersInFirstRow`, `ExcelSheetName`, and `IncludePowerPointNotes` apply to the corresponding OpenDocument extraction paths. ODS extraction caps one chunk at 256 columns so repeated or adversarial ranges remain bounded.
+`ReaderOptions.MaxTableRows` bounds table extraction, and `MaxChars` splits oversized paragraph, table, sheet, and slide text using the shared Reader chunker. The Reader normalizes `MaxChars` to at least 256. Split segments preserve source locations and all extracted text; structured table metadata appears on the first segment and remains bounded separately by the row and column limits. Markdown tables may span segments.
+
+Pass `ReaderOpenDocumentOptions` to `AddOpenDocumentHandler(...)` to select `SheetName`, `A1Range`, `HeadersInFirstRow`, and `IncludeSpeakerNotes`. ODS extraction caps a sheet at 256 columns. Set `ReaderOptions.OpenPassword` to read supported encrypted ODF packages.
+
+`ReaderOpenDocumentOptions.MaxExtractedCharacters` defaults to 16,000,000 characters across one document, including every logical occurrence of repeated cells. Extraction rejects inputs exceeding that budget before building joined text and Markdown. Raise it explicitly for trusted larger workloads; `MaxXmlCharacters` separately bounds the parsed XML.
 
 ## Dependency footprint
 

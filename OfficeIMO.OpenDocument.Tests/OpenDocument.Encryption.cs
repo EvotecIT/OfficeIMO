@@ -11,6 +11,39 @@ namespace OfficeIMO.OpenDocument.Tests;
 public sealed class OpenDocumentEncryptionTests {
     private const string Password = "OfficeIMO-ODF-test-2026";
 
+    [Theory]
+    [InlineData("copy")]
+    [InlineData("copy-async")]
+    [InlineData("stream")]
+    [InlineData("stream-async")]
+    [InlineData("serialize")]
+    public async System.Threading.Tasks.Task IndependentPlaintextOutputsPreserveTheProtectedSourceContract(string output) {
+        string directory = Path.Combine(Path.GetTempPath(), "odf-copy-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string originalPath = Path.Combine(directory, "original.odt");
+            OdtDocument source = OdtDocument.Create();
+            source.AddParagraph("protected");
+            source.Save(originalPath, new OdfSaveOptions { Encryption = new OdfEncryptionOptions { Password = Password } });
+            byte[] original = File.ReadAllBytes(originalPath);
+            OdtDocument loaded = OdtDocument.Load(originalPath, new OdfLoadOptions { Password = Password });
+            loaded.AddParagraph("edited");
+            var remove = new OdfSaveOptions { EncryptionHandling = OdfEncryptionHandling.Remove };
+            using var stream = new MemoryStream();
+            if (output == "copy") loaded.SaveCopy(Path.Combine(directory, "copy.odt"), remove);
+            else if (output == "copy-async") await loaded.SaveCopyAsync(Path.Combine(directory, "copy.odt"), remove);
+            else if (output == "stream") loaded.Save(stream, remove);
+            else if (output == "stream-async") await loaded.SaveAsync(stream, remove);
+            else loaded.Serialize(remove);
+            Assert.True(loaded.Security.SourceIsEncrypted);
+            Assert.Equal(originalPath, loaded.FilePath);
+            Assert.Throws<OdfEncryptedPackageException>(() => loaded.Save());
+            Assert.Equal(original, File.ReadAllBytes(originalPath));
+            loaded.Save(new OdfSaveOptions { Encryption = new OdfEncryptionOptions { Password = Password } });
+            Assert.Equal(2, OdtDocument.Load(originalPath, new OdfLoadOptions { Password = Password }).ContentBlocks.Count);
+        } finally { Directory.Delete(directory, recursive: true); }
+    }
+
     [Fact]
     public void Aes256PasswordEncryptionRoundTripsTextAndUsesStoredEncryptedEntries() {
         OdtDocument source = OdtDocument.Create();

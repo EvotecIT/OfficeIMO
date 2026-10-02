@@ -34,16 +34,17 @@ public static class OdsFormulaEvaluator {
     internal static OdsFormulaValue EvaluateCell(OdsFormulaEvaluationContext context, string sheetName, long row, long column, int depth) {
         try {
             context.Step();
-            if (depth > context.Options.MaximumDependencyDepth) throw new OdsFormulaException("Formula dependency depth limit exceeded.");
+            if (depth > context.Options.MaximumDependencyDepth) throw context.FailLimit("Formula dependency depth limit exceeded.");
             var key = new OdsFormulaCellKey(sheetName, row, column);
             if (context.TryGetMemo(key, out OdsFormulaValue memo)) return memo;
             if (!context.Enter(key)) throw new OdsFormulaException("Cyclic formula dependency detected at " + key + ".");
             try {
-                OdsSheet sheet = context.Document.GetSheet(sheetName) ?? throw new OdsFormulaException("Worksheet '" + sheetName + "' does not exist.");
+                OdsSheet sheet = context.GetSheet(sheetName) ?? throw new OdsFormulaException("Worksheet '" + sheetName + "' does not exist.");
                 string? formula = sheet.GetFormula(row, column);
                 OdsFormulaValue value = formula == null
                     ? OdsFormulaValue.FromCellValue(sheet.GetValue(row, column))
                     : new OdsFormulaParser(formula, context, sheetName, depth + 1).Parse();
+                if (formula == null && value.Kind == OdsFormulaValueKind.Text) context.ReserveText(value.AsText().Length);
                 context.Memoize(key, value);
                 return value;
             } finally { context.Exit(key); }
@@ -57,7 +58,10 @@ public static class OdsFormulaEvaluator {
 internal sealed class OdsFormulaEvaluationContext {
     private readonly Dictionary<OdsFormulaCellKey, OdsFormulaValue> _memo = new Dictionary<OdsFormulaCellKey, OdsFormulaValue>();
     private readonly HashSet<OdsFormulaCellKey> _visiting = new HashSet<OdsFormulaCellKey>();
+    private readonly Dictionary<string, OdsSheet> _sheets = new Dictionary<string, OdsSheet>(StringComparer.Ordinal);
     private int _rangeCells;
+    private long _textCharacters;
+    private string? _limitError;
     internal OdsFormulaEvaluationContext(OdsDocument document, OdsFormulaEvaluationOptions? options) {
         Document = document;
         Options = (options ?? new OdsFormulaEvaluationOptions()).Normalize();
@@ -65,13 +69,40 @@ internal sealed class OdsFormulaEvaluationContext {
     internal OdsDocument Document { get; }
     internal OdsFormulaEvaluationOptions Options { get; }
     internal int Operations { get; private set; }
+    internal OdsSheet? GetSheet(string name) {
+        if (_sheets.TryGetValue(name, out OdsSheet? sheet)) return sheet;
+        sheet = Document.GetSheet(name);
+        if (sheet != null) _sheets.Add(name, sheet);
+        return sheet;
+    }
     internal void Step() {
+        if (_limitError != null) throw new OdsFormulaException(_limitError);
         Operations++;
-        if (Operations > Options.MaximumOperations) throw new OdsFormulaException("Formula operation limit exceeded.");
+        if (Operations > Options.MaximumOperations) throw FailLimit("Formula operation limit exceeded.");
     }
     internal void AddRangeCell() {
+        if (_limitError != null) throw new OdsFormulaException(_limitError);
         _rangeCells++;
-        if (_rangeCells > Options.MaximumRangeCells) throw new OdsFormulaException("Formula range-cell limit exceeded.");
+        if (_rangeCells > Options.MaximumRangeCells) throw FailLimit("Formula range-cell limit exceeded.");
+    }
+    internal OdsFormulaException FailLimit(string message) {
+        _limitError ??= message;
+        return new OdsFormulaException(_limitError);
+    }
+    internal void ReserveText(long length) {
+        if (_limitError != null) throw new OdsFormulaException(_limitError);
+        if (length > Options.MaximumResultCharacters) throw FailLimit("Formula text-result character limit exceeded.");
+        if (length > Options.MaximumTotalResultCharacters - _textCharacters) throw FailLimit("Formula total text-result character limit exceeded.");
+        _textCharacters += length;
+    }
+    internal OdsFormulaValue Text(string value) {
+        ReserveText(value.Length);
+        return OdsFormulaValue.Text(value);
+    }
+    internal OdsFormulaValue Concatenate(OdsFormulaValue left, OdsFormulaValue right) {
+        string first = left.AsText(), second = right.AsText();
+        ReserveText((long)first.Length + second.Length);
+        return OdsFormulaValue.Text(string.Concat(first, second));
     }
     internal bool TryGetMemo(OdsFormulaCellKey key, out OdsFormulaValue value) => _memo.TryGetValue(key, out value);
     internal void Memoize(OdsFormulaCellKey key, OdsFormulaValue value) => _memo[key] = value;

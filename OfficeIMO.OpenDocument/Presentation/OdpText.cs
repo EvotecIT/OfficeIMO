@@ -37,16 +37,16 @@ public sealed class OdpTextBox : OdpShape {
 /// <summary>An XML-backed presentation paragraph.</summary>
 public sealed class OdpParagraph {
     private readonly OdpPresentation _presentation;
-    private readonly XElement _element;
-    internal OdpParagraph(OdpPresentation presentation, XElement element) { _presentation = presentation; _element = element; }
+    private XElement _element; private Func<XElement>? _materializeForEdit;
+    internal OdpParagraph(OdpPresentation presentation, XElement element, Func<XElement>? materializeForEdit = null) { _presentation = presentation; _element = element; _materializeForEdit = materializeForEdit; }
     /// <summary>Decoded paragraph text.</summary>
-    public string Text { get => OdfTextCodec.Read(_element); set { OdfTextCodec.Replace(_element, value); Dirty(); } }
+    public string Text { get => OdfTextCodec.Read(_element); set { OdfTextCodec.Replace(EnsureMaterialized(), value); Dirty(); } }
     /// <summary>Referenced paragraph style name.</summary>
-    public string? StyleName { get => (string?)_element.Attribute(OdfNamespaces.Text + "style-name"); set { _element.SetAttributeValue(OdfNamespaces.Text + "style-name", value); Dirty(); } }
+    public string? StyleName { get => (string?)_element.Attribute(OdfNamespaces.Text + "style-name"); set { EnsureMaterialized().SetAttributeValue(OdfNamespaces.Text + "style-name", value); Dirty(); } }
     /// <summary>Inline text runs.</summary>
-    public IReadOnlyList<OdpRun> Runs => _element.Descendants(OdfNamespaces.Text + "span").Select(element => new OdpRun(_presentation, element)).ToList();
+    public IReadOnlyList<OdpRun> Runs => _element.Descendants(OdfNamespaces.Text + "span").Select(element => new OdpRun(_presentation, element, OdfElementMutation.ForDescendant(_element, element, _materializeForEdit == null ? null : EnsureMaterialized))).ToList();
     /// <summary>Direct inline nodes in document order.</summary>
-    public IReadOnlyList<OdpInlineNode> InlineNodes => OdpInlineNode.Read(_presentation, _element);
+    public IReadOnlyList<OdpInlineNode> InlineNodes => OdpInlineNode.Read(_presentation, _element, _materializeForEdit == null ? null : EnsureMaterialized);
     /// <summary>Explicit or inherited bold state.</summary>
     public bool? Bold { get => Resolve(style => style.Bold); set => EnsureStyle().Bold = value; }
     /// <summary>Explicit or inherited italic state.</summary>
@@ -96,17 +96,17 @@ public sealed class OdpParagraph {
         get {
             OdfStyle? style = StyleName == null ? null : _presentation.Styles.Find(
                 OdfStyleFamily.Paragraph, StyleName);
-            return _presentation.Styles.ResolveTextBackgroundColor(style);
+            return _presentation.Styles.ResolveTextBackgroundColor(style ?? _presentation.Styles.FindDefault(OdfStyleFamily.Paragraph));
         }
         set => EnsureStyle().TextBackgroundColor = value;
     }
     /// <summary>Appends plain text while encoding ODF whitespace semantics.</summary>
-    public OdpParagraph AddText(string text) { OdfTextCodec.Append(_element, text); Dirty(); return this; }
+    public OdpParagraph AddText(string text) { OdfTextCodec.Append(EnsureMaterialized(), text); Dirty(); return this; }
     /// <summary>Adds an inline text run.</summary>
-    public OdpRun AddRun(string? text = null) { var span = new XElement(OdfNamespaces.Text + "span"); OdfTextCodec.Append(span, text); _element.Add(span); Dirty(); return new OdpRun(_presentation, span); }
+    public OdpRun AddRun(string? text = null) { var span = new XElement(OdfNamespaces.Text + "span"); OdfTextCodec.Append(span, text); EnsureMaterialized().Add(span); Dirty(); return new OdpRun(_presentation, span); }
     /// <summary>Changes the stored paragraph text casing while preserving the paragraph style.</summary>
     public OdpParagraph TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
-        OdfTextCodec.TransformTextCase(_element, textCase, culture);
+        OdfTextCodec.TransformTextCase(EnsureMaterialized(), textCase, culture);
         Dirty();
         return this;
     }
@@ -116,16 +116,16 @@ public sealed class OdpParagraph {
         var element = new XElement(OdfNamespaces.Text + "a",
             new XAttribute(OdfNamespaces.XLink + "type", "simple"),
             new XAttribute(OdfNamespaces.XLink + "href", href));
-        OdfTextCodec.Append(element, text); _element.Add(element); Dirty(); return new OdpHyperlink(_presentation, element);
+        OdfTextCodec.Append(element, text); EnsureMaterialized().Add(element); Dirty(); return new OdpHyperlink(_presentation, element);
     }
-    private OdfStyle EnsureStyle() => _presentation.Styles.EnsureAutomaticStyle(_element, OdfNamespaces.Text + "style-name", OdfStyleFamily.Paragraph, "ofPr");
+    private OdfStyle EnsureStyle() => _presentation.Styles.EnsureAutomaticStyle(EnsureMaterialized(), OdfNamespaces.Text + "style-name", OdfStyleFamily.Paragraph, "ofPr");
     private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct {
-        OdfStyle? style = StyleName == null ? null : _presentation.Styles.Find(OdfStyleFamily.Paragraph, StyleName); if (style == null) return null;
-        foreach (OdfStyle candidate in _presentation.Styles.Resolve(style)) { T? value = selector(candidate); if (value.HasValue) return value; } return null;
+        OdfStyle? style = StyleName == null ? null : _presentation.Styles.Find(OdfStyleFamily.Paragraph, StyleName);
+        foreach (OdfStyle candidate in _presentation.Styles.ResolveWithDefault(style, OdfStyleFamily.Paragraph)) { T? value = selector(candidate); if (value.HasValue) return value; } return null;
     }
     private string? ResolveReference(Func<OdfStyle, string?> selector) {
-        OdfStyle? style = StyleName == null ? null : _presentation.Styles.Find(OdfStyleFamily.Paragraph, StyleName); if (style == null) return null;
-        foreach (OdfStyle candidate in _presentation.Styles.Resolve(style)) { string? value = selector(candidate); if (value != null) return value; } return null;
+        OdfStyle? style = StyleName == null ? null : _presentation.Styles.Find(OdfStyleFamily.Paragraph, StyleName);
+        foreach (OdfStyle candidate in _presentation.Styles.ResolveWithDefault(style, OdfStyleFamily.Paragraph)) { string? value = selector(candidate); if (value != null) return value; } return null;
     }
     private static OdpParagraphAlignment? ParseAlignment(string? value) {
         switch (value?.ToLowerInvariant()) {
@@ -149,21 +149,25 @@ public sealed class OdpParagraph {
             default: return null;
         }
     }
+    private XElement EnsureMaterialized() {
+        if (_materializeForEdit != null) { _element = _materializeForEdit(); _materializeForEdit = null; }
+        return _element;
+    }
     private void Dirty() => _presentation.MarkPartDirty("content.xml");
 }
 
 /// <summary>An XML-backed presentation inline text run.</summary>
 public sealed class OdpRun {
-    private readonly OdpPresentation _presentation; private readonly XElement _element;
-    internal OdpRun(OdpPresentation presentation, XElement element) { _presentation = presentation; _element = element; }
+    private readonly OdpPresentation _presentation; private XElement _element; private Func<XElement>? _materializeForEdit;
+    internal OdpRun(OdpPresentation presentation, XElement element, Func<XElement>? materializeForEdit = null) { _presentation = presentation; _element = element; _materializeForEdit = materializeForEdit; }
     /// <summary>Decoded run text.</summary>
-    public string Text { get => OdfTextCodec.Read(_element); set { OdfTextCodec.Replace(_element, value); Dirty(); } }
+    public string Text { get => OdfTextCodec.Read(_element); set { OdfTextCodec.Replace(EnsureMaterialized(), value); Dirty(); } }
     /// <summary>Ordered text, runs, and hyperlinks inside this run.</summary>
-    public IReadOnlyList<OdpInlineNode> InlineNodes => OdpInlineNode.Read(_presentation, _element);
+    public IReadOnlyList<OdpInlineNode> InlineNodes => OdpInlineNode.Read(_presentation, _element, _materializeForEdit == null ? null : EnsureMaterialized);
 
     /// <summary>Appends text after existing child nodes.</summary>
     public OdpRun AddText(string text) {
-        OdfTextCodec.Append(_element, text);
+        OdfTextCodec.Append(EnsureMaterialized(), text);
         Dirty();
         return this;
     }
@@ -172,7 +176,7 @@ public sealed class OdpRun {
     public OdpRun AddRun(string? text = null) {
         var element = new XElement(OdfNamespaces.Text + "span");
         OdfTextCodec.Append(element, text);
-        _element.Add(element);
+        EnsureMaterialized().Add(element);
         Dirty();
         return new OdpRun(_presentation, element);
     }
@@ -184,12 +188,12 @@ public sealed class OdpRun {
             new XAttribute(OdfNamespaces.XLink + "type", "simple"),
             new XAttribute(OdfNamespaces.XLink + "href", href));
         OdfTextCodec.Append(element, text);
-        _element.Add(element);
+        EnsureMaterialized().Add(element);
         Dirty();
         return new OdpHyperlink(_presentation, element);
     }
     /// <summary>Referenced text style name.</summary>
-    public string? StyleName { get => (string?)_element.Attribute(OdfNamespaces.Text + "style-name"); set { _element.SetAttributeValue(OdfNamespaces.Text + "style-name", value); Dirty(); } }
+    public string? StyleName { get => (string?)_element.Attribute(OdfNamespaces.Text + "style-name"); set { EnsureMaterialized().SetAttributeValue(OdfNamespaces.Text + "style-name", value); Dirty(); } }
     /// <summary>Explicit or inherited bold state.</summary>
     public bool? Bold { get => Resolve(style => style.Bold); set => EnsureStyle().Bold = value; }
     /// <summary>Explicit or inherited italic state.</summary>
@@ -232,15 +236,19 @@ public sealed class OdpRun {
         _presentation.Styles, _element, "content.xml", out _);
     /// <summary>Changes the stored run text casing while preserving its text style.</summary>
     public OdpRun TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
-        OdfTextCodec.TransformTextCase(_element, textCase, culture);
+        OdfTextCodec.TransformTextCase(EnsureMaterialized(), textCase, culture);
         Dirty();
         return this;
     }
-    private OdfStyle EnsureStyle() => _presentation.Styles.EnsureAutomaticStyle(_element, OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofRun");
+    private OdfStyle EnsureStyle() => _presentation.Styles.EnsureAutomaticStyle(EnsureMaterialized(), OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofRun");
     private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct =>
         OdfInlineStyleResolver.Resolve(_presentation.Styles, _element, "content.xml", selector);
     private string? ResolveReference(Func<OdfStyle, string?> selector) =>
         OdfInlineStyleResolver.ResolveReference(_presentation.Styles, _element, "content.xml", selector);
+    private XElement EnsureMaterialized() {
+        if (_materializeForEdit != null) { _element = _materializeForEdit(); _materializeForEdit = null; }
+        return _element;
+    }
     private void Dirty() => _presentation.MarkPartDirty("content.xml");
 }
 

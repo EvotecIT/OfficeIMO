@@ -22,6 +22,12 @@ internal sealed class OdfPackageEntry {
 
     internal byte[] GetOriginalBytes() => _data;
 
+    internal OdfPackageEntry CloneForSerialization(bool cloneXml) => new OdfPackageEntry(Name, _data, MediaType, LastWriteTime, IsNew) {
+        _xml = _xml == null || !cloneXml ? _xml : new XDocument(_xml),
+        IsDirty = IsDirty,
+        IsRemoved = IsRemoved
+    };
+
     internal XDocument GetXml(long maxCharacters, int maxDepth) {
         return _xml ??= OdfXmlCodec.Load(_data, Name, maxCharacters, maxDepth);
     }

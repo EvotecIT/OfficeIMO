@@ -3,19 +3,22 @@ namespace OfficeIMO.OpenDocument;
 /// <summary>An XML-backed ODT inline span.</summary>
 public sealed class OdtSpan {
     private readonly OdtDocument _document;
-    private readonly XElement _element;
+    private XElement _element;
+    private Func<XElement>? _materializeForEdit;
     private readonly string _partPath;
 
-    internal OdtSpan(OdtDocument document, XElement element, string partPath = "content.xml") {
+    internal OdtSpan(OdtDocument document, XElement element, string partPath = "content.xml", Func<XElement>? materializeForEdit = null) {
         _document = document;
         _element = element;
         _partPath = partPath;
+        _materializeForEdit = materializeForEdit;
     }
 
     /// <summary>Decoded span text.</summary>
     public string Text {
         get => OdfTextCodec.Read(_element);
         set {
+            EnsureMaterialized();
             bool hadNotes = _element.Descendants(OdfNamespaces.Text + "note").Any();
             if (hadNotes) _document.PrepareNoteIndexForMutation();
             OdfTextCodec.Replace(_element, value);
@@ -24,11 +27,11 @@ public sealed class OdtSpan {
         }
     }
     /// <summary>Ordered text, spans, and hyperlinks inside this span.</summary>
-    public IReadOnlyList<OdtInlineNode> InlineNodes => OdtInlineNode.Read(_document, _element, _partPath);
+    public IReadOnlyList<OdtInlineNode> InlineNodes => OdtInlineNode.Read(_document, _element, _partPath, _materializeForEdit == null ? null : EnsureMaterialized);
     /// <summary>Referenced text style name.</summary>
     public string? StyleName {
         get => (string?)_element.Attribute(OdfNamespaces.Text + "style-name");
-        set { _element.SetAttributeValue(OdfNamespaces.Text + "style-name", value); Dirty(); }
+        set { EnsureMaterialized().SetAttributeValue(OdfNamespaces.Text + "style-name", value); Dirty(); }
     }
     /// <summary>Explicit or inherited bold state.</summary>
     public bool? Bold { get => Resolve(style => style.Bold); set => EnsureStyle().Bold = value; }
@@ -72,13 +75,13 @@ public sealed class OdtSpan {
         _document.Styles, _element, _partPath, out _);
 
     /// <summary>Appends decoded plain text.</summary>
-    public OdtSpan AddText(string text) { OdfTextCodec.Append(_element, text); Dirty(); return this; }
+    public OdtSpan AddText(string text) { OdfTextCodec.Append(EnsureMaterialized(), text); Dirty(); return this; }
 
     /// <summary>Appends a nested styled span.</summary>
     public OdtSpan AddSpan(string? text = null) {
         var element = new XElement(OdfNamespaces.Text + "span");
         OdfTextCodec.Append(element, text);
-        _element.Add(element);
+        EnsureMaterialized().Add(element);
         Dirty();
         return new OdtSpan(_document, element, _partPath);
     }
@@ -90,20 +93,20 @@ public sealed class OdtSpan {
             new XAttribute(OdfNamespaces.XLink + "type", "simple"),
             new XAttribute(OdfNamespaces.XLink + "href", href));
         OdfTextCodec.Append(element, text);
-        _element.Add(element);
+        EnsureMaterialized().Add(element);
         Dirty();
         return new OdtHyperlink(_document, element, _partPath);
     }
 
     /// <summary>Changes the stored span text casing while preserving its text style.</summary>
     public OdtSpan TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
-        OdfTextCodec.TransformTextCase(_element, textCase, culture);
+        OdfTextCodec.TransformTextCase(EnsureMaterialized(), textCase, culture);
         Dirty();
         return this;
     }
 
     private OdfStyle EnsureStyle() => _document.Styles.EnsureAutomaticStyle(
-        _element, OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofT", _partPath);
+        EnsureMaterialized(), OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofT", _partPath);
 
     private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct =>
         OdfInlineStyleResolver.Resolve(_document.Styles, _element, _partPath, selector);
@@ -112,4 +115,12 @@ public sealed class OdtSpan {
         OdfInlineStyleResolver.ResolveReference(_document.Styles, _element, _partPath, selector);
 
     private void Dirty() => _document.MarkPartDirty(_partPath);
+    private XElement EnsureMaterialized() {
+        if (_materializeForEdit != null) {
+            _element = _materializeForEdit();
+            _materializeForEdit = null;
+        }
+        return _element;
+    }
+
 }
