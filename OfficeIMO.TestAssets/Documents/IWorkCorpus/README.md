@@ -337,3 +337,25 @@ python Build/IWork/extract-keynote-backgrounds.py OfficeIMO.TestAssets/Documents
 ```
 
 Saved/reopened PPTX verifies supported selected colors. Synthetic inputs cover explicit no-fill overrides, inheritance, malformed styles and fallback. This is source and package evidence, not Apple-export or rendered-background equivalence.
+
+### Integer-function compatibility boundaries
+
+`numbers-parser/integer-function-boundaries.json` records two unchanged formulas in
+`single-cell-formulas.numbers`: `GCD(128,80,44,2^53)` and
+`LCM(128,80,44,2^53)`. Independent integer arithmetic agrees with their retained
+producer caches within relative tolerance 1e-14. The existing source checksum,
+provenance and MIT notice apply.
+
+[Excel GCD](https://support.microsoft.com/en-us/excel/functions/gcd-function)
+documents `#NUM!` for an operand at or above 2^53;
+[Excel LCM](https://support.microsoft.com/en-us/excel/functions/lcm-function)
+documents that error for a result at or above 2^53. These are documented destination
+contracts, not live Excel execution evidence. The source reader retains the numeric
+caches without claiming complete editable reconstruction of these expressions.
+Native recalculation, export and broader coercion behavior remain unqualified.
+
+Reproduce with the pinned numbers-parser 4.19.0 environment:
+
+```sh
+python Build/IWork/extract-integer-function-boundaries.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/single-cell-formulas.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/integer-function-boundaries.json
+```
