@@ -12,7 +12,7 @@
     "M12.2-7035.0.159-2",
     "M13.1-7037.0.101-2"
   ],
-  "qualification": "Native node-36 target identities and mixed coordinates, plus selected scalar function nodes; independent computations agree with numeric/text/Boolean caches. Scalar text cases use ASCII literals. Build metadata is retained in this manifest. No Apple export/render oracle. Numeric INT/MOD/SQRT/SIGN/TRUNC/ROUNDUP/ROUNDDOWN expressions include unary negatives, subtraction, optional and signed digit arguments and nested ABS; independent numeric/decimal computations agree with native caches.",
+  "qualification": "Native node-36 target identities and mixed coordinates, plus selected scalar function nodes; independent computations agree with numeric/text/Boolean caches. Scalar text cases use ASCII literals. Build metadata is retained in this manifest. No Apple export/render oracle. Numeric INT/MOD/SQRT/SIGN/TRUNC/ROUNDUP/ROUNDDOWN expressions include unary negatives, subtraction, optional and signed digit arguments and nested ABS; independent numeric/decimal computations agree with native caches. EXP/LN/LOG/LOG10 cases include optional/explicit bases, nesting and exponentiation. Their exact producer caches are retained; independent transcendental computations use the recorded relative/absolute tolerance, not exact binary equality.",
   "cases": [
     {
       "sourceSheet": "Reference",
@@ -222,6 +222,30 @@
     {
       "sourceSheet": "Math",
       "sourceTable": "Tests",
+      "row": 13,
+      "column": 2,
+      "sourceFormula": "EXP(1)",
+      "cachedValue": 2.71828182845905,
+      "computedCurrentValue": 2.718281828459045,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 50,
+          "name": "EXP",
+          "argumentCount": 1
+        }
+      ],
+      "computationTolerance": {
+        "relative": 1e-14,
+        "absolute": 1e-15
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
       "row": 46,
       "column": 2,
       "sourceFormula": "INT(-8.9)",
@@ -279,6 +303,268 @@
           "argumentCount": 1
         }
       ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 60,
+      "column": 2,
+      "sourceFormula": "LN(86)",
+      "cachedValue": 4.45434729625351,
+      "computedCurrentValue": 4.454347296253507,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 78,
+          "name": "LN",
+          "argumentCount": 1
+        }
+      ],
+      "computationTolerance": {
+        "relative": 1e-14,
+        "absolute": 1e-15
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 61,
+      "column": 2,
+      "sourceFormula": "LN(EXP(1))",
+      "cachedValue": 1.0,
+      "computedCurrentValue": 1.0,
+      "nodeTypes": [
+        17,
+        16,
+        16
+      ],
+      "functions": [
+        {
+          "index": 50,
+          "name": "EXP",
+          "argumentCount": 1
+        },
+        {
+          "index": 78,
+          "name": "LN",
+          "argumentCount": 1
+        }
+      ],
+      "computationTolerance": {
+        "relative": 1e-14,
+        "absolute": 1e-15
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 62,
+      "column": 2,
+      "sourceFormula": "LN(EXP(3))",
+      "cachedValue": 3.0,
+      "computedCurrentValue": 3.0,
+      "nodeTypes": [
+        17,
+        16,
+        16
+      ],
+      "functions": [
+        {
+          "index": 50,
+          "name": "EXP",
+          "argumentCount": 1
+        },
+        {
+          "index": 78,
+          "name": "LN",
+          "argumentCount": 1
+        }
+      ],
+      "computationTolerance": {
+        "relative": 1e-14,
+        "absolute": 1e-15
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 63,
+      "column": 2,
+      "sourceFormula": "LOG(10)",
+      "cachedValue": 1.0,
+      "computedCurrentValue": 1.0,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 79,
+          "name": "LOG",
+          "argumentCount": 1
+        }
+      ],
+      "computationTolerance": {
+        "relative": 1e-14,
+        "absolute": 1e-15
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 64,
+      "column": 2,
+      "sourceFormula": "LOG(8,2)",
+      "cachedValue": 3.0,
+      "computedCurrentValue": 3.0,
+      "nodeTypes": [
+        17,
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 79,
+          "name": "LOG",
+          "argumentCount": 2
+        }
+      ],
+      "computationTolerance": {
+        "relative": 1e-14,
+        "absolute": 1e-15
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 65,
+      "column": 2,
+      "sourceFormula": "LOG(86,EXP(1))",
+      "cachedValue": 4.45434729625351,
+      "computedCurrentValue": 4.454347296253507,
+      "nodeTypes": [
+        17,
+        17,
+        16,
+        16
+      ],
+      "functions": [
+        {
+          "index": 50,
+          "name": "EXP",
+          "argumentCount": 1
+        },
+        {
+          "index": 79,
+          "name": "LOG",
+          "argumentCount": 2
+        }
+      ],
+      "computationTolerance": {
+        "relative": 1e-14,
+        "absolute": 1e-15
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 66,
+      "column": 2,
+      "sourceFormula": "LOG10(10)",
+      "cachedValue": 1.0,
+      "computedCurrentValue": 1.0,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 80,
+          "name": "LOG10",
+          "argumentCount": 1
+        }
+      ],
+      "computationTolerance": {
+        "relative": 1e-14,
+        "absolute": 1e-15
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 67,
+      "column": 2,
+      "sourceFormula": "LOG10(100000)",
+      "cachedValue": 5.0,
+      "computedCurrentValue": 5.0,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 80,
+          "name": "LOG10",
+          "argumentCount": 1
+        }
+      ],
+      "computationTolerance": {
+        "relative": 1e-14,
+        "absolute": 1e-15
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 68,
+      "column": 2,
+      "sourceFormula": "LOG10(10^5)",
+      "cachedValue": 5.0,
+      "computedCurrentValue": 5.0,
+      "nodeTypes": [
+        17,
+        17,
+        5,
+        16
+      ],
+      "functions": [
+        {
+          "index": 80,
+          "name": "LOG10",
+          "argumentCount": 1
+        }
+      ],
+      "computationTolerance": {
+        "relative": 1e-14,
+        "absolute": 1e-15
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 69,
+      "column": 2,
+      "sourceFormula": "LOG10(86)",
+      "cachedValue": 1.93449845124357,
+      "computedCurrentValue": 1.9344984512435677,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 80,
+          "name": "LOG10",
+          "argumentCount": 1
+        }
+      ],
+      "computationTolerance": {
+        "relative": 1e-14,
+        "absolute": 1e-15
+      }
     },
     {
       "sourceSheet": "Math",

@@ -120,7 +120,7 @@ for sheet_name, row in scalar_selections:
 numeric_cases = []
 if upstream_path == 'test-all-formulas.numbers':
     table = document.sheets['Math'].tables['Tests']
-    for row in [46, 47, 48, 70, 71, 72, 73, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 125, 126, 127, 128, 129, 164, 165, 166]:
+    for row in [13, 46, 47, 48, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 125, 126, 127, 128, 129, 164, 165, 166]:
         cell = table.cell(row - 1, 1)
         nodes = model.formula_ast(table._table_id)[cell._formula_id]
         stack, functions = [], []
@@ -132,6 +132,9 @@ if upstream_path == 'test-all-formulas.numbers':
             elif node.AST_node_type == 2:
                 right, left = stack.pop(), stack.pop()
                 stack.append(left - right)
+            elif node.AST_node_type == 5:
+                right, left = stack.pop(), stack.pop()
+                stack.append(left ** right)
             else:
                 assert node.AST_node_type == 16
                 count = node.AST_function_node_numArgs
@@ -158,16 +161,34 @@ if upstream_path == 'test-all-formulas.numbers':
                 elif name == 'SQRT':
                     assert count == 1 and values[0] >= 0
                     computed = math.sqrt(values[0])
+                elif name == 'EXP':
+                    assert count == 1
+                    computed = math.exp(values[0])
+                elif name in ('LN', 'LOG', 'LOG10'):
+                    assert (count in (1, 2) if name == 'LOG' else count == 1) and values[0] > 0
+                    base = values[1] if count == 2 else 10
+                    assert base > 0 and base != 1
+                    computed = math.log(values[0]) if name == 'LN' else math.log10(values[0]) if name == 'LOG10' or base == 10 else math.log(values[0], base)
                 else:
                     assert name == 'ABS' and count == 1
                     computed = abs(values[0])
                 stack.append(computed)
                 functions.append({'index': node.AST_function_node_index, 'name': name, 'argumentCount': count})
-        assert len(stack) == 1 and stack[0] == cell.value
-        numeric_cases.append({'sourceSheet': 'Math', 'sourceTable': table.name, 'row': row, 'column': 2,
+        assert len(stack) == 1
+        logarithmic = any(f['name'] in ('EXP', 'LN', 'LOG', 'LOG10') for f in functions)
+        # The producer stores rounded transcendental caches. Preserve those exact
+        # caches and record the tolerance used only for independent computation.
+        if logarithmic:
+            assert math.isclose(stack[0], cell.value, rel_tol=1e-14, abs_tol=1e-15)
+        else:
+            assert stack[0] == cell.value
+        case = {'sourceSheet': 'Math', 'sourceTable': table.name, 'row': row, 'column': 2,
                               'sourceFormula': cell.formula, 'cachedValue': cell.value,
                               'computedCurrentValue': stack[0], 'nodeTypes': [n.AST_node_type for n in nodes],
-                              'functions': functions})
+                              'functions': functions}
+        if logarithmic:
+            case['computationTolerance'] = {'relative': 1e-14, 'absolute': 1e-15}
+        numeric_cases.append(case)
 with ZipFile(args.source) as package:
     builds = plistlib.loads(package.read('Metadata/BuildVersionHistory.plist'))
 manifest = {'upstream': 'https://github.com/masaccio/numbers-parser',
@@ -180,5 +201,6 @@ manifest = {'upstream': 'https://github.com/masaccio/numbers-parser',
 if numeric_cases:
     manifest['numericFunctionCases'] = numeric_cases
     manifest['qualification'] += ' Numeric INT/MOD/SQRT/SIGN/TRUNC/ROUNDUP/ROUNDDOWN expressions include unary negatives, subtraction, optional and signed digit arguments and nested ABS; independent numeric/decimal computations agree with native caches.'
+    manifest['qualification'] += ' EXP/LN/LOG/LOG10 cases include optional/explicit bases, nesting and exponentiation. Their exact producer caches are retained; independent transcendental computations use the recorded relative/absolute tolerance, not exact binary equality.'
 args.output.write_text(json.dumps(manifest, indent=2) + '\n')
 print(f'Extracted {len(cases)} reference, {len(scalar_cases)} scalar and {len(numeric_cases)} numeric formulas from {source_hash}')

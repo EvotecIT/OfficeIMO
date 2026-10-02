@@ -68,6 +68,11 @@
       "sampleArgumentCount": 2
     },
     {
+      "index": 50,
+      "name": "EXP",
+      "sampleArgumentCount": 1
+    },
+    {
       "index": 52,
       "name": "FALSE",
       "sampleArgumentCount": 0
@@ -110,6 +115,21 @@
     {
       "index": 77,
       "name": "LEN",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 78,
+      "name": "LN",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 79,
+      "name": "LOG",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 80,
+      "name": "LOG10",
       "sampleArgumentCount": 1
     },
     {

@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<string> tokens = SplitFormulaArguments(args, preserveEmpty: true);
             bool directional = function is "TRUNC" or "ROUNDUP" or "ROUNDDOWN";
             int minimum = function is "MOD" or "ROUNDUP" or "ROUNDDOWN" ? 2 : 1;
-            int maximum = function == "TRUNC" ? 2 : minimum;
+            int maximum = function is "TRUNC" or "LOG" ? 2 : minimum;
             int count = tokens.Count;
             if (count < minimum || count > maximum || tokens.Any(string.IsNullOrWhiteSpace)) return false;
             var numbers = new double[count];
@@ -34,7 +34,21 @@ namespace OfficeIMO.Excel {
                 result = FormulaArgumentValue.Error("#DIV/0!");
                 return true;
             }
+            double logarithmBase = count == 2 ? numbers[1] : 10;
+            if ((function is "LN" or "LOG" or "LOG10") &&
+                (numbers[0] <= 0 || (function == "LOG" && logarithmBase <= 0))) {
+                result = FormulaArgumentValue.Error("#NUM!");
+                return true;
+            }
+            if (function == "LOG" && logarithmBase == 1) {
+                result = FormulaArgumentValue.Error("#DIV/0!");
+                return true;
+            }
             double number = directional ? RoundDirectionalAtDigits(numbers[0], digits, awayFromZero: function == "ROUNDUP")
+                : function == "EXP" ? Math.Exp(numbers[0])
+                : function == "LN" ? Math.Log(numbers[0])
+                : function == "LOG10" || (function == "LOG" && logarithmBase == 10) ? Math.Log10(numbers[0])
+                : function == "LOG" ? Math.Log(numbers[0], logarithmBase)
                 : function == "SIGN" ? Math.Sign(numbers[0])
                 : function == "INT" ? Math.Floor(numbers[0])
                 : function == "SQRT" ? Math.Sqrt(numbers[0])

@@ -111,7 +111,13 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
         Assert.Equal("=" + expression, cell.Formula);
         object value = ScalarValue(expected.GetProperty("cachedValue"));
         Assert.Equal(value, cell.Value);
-        Assert.Equal(value, ScalarValue(expected.GetProperty("computedCurrentValue")));
+        object computed = ScalarValue(expected.GetProperty("computedCurrentValue"));
+        if (expected.TryGetProperty("computationTolerance", out JsonElement tolerance)) {
+            double cache = (double)value, number = (double)computed;
+            double limit = Math.Max(tolerance.GetProperty("absolute").GetDouble(),
+                tolerance.GetProperty("relative").GetDouble() * Math.Max(Math.Abs(cache), Math.Abs(number)));
+            Assert.InRange(Math.Abs(cache - number), 0, limit);
+        } else Assert.Equal(value, computed);
     }
 
     private static void AssertSavedScalarFunction(ExcelDocument document, ExcelSheet sheet, JsonElement expected) {

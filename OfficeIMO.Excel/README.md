@@ -876,6 +876,14 @@ numeric caches and propagate through arithmetic and error handlers. Invalid
 argument counts, multi-cell scalar ranges and unsupported operand types remain
 unevaluated.
 
+`EXP`, `LN`, `LOG` and `LOG10` evaluate finite numeric scalar operands with
+strict argument counts. `LOG` defaults to base 10 and also accepts an explicit
+positive base. Nonpositive logarithm arguments or bases produce `#NUM!`; base 1
+produces `#DIV/0!`, and exponential overflow produces `#NUM!`. Typed errors
+propagate through references, arithmetic and `IFERROR`. Unsupported operands
+and signatures remain unevaluated and preserve existing caches. Results use
+floating-point math, so inverse functions need not return exact original values.
+
 `SIGN`, `TRUNC`, `ROUNDUP` and `ROUNDDOWN` also use scalar arguments with
 exact supported signatures. `TRUNC` defaults omitted digits to zero. Digit
 arguments are supported from −15 through 15; other values remain unevaluated.
