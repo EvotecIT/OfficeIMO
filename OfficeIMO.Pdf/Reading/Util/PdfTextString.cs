@@ -40,6 +40,8 @@ internal static class PdfTextString {
             return PdfEncoding.DecodeCancellable(Encoding.UTF8, bytes, 3, bytes.Length - 3, cancellationToken);
         }
 
+        if (PdfDocEncoding.TryDecode(bytes, out string value, cancellationToken)) return value;
+        // Preserve the existing recovery path for undefined bytes in malformed legacy strings.
         return PdfWinAnsiEncoding.Decode(bytes, int.MaxValue, cancellationToken);
     }
 
@@ -48,8 +50,10 @@ internal static class PdfTextString {
             return Array.Empty<byte>();
         }
 
-        if (PdfWinAnsiEncoding.CanEncode(value, out _)) {
-            return PdfWinAnsiEncoding.Encode(value);
+        // ASCII is shared with PDFDocEncoding. Use Unicode for everything else rather than
+        // treating text strings as WinAnsi, whose punctuation slots have different meanings.
+        if (value.All(character => character >= 32 && character <= 126)) {
+            return Encoding.ASCII.GetBytes(value);
         }
 
         var result = new byte[2 + (value.Length * 2)];

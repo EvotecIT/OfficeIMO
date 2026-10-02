@@ -160,6 +160,7 @@ Completion evidence: each enabled adapter works from its actual entry point on t
 
 ### Phase 7: iPad, then iPhone
 
+- [ ] Evaluate the [native SwiftUI Apple prototype](../OfficeIMO.Studio.Apple/README.md) alongside the Avalonia interface before choosing the Apple presentation layer. Keep the prototype available for later assessment while active interface work continues in Avalonia.
 - [ ] Run a bounded iPad feasibility slice before expanding the mobile backlog: open a local PDF, render and navigate, add an annotation, save/share, suspend, and restore on a physical device. Separate reusable views/presentation state from the desktop `Window` and lifetime. Prove trimming/AOT, native dependencies, file-provider permissions, memory-pressure eviction, recovery, and signing; use the results to define supported features.
 - [ ] Design the iPad workspace for touch, Pencil, pointer, and hardware keyboard with adaptive panes/sheets, suitable touch hit regions, safe areas, selection handles, pinch zoom, gesture arbitration, accessible alternatives, and Files/share-sheet integration. Validate portrait, landscape, narrow multitasking, software-keyboard occlusion, and VoiceOver.
 - [ ] Start iPad scope with reading, search, annotation, form filling, page organization, and export. Validate complex editing and batch work separately. Provide a compatible OCR provider or explain that OCR is unavailable; the desktop external Tesseract CLI prerequisite does not establish iOS support.
