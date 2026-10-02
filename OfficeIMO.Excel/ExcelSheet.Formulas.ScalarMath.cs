@@ -6,14 +6,17 @@ namespace OfficeIMO.Excel {
             result = default;
             IReadOnlyList<string> tokens = SplitFormulaArguments(args, preserveEmpty: true);
             bool directional = function is "TRUNC" or "ROUNDUP" or "ROUNDDOWN";
-            int minimum = function is "MOD" or "ROUNDUP" or "ROUNDDOWN" ? 2 : 1;
+            bool multiple = function is "CEILING" or "FLOOR";
+            int minimum = multiple || function is "MOD" or "ROUNDUP" or "ROUNDDOWN" ? 2 : 1;
             int maximum = function is "TRUNC" or "LOG" ? 2 : minimum;
             int count = tokens.Count;
-            if (count < minimum || count > maximum || tokens.Any(string.IsNullOrWhiteSpace)) return false;
+            if (count < minimum || count > maximum || (!multiple && tokens.Any(string.IsNullOrWhiteSpace))) return false;
             var numbers = new double[count];
             FormulaArgumentValue firstError = default;
             bool digitsAreError = false;
             for (int index = 0; index < count; index++) {
+                // Explicitly omitted CEILING/FLOOR operands have the numeric zero value.
+                if (multiple && string.IsNullOrWhiteSpace(tokens[index])) continue;
                 if (!TryResolveFormulaArgument(tokens[index], out FormulaArgumentValue value) || value.IsUnresolvedFormula) return false;
                 if (value.IsError) {
                     if (!firstError.IsError) firstError = value;
@@ -34,6 +37,16 @@ namespace OfficeIMO.Excel {
                 result = FormulaArgumentValue.Error("#DIV/0!");
                 return true;
             }
+            if (multiple) {
+                if (numbers[0] == 0 || (function == "CEILING" && numbers[1] == 0)) {
+                    result = new FormulaArgumentValue(0, "0");
+                    return true;
+                }
+                if (numbers[1] == 0 || (numbers[0] > 0 && numbers[1] < 0)) {
+                    result = FormulaArgumentValue.Error(numbers[1] == 0 ? "#DIV/0!" : "#NUM!");
+                    return true;
+                }
+            }
             double logarithmBase = count == 2 ? numbers[1] : 10;
             if ((function is "LN" or "LOG" or "LOG10") &&
                 (numbers[0] <= 0 || (function == "LOG" && logarithmBase <= 0))) {
@@ -44,7 +57,8 @@ namespace OfficeIMO.Excel {
                 result = FormulaArgumentValue.Error("#DIV/0!");
                 return true;
             }
-            double number = directional ? RoundDirectionalAtDigits(numbers[0], digits, awayFromZero: function == "ROUNDUP")
+            double number = multiple ? RoundAtMultiple(numbers[0], numbers[1], ceiling: function == "CEILING")
+                : directional ? RoundDirectionalAtDigits(numbers[0], digits, awayFromZero: function == "ROUNDUP")
                 : function == "EXP" ? Math.Exp(numbers[0])
                 : function == "LN" ? Math.Log(numbers[0])
                 : function == "LOG10" || (function == "LOG" && logarithmBase == 10) ? Math.Log10(numbers[0])

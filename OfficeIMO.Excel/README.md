@@ -893,6 +893,18 @@ Large integral values avoid unnecessary scaling, and nonfinite results produce
 `#NUM!` instead of invalid numeric caches. All operands, including supported
 digit bounds, qualify before an argument error is propagated.
 
+`CEILING` and `FLOOR` require two scalar operands and treat explicit omitted
+operands as zero. Negative numbers with negative significance round away from
+zero for `CEILING` and toward zero for `FLOOR`; positive significance rounds
+negative numbers toward positive and negative infinity, respectively. Positive
+numbers with negative significance produce `#NUM!`. Zero numbers return zero;
+zero significance returns zero for `CEILING` and `#DIV/0!` for nonzero `FLOOR`.
+Decimal normalization preserves exact multiples such as `CEILING(0.07,0.01)`.
+Remainder-based calculation avoids quotient overflow for finite rounded results;
+nonfinite results produce `#NUM!`. Typed errors propagate, while unsupported
+operands, ranges and argument counts preserve existing caches. The `.MATH`
+variants retain their separate direction and mode contracts.
+
 `OFFSET` resolves a single-cell value or a rectangular reference argument for
 functions such as `SUM`, within worksheet bounds and 32 reference levels.
 Multi-cell scalar results, implicit intersection and spills remain unsupported.

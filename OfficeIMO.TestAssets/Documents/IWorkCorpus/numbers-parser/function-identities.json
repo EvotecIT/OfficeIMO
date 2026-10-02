@@ -28,6 +28,11 @@
       "sampleArgumentCount": 1
     },
     {
+      "index": 17,
+      "name": "CEILING",
+      "sampleArgumentCount": 2
+    },
+    {
       "index": 22,
       "name": "COLUMN",
       "sampleArgumentCount": 0
@@ -80,6 +85,11 @@
     {
       "index": 53,
       "name": "FIND",
+      "sampleArgumentCount": 2
+    },
+    {
+      "index": 55,
+      "name": "FLOOR",
       "sampleArgumentCount": 2
     },
     {

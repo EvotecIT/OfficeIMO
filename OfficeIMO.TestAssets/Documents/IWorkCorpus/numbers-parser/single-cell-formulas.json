@@ -12,7 +12,7 @@
     "M12.2-7035.0.159-2",
     "M13.1-7037.0.101-2"
   ],
-  "qualification": "Native node-36 target identities and mixed coordinates, plus selected scalar function nodes; independent computations agree with numeric/text/Boolean caches. Scalar text cases use ASCII literals. Build metadata is retained in this manifest. No Apple export/render oracle. Numeric INT/MOD/SQRT/SIGN/TRUNC/ROUNDUP/ROUNDDOWN expressions include unary negatives, subtraction, optional and signed digit arguments and nested ABS; independent numeric/decimal computations agree with native caches. EXP/LN/LOG/LOG10 cases include optional/explicit bases, nesting and exponentiation. Their exact producer caches are retained; independent transcendental computations use the recorded relative/absolute tolerance, not exact binary equality.",
+  "qualification": "Native node-36 target identities and mixed coordinates, plus selected scalar function nodes; independent computations agree with numeric/text/Boolean caches. Scalar text cases use ASCII literals. Build metadata is retained in this manifest. No Apple export/render oracle. Numeric INT/MOD/SQRT/SIGN/TRUNC/ROUNDUP/ROUNDDOWN expressions include unary negatives, subtraction, optional and signed digit arguments and nested ABS; independent numeric/decimal computations agree with native caches. EXP/LN/LOG/LOG10 cases include optional/explicit bases, nesting and exponentiation. Their exact producer caches are retained; independent transcendental computations use the recorded relative/absolute tolerance, not exact binary equality. Ten CEILING/FLOOR expressions qualify signed multiples, zero significance and native omitted node-22 operands. Independent decimal computations agree exactly with stored Decimal128 coefficient/exponent values. Raw cache bytes and the independent provider float (which can add a binary rounding step) are retained separately.",
   "cases": [
     {
       "sourceSheet": "Reference",
@@ -222,6 +222,138 @@
     {
       "sourceSheet": "Math",
       "sourceTable": "Tests",
+      "row": 3,
+      "column": 2,
+      "sourceFormula": "CEILING(-2.5,-2)",
+      "cachedValue": -4.0,
+      "computedCurrentValue": -4.0,
+      "nodeTypes": [
+        17,
+        13,
+        17,
+        13,
+        16
+      ],
+      "functions": [
+        {
+          "index": 17,
+          "name": "CEILING",
+          "argumentCount": 2
+        }
+      ],
+      "providerCachedValue": -4.0,
+      "storedDecimal128": {
+        "bytes": "040000000000000000000000000040b0",
+        "value": "-4"
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 4,
+      "column": 2,
+      "sourceFormula": "CEILING(0.234,0.01)",
+      "cachedValue": 0.24,
+      "computedCurrentValue": 0.24,
+      "nodeTypes": [
+        17,
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 17,
+          "name": "CEILING",
+          "argumentCount": 2
+        }
+      ],
+      "providerCachedValue": 0.24000000000000002,
+      "storedDecimal128": {
+        "bytes": "0000bf5a47da00000000000000002230",
+        "value": "0.240000000000000"
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 5,
+      "column": 2,
+      "sourceFormula": "CEILING(1.5,0)",
+      "cachedValue": 0.0,
+      "computedCurrentValue": 0.0,
+      "nodeTypes": [
+        17,
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 17,
+          "name": "CEILING",
+          "argumentCount": 2
+        }
+      ],
+      "providerCachedValue": 0.0,
+      "storedDecimal128": {
+        "bytes": "00000000000000000000000000004030",
+        "value": "0"
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 6,
+      "column": 2,
+      "sourceFormula": "CEILING(1.5,0.1)",
+      "cachedValue": 1.5,
+      "computedCurrentValue": 1.5,
+      "nodeTypes": [
+        17,
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 17,
+          "name": "CEILING",
+          "argumentCount": 2
+        }
+      ],
+      "providerCachedValue": 1.5,
+      "storedDecimal128": {
+        "bytes": "0060b7986c8800000000000000002430",
+        "value": "1.50000000000000"
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 7,
+      "column": 2,
+      "sourceFormula": "CEILING(2.5,1)",
+      "cachedValue": 3.0,
+      "computedCurrentValue": 3.0,
+      "nodeTypes": [
+        17,
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 17,
+          "name": "CEILING",
+          "argumentCount": 2
+        }
+      ],
+      "providerCachedValue": 3.0,
+      "storedDecimal128": {
+        "bytes": "03000000000000000000000000004030",
+        "value": "3"
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
       "row": 13,
       "column": 2,
       "sourceFormula": "EXP(1)",
@@ -241,6 +373,138 @@
       "computationTolerance": {
         "relative": 1e-14,
         "absolute": 1e-15
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 27,
+      "column": 2,
+      "sourceFormula": "FLOOR(-2.5,-2)",
+      "cachedValue": -2.0,
+      "computedCurrentValue": -2.0,
+      "nodeTypes": [
+        17,
+        13,
+        17,
+        13,
+        16
+      ],
+      "functions": [
+        {
+          "index": 55,
+          "name": "FLOOR",
+          "argumentCount": 2
+        }
+      ],
+      "providerCachedValue": -2.0,
+      "storedDecimal128": {
+        "bytes": "020000000000000000000000000040b0",
+        "value": "-2"
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 28,
+      "column": 2,
+      "sourceFormula": "FLOOR(0,)",
+      "cachedValue": 0.0,
+      "computedCurrentValue": 0.0,
+      "nodeTypes": [
+        17,
+        22,
+        16
+      ],
+      "functions": [
+        {
+          "index": 55,
+          "name": "FLOOR",
+          "argumentCount": 2
+        }
+      ],
+      "providerCachedValue": 0.0,
+      "storedDecimal128": {
+        "bytes": "00000000000000000000000000004030",
+        "value": "0"
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 29,
+      "column": 2,
+      "sourceFormula": "FLOOR(0.234,0.01)",
+      "cachedValue": 0.23,
+      "computedCurrentValue": 0.23,
+      "nodeTypes": [
+        17,
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 55,
+          "name": "FLOOR",
+          "argumentCount": 2
+        }
+      ],
+      "providerCachedValue": 0.23,
+      "storedDecimal128": {
+        "bytes": "00604c0c2fd100000000000000002230",
+        "value": "0.230000000000000"
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 30,
+      "column": 2,
+      "sourceFormula": "FLOOR(1.58,0.1)",
+      "cachedValue": 1.5,
+      "computedCurrentValue": 1.5,
+      "nodeTypes": [
+        17,
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 55,
+          "name": "FLOOR",
+          "argumentCount": 2
+        }
+      ],
+      "providerCachedValue": 1.5,
+      "storedDecimal128": {
+        "bytes": "0060b7986c8800000000000000002430",
+        "value": "1.50000000000000"
+      }
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 31,
+      "column": 2,
+      "sourceFormula": "FLOOR(3.7,2)",
+      "cachedValue": 2.0,
+      "computedCurrentValue": 2.0,
+      "nodeTypes": [
+        17,
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 55,
+          "name": "FLOOR",
+          "argumentCount": 2
+        }
+      ],
+      "providerCachedValue": 2.0,
+      "storedDecimal128": {
+        "bytes": "02000000000000000000000000004030",
+        "value": "2"
       }
     },
     {

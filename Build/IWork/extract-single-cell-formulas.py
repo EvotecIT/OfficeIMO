@@ -6,12 +6,13 @@ import argparse
 import hashlib
 import json
 import math
-from decimal import Decimal, ROUND_UP, ROUND_DOWN
+from decimal import Decimal, ROUND_UP, ROUND_DOWN, ROUND_CEILING, ROUND_FLOOR, localcontext
 import plistlib
 from importlib.metadata import version
 from pathlib import Path
 from zipfile import ZipFile
 from numbers_parser import Document
+from numbers_parser.cell import DECIMAL128_BIAS
 from numbers_parser.generated.functionmap import FUNCTION_MAP
 from numbers_parser.numbers_uuid import NumbersUUID
 from numbers_parser.xrefs import xl_rowcol_to_cell
@@ -117,16 +118,36 @@ for sheet_name, row in scalar_selections:
                          'computedCurrentValue': computed,
                          'functionIndex': function.AST_function_node_index,
                          'functionName': name, 'argumentCount': len(arguments)})
+def stored_decimal128(cell):
+    # Inspect the unchanged v5 buffer exposed by the independent reader. Its
+    # float unpacker multiplies by a binary 10**exponent, which can add a rounding
+    # step (the stored 0.24 is reported as 0.24000000000000002). Decimal arithmetic
+    # retains the producer's coefficient/exponent before one conversion to float.
+    assert cell._buffer[0] == 5 and cell._flags & 1
+    data = bytes(cell._buffer[12:28])
+    assert len(data) == 16 and data[15] & 0x78 != 0x78
+    exponent = (((data[15] & 0x7f) << 7) | (data[14] >> 1)) - DECIMAL128_BIAS
+    coefficient = int.from_bytes(data[:14], 'little') + ((data[14] & 1) << 112)
+    assert coefficient < 10**34
+    if data[15] & 0x80:
+        coefficient = -coefficient
+    with localcontext() as context:
+        context.prec = 34
+        value = Decimal(coefficient).scaleb(exponent)
+    return value, {'bytes': data.hex(), 'value': str(value)}
+
 numeric_cases = []
 if upstream_path == 'test-all-formulas.numbers':
     table = document.sheets['Math'].tables['Tests']
-    for row in [13, 46, 47, 48, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 125, 126, 127, 128, 129, 164, 165, 166]:
+    for row in [3, 4, 5, 6, 7, 13, 27, 28, 29, 30, 31, 46, 47, 48, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 125, 126, 127, 128, 129, 164, 165, 166]:
         cell = table.cell(row - 1, 1)
         nodes = model.formula_ast(table._table_id)[cell._formula_id]
         stack, functions = [], []
         for node in nodes:
             if node.AST_node_type == 17:
                 stack.append(node.AST_number_node_number)
+            elif node.AST_node_type == 22:
+                stack.append(None)  # An explicit omitted operand; not an absent node.
             elif node.AST_node_type == 13:
                 stack.append(-stack.pop())
             elif node.AST_node_type == 2:
@@ -141,7 +162,17 @@ if upstream_path == 'test-all-formulas.numbers':
                 name = FUNCTION_MAP[node.AST_function_node_index]
                 values = stack[-count:]
                 del stack[-count:]
-                if name == 'INT':
+                if name in ('CEILING', 'FLOOR'):
+                    assert count == 2
+                    number, factor = [Decimal(str(v)) if v is not None else Decimal(0) for v in values]
+                    assert number == 0 or factor == 0 or (number > 0) == (factor > 0)
+                    if number == 0 or (name == 'CEILING' and factor == 0):
+                        computed = 0.0
+                    else:
+                        assert factor != 0
+                        rounding = ROUND_CEILING if name == 'CEILING' else ROUND_FLOOR
+                        computed = float((number / factor).to_integral_value(rounding=rounding) * factor)
+                elif name == 'INT':
                     assert count == 1
                     computed = math.floor(values[0])
                 elif name == 'MOD':
@@ -176,10 +207,14 @@ if upstream_path == 'test-all-formulas.numbers':
                 functions.append({'index': node.AST_function_node_index, 'name': name, 'argumentCount': count})
         assert len(stack) == 1
         logarithmic = any(f['name'] in ('EXP', 'LN', 'LOG', 'LOG10') for f in functions)
+        multiple = any(f['name'] in ('CEILING', 'FLOOR') for f in functions)
         # The producer stores rounded transcendental caches. Preserve those exact
         # caches and record the tolerance used only for independent computation.
         if logarithmic:
             assert math.isclose(stack[0], cell.value, rel_tol=1e-14, abs_tol=1e-15)
+        elif multiple:
+            decimal_cache, stored_cache = stored_decimal128(cell)
+            assert stack[0] == float(decimal_cache)
         else:
             assert stack[0] == cell.value
         case = {'sourceSheet': 'Math', 'sourceTable': table.name, 'row': row, 'column': 2,
@@ -188,6 +223,10 @@ if upstream_path == 'test-all-formulas.numbers':
                               'functions': functions}
         if logarithmic:
             case['computationTolerance'] = {'relative': 1e-14, 'absolute': 1e-15}
+        elif multiple:
+            case['providerCachedValue'] = cell.value
+            case['storedDecimal128'] = stored_cache
+            case['cachedValue'] = float(decimal_cache)
         numeric_cases.append(case)
 with ZipFile(args.source) as package:
     builds = plistlib.loads(package.read('Metadata/BuildVersionHistory.plist'))
@@ -202,5 +241,6 @@ if numeric_cases:
     manifest['numericFunctionCases'] = numeric_cases
     manifest['qualification'] += ' Numeric INT/MOD/SQRT/SIGN/TRUNC/ROUNDUP/ROUNDDOWN expressions include unary negatives, subtraction, optional and signed digit arguments and nested ABS; independent numeric/decimal computations agree with native caches.'
     manifest['qualification'] += ' EXP/LN/LOG/LOG10 cases include optional/explicit bases, nesting and exponentiation. Their exact producer caches are retained; independent transcendental computations use the recorded relative/absolute tolerance, not exact binary equality.'
+    manifest['qualification'] += ' Ten CEILING/FLOOR expressions qualify signed multiples, zero significance and native omitted node-22 operands. Independent decimal computations agree exactly with stored Decimal128 coefficient/exponent values. Raw cache bytes and the independent provider float (which can add a binary rounding step) are retained separately.'
 args.output.write_text(json.dumps(manifest, indent=2) + '\n')
 print(f'Extracted {len(cases)} reference, {len(scalar_cases)} scalar and {len(numeric_cases)} numeric formulas from {source_hash}')

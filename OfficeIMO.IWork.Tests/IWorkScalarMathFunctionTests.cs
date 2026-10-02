@@ -4,6 +4,8 @@ namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkBoundaryTests {
     [Theory]
+    [InlineData(17, "CEILING", 2, 2d)]
+    [InlineData(55, "FLOOR", 2, 0d)]
     [InlineData(65, "INT", 1, 1d)]
     [InlineData(92, "MOD", 2, 1d)]
     [InlineData(139, "SQRT", 1, 1d)]
@@ -36,6 +38,8 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Theory]
+    [InlineData(17, new double[] { 2.5, -2 }, "CEILING(2.5,-2)", "#NUM!")]
+    [InlineData(55, new double[] { 1, 0 }, "FLOOR(1,0)", "#DIV/0!")]
     [InlineData(139, new double[] { -1 }, "SQRT(-1)", "#NUM!")]
     [InlineData(92, new double[] { 1, 0 }, "MOD(1,0)", "#DIV/0!")]
     [InlineData(50, new double[] { 1000 }, "EXP(1000)", "#NUM!")]
@@ -60,6 +64,8 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Theory]
+    [InlineData(17, 2)]
+    [InlineData(55, 2)]
     [InlineData(65, 1)]
     [InlineData(92, 2)]
     [InlineData(139, 1)]

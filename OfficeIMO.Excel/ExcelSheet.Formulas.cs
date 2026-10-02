@@ -678,7 +678,7 @@ namespace OfficeIMO.Excel {
                     string function = functionCall.Name.ToUpperInvariant();
                     string args = functionCall.Arguments;
                     if (function == "MATCH" || function == "XMATCH") return TryEvaluateMatchValue(function, args, out result);
-                    if (function is "INT" or "MOD" or "SQRT" or "SIGN" or "TRUNC" or "ROUNDUP" or "ROUNDDOWN" or "EXP" or "LN" or "LOG" or "LOG10") return TryEvaluateScalarMathValue(function, args, out result);
+                    if (function is "INT" or "MOD" or "SQRT" or "SIGN" or "TRUNC" or "ROUNDUP" or "ROUNDDOWN" or "EXP" or "LN" or "LOG" or "LOG10" or "CEILING" or "FLOOR") return TryEvaluateScalarMathValue(function, args, out result);
                     if (function == "PROB") return TryEvaluateProbabilityValue(args, out result);
                     if (function == "RANDBETWEEN") return TryEvaluateRandomBetweenValue(args, out result);
                     if (function == "OFFSET") return TryEvaluateOffsetValue(args, out result);
@@ -778,7 +778,7 @@ namespace OfficeIMO.Excel {
             if (functionCall != null) {
                     string function = functionCall.Name.ToUpperInvariant();
                     string args = functionCall.Arguments;
-                    if (function is "INT" or "MOD" or "SQRT" or "SIGN" or "TRUNC" or "ROUNDUP" or "ROUNDDOWN" or "EXP" or "LN" or "LOG" or "LOG10") {
+                    if (function is "INT" or "MOD" or "SQRT" or "SIGN" or "TRUNC" or "ROUNDUP" or "ROUNDDOWN" or "EXP" or "LN" or "LOG" or "LOG10" or "CEILING" or "FLOOR") {
                         if (!TryEvaluateScalarMathValue(function, args, out FormulaArgumentValue value)) return false;
                         if (value.IsError) { error = value; return false; }
                         result = value.Number!.Value;
@@ -1008,17 +1008,6 @@ namespace OfficeIMO.Excel {
                             return false;
                         }
 
-                        return true;
-                    }
-
-                    if (function == "CEILING" || function == "FLOOR") {
-                        if (numbers.Count != 2 || numbers[1] <= 0) {
-                            return false;
-                        }
-
-                        double value = numbers[0] / numbers[1];
-                        double rounded = function == "CEILING" ? Math.Ceiling(value) : Math.Floor(value);
-                        result = rounded * numbers[1];
                         return true;
                     }
 
