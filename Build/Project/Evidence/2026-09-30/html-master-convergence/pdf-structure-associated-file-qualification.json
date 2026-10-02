@@ -167,5 +167,24 @@
     "Existing scoped mathematical geometry qualification remains at345893cd8; no new H4/NASA/budget claim.",
     "Default mathematical fonts/math-auto/full MATH tables and platform qualification remain open."
   ],
-  "publication": "Branch checkpoint only; no HTML PR/master merge/release."
+  "publication": "Branch checkpoint only; no HTML PR/master merge/release.",
+  "masterIntegration": {
+    "sourceCommit": "83c87cf32bdbe588bfc9120e230685a6add02a2f",
+    "upstreamMaster": "79c9f5bd3fb6e24fbedf78eecd44f607b522fa77",
+    "conflict": "MIGRATION.md only; both sets of upgrade instructions retained.",
+    "pdfNet10": {
+      "passed": 8636,
+      "failed": 0
+    },
+    "htmlNet10": {
+      "passed": 4057,
+      "failed": 0
+    },
+    "netstandard20Build": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "ownerCodeChangedByMerge": false,
+    "scope": "Adopts current conversion-batch APIs. Prior per-owner net8/net10 artifact proof remains valid; no new H4/NASA/budget or formal-conformance claim."
+  }
 }

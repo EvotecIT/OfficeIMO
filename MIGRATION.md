@@ -24,6 +24,14 @@ splitting such rows, set `RtfTableRow.KeepTogether = false` on the converted
 `RtfDocument` before writing it, or regenerate the HTML from its original RTF
 using the round-trip export profile.
 
+## PDF 2.0 associated-file metadata
+
+When writing PDF 2.0, supply a MIME type for every catalog attachment through
+`PdfOptions.AddEmbeddedFile` or the fluent attachment builder. Undated files omit
+the optional stream-parameter dictionary; provide `PdfEmbeddedFile.ModificationDate`
+when requesting an archival profile. Structure-associated files also select an
+appropriate PDF version, and explicit profile checks validate that emitted version.
+
 ## Conversion batches replace the PDF archive surface
 
 Replace `OfficePdfArchiveWorkflow.RunAsync(OfficePdfArchiveRequest)` with `OfficeWorkflowRunner.RunBatchAsync(OfficeConversionBatchRequest)` or `OfficeWorkflow.ConvertDirectory(...).ToDirectory(...).RunAsync()`. The batch uses the existing executable route catalog and can select other targets. Checkpoints are optional; ordinary batches also use the existing rename/replace policies. `OfficeConversionBatchResult` includes skipped counts, and `OfficeConversionBatchItemResult` distinguishes skipped files from failed conversions.
