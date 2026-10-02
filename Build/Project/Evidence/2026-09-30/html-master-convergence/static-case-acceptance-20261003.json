@@ -1,0 +1,793 @@
+{
+  "schema": "officeimo.html.static-case-acceptance",
+  "sourceHead": "9aece6c81",
+  "scope": "Eighteen frozen fixtures; accepted observations and explicit remaining qualification limits, not browser parity or overall product readiness.",
+  "font": {
+    "path": "OfficeIMO.TestAssets/Fonts/OfficeIMOBaselineSans-Regular.ttf",
+    "sha256": "00aca2988771998ff27738ff97c2cc8e71eb3013f206de5f205986b7de326af3",
+    "family": "OfficeIMO Baseline Sans",
+    "license": "SIL OFL 1.1",
+    "notice": "OfficeIMO.TestAssets/Fonts/OFL-Carlito.txt",
+    "embeddedInEveryInput": true
+  },
+  "reference": {
+    "package": "PeachPDF",
+    "version": "0.9.20",
+    "license": "BSD-3-Clause"
+  },
+  "environment": {
+    "osDescription": "macOS 27.0.1",
+    "processArchitecture": "Arm64",
+    "frameworkDescription": ".NET 10.0.12",
+    "officeImoVersion": "3.4.4+9aece6c816cbf7404c74c340264ea216e5a3ac2f",
+    "peachPdfVersion": "0.9.20",
+    "htmlTinkerXVersion": "3.0.1",
+    "chromiumVersion": "151.0.7922.34",
+    "externalPdfRasterizer": "pdftoppm version 26.09.0"
+  },
+  "evidenceDirectory": "Ignore/MathAutoQualification/static-gaps-9aece6c81",
+  "method": {
+    "text": "Poppler pdftotext -raw; whitespace, layout hyphens and authored soft hyphens excluded from character multiset; generated note numbers and mathematical serialization punctuation explicitly accounted for. Unique numbered markers checked separately for count and order.",
+    "extractionLimit": "Default Poppler layout extraction reorders some column markers; raw content order is preserved. This does not prove every reader or assistive technology order.",
+    "visual": "All 25 PDF pages inspected through first-page and continuation sheets; current PNG and SVG bytes identical to the previously inspected math checkpoint. Scene/raster generation does not imply numerical visual parity.",
+    "images": "pypdf image extraction against independently supplied RGBA fixtures",
+    "conformance": "Separate exact-artifact policy probe recorded in static-html-pdf-conformance-20261003.json"
+  },
+  "cases": [
+    {
+      "id": "webp-raw-filters",
+      "sourceSha256": "324bcd0879696c81901d616d734d37476e1f52e7ed2b26e68c665b17ba3dedb5",
+      "criteria": [
+        {
+          "requirement": "All four filters on white/dark backgrounds; compare color/alpha regions to independently decoded .rgba fixtures.",
+          "assessment": "accepted: all four independent RGBA references match within one RGB unit and exact alpha; white/dark output inspected"
+        },
+        {
+          "requirement": "No decode-fallback or omitted-image diagnostic; each of eight image instances retained.",
+          "assessment": "accepted: eight PDF image draws, no omitted-image or decoder fallback diagnostic"
+        }
+      ],
+      "content": {
+        "normalizedCharacterMultisetPreserved": true,
+        "numberedMarkersOnce": true,
+        "numberedMarkersInSourceOrder": true,
+        "expectedGeneratedCharacters": {},
+        "requiredMarkersOnce": true,
+        "requiredLinksRetained": true,
+        "imageDraws": 8
+      },
+      "pdfSha256": "87bcb845ce85fb1f4a7171a2ed804c298aefad85c07a8c938846e1424d33d12a",
+      "pages": 1,
+      "pixelComparisons": [
+        {
+          "reference": "OfficeIMO.Drawing.Tests/TestAssets/WebpAlpha/raw-filter-0.rgba",
+          "maxRgbError": 1,
+          "maxAlphaError": 0
+        },
+        {
+          "reference": "OfficeIMO.Drawing.Tests/TestAssets/WebpAlpha/raw-filter-1.rgba",
+          "maxRgbError": 1,
+          "maxAlphaError": 0
+        },
+        {
+          "reference": "OfficeIMO.Drawing.Tests/TestAssets/WebpAlpha/raw-filter-2.rgba",
+          "maxRgbError": 1,
+          "maxAlphaError": 0
+        },
+        {
+          "reference": "OfficeIMO.Drawing.Tests/TestAssets/WebpAlpha/raw-filter-3.rgba",
+          "maxRgbError": 1,
+          "maxAlphaError": 0
+        }
+      ],
+      "diagnosticCodes": [],
+      "warningCodes": [
+        "unsupported-font-ligature-substitution"
+      ],
+      "reference": {
+        "peachPdfPages": 1,
+        "peachPdfMissingMarkers": [],
+        "browser": {
+          "version": null,
+          "artifacts": "chromium-print.pdf and chromium-screen.png in retained case directory"
+        }
+      }
+    },
+    {
+      "id": "webp-compressed-filters",
+      "sourceSha256": "352e9af17b23736dc8727dd068b643c7d71d263382a9ac93355dd2d0d0e316c5",
+      "criteria": [
+        {
+          "requirement": "All four filters on white/dark backgrounds; compare color/alpha regions to independently decoded .rgba fixtures.",
+          "assessment": "accepted: all four independent RGBA references match within one RGB unit and exact alpha; white/dark output inspected"
+        },
+        {
+          "requirement": "No decode-fallback or omitted-image diagnostic; each of eight image instances retained.",
+          "assessment": "accepted: eight PDF image draws, no omitted-image or decoder fallback diagnostic"
+        }
+      ],
+      "content": {
+        "normalizedCharacterMultisetPreserved": true,
+        "numberedMarkersOnce": true,
+        "numberedMarkersInSourceOrder": true,
+        "expectedGeneratedCharacters": {},
+        "requiredMarkersOnce": true,
+        "requiredLinksRetained": true,
+        "imageDraws": 8
+      },
+      "pdfSha256": "2f174bf075d5dd2c96c46f414f694fd2fc17396eab7e9f8e15307bf580ef49d6",
+      "pages": 1,
+      "pixelComparisons": [
+        {
+          "reference": "OfficeIMO.Drawing.Tests/TestAssets/WebpAlpha/compressed-filter-0.rgba",
+          "maxRgbError": 1,
+          "maxAlphaError": 0
+        },
+        {
+          "reference": "OfficeIMO.Drawing.Tests/TestAssets/WebpAlpha/compressed-filter-1.rgba",
+          "maxRgbError": 1,
+          "maxAlphaError": 0
+        },
+        {
+          "reference": "OfficeIMO.Drawing.Tests/TestAssets/WebpAlpha/compressed-filter-2.rgba",
+          "maxRgbError": 1,
+          "maxAlphaError": 0
+        },
+        {
+          "reference": "OfficeIMO.Drawing.Tests/TestAssets/WebpAlpha/compressed-filter-3.rgba",
+          "maxRgbError": 1,
+          "maxAlphaError": 0
+        }
+      ],
+      "diagnosticCodes": [],
+      "warningCodes": [
+        "unsupported-font-ligature-substitution"
+      ],
+      "reference": {
+        "peachPdfPages": 1,
+        "peachPdfMissingMarkers": [],
+        "browser": {
+          "version": null,
+          "artifacts": "chromium-print.pdf and chromium-screen.png in retained case directory"
+        }
+      }
+    },
+    {
+      "id": "avif-opaque",
+      "sourceSha256": "e28224b7fd7ba84858bf4af40a0ad42cf631945944f8fbe66a1f0ae9838be38b",
+      "criteria": [
+        {
+          "requirement": "Two image instances retained; contrast backgrounds and channel values agree with independently decoded .rgba (RGB tolerance 3, alpha exact).",
+          "assessment": "accepted: two image draws, independent RGBA error at most two RGB units and exact alpha"
+        },
+        {
+          "requirement": "Encoded/pixel bounds and malformed cases must be qualified through Core before support promotion.",
+          "assessment": "retained owner qualification: encoded/pixel/work/malformed limits are Core contracts, not established by this valid-image corpus"
+        }
+      ],
+      "content": {
+        "normalizedCharacterMultisetPreserved": true,
+        "numberedMarkersOnce": true,
+        "numberedMarkersInSourceOrder": true,
+        "expectedGeneratedCharacters": {},
+        "requiredMarkersOnce": true,
+        "requiredLinksRetained": true,
+        "imageDraws": 2
+      },
+      "pdfSha256": "e4179493796a7b1ffee04318d6ca5f463ab203e338d1018c084a9a771df5a8ee",
+      "pages": 1,
+      "pixelComparisons": [
+        {
+          "reference": "OfficeIMO.TestAssets/Documents/Html/Qualification/StaticPdfGaps/avif-opaque.rgba",
+          "maxRgbError": 2,
+          "maxAlphaError": 0
+        }
+      ],
+      "diagnosticCodes": [],
+      "warningCodes": [],
+      "reference": {
+        "peachPdfPages": 1,
+        "peachPdfMissingMarkers": [],
+        "browser": {
+          "version": null,
+          "artifacts": "chromium-print.pdf and chromium-screen.png in retained case directory"
+        }
+      }
+    },
+    {
+      "id": "avif-alpha",
+      "sourceSha256": "dbef59f75215a4c88beb7a0c102c9e0b8899a2bbbc86220b184b5287a946573f",
+      "criteria": [
+        {
+          "requirement": "Two image instances retained; contrast backgrounds and channel values agree with independently decoded .rgba (RGB tolerance 3, alpha exact).",
+          "assessment": "accepted: two image draws, independent RGBA error at most two RGB units and exact alpha"
+        },
+        {
+          "requirement": "Encoded/pixel bounds and malformed cases must be qualified through Core before support promotion.",
+          "assessment": "retained owner qualification: encoded/pixel/work/malformed limits are Core contracts, not established by this valid-image corpus"
+        }
+      ],
+      "content": {
+        "normalizedCharacterMultisetPreserved": true,
+        "numberedMarkersOnce": true,
+        "numberedMarkersInSourceOrder": true,
+        "expectedGeneratedCharacters": {},
+        "requiredMarkersOnce": true,
+        "requiredLinksRetained": true,
+        "imageDraws": 2
+      },
+      "pdfSha256": "e0b060a133c63439589e81a0f625759b0ebb5564100227a86a1a08d40fea0dc7",
+      "pages": 1,
+      "pixelComparisons": [
+        {
+          "reference": "OfficeIMO.TestAssets/Documents/Html/Qualification/StaticPdfGaps/avif-alpha.rgba",
+          "maxRgbError": 2,
+          "maxAlphaError": 0
+        }
+      ],
+      "diagnosticCodes": [],
+      "warningCodes": [],
+      "reference": {
+        "peachPdfPages": 1,
+        "peachPdfMissingMarkers": [],
+        "browser": {
+          "version": null,
+          "artifacts": "chromium-print.pdf and chromium-screen.png in retained case directory"
+        }
+      }
+    },
+    {
+      "id": "page-float-top",
+      "sourceSha256": "25ed5941bedead0bbf9103a9b8b20f5089b414b4c65f0c1361077afcee13debd",
+      "criteria": [
+        {
+          "requirement": "All unique paragraph/float markers exactly once; no float/body overlap.",
+          "assessment": "accepted for fixture: all numbered paragraphs once and ordered; both pages visually inspected without overlap"
+        },
+        {
+          "requirement": "Top/bottom occupy the corresponding page content edge. Snap chooses nearest edge under the explicitly labeled reference contract.",
+          "assessment": "accepted for fixture: float at top content edge; browser treatment is a distinct comparison contract"
+        }
+      ],
+      "content": {
+        "normalizedCharacterMultisetPreserved": true,
+        "numberedMarkersOnce": true,
+        "numberedMarkersInSourceOrder": true,
+        "expectedGeneratedCharacters": {},
+        "requiredMarkersOnce": true,
+        "requiredLinksRetained": true,
+        "imageDraws": 0
+      },
+      "pdfSha256": "a43917cc9f6a4bdc114665dfab8336bcb587147d7c7712704929deee57e01cbc",
+      "pages": 2,
+      "pixelComparisons": [],
+      "diagnosticCodes": [],
+      "warningCodes": [
+        "unsupported-font-ligature-substitution"
+      ],
+      "reference": {
+        "peachPdfPages": 2,
+        "peachPdfMissingMarkers": [],
+        "browser": {
+          "version": null,
+          "artifacts": "chromium-print.pdf and chromium-screen.png in retained case directory"
+        }
+      }
+    },
+    {
+      "id": "page-float-bottom",
+      "sourceSha256": "dc5955a0be0a57129799df36a752d618686ea5d024b0c2cdfda0bbee22e77204",
+      "criteria": [
+        {
+          "requirement": "All unique paragraph/float markers exactly once; no float/body overlap.",
+          "assessment": "accepted for fixture: all numbered paragraphs once and ordered; both pages visually inspected without overlap"
+        },
+        {
+          "requirement": "Top/bottom occupy the corresponding page content edge. Snap chooses nearest edge under the explicitly labeled reference contract.",
+          "assessment": "accepted for fixture: float at bottom content edge"
+        }
+      ],
+      "content": {
+        "normalizedCharacterMultisetPreserved": true,
+        "numberedMarkersOnce": true,
+        "numberedMarkersInSourceOrder": true,
+        "expectedGeneratedCharacters": {},
+        "requiredMarkersOnce": true,
+        "requiredLinksRetained": true,
+        "imageDraws": 0
+      },
+      "pdfSha256": "4940aa09bcba5d51ee1948ef64c6e490f065485525669f7b5423b84170ac5c69",
+      "pages": 2,
+      "pixelComparisons": [],
+      "diagnosticCodes": [],
+      "warningCodes": [
+        "unsupported-font-ligature-substitution"
+      ],
+      "reference": {
+        "peachPdfPages": 2,
+        "peachPdfMissingMarkers": [],
+        "browser": {
+          "version": null,
+          "artifacts": "chromium-print.pdf and chromium-screen.png in retained case directory"
+        }
+      }
+    },
+    {
+      "id": "page-float-snap",
+      "sourceSha256": "84ae75d36e60934d5ea3e48544d18f6fba0c584787c43406ecf211c39d50767e",
+      "criteria": [
+        {
+          "requirement": "All unique paragraph/float markers exactly once; no float/body overlap.",
+          "assessment": "accepted for fixture: all numbered paragraphs once and ordered; both pages visually inspected without overlap"
+        },
+        {
+          "requirement": "Top/bottom occupy the corresponding page content edge. Snap chooses nearest edge under the explicitly labeled reference contract.",
+          "assessment": "accepted for fixture: snap selects top edge; no general browser support claim"
+        }
+      ],
+      "content": {
+        "normalizedCharacterMultisetPreserved": true,
+        "numberedMarkersOnce": true,
+        "numberedMarkersInSourceOrder": true,
+        "expectedGeneratedCharacters": {},
+        "requiredMarkersOnce": true,
+        "requiredLinksRetained": true,
+        "imageDraws": 0
+      },
+      "pdfSha256": "642b70082319e18834a5516480db5e47651ca2cb87eb38db71ad9c8f93072570",
+      "pages": 2,
+      "pixelComparisons": [],
+      "diagnosticCodes": [],
+      "warningCodes": [
+        "unsupported-font-ligature-substitution"
+      ],
+      "reference": {
+        "peachPdfPages": 2,
+        "peachPdfMissingMarkers": [],
+        "browser": {
+          "version": null,
+          "artifacts": "chromium-print.pdf and chromium-screen.png in retained case directory"
+        }
+      }
+    },
+    {
+      "id": "column-float-left",
+      "sourceSha256": "9772d72d0665d638033e9aff6ef28a3d6ea97a89183bfc879b85949fd6650970",
+      "criteria": [
+        {
+          "requirement": "Float consumes space only in originating column; neighboring column retains its full content band.",
+          "assessment": "accepted for fixture: first-column float narrows adjacent prose; neighboring column retains full band"
+        },
+        {
+          "requirement": "All paragraph markers once; continuation has no overlap or loss; link retained.",
+          "assessment": "accepted for fixture: numbered text once/in source order under raw extraction; link retained and page visually inspected"
+        }
+      ],
+      "content": {
+        "normalizedCharacterMultisetPreserved": true,
+        "numberedMarkersOnce": true,
+        "numberedMarkersInSourceOrder": true,
+        "expectedGeneratedCharacters": {},
+        "requiredMarkersOnce": true,
+        "requiredLinksRetained": true,
+        "imageDraws": 0
+      },
+      "pdfSha256": "7fd5d9005ab4464dbe636be4d29ccc7151ddbdea57a884d50031bd32b0487fe7",
+      "pages": 1,
+      "pixelComparisons": [],
+      "diagnosticCodes": [],
+      "warningCodes": [
+        "unsupported-font-ligature-substitution"
+      ],
+      "reference": {
+        "peachPdfPages": 1,
+        "peachPdfMissingMarkers": [],
+        "browser": {
+          "version": null,
+          "artifacts": "chromium-print.pdf and chromium-screen.png in retained case directory"
+        }
+      }
+    },
+    {
+      "id": "column-float-top",
+      "sourceSha256": "a12ba429eee9c189e2d1a569216f2b0c771f2c399b43d5ab7e0e71da8f043eff",
+      "criteria": [
+        {
+          "requirement": "Float consumes space only in originating column; neighboring column retains its full content band.",
+          "assessment": "accepted for fixture: first-column top float leaves neighboring full band"
+        },
+        {
+          "requirement": "All paragraph markers once; continuation has no overlap or loss; link retained.",
+          "assessment": "accepted for fixture: all numbered text once/in source order; link retained; both pages inspected"
+        }
+      ],
+      "content": {
+        "normalizedCharacterMultisetPreserved": true,
+        "numberedMarkersOnce": true,
+        "numberedMarkersInSourceOrder": true,
+        "expectedGeneratedCharacters": {},
+        "requiredMarkersOnce": true,
+        "requiredLinksRetained": true,
+        "imageDraws": 0
+      },
+      "pdfSha256": "4f194bd73b613acb639f21139e395f12d734473d0f72a9ec428421d5acf8f6f6",
+      "pages": 2,
+      "pixelComparisons": [],
+      "diagnosticCodes": [],
+      "warningCodes": [
+        "unsupported-font-ligature-substitution"
+      ],
+      "reference": {
+        "peachPdfPages": 1,
+        "peachPdfMissingMarkers": [],
+        "browser": {
+          "version": null,
+          "artifacts": "chromium-print.pdf and chromium-screen.png in retained case directory"
+        }
+      }
+    },
+    {
+      "id": "column-float-bottom",
+      "sourceSha256": "df8d5dc0575e9a414241a5ecfc17a073a54a3abd34abf3c22ee3832156b35e09",
+      "criteria": [
+        {
+          "requirement": "Float consumes space only in originating column; neighboring column retains its full content band.",
+          "assessment": "accepted for fixture: first-column bottom float leaves neighboring full band"
+        },
+        {
+          "requirement": "All paragraph markers once; continuation has no overlap or loss; link retained.",
+          "assessment": "accepted for fixture: all numbered text once/in source order; wrapped float marker retained; link retained; both pages inspected"
+        }
+      ],
+      "content": {
+        "normalizedCharacterMultisetPreserved": true,
+        "numberedMarkersOnce": true,
+        "numberedMarkersInSourceOrder": true,
+        "expectedGeneratedCharacters": {},
+        "requiredMarkersOnce": true,
+        "requiredLinksRetained": true,
+        "imageDraws": 0
+      },
+      "pdfSha256": "342e3ed62cbdcca5514599dcc17e81eefe7ed2d733cf27d6480bd885f0a7c591",
+      "pages": 2,
+      "pixelComparisons": [],
+      "diagnosticCodes": [],
+      "warningCodes": [
+        "unsupported-font-ligature-substitution"
+      ],
+      "reference": {
+        "peachPdfPages": 1,
+        "peachPdfMissingMarkers": [],
+        "browser": {
+          "version": null,
+          "artifacts": "chromium-print.pdf and chromium-screen.png in retained case directory"
+        }
+      }
+    },
+    {
+      "id": "column-notes",
+      "sourceSha256": "883a047a207023dbe9356b5c38d86888890bd7c300068cc5dbea17930ff916db",
+      "criteria": [
+        {
+          "requirement": "Each note bound to column of its call; all 35 long-note markers once and in order; continuation reserves space without body overlap.",
+          "assessment": "accepted for fixture: three pages inspected, calls and notes share originating column; all 35 LONG-NOTE markers once/in order; no observed body overlap"
+        }
+      ],
+      "content": {
+        "normalizedCharacterMultisetPreserved": true,
+        "numberedMarkersOnce": true,
+        "numberedMarkersInSourceOrder": false,
+        "expectedGeneratedCharacters": {
+          "1": 2,
+          "2": 2
+        },
+        "requiredMarkersOnce": true,
+        "requiredLinksRetained": true,
+        "imageDraws": 0
+      },
+      "pdfSha256": "78b33360e7a1284e725354d814d69907cb5b75b4d92ac37426980b10c32d7f08",
+      "pages": 3,
+      "pixelComparisons": [],
+      "diagnosticCodes": [],
+      "warningCodes": [],
+      "reference": {
+        "peachPdfPages": 1,
+        "peachPdfMissingMarkers": [],
+        "browser": {
+          "version": null,
+          "artifacts": "chromium-print.pdf and chromium-screen.png in retained case directory"
+        }
+      }
+    },
+    {
+      "id": "language-hyphenation",
+      "sourceSha256": "56eacf004d583dd7e3f80e5dcfd264284e6c836942df5115ede6bd46d71cb2bd",
+      "criteria": [
+        {
+          "requirement": "en-US/de-DE use declared language patterns; nested lang overrides inherited language.",
+          "assessment": "observed: en-US and nested de-DE produce language-dependent visible breaks; exhaustive pattern correctness is outside this fixture"
+        },
+        {
+          "requirement": "Manual/none controls; unsupported language has explicit fallback, no invented pattern.",
+          "assessment": "partial: manual/none controls and unhyphenated unsupported-language output observed; no explicit unsupported-language diagnostic emitted"
+        },
+        {
+          "requirement": "Original words preserved semantically; dictionary license/provenance recorded independently.",
+          "assessment": "accepted semantic check: full normalized character multiset preserved; source soft hyphen excluded; provenance remains in shared resource owner"
+        }
+      ],
+      "content": {
+        "normalizedCharacterMultisetPreserved": true,
+        "numberedMarkersOnce": true,
+        "numberedMarkersInSourceOrder": true,
+        "expectedGeneratedCharacters": {},
+        "requiredMarkersOnce": true,
+        "requiredLinksRetained": true,
+        "imageDraws": 0
+      },
+      "pdfSha256": "8dae0ecf36c35d52d947c4d4374c63cd1200c4bf87271cc357d36f3b1e97ada7",
+      "pages": 1,
+      "pixelComparisons": [],
+      "diagnosticCodes": [],
+      "warningCodes": [
+        "unsupported-font-ligature-substitution"
+      ],
+      "reference": {
+        "peachPdfPages": 1,
+        "peachPdfMissingMarkers": [],
+        "browser": {
+          "version": null,
+          "artifacts": "chromium-print.pdf and chromium-screen.png in retained case directory"
+        }
+      }
+    },
+    {
+      "id": "svg-patterns",
+      "sourceSha256": "c5a442114675dcda3eafafbc9f4552e34107a9a3a1bd7de994050d7bcb0583d3",
+      "criteria": [
+        {
+          "requirement": "Left grid repeats 20px red/blue tiles; right rotated object-bounding-box pattern stays inside circular clip.",
+          "assessment": "observed: red/blue repeat and rotated yellow/green pattern visible inside circle"
+        },
+        {
+          "requirement": "Independent color-region/clip checks; no fallback-colored silhouette.",
+          "assessment": "partial: all-page visual inspection confirms distinct colors and circular clipping; no numerical region/clip tolerance accepted yet"
+        }
+      ],
+      "content": {
+        "normalizedCharacterMultisetPreserved": true,
+        "numberedMarkersOnce": true,
+        "numberedMarkersInSourceOrder": true,
+        "expectedGeneratedCharacters": {},
+        "requiredMarkersOnce": true,
+        "requiredLinksRetained": true,
+        "imageDraws": 0
+      },
+      "pdfSha256": "bef46c8ce493cfffa5ccfad42e137120525719b0ea79a7997f358e3d2c9dbb57",
+      "pages": 1,
+      "pixelComparisons": [],
+      "diagnosticCodes": [],
+      "warningCodes": [],
+      "reference": {
+        "peachPdfPages": 1,
+        "peachPdfMissingMarkers": [],
+        "browser": {
+          "version": null,
+          "artifacts": "chromium-print.pdf and chromium-screen.png in retained case directory"
+        }
+      }
+    },
+    {
+      "id": "svg-filter-graph",
+      "sourceSha256": "e5b3b75f053f6367864c664ae0920433d36e93d3c5c85d6152070d674b71b29d",
+      "criteria": [
+        {
+          "requirement": "Blur/offset/source-alpha chain paints visible shadow beyond source bounds without clipping.",
+          "assessment": "observed: blur/offset shadow visible outside red source rectangle without visible clipping"
+        },
+        {
+          "requirement": "Color matrix/blend produces independent reference color; graph inputs/results honored.",
+          "assessment": "partial: purple matrix/blend output visible; independent numerical color-region comparison remains unqualified"
+        }
+      ],
+      "content": {
+        "normalizedCharacterMultisetPreserved": true,
+        "numberedMarkersOnce": true,
+        "numberedMarkersInSourceOrder": true,
+        "expectedGeneratedCharacters": {},
+        "requiredMarkersOnce": true,
+        "requiredLinksRetained": true,
+        "imageDraws": 2
+      },
+      "pdfSha256": "f4e40be74838a91f7a66d2e718ab88a038258dfbc0ba9843626ea2b295aa82f6",
+      "pages": 1,
+      "pixelComparisons": [],
+      "diagnosticCodes": [],
+      "warningCodes": [
+        "unsupported-font-ligature-substitution"
+      ],
+      "reference": {
+        "peachPdfPages": 1,
+        "peachPdfMissingMarkers": [],
+        "browser": {
+          "version": null,
+          "artifacts": "chromium-print.pdf and chromium-screen.png in retained case directory"
+        }
+      }
+    },
+    {
+      "id": "svg-resources",
+      "sourceSha256": "99eb8e06fd5b6302dcf508db3717124380f01ddd886856b16c6b32b621f90847",
+      "criteria": [
+        {
+          "requirement": "Local symbol retained in green; cyclic gradient terminates within work limit with explicit fallback/diagnostic.",
+          "assessment": "accepted for fixture: green local symbol retained; cyclic gradient terminates with HtmlRenderSvgContentUnsupported diagnostic and blue fallback"
+        },
+        {
+          "requirement": "SVG link retained; the denied-resource sibling must enforce offline resolution.",
+          "assessment": "accepted for fixture: hyperlink retained; sibling explicitly rejects file resource"
+        }
+      ],
+      "content": {
+        "normalizedCharacterMultisetPreserved": true,
+        "numberedMarkersOnce": true,
+        "numberedMarkersInSourceOrder": true,
+        "expectedGeneratedCharacters": {},
+        "requiredMarkersOnce": true,
+        "requiredLinksRetained": true,
+        "imageDraws": 0
+      },
+      "pdfSha256": "584485454ddcdfa069fa7e097102896c3ffe448f65948610ad122c6cec6cc166",
+      "pages": 1,
+      "pixelComparisons": [],
+      "diagnosticCodes": [
+        "HtmlRenderSvgContentUnsupported"
+      ],
+      "warningCodes": [
+        "HtmlRenderSvgContentUnsupported"
+      ],
+      "reference": {
+        "peachPdfPages": 1,
+        "peachPdfMissingMarkers": [],
+        "browser": {
+          "version": null,
+          "artifacts": "chromium-print.pdf and chromium-screen.png in retained case directory"
+        }
+      }
+    },
+    {
+      "id": "svg-resource-denied",
+      "sourceSha256": "24151127fd57f9a21ad994d646b2c67b3f39ae978eaa3bad5dba6b461c5cc0e4",
+      "criteria": [
+        {
+          "requirement": "File URI is rejected without accessing the filesystem; adjacent green geometry and safe text remain.",
+          "assessment": "observed: file resource rejected, green adjacent geometry and safe text retained; no filesystem-access instrumentation in this corpus"
+        },
+        {
+          "requirement": "Rejection/fallback is observable in diagnostics; resource/work limits bound failed resolution.",
+          "assessment": "accepted diagnostic check: ImageResourceRejectedByPolicy emitted; broader work limits remain owner-test evidence"
+        }
+      ],
+      "content": {
+        "normalizedCharacterMultisetPreserved": true,
+        "numberedMarkersOnce": true,
+        "numberedMarkersInSourceOrder": true,
+        "expectedGeneratedCharacters": {},
+        "requiredMarkersOnce": true,
+        "requiredLinksRetained": true,
+        "imageDraws": 0
+      },
+      "pdfSha256": "455a1832503740adf5be62ef7a9779bd42873e2bad9486e882032d7fe1cccdb3",
+      "pages": 1,
+      "pixelComparisons": [],
+      "diagnosticCodes": [
+        "HtmlRenderSvgContentUnsupported",
+        "ImageResourceRejectedByPolicy"
+      ],
+      "warningCodes": [
+        "HtmlRenderSvgContentUnsupported",
+        "ImageResourceRejectedByPolicy"
+      ],
+      "reference": {
+        "peachPdfPages": 1,
+        "peachPdfMissingMarkers": [],
+        "browser": {
+          "version": null,
+          "artifacts": "chromium-print.pdf and chromium-screen.png in retained case directory"
+        }
+      }
+    },
+    {
+      "id": "mathml-semantics",
+      "sourceSha256": "eeb36c25ca894cb7da3856426b7d44e21fd2e3c87c2760df87e84d2b826281bb",
+      "criteria": [
+        {
+          "requirement": "Formula vector geometry, Formula structure/description, exact original MathML associated-file mapping.",
+          "assessment": "accepted for fixture semantics: zero raster image draws, vector fraction/superscript inspected, Formula description retained; original MathML attachment verified in prior checkpoint. Full MATH geometry and portable math-font qualification remain open"
+        }
+      ],
+      "content": {
+        "normalizedCharacterMultisetPreserved": true,
+        "numberedMarkersOnce": true,
+        "numberedMarkersInSourceOrder": true,
+        "expectedGeneratedCharacters": {
+          "(": 3,
+          ")": 3,
+          "^": 1,
+          "/": 1
+        },
+        "requiredMarkersOnce": true,
+        "requiredLinksRetained": true,
+        "imageDraws": 0
+      },
+      "pdfSha256": "93813526feccf87d4f1cb4fe29cac1c2c34de5af2a1b4f5bff14110a3befc56b",
+      "pages": 1,
+      "pixelComparisons": [],
+      "diagnosticCodes": [
+        "InstalledFontResolved"
+      ],
+      "warningCodes": [
+        "InstalledFontResolved",
+        "unsupported-font-ligature-substitution"
+      ],
+      "reference": {
+        "peachPdfPages": 1,
+        "peachPdfMissingMarkers": [],
+        "browser": {
+          "version": null,
+          "artifacts": "chromium-print.pdf and chromium-screen.png in retained case directory"
+        }
+      }
+    },
+    {
+      "id": "pdf-conformance",
+      "sourceSha256": "202a80932c000db9de0e110472ca34c01d3a255286acaf07cf0bfb988c301567",
+      "criteria": [
+        {
+          "requirement": "Formula vector fraction/superscript geometry retained.",
+          "assessment": "accepted for fixture: vector fraction/superscript inspected and zero image draws"
+        },
+        {
+          "requirement": "Tagged Formula has accessible description and exact original MathML associated-file mapping.",
+          "assessment": "accepted for fixture: Formula description and original MathML attachment retained"
+        },
+        {
+          "requirement": "Conformance case requests PDF/A-3b and PDF/UA-1 separately through each engine supported public policy API; validate exact bytes with pinned independent rule sets.",
+          "assessment": "partial: explicit OfficeIMO PDF/A-3b and combined PDF/A-3b/PDF/UA-1 pass veraPDF 1.30.2; standalone PDF/UA-1 rejects source attachment version. Separate reference-engine policy and manual accessibility not qualified"
+        }
+      ],
+      "content": {
+        "normalizedCharacterMultisetPreserved": true,
+        "numberedMarkersOnce": true,
+        "numberedMarkersInSourceOrder": true,
+        "expectedGeneratedCharacters": {
+          "(": 3,
+          ")": 3,
+          "^": 1,
+          "/": 1
+        },
+        "requiredMarkersOnce": true,
+        "requiredLinksRetained": true,
+        "imageDraws": 0
+      },
+      "pdfSha256": "b42c2542354b957a569ba78620859c55f8bcf09d1fb8e595ebae63725e429068",
+      "pages": 1,
+      "pixelComparisons": [],
+      "diagnosticCodes": [
+        "InstalledFontResolved"
+      ],
+      "warningCodes": [
+        "InstalledFontResolved",
+        "unsupported-font-ligature-substitution"
+      ],
+      "reference": {
+        "peachPdfPages": 1,
+        "peachPdfMissingMarkers": [],
+        "browser": {
+          "version": null,
+          "artifacts": "chromium-print.pdf and chromium-screen.png in retained case directory"
+        }
+      }
+    }
+  ]
+}

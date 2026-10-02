@@ -100,6 +100,8 @@ if (parsed.QuerySelector("#title")!.TextContent != "Original" || changed.QuerySe
     throw new InvalidOperationException("Packed owned document/edit/Markdown contract failed.");
 if (typeof(HtmlDocument).Assembly.GetReferencedAssemblies().Any(name => name.Name!.StartsWith("AngleSharp", StringComparison.Ordinal) || name.Name == "OfficeIMO.Core"))
     throw new InvalidOperationException("The owned HTML leaf references a parser or drawing implementation.");
+if (!changed.OuterHtml.Contains("Packed edit") || !conversion.ToSvg().Contains("<svg"))
+    throw new InvalidOperationException("Packed HTML serialization or SVG export failed.");
 byte[] foundationPng = conversion.ToPng();
 if (foundationPng.Length < 8 || foundationPng[0] != 137 || foundationPng[1] != 80)
     throw new InvalidOperationException("Packed owned document image rendering failed.");
@@ -168,6 +170,8 @@ if (tracedStyle.GetValue("color") != "rgba(51, 102, 153, 0.75)" || tracedStyle.G
     colorTrace?.Candidates.Count != 1 || colorTrace.Candidates[0].Decision != OfficeIMO.Html.Css.HtmlCssCascadeDecision.Selected ||
     colorTrace.Candidates[0].Source != OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.StyleRule)
     throw new InvalidOperationException("The packed owned selector, typed computed-value or cascade-trace contract failed.");
+
+PackedMhtmlContract.Verify(foundationPng);
 
 Console.WriteLine("OfficeIMO HTML packed API smoke passed on " +
     System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription + ".");

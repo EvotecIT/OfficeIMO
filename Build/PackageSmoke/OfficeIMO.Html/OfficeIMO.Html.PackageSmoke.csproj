@@ -18,6 +18,7 @@
     <PackageReference Include="OfficeIMO.Excel.Html" Version="[$(OfficeIMOHtmlPackageVersion)]" />
     <PackageReference Include="OfficeIMO.PowerPoint.Html" Version="[$(OfficeIMOHtmlPackageVersion)]" />
     <PackageReference Include="OfficeIMO.Html.Rtf" Version="[$(OfficeIMOHtmlPackageVersion)]" />
+    <PackageReference Include="OfficeIMO.Mhtml.Pdf" Version="[$(OfficeIMOHtmlPackageVersion)]" />
     <PackageReference Include="OfficeIMO.Html.Pdf" Version="[$(OfficeIMOHtmlPackageVersion)]" />
   </ItemGroup>
 
