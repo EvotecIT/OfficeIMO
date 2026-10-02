@@ -21,6 +21,7 @@ public static partial class HtmlExcelConverterExtensions {
         int rowOffset = 0;
         int semanticRowIndex = 0;
 
+        IReadOnlyDictionary<IElement, int> zeroSpans = HtmlAccessibilitySemantics.ResolveZeroTableRowSpans(EnumerateDirectTableRows(table));
         foreach (IElement row in EnumerateDirectTableRows(table)) {
             int rowIndex = firstRow + rowOffset;
             if (rowIndex > A1.MaxRows) {
@@ -70,7 +71,8 @@ public static partial class HtmlExcelConverterExtensions {
 
                 int rowSpan = ReadSpan(cell,
                     HtmlAccessibilitySemantics.GetTableSpanAttributeName(cell, "rowspan"),
-                    cellRow, A1.MaxRows, cellRow, cellColumn, result);
+                    cellRow, A1.MaxRows, cellRow, cellColumn, result,
+                    zeroSpans.TryGetValue(cell, out int remainingRows) ? remainingRows : (int?)null);
                 int columnSpan = ReadSpan(cell,
                     HtmlAccessibilitySemantics.GetTableSpanAttributeName(cell, "colspan"),
                     cellColumn, A1.MaxColumns, cellRow, cellColumn, result);
@@ -414,8 +416,8 @@ public static partial class HtmlExcelConverterExtensions {
         int maximum,
         int cellRow,
         int cellColumn,
-        HtmlToExcelResult result) {
-        string? rawValue = cell.GetAttribute(attributeName);
+        HtmlToExcelResult result, int? resolvedSpan = null) {
+        string? rawValue = resolvedSpan?.ToString(CultureInfo.InvariantCulture) ?? cell.GetAttribute(attributeName);
         if (string.IsNullOrWhiteSpace(rawValue)) {
             return 1;
         }

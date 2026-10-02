@@ -5,6 +5,29 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlSemanticTableContractTests {
     [Fact]
+    public void ZeroAriaRowSpanStopsAtItsRowGroupInSemanticAndNativeTargets() {
+        const string html = "<div role='table'><div role='rowgroup'><div role='row'><div role='cell' aria-rowspan='0'>Group</div><div role='cell'>A</div></div>"
+            + "<div role='row'><div role='cell'>B</div></div></div><div role='rowgroup'><div role='row'><div role='cell'>Next</div></div></div></div>";
+        var source = HtmlConversionDocument.Parse(html);
+        var table = source.SemanticDocument.RootTables.Single().Table!;
+        Assert.Equal(2, table.Rows[0].Cells[0].RowSpan);
+        using var excel = OfficeIMO.Excel.Html.HtmlExcelConverterExtensions.ToExcelDocument(source,
+            new OfficeIMO.Excel.Html.HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        Assert.Equal("A1:A2", Assert.Single(excel.Sheets[0].GetMergedRanges()).A1Range);
+        Assert.Equal("Next", excel.Sheets[0].CellAt(3, 1).GetValue<string>());
+        using var slides = OfficeIMO.PowerPoint.Html.HtmlPowerPointConverterExtensions.ToPowerPointPresentation(source,
+            new OfficeIMO.PowerPoint.Html.HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
+        Assert.Equal("Next", Assert.Single(slides.Slides.SelectMany(slide => slide.Tables)).GetCell(2, 0).Text);
+    }
+
+    [Fact]
+    public void NativeCellsIgnoreAriaSpanWhenNativeAttributeIsAbsent() {
+        var table = HtmlConversionDocument.Parse("<table><tr><td aria-rowspan='2'>A</td></tr><tr><td>B</td></tr></table>")
+            .SemanticDocument.RootTables.Single().Table!;
+        Assert.Equal(1, table.Rows[0].Cells[0].RowSpan);
+    }
+
+    [Fact]
     public void RoleTableRetainsHeadersSpansAndSourceRows() {
         var source = HtmlConversionDocument.Parse("<div role='table' aria-label='Values'><div role='row'></div>"
             + "<div role='row'><span role='columnheader' aria-colspan='2'>Name</span></div>"

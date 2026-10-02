@@ -8,9 +8,10 @@ public static partial class HtmlExcelConverterExtensions {
         HtmlSemanticTable table,
         HtmlToExcelResult result,
         HtmlImportBudget budget) {
-        A1.TryParseRange(sheet.UsedRangeA1, out _, out _, out int lastRow, out _);
+        A1.TryParseRange(sheet.UsedRangeA1, out _, out _, out int lastRow, out int lastColumn);
         foreach (ExcelMergedRangeSnapshot merge in sheet.GetMergedRanges(budget.Limits.MaxTableCells)) {
             lastRow = Math.Max(lastRow, merge.EndRow);
+            lastColumn = Math.Max(lastColumn, merge.EndColumn);
         }
         if (lastRow < 1 || lastRow >= A1.MaxRows - 1) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
@@ -22,8 +23,10 @@ public static partial class HtmlExcelConverterExtensions {
         int captionRow = lastRow + 2;
         if (!TrySetCellTextValue(sheet, captionRow, 1, table.Caption, result, budget)) return;
         result.Cells++;
+        if (lastColumn > 1) sheet.MergeRange(BuildCellReference(captionRow, 1) + ":" + BuildCellReference(captionRow, lastColumn));
         sheet.CellAt(captionRow, 1).SetBold();
         sheet.CellWrapText(captionRow, 1);
+        sheet.AutoFitRow(captionRow);
 
         HtmlSemanticRun[] textRuns = table.CaptionRuns
             .Where(run => !string.IsNullOrWhiteSpace(run.Text))
@@ -89,5 +92,6 @@ public static partial class HtmlExcelConverterExtensions {
         foreach (ExcelCellValueInfo cell in importedCells) {
             sheet.CellWrapText(cell.Row, cell.Column);
         }
+        sheet.AutoFitRows();
     }
 }

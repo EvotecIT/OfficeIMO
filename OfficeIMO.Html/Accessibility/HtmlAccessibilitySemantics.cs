@@ -21,7 +21,29 @@ public static partial class HtmlAccessibilitySemantics {
     /// The caller validates the value against its target's row or column limits.
     /// </summary>
     internal static string GetTableSpanAttributeName(IElement cell, string nativeAttribute) =>
-        cell.HasAttribute(nativeAttribute) ? nativeAttribute : "aria-" + nativeAttribute;
+        cell.LocalName.Equals("td", StringComparison.OrdinalIgnoreCase)
+            || cell.LocalName.Equals("th", StringComparison.OrdinalIgnoreCase)
+            || cell.HasAttribute(nativeAttribute) ? nativeAttribute : "aria-" + nativeAttribute;
+
+    /// <summary>Resolves zero row spans in linear time within each authored row group.</summary>
+    internal static IReadOnlyDictionary<IElement, int> ResolveZeroTableRowSpans(IEnumerable<IElement> rows) {
+        var remainingByGroup = new Dictionary<IElement, int>();
+        var spans = new Dictionary<IElement, int>();
+        foreach (IElement row in rows.Reverse()) {
+            IElement? group = row.ParentElement;
+            if (group == null) continue;
+            remainingByGroup.TryGetValue(group, out int remaining);
+            remainingByGroup[group] = ++remaining;
+            foreach (IElement cell in row.Children) {
+                string? value = cell.GetAttribute(GetTableSpanAttributeName(cell, "rowspan"));
+                if (int.TryParse(value, System.Globalization.NumberStyles.Integer,
+                        System.Globalization.CultureInfo.InvariantCulture, out int span) && span == 0) {
+                    spans[cell] = remaining;
+                }
+            }
+        }
+        return spans;
+    }
 
     /// <summary>Returns whether an element declares the requested EPUB structural semantic.</summary>
     internal static bool HasEpubType(IElement element, string semanticType) {

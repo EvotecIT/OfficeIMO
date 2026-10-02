@@ -132,6 +132,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         int rowExtent = 0;
         int columnExtent = 0;
 
+        IReadOnlyDictionary<IElement, int> zeroSpans = HtmlAccessibilitySemantics.ResolveZeroTableRowSpans(EnumerateDirectTableRows(table));
         foreach (IElement row in EnumerateDirectTableRows(table)) {
             int columnIndex = 0;
             foreach (IElement element in row.Children.Where(IsPowerPointTableCell)) {
@@ -139,7 +140,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                     columnIndex++;
                 }
 
-                int rowSpan = ReadPowerPointSpan(element,
+                int rowSpan = zeroSpans.TryGetValue(element, out int remainingRows) ? remainingRows : ReadPowerPointSpan(element,
                     HtmlAccessibilitySemantics.GetTableSpanAttributeName(element, "rowspan"), result);
                 int columnSpan = ReadPowerPointSpan(element,
                     HtmlAccessibilitySemantics.GetTableSpanAttributeName(element, "colspan"), result);

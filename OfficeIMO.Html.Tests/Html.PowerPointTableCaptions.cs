@@ -3,7 +3,7 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;
 using Xunit;
 namespace OfficeIMO.Tests;
-public partial class HtmlOfficeAdapters {
+public sealed class HtmlPowerPointTableCaptionTests {
     private const string RegulatoryTableCaption = "List of National Secondary Drinking Water Regulations";
     private const string RegulatoryTableLink = "https://example.org/standards";
     private const string RegulatoryTableHtml = "<main><h1>Drinking water</h1><table><caption><a href='"
