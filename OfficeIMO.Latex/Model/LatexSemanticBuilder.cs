@@ -369,6 +369,13 @@ internal static class LatexSemanticBuilder {
         return true;
     }
 
+    internal static bool IsInsideCommandArgument(LatexSyntaxNode node) {
+        for (LatexSyntaxNode? parent = node.Parent; parent != null; parent = parent.Parent) {
+            if (parent.Kind == LatexSyntaxKind.Command) return true;
+        }
+        return false;
+    }
+
     private static bool IsDirectlyInside(LatexSyntaxNode node, LatexSyntaxNode environment) {
         LatexSyntaxNode? current = node.Parent;
         while (current != null) {
@@ -526,7 +533,7 @@ internal static class LatexSemanticBuilder {
             .Where(static node => node.Kind == LatexSyntaxKind.Command && IsActiveSyntax(node) && string.Equals(node.Value, "maketitle", StringComparison.Ordinal))
             .Select(static node => node.Span));
         blocked.AddRange(body.Syntax.DescendantsAndSelf()
-            .Where(static node => node.Kind == LatexSyntaxKind.Verbatim && IsActiveSyntax(node) &&
+            .Where(static node => node.Kind == LatexSyntaxKind.Verbatim && IsActiveSyntax(node) && !IsInsideCommandArgument(node) &&
                 !string.Equals(node.Value, "verb", StringComparison.Ordinal))
             .Select(static node => node.Span));
         blocked.AddRange(environments.Where(environment => !ReferenceEquals(environment, body) &&

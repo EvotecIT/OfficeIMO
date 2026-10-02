@@ -152,6 +152,38 @@ public sealed class LatexAuditConversionTests {
     }
 
     [Theory]
+    [InlineData("\\newcommand{\\draft}{Public\\begin{comment}PRIVATE DRAFT\\end{comment}}")]
+    [InlineData("\\custom{Public\\begin{comment}PRIVATE DRAFT\\end{comment}}")]
+    [InlineData("\\href{Public\\begin{comment}PRIVATE DRAFT\\end{comment}}")]
+    [InlineData("\\newcommand{\\draft}{Public% PRIVATE LINE\n}")]
+    public void CommandFallbacksSuppressActualCommentSyntaxAndKeepTheEnclosingDefinition(string source) {
+        LatexDocument document = LatexDocument.Parse(Wrap(source + "Actual"));
+        LatexToMarkdownResult result = document.ToMarkdownDocumentResult();
+        string markdown = result.Value.ToMarkdown();
+        Assert.DoesNotContain("PRIVATE", markdown, StringComparison.Ordinal);
+        Assert.Contains("Public", markdown, StringComparison.Ordinal);
+        Assert.Contains("Actual", markdown, StringComparison.Ordinal);
+        Assert.Contains("PRIVATE", document.ToLatex(), StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
+        if (source.Contains("\\begin{comment}", StringComparison.Ordinal)) {
+            Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Feature == "comment-environment" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
+        }
+        Assert.DoesNotContain("PRIVATE", PdfReadDocument.Open(document.ToPdfDocumentResult().Value.ToBytes()).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("\\title{Public\\begin{comment}PRIVATE\\end{comment}}", "Visible")]
+    [InlineData("", "\\begin{figure}\\includegraphics{plot.png}\\caption{Public\\begin{comment}PRIVATE\\end{comment}}\\end{figure}")]
+    [InlineData("", "\\begin{table}\\caption{Public\\begin{comment}PRIVATE\\end{comment}}\\begin{tabular}{l}Value\\\\\\end{tabular}\\end{table}")]
+    [InlineData("", "\\begin{theorem}[Public\\begin{comment}PRIVATE\\end{comment}]Visible\\end{theorem}")]
+    public void ScalarMetadataAndCaptionsSuppressActualCommentEnvironments(string preamble, string body) {
+        LatexToMarkdownResult result = LatexDocument.Parse(preamble + Wrap(body)).ToMarkdownDocumentResult();
+        Assert.Contains("Public", result.Value.ToMarkdown(), StringComparison.Ordinal);
+        Assert.DoesNotContain("PRIVATE", result.Value.ToMarkdown(), StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Feature == "comment-environment" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
+    }
+
+    [Theory]
     [InlineData("itemize")]
     [InlineData("enumerate")]
     public void CustomListLabelsRemainVisibleAndTheirMarkerSimplificationIsReported(string environment) {

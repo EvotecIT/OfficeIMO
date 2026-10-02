@@ -174,6 +174,17 @@ public sealed class ReaderLatexModularTests {
     }
 
     [Fact]
+    public void InactiveDefinitionFallbackKeepsPublicSourceAndSuppressesNestedComments() {
+        const string source = "\\begin{document}\\newcommand{\\draft}{Public\\begin{comment}PRIVATE DRAFT\\end{comment}}Actual\\end{document}";
+        ReaderChunk chunk = Assert.Single(LatexReaderAdapter.Read(LatexDocument.Parse(source)));
+        Assert.Contains("Public", chunk.Text, StringComparison.Ordinal);
+        Assert.Contains("Actual", chunk.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("PRIVATE", chunk.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("PRIVATE", chunk.Markdown, StringComparison.Ordinal);
+        Assert.Contains(chunk.Warnings ?? Array.Empty<string>(), static warning => warning.StartsWith("LATEXMD210:", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void RegistrationSnapshotsEveryNativeLimitAndCustomOpaqueEnvironment() {
         var parse = new LatexParseOptions {
             MaximumInputBytes = 8, MaximumExpansionInputLength = 123, MaximumExpansionTokenCount = 7
