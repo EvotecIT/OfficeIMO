@@ -39,6 +39,38 @@ public sealed class IWorkCorpusTests {
         Assert.NotEmpty(fromPath.BuildVersions);
     }
 
+    [Theory]
+    [MemberData(nameof(Corpus))]
+    public void Independent_corpus_editable_outputs_remain_valid_after_save_and_reopen(string relativePath,
+        IWorkDocumentKind kind) {
+        string path = Fixture(relativePath);
+        var options = new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
+            AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true };
+        using var saved = new MemoryStream();
+        if (kind == IWorkDocumentKind.Pages) {
+            using var result = WordIWorkConverter.ConvertPagesToWordResult(path, conversionOptions: options);
+            Assert.False(result.IsVisualFallback);
+            result.Value.Save(saved); saved.Position = 0;
+            using var reopened = WordDocument.Load(saved);
+            var errors = reopened.ValidateDocument();
+            Assert.True(errors.Count == 0, string.Join("\n", errors.Select(error => error.PartUri + ": " + error.Description)));
+        } else if (kind == IWorkDocumentKind.Numbers) {
+            using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path, conversionOptions: options);
+            Assert.False(result.IsVisualFallback);
+            result.Value.Save(saved); saved.Position = 0;
+            using var reopened = ExcelDocument.Load(saved);
+            Assert.NotEmpty(reopened.Sheets);
+            Assert.Empty(reopened.ValidateOpenXml());
+        } else {
+            using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(path, conversionOptions: options);
+            Assert.False(result.IsVisualFallback);
+            result.Value.Save(saved); saved.Position = 0;
+            using var reopened = PowerPointPresentation.Load(saved);
+            Assert.Equal(result.Projection.Slides.Count, reopened.Slides.Count);
+            Assert.Empty(reopened.ValidateDocument());
+        }
+    }
+
     [Fact]
     public void Reads_current_pages_text_and_preserves_unrecognized_records() {
         IWorkSourceDocument source = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.pages"));
