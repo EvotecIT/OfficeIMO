@@ -75,16 +75,12 @@ internal static partial class PdfWriter {
         }
 
         private void RenderOpaqueEffectGroupInline(OfficeTransform transform, Action renderContent) {
-            bool artifactContent = _suppressCanvasActualTextChildren;
             int annotationStart = currentPage!.Annotations.Count;
             int textAnnotationStart = currentPage.TextAnnotations.Count;
             int freeTextAnnotationStart = currentPage.FreeTextAnnotations.Count;
             int highlightAnnotationStart = currentPage.HighlightAnnotations.Count;
             int imageStart = currentPage.Images.Count;
             int formFieldStart = currentPage.FormFields.Count;
-            if (artifactContent) {
-                sb.Append("/Artifact BMC\n");
-            }
             var content = new ContentStreamBuilder(sb).SaveState();
             if (!transform.Equals(OfficeTransform.Identity)) {
                 content.TransformMatrix(transform);
@@ -98,9 +94,6 @@ internal static partial class PdfWriter {
                 _canvasClipDepth--;
                 _canvasEffectToPage = previousEffectToPage;
                 new ContentStreamBuilder(sb).RestoreState();
-                if (artifactContent) {
-                    sb.Append("EMC\n");
-                }
             }
 
             TransformCanvasRectangles(currentPage.Annotations, annotationStart, transform);

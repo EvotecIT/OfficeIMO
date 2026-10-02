@@ -748,7 +748,7 @@ internal static partial class HtmlPdfRenderedConverter {
         OfficeShape area = OfficeShape.Rectangle(width, height);
         area.FillColor = null;
         area.StrokeColor = null;
-        canvas.Shape(area, x, y, linkUri: fragment.LinkUri, linkContents: fragment.LinkContents);
+        canvas.Shape(area, x, y, style: new PdfCore.PdfDrawingStyle { Decorative = true }, linkUri: fragment.LinkUri, linkContents: fragment.LinkContents);
     }
 
     private static void AddShape(
@@ -1129,7 +1129,7 @@ internal static partial class HtmlPdfRenderedConverter {
                         OfficeShape linkArea = OfficeShape.Rectangle(linkWidth, linkHeight);
                         linkArea.FillColor = null;
                         linkArea.StrokeColor = null;
-                        target.Shape(linkArea, linkX, linkY, linkUri: link.Uri, linkContents: link.AlternativeText);
+                        target.Shape(linkArea, linkX, linkY, style: new PdfCore.PdfDrawingStyle { Decorative = true }, linkUri: link.Uri, linkContents: link.AlternativeText);
                     }
                     continue;
                 }
@@ -1198,7 +1198,7 @@ internal static partial class HtmlPdfRenderedConverter {
             OfficeShape linkArea = OfficeShape.Rectangle(linkWidth, linkHeight);
             linkArea.FillColor = null;
             linkArea.StrokeColor = null;
-            canvas.Shape(linkArea, linkX, linkY, linkUri: visual.LinkUri, linkContents: visual.Source);
+            canvas.Shape(linkArea, linkX, linkY, style: new PdfCore.PdfDrawingStyle { Decorative = true }, linkUri: visual.LinkUri, linkContents: visual.Source);
         }
     }
 

@@ -284,16 +284,19 @@ public class PdfDocumentCanvasTests {
         Assert.Contains("/ActualText", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void CanvasActualText_ReplacesTextInsideEffectGroupsWithoutDuplication() {
+    [Theory]
+    [InlineData(1D)]
+    [InlineData(.5D)]
+    public void CanvasActualText_ReplacesTextInsideEffectGroupsWithoutDuplication(double opacity) {
         byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.ActualText("AB", logical => logical
-                .Effect(OfficeIMO.Drawing.OfficeTransform.Identity, .5D, effect => effect.Text("A", 20D, 10D, 10D, 20D))
+                .Effect(OfficeIMO.Drawing.OfficeTransform.Identity, opacity, effect => effect.Text("A", 20D, 10D, 10D, 20D))
                 .Text("B", 35D, 10D, 10D, 20D)))
             .ToBytes();
 
         Assert.Equal("AB", string.Concat(PdfReadDocument.Open(bytes).ExtractText().Where(character => !char.IsWhiteSpace(character))));
+        if (opacity >= 1D) Assert.DoesNotContain("/Artifact BMC", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
         PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
         Assert.Contains(tagged.StructureElements, element => element.StructureType == "Span");
     }
