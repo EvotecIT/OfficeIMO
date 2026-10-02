@@ -32,6 +32,16 @@ The unchanged Pages 14.1 `iwork-converter/a.pages` fixture exercises a 45-paragr
 
 `pages-word-rendering.json` records a bounded manual inspection of this conversion and `picodocs/sample-v14.4.pages` in Microsoft Word for Mac 16.112.4. Both DOCX files opened without repair prompts; representative titles, body text, a table and the embedded chart rendered visibly. The source first-page preview comparison confirms remaining differences, including ordered items rendered as bullets, omitted header/footer content and pagination. This qualifies destination opening and the inspected content only; native Apple export and rendered equivalence remain unqualified.
 
+## Pages list-style declarations
+
+`pages-list-styles.json` records the selected body list styles and paragraph-data boundaries in the unchanged `picodocs/sample-v14.4.pages` fixture. The ordered span selects native number labels and decimal numbering (`number_types = 0`), with no string labels and tiered numbering disabled. The preceding bullet span selects string labels. The independent schema enum names are included; this inventory does not qualify every numbering kind or the meaning of paragraph-data restart/continuation values.
+
+Reproduce with the pinned opt-in numbers-parser 4.19.0 provider:
+
+```bash
+python Build/IWork/extract-pages-list-styles.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/pages-list-styles.json
+```
+
 ## Pages inline attachment positions
 
 `pages-inline-anchors.json` records five image/table attachment positions from the unmodified `iwork-converter/a.pages` and `picodocs/sample-v14.4.pages` fixtures. The existing provenance, hashes and license notices above apply. Positions are UTF-16 offsets in native text storage, before object-marker removal. The manifest is extracted through the independent numbers-parser 4.19.0 schemas:
