@@ -12,7 +12,7 @@ Use **New Document** to try the bundled PDF or open a local PDF. **Add Note** pl
 - This slice supports reading and adding text notes. It does not implement the full desktop editor, form filling, Pencil ink, OCR, conversion, or batch jobs.
 - The prototype uses `com.evotec.officeimo.studio.nativeprototype`. The production Store identity and Avalonia application remain in their existing projects.
 
-The [Studio roadmap](../Docs/ROADMAP.md#phase-7-ipad-then-iphone) owns the remaining native migration, device qualification, and distribution work. A native framework build is not App Store qualification. Physical iPad journeys, file-provider interruption/recovery, accessibility, signed distribution, and exact-binary notices remain release gates.
+Active interface development continues in Avalonia. This prototype is retained for later evaluation; adopting it as the Apple presentation layer remains a product decision. The [Studio roadmap](../Docs/ROADMAP.md#phase-7-ipad-then-iphone) owns that evaluation and remaining device qualification and distribution work. A native framework build is not App Store qualification. Physical iPad journeys, file-provider interruption/recovery, accessibility, signed distribution, and exact-binary notices remain release gates.
 
 ## Build the prototype
 
