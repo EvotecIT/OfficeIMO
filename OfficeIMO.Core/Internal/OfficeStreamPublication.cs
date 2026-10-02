@@ -57,7 +57,7 @@ namespace OfficeIMO.Core.Internal {
         internal static async Task<string> ReadFingerprintAsync(
             Func<CancellationToken, Task<Stream>> openRead, long maximumBytes, CancellationToken cancellationToken) {
             if (openRead == null) throw new ArgumentNullException(nameof(openRead));
-            if (maximumBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+            if (maximumBytes < 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
             cancellationToken.ThrowIfCancellationRequested();
             using (Stream source = await openRead(cancellationToken).ConfigureAwait(false))
             using (SHA256 hash = SHA256.Create()) {
