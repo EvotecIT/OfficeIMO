@@ -6,6 +6,29 @@ namespace OfficeIMO.Tests.Rtf;
 
 public class RtfHtmlTableRowMetadataTests {
     [Fact]
+    public void LegacyFragmentWithCellMetadataPreservesSplittableRows() {
+        var source = RtfDocument.Create();
+        var row = source.AddTable(1, 1).Rows[0];
+        row.Cells[0].RightBoundaryTwips = 3000;
+        row.Cells[0].AddParagraph("Legacy cell");
+        string html = source.ToHtml(new RtfToHtmlOptions { IncludeRoundTripMetadata = true, FragmentOnly = true });
+        html = System.Text.RegularExpressions.Regex.Replace(html, " data-officeimo-rtf-row=\"[^\"]*\"", "");
+        Assert.Contains("data-officeimo-rtf-cell", html);
+        var imported = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        Assert.False(Assert.Single(Assert.IsType<RtfTable>(Assert.Single(imported.Blocks)).Rows).KeepTogether);
+    }
+
+    [Fact]
+    public void LegacyRoundTripWithoutRowAttributePreservesSplittableRows() {
+        var source = RtfDocument.Create();
+        source.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("Legacy splittable");
+        string html = source.ToHtml(new RtfToHtmlOptions { IncludeRoundTripMetadata = true, FragmentOnly = false });
+        html = System.Text.RegularExpressions.Regex.Replace(html, " data-officeimo-rtf-row=\"[^\"]*\"", "");
+        var imported = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        Assert.False(Assert.Single(Assert.IsType<RtfTable>(Assert.Single(imported.Blocks)).Rows).KeepTogether);
+    }
+
+    [Fact]
     public void HtmlTableRowsStayTogetherInRtfUnlessRoundTripMetadataOverridesThem() {
         RtfDocument imported = HtmlConversionDocument.Parse(
             "<table><tr><th>Term</th><th>Definition</th></tr>"
