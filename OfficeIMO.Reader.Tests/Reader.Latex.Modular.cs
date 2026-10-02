@@ -8,6 +8,130 @@ namespace OfficeIMO.Tests;
 
 [Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderLatexModularTests {
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public void MarkdownOnlyAnchorsRemainVisibleWithOrWithoutDiagnostics(bool blocks, bool diagnostics) {
+        LatexDocument document = LatexDocument.Parse("\\begin{document}\\label{x}\\end{document}");
+        ReaderChunk chunk = Assert.Single(LatexReaderAdapter.Read(document, latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks, IncludeDiagnostics = diagnostics }));
+        Assert.Contains("<a id=\"x\"></a>", chunk.Text, StringComparison.Ordinal);
+        Assert.Contains("<a id=\"x\"></a>", chunk.Markdown, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public void MetadataDiagnosticsReachOneChunkEvenWhenTheBodyIsEmpty(bool blocks, bool empty) {
+        LatexDocument document = LatexDocument.Parse("\\author{Public\\begin{comment}PRIVATE\\end{comment}}\\begin{document}" +
+            (empty ? "" : "Body one.\n\nBody two.") + "\\end{document}");
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(document, latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks }).ToArray();
+        Assert.NotEmpty(chunks);
+        Assert.Single(chunks.SelectMany(static chunk => chunk.Warnings ?? Array.Empty<string>()), static warning => warning.StartsWith("LATEXMD210:", StringComparison.Ordinal));
+        Assert.All(chunks, static chunk => Assert.DoesNotContain("PRIVATE", chunk.Markdown, StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void FigureCaptionsAppearOncePerFigureWithMultipleImages(bool blocks) {
+        const string figure = "\\begin{figure}\\includegraphics{a.png}\\includegraphics{b.png}\\caption{Shared caption}\\end{figure}";
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(LatexDocument.Parse("\\begin{document}" + figure + figure + "\\end{document}"),
+            latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks }).ToArray();
+        string text = string.Join("\n", chunks.Select(static chunk => chunk.Text));
+        Assert.Equal(2, text.Split(new[] { "Shared caption" }, StringSplitOptions.None).Length - 1);
+        Assert.Equal(2, text.Split(new[] { "a.png" }, StringSplitOptions.None).Length - 1);
+        Assert.Equal(2, text.Split(new[] { "b.png" }, StringSplitOptions.None).Length - 1);
+    }
+
+    [Theory]
+    [InlineData(8, 100)]
+    [InlineData(100, 8)]
+    public void DirectNativeLoadingHonorsTheSmallerByteLimitAndRestoresSeekableStreamState(int readerLimit, int nativeLimit) {
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(Source));
+        stream.Position = 5;
+        Assert.Throws<IOException>(() => LatexReaderAdapter.Read(stream, readerOptions: new ReaderOptions { MaxInputBytes = readerLimit },
+            latexOptions: new ReaderLatexOptions { ParseOptions = new LatexParseOptions { MaximumInputBytes = nativeLimit } }).ToArray());
+        Assert.Equal(5, stream.Position);
+        Assert.True(stream.CanRead);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void EmptyMalformedDocumentsStillCarryParserWarnings(bool blocks) {
+        ReaderChunk chunk = Assert.Single(LatexReaderAdapter.Read(LatexDocument.Parse("\\begin{document}"),
+            latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks }));
+        Assert.Contains(chunk.Warnings ?? Array.Empty<string>(), static warning => warning.StartsWith("LATEX004:", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void PreambleParserWarningsReachTheBodyChunk(bool blocks) {
+        ReaderChunk chunk = Assert.Single(LatexReaderAdapter.Read(LatexDocument.Parse("\\author\\begin{document}Body\\end{document}"),
+            latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks }));
+        Assert.Contains(chunk.Warnings ?? Array.Empty<string>(), static warning => warning.StartsWith("LATEX007:", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void MetadataOnlyChunksRespectTheCharacterLimit(bool blocks) {
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(LatexDocument.Parse("\\author{" + new string('a', 100) + "}\\begin{document}\\end{document}"),
+            readerOptions: new ReaderOptions { MaxChars = 12 }, latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks }).ToArray();
+        Assert.True(chunks.Length > 1);
+        Assert.All(chunks, static chunk => {
+            Assert.InRange(chunk.Text.Length, 1, 12);
+            Assert.InRange(chunk.Markdown!.Length, 1, 12);
+            Assert.Contains(chunk.Warnings ?? Array.Empty<string>(), static warning => warning.Contains("MaxChars", StringComparison.Ordinal));
+        });
+    }
+
+    [Fact]
+    public void NativeParserLimitExceptionsRetainTheirType() {
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(Source));
+        Assert.Throws<InvalidDataException>(() => LatexReaderAdapter.Read(stream,
+            latexOptions: new ReaderLatexOptions { ParseOptions = new LatexParseOptions { MaximumInputLength = 8 } }).ToArray());
+        Assert.Equal(0, stream.Position);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ParserDiagnosticsInEmptyProjectedBlocksRemainVisible(bool blocks) {
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(LatexDocument.Parse("\\begin{document}}\n\nBody\\end{document}"),
+            latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks }).ToArray();
+        Assert.Single(chunks.SelectMany(static chunk => chunk.Warnings ?? Array.Empty<string>()),
+            static warning => warning.StartsWith("LATEX002:", StringComparison.Ordinal));
+        Assert.Contains(chunks, static chunk => chunk.Text.Contains("Body", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public void AnchorsRemainVisibleBesideSplitTextAndInsideSplitParagraphs(bool blocks, bool inline) {
+        string separator = inline ? string.Empty : "\n\n";
+        string first = new string('p', 300);
+        string second = new string('s', 300);
+        foreach (string body in new[] { "\\label{x}" + separator + first,
+            first + separator + "\\label{x}" + separator + second, first + separator + "\\label{x}",
+            first + separator + "\\textbf{\\label{x}}" + separator + second }) {
+            ReaderChunk[] chunks = LatexReaderAdapter.Read(LatexDocument.Parse("\\begin{document}" + body + "\\end{document}"),
+                readerOptions: new ReaderOptions { MaxChars = 256 }, latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks, IncludeDiagnostics = false }).ToArray();
+            Assert.Contains(chunks, static chunk => chunk.Markdown!.Contains("<a id=\"x\"></a>", StringComparison.Ordinal));
+            Assert.All(chunks, static chunk => { Assert.InRange(chunk.Text.Length, 1, 256); Assert.InRange(chunk.Markdown!.Length, 1, 256); });
+            string text = string.Concat(chunks.Select(static chunk => chunk.Text));
+            Assert.Equal(300, text.Count(static character => character == 'p'));
+            Assert.Equal(body.Contains(second, StringComparison.Ordinal) ? 300 : 0, text.Count(static character => character == 's'));
+        }
+    }
+
     private const string Source =
         "\\documentclass{article}\n\\title{Guide}\n\\begin{document}\n\\maketitle\n" +
         "\\section{Start}\nParagraph with \\textbf{bold} and $x^2$.\n\n" +
@@ -80,7 +204,8 @@ public sealed class ReaderLatexModularTests {
             "limited.tex",
             new ReaderOptions { MaxInputBytes = 8 }).ToArray());
 
-        Assert.Contains("Input exceeds MaxInputBytes", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("MaxInputBytes", exception.Message, StringComparison.Ordinal);
+        Assert.True(stream.CanRead);
     }
 
     [Fact]
@@ -197,7 +322,7 @@ public sealed class ReaderLatexModularTests {
         parse.VerbatimEnvironmentNames.Clear();
         Assert.Contains("opaque", clone.ParseOptions.VerbatimEnvironmentNames);
         using var limited = new MemoryStream(Encoding.UTF8.GetBytes(Source));
-        Assert.ThrowsAny<IOException>(() => LatexReaderAdapter.Read(limited, latexOptions: clone).ToArray());
+        Assert.Throws<IOException>(() => LatexReaderAdapter.Read(limited, latexOptions: clone).ToArray());
         clone.ParseOptions.MaximumInputBytes = null;
         const string opaque = "\\documentclass{article}\\begin{document}\\begin{opaque}\\section{FAKE}\\end{opaque}\\end{document}";
         using var input = new MemoryStream(Encoding.UTF8.GetBytes(opaque));

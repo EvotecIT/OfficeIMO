@@ -5,6 +5,36 @@ namespace OfficeIMO.Latex.Markdown.Tests;
 public sealed class LatexAuditConversionTests {
     private static string Wrap(string body) => "\\documentclass{article}\n\\begin{document}\n" + body + "\n\\end{document}";
 
+    [Theory]
+    [InlineData("\n")]
+    [InlineData("\r\n")]
+    [InlineData("\r")]
+    public void ScalarAndMathCommentRemovalConsumesOnlyTheCommentsLineEnding(string ending) {
+        string suffix = "% PRIVATE" + ending + "b";
+        string body = "\\href{a" + suffix + "}{link} \\url{a" + suffix + "} \\includegraphics{a" + suffix + ".png}" +
+            "\n\n$$a" + suffix + "$$";
+        LatexToMarkdownResult result = LatexDocument.Parse("\\author{a" + suffix + "}" + Wrap(body)).ToMarkdownDocumentResult();
+        ParagraphBlock paragraph = Assert.Single(result.Value.Blocks.OfType<ParagraphBlock>());
+        LinkInline[] links = paragraph.Inlines.Nodes.OfType<LinkInline>().ToArray();
+        Assert.Equal(2, links.Length);
+        Assert.All(links, static link => Assert.Equal("ab", link.Url));
+        Assert.Equal("ab.png", Assert.Single(paragraph.Inlines.Nodes.OfType<ImageInline>()).Src);
+        Assert.Equal("ab", Assert.Single(result.Value.Blocks.OfType<SemanticFencedBlock>()).Content);
+        Assert.DoesNotContain("PRIVATE", result.Value.ToMarkdown(), StringComparison.Ordinal);
+        Assert.Equal("ab", result.Value.FindFrontMatterEntry("author")?.Value);
+        MarkdownDoc twoLines = LatexDocument.Parse("\\author{a% note" + ending + ending + "b}" + Wrap("Visible")).ToMarkdownDocument();
+        Assert.Equal("a" + ending + "b", twoLines.FindFrontMatterEntry("author")?.Value);
+    }
+
+    [Fact]
+    public void InlineVerbatimPercentDoesNotBecomeACommentOrSplitItsSyntaxSpan() {
+        LatexToMarkdownResult result = LatexDocument.Parse(Wrap("\\verb|100%|\n\nAfter")).ToMarkdownDocumentResult();
+        ParagraphBlock[] paragraphs = result.Value.Blocks.OfType<ParagraphBlock>().ToArray();
+        Assert.Equal(2, paragraphs.Length);
+        Assert.Equal("100%", Assert.Single(paragraphs[0].Inlines.Nodes.OfType<CodeSpanInline>()).Text);
+        Assert.Equal("After", PlainText(paragraphs[1].Inlines));
+    }
+
     [Fact]
     public void ConversionUsesEditedHeadingParagraphCellListAndMathContent() {
         LatexDocument document = LatexDocument.Parse(Wrap("\\section{Old heading}\nOld paragraph\n\n" +

@@ -14,7 +14,9 @@ IReadOnlyList<ReaderChunk> chunks = reader.Read("article.tex").ToList();
 
 Chunks retain source locations, heading hierarchy, block kind, Markdown projection, and parser/conversion warnings. Article, report, and book documents get ordered typed chunks for headings, paragraphs, lists (including description lists), figures with captions, tables, theorems, and math. Whole-document mode projects the same supported blocks instead of collapsing the file to paragraphs. Plain TeX or another document class receives an unrecognized-profile warning and a visible source fallback instead of empty output.
 
-The handler enforces Reader input limits for both seekable and non-seekable streams. Parsing and writing remain owned by `OfficeIMO.Latex`.
+Markdown-only content, such as an anchor without visible text, remains available in chunks. Metadata and preamble warnings reach the first emitted block chunk; metadata-only documents also produce bounded chunks. A figure's shared caption appears once in extracted text alongside its image paths.
+
+The handler enforces the smaller of Reader and native input limits for both seekable and non-seekable streams. Native loading reads the caller's stream directly and preserves its seekable position without an extra adapter snapshot. Parsing and writing remain owned by `OfficeIMO.Latex`.
 
 ## Dependency footprint
 

@@ -4,6 +4,17 @@ namespace OfficeIMO.Latex.Tests;
 
 public sealed class LatexAuditRegressionTests {
     [Theory]
+    [InlineData("\n")]
+    [InlineData("\r\n")]
+    [InlineData("\r")]
+    public void InlineVerbatimPercentRemainsInsideItsParagraphBeforeABlankLine(string ending) {
+        string source = "\\begin{document}\\verb|100%|" + ending + ending + "After\\end{document}";
+        LatexDocument document = LatexDocument.Parse(source);
+        Assert.Equal(new[] { "\\verb|100%|", "After" }, document.Paragraphs.Select(static paragraph => paragraph.Content));
+        Assert.Equal(source, document.ToLatex());
+    }
+
+    [Theory]
     [InlineData("\\\\", new[] { "" })]
     [InlineData("&B\\\\", new[] { "", "B" })]
     [InlineData("&&C\\\\", new[] { "", "", "C" })]

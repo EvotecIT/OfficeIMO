@@ -18,7 +18,9 @@ internal static class LatexToMarkdownConverter {
         var target = MarkdownDoc.Create();
         var diagnostics = new List<LatexMarkdownConversionDiagnostic>();
         var blocks = new List<LatexProjectedBlock>();
-        AddFrontMatter(document, target, options, diagnostics);
+        var globalDiagnostics = new List<LatexMarkdownConversionDiagnostic>();
+        AddFrontMatter(document, target, options, globalDiagnostics);
+        diagnostics.AddRange(globalDiagnostics);
         LatexCommand? titleCommand = document.Commands.FirstOrDefault(static command => command.Name == "title" && LatexSemanticBuilder.IsActiveSyntax(command.Syntax));
         LatexArgument? title = titleCommand?.GetRequiredArgument(0);
         if (title != null && document.Profile != LatexDocumentProfile.PreserveOnly && document.Body != null) {
@@ -43,7 +45,7 @@ internal static class LatexToMarkdownConverter {
             blocks.Add(new LatexProjectedBlock(candidate.Span, candidate.Kind, projected, blockDiagnostics));
             consumedUntil = candidate.Span.End.Offset;
         }
-        return new LatexMarkdownProjection(document, new LatexToMarkdownResult(target, diagnostics), blocks);
+        return new LatexMarkdownProjection(document, new LatexToMarkdownResult(target, diagnostics), blocks, globalDiagnostics);
     }
 
     private static IEnumerable<BlockCandidate> BuildCandidates(LatexDocument document) {
@@ -347,7 +349,7 @@ internal static class LatexToMarkdownConverter {
         LatexSyntaxNode[] comments = FindCommentEnvironments(source.Syntax).ToArray();
         if (options.PreserveUnsupportedAsSource) {
             string visibleSource = ExtractResidual(document.Source.Text, source.Syntax.Span,
-                comments.Select(static comment => comment.Span).Concat(document.Tokens.Where(static token => token.Kind == LatexTokenKind.Comment).Select(static token => token.Span)));
+                comments.Select(static comment => comment.Span).Concat(document.Tokens.Where(static token => token.Kind == LatexTokenKind.Comment).Select(token => ConsumeCommentLineEnding(document, token.Span))));
             if (!string.IsNullOrWhiteSpace(visibleSource)) target.Code("latex", visibleSource);
         }
         ReportOmittedComments(comments, diagnostics);
@@ -369,7 +371,7 @@ internal static class LatexToMarkdownConverter {
         string feature) {
         LatexSyntaxNode[] comments = FindCommentEnvironments(environment.Syntax).ToArray();
         string residual = ExtractResidual(document.Source.Text, environment.ContentSpan,
-            representedSpans.Concat(comments.Select(static comment => comment.Span)).Concat(document.Tokens.Where(static token => token.Kind == LatexTokenKind.Comment).Select(static token => token.Span)));
+            representedSpans.Concat(comments.Select(static comment => comment.Span)).Concat(document.Tokens.Where(static token => token.Kind == LatexTokenKind.Comment).Select(token => ConsumeCommentLineEnding(document, token.Span))));
         ReportOmittedComments(comments, diagnostics);
         if (string.IsNullOrWhiteSpace(residual)) return;
         if (options.PreserveUnsupportedAsSource) target.Code("latex", residual.Trim());
@@ -404,7 +406,15 @@ internal static class LatexToMarkdownConverter {
         LatexSyntaxNode[] comments = syntax.DescendantsAndSelf().Where(static node => node.Kind == LatexSyntaxKind.Comment ||
             (node.Kind == LatexSyntaxKind.Verbatim && node.Value == "comment")).ToArray();
         ReportOmittedComments(comments.Where(static node => node.Kind == LatexSyntaxKind.Verbatim), diagnostics);
-        return ExtractResidual(document.Source.Text, span, comments.Select(static node => node.Span));
+        return ExtractResidual(document.Source.Text, span, comments.Select(node => node.Kind == LatexSyntaxKind.Comment ? ConsumeCommentLineEnding(document, node.Span) : node.Span));
+    }
+
+    private static LatexSourceSpan ConsumeCommentLineEnding(LatexDocument document, LatexSourceSpan span) {
+        int end = span.End.Offset;
+        string source = document.Source.Text;
+        if (end < source.Length && source[end] == '\r') end++;
+        if (end < source.Length && source[end] == '\n') end++;
+        return document.Source.CreateSpan(span.Start.Offset, end);
     }
 
     private static string ExtractResidual(
@@ -498,7 +508,7 @@ internal static class LatexToMarkdownConverter {
         LatexToMarkdownOptions options, List<LatexMarkdownConversionDiagnostic> diagnostics) {
         LatexSyntaxNode[] comments = FindCommentEnvironments(document.SyntaxTree.Root).ToArray();
         string visible = ExtractResidual(document.Source.Text, span,
-            comments.Select(static item => item.Span).Concat(document.Tokens.Where(static token => token.Kind == LatexTokenKind.Comment).Select(static token => token.Span)));
+            comments.Select(static item => item.Span).Concat(document.Tokens.Where(static token => token.Kind == LatexTokenKind.Comment).Select(token => ConsumeCommentLineEnding(document, token.Span))));
         ReportOmittedComments(comments.Where(item => IsInside(item.Span, span.Start.Offset, span.End.Offset)), diagnostics);
         if (string.IsNullOrWhiteSpace(visible)) return;
         if (options.PreserveUnsupportedAsSource) target.Code("latex", visible.Trim());

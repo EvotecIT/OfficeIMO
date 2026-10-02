@@ -1,3 +1,5 @@
+using OfficeIMO.Core.Internal;
+
 namespace OfficeIMO.Reader.Latex;
 
 /// <summary>LaTeX ingestion entry points.</summary>
@@ -28,14 +30,14 @@ internal static class LatexReaderAdapter {
         adapter.ParseOptions.MaximumInputBytes = reader.MaxInputBytes.HasValue
             ? nativeLimit.HasValue ? Math.Min(nativeLimit.Value, reader.MaxInputBytes.Value) : reader.MaxInputBytes
             : nativeLimit;
-        Stream parseStream = ReaderInputLimits.EnsureSeekableReadStream(stream, adapter.ParseOptions.MaximumInputBytes, cancellationToken, out bool ownsStream);
+        LatexParseResult result;
         try {
-            LatexParseResult result = LatexDocument.LoadResult(parseStream, adapter.ParseOptions, null, cancellationToken);
-            string name = string.IsNullOrWhiteSpace(sourceName) ? "document.tex" : sourceName!.Trim();
-            return ReadResult(result, name, reader, adapter, cancellationToken).ToArray();
-        } finally {
-            if (ownsStream) parseStream.Dispose();
+            result = LatexDocument.LoadResult(stream, adapter.ParseOptions, null, cancellationToken);
+        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
+            throw new IOException($"Input exceeds MaxInputBytes ({adapter.ParseOptions.MaximumInputBytes} bytes).", exception);
         }
+        string name = string.IsNullOrWhiteSpace(sourceName) ? "document.tex" : sourceName!.Trim();
+        return ReadResult(result, name, reader, adapter, cancellationToken).ToArray();
     }
 
     /// <summary>Adapts an already parsed document.</summary>
