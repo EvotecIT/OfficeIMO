@@ -812,3 +812,13 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 The complete rows for `OfficeIMO.Core` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->
+
+### Inspected caller raster decoding
+
+`OfficeRasterDecodeOptions.ImageCodec` supplies a trusted decoder for inspected
+payloads outside the managed subset. The shared boundary validates resource limits,
+frame selection and returned dimensions, preserves input bytes, and observes
+cancellation before and after the callback. Static WebP decoding failures do not
+fall through to a caller codec. Animated WebP can select frame zero and reports
+discarded animation. Drawing exports retain caller provenance and distinguish
+visible failure placeholders from decoded source pixels.

@@ -11,6 +11,12 @@ public static class OfficeImageExportDiagnosticCodes {
     /// <summary>An embedded image could not be decoded and was represented by a visible fallback.</summary>
     public const string SourceImageDecodeFallback = "IMAGE_SOURCE_DECODE_FALLBACK";
 
+    /// <summary>An embedded image could not be decoded and was omitted from raster output.</summary>
+    public const string SourceImageDecodeOmitted = "IMAGE_SOURCE_DECODE_OMITTED";
+
+    /// <summary>A static embedded image discards animation, additional frames, or pages.</summary>
+    public const string SourceImageStaticFrameSelected = "IMAGE_SOURCE_STATIC_FRAME_SELECTED";
+
     /// <summary>An embedded SVG preview exceeded structural budgets or used unsupported visual features.</summary>
     public const string SourceSvgPreviewLoss = "IMAGE_SOURCE_SVG_PREVIEW_LOSS";
 
