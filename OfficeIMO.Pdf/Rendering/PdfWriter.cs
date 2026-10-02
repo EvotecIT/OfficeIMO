@@ -605,6 +605,7 @@ internal static partial class PdfWriter {
                             shadingColorTransform);
                     int shadingId = AddObject(objects, shadingObject);
                     shadings.Add(("/" + shading.Name, shadingId));
+                    AddGradientAlphaResources(objects, shading, graphicsStates);
                 }
             }
 

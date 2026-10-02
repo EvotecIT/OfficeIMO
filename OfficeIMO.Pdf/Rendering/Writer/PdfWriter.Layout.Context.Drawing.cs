@@ -106,6 +106,16 @@ internal static partial class PdfWriter {
 
             DrawShapeShadowAt(shape, xShape, bottomY);
 
+            if (shape.StrokeWidth > 0D && (shape.StrokeGradient != null || shape.StrokeRadialGradient != null)) {
+                OfficeShape fill = shape.Clone();
+                fill.StrokeColor = null; fill.StrokeGradient = null; fill.StrokeRadialGradient = null; fill.StrokeWidth = 0;
+                fill.Shadow = null;
+                DrawShapeGeometryAt(fill, xShape, bottomY);
+                OfficeShape? stroke = CreateGradientStrokeShape(shape);
+                if (stroke != null) DrawShapeGeometryAt(stroke, xShape, bottomY);
+                return;
+            }
+
             string? opacityState = EnsureOpacityState(shape);
             if (opacityState != null) {
                 new ContentStreamBuilder(sb)

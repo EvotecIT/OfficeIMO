@@ -152,6 +152,14 @@ Arabic-script/TrueType subset (core and extended Persian/Urdu letters). Supply a
 fallbacks, language, and shaping provider when the document contract requires
 broader scripts or reproducible font selection.
 
+Drawing text preserves numeric font descriptors when the matching faces are registered in
+`PdfOptions.UseRenderingProfile(...)`. Measurement and embedded PDF text use the same selected
+font program. Drawing strokes support native linear and radial gradient shading through their
+shared outlines, including caps, joins, dashes, opacity, clipping, and affine transforms.
+Gradient fills and strokes preserve color-stop alpha through native transparency masks,
+including header and footer shapes. Gradient direction follows the same local coordinates
+before and after an affine transform.
+
 `OfficeDrawing.AddVerticalText(...)` draws native positioned glyphs in PDF when
 the selected shaping provider supplies vertical advances and complete logical
 text coverage, the chosen font is embedded, and an `/ActualText` wrapper owns

@@ -28,6 +28,8 @@ public sealed partial class PdfOptions {
         }
 
         OfficeFontFaceCollection profileFonts = profile.Fonts;
+        OfficeFontFaceCollection drawingFonts = mode == OfficeRenderingProfileApplyMode.Overlay
+            ? _drawingProfileFonts?.Clone() ?? new OfficeFontFaceCollection() : new OfficeFontFaceCollection();
         PdfEmbeddedFontFallbackSet? existingFallbacks = mode == OfficeRenderingProfileApplyMode.Overlay
             ? EmbeddedFontFallbacksSnapshot?.Clone()
             : null;
@@ -94,6 +96,10 @@ public sealed partial class PdfOptions {
                         : family);
             }
         }
+
+        var acceptedNames = new HashSet<string>(effectiveFamilies.Select(family => family.FamilyName), StringComparer.OrdinalIgnoreCase);
+        drawingFonts.AddFaces(profileFonts.Faces.Where(face => acceptedNames.Contains(face.ResourceFamilyName)));
+        _drawingProfileFonts = drawingFonts;
 
         RegisterProfileFamilyFallbacks(
             profileFonts,

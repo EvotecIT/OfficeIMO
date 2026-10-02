@@ -995,7 +995,8 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("fill=\"#B91C1C\"", svgText, StringComparison.Ordinal);
                 Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
                 Assert.NotNull(rendered);
-                Assert.True(CountPixelsNear(rendered!, OfficeColor.FromRgb(185, 28, 28)) > 0);
+                Assert.True(RasterColorTestSupport.MeasureCoverage(rendered!,
+                    OfficeColor.FromRgb(185, 28, 28), OfficeColor.FromRgb(254, 243, 199)) > 0D);
             }
         }
 

@@ -105,6 +105,7 @@ public sealed partial class PdfOptions {
         _renderingProfileFamilyFallbacks?.Clear();
         _renderingProfileDeclaredFallbackCandidates = null;
         _renderingProfileOwnedNamedFamilyNames?.Clear();
+        _drawingProfileFonts = null;
         return this;
     }
 

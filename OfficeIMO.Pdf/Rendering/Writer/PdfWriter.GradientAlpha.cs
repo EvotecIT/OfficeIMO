@@ -1,0 +1,77 @@
+using System.Collections.Generic;
+using OfficeIMO.Drawing;
+
+namespace OfficeIMO.Pdf;
+
+internal static partial class PdfWriter {
+    private static string GradientAlphaStateName(string shadingName) => "GA_" + shadingName;
+
+    private static bool HasGradientAlpha(OfficeShape shape) =>
+        HasGradientAlpha(shape.FillRadialGradient?.Stops ?? shape.FillGradient?.Stops);
+
+    private static bool HasGradientAlpha(IReadOnlyList<OfficeGradientStop>? stops) {
+        if (stops == null) return false;
+        foreach (OfficeGradientStop stop in stops) if (stop.Color.A != 255) return true;
+        return false;
+    }
+
+    /// <summary>Accumulates the painted region in the shading's own coordinate system.</summary>
+    private static void RegisterGradientAlphaBounds(IList<PageShading> shadings, string name,
+        OfficeShape shape, double x, double bottomY, bool localCoordinates) {
+        if (!HasGradientAlpha(shape)) return;
+        double left = 0D, top = 0D, right = shape.Width, bottom = shape.Height;
+        foreach (var contour in OfficeStrokeGeometry.FlattenShape(shape, 1D)) {
+            foreach (OfficePoint point in contour.Points) {
+                left = Math.Min(left, point.X); right = Math.Max(right, point.X);
+                top = Math.Min(top, point.Y); bottom = Math.Max(bottom, point.Y);
+            }
+        }
+        // Include curve approximation and antialiasing margins; these bounds do not
+        // allocate a bitmap or change the clipping path used to paint the gradient.
+        left -= 1D; top -= 1D; right += 1D; bottom += 1D;
+        if (shape.FillRadialGradient is OfficeRadialGradient radial) {
+            left /= shape.Width; right /= shape.Width;
+            double lower = 1D - bottom / shape.Height;
+            bottom = 1D - top / shape.Height;
+            top = lower;
+            if (!radial.EndRadiusX.Equals(radial.EndRadiusY)) {
+                left = (left - radial.EndX) / radial.EndRadiusX;
+                right = (right - radial.EndX) / radial.EndRadiusX;
+                top = (top - (1D - radial.EndY)) / radial.EndRadiusY;
+                bottom = (bottom - (1D - radial.EndY)) / radial.EndRadiusY;
+            }
+        } else if (!localCoordinates) {
+            left += x; right += x;
+            double lower = bottomY + shape.Height - bottom;
+            bottom = bottomY + shape.Height - top;
+            top = lower;
+        }
+        foreach (PageShading shading in shadings) {
+            if (shading.Name != name) continue;
+            shading.AlphaLeft = Math.Min(shading.AlphaLeft, left);
+            shading.AlphaBottom = Math.Min(shading.AlphaBottom, top);
+            shading.AlphaRight = Math.Max(shading.AlphaRight, right);
+            shading.AlphaTop = Math.Max(shading.AlphaTop, bottom);
+            return;
+        }
+    }
+
+    /// <summary>Preserves stop alpha with a native luminosity mask, retaining vector shading.</summary>
+    private static void AddGradientAlphaResources(IList<byte[]> objects, PageShading shading,
+        List<(string Name, int Id)> graphicsStates) {
+        if (!HasGradientAlpha(shading.Stops)) return;
+        string maskShading = shading.IsRadial
+            ? PdfVisualResourceDictionaryBuilder.BuildRadialShadingObject(shading.X0, shading.Y0, shading.R0,
+                shading.X1, shading.Y1, shading.R1, shading.Stops, alphaOnly: true)
+            : PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(shading.X0, shading.Y0, shading.X1, shading.Y1, shading.Stops, alphaOnly: true);
+        int maskShadingId = AddObject(objects, maskShading);
+        string entries = "/Type /XObject /Subtype /Form /FormType 1 /BBox [" +
+            F(shading.AlphaLeft) + " " + F(shading.AlphaBottom) + " " +
+            F(shading.AlphaRight) + " " + F(shading.AlphaTop) + "]" +
+            " /Group << /S /Transparency /CS /DeviceGray /I true >>" +
+            " /Resources << /Shading << /A " + maskShadingId + " 0 R >> >>";
+        int maskFormId = AddFlateStreamObject(objects, Encoding.ASCII.GetBytes("/A sh\n"), entries);
+        int stateId = AddObject(objects, "<< /Type /ExtGState /SMask << /S /Luminosity /G " + maskFormId + " 0 R /BC [0] >> >>\n");
+        graphicsStates.Add(("/" + GradientAlphaStateName(shading.Name), stateId));
+    }
+}

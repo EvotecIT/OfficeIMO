@@ -15,20 +15,21 @@ internal sealed class OfficeFlattenedPathContour {
 }
 
 internal static class OfficePathFlattener {
-    private const int DefaultCurveSegments = 24;
+    private const int MaximumFlattenedPoints = 1_000_000;
 
     internal static IReadOnlyList<OfficeFlattenedPathContour> Flatten(
         IReadOnlyList<OfficePathCommand> commands,
         double offsetX,
         double offsetY,
         double scale,
-        int curveSegments = DefaultCurveSegments) {
+        int curveSegments = 0,
+        double pixelsPerUnit = 1D) {
         if (commands == null) {
             throw new ArgumentNullException(nameof(commands));
         }
 
-        if (curveSegments <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(curveSegments), "Curve segment count must be positive.");
+        if (curveSegments < 0) {
+            throw new ArgumentOutOfRangeException(nameof(curveSegments), "Curve segment count must be non-negative; zero selects adaptive flattening.");
         }
 
         var contours = new List<OfficeFlattenedPathContour>();
@@ -36,7 +37,9 @@ internal static class OfficePathFlattener {
         OfficePoint currentPoint = default;
         bool hasCurrentPoint = false;
 
+        int pointCount = 0;
         foreach (OfficePathCommand command in commands) {
+            int previousCount = current?.Count ?? 0;
             switch (command.Kind) {
                 case OfficePathCommandKind.MoveTo:
                     AddOpenContour(contours, current);
@@ -56,7 +59,8 @@ internal static class OfficePathFlattener {
                         currentPoint,
                         Transform(command.ControlPoint1, offsetX, offsetY, scale),
                         Transform(command.Point, offsetX, offsetY, scale),
-                        curveSegments));
+                        curveSegments > 0 ? curveSegments : OfficeCurveFlattening.QuadraticSegments(currentPoint,
+                            Transform(command.ControlPoint1, offsetX, offsetY, scale), Transform(command.Point, offsetX, offsetY, scale), pixelsPerUnit)));
                     currentPoint = Transform(command.Point, offsetX, offsetY, scale);
                     hasCurrentPoint = true;
                     break;
@@ -67,7 +71,9 @@ internal static class OfficePathFlattener {
                         Transform(command.ControlPoint1, offsetX, offsetY, scale),
                         Transform(command.ControlPoint2, offsetX, offsetY, scale),
                         Transform(command.Point, offsetX, offsetY, scale),
-                        curveSegments));
+                        curveSegments > 0 ? curveSegments : OfficeCurveFlattening.CubicSegments(currentPoint,
+                            Transform(command.ControlPoint1, offsetX, offsetY, scale), Transform(command.ControlPoint2, offsetX, offsetY, scale),
+                            Transform(command.Point, offsetX, offsetY, scale), pixelsPerUnit)));
                     currentPoint = Transform(command.Point, offsetX, offsetY, scale);
                     hasCurrentPoint = true;
                     break;
@@ -77,6 +83,8 @@ internal static class OfficePathFlattener {
                     hasCurrentPoint = false;
                     break;
             }
+            pointCount += Math.Max(1, (current?.Count ?? 0) - previousCount);
+            if (pointCount > MaximumFlattenedPoints) throw new InvalidOperationException("Flattened path exceeds the point limit.");
         }
 
         AddOpenContour(contours, current);

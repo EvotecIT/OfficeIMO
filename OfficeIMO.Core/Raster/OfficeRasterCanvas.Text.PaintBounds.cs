@@ -12,12 +12,12 @@ public sealed partial class OfficeRasterCanvas {
         if (string.IsNullOrWhiteSpace(text)) return default;
         _cancellationToken.ThrowIfCancellationRequested();
         double size = Math.Max(.1D, fontSize);
-        var key = new TextMeasurementKey(text!, size, family, style, PreservePaintedGlyphOrder);
+        var key = new TextMeasurementKey(text!, size, family, style, PreservePaintedGlyphOrder, RequestedTextFace(style));
         var cache = _textPaintBoundsCache ??= new Dictionary<TextMeasurementKey, OfficeTextPaintBounds>();
         if (cache.TryGetValue(key, out OfficeTextPaintBounds found)) return found;
         double top = -size * .84D, bottom = size * .16D;
         if (_fonts != null) {
-            IReadOnlyList<OfficeFontFallbackRun> runs = _fonts.PlanFallbackRuns(text, family, style);
+            IReadOnlyList<OfficeFontFallbackRun> runs = _fonts.PlanFallbackRuns(text, family, RequestedTextFace(style));
             if (ShouldUseFallbackRuns(runs, family)) {
                 foreach (OfficeFontFallbackRun run in runs) {
                     OfficeTextPaintBounds bounds = MeasureTextPaintBounds(run.Text, size, run.FamilyName, style);

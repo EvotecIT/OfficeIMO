@@ -42,6 +42,7 @@ public static partial class OfficeDrawingRasterRenderer {
         var local = new OfficeRasterCanvas(layer, font: canvas.OutlineFont, fonts: canvas.Fonts,
             textShapingProvider: canvas.TextShapingProvider, textShapingLanguage: canvas.TextShapingLanguage,
             diagnosticSink: canvas.DiagnosticSink, diagnosticSource: canvas.DiagnosticSource, cancellationToken: canvas.CancellationToken);
+        using var faceScope = local.PushTextFace(text.Font.Face);
         local.ShareTransformedTextBudget(canvas.TransformedTextBudget);
         local.PreservePaintedGlyphOrder = canvas.PreservePaintedGlyphOrder;
         RenderPositionedTextLines(local, text, scale, -left, -top, text.Width * scale, text.Height * scale);
@@ -94,6 +95,7 @@ public static partial class OfficeDrawingRasterRenderer {
             textShapingProvider: canvas.TextShapingProvider, textShapingLanguage: canvas.TextShapingLanguage,
             diagnosticSink: canvas.DiagnosticSink, diagnosticSource: canvas.DiagnosticSource,
             cancellationToken: canvas.CancellationToken);
+        using var faceScope = local.PushTextFace(text.Font.Face);
         local.ShareTransformedTextBudget(canvas.TransformedTextBudget);
         local.PreservePaintedGlyphOrder = canvas.PreservePaintedGlyphOrder;
         using (local.PushClipRectangle(0D, 0D, contentWidth, contentHeight)) {
@@ -129,6 +131,7 @@ public static partial class OfficeDrawingRasterRenderer {
     }
 
     private static void RenderText(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale, long maximumRasterPixels) {
+        using var faceScope = canvas.PushTextFace(text.Font.Face);
         OfficeTextPadding scaledPadding = text.Padding.Scale(scale);
         double contentX = (text.X * scale) + scaledPadding.Left;
         double contentY = (text.Y * scale) + scaledPadding.Top;

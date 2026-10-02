@@ -115,6 +115,7 @@ namespace OfficeIMO.Visio {
             }
 
             double fontHeight = Math.Max(1D, style.FontSize);
+            using IDisposable faceScope = canvas.PushTextFace(style.Face);
             double top = baselineY - (fontHeight * style.BaselineOffset);
             canvas.DrawTextLineTransformed(
                 text,
@@ -129,7 +130,7 @@ namespace OfficeIMO.Visio {
                 underline: style.Underline,
                 strikethrough: style.Strikethrough,
                 fontFamily: style.FontFamily);
-            advance = canvas.MeasureText(text, fontHeight, style.FontFamily);
+            advance = canvas.MeasureText(text, new OfficeFontInfo(style.FontFamily, fontHeight, style.Face));
             return true;
         }
 
@@ -150,7 +151,7 @@ namespace OfficeIMO.Visio {
 
                         string value = NormalizeTextRun(textNode.Value, style.PreserveWhitespace, ref measureCursor.PendingSpace, measureCursor.HasTextRun);
                         if (value.Length > 0) {
-                            width += canvas.MeasureText(value, Math.Max(1D, style.FontSize), style.FontFamily);
+                            width += canvas.MeasureText(value, new OfficeFontInfo(style.FontFamily, Math.Max(1D, style.FontSize), style.Face));
                             measureCursor.HasTextRun = true;
                         }
 
@@ -278,7 +279,7 @@ namespace OfficeIMO.Visio {
                 bool strikethrough,
                 bool preserveWhitespace,
                 OfficeTextAlignment alignment,
-                double baselineOffset) {
+                double baselineOffset, OfficeFontFaceDescriptor? face = null) {
                 FontSize = fontSize;
                 FontFamily = fontFamily;
                 Bold = bold;
@@ -288,6 +289,7 @@ namespace OfficeIMO.Visio {
                 PreserveWhitespace = preserveWhitespace;
                 Alignment = alignment;
                 BaselineOffset = baselineOffset;
+                Face = face ?? OfficeFontFaceDescriptor.FromStyle((bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular) | (italic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular));
             }
 
             internal double FontSize { get; }
@@ -307,20 +309,27 @@ namespace OfficeIMO.Visio {
             internal OfficeTextAlignment Alignment { get; }
 
             internal double BaselineOffset { get; }
+            internal OfficeFontFaceDescriptor Face { get; }
 
             internal static SvgTextStyle Resolve(XElement element, SvgTextStyle inherited, SvgRenderContext context) {
                 Dictionary<string, string> style = context.StyleSheet.CreateStyle(element);
                 double fontSize = ReadStyleLength(element, style, "font-size", inherited.FontSize, context);
                 string? fontFamily = ReadStyleString(element, style, "font-family") ?? inherited.FontFamily;
-                bool bold = ReadFontWeight(element, style, inherited.Bold);
-                bool italic = ReadFontStyle(element, style, inherited.Italic);
+                int weight = OfficeFontFaceCssParser.TryWeight(ReadStyleString(element, style, "font-weight") ?? "", inherited.Face.Weight, out int requestedWeight) ? requestedWeight : inherited.Face.Weight;
+                double stretch = OfficeFontFaceCssParser.TryStretch(ReadStyleString(element, style, "font-stretch") ?? "", inherited.Face.StretchPercent, out double requestedStretch) ? requestedStretch : inherited.Face.StretchPercent;
+                if (!OfficeFontFaceCssParser.TrySlant(ReadStyleString(element, style, "font-style") ?? "", inherited.Face, out OfficeFontSlant slant, out double angle)) {
+                    slant = inherited.Face.Slant; angle = inherited.Face.ObliqueAngleDegrees;
+                }
+                var face = new OfficeFontFaceDescriptor(weight, stretch, slant, angle);
+                bool bold = (face.ToStyle() & OfficeFontStyle.Bold) != 0;
+                bool italic = (face.ToStyle() & OfficeFontStyle.Italic) != 0;
                 bool underline = inherited.Underline;
                 bool strikethrough = inherited.Strikethrough;
                 ReadTextDecoration(element, style, ref underline, ref strikethrough);
                 bool preserveWhitespace = ReadPreserveWhitespace(element, style, inherited.PreserveWhitespace);
                 OfficeTextAlignment alignment = ReadTextAnchor(element, style, inherited.Alignment);
                 double baselineOffset = ReadBaselineOffset(element, style, inherited.BaselineOffset);
-                return new SvgTextStyle(fontSize, fontFamily, bold, italic, underline, strikethrough, preserveWhitespace, alignment, baselineOffset);
+                return new SvgTextStyle(fontSize, fontFamily, bold, italic, underline, strikethrough, preserveWhitespace, alignment, baselineOffset, face);
             }
 
             private static double ReadStyleLength(XElement element, Dictionary<string, string> style, string name, double fallback, SvgRenderContext context) {
@@ -357,39 +366,6 @@ namespace OfficeIMO.Visio {
                 return string.Equals(whiteSpace, "pre", StringComparison.OrdinalIgnoreCase) ||
                        string.Equals(whiteSpace, "pre-wrap", StringComparison.OrdinalIgnoreCase) ||
                        string.Equals(whiteSpace, "break-spaces", StringComparison.OrdinalIgnoreCase);
-            }
-
-            private static bool ReadFontWeight(XElement element, Dictionary<string, string> style, bool inherited) {
-                string? raw = ReadStyleString(element, style, "font-weight");
-                if (string.IsNullOrWhiteSpace(raw)) {
-                    return inherited;
-                }
-
-                if (string.Equals(raw, "normal", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(raw, "400", StringComparison.OrdinalIgnoreCase)) {
-                    return false;
-                }
-
-                if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int numeric)) {
-                    return numeric >= 600;
-                }
-
-                return string.Equals(raw, "bold", StringComparison.OrdinalIgnoreCase) ||
-                       string.Equals(raw, "bolder", StringComparison.OrdinalIgnoreCase);
-            }
-
-            private static bool ReadFontStyle(XElement element, Dictionary<string, string> style, bool inherited) {
-                string? raw = ReadStyleString(element, style, "font-style");
-                if (string.IsNullOrWhiteSpace(raw)) {
-                    return inherited;
-                }
-
-                if (string.Equals(raw, "normal", StringComparison.OrdinalIgnoreCase)) {
-                    return false;
-                }
-
-                return string.Equals(raw, "italic", StringComparison.OrdinalIgnoreCase) ||
-                       string.Equals(raw, "oblique", StringComparison.OrdinalIgnoreCase);
             }
 
             private static void ReadTextDecoration(XElement element, Dictionary<string, string> style, ref bool underline, ref bool strikethrough) {

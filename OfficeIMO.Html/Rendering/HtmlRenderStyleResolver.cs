@@ -151,7 +151,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             Display = pseudoElement ? ResolvePseudoDisplay(computed.GetValue("display")) : ResolveDisplay(element, computed.GetValue("display")),
             DisplayWasSpecified = !string.IsNullOrWhiteSpace(computed.GetValue("display")),
             PaintVisible = ResolvePaintVisibility(computed.GetValue("visibility"), parent),
-            Font = new OfficeFontInfo(family, fontSize, fontStyle),
+            Font = new OfficeFontInfo(family, fontSize, fontDescriptor, fontStyle),
             FontDescriptor = fontDescriptor,
             UnderlineStyle = (fontStyle & OfficeFontStyle.Underline) == OfficeFontStyle.Underline
                 ? decorationStyle

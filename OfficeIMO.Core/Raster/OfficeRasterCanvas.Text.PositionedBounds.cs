@@ -12,11 +12,12 @@ public sealed partial class OfficeRasterCanvas {
         OfficeTextFeatureSettings features, string palette, double baselineSize,
         OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle,
         OfficeTextDirection textDirection = OfficeTextDirection.Auto) {
+        using var faceScope = PushTextFace(fontInfo.Face);
         _cancellationToken.ThrowIfCancellationRequested();
         double left = x, top = y, right = x + width, bottom = y + height;
         bool hasInk = false;
         if (_fonts != null) {
-            IReadOnlyList<OfficeFontFallbackRun> runs = _fonts.PlanFallbackRuns(text, fontInfo.FamilyName, fontInfo.Style);
+            IReadOnlyList<OfficeFontFallbackRun> runs = _fonts.PlanFallbackRuns(text, fontInfo.FamilyName, fontInfo.Face);
             if (ShouldUseFallbackRuns(runs, fontInfo.FamilyName)) {
                 double measured = MeasurePositionedText(text, size, fontInfo.FamilyName, fontInfo.Style, features, textDirection);
                 if (measured <= 0D) return (left, top, right, bottom, false);
@@ -24,7 +25,7 @@ public sealed partial class OfficeRasterCanvas {
                 foreach ((OfficeFontFallbackRun run, OfficeTextDirection runDirection) in PlanVisualFallbackRuns(text, fontInfo.FamilyName, fontInfo.Style, textDirection)) {
                     double runAdvance = MeasurePositionedText(run.Text, size, run.FamilyName, fontInfo.Style, features, runDirection) * advance / measured;
                     var bounds = MeasurePositionedTextBounds(run.Text, cursor, y, Math.Max(.01D, runAdvance), height,
-                        size, new OfficeFontInfo(run.FamilyName, fontInfo.Size, fontInfo.Style), Math.Max(.01D, runAdvance),
+                        size, fontInfo.WithFamilyName(run.FamilyName), Math.Max(.01D, runAdvance),
                         OfficeTextAlignment.Left, features, palette, baselineSize, underlineStyle, strikethroughStyle,
                         runDirection);
                     hasInk |= bounds.HasInk;
