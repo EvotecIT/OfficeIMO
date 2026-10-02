@@ -41,8 +41,7 @@ public sealed class IWorkDurationFormatCorpusTests {
         Assert.Equal(expected.GetProperty("native").GetProperty("formatCode").GetString(), actual.GetStyle().NumberFormatCode);
         Assert.Equal(Assert.Single(native.Sheets[0].Range("C6").CreateVisualSnapshot().Cells).Text,
             Assert.Single(reopened.Sheets[0].Range("C5").CreateVisualSnapshot().Cells).Text);
-        // Date patterns in this same unchanged source still require the partial policy.
-        Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED");
-        Assert.True(result.Report.IsPartialEditableReconstruction);
+        Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED");
+        Assert.False(result.Report.IsPartialEditableReconstruction);
     }
 }

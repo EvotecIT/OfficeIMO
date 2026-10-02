@@ -73,7 +73,7 @@ public static partial class ExcelIWorkConverter {
             }).ToArray();
         }
         if (editable && projection.Sheets.SelectMany(sheet => sheet.Tables).SelectMany(table => table.Cells)
-            .Any(cell => cell.NumberFormat is { DecimalPlaces: null, Kind: not (IWorkNumberFormatKind.Fraction or IWorkNumberFormatKind.Duration) })) {
+            .Any(cell => cell.NumberFormat is { DecimalPlaces: null, Kind: not (IWorkNumberFormatKind.Fraction or IWorkNumberFormatKind.Duration or IWorkNumberFormatKind.DateTime) })) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED",
                     "Numbers automatic decimal formats use up to fifteen optional fractional places in XLSX; scientific formats apply them to the mantissa. Significant-digit selection, rounding and exponent presentation can differ; numeric values and formula caches are unchanged.",
@@ -83,6 +83,7 @@ public static partial class ExcelIWorkConverter {
         if (editable) destinationDiagnostics = destinationDiagnostics.Concat(CurrencyFormatDiagnostics(projection)).ToArray();
         if (editable) destinationDiagnostics = destinationDiagnostics.Concat(FractionFormatDiagnostics(projection)).ToArray();
         if (editable) destinationDiagnostics = destinationDiagnostics.Concat(DurationFormatDiagnostics(projection)).ToArray();
+        if (editable) destinationDiagnostics = destinationDiagnostics.Concat(DateTimeFormatDiagnostics(projection)).ToArray();
         if (editable && settings.AllowPartialEditableReconstruction &&
             (!projection.HasEditableContent || projection.Diagnostics.Any(diagnostic =>
                 diagnostic.Severity != IWorkDiagnosticSeverity.Information))) {

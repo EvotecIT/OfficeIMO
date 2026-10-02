@@ -9,6 +9,10 @@ public sealed class IWorkScalarFormatCorpusTests {
     public void Native_selected_scalar_formats_match_independent_default_and_unassessed_metadata() {
         string root = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "numbers-parser");
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "cell-format-selectors.json")));
+        using var dates = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "date-formats.json")));
+        var qualifiedDateDeclarations = dates.RootElement.GetProperty("packages").EnumerateArray()
+            .SelectMany(p => p.GetProperty("cells").EnumerateArray())
+            .Select(c => c.GetProperty("formatHex").GetString()).ToHashSet();
         foreach (var package in manifest.RootElement.GetProperty("packages").EnumerateArray()) {
             string path = Path.Combine(root, package.GetProperty("source").GetString()!);
             Assert.Equal(package.GetProperty("sourceSha256").GetString(),
@@ -16,7 +20,8 @@ public sealed class IWorkScalarFormatCorpusTests {
             var projection = IWorkSourceDocument.Open(path, new IWorkReadOptions { PreserveSourceRecords = false }).ReadNumbers();
             var cells = projection.Sheets.SelectMany(s => s.Tables).SelectMany(t => t.Cells).ToArray();
             Assert.Equal(package.GetProperty("selectorCounts").GetProperty("15").GetInt32(),
-                cells.Count(c => (c.UnsupportedFeatures & IWorkCellUnsupportedFeatures.DateFormat) != 0));
+                cells.Count(c => c.NumberFormat?.Kind == IWorkNumberFormatKind.DateTime
+                    || (c.UnsupportedFeatures & IWorkCellUnsupportedFeatures.DateFormat) != 0));
             Assert.Equal(package.GetProperty("selectorCounts").GetProperty("16").GetInt32(),
                 cells.Count(c => (c.UnsupportedFeatures & IWorkCellUnsupportedFeatures.DurationFormat) != 0));
             foreach (var expected in package.GetProperty("cases").EnumerateArray()) {
@@ -28,9 +33,12 @@ public sealed class IWorkScalarFormatCorpusTests {
                     17 => IWorkCellUnsupportedFeatures.TextFormat, _ => IWorkCellUnsupportedFeatures.BooleanFormat
                 };
                 Assert.False(cell.HasDecodeError);
-                Assert.Equal(expected.GetProperty("isDefaultScalarFormat").GetBoolean()
+                bool qualified = expected.GetProperty("isDefaultScalarFormat").GetBoolean()
+                    || expected.GetProperty("selectorBit").GetInt32() == 15
+                        && qualifiedDateDeclarations.Contains(expected.GetProperty("formatHex").GetString());
+                Assert.Equal(qualified
                     ? IWorkCellUnsupportedFeatures.None : feature, cell.UnsupportedFeatures & feature);
-                if (!expected.GetProperty("isDefaultScalarFormat").GetBoolean())
+                if (!qualified)
                     Assert.Contains(projection.Diagnostics, d => d.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED");
             }
         }

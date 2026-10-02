@@ -1,0 +1,1416 @@
+{
+  "extractorVersion": "numbers-parser 4.19.0",
+  "displayEnvironment": {
+    "operatingSystem": "Darwin",
+    "architecture": "arm64",
+    "pythonVersion": "3.12.14",
+    "timeLocale": "C",
+    "earlyYearDisplayProbe": "0009"
+  },
+  "qualification": "Selected date pattern metadata, saved caches and independent invariant display in five unchanged native sources. The paired Numbers export localizes punctuation and refreshes volatile NOW caches; it does not prove source/native value or appearance equivalence. Locale, calendar, timezone, other patterns and suppression controls remain unqualified.",
+  "formatFieldNumbers": {
+    "format_type": 1,
+    "suppress_date_format": 12,
+    "suppress_time_format": 13,
+    "date_time_format": 14
+  },
+  "patterns": [
+    "HH:mm:ss",
+    "d MMM yyyy",
+    "dd/MM/y",
+    "dd/MM/y HH:mm",
+    "h:mm a"
+  ],
+  "packages": [
+    {
+      "source": "numbers-parser/cross-table-formulas.numbers",
+      "sourceSha256": "9371c5b1d6ee4dfa17569097f064eba9c67f804d88b48638efbbeeb459d07dd4",
+      "cells": []
+    },
+    {
+      "source": "numbers-parser/endpoint-formulas.numbers",
+      "sourceSha256": "3deb8e3b868be60d7b8924336d2839fcd690db2b138e6c2170d6c22c4aca48dc",
+      "cells": [
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 37,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 7,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2010-01-01T00:00:00",
+          "independentDisplayText": "01/01/2010"
+        },
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 37,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 7,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2010-01-01T00:00:00",
+          "independentDisplayText": "01/01/2010"
+        },
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 38,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 7,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "1979-08-01T00:00:00",
+          "independentDisplayText": "01/08/1979"
+        },
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 38,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 7,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "1979-08-01T00:00:00",
+          "independentDisplayText": "01/08/1979"
+        },
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 57,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 7,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2000-02-15T00:00:00",
+          "independentDisplayText": "15/02/2000"
+        },
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 57,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 7,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2000-02-15T00:00:00",
+          "independentDisplayText": "15/02/2000"
+        },
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 59,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 7,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2010-03-31T00:00:00",
+          "independentDisplayText": "31/03/2010"
+        },
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 59,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 7,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2010-03-31T00:00:00",
+          "independentDisplayText": "31/03/2010"
+        },
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 140,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 19,
+          "formatHex": "088502720848483a6d6d3a7373",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "HH:mm:ss"
+          },
+          "value": "1904-01-01T01:02:03",
+          "independentDisplayText": "01:02:03"
+        },
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 140,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 19,
+          "formatHex": "088502720848483a6d6d3a7373",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "HH:mm:ss"
+          },
+          "value": "1904-01-01T01:02:03",
+          "independentDisplayText": "01:02:03"
+        },
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 155,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 7,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2001-01-10T00:00:00",
+          "independentDisplayText": "10/01/2001"
+        },
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 155,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 7,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2001-01-10T00:00:00",
+          "independentDisplayText": "10/01/2001"
+        }
+      ]
+    },
+    {
+      "source": "numbers-parser/single-cell-formulas.numbers",
+      "sourceSha256": "4ce0593faa61bf159bde0752ade1fa202afcd142317ba16fdec8eb71a7149170",
+      "cells": [
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 2,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "0009-12-31T00:00:00",
+          "independentDisplayText": "31/12/0009"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 2,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "0009-12-31T00:00:00",
+          "independentDisplayText": "31/12/0009"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 3,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "0108-01-01T00:00:00",
+          "independentDisplayText": "01/01/0108"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 3,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "0108-01-01T00:00:00",
+          "independentDisplayText": "01/01/0108"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 4,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2007-09-02T00:00:00",
+          "independentDisplayText": "02/09/2007"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 4,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2007-09-02T00:00:00",
+          "independentDisplayText": "02/09/2007"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 5,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2007-12-16T00:00:00",
+          "independentDisplayText": "16/12/2007"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 5,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2007-12-16T00:00:00",
+          "independentDisplayText": "16/12/2007"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 6,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2008-01-02T00:00:00",
+          "independentDisplayText": "02/01/2008"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 6,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2008-01-02T00:00:00",
+          "independentDisplayText": "02/01/2008"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 7,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2008-02-04T00:00:00",
+          "independentDisplayText": "04/02/2008"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 7,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2008-02-04T00:00:00",
+          "independentDisplayText": "04/02/2008"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 8,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2009-02-02T00:00:00",
+          "independentDisplayText": "02/02/2009"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 8,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2009-02-02T00:00:00",
+          "independentDisplayText": "02/02/2009"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 21,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2014-12-03T00:00:00",
+          "independentDisplayText": "03/12/2014"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 21,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2014-12-03T00:00:00",
+          "independentDisplayText": "03/12/2014"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 22,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2008-01-01T00:00:00",
+          "independentDisplayText": "01/01/2008"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 22,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2008-01-01T00:00:00",
+          "independentDisplayText": "01/01/2008"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 23,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2008-01-01T00:00:00",
+          "independentDisplayText": "01/01/2008"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 23,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2008-01-01T00:00:00",
+          "independentDisplayText": "01/01/2008"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 24,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2011-03-11T00:00:00",
+          "independentDisplayText": "11/03/2011"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 24,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2011-03-11T00:00:00",
+          "independentDisplayText": "11/03/2011"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 25,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2014-03-12T00:00:00",
+          "independentDisplayText": "12/03/2014"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 25,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2014-03-12T00:00:00",
+          "independentDisplayText": "12/03/2014"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 26,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2014-03-12T00:00:00",
+          "independentDisplayText": "12/03/2014"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 26,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2014-03-12T00:00:00",
+          "independentDisplayText": "12/03/2014"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 27,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2023-03-12T00:00:00",
+          "independentDisplayText": "12/03/2023"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 27,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2021-03-12T00:00:00",
+          "independentDisplayText": "12/03/2021"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 28,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2014-03-12T00:00:00",
+          "independentDisplayText": "12/03/2014"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 28,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2014-03-12T00:00:00",
+          "independentDisplayText": "12/03/2014"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 29,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2014-03-12T00:00:00",
+          "independentDisplayText": "12/03/2014"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 29,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2014-03-12T00:00:00",
+          "independentDisplayText": "12/03/2014"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 30,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2014-03-12T00:00:00",
+          "independentDisplayText": "12/03/2014"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 30,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2014-03-12T00:00:00",
+          "independentDisplayText": "12/03/2014"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 31,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2014-03-12T00:00:00",
+          "independentDisplayText": "12/03/2014"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 31,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2014-03-12T00:00:00",
+          "independentDisplayText": "12/03/2014"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 32,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "1900-01-01T00:00:00",
+          "independentDisplayText": "01/01/1900"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 32,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "1900-01-01T00:00:00",
+          "independentDisplayText": "01/01/1900"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 33,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2011-02-23T00:00:00",
+          "independentDisplayText": "23/02/2011"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 33,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2011-02-23T00:00:00",
+          "independentDisplayText": "23/02/2011"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 34,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2014-12-03T00:00:00",
+          "independentDisplayText": "03/12/2014"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 34,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2014-12-03T00:00:00",
+          "independentDisplayText": "03/12/2014"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 35,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2011-05-22T00:00:00",
+          "independentDisplayText": "22/05/2011"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 35,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2011-05-22T00:00:00",
+          "independentDisplayText": "22/05/2011"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 36,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2014-12-03T00:00:00",
+          "independentDisplayText": "03/12/2014"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 36,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2014-12-03T00:00:00",
+          "independentDisplayText": "03/12/2014"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 37,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2014-12-03T00:00:00",
+          "independentDisplayText": "03/12/2014"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 37,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2014-12-03T00:00:00",
+          "independentDisplayText": "03/12/2014"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 38,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2014-12-03T00:00:00",
+          "independentDisplayText": "03/12/2014"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 38,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2014-12-03T00:00:00",
+          "independentDisplayText": "03/12/2014"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 46,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2011-02-15T00:00:00",
+          "independentDisplayText": "15/02/2011"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 46,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2011-02-15T00:00:00",
+          "independentDisplayText": "15/02/2011"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 47,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2010-10-31T00:00:00",
+          "independentDisplayText": "31/10/2010"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 47,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2010-10-31T00:00:00",
+          "independentDisplayText": "31/10/2010"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 48,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2011-02-28T00:00:00",
+          "independentDisplayText": "28/02/2011"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 48,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2011-02-28T00:00:00",
+          "independentDisplayText": "28/02/2011"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 61,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 5,
+          "formatHex": "0885027206683a6d6d2061",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "h:mm a"
+          },
+          "value": "1904-01-01T12:00:00",
+          "independentDisplayText": "12:00 pm"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 61,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 5,
+          "formatHex": "0885027206683a6d6d2061",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "h:mm a"
+          },
+          "value": "1904-01-01T12:00:00",
+          "independentDisplayText": "12:00 pm"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 62,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 5,
+          "formatHex": "0885027206683a6d6d2061",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "h:mm a"
+          },
+          "value": "1904-01-01T16:48:10",
+          "independentDisplayText": "4:48 pm"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 62,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 5,
+          "formatHex": "0885027206683a6d6d2061",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "h:mm a"
+          },
+          "value": "1904-01-01T16:48:10",
+          "independentDisplayText": "4:48 pm"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 69,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2008-10-02T00:00:00",
+          "independentDisplayText": "02/10/2008"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 69,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2008-10-02T00:00:00",
+          "independentDisplayText": "02/10/2008"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 70,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2009-05-01T00:00:00",
+          "independentDisplayText": "01/05/2009"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 70,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2009-05-01T00:00:00",
+          "independentDisplayText": "01/05/2009"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 71,
+          "column": 2,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2009-04-30T00:00:00",
+          "independentDisplayText": "30/04/2009"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 71,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 6,
+          "formatHex": "088502720764642f4d4d2f79",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y"
+          },
+          "value": "2009-04-30T00:00:00",
+          "independentDisplayText": "30/04/2009"
+        }
+      ]
+    },
+    {
+      "source": "numbers-parser/issue-102-v15.1.numbers",
+      "sourceSha256": "88a9fa7be095d03004478393a87a4a97602d7468f839d067ec9118c524c55176",
+      "cells": [
+        {
+          "sheet": "Cats",
+          "table": "Cats",
+          "row": 2,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 2,
+          "formatHex": "088502720a64204d4d4d2079797979",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "d MMM yyyy"
+          },
+          "value": "2001-11-15T00:00:00",
+          "independentDisplayText": "15 Nov 2001"
+        },
+        {
+          "sheet": "Cats",
+          "table": "Cats",
+          "row": 2,
+          "column": 4,
+          "cellType": 5,
+          "formatKey": 2,
+          "formatHex": "088502720a64204d4d4d2079797979",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "d MMM yyyy"
+          },
+          "value": "2002-02-13T00:00:00",
+          "independentDisplayText": "13 Feb 2002"
+        },
+        {
+          "sheet": "Cats",
+          "table": "Cats",
+          "row": 2,
+          "column": 5,
+          "cellType": 5,
+          "formatKey": 2,
+          "formatHex": "088502720a64204d4d4d2079797979",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "d MMM yyyy"
+          },
+          "value": "2002-05-14T00:00:00",
+          "independentDisplayText": "14 May 2002"
+        },
+        {
+          "sheet": "Cats",
+          "table": "Cats",
+          "row": 2,
+          "column": 6,
+          "cellType": 5,
+          "formatKey": 2,
+          "formatHex": "088502720a64204d4d4d2079797979",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "d MMM yyyy"
+          },
+          "value": "2002-08-12T00:00:00",
+          "independentDisplayText": "12 Aug 2002"
+        },
+        {
+          "sheet": "Cats",
+          "table": "Cats",
+          "row": 2,
+          "column": 7,
+          "cellType": 5,
+          "formatKey": 2,
+          "formatHex": "088502720a64204d4d4d2079797979",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "d MMM yyyy"
+          },
+          "value": "2002-11-10T00:00:00",
+          "independentDisplayText": "10 Nov 2002"
+        },
+        {
+          "sheet": "Cats",
+          "table": "Cats",
+          "row": 2,
+          "column": 8,
+          "cellType": 5,
+          "formatKey": 2,
+          "formatHex": "088502720a64204d4d4d2079797979",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "d MMM yyyy"
+          },
+          "value": "2003-02-08T00:00:00",
+          "independentDisplayText": "8 Feb 2003"
+        },
+        {
+          "sheet": "Cats",
+          "table": "Cats",
+          "row": 2,
+          "column": 9,
+          "cellType": 5,
+          "formatKey": 2,
+          "formatHex": "088502720a64204d4d4d2079797979",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "d MMM yyyy"
+          },
+          "value": "2003-05-09T00:00:00",
+          "independentDisplayText": "9 May 2003"
+        },
+        {
+          "sheet": "Cats",
+          "table": "Cats",
+          "row": 2,
+          "column": 10,
+          "cellType": 5,
+          "formatKey": 2,
+          "formatHex": "088502720a64204d4d4d2079797979",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "d MMM yyyy"
+          },
+          "value": "2003-08-07T00:00:00",
+          "independentDisplayText": "7 Aug 2003"
+        },
+        {
+          "sheet": "Cats",
+          "table": "Cats",
+          "row": 2,
+          "column": 11,
+          "cellType": 5,
+          "formatKey": 2,
+          "formatHex": "088502720a64204d4d4d2079797979",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "d MMM yyyy"
+          },
+          "value": "2003-11-05T00:00:00",
+          "independentDisplayText": "5 Nov 2003"
+        }
+      ]
+    },
+    {
+      "source": "numbers-parser/test-10-formulas.numbers",
+      "sourceSha256": "dd85bad68898ce5b065f277c0b9be1f3c32d696e3baa6b09d3614bbd35a5249f",
+      "cells": [
+        {
+          "sheet": "Sheet 1",
+          "table": "Table 1",
+          "row": 3,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 4,
+          "formatHex": "088502720d64642f4d4d2f792048483a6d6d",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y HH:mm"
+          },
+          "value": "2025-02-10T09:14:45",
+          "independentDisplayText": "10/02/2025 09:14"
+        },
+        {
+          "sheet": "Sheet 1",
+          "table": "Table 1",
+          "row": 4,
+          "column": 3,
+          "cellType": 5,
+          "formatKey": 4,
+          "formatHex": "088502720d64642f4d4d2f792048483a6d6d",
+          "settings": {
+            "format_type": 261,
+            "date_time_format": "dd/MM/y HH:mm"
+          },
+          "value": "2025-02-10T11:38:45",
+          "independentDisplayText": "10/02/2025 11:38"
+        }
+      ]
+    }
+  ],
+  "nativeExport": {
+    "path": "native-exports/numbers-formulas-v14.5.xlsx",
+    "sha256": "8c1184a0793fd4a580f2116d5664b4d0438b888016812f855cd405d84e497a70",
+    "producer": {
+      "application": "Apple Numbers",
+      "version": "14.5",
+      "build": "7045.0.17",
+      "operatingSystem": "macOS 27.0 26A428",
+      "exportedUtc": "2026-09-30T10:44:24Z",
+      "documentLocale": "pl-PL"
+    },
+    "cells": [
+      {
+        "cell": "C4",
+        "valueDays": 46295.529641203706,
+        "formatCode": "d.mm.yyyy hh:mm",
+        "formula": "NOW()"
+      },
+      {
+        "cell": "C5",
+        "valueDays": 46295.6296412037,
+        "formatCode": "d.mm.yyyy hh:mm",
+        "formula": "NOW()+0.1"
+      }
+    ]
+  }
+}

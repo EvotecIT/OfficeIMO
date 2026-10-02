@@ -1,11 +1,12 @@
 namespace OfficeIMO.IWork;
 
-/// <summary>The recovered semantic numeric or duration format of an iWork cell, independent of a destination format code.</summary>
+/// <summary>The recovered semantic numeric, date/time or duration format of an iWork cell, independent of a destination format code.</summary>
 public sealed partial class IWorkNumberFormat {
     internal IWorkNumberFormat(IWorkNumberFormatKind kind, int? decimalPlaces,
         bool thousandsSeparator, IWorkNegativeNumberStyle negativeStyle,
         string? currencyCode = null, bool useAccountingStyle = false,
-        IWorkFractionAccuracy? fractionAccuracy = null, IWorkDurationFormat? durationFormat = null) {
+        IWorkFractionAccuracy? fractionAccuracy = null, IWorkDurationFormat? durationFormat = null,
+        IWorkDateTimeFormat? dateTimeFormat = null) {
         Kind = kind;
         DecimalPlaces = decimalPlaces;
         ThousandsSeparator = thousandsSeparator;
@@ -14,11 +15,12 @@ public sealed partial class IWorkNumberFormat {
         UseAccountingStyle = useAccountingStyle;
         FractionAccuracy = fractionAccuracy;
         DurationFormat = durationFormat;
+        DateTimeFormat = dateTimeFormat;
     }
 
-    /// <summary>Gets the source numeric display family.</summary>
+    /// <summary>Gets the source numeric or temporal display family.</summary>
     public IWorkNumberFormatKind Kind { get; }
-    /// <summary>Gets the explicit decimal count from zero through thirty, or null for Numbers' automatic mode, fractions or durations. Scientific formats apply this count to the mantissa; fractions use FractionAccuracy instead.</summary>
+    /// <summary>Gets the explicit decimal count from zero through thirty, or null for Numbers' automatic mode, fractions or temporal formats. Scientific formats apply this count to the mantissa; fractions use FractionAccuracy instead.</summary>
     public int? DecimalPlaces { get; }
     /// <summary>Gets whether the source requests digit grouping.</summary>
     public bool ThousandsSeparator { get; }
@@ -32,9 +34,11 @@ public sealed partial class IWorkNumberFormat {
     public IWorkFractionAccuracy? FractionAccuracy { get; }
     /// <summary>Gets the qualified duration units and label style, or null for other families.</summary>
     public IWorkDurationFormat? DurationFormat { get; }
+    /// <summary>Gets the qualified source date/time pattern, or null for other families.</summary>
+    public IWorkDateTimeFormat? DateTimeFormat { get; }
 }
 
-/// <summary>Supported iWork numeric format semantics.</summary>
+/// <summary>Supported iWork numeric and temporal format semantics.</summary>
 public enum IWorkNumberFormatKind {
     /// <summary>A decimal number.</summary>
     Number,
@@ -47,7 +51,9 @@ public enum IWorkNumberFormatKind {
     /// <summary>A numeric value displayed as a mixed fraction with bounded denominator precision.</summary>
     Fraction,
     /// <summary>An elapsed time whose source value is measured in seconds.</summary>
-    Duration
+    Duration,
+    /// <summary>A calendar date or time with a recovered source pattern.</summary>
+    DateTime
 }
 
 /// <summary>Supported source treatments of negative numbers.</summary>

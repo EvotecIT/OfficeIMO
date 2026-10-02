@@ -50,7 +50,7 @@ internal sealed partial class IWorkReadProjection {
                 .Select(column => CellText(source.GetCell(row, column))).ToArray());
         }
         AddDiagnostics(IWorkNumericDisplayDiagnostics.ForTextTables(source.Cells.Where(cell =>
-                cell.NumberFormat?.Kind == IWorkNumberFormatKind.Duration && cell.Column <= columnCount
+                cell.NumberFormat?.Kind is IWorkNumberFormatKind.Duration or IWorkNumberFormatKind.DateTime && cell.Column <= columnCount
                 && (cell.Row <= materializedHeaderRows || cell.Row > headerRows && cell.Row <= headerRows + dataRows)),
             "READER", "Reader", _cancellationToken));
         bool truncated = headerRows > materializedHeaderRows
@@ -209,8 +209,8 @@ internal sealed partial class IWorkReadProjection {
 
     private static string CellText(IWorkTableCell? cell) {
         if (cell == null) return string.Empty;
-        if (cell.NumberFormat?.Kind == IWorkNumberFormatKind.Duration && cell.TryGetFormattedNumber(out string duration, out _))
-            return duration;
+        if (cell.NumberFormat?.Kind is IWorkNumberFormatKind.Duration or IWorkNumberFormatKind.DateTime
+            && cell.TryGetFormattedNumber(out string temporal, out _)) return temporal;
         return cell.Kind == IWorkCellKind.Formula ? cell.CachedDisplayText : cell.DisplayText;
     }
 

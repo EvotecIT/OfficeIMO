@@ -1,6 +1,6 @@
 namespace OfficeIMO.IWork.Internal;
 
-/// <summary>Resolves bounded selected numeric formats and qualifies default scalar formats.</summary>
+/// <summary>Resolves bounded selected numeric/temporal formats and qualifies default scalar formats.</summary>
 internal sealed partial class IWorkTableNumberFormatCatalog {
     private readonly IWorkSourceDocument _source;
     private readonly IWorkWireMessage _store;
@@ -8,7 +8,7 @@ internal sealed partial class IWorkTableNumberFormatCatalog {
     private readonly IWorkProjectionBudget _budget;
     private readonly IWorkSourceReferenceIssueCollector _references;
     private readonly Dictionary<uint, (IWorkWireMessage Message, int Position)> _entries = new();
-    private readonly Dictionary<(uint Key, bool Currency, bool Duration), IWorkNumberFormat?> _resolved = new();
+    private readonly Dictionary<(uint Key, IWorkNumberFormatKind Family), IWorkNumberFormat?> _resolved = new();
     private IWorkArchiveRecord? _list;
     private bool _initialized;
 
@@ -23,10 +23,10 @@ internal sealed partial class IWorkTableNumberFormatCatalog {
 
     internal bool FullyReconstructed { get; private set; } = true;
 
-    internal IWorkNumberFormat? Read(uint key, bool currency = false, bool duration = false) {
+    internal IWorkNumberFormat? Read(uint key, IWorkNumberFormatKind family = IWorkNumberFormatKind.Number) {
         _source.CancellationToken.ThrowIfCancellationRequested();
         if (!_initialized) Initialize();
-        if (_resolved.TryGetValue((key, currency, duration), out IWorkNumberFormat? cached)) return cached;
+        if (_resolved.TryGetValue((key, family), out IWorkNumberFormat? cached)) return cached;
         if (!_entries.TryGetValue(key, out var entry)) {
             FullyReconstructed = false;
             return null;
@@ -45,7 +45,8 @@ internal sealed partial class IWorkTableNumberFormatCatalog {
             try {
                 IWorkWireMessage message = entry.Message.ParseNestedMessage(bytes);
                 int typeFields = entry.Message.CountNestedFields(bytes, 1, out int totalFields);
-                // The supported subset has no date, duration, custom format,
+                bool currency = family == IWorkNumberFormatKind.Currency;
+                // The numeric subset has no date, duration, custom format,
                 // scaling or control metadata. Unknown properties cannot be silently ignored.
                 bool supportedShape = typeFields == 1 && totalFields == message.FieldCount(1)
                     + message.FieldCount(2) + message.FieldCount(4) + message.FieldCount(5)
@@ -66,7 +67,9 @@ internal sealed partial class IWorkTableNumberFormatCatalog {
                         && code is { Length: 3 } && code.All(value => value is >= (byte)'A' and <= (byte)'Z');
                     if (supportedShape) currencyCode = System.Text.Encoding.ASCII.GetString(code!);
                 }
-                if (duration) {
+                if (family == IWorkNumberFormatKind.DateTime) {
+                    format = ReadDateTimeFormat(message);
+                } else if (family == IWorkNumberFormatKind.Duration) {
                     format = ReadDurationFormat(message);
                 } else if (!currency && type == 262) {
                     format = ReadFractionFormat(message);
@@ -92,7 +95,11 @@ internal sealed partial class IWorkTableNumberFormatCatalog {
             _budget.AddTextCharacters(retainedCode.Length);
             _budget.AddTextItem();
         }
-        _resolved.Add((key, currency, duration), format);
+        if (format?.DateTimeFormat is { } dateTimeFormat) {
+            _budget.AddTextCharacters(dateTimeFormat.SourcePattern.Length);
+            _budget.AddTextItem();
+        }
+        _resolved.Add((key, family), format);
         if (format == null) FullyReconstructed = false;
         return format;
     }

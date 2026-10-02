@@ -76,9 +76,10 @@ public sealed class IWorkCorpusTests {
             Fixture("numbers-parser/test-10-formulas.numbers")).ReadNumbers();
         IWorkTable table = numbers.Sheets[0].Tables[0];
 
-        Assert.False(numbers.HasEditableContent);
-        Assert.Contains(numbers.Diagnostics, d => d.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED");
-        Assert.Equal(IWorkCellUnsupportedFeatures.DateFormat, table.GetCell(3, 3)!.UnsupportedFeatures);
+        Assert.True(numbers.HasEditableContent);
+        Assert.DoesNotContain(numbers.Diagnostics, d => d.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED");
+        Assert.Equal(IWorkCellUnsupportedFeatures.None, table.GetCell(3, 3)!.UnsupportedFeatures);
+        Assert.Equal("dd/MM/y HH:mm", table.GetCell(3, 3)!.NumberFormat!.DateTimeFormat!.SourcePattern);
         Assert.Equal(IWorkCellUnsupportedFeatures.None, table.GetCell(5, 3)!.UnsupportedFeatures);
         Assert.InRange(table.DefaultRowHeight!.Value, 19.92d, 19.94d);
         Assert.Equal(98d, table.DefaultColumnWidth);
@@ -127,7 +128,7 @@ public sealed class IWorkCorpusTests {
             conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
 
         Assert.False(result.IsVisualFallback);
-        Assert.True(result.Report.IsPartialEditableReconstruction);
+        Assert.False(result.Report.IsPartialEditableReconstruction);
         ExcelSheet first = result.Value.Sheets[0];
         Assert.Equal("A1+A2", first.GetFormulaText(2, 2));
         Assert.Equal("SUM(A1:A2)", first.GetFormulaText(6, 2));

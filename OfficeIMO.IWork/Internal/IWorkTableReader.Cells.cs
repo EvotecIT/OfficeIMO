@@ -28,7 +28,8 @@ internal static partial class IWorkTableReader {
             for (int bit = 0; bit < selectedBit; bit++)
                 if ((flags & (1u << bit)) != 0) formatOffset += CellValueFieldSize(bit);
             // DecodeModernCell already checked all selected fields against this record's boundary.
-            IWorkNumberFormat? format = numberFormats.Read(IWorkProtobuf.ReadUInt32(buffer, formatOffset), currency);
+            IWorkNumberFormat? format = numberFormats.Read(IWorkProtobuf.ReadUInt32(buffer, formatOffset),
+                currency ? IWorkNumberFormatKind.Currency : IWorkNumberFormatKind.Number);
             if (format != null) cell = cell.WithNumberFormat(format);
         }
         if (!cell.HasDecodeError && (flags & (1u << 5)) != 0) {
@@ -57,14 +58,26 @@ internal static partial class IWorkTableReader {
         IWorkCellUnsupportedFeatures features = IWorkCellUnsupportedFeatures.None;
         if ((flags & (1u << 7)) != 0) features |= IWorkCellUnsupportedFeatures.ConditionalStyle;
         if ((flags & (1u << 8)) != 0) features |= IWorkCellUnsupportedFeatures.AppliedConditionalRule;
-        if ((flags & (1u << 15)) != 0) features |= IWorkCellUnsupportedFeatures.DateFormat;
+        if ((flags & (1u << 15)) != 0) {
+            int formatOffset = offset + 12;
+            for (int bit = 0; bit < 15; bit++)
+                if ((flags & (1u << bit)) != 0) formatOffset += CellValueFieldSize(bit);
+            bool compatibleKind = cell.ValueKind == IWorkCellKind.DateTime
+                || cell.ValueKind == IWorkCellKind.Empty && (flags & (1u << 16)) == 0;
+            IWorkNumberFormat? format = !cell.HasDecodeError && compatibleKind
+                ? numberFormats.Read(IWorkProtobuf.ReadUInt32(buffer, formatOffset), IWorkNumberFormatKind.DateTime) : null;
+            if (format == null) features |= IWorkCellUnsupportedFeatures.DateFormat;
+            else cell = cell.WithNumberFormat(format);
+        }
         if ((flags & (1u << 16)) != 0) {
             // The complete cell boundary is proven before any selected catalog is read.
             int formatOffset = offset + 12;
             for (int bit = 0; bit < 16; bit++)
                 if ((flags & (1u << bit)) != 0) formatOffset += CellValueFieldSize(bit);
-            IWorkNumberFormat? format = !cell.HasDecodeError && cell.ValueKind is IWorkCellKind.Duration or IWorkCellKind.Empty
-                ? numberFormats.Read(IWorkProtobuf.ReadUInt32(buffer, formatOffset), duration: true) : null;
+            bool compatibleKind = cell.ValueKind == IWorkCellKind.Duration
+                || cell.ValueKind == IWorkCellKind.Empty && (flags & (1u << 15)) == 0;
+            IWorkNumberFormat? format = !cell.HasDecodeError && compatibleKind
+                ? numberFormats.Read(IWorkProtobuf.ReadUInt32(buffer, formatOffset), IWorkNumberFormatKind.Duration) : null;
             if (format == null) features |= IWorkCellUnsupportedFeatures.DurationFormat;
             else cell = cell.WithNumberFormat(format);
         }
