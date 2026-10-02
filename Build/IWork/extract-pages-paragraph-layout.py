@@ -68,12 +68,14 @@ for identifier in sorted(selected):
         message = getattr(properties, field)
         evidence = {'fieldPath': '12/' + str(properties.DESCRIPTOR.fields_by_name[field].number),
                     'property': field, 'decodedProperties': str(message).strip()}
+        if field == 'line_spacing' and message.mode == 0 and message.HasField('amount') and not message.HasField('baselineRule'):
+            evidence['relativeMultiplier'] = message.amount
         declarations.append(evidence)
     if declarations:
         styles.append({'recordIdentifier': identifier, 'declarations': declarations})
 manifest = {'source': name, 'sourceSha256': source_hash, 'extractorVersion': 'numbers-parser 4.19.0',
             'license': 'The unchanged fixture retains its existing corpus provenance and license.',
-            'qualification': 'Selected body paragraph styles and their parent chain; line spacing and tab declarations are unassessed by the shared projection. Empty declarations are retained without inventing default semantics. No native export or rendered appearance qualification.',
+            'qualification': 'Selected body paragraph styles and their parent chain; Explicit relative multipliers are decoded independently; remaining line spacing and tab declarations stay unassessed by the shared projection. Empty declarations are retained without inventing default semantics. No native export or rendered appearance qualification.',
             'storageIdentifiers': storages, 'styles': styles}
 args.output.write_text(json.dumps(manifest, indent=2) + '\n')
 print(f'Extracted {sum(len(s["declarations"]) for s in styles)} declarations from {len(styles)} selected styles')

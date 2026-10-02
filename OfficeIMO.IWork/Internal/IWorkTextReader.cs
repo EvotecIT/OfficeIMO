@@ -313,6 +313,7 @@ internal static partial class IWorkTextReader {
         internal double? RightIndentPoints;
         internal double? SpaceBeforePoints;
         internal double? SpaceAfterPoints;
+        internal double? LineSpacingMultiplier;
         internal bool? PageBreakBefore;
         internal bool? KeepWithNext;
         internal bool? KeepLinesTogether;
@@ -321,7 +322,7 @@ internal static partial class IWorkTextReader {
         internal IWorkParagraphStyle ToPublic() => new(Name, Alignment,
             FirstLineIndentPoints, LeftIndentPoints, RightIndentPoints,
             SpaceBeforePoints, SpaceAfterPoints, PageBreakBefore, KeepWithNext,
-            KeepLinesTogether, Text.ToPublic());
+            KeepLinesTogether, Text.ToPublic(), LineSpacingMultiplier);
     }
 
     private sealed class TextSpan {

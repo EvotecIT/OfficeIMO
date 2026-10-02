@@ -141,7 +141,10 @@ public static partial class WordIWorkConverter {
                 || !FitsSignedTwips(style.LeftIndentPoints, allowPartialEditableReconstruction)
                 || !FitsSignedTwips(style.RightIndentPoints, allowPartialEditableReconstruction)
                 || !FitsUnsignedNullableTwips(style.SpaceBeforePoints, allowPartialEditableReconstruction)
-                || !FitsUnsignedNullableTwips(style.SpaceAfterPoints, allowPartialEditableReconstruction))
+                || !FitsUnsignedNullableTwips(style.SpaceAfterPoints, allowPartialEditableReconstruction)
+                || style.LineSpacingMultiplier is double multiplier && (multiplier * 240d < 1d
+                    || multiplier > int.MaxValue / 240d
+                    || !allowPartialEditableReconstruction && !IsExactDestinationUnit(multiplier, 240d)))
                 return "Pages paragraph formatting exceeds the DOCX measurement range.";
         }
         foreach (IWorkTextStyle style in AllPagesRunStyles(projection)) {
@@ -164,6 +167,8 @@ public static partial class WordIWorkConverter {
 
     private static bool RequiresWordRounding(IWorkPagesProjection projection) =>
         WordTwipMeasurements(projection).Any(value => value.HasValue && !IsExactDestinationUnit(value.Value, 20d))
+        || AllPagesParagraphStyles(projection).Any(style => style.LineSpacingMultiplier is double multiplier
+            && !IsExactDestinationUnit(multiplier, 240d))
         || AllPagesRunStyles(projection)
             .Any(style => style.FontSizePoints is double size && !IsExactDestinationUnit(size, 2d))
         || projection.TextBoxObjects.Select(box => box.Geometry)

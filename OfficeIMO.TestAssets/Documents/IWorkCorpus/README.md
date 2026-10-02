@@ -36,7 +36,7 @@ The unchanged Pages 14.1 `iwork-converter/a.pages` fixture exercises a 45-paragr
 
 ## Pages paragraph layout declarations
 
-`pages-paragraph-layout.json` records line-spacing and custom-tab messages in selected body paragraph styles and their parent chain in the unchanged `picodocs/sample-v14.4.pages`. The pinned independent parser identifies twelve declarations across seven styles, including empty messages whose effective defaults remain unqualified. The reader retains source paths and incomplete-formatting diagnostics instead of silently claiming layout preservation. This evidence does not qualify Apple exports or rendered equivalence.
+`pages-paragraph-layout.json` records line-spacing and custom-tab messages in selected body paragraph styles and their parent chain in the unchanged `picodocs/sample-v14.4.pages`. The pinned independent parser identifies twelve declarations across seven styles, including empty messages whose effective defaults remain unqualified. The manifest also exposes independently decoded relative multipliers. The reader retains those explicit values and source paths for remaining unqualified layout. DOCX/PPTX spacing properties are checked separately from rendered appearance. This evidence does not qualify Apple exports or rendered equivalence.
 
 ```sh
 python Build/IWork/extract-pages-paragraph-layout.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/pages-paragraph-layout.json

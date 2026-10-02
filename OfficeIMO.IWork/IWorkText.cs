@@ -90,7 +90,7 @@ public sealed class IWorkParagraphStyle {
     internal IWorkParagraphStyle(string? name, IWorkTextAlignment? alignment,
         double? firstLineIndentPoints, double? leftIndentPoints, double? rightIndentPoints,
         double? spaceBeforePoints, double? spaceAfterPoints, bool? pageBreakBefore,
-        bool? keepWithNext, bool? keepLinesTogether, IWorkTextStyle textStyle) {
+        bool? keepWithNext, bool? keepLinesTogether, IWorkTextStyle textStyle, double? lineSpacingMultiplier = null) {
         Name = name;
         Alignment = alignment;
         FirstLineIndentPoints = firstLineIndentPoints;
@@ -102,6 +102,7 @@ public sealed class IWorkParagraphStyle {
         KeepWithNext = keepWithNext;
         KeepLinesTogether = keepLinesTogether;
         TextStyle = textStyle;
+        LineSpacingMultiplier = lineSpacingMultiplier;
     }
 
     /// <summary>Gets the source style name, when present.</summary>
@@ -118,6 +119,8 @@ public sealed class IWorkParagraphStyle {
     public double? SpaceBeforePoints { get; }
     /// <summary>Gets spacing after the paragraph in points.</summary>
     public double? SpaceAfterPoints { get; }
+    /// <summary>Gets explicit positive relative line spacing; null when absent, cleared or unqualified.</summary>
+    public double? LineSpacingMultiplier { get; }
     /// <summary>Gets whether the paragraph starts on a new page.</summary>
     public bool? PageBreakBefore { get; }
     /// <summary>Gets whether the paragraph should stay with the next paragraph.</summary>

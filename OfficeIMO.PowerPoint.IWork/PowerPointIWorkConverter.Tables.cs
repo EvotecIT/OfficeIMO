@@ -102,7 +102,7 @@ public static partial class PowerPointIWorkConverter {
                 return $"Keynote table '{table.Name}' contains paragraph pagination formatting that the PPTX owner cannot preserve.";
             if (!FitsTextCoordinate(style.FirstLineIndentPoints) || !FitsTextCoordinate(style.LeftIndentPoints)
                 || !FitsTextCoordinate(style.RightIndentPoints) || Math.Abs(style.RightIndentPoints.GetValueOrDefault()) > 0.000001d
-                || !FitsSpacing(style.SpaceBeforePoints) || !FitsSpacing(style.SpaceAfterPoints))
+                || !FitsSpacing(style.SpaceBeforePoints) || !FitsSpacing(style.SpaceAfterPoints) || !FitsLineSpacing(style.LineSpacingMultiplier))
                 return $"Keynote table '{table.Name}' contains paragraph formatting outside the PPTX range.";
             IWorkTextStyle text = style.TextStyle;
             if (text.FontSizePoints is double size && (!IsFinite(size) || size < 1d || size > 4000d

@@ -294,6 +294,7 @@ public static partial class ExcelIWorkConverter {
             || paragraph.Style.RightIndentPoints.HasValue
             || paragraph.Style.SpaceBeforePoints.HasValue
             || paragraph.Style.SpaceAfterPoints.HasValue
+            || paragraph.Style.LineSpacingMultiplier.HasValue
             || paragraph.Style.PageBreakBefore.HasValue
             || paragraph.Style.KeepWithNext.HasValue
             || paragraph.Style.KeepLinesTogether.HasValue

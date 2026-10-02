@@ -417,6 +417,10 @@ public static partial class WordIWorkConverter {
         if (style.RightIndentPoints.HasValue) paragraph.IndentationAfterPoints = style.RightIndentPoints;
         if (style.SpaceBeforePoints.HasValue) paragraph.LineSpacingBeforePoints = style.SpaceBeforePoints;
         if (style.SpaceAfterPoints.HasValue) paragraph.LineSpacingAfterPoints = style.SpaceAfterPoints;
+        if (style.LineSpacingMultiplier is double multiplier) {
+            paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
+            paragraph.LineSpacing = checked((int)Math.Round(multiplier * 240d, MidpointRounding.AwayFromZero));
+        }
         if (style.PageBreakBefore.HasValue) paragraph.PageBreakBefore = style.PageBreakBefore.Value;
         if (style.KeepWithNext.HasValue) paragraph.KeepWithNext = style.KeepWithNext.Value;
         if (style.KeepLinesTogether.HasValue) paragraph.KeepLinesTogether = style.KeepLinesTogether.Value;

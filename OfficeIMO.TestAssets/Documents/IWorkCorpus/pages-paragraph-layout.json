@@ -3,7 +3,7 @@
   "sourceSha256": "4714477138d0a4090fc2ee2ba2ebb6adcd0fb6ce20a28897a6247a8e17d1ddce",
   "extractorVersion": "numbers-parser 4.19.0",
   "license": "The unchanged fixture retains its existing corpus provenance and license.",
-  "qualification": "Selected body paragraph styles and their parent chain; line spacing and tab declarations are unassessed by the shared projection. Empty declarations are retained without inventing default semantics. No native export or rendered appearance qualification.",
+  "qualification": "Selected body paragraph styles and their parent chain; Explicit relative multipliers are decoded independently; remaining line spacing and tab declarations stay unassessed by the shared projection. Empty declarations are retained without inventing default semantics. No native export or rendered appearance qualification.",
   "storageIdentifiers": [
     1732640
   ],
@@ -29,7 +29,8 @@
         {
           "fieldPath": "12/13",
           "property": "line_spacing",
-          "decodedProperties": "amount: 1.15"
+          "decodedProperties": "amount: 1.15",
+          "relativeMultiplier": 1.149999976158142
         },
         {
           "fieldPath": "12/25",
@@ -44,7 +45,8 @@
         {
           "fieldPath": "12/13",
           "property": "line_spacing",
-          "decodedProperties": "amount: 1.15"
+          "decodedProperties": "amount: 1.15",
+          "relativeMultiplier": 1.149999976158142
         },
         {
           "fieldPath": "12/25",
@@ -59,7 +61,8 @@
         {
           "fieldPath": "12/13",
           "property": "line_spacing",
-          "decodedProperties": "amount: 1.15"
+          "decodedProperties": "amount: 1.15",
+          "relativeMultiplier": 1.149999976158142
         },
         {
           "fieldPath": "12/25",
@@ -74,7 +77,8 @@
         {
           "fieldPath": "12/13",
           "property": "line_spacing",
-          "decodedProperties": "amount: 1.15"
+          "decodedProperties": "amount: 1.15",
+          "relativeMultiplier": 1.149999976158142
         },
         {
           "fieldPath": "12/25",

@@ -260,7 +260,7 @@ public static partial class PowerPointIWorkConverter {
                         || !FitsTextCoordinate(style.RightIndentPoints)
                         || Math.Abs(style.RightIndentPoints.GetValueOrDefault()) > 0.000001d
                         || !FitsSpacing(style.SpaceBeforePoints)
-                        || !FitsSpacing(style.SpaceAfterPoints)) {
+                        || !FitsSpacing(style.SpaceAfterPoints) || !FitsLineSpacing(style.LineSpacingMultiplier)) {
                         return $"Keynote slide {slide.Index} contains paragraph formatting outside the PPTX range.";
                     }
                     IEnumerable<IWorkTextStyle> textStyles = paragraph.Runs.Select(run => run.Style).Concat(new[] { style.TextStyle });
@@ -440,6 +440,12 @@ public static partial class PowerPointIWorkConverter {
         || IsFinite(points.Value) && points.Value >= 0 && points.Value <= int.MaxValue / 100d
         && Math.Abs(points.Value - Math.Round(points.Value * 100d,
             MidpointRounding.AwayFromZero) / 100d) <= 0.00001d;
+
+    private static bool FitsLineSpacing(double? multiplier) => !multiplier.HasValue
+        || IsFinite(multiplier.Value) && multiplier.Value * 100000d >= 1d
+        && multiplier.Value <= 132d
+        && Math.Abs(multiplier.Value * 100000d - Math.Round(multiplier.Value * 100000d))
+            <= Math.Max(1e-6d, multiplier.Value * 0.01d);
 
     private static bool FitsRotation(double degrees) {
         double scaled = degrees * 60000d;

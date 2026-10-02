@@ -90,11 +90,23 @@ public sealed partial class IWorkBoundaryTests {
         foreach (var style in manifest.RootElement.GetProperty("styles").EnumerateArray()) {
             ulong identifier = style.GetProperty("recordIdentifier").GetUInt64();
             foreach (var declaration in style.GetProperty("declarations").EnumerateArray()) {
+                if (declaration.TryGetProperty("relativeMultiplier", out _)) {
+                    Assert.DoesNotContain(result.Report.SourceDeclarationIssues, item => item.Owner.RecordIdentifier == identifier
+                        && item.FieldPath == declaration.GetProperty("fieldPath").GetString());
+                    continue;
+                }
                 var issue = Assert.Single(result.Report.SourceDeclarationIssues, item => item.Owner.RecordIdentifier == identifier
                     && item.FieldPath == declaration.GetProperty("fieldPath").GetString());
                 Assert.Equal(IWorkSourceDeclarationIssueKind.UnsupportedField, issue.Kind);
             }
         }
+        double expected = manifest.RootElement.GetProperty("styles").EnumerateArray()
+            .SelectMany(style => style.GetProperty("declarations").EnumerateArray())
+            .First(declaration => declaration.TryGetProperty("relativeMultiplier", out _))
+            .GetProperty("relativeMultiplier").GetDouble();
+        Assert.Contains(result.Projection.Body.Paragraphs, paragraph => paragraph.Style.LineSpacingMultiplier == expected);
+        Assert.Contains(result.Value.Paragraphs, paragraph => paragraph.LineSpacingRule == OfficeIMO.Word.WordLineSpacingRule.Auto
+            && paragraph.LineSpacing == 276);
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Report.IsPartialEditableReconstruction);
     }

@@ -362,6 +362,7 @@ internal sealed partial class IWorkReadProjection {
         || style.RightIndentPoints is not null and not 0d
         || style.SpaceBeforePoints is not null and not 0d
         || style.SpaceAfterPoints is not null and not 0d
+        || style.LineSpacingMultiplier.HasValue
         || style.PageBreakBefore == true || style.KeepWithNext == true
         || style.KeepLinesTogether == true;
 

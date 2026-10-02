@@ -87,6 +87,7 @@ public static partial class PowerPointIWorkConverter {
         if (style.LeftIndentPoints.HasValue) paragraph.LeftMarginPoints = style.LeftIndentPoints;
         if (style.SpaceBeforePoints.HasValue) paragraph.SpaceBeforePoints = style.SpaceBeforePoints;
         if (style.SpaceAfterPoints.HasValue) paragraph.SpaceAfterPoints = style.SpaceAfterPoints;
+        if (style.LineSpacingMultiplier.HasValue) paragraph.LineSpacingMultiplier = style.LineSpacingMultiplier;
     }
 
     private sealed class IWorkPowerPointListState {
