@@ -251,6 +251,13 @@ python Build/IWork/extract-cell-format-selectors.py OfficeIMO.TestAssets/Documen
 ```
 
 
+`numbers-parser/blank-number-formats.json` records 35 blank cells with numeric selectors in the same unchanged corpus. Twenty-six cells have no competing scalar-format selector: one percentage cell in `cross-table-formulas.numbers`, four integer-format cells in `single-cell-formulas.numbers`, and 21 grouped-number cells in `issue-102-v15.1.numbers`. Tests compare their projected formats with the independent metadata and verify the 21 Numbers 15.1 cells remain blank with their formats after XLSX save/reopen. Conversion explicitly accepts other partial reconstruction in that workbook; this is not whole-document fidelity qualification. Nine cells also carry a text selector; their effective-format precedence remains unqualified. No native Apple export or appearance comparison is claimed.
+
+```sh
+python Build/IWork/extract-blank-number-formats.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/blank-number-formats.json
+```
+
+
 `numbers-parser/duration-format.json` qualifies the fixed abbreviated hour/minute selection in source Table 1 C5 of unchanged `test-10-formulas.numbers`. Its source settings, seconds and independent display text agree with the paired Numbers 14.5 XLSX C6 cache and `[h]"h" m"m"` format after the native title-row offset. Other units, styles, automatic selection, negative rounding and locale or appearance equivalence remain unqualified. Existing source/export hashes, licensing and producer provenance apply. Regenerate with the pinned opt-in provider:
 
 ```sh
