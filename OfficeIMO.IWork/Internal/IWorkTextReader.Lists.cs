@@ -2,14 +2,14 @@ namespace OfficeIMO.IWork.Internal;
 
 internal static partial class IWorkTextReader {
     private static (int Level, string? Label) ResolveList(IWorkObjectIndex index,
-        ulong? identifier, double? paragraphLeftIndentPoints,
+        ulong? identifier, double? paragraphLeftIndentPoints, int? explicitLevel,
         IWorkProjectionBudget projectionBudget,
-        Dictionary<(ulong Identifier, double? LeftIndentPoints), Cached<(int Level, string? Label)>> cache,
+        Dictionary<(ulong Identifier, double? LeftIndentPoints, int? ExplicitLevel), Cached<(int Level, string? Label)>> cache,
         bool tolerateStyleDepth,
         IWorkSourceReferenceIssueCollector references,
         ref bool complete) {
         if (!identifier.HasValue) return (-1, null);
-        var cacheKey = (identifier.Value, paragraphLeftIndentPoints);
+        var cacheKey = (identifier.Value, paragraphLeftIndentPoints, explicitLevel);
         if (cache.TryGetValue(cacheKey, out Cached<(int Level, string? Label)> cached)) {
             if (!cached.IsComplete) complete = false;
             return cached.Value;
@@ -26,7 +26,8 @@ internal static partial class IWorkTextReader {
                 new StylePropertyEvidence(chain[styleIndex].Record, "", references.Declarations),
                 ref resolvedCompletely);
         }
-        int level = ResolveListLevel(data, paragraphLeftIndentPoints, ref resolvedCompletely);
+        int level = explicitLevel ?? ResolveListLevel(data, paragraphLeftIndentPoints, ref resolvedCompletely);
+        if (level >= data.LabelTypes.Count) resolvedCompletely = false;
         ulong labelType = level >= 0 && level < data.LabelTypes.Count
             ? data.LabelTypes[level]
             : 0;

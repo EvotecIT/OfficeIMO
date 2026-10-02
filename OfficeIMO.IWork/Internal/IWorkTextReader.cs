@@ -27,6 +27,8 @@ internal static partial class IWorkTextReader {
         }
         IReadOnlyList<AttributeBoundary> paragraphStyles = ReadObjectTable(message, 5, text.Length,
             storage, projectionBudget, references, ref complete, static type => type == ParagraphStyleArchive);
+        IReadOnlyList<AttributeBoundary> listLevels = ReadListLevelTable(message, text.Length,
+            storage, projectionBudget, references, ref complete);
         IReadOnlyList<AttributeBoundary> listStyles = ReadObjectTable(message, 7, text.Length,
             storage, projectionBudget, references, ref complete, static type => type == ListStyleArchive);
         IReadOnlyList<AttributeBoundary> characterStyles = ReadObjectTable(message, 8, text.Length,
@@ -34,7 +36,7 @@ internal static partial class IWorkTextReader {
         IReadOnlyList<AttributeBoundary> hyperlinks = ReadObjectTable(message, 11, text.Length,
             storage, projectionBudget, references, ref complete, static type => type == HyperlinkArchive);
         var paragraphStyleCache = new Dictionary<ulong, Cached<IWorkParagraphStyle>>();
-        var listStyleCache = new Dictionary<(ulong Identifier, double? LeftIndentPoints),
+        var listStyleCache = new Dictionary<(ulong Identifier, double? LeftIndentPoints, int? ExplicitLevel),
             Cached<(int Level, string? Label)>>();
         var textStyleCache = new Dictionary<TextStyleCacheKey, Cached<IWorkTextStyle>>();
         var hyperlinkCache = new Dictionary<ulong, Cached<string?>>();
@@ -48,6 +50,7 @@ internal static partial class IWorkTextReader {
                 projectionBudget, paragraphStyleCache, tolerateStyleDepth, references, ref complete);
             (int listLevel, string? listLabel) = ResolveList(index, listStyleId,
                 paragraphStyle.LeftIndentPoints,
+                (int?)ObjectAt(listLevels, paragraph.Start, carryMissing: false),
                 projectionBudget, listStyleCache, tolerateStyleDepth, references, ref complete);
             if (listLabel != null) projectionBudget.AddTextCharacters(listLabel.Length);
             var boundaries = new SortedSet<int> { paragraph.Start, paragraph.End };

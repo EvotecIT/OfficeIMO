@@ -166,7 +166,7 @@ public sealed class IWorkTextParagraph {
     public IWorkParagraphStyle Style { get; }
     /// <summary>Gets the stable source list-style identifier, or null for a non-list paragraph.</summary>
     public ulong? ListIdentifier { get; }
-    /// <summary>Gets the zero-based list level, or -1 for a non-list paragraph.</summary>
+    /// <summary>Gets the explicit zero-based list level, falling back to indentation when unavailable, or -1 for a non-list paragraph.</summary>
     public int ListLevel { get; }
     /// <summary>Gets the source string label or the initial marker for a recovered numbering kind.
     /// A numbering marker describes its format, not a qualified paragraph counter or restart value.</summary>

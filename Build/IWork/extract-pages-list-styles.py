@@ -86,5 +86,9 @@ manifest = {'provider': 'numbers-parser', 'providerVersion': '4.19.0',
             'numberTypeNames': {str(v.number): v.name for v in
                                 ListStyleArchive.DESCRIPTOR.enum_types_by_name['NumberType'].values},
             'sources': sources,
-            'limits': 'Selected native declarations only. Paragraph-data first/second semantics, restarts, continuation, tiered numbering and destination rendering are not qualified by this extraction.'}
+            'listLevelEvidence': {'repository': 'https://github.com/LibreOffice/libetonyek',
+                                  'revision': '6d19ce365f64a6217791a9438c85f4b1851ca7e0',
+                                  'source': 'src/lib/IWAParser.cpp',
+                                  'contract': 'Storage field 6 entries select list levels from entry field 2 at field 1 character offsets.'},
+            'limits': 'Selected native declarations only. Paragraph-data first is the explicit list level; second semantics, restarts, continuation, tiered numbering and destination rendering are not qualified by this extraction.'}
 args.output.write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
