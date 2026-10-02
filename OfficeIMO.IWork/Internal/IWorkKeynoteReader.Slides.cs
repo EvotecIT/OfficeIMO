@@ -21,6 +21,7 @@ internal static partial class IWorkKeynoteReader {
                 slide.EntryPath, slide.Identifier));
             return null;
         }
+        IWorkCellFill? background = ReadBackground(source, slide, message, projectionBudget, references, diagnostics, ref supportsEditableReconstruction);
         AssessBuildDeclarations(message, slide, references, diagnostics, ref supportsEditableReconstruction);
         AssessTransition(message, slide, references, diagnostics, ref supportsEditableReconstruction);
         foreach (int field in new[] { 7, 42, 5, 6 }) {
@@ -320,7 +321,7 @@ internal static partial class IWorkKeynoteReader {
                 slide.EntryPath, slide.Identifier));
         }
         return new IWorkKeynoteSlide(position, slideName ?? string.Empty,
-            title, textBoxes, notes, images, tables, drawables, skipped, new IWorkObjectIdentity(slide));
+            title, textBoxes, notes, images, tables, drawables, skipped, new IWorkObjectIdentity(slide), background);
     }
 
 }

@@ -82,6 +82,10 @@ public static partial class PowerPointIWorkConverter {
                     PowerPointSlide slide = presentation.AddSlide();
                     if (sourceSlide.Name.Length > 0) slide.Name = sourceSlide.Name;
                     slide.Hidden = sourceSlide.IsSkipped;
+                    if (sourceSlide.HasBackgroundFill) {
+                        if (sourceSlide.BackgroundColor != null) slide.BackgroundColor = sourceSlide.BackgroundColor.RgbHex;
+                        else slide.SetBackgroundNoFill();
+                    }
                     slidePairs.Add((sourceSlide, slide));
                 }
                 foreach ((IWorkKeynoteSlide sourceSlide, PowerPointSlide slide) in slidePairs) {

@@ -289,6 +289,8 @@ slide.AddTable(rows, columns,
 record SalesRow(string Product, int Q1, int Q2);
 ```
 
+Use `slide.BackgroundColor` for a solid slide background or `slide.SetBackgroundNoFill()` for an explicit no-fill override that suppresses inherited layout or master fills. No-fill survives save/reopen and is returned as `PowerPointSlideBackgroundKind.None` by `GetBackground()`.
+
 Set `table.GetCell(row, column).FillColor` to an RGB hex color to replace the cell's local fill. Set `NoFill = true` to show the slide background through that cell and suppress table-theme shading. Setting `NoFill = false` removes that override; setting `FillColor = null` removes only a local solid fill. Cell indexes are zero-based. Explicit no-fill survives PPTX save/reopen, image export and native PPT conversion.
 
 ### Charts from data

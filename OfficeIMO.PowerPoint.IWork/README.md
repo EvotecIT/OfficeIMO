@@ -21,6 +21,8 @@ result.Value.Save("converted.pptx");
 
 `IWorkSourceDocument.Open` reads and bounds the source independently of destination policy. `ToPowerPointPresentation` returns the converted presentation directly; `ToPowerPointPresentationResult` also exposes the typed Keynote projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result. `PowerPointIWorkConverter.ConvertKeynoteToPowerPoint*` provides equivalent path and stream convenience entry points.
 
+Qualified opaque slide background colors and explicit no-fill overrides survive PPTX save/reopen, including selected style inheritance. Unsupported backgrounds require visual fallback or explicit partial conversion and retain source diagnostics. See the [background contract and native evidence](../Docs/officeimo.iwork-support-matrix.md#keynote-slide-backgrounds) for the supported color subset and remaining master/export limits.
+
 Table-region defaults and selected text styles preserve supported fonts, emphasis, colors and paragraph alignment in PPTX, including empty cells. Explicit rich-text formatting takes precedence. Table paragraph pagination flags require the partial policy and produce `IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED`; strict conversion uses visual fallback.
 
 Selected native cell padding becomes PowerPoint table-cell margins, and top/middle/bottom alignment becomes the cell anchor. Values must fit the PPTX margin range; the partial policy permits EMU rounding with a precision diagnostic.

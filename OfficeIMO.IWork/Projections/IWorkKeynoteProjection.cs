@@ -37,7 +37,7 @@ public sealed class IWorkKeynoteSlide {
     internal IWorkKeynoteSlide(int index, string name, IWorkTextBox? titleBox,
         IReadOnlyList<IWorkTextBox> textBoxes, IWorkTextContent presenterNoteContent,
         IReadOnlyList<IWorkImageAsset> images, IReadOnlyList<IWorkTable> tables,
-        IReadOnlyList<IWorkKeynoteDrawable> drawables, bool isSkipped, IWorkObjectIdentity? sourceIdentity = null) {
+        IReadOnlyList<IWorkKeynoteDrawable> drawables, bool isSkipped, IWorkObjectIdentity? sourceIdentity = null, IWorkCellFill? background = null) {
         Index = index;
         Name = name;
         TitleBox = titleBox;
@@ -52,12 +52,19 @@ public sealed class IWorkKeynoteSlide {
         PresenterNotes = presenterNoteContent.PlainText;
         IsSkipped = isSkipped;
         SourceIdentity = sourceIdentity;
+        HasBackgroundFill = background != null;
+        BackgroundColor = background?.Color;
     }
 
     /// <summary>Gets the one-based slide position.</summary>
     public int Index { get; }
     /// <summary>Gets the native slide identity.</summary>
     public IWorkObjectIdentity? SourceIdentity { get; }
+    /// <summary>Gets whether a supported explicit or inherited background fill was recovered.</summary>
+    public bool HasBackgroundFill { get; }
+    /// <summary>Gets the opaque background color, or null for no fill or an unrecovered background.
+    /// Use <see cref="HasBackgroundFill"/> to distinguish a recovered no-fill declaration.</summary>
+    public IWorkColor? BackgroundColor { get; }
     /// <summary>Gets the source slide name.</summary>
     public string Name { get; }
     /// <summary>Gets the positioned rich title placeholder.</summary>

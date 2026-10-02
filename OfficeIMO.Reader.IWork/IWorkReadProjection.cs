@@ -73,6 +73,16 @@ internal sealed partial class IWorkReadProjection {
                 ValueType = "boolean",
                 Location = Location(page)
             });
+            if (slide.HasBackgroundFill) {
+                _diagnostics.Add(new OfficeDocumentDiagnostic {
+                    Severity = OfficeDocumentDiagnosticSeverity.Warning,
+                    Category = OfficeDocumentDiagnosticCategory.Content,
+                    Source = "OfficeIMO.Reader.IWork",
+                    Code = "IWORK_READER_SLIDE_BACKGROUND_OMITTED",
+                    Message = "The plain Reader projection does not retain the Keynote slide background fill.",
+                    Location = Location(page)
+                });
+            }
             page.Width = source.SlideSize?.WidthPoints;
             page.Height = source.SlideSize?.HeightPoints;
             foreach (IWorkKeynoteDrawable drawable in slide.Drawables) {

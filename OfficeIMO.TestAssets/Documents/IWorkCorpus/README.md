@@ -326,3 +326,12 @@ python Build/IWork/extract-date-formats.py OfficeIMO.TestAssets/Documents/IWorkC
 ```sh
 python Build/IWork/extract-duration-ranges.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/duration-ranges.json
 ```
+## Keynote slide background evidence
+
+`keynote-backgrounds.json` records slide-style chains and background declarations from the four pinned native Keynote packages. It includes inactive templates; conversion tests compare only selected slides. Older opaque sRGB colors are qualified, while Display P3 and the newer fixtures' additional color field 13 remain unsupported. Existing fixture licenses and provenance above apply. Reproduce the manifest with numbers-parser 4.19.0:
+
+```sh
+python Build/IWork/extract-keynote-backgrounds.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/keynote-backgrounds.json
+```
+
+Saved/reopened PPTX verifies supported selected colors. Synthetic inputs cover explicit no-fill overrides, inheritance, malformed styles and fallback. This is source and package evidence, not Apple-export or rendered-background equivalence.
