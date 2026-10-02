@@ -65,6 +65,7 @@ public static partial class PowerPointIWorkConverter {
                 if (startsAtSourceLabel) paragraph.SetNumbered(scheme, start);
                 else paragraph.SetNumbered(scheme);
             } else if (source.ListLabel!.Length == 1) paragraph.SetBullet(source.ListLabel[0]);
+            if (source.ListFontName != null) paragraph.BulletFontName = source.ListFontName;
         }
     }
 

@@ -70,7 +70,9 @@ for name, expected_hash in fixtures.items():
                     'labelTypes': list(style.label_types),
                     'numberTypes': list(style.number_types),
                     'strings': list(style.strings), 'indents': list(style.indents),
-                    'tieredNumbers': list(style.tiered_numbers)}
+                    'tieredNumbers': list(style.tiered_numbers),
+                    'fontName': style.font_name if style.HasField('font_name') else None,
+                    'fontNameCleared': style.font_name_null if style.HasField('font_name_null') else None}
                 if parent is not None:
                     pending.append(parent)
         storages.append({'identifier': storage_id, 'listSelections': selections,

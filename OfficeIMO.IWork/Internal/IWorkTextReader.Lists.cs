@@ -1,16 +1,16 @@
 namespace OfficeIMO.IWork.Internal;
 
 internal static partial class IWorkTextReader {
-    private static (int Level, string? Label) ResolveList(IWorkObjectIndex index,
+    private static (int Level, string? Label, string? FontName) ResolveList(IWorkObjectIndex index,
         ulong? identifier, double? paragraphLeftIndentPoints, int? explicitLevel,
         IWorkProjectionBudget projectionBudget,
-        Dictionary<(ulong Identifier, double? LeftIndentPoints, int? ExplicitLevel), Cached<(int Level, string? Label)>> cache,
+        Dictionary<(ulong Identifier, double? LeftIndentPoints, int? ExplicitLevel), Cached<(int Level, string? Label, string? FontName)>> cache,
         bool tolerateStyleDepth,
         IWorkSourceReferenceIssueCollector references,
         ref bool complete) {
-        if (!identifier.HasValue) return (-1, null);
+        if (!identifier.HasValue) return (-1, null, null);
         var cacheKey = (identifier.Value, paragraphLeftIndentPoints, explicitLevel);
-        if (cache.TryGetValue(cacheKey, out Cached<(int Level, string? Label)> cached)) {
+        if (cache.TryGetValue(cacheKey, out Cached<(int Level, string? Label, string? FontName)> cached)) {
             if (!cached.IsComplete) complete = false;
             return cached.Value;
         }
@@ -41,11 +41,11 @@ internal static partial class IWorkTextReader {
             resolvedCompletely = false;
         }
         if (labelType != 0 && selectedLabel == null) resolvedCompletely = false;
-        (int Level, string? Label) result = labelType == 0
+        (int Level, string? Label, string? FontName) result = labelType == 0
             || string.Equals(data.Name, "None", StringComparison.OrdinalIgnoreCase)
-            ? (-1, null)
-            : (level, selectedLabel);
-        cache.Add(cacheKey, new Cached<(int Level, string? Label)>(result, resolvedCompletely));
+            ? (-1, null, null)
+            : (level, selectedLabel, data.FontName);
+        cache.Add(cacheKey, new Cached<(int Level, string? Label, string? FontName)>(result, resolvedCompletely));
         if (!resolvedCompletely) complete = false;
         return result;
     }
@@ -89,6 +89,23 @@ internal static partial class IWorkTextReader {
         if (!labelsComplete) { evidence.Record(message, 16); complete = false; }
         else if (labels.Count > 0) data.Labels = labels;
 
+        bool? clearFont = ReadBoolean(message, 22, evidence, ref complete);
+        if (clearFont == true) {
+            data.FontName = null;
+            if (message.HasField(23)) { evidence.Record(message, 23); complete = false; }
+        } else if ((!message.HasField(22) || clearFont.HasValue) && message.HasField(23)) {
+            // A rejected child font must not silently reuse the parent's marker font.
+            data.FontName = null;
+            if (message.FieldCount(23) != 1
+                || message.HasUnexpectedWireKind(23, IWorkWireKind.Bytes)
+                || !TryDecodeUtf8(message.GetBytes(23)!, projectionBudget, out string fontName)
+                || string.IsNullOrWhiteSpace(fontName)) {
+                evidence.Record(message, 23); complete = false;
+            } else data.FontName = fontName;
+        } else if (message.HasField(22) && !clearFont.HasValue) {
+            data.FontName = null;
+        }
+
         IReadOnlyList<float> indents = message.GetRepeatedFloat(13);
         if (message.HasUnexpectedWireKind(13, IWorkWireKind.Fixed32) || indents.Any(indent => !IsFinite(indent))) {
             evidence.Record(message, 13); complete = false;
@@ -131,6 +148,7 @@ internal static partial class IWorkTextReader {
 
     private sealed class ListStyleData {
         internal string? Name;
+        internal string? FontName;
         internal IReadOnlyList<ulong> LabelTypes = Array.Empty<ulong>();
         internal IReadOnlyList<ulong> NumberTypes = Array.Empty<ulong>();
         internal IReadOnlyList<string> Labels = Array.Empty<string>();

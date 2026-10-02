@@ -45,7 +45,8 @@ internal sealed partial class IWorkReadProjection {
                 if (pending.Count == 0) return;
                 AddParagraph(page, new IWorkTextParagraph(pending, paragraph.Style,
                     firstSegment ? paragraph.ListIdentifier : null, firstSegment ? paragraph.ListLevel : -1,
-                    firstSegment ? paragraph.ListLabel : null, IWorkParagraphBreakKind.None), "body");
+                    firstSegment ? paragraph.ListLabel : null, IWorkParagraphBreakKind.None,
+                    firstSegment ? paragraph.ListFontName : null), "body");
                 firstSegment = false; pending.Clear();
             }
         }

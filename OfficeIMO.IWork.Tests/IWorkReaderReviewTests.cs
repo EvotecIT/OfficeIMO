@@ -111,17 +111,21 @@ public sealed partial class IWorkBoundaryTests {
             diagnostic.Code == "IWORK_READER_TABLE_STYLE_PARTIAL");
     }
 
-    [Fact]
-    public void Reader_reports_unrepresented_paragraph_alignment_without_run_style() {
+    [Theory]
+    [InlineData(true, null, true)]
+    [InlineData(false, "Symbol", true)]
+    [InlineData(false, null, false)]
+    public void Reader_reports_unrepresented_paragraph_or_marker_style_without_run_style(
+        bool aligned, string? markerFont, bool expectedDiagnostic) {
         IWorkSourceDocument source = IWorkSourceDocument.Open(
             Fixture("nim-iwork/simple.pages"), IWorkDocumentKind.Pages);
         var plainStyle = new IWorkTextStyle(null, null, null, null, null,
             null, null, null, null);
-        var alignedStyle = new IWorkParagraphStyle(null, IWorkTextAlignment.Right,
+        var alignedStyle = new IWorkParagraphStyle(null, aligned ? IWorkTextAlignment.Right : null,
             null, null, null, null, null, null, null, null, plainStyle);
         var body = new IWorkTextContent(new[] {
             new IWorkTextParagraph(new[] { new IWorkTextRun("Aligned", plainStyle, null) },
-                alignedStyle, null, -1, null, IWorkParagraphBreakKind.None)
+                alignedStyle, 1, 0, "•", IWorkParagraphBreakKind.None, markerFont)
         }, true, true);
         var pages = new IWorkPagesProjection(source, body,
             Array.Empty<IWorkPagesSection>(), Array.Empty<IWorkTextBox>(),
@@ -134,8 +138,8 @@ public sealed partial class IWorkBoundaryTests {
         projection.AddPages(pages);
         projection.Complete(source);
 
-        Assert.Contains(result.Diagnostics, diagnostic =>
-            diagnostic.Code == "IWORK_READER_TEXT_STYLE_PARTIAL");
+        Assert.Equal(expectedDiagnostic, result.Diagnostics.Any(diagnostic =>
+            diagnostic.Code == "IWORK_READER_TEXT_STYLE_PARTIAL"));
     }
 
     [Fact]

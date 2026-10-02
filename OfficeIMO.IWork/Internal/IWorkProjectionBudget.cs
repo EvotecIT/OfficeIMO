@@ -139,7 +139,10 @@ internal sealed class IWorkProjectionBudget {
                     if (character == '\n') count++;
                 }
             }
-            if (includeCharacters) characterCount += paragraph.ListLabel?.Length ?? 0;
+            if (includeCharacters) {
+                characterCount += paragraph.ListLabel?.Length ?? 0;
+                characterCount += paragraph.ListFontName?.Length ?? 0;
+            }
         }
         if (count > int.MaxValue) {
             throw new InvalidDataException(

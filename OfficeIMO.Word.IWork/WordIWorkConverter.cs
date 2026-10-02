@@ -356,7 +356,7 @@ public static partial class WordIWorkConverter {
                 bool startsNewList = !hasPreviousListParagraph
                     || sourceParagraph.ListIdentifier != previousListIdentifier;
                 nativeLists.Apply(paragraph, sourceParagraph.ListLevel,
-                    sourceParagraph.ListLabel, startsNewList);
+                    sourceParagraph.ListLabel, sourceParagraph.ListFontName, startsNewList);
                 previousListIdentifier = sourceParagraph.ListIdentifier;
                 hasPreviousListParagraph = true;
             } else {
@@ -470,7 +470,7 @@ public static partial class WordIWorkConverter {
             _document = document;
         }
 
-        internal void Apply(WordParagraph paragraph, int level, string? label, bool startsNewList) {
+        internal void Apply(WordParagraph paragraph, int level, string? label, string? fontName, bool startsNewList) {
             if (startsNewList || _current == null) {
                 _current = WordList.AddCustomList(_document);
                 _observedLevels.Clear();
@@ -497,6 +497,7 @@ public static partial class WordIWorkConverter {
                 list.Numbering.Levels[level].LevelText = "(%"
                     + (level + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + ")";
             }
+            if (firstObservation && fontName != null) list.FontName = fontName;
             OpenXmlParagraphProperties properties = paragraph._paragraph.ParagraphProperties
                 ?? paragraph._paragraph.PrependChild(new OpenXmlParagraphProperties());
             properties.NumberingProperties = new OpenXmlNumberingProperties(

@@ -37,7 +37,7 @@ internal static partial class IWorkTextReader {
             storage, projectionBudget, references, ref complete, static type => type == HyperlinkArchive);
         var paragraphStyleCache = new Dictionary<ulong, ParagraphStyleCacheEntry>();
         var listStyleCache = new Dictionary<(ulong Identifier, double? LeftIndentPoints, int? ExplicitLevel),
-            Cached<(int Level, string? Label)>>();
+            Cached<(int Level, string? Label, string? FontName)>>();
         var textStyleCache = new Dictionary<TextStyleCacheKey, Cached<IWorkTextStyle>>();
         var hyperlinkCache = new Dictionary<ulong, Cached<string?>>();
         var inlineOffsets = new SortedSet<int>(inlineObjects.Keys);
@@ -49,11 +49,12 @@ internal static partial class IWorkTextReader {
             IWorkParagraphStyle paragraphStyle = ResolveParagraphStyle(index, paragraphStyleId,
                 projectionBudget, paragraphStyleCache, tolerateStyleDepth, references, ref complete);
             projectionBudget.AddTextItems(paragraphStyle.TabStops?.Count ?? 0);
-            (int listLevel, string? listLabel) = ResolveList(index, listStyleId,
+            (int listLevel, string? listLabel, string? listFontName) = ResolveList(index, listStyleId,
                 paragraphStyle.LeftIndentPoints,
                 (int?)ObjectAt(listLevels, paragraph.Start, carryMissing: false),
                 projectionBudget, listStyleCache, tolerateStyleDepth, references, ref complete);
             if (listLabel != null) projectionBudget.AddTextCharacters(listLabel.Length);
+            if (listFontName != null) projectionBudget.AddTextCharacters(listFontName.Length);
             var boundaries = new SortedSet<int> { paragraph.Start, paragraph.End };
             AddBoundaries(boundaries, characterStyles, paragraph.Start, paragraph.End);
             AddBoundaries(boundaries, hyperlinks, paragraph.Start, paragraph.End);
@@ -89,7 +90,7 @@ internal static partial class IWorkTextReader {
                 runs.Add(new IWorkTextRun(runText, characterStyle, hyperlink, inlineObject));
             }
             paragraphs.Add(new IWorkTextParagraph(runs, paragraphStyle, listStyleId,
-                listLevel, listLabel, paragraph.BreakKind));
+                listLevel, listLabel, paragraph.BreakKind, listFontName));
         }
         return new IWorkTextContent(paragraphs, complete && textComplete, textComplete,
             hasInvalidSourceText, hasUnresolvedInlineObjects, isFormattingComplete: complete,

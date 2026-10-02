@@ -58,6 +58,22 @@ public sealed class IWorkCorpusTests {
             Assert.Equal(DocumentFormat.OpenXml.Wordprocessing.NumberFormatValues.Decimal, level.NumberingFormat!.Val!.Value);
             Assert.Equal("%1.", level.LevelText!.Val!.Value);
         }
+        IWorkTextParagraph[] bullets = source.ReadPages().Body.Paragraphs
+            .Where(paragraph => paragraph.ListIdentifier == 1732814ul).ToArray();
+        Assert.NotEmpty(bullets);
+        foreach (IWorkTextParagraph bullet in bullets) {
+            Assert.Equal("Symbol", bullet.ListFontName);
+            var paragraph = Assert.Single(main.Document!.Body!.Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>(),
+                paragraph => paragraph.InnerText == bullet.Text);
+            var properties = paragraph.ParagraphProperties!.NumberingProperties!;
+            var instance = Assert.Single(numbering.Elements<DocumentFormat.OpenXml.Wordprocessing.NumberingInstance>(),
+                instance => instance.NumberID!.Value == properties.NumberingId!.Val!.Value);
+            var definition = Assert.Single(numbering.Elements<DocumentFormat.OpenXml.Wordprocessing.AbstractNum>(),
+                definition => definition.AbstractNumberId!.Value == instance.AbstractNumId!.Val!.Value);
+            var level = Assert.Single(definition.Elements<DocumentFormat.OpenXml.Wordprocessing.Level>(),
+                level => level.LevelIndex!.Value == properties.NumberingLevelReference!.Val!.Value);
+            Assert.Equal("Symbol", level.NumberingSymbolRunProperties!.RunFonts!.Ascii!.Value);
+        }
         Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(document));
     }
 

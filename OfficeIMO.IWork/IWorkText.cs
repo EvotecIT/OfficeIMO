@@ -157,12 +157,13 @@ public sealed class IWorkTextRun {
 public sealed class IWorkTextParagraph {
     internal IWorkTextParagraph(IReadOnlyList<IWorkTextRun> runs, IWorkParagraphStyle style,
         ulong? listIdentifier, int listLevel, string? listLabel,
-        IWorkParagraphBreakKind breakKind) {
+        IWorkParagraphBreakKind breakKind, string? listFontName = null) {
         Runs = Array.AsReadOnly(runs.ToArray());
         Style = style;
         ListIdentifier = listIdentifier;
         ListLevel = listLevel;
         ListLabel = listLabel;
+        ListFontName = listFontName;
         BreakKind = breakKind;
     }
 
@@ -177,6 +178,8 @@ public sealed class IWorkTextParagraph {
     /// <summary>Gets the source string label or the initial marker for a recovered numbering kind.
     /// A numbering marker describes its format, not a qualified paragraph counter or restart value.</summary>
     public string? ListLabel { get; }
+    /// <summary>Gets the explicit marker font, including inherited list-style formatting, or null when unspecified or cleared.</summary>
+    public string? ListFontName { get; }
     /// <summary>Gets the delimiter that ended the paragraph.</summary>
     public IWorkParagraphBreakKind BreakKind { get; }
     /// <summary>Gets paragraph text without its terminal delimiter.</summary>

@@ -147,7 +147,7 @@ internal sealed partial class IWorkReadProjection {
                 && (cell.Row <= materializedHeaderRows || cell.Row > headerRows);
             foreach (IWorkTextParagraph paragraph in richText.Paragraphs) {
                 _cancellationToken.ThrowIfCancellationRequested();
-                hasUnrepresentedStyle |= HasUnrepresentedParagraphStyle(paragraph.Style)
+                hasUnrepresentedStyle |= paragraph.ListFontName != null || HasUnrepresentedParagraphStyle(paragraph.Style)
                     || HasUnrepresentedRunStyle(paragraph.Style.TextStyle);
                 foreach (IWorkTextRun run in paragraph.Runs) {
                     _cancellationToken.ThrowIfCancellationRequested();

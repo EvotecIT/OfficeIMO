@@ -240,7 +240,7 @@ internal sealed partial class IWorkReadProjection {
             });
         }
         if (!_reportedUnsupportedTextStyles
-            && (HasUnrepresentedParagraphStyle(paragraph.Style)
+            && (paragraph.ListFontName != null || HasUnrepresentedParagraphStyle(paragraph.Style)
                 || HasUnrepresentedRunStyle(paragraph.Style.TextStyle)
                 || paragraph.Runs.Any(run => HasUnrepresentedRunStyle(run.Style)))) {
             _reportedUnsupportedTextStyles = true;

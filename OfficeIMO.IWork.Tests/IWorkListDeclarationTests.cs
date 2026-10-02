@@ -218,12 +218,12 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     private static MemoryStream ListDeclarationPackage(IWorkDocumentKind kind, byte[] fields,
-        bool aliases = false, bool inherited = true, float indent = 18) => SelectedRichTextPackage(kind,
+        bool aliases = false, bool inherited = true, float indent = 18, byte[]? parentFields = null) => SelectedRichTextPackage(kind,
             Message(AttributeTable(7, AttributeEntry(0, ReferenceField(2, 19))),
                 AttributeTable(5, AttributeEntry(0, ReferenceField(2, 21)))), aliases: aliases,
             additionalRecords: Message(
                 ArchiveRecord(19, 2023, Message(inherited ? BytesField(1, ReferenceField(3, 20)) : Message(), fields)),
                 ArchiveRecord(20, 2023, Message(VarintField(11, 1), VarintField(11, 1),
-                    FloatField(13, 0), FloatField(13, 18), StringField(16, "1."), StringField(16, "c."))),
+                    FloatField(13, 0), FloatField(13, 18), StringField(16, "1."), StringField(16, "c."), parentFields ?? Message())),
                 ArchiveRecord(21, 2022, BytesField(12, FloatField(11, indent)))));
 }

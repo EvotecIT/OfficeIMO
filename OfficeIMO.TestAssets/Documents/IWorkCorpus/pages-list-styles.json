@@ -151,7 +151,9 @@
             252.0,
             288.0
           ],
-          "tieredNumbers": []
+          "tieredNumbers": [],
+          "fontName": null,
+          "fontNameCleared": null
         },
         {
           "identifier": 1732814,
@@ -190,7 +192,9 @@
             0.0,
             0.0
           ],
-          "tieredNumbers": []
+          "tieredNumbers": [],
+          "fontName": "Symbol",
+          "fontNameCleared": null
         },
         {
           "identifier": 1732816,
@@ -239,7 +243,9 @@
             false,
             false,
             false
-          ]
+          ],
+          "fontName": null,
+          "fontNameCleared": true
         }
       ]
     }
