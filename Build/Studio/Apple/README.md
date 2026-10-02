@@ -53,11 +53,53 @@ remain disabled in the onboarding configuration.
 Open implementation and qualification work belongs in
 [the Studio roadmap](../../../Docs/ROADMAP.md#desktop-studio).
 
+## Local macOS development
+
+Use the certificate-signed development build for everyday file access:
+
+```powershell
+./Build/Studio/Build-StudioMacDevelopment.ps1 -Plan
+./Build/Studio/Build-StudioMacDevelopment.ps1
+```
+
+The wrapper invokes PowerForge with `powerforge.development.json`. It builds the
+Apple silicon app in Debug and signs it with the configured Apple Development
+identity for team `8ZPGZ79T7J`. Managed assemblies stay inside the single-file
+host; native libraries are signed separately, and notices live in
+`Contents/Resources`. The bundle ID stays
+`com.evotec.officeimo.studio`. PowerForge signs nested native libraries, verifies
+the app and archive, and rejects a missing certificate or a certificate from the
+wrong team or distribution channel. It never falls back to ad-hoc signing.
+
+Use a PowerForge source build containing the `MacApp.DevelopmentOnly` option.
+Set `POWERFORGE_SOURCE` to that checkout and build it with its pinned SDK:
+
+```sh
+(cd "$POWERFORGE_SOURCE" && dotnet build PowerForge.Cli/PowerForge.Cli.csproj -c Release -f net10.0)
+export POWERFORGE_CLI="$POWERFORGE_SOURCE/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll"
+pwsh -File Build/Studio/Build-StudioMacDevelopment.ps1
+```
+
+The `.app` is at
+`Artifacts/Studio/Development/packages/osx-arm64/OfficeIMO Studio.app`.
+Quit Studio before replacing the installed copy in `/Applications`, and launch
+that same copy for file-access checks. Keep the signing identity and bundle ID
+consistent across rebuilds. Contributors use their own Apple Development identity
+and team in their local configuration; no private keys belong in the repository.
+
+macOS can require one fresh approval when moving from an ad-hoc build to this
+identity. Later builds signed with the same identity retain a stable designated
+requirement instead of identifying themselves by the executable hash. Running
+`dotnet run` or an ad-hoc bundle does not exercise this signed app identity.
+Development signatures are for local use; this build does not publish, notarize,
+or create a Store submission. See Apple's
+[code identity guidance](https://developer.apple.com/documentation/technotes/tn3127-inside-code-signing-requirements).
+
 ## Direct download
 
 The [direct-download configuration](../powerforge.dotnetpublish.json) produces architecture-specific, multi-file self-contained `.app` bundles and `ditto` ZIP archives. PowerForge signs the native libraries in place instead of relying on single-file extraction. `Direct.entitlements` grants only the JIT permission required by the current non-NativeAOT .NET runtime.
 
-Local proof uses explicit ad-hoc signing. A public artifact requires all of the following on a trusted macOS builder:
+The direct-download package configuration uses ad-hoc signing for packaging proof only. Use the development configuration above for routine local app use. A public artifact requires all of the following on a trusted macOS builder:
 
 1. A `Developer ID Application` identity replaces the ad-hoc identity.
 2. Secure timestamps remain enabled.
