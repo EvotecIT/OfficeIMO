@@ -150,4 +150,20 @@ public sealed class ProjectCalculationBoundaryTests {
         result.Report.ThrowIfErrors(); Assert.Equal(4, result.Assignments.Sum(a => a.Intervals.Count + a.Costs.Count));
         Assert.Equal(Monday.AddMinutes(2), result.Tasks.Single(t => t.TaskUid == second.Uid).Finish);
     }
+
+    [Theory]
+    [InlineData(ProjectCostAccrual.Start)]
+    [InlineData(ProjectCostAccrual.End)]
+    public void DiscardedAccrualIntervalsReleaseTheirBudgetBeforeTheNextAssignment(ProjectCostAccrual accrual) {
+        using var document = ProjectDocument.Create();
+        document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;
+        var task = document.Tasks.Add("Delivery"); task.Duration = ProjectDuration.WorkingMinutes(60);
+        for (int index = 0; index < 2; index++) {
+            var resource = document.Resources.AddWork("Engineer " + index); resource.StandardRate = 60; resource.AccrueAt = accrual;
+            document.Assignments.Add(task, resource, ProjectUnits.Percent(100));
+        }
+        var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true, MaxIntervals = 5 });
+        result.Report.ThrowIfErrors(); Assert.Equal(4, result.Assignments.Sum(a => a.Intervals.Count + a.Costs.Count));
+        Assert.All(result.Assignments, a => Assert.Equal(60m, a.Cost));
+    }
 }

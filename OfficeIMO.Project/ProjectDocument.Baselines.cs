@@ -102,7 +102,7 @@ public sealed partial class ProjectDocument {
             if (group.Any(a => !assignmentPlans.ContainsKey(a.Uid))) throw new InvalidOperationException("Resource baseline capture requires all assignments of each captured resource in the schedule.");
             var plans = group.Select(a => assignmentPlans[a.Uid]).ToArray(); var resource = group.Key;
             var update = Prepare(resource, resource.Baselines, resource.TimephasedData, ProjectBaselineTypes.Resource(baselineNumber));
-            update.Work = ProjectWork.FromMinutes(plans.Sum(a => a.Work.Minutes)); update.Cost = plans.All(a => a.Cost.HasValue) ? plans.Sum(a => a.Cost!.Value) : (decimal?)null;
+            update.Work = ProjectWork.Sum(plans.Select(a => a.Work)); update.Cost = plans.All(a => a.Cost.HasValue) ? plans.Sum(a => a.Cost!.Value) : (decimal?)null;
             foreach (var plan in plans) {
                 foreach (var interval in plan.Intervals) AddWork(update, interval);
                 if (plan.Cost.HasValue) foreach (var interval in plan.Costs) AddCost(update, interval);

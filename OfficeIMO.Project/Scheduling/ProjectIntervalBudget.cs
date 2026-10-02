@@ -20,6 +20,10 @@ internal sealed class ProjectIntervalBudget {
             _owner._reserved -= _reserved - retained;
             _reserved = 0;
         }
+        internal void Release(long count) {
+            if (count < 0 || count > _reserved) throw new InvalidOperationException("Invalid released interval count.");
+            _owner._reserved -= count; _reserved -= count;
+        }
         public void Dispose() { _owner._reserved -= _reserved; _reserved = 0; }
     }
 }

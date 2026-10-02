@@ -75,7 +75,7 @@ internal sealed partial class ProjectTaskAllocation {
             : UnionMinutes(_entries.Where(e => e.Assignment.Resource!.Type == ProjectResourceType.Work).SelectMany(e => e.ActualIntervals));
         _remainingTaskDuration = task.RemainingDuration is ProjectDuration remainingDuration
             ? remainingDuration.Minutes(ProjectXmlValue.MinutesPerUnit(remainingDuration.Unit, remainingDuration.IsElapsed, _document))
-            : _requestedDuration - _actualTaskDuration;
+            : _requestedDuration >= _actualTaskDuration ? ProjectTimeUnits.SubtractMinutes(_requestedDuration, _actualTaskDuration) : _requestedDuration - _actualTaskDuration;
         if (_remainingTaskDuration < 0 || Math.Abs(_requestedDuration - _actualTaskDuration - _remainingTaskDuration) > .001m)
             throw new InvalidDataException("Declared task duration must equal actual plus remaining duration; supply compatible progress inputs.");
         foreach (var entry in _entries) PrepareCurves(entry, redistribute && entry.Assignment.Resource!.Type == ProjectResourceType.Work);

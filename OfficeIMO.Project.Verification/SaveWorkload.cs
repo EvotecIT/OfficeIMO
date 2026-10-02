@@ -39,6 +39,9 @@ internal static class SaveWorkload {
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         using var reopened = ProjectDocument.Load(new MemoryStream(destination.ToArray()));
         if (reopened.AllTasks.Count() != count || reopened.Assignments.Count != count || reopened.Tasks.GetByUid(count).Name != "Measured edit"
+            || !reopened.AllTasks.Select(t => t.Uid).OrderBy(uid => uid).SequenceEqual(Enumerable.Range(1, count))
+            || !reopened.Assignments.Select(a => a.Task?.Uid ?? -1).OrderBy(uid => uid).SequenceEqual(Enumerable.Range(1, count))
+            || reopened.Assignments.Any(a => a.Resource?.Uid != 1)
             || reopened.AllTasks.Sum(t => t.Work?.Minutes ?? 0m) != count * 60m || reopened.Assignments.Sum(a => a.Work?.Minutes ?? 0m) != count * 60m)
             throw new InvalidDataException("Assessment/save output failed identity, edited-value or work proof.");
         Console.WriteLine(JsonSerializer.Serialize(new { tasks = count, format = format.ToString(), operationMs = watch.Elapsed.TotalMilliseconds,

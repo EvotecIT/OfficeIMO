@@ -44,10 +44,10 @@ public sealed class ProjectAssignmentSchedule {
         RemainingAnchor = remainingAnchor ?? start;
         Intervals = new ReadOnlyCollection<ProjectAssignmentInterval>(intervals.ToArray());
         Costs = new ReadOnlyCollection<ProjectCostInterval>(costs.ToArray());
-        Work = ProjectWork.FromMinutes(Intervals.Sum(i => i.Work.Minutes)); ActualWork = ProjectWork.FromMinutes(Intervals.Where(i => i.IsActual).Sum(i => i.Work.Minutes));
-        RemainingWork = ProjectWork.FromMinutes(Work.Minutes - ActualWork.Minutes);
-        OvertimeWork = ProjectWork.FromMinutes(Intervals.Sum(i => i.OvertimeWork.Minutes));
-        ActualOvertimeWork = ProjectWork.FromMinutes(Intervals.Where(i => i.IsActual).Sum(i => i.OvertimeWork.Minutes));
+        Work = ProjectWork.Sum(Intervals.Select(i => i.Work)); ActualWork = ProjectWork.Sum(Intervals.Where(i => i.IsActual).Select(i => i.Work));
+        RemainingWork = ProjectWork.Subtract(Work, ActualWork);
+        OvertimeWork = ProjectWork.Sum(Intervals.Select(i => i.OvertimeWork));
+        ActualOvertimeWork = ProjectWork.Sum(Intervals.Where(i => i.IsActual).Select(i => i.OvertimeWork));
         Cost = cost; ActualCost = actualCost; RemainingCost = cost - actualCost; MaterialQuantity = materialQuantity;
     }
     /// <summary>Stable assignment identity in the originating project.</summary>

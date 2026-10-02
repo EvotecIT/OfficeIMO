@@ -169,7 +169,7 @@ internal sealed partial class ProjectScheduler {
     }
     private ProjectTaskWorkSchedule SummaryTotals(ProjectTask task, ProjectTaskSchedule[] children, decimal duration) {
         var totals = children.Select(c => c.Calculation!).ToArray();
-        decimal work = totals.Sum(c => c.Work.Minutes), actual = totals.Sum(c => c.ActualWork.Minutes);
+        var work = ProjectWork.Sum(totals.Select(c => c.Work)); var actual = ProjectWork.Sum(totals.Select(c => c.ActualWork));
         decimal childDuration = totals.Sum(c => c.ActualDuration.Value + c.RemainingDuration.Value);
         bool completed = totals.All(c => c.PercentComplete == 100);
         bool hasActuals = task.ActualStart.HasValue || task.ActualFinish.HasValue || task.ActualDuration?.Value > 0 || totals.Any(c => c.HasActuals);
@@ -186,7 +186,7 @@ internal sealed partial class ProjectScheduler {
             if (cost.HasValue && actualCost.HasValue) cost += task.ActualCost.Value - actualCost.Value;
             actualCost = task.ActualCost;
         }
-        return new ProjectTaskWorkSchedule(ProjectWork.FromMinutes(work), ProjectWork.FromMinutes(actual), ProjectWork.FromMinutes(work - actual), duration * fraction, duration * (1m - fraction),
+        return new ProjectTaskWorkSchedule(work, actual, ProjectWork.Subtract(work, actual), duration * fraction, duration * (1m - fraction),
             cost, actualCost, task.PhysicalPercentComplete, completed: completed, hasActuals: hasActuals);
     }
     private static decimal MinutesBetween(Node node, DateTime start, DateTime finish) => node.Elapsed

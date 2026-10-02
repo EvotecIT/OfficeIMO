@@ -28,7 +28,9 @@ internal sealed partial class ProjectTaskAllocation {
         }
         var recordedWork = _entries.Where(e => e.Assignment.Resource!.Type == ProjectResourceType.Work)
             .SelectMany(e => e.ActualIntervals).ToArray();
-        decimal unrepresentedActualDuration = Math.Max(0m, _actualTaskDuration - UnionMinutes(recordedWork));
+        decimal representedActualDuration = UnionMinutes(recordedWork);
+        decimal unrepresentedActualDuration = _actualTaskDuration > representedActualDuration
+            ? ProjectTimeUnits.SubtractMinutes(_actualTaskDuration, representedActualDuration) : 0m;
         DateTime? actualTaskStart = _task.ActualStart ?? (recordedWork.Length > 0 ? recordedWork.Min(i => i.Start) : (DateTime?)null);
         if (_actualTaskDuration > 0 && !actualTaskStart.HasValue)
             throw new InvalidDataException("Recorded task actual duration requires an actual start or dated actual work before calculation.");
@@ -86,7 +88,7 @@ internal sealed partial class ProjectTaskAllocation {
         DateTime taskStart, taskFinish;
         if (workIntervals.Length == 0) {
             actualDuration = _task.ActualDuration is ProjectDuration actual ? actual.Minutes(ProjectXmlValue.MinutesPerUnit(actual.Unit, actual.IsElapsed, _document)) : 0;
-            remainingDuration = RemainingTaskDuration(); duration = actualDuration + remainingDuration;
+            remainingDuration = RemainingTaskDuration(); duration = ProjectTimeUnits.AddMinutes(actualDuration, remainingDuration);
             if (_task.ActualFinish.HasValue && !_task.ActualStart.HasValue && actualDuration > 0)
                 throw new InvalidDataException("A completed task with nonzero actual duration requires an actual start.");
             taskStart = _task.ActualStart ?? _task.ActualFinish ?? anchor;
@@ -103,12 +105,12 @@ internal sealed partial class ProjectTaskAllocation {
             duration = UnionMinutes(workIntervals);
             if (_task.ActualDuration is ProjectDuration recordedDuration)
                 actualDuration = recordedDuration.Minutes(ProjectXmlValue.MinutesPerUnit(recordedDuration.Unit, recordedDuration.IsElapsed, _document));
-            duration += unrepresentedActualDuration;
+            duration = ProjectTimeUnits.AddMinutes(duration, unrepresentedActualDuration);
             // Concurrent actual and remaining assignment effort must not count the same task duration twice.
-            remainingDuration = Math.Max(0m, duration - actualDuration);
+            remainingDuration = duration > actualDuration ? ProjectTimeUnits.SubtractMinutes(duration, actualDuration) : 0m;
             if (_task.Type == ProjectTaskType.FixedDuration) {
                 actualDuration = _task.ActualDuration is ProjectDuration actual ? actual.Minutes(ProjectXmlValue.MinutesPerUnit(actual.Unit, actual.IsElapsed, _document)) : actualDuration;
-                remainingDuration = RemainingTaskDuration(); duration = actualDuration + remainingDuration;
+                remainingDuration = RemainingTaskDuration(); duration = ProjectTimeUnits.AddMinutes(actualDuration, remainingDuration);
                 DateTime remainingStart = TaskAdd(taskStart, actualDuration);
                 if (recordedWork.Length > 0) remainingStart = Max(remainingStart, recordedWork.Max(i => i.Finish));
                 if (remainingDuration > 0) remainingStart = BoundRemainingTaskStart(remainingStart);
@@ -166,13 +168,18 @@ internal sealed partial class ProjectTaskAllocation {
         ? date.Add(ProjectXmlValue.MinutesToSpan(minutes)) : _taskCalendar.Add(date, minutes);
     internal ProjectTaskWorkSchedule Totals(Result result) {
         var work = result.Assignments.Where(a => _document.Resources.GetByUid(a.ResourceUid).Type == ProjectResourceType.Work).ToArray();
+        ProjectWork exactWork, exactActual;
         decimal totalWork = work.Sum(a => a.Work.Minutes), actualWork = work.Sum(a => a.ActualWork.Minutes);
         if (work.Length == 0) {
-            actualWork = _task.ActualWork?.Minutes ?? (_task.Work?.Minutes - _task.RemainingWork?.Minutes) ?? 0m;
-            totalWork = _task.Work?.Minutes ?? actualWork + (_task.RemainingWork?.Minutes ?? 0m);
+            exactActual = _task.ActualWork ?? (_task.Work.HasValue && _task.RemainingWork.HasValue
+                ? ProjectWork.Subtract(_task.Work.Value, _task.RemainingWork.Value) : default);
+            exactWork = _task.Work ?? ProjectWork.Add(exactActual, _task.RemainingWork ?? default);
+            actualWork = exactActual.Minutes; totalWork = exactWork.Minutes;
             if (actualWork < 0 || actualWork > totalWork || (_task.RemainingWork.HasValue
                 && Math.Abs(totalWork - actualWork - _task.RemainingWork.Value.Minutes) > .001m))
                 throw new InvalidDataException("Task total work must equal actual plus remaining work.");
+        } else {
+            exactWork = ProjectWork.Sum(work.Select(a => a.Work)); exactActual = ProjectWork.Sum(work.Select(a => a.ActualWork));
         }
         if ((_task.PercentComplete > 0 && result.ActualDuration == 0 && !_task.ActualFinish.HasValue)
             || (_task.PercentWorkComplete > 0 && actualWork == 0))
@@ -196,10 +203,10 @@ internal sealed partial class ProjectTaskAllocation {
             if (cost.HasValue && actualCost.HasValue) cost += _task.ActualCost.Value - actualCost.Value;
             actualCost = _task.ActualCost;
         }
-        return new ProjectTaskWorkSchedule(ProjectWork.FromMinutes(totalWork), ProjectWork.FromMinutes(actualWork), ProjectWork.FromMinutes(totalWork - actualWork),
+        return new ProjectTaskWorkSchedule(exactWork, exactActual, ProjectWork.Subtract(exactWork, exactActual),
             result.ActualDuration, result.RemainingDuration, cost, actualCost, _task.PhysicalPercentComplete, _task.Duration?.IsElapsed == true, _task.ActualFinish.HasValue, HasActuals);
     }
     private static decimal UnionMinutes(IEnumerable<ProjectAssignmentInterval> intervals) => ProjectCalendarMath.Merge(intervals
         .Where(i => i.Finish > i.Start && i.Work.Minutes > i.OvertimeWork.Minutes).Select(i => new ProjectWorkingRange(i.Start, i.Finish)).ToList())
-        .Sum(i => (i.Finish.Ticks - i.Start.Ticks) / (decimal)TimeSpan.TicksPerMinute);
+        .Sum(i => (decimal)(i.Finish.Ticks - i.Start.Ticks)) / TimeSpan.TicksPerMinute;
 }

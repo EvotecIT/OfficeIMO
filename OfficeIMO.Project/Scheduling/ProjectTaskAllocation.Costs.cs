@@ -55,25 +55,33 @@ internal sealed partial class ProjectTaskAllocation {
         }
         if (!complete) {
             // Failed recalculation retains source actuals, so those records must still be eligible for application.
-            if (_options.RecalculateActualCosts) ReadRetainedActualCosts(assignment, start, finish);
+            if (_options.RecalculateActualCosts) {
+                var validated = ReadRetainedActualCosts(assignment, start, finish);
+                _intervalScope!.Release(validated.Length);
+            }
             Warn("PROJECT_RATE_INCOMPLETE", "The selected rate table does not cover every work interval. Total cost was not inferred.", assignment);
+            _intervalScope!.Release(usage.Count + stored.Length); usage.Clear();
             return (null, assignment.ActualCost);
         }
         var firstRate = entry.Resource.Rate(start, table); decimal perUse = firstRate.PerUse ?? 0m;
         if (resource.Type == ProjectResourceType.Work) perUse *= entry.Units;
         bool began = entry.Actual > 0 || assignment.ActualStart.HasValue;
         bool ended = entry.Remaining == 0 && (assignment.ActualFinish.HasValue || entry.Actual > 0);
-        switch (resource.AccrueAt ?? ProjectCostAccrual.Prorated) {
-            case ProjectCostAccrual.Start: AddCost(charges, start, start, usage.Sum(c => c.Cost), began); break;
-            case ProjectCostAccrual.End: AddCost(charges, finish, finish, usage.Sum(c => c.Cost), ended); break;
-            default: charges.AddRange(usage); break;
+        var accrual = resource.AccrueAt ?? ProjectCostAccrual.Prorated;
+        if (accrual == ProjectCostAccrual.Start || accrual == ProjectCostAccrual.End) {
+            decimal accrued = usage.Sum(c => c.Cost);
+            _intervalScope!.Release(usage.Count); usage.Clear();
+            var date = accrual == ProjectCostAccrual.Start ? start : finish;
+            AddCost(charges, date, date, accrued, accrual == ProjectCostAccrual.Start ? began : ended);
+        } else {
+            charges.AddRange(usage); usage.Clear();
         }
         if (perUse != 0) AddCost(charges, start, start, perUse, began);
         decimal total = charges.Sum(c => c.Cost), computedActual = charges.Where(c => c.IsActual).Sum(c => c.Cost);
         if (!_options.RecalculateActualCosts && (assignment.ActualCost.HasValue || stored.Length > 0)) {
             decimal storedActual = assignment.ActualCost ?? stored.Sum(v => v.Cost);
             if (storedActual != computedActual || stored.Length > 0) {
-                charges.RemoveAll(c => c.IsActual);
+                int removed = charges.RemoveAll(c => c.IsActual); _intervalScope!.Release(removed);
                 if (stored.Length > 0) {
                     charges.AddRange(stored);
                     if (Math.Abs(charges.Where(c => c.IsActual).Sum(c => c.Cost) - storedActual) > .01m)
@@ -82,6 +90,7 @@ internal sealed partial class ProjectTaskAllocation {
                 total += storedActual - computedActual; computedActual = storedActual;
             }
         }
+        if (stored.Length > 0 && !stored.All(charges.Contains)) _intervalScope!.Release(stored.Length);
         return (total, computedActual);
     }
     private ProjectCostInterval[] ReadActualCostCurves(ProjectAssignment assignment) {

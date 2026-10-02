@@ -119,4 +119,55 @@ public class ProjectTimePrecisionTests {
         Assert.All(xml.Descendants(Ns + "Work"), value => Assert.Equal(TimeSpan.FromSeconds(1), XmlConvert.ToTimeSpan(value.Value)));
         Assert.All(xml.Descendants(Ns + "RemainingWork"), value => Assert.Equal(TimeSpan.FromSeconds(1), XmlConvert.ToTimeSpan(value.Value)));
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TickExactWorkSurvivesTaskSummaryResourceAndBaselineAggregation(bool oneTask) {
+        string tasks = string.Concat(Enumerable.Range(1, oneTask ? 1 : 3).Select(uid => $"<Task><UID>{uid}</UID><Name>Second {uid}</Name><OutlineLevel>2</OutlineLevel><Duration>PT1S</Duration><DurationFormat>3</DurationFormat><Work>PT1S</Work></Task>"));
+        using var document = ProjectDocument.Parse($"<Project xmlns='{Ns}'><StartDate>2026-10-05T08:00:00</StartDate><Tasks><Task><UID>10</UID><Name>Summary</Name><OutlineLevel>1</OutlineLevel><Summary>1</Summary></Task>{tasks}</Tasks></Project>");
+        document.Calendar = document.Calendars.AddStandardWorkingWeek();
+        var shared = document.Resources.AddWork("Shared"); shared.StandardRate = 60;
+        for (int index = 0; index < 3; index++) {
+            var task = document.Tasks.GetByUid(oneTask ? 1 : index + 1);
+            var resource = oneTask && index > 0 ? document.Resources.AddWork("Engineer " + index) : shared; resource.StandardRate = 60;
+            document.Assignments.Add(task, resource, ProjectUnits.Percent(100)).Work = task.Work;
+        }
+        document.Recalculate(new ProjectScheduleOptions { CalculateAssignments = true });
+        document.CaptureBaseline(document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }));
+        using var output = new MemoryStream(); document.Save(output, new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        var xml = XDocument.Parse(Encoding.UTF8.GetString(output.ToArray()));
+        var summary = xml.Descendants(Ns + "Task").Single(t => t.Element(Ns + "UID")!.Value == "10");
+        Assert.Equal(TimeSpan.FromSeconds(3), XmlConvert.ToTimeSpan(summary.Element(Ns + "Work")!.Value));
+        Assert.Equal(TimeSpan.FromSeconds(3), XmlConvert.ToTimeSpan(summary.Element(Ns + "Baseline")!.Element(Ns + "Work")!.Value));
+        var resourceXml = xml.Descendants(Ns + "Resource").Single(r => r.Element(Ns + "UID")!.Value == shared.Uid.ToString());
+        Assert.Equal(TimeSpan.FromSeconds(oneTask ? 1 : 3), XmlConvert.ToTimeSpan(resourceXml.Element(Ns + "Work")!.Value));
+        Assert.Equal(TimeSpan.FromSeconds(oneTask ? 1 : 3), XmlConvert.ToTimeSpan(resourceXml.Element(Ns + "Baseline")!.Element(Ns + "Work")!.Value));
+        using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray())); reopened.AssessSave().ThrowIfErrors();
+    }
+
+    [Fact]
+    public void ExactSecondTimesSurviveMappedDataAndScaledWorkEquations() {
+        using var source = ProjectDocument.Parse($"<Project xmlns='{Ns}'><Tasks><Task><UID>1</UID><Name>Second</Name><Duration>PT1S</Duration><DurationFormat>7</DurationFormat><Work>PT1S</Work></Task></Tasks></Project>");
+        using var imported = ProjectDocument.ImportTables(source.ExportTables(allowLossyProjection: true).Tables).Document;
+        var xml = XDocument.Parse(imported.ToXml(new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        Assert.Equal(TimeSpan.FromSeconds(1), XmlConvert.ToTimeSpan(xml.Descendants(Ns + "Duration").Single().Value));
+        Assert.Equal(TimeSpan.FromSeconds(1), XmlConvert.ToTimeSpan(xml.Descendants(Ns + "Work").Single().Value));
+        var scaled = ProjectWorkEquation.Work(source.Tasks[0].Work!.Value.Minutes, ProjectUnits.Percent(300));
+        Assert.Equal(3m, ProjectWorkEquation.Units(scaled, source.Tasks[0].Work!.Value.Minutes).Value);
+        imported.Tasks[0].Work = scaled;
+        xml = XDocument.Parse(imported.ToXml(new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        Assert.Equal(TimeSpan.FromSeconds(3), XmlConvert.ToTimeSpan(xml.Descendants(Ns + "Work").Single().Value));
+    }
+
+    [Fact]
+    public void UnassignedTaskProgressCombinesExactActualAndRemainingWork() {
+        using var document = ProjectDocument.Parse($"<Project xmlns='{Ns}'><StartDate>2026-10-05T08:00:00</StartDate><Tasks><Task><UID>1</UID><Name>Progress</Name><Duration>PT2S</Duration><DurationFormat>3</DurationFormat><ActualDuration>PT1S</ActualDuration><RemainingDuration>PT1S</RemainingDuration><ActualStart>2026-10-05T08:00:00</ActualStart><ActualWork>PT1S</ActualWork><RemainingWork>PT1S</RemainingWork></Task></Tasks></Project>");
+        document.Calendar = document.Calendars.AddStandardWorkingWeek();
+        document.Recalculate(new ProjectScheduleOptions { CalculateAssignments = true });
+        var xml = XDocument.Parse(document.ToXml(new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        Assert.Equal(TimeSpan.FromSeconds(2), XmlConvert.ToTimeSpan(xml.Descendants(Ns + "Work").Single().Value));
+        Assert.Equal(TimeSpan.FromSeconds(1), XmlConvert.ToTimeSpan(xml.Descendants(Ns + "ActualWork").Single().Value));
+        Assert.Equal(TimeSpan.FromSeconds(1), XmlConvert.ToTimeSpan(xml.Descendants(Ns + "RemainingWork").Single().Value));
+    }
 }

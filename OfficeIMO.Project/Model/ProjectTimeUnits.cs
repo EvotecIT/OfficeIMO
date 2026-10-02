@@ -2,6 +2,8 @@ namespace OfficeIMO.Project;
 
 /// <summary>Shared working/elapsed unit conversion for codecs and explicit calculation.</summary>
 internal static class ProjectTimeUnits {
+    internal static decimal AddMinutes(decimal first, decimal second) => ProjectWork.Add(ProjectWork.FromMinutes(first), ProjectWork.FromMinutes(second)).Minutes;
+    internal static decimal SubtractMinutes(decimal total, decimal part) => ProjectWork.Subtract(ProjectWork.FromMinutes(total), ProjectWork.FromMinutes(part)).Minutes;
     internal static decimal Minutes(ProjectDuration duration, ProjectSettings settings) => duration.Minutes(MinutesPerUnit(duration.Unit, duration.IsElapsed, settings));
     internal static decimal Ticks(ProjectDuration duration, ProjectSettings settings) => duration.Ticks(MinutesPerUnit(duration.Unit, duration.IsElapsed, settings));
     internal static decimal ScaledMinutes(ProjectDuration duration, ProjectSettings settings, decimal scale) => duration.ScaledMinutes(MinutesPerUnit(duration.Unit, duration.IsElapsed, settings), scale);
