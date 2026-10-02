@@ -447,3 +447,12 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 The complete rows for `OfficeIMO.Html` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->
+
+### Semantic tables and image links
+
+`HtmlConversionDocument.SemanticDocument` retains structurally nested ARIA table,
+row, rowgroup, cell and header roles alongside native HTML tables. Semantic rows
+expose `SourceRowIndex`, including positions occupied by empty authored rows.
+`CaptionRuns` contains authored caption text and inline formatting; inferred table
+titles do not manufacture caption runs. Image resources retain the nearest
+policy-normalized enclosing hyperlink for editable adapters.

@@ -16,6 +16,13 @@ public static partial class HtmlAccessibilitySemantics {
     internal static bool HasRole(IElement element, string role) =>
         element != null && ContainsToken(element.GetAttribute("role"), role);
 
+    /// <summary>
+    /// Uses a native table span when present, then its ARIA equivalent for role-based cells.
+    /// The caller validates the value against its target's row or column limits.
+    /// </summary>
+    internal static string GetTableSpanAttributeName(IElement cell, string nativeAttribute) =>
+        cell.HasAttribute(nativeAttribute) ? nativeAttribute : "aria-" + nativeAttribute;
+
     /// <summary>Returns whether an element declares the requested EPUB structural semantic.</summary>
     internal static bool HasEpubType(IElement element, string semanticType) {
         if (element == null || string.IsNullOrWhiteSpace(semanticType)) return false;

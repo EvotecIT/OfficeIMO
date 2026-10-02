@@ -186,6 +186,7 @@ internal static class HtmlSemanticDocumentBuilder {
         ICollection<HtmlSemanticResource> resources,
         string title) {
         var rows = new List<HtmlSemanticTableRow>();
+        int sourceRowIndex = 0;
         foreach (IElement rowElement in DirectRows(table)) {
             var cells = new List<HtmlSemanticTableCell>();
             foreach (IElement cell in rowElement.Children.Where(IsTableCell)) {
@@ -194,17 +195,24 @@ internal static class HtmlSemanticDocumentBuilder {
                 IReadOnlyList<HtmlSemanticResource> cellResources = BuildInlineResources(cell, styles, resources);
                 cells.Add(new HtmlSemanticTableCell(
                     string.Concat(runs.Select(run => run.Text)),
-                    Is(cell, "th"),
-                    ReadSpan(cell, "rowspan"),
-                    ReadSpan(cell, "colspan"),
+                    Is(cell, "th") || HtmlAccessibilitySemantics.HasRole(cell, "columnheader")
+                        || HtmlAccessibilitySemantics.HasRole(cell, "rowheader"),
+                    ReadSpan(cell, HtmlAccessibilitySemantics.GetTableSpanAttributeName(cell, "rowspan")),
+                    ReadSpan(cell, HtmlAccessibilitySemantics.GetTableSpanAttributeName(cell, "colspan")),
                     runs,
                     cellResources,
                     style,
                     HtmlSemanticSourceLocation.FromElement(cell)));
             }
-            if (cells.Count > 0) rows.Add(new HtmlSemanticTableRow(cells.AsReadOnly(), HtmlSemanticSourceLocation.FromElement(rowElement)));
+            if (cells.Count > 0) rows.Add(new HtmlSemanticTableRow(cells.AsReadOnly(),
+                HtmlSemanticSourceLocation.FromElement(rowElement), sourceRowIndex));
+            sourceRowIndex++;
         }
-        return new HtmlSemanticTable(title, rows.AsReadOnly());
+        IElement? caption = table.Children.FirstOrDefault(child => Is(child, "caption"));
+        IReadOnlyList<HtmlSemanticRun> captionRuns = caption != null
+            ? BuildRuns(caption, styles)
+            : Array.Empty<HtmlSemanticRun>();
+        return new HtmlSemanticTable(title, captionRuns, rows.AsReadOnly());
     }
 
     private static IReadOnlyList<HtmlSemanticRun> BuildRuns(
@@ -384,7 +392,17 @@ internal static class HtmlSemanticDocumentBuilder {
         return new HtmlSemanticResource(resourceKind, source, alternateText, mediaType,
             ReadPixels(element.GetAttribute("width") ?? style?.GetValue("width")),
             ReadPixels(element.GetAttribute("height") ?? style?.GetValue("height")),
-            location);
+            location,
+            FindEnclosingHyperlink(element));
+    }
+
+    private static string? FindEnclosingHyperlink(IElement element) {
+        for (IElement? parent = element.ParentElement; parent != null; parent = parent.ParentElement) {
+            if (!Is(parent, "a")) continue;
+            string? href = parent.GetAttribute("href")?.Trim();
+            return string.IsNullOrWhiteSpace(href) ? null : href;
+        }
+        return null;
     }
 
     private static double? ReadPixels(string? value) {
@@ -514,14 +532,22 @@ internal static class HtmlSemanticDocumentBuilder {
 
     private static IEnumerable<IElement> DirectRows(IElement table) {
         foreach (IElement child in table.Children) {
-            if (Is(child, "tr")) yield return child;
-            else if (Is(child, "thead") || Is(child, "tbody") || Is(child, "tfoot")) {
-                foreach (IElement row in child.Children.Where(candidate => Is(candidate, "tr"))) yield return row;
+            if (IsTableRow(child)) yield return child;
+            else if (Is(child, "thead") || Is(child, "tbody") || Is(child, "tfoot")
+                || HtmlAccessibilitySemantics.HasRole(child, "rowgroup")) {
+                foreach (IElement row in child.Children.Where(IsTableRow)) yield return row;
             }
         }
     }
 
-    private static bool IsTableCell(IElement element) => Is(element, "th") || Is(element, "td");
+    private static bool IsTableRow(IElement element) =>
+        Is(element, "tr") || HtmlAccessibilitySemantics.HasRole(element, "row");
+
+    private static bool IsTableCell(IElement element) =>
+        Is(element, "th") || Is(element, "td")
+        || HtmlAccessibilitySemantics.HasRole(element, "cell")
+        || HtmlAccessibilitySemantics.HasRole(element, "columnheader")
+        || HtmlAccessibilitySemantics.HasRole(element, "rowheader");
 
     private static bool Is(IElement element, string localName) =>
         string.Equals(element.LocalName, localName, StringComparison.OrdinalIgnoreCase);
