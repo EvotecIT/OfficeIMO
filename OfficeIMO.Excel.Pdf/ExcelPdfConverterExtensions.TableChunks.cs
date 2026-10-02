@@ -307,7 +307,7 @@ namespace OfficeIMO.Excel.Pdf {
             return false;
         }
 
-        private static IEnumerable<PdfCore.PdfTableCell[]> CreatePdfRows(object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, MergeLayoutData? mergedCells, IReadOnlyDictionary<string, IReadOnlyList<WorksheetImageExportData>>? imagesByCellReference, IReadOnlyList<int> rowIndexes, int startColumn, int columnCount, string emptyCellText, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, string sheetName, PdfCore.PdfStandardFont defaultFontFamily, double fontScale = 1D, bool preserveWorksheetNoWrap = false) {
+        private static IEnumerable<PdfCore.PdfTableCell[]> CreatePdfRows(object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, MergeLayoutData? mergedCells, IReadOnlyDictionary<string, IReadOnlyList<WorksheetImageExportData>>? imagesByCellReference, IReadOnlyList<int> rowIndexes, int startColumn, int columnCount, string emptyCellText, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, string sheetName, PdfCore.PdfStandardFont defaultFontFamily, double fontScale = 1D, bool preserveWorksheetNoWrap = false, ExcelDateSystem dateSystem = ExcelDateSystem.NineteenHundred) {
             int endColumn = Math.Min(values.GetLength(1), startColumn + columnCount);
             for (int localRow = 0; localRow < rowIndexes.Count; localRow++) {
                 int row = rowIndexes[localRow];
@@ -324,7 +324,7 @@ namespace OfficeIMO.Excel.Pdf {
                     ExcelCellStyleSnapshot? style = GetCellStyle(styles, row, column);
                     StructuredTableCellVisual? tableVisual = GetStructuredTableCellVisual(structuredTables, cellReferences, row, column);
                     ExcelHyperlinkSnapshot? hyperlink = GetHyperlink(hyperlinks, row, column);
-                    string text = FormatCellValue(values[row, column], style, emptyCellText);
+                    string text = FormatCellValue(values[row, column], style, emptyCellText, dateSystem);
                     MergeSpan? span = ClipMergeSpanToChunk(mergedCells?.GetSpan(row, column), row, rowIndexes, localRow, column, endColumn);
                     string? cellDestinationName = TryGetCellDestinationName(cellReferences, row, column, sheetName, cellDestinations, out string? destinationName)
                         ? destinationName
