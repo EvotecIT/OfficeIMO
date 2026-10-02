@@ -19,9 +19,10 @@ public sealed class HtmlMathMlSource {
     /// <remarks>Edited, recovered or non-XML HTML MathML uses the current namespace-aware serialization instead.</remarks>
     public bool IsOriginalMarkup { get; }
 
-    internal static HtmlMathMlSource Create(IElement element, int maxDepth, int maxNodes, CancellationToken cancellationToken) {
+    internal static HtmlMathMlSource Create(IElement element, int maxDepth, int maxNodes, CancellationToken cancellationToken, out XElement layoutRoot) {
         int nodes = 0;
         XElement current = Export(element, 1, maxDepth, maxNodes, ref nodes, cancellationToken);
+        layoutRoot = current;
         string? original = NativeSourceMarkup.Get(element)?.Markup;
         if (original != null) {
             try {
@@ -50,6 +51,7 @@ public sealed class HtmlMathMlSource {
         cancellationToken.ThrowIfCancellationRequested();
         CountNode(depth, maxDepth, maxNodes, ref nodes);
         var result = new XElement(XName.Get(element.LocalName, element.NamespaceUri ?? string.Empty));
+        result.AddAnnotation(element);
         foreach (IAttr attribute in element.Attributes) {
             cancellationToken.ThrowIfCancellationRequested();
             if (attribute.NamespaceUri == "http://www.w3.org/2000/xmlns/" || attribute.Name == "xmlns" || attribute.Prefix == "xmlns") continue;

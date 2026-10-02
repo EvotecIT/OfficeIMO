@@ -4,7 +4,11 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeMathRenderer {
     private sealed partial class LayoutEngine {
-        private LayoutBox Text(string text, double scale) {
+        private LayoutBox Token(OfficeMathExpression expression, double scale) =>
+            Text(_options.TokenPaintText?.Invoke(expression) ?? expression.Text ?? string.Empty,
+                scale, expression.Text);
+
+        private LayoutBox Text(string text, double scale, string? logicalText = null) {
             double size = FontSize(scale);
             OfficeTextMeasurementStyle style = _measurer.CreateStyle(_options.Font.WithSize(size), 72D);
             double width = Math.Max(size * 0.2D, _measurer.MeasureWidth(text, style));
@@ -26,7 +30,7 @@ public static partial class OfficeMathRenderer {
             }
             var box = new LayoutBox(width, height, baseline);
             if (!string.IsNullOrEmpty(text)) {
-                box.Commands.Add(LayoutCommand.TextCommand(text, 0D, 0D, width, height, size, baseline, advance));
+                box.Commands.Add(LayoutCommand.TextCommand(text, 0D, 0D, width, height, size, baseline, advance, logicalText));
             }
             return box;
         }

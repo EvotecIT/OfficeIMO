@@ -201,9 +201,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         string fontVariantCaps = string.IsNullOrWhiteSpace(computed.GetValue("font-variant-caps"))
             ? fontVariant
             : computed.GetValue("font-variant-caps").Trim().ToLowerInvariant();
-        string textTransform = string.IsNullOrWhiteSpace(computed.GetValue("text-transform"))
-            ? parent?.TextTransform ?? "none"
-            : computed.GetValue("text-transform").Trim().ToLowerInvariant();
+        string textTransform = ResolveTextTransform(element, computed, parent?.TextTransform ?? "none");
         bool approximateSmallCaps = fontVariantCaps.IndexOf("small-caps", StringComparison.OrdinalIgnoreCase) >= 0;
         OfficeTextFeatureSettings textFeatureSettings = ResolveTextFeatureSettings(computed);
         string fontPalette = ResolveInheritedKeyword(computed.GetValue("font-palette"), parent?.FontPalette, "normal");

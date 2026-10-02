@@ -1555,7 +1555,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             "capitalize" => OfficeTextCase.Capitalize,
             _ => OfficeTextCase.None
         };
-        IReadOnlyList<string> transformed = OfficeTextCaseTransformer.ApplySegments(segments, textCase, culture);
+        IReadOnlyList<string> transformed = string.Equals(style.TextTransform, "math-auto", StringComparison.OrdinalIgnoreCase)
+            ? segments.Select(OfficeMathTextTransform.MathAuto).ToArray()
+            : OfficeTextCaseTransformer.ApplySegments(segments, textCase, culture);
         return style.ApproximateSmallCaps
             ? OfficeTextCaseTransformer.ApplySegments(transformed, OfficeTextCase.Uppercase, culture)
             : transformed;

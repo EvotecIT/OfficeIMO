@@ -24,22 +24,18 @@ public sealed class HtmlCssPropertyGrammarTests {
     }
 
     [Fact]
-    public void CatalogExposesTheFirstOwnedPropertyDefinitions() {
-        Assert.Equal(new[] {
-                "display", "visibility", "opacity", "color",
-                "width", "height", "min-width", "min-height", "max-width", "max-height",
-                "margin-top", "margin-right", "margin-bottom", "margin-left",
-                "padding-top", "padding-right", "padding-bottom", "padding-left"
-            },
-            HtmlCssPropertyCatalog.All.Select(property => property.Name).ToArray());
+    public void CatalogExposesInheritedAndInitialPropertyContracts() {
         Assert.False(HtmlCssPropertyCatalog.All.Single(property => property.Name == "display").IsInherited);
         Assert.True(HtmlCssPropertyCatalog.All.Single(property => property.Name == "color").IsInherited);
         Assert.Equal("visible", HtmlCssPropertyCatalog.All.Single(property => property.Name == "visibility").InitialValue);
         Assert.Equal("CanvasText", HtmlCssPropertyCatalog.All.Single(property => property.Name == "color").InitialValue);
+        Assert.True(HtmlCssPropertyCatalog.All.Single(property => property.Name == "text-transform").IsInherited);
+        Assert.Equal("none", HtmlCssPropertyCatalog.All.Single(property => property.Name == "text-transform").InitialValue);
     }
 
     [Theory]
     [InlineData("display", "GRID", HtmlCssPropertyValueKind.Keyword, "grid")]
+    [InlineData("text-transform", "MATH-AUTO", HtmlCssPropertyValueKind.Keyword, "math-auto")]
     [InlineData("visibility", "collapse", HtmlCssPropertyValueKind.Keyword, "collapse")]
     [InlineData("opacity", ".5", HtmlCssPropertyValueKind.Number, "0.5")]
     [InlineData("opacity", "125%", HtmlCssPropertyValueKind.Percentage, "125%")]

@@ -1137,7 +1137,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 FlushShapes();
                 double textY = visual.Y + text.Y * scaleY;
                 var projectedText = new HtmlRenderText(
-                    text.Text,
+                    text.RasterText,
                     visual.X + text.X * scaleX,
                     textY,
                     text.Width * scaleX,
@@ -1164,10 +1164,12 @@ internal static partial class HtmlPdfRenderedConverter {
                     decorationColor: text.DecorationColor,
                     featureSettings: text.FeatureSettings,
                     fontPalette: text.FontPalette);
-                AddText(target, projectedText, webFonts, conversionReport,
-                    visual.X + visual.Width, asSpan: true, logicalTextOwned: false, cancellationToken,
+                void AddDrawingText(PdfCore.PdfPageCanvas textTarget) => AddText(textTarget, projectedText, webFonts, conversionReport,
+                    visual.X + visual.Width, asSpan: true, logicalTextOwned: text.Text != text.RasterText, cancellationToken,
                     baselineFontSize: Math.Max(0.001D, (text.Font.Size + text.BaselineOffset) * scaleY),
                     preservePositionedFrame: true);
+                if (text.Text == text.RasterText) AddDrawingText(target);
+                else target.ActualText(text.Text, AddDrawingText);
             }
             FlushShapes();
         }

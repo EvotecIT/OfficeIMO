@@ -497,6 +497,11 @@ public static partial class HtmlComputedStyleEngine {
         IReadOnlyDictionary<string, string>? parentProperties =
             GetParentPropertiesWithEffectiveDisplay(parent, element.ParentElement);
 
+        if (element.NamespaceUri == "http://www.w3.org/1998/Math/MathML" && element.LocalName == "mi"
+            && element.GetAttribute("mathvariant") == "normal") {
+            properties["text-transform"] = new CascadedProperty("none", false,
+                Specificity.PresentationalHint, -1, source: OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.PresentationalHint);
+        }
         string? directionAttribute = element.GetAttribute("dir")?.Trim();
         if (string.Equals(directionAttribute, "ltr", StringComparison.OrdinalIgnoreCase)
             || string.Equals(directionAttribute, "rtl", StringComparison.OrdinalIgnoreCase)) {

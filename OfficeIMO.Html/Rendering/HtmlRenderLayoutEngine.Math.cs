@@ -2,6 +2,7 @@ using AngleSharp.Dom;
 using OfficeIMO.Drawing;
 using System.IO;
 using System.Xml;
+using System.Xml.Linq;
 
 namespace OfficeIMO.Html;
 
@@ -16,18 +17,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
         out double baseline) {
         string source = HtmlRenderStyleResolver.DescribeSource(element);
         HtmlMathMlSource? mathMlSource = null;
+        XElement? mathLayoutRoot = null;
         try {
             mathMlSource = HtmlMathMlSource.Create(element, Math.Min(_options.MaxLayoutDepth, OfficeMathMarkup.DefaultMaximumParseDepth),
-                _options.MaxHtmlNodes, _cancellationToken);
+                _options.MaxHtmlNodes, _cancellationToken, out mathLayoutRoot);
         } catch (Exception exception) when (exception is XmlException || exception is ArgumentException || exception is InvalidDataException) {
             _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.MathMlSourceUnavailable,
                 "The formula was painted, but its DOM could not be retained as bounded MathML XML.",
                 HtmlDiagnosticSeverity.Warning, source, exception.GetType().Name, OfficeConversionLossKind.Approximation);
         }
         OfficeMathExpression expression;
+        var tokenPaint = new Dictionary<OfficeMathExpression, string>(MathTokenIdentityComparer.Instance);
         try {
             int maximumDepth = Math.Min(_options.MaxLayoutDepth, OfficeMathMarkup.DefaultMaximumParseDepth);
-            expression = OfficeMathMarkup.FromMathMl(mathMlSource?.MathMl ?? element.OuterHtml, maximumDepth);
+            expression = mathMlSource == null
+                ? OfficeMathMarkup.FromMathMl(element.OuterHtml, maximumDepth)
+                : OfficeMathMarkup.FromMathMl(mathLayoutRoot!, (token, parsed) => {
+                    IElement? owner = token.Annotation<IElement>();
+                    if (owner == null) return;
+                    string painted = ResolveMathTokenPaint(owner, element, style, containingWidth);
+                    if (!string.Equals(painted, parsed.Text, StringComparison.Ordinal)) tokenPaint[parsed] = painted;
+                });
         } catch (Exception exception) when (exception is FormatException || exception is ArgumentException || exception is OfficeMathParseException) {
             _diagnostics.Add(
                 ComponentName,
@@ -63,7 +73,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // CSS sizes are already drawing units, so no point-to-pixel conversion is applied here.
             Dpi = 72D,
             DisplayStyle = !shrinkToFit,
-            Fonts = _fonts
+            Fonts = _fonts,
+            TokenPaintText = token => tokenPaint.TryGetValue(token, out string? painted) ? painted : null
         };
         if (bool.TryParse(element.GetAttribute("displaystyle"), out bool authoredDisplayStyle)) {
             mathOptions.DisplayStyle = authoredDisplayStyle;

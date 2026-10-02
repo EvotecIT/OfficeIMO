@@ -98,6 +98,9 @@ public static partial class OfficeMathRenderer {
                     OfficeTextAlignment.Center, command.Height, Math.Max(0.01D, command.Advance),
                     OfficeTextDecorationStyle.None, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal,
                     0, 1D, command.Baseline - command.FontSize);
+                if (command.LogicalText != null)
+                    ((OfficeDrawingText)drawing.Elements[drawing.Elements.Count - 1])
+                        .SetPaintedText(command.LogicalText, command.Text!);
             } else if (command.Kind == LayoutCommandKind.Line) {
                 OfficeShape line = OfficeShape.Line(x + command.X, y + command.Y, x + command.X2, y + command.Y2);
                 line.StrokeColor = options.Color;
@@ -142,7 +145,7 @@ public static partial class OfficeMathRenderer {
                 case OfficeMathKind.Identifier:
                 case OfficeMathKind.Number:
                 case OfficeMathKind.Operator:
-                    return Text(expression.Text ?? string.Empty, scale);
+                    return Token(expression, scale);
                 case OfficeMathKind.Row: return Row(expression.Children, scale);
                 case OfficeMathKind.Fraction: return Fraction(expression, scale);
                 case OfficeMathKind.Radical: return Radical(expression, scale);
@@ -157,7 +160,14 @@ public static partial class OfficeMathRenderer {
                 case OfficeMathKind.Delimited: return Delimited(expression, scale);
                 case OfficeMathKind.DelimiterList: return DelimiterList(expression, scale);
                 case OfficeMathKind.Function:
-                    return Row(new[] { OfficeMath.Identifier(expression.Text ?? string.Empty), OfficeMath.Delimited(expression.Children[0]) }, scale);
+                    LayoutBox name = Token(expression, scale);
+                    LayoutBox argument = Layout(OfficeMath.Delimited(expression.Children[0]), scale);
+                    double baseline = Math.Max(name.Baseline, argument.Baseline);
+                    var function = new LayoutBox(name.Width + argument.Width,
+                        baseline + Math.Max(name.Height - name.Baseline, argument.Height - argument.Baseline), baseline);
+                    function.Add(name, 0D, baseline - name.Baseline);
+                    function.Add(argument, name.Width, baseline - argument.Baseline);
+                    return function;
                 case OfficeMathKind.Matrix:
                 case OfficeMathKind.EquationArray:
                     return Matrix(expression, scale);
@@ -411,7 +421,8 @@ public static partial class OfficeMathRenderer {
 
         private LayoutBox Accent(OfficeMathExpression expression, double scale) {
             LayoutBox content = Layout(expression.Children[0], scale);
-            LayoutBox accent = Text(expression.Character ?? "^", scale * _options.ScriptScale);
+            LayoutBox accent = Text(_options.TokenPaintText?.Invoke(expression) ?? expression.Character ?? "^",
+                scale * _options.ScriptScale, expression.Character);
             double width = Math.Max(content.Width, accent.Width);
             var box = new LayoutBox(width, accent.Height + content.Height, accent.Height + content.Baseline);
             box.Add(accent, (width - accent.Width) / 2D, 0D);
@@ -456,6 +467,7 @@ public static partial class OfficeMathRenderer {
     private sealed class LayoutCommand {
         internal LayoutCommandKind Kind { get; private set; }
         internal string? Text { get; private set; }
+        internal string? LogicalText { get; private set; }
         internal double X { get; private set; }
         internal double Y { get; private set; }
         internal double X2 { get; private set; }
@@ -466,14 +478,14 @@ public static partial class OfficeMathRenderer {
         internal double Baseline { get; private set; }
         internal double Advance { get; private set; }
 
-        internal static LayoutCommand TextCommand(string text, double x, double y, double width, double height, double fontSize, double baseline, double advance) =>
-            new LayoutCommand { Kind = LayoutCommandKind.Text, Text = text, X = x, Y = y, Width = width, Height = height, FontSize = fontSize, Baseline = baseline, Advance = advance };
+        internal static LayoutCommand TextCommand(string text, double x, double y, double width, double height, double fontSize, double baseline, double advance, string? logicalText = null) =>
+            new LayoutCommand { Kind = LayoutCommandKind.Text, Text = text, LogicalText = logicalText, X = x, Y = y, Width = width, Height = height, FontSize = fontSize, Baseline = baseline, Advance = advance };
         internal static LayoutCommand Line(double x1, double y1, double x2, double y2) =>
             new LayoutCommand { Kind = LayoutCommandKind.Line, X = x1, Y = y1, X2 = x2, Y2 = y2 };
         internal static LayoutCommand Rectangle(double x, double y, double width, double height) =>
             new LayoutCommand { Kind = LayoutCommandKind.Rectangle, X = x, Y = y, Width = width, Height = height };
         internal LayoutCommand Translate(double x, double y) => new LayoutCommand {
-            Kind = Kind, Text = Text, X = X + x, Y = Y + y, X2 = X2 + x, Y2 = Y2 + y,
+            Kind = Kind, Text = Text, LogicalText = LogicalText, X = X + x, Y = Y + y, X2 = X2 + x, Y2 = Y2 + y,
             Width = Width, Height = Height, FontSize = FontSize, Baseline = Baseline, Advance = Advance
         };
     }

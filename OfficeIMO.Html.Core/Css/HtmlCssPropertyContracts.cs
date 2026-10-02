@@ -231,6 +231,7 @@ public static class HtmlCssPropertyCatalog {
     private static readonly IReadOnlyList<HtmlCssPropertyDefinition> AllDefinitions =
         new ReadOnlyCollection<HtmlCssPropertyDefinition>(new List<HtmlCssPropertyDefinition> {
             new HtmlCssPropertyDefinition("display", false, "inline", "supported single-keyword display values"),
+            new HtmlCssPropertyDefinition("text-transform", true, "none", "supported single-keyword text transforms, including math-auto"),
             new HtmlCssPropertyDefinition("visibility", true, "visible", "visible | hidden | collapse"),
             new HtmlCssPropertyDefinition("opacity", false, "1", "<number> | <percentage> | calc() | min() | max() | clamp()"),
             new HtmlCssPropertyDefinition("color", true, "CanvasText", "named color | system color | hex color | currentColor | rgb() | hsl() | hwb()"),

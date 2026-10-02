@@ -40,8 +40,13 @@ public sealed class OfficeMathRenderOptions {
     /// <summary>Scoped font programs used for deterministic advances and painted glyph bounds.</summary>
     public OfficeFontFaceCollection Fonts { get; set; } = new OfficeFontFaceCollection();
 
+    // Computed token presentation supplied by document adapters. Public semantic text
+    // and serialization remain untouched; measurement and paint use the same glyphs.
+    internal Func<OfficeMathExpression, string?>? TokenPaintText { get; set; }
+
     /// <summary>Creates a detached copy.</summary>
     public OfficeMathRenderOptions Clone() => new OfficeMathRenderOptions {
+        TokenPaintText = TokenPaintText,
         Font = Font,
         Color = Color,
         BackgroundColor = BackgroundColor,

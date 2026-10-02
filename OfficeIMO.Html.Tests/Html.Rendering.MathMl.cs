@@ -115,7 +115,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(drawing.Y >= above.Y + above.Height - 0.01D);
         Assert.True(below.Y >= drawing.Y + drawing.Height - 0.01D);
         Assert.Contains("sqrt(x)", rendered.Text, StringComparison.Ordinal);
-        Assert.Contains(">x</text>", svg, StringComparison.Ordinal);
+        Assert.Contains(">\U0001D465</text>", svg, StringComparison.Ordinal);
         Assert.Contains("sqrt(x)", pdfText, StringComparison.Ordinal);
         Assert.Equal(pdfText.IndexOf("sqrt(x)", StringComparison.Ordinal), pdfText.LastIndexOf("sqrt(x)", StringComparison.Ordinal));
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
@@ -134,7 +134,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MathMlContentUnsupported);
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
-        Assert.Contains("x", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("\U0001D465", rendered.Text, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Pages[0].Visuals, item => item is HtmlRenderDrawing drawing && drawing.Source == "math#broken");
     }
 

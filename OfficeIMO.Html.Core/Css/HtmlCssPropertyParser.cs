@@ -12,6 +12,7 @@ public static class HtmlCssPropertyParser {
         "block", "inline", "inline-block", "none", "flex", "inline-flex", "grid", "inline-grid",
         "table", "table-caption", "table-column-group", "table-column", "table-header-group",
         "table-row-group", "table-footer-group", "table-row", "table-cell", "list-item", "contents", "flow-root", "-webkit-box");
+    private static readonly HashSet<string> TextTransformKeywords = Set("none", "uppercase", "lowercase", "capitalize", "full-width", "full-size-kana", "math-auto");
     private static readonly HashSet<string> VisibilityKeywords = Set("visible", "hidden", "collapse");
     private static readonly HashSet<string> AutoKeyword = Set("auto");
     private static readonly HashSet<string> NoneKeyword = Set("none");
@@ -97,6 +98,7 @@ public static class HtmlCssPropertyParser {
 
         HtmlCssPropertyValue? parsed = definition!.Name switch {
             "display" => ParseKeyword(authoredValue, significant, DisplayKeywords),
+            "text-transform" => ParseKeyword(authoredValue, significant, TextTransformKeywords),
             "visibility" => ParseKeyword(authoredValue, significant, VisibilityKeywords),
             "opacity" => ParseOpacity(authoredValue, significant, cancellationToken),
             "color" => ParseColor(authoredValue, significant, cancellationToken),
