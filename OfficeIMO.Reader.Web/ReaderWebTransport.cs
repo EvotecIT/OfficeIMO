@@ -264,8 +264,16 @@ internal sealed class ReaderWebDownload : IDisposable {
         OfficeDocumentReadResult result,
         ReaderWebOptions options,
         bool computeHashes) {
-        string sourceId = DocumentReaderEngine.BuildPortableSourceId(
-            "web:" + FormatUri(ResponseUri, includeQuery: false));
+        string sourceKey = options.SourceKeySelector == null
+            ? FormatUri(ResponseUri, includeQuery: true)
+            : options.SourceKeySelector(ResponseUri);
+        if (string.IsNullOrWhiteSpace(sourceKey)) {
+            throw new InvalidOperationException("The web source key selector returned an empty identity key.");
+        }
+        string sourceId = DocumentReaderEngine.BuildPortableSourceId("web:" + sourceKey);
+        foreach (ReaderChunk chunk in result.Chunks) {
+            chunk.Id = sourceId + ":" + chunk.Id;
+        }
         DocumentReaderEngine.ApplyExternalSourceMetadata(
             result,
             sourceId,

@@ -13,6 +13,7 @@ internal static partial class DocumentReaderEngine {
     private static ReaderChunk EnrichChunk(ReaderChunk chunk, SourceInfo source, bool computeHashes) {
         if (chunk == null) throw new ArgumentNullException(nameof(chunk));
         if (source == null) throw new ArgumentNullException(nameof(source));
+        ReaderReadScope.Current?.Budget?.AddChunk(chunk);
         chunk.Location ??= new ReaderLocation();
         chunk.Location.Path ??= source.Path;
         chunk.SourceId ??= source.SourceId;
@@ -29,8 +30,9 @@ internal static partial class DocumentReaderEngine {
         return length == 0 ? 0 : Math.Max(1, (length + 3) / 4);
     }
 
-    private static string ComputeChunkHash(ReaderChunk chunk) {
-        string data = string.Join("|",
+    internal static string ComputeChunkHash(ReaderChunk chunk) {
+        ReaderReadScope.Current?.Budget?.AddChunk(chunk);
+        string[] fields = {
             chunk.Kind.ToString(), chunk.SourceId ?? string.Empty,
             chunk.Location?.Path ?? string.Empty, chunk.Location?.HeadingPath ?? string.Empty,
             chunk.Location?.HeadingSlug ?? string.Empty, chunk.Location?.SourceBlockKind ?? string.Empty,
@@ -39,8 +41,16 @@ internal static partial class DocumentReaderEngine {
             chunk.Location?.Page?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
             chunk.Location?.Slide?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
             chunk.Location?.StartLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-            chunk.Text ?? string.Empty, chunk.Markdown ?? string.Empty);
-        return ComputeSha256Hex(data);
+            chunk.Location?.NormalizedStartLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Location?.NormalizedEndLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            chunk.Text ?? string.Empty, chunk.Markdown ?? string.Empty, BuildChunkMetadataHashInput(chunk)
+        };
+        // Versioned length framing prevents user text from impersonating field separators.
+        var data = new StringBuilder("officeimo.reader.chunk.v2:");
+        foreach (string field in fields) {
+            data.Append(field.Length.ToString(CultureInfo.InvariantCulture)).Append(':').Append(field);
+        }
+        return ComputeSha256Hex(data.ToString());
     }
 
     private static SourceInfo BuildSourceInfoFromPath(string path, bool computeHash, CancellationToken cancellationToken = default) {

@@ -6,13 +6,13 @@ using OfficeIMO.Reader.FormatInternals;
 
 namespace OfficeIMO.Reader.Excel;
 
-internal static class ExcelReaderAdapter {
+internal static partial class ExcelReaderAdapter {
     internal static ReaderExcelOptions Clone(ReaderExcelOptions? source) => new ReaderExcelOptions {
         SheetName = source?.SheetName,
         A1Range = source?.A1Range,
         HeadersInFirstRow = source?.HeadersInFirstRow ?? true,
         ChunkRows = Math.Max(1, source?.ChunkRows ?? 200),
-        ReadOptions = source?.ReadOptions
+        ReadOptions = source?.ReadOptions?.Clone()
     };
 
     internal static OfficeDocumentReadResult ReadDocument(

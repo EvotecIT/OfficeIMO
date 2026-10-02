@@ -1,7 +1,11 @@
-namespace OfficeIMO.Reader.Pdf;
+using System.Globalization;
 
-internal static partial class PdfReaderAdapter {
+namespace OfficeIMO.Reader;
+
+internal static partial class DocumentReaderEngine {
     private static string BuildChunkMetadataHashInput(ReaderChunk chunk) {
+        if ((chunk.Tables?.Count ?? 0) == 0 && (chunk.Visuals?.Count ?? 0) == 0 &&
+            (chunk.FormFields?.Count ?? 0) == 0 && (chunk.Actions?.Count ?? 0) == 0 && chunk.Diagnostics == null) return string.Empty;
         var builder = new StringBuilder();
         AppendTablesHashInput(builder, chunk.Tables);
         AppendVisualsHashInput(builder, chunk.Visuals);
@@ -268,14 +272,10 @@ internal static partial class PdfReaderAdapter {
     }
 
     private static void AppendHashValue(StringBuilder builder, string name, object? value) {
-        builder.Append(name);
-        builder.Append('=');
-        if (value is IFormattable formattable) {
-            builder.Append(formattable.ToString(null, CultureInfo.InvariantCulture));
-        } else if (value is not null) {
-            builder.Append(value);
-        }
-
-        builder.Append(';');
+        string text = value is IFormattable formattable
+            ? formattable.ToString(null, CultureInfo.InvariantCulture) ?? string.Empty
+            : value?.ToString() ?? string.Empty;
+        builder.Append(name.Length.ToString(CultureInfo.InvariantCulture)).Append(':').Append(name);
+        builder.Append(text.Length.ToString(CultureInfo.InvariantCulture)).Append(':').Append(text);
     }
 }

@@ -160,7 +160,7 @@ namespace OfficeIMO.Excel {
         /// Execution policy used to decide Sequential vs Parallel conversion.
         /// Reuses the writer-side policy for symmetry.
         /// </summary>
-        public OfficeIMO.Excel.ExcelExecutionPolicy Execution { get; } = new();
+        public OfficeIMO.Excel.ExcelExecutionPolicy Execution { get; private set; } = new();
 
         /// <summary>
         /// Use cached formula results when present; otherwise returns the formula string.
@@ -284,6 +284,17 @@ namespace OfficeIMO.Excel {
             Execution.OperationThresholds["ReadObjectsAs"] = 100_000;
             Execution.OperationThresholds["ReadRangeStream"] = 100_000;
             Execution.OperationThresholds["ReadRows"] = 20_000;
+        }
+
+        /// <summary>
+        /// Creates an independent options snapshot, including culture and execution thresholds.
+        /// Converter and diagnostic delegates retain their caller-owned behavior.
+        /// </summary>
+        public ExcelReadOptions Clone() {
+            var clone = (ExcelReadOptions)MemberwiseClone();
+            clone.Execution = Execution.Clone();
+            clone.Culture = CultureInfo.ReadOnly((CultureInfo)Culture.Clone());
+            return clone;
         }
 
         internal ExcelReadOptions WithCancellationToken(CancellationToken cancellationToken) {

@@ -199,13 +199,33 @@ For an already loaded model, `includeEmbeddedMessageContent: false` excludes emb
 semantic comparison. Archive candidate analysis uses these parent-only contracts and does not establish
 that candidate attachment payloads are equal.
 
+## Reader ingestion identities and nested transport
+
+Reader chunk hashes use length-framed fields and include normalized source spans. Hash values change for
+existing input; recompute stored chunk hashes or rebuild indexes that use them as cache keys.
+Web source IDs include the full final URI query, and Web chunk IDs include the source ID. Rebuild stored
+Web identities when upgrading. Query metadata remains redacted. Configure `ReaderWebOptions.SourceKeySelector`
+when rotating signed URLs need one stable identity, retaining every parameter that selects document content.
+
+Document result schema version 9 adds `nestedDocuments`. Update generated bindings and schema validators
+when consuming ZIP or email results. Versions 5 through 8 remain readable and normalize to the current model;
+writing those versions with nested documents fails. Load schemas through `OfficeDocumentReadResultSchema.GetJsonSchema()`.
+
+Capability manifest version 6 adds incremental-route flags and `formatQualifications`. Treat an omitted
+qualification as `Unqualified`; handler registration alone does not establish complete format support.
+
+Folder and detailed path reads apply the configured document processor pipeline. Remove any caller-side
+second processing pass that previously compensated for these routes bypassing processors.
+Word tables preserve complete Markdown when an atomic table exceeds `MaxChars` and emit a warning.
+Applications that require terminal limits should configure `ReaderOptions.ResourceLimits`.
+
 ## Reader document schema version 8
 
-`OfficeDocumentReadResult` now emits schema version 8. This version adds
+Document result schema version 8 introduced
 `ReaderInputKind.IWork` and the neutral `OfficeDocumentFormat.IWork` for Pages,
 Numbers, and Keynote input. Applications that
 validate `schemaVersion`, use the packaged JSON Schema, generate transport
-bindings, or switch exhaustively over either enum must accept version 8
+bindings, or switch exhaustively over either enum must accept version 8 or later
 and the new members. Load the current schema through
 `OfficeDocumentReadResultSchema.GetJsonSchema()` rather than pinning version 7.
 

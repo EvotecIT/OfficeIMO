@@ -46,6 +46,12 @@ public static class OfficeDocumentReaderBuilderWordExtensions {
             DisplayName = "Word Reader",
             Description = "OfficeIMO.Word Markdown and structured document projection.",
             Kind = ReaderInputKind.Word,
+            FormatQualifications = global::OfficeIMO.Word.WordFormatCatalog.All
+                .Select(format => new ReaderFormatQualification(format.Extension, format.Id, ReaderFormatSupport.ReadConvert,
+                    profile: format.Encoding.ToString(),
+                    preservation: new[] { "Readable text and supported structured content" },
+                    limitations: new[] { "Semantic extraction; source package, layout, macros and signatures are not reproduced", "Configured projection limits and owner compatibility boundaries apply" },
+                    evidence: new[] { "OfficeIMO.Reader.Word/README.md", "OfficeIMO.Reader.Tests/Reader.DocumentReadResult.cs" })).ToArray(),
             Extensions = global::OfficeIMO.Word.WordFormatCatalog.All.Select(format => format.Extension).ToArray(),
             ReadDocumentPath = (path, readerOptions, token) => WordReaderAdapter.ReadDocument(path, readerOptions, configured, configuredLegacyImport, routeWordForDos, token),
             ReadDocumentStream = (stream, sourceName, readerOptions, token) => WordReaderAdapter.ReadDocument(stream, sourceName, readerOptions, configured, configuredLegacyImport, routeWordForDos, token),

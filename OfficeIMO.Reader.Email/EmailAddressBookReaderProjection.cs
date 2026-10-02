@@ -82,7 +82,7 @@ internal static class EmailAddressBookReaderProjection {
             TokenEstimate = textValue.Length == 0 ? 0 : Math.Max(1, (textValue.Length + 3) / 4),
             Warnings = warnings.Count == 0 ? null : warnings
         };
-        if (readerOptions.ComputeHashes) chunk.ChunkHash = ComputeSha256(textValue + "\n" + markdownValue);
+        if (readerOptions.ComputeHashes) chunk.ChunkHash = DocumentReaderEngine.ComputeChunkHash(chunk);
         return chunk;
     }
 

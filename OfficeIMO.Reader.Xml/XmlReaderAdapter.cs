@@ -55,7 +55,7 @@ internal static class XmlReaderAdapter {
 
                 using var reader = XmlReader.Create(parseStream, settings);
                 doc = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
-            } catch (Exception ex) when (ex is not OperationCanceledException) {
+            } catch (Exception ex) when (ex is not OperationCanceledException and not ReaderResourceLimitException) {
                 parseError = "XML parse error: " + ex.GetType().Name + ".";
             }
 
@@ -360,27 +360,7 @@ internal static class XmlReaderAdapter {
         return Math.Max(1, (safeText.Length + 3) / 4);
     }
 
-    private static string ComputeChunkHash(ReaderChunk chunk) {
-        var data = string.Join("|",
-            chunk.Kind.ToString(),
-            chunk.SourceId ?? string.Empty,
-            chunk.Location.Path ?? string.Empty,
-            chunk.Location.HeadingPath ?? string.Empty,
-            chunk.Location.HeadingSlug ?? string.Empty,
-            chunk.Location.SourceBlockKind ?? string.Empty,
-            chunk.Location.BlockAnchor ?? string.Empty,
-            chunk.Location.Sheet ?? string.Empty,
-            chunk.Location.A1Range ?? string.Empty,
-            chunk.Location.Page?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-            chunk.Location.Slide?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-            chunk.Location.StartLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-            chunk.Location.NormalizedStartLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-            chunk.Location.NormalizedEndLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-            chunk.Text ?? string.Empty,
-            chunk.Markdown ?? string.Empty);
-
-        return ComputeSha256Hex(data);
-    }
+    private static string ComputeChunkHash(ReaderChunk chunk) => DocumentReaderEngine.ComputeChunkHash(chunk);
 
     private static SourceMetadata BuildSourceMetadataFromPath(string path, bool computeHash) {
         var normalizedPath = NormalizePathForId(path);
