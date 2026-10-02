@@ -266,7 +266,13 @@ internal static partial class IWorkPagesReader {
             }
             IWorkArchiveRecord? field4Storage = references.ReadOne(shape, shapeMessage, 4, allowedType: type => type == TextStorageArchive);
             IWorkArchiveRecord? field2Storage = references.ReadOne(shape, shapeMessage, 2, allowedType: type => type == TextStorageArchive);
-            IWorkArchiveRecord? storage = field4Storage ?? field2Storage;
+            IWorkArchiveRecord? storage = field4Storage?.MessageType == TextStorageArchive ? field4Storage
+                : field2Storage?.MessageType == TextStorageArchive ? field2Storage : null;
+            // A resolved object of another type cannot compete as text storage.
+            // Recover the sole valid candidate, but retain the incomplete assessment.
+            bool recoverTypedAlternate = shapeMessage.FieldCount(4) == 1 && shapeMessage.FieldCount(2) == 1
+                && field4Storage != null && field2Storage != null
+                && (field4Storage.MessageType == TextStorageArchive) != (field2Storage.MessageType == TextStorageArchive);
             bool hasAmbiguousStorage = shapeMessage.FieldCount(4) > 1
                 || shapeMessage.FieldCount(2) > 1
                 || field4Storage != null && field2Storage != null
@@ -283,7 +289,7 @@ internal static partial class IWorkPagesReader {
                         "A Pages drawable contains an unresolved or ambiguous text-storage reference; editable reconstruction is incomplete.",
                         shape.EntryPath, shape.Identifier));
                 }
-                continue;
+                if (!recoverTypedAlternate) continue;
             }
             if (storage == null) {
                 supportsEditableReconstruction = false;
