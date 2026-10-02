@@ -149,10 +149,12 @@ public static partial class OfficeRasterImageDecoder {
 
         if (format == OfficeImageFormat.Tiff) {
             bool decoded = OfficeTiffCodec.TryDecodePage(bytes, effective.FrameIndex, effective, out image);
+            bool callerDecoded = false;
+            if (!decoded) decoded = callerDecoded = TryDecodeWithOptionalCodec(bytes, effective, container, out image);
             string? diagnostic = decoded && frameCount > 1
                 ? "The selected TIFF page was decoded; remaining pages were not retained in the static raster result."
                 : decoded ? null : "The requested TIFF page could not be decoded.";
-            info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, decoded, diagnostic, container);
+            info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, decoded, diagnostic, container) { UsedCallerCodec = callerDecoded };
             return decoded;
         }
 
