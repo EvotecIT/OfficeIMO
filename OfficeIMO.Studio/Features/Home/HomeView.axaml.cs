@@ -76,6 +76,7 @@ public sealed partial class HomeView : UserControl {
 
     // The drop target and quick tasks sit side by side on wide windows and stack on narrow ones.
     private void ApplyResponsiveLayout(double width) {
+        HomeContent.Margin = width < 600 ? new Avalonia.Thickness(16, 20, 16, 24) : new Avalonia.Thickness(36, 28, 36, 36);
         bool stacked = width < 1000D;
         Grid.SetColumn(QuickTasks, stacked ? 0 : 1);
         Grid.SetRow(QuickTasks, stacked ? 1 : 0);

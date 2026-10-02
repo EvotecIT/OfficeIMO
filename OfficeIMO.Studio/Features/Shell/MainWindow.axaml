@@ -12,12 +12,12 @@
         x:Class="OfficeIMO.Studio.Features.Shell.MainWindow"
         x:DataType="shell:MainWindowViewModel"
         x:Name="StudioWindow"
-        Title="OfficeIMO Studio"
+        Title="{Binding DocumentName}"
         Icon="avares://OfficeIMO.Studio/Assets/OfficeIMO.Studio.ico"
         Width="1280"
         Height="820"
-        MinWidth="960"
-        MinHeight="620"
+        MinWidth="390"
+        MinHeight="480"
         Background="{DynamicResource StudioChromeBrush}"
         Foreground="{DynamicResource StudioTextBrush}"
         ExtendClientAreaToDecorationsHint="True"
@@ -25,6 +25,8 @@
         ExtendClientAreaTitleBarHeightHint="44"
         DragDrop.AllowDrop="True">
   <Window.Styles>
+    <Style Selector="Grid#NavigationRail"><Setter Property="RowSpacing" Value="2" /><Setter Property="Margin" Value="8,4,8,10" /></Style>
+    <Style Selector="StackPanel.navLabel"><Setter Property="Spacing" Value="2" /><Setter Property="HorizontalAlignment" Value="Center" /></Style>
     <Style Selector="ListBox#DocumentTabs ListBoxItem">
       <Setter Property="Padding" Value="0" />
       <Setter Property="Margin" Value="0,0,2,0" />
@@ -40,6 +42,7 @@
     </Style>
     <Style Selector="Border.documentTab">
       <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Height" Value="36" />
       <Setter Property="CornerRadius" Value="8,8,0,0" />
     </Style>
     <Style Selector="ListBoxItem:pointerover Border.documentTab">
@@ -96,17 +99,18 @@
     <Style Selector="Button#ThemeToggle PathIcon.sun"><Setter Property="IsVisible" Value="False" /></Style>
     <Style Selector="Button#ThemeToggle.dark PathIcon.sun"><Setter Property="IsVisible" Value="True" /></Style>
     <Style Selector="Button#ThemeToggle.dark PathIcon.moon"><Setter Property="IsVisible" Value="False" /></Style>
+    <StyleInclude Source="avares://OfficeIMO.Studio/Features/Shell/AppleShellStyles.axaml" />
   </Window.Styles>
 
-  <Grid x:Name="ShellRoot" RowDefinitions="44,*" ColumnDefinitions="72,*">
+  <Grid x:Name="ShellRoot" RowDefinitions="44,*,Auto" ColumnDefinitions="72,*">
     <!-- Title bar: drag area, tabs, command search and window actions. -->
     <Border x:Name="TitleBarDragArea" Grid.ColumnSpan="2" Background="Transparent"
             chrome:WindowDecorationProperties.ElementRole="TitleBar" />
-    <Image Grid.Row="0" Grid.Column="0" Source="avares://OfficeIMO.Studio/Assets/OfficeIMO.Studio.png"
+    <Image x:Name="TitleBarLogo" Grid.Row="0" Grid.Column="0" Source="avares://OfficeIMO.Studio/Assets/OfficeIMO.Studio.png"
            Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"
            AutomationProperties.Name="OfficeIMO Studio" />
     <Grid x:Name="TitleBar" Grid.Row="0" Grid.Column="1" ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="6">
-      <StackPanel Orientation="Horizontal" VerticalAlignment="Stretch" Spacing="2">
+      <StackPanel x:Name="TitleDocuments" Orientation="Horizontal" VerticalAlignment="Stretch" Spacing="2">
         <TextBlock Text="OfficeIMO Studio" VerticalAlignment="Center" FontWeight="SemiBold" Margin="2,0,10,0"
                    x:Name="AppTitleText" x:DataType="shell:StudioDocumentTabHost" IsVisible="{Binding !HasTabs}" IsHitTestVisible="False" />
         <ListBox x:Name="DocumentTabs" x:DataType="shell:StudioDocumentTabHost"
@@ -118,7 +122,7 @@
           <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ListBox.ItemsPanel>
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="shell:StudioDocumentTabViewModel">
-              <Border Classes="documentTab" MinWidth="140" MaxWidth="240" Height="36" Padding="12,0,6,0"
+              <Border Classes="documentTab" MinWidth="140" MaxWidth="240" Padding="12,0,6,0"
                       ToolTip.Tip="{Binding SourcePath}" PointerReleased="OnDocumentTabPointerReleased">
                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                   <PathIcon Data="{StaticResource IconDocument}" Width="13" Height="13" Foreground="{DynamicResource StudioErrorBrush}" />
@@ -152,9 +156,9 @@
               AutomationProperties.Name="{loc:Loc Commands.PaletteTitle}" ToolTip.Tip="{loc:Loc Shell.CommandSearchTip}">
         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
           <PathIcon Data="{StaticResource IconSearch}" Width="14" Height="14" Foreground="{DynamicResource StudioMutedTextBrush}" />
-          <TextBlock Grid.Column="1" Text="{loc:Loc Shell.CommandSearch}" Foreground="{DynamicResource StudioMutedTextBrush}"
+          <TextBlock x:Name="CommandSearchLabel" Grid.Column="1" Text="{loc:Loc Shell.CommandSearch}" Foreground="{DynamicResource StudioMutedTextBrush}"
                      FontSize="12.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-          <Border Grid.Column="2" Classes="kbd"><TextBlock x:Name="CommandSearchShortcut" Text="Ctrl K" /></Border>
+          <Border x:Name="CommandSearchKeycap" Grid.Column="2" Classes="kbd"><TextBlock x:Name="CommandSearchShortcut" Text="Ctrl K" /></Border>
         </Grid>
       </Button>
       <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center"
@@ -173,41 +177,82 @@
           </Panel>
         </Button>
       </StackPanel>
+      <TextBlock x:Name="CompactTitle" Grid.Column="0" Text="OfficeIMO Studio" IsVisible="False" Margin="16,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold" />
+      <ComboBox x:Name="CompactDocumentPicker" Grid.Column="0" chrome:WindowDecorationProperties.ElementRole="User" IsVisible="False"
+                Margin="10,0,0,0" HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                x:DataType="shell:StudioDocumentTabHost" ItemsSource="{Binding Tabs}"
+                SelectedItem="{Binding SelectedTab, Mode=TwoWay}" AutomationProperties.Name="{loc:Loc Apple.OpenDocuments}">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="shell:StudioDocumentTabViewModel"><TextBlock Text="{Binding DisplayTitle}" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
       <Border x:Name="CaptionButtonsSpacer" Grid.Column="4" Width="0" />
     </Grid>
 
+    <Button x:Name="SidebarToggle" Grid.Row="0" Grid.Column="0" Classes="icon" IsVisible="False"
+            HorizontalAlignment="Left" Margin="12,0,0,0" Click="OnSidebarToggleClick"
+            AutomationProperties.Name="{loc:Loc Apple.ToggleSidebar}" ToolTip.Tip="{loc:Loc Apple.ToggleSidebar}">
+      <PathIcon Data="{StaticResource IconPanelLeft}" />
+    </Button>
+    <Border x:Name="CompactNavigation" Grid.Row="2" Grid.ColumnSpan="2" IsVisible="False"
+            Background="{DynamicResource StudioChromeBrush}" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="4,4,4,6">
+      <UniformGrid Rows="1" Columns="5">
+        <infra:StudioRadioToggle Classes="nav touchNav" IsChecked="{Binding IsHomeMode, Mode=OneWay}" Command="{Binding Commands[Home]}" AutomationProperties.Name="{loc:Loc MainWindow.Home}">
+          <StackPanel Spacing="4"><PathIcon Data="{StaticResource IconHome}" /><TextBlock Text="{loc:Loc MainWindow.Home}" /></StackPanel>
+        </infra:StudioRadioToggle>
+        <infra:StudioRadioToggle Classes="nav touchNav" IsChecked="{Binding IsPdfWorkspaceMode, Mode=OneWay}" Command="{Binding ShowPdfWorkspaceCommand}" IsEnabled="{Binding HasDocument}" AutomationProperties.Name="{loc:Loc MainWindow.Document}">
+          <StackPanel Spacing="4"><PathIcon Data="{StaticResource IconDocument}" /><TextBlock Text="{loc:Loc MainWindow.Document}" /></StackPanel>
+        </infra:StudioRadioToggle>
+        <infra:StudioRadioToggle Classes="nav touchNav" IsChecked="{Binding IsToolsMode, Mode=OneWay}" Command="{Binding Commands[Tools]}" AutomationProperties.Name="{loc:Loc MainWindow.Tools}">
+          <StackPanel Spacing="4"><PathIcon Data="{StaticResource IconTools}" /><TextBlock Text="{loc:Loc MainWindow.Tools}" /></StackPanel>
+        </infra:StudioRadioToggle>
+        <infra:StudioRadioToggle Classes="nav touchNav" IsChecked="{Binding IsJobsMode, Mode=OneWay}" Command="{Binding Commands[Jobs]}" AutomationProperties.Name="{loc:Loc Jobs.Title}">
+          <StackPanel Spacing="4"><PathIcon Data="{StaticResource IconJobs}" /><TextBlock Text="{loc:Loc Jobs.Title}" /></StackPanel>
+        </infra:StudioRadioToggle>
+        <Button x:Name="MoreNavigationButton" Classes="ghost touchNav" AutomationProperties.Name="{loc:Loc Apple.More}">
+          <StackPanel Spacing="4"><PathIcon Data="{StaticResource IconMore}" /><TextBlock Text="{loc:Loc Apple.More}" HorizontalAlignment="Center" FontSize="11" /></StackPanel>
+          <Button.Flyout><MenuFlyout Placement="TopEdgeAlignedRight">
+            <MenuItem Header="{loc:Loc MainWindow.Convert}" Command="{Binding Commands[Convert]}" />
+            <MenuItem Header="{loc:Loc MainWindow.OCR}" Command="{Binding Commands[Ocr]}" />
+            <MenuItem Header="{loc:Loc Assistant.Title}" Command="{Binding ToggleAssistantCommand}" />
+            <MenuItem Header="{loc:Loc Settings.Settings}" Command="{Binding Commands[Settings]}" />
+            <Separator />
+            <MenuItem Header="{loc:Loc Apple.CloseDocument}" Click="OnCloseDocumentClick" IsEnabled="{Binding HasDocument}" />
+          </MenuFlyout></Button.Flyout>
+        </Button>
+      </UniformGrid>
+    </Border>
+
     <!-- Navigation rail. -->
-    <Grid Grid.Row="1" Grid.Column="0" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto" RowSpacing="2" Margin="8,4,8,10">
+    <Grid x:Name="NavigationRail" Grid.Row="1" Grid.Column="0" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto" >
       <infra:StudioRadioToggle Grid.Row="0" Classes="nav"
                    IsChecked="{Binding IsHomeMode, Mode=OneWay}" Command="{Binding Commands[Home]}"
                    AutomationProperties.Name="{loc:Loc MainWindow.Home}" ToolTip.Tip="{loc:Loc MainWindow.Home}" ToolTip.Placement="Right">
-        <Panel><Border Classes="railIndicator" /><StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconHome}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Home}" /></StackPanel></Panel>
+        <Panel><Border Classes="railIndicator" /><StackPanel Classes="navLabel"><PathIcon Data="{StaticResource IconHome}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Home}" /></StackPanel></Panel>
       </infra:StudioRadioToggle>
       <infra:StudioRadioToggle Grid.Row="1" Classes="nav" IsEnabled="{Binding HasDocument}"
                    IsChecked="{Binding IsPdfWorkspaceMode, Mode=OneWay}" Command="{Binding ShowPdfWorkspaceCommand}"
                    AutomationProperties.Name="{loc:Loc MainWindow.Document}" ToolTip.Tip="{loc:Loc MainWindow.Document}" ToolTip.Placement="Right">
-        <Panel><Border Classes="railIndicator" /><StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconDocument}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Document}" /></StackPanel></Panel>
+        <Panel><Border Classes="railIndicator" /><StackPanel Classes="navLabel"><PathIcon Data="{StaticResource IconDocument}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Document}" /></StackPanel></Panel>
       </infra:StudioRadioToggle>
       <infra:StudioRadioToggle Grid.Row="2" Classes="nav"
                    IsChecked="{Binding IsToolsMode, Mode=OneWay}" Command="{Binding Commands[Tools]}"
                    AutomationProperties.Name="{loc:Loc MainWindow.Tools}" ToolTip.Tip="{loc:Loc MainWindow.Tools}" ToolTip.Placement="Right">
-        <Panel><Border Classes="railIndicator" /><StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconTools}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Tools}" /></StackPanel></Panel>
+        <Panel><Border Classes="railIndicator" /><StackPanel Classes="navLabel"><PathIcon Data="{StaticResource IconTools}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Tools}" /></StackPanel></Panel>
       </infra:StudioRadioToggle>
       <infra:StudioRadioToggle Grid.Row="3" Classes="nav"
                    IsChecked="{Binding IsOcrMode, Mode=OneWay}" Command="{Binding Commands[Ocr]}"
                    AutomationProperties.Name="{loc:Loc MainWindow.OCR}" ToolTip.Tip="{loc:Loc MainWindow.OCR}" ToolTip.Placement="Right">
-        <Panel><Border Classes="railIndicator" /><StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconOcr}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.OCR}" /></StackPanel></Panel>
+        <Panel><Border Classes="railIndicator" /><StackPanel Classes="navLabel"><PathIcon Data="{StaticResource IconOcr}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.OCR}" /></StackPanel></Panel>
       </infra:StudioRadioToggle>
       <infra:StudioRadioToggle Grid.Row="4" Classes="nav"
                    IsChecked="{Binding IsConversionMode, Mode=OneWay}" Command="{Binding Commands[Convert]}"
                    AutomationProperties.Name="{loc:Loc MainWindow.Convert}" ToolTip.Tip="{loc:Loc MainWindow.Convert}" ToolTip.Placement="Right">
-        <Panel><Border Classes="railIndicator" /><StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconConvert}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Convert}" /></StackPanel></Panel>
+        <Panel><Border Classes="railIndicator" /><StackPanel Classes="navLabel"><PathIcon Data="{StaticResource IconConvert}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Convert}" /></StackPanel></Panel>
       </infra:StudioRadioToggle>
       <infra:StudioRadioToggle Grid.Row="5" Classes="nav" IsChecked="{Binding IsJobsMode, Mode=OneWay}" Command="{Binding Commands[Jobs]}"
                    AutomationProperties.Name="{loc:Loc Jobs.Title}" ToolTip.Tip="{loc:Loc Jobs.Title}" ToolTip.Placement="Right">
         <Panel>
           <Border Classes="railIndicator" />
-          <StackPanel Spacing="2" HorizontalAlignment="Center">
+          <StackPanel Classes="navLabel">
             <Panel HorizontalAlignment="Center">
               <PathIcon Data="{StaticResource IconJobs}" Width="18" Height="18" />
               <Ellipse Width="8" Height="8" Fill="{DynamicResource StudioSpineBrush}" HorizontalAlignment="Right" VerticalAlignment="Top"
@@ -220,7 +265,7 @@
       <infra:StudioRadioToggle Grid.Row="7" Classes="nav"
                    IsChecked="{Binding IsSettingsMode, Mode=OneWay}" Command="{Binding Commands[Settings]}"
                    AutomationProperties.Name="{loc:Loc Settings.Settings}" ToolTip.Tip="{loc:Loc Settings.Settings}" ToolTip.Placement="Right">
-        <Panel><Border Classes="railIndicator" /><StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconSettings}" Width="18" Height="18" /><TextBlock Text="{loc:Loc Settings.Settings}" /></StackPanel></Panel>
+        <Panel><Border Classes="railIndicator" /><StackPanel Classes="navLabel"><PathIcon Data="{StaticResource IconSettings}" Width="18" Height="18" /><TextBlock Text="{loc:Loc Settings.Settings}" /></StackPanel></Panel>
       </infra:StudioRadioToggle>
     </Grid>
 

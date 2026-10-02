@@ -24,8 +24,8 @@
   </UserControl.Styles>
   <Panel>
     <Border x:Name="Scrim" Background="{DynamicResource StudioScrimBrush}" PointerPressed="OnScrimPressed" />
-    <Border x:Name="PalettePanel" Classes="floating" Width="620" MaxHeight="520" Padding="0" CornerRadius="14"
-            HorizontalAlignment="Center" VerticalAlignment="Top" Margin="16,36,16,16">
+    <Border x:Name="PalettePanel" Classes="floating" MaxWidth="620" MaxHeight="520" Padding="0" CornerRadius="14"
+            HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="16,36,16,16">
       <Grid RowDefinitions="Auto,*,Auto">
         <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1" Padding="14,6">
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">

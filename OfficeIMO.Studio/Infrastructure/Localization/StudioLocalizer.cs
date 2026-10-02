@@ -18,6 +18,7 @@ internal sealed class StudioLocalizer : IStudioLocalizer {
     public string Get(string key) {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         string value = Resources.GetString(key, Culture) ?? Resources.GetString(key, CultureInfo.GetCultureInfo("en")) ?? $"⟦{key}⟧";
+        value = StudioShortcutLabels.Format(value);
         return IsPseudoCulture ? StudioPseudoLocalizer.Transform(value) : value;
     }
 
@@ -25,6 +26,7 @@ internal sealed class StudioLocalizer : IStudioLocalizer {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentNullException.ThrowIfNull(fallback);
         string value = Resources.GetString(key, Culture) ?? Resources.GetString(key, CultureInfo.GetCultureInfo("en")) ?? fallback;
+        value = StudioShortcutLabels.Format(value);
         return IsPseudoCulture ? StudioPseudoLocalizer.Transform(value) : value;
     }
 
