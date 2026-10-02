@@ -11,6 +11,7 @@ internal sealed class ProjectNativeLegacy8Editor : IProjectNativeTableEditor {
     private readonly CancellationToken _token;
     private readonly List<byte[]> _records = new List<byte[]>();
     private readonly Dictionary<int, int> _rows = new Dictionary<int, int>();
+    private readonly Dictionary<int, ProjectNativeRecord> _sourceRecords = new Dictionary<int, ProjectNativeRecord>();
     private readonly HashSet<int> _deleted = new HashSet<int>();
     private readonly Dictionary<int, Dictionary<uint, byte[]>> _values = new Dictionary<int, Dictionary<uint, byte[]>>();
     private bool _dirty;
@@ -31,6 +32,7 @@ internal sealed class ProjectNativeLegacy8Editor : IProjectNativeTableEditor {
             int uid = record.Integer(uidField) ?? throw new InvalidDataException("Missing Project 98 UID.");
             if (_rows.ContainsKey(uid)) throw new InvalidDataException("Duplicate Project 98 UID.");
             _rows.Add(uid, record.MetadataIndex);
+            _sourceRecords.Add(uid, record);
         }
         foreach (var row in _table.Variable) _values.Add(row.Key, row.Value.ToDictionary(v => v.Key, v => v.Value.Copy()));
     }
@@ -38,6 +40,7 @@ internal sealed class ProjectNativeLegacy8Editor : IProjectNativeTableEditor {
     public bool Contains(int uid) => _rows.ContainsKey(uid);
     public bool HasField(uint id) => _table.Fields.ContainsKey(id);
     public IEnumerable<int> Uids => _rows.Keys;
+    public int? SourceInteger(int uid, uint id) => _sourceRecords.TryGetValue(uid, out var record) ? record.Integer(id) : null;
     public void Integer(int uid, uint id, int value) {
         if (!_table.Fields.TryGetValue(id, out var field)) throw new NotSupportedException("Missing Project 98 integer field.");
         Set(uid, id, field.Size == 2 ? BitConverter.GetBytes(checked((short)value)) : BitConverter.GetBytes(value));

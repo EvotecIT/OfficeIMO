@@ -115,7 +115,7 @@ internal sealed partial class ProjectTaskAllocation {
         if (overtime > work || work < 0 || overtime < 0) throw new InvalidDataException("Interval work and overtime are inconsistent.");
         if (start == finish) {
             if (work != overtime && !entry.IsFixedMaterial) throw new InvalidDataException("Nonzero regular work requires a nonempty working interval.");
-            output.Add(new ProjectAssignmentInterval(start, finish, work, overtime, actual)); CheckCount(output.Count); return;
+            _intervalScope!.Reserve(); output.Add(new ProjectAssignmentInterval(start, finish, work, overtime, actual)); return;
         }
         decimal total = calendar.Between(start, finish);
         if (total <= 0) throw new InvalidDataException("Nonzero work falls outside the effective working calendar.");
@@ -125,16 +125,16 @@ internal sealed partial class ProjectTaskAllocation {
             _token.ThrowIfCancellationRequested();
             foreach (var range in calendar.Day(day)) {
                 DateTime from = range.Start > start ? range.Start : start, to = range.Finish < finish ? range.Finish : finish;
-                if (to > from) { ranges.Add(new ProjectWorkingRange(from, to)); CheckCount(ranges.Count); }
+                if (to > from) { _intervalScope!.Reserve(); ranges.Add(new ProjectWorkingRange(from, to)); }
             }
         }
         for (int index = 0; index < ranges.Count; index++) {
             var range = ranges[index]; decimal fraction = (range.Finish.Ticks - range.Start.Ticks) / (decimal)TimeSpan.TicksPerMinute / total;
             decimal part = index == ranges.Count - 1 ? work - allocated : work * fraction;
             decimal over = index == ranges.Count - 1 ? overtime - allocatedOvertime : overtime * fraction;
-            output.Add(new ProjectAssignmentInterval(range.Start, range.Finish, part, over, actual)); CheckCount(output.Count);
+            output.Add(new ProjectAssignmentInterval(range.Start, range.Finish, part, over, actual));
             allocated += part; allocatedOvertime += over;
         }
     }
-    private void CheckCount(long count) { if (count > _options.MaxIntervals) throw new InvalidOperationException("Assignment calculation exceeds MaxIntervals."); }
+    private void CheckCount(long count) { if (count > _options.MaxIntervals) throw new ProjectIntervalLimitException(); }
 }

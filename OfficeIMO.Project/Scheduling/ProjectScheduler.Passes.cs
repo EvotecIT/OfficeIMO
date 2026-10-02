@@ -36,7 +36,7 @@ internal sealed partial class ProjectScheduler {
             }
             node.BeforeLevelingAnchor = start;
             if (task.LevelingDelay is ProjectDuration leveling && leveling.Value > 0) {
-                decimal delay = leveling.Value * ProjectXmlValue.MinutesPerUnit(leveling.Unit, leveling.IsElapsed, _document);
+                decimal delay = leveling.Minutes(ProjectXmlValue.MinutesPerUnit(leveling.Unit, leveling.IsElapsed, _document));
                 start = leveling.IsElapsed ? start.Add(ProjectXmlValue.MinutesToSpan(delay)) : node.Calendar.Add(start, delay);
             }
             if (_notBefore != null && _notBefore.TryGetValue(task.Uid, out var minimum)) start = Max(start, minimum);
@@ -186,13 +186,13 @@ internal sealed partial class ProjectScheduler {
             if (cost.HasValue && actualCost.HasValue) cost += task.ActualCost.Value - actualCost.Value;
             actualCost = task.ActualCost;
         }
-        return new ProjectTaskWorkSchedule(new ProjectWork(work), new ProjectWork(actual), new ProjectWork(work - actual), duration * fraction, duration * (1m - fraction),
+        return new ProjectTaskWorkSchedule(ProjectWork.FromMinutes(work), ProjectWork.FromMinutes(actual), ProjectWork.FromMinutes(work - actual), duration * fraction, duration * (1m - fraction),
             cost, actualCost, task.PhysicalPercentComplete, completed: completed, hasActuals: hasActuals);
     }
     private static decimal MinutesBetween(Node node, DateTime start, DateTime finish) => node.Elapsed
         ? (finish.Ticks - start.Ticks) / (decimal)TimeSpan.TicksPerMinute : node.Calendar.Between(start, finish);
     private ProjectDuration ResultDuration(ProjectTask task, decimal minutes, bool elapsed) {
         var unit = task.Duration?.Unit ?? ProjectDurationUnit.Day;
-        return new ProjectDuration(minutes / ProjectXmlValue.MinutesPerUnit(unit, elapsed, _document), unit, elapsed, task.Duration?.IsEstimated ?? false);
+        return ProjectDuration.FromMinutes(minutes, unit, elapsed, task.Duration?.IsEstimated ?? false, ProjectXmlValue.MinutesPerUnit(unit, elapsed, _document));
     }
 }

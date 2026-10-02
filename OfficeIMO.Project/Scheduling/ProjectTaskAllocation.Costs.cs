@@ -1,6 +1,9 @@
 namespace OfficeIMO.Project;
 
 internal sealed partial class ProjectTaskAllocation {
+    private void AddCost(List<ProjectCostInterval> target, DateTime start, DateTime finish, decimal cost, bool actual) {
+        _intervalScope!.Reserve(); target.Add(new ProjectCostInterval(start, finish, cost, actual));
+    }
     private (decimal? Cost, decimal? Actual) CalculateCosts(Entry entry, List<ProjectAssignmentInterval> intervals, DateTime start, DateTime finish, List<ProjectCostInterval> charges) {
         var assignment = entry.Assignment; var resource = assignment.Resource!;
         if (resource.Type == ProjectResourceType.Cost) {
@@ -22,9 +25,9 @@ internal sealed partial class ProjectTaskAllocation {
                 charges.AddRange(recorded);
             } else if (value.HasValue || actual != 0) {
                 var actualDate = assignment.ActualStart ?? assignment.ActualFinish ?? start;
-                charges.Add(new ProjectCostInterval(actualDate, actualDate, actual, true));
+                AddCost(charges, actualDate, actualDate, actual, true);
             }
-            if (value.HasValue) charges.Add(new ProjectCostInterval(finish, finish, value.Value - actual, false));
+            if (value.HasValue) AddCost(charges, finish, finish, value.Value - actual, false);
             return (value, actual);
         }
         var stored = _options.RecalculateActualCosts ? Array.Empty<ProjectCostInterval>() : ReadRetainedActualCosts(assignment, start, finish);
@@ -38,7 +41,7 @@ internal sealed partial class ProjectTaskAllocation {
                 decimal? pointRate = entry.IsFixedMaterial ? rate.Standard : rate.Overtime;
                 decimal quantity = entry.IsFixedMaterial ? interval.Work.Minutes / 60m : interval.OvertimeWork.Minutes / 60m;
                 if (!pointRate.HasValue) complete = false;
-                else { usage.Add(new ProjectCostInterval(interval.Start, interval.Finish, quantity * pointRate.Value, interval.IsActual)); CheckCount(usage.Count); }
+                else { AddCost(usage, interval.Start, interval.Finish, quantity * pointRate.Value, interval.IsActual); CheckCount(usage.Count); }
                 continue;
             }
             for (int index = 1; index < points.Length; index++) {
@@ -47,7 +50,7 @@ internal sealed partial class ProjectTaskAllocation {
                 if (!rate.Standard.HasValue || interval.OvertimeWork.Minutes > 0 && !rate.Overtime.HasValue) { complete = false; continue; }
                 decimal amount = resource.Type == ProjectResourceType.Material ? interval.Work.Minutes / 60m * ratio * rate.Standard.Value :
                     ProjectWorkEquation.WorkCost(new ProjectWork(interval.Work.Minutes * ratio), new ProjectWork(interval.OvertimeWork.Minutes * ratio), rate.Standard.Value, rate.Overtime ?? 0m);
-                usage.Add(new ProjectCostInterval(points[index - 1], points[index], amount, interval.IsActual)); CheckCount(usage.Count);
+                AddCost(usage, points[index - 1], points[index], amount, interval.IsActual); CheckCount(usage.Count);
             }
         }
         if (!complete) {
@@ -61,11 +64,11 @@ internal sealed partial class ProjectTaskAllocation {
         bool began = entry.Actual > 0 || assignment.ActualStart.HasValue;
         bool ended = entry.Remaining == 0 && (assignment.ActualFinish.HasValue || entry.Actual > 0);
         switch (resource.AccrueAt ?? ProjectCostAccrual.Prorated) {
-            case ProjectCostAccrual.Start: charges.Add(new ProjectCostInterval(start, start, usage.Sum(c => c.Cost), began)); break;
-            case ProjectCostAccrual.End: charges.Add(new ProjectCostInterval(finish, finish, usage.Sum(c => c.Cost), ended)); break;
+            case ProjectCostAccrual.Start: AddCost(charges, start, start, usage.Sum(c => c.Cost), began); break;
+            case ProjectCostAccrual.End: AddCost(charges, finish, finish, usage.Sum(c => c.Cost), ended); break;
             default: charges.AddRange(usage); break;
         }
-        if (perUse != 0) charges.Add(new ProjectCostInterval(start, start, perUse, began));
+        if (perUse != 0) AddCost(charges, start, start, perUse, began);
         decimal total = charges.Sum(c => c.Cost), computedActual = charges.Where(c => c.IsActual).Sum(c => c.Cost);
         if (!_options.RecalculateActualCosts && (assignment.ActualCost.HasValue || stored.Length > 0)) {
             decimal storedActual = assignment.ActualCost ?? stored.Sum(v => v.Cost);
@@ -75,7 +78,7 @@ internal sealed partial class ProjectTaskAllocation {
                     charges.AddRange(stored);
                     if (Math.Abs(charges.Where(c => c.IsActual).Sum(c => c.Cost) - storedActual) > .01m)
                         throw new InvalidDataException("Timephased actual costs differ from the stored actual cost.");
-                } else if (storedActual != 0) charges.Add(new ProjectCostInterval(start, start, storedActual, true));
+                } else if (storedActual != 0) AddCost(charges, start, start, storedActual, true);
                 total += storedActual - computedActual; computedActual = storedActual;
             }
         }
@@ -85,7 +88,7 @@ internal sealed partial class ProjectTaskAllocation {
         var values = new List<ProjectCostInterval>();
         foreach (var item in assignment.TimephasedData.Where(v => v.Type == 6)) {
             _token.ThrowIfCancellationRequested(); RequireInterval(item);
-            values.Add(new ProjectCostInterval(item.Start!.Value, item.Finish!.Value, ProjectXmlValue.ParseMoney(item.Value!), true));
+            AddCost(values, item.Start!.Value, item.Finish!.Value, ProjectXmlValue.ParseMoney(item.Value!), true);
             CheckCount(values.Count);
         }
         return values.ToArray();

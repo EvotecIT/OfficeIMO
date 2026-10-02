@@ -9,6 +9,9 @@ internal sealed partial class ProjectTaskAllocation {
     private readonly ProjectCalendarMath _taskCalendar;
     private readonly Entry[] _entries;
     private readonly Action<ProjectDiagnostic> _diagnostic;
+    private readonly ProjectIntervalBudget _intervalBudget;
+    private ProjectIntervalBudget.Scope? _intervalScope;
+    private readonly long _preparedActualIntervals;
     private readonly decimal _requestedDuration;
     private readonly decimal _actualTaskDuration, _remainingTaskDuration;
     private sealed class Entry {
@@ -35,11 +38,13 @@ internal sealed partial class ProjectTaskAllocation {
     }
     internal ProjectTaskAllocation(ProjectTask task, ProjectAssignment[] assignments, ProjectScheduleOptions options,
         Func<IEnumerable<ProjectCalendar>, ProjectCalendarMath> calendar, Action<ProjectDiagnostic> diagnostic, CancellationToken token,
-        IReadOnlyList<ProjectWorkingRange>? splits = null) {
+        ProjectIntervalBudget intervalBudget, IReadOnlyList<ProjectWorkingRange>? splits = null) {
         _task = task; _document = task.Document; _options = options; _token = token; _diagnostic = diagnostic;
+        _intervalBudget = intervalBudget;
+        using var preparation = _intervalBudget.Open(); _intervalScope = preparation;
         var projectCalendar = _document.Calendar ?? task.Calendar ?? throw new InvalidOperationException("Assignment calculation requires a project or task calendar.");
         _taskCalendar = calendar(new[] { task.Calendar ?? projectCalendar });
-        _requestedDuration = task.Duration is ProjectDuration duration ? duration.Value * ProjectXmlValue.MinutesPerUnit(duration.Unit, duration.IsElapsed, _document)
+        _requestedDuration = task.Duration is ProjectDuration duration ? duration.Minutes(ProjectXmlValue.MinutesPerUnit(duration.Unit, duration.IsElapsed, _document))
             : task.IsManual == true && task.Start.HasValue && task.Finish.HasValue ? _taskCalendar.Between(task.Start.Value, task.Finish.Value) : 0m;
         if (task.Duration?.IsElapsed == true && assignments.Any(a => a.Resource?.Type != ProjectResourceType.Cost))
             throw new NotSupportedException("Elapsed tasks with work or material resources require an explicit working-time projection.");
@@ -66,14 +71,16 @@ internal sealed partial class ProjectTaskAllocation {
             return entry;
         }).ToArray();
         _actualTaskDuration = task.ActualDuration is ProjectDuration recorded
-            ? recorded.Value * ProjectXmlValue.MinutesPerUnit(recorded.Unit, recorded.IsElapsed, _document)
+            ? recorded.Minutes(ProjectXmlValue.MinutesPerUnit(recorded.Unit, recorded.IsElapsed, _document))
             : UnionMinutes(_entries.Where(e => e.Assignment.Resource!.Type == ProjectResourceType.Work).SelectMany(e => e.ActualIntervals));
         _remainingTaskDuration = task.RemainingDuration is ProjectDuration remainingDuration
-            ? remainingDuration.Value * ProjectXmlValue.MinutesPerUnit(remainingDuration.Unit, remainingDuration.IsElapsed, _document)
+            ? remainingDuration.Minutes(ProjectXmlValue.MinutesPerUnit(remainingDuration.Unit, remainingDuration.IsElapsed, _document))
             : _requestedDuration - _actualTaskDuration;
         if (_remainingTaskDuration < 0 || Math.Abs(_requestedDuration - _actualTaskDuration - _remainingTaskDuration) > .001m)
             throw new InvalidDataException("Declared task duration must equal actual plus remaining duration; supply compatible progress inputs.");
         foreach (var entry in _entries) PrepareCurves(entry, redistribute && entry.Assignment.Resource!.Type == ProjectResourceType.Work);
+        _preparedActualIntervals = _entries.Sum(e => (long)e.ActualIntervals.Length);
+        preparation.Keep(_preparedActualIntervals); _intervalScope = null;
     }
     private void Warn(string code, string message, ProjectAssignment assignment) => _diagnostic(new ProjectDiagnostic(code,
         ProjectDiagnosticSeverity.Warning, message, "/Assignment[UID=" + assignment.Uid + "]"));

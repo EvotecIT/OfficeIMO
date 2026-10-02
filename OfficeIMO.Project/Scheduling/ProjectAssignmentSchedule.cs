@@ -5,7 +5,7 @@ namespace OfficeIMO.Project;
 /// <summary>One uninterrupted allocation on a resource's effective working calendar.</summary>
 public sealed class ProjectAssignmentInterval {
     internal ProjectAssignmentInterval(DateTime start, DateTime finish, decimal work, decimal overtime, bool actual) {
-        Start = start; Finish = finish; Work = new ProjectWork(work); OvertimeWork = new ProjectWork(overtime); IsActual = actual;
+        Start = start; Finish = finish; Work = ProjectWork.FromMinutes(work); OvertimeWork = ProjectWork.FromMinutes(overtime); IsActual = actual;
     }
     /// <summary>Inclusive local start.</summary>
     public DateTime Start { get; }
@@ -44,10 +44,10 @@ public sealed class ProjectAssignmentSchedule {
         RemainingAnchor = remainingAnchor ?? start;
         Intervals = new ReadOnlyCollection<ProjectAssignmentInterval>(intervals.ToArray());
         Costs = new ReadOnlyCollection<ProjectCostInterval>(costs.ToArray());
-        Work = new ProjectWork(Intervals.Sum(i => i.Work.Minutes)); ActualWork = new ProjectWork(Intervals.Where(i => i.IsActual).Sum(i => i.Work.Minutes));
-        RemainingWork = new ProjectWork(Work.Minutes - ActualWork.Minutes);
-        OvertimeWork = new ProjectWork(Intervals.Sum(i => i.OvertimeWork.Minutes));
-        ActualOvertimeWork = new ProjectWork(Intervals.Where(i => i.IsActual).Sum(i => i.OvertimeWork.Minutes));
+        Work = ProjectWork.FromMinutes(Intervals.Sum(i => i.Work.Minutes)); ActualWork = ProjectWork.FromMinutes(Intervals.Where(i => i.IsActual).Sum(i => i.Work.Minutes));
+        RemainingWork = ProjectWork.FromMinutes(Work.Minutes - ActualWork.Minutes);
+        OvertimeWork = ProjectWork.FromMinutes(Intervals.Sum(i => i.OvertimeWork.Minutes));
+        ActualOvertimeWork = ProjectWork.FromMinutes(Intervals.Where(i => i.IsActual).Sum(i => i.OvertimeWork.Minutes));
         Cost = cost; ActualCost = actualCost; RemainingCost = cost - actualCost; MaterialQuantity = materialQuantity;
     }
     /// <summary>Stable assignment identity in the originating project.</summary>

@@ -43,7 +43,7 @@ public sealed partial class ProjectDocument {
                 if (lastFinish.HasValue && interval.Start > lastFinish.Value)
                     update.Values.Add((1, lastFinish.Value, interval.Start, "PT0H0M0S"));
                 update.Values.Add((1, interval.Start, interval.Finish,
-                    ProjectXmlValue.Work(new ProjectWork(interval.Work.Minutes - interval.OvertimeWork.Minutes))!));
+                    ProjectXmlValue.Work(ProjectWork.FromMinutes(interval.Work.Minutes - interval.OvertimeWork.Minutes))!));
                 lastFinish = interval.Finish;
             }
             if (plan.ActualCost != target.ActualCost || result.RecalculatedActualCosts && plan.Cost.HasValue) update.ReplacedTypes.Add(6);
@@ -58,9 +58,9 @@ public sealed partial class ProjectDocument {
         internal ProjectResource Target = null!;
         internal decimal? Work, ActualWork, RemainingWork, Cost, ActualCost, RemainingCost;
         internal void Apply() {
-            Target.Work = Work.HasValue ? new ProjectWork(Work.Value) : (ProjectWork?)null;
-            Target.ActualWork = ActualWork.HasValue ? new ProjectWork(ActualWork.Value) : (ProjectWork?)null;
-            Target.RemainingWork = RemainingWork.HasValue ? new ProjectWork(RemainingWork.Value) : (ProjectWork?)null;
+            Target.Work = Work.HasValue ? ProjectWork.FromMinutes(Work.Value) : (ProjectWork?)null;
+            Target.ActualWork = ActualWork.HasValue ? ProjectWork.FromMinutes(ActualWork.Value) : (ProjectWork?)null;
+            Target.RemainingWork = RemainingWork.HasValue ? ProjectWork.FromMinutes(RemainingWork.Value) : (ProjectWork?)null;
             Target.Cost = Cost; Target.ActualCost = ActualCost; Target.RemainingCost = RemainingCost;
         }
     }

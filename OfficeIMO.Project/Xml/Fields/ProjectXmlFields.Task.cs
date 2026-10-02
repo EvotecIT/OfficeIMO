@@ -43,7 +43,7 @@ internal static partial class ProjectXmlFields {
         new ProjectXmlField<ProjectTask>("PercentWorkComplete", (m, d) => ProjectXmlValue.Integer(m.PercentWorkComplete), (m, v, d, e) => m.PercentWorkComplete = ProjectXmlValue.ParseInt(v)),
         new ProjectXmlField<ProjectTask>("PhysicalPercentComplete", (m, d) => ProjectXmlValue.Integer(m.PhysicalPercentComplete), (m, v, d, e) => m.PhysicalPercentComplete = ProjectXmlValue.ParseInt(v)),
         new ProjectXmlField<ProjectTask>("Priority", (m, d) => ProjectXmlValue.Integer(m.Priority), (m, v, d, e) => m.Priority = ProjectXmlValue.ParseInt(v)),
-        new ProjectXmlField<ProjectTask>("LevelingDelay", (m, d) => m.LevelingDelay.HasValue ? ProjectXmlValue.Number(m.LevelingDelay.Value.Value * ProjectXmlValue.MinutesPerUnit(m.LevelingDelay.Value.Unit, m.LevelingDelay.Value.IsElapsed, d) * 10m) : null,
+        new ProjectXmlField<ProjectTask>("LevelingDelay", (m, d) => m.LevelingDelay.HasValue ? ProjectXmlValue.Number(m.LevelingDelay.Value.Minutes(ProjectXmlValue.MinutesPerUnit(m.LevelingDelay.Value.Unit, m.LevelingDelay.Value.IsElapsed, d)) * 10m) : null,
             (m, v, d, e) => m.LevelingDelay = ProjectXmlValue.ParseDuration(ProjectXmlValue.Work(new ProjectWork(ProjectXmlValue.ParseNumber(v) / 10m))!,
                 (int?)e.Element(e.Name.Namespace + "LevelingDelayFormat") ?? (ProjectXmlValue.ParseNumber(v) == 0m ? 3 : throw new InvalidDataException("A nonzero leveling delay requires LevelingDelayFormat.")), d)),
         new ProjectXmlField<ProjectTask>("LevelingDelayFormat", (m, d) => m.LevelingDelay.HasValue ? ProjectXmlValue.Integer(ProjectXmlValue.DurationFormat(m.LevelingDelay.Value)) : null, (m, v, d, e) => { }),

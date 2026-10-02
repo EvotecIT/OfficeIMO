@@ -55,7 +55,7 @@ public sealed partial class ProjectDocument {
                 else if (completion == 100) earned = baseline.Cost;
                 else if (curves.Length > 0 && baselineCostCurvesValid && baseline.Start.HasValue && baseline.Duration.HasValue) {
                     var duration = baseline.Duration.Value;
-                    decimal minutes = duration.Value * ProjectXmlValue.MinutesPerUnit(duration.Unit, duration.IsElapsed, this) * completion.Value / 100m;
+                    decimal minutes = duration.Minutes(ProjectXmlValue.MinutesPerUnit(duration.Unit, duration.IsElapsed, this)) * completion.Value / 100m;
                     DateTime cutoff = BaselineDurationCutoff(task, baseline, baselineNumber, minutes, math);
                     earned = CostThrough(curves, cutoff, math, baselineTimeBases[task], cancellationToken);
                 } else Warn("Duration-based earned value requires baseline start, duration, and cost curves.");
@@ -141,7 +141,7 @@ public sealed partial class ProjectDocument {
         }
         ranges = ProjectCalendarMath.Merge(ranges);
         decimal covered = ranges.Sum(r => math.Between(r.Start, r.Finish));
-        decimal expected = duration.Value * ProjectXmlValue.MinutesPerUnit(duration.Unit, false, task.Document);
+        decimal expected = duration.Minutes(ProjectXmlValue.MinutesPerUnit(duration.Unit, false, task.Document));
         if (baseline.Finish.HasValue && Math.Abs(math.Between(baseline.Start!.Value, baseline.Finish.Value) - expected) <= .001m)
             return math.Add(baseline.Start.Value, minutes);
         if (Math.Abs(covered - expected) > .001m)
