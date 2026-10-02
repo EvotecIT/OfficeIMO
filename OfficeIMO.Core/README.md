@@ -233,6 +233,11 @@ The SVG drawing reader supports a single rectangle, rounded rectangle, circle, e
 path inside a `userSpaceOnUse` clip path, including transforms and even-odd filling. Compound clip
 unions, `objectBoundingBox` clips, and referenced or text clip geometry report unsupported features.
 Shape geometry crossing a nested SVG or symbol viewBox is retained until the viewport clip is applied.
+Local symbols without a `viewBox` retain their user coordinates and inherit paint from
+their `use` element. Symbol dimensions clip the content; they do not rescale it.
+Native import resolves omitted dimensions from the containing viewport. Caller-raster
+safety checks require explicit symbol width and height in documents with nested
+viewports or symbol references whose viewport context cannot be resolved by that check.
 
 ```csharp
 using OfficeIMO.Drawing;
@@ -527,6 +532,28 @@ if (metrics.WidthPixels > 240) {
     Console.WriteLine("The label needs wrapping or a smaller font.");
 }
 ```
+
+### Language-pattern hyphenation
+
+`OfficeTextHyphenationPatterns.GetBreakpoints(token, language)` returns optional UTF-16 breaks in
+the original word using embedded US English (`en-US`, alias `en`) or reformed German (`de-DE`,
+aliases `de`, `de-1996`, `de-DE-1996`) resources. It preserves case, surrounding punctuation and
+Unicode source offsets. The resources enforce two letters before a break, and three after it for
+US English or two for German. Empty/unsupported tags, internal punctuation, digits and tokens
+longer than 512 UTF-16 code units produce no automatic breaks. Other regional English and German
+spelling tags are unsupported.
+
+```csharp
+using OfficeIMO.Drawing;
+
+IReadOnlyList<int> breaks = OfficeTextHyphenationPatterns.GetBreakpoints("representation", "en-US");
+// 3, 5, 8, 10; the caller decides which permitted break fits the line.
+```
+
+Renderers can use the same Core result through their existing hyphenation callbacks. The explicit
+`OfficeTextHyphenationLexicon` remains available for application-owned dictionaries. Embedded
+resources are versioned in `Typography/Hyphenation/manifest.json`; their copyright and permission
+notices are retained in [the third-party notices](THIRD-PARTY-NOTICES.md).
 
 ### Reusable ink
 
