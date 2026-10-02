@@ -38,6 +38,7 @@ internal static partial class IWorkFormulaReader {
         [33] = new("COUNTIF", 2, 2),
         [39] = new("DATE", 3, 3),
         [41] = new("DAY", 1, 1),
+        [44] = new("DEGREES", 1, 1),
         [49] = new("EXACT", 2, 2),
         [50] = new("EXP", 1, 1),
         [52] = new("FALSE", 0, 0),
@@ -90,6 +91,7 @@ internal static partial class IWorkFormulaReader {
         [157] = new("TRUNC", 1, 2),
         [158] = new("UPPER", 1, 1),
         [SumFunctionIndex] = new("SUM", 1, 255),
+        [235] = new("IFERROR", 2, 2),
         [304] = new("ISNUMBER", 1, 1),
         [305] = new("ISTEXT", 1, 1),
         [328] = new("TEXTJOIN", 3, 254)

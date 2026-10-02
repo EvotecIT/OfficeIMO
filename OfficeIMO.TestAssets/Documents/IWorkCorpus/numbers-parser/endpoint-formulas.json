@@ -96,6 +96,32 @@
     {
       "sourceSheet": "Formulas",
       "sourceTable": "Tests",
+      "row": 47,
+      "column": 2,
+      "sourceFormula": "DEGREES(PI()\u00f72)",
+      "cachedValue": 90.0,
+      "computedCurrentValue": 90.0,
+      "functionIndex": 44,
+      "functionName": "DEGREES",
+      "argumentCount": 1,
+      "excelFormula": "DEGREES(PI()/2)"
+    },
+    {
+      "sourceSheet": "Formulas",
+      "sourceTable": "Tests",
+      "row": 68,
+      "column": 2,
+      "sourceFormula": "IFERROR(1\u00f70,\"DIV ZERO\")",
+      "cachedValue": "DIV ZERO",
+      "computedCurrentValue": "DIV ZERO",
+      "functionIndex": 235,
+      "functionName": "IFERROR",
+      "argumentCount": 2,
+      "excelFormula": "IFERROR(1/0,\"DIV ZERO\")"
+    },
+    {
+      "sourceSheet": "Formulas",
+      "sourceTable": "Tests",
       "row": 95,
       "column": 2,
       "sourceFormula": "NOT(0)",

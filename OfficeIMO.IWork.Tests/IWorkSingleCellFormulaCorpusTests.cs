@@ -61,6 +61,14 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
         }
         ExcelSheet formulas = reopened.Sheets.Single(sheet => sheet.Name == Name("Formulas", "Tests"));
         ExcelSheet data = reopened.Sheets.Single(sheet => sheet.Name == Name("Formulas", "Data"));
+        // Replace only these qualified scalar caches, retaining their native expressions,
+        // so a preserved producer cache cannot masquerade as local recalculation.
+        foreach (JsonElement expected in manifest.RootElement.GetProperty("scalarFunctionCases").EnumerateArray()) {
+            int row = expected.GetProperty("row").GetInt32();
+            string expression = formulas.GetFormulaText(row, 2)!;
+            formulas.CellValue(row, 2, -999d);
+            formulas.CellFormula(row, 2, expression);
+        }
         data.CellValue(3, 3, 80d);
         Assert.True(reopened.Calculate() > 0);
         Assert.Equal(80d, formulas.CellAt(79, 2).GetValue<double>());
@@ -128,11 +136,13 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
 
     private static void AssertSavedScalarFunction(ExcelDocument document, ExcelSheet sheet, JsonElement expected) {
         int row = expected.GetProperty("row").GetInt32(), column = expected.GetProperty("column").GetInt32();
-        Assert.Equal(expected.GetProperty("sourceFormula").GetString(), sheet.GetFormulaText(row, column));
+        Assert.Equal(expected.TryGetProperty("excelFormula", out JsonElement formula) ? formula.GetString()
+            : expected.GetProperty("sourceFormula").GetString(), sheet.GetFormulaText(row, column));
         object value = ScalarValue(expected.GetProperty("cachedValue"));
-        object actual = value is bool ? sheet.CellAt(row, column).GetValue<bool>() : sheet.CellAt(row, column).GetValue<string>()!;
+        object actual = value is bool ? sheet.CellAt(row, column).GetValue<bool>()
+            : value is double ? sheet.CellAt(row, column).GetValue<double>() : sheet.CellAt(row, column).GetValue<string>()!;
         Assert.Equal(value, actual);
-        IWorkFormulaCacheAssertions.HasType(document, document.Sheets.ToList().IndexOf(sheet), "B" + row, value is bool ? "b" : "str");
+        IWorkFormulaCacheAssertions.HasType(document, document.Sheets.ToList().IndexOf(sheet), "B" + row, value is bool ? "b" : value is double ? "n" : "str");
     }
 
     private static object ScalarValue(JsonElement value) => value.ValueKind == JsonValueKind.String

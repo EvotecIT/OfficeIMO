@@ -30,7 +30,7 @@ qualified = {
          [('Information', 2), ('Information', 5), ('Information', 10), ('Information', 13), ('Information', 14), ('Text', 6), ('Reference', 16), ('Reference', 17), ('Reference', 48), ('Reference', 50), ('Reference', 51), ('Text', 9), ('Text', 10), ('Text', 21), ('Text', 43)]),
     '3deb8e3b868be60d7b8924336d2839fcd690db2b138e6c2170d6c22c4aca48dc':
         ('test-extra-formulas.numbers', [('Formulas', 29), ('Formulas', 79), ('Formulas', 102)],
-         [('Formulas', 95), ('Formulas', 145)])
+         [('Formulas', 47), ('Formulas', 68), ('Formulas', 95), ('Formulas', 145)])
 }
 if source_hash not in qualified:
     raise RuntimeError('The source differs from the pinned independent fixture.')
@@ -110,9 +110,24 @@ for sheet_name, row in scalar_selections:
     assert function.AST_node_type == 16
     name = FUNCTION_MAP[function.AST_function_node_index]
     arguments = nodes[:-1]
-    if name != 'ISERROR':
+    excel_formula = None
+    if name not in ('ISERROR', 'IFERROR', 'DEGREES'):
         assert function.AST_function_node_numArgs == len(arguments)
-    if name == 'ISERROR':
+    if name == 'DEGREES':
+        assert function.AST_function_node_numArgs == 1
+        assert [n.AST_node_type for n in arguments] == [16, 17, 4]
+        assert FUNCTION_MAP[arguments[0].AST_function_node_index] == 'PI' and arguments[0].AST_function_node_numArgs == 0
+        assert arguments[1].AST_number_node_number == 2 and cell.formula == 'DEGREES(PI()÷2)'
+        computed = math.degrees(math.pi / 2)
+        excel_formula = 'DEGREES(PI()/2)'
+    elif name == 'IFERROR':
+        assert function.AST_function_node_numArgs == 2
+        assert [n.AST_node_type for n in arguments] == [17, 17, 4, 19]
+        assert arguments[0].AST_number_node_number == 1 and arguments[1].AST_number_node_number == 0
+        assert cell.formula == 'IFERROR(1÷0,"DIV ZERO")'
+        computed = arguments[3].AST_string_node_string
+        excel_formula = 'IFERROR(1/0,"DIV ZERO")'
+    elif name == 'ISERROR':
         assert function.AST_function_node_numArgs == 1
         assert [n.AST_node_type for n in arguments] == [17, 17, 4]
         assert arguments[0].AST_number_node_number == 1 and arguments[1].AST_number_node_number == 0
@@ -156,7 +171,9 @@ for sheet_name, row in scalar_selections:
                          'functionIndex': function.AST_function_node_index,
                          'functionName': name, 'argumentCount': function.AST_function_node_numArgs})
     if name == 'ISERROR':
-        scalar_cases[-1]['excelFormula'] = 'ISERROR(1/0)'
+        excel_formula = 'ISERROR(1/0)'
+    if excel_formula is not None:
+        scalar_cases[-1]['excelFormula'] = excel_formula
 def stored_decimal128(cell):
     # Inspect the unchanged v5 buffer exposed by the independent reader. Its
     # float unpacker multiplies by a binary 10**exponent, which can add a rounding
