@@ -38,6 +38,8 @@ public sealed partial class IWorkBoundaryTests {
         ulong[] filterIds = expected.GetProperty("tables").EnumerateArray()
             .SelectMany(table => table.GetProperty("extents").EnumerateArray())
             .Select(extent => extent.GetProperty("filterIdentifier").GetUInt64()).ToArray();
+        Assert.All(filterIds.Distinct(), id => Assert.Equal(6220u,
+            Assert.Single(source.Records, record => record.Identifier == id && record.PayloadIndex == 0).MessageType));
         Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_HIDDEN_STATES_UNASSESSED");
         Assert.DoesNotContain(declarations, issue => filterIds.Contains(issue.Owner.RecordIdentifier)
             || modelIds.Contains(issue.Owner.RecordIdentifier) && (issue.FieldPath == "38" || issue.FieldPath.StartsWith("70", StringComparison.Ordinal)));

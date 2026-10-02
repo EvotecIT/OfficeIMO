@@ -22,6 +22,8 @@ public sealed partial class IWorkBoundaryTests {
         saved.Position = 0;
         using var archive = new ZipArchive(saved, ZipArchiveMode.Read, leaveOpen: true);
         foreach (JsonElement expected in manifest.RootElement.GetProperty("tables").EnumerateArray()) {
+            Assert.Equal(6267u, Assert.Single(source.Records, record => record.Identifier == expected.GetProperty("mapIdentifier").GetUInt64()
+                && record.PayloadIndex == 0).MessageType);
             int ordinal = Array.FindIndex(tables, table => table.ModelRecord!.Identifier == expected.GetProperty("modelIdentifier").GetUInt64());
             Assert.True(ordinal >= 0);
             IWorkTable table = tables[ordinal];
@@ -136,11 +138,11 @@ public sealed partial class IWorkBoundaryTests {
 
     private static byte[] VisibilityUuid(ulong lower, ulong upper = 10) => Message(VarintField(1, lower), VarintField(2, upper));
 
-    private static MemoryStream MappedHiddenPackage(IWorkDocumentKind kind, byte[]? rowMap = null, byte[]? rowStates = null) =>
+    private static MemoryStream MappedHiddenPackage(IWorkDocumentKind kind, byte[]? rowMap = null, byte[]? rowStates = null, uint mapType = 6267, bool repeatModel = false) =>
         HiddenStatePackage(kind, HiddenOwner(
             rowFields: rowStates ?? BytesField(2, Message(BytesField(1, VisibilityUuid(2)), VarintField(2, 1))),
             columnFields: BytesField(2, Message(BytesField(1, VisibilityUuid(100)), VarintField(2, 1)))),
-            modelFields: ReferenceField(46, 30), records: ArchiveRecord(30, 6267, Message(
+            repeatModel: repeatModel, modelFields: ReferenceField(46, 30), records: ArchiveRecord(30, mapType, Message(
                 BytesField(1, VisibilityUuid(100)), VarintField(2, 0), VarintField(3, 0),
                 rowMap ?? Message(BytesField(4, VisibilityUuid(1)), BytesField(4, VisibilityUuid(2)), BytesField(4, VisibilityUuid(3)),
                     VarintField(5, 2), VarintField(5, 0), VarintField(5, 1), VarintField(6, 1), VarintField(6, 2), VarintField(6, 0)))));

@@ -10,7 +10,7 @@ internal static class IWorkTableVisibilityMap {
         hidden = Array.Empty<int>();
         if (!modelMessage.HasField(46)) return false;
         budget.AddTableDimensionEntries(modelMessage.FieldCount(46));
-        IWorkArchiveRecord? record = references.ReadOne(model, modelMessage, 46, "46");
+        IWorkArchiveRecord? record = references.ReadOne(model, modelMessage, 46, "46", static type => type == 6267);
         if (record == null) return false;
         if (record.MessageType != 6267) {
             references.Declarations.Record(record, "$", null, IWorkSourceDeclarationIssueKind.RejectedMessageSet);

@@ -114,7 +114,7 @@ internal static partial class IWorkTableReader {
         IWorkSourceReferenceIssueCollector references, ref bool complete) {
         if (!message.HasField(field)) return;
         budget.AddTableDimensionEntries(message.FieldCount(field));
-        IWorkArchiveRecord? filter = references.ReadOne(owner, message, field, path);
+        IWorkArchiveRecord? filter = references.ReadOne(owner, message, field, path, static type => type == FilterSetArchive);
         if (filter == null) { complete = false; return; }
         if (filter.MessageType != FilterSetArchive) {
             complete = false;
