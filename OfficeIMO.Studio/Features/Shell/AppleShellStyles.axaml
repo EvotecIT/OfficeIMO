@@ -1,0 +1,19 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- The same navigation commands use a labelled sidebar on macOS. -->
+  <Style Selector="Window.apple Grid#NavigationRail"><Setter Property="Margin" Value="10,12,10,12" /><Setter Property="RowSpacing" Value="4" /></Style>
+  <Style Selector="Window.apple Grid#NavigationRail ToggleButton.nav"><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="MinHeight" Value="38" /><Setter Property="Padding" Value="12,8" /><Setter Property="CornerRadius" Value="7" /></Style>
+  <Style Selector="Window.apple Grid#NavigationRail StackPanel.navLabel"><Setter Property="Orientation" Value="Horizontal" /><Setter Property="Spacing" Value="12" /><Setter Property="HorizontalAlignment" Value="Left" /></Style>
+  <Style Selector="Window.apple Grid#NavigationRail ToggleButton.nav TextBlock"><Setter Property="FontSize" Value="13" /><Setter Property="MaxWidth" Value="150" /><Setter Property="TextAlignment" Value="Left" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
+  <Style Selector="Window.apple Border.railIndicator"><Setter Property="IsVisible" Value="False" /></Style>
+  <Style Selector="Window.apple Grid#NavigationRail ToggleButton.nav:checked /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
+  <Style Selector="Window.apple Grid#NavigationRail ToggleButton.nav:checked"><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
+  <Style Selector="Window.apple Border.documentTab"><Setter Property="CornerRadius" Value="7" /><Setter Property="Height" Value="32" /></Style>
+  <Style Selector="Window.apple TextBlock.pageTitle"><Setter Property="FontSize" Value="26" /></Style>
+  <Style Selector="Window.apple Border.kbd"><Setter Property="BorderThickness" Value="1" /></Style>
+  <Style Selector="Window.apple Border.kbd TextBlock"><Setter Property="FontFamily" Value="Helvetica Neue" /></Style>
+  <Style Selector="Window.narrow Button.touchNav, Window.narrow ToggleButton.touchNav"><Setter Property="MinHeight" Value="52" /><Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="Padding" Value="2,4" /></Style>
+  <Style Selector="Window.narrow Button.icon, Window.narrow ToggleButton.icon"><Setter Property="MinWidth" Value="44" /><Setter Property="MinHeight" Value="44" /></Style>
+  <Style Selector="Window.narrow Button.tool, Window.narrow Button.primary, Window.narrow ComboBox"><Setter Property="MinHeight" Value="44" /></Style>
+  <Style Selector="Window.narrow Border.kbd"><Setter Property="IsVisible" Value="False" /></Style>
+  <Style Selector="Window.narrow TextBlock.pageTitle"><Setter Property="FontSize" Value="24" /></Style>
+</Styles>

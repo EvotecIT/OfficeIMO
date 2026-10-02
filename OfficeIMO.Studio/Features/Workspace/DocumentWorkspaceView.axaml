@@ -10,6 +10,10 @@
              x:Class="OfficeIMO.Studio.Features.Workspace.DocumentWorkspaceView"
              x:DataType="shell:MainWindowViewModel">
   <UserControl.Styles>
+    <Style Selector=".phone :is(Control).secondaryAction"><Setter Property="IsVisible" Value="False" /></Style>
+    <Style Selector=".phone :is(Control).zoomDetail"><Setter Property="IsVisible" Value="False" /></Style>
+    <Style Selector=".phone Button#SaveButton TextBlock"><Setter Property="IsVisible" Value="False" /></Style>
+
     <Style Selector="ListBox#OrganizerList">
       <Setter Property="ItemsPanel"><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></Setter>
     </Style>
@@ -64,7 +68,7 @@
     <!-- One command row: panes, mode, the mode's tools, and document actions. -->
     <Border x:Name="CommandRow" Grid.Row="0" IsVisible="{Binding !IsFocusReading}" Background="{DynamicResource StudioPanelBrush}"
             BorderBrush="{DynamicResource StudioSubtleBorderBrush}" BorderThickness="0,0,0,1" Padding="8,7" MinHeight="48">
-      <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
+      <Grid x:Name="DocumentCommandGrid" ColumnDefinitions="Auto,Auto,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="4">
         <ToggleButton x:Name="NavigationToggle" Classes="icon" IsChecked="True" Click="OnNavigationToggleClick" VerticalAlignment="Center"
                       AutomationProperties.Name="{loc:Loc DocumentWorkspace.Navigation}" ToolTip.Tip="{loc:Loc DocumentWorkspace.Navigation}">
           <PathIcon Data="{StaticResource IconPanelLeft}" />
@@ -96,7 +100,7 @@
           </Border>
         </Panel>
 
-        <Panel Grid.Column="2" VerticalAlignment="Center" Margin="4,0,0,0">
+        <Panel x:Name="ContextTools" Grid.Column="2" VerticalAlignment="Center" Margin="4,0,0,0">
           <!-- Annotate: one active tool at a time, with single-key shortcuts. -->
           <WrapPanel IsVisible="{Binding IsAnnotateDocumentMode}" ItemSpacing="1" LineSpacing="4">
             <infra:StudioRadioToggle Classes="cmd" Command="{Binding SelectEditorToolCommand}" CommandParameter="Select"
@@ -351,24 +355,31 @@
           </WrapPanel>
         </Panel>
 
-        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
-          <Button Classes="icon" Command="{Binding Commands[Undo]}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Undo}" ToolTip.Tip="{loc:Loc Shell.UndoTip}">
+        <StackPanel x:Name="DocumentActions" Grid.Column="3" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+          <Button Classes="icon secondaryAction" Command="{Binding Commands[Undo]}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Undo}" ToolTip.Tip="{loc:Loc Shell.UndoTip}">
             <PathIcon Data="{StaticResource IconUndo}" />
           </Button>
-          <Button Classes="icon" Command="{Binding Commands[Redo]}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Redo}" ToolTip.Tip="{loc:Loc Shell.RedoTip}">
+          <Button Classes="icon secondaryAction" Command="{Binding Commands[Redo]}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Redo}" ToolTip.Tip="{loc:Loc Shell.RedoTip}">
             <PathIcon Data="{StaticResource IconRedo}" />
           </Button>
-          <Border Classes="separator" />
-          <Button Classes="icon" Click="OnFindClick" AutomationProperties.Name="{loc:Loc MainWindow.Find}" ToolTip.Tip="{loc:Loc Shell.FindTip}">
+          <Border Classes="separator secondaryAction" />
+          <Button Classes="icon secondaryAction" Click="OnFindClick" AutomationProperties.Name="{loc:Loc MainWindow.Find}" ToolTip.Tip="{loc:Loc Shell.FindTip}">
             <PathIcon Data="{StaticResource IconSearch}" />
           </Button>
-          <Button Classes="icon" Command="{Binding Commands[SaveAs]}" AutomationProperties.Name="{loc:Loc MainWindow.SaveAs}" ToolTip.Tip="{loc:Loc Shell.SaveAsTip}">
+          <Button Classes="icon secondaryAction" Command="{Binding Commands[SaveAs]}" AutomationProperties.Name="{loc:Loc MainWindow.SaveAs}" ToolTip.Tip="{loc:Loc Shell.SaveAsTip}">
             <PathIcon Data="{StaticResource IconSaveCopy}" />
           </Button>
           <Button x:Name="DocumentMenuButton" Classes="icon" AutomationProperties.Name="{loc:Loc Export.Menu}" ToolTip.Tip="{loc:Loc Export.Menu}" IsEnabled="{Binding HasDocument}">
             <PathIcon Data="{StaticResource IconMore}" />
             <Button.Flyout>
               <MenuFlyout Placement="BottomEdgeAlignedRight">
+                <MenuItem Header="{loc:Loc DocumentWorkspace.Undo}" Command="{Binding Commands[Undo]}" />
+                <MenuItem Header="{loc:Loc DocumentWorkspace.Redo}" Command="{Binding Commands[Redo]}" />
+                <MenuItem Header="{loc:Loc MainWindow.SaveAs}" Command="{Binding Commands[SaveAs]}" />
+                <MenuItem Header="{loc:Loc MainWindow.Find}" Click="OnFindClick" />
+                <MenuItem Header="{loc:Loc DocumentWorkspace.FitPage}" Command="{Binding Commands[FitPage]}" />
+                <MenuItem Header="{loc:Loc DocumentWorkspace.FitWidth}" Command="{Binding Commands[FitWidth]}" />
+                <Separator />
                 <MenuItem Header="{loc:Loc Export.Markdown}" Command="{Binding ExportDocumentCommand}" CommandParameter="Markdown" />
                 <MenuItem Header="{loc:Loc Export.Text}" Command="{Binding ExportDocumentCommand}" CommandParameter="Text" />
                 <MenuItem Header="{loc:Loc Export.Json}" Command="{Binding ExportDocumentCommand}" CommandParameter="Json" />
@@ -393,8 +404,8 @@
               <TextBlock Classes="cmdLabel" Margin="0" Text="{loc:Loc DocumentWorkspace.Save}" VerticalAlignment="Center" />
             </StackPanel>
           </Button>
-          <Border Classes="separator" />
-          <infra:StudioRadioToggle Classes="icon" Command="{Binding Commands[FocusReading]}" IsChecked="{Binding IsFocusReading, Mode=OneWay}"
+          <Border Classes="separator secondaryAction" />
+          <infra:StudioRadioToggle Classes="icon secondaryAction" Command="{Binding Commands[FocusReading]}" IsChecked="{Binding IsFocusReading, Mode=OneWay}"
                         AutomationProperties.Name="{loc:Loc Commands.FocusReading.Title}" ToolTip.Tip="{loc:Loc Shell.FocusTip}">
             <PathIcon Data="{StaticResource IconFocus}" />
           </infra:StudioRadioToggle>
@@ -422,7 +433,7 @@
         </StackPanel>
       </Border>
 
-      <Grid x:Name="NavigationPane" Grid.Column="0" ClipToBounds="True">
+      <Grid x:Name="NavigationPane" Grid.Column="0" ClipToBounds="True" Background="{DynamicResource StudioPanelBrush}">
         <Border IsVisible="{Binding HasDocument}" Background="{DynamicResource StudioPanelBrush}"
                 BorderBrush="{DynamicResource StudioSubtleBorderBrush}" BorderThickness="0,0,1,0">
           <Grid>
@@ -735,16 +746,16 @@
                     AutomationProperties.Name="{loc:Loc DocumentWorkspace.Next}" ToolTip.Tip="{loc:Loc DocumentWorkspace.Next}">
               <PathIcon Data="{StaticResource IconChevronRight}" />
             </Button>
-            <Border Classes="separator" />
-            <Button Classes="icon" Command="{Binding Commands[ZoomOut]}" AutomationProperties.Name="{Binding Commands[ZoomOut].Title}" ToolTip.Tip="{Binding Commands[ZoomOut].Title}">
+            <Border Classes="separator zoomDetail" />
+            <Button Classes="icon zoomDetail" Command="{Binding Commands[ZoomOut]}" AutomationProperties.Name="{Binding Commands[ZoomOut].Title}" ToolTip.Tip="{Binding Commands[ZoomOut].Title}">
               <PathIcon Data="{StaticResource IconMinus}" />
             </Button>
-            <Button Classes="tool" Command="{Binding Commands[ActualSize]}" Content="{Binding ZoomLabel}" MinWidth="58"
+            <Button Classes="tool zoomDetail" Command="{Binding Commands[ActualSize]}" Content="{Binding ZoomLabel}" MinWidth="58"
                     AutomationProperties.Name="{Binding Commands[ActualSize].Title}" ToolTip.Tip="{Binding Commands[ActualSize].Title}" />
-            <Button Classes="icon" Command="{Binding Commands[ZoomIn]}" AutomationProperties.Name="{Binding Commands[ZoomIn].Title}" ToolTip.Tip="{Binding Commands[ZoomIn].Title}">
+            <Button Classes="icon zoomDetail" Command="{Binding Commands[ZoomIn]}" AutomationProperties.Name="{Binding Commands[ZoomIn].Title}" ToolTip.Tip="{Binding Commands[ZoomIn].Title}">
               <PathIcon Data="{StaticResource IconPlus}" />
             </Button>
-            <Border Classes="separator" />
+            <Border Classes="separator zoomDetail" />
             <Button x:Name="FitWidthButton" Classes="tool" Command="{Binding Commands[FitWidth]}" MinWidth="32" Padding="6,0"
                     AutomationProperties.Name="{loc:Loc DocumentWorkspace.FitWidth}" ToolTip.Tip="{loc:Loc DocumentWorkspace.FitWidth}">
               <PathIcon Data="{StaticResource IconFitWidth}" Width="16" Height="16" />
@@ -772,7 +783,7 @@
       <GridSplitter x:Name="InspectorSplitter" Grid.Column="2" Width="5" HorizontalAlignment="Left"
                     ResizeDirection="Columns" ResizeBehavior="PreviousAndCurrent" Background="Transparent"
                     AutomationProperties.Name="{loc:Loc DocumentWorkspace.ResizeProperties}" ZIndex="1" />
-      <Grid x:Name="InspectorPane" Grid.Column="2" ClipToBounds="True">
+      <Grid x:Name="InspectorPane" Grid.Column="2" ClipToBounds="True" Background="{DynamicResource StudioPanelBrush}">
         <Border IsVisible="{Binding HasDocument}" Background="{DynamicResource StudioPanelBrush}"
                 BorderBrush="{DynamicResource StudioSubtleBorderBrush}" BorderThickness="1,0,0,0">
           <ScrollViewer VerticalScrollBarVisibility="Auto">

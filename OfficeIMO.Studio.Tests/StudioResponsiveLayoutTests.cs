@@ -97,19 +97,19 @@ public sealed class StudioResponsiveLayoutTests {
                 var inspectorToggle = workspace.FindControl<ToggleButton>("InspectorToggle")!;
                 Assert.False(navigation.IsVisible, $"Window {window.Bounds}, workspace {workspace.Bounds}");
                 Assert.False(inspector.IsVisible);
-                Assert.True(window.ReaderPagesListControl.Bounds.Width >= 800);
+                Assert.True(window.ReaderPagesListControl.Bounds.Width >= workspace.Bounds.Width - 30);
 
                 Toggle(navigationToggle);
                 Layout(window, 960, 620);
                 Assert.True(navigation.IsVisible);
                 Assert.False(inspector.IsVisible);
-                Assert.True(window.ReaderPagesListControl.Bounds.Width >= 580);
+                Assert.True(window.ReaderPagesListControl.Bounds.Width >= workspace.Bounds.Width - navigation.Bounds.Width - 30);
 
                 Toggle(inspectorToggle);
                 Layout(window, 960, 620);
                 Assert.False(navigation.IsVisible, $"Window {window.Bounds}, workspace {workspace.Bounds}");
                 Assert.True(inspector.IsVisible);
-                Assert.True(window.ReaderPagesListControl.Bounds.Width >= 520);
+                Assert.True(window.ReaderPagesListControl.Bounds.Width >= workspace.Bounds.Width - inspector.Bounds.Width - 30);
 
                 workspace.FocusSearch();
                 Layout(window, 960, 620);
@@ -125,7 +125,8 @@ public sealed class StudioResponsiveLayoutTests {
                 window.ViewModel.ShowAnnotateModeCommand.Execute(null);
                 Layout(window, 1600, 900);
                 Assert.True(inspector.IsVisible);
-                Assert.True(window.ReaderPagesListControl.Bounds.Width >= 900);
+                Assert.True(window.ReaderPagesListControl.Bounds.Width >=
+                    workspace.Bounds.Width - navigation.Bounds.Width - inspector.Bounds.Width - 30);
             } finally {
                 window.Close();
             }

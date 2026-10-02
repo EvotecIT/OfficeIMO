@@ -18,7 +18,7 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
         string? Idle() => document.CanStartDocumentTransition ? null : Text("Busy", "Wait for the current document operation or cancel it.");
         string? Loaded() => Idle() ?? (!document.HasDocument ? Text("OpenFirst", "Open a PDF to use this command.") : null);
         string? Allowed(bool value) => Loaded() ?? (!value ? Text("Unsupported", "This document does not allow this operation. Inspect its protection and supported content.") : null);
-        string modifier = OperatingSystem.IsMacOS() ? "⌘" : "Ctrl+";
+        string modifier = OperatingSystem.IsMacOS() || OperatingSystem.IsIOS() ? "⌘" : "Ctrl+";
         void Add(string id, string title, string description, string category, ICommand operation,
             Func<string?>? guard = null, bool tool = false, string shortcut = "", bool workspace = false) {
             _byId.Add(id, new StudioCommandItem(id, Text(id + ".Title", title), Text(id + ".Description", description),
@@ -29,11 +29,11 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
         Add("Open", "Open PDF", "Open a PDF in a document tab.", "File", document.OpenCommand, shortcut: modifier + "O");
         Add("Save", "Save", "Save changes to the current document.", "File", document.SaveCommand,
             () => Loaded() ?? (!document.IsDirty ? Text("NoChanges", "There are no unsaved changes.") : null), shortcut: modifier + "S");
-        Add("SaveAs", "Save a copy", "Choose a destination for this document.", "File", document.SaveAsCommand, Loaded, shortcut: modifier + "Shift+S");
+        Add("SaveAs", "Save a copy", "Choose a destination for this document.", "File", document.SaveAsCommand, Loaded, shortcut: StudioShortcutLabels.Format("Ctrl+Shift+S"));
         Add("Undo", "Undo", "Undo the last document edit.", "Edit", document.UndoCommand,
             () => Loaded() ?? (!document.CanUndo ? Text("NoUndo", "There is no edit to undo.") : null), shortcut: modifier + "Z");
         Add("Redo", "Redo", "Restore the last undone edit.", "Edit", document.RedoCommand,
-            () => Loaded() ?? (!document.CanRedo ? Text("NoRedo", "There is no edit to redo.") : null), shortcut: modifier + "Shift+Z");
+            () => Loaded() ?? (!document.CanRedo ? Text("NoRedo", "There is no edit to redo.") : null), shortcut: StudioShortcutLabels.Format("Ctrl+Shift+Z"));
         Add("Read", "Read document", "Return to the document reading workspace.", "Read", document.ShowViewModeCommand, Loaded, workspace: true);
         Add("FocusReading", "Focus reading", "Hide document tools and panes, or restore the workspace.", "Read", document.ToggleFocusReadingCommand, Loaded, shortcut: "F9");
         Add("Comment", "Comment and review", "Add annotations and review existing comments.", "Review", document.ShowAnnotateModeCommand, Loaded, true, workspace: true);
@@ -42,9 +42,9 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
         Add("MovePages", "Move selected pages", "Preview moving selected pages before another page or to the end.", "Organize", document.MoveSelectedToCommand,
             () => Allowed(document.CanMutateSelection));
         Add("MovePagesUp", "Move selected pages up", "Move selected runs one position toward the beginning.", "Organize", document.MoveSelectedUpCommand,
-            () => Allowed(document.CanMutateSelection), shortcut: "Alt+↑ (page list)");
+            () => Allowed(document.CanMutateSelection), shortcut: StudioShortcutLabels.Format("Alt+↑ (page list)"));
         Add("MovePagesDown", "Move selected pages down", "Move selected runs one position toward the end.", "Organize", document.MoveSelectedDownCommand,
-            () => Allowed(document.CanMutateSelection), shortcut: "Alt+↓ (page list)");
+            () => Allowed(document.CanMutateSelection), shortcut: StudioShortcutLabels.Format("Alt+↓ (page list)"));
         Add("RotatePagesLeft", "Rotate selected pages left", "Turn the selected pages 90 degrees counterclockwise.", "Organize", document.RotateLeftCommand,
             () => Allowed(document.CanMutateSelection));
         Add("RotatePagesRight", "Rotate selected pages right", "Turn the selected pages 90 degrees clockwise.", "Organize", document.RotateRightCommand,

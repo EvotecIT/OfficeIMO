@@ -12,6 +12,12 @@ public sealed partial class PdfPageView : UserControl {
 
     public PdfPageView() {
         InitializeComponent();
+        if (OperatingSystem.IsMacOS() || OperatingSystem.IsIOS()) {
+            foreach (var item in PageMenu.Items.OfType<MenuItem>()) {
+                if (item.InputGesture is { } gesture && gesture.KeyModifiers == KeyModifiers.Control)
+                    item.InputGesture = new KeyGesture(gesture.Key, KeyModifiers.Meta);
+            }
+        }
         PageCanvas.LinkActivated += OnLinkActivated;
         PageCanvas.EditorGestureCompleted += OnEditorGestureCompleted;
         PageCanvas.ObjectSelected += OnObjectSelected;

@@ -47,11 +47,13 @@ public sealed partial class MainWindow : Window {
             if (change.Property == SplitView.IsPaneOpenProperty) ApplyResponsiveLayout(Bounds.Width);
         };
         DocumentTabs.DataContext = TabHost;
+        CompactDocumentPicker.DataContext = TabHost;
         OpenDocumentTabButton.DataContext = TabHost;
         AppTitleText.DataContext = TabHost;
         DataContext = ViewModel;
         CommandSearchShortcut.Text = OperatingSystem.IsMacOS() ? "⌘K" : "Ctrl K";
         InitializeChrome();
+        InitializeAppleShell();
         AttachOperationToast(ViewModel);
 
         SizeChanged += OnWindowSizeChanged;
@@ -148,6 +150,7 @@ public sealed partial class MainWindow : Window {
             DetachOperationToast(ViewModel);
             ViewModel = document;
             DataContext = document;
+            RefreshNativeMenus();
             AttachOperationToast(document);
             ClearOrganizerDrag();
             document.SetViewportSize(PagesList.Bounds.Width, PagesList.Bounds.Height);
@@ -179,16 +182,6 @@ public sealed partial class MainWindow : Window {
     private Button FitPageButton => DocumentWorkspace.FitPageButtonControl;
 
     private void OnWindowSizeChanged(object? sender, SizeChangedEventArgs e) => ApplyResponsiveLayout(e.NewSize.Width);
-
-    internal void ApplyResponsiveLayout(double width) {
-        AssistantHost.DisplayMode = width >= 1500D ? SplitViewDisplayMode.Inline : SplitViewDisplayMode.Overlay;
-        IsCompactLayout = width < 1180D;
-        double workspaceWidth = Math.Max(0D, width - 72D - (width >= 1500D && AssistantHost.IsPaneOpen ? 400D : 0D));
-        CommandSearchButton.Width = width < 1180D ? 200D : 300D;
-        DocumentWorkspace.ApplyResponsiveLayout(workspaceWidth);
-        ConversionView.ApplyResponsiveLayout(workspaceWidth);
-        DocumentHealthView.ApplyResponsiveLayout(workspaceWidth);
-    }
 
     private void OnFindClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => FocusDocumentSearch();
 
@@ -250,7 +243,6 @@ public sealed partial class MainWindow : Window {
         bool extended = IsExtendedIntoWindowDecorations;
         if (OperatingSystem.IsMacOS()) {
             CaptionButtonsSpacer.Width = 0;
-            ShellRoot.ColumnDefinitions[0].Width = new GridLength(extended ? 80 : 72);
         } else {
             CaptionButtonsSpacer.Width = extended ? 138 : 0;
         }
@@ -290,7 +282,8 @@ public sealed partial class MainWindow : Window {
             e.Handled = true;
             return;
         }
-        bool primaryModifier = e.KeyModifiers.HasFlag(OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control);
+        KeyModifiers primary = OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control;
+        bool primaryModifier = e.KeyModifiers == primary || e.KeyModifiers == (primary | KeyModifiers.Shift);
         if (primaryModifier && (e.Key == Key.K || (e.KeyModifiers.HasFlag(KeyModifiers.Shift) && e.Key == Key.P))) {
             await ShowCommandPaletteAsync();
             e.Handled = true;
@@ -302,13 +295,18 @@ public sealed partial class MainWindow : Window {
             return;
         }
 
-        if (primaryModifier && e.Key == Key.Tab) {
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.Key == Key.Tab) {
             TabHost.SelectRelativeTab(e.KeyModifiers.HasFlag(KeyModifiers.Shift));
             e.Handled = true;
             return;
         }
         if (primaryModifier && e.KeyModifiers.HasFlag(KeyModifiers.Shift) && e.Key == Key.T) {
             await TabHost.ReopenClosedTabAsync();
+            e.Handled = true;
+            return;
+        }
+        if (primaryModifier && e.Key == Key.OemComma) {
+            ViewModel.Commands["Settings"].Execute(null);
             e.Handled = true;
             return;
         }

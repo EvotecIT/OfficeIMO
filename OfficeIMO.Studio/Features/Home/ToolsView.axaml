@@ -6,6 +6,7 @@
              x:Class="OfficeIMO.Studio.Features.Home.ToolsView"
              x:DataType="shell:MainWindowViewModel">
   <UserControl.Styles>
+    <Style Selector="StackPanel.pageContent"><Setter Property="Margin" Value="36,28,36,36" /></Style>
     <Style Selector="Button.toolCard">
       <Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource StudioSubtleBorderBrush}" />
@@ -34,7 +35,7 @@
     <Style Selector="Button.toolCard:disabled"><Setter Property="Opacity" Value="0.7" /></Style>
   </UserControl.Styles>
   <ScrollViewer Background="{DynamicResource StudioPanelBrush}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-    <StackPanel Margin="36,28,36,36" Spacing="18" MaxWidth="1180" HorizontalAlignment="Stretch">
+    <StackPanel x:Name="ToolsContent" Classes="pageContent" Spacing="18" MaxWidth="1180" HorizontalAlignment="Stretch">
       <StackPanel Spacing="4">
         <TextBlock Text="{loc:Loc Tools.Tools}" Classes="pageTitle" />
         <TextBlock Text="{loc:Loc Tools.Introduction}" Classes="muted" />
