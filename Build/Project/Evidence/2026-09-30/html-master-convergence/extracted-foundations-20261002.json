@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "aa4072773b935a2885788464278b454d5583853e",
+  "masterCommit": "9f9b4952106734b138761c4832ecb67919d0778a",
+  "mergedPullRequests": [
+    2684,
+    2685,
+    2686
+  ],
+  "integrationDelta": "Pinned hyphenation generator uses UTF-8 LF output and portable manifest paths; integration-only AVIF resources and SVG capabilities retained.",
+  "validation": {
+    "framework": "net10.0",
+    "filter": "FullyQualifiedName~Hyphenation|FullyQualifiedName~SvgSymbol",
+    "passed": 29,
+    "failed": 0,
+    "buildOverride": "DeterministicSourcePaths=false",
+    "limitation": "Migrated logical/physical worktree roots fail deterministic SourceRoot mapping on this host. This focused test override is not package or release qualification."
+  },
+  "retainedEvidence": "Ignore/ExtractionQualification/merged-foundations",
+  "remaining": "Other independent extraction PRs and larger static/runtime qualification remain open; no package publication inferred."
+}
