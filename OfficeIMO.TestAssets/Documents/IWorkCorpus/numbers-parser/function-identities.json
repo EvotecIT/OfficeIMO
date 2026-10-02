@@ -83,6 +83,11 @@
       "sampleArgumentCount": 1
     },
     {
+      "index": 48,
+      "name": "EVEN",
+      "sampleArgumentCount": 1
+    },
+    {
       "index": 49,
       "name": "EXACT",
       "sampleArgumentCount": 2
@@ -221,6 +226,11 @@
       "index": 97,
       "name": "NOW",
       "sampleArgumentCount": 0
+    },
+    {
+      "index": 100,
+      "name": "ODD",
+      "sampleArgumentCount": 1
     },
     {
       "index": 101,

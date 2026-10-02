@@ -195,7 +195,7 @@ def stored_decimal128(cell):
 numeric_cases = []
 if upstream_path == 'test-all-formulas.numbers':
     table = document.sheets['Math'].tables['Tests']
-    for row in [3, 4, 5, 6, 7, 13, 27, 28, 29, 30, 31, 46, 47, 48, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 94, 95, 101, 102, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 125, 126, 127, 128, 129, 152, 164, 165, 166]:
+    for row in [3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 27, 28, 29, 30, 31, 46, 47, 48, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 83, 84, 85, 86, 87, 88, 94, 95, 101, 102, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 125, 126, 127, 128, 129, 152, 164, 165, 166]:
         cell = table.cell(row - 1, 1)
         nodes = model.formula_ast(table._table_id)[cell._formula_id]
         stack, functions = [], []
@@ -231,6 +231,12 @@ if upstream_path == 'test-all-formulas.numbers':
                         assert factor != 0
                         rounding = ROUND_CEILING if name == 'CEILING' else ROUND_FLOOR
                         computed = float((number / factor).to_integral_value(rounding=rounding) * factor)
+                elif name in ('EVEN', 'ODD'):
+                    assert count == 1
+                    integer = math.ceil(abs(values[0]))
+                    if integer % 2 != (1 if name == 'ODD' else 0):
+                        integer += 1
+                    computed = float(-integer if values[0] < 0 else integer)
                 elif name == 'PRODUCT':
                     computed = math.prod(values)
                 elif name == 'SUMSQ':

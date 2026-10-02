@@ -11,6 +11,15 @@ namespace OfficeIMO.Tests {
         [InlineData("1+SQRT(-1)", "#NUM!")]
         [InlineData("MOD(1e308,1e-308)", "#NUM!")]
         [InlineData("INT(#REF!)", "#REF!")]
+        [InlineData("EVEN(-1.5)", "-2")]
+        [InlineData("EVEN(0)", "0")]
+        [InlineData("EVEN(2)", "2")]
+        [InlineData("ODD(-2)", "-3")]
+        [InlineData("ODD(0)", "1")]
+        [InlineData("ODD(3)", "3")]
+        [InlineData("1+EVEN(1.5)", "3")]
+        [InlineData("ODD(#REF!)", "#REF!")]
+        [InlineData("IFERROR(EVEN(1/0),99)", "99")]
         public void Scalar_math_replaces_stale_caches_with_typed_results(string formula, string expected) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Math");
@@ -31,6 +40,10 @@ namespace OfficeIMO.Tests {
         [InlineData("SQRT(4,\"text\")")]
         [InlineData("MOD(1,2,\"text\")")]
         [InlineData("MOD(A1:A2)")]
+        [InlineData("EVEN(1,2)")]
+        [InlineData("ODD()")]
+        [InlineData("ODD(A1:A2)")]
+        [InlineData("EVEN(\"text\")")]
         public void Scalar_math_does_not_flatten_ranges_or_discard_arguments(string formula) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Math");
@@ -74,6 +87,8 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData("INT(A1)", -9d, 2d)]
         [InlineData("MOD(A1,A2)", 1.1d, 0.9d)]
+        [InlineData("EVEN(A1)", -10d, 4d)]
+        [InlineData("ODD(A1)", -9d, 3d)]
         [InlineData("SQRT(ABS(A1))", 2.9832867780352594d, 1.70293863659264d)]
         public void Scalar_math_follows_edited_operands(string formula, double first, double second) {
             using var document = ExcelDocument.Create();

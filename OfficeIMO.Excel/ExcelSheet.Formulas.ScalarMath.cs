@@ -29,6 +29,18 @@ namespace OfficeIMO.Excel {
             int digits = 0;
             if (directional && count == 2 && !digitsAreError && !TryGetSupportedDecimalPlaces(numbers[1], out digits)) return false;
             if (firstError.IsError) { result = firstError; return true; }
+            if (function is "EVEN" or "ODD") {
+                // Round the magnitude before checking parity: dividing tiny values by
+                // two first can underflow to zero. Large binary64 integers are even.
+                double magnitude = Math.Ceiling(Math.Abs(numbers[0]));
+                bool odd = function == "ODD";
+                // No odd integer beyond this value is exactly representable in binary64.
+                if (odd && magnitude > 9007199254740991d) return false;
+                if ((magnitude % 2 == 0) == odd) magnitude += 1;
+                double rounded = numbers[0] < 0 ? -magnitude : magnitude;
+                result = new FormulaArgumentValue(rounded, InvariantNumberText.Get(rounded));
+                return true;
+            }
             if (function == "SQRT" && numbers[0] < 0) {
                 result = FormulaArgumentValue.Error("#NUM!");
                 return true;

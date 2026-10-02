@@ -7,6 +7,8 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(113, "PRODUCT", 5, 120d)]
     [InlineData(117, "RADIANS", 1, Math.PI / 180d)]
     [InlineData(44, "DEGREES", 1, 180d / Math.PI)]
+    [InlineData(48, "EVEN", 1, 2d)]
+    [InlineData(100, "ODD", 1, 1d)]
     [InlineData(147, "SUMSQ", 2, 5d)]
     [InlineData(17, "CEILING", 2, 2d)]
     [InlineData(55, "FLOOR", 2, 0d)]
@@ -70,6 +72,8 @@ public sealed partial class IWorkBoundaryTests {
     [Theory]
     [InlineData(117, 1)]
     [InlineData(44, 1)]
+    [InlineData(48, 1)]
+    [InlineData(100, 1)]
     [InlineData(17, 2)]
     [InlineData(55, 2)]
     [InlineData(65, 1)]
@@ -91,6 +95,8 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(128, -3.14159d, 1d, "ROUNDUP(-3.14159,1)", -3.2d)]
     [InlineData(157, -1234.5d, -2d, "TRUNC(-1234.5,-2)", -1200d)]
     [InlineData(133, -0.00001d, null, "SIGN(-1E-05)", -1d)]
+    [InlineData(48, -1.5d, null, "EVEN(-1.5)", -2d)]
+    [InlineData(100, -2d, null, "ODD(-2)", -3d)]
     public void Directional_math_native_functions_recalculate_signed_operands_after_saved_conversion(int index, double operand, double? digits, string expression, double expected) {
         var nodes = new List<byte[]> { BytesField(1, Message(VarintField(1, 17), DoubleField(4, operand))) };
         if (digits.HasValue) nodes.Add(BytesField(1, Message(VarintField(1, 17), DoubleField(4, digits.Value))));

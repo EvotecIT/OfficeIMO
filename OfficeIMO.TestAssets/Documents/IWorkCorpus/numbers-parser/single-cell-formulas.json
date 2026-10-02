@@ -771,6 +771,87 @@
     {
       "sourceSheet": "Math",
       "sourceTable": "Tests",
+      "row": 9,
+      "column": 2,
+      "sourceFormula": "EVEN(-1)",
+      "cachedValue": -2.0,
+      "computedCurrentValue": -2.0,
+      "nodeTypes": [
+        17,
+        13,
+        16
+      ],
+      "functions": [
+        {
+          "index": 48,
+          "name": "EVEN",
+          "argumentCount": 1
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 10,
+      "column": 2,
+      "sourceFormula": "EVEN(1.5)",
+      "cachedValue": 2.0,
+      "computedCurrentValue": 2.0,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 48,
+          "name": "EVEN",
+          "argumentCount": 1
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 11,
+      "column": 2,
+      "sourceFormula": "EVEN(2)",
+      "cachedValue": 2.0,
+      "computedCurrentValue": 2.0,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 48,
+          "name": "EVEN",
+          "argumentCount": 1
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 12,
+      "column": 2,
+      "sourceFormula": "EVEN(3)",
+      "cachedValue": 4.0,
+      "computedCurrentValue": 4.0,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 48,
+          "name": "EVEN",
+          "argumentCount": 1
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
       "row": 13,
       "column": 2,
       "sourceFormula": "EXP(1)",
@@ -1332,6 +1413,128 @@
           "index": 92,
           "name": "MOD",
           "argumentCount": 2
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 83,
+      "column": 2,
+      "sourceFormula": "ODD(-1)",
+      "cachedValue": -1.0,
+      "computedCurrentValue": -1.0,
+      "nodeTypes": [
+        17,
+        13,
+        16
+      ],
+      "functions": [
+        {
+          "index": 100,
+          "name": "ODD",
+          "argumentCount": 1
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 84,
+      "column": 2,
+      "sourceFormula": "ODD(-2)",
+      "cachedValue": -3.0,
+      "computedCurrentValue": -3.0,
+      "nodeTypes": [
+        17,
+        13,
+        16
+      ],
+      "functions": [
+        {
+          "index": 100,
+          "name": "ODD",
+          "argumentCount": 1
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 85,
+      "column": 2,
+      "sourceFormula": "ODD(0)",
+      "cachedValue": 1.0,
+      "computedCurrentValue": 1.0,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 100,
+          "name": "ODD",
+          "argumentCount": 1
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 86,
+      "column": 2,
+      "sourceFormula": "ODD(1.5)",
+      "cachedValue": 3.0,
+      "computedCurrentValue": 3.0,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 100,
+          "name": "ODD",
+          "argumentCount": 1
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 87,
+      "column": 2,
+      "sourceFormula": "ODD(2)",
+      "cachedValue": 3.0,
+      "computedCurrentValue": 3.0,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 100,
+          "name": "ODD",
+          "argumentCount": 1
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
+      "row": 88,
+      "column": 2,
+      "sourceFormula": "ODD(3)",
+      "cachedValue": 3.0,
+      "computedCurrentValue": 3.0,
+      "nodeTypes": [
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 100,
+          "name": "ODD",
+          "argumentCount": 1
         }
       ]
     },

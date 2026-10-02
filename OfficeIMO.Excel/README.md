@@ -894,6 +894,13 @@ Large integral values avoid unnecessary scaling, and nonfinite results produce
 `#NUM!` instead of invalid numeric caches. All operands, including supported
 digit bounds, qualify before an argument error is propagated.
 
+`EVEN` and `ODD` round one finite scalar away from zero to the nearest integer
+of the requested parity. `EVEN(0)` is zero and `ODD(0)` is one. Typed errors
+propagate; unsupported operands and argument counts retain existing caches.
+`ODD` retains its cache when the result would exceed ±(2^53−1), because larger
+odd integers cannot be represented exactly by the evaluator's numeric type.
+`EVEN` supports larger finite values that are already even binary64 integers.
+
 `CEILING` and `FLOOR` require two scalar operands and treat explicit omitted
 operands as zero. Negative numbers with negative significance round away from
 zero for `CEILING` and toward zero for `FLOOR`; positive significance rounds
