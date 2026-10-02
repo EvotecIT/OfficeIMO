@@ -519,7 +519,7 @@ Saving a signed package is blocked by default because mutation invalidates exist
 
 ### Review threads, custom shows, and VBA projects
 
-Classic comments round-trip through supported PPTX and binary PPT workflows. Modern comments remain an Open XML feature and support replies, status changes, reassignment, and removal:
+Classic comments round-trip through supported PPTX and binary PPT workflows. Modern comments remain an Open XML feature and support replies, status changes, reassignment, and removal. Adding a modern comment writes its explicit slide reference; removing the last comment removes that reference while preserving other slide extensions:
 
 ```csharp
 var reviewer = new PowerPointCommentAuthor("A. Reviewer", "AR", "reviewer@example.test");
