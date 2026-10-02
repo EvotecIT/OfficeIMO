@@ -37,6 +37,8 @@ $scenarios = @(
     [ordered]@{ id = 'reader-csv'; title = 'Reader CSV normalized extraction'; project = 'OfficeIMO.Reader.Csv.AotSmoke/OfficeIMO.Reader.Csv.AotSmoke.csproj' },
     [ordered]@{ id = 'reader-iwork-net8'; title = 'iWork source and Reader native-fixture extraction on .NET 8'; project = 'OfficeIMO.Reader.IWork.AotSmoke/OfficeIMO.Reader.IWork.AotSmoke.csproj'; targetFramework = 'net8.0' },
     [ordered]@{ id = 'reader-iwork'; title = 'iWork source and Reader native-fixture extraction, formulas, diagnostics, JSON and limits'; project = 'OfficeIMO.Reader.IWork.AotSmoke/OfficeIMO.Reader.IWork.AotSmoke.csproj'; targetFramework = 'net10.0' },
+    [ordered]@{ id = 'iwork-conversion-net8'; title = 'iWork native-fixture editable conversion, save/reopen and calculation on .NET 8'; project = 'OfficeIMO.IWork.AotSmoke/OfficeIMO.IWork.AotSmoke.csproj'; targetFramework = 'net8.0' },
+    [ordered]@{ id = 'iwork-conversion'; title = 'iWork native-fixture editable conversion, save/reopen and calculation'; project = 'OfficeIMO.IWork.AotSmoke/OfficeIMO.IWork.AotSmoke.csproj'; targetFramework = 'net10.0' },
     [ordered]@{ id = 'reader-all'; title = 'Reader all-formats registration and representative extraction'; project = 'OfficeIMO.Reader.All.AotSmoke/OfficeIMO.Reader.All.AotSmoke.csproj'; targetFramework = 'net10.0' },
     [ordered]@{ id = 'html-pdf-image'; title = 'HTML to SVG, PNG, and searchable PDF'; project = 'OfficeIMO.Html.AotSmoke/OfficeIMO.Html.AotSmoke.csproj' },
     [ordered]@{ id = 'officeimo-tool'; title = 'Unified production CLI startup and command discovery'; project = 'OfficeIMO.Tool/OfficeIMO.Tool.csproj'; targetFramework = 'net10.0'; aotValidation = $true; runArguments = @('--help') }

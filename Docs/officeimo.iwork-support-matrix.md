@@ -34,18 +34,27 @@ unassessed-fidelity diagnostics, Reader JSON transport round-trip, pre-cancellat
 and configured input byte limits. Fixture provenance and licenses remain in the
 [corpus](../OfficeIMO.TestAssets/Documents/IWorkCorpus/README.md).
 
+`OfficeIMO.IWork.AotSmoke` separately exercises partial editable conversion of four
+hash-pinned fixtures on macOS arm64 under the same two runtimes. It saves and
+reopens DOCX, XLSX and PPTX, checks Pages body text, Numbers typed cells and a
+formula cache, Keynote titles/body text, presenter notes and qualified backgrounds,
+and recalculates the saved Numbers formula after an operand edit. Caller-owned
+streams, unchanged source bytes and retained source records are checked. These
+fixtures deliberately use `AllowPartialEditableReconstruction = true`; passing
+the native gate does not qualify complete visual or semantic fidelity.
+
 Run the coordinated native gate from PowerShell with the pinned SDK and platform
 compiler installed:
 
 ```powershell
-./Build/Test-AotScenarios.ps1 -Scenario reader-iwork-net8,reader-iwork -RuntimeIdentifier osx-arm64 -JsonOutputPath <evidence.json>
+./Build/Test-AotScenarios.ps1 -Scenario reader-iwork-net8,reader-iwork,iwork-conversion-net8,iwork-conversion -RuntimeIdentifier osx-arm64 -JsonOutputPath <evidence.json>
 ```
 
 The gate retains executable SHA-256, exit codes and output before deleting isolated
 publish and SDK directories. The scenario is also included in the full gate;
 `-Scenario` selects known scenario IDs and rejects unknown IDs before publishing.
-This evidence covers the invoked source/Reader paths, not every public API or
-all-file compatibility. It does not qualify destination conversion/save, rendered
+This evidence covers the invoked source/Reader and destination conversion paths,
+not every public API or all-file compatibility. It does not qualify rendered
 appearance, portable fonts, Windows/Linux execution, iOS/iPad, sandbox permissions
 or signed application distribution.
 
