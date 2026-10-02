@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>OfficeIMOStudioEngine</AssemblyName>
+    <PublishAot>true</PublishAot>
+    <PublishAotUsingRuntimePack Condition="$(RuntimeIdentifier.StartsWith('ios'))">true</PublishAotUsingRuntimePack>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup><ProjectReference Include="../OfficeIMO.Pdf/OfficeIMO.Pdf.csproj" /></ItemGroup>
+</Project>
