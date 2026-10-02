@@ -43,13 +43,17 @@ internal sealed partial class StudioStorageAccess : IDisposable {
         return await RegisterAsync(files[0], token).ConfigureAwait(true);
     }
 
-    internal async Task<IReadOnlyList<string>> RegisterManyAsync(IReadOnlyList<IStorageFile> files, CancellationToken token) {
-        IStorageFile[] distinct = files.Distinct<IStorageFile>(ReferenceEqualityComparer.Instance).ToArray();
+    internal async Task<IReadOnlyList<string>> RegisterManyAsync(IReadOnlyList<IStorageItem> files, CancellationToken token) {
+        IStorageItem[] distinct = files.Distinct<IStorageItem>(ReferenceEqualityComparer.Instance).ToArray();
         var locations = new List<string>(distinct.Length);
         int index = 0;
         try {
             for (; index < distinct.Length; index++) {
-                locations.Add(await RegisterAsync(distinct[index], token).ConfigureAwait(true));
+                string? location;
+                if (distinct[index] is IStorageFile file) location = await RegisterAsync(file, token).ConfigureAwait(true);
+                else if (distinct[index] is IStorageFolder folder) location = await RegisterFolderAsync([folder], token).ConfigureAwait(true);
+                else { distinct[index].Dispose(); throw new IOException("The provider returned an unsupported document item."); }
+                if (location is not null) locations.Add(location);
             }
             token.ThrowIfCancellationRequested();
             return locations;

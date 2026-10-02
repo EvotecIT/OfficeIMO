@@ -151,6 +151,18 @@ public sealed class IWorkDirectoryWorkflowTests {
         foreach (var recovery in store.GetRecoveries()) store.Discard(recovery);
     }
 
+    [Fact]
+    public async Task Batch_cannot_publish_inside_another_local_package() {
+        using var first = new Bundle("pages", "docx");
+        using var second = new Bundle("pages", "docx");
+        var request = first.Request("pages-docx");
+        request.OutputPath = Path.Combine(second.Input, "nested", "result.docx");
+        var results = await IWorkWorkflow.CreateRunner().RunBatchAsync([request, second.Request("pages-docx")]);
+        Assert.False(results[0].Succeeded);
+        Assert.True(results[1].Succeeded, results[1].Summary);
+        Assert.False(Directory.Exists(Path.Combine(second.Input, "nested")));
+    }
+
     [DllImport("libc", EntryPoint = "link", SetLastError = true)]
     private static extern int Link(string source, string destination);
     [DllImport("kernel32.dll", EntryPoint = "CreateHardLinkW", CharSet = CharSet.Unicode, SetLastError = true)]

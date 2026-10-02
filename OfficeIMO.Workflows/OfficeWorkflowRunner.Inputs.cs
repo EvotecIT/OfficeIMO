@@ -29,10 +29,14 @@ public sealed partial class OfficeWorkflowRunner {
         if (string.IsNullOrWhiteSpace(request.InputPath)) throw new ArgumentException("Input path cannot be empty.", nameof(request));
         _conversions.TryGetValue(request.Operation == OfficeWorkflowOperation.Convert ? request.ConversionRouteId ?? string.Empty : string.Empty,
             out OfficeWorkflowConversionRegistration? registration);
-        bool localDirectoryPackage = request.InputStream is null && registration?.DirectoryPackageInput is not null &&
+        var providerPackage = request.InputDirectoryPackage;
+        if (providerPackage is not null && (request.InputStream is not null || registration?.DirectoryPackageInput is null))
+            throw new ArgumentException("A provider directory package requires a registered package conversion and cannot also specify a stream.", nameof(request));
+        bool localDirectoryPackage = providerPackage is null && request.InputStream is null && registration?.DirectoryPackageInput is not null &&
             OfficeStorageIdentity.GetLocalPath(request.InputPath) is { } local && Directory.Exists(local);
-        string inputPath = ValidateInputLocation(request.InputPath, request.InputStream, localDirectoryPackage);
-        string inputName = request.InputStream?.Name ?? inputPath;
+        string inputPath = providerPackage is not null ? OfficeStorageIdentity.Normalize(request.InputPath)
+            : ValidateInputLocation(request.InputPath, request.InputStream, localDirectoryPackage);
+        string inputName = providerPackage?.Name ?? request.InputStream?.Name ?? inputPath;
         OfficeWorkflowLimits limits = (request.Limits ?? throw new ArgumentException("Workflow limits cannot be null.", nameof(request))).CloneAndValidate();
         OfficeWorkflowRoute? route = null;
         string? comparisonPath = null;
@@ -43,7 +47,7 @@ public sealed partial class OfficeWorkflowRunner {
             throw new ArgumentException("A provider output requires an explicit destination and the Replace policy after direct-write confirmation.", nameof(request));
         }
 
-        if (request.InputStream is not null && outputPath is null &&
+        if ((request.InputStream is not null || providerPackage is not null) && outputPath is null &&
             request.Operation is not (OfficeWorkflowOperation.Inspect or OfficeWorkflowOperation.RepairPlan or OfficeWorkflowOperation.Compare or OfficeWorkflowOperation.AnalyzeWordImages)) {
             throw new ArgumentException("A provider input requires an explicit output destination.", nameof(request));
         }
@@ -170,7 +174,7 @@ public sealed partial class OfficeWorkflowRunner {
             : request.InputStream;
         if (localDirectoryPackage && (inputStream is null || inputStream.SnapshotKind != OfficeWorkflowSourceSnapshotKind.DirectoryPackage || inputStream.SourcePublicationGuard is null))
             throw new ArgumentException("A directory-package owner must provide a directory snapshot input and package output-separation guard.");
-        if ((request.Operation is OfficeWorkflowOperation.ExtractPages or OfficeWorkflowOperation.ScanCleanup || securityOutput || signing || registration is not null || wordImages) && inputStream is null) {
+        if ((request.Operation is OfficeWorkflowOperation.ExtractPages or OfficeWorkflowOperation.ScanCleanup || securityOutput || signing || registration is not null || wordImages) && inputStream is null && providerPackage is null) {
             inputStream = new OfficeWorkflowStreamInput(Path.GetFileName(inputPath), token => {
                 token.ThrowIfCancellationRequested();
                 return Task.FromResult<Stream>(OfficeWorkflowInputReader.OpenLocalRead(inputPath));
@@ -192,7 +196,7 @@ public sealed partial class OfficeWorkflowRunner {
             outputOptions,
             request.PublicationGuard,
             inputStream, request.ComparisonStream, request.OutputStream, pages, encryption, request.PdfOwnerPassword ?? request.PdfPassword,
-            request.OutputSigner, signatureOptions, request.OutputSignatureValidator, conversionOptions, scanCleanup, registration, registeredSettings, wordImageOptimization);
+            request.OutputSigner, signatureOptions, request.OutputSignatureValidator, conversionOptions, scanCleanup, registration, registeredSettings, wordImageOptimization, providerPackage);
     }
 
     private static string ValidateInputLocation(string location, OfficeWorkflowStreamInput? stream, bool directoryPackage = false) {
@@ -223,6 +227,7 @@ public sealed partial class OfficeWorkflowRunner {
         }
 
         internal async Task<ValidatedRequest> CaptureAsync(ValidatedRequest request, CancellationToken token) {
+            if (request.InputDirectoryPackage is not null) return await CapturePackageAsync(request, token).ConfigureAwait(false);
             string inputPath = await CaptureOneAsync(request.InputPath, request.InputStream, request.Limits.MaximumInputBytes, token).ConfigureAwait(false);
             string? comparisonPath = request.ComparisonPath is null ? null
                 : await CaptureOneAsync(request.ComparisonPath, request.ComparisonStream, request.Limits.MaximumInputBytes, token).ConfigureAwait(false);
@@ -282,7 +287,7 @@ public sealed partial class OfficeWorkflowRunner {
         }
 
         internal void ReportSourceCapture(List<OfficeWorkflowDiagnostic> diagnostics) {
-            foreach (var item in _snapshots) {
+            foreach (var item in _snapshots.Select(item => (item.Snapshot, item.Source)).Concat(_packageSnapshots)) {
                 diagnostics.Add(new OfficeWorkflowDiagnostic("SourceSnapshot", "Conversion used one bounded source snapshot. Source identity checks are required before publication.",
                     stage: "validate", details: new Dictionary<string, string>(StringComparer.Ordinal) {
                         ["sourceName"] = item.Source.Name,
@@ -317,13 +322,14 @@ public sealed partial class OfficeWorkflowRunner {
         public void Dispose() {
             List<Exception>? failures = null;
             CleanupDirectories(ref failures);
-            foreach (var item in _snapshots) {
-                try { item.Snapshot.Dispose(); } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+            foreach (var snapshot in _snapshots.Select(item => item.Snapshot).Concat(_packageSnapshots.Select(item => item.Snapshot))) {
+                try { snapshot.Dispose(); } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
                     (failures ??= new()).Add(error);
                 }
             }
             if (failures is not null) throw new IOException("Private workflow inputs could not be removed.", new AggregateException(failures));
             _snapshots.Clear();
+            _packageSnapshots.Clear();
         }
     }
 

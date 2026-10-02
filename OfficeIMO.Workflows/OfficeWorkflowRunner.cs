@@ -765,5 +765,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         OfficeScanCleanupOptions? ScanCleanup = null,
         OfficeWorkflowConversionRegistration? Registration = null,
         IOfficeWorkflowConversionSettings? RegisteredConversionSettings = null,
-        WordImageOptimizationOptions? WordImageOptimization = null);
+        WordImageOptimizationOptions? WordImageOptimization = null,
+        OfficeWorkflowDirectoryPackageInput? InputDirectoryPackage = null);
 }

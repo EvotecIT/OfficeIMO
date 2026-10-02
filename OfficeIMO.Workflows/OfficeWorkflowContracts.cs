@@ -180,6 +180,9 @@ public sealed class OfficeWorkflowRequest {
     /// <summary>Optional provider access for <see cref="InputPath"/>. The path remains the original location or absolute URI.</summary>
     public OfficeWorkflowStreamInput? InputStream { get; set; }
 
+    /// <summary>Optional provider directory package for a registered conversion route. Mutually exclusive with InputStream; requires an explicit output.</summary>
+    public OfficeWorkflowDirectoryPackageInput? InputDirectoryPackage { get; set; }
+
     /// <summary>Ordered one-based pages for ExtractPages, including intentional repeats. Limited to 100,000 entries.</summary>
     public int[]? PageNumbers { get; set; }
 

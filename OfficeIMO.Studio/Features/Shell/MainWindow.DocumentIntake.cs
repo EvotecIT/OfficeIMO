@@ -154,20 +154,21 @@ public sealed partial class MainWindow {
         }
     }
 
-    private sealed record DropPlan(IReadOnlyList<IStorageFile> Open, IReadOnlyList<IStorageFile> Convert, bool HasFiles) {
+    private sealed record DropPlan(IReadOnlyList<IStorageFile> Open, IReadOnlyList<IStorageItem> Convert, bool HasFiles) {
         public bool IsEmpty => Open.Count == 0 && Convert.Count == 0;
     }
 
     // PDFs open in tabs; other supported inputs go to the conversion queue. In the conversion
     // workbench every dropped file joins the queue so PDFs can be converted too.
     private DropPlan PlanDrop(DragEventArgs e) {
-        IStorageFile[] files = e.DataTransfer.TryGetFiles()?.OfType<IStorageFile>().ToArray() ?? [];
+        IStorageItem[] files = e.DataTransfer.TryGetFiles()?.Where(item => item is IStorageFile ||
+            item is IStorageFolder && Path.GetExtension(item.Name).ToLowerInvariant() is ".pages" or ".numbers" or ".key").ToArray() ?? [];
         if (files.Length == 0) return new([], [], false);
         if (!ViewModel.CanStartDocumentTransition) return new([], [], true);
         bool canQueue = ViewModel.ConversionWorkbench.CanEditQueue;
         if (ViewModel.IsConversionMode) return new([], canQueue ? files : [], true);
-        IStorageFile[] pdfs = files.Where(file => IsPdf(file.Name)).ToArray();
-        IStorageFile[] others = canQueue ? files.Where(file => !IsPdf(file.Name) && IsConvertible(file.Name)).ToArray() : [];
+        IStorageFile[] pdfs = files.OfType<IStorageFile>().Where(file => IsPdf(file.Name)).ToArray();
+        IStorageItem[] others = canQueue ? files.Where(file => !IsPdf(file.Name) && IsConvertible(file.Name)).ToArray() : [];
         return new(pdfs, others, true);
     }
 

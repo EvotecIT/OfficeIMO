@@ -2437,4 +2437,5 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Conversion.BatchExport.FinishedResult" xml:space="preserve"><value>Finished: {0} completed, {1} reused, {2} failed, {3} skipped.</value></data>
   <data name="Conversion.BatchExport.CancelledResult" xml:space="preserve"><value>Cancelled: {0} completed, {1} reused, {2} failed, {3} skipped.</value></data>
   <data name="Conversion.BatchExport.Cancelled" xml:space="preserve"><value>Batch cancelled. Completed files remain available.</value></data>
+  <data name="ConversionWorkbench.AddPackage" xml:space="preserve"><value>Add package</value></data>
 </root>

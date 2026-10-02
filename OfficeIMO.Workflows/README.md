@@ -10,6 +10,8 @@ The package does not add a second document or PDF engine. Desktop applications, 
 
 `OfficeWorkflowConversionRegistration` adds an implementation of an existing canonical route to a runner. It cannot replace built-in owners. Opt-in converters accept captured ZIP/file streams, write to a bounded caller-owned output stream, and return immutable `OfficeWorkflowConversionEvidence`. Current opt-in destination formats are DOCX, XLSX, and PPTX. `OfficeWorkflowResult.ConversionEvidence` retains fidelity categories and compact source facts; successful reopen does not establish visual equivalence.
 
+Provider directory packages use `OfficeWorkflowRequest.InputDirectoryPackage` with a registered directory-package converter. The shared runner preserves member layout in bounded private staging and verifies original provider membership and content before publication. The host supplies permission-aware root identity and output-separation checks through `OfficeWorkflowDirectoryPackageInput.SourcePublicationGuard`. The selected filename determines routing; an explicit output is required.
+
 ## Single conversions and file batches
 
 `OfficeWorkflowRunner` executes the routes in `OfficeWorkflowCatalog.ExecutableRoutes`. Directory and selected-file batches use those same routes, profiles, renderer options, diagnostics and publication policies. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown and RTF. Other targets use the existing PDF-to-DOCX/XLSX/PPTX/HTML routes. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.

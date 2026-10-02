@@ -91,6 +91,7 @@
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="7">
           <Button Classes="primary" AutomationProperties.Name="{loc:Loc ConversionWorkbench.AddFiles}" Content="{loc:Loc ConversionWorkbench.AddFiles}" Command="{Binding ConversionWorkbench.AddFilesCommand}" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc ConversionWorkbench.AddPackage}" Content="{loc:Loc ConversionWorkbench.AddPackage}" Command="{Binding ConversionWorkbench.AddPackageCommand}" />
           <Button Classes="tool" AutomationProperties.Name="{loc:Loc ConversionWorkbench.Remove}" Content="{loc:Loc ConversionWorkbench.Remove}" Command="{Binding ConversionWorkbench.RemoveSelectedCommand}" />
           <Button Classes="tool" AutomationProperties.Name="{loc:Loc ConversionWorkbench.Clear}" Content="{loc:Loc ConversionWorkbench.Clear}" Command="{Binding ConversionWorkbench.ClearQueueCommand}" />
         </StackPanel>
