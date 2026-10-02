@@ -78,7 +78,7 @@ public sealed class ReaderWebTests {
     }
 
     [Fact]
-    public async Task WebReader_DoesNotHashQuerySecretsIntoSourceIdentity() {
+    public async Task WebReader_QueryIdentifiesDistinctResourcesWhileMetadataRedactsSecrets() {
         int responseIndex = 0;
         var handler = new DelegateHttpHandler((request, cancellationToken) => {
             int current = Interlocked.Increment(ref responseIndex);
@@ -94,10 +94,24 @@ public sealed class ReaderWebTests {
         OfficeDocumentReadResult first = await webReader.ReadDocumentAsync(new Uri("https://example.test/report"));
         OfficeDocumentReadResult second = await webReader.ReadDocumentAsync(new Uri("https://example.test/report"));
 
-        Assert.Equal(first.Source.SourceId, second.Source.SourceId);
+        Assert.NotEqual(first.Source.SourceId, second.Source.SourceId);
+        Assert.NotEqual(Assert.Single(first.Chunks).Id, Assert.Single(second.Chunks).Id);
         Assert.DoesNotContain("secret", first.Source.SourceId, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(first.Metadata, item => item.Value?.Contains("secret", StringComparison.OrdinalIgnoreCase) == true);
         Assert.DoesNotContain(second.Metadata, item => item.Value?.Contains("secret", StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    [Fact]
+    public async Task WebReader_CallerCanCanonicalizeSignedResourceIdentity() {
+        var handler = new DelegateHttpHandler((request, _) => Task.FromResult(TextResponse("same body", "text/plain")));
+        using var httpClient = new HttpClient(handler);
+        var webReader = new OfficeDocumentWebReader(
+            new OfficeDocumentReaderBuilder().AddPlainTextHandlers().Build(), httpClient,
+            new ReaderWebOptions { SourceKeySelector = uri => uri.GetLeftPart(UriPartial.Path) });
+        var first = await webReader.ReadDocumentAsync(new Uri("https://example.test/report.txt?token=one"));
+        var second = await webReader.ReadDocumentAsync(new Uri("https://example.test/report.txt?token=two"));
+        Assert.Equal(first.Source.SourceId, second.Source.SourceId);
+        Assert.Equal(Assert.Single(first.Chunks).Id, Assert.Single(second.Chunks).Id);
     }
 
     [Fact]

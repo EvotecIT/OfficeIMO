@@ -467,7 +467,8 @@ public sealed class ReaderDocumentReadResultTests {
             "forms",
             "ocrCandidates",
             "visuals",
-            "diagnostics"
+            "diagnostics",
+            "nestedDocuments"
         }, names);
     }
 

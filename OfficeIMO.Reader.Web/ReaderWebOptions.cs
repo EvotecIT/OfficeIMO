@@ -46,6 +46,14 @@ public sealed class ReaderWebOptions {
     /// </summary>
     public bool IncludeQueryInMetadata { get; set; }
 
+    /// <summary>
+    /// Optional stable identity key for the final response URI. By default the complete URI,
+    /// including its query, identifies the resource. Supply a canonical key for signed URLs
+    /// whose changing query credentials refer to the same document. Keys are hashed, not emitted.
+    /// The delegate must be thread-safe when the web reader is used concurrently.
+    /// </summary>
+    public Func<Uri, string>? SourceKeySelector { get; set; }
+
     internal ReaderWebOptions CloneValidated() {
         if (MaxResponseBytes < 1 || MaxResponseBytes > MaximumResponseBytes) {
             throw new ArgumentOutOfRangeException(nameof(MaxResponseBytes));
@@ -69,7 +77,8 @@ public sealed class ReaderWebOptions {
             AllowedHosts = allowedHosts,
             AllowSubdomains = AllowSubdomains,
             AllowLocalhostAndNonPublicIpLiterals = AllowLocalhostAndNonPublicIpLiterals,
-            IncludeQueryInMetadata = IncludeQueryInMetadata
+            IncludeQueryInMetadata = IncludeQueryInMetadata,
+            SourceKeySelector = SourceKeySelector
         };
     }
 

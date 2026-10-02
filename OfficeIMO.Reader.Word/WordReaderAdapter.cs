@@ -141,9 +141,13 @@ internal static class WordReaderAdapter {
                         Kind = ReaderInputKind.Word,
                         Location = readerTable.Location!,
                         Text = string.Join(Environment.NewLine, readerTable.Rows.Select(static row => string.Join("\t", row))),
-                        Markdown = markdown.Length <= readerOptions.MaxChars ? markdown : markdown.Substring(0, readerOptions.MaxChars),
+                        Markdown = markdown,
                         Tables = new[] { readerTable },
-                        Warnings = readerTable.Truncated ? new[] { "Word table rows were truncated due to MaxTableRows." } : null
+                        Warnings = Combine(
+                            readerTable.Truncated ? new[] { "Word table rows were truncated due to MaxTableRows." } : null,
+                            markdown.Length > readerOptions.MaxChars
+                                ? new[] { "Word table exceeded MaxChars and was preserved as one complete chunk." }
+                                : null)
                     });
                     blockIndex++;
                 }

@@ -37,7 +37,7 @@ public sealed class ReaderContractTests {
     [Fact]
     public void OfficeDocumentReadResultSchema_ExposesStableCurrentContract() {
         Assert.Equal(5, OfficeDocumentReadResultSchema.MinimumSupportedVersion);
-        Assert.Equal(8, OfficeDocumentReadResultSchema.CurrentVersion);
+        Assert.Equal(9, OfficeDocumentReadResultSchema.CurrentVersion);
         Assert.True(OfficeDocumentReadResultSchema.IsSupported(
             OfficeDocumentReadResultSchema.Id, 5));
         Assert.True(OfficeDocumentReadResultSchema.IsSupported(
@@ -120,7 +120,8 @@ public sealed class ReaderContractTests {
             "forms",
             "ocrCandidates",
             "visuals",
-            "diagnostics"
+            "diagnostics",
+            "nestedDocuments"
         }, properties);
     }
 
@@ -288,7 +289,7 @@ public sealed class ReaderContractTests {
     [Theory]
     [InlineData("other.schema", 5)]
     [InlineData("officeimo.document.read-result", 4)]
-    [InlineData("officeimo.document.read-result", 9)]
+    [InlineData("officeimo.document.read-result", 10)]
     public void OfficeDocumentReadResultJson_RejectsUnsupportedSchemaHeaders(string schemaId, int schemaVersion) {
         string json = $"{{\"schemaId\":\"{schemaId}\",\"schemaVersion\":{schemaVersion}}}";
 
@@ -344,6 +345,7 @@ public sealed class ReaderContractTests {
         JsonObject invalid = JsonNode.Parse(OfficeDocumentReadResultJson.Serialize(
             new OfficeDocumentReadResult { Kind = ReaderInputKind.VCard }))!.AsObject();
         invalid["schemaVersion"] = 5;
+        invalid.Remove("nestedDocuments");
         Assert.Throws<JsonException>(() => OfficeDocumentReadResultJson.Deserialize(invalid.ToJsonString()));
     }
 
@@ -370,6 +372,7 @@ public sealed class ReaderContractTests {
                 }
             }))!.AsObject();
         invalid["schemaVersion"] = 5;
+        invalid.Remove("nestedDocuments");
 
         JsonException readException = Assert.Throws<JsonException>(() =>
             OfficeDocumentReadResultJson.Deserialize(invalid.ToJsonString()));
@@ -390,6 +393,7 @@ public sealed class ReaderContractTests {
         JsonObject invalid = JsonNode.Parse(OfficeDocumentReadResultJson.Serialize(
             new OfficeDocumentReadResult { Kind = ReaderInputKind.Opml }))!.AsObject();
         invalid["schemaVersion"] = 6;
+        invalid.Remove("nestedDocuments");
         Assert.Throws<JsonException>(() => OfficeDocumentReadResultJson.Deserialize(invalid.ToJsonString()));
     }
 
@@ -416,6 +420,7 @@ public sealed class ReaderContractTests {
                 }
             }))!.AsObject();
         invalid["schemaVersion"] = 6;
+        invalid.Remove("nestedDocuments");
 
         JsonException readException = Assert.Throws<JsonException>(() =>
             OfficeDocumentReadResultJson.Deserialize(invalid.ToJsonString()));
@@ -431,7 +436,7 @@ public sealed class ReaderContractTests {
         };
         OfficeDocumentReadResult restored = OfficeDocumentReadResultJson.Deserialize(
             OfficeDocumentReadResultJson.Serialize(current));
-        Assert.Equal(8, restored.SchemaVersion);
+        Assert.Equal(OfficeDocumentReadResultSchema.CurrentVersion, restored.SchemaVersion);
         Assert.Equal(ReaderInputKind.IWork, restored.Kind);
 
         using JsonDocument previousSchema = JsonDocument.Parse(

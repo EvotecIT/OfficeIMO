@@ -230,7 +230,7 @@ internal static class ZipReaderAdapter {
             string? readError = null;
             try {
                 bytes = ReadAllBytes(entry, cancellationToken);
-            } catch (Exception ex) when (ex is not OperationCanceledException) {
+            } catch (Exception ex) when (ex is not OperationCanceledException and not ReaderResourceLimitException) {
                 readError = $"Skipped ZIP entry due read error: {ex.GetType().Name}.";
             }
 
@@ -248,11 +248,13 @@ internal static class ZipReaderAdapter {
             }
 
             IEnumerable<ReaderChunk>? chunks = null;
+            OfficeDocumentReadResult? nestedDocument = null;
             string? parseError = null;
             try {
-                using var content = new MemoryStream(bytes!, writable: false);
-                chunks = ReaderNestedContent.Read(content, entryName, readerOptions, cancellationToken);
-            } catch (Exception ex) when (ex is not OperationCanceledException) {
+                using var content = new MemoryStream(bytes!, 0, bytes!.Length, writable: false, publiclyVisible: true);
+                nestedDocument = ReaderNestedContent.ReadDocumentInContainer(content, entryName, BuildVirtualPath(archivePath, entryName), readerOptions, cancellationToken);
+                chunks = nestedDocument.Chunks;
+            } catch (Exception ex) when (ex is not OperationCanceledException and not ReaderResourceLimitException) {
                 parseError = $"Skipped ZIP entry due parse error: {ex.GetType().Name}.";
             }
 
@@ -270,7 +272,10 @@ internal static class ZipReaderAdapter {
             }
 
             var virtualPath = BuildVirtualPath(archivePath, entryName);
-            foreach (var chunk in chunks!) {
+            DocumentReaderEngine.ApplyExternalSourceMetadata(nestedDocument!, BuildSourceId(virtualPath),
+                NormalizeLastWriteUtc(entry.LastWriteTime), descriptor.UncompressedLength, readerOptions.ComputeHashes);
+            foreach (var child in chunks!) {
+                var chunk = child.CopyForContainer();
                 cancellationToken.ThrowIfCancellationRequested();
                 ApplyVirtualSourceMetadata(
                     chunk,
@@ -364,6 +369,7 @@ internal static class ZipReaderAdapter {
             yield break;
         }
 
+        using var nestedScope = ReaderReadScope.EnterContainer(readerOptions);
         if (!TryReadAllBytes(entry, cancellationToken, out var nestedBytes, out var readError)) {
             yield return BuildWarningChunk(
                 archiveSource,
@@ -394,7 +400,7 @@ internal static class ZipReaderAdapter {
                          readerZipOptions,
                          warningCounter,
                          cancellationToken).ToList();
-        } catch (Exception ex) when (ex is not OperationCanceledException) {
+        } catch (Exception ex) when (ex is not OperationCanceledException and not ReaderResourceLimitException) {
             parseError = $"Skipped nested ZIP entry due archive parse error: {ex.GetType().Name}.";
         }
 
@@ -447,6 +453,7 @@ internal static class ZipReaderAdapter {
     }
 
     private static byte[] ReadAllBytes(ZipArchiveEntry entry, CancellationToken cancellationToken) {
+        ReaderNestedContent.ReserveDecodedInput(entry.Length);
         using var source = entry.Open();
         using var ms = entry.Length > 0 && entry.Length < int.MaxValue
             ? new MemoryStream((int)entry.Length)
@@ -460,7 +467,9 @@ internal static class ZipReaderAdapter {
             ms.Write(buffer, 0, read);
         }
 
-        return ms.ToArray();
+        byte[] payload = ms.ToArray();
+        ReaderNestedContent.MarkReservedPayload(payload);
+        return payload;
     }
 
     private static bool TryReadAllBytes(ZipArchiveEntry entry, CancellationToken cancellationToken, out byte[]? bytes, out string? error) {
@@ -468,7 +477,7 @@ internal static class ZipReaderAdapter {
             bytes = ReadAllBytes(entry, cancellationToken);
             error = null;
             return true;
-        } catch (Exception ex) when (ex is not OperationCanceledException) {
+        } catch (Exception ex) when (ex is not OperationCanceledException and not ReaderResourceLimitException) {
             bytes = null;
             error = $"Skipped nested ZIP entry due read error: {ex.GetType().Name}.";
             return false;
@@ -703,27 +712,7 @@ internal static class ZipReaderAdapter {
         return archivePath + archiveEntryPath;
     }
 
-    private static string ComputeChunkHash(ReaderChunk chunk) {
-        var data = string.Join("|",
-            chunk.Kind.ToString(),
-            chunk.SourceId ?? string.Empty,
-            chunk.Location.Path ?? string.Empty,
-            chunk.Location.HeadingPath ?? string.Empty,
-            chunk.Location.HeadingSlug ?? string.Empty,
-            chunk.Location.SourceBlockKind ?? string.Empty,
-            chunk.Location.BlockAnchor ?? string.Empty,
-            chunk.Location.Sheet ?? string.Empty,
-            chunk.Location.A1Range ?? string.Empty,
-            chunk.Location.Page?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
-            chunk.Location.Slide?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
-            chunk.Location.StartLine?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
-            chunk.Location.NormalizedStartLine?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
-            chunk.Location.NormalizedEndLine?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
-            chunk.Text ?? string.Empty,
-            chunk.Markdown ?? string.Empty);
-
-        return ComputeSha256Hex(data);
-    }
+    private static string ComputeChunkHash(ReaderChunk chunk) => DocumentReaderEngine.ComputeChunkHash(chunk);
 
     private static string ComputeSha256Hex(string value) {
         using var sha = System.Security.Cryptography.SHA256.Create();

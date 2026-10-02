@@ -243,7 +243,7 @@ internal static partial class OneNoteReaderAdapter {
                 Warnings = warnings.Length == 0 ? null : warnings
             };
             chunk.TokenEstimate = EstimateTokenCount(chunk.Markdown);
-            if (reader.ComputeHashes) chunk.ChunkHash = ComputeHash(BuildChunkHashInput(chunk));
+            if (reader.ComputeHashes) chunk.ChunkHash = DocumentReaderEngine.ComputeChunkHash(chunk);
             chunks.Add(chunk);
         }
         return new ReadContext(aggregate, metadataAggregate, notebook, pageHierarchy, source, reader, native, chunks.ToArray());

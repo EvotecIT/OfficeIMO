@@ -20,19 +20,26 @@ internal static partial class RtfReaderAdapter {
             warnings.Length == 0 ? null : warnings);
     }
 
-    private static IReadOnlyList<string> SplitText(string text, int maxChars) {
-        if (string.IsNullOrEmpty(text)) return Array.Empty<string>();
-        if (text.Length <= maxChars) return new[] { text };
-
-        var parts = new List<string>();
-        int offset = 0;
-        while (offset < text.Length) {
-            int take = Math.Min(maxChars, text.Length - offset);
-            parts.Add(text.Substring(offset, take));
-            offset += take;
+    private static IReadOnlyList<RtfReaderProjection> SplitProjections(RtfReaderBlock block, int maxChars) {
+        string markdown = block.Markdown ?? block.Text;
+        if (markdown.Length <= maxChars || block.Text.Length == 0 ||
+            !markdown.EndsWith(block.Text, StringComparison.Ordinal)) {
+            // Composite projections have no one-to-one character mapping. Keep them intact
+            // rather than assigning unrelated text to a Markdown fragment or losing content.
+            return new[] { new RtfReaderProjection(block.Text, markdown) };
         }
+        string prefix = markdown.Substring(0, markdown.Length - block.Text.Length);
+        if (prefix.Length >= maxChars) return new[] { new RtfReaderProjection(block.Text, markdown) };
+        IReadOnlyList<string> textParts = DocumentReaderEngine.SplitAdapterProjection(
+            block.Text, maxChars - prefix.Length, maxChars);
+        return textParts.Select((text, index) =>
+            new RtfReaderProjection(text, index == 0 ? prefix + text : text)).ToArray();
+    }
 
-        return parts;
+    private sealed class RtfReaderProjection {
+        internal RtfReaderProjection(string text, string markdown) { Text = text; Markdown = markdown; }
+        internal string Text { get; }
+        internal string Markdown { get; }
     }
 
     private static IReadOnlyList<string>? BuildDiagnosticWarnings(IReadOnlyList<RtfDiagnostic> diagnostics) {

@@ -24,6 +24,12 @@ public static class OfficeDocumentReaderBuilderPowerPointExtensions {
             DisplayName = "PowerPoint Reader",
             Description = "OfficeIMO.PowerPoint slide, table, and speaker-note projection.",
             Kind = ReaderInputKind.PowerPoint,
+            FormatQualifications = global::OfficeIMO.PowerPoint.PowerPointFormatCatalog.All.Where(format => format.Generation == OfficeFormatGeneration.Modern)
+                .Select(format => new ReaderFormatQualification(format.Extension, format.Id, ReaderFormatSupport.ReadConvert,
+                    profile: format.Encoding.ToString(),
+                    preservation: new[] { "Readable text and supported structured content" },
+                    limitations: new[] { "Semantic extraction; source package, layout, macros and signatures are not reproduced", "Configured projection limits and owner compatibility boundaries apply" },
+                    evidence: new[] { "OfficeIMO.Reader.PowerPoint/README.md", "OfficeIMO.Reader.Tests/Reader.DocumentReadResult.cs" })).ToArray(),
             Extensions = global::OfficeIMO.PowerPoint.PowerPointFormatCatalog.All
                 .Where(format => format.Generation == OfficeFormatGeneration.Modern)
                 .Select(format => format.Extension)

@@ -11,7 +11,7 @@ internal static partial class RtfReaderAdapter {
         chunk.SourceLengthBytes ??= source.LengthBytes;
         chunk.TokenEstimate ??= EstimateTokenCount(chunk.Markdown ?? chunk.Text);
         if (computeHashes && string.IsNullOrWhiteSpace(chunk.ChunkHash)) {
-            chunk.ChunkHash = ComputeSha256Hex(BuildChunkHashInput(chunk));
+            chunk.ChunkHash = DocumentReaderEngine.ComputeChunkHash(chunk);
         }
 
         return chunk;
@@ -143,16 +143,7 @@ internal static partial class RtfReaderAdapter {
         return builder.ToString();
     }
 
-    private static string BuildChunkHashInput(ReaderChunk chunk) {
-        return string.Join("|",
-            chunk.Kind.ToString(),
-            chunk.SourceId ?? string.Empty,
-            chunk.Location.Path ?? string.Empty,
-            chunk.Location.SourceBlockKind ?? string.Empty,
-            chunk.Location.BlockAnchor ?? string.Empty,
-            chunk.Text ?? string.Empty,
-            chunk.Markdown ?? string.Empty);
-    }
+
 
     private sealed class SourceMetadata {
         public string Path { get; set; } = string.Empty;

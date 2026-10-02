@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Reader;
 
@@ -31,7 +32,7 @@ public static partial class ReaderHierarchicalChunker {
                 return;
             }
 
-            int end = FindSegmentEnd(content, start, prefix, options.MaxTokens, counter);
+            int end = FindSegmentEnd(content, start, prefix, options.MaxTokens, counter, state.CancellationToken);
             int overlapCharacters = segmentIndex == 0 ? 0 : Math.Max(0, previousEnd - start);
             int overlapTokens = overlapCharacters == 0
                 ? 0
@@ -93,22 +94,37 @@ public static partial class ReaderHierarchicalChunker {
         int start,
         string prefix,
         int maxTokens,
-        IReaderTokenCounter counter) {
-        if (CountOutputTokens(counter, prefix, content, start, content.Length) <= maxTokens) return content.Length;
-
+        IReaderTokenCounter counter,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         int firstEnd = NextCharacterBoundary(content, start);
-        if (CountOutputTokens(counter, prefix, content, start, firstEnd) > maxTokens) {
-            throw new InvalidOperationException(
-                $"Token counter '{counter.Id}' cannot fit one source character within MaxTokens={maxTokens.ToString(CultureInfo.InvariantCulture)}.");
+        // Vocabulary merges may make a longer token fit when its first scalar does not.
+        int best = CountOutputTokens(counter, prefix, content, start, firstEnd) <= maxTokens ? firstEnd : start;
+        int remaining = content.Length - start;
+        int probeLength = Math.Min(remaining, Math.Max(32, maxTokens));
+        int high;
+        // Find a nearby upper bound. Probing the entire remaining document for every
+        // segment makes string-based tokenizers repeatedly scan and allocate long suffixes.
+        while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int probeEnd = ClampToCharacterBoundary(content, start + probeLength, firstEnd, content.Length);
+            int probeTokens = CountOutputTokens(counter, prefix, content, start, probeEnd);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (probeTokens > maxTokens) {
+                high = PreviousCharacterBoundary(content, probeEnd);
+                break;
+            }
+            best = probeEnd;
+            if (probeEnd == content.Length) return content.Length;
+            probeLength = (int)Math.Min(remaining, (long)probeLength * 2);
         }
-
-        int low = firstEnd;
-        int high = content.Length;
-        int best = firstEnd;
+        int low = best == start ? firstEnd : NextCharacterBoundary(content, best);
         while (low <= high) {
+            cancellationToken.ThrowIfCancellationRequested();
             int middle = low + ((high - low) / 2);
             middle = ClampToCharacterBoundary(content, middle, low, high);
             int count = CountOutputTokens(counter, prefix, content, start, middle);
+            cancellationToken.ThrowIfCancellationRequested();
             if (count <= maxTokens) {
                 best = middle;
                 if (middle >= content.Length) break;
@@ -118,6 +134,26 @@ public static partial class ReaderHierarchicalChunker {
             }
         }
 
+        if (best == start) {
+            // This rare fallback preserves the complete-token contract without scanning
+            // long suffixes on every ordinary segment.
+            cancellationToken.ThrowIfCancellationRequested();
+            int completeTokens = CountOutputTokens(counter, prefix, content, start, content.Length);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (completeTokens <= maxTokens) return content.Length;
+            // Search only the nearby merge window. Scanning every prefix of an
+            // unfit document recreates quadratic work and allocation.
+            int searchEnd = start + Math.Min(content.Length - start, Math.Max(32, maxTokens));
+            for (int end = firstEnd; end <= searchEnd; end = NextCharacterBoundary(content, end)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int count = CountOutputTokens(counter, prefix, content, start, end);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (count <= maxTokens) { best = end; break; }
+                if (end == content.Length) break;
+            }
+            if (best == start) throw new InvalidOperationException(
+                $"Token counter '{counter.Id}' cannot fit source content within MaxTokens={maxTokens.ToString(CultureInfo.InvariantCulture)}.");
+        }
         int preferred = FindPreferredEnd(content, start, best);
         if (preferred > start && CountOutputTokens(counter, prefix, content, start, preferred) <= maxTokens) {
             best = preferred;
@@ -125,6 +161,7 @@ public static partial class ReaderHierarchicalChunker {
         while (best > start && CountOutputTokens(counter, prefix, content, start, best) > maxTokens) {
             best = PreviousCharacterBoundary(content, best);
         }
+        cancellationToken.ThrowIfCancellationRequested();
         if (best <= start) throw new InvalidOperationException("Token-aware splitting could not make forward progress.");
         return best;
     }
@@ -279,6 +316,15 @@ public static partial class ReaderHierarchicalChunker {
         string content,
         int start,
         int end) {
+        if (ReferenceEquals(counter, ReaderHeuristicTokenCounter.Instance)) {
+            long length = (long)prefix.Length + end - start;
+            return length == 0 ? 0 : (int)((length + 3) / 4);
+        }
+        if (counter is IReaderRangeTokenCounter rangeCounter) {
+            int count = rangeCounter.CountTokens(prefix, content, start, end - start);
+            if (count < 0) throw new InvalidOperationException($"Token counter '{counter.Id}' returned a negative count.");
+            return count;
+        }
         return CountTokens(counter, prefix + content.Substring(start, end - start));
     }
 
