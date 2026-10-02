@@ -2,6 +2,8 @@
 
 `OfficeIMO.Reader.IWork` reads Apple Pages (`.pages`), Numbers (`.numbers`), and Keynote (`.key`) packages through the bounded `OfficeIMO.IWork` semantic model. It emits Reader chunks and a rich result with logical pages, text blocks, tables, links, image assets, and source diagnostics.
 
+Mapped source diagnostics retain the source fidelity category in `Attributes["lossKind"]` (`None`, `Approximation`, `Omission`, `Failure`, or `Unassessed`), alongside available `entryPath` and `recordIdentifier` attributes. Severity remains separate from fidelity; callers do not need to infer loss categories from diagnostic codes.
+
 ## Install
 
 ```powershell

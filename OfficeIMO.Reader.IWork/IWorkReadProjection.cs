@@ -407,7 +407,9 @@ internal sealed partial class IWorkReadProjection {
 
     private static IReadOnlyDictionary<string, string> DiagnosticAttributes(
         IWorkDiagnostic diagnostic) {
-        var attributes = new Dictionary<string, string>(StringComparer.Ordinal);
+        var attributes = new Dictionary<string, string>(StringComparer.Ordinal) {
+            ["lossKind"] = diagnostic.LossKind.ToString()
+        };
         if (diagnostic.EntryPath != null) attributes.Add("entryPath", diagnostic.EntryPath);
         if (diagnostic.RecordIdentifier.HasValue) {
             attributes.Add("recordIdentifier", diagnostic.RecordIdentifier.Value.ToString(
