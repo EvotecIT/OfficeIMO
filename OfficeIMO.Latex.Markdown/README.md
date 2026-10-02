@@ -6,20 +6,20 @@ This package maps the bounded `OfficeIMO.Latex` profile to and from `OfficeIMO.M
 using OfficeIMO.Latex;
 using OfficeIMO.Latex.Markdown;
 
-LatexDocument latex = LatexDocument.Parse(source).Document;
-LatexMarkdownConversionResult converted = latex.ToMarkdownDocument();
-string markdown = converted.Document.ToMarkdown();
+LatexDocument latex = LatexDocument.Parse(source);
+LatexToMarkdownResult converted = latex.ToMarkdownDocumentResult();
+string markdown = converted.Value.ToMarkdown();
 ```
 
 Reverse conversion creates canonical bounded-profile LaTeX and reparses the generated source through the lossless engine:
 
 ```csharp
-MarkdownLatexConversionResult generated = markdownDocument.ToLatexDocument();
+MarkdownToLatexResult generated = markdownDocument.ToLatexDocumentResult();
 string source = generated.Source;
-LatexDocument parsed = generated.Document;
+LatexDocument parsed = generated.Value;
 ```
 
-The bridge maps front matter, headings, inline formatting and links, lists and definitions, images/figures, table captions/labels and common spans, theorem callouts with required declarations, verbatim/code, and math transport. Canonical output escapes TeX arguments and deterministically encodes labels. Unrepresented figure/table container source remains visible with diagnostics. It does not promise TeX layout or execute package behavior.
+The bridge maps front matter, headings, inline formatting and links, lists and definitions, images/figures, table captions/labels and common spans, theorem callouts with required declarations, verbatim/code, and math transport. Canonical output escapes TeX arguments and deterministically encodes labels. Unrepresented figure/table container source remains visible with diagnostics. Conversions rebind edited native source before projection. Plain source, the `PreserveOnly` profile, and unsupported table containers receive visible fallbacks and fidelity diagnostics. Literal code and link destinations decode the bridge's escapes, and generated optional titles and terms protect embedded brackets. Required arguments must be braced in the bounded profile; missing or unbraced arguments remain visible with diagnostics. Graphics options and counter-based references report their unevaluated layout semantics.
 
 ## Dependency footprint
 

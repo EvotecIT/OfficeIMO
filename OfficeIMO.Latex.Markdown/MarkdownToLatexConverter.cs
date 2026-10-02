@@ -145,7 +145,7 @@ internal static class MarkdownToLatexConverter {
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         var output = new StringBuilder("\\begin{description}").Append(options.LineEnding);
         foreach (DefinitionListEntry entry in source.Entries) {
-            output.Append("\\item[").Append(MarkdownInlineToLatexConverter.Convert(entry.Term, state, diagnostics, entry)).Append("] ");
+            output.Append("\\item[").Append(MarkdownInlineToLatexConverter.ProtectOptionalArgument(MarkdownInlineToLatexConverter.Convert(entry.Term, state, diagnostics, entry))).Append("] ");
             for (int index = 0; index < entry.DefinitionBlocks.Count; index++) {
                 if (index > 0) output.Append(options.LineEnding).Append(options.LineEnding);
                 output.Append(ConvertBlock(entry.DefinitionBlocks[index], options, state, diagnostics));
@@ -232,7 +232,7 @@ internal static class MarkdownToLatexConverter {
             state.Packages.Add("amsthm");
             if (!string.Equals(theoremKind, "proof", StringComparison.Ordinal)) state.TheoremEnvironments.Add(theoremKind);
             var output = new StringBuilder("\\begin{").Append(theoremKind).Append('}');
-            if (!string.IsNullOrWhiteSpace(source.Title)) output.Append('[').Append(MarkdownInlineToLatexConverter.EscapeText(source.Title)).Append(']');
+            if (!string.IsNullOrWhiteSpace(source.Title)) output.Append('[').Append(MarkdownInlineToLatexConverter.ProtectOptionalArgument(MarkdownInlineToLatexConverter.EscapeText(source.Title))).Append(']');
             output.Append(options.LineEnding);
             if (!string.IsNullOrWhiteSpace(source.Attributes.ElementId)) output.Append(Label(source, diagnostics)).Append(options.LineEnding);
             foreach (IMarkdownBlock child in source.ChildBlocks) output.Append(ConvertBlock(child, options, state, diagnostics)).Append(options.LineEnding);

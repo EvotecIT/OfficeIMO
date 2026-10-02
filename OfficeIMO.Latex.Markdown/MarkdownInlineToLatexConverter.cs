@@ -100,7 +100,7 @@ internal static class MarkdownInlineToLatexConverter {
         for (int index = 0; index < value.Length; index++) {
             char current = value[index];
             if ((current >= 'a' && current <= 'z') || (current >= 'A' && current <= 'Z') ||
-                (current >= '0' && current <= '9') || current == ':' || current == '.' || current == '_' || current == '-') {
+                (current >= '0' && current <= '9') || current == ':' || current == '.' || (current == '_' && !StartsEncodedLabel(value, index)) || current == '-') {
                 output.Append(current);
             } else {
                 output.Append('_').Append(((int)current).ToString("X4", System.Globalization.CultureInfo.InvariantCulture)).Append('_');
@@ -108,6 +108,18 @@ internal static class MarkdownInlineToLatexConverter {
         }
         return output.ToString();
     }
+
+    private static bool StartsEncodedLabel(string value, int index) {
+        if (index + 5 >= value.Length || value[index + 5] != '_') return false;
+        for (int offset = 1; offset <= 4; offset++) {
+            char current = value[index + offset];
+            if (!((current >= '0' && current <= '9') || (current >= 'A' && current <= 'F'))) return false;
+        }
+        return true;
+    }
+
+    internal static string ProtectOptionalArgument(string value) =>
+        value.IndexOf(']') >= 0 || value.IndexOf('[') >= 0 ? "{" + value + "}" : value;
 
     private static string NormalizeLabel(
         string value,

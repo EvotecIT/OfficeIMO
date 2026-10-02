@@ -76,7 +76,8 @@ internal static class LatexSemanticBuilder {
             LatexSyntaxNode syntax = environmentSyntax[index];
             LatexSyntaxNode beginSyntax = syntax.Children.First(static child => child.Kind == LatexSyntaxKind.Command);
             LatexSyntaxNode? endSyntax = syntax.Children.LastOrDefault(child =>
-                child.Kind == LatexSyntaxKind.Command && string.Equals(child.Value, "end", StringComparison.Ordinal));
+                child.Kind == LatexSyntaxKind.Command && string.Equals(child.Value, "end", StringComparison.Ordinal) &&
+                string.Equals(commandMap[child].GetRequiredArgument(0)?.Content, syntax.Value, StringComparison.Ordinal));
             environments.Add(new LatexEnvironment(
                 syntax,
                 commandMap[beginSyntax],
@@ -108,31 +109,34 @@ internal static class LatexSemanticBuilder {
                 Array.Empty<LatexMacroDefinition>());
         }
 
+        LatexCommand[] activeCommands = commands.Where(static command => IsActiveSyntax(command.Syntax)).ToArray();
+        orderedEnvironments = orderedEnvironments.Where(static environment => IsActiveSyntax(environment.Syntax)).ToArray();
+        orderedMath = orderedMath.Where(static item => IsActiveSyntax(item.Syntax)).ToArray();
         var headings = new List<LatexHeading>();
-        foreach (LatexCommand command in commands) {
+        foreach (LatexCommand command in activeCommands) {
             cancellationToken.ThrowIfCancellationRequested();
             if (TryGetHeadingLevel(command.Name, out int level) && command.GetRequiredArgument(0) != null) {
                 headings.Add(new LatexHeading(command, level));
             }
         }
 
-        LatexEnvironment? body = environments.FirstOrDefault(static environment => string.Equals(environment.Name, "document", StringComparison.Ordinal));
+        LatexEnvironment? body = orderedEnvironments.FirstOrDefault(static environment => string.Equals(environment.Name, "document", StringComparison.Ordinal));
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<LatexParagraph> paragraphs = body == null
             ? Array.Empty<LatexParagraph>()
-            : BuildParagraphs(source, body, headings, orderedEnvironments, orderedMath, commands);
+            : BuildParagraphs(source, body, headings, orderedEnvironments, orderedMath, activeCommands);
         cancellationToken.ThrowIfCancellationRequested();
-        IReadOnlyList<LatexList> lists = BuildLists(source, orderedEnvironments, commands);
+        IReadOnlyList<LatexList> lists = BuildLists(source, orderedEnvironments, activeCommands);
         cancellationToken.ThrowIfCancellationRequested();
-        IReadOnlyList<LatexFigure> figures = BuildFigures(orderedEnvironments, commands);
+        IReadOnlyList<LatexFigure> figures = BuildFigures(orderedEnvironments, activeCommands);
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<LatexTable> tables = BuildTables(source, orderedEnvironments);
         cancellationToken.ThrowIfCancellationRequested();
-        IReadOnlyList<LatexCitation> citations = BuildCitations(commands);
-        IReadOnlyList<LatexReference> references = BuildReferences(commands);
-        IReadOnlyList<LatexLabel> labels = BuildLabels(commands);
-        IReadOnlyList<LatexTheorem> theorems = BuildTheorems(orderedEnvironments, commands);
-        IReadOnlyList<LatexMacroDefinition> macros = BuildMacroDefinitions(commands);
+        IReadOnlyList<LatexCitation> citations = BuildCitations(activeCommands);
+        IReadOnlyList<LatexReference> references = BuildReferences(activeCommands);
+        IReadOnlyList<LatexLabel> labels = BuildLabels(activeCommands);
+        IReadOnlyList<LatexTheorem> theorems = BuildTheorems(orderedEnvironments, activeCommands);
+        IReadOnlyList<LatexMacroDefinition> macros = BuildMacroDefinitions(activeCommands);
         cancellationToken.ThrowIfCancellationRequested();
         return new LatexSemanticModel(
             commands,
@@ -236,13 +240,13 @@ internal static class LatexSemanticBuilder {
                 nodeStart < ignoreUntil) continue;
 
             if (node.Kind == LatexSyntaxKind.Text && string.Equals(node.OriginalText, "&", StringComparison.Ordinal)) {
-                AddTableCell(source, cellStart, nodeStart, rows.Count, currentCells.Count, currentCells);
+                AddTableCell(source, cellStart, nodeStart, rows.Count, currentCells.Count, currentCells, true);
                 cellStart = node.EndOffset;
                 continue;
             }
 
             if (node.Kind == LatexSyntaxKind.Command && string.Equals(node.Value, "\\", StringComparison.Ordinal)) {
-                AddTableCell(source, cellStart, nodeStart, rows.Count, currentCells.Count, currentCells);
+                AddTableCell(source, cellStart, nodeStart, rows.Count, currentCells.Count, currentCells, true);
                 if (currentCells.Count > 0 && !IsRuleOnlyRow(currentCells)) {
                     rows.Add(new LatexTableRow(rows.Count, currentCells.ToArray()));
                 }
@@ -267,9 +271,10 @@ internal static class LatexSemanticBuilder {
         int end,
         int row,
         int column,
-        List<LatexTableCell> cells) {
+        List<LatexTableCell> cells,
+        bool separator = false) {
         TrimWhitespace(source.Text, ref start, ref end);
-        if (end <= start && cells.Count == 0) return;
+        if (end <= start && cells.Count == 0 && !separator) return;
         cells.Add(new LatexTableCell(source.CreateSpan(start, end), source.Text.Substring(start, end - start), row, column));
     }
 
@@ -354,6 +359,14 @@ internal static class LatexSemanticBuilder {
                 safeCandidates[index]));
         }
         return definitions;
+    }
+
+    internal static bool IsActiveSyntax(LatexSyntaxNode node) {
+        for (LatexSyntaxNode? parent = node.Parent; parent != null; parent = parent.Parent) {
+            if (parent.Kind == LatexSyntaxKind.Command &&
+                (parent.Value == "newcommand" || parent.Value == "renewcommand" || parent.Value == "providecommand" || parent.Value == "newtheorem")) return false;
+        }
+        return true;
     }
 
     private static bool IsDirectlyInside(LatexSyntaxNode node, LatexSyntaxNode environment) {
@@ -545,6 +558,12 @@ internal static class LatexSemanticBuilder {
         int segmentStart = start;
         int index = start;
         while (index < end) {
+            if (source.Text[index] == '\\') { index += Math.Min(2, end - index); continue; }
+            if (source.Text[index] == '%') {
+                while (index < end && source.Text[index] != '\r' && source.Text[index] != '\n') index++;
+                if (TryReadLineEnding(source.Text, index, end, out int commentEnding)) index += commentEnding;
+                continue;
+            }
             if (!TryReadLineEnding(source.Text, index, end, out int firstLength)) { index++; continue; }
             int lookahead = index + firstLength;
             while (lookahead < end && (source.Text[lookahead] == ' ' || source.Text[lookahead] == '\t')) lookahead++;

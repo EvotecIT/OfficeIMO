@@ -9,6 +9,16 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## LaTeX editing and conversion contracts
+
+LaTeX conversion projects the current edited source. Reader locations and conversion diagnostic spans refer to that rebound source; native syntax spans continue to describe the original parse. Conflicting edits to the same span now throw instead of silently selecting one replacement. Edit one representation, or use identical replacements when two views describe the same region.
+
+Parse options, including opaque environment names and macro budgets, are snapshotted. Reparse with new options to change an existing document's interpretation or expansion limits.
+
+Generated TeX labels reserve `_XXXX_` escape sequences. Identifiers that literally contain an uppercase four-digit hexadecimal escape pattern now encode that underscore, preventing collisions with encoded Unicode identifiers. Regenerate declarations and references together when persisting generated label names outside the document.
+
+Missing or unbraced required arguments, graphics options, counter-based references, unsupported containers, and source-only conversion produce fidelity diagnostics. Strict conversion callers must inspect these reports and accept the relevant approximations explicitly. Use braced arguments for supported commands.
+
 ## OpenDocument independent saves and formula results
 
 `SaveCopy` and `SaveCopyAsync` leave the attached source and its pending edits unchanged. `Serialize`, `ToBytes`, and `ToStream` also preserve the source version, signatures, and encryption state. Stream saves behave this way when the document has a source path. Use a path-based `Save` or `SaveAsync` when the output should become the document's accepted state. Removing encryption from a copy does not authorize overwriting the encrypted source without a password or explicit removal option.

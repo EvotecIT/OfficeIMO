@@ -30,11 +30,11 @@ LatexDocument preserved = LatexDocument.Parse(
 
 `OfficeIMO` binds the typed document semantics described below. `PreserveOnly` retains the structural syntax tree without profile-specific headings, paragraphs, lists, figures, tables, citations, references, labels, theorems, or macro-definition projections. Both profiles remain lossless and non-executing.
 
-The profile recognizes article/report/book structure, paragraphs, lists, figures, tabular data, labels/references, citations, theorem-like environments, and inline/display math. Unknown commands and environments remain source-backed instead of disappearing.
+The profile recognizes article/report/book structure, paragraphs, lists, figures, tabular data, labels/references, citations, theorem-like environments, and inline/display math. Unknown commands and environments remain source-backed instead of disappearing. Definition bodies retain syntax without contributing active headings, tables, or references. Known required arguments must be braced; missing or unbraced arguments are preserved and diagnosed.
 
 `\verb` and verbatim-like environments are opaque tokenizer nodes: braces, percent signs, commands, and environment-looking text inside them are never reparsed as LaTeX structure. The default set includes `verbatim`, `Verbatim`, `lstlisting`, `minted`, and `comment`; add producer-specific names through `LatexParseOptions.VerbatimEnvironmentNames`. Unterminated opaque constructs produce structural diagnostics.
 
-Stream and file loading is bounded by `MaximumInputBytes` and `MaximumInputLength`; token count and nesting depth are bounded separately. Async load/save APIs accept cancellation tokens. UTF-8 output is emitted without an unexpected byte-order mark.
+Stream and file loading is bounded by `MaximumInputBytes` and `MaximumInputLength`; token count and nesting depth are bounded separately. Parse, tokenization, and load APIs cooperate with cancellation; the synchronous stream load result also accepts a cancellation token. Parse options and opaque environment names are snapshotted so later caller changes do not alter an existing document. UTF-8 output is emitted without an unexpected byte-order mark.
 
 Simple document-local macros can be expanded only when explicitly enabled:
 

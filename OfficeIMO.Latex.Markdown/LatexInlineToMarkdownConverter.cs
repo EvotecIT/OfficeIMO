@@ -69,6 +69,13 @@ internal static class LatexInlineToMarkdownConverter {
         LatexCommand command,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         LatexArgument? first = command.GetRequiredArgument(0);
+        LatexCommandSyntaxSignature? signature = LatexProfileSyntaxCatalog.GetCommand(command.Name);
+        if (signature != null && command.Arguments.Count(static argument => !argument.IsOptional) < signature.Arguments.Count(static argument => argument == LatexArgumentGroupKind.Required)) {
+            target.AddRaw(new CodeSpanInline(command.Syntax.OriginalText));
+            Report(diagnostics, "LATEXMD112", LatexMarkdownConversionOutcome.SourceFallback, "command-arguments:" + command.Name,
+                "The bounded profile requires braced arguments; the incomplete or unbraced command was retained as source.", command.Syntax.Span);
+            return;
+        }
         switch (command.Name) {
             case "textbf":
                 target.AddRaw(new BoldSequenceInline(ConvertArgument(document, first, diagnostics)));
@@ -78,10 +85,10 @@ internal static class LatexInlineToMarkdownConverter {
                 target.AddRaw(new ItalicSequenceInline(ConvertArgument(document, first, diagnostics)));
                 break;
             case "texttt":
-                target.AddRaw(new CodeSpanInline(first?.Content ?? string.Empty));
+                target.AddRaw(new CodeSpanInline(InlinePlainText.Extract(ConvertArgument(document, first, diagnostics))));
                 break;
             case "underline":
-                target.AddRaw(new UnderlineInline(first?.Content ?? string.Empty));
+                target.AddRaw(new UnderlineInline(InlinePlainText.Extract(ConvertArgument(document, first, diagnostics))));
                 break;
             case "textsuperscript":
                 target.AddRaw(new SuperscriptSequenceInline(ConvertArgument(document, first, diagnostics)));
@@ -94,17 +101,19 @@ internal static class LatexInlineToMarkdownConverter {
                 break;
             case "href": {
                 LatexArgument? label = command.GetRequiredArgument(1);
-                target.AddRaw(new LinkInline(label?.Content ?? first?.Content ?? string.Empty, first?.Content ?? string.Empty, null));
+                target.AddRaw(new LinkInline(ConvertArgument(document, label ?? first, diagnostics), LatexLiteralText.Decode(first?.Content ?? string.Empty), null));
                 break;
             }
             case "url":
-                target.AddRaw(new LinkInline(first?.Content ?? string.Empty, first?.Content ?? string.Empty, null));
+                target.AddRaw(new LinkInline(LatexLiteralText.Decode(first?.Content ?? string.Empty), LatexLiteralText.Decode(first?.Content ?? string.Empty), null));
                 break;
             case "ref":
             case "pageref":
             case "autoref":
             case "eqref":
                 target.AddRaw(new LinkInline(first?.Content ?? string.Empty, "#" + (first?.Content ?? string.Empty), null));
+                Report(diagnostics, "LATEXMD113", LatexMarkdownConversionOutcome.Simplified, "reference:" + command.Name,
+                    "The reference key was retained as a link; TeX counters, page numbers, prefixes, and equation formatting were not evaluated.", command.Syntax.Span);
                 break;
             case "cite":
             case "citep":
@@ -114,11 +123,15 @@ internal static class LatexInlineToMarkdownConverter {
                     "Citation keys were retained as visible text; bibliography style and numbering require a TeX processor.", command.Syntax.Span);
                 break;
             case "includegraphics":
-                target.AddRaw(new ImageInline(first?.Content ?? string.Empty, first?.Content ?? string.Empty));
+                ReportGraphicsOptions(command, diagnostics);
+                target.AddRaw(new ImageInline(LatexLiteralText.Decode(first?.Content ?? string.Empty), LatexLiteralText.Decode(first?.Content ?? string.Empty)));
                 break;
             case "label":
                 target.AddRaw(new HtmlRawInline("<a id=\"" + EscapeHtml(first?.Content ?? string.Empty) + "\"></a>"));
                 break;
+            case "textbackslash": target.AddRaw(new MarkdownTextRun("\\")); break;
+            case "textasciitilde": target.AddRaw(new MarkdownTextRun("~")); break;
+            case "textasciicircum": target.AddRaw(new MarkdownTextRun("^")); break;
             case "%": target.AddRaw(new MarkdownTextRun("%")); break;
             case "&": target.AddRaw(new MarkdownTextRun("&")); break;
             case "_": target.AddRaw(new MarkdownTextRun("_")); break;
@@ -233,6 +246,8 @@ internal static class LatexInlineToMarkdownConverter {
             if (current == '%') {
                 Flush(target, text);
                 while (index + 1 < value.Length && value[index + 1] != '\r' && value[index + 1] != '\n') index++;
+                if (index + 1 < value.Length && value[index + 1] == '\r') index++;
+                if (index + 1 < value.Length && value[index + 1] == '\n') index++;
                 continue;
             }
             if (current == '\r' || current == '\n') {
@@ -251,6 +266,12 @@ internal static class LatexInlineToMarkdownConverter {
         if (text.Length == 0) return;
         target.AddRaw(new MarkdownTextRun(text.ToString()));
         text.Clear();
+    }
+
+    internal static void ReportGraphicsOptions(LatexCommand command, List<LatexMarkdownConversionDiagnostic> diagnostics) {
+        if (string.IsNullOrWhiteSpace(command.GetOptionalArgument(0)?.Content)) return;
+        Report(diagnostics, "LATEXMD114", LatexMarkdownConversionOutcome.Simplified, "graphics-options",
+            "The graphics resource was retained; TeX size, rotation, crop, and placement options were not evaluated.", command.Syntax.Span);
     }
 
     private static string EscapeHtml(string value) =>

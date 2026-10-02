@@ -7,7 +7,7 @@ using OfficeIMO.Latex;
 using OfficeIMO.Latex.Pdf;
 using OfficeIMO.Pdf;
 
-LatexDocument document = LatexDocument.Load("article.tex").Document;
+LatexDocument document = LatexDocument.Load("article.tex");
 PdfSaveResult result = document.SaveAsPdf("article.pdf");
 
 result.Report.RequireNoLoss(); // optional strict conversion gate
