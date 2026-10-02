@@ -96,8 +96,22 @@ internal static partial class OfficeConversionBatchExecutor {
             if (OfficePathIdentity.IsSameOrDescendant(input, copy.OutputDirectory) ||
                 (copy.CheckpointDirectory != null && OfficePathIdentity.IsSameOrDescendant(input, copy.CheckpointDirectory)))
                 throw new ArgumentException("Selected input files must be outside output and checkpoint trees.");
+            if (copy.CheckpointDirectory != null && SelectRoute(copy, input) is { } route && GetResourceRoot(copy, route.Id, input) is { } resourceRoot) {
+                EnsureNoLinks(resourceRoot);
+                foreach (string generatedRoot in new[] { copy.OutputDirectory, copy.CheckpointDirectory })
+                    if (OfficePathIdentity.IsSameOrDescendant(generatedRoot, resourceRoot) ||
+                        OfficePathIdentity.IsSameOrDescendant(resourceRoot, generatedRoot))
+                        throw new ArgumentException("Checkpoint resource, output and state directories must be separate non-overlapping trees.", nameof(request));
+            }
         }
         return copy;
+    }
+
+    private static string? GetResourceRoot(OfficeConversionBatchRequest settings, string routeId, string input) {
+        string? root = routeId == "html-pdf" ? Path.GetDirectoryName(input) :
+            routeId == "markdown-pdf" && settings.ConversionOptions.Markdown?.ResourcePolicy.AllowLocalFileAccess == true
+                ? settings.ConversionOptions.Markdown.BaseDirectory ?? Path.GetDirectoryName(input) : null;
+        return root == null ? null : Path.GetFullPath(root);
     }
 
     private static IEnumerable<string> SelectInputs(OfficeConversionBatchRequest settings, CancellationToken token) =>

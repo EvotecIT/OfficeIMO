@@ -76,9 +76,7 @@ internal static partial class OfficeConversionBatchExecutor {
             EnsureNoLinks(input); EnsureNoLinks(output);
             string sourceRoot = settings.InputDirectory ?? Path.GetDirectoryName(input)!;
             inputHash = await HashFileAsync(input, sourceRoot, settings.MaximumInputBytes, token).ConfigureAwait(false);
-            string? resourceRoot = routeId == "html-pdf" ? Path.GetDirectoryName(input) :
-                routeId == "markdown-pdf" && settings.ConversionOptions.Markdown?.ResourcePolicy.AllowLocalFileAccess == true
-                    ? settings.ConversionOptions.Markdown.BaseDirectory ?? Path.GetDirectoryName(input) : null;
+            string? resourceRoot = GetResourceRoot(settings, routeId, input);
             if (resourceRoot != null) {
                 resourceRoot = Path.GetFullPath(resourceRoot);
                 if (!OfficePathIdentity.IsSameOrDescendant(resourceRoot, sourceRoot))

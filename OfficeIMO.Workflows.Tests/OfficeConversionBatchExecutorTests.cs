@@ -204,6 +204,51 @@ public sealed class OfficeConversionBatchExecutorTests {
         }));
     }
 
+    [Theory]
+    [InlineData(".html", false, false)]
+    [InlineData(".html", true, false)]
+    [InlineData(".md", false, false)]
+    [InlineData(".md", true, false)]
+    [InlineData(".md", false, true)]
+    [InlineData(".md", true, true)]
+    public async Task SelectedFileCheckpointsRejectGeneratedTreesInsideResourceRootsBeforeCreatingState(string extension, bool nestedCheckpoint, bool explicitBase) {
+        using var scope = new BatchDirectory();
+        string input = Path.Combine(scope.Input, "page" + extension);
+        File.WriteAllText(input, extension == ".html" ? "<p>Selected HTML</p>" : "# Selected Markdown");
+        string resourceRoot = explicitBase ? Path.Combine(scope.Input, "assets") : scope.Input;
+        Directory.CreateDirectory(resourceRoot);
+        var request = scope.Request with {
+            InputDirectory = null, InputPaths = [input],
+            OutputDirectory = nestedCheckpoint ? scope.Output : Path.Combine(resourceRoot, "output"),
+            CheckpointDirectory = nestedCheckpoint ? Path.Combine(resourceRoot, "state") : scope.State,
+            ConversionOptions = new() { Markdown = extension == ".md" ? new() {
+                BaseDirectory = explicitBase ? resourceRoot : null,
+                ResourcePolicy = new OfficeIMO.Pdf.PdfResourcePolicy { AllowLocalFileAccess = true }
+            } : null }
+        };
+        await Assert.ThrowsAsync<ArgumentException>(() => new OfficeWorkflowRunner().RunBatchAsync(request));
+        Assert.False(Directory.Exists(request.OutputDirectory));
+        Assert.False(Directory.Exists(request.CheckpointDirectory));
+    }
+
+    [Theory]
+    [InlineData(".html")]
+    [InlineData(".md")]
+    public async Task SelectedResourceFilesConvertAndReuseWithSeparateOutputAndCheckpointTrees(string extension) {
+        using var scope = new BatchDirectory();
+        string input = Path.Combine(scope.Input, "page" + extension);
+        File.WriteAllText(input, extension == ".html" ? "<p>Selected HTML</p>" : "# Selected Markdown");
+        var request = scope.Request with { InputDirectory = null, InputPaths = [input],
+            ConversionOptions = new() { Markdown = extension == ".md" ? new() {
+                ResourcePolicy = new OfficeIMO.Pdf.PdfResourcePolicy { AllowLocalFileAccess = true }
+            } : null }
+        };
+        var first = await new OfficeWorkflowRunner().RunBatchAsync(request);
+        Assert.Equal(1, first.Completed); Assert.Equal(0, first.Failed);
+        Assert.NotEmpty(OfficeIMO.Pdf.PdfDocument.Load(Path.Combine(scope.Output, "page" + extension + ".pdf")).Read().Pages);
+        Assert.Equal(1, (await new OfficeWorkflowRunner().RunBatchAsync(request)).Reused);
+    }
+
     private sealed class BatchDirectory : IDisposable {
         private readonly string _root = Path.Combine(Path.GetTempPath(), "officeimo-pdf-batch-" + Guid.NewGuid().ToString("N"));
         public BatchDirectory() { Directory.CreateDirectory(Input); }

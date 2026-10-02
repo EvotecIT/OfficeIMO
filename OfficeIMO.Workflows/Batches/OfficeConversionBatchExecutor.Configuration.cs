@@ -9,6 +9,7 @@ namespace OfficeIMO.Workflows;
 internal static partial class OfficeConversionBatchExecutor {
     private static readonly JsonSerializerOptions ConfigurationJson = new() { IncludeFields = true,
         Converters = { new PdfConfigurationConverter() } };
+    private static readonly OfficeConversionConfigurationJsonContext ConfigurationContext = new(ConfigurationJson);
 
     private static string CaptureConfiguration(OfficeConversionBatchRequest settings) => Hash(string.Join("\n", Schema,
         settings.InputDirectory == null ? "selected-files" : OfficePathIdentity.GetPathIdentityKey(settings.InputDirectory),
@@ -24,8 +25,8 @@ internal static partial class OfficeConversionBatchExecutor {
             throw new NotSupportedException("Checkpointed Markdown resources must remain inside BaseDirectory. Unrestricted local resources require an ordinary batch without checkpoints.");
         using var hash = SHA256.Create();
         using (var stream = new CryptoStream(Stream.Null, hash, CryptoStreamMode.Write)) {
-            JsonSerializer.Serialize(stream, new { Route = routeId, settings.OutputProfile, Options = options,
-                Host = Environment.MachineName }, ConfigurationJson);
+            JsonSerializer.Serialize(stream, new OfficeConversionRenderingConfiguration(routeId, settings.OutputProfile, options,
+                Environment.MachineName), ConfigurationContext.OfficeConversionRenderingConfiguration);
             stream.FlushFinalBlock();
         }
         return Convert.ToHexString(hash.Hash!);
@@ -40,7 +41,7 @@ internal static partial class OfficeConversionBatchExecutor {
                 throw new NotSupportedException("Runtime cryptography providers require an ordinary batch without checkpoints.");
             writer.WriteStartObject();
             writer.WritePropertyName("Settings");
-            JsonSerializer.Serialize(writer, value, new JsonSerializerOptions { IncludeFields = true });
+            JsonSerializer.Serialize(writer, value, OfficeConversionPdfSettingsJsonContext.Default.PdfOptions);
             writer.WriteString("ExplicitSettings", value.CheckpointExplicitSettings);
             writer.WriteStartArray("EmbeddedStandardFonts");
             foreach (PdfEmbeddedFont font in value.CheckpointEmbeddedFonts) {
