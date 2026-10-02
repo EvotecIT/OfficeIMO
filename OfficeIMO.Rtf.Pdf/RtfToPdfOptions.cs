@@ -64,6 +64,8 @@ public sealed class RtfToPdfOptions {
     public int MaximumSystemFontFamilies { get; set; } = DefaultMaximumSystemFontFamilies;
 
     /// <summary>Returns a normalized copy with valid dimensions and independent PDF options.</summary>
+    public RtfToPdfOptions Clone() => CloneForConversion();
+
     internal RtfToPdfOptions CloneForConversion() {
         if (DefaultImageWidth <= 0) {
             throw new ArgumentOutOfRangeException(nameof(DefaultImageWidth), "Default image width must be greater than zero.");

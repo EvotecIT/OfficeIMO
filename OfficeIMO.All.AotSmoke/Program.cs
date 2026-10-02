@@ -218,6 +218,7 @@ try {
     if (!assembly.Succeeded || assembly.PageCount != 2) {
         throw new InvalidOperationException("The heterogeneous PDF assembly workflow did not survive NativeAOT: " + assembly.Summary);
     }
+    await ConversionBatchScenario.RunAsync(workflowRoot);
 } finally {
     if (System.IO.Directory.Exists(workflowRoot)) {
         System.IO.Directory.Delete(workflowRoot, recursive: true);

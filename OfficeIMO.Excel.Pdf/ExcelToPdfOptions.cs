@@ -394,6 +394,13 @@ namespace OfficeIMO.Excel.Pdf {
             return this;
         }
 
+        /// <summary>Creates an independent copy of renderer settings, including PDF options.</summary>
+        public ExcelToPdfOptions Clone() {
+            var copy = CloneForConversion();
+            copy.PdfOptions = PdfOptions?.Clone();
+            return copy;
+        }
+
         internal ExcelToPdfOptions CloneForConversion() {
             var clone = (ExcelToPdfOptions)MemberwiseClone();
             clone.SheetNames = SheetNames?.ToArray();

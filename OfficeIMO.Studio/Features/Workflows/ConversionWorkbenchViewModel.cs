@@ -41,10 +41,10 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         _runner = runner ?? new OfficeWorkflowRunner();
         _publicationGuard = publicationGuard;
         _localizer = localizer ?? StudioLocalization.Current;
-        Archive = new PdfArchiveViewModel(pickOutputFolder, publicationGuard, () => IsBusy, _localizer);
-        Archive.PropertyChanged += (_, change) => {
-            if (change.PropertyName == nameof(PdfArchiveViewModel.Status)) Status = Archive.Status;
-            if (change.PropertyName == nameof(PdfArchiveViewModel.IsBusy)) {
+        BatchExport = new PdfBatchExportViewModel(pickOutputFolder, publicationGuard, () => IsBusy, _localizer);
+        BatchExport.PropertyChanged += (_, change) => {
+            if (change.PropertyName == nameof(PdfBatchExportViewModel.Status)) Status = BatchExport.Status;
+            if (change.PropertyName == nameof(PdfBatchExportViewModel.IsBusy)) {
                 OnPropertyChanged(nameof(CanRun)); OnPropertyChanged(nameof(CanRetryFailed)); OnIsBusyChanged(IsBusy);
             }
         };
@@ -73,7 +73,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
 
     public IReadOnlyList<ConversionRouteChoice> Routes { get; }
     /// <summary>Durable local DOC/DOCX/TXT folder processing.</summary>
-    public PdfArchiveViewModel Archive { get; }
+    public PdfBatchExportViewModel BatchExport { get; }
 
     public IReadOnlyList<WorkflowProfileChoice> Profiles { get; }
 
@@ -123,13 +123,13 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         if (!CanChooseConflictPolicy) SelectedConflict = ConflictPolicies.Single(choice => choice.Value == OfficeWorkflowConflictPolicy.Replace);
         OnPropertyChanged(nameof(CanChooseConflictPolicy));
     }
-    public bool CanEditQueue => !IsBusy && !Archive.IsBusy;
+    public bool CanEditQueue => !IsBusy && !BatchExport.IsBusy;
     public string QueueSummary => Jobs.Count == 0
         ? T("Queue.Empty", "No jobs")
         : _localizer.Format("Conversion.Queue.Count", Jobs.Count);
 
     partial void OnIsBusyChanged(bool value) {
-        Archive.RefreshHostState();
+        BatchExport.RefreshHostState();
         OnPropertyChanged(nameof(CanCancel));
         OnPropertyChanged(nameof(CanEditQueue));
         OnPropertyChanged(nameof(CanRetryFailed));
@@ -375,7 +375,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     private void Cancel() => _cancellation?.Cancel();
 
     public void Dispose() {
-        Archive.Dispose();
+        BatchExport.Dispose();
         _cancellation?.Cancel();
         ClearOutputPreview();
     }
