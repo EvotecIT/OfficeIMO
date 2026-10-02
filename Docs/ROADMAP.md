@@ -282,6 +282,8 @@ Milestone numbers are identifiers, not a strict dependency-removal queue. H1-H4 
 ### OpenDocument qualification and depth
 
 - [ ] Extend the native ODS evaluator with named references, date arithmetic, logical functions, and conditional evaluation. Qualify each accepted subset against independent Calc-produced values, including errors, scalar-versus-reference coercion, dependency cycles, and resource bounds; preserve unsupported formulas and report failed recalculations.
+- [ ] Add typed ODT list-level controls for numbering formats, label spacing, prefixes and suffixes, continuation, and item restarts. Extend conversion and strict loss reporting for those contracts, and qualify native and converted list appearance against independent output.
+- [ ] Extend Reader ODT cell extraction to retain lists, sections, and nested table content in reading order. Reuse the native block model and retain aggregate text, repetition, depth, and table-size bounds before materializing nested structures.
 - [ ] Qualify ODT, ODS, and ODP conversions with a richer independent-producer corpus covering styled nested tables and lists, repeated structures, multilingual text, charts, page and slide layout, and annotations. Compare both retained content and rendered pages, and keep each unsupported structure visible in strict conversion reports.
 - [ ] Extend OpenDocument performance evidence with style-heavy documents, wide and repeated tables, formula dependency graphs, and bounded Reader extraction on Windows, Linux, and macOS. Measure equivalent validated outputs, distinguish allocation from native/process memory, and assess streaming package output before adopting a new writer boundary.
 
