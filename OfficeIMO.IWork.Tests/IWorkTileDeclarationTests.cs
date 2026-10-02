@@ -129,7 +129,7 @@ public sealed partial class IWorkBoundaryTests {
             columns: failure == "duplicateOffsets" ? 2ul : 1ul, tilePayload: BytesField(5, row));
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual: false,
             new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 });
-        AssertTileDeclaration(Assert.Single(report.SourceDeclarationIssues), "5[1]", 1,
+        AssertTileDeclaration(Assert.Single(report.SourceDeclarationIssues), failure == "trailingOffset" ? "5[1]/7" : "5[1]", 1,
             failure == "legacy" ? IWorkSourceDeclarationIssueKind.RejectedMessageSet
                 : IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
         Assert.True(report.IsPartialEditableReconstruction);

@@ -394,43 +394,9 @@ internal static partial class IWorkTableReader {
                 byte[] buffer = currentBuffer ?? Array.Empty<byte>();
                 byte[] offsets = currentOffsets ?? Array.Empty<byte>();
                 bool hasWideOffsets = (rowInfo.GetUnsigned(8) ?? 0) != 0;
-                int offsetColumnCount = offsets.Length / 2;
-                int availableColumns = Math.Min(columns, offsetColumnCount);
-                bool hasPopulatedTrailingOffset = false;
-                bool hasExcessiveTrailingOffsets = offsetColumnCount > TileRowStride;
-                if (!hasExcessiveTrailingOffsets) {
-                    for (int column = columns; column < offsetColumnCount; column++) {
-                        int encodedOffset = offsets[column * 2] | offsets[column * 2 + 1] << 8;
-                        if (encodedOffset != ushort.MaxValue) {
-                            hasPopulatedTrailingOffset = true;
-                            break;
-                        }
-                    }
-                }
-                if (hasExcessiveTrailingOffsets || hasPopulatedTrailingOffset) {
-                    RecordInvalidTileRow(tile, rowPosition, references);
-                    MarkCellStorageUnsupported(tile, diagnostics, ref supportsEditableReconstruction);
-                }
-                int[] populatedOffsets = Enumerable.Range(0, availableColumns)
-                    .Select(column => offsets[column * 2] | offsets[column * 2 + 1] << 8)
-                    .Where(encodedOffset => encodedOffset != ushort.MaxValue)
-                    .Select(encodedOffset => hasWideOffsets ? checked(encodedOffset * 4) : encodedOffset)
-                    .ToArray();
-                AssessRowStorageSelection(rowInfo, tile, rowPosition, buffer.Length, populatedOffsets.Length,
-                    references, diagnostics, ref supportsEditableReconstruction);
-                if (populatedOffsets.Length != populatedOffsets.Distinct().Count()) {
-                    RecordInvalidTileRow(tile, rowPosition, references);
-                    MarkCellStorageUnsupported(tile, diagnostics, ref supportsEditableReconstruction);
-                    continue;
-                }
-                Array.Sort(populatedOffsets);
-                var cellLimits = new Dictionary<int, int>(populatedOffsets.Length);
-                for (int offsetIndex = 0; offsetIndex < populatedOffsets.Length; offsetIndex++) {
-                    cellLimits.Add(populatedOffsets[offsetIndex],
-                        offsetIndex + 1 < populatedOffsets.Length
-                            ? populatedOffsets[offsetIndex + 1]
-                            : buffer.Length);
-                }
+                if (!TryReadCellLimits(source, rowInfo, tile, rowPosition, columns, buffer.Length,
+                        offsets, hasWideOffsets, projectionBudget, references, diagnostics,
+                        ref supportsEditableReconstruction, out int availableColumns, out var cellLimits)) continue;
                 for (int column = 0; column < availableColumns; column++) {
                     int encodedOffset = offsets[column * 2] | offsets[column * 2 + 1] << 8;
                     if (encodedOffset == ushort.MaxValue) continue;
