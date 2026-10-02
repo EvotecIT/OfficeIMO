@@ -912,9 +912,10 @@ Multi-cell scalar results, implicit intersection and spills remain unsupported.
 `PROB` evaluates finite numeric vectors with a shared 100,000-cell input budget;
 mixed text, Boolean and blank vector coercion remains unsupported. Probabilities
 must lie between zero and one and sum to one within `1e-12` rounding tolerance.
-`RANDBETWEEN` accepts inclusive integer bounds within Int32 and draws a fresh
+`RANDBETWEEN` accepts inclusive integer bounds from `-9007199254740991` to
+`9007199254740991` (the consecutive exact integer range through ±(2^53−1)) and draws a fresh
 value on each calculation pass; dependent formulas reuse that pass's cell cache.
-Fractional and larger random bounds retain their producer cache without local
+Fractional bounds and bounds outside that range retain their producer cache without local
 evaluation. Inspection reports direct references; dynamic `OFFSET` targets are
 resolved during calculation and its runtime dependency guards apply. Invalid
 reference errors propagate through reference consumers and error handlers.

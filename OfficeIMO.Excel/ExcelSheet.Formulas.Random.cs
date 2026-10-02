@@ -2,8 +2,8 @@ using System.Security.Cryptography;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        // Integer bounds within Int32 are the supported portable subset. Rejection
-        // sampling avoids modulo bias, including intervals spanning the entire Int32 range.
+        // Keep all bounds and results inside the consecutive exact integer range of double.
+        // Rejection sampling avoids modulo bias without floating-point range scaling.
         private bool TryEvaluateRandomBetweenValue(string args, out FormulaArgumentValue result) {
             result = default;
             IReadOnlyList<string> tokens = SplitFormulaArguments(args, preserveEmpty: true);
@@ -15,23 +15,28 @@ namespace OfficeIMO.Excel {
             if (upper.IsError) { result = upper; return true; }
             if (!IsFiniteFormulaNumber(lower) || !IsFiniteFormulaNumber(upper)) return false;
             double first = lower.Number!.Value, last = upper.Number!.Value;
+            const double maximumExactInteger = 9007199254740991d; // 2^53 - 1
             if (first != Math.Truncate(first) || last != Math.Truncate(last)
-                || first < int.MinValue || first > int.MaxValue || last < int.MinValue || last > int.MaxValue) return false;
+                || first < -maximumExactInteger || first > maximumExactInteger
+                || last < -maximumExactInteger || last > maximumExactInteger) return false;
             if (first > last) { result = FormulaArgumentValue.Error("#NUM!"); return true; }
             double number = first;
             if (first != last) {
                 ulong count = (ulong)((long)last - (long)first + 1);
-                const ulong universe = 1UL << 32;
-                ulong limit = universe - universe % count;
-                byte[] bytes = new byte[4];
-                uint sample;
+                // 2^64 is not representable as ulong. Reject its remainder at the
+                // bottom of the sample space, leaving a multiple of count outcomes.
+                ulong threshold = unchecked(0UL - count) % count;
+                byte[] bytes = new byte[8];
+                ulong sample;
                 using (RandomNumberGenerator generator = RandomNumberGenerator.Create()) {
                     do {
                         generator.GetBytes(bytes);
-                        sample = BitConverter.ToUInt32(bytes, 0);
-                    } while ((ulong)sample >= limit);
+                        sample = BitConverter.ToUInt64(bytes, 0);
+                    } while (sample < threshold);
                 }
-                number = first + (double)((ulong)sample % count);
+                // Add as integers first: a cross-zero interval can have an offset
+                // above 2^53 even though its final value is exactly representable.
+                number = (long)first + (long)(sample % count);
             }
             result = new FormulaArgumentValue(number, InvariantNumberText.Get(number));
             return true;

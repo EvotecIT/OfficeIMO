@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Bounds");
             string[] formulas = { "PROB(A1:A50001,B1:B50001,1)", "SUM(OFFSET(A1,0,0,100001,1))",
-                "RANDBETWEEN(7.1,7.1)", "RANDBETWEEN(2147483648,2147483648)", "PROB(A1:A2,B1:B2,1)",
+                "RANDBETWEEN(7.1,7.1)", "RANDBETWEEN(9007199254740992,9007199254740992)", "PROB(A1:A2,B1:B2,1)",
                 "OFFSET(A1,0,0,2,1)", "PROB(A1:A2,B1:B2,,2)" };
             for (int index = 0; index < formulas.Length; index++) {
                 sheet.CellValue(index + 1, 4, 42d); sheet.CellFormula(index + 1, 4, formulas[index]);
@@ -154,7 +154,7 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaEvaluator_UnsupportedInputsDoNotBecomeErrorsInsideWrappers() {
             using var document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Unsupported");
-            string[] expressions = { "RANDBETWEEN(7.1,7.1)", "RANDBETWEEN(2147483648,2147483648)",
+            string[] expressions = { "RANDBETWEEN(7.1,7.1)", "RANDBETWEEN(9007199254740992,9007199254740992)",
                 "PROB(A1:A2,B1:B2,1)", "PROB(A1:A50001,B1:B50001,1)",
                 "OFFSET(A1,0,0,2,1)", "SUM(OFFSET(A1,0,0,100001,1))", "SUM(A1:A100001)",
                 "XLOOKUP(1,A1:A2,B1:B2,,0,2)", "RANDBETWEEN(7.1,7.1)/0", "UNKNOWN()/0" };
