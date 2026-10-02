@@ -607,6 +607,15 @@ seekable positions restored. The default web charset provider still registers
 `CodePagesEncodingProvider` globally; it is isolated in the provider package rather
 than removed. External stylesheet/data-URI decoding has separate provider arguments.
 
+### Mathematical font defaults
+
+MathML roots now select the generic `math` family with regular weight and style
+instead of implicitly inheriting surrounding typography. Font size still inherits.
+If a document relies on the previous appearance, add
+`math { font-family: inherit; font-weight: inherit; font-style: inherit; }`.
+Supply a mathematical face through `HtmlRenderOptions.Fonts` when output must be
+independent of installed fonts.
+
 ### HTML capability inspection
 
 The renderer capability catalog now describes document, CSS, layout, resource,

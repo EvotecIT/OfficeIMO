@@ -544,6 +544,11 @@ public sealed partial class OfficeFontFaceCollection {
 
         OfficeFontStyle normalizedStyle = OfficeFontFace.NormalizeStyle(style);
         foreach (string family in OfficeFontFamilyParser.Parse(familyNames)) {
+            if (OfficeSystemFontFamilyAliases.IsMath(family)) {
+                OfficeFontFace? mathFace = ResolveMathematicalFace(null, family, style);
+                if (mathFace != null) { resolvedStyle = mathFace.Style; return mathFace.ParsedFont; }
+                continue;
+            }
             OfficeFontFace? regular = null;
             OfficeFontFace? first = null;
             for (int index = _faces.Count - 1; index >= 0; index--) {
@@ -596,6 +601,11 @@ public sealed partial class OfficeFontFaceCollection {
 
         OfficeFontStyle normalizedStyle = OfficeFontFace.NormalizeStyle(style);
         foreach (string family in OfficeFontFamilyParser.Parse(familyNames)) {
+            if (OfficeSystemFontFamilyAliases.IsMath(family)) {
+                OfficeFontFace? mathFace = ResolveMathematicalFace(text, family, style);
+                if (mathFace != null) { resolvedFace = mathFace; return mathFace.ParsedFont; }
+                continue;
+            }
             OfficeFontFace? exact = null;
             OfficeFontFace? regular = null;
             OfficeFontFace? first = null;
@@ -640,7 +650,8 @@ public sealed partial class OfficeFontFaceCollection {
 
     private static bool MatchesFamily(OfficeFontFace face, string family) =>
         string.Equals(face.FamilyName, family, StringComparison.OrdinalIgnoreCase)
-        || string.Equals(face.ResourceFamilyName, family, StringComparison.OrdinalIgnoreCase);
+        || string.Equals(face.ResourceFamilyName, family, StringComparison.OrdinalIgnoreCase)
+        || OfficeSystemFontFamilyAliases.IsMath(family) && OfficeSystemFontFamilyAliases.MathFamilyRank(face.FamilyName) != int.MaxValue;
 
     private static bool HasTrueTypeCollectionSignature(byte[]? data) =>
         data != null

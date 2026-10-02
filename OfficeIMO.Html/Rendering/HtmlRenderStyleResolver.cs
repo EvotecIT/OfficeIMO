@@ -190,7 +190,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         string defaultFamily = !pseudoElement && (tag == "code" || tag == "pre" || tag == "kbd" || tag == "samp")
             ? "Consolas"
             : parent?.Font.FamilyName ?? _options.DefaultFontFamily;
-        string family = HtmlRenderCssValues.FontFamilyList(computed.GetValue("font-family"), defaultFamily);
+        string family = ResolveFontFamily(fontTag, computed, defaultFamily);
         string direction = ResolveDirection(computed.GetValue("direction"), parent?.Direction);
         string unicodeBidi = NormalizeCssValue(computed.GetValue("unicode-bidi"), "normal");
         string language = ResolveLanguage(element, parent?.Language);

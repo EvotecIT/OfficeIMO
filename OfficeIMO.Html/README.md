@@ -414,6 +414,18 @@ PNG gamma conversion. Normalize source colors explicitly when color-managed outp
 
 The same managed path renders inline or block Presentation MathML as vector content. Fractions, roots, scripts, limits, fences, matrices, enclosures, and annotations retain logical text in the shared scene and searchable PDF output. Tagged PDF output retains a Formula container and its accessible description, including transformed and vertical equations. Unsupported structures use a diagnosed child-content fallback.
 
+MathML roots default to `font-family: math` with regular weight and style, while
+inheriting the surrounding font size. Supply a face named `math`, or a supported
+mathematical family such as `STIX Two Math`, through `HtmlRenderOptions.Fonts` for
+predictable output. When `AllowSystemFontFallback` is enabled, the renderer can
+load supported installed mathematical TrueType or CFF faces within the existing
+font-source, decoded-byte and cancellation limits. Installed families vary by host;
+an unavailable face produces a diagnostic and follows the font fallback path.
+Authored CSS overrides the defaults. To retain surrounding typography, use
+`math { font-family: inherit; font-weight: inherit; font-style: inherit; }`.
+Automatic mathematical italics and full OpenType MATH-table geometry remain outside
+this font-selection contract.
+
 For documents that opt into `hyphens:auto`, the managed renderer selects embedded US English
 (`lang="en-US"` or `en`) and reformed German (`lang="de-DE"`, `de`, `de-1996` or `de-DE-1996`)
 patterns for each text run. Nested language attributes override the inherited language; an empty

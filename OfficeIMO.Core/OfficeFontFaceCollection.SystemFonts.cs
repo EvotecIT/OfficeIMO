@@ -14,6 +14,8 @@ public sealed partial class OfficeFontFaceCollection {
         decodedBytes = 0;
         error = null;
         cancellationToken.ThrowIfCancellationRequested();
+        if (OfficeSystemFontFamilyAliases.IsMath(familyName)) return TryAddInstalledMathematicalFamily(
+            requested, maximumDecodedBytes, maximumSourceBytes, cancellationToken, out decodedBytes, out error);
         OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadFontFamily(familyName, requested.ToStyle(), out OfficeFontStyle resolvedStyle);
         cancellationToken.ThrowIfCancellationRequested();
         if (font == null) return false;

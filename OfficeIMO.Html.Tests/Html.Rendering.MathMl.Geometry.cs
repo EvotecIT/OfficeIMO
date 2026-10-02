@@ -12,7 +12,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlMathMl_InlineScopedTextSharesItsNeighborsPaintedBaseline() {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<body style='margin:0;font:20px ScopedMath;line-height:24px'><p style='margin:0'>"
-            + "x<math id='plain'><mtext>x</mtext></math>x</p></body>", ScopedMathRenderOptions());
+            + "x<math id='plain' style='font-family:inherit'><mtext>x</mtext></math>x</p></body>", ScopedMathRenderOptions());
         HtmlRenderDrawing math = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
         OfficeDrawingText glyph = Assert.Single(math.Drawing.Elements.OfType<OfficeDrawingText>());
         double baseline = math.Y + glyph.Y + glyph.Font.Size + glyph.BaselineOffset;
@@ -23,8 +23,8 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlMathMl_NestedFractionsDoNotShrinkTheWholeExpression() {
         const string html = "<body style='margin:0;font:20px ScopedMath;line-height:24px'>"
-            + "<math id='simple'><mfrac><mtext>x</mtext><mn>2</mn></mfrac></math>"
-            + "<math id='nested'><mfrac><mfrac><mtext>x</mtext><mn>2</mn></mfrac><mn>2</mn></mfrac></math></body>";
+            + "<math id='simple' style='font-family:inherit'><mfrac><mtext>x</mtext><mn>2</mn></mfrac></math>"
+            + "<math id='nested' style='font-family:inherit'><mfrac><mfrac><mtext>x</mtext><mn>2</mn></mfrac><mn>2</mn></mfrac></math></body>";
         var options = ScopedMathRenderOptions();
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         HtmlRenderDrawing simple = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>(), item => item.Source == "math#simple");
@@ -43,7 +43,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("right", 1D)]
     public void HtmlMathMl_BlockBackgroundAndBorderFollowAlignedContent(string alignment, double fraction) {
         string html = "<body style='margin:0;font:20px ScopedMath'><math id='aligned' display='block' "
-            + "style='text-align:" + alignment + ";background:#ff0000;border:2px solid blue;padding:3px'>"
+            + "style='font-family:inherit;text-align:" + alignment + ";background:#ff0000;border:2px solid blue;padding:3px'>"
             + "<mtext>x</mtext></math></body>";
         var options = ScopedMathRenderOptions();
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
@@ -60,7 +60,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlMathMlPdf_ScopedCompactGlyphRetainsItsFullInkAndLogicalText() {
         const string html = "<html lang='en'><body style='margin:0;font:20px ScopedMath'>"
-            + "<math aria-label='x over two'><mfrac><mtext>x</mtext><mn>2</mn></mfrac></math></body></html>";
+            + "<math aria-label='x over two' style='font-family:inherit'><mfrac><mtext>x</mtext><mn>2</mn></mfrac></math></body></html>";
         var options = new HtmlToPdfOptions {
             PageSize = new OfficePageSize(2D, 1D), HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D), BackgroundColor = OfficeColor.Transparent,
@@ -86,7 +86,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlMathMlPdf_FractionGlyphsRetainTheirSharedHorizontalCenter() {
-        const string html = "<body style='margin:0;font:20px ScopedMath'><math display='block'>"
+        const string html = "<body style='margin:0;font:20px ScopedMath'><math display='block' style='font-family:inherit'>"
             + "<mfrac><mtext>x</mtext><mn>22</mn></mfrac></math></body>";
         var options = new HtmlToPdfOptions {
             PageSize = new OfficePageSize(2D, 2D), HonorCssPageRules = false,
@@ -117,7 +117,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlMathMlPdf_SyntheticStyleRetainsTheOwnedPositionedInk() {
-        const string html = "<body style='margin:0;font:italic bold 144px ScopedMath'><math><mtext>x</mtext></math></body>";
+        const string html = "<body style='margin:0;font:italic bold 144px ScopedMath'><math style='font-family:inherit;font-weight:inherit;font-style:inherit'><mtext>x</mtext></math></body>";
         var renderOptions = ScopedMathRenderOptions();
         renderOptions.ViewportWidth = 384D; renderOptions.ViewportHeight = 384D;
         HtmlRenderDrawing math = Assert.Single(HtmlRenderTestDriver.Render(html, renderOptions).Pages[0].Visuals.OfType<HtmlRenderDrawing>());

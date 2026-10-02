@@ -13,15 +13,27 @@ internal sealed partial class HtmlRenderStyleResolver {
         string weightValue = computed.IsImplicitlyInheritedValue("font-weight")
             ? string.Empty
             : computed.GetValue("font-weight");
+        if (tag == "math" && (!HasAuthoredValue(computed, "font-weight") || computed.IsResetValue("font-weight")))
+            weightValue = "normal";
         int weight = ResolveRequestedFontWeight(tag, weightValue, inherited.Weight);
         double stretch = ResolveRequestedFontStretch(computed.GetValue("font-stretch"), inherited.StretchPercent);
         ResolveRequestedFontSlant(
             tag,
-            computed.GetValue("font-style"),
+            tag == "math" && (!HasAuthoredValue(computed, "font-style") || computed.IsResetValue("font-style"))
+                ? "normal" : computed.GetValue("font-style"),
             inherited,
             out OfficeFontSlant slant,
             out double obliqueAngle);
         return new OfficeFontFaceDescriptor(weight, stretch, slant, obliqueAngle);
+    }
+
+    internal static string ResolveFontFamily(string tag, HtmlComputedStyle computed, string inherited) {
+        if (tag == "math") {
+            if (!HasAuthoredValue(computed, "font-family")) return "math";
+            if (computed.IsResetValue("font-family")) return "serif";
+            if (computed.IsInheritedValue("font-family")) return inherited;
+        }
+        return HtmlRenderCssValues.FontFamilyList(computed.GetValue("font-family"), inherited);
     }
 
     private static int ResolveRequestedFontWeight(string tag, string value, int inherited) {

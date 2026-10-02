@@ -28,7 +28,7 @@ internal static class HtmlRenderSystemFontLoader {
                 ? found : (options.DefaultFontFamily, OfficeFontFaceDescriptor.Regular);
             string tag = element.TagName.ToLowerInvariant();
             string fallback = tag is "code" or "pre" or "kbd" or "samp" ? "Consolas" : parent.Families;
-            string families = HtmlRenderCssValues.FontFamilyList(computed.GetValue("font-family"), fallback);
+            string families = HtmlRenderStyleResolver.ResolveFontFamily(tag, computed, fallback);
             OfficeFontFaceDescriptor descriptor = HtmlRenderStyleResolver.ResolveFontFaceDescriptor(tag, computed, parent.Descriptor);
             inherited[element] = (families, descriptor);
             LoadList(families, descriptor);
@@ -41,10 +41,12 @@ internal static class HtmlRenderSystemFontLoader {
 
         void LoadList(string familyNames, OfficeFontFaceDescriptor descriptor) {
             IReadOnlyList<string> families = OfficeFontFamilyParser.Parse(familyNames);
-            if (!families.Any(OfficeSystemFontFamilyAliases.IsSystemUi)) return;
+            if (!families.Any(family => OfficeSystemFontFamilyAliases.IsSystemUi(family) || OfficeSystemFontFamilyAliases.IsMath(family))) return;
             foreach (string family in families) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (supplied.Contains(family)) continue;
+                if (OfficeSystemFontFamilyAliases.IsMath(family)
+                    && supplied.Any(candidate => OfficeSystemFontFamilyAliases.MathFamilyRank(candidate) != int.MaxValue)) continue;
                 var key = (family.ToLowerInvariant(), descriptor.Weight, descriptor.Slant);
                 if (attempted.TryGetValue(key, out bool previouslyLoaded)) {
                     if (previouslyLoaded) return;
@@ -67,7 +69,7 @@ internal static class HtmlRenderSystemFontLoader {
                     resources.AcceptDecodedFontBytes(bytes);
                     attempted[key] = true;
                     diagnostics.Add("OfficeIMO.Html.Renderer", "InstalledFontResolved",
-                        "An installed font face was loaded for a system-UI fallback list.", HtmlDiagnosticSeverity.Info,
+                        "An installed font face was loaded for a generic fallback list.", HtmlDiagnosticSeverity.Info,
                         family, "weight=" + descriptor.Weight + ";decodedBytes=" + bytes);
                     return;
                 } else if (error != null) {
@@ -77,9 +79,9 @@ internal static class HtmlRenderSystemFontLoader {
                     diagnostics.Add("OfficeIMO.Html.Renderer", code,
                         "An installed fallback font could not be loaded by the bounded font engine.",
                         HtmlDiagnosticSeverity.Warning, family, error);
-                } else if (OfficeSystemFontFamilyAliases.IsSystemUi(family)) {
+                } else if (OfficeSystemFontFamilyAliases.IsSystemUi(family) || OfficeSystemFontFamilyAliases.IsMath(family)) {
                     diagnostics.Add("OfficeIMO.Html.Renderer", "InstalledFontUnavailable",
-                        "No supported installed face was available for the system-UI family.",
+                        "No supported installed face was available for the requested generic family.",
                         HtmlDiagnosticSeverity.Warning, family);
                 }
             }

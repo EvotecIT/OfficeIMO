@@ -48,6 +48,17 @@ public sealed partial class OfficeFontFaceCollection {
             available.Add((face, index));
         }
         available.Sort((left, right) => {
+            if (OfficeSystemFontFamilyAliases.IsMath(family)) {
+                // An explicitly supplied generic face wins; otherwise keep the canonical
+                // mathematical family order before style matching within a family.
+                int familyRank(OfficeFontFace face) {
+                    if (string.Equals(face.FamilyName, family, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(face.ResourceFamilyName, family, StringComparison.OrdinalIgnoreCase)) return 0;
+                    return OfficeSystemFontFamilyAliases.MathFamilyRank(face.FamilyName);
+                }
+                int familyComparison = familyRank(left.Face).CompareTo(familyRank(right.Face));
+                if (familyComparison != 0) return familyComparison;
+            }
             int rank = CompareFaceSelection(left.Face, right.Face, descriptor);
             return rank != 0 ? rank : right.RegistrationIndex.CompareTo(left.RegistrationIndex);
         });

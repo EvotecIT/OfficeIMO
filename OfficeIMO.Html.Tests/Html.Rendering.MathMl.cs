@@ -38,8 +38,8 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlMathMl_InlineFractionAndRootKeepBoundedNeighborGeometry() {
         const string html = "<body style='margin:0;font:20px Arial;line-height:24px'>"
-            + "<p style='margin:0'>FractionBefore <math id='fraction'><mfrac><mi>x</mi><mn>2</mn></mfrac></math> after</p>"
-            + "<p style='margin:0'>RootBefore <math id='root'><msqrt><mi>x</mi></msqrt></math> after</p>"
+            + "<p style='margin:0'>FractionBefore <math id='fraction' style='font-family:inherit'><mfrac><mi>x</mi><mn>2</mn></mfrac></math> after</p>"
+            + "<p style='margin:0'>RootBefore <math id='root' style='font-family:inherit'><msqrt><mi>x</mi></msqrt></math> after</p>"
             + "</body>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
             ViewportWidth = 360D,

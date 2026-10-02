@@ -1223,7 +1223,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     }
 
     private static IEnumerable<string> ExpandGenericFontFamily(string family) {
-        if (OfficeSystemFontFamilyAliases.IsSystemUi(family)) {
+        if (OfficeSystemFontFamilyAliases.IsSystemUi(family) || OfficeSystemFontFamilyAliases.IsMath(family)) {
             foreach (string candidate in OfficeSystemFontFamilyAliases.Expand(family)) yield return candidate;
             yield break;
         }
@@ -1279,7 +1279,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         yield return family;
     }
 
-    private static IEnumerable<string> CandidateFamilyPaths(string family) {
+    internal static IEnumerable<string> CandidateFamilyPaths(string family) {
         string key = NormalizeFontFamilyKey(family);
         foreach (string path in CandidateKnownFamilyPaths(key)) {
             yield return path;
@@ -1295,6 +1295,9 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         string windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
         if (!string.IsNullOrEmpty(windows)) {
             string fonts = Path.Combine(windows, "Fonts");
+            if (key == "cambria" || key == "cambriamath") {
+                yield return Path.Combine(fonts, "cambria.ttc");
+            }
             if (key == "aptos") {
                 yield return Path.Combine(fonts, "aptos.ttf");
                 yield return Path.Combine(fonts, "aptosdisplay.ttf");
