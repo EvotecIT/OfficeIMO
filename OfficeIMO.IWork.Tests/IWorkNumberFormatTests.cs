@@ -148,6 +148,67 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED");
     }
 
+    [Theory]
+    [InlineData(IWorkDocumentKind.Pages)]
+    [InlineData(IWorkDocumentKind.Numbers)]
+    [InlineData(IWorkDocumentKind.Keynote)]
+    public void Empty_numeric_format_cells_remain_materialized(IWorkDocumentKind kind) {
+        using var package = EmptyNumericFormatPackage(kind, NumericFormat(258, 2));
+        var cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1.Cells);
+        Assert.Equal(IWorkCellKind.Empty, cell.Kind);
+        Assert.Null(cell.Value);
+        Assert.Equal(IWorkNumberFormatKind.Percentage, cell.NumberFormat!.Kind);
+        if (kind != IWorkDocumentKind.Numbers) return;
+        package.Position = 0;
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
+        using var reopened = global::OfficeIMO.Excel.ExcelDocument.Load(saved);
+        Assert.Equal("0.00%", reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode);
+        Assert.Equal("", Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
+    }
+
+    [Fact]
+    public void Unsupported_empty_numeric_format_is_reported_instead_of_silently_dropped() {
+        using var package = EmptyNumericFormatPackage(IWorkDocumentKind.Numbers, NumericFormat(258, 254));
+        var report = ConvertUnitReport(package, IWorkDocumentKind.Numbers, visual: false);
+        Assert.True(report.IsPartialEditableReconstruction);
+        Assert.Contains(report.SourceDeclarationIssues, issue => issue.Owner.RecordIdentifier == 13 && issue.FieldPath == "3[1]/6");
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED");
+    }
+
+    [Fact]
+    public void Empty_numeric_formats_consume_the_materialized_cell_budget() {
+        using var package = EmptyNumericFormatPackage(IWorkDocumentKind.Numbers, NumericFormat(258, 2), columns: 2);
+        Assert.Contains("source-wide limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
+            new IWorkReadOptions { MaximumMaterializedCells = 1 }).ReadNumbers()).Message);
+    }
+
+    [Fact]
+    public void Empty_currency_format_keeps_precedence_over_an_inactive_numeric_selector() {
+        using var package = EmptyNumericFormatPackage(IWorkDocumentKind.Numbers, CurrencyFormat("GBP", 2), currency: true);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        var cell = Assert.Single(result.Projection.Sheets[0].Tables[0].Cells);
+        Assert.Equal("GBP", cell.NumberFormat!.CurrencyCode);
+        Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED");
+        using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
+        using var reopened = global::OfficeIMO.Excel.ExcelDocument.Load(saved);
+        Assert.Equal(cell.NumberFormat.ToSpreadsheetFormatCode(), reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode);
+        Assert.Equal("", Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
+    }
+
+    private static MemoryStream EmptyNumericFormatPackage(IWorkDocumentKind kind, byte[] format, int columns = 1, bool currency = false) {
+        byte[] cell = new byte[currency ? 20 : 16]; cell[0] = 5;
+        WriteUInt32(cell, 8, (1u << 13) | (currency ? 1u << 14 : 0u));
+        WriteUInt32(cell, 12, currency ? 99u : 1u);
+        if (currency) WriteUInt32(cell, 16, 1);
+        byte[] offsets = new byte[columns * 2];
+        for (int c = 0; c < columns; c++) offsets[c * 2] = checked((byte)(c * cell.Length));
+        return TableDependencyPackage(kind, ReferenceField(22, 13), columns: (ulong)columns,
+            tilePayload: BytesField(5, Message(VarintField(1, 0), BytesField(6, Message(Enumerable.Repeat(cell, columns).ToArray())), BytesField(7, offsets))),
+            additionalRecords: ArchiveRecord(13, 6005, Message(VarintField(1, 2), VarintField(5, 1),
+                BytesField(3, FormatEntry(format)))));
+    }
+
     private static byte[] NumericFormat(uint type, uint decimals, uint negative = 0, uint grouping = 0) =>
         Message(VarintField(1, type), VarintField(2, decimals), VarintField(4, negative), VarintField(5, grouping));
 

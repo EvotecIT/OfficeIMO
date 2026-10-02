@@ -18,8 +18,12 @@ internal static partial class IWorkTableReader {
         IWorkTableCell cell = DecodeModernCell(buffer, offset, endOffset, row, column, type, flags,
             strings, richStrings, formulas, options, projectionBudget,
             formulaRichStringIdentifiers, nonFormulaRichStringIdentifiers);
-        if (!cell.HasDecodeError && type is 2 or 10
+        // Blank numeric input cells still carry an authored format for future values.
+        bool hasNumericFormatTarget = type is 2 or 10
             && cell.Kind is IWorkCellKind.Number or IWorkCellKind.Formula
+            || cell.Kind == IWorkCellKind.Empty
+                && (flags & ((1u << 15) | (1u << 16) | (1u << 17) | (1u << 18))) == 0;
+        if (!cell.HasDecodeError && hasNumericFormatTarget
             && (flags & ((1u << 13) | (1u << 14))) != 0) {
             // Currency selection takes precedence over numeric selection in modern storage.
             bool currency = (flags & (1u << 14)) != 0;
