@@ -21,7 +21,7 @@ public static partial class HtmlExcelConverterExtensions {
         int rowOffset = 0;
         int semanticRowIndex = 0;
 
-        IReadOnlyDictionary<IElement, int> zeroSpans = HtmlAccessibilitySemantics.ResolveZeroTableRowSpans(EnumerateDirectTableRows(table));
+        IReadOnlyDictionary<IElement, int> rowSpans = HtmlAccessibilitySemantics.ResolveTableRowSpans(EnumerateDirectTableRows(table));
         foreach (IElement row in EnumerateDirectTableRows(table)) {
             int rowIndex = firstRow + rowOffset;
             if (rowIndex > A1.MaxRows) {
@@ -72,7 +72,10 @@ public static partial class HtmlExcelConverterExtensions {
                 int rowSpan = ReadSpan(cell,
                     HtmlAccessibilitySemantics.GetTableSpanAttributeName(cell, "rowspan"),
                     cellRow, A1.MaxRows, cellRow, cellColumn, result,
-                    zeroSpans.TryGetValue(cell, out int remainingRows) ? remainingRows : (int?)null);
+                    // The explicit workbook profile preserves worksheet merges even
+                    // across its presentation-only header/body split. Generic HTML
+                    // follows authored row-group boundaries.
+                    !useSemanticValues && rowSpans.TryGetValue(cell, out int remainingRows) ? remainingRows : (int?)null);
                 int columnSpan = ReadSpan(cell,
                     HtmlAccessibilitySemantics.GetTableSpanAttributeName(cell, "colspan"),
                     cellColumn, A1.MaxColumns, cellRow, cellColumn, result);

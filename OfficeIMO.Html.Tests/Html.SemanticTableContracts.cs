@@ -4,6 +4,33 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class HtmlSemanticTableContractTests {
+    [Theory]
+    [InlineData("garbage")]
+    [InlineData("-1")]
+    public void InvalidRowSpanRetainsAdapterLossDiagnostics(string span) {
+        var source = HtmlConversionDocument.Parse("<table><tr><td rowspan='" + span + "'>A</td></tr></table>");
+        var excelResult = OfficeIMO.Excel.Html.HtmlExcelConverterExtensions.ToExcelDocumentResult(source,
+            new OfficeIMO.Excel.Html.HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        using var excel = excelResult.RequireValue();
+        Assert.Contains(excelResult.Report.Diagnostics, d => d.Code == HtmlConversionDiagnosticCodes.TableSpanInvalid);
+        var slideResult = OfficeIMO.PowerPoint.Html.HtmlPowerPointConverterExtensions.ToPowerPointPresentationResult(source,
+            new OfficeIMO.PowerPoint.Html.HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
+        using var slides = slideResult.RequireValue();
+        Assert.Contains(slideResult.Report.Diagnostics, d => d.Code == HtmlConversionDiagnosticCodes.TableSpanInvalid);
+    }
+
+    [Theory]
+    [InlineData("2")]
+    [InlineData("99")]
+    public void ExplicitRowSpanStopsAtItsRowGroup(string span) {
+        var source = HtmlConversionDocument.Parse("<table><tbody><tr><td rowspan='" + span
+            + "'>A</td></tr></tbody><tbody><tr><td>B</td></tr></tbody></table>");
+        Assert.Equal(1, source.SemanticDocument.RootTables.Single().Table!.Rows[0].Cells[0].RowSpan);
+        using var excel = OfficeIMO.Excel.Html.HtmlExcelConverterExtensions.ToExcelDocument(source,
+            new OfficeIMO.Excel.Html.HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        Assert.Equal("B", excel.Sheets[0].CellAt(2, 1).GetValue<string>());
+    }
+
     [Fact]
     public void ZeroAriaRowSpanStopsAtItsRowGroupInSemanticAndNativeTargets() {
         const string html = "<div role='table'><div role='rowgroup'><div role='row'><div role='cell' aria-rowspan='0'>Group</div><div role='cell'>A</div></div>"
