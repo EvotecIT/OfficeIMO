@@ -71,8 +71,34 @@
   },
   "limitations": [
     "Machine validation is fixture-specific; manual accessibility and wider profile corpus remain open",
-    "Packed consumer run stopped at existing RTF baseline net472 to netstandard2.0 comparison/suppression mismatch on macOS; not package-qualified",
-    "Final clean-source H4 and eighteen-case replay remain pending"
+    "Packed consumer run stopped at existing RTF baseline net472 to netstandard2.0 comparison/suppression mismatch on macOS; not package-qualified"
   ],
-  "retainedArtifacts": "Ignore/MathAutoQualification/conformance-complete-candidate"
+  "retainedArtifacts": "Ignore/MathAutoQualification/conformance-complete-candidate",
+  "cleanSourceReplay": {
+    "head": "9aece6c81",
+    "h4Passed": 8,
+    "staticCasesCompleted": 18,
+    "executionFailures": 0,
+    "markerAndLinkChecks": "all eighteen cases pass; wrapped marker hyphens normalize whitespace only",
+    "artifactComparisonToMathCheckpoint": {
+      "total": 150,
+      "identical": 137,
+      "changedPdfs": [
+        "column-float-bottom/officeimo-print.pdf",
+        "column-float-left/officeimo-print.pdf",
+        "column-float-left/officeimo-screen-to-pdf.pdf",
+        "column-float-top/officeimo-print.pdf",
+        "column-notes/officeimo-print.pdf",
+        "language-hyphenation/officeimo-print.pdf",
+        "language-hyphenation/officeimo-screen-to-pdf.pdf",
+        "mathml-semantics/officeimo-print.pdf",
+        "mathml-semantics/officeimo-screen-to-pdf.pdf",
+        "pdf-conformance/officeimo-print.pdf",
+        "pdf-conformance/officeimo-screen-to-pdf.pdf",
+        "svg-resources/officeimo-print.pdf",
+        "svg-resources/officeimo-screen-to-pdf.pdf"
+      ],
+      "allPngAndSvgIdentical": true
+    }
+  }
 }
