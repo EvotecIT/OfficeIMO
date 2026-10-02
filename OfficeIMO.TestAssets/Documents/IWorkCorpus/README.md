@@ -24,6 +24,10 @@ Native Numbers' Cell Format panel shows source A8 as Automatic and A9 as Text. `
 
 The unchanged `nim-iwork/simple.key` fixture exercises a two-slide Keynote 14.5 deck through editable PPTX save and reopen. The corpus test checks slide count and order through each slide's expected title, first-slide bullet content, the second-slide presenter note, and Open XML validation. Conversion explicitly accepts partial editable reconstruction. This extends source-reader evidence to saved destination content; native Apple PPTX export, theme/layout equivalence and rendered appearance remain unqualified.
 
+## Pages editable body output
+
+The unchanged Pages 14.1 `iwork-converter/a.pages` fixture exercises a 45-paragraph source body through explicitly accepted partial DOCX conversion, save and reopen. The corpus test compares non-empty body paragraphs in order and checks the title's centered alignment, bold styling, 26-point size and declared `SimSun` font family. It validates the saved Open XML document. The fixture declares the font name; this test does not distribute or render that font. Inline objects remain incomplete, and native Apple DOCX export, page count and rendered equivalence remain unqualified.
+
 ## Pages inline attachment positions
 
 `pages-inline-anchors.json` records five image/table attachment positions from the unmodified `iwork-converter/a.pages` and `picodocs/sample-v14.4.pages` fixtures. The existing provenance, hashes and license notices above apply. Positions are UTF-16 offsets in native text storage, before object-marker removal. The manifest is extracted through the independent numbers-parser 4.19.0 schemas:

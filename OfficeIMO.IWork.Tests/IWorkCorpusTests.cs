@@ -216,6 +216,30 @@ public sealed class IWorkCorpusTests {
         Assert.Equal("SimSun", titleRun.Style.FontName);
         Assert.Equal("000000", titleRun.Style.Color!.RgbHex);
         Assert.Empty(pages.Body.Paragraphs[1].Runs);
+
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(Fixture("iwork-converter/a.pages"),
+            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
+                AllowPartialEditableReconstruction = true });
+        Assert.False(result.IsVisualFallback);
+        Assert.True(result.Report.IsPartialEditableReconstruction);
+        using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
+        using var reopened = WordDocument.Load(saved);
+        saved.Position = 0;
+        using var zip = new System.IO.Compression.ZipArchive(saved, System.IO.Compression.ZipArchiveMode.Read, leaveOpen: true);
+        using var documentXml = zip.GetEntry("word/document.xml")!.Open();
+        System.Xml.Linq.XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+        var body = System.Xml.Linq.XDocument.Load(documentXml).Root!.Element(w + "body")!;
+        var persistedText = body.Elements(w + "p")
+            .Select(p => string.Concat(p.Descendants(w + "t").Select(t => t.Value)))
+            .Where(text => !string.IsNullOrEmpty(text));
+        Assert.Equal(pages.Body.Paragraphs.Select(p => p.Text).Where(text => !string.IsNullOrEmpty(text)), persistedText);
+        var savedTitle = reopened.Paragraphs.First(p => p.Text == "购 销 合 同");
+        Assert.True(savedTitle.Bold);
+        Assert.Equal(WordParagraphAlignment.Center, savedTitle.ParagraphAlignment);
+        Assert.Equal(26d, savedTitle.FontSizePoints);
+        Assert.Equal("SimSun", savedTitle.FontFamily);
+        var validation = reopened.ValidateDocument();
+        Assert.True(validation.Count == 0, string.Join("\n", validation.Select(error => error.PartUri + ": " + error.Description)));
     }
 
     [Fact]
