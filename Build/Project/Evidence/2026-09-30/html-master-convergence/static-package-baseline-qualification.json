@@ -1,0 +1,51 @@
+{
+  "sourceBase": "aeb7f38e7b5bf9d749d750106828ed4d8ef3926a",
+  "scope": "Package API-baseline manifests only; no runtime/API/dependency change.",
+  "baseline": "3.3.0",
+  "packageVersion": "3.4.4",
+  "packages": [
+    {
+      "id": "OfficeIMO.Pdf",
+      "originalRows": 640,
+      "currentExactTargets": 160,
+      "approvedSetUnchanged": true,
+      "manifestSha256": "818675975d678ebb0f03a7dd25a16e6d086ec09271e4a408ae6c39a699edeb4f",
+      "fourFrameworkPackageSha256": "84c439dc82d9b479a3dd09845358f6f684db356e14cda3648fd44d32ec8ba870",
+      "packageBytes": 9240405,
+      "runtimeDependencies": "Existing OfficeIMO packages only; MIT license unchanged."
+    },
+    {
+      "id": "OfficeIMO.Html.Pdf",
+      "originalRows": 116,
+      "currentExactTargets": 29,
+      "approvedSetUnchanged": true,
+      "manifestSha256": "d1e6f5ff013a875f4d440c3c0a9b569b30bcdba2b12f33d835c1c4ec7db443cf",
+      "fourFrameworkPackageSha256": "994bc732d8f0a2e17cc689f1ffd038377803838fee7a77e5699f66b745e360da",
+      "packageBytes": 503052,
+      "runtimeDependencies": "Existing OfficeIMO packages only; MIT license unchanged."
+    },
+    {
+      "id": "OfficeIMO.Mhtml.Pdf",
+      "originalRows": 56,
+      "currentExactTargets": 14,
+      "approvedSetUnchanged": true,
+      "manifestSha256": "0077f95b483e87751be839d1d62269b821d163f1e2867c2f11d11f26fcf2b056",
+      "fourFrameworkPackageSha256": "d143d16e985b606d695f8e3ffcc277f2d819020854de339b534565597958afac",
+      "packageBytes": 42698,
+      "runtimeDependencies": "Existing OfficeIMO packages only; MIT license unchanged."
+    }
+  ],
+  "validation": {
+    "macosDefaultThreeFrameworkPacks": "All three pass; baseline net472 inspection reports four unavailable reference assemblies.",
+    "explicitFourFrameworkPacks": "All three pass with netstandard2.0/net8.0/net10.0/net472 assets, zero warnings/errors and no unresolved references.",
+    "negativeGate": "Removing one existing ToPdf exact target produces four CP0002 baseline failures after forcing gate execution.",
+    "incrementalGate": "Validation semaphore removed before positive final packs; negative manifest timestamp refreshed before decisive run.",
+    "independentReadOnlyReview": "No actionable P0-P3; exact approved diagnostic/target/baseline sets unchanged.",
+    "runtimeQualification": "No runtime changes; prior acfe39e8aee338680caf5b375a9e59b8b8e69219 H4/NASA/macOS budget evidence remains applicable."
+  },
+  "limits": [
+    "Four-framework build/pack is cross-compilation on macOS, not net472 execution.",
+    "Windows/Linux runtime and H10 operation budgets remain open.",
+    "No package publication or full HTML release qualification."
+  ]
+}
