@@ -434,8 +434,7 @@ namespace OfficeIMO.Word.Html {
                 if (string.IsNullOrEmpty(segment)) {
                     return;
                 }
-                var run = paragraph.AddFormattedText(segment, formatting.Bold, formatting.Italic, GetUnderlineValue(formatting)?.ToOfficeEnum());
-                ApplyFormatting(run, formatting, options);
+                AddFormattedSegment(paragraph, segment, formatting, options);
                 return;
             }
 
@@ -444,13 +443,11 @@ namespace OfficeIMO.Word.Html {
                 if (match.Index > lastIndex) {
                     var segment = text.Substring(lastIndex, match.Index - lastIndex);
                     segment = ApplyTextTransform(segment, formatting.Transform);
-                    var run = paragraph.AddFormattedText(segment, formatting.Bold, formatting.Italic, GetUnderlineValue(formatting)?.ToOfficeEnum());
-                    ApplyFormatting(run, formatting, options);
+                    AddFormattedSegment(paragraph, segment, formatting, options);
                 }
                 var display = ApplyTextTransform(match.Value, formatting.Transform);
                 if (!Uri.TryCreate(match.Value, UriKind.Absolute, out var uri) || IsInvalidResolvedHref(uri, options)) {
-                    var run = paragraph.AddFormattedText(display, formatting.Bold, formatting.Italic, GetUnderlineValue(formatting)?.ToOfficeEnum());
-                    ApplyFormatting(run, formatting, options);
+                    AddFormattedSegment(paragraph, display, formatting, options);
                 } else {
                     var linkRun = paragraph.AddHyperLink(display, uri);
                     ApplyFormatting(linkRun, formatting, options);
@@ -460,8 +457,31 @@ namespace OfficeIMO.Word.Html {
             if (lastIndex < text.Length) {
                 var segment = text.Substring(lastIndex);
                 segment = ApplyTextTransform(segment, formatting.Transform);
-                var run = paragraph.AddFormattedText(segment, formatting.Bold, formatting.Italic, GetUnderlineValue(formatting)?.ToOfficeEnum());
-                ApplyFormatting(run, formatting, options);
+                AddFormattedSegment(paragraph, segment, formatting, options);
+            }
+        }
+
+        private void AddFormattedSegment(WordParagraph paragraph, string text, TextFormatting formatting, HtmlToWordOptions options) {
+            int start = 0;
+            for (int index = 0; index < text.Length; index++) {
+                if (text[index] != '\n') continue;
+
+                int end = index > start && text[index - 1] == '\r' ? index - 1 : index;
+                if (end > start) {
+                    var textRun = paragraph.AddFormattedText(text.Substring(start, end - start), formatting.Bold,
+                        formatting.Italic, GetUnderlineValue(formatting)?.ToOfficeEnum());
+                    ApplyFormatting(textRun, formatting, options);
+                }
+
+                var breakRun = paragraph.AddBreak();
+                ApplyFormatting(breakRun, formatting, options);
+                start = index + 1;
+            }
+
+            if (start < text.Length || text.Length == 0) {
+                var textRun = paragraph.AddFormattedText(text.Substring(start), formatting.Bold,
+                    formatting.Italic, GetUnderlineValue(formatting)?.ToOfficeEnum());
+                ApplyFormatting(textRun, formatting, options);
             }
         }
 
