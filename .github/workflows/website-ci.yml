@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   website-build:
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@3726d0209811bbd5db7d03a57920ac593c4b30c6
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@405457c8e4ae209fc48ec006109bf213e3202a40
     with:
       website_root: Website
       pipeline_config: Website/pipeline.json
@@ -32,5 +32,5 @@ jobs:
       dotnet_version: "10.0.112"
       dotnet_workloads: wasm-tools
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: 3726d0209811bbd5db7d03a57920ac593c4b30c6
+      powerforge_ref: 405457c8e4ae209fc48ec006109bf213e3202a40
       report_artifact_name: powerforge-website-reports
