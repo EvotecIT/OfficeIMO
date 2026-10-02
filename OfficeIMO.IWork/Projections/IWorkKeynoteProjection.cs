@@ -204,7 +204,7 @@ internal static partial class IWorkKeynoteReader {
         }
         bool showReferenceComplete = documentMessage.FieldCount(2) == 1
             && !documentMessage.HasUnexpectedWireKind(2, IWorkWireKind.Bytes);
-        IWorkArchiveRecord? show = references.ReadOne(document, documentMessage, 2);
+        IWorkArchiveRecord? show = references.ReadOne(document, documentMessage, 2, allowedType: type => type == ShowArchive);
         if (!showReferenceComplete || show == null || show.MessageType != ShowArchive) {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_SHOW_MISSING",
                 "The Keynote document root does not reference exactly one supported show object.", document.EntryPath, document.Identifier));
@@ -270,7 +270,7 @@ internal static partial class IWorkKeynoteReader {
         int materializedCellCount = 0;
         var projectionBudget = new IWorkProjectionBudget(source.Options);
         IReadOnlyList<IWorkArchiveRecord> nodes = references.ReadAll(
-            show, slideTree, 2, out int unresolvedNodeCount, "3/2");
+            show, slideTree, 2, out int unresolvedNodeCount, "3/2", allowedType: type => type == SlideNodeArchive);
         if (nodes.Count > source.Options.MaximumProjectedSlides) {
             throw new InvalidDataException($"Keynote slide count exceeds the configured projection limit of {source.Options.MaximumProjectedSlides}.");
         }
@@ -325,7 +325,7 @@ internal static partial class IWorkKeynoteReader {
             }
             bool slideReferenceComplete = nodeMessage.FieldCount(2) == 1
                 && !nodeMessage.HasUnexpectedWireKind(2, IWorkWireKind.Bytes);
-            IWorkArchiveRecord? slide = references.ReadOne(node, nodeMessage, 2);
+            IWorkArchiveRecord? slide = references.ReadOne(node, nodeMessage, 2, allowedType: type => type == SlideArchive);
             if (!slideReferenceComplete || slide == null || slide.MessageType != SlideArchive) {
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -433,8 +433,8 @@ internal static partial class IWorkKeynoteReader {
         complete = true;
         IWorkWireMessage message = index.Message(drawable);
         if (drawable.MessageType == TextShapeArchive) {
-            IWorkArchiveRecord? field4 = references.ReadOne(drawable, message, 4);
-            IWorkArchiveRecord? field2 = references.ReadOne(drawable, message, 2);
+            IWorkArchiveRecord? field4 = references.ReadOne(drawable, message, 4, allowedType: type => type == TextStorageArchive);
+            IWorkArchiveRecord? field2 = references.ReadOne(drawable, message, 2, allowedType: type => type == TextStorageArchive);
             bool directAmbiguous = message.FieldCount(4) > 1
                 || message.FieldCount(2) > 1
                 || field4 != null && field2 != null && field4.Identifier != field2.Identifier;
@@ -453,7 +453,7 @@ internal static partial class IWorkKeynoteReader {
         IWorkWireMessage? super = IWorkObjectIndex.TryGetMessage(message, 1, out bool malformedSuper);
         if (malformedSuper || message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)) complete = false;
         if (super == null) return null;
-        IWorkArchiveRecord? nested = references.ReadOne(drawable, super, 2, "1/2");
+        IWorkArchiveRecord? nested = references.ReadOne(drawable, super, 2, "1/2", allowedType: type => type == TextStorageArchive);
         if (super.HasUnexpectedWireKind(2, IWorkWireKind.Bytes)
             || super.FieldCount(2) > 1
             || super.HasField(2) && (nested == null || nested.MessageType != TextStorageArchive)) {

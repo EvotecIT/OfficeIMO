@@ -251,7 +251,7 @@ internal static partial class IWorkKeynoteReader {
             isComplete: true, isTextComplete: true);
         bool hasNoteReference = message.HasField(27);
         IReadOnlyList<IWorkArchiveRecord> noteRecords = references.ReadAll(
-            slide, message, 27, out int unresolvedNoteCount);
+            slide, message, 27, out int unresolvedNoteCount, allowedType: type => type == PresenterNoteArchive);
         if (hasNoteReference && (unresolvedNoteCount > 0 || noteRecords.Count != 1)) {
             MarkNotesIncomplete(slide, diagnostics, ref supportsEditableReconstruction);
         } else if (noteRecords.Count == 1
@@ -270,7 +270,8 @@ internal static partial class IWorkKeynoteReader {
                 noteStorages = Array.Empty<IWorkArchiveRecord>();
                 unresolvedStorageCount = 1;
             } else {
-                noteStorages = references.ReadAll(note, noteMessage, 1, out unresolvedStorageCount);
+                noteStorages = references.ReadAll(note, noteMessage, 1, out unresolvedStorageCount,
+                    allowedType: type => type == TextStorageArchive);
             }
             if (unresolvedStorageCount == 0 && noteStorages.Count == 1
                 && noteStorages[0].MessageType == TextStorageArchive) {
