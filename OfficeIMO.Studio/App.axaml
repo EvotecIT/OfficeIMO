@@ -1,8 +1,14 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:OfficeIMO.Studio.Infrastructure.Localization"
              xmlns:preferences="clr-namespace:OfficeIMO.Studio.Infrastructure.Preferences"
              x:Class="OfficeIMO.Studio.App"
              Name="OfficeIMO Studio">
+  <NativeMenu.Menu>
+    <NativeMenu>
+      <NativeMenuItem Header="{loc:Loc Commands.Settings.Title}" Click="OnNativeSettingsClick" />
+    </NativeMenu>
+  </NativeMenu.Menu>
   <Application.Resources>
     <ResourceDictionary>
       <ResourceDictionary.ThemeDictionaries>

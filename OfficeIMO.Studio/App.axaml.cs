@@ -33,6 +33,14 @@ public sealed partial class App : Application {
         Services.Preferences.Changed += OnPreferencesChanged;
     }
 
+    private void OnNativeSettingsClick(object? sender, EventArgs eventArgs) {
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: MainWindow window }) {
+            window.ViewModel.ShowSettingsCommand.Execute(null);
+            window.Show();
+            window.Activate();
+        }
+    }
+
     private void OnPreferencesChanged(object? sender, EventArgs eventArgs) {
         ApplyDensity();
         RequestedThemeVariant = Services.Preferences.Current.Theme switch {
