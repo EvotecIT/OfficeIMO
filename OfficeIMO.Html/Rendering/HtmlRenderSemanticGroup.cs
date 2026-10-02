@@ -77,10 +77,12 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
         double? layoutY = null,
         string? structureElementKey = null,
         double? layoutHeight = null,
-        string? alternativeText = null)
+        string? alternativeText = null,
+        HtmlMathMlSource? mathMlSource = null)
         : base(HtmlRenderVisualKind.SemanticGroup, x, y, width, height, paintOrder, null, source, layoutY, layoutHeight) {
         Role = role;
         AlternativeText = alternativeText;
+        MathMlSource = mathMlSource;
         StructureElementKey = structureElementKey;
         ColumnSpan = columnSpan;
         RowSpan = rowSpan;
@@ -103,10 +105,12 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
         double layoutY,
         string? structureElementKey,
         double layoutHeight,
-        string? alternativeText)
+        string? alternativeText,
+        HtmlMathMlSource? mathMlSource)
         : base(HtmlRenderVisualKind.SemanticGroup, x, y, width, height, paintOrder, null, source, layoutY, layoutHeight) {
         Role = role;
         AlternativeText = alternativeText;
+        MathMlSource = mathMlSource;
         StructureElementKey = structureElementKey;
         ColumnSpan = columnSpan;
         RowSpan = rowSpan;
@@ -119,6 +123,9 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
 
     /// <summary>Accessible description retained across paint transforms and page fragments.</summary>
     public string? AlternativeText { get; }
+
+    /// <summary>Recoverable formula source retained across paint transforms and page fragments, or null for other content.</summary>
+    public HtmlMathMlSource? MathMlSource { get; }
 
     internal string? StructureElementKey { get; }
 
@@ -141,14 +148,14 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
     public IReadOnlyList<HtmlRenderVisual> Visuals => _visuals;
 
     internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: false), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY + offsetY, StructureElementKey, LayoutHeight, AlternativeText);
+        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: false), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY + offsetY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource);
 
     internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: true), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText);
+        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: true), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource);
 
     internal HtmlRenderVisual ProjectPaint(IEnumerable<HtmlRenderVisual> visuals, double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, visuals,
-            paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText);
+            paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource);
 
     private static ReadOnlyCollection<HtmlRenderVisual> OrderVisuals(IEnumerable<HtmlRenderVisual> visuals) {
         if (visuals == null) throw new ArgumentNullException(nameof(visuals));

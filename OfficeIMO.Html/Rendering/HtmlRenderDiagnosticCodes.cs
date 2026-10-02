@@ -193,6 +193,10 @@ public static class HtmlRenderDiagnosticCodes {
     public const string SvgContentUnsupported = "HtmlRenderSvgContentUnsupported";
     /// <summary>MathML content could not be represented by the bounded shared mathematical expression model.</summary>
     public const string MathMlContentUnsupported = "HtmlRenderMathMlContentUnsupported";
+    /// <summary>A formula retained current MathML serialization rather than exact original source markup.</summary>
+    public const string MathMlSourceNormalized = "HtmlRenderMathMlSourceNormalized";
+    /// <summary>A painted formula could not retain bounded XML source.</summary>
+    public const string MathMlSourceUnavailable = "HtmlRenderMathMlSourceUnavailable";
     /// <summary>A caller codec rasterized SVG features outside the bounded vector scene.</summary>
     public const string SvgRasterFallback = "HtmlRenderSvgRasterFallback";
     /// <summary>A resource exceeded the configured per-resource byte limit.</summary>
@@ -324,6 +328,8 @@ public static class HtmlRenderDiagnosticCodes {
         PageBleedUnsupported,
         PageMarksUnsupported,
         MathMlContentUnsupported,
+        MathMlSourceNormalized,
+        MathMlSourceUnavailable,
         SvgContentUnsupported,
         SvgRasterFallback,
         ResourceByteLimitExceeded,

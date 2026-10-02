@@ -177,6 +177,7 @@ internal static partial class HtmlPdfRenderedConverter {
         target.TextShapingMode = source.TextShapingMode;
         target.FontFamily = source.FontFamily;
         target.InteractiveFormControls = source.InteractiveFormControls;
+        target.MathMlSourceModificationDate = source.MathMlSourceModificationDate;
         target.PrintLayoutWidthCssPixels = source.PrintLayoutWidthCssPixels;
         target.AutoFitWidePrintContent = source.AutoFitWidePrintContent;
         target.MaxOutlinedTextCharactersPerRun = source.MaxOutlinedTextCharactersPerRun;
@@ -220,6 +221,7 @@ internal static partial class HtmlPdfRenderedConverter {
         PdfCore.PdfOptions documentOptions = options.PdfOptions.Clone();
         documentOptions.UseContentStreamCompressionByDefault();
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(documentOptions);
+        var mathMlFiles = new HtmlPdfMathMlFiles(options.MathMlSourceModificationDate);
         pdf.Options.ReportDiagnosticsTo(conversionReport, "OfficeIMO.Html.Pdf");
         if (rendered.Metadata.Title != null
             || rendered.Metadata.Author != null
@@ -311,10 +313,10 @@ internal static partial class HtmlPdfRenderedConverter {
                 }
                 page.Canvas(canvas => {
                     if (printLayoutScale == 1D) {
-                        AddPageVisuals(canvas, renderedPage, webFonts, imageResources, conversionReport, options.InteractiveFormControls, cancellationToken);
+                        AddPageVisuals(canvas, renderedPage, webFonts, imageResources, conversionReport, options.InteractiveFormControls, cancellationToken, mathMlFiles);
                     } else {
                         canvas.Effect(OfficeTransform.Scale(printLayoutScale, printLayoutScale), 1D,
-                            content => AddPageVisuals(content, renderedPage, webFonts, imageResources, conversionReport, options.InteractiveFormControls, cancellationToken));
+                            content => AddPageVisuals(content, renderedPage, webFonts, imageResources, conversionReport, options.InteractiveFormControls, cancellationToken, mathMlFiles));
                     }
                     AddPageOutlines(canvas, headingsByPage[renderedPage.PageNumber], headingDocumentOrder, printLayoutScale, cancellationToken);
                 });
@@ -356,8 +358,8 @@ internal static partial class HtmlPdfRenderedConverter {
         }
     }
 
-    private static void AddPageVisuals(PdfCore.PdfPageCanvas canvas, HtmlRenderPage page, RegisteredWebFonts webFonts, PdfImageResourceCache imageResources, PdfCore.PdfConversionReport conversionReport, bool interactiveFormControls, CancellationToken cancellationToken) {
-        HtmlPdfPagePaintContext pagePaint = HtmlPdfPagePaintContext.Create(page);
+    private static void AddPageVisuals(PdfCore.PdfPageCanvas canvas, HtmlRenderPage page, RegisteredWebFonts webFonts, PdfImageResourceCache imageResources, PdfCore.PdfConversionReport conversionReport, bool interactiveFormControls, CancellationToken cancellationToken, HtmlPdfMathMlFiles mathMlFiles) {
+        HtmlPdfPagePaintContext pagePaint = HtmlPdfPagePaintContext.Create(page, mathMlFiles);
         foreach (HtmlRenderVisual visual in page.Scene.OrderBy(item => item.PaintOrder)) {
             cancellationToken.ThrowIfCancellationRequested();
             AddVisual(canvas, visual, webFonts, imageResources, conversionReport, page.Width, page.Height, interactiveFormControls, cancellationToken, pagePaint: pagePaint);

@@ -70,7 +70,10 @@ internal static class NativeFormState {
         using var targets = Walk(target, cancellationToken).GetEnumerator();
         while (sources.MoveNext()) {
             if (!targets.MoveNext()) throw new InvalidOperationException("The provider clone changed the document structure.");
-            if (sources.Current is IElement original && targets.Current is IElement clone) Attach(clone, Get(original));
+            if (sources.Current is IElement original && targets.Current is IElement clone) {
+                Attach(clone, Get(original));
+                NativeSourceMarkup.Attach(clone, NativeSourceMarkup.Get(original));
+            }
         }
         if (targets.MoveNext()) throw new InvalidOperationException("The provider clone changed the document structure.");
         ApplyTree(target, cancellationToken);

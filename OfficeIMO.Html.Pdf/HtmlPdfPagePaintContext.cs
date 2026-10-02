@@ -6,16 +6,18 @@ namespace OfficeIMO.Html.Pdf;
 /// <summary>Operation-local link coverage and logical ownership for one rendered page.</summary>
 internal sealed class HtmlPdfPagePaintContext {
     private readonly HtmlPdfAnchorLinkMap _links;
+    internal HtmlPdfMathMlFiles MathMlFiles { get; }
     private readonly Dictionary<HtmlRenderLogicalTextScope, List<HtmlRenderLogicalTextGroup>> _logicalGroups = new();
     private readonly HashSet<HtmlRenderLogicalTextScope> _emittedScopes = new();
     private readonly Dictionary<HtmlRenderLogicalTextScope, IReadOnlyList<HtmlRenderVisual>> _logicalPaint = new();
 
-    private HtmlPdfPagePaintContext(HtmlRenderPage page) {
+    private HtmlPdfPagePaintContext(HtmlRenderPage page, HtmlPdfMathMlFiles mathMlFiles) {
+        MathMlFiles = mathMlFiles;
         _links = HtmlPdfAnchorLinkMap.Create(page);
         Collect(page.Scene);
     }
 
-    internal static HtmlPdfPagePaintContext Create(HtmlRenderPage page) => new(page);
+    internal static HtmlPdfPagePaintContext Create(HtmlRenderPage page, HtmlPdfMathMlFiles mathMlFiles) => new(page, mathMlFiles);
 
     internal bool IsActive(HtmlRenderAnchorFragment fragment) => _links.IsActive(fragment);
     internal bool Covers(HtmlRenderVisual visual) => _links.Covers(visual);

@@ -1,5 +1,7 @@
 using AngleSharp.Dom;
 using OfficeIMO.Drawing;
+using System.IO;
+using System.Xml;
 
 namespace OfficeIMO.Html;
 
@@ -13,10 +15,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
         out HtmlRenderFlowBlock block,
         out double baseline) {
         string source = HtmlRenderStyleResolver.DescribeSource(element);
+        HtmlMathMlSource? mathMlSource = null;
+        try {
+            mathMlSource = HtmlMathMlSource.Create(element, Math.Min(_options.MaxLayoutDepth, OfficeMathMarkup.DefaultMaximumParseDepth),
+                _options.MaxHtmlNodes, _cancellationToken);
+        } catch (Exception exception) when (exception is XmlException || exception is ArgumentException || exception is InvalidDataException) {
+            _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.MathMlSourceUnavailable,
+                "The formula was painted, but its DOM could not be retained as bounded MathML XML.",
+                HtmlDiagnosticSeverity.Warning, source, exception.GetType().Name, OfficeConversionLossKind.Approximation);
+        }
         OfficeMathExpression expression;
         try {
             int maximumDepth = Math.Min(_options.MaxLayoutDepth, OfficeMathMarkup.DefaultMaximumParseDepth);
-            expression = OfficeMathMarkup.FromMathMl(element.OuterHtml, maximumDepth);
+            expression = OfficeMathMarkup.FromMathMl(mathMlSource?.MathMl ?? element.OuterHtml, maximumDepth);
         } catch (Exception exception) when (exception is FormatException || exception is ArgumentException || exception is OfficeMathParseException) {
             _diagnostics.Add(
                 ComponentName,
@@ -76,6 +87,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddBoxPaint(visuals, style, boxX, style.MarginTop, boxWidth, boxHeight, element);
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft + alignmentOffset;
         double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
+        if (mathMlSource != null && !mathMlSource.IsOriginalMarkup) _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.MathMlSourceNormalized,
+                "The formula source uses current namespace-aware MathML because exact original markup is unavailable or differs from the current DOM.",
+                HtmlDiagnosticSeverity.Warning, source, lossKind: OfficeConversionLossKind.Approximation);
         string logicalText = expression.ToPlainText();
         string alternativeText = ResolveMathAlternativeText(element, logicalText);
         string? link = inheritedLink ?? (element.ParentElement != null && string.Equals(element.ParentElement.TagName, "a", StringComparison.OrdinalIgnoreCase)
@@ -102,7 +116,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             source);
         mathVisuals.Add(new HtmlRenderSemanticGroup(
             HtmlRenderSemanticGroupRole.Formula, contentX, contentY, contentSize.Width, contentSize.Height,
-            new[] { logicalVisual }, 0, source, alternativeText: alternativeText));
+            new[] { logicalVisual }, 0, source, alternativeText: alternativeText, mathMlSource: mathMlSource));
 
         HtmlResolvedBorderRadii outerRadii = ResolveBoxRadii(style, boxWidth, boxHeight, element, source);
         HtmlResolvedBorderRadii contentRadii = outerRadii.Inset(

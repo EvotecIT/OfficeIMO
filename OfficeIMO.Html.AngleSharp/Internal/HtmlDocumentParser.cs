@@ -22,12 +22,14 @@ internal static class HtmlDocumentParser {
     public static IHtmlDocument ParseDocument(string html, CancellationToken cancellationToken) {
         if (html == null) throw new ArgumentNullException(nameof(html));
         cancellationToken.ThrowIfCancellationRequested();
-        var parser = new HtmlParser(new HtmlParserOptions {
-            IsKeepingSourceReferences = true
-        });
+        var parserOptions = new HtmlParserOptions { IsKeepingSourceReferences = true };
+        MathMlSourceCapture? sourceCapture = MathMlSourceCapture.Configure(ref parserOptions, html, cancellationToken);
+        var parser = new HtmlParser(parserOptions);
         string normalized = NormalizeSvgHrefAttributeOrder(html, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        return parser.ParseDocumentAsync(normalized, cancellationToken).GetAwaiter().GetResult();
+        IHtmlDocument document = parser.ParseDocumentAsync(normalized, cancellationToken).GetAwaiter().GetResult();
+        sourceCapture?.Attach(document.ChildNodes);
+        return document;
     }
 
     /// <summary>Parses an HTML fragment using the supplied element and its ancestors as context.</summary>
@@ -35,14 +37,15 @@ internal static class HtmlDocumentParser {
         if (html == null) throw new ArgumentNullException(nameof(html));
         if (contextElement == null) throw new ArgumentNullException(nameof(contextElement));
         cancellationToken.ThrowIfCancellationRequested();
-        var parser = new HtmlParser(new HtmlParserOptions {
-            IsKeepingSourceReferences = true
-        });
+        var parserOptions = new HtmlParserOptions { IsKeepingSourceReferences = true };
+        MathMlSourceCapture? sourceCapture = MathMlSourceCapture.Configure(ref parserOptions, html, cancellationToken);
+        var parser = new HtmlParser(parserOptions);
         string normalized = NormalizeSvgHrefAttributeOrder(html, cancellationToken);
         if (RequiresContextEnvelope(contextElement)) {
             return ParseFragmentWithContextEnvelope(normalized, contextElement, cancellationToken);
         }
         INodeList nodes = parser.ParseFragment(normalized, contextElement);
+        sourceCapture?.Attach(nodes);
         cancellationToken.ThrowIfCancellationRequested();
         return new HtmlFragmentParseResult(nodes.ToArray(), 0);
     }

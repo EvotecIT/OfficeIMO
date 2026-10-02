@@ -66,6 +66,12 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
     /// </summary>
     public bool InteractiveFormControls { get; set; } = true;
 
+    /// <summary>Optional caller-supplied modification date for generated Formula MathML associated files.</summary>
+    /// <remarks>Ordinary PDF does not invent a date. Archival profiles requiring embedded-file dates
+    /// must receive an explicit value. Formula associated files require PDF 2.0 unless the selected
+    /// PDF/A-3 profile permits them in PDF 1.7.</remarks>
+    public DateTimeOffset? MathMlSourceModificationDate { get; set; }
+
     /// <summary>
     /// Fits visible layout overflow, including fixed-width descendants and tables, into a
     /// uniform CSS print page. Clipped descendants and paint-only shadows do not widen the
@@ -157,6 +163,7 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
         TextShapingMode = source.TextShapingMode;
         FontFamily = source.FontFamily;
         InteractiveFormControls = source.InteractiveFormControls;
+        MathMlSourceModificationDate = source.MathMlSourceModificationDate;
         PrintLayoutWidthCssPixels = source.PrintLayoutWidthCssPixels;
         AutoFitWidePrintContent = source.AutoFitWidePrintContent;
         PrintOutputPageSize = source.PrintOutputPageSize;

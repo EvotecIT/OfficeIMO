@@ -169,6 +169,7 @@ public sealed partial class HtmlDocument : HtmlNode {
                 newElement.SetAttribute(attribute);
             }
             newElement.FormState = element.FormState;
+            newElement.SourceMarkup = element.SourceMarkup;
             copy = newElement;
         } else if (source is HtmlDocumentType type) copy = new HtmlDocumentType(clone, source.NodeId, type.Name, type.PublicIdentifier, type.SystemIdentifier);
         else if (source is HtmlDocumentFragment) copy = new HtmlDocumentFragment(clone, source.NodeId);

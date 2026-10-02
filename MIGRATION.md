@@ -2653,3 +2653,7 @@ Word `IncludePageNumbers` and Excel `IncludeSheetHeadings` now default to `false
 - Review `HasLoss`, omitted-content, and resource-policy diagnostics before accepting converted output.
 - Clean package caches, lock files, `bin`, and `obj` outputs when old and new assemblies were restored together.
 - Run the application test suite on every supported operating system after the coordinated package upgrade.
+
+## Formula sources in tagged HTML-to-PDF output
+
+Tagged MathML formulas include recoverable MathML supplements on their PDF structure elements. Ordinary output containing a painted formula uses PDF 2.0; configured PDF/A-3 groundwork permits these associations in PDF 1.7. If an archival policy requires embedded-file modification dates, supply `HtmlToPdfOptions.MathMlSourceModificationDate`. Explicit incompatible conformance policies still reject output. Untagged output emits no formula source attachments.

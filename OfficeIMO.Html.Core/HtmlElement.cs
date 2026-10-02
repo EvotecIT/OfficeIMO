@@ -10,6 +10,7 @@ public sealed class HtmlElement : HtmlNode {
     private readonly List<HtmlAttribute> _attributes = new List<HtmlAttribute>();
     private readonly ReadOnlyCollection<HtmlAttribute> _attributesView;
     private HtmlFormControlState? _formState;
+    internal HtmlSourceMarkupSnapshot? SourceMarkup { get; set; }
 
     internal HtmlElement(HtmlDocument document, int id, string name, string namespaceUri, string? prefix = null) : base(document, id, HtmlNodeKind.Element) {
         LocalName = name;

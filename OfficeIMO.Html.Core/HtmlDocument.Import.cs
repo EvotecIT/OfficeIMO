@@ -52,6 +52,7 @@ public sealed partial class HtmlDocument {
                 copy.SetAttribute(attribute);
             }
             copy.FormState = element.FormState;
+            copy.SourceMarkup = element.SourceMarkup;
             if (element.TemplateContent != null) GetOrCreateTemplateContent(copy);
             return copy;
         }

@@ -54,6 +54,8 @@ internal static partial class HtmlPdfRenderedConverter {
             HeaderScope = MapTableHeaderScope(group.HeaderScope),
             StructureElementKey = group.StructureElementKey
         };
+        if (group.Role == HtmlRenderSemanticGroupRole.Formula && group.MathMlSource != null)
+            pagePaint?.MathMlFiles.Attach(options, group.MathMlSource, cancellationToken);
         bool childTextAsSpan = textAsSpan || IsTextContentGroup(group.Role);
         string logicalText = string.Empty;
         bool hasLogicalText = IsTextContentGroup(group.Role)

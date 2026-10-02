@@ -305,6 +305,7 @@ internal static class NativeDomBridge {
             if (element.SourceReference?.Position.Index is int index && index >= sourceIndexOffset)
                 document.SetSourceIndex(result, index - sourceIndexOffset);
             result.FormState = NativeFormState.Get(element);
+            result.SourceMarkup = NativeSourceMarkup.Get(element);
             return result;
         }
         if (source is IDocumentType type) return document.CreateDocumentType(type.Name, type.PublicIdentifier, type.SystemIdentifier);
@@ -370,6 +371,7 @@ internal static class NativeDomBridge {
             // Complete that lifecycle before exposing the node to clone/layout consumers.
             constructable.SetupElement();
             NativeFormState.Attach(result, element.FormState);
+            NativeSourceMarkup.Attach(result, element.SourceMarkup);
             return result;
         }
         if (source is HtmlDocumentType type) {
