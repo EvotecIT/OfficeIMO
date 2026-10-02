@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<string> tokens = SplitFormulaArguments(args, preserveEmpty: true);
             bool directional = function is "TRUNC" or "ROUNDUP" or "ROUNDDOWN";
             bool multiple = function is "CEILING" or "FLOOR";
-            int minimum = multiple || function is "MOD" or "ROUNDUP" or "ROUNDDOWN" ? 2 : 1;
+            int minimum = multiple || function is "COMBIN" or "MOD" or "ROUNDUP" or "ROUNDDOWN" ? 2 : 1;
             int maximum = function is "TRUNC" or "LOG" ? 2 : minimum;
             int count = tokens.Count;
             if (count < minimum || count > maximum || (!multiple && tokens.Any(string.IsNullOrWhiteSpace))) return false;
@@ -28,7 +28,10 @@ namespace OfficeIMO.Excel {
             }
             int digits = 0;
             if (directional && count == 2 && !digitsAreError && !TryGetSupportedDecimalPlaces(numbers[1], out digits)) return false;
+            // Qualify the item-count boundary before any error can be caught by IFERROR.
+            if (function == "COMBIN" && numbers[0] > 9007199254740991d) return false;
             if (firstError.IsError) { result = firstError; return true; }
+            if (function == "COMBIN") return TryEvaluateCombinations(numbers[0], numbers[1], out result);
             if (function == "FACT") {
                 // 170! is finite in binary64; 171! overflows. Check before casting
                 // or looping so arbitrarily large inputs have bounded work.

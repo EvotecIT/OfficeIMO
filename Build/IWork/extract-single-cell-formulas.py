@@ -196,7 +196,7 @@ numeric_cases = []
 error_cases = []
 if upstream_path == 'test-all-formulas.numbers':
     table = document.sheets['Math'].tables['Tests']
-    for row in [3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 27, 28, 29, 30, 31, 46, 47, 48, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 83, 84, 85, 86, 87, 88, 94, 95, 101, 102, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 125, 126, 127, 128, 129, 152, 164, 165, 166]:
+    for row in [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 27, 28, 29, 30, 31, 46, 47, 48, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 83, 84, 85, 86, 87, 88, 94, 95, 101, 102, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 125, 126, 127, 128, 129, 152, 164, 165, 166]:
         cell = table.cell(row - 1, 1)
         nodes = model.formula_ast(table._table_id)[cell._formula_id]
         stack, functions = [], []
@@ -235,6 +235,9 @@ if upstream_path == 'test-all-formulas.numbers':
                         assert factor != 0
                         rounding = ROUND_CEILING if name == 'CEILING' else ROUND_FLOOR
                         computed = float((number / factor).to_integral_value(rounding=rounding) * factor)
+                elif name == 'COMBIN':
+                    assert count == 2 and 0 <= values[1] <= values[0]
+                    computed = float(math.comb(math.trunc(values[0]), math.trunc(values[1])))
                 elif name == 'FACT':
                     assert count == 1 and 0 <= values[0] < 171
                     computed = float(math.factorial(math.trunc(values[0])))

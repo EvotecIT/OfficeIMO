@@ -783,6 +783,27 @@
     {
       "sourceSheet": "Math",
       "sourceTable": "Tests",
+      "row": 8,
+      "column": 2,
+      "sourceFormula": "COMBIN(8,2)",
+      "cachedValue": 28.0,
+      "computedCurrentValue": 28.0,
+      "nodeTypes": [
+        17,
+        17,
+        16
+      ],
+      "functions": [
+        {
+          "index": 24,
+          "name": "COMBIN",
+          "argumentCount": 2
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Math",
+      "sourceTable": "Tests",
       "row": 9,
       "column": 2,
       "sourceFormula": "EVEN(-1)",

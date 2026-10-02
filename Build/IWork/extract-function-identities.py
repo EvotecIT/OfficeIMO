@@ -19,7 +19,7 @@ assert version('numbers-parser') == '4.19.0'
 source_hash = hashlib.sha256(args.source.read_bytes()).hexdigest()
 assert source_hash == '9371c5b1d6ee4dfa17569097f064eba9c67f804d88b48638efbbeeb459d07dd4'
 # Counts follow the public function signatures; names/IDs come from the independent provider.
-samples = {'ABS': 1, 'AND': 1, 'AVERAGE': 1, 'AVERAGEA': 1, 'CEILING': 2, 'COLUMN': 0, 'COLUMNS': 1, 'CONCATENATE': 1, 'COUNT': 1,
+samples = {'ABS': 1, 'AND': 1, 'AVERAGE': 1, 'AVERAGEA': 1, 'CEILING': 2, 'COLUMN': 0, 'COLUMNS': 1, 'COMBIN': 2, 'CONCATENATE': 1, 'COUNT': 1,
            'COUNTA': 1, 'COUNTBLANK': 1, 'COUNTIF': 2, 'DATE': 3, 'DAY': 1, 'DEGREES': 1, 'EVEN': 1, 'EXACT': 2,
            'EXP': 1, 'FACT': 1, 'FALSE': 0, 'FIND': 2, 'FLOOR': 2, 'HOUR': 1, 'HYPERLINK': 2, 'IF': 3, 'IFERROR': 2,
            'INDEX': 2, 'INT': 1, 'ISBLANK': 1, 'ISERROR': 1, 'ISNUMBER': 1, 'ISTEXT': 1, 'LEFT': 1, 'LEN': 1, 'LN': 1, 'LOG': 1, 'LOG10': 1, 'LOWER': 1, 'MAX': 1, 'MAXA': 1, 'MEDIAN': 1,

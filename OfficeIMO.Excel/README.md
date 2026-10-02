@@ -894,6 +894,13 @@ Large integral values avoid unnecessary scaling, and nonfinite results produce
 `#NUM!` instead of invalid numeric caches. All operands, including supported
 digit bounds, qualify before an argument error is propagated.
 
+`COMBIN` evaluates two finite scalar operands with a nonnegative item count up to
+2^53−1, truncating fractions. Negative inputs, a chosen count larger than the item
+count, and results beyond the numeric range return `#NUM!`. Integer arithmetic
+avoids factorial overflow and accumulated rounding; large finite results use the
+workbook’s floating-point representation. Evaluation takes at most 1,023 steps.
+Unsupported signatures, ranges, text and larger item counts retain existing caches.
+
 `FACT` evaluates one finite scalar, truncating nonnegative fractions before
 multiplication. Zero returns one. Negative inputs and values at least 171 produce
 `#NUM!`; at most 169 multiplications are needed for a finite result. Large

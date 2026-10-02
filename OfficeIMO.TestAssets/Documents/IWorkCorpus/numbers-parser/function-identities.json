@@ -43,6 +43,11 @@
       "sampleArgumentCount": 1
     },
     {
+      "index": 24,
+      "name": "COMBIN",
+      "sampleArgumentCount": 2
+    },
+    {
       "index": 25,
       "name": "CONCATENATE",
       "sampleArgumentCount": 1
