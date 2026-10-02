@@ -33,6 +33,9 @@ targets:
         ARCHS: arm64
         ENABLE_APP_SANDBOX: YES
         ENABLE_USER_SELECTED_FILES: readwrite
+      configs:
+        Debug:
+          CODE_SIGN_IDENTITY: Apple Development
   OfficeIMOStudioMobile:
     type: application
     platform: iOS
