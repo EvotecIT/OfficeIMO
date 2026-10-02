@@ -100,9 +100,13 @@ internal static partial class EpubReader {
             }
         }
 
-        return !options.PreferSpineOrder && options.DeterministicOrder
-            ? candidates.OrderBy(candidate => candidate.Path, StringComparer.Ordinal).ToList()
-            : candidates;
+        if (options.PreferSpineOrder || candidates.Count == 0) return candidates;
+        if (options.DeterministicOrder)
+            return candidates.OrderBy(candidate => candidate.Path, StringComparer.Ordinal).ToList();
+        var archiveOrder = new Dictionary<ZipArchiveEntry, int>();
+        foreach (ZipArchiveEntry entry in candidates[0].Entry.Archive.Entries)
+            archiveOrder.Add(entry, archiveOrder.Count);
+        return candidates.OrderBy(candidate => archiveOrder[candidate.Entry]).ToList();
     }
 
     private static Dictionary<string, ManifestItem> BuildManifestByPath(EpubPackage? package) {
@@ -335,7 +339,7 @@ internal static partial class EpubReader {
                             heading = new StringBuilder();
                             headingDepth = reader.Depth;
                         }
-                        if (reader.Depth > 0 && baseHref == null && isHtmlElement && localName.Equals("base", StringComparison.OrdinalIgnoreCase)) {
+                        if (!isSvg && reader.Depth > 0 && baseHref == null && isHtmlElement && localName.Equals("base", StringComparison.OrdinalIgnoreCase)) {
                             baseHref = NullIfWhiteSpace(GetAttribute(reader, "href"));
                         }
                         if (reader.Depth > 0 && !hasStructuredContent && (isHtmlElement || isSvgElement) && IsStructuredChapterElement(localName)) {

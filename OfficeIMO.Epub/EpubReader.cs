@@ -119,6 +119,9 @@ internal static partial class EpubReader {
         int emitted = 0;
         long totalRawHtmlBytes = 0;
         long totalTextCharacters = 0;
+        var remainingPositions = candidates.GroupBy(candidate => candidate.Path, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+        var parsedEntries = new Dictionary<string, ParsedChapterEntry>(StringComparer.Ordinal);
 
         foreach (var candidate in candidates) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -147,21 +150,17 @@ internal static partial class EpubReader {
                 continue;
             }
 
-            string markup;
-            try {
-                markup = ReadEntryText(candidate.Entry, effective.MaxChapterBytes, cancellationToken);
-            } catch (DecoderFallbackException) {
-                diagnostics.Warning("epub.chapter.invalid-encoding",
-                    $"Skipped chapter '{normalizedPath}' because its character encoding is invalid.", normalizedPath);
+            if (!parsedEntries.TryGetValue(normalizedPath, out ParsedChapterEntry? parsed)) {
+                parsed = ParseChapterEntry(candidate, effective,
+                    candidate.Entry.Length <= effective.MaxTotalRawHtmlBytes - totalRawHtmlBytes, cancellationToken);
+                if (remainingPositions[normalizedPath] > 1) parsedEntries.Add(normalizedPath, parsed);
+            }
+            if (--remainingPositions[normalizedPath] == 0) parsedEntries.Remove(normalizedPath);
+            if (parsed.ErrorCode != null) {
+                diagnostics.Warning(parsed.ErrorCode, parsed.ErrorMessage!, normalizedPath);
                 continue;
             }
-            if (!TryReadChapterMarkup(markup, out ChapterMarkupInfo chapterMarkup, cancellationToken)) {
-                diagnostics.Warning(
-                    "epub.chapter.invalid-xhtml",
-                    $"Skipped chapter '{normalizedPath}' because chapter markup is not valid XML/XHTML.",
-                    normalizedPath);
-                continue;
-            }
+            ChapterMarkupInfo chapterMarkup = parsed.Markup;
 
             string text = chapterMarkup.Text;
             if (text.Length > effective.MaxTotalTextCharacters - totalTextCharacters) {
@@ -180,7 +179,7 @@ internal static partial class EpubReader {
                         $"Did not retain raw HTML for chapter '{normalizedPath}' because MaxTotalRawHtmlBytes ({effective.MaxTotalRawHtmlBytes}) was reached.",
                         normalizedPath);
                 } else {
-                    retainedHtml = markup;
+                    retainedHtml = parsed.Html;
                     totalRawHtmlBytes += candidate.Entry.Length;
                 }
             }
