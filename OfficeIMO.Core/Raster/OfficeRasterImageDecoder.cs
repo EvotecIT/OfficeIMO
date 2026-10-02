@@ -185,9 +185,8 @@ public static partial class OfficeRasterImageDecoder {
         // Static WebP belongs to the managed decoder. A failed VP8/ALPH stream
         // must not become valid merely because a caller codec was supplied.
         // Animated WebP has its explicit inspected caller-codec path above.
+        // AVIF reaches a caller only after both selected item payloads validate.
         bool usedCallerCodec = false;
-        // AVIF exposes a caller boundary only after both item payloads and the
-        // retained/work limits pass; malformed alpha cannot publish color alone.
         if (!success && format != OfficeImageFormat.Webp &&
             (format != OfficeImageFormat.Avif || avifCallerCodecEligible))
             success = usedCallerCodec = TryDecodeWithOptionalCodec(bytes, effective, container, out image);

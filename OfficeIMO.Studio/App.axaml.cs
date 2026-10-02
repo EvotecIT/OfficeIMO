@@ -23,6 +23,7 @@ public sealed partial class App : Application {
         Services ??= StudioApplicationServices.CreateDefault();
         StudioLocalization.Configure(Services.Localizer);
         AvaloniaXamlLoader.Load(this);
+        InitializeNativeApplicationMenu();
         ApplyDensity();
         RequestedThemeVariant = Services.Preferences.Current.Theme switch {
             StudioThemePreference.Light => Avalonia.Styling.ThemeVariant.Light,

@@ -204,6 +204,7 @@ namespace OfficeIMO.Word.Html {
             _processedRadioInputs.Clear();
             _cssRules.Clear();
             _imageCache.Clear();
+            _unscaledImageSizes.Clear();
             _computedFontSizePixels.Clear();
             _materializedRoleTableElements.Clear();
             _computedBoxStyles.Clear();

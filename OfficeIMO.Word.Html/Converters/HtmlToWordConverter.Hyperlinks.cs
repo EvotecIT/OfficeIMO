@@ -16,7 +16,7 @@ namespace OfficeIMO.Word.Html {
             WordList? headingList) {
             // An image must be added while its paragraph belongs to a document story. The
             // previous detached paragraph failed to create an image part. Keep a temporary
-            // paragraph in the same scope, then copy its inline content into the hyperlink.
+            // paragraph in the same scope, then move its inline content into the hyperlink.
             // Keep the destination paragraph in place even when it is the sole empty cell
             // paragraph; AddParagraphInScope may replace that paragraph in a table cell.
             WordParagraph temporary = cell != null ? cell.AddParagraph("")
@@ -36,7 +36,7 @@ namespace OfficeIMO.Word.Html {
                 return inlineContent;
             } finally {
                 _suppressAutoLinksDepth--;
-                // The copied drawing still uses the image part, so remove only the temporary
+                // The moved drawing still uses the image part, so remove only the temporary
                 // OpenXML paragraph. WordParagraph.Remove would also delete that image part.
                 if (captured) temporary._paragraph.Remove();
                 else temporary.Remove();

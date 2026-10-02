@@ -110,7 +110,7 @@ internal sealed partial class OfficeAvifContainerReader {
                     Require(flags == 0);
                     var cursor = new Cursor(this, p, property.End);
                     Require(cursor.TerminatedString() == "urn:mpeg:mpegB:cicp:systems:auxiliary:alpha");
-                    cursor.End();
+                    // Remaining aux_subtype bytes are opaque and bounded by this property box.
                     hasAuxiliaryType = true;
                     break;
                 }

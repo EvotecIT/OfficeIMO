@@ -7,6 +7,7 @@
              x:Class="OfficeIMO.Studio.Features.Home.HomeView"
              x:DataType="shell:MainWindowViewModel">
   <UserControl.Styles>
+    <Style Selector="StackPanel.pageContent"><Setter Property="Margin" Value="36,28,36,36" /></Style>
     <Style Selector="Button.task">
       <Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource StudioSubtleBorderBrush}" />
@@ -56,7 +57,7 @@
 
   <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                 Background="{DynamicResource StudioPanelBrush}">
-    <StackPanel Margin="36,28,36,36" Spacing="22" MaxWidth="1180" HorizontalAlignment="Stretch">
+    <StackPanel x:Name="HomeContent" Classes="pageContent" Spacing="22" MaxWidth="1180" HorizontalAlignment="Stretch">
       <StackPanel Spacing="4">
         <TextBlock Text="{loc:Loc Home.Welcome}" Classes="pageTitle" />
         <TextBlock Text="{loc:Loc Home.WelcomeDescription}" Classes="muted" />

@@ -710,6 +710,15 @@ Use `HtmlDataUri` when the payload is textual. Its `DecodeText()` method honors 
 
 `HtmlContentSafety.Inspect(html)` evaluates the bounded CSS cascade and reports hidden, transparent, tiny, zero-size, clipped, off-canvas, and low-contrast text together with comments, scripts/styles, templates, metadata, alternative text, ARIA labels, and hidden form values. `HtmlContentSafety.RemoveSelected(...)` removes only reviewed current findings—including exact Unicode ranges inside machine-only text nodes—and reinspects the serialized HTML. An empty file selection preserves the source bytes and encoding. No script runs and no external resource is fetched.
 
+### Semantic tables and image links
+
+`HtmlConversionDocument.SemanticDocument` retains structurally nested ARIA table,
+row, rowgroup, cell and header roles alongside native HTML tables. Semantic rows
+expose `SourceRowIndex`, including positions occupied by empty authored rows.
+`CaptionRuns` contains authored caption text and inline formatting; inferred table
+titles do not manufacture caption runs. Image resources retain the nearest
+policy-normalized enclosing hyperlink for editable adapters.
+
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary
 

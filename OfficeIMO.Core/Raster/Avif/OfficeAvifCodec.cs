@@ -21,7 +21,7 @@ internal static class OfficeAvifCodec {
             if (container.Alpha != null)
                 alpha = DecodeItem(bytes, container.Alpha, options.WithAdditionalRetainedManagedBytes(color.StorageBytes), out _);
             try {
-                image = OfficeAvifColorConverter.Compose(color, colorItem.ColorDescription ?? sequence.Color, alpha, retained);
+                image = OfficeAvifColorConverter.Compose(color, colorItem.ColorDescription ?? sequence.Color, alpha, retained, sequence.ChromaSamplePosition);
             } catch (NotSupportedException) {
                 // Both selected items are validated and all composition bounds passed.
                 // Only an unsupported color conversion may reach the trusted codec.

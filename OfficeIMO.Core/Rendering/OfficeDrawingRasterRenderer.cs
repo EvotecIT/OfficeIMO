@@ -356,7 +356,8 @@ public static partial class OfficeDrawingRasterRenderer {
         bool identifiedManagedRaster = OfficeImageReader.TryIdentifyByContent(bytes, null, out OfficeImageInfo identified) &&
             (identified.Format == OfficeImageFormat.Png || identified.Format == OfficeImageFormat.Jpeg ||
              identified.Format == OfficeImageFormat.Bmp || identified.Format == OfficeImageFormat.Webp ||
-             identified.Format == OfficeImageFormat.Gif || identified.Format == OfficeImageFormat.Tiff);
+             identified.Format == OfficeImageFormat.Gif || identified.Format == OfficeImageFormat.Tiff ||
+             identified.Format == OfficeImageFormat.Avif);
         if (identifiedManagedRaster) {
             if (!OfficeRasterImageDecoder.IsWithinPixelLimit(identified.Width, identified.Height, maximumRasterPixels)) {
                 image = null;
@@ -419,7 +420,7 @@ public static partial class OfficeDrawingRasterRenderer {
             !OfficeImageReader.HasCompleteJpegPayload(bytes, cancellationToken,
                 requireManagedFrame: true, validateMetadata: true);
         if (identifiedManagedRaster && !callerDecodedJpeg ||
-            OfficeImageReader.HasWebpSignature(bytes) || !callerCodecInputWithinLimit) {
+            OfficeImageReader.HasWebpSignature(bytes) || OfficeImageReader.HasAvifSignature(bytes, cancellationToken) || !callerCodecInputWithinLimit) {
             diagnosticSink?.Add(new OfficeImageExportDiagnostic(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 OfficeImageExportDiagnosticCodes.SourceImageDecodeOmitted,

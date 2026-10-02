@@ -144,7 +144,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         string.Equals(value, "true", StringComparison.OrdinalIgnoreCase)
         || string.Equals(value, "1", StringComparison.Ordinal);
 
-    private static void ImportPicture(IElement item, PptCore.PowerPointSlide slide, HtmlToPowerPointResult result, HtmlImportBudget budget, ref double fallbackTop, double fallbackLeft = 720D) {
+    private static void ImportPicture(IElement item, PptCore.PowerPointSlide slide, HtmlToPowerPointResult result, HtmlImportBudget budget, HtmlToPowerPointOptions options, ref double fallbackTop, double fallbackLeft = 720D) {
         IElement? image = IsElement(item, "img") && item.HasAttribute("src") ? item : item.QuerySelector("img[src]");
         if (image == null || !HtmlImageDataUri.TryParse(image.GetAttribute("src"), out HtmlImageDataUri dataUri)) {
             return;
@@ -186,7 +186,7 @@ public static partial class HtmlPowerPointConverterExtensions {
 
         for (IElement? parent = image.ParentElement; parent != null; parent = parent.ParentElement) {
             if (!IsElement(parent, "a")) continue;
-            ApplyPictureHyperlink(picture, parent.GetAttribute("href"), result);
+            ApplyPictureHyperlink(picture, parent.GetAttribute("href"), result, options.NormalizedHyperlinkUrlPolicy ?? options.HyperlinkUrlPolicy);
             break;
         }
 
@@ -196,9 +196,10 @@ public static partial class HtmlPowerPointConverterExtensions {
         fallbackTop = Math.Max(fallbackTop, pictureTop + height + 18D);
     }
 
-    private static void ApplyPictureHyperlink(PptCore.PowerPointPicture picture, string? target, HtmlToPowerPointResult result) {
+    private static void ApplyPictureHyperlink(PptCore.PowerPointPicture picture, string? target, HtmlToPowerPointResult result, HtmlUrlPolicy policy) {
         if (target == null || target.Trim().Length == 0) return;
-        string trimmed = target.Trim();
+        string trimmed = HtmlUrlPolicyEvaluator.ResolveUrl(target, null, policy);
+        if (trimmed.Length == 0) return;
         if (Uri.TryCreate(trimmed, UriKind.Absolute, out Uri? hyperlink)) {
             picture.Hyperlink = hyperlink;
             return;

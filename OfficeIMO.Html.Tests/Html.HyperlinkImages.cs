@@ -49,4 +49,19 @@ public sealed class HtmlHyperlinkImageTests {
         var blip = Assert.Single(header.Header.Descendants<Blip>());
         Assert.IsType<ImagePart>(header.GetPartById(blip.Embed!.Value!));
     }
+    [Theory]
+    [InlineData("header")]
+    [InlineData("footer")]
+    public void ReusedLinkedImageRetainsItsHeaderOrFooterOwner(string story) {
+        string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<" + story + " class='word-" + story + "'><a href='https://example.test/gallery'><img src='"
+            + image + "'></a><img src='" + image + "'></" + story + "><p>Body</p>";
+        using var document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using var bytes = new MemoryStream(document.ToBytes());
+        using var package = WordprocessingDocument.Open(bytes, false);
+        OpenXmlPart part = story == "header" ? Assert.Single(package.MainDocumentPart!.HeaderParts) : Assert.Single(package.MainDocumentPart!.FooterParts);
+        var blips = part.RootElement!.Descendants<Blip>().ToArray();
+        Assert.Equal(2, blips.Length);
+        Assert.All(blips, blip => Assert.IsType<ImagePart>(part.GetPartById(blip.Embed!.Value!)));
+    }
 }

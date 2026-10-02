@@ -7,6 +7,37 @@ namespace OfficeIMO.Html.Tests;
 
 public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
     [Fact]
+    public void OversizedTableFallbackHonorsSourceFieldLimit() {
+        var limits = HtmlImportLimits.CreateDefault();
+        limits.MaxMetadataCharacters = 256;
+        var result = HtmlConversionDocument.Parse("<table><tr><td>ForbiddenMarker " + new string('x', 2000) + "</td></tr></table>")
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false, Limits = limits });
+        using var document = result.RequireValue();
+        Assert.DoesNotContain(document.Slides.SelectMany(slide => slide.TextBoxes), box => box.Text.Contains("ForbiddenMarker"));
+        Assert.Contains(result.Report.Diagnostics, item => item.Code == HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void EmptyAuthoredRowKeepsPaginatedTablesAndCellLinks(bool trailingEmptyRow) {
+        string rows = string.Concat(Enumerable.Range(1, 20).Select(i => "<tr><td><a href='https://example.test/row'>Row " + i + "</a></td></tr>"));
+        var result = HtmlConversionDocument.Parse("<table><tr><th>Name</th></tr><tr></tr>" + rows + (trailingEmptyRow ? "<tr></tr>" : "") + "</table>")
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
+        using var document = result.RequireValue();
+        Assert.True(result.Tables > 1);
+        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Detail?.Contains("projection=paginatedText") == true);
+        using var stream = new MemoryStream();
+        document.Save(stream);
+        stream.Position = 0;
+        using var package = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Read);
+        Assert.Contains(package.Entries.Where(entry => entry.FullName.EndsWith(".rels")), entry => {
+            using var reader = new StreamReader(entry.Open());
+            return reader.ReadToEnd().Contains("https://example.test/row");
+        });
+    }
+
+    [Fact]
     public void LongDocumentTitleFitsItsEditableTextBoxAcrossSections() {
         const string title = "Global Drinking Water | Global Water, Sanitation, and Hygiene (WASH) | CDC";
         string html = "<title>" + title + "</title><main>"
@@ -196,7 +227,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
 
     [Fact]
     public void OversizedSingleCellTableRemainsVisibleWithStructureLossReported() {
-        string cellText = string.Join(' ', Enumerable.Repeat("Gallery entry with a description and source link.", 24));
+        string cellText = string.Join(" ", Enumerable.Repeat("Gallery entry with a description and source link.", 24));
         string html = "<article><h1>Gallery</h1><table><tr><td><a href='https://example.org/gallery'>Gallery source</a> " + cellText
             + "</td></tr></table><p>After gallery</p></article>";
 
@@ -229,7 +260,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
         using PowerPointPresentation presentation = result.Value;
 
         Assert.True(presentation.Slides.Count >= 3);
-        Assert.Contains(presentation.Slides[^1].TextBoxes, box => box.Text == "Second section region");
+        Assert.Contains(presentation.Slides[presentation.Slides.Count - 1].TextBoxes, box => box.Text == "Second section region");
         Assert.DoesNotContain(result.Report.Diagnostics, item =>
             item.Message.Contains("owning semantic slide was not created", StringComparison.Ordinal));
     }

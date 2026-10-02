@@ -37,6 +37,10 @@ Bounded, single-surface positioned and floating HTML regions map to editable pag
 
 Dependency footprint: `OfficeIMO.Core`, `OfficeIMO.Html`, and `OfficeIMO.Rtf`.
 
+## ARIA tables and stylesheet diagnostics
+
+Structurally supported ARIA tables become native editable RTF tables, including spans bounded to their row groups. Unsupported structures remain in text flow with an approximation diagnostic. Source-node/depth limits are checked before synthetic native elements are introduced. Active embedded stylesheets and applicable external stylesheet links that the RTF importer does not apply are reported as loss; inline styling remains available.
+
 Unstyled images larger than the effective document or section text area are reduced
 proportionally, using embedded image DPI (96 DPI when absent). The default text area
 is 6 inches wide by 9 inches high. Explicit image
