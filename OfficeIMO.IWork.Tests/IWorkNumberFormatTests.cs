@@ -184,23 +184,19 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Empty_currency_format_keeps_precedence_over_an_inactive_numeric_selector() {
+    public void Empty_currency_selection_remains_unassessed_without_native_selection_qualification() {
         using var package = EmptyNumericFormatPackage(IWorkDocumentKind.Numbers, CurrencyFormat("GBP", 2), currency: true);
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
-        var cell = Assert.Single(result.Projection.Sheets[0].Tables[0].Cells);
-        Assert.Equal("GBP", cell.NumberFormat!.CurrencyCode);
-        Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED");
-        using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
-        using var reopened = global::OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal(cell.NumberFormat.ToSpreadsheetFormatCode(), reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode);
-        Assert.Equal("", Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
+        var cell = Assert.Single(IWorkSourceDocument.Open(package).ReadNumbers().Sheets[0].Tables[0].Cells);
+        Assert.Null(cell.NumberFormat);
+        Assert.True(cell.UnsupportedFeatures.HasFlag(IWorkCellUnsupportedFeatures.AmbiguousNumberFormat));
     }
 
     private static MemoryStream EmptyNumericFormatPackage(IWorkDocumentKind kind, byte[] format, int columns = 1, bool currency = false) {
-        byte[] cell = new byte[currency ? 20 : 16]; cell[0] = 5;
-        WriteUInt32(cell, 8, (1u << 13) | (currency ? 1u << 14 : 0u));
-        WriteUInt32(cell, 12, currency ? 99u : 1u);
-        if (currency) WriteUInt32(cell, 16, 1);
+        byte[] cell = new byte[currency ? 24 : 20]; cell[0] = 5;
+        WriteUInt32(cell, 8, (1u << 12) | (1u << 13) | (currency ? 1u << 14 : 0u));
+        WriteUInt32(cell, 12, 1);
+        WriteUInt32(cell, 16, currency ? 99u : 1u);
+        if (currency) WriteUInt32(cell, 20, 1);
         byte[] offsets = new byte[columns * 2];
         for (int c = 0; c < columns; c++) offsets[c * 2] = checked((byte)(c * cell.Length));
         return TableDependencyPackage(kind, ReferenceField(22, 13), columns: (ulong)columns,

@@ -11,9 +11,9 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Numbers, 16)]
     [InlineData(IWorkDocumentKind.Numbers, 18)]
     public void Ambiguous_blank_scalar_formats_remain_visible_and_require_partial_acceptance(IWorkDocumentKind kind, int otherBit) {
-        byte[] cell = new byte[20]; cell[0] = 5;
-        WriteUInt32(cell, 8, (1u << 13) | (1u << otherBit));
-        WriteUInt32(cell, 12, 1); WriteUInt32(cell, 16, 2);
+        byte[] cell = new byte[24]; cell[0] = 5;
+        WriteUInt32(cell, 8, (1u << 12) | (1u << 13) | (1u << otherBit));
+        WriteUInt32(cell, 12, 1); WriteUInt32(cell, 16, 1); WriteUInt32(cell, 20, 2);
         byte[] other = otherBit switch {
             15 => DateFormat("dd/MM/y"),
             16 => Message(VarintField(1, 268)),

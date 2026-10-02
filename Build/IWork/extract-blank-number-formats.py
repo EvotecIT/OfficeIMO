@@ -38,11 +38,15 @@ for source in source_manifest['packages']:
                                       for i in range(bit) if flags & (1 << i))
                     if offset + 4 > len(buffer):
                         raise RuntimeError('Truncated selected format.')
+                    selection_offset = 12 + sum(16 if i == 0 else 8 if i in (1, 2) else 4
+                                                for i in range(12) if flags & (1 << i))
+                    selection = int.from_bytes(buffer[selection_offset:selection_offset + 4], 'little') if flags & (1 << 12) else None
                     key = int.from_bytes(buffer[offset:offset + 4], 'little')
                     record = document._model.table_format(table._table_id, key)
                     cases.append({'sheet': sheet.name, 'table': table.name,
                                   'row': row + 1, 'column': column + 1,
                                   'flags': flags, 'selectorBit': bit, 'formatKey': key,
+                                  'blankFormatSelection': selection,
                                   'formatType': record.format_type,
                                   'decimalPlaces': record.decimal_places,
                                   'thousandsSeparator': record.show_thousands_separator,

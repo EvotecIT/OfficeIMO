@@ -18,13 +18,22 @@ internal static partial class IWorkTableReader {
         IWorkTableCell cell = DecodeModernCell(buffer, offset, endOffset, row, column, type, flags,
             strings, richStrings, formulas, options, projectionBudget,
             formulaRichStringIdentifiers, nonFormulaRichStringIdentifiers);
+        // Catalog entries can remain after a blank cell returns to Automatic.
+        // Native Numbers establishes explicit blank numeric selection through field 12.
+        uint? blankFormatSelection = null;
+        if (cell.Kind == IWorkCellKind.Empty && (flags & (1u << 12)) != 0) {
+            int selectionOffset = offset + 12;
+            for (int bit = 0; bit < 12; bit++)
+                if ((flags & (1u << bit)) != 0) selectionOffset += CellValueFieldSize(bit);
+            blankFormatSelection = IWorkProtobuf.ReadUInt32(buffer, selectionOffset);
+        }
         bool hasAmbiguousBlankScalarFormats = cell.Kind == IWorkCellKind.Empty
             && (flags & ((1u << 13) | (1u << 14))) != 0
-            && (flags & ((1u << 15) | (1u << 16) | (1u << 17) | (1u << 18))) != 0;
-        // Blank numeric input cells still carry an authored format for future values.
+            && (blankFormatSelection.HasValue && blankFormatSelection != 1
+                || (flags & ((1u << 14) | (1u << 15) | (1u << 16) | (1u << 17) | (1u << 18))) != 0);
         bool hasNumericFormatTarget = type is 2 or 10
             && cell.Kind is IWorkCellKind.Number or IWorkCellKind.Formula
-            || cell.Kind == IWorkCellKind.Empty && !hasAmbiguousBlankScalarFormats;
+            || cell.Kind == IWorkCellKind.Empty && blankFormatSelection == 1 && !hasAmbiguousBlankScalarFormats;
         if (!cell.HasDecodeError && hasNumericFormatTarget
             && (flags & ((1u << 13) | (1u << 14))) != 0) {
             // Currency selection takes precedence over numeric selection in modern storage.

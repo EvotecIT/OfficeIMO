@@ -9,7 +9,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Independent_blank_number_formats_preserve_selected_source_metadata() {
         string root = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "numbers-parser");
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "blank-number-formats.json")));
-        int qualified = 0, ambiguous = 0;
+        int qualified = 0, ambiguous = 0, inactive = 0;
         foreach (JsonElement package in manifest.RootElement.GetProperty("packages").EnumerateArray()) {
             JsonElement[] cells = package.GetProperty("cells").EnumerateArray().ToArray();
             if (cells.Length == 0) continue;
@@ -30,6 +30,11 @@ public sealed partial class IWorkBoundaryTests {
                     ambiguous++;
                     continue;
                 }
+                if ((expected.GetProperty("flags").GetUInt32() & (1u << 12)) == 0) {
+                    Assert.Null(cell.NumberFormat);
+                    inactive++;
+                    continue;
+                }
                 Assert.NotNull(cell.NumberFormat);
                 Assert.Equal(expected.GetProperty("formatType").GetInt32() == 258
                     ? IWorkNumberFormatKind.Percentage : IWorkNumberFormatKind.Number, cell.NumberFormat.Kind);
@@ -39,8 +44,33 @@ public sealed partial class IWorkBoundaryTests {
                 qualified++;
             }
         }
-        Assert.Equal(26, qualified);
+        Assert.Equal(25, qualified);
+        Assert.Equal(1, inactive);
         Assert.Equal(9, ambiguous);
+    }
+
+    [Fact]
+    public void Native_explicit_selection_activates_dormant_blank_percentage_format() {
+        string root = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus");
+        foreach (bool explicitlySelected in new[] { false, true }) {
+            string path = Path.Combine(root, explicitlySelected
+                ? "native-exports/numbers-blank-explicit-percentage-v14.5.numbers"
+                : "numbers-parser/cross-table-formulas.numbers");
+            using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
+                conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
+                    AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
+            var table = result.Projection.Sheets.Single(s => s.Name == "Main Sheet").Tables.Single(t => t.Name == "Extra Headers");
+            var cell = table.GetCell(8, 1)!;
+            Assert.Equal(IWorkCellKind.Empty, cell.Kind);
+            if (explicitlySelected) Assert.Equal(IWorkNumberFormatKind.Percentage, cell.NumberFormat!.Kind);
+            else Assert.Null(cell.NumberFormat);
+            var mapping = result.WorksheetMappings.Single(m => m.SourceSheetName == "Main Sheet" && m.SourceTableName == "Extra Headers");
+            using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
+            using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
+            var target = reopened.Sheets.Single(s => s.Name == mapping.DestinationName).CellAt(8, 1);
+            Assert.Equal("", target.GetValue<string>());
+            Assert.Equal(explicitlySelected, target.GetStyle().NumberFormatCode?.Contains('%') == true);
+        }
     }
 
     [Fact]
