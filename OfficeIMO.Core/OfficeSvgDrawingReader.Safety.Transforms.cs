@@ -62,10 +62,18 @@ public static partial class OfficeSvgDrawingReader {
         XElement use,
         XElement target,
         OfficeTransform placedTransform,
+        SvgRasterWorkBudget rasterWork,
         out OfficeTransform targetTransform) {
         targetTransform = placedTransform;
         if (!target.Name.LocalName.Equals("symbol", StringComparison.OrdinalIgnoreCase)) return true;
-        if (!TryParseNumberList(ReadRasterProjectedAttribute(target, "viewBox"), out IReadOnlyList<double> viewBox)
+        string? viewBoxText = ReadRasterProjectedAttribute(target, "viewBox");
+        if (viewBoxText is null) {
+            // An unscaled symbol only translates its children; still validate its
+            // viewport before a caller renderer can allocate an intermediate surface.
+            return rasterWork.IsSupportedUnscaledSymbolViewport(use, target)
+                && IsSupportedSvgTransform(targetTransform);
+        }
+        if (!TryParseNumberList(viewBoxText, out IReadOnlyList<double> viewBox)
             || viewBox.Count != 4
             || viewBox[2] <= 0D
             || viewBox[3] <= 0D

@@ -45,6 +45,7 @@ public static partial class OfficeSvgDrawingReader {
             }
             if (targetName == "symbol") {
                 AddReferencedSymbol(use, target, drawing, style, paintServers, references, transform,
+                    viewX, viewY,
                     maximumElements, maximumViewportDimension, maximumViewportPixels, depth,
                     ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
                 return;

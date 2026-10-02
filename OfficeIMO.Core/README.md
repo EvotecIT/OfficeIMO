@@ -233,6 +233,11 @@ The SVG drawing reader supports a single rectangle, rounded rectangle, circle, e
 path inside a `userSpaceOnUse` clip path, including transforms and even-odd filling. Compound clip
 unions, `objectBoundingBox` clips, and referenced or text clip geometry report unsupported features.
 Shape geometry crossing a nested SVG or symbol viewBox is retained until the viewport clip is applied.
+Local symbols without a `viewBox` retain their user coordinates and inherit paint from
+their `use` element. Symbol dimensions clip the content; they do not rescale it.
+Native import resolves omitted dimensions from the containing viewport. Caller-raster
+safety checks require explicit symbol width and height in documents with nested
+viewports or symbol references whose viewport context cannot be resolved by that check.
 
 ```csharp
 using OfficeIMO.Drawing;
