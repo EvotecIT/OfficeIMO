@@ -1,5 +1,6 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
+using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using System.Globalization;
@@ -14,6 +15,19 @@ namespace OfficeIMO.Word.Html {
         private static readonly string[] WordPictureSourceAttributes = { "src", "data-src", "data-original", "data-original-src", "data-lazy-src" };
         private static readonly string[] WordImageLazySourceAttributes = { "data-src", "data-original", "data-original-src", "data-lazy-src" };
         private static readonly string[] WordImageSourceAttributes = { "src" };
+
+        private Dictionary<string, WordImage> GetStoryImageCache(
+            WordParagraph? paragraph, WordHeaderFooter? headerFooter, WordDocument document) {
+            OpenXmlElement story = paragraph != null ? paragraph.Location()
+                : (OpenXmlElement?)headerFooter?._header ?? (OpenXmlElement?)headerFooter?._footer
+                ?? document._wordprocessingDocument.MainDocumentPart?.Document
+                ?? throw new InvalidOperationException("The image has no document story.");
+            if (!_imageCache.TryGetValue(story, out Dictionary<string, WordImage>? cache)) {
+                cache = new Dictionary<string, WordImage>(StringComparer.OrdinalIgnoreCase);
+                _imageCache.Add(story, cache);
+            }
+            return cache;
+        }
 
         private void ProcessImage(
             IHtmlImageElement img,
@@ -65,21 +79,31 @@ namespace OfficeIMO.Word.Html {
             double? height = img.DisplayHeight > 0 ? img.DisplayHeight : null;
             width ??= TryResolveImagePercentWidth(decl.GetPropertyValue("width"), doc, resolveContainerWidthTwips);
             width ??= TryResolveImagePercentWidth(img.GetAttribute("width"), doc, resolveContainerWidthTwips);
+            width ??= TryParsePixelValue(decl.GetPropertyValue("width"));
             width ??= TryParsePixelValue(img.GetAttribute("width"));
+            height ??= TryParsePixelValue(decl.GetPropertyValue("height"));
             height ??= TryParsePixelValue(img.GetAttribute("height"));
+            double? maximumWidth = TryResolveImagePercentWidth(decl.GetPropertyValue("max-width"), doc, resolveContainerWidthTwips)
+                ?? TryParsePixelValue(decl.GetPropertyValue("max-width"));
+            double? contentWidth = width == null && height == null
+                ? TryResolveImagePercentWidth("100%", doc, resolveContainerWidthTwips)
+                : null;
 
             WordParagraph? paragraph = currentParagraph;
 
-            if (horizontalAlignment == null && _imageCache.TryGetValue(src, out var cached)) {
+            Dictionary<string, WordImage> storyCache = GetStoryImageCache(paragraph, headerFooter, doc);
+            if (horizontalAlignment == null && storyCache.TryGetValue(src, out var cached)) {
                 paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
                 var clonedImage = cached.Clone(paragraph);
+                ApplyCachedImageSize(clonedImage, cached, width, height);
+                FitImageToWidthConstraints(clonedImage, contentWidth, maximumWidth, options, src, alt);
                 ApplyImageMetadata(clonedImage, alt, title);
                 return;
             }
 
             WordImage image;
             if (src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) {
-                if (!TryHandleDataImage(src, doc, options, ref paragraph, headerFooter, width, height, wrap, alt, out image)) {
+                if (!TryHandleDataImage(src, doc, options, ref paragraph, headerFooter, wrap, alt, out image)) {
                     InsertAltText(currentParagraph, headerFooter, doc, alt);
                     return;
                 }
@@ -94,7 +118,7 @@ namespace OfficeIMO.Word.Html {
                 try {
                     reservedBytes = EnsureFileWithinImageLimits(uri.LocalPath, options);
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                    paragraph.AddImage(uri.LocalPath, width, height, wrap, description: alt);
+                    paragraph.AddImage(uri.LocalPath, null, null, wrap, description: alt);
                     reservedBytes = 0;
                     image = paragraph.Image!;
                 } catch (HtmlResourceLimitException ex) {
@@ -118,7 +142,7 @@ namespace OfficeIMO.Word.Html {
                 try {
                     reservedBytes = EnsureFileWithinImageLimits(src, options);
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                    paragraph.AddImage(src, width, height, wrap, description: alt);
+                    paragraph.AddImage(src, null, null, wrap, description: alt);
                     reservedBytes = 0;
                     image = paragraph.Image!;
                 } catch (HtmlResourceLimitException ex) {
@@ -145,7 +169,7 @@ namespace OfficeIMO.Word.Html {
                     using var ms = new MemoryStream(data);
                     string fileName = GetFileNameFromUri(src);
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                    paragraph.AddImage(ms, fileName, width, height, wrap, description: alt);
+                    paragraph.AddImage(ms, fileName, null, null, wrap, description: alt);
                     reservedBytes = 0;
                     image = paragraph.Image!;
                 } catch (HtmlResourceLimitException ex) {
@@ -179,10 +203,15 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
+            if (image.Width is double unscaledWidth && image.Height is double unscaledHeight) {
+                _unscaledImageSizes[image] = (unscaledWidth, unscaledHeight);
+                ApplyImageSize(image, (unscaledWidth, unscaledHeight), width, height);
+            }
+            FitImageToWidthConstraints(image, contentWidth, maximumWidth, options, src, alt);
             ApplyImageMetadata(image, alt, title);
 
             if (horizontalAlignment == null) {
-                _imageCache[src] = image;
+                storyCache[src] = image;
             }
         }
 
@@ -199,8 +228,15 @@ namespace OfficeIMO.Word.Html {
             double? height = img.DisplayHeight > 0 ? img.DisplayHeight : null;
             width ??= TryResolveImagePercentWidth(decl.GetPropertyValue("width"), doc, resolveContainerWidthTwips);
             width ??= TryResolveImagePercentWidth(img.GetAttribute("width"), doc, resolveContainerWidthTwips);
+            width ??= TryParsePixelValue(decl.GetPropertyValue("width"));
             width ??= TryParsePixelValue(img.GetAttribute("width"));
+            height ??= TryParsePixelValue(decl.GetPropertyValue("height"));
             height ??= TryParsePixelValue(img.GetAttribute("height"));
+            double? maximumWidth = TryResolveImagePercentWidth(decl.GetPropertyValue("max-width"), doc, resolveContainerWidthTwips)
+                ?? TryParsePixelValue(decl.GetPropertyValue("max-width"));
+            double? contentWidth = width == null && height == null
+                ? TryResolveImagePercentWidth("100%", doc, resolveContainerWidthTwips)
+                : null;
             var alt = img.AlternativeText;
             var title = img.GetAttribute("title") ?? string.Empty;
 
@@ -262,9 +298,10 @@ namespace OfficeIMO.Word.Html {
                     var paragraph = currentParagraph ?? (headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph());
                     SvgHelper.AddSvg(paragraph, svgContent, width, height, alt ?? string.Empty);
                     if (paragraph.Image != null) {
+                        FitImageToWidthConstraints(paragraph.Image, contentWidth, maximumWidth, options, src, alt ?? string.Empty);
                         ApplyImageMetadata(paragraph.Image, alt ?? string.Empty, title);
                     }
-                    _imageCache[src] = paragraph.Image!;
+                    GetStoryImageCache(paragraph, headerFooter, doc)[src] = paragraph.Image!;
                     reservedBytes = 0;
                 } catch (Exception ex) {
                     ReleaseImageBytes(reservedBytes, options);
@@ -407,7 +444,7 @@ namespace OfficeIMO.Word.Html {
             return false;
         }
 
-        private bool TryHandleDataImage(string src, WordDocument doc, HtmlToWordOptions options, ref WordParagraph? paragraph, WordHeaderFooter? headerFooter, double? width, double? height, WordImageTextWrapping wrap, string alt, out WordImage image) {
+        private bool TryHandleDataImage(string src, WordDocument doc, HtmlToWordOptions options, ref WordParagraph? paragraph, WordHeaderFooter? headerFooter, WordImageTextWrapping wrap, string alt, out WordImage image) {
             image = null!;
             if (!HtmlImageDataUri.TryParse(src, out var dataUri)) {
                 AddDiagnostic(options, "ImageDataUriInvalid", "Image data URI could not be parsed and was skipped.", src);
@@ -441,7 +478,7 @@ namespace OfficeIMO.Word.Html {
                     reservedBytes = bytes.LongLength;
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
                     using var imageStream = new MemoryStream(bytes);
-                    paragraph.AddImage(imageStream, "image." + ext, width, height, wrap, description: alt);
+                    paragraph.AddImage(imageStream, "image." + ext, null, null, wrap, description: alt);
                 } else {
                     if (!dataUri.MediaType.Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
                         AddDiagnostic(options, "ImageDataUriUnsupported", "Non-base64 data URI image was skipped because only SVG text data URIs are supported.", src);
@@ -458,7 +495,7 @@ namespace OfficeIMO.Word.Html {
                     }
                     reservedBytes = svgByteCount;
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                    SvgHelper.AddSvg(paragraph, svgContent, width, height, alt);
+                    SvgHelper.AddSvg(paragraph, svgContent, null, null, alt);
                 }
                 image = paragraph.Image!;
                 reservedBytes = 0;
@@ -1172,7 +1209,7 @@ namespace OfficeIMO.Word.Html {
             try {
                 long estimatedBytes;
                 if (dataUri.IsBase64) {
-                    if (_imageCache.ContainsKey(src)) {
+                    if (_imageCache.Values.Any(cache => cache.ContainsKey(src))) {
                         return true;
                     }
 

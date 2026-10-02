@@ -384,7 +384,11 @@ namespace OfficeIMO.Word.Html {
                 StringComparer.OrdinalIgnoreCase);
             int declarationOrder = 0;
 
-            for (int ruleIndex = 0; ruleIndex < _cssRules.Count; ruleIndex++) {
+            // ARIA table styles were resolved against the source DOM before native
+            // nodes were inserted. Match only their materialized inline declarations
+            // here; selectors for synthetic table/tr/td nodes never matched the page.
+            int ruleCount = _materializedRoleTableElements.Contains(element) ? 0 : _cssRules.Count;
+            for (int ruleIndex = 0; ruleIndex < ruleCount; ruleIndex++) {
                 var rule = _cssRules[ruleIndex];
                 var selector = rule.Selector;
                 if (selector != null) {

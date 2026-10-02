@@ -133,6 +133,12 @@ budget can be rejected before their bodies are read.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
 
+## Editable tables and images
+
+Structurally supported ARIA tables become native editable Word tables. CSS matching is preserved from the source document before structural normalization. Unsupported role-table structures remain in document flow with an approximation diagnostic; synthetic nodes do not consume source-node/depth limits.
+
+Linked images retain their media relationships, including images reused in headers and footers. Each occurrence keeps its authored dimensions and intrinsic aspect ratio. Images without authored dimensions fit the available content width, and supported CSS maximum widths are respected with proportional scaling and diagnostics. Preformatted newlines become native Word breaks.
+
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary
 

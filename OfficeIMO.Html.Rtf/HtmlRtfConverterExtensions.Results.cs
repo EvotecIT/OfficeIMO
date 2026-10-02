@@ -31,13 +31,50 @@ public static partial class HtmlRtfConverterExtensions {
             ?? document.CreateSourceDocumentForConversion();
         HtmlNormalizer.SanitizePreparedDocumentStructure(sourceDocument);
         HtmlActiveMediaFilter.Filter(sourceDocument, document.MediaContext);
-        RtfDocument rtfDocument = RtfHtmlReader.Read(sourceDocument, resolved);
+        ReportIgnoredStylesheets(sourceDocument, resolved, document.MediaContext);
+        HtmlRoleTableNormalizer.Normalize(sourceDocument, onUnsupported: table =>
+            resolved.AddDiagnostic(
+                HtmlConversionDiagnosticCodes.ContentApproximated,
+                "An ARIA table with unsupported row or cell structure remains in text flow rather than becoming an editable RTF table.",
+                HtmlRenderStyleResolver.DescribeSource(table),
+                action: RtfConversionAction.Substituted));
+        RtfDocument rtfDocument = RtfHtmlReader.Read(sourceDocument, resolved, sourceLimitsValidated: true);
         if (editableLayout?.Regions.Count > 0) AddEditableLayoutFrames(rtfDocument, editableLayout, resolved);
         return new HtmlToRtfResult(
             rtfDocument,
             document.Diagnostics.Concat(document.ResourceManifest.Diagnostics).Concat(resolved.HtmlDiagnostics),
             resolved.Diagnostics.AsReadOnly(),
             resolved.ConversionReport);
+    }
+
+    private static void ReportIgnoredStylesheets(
+        AngleSharp.Html.Dom.IHtmlDocument document,
+        HtmlToRtfOptions options,
+        HtmlCssMediaContext mediaContext) {
+        var stylesheetOptions = new HtmlRenderOptions {
+            Mode = mediaContext == HtmlCssMediaContext.Print ? HtmlRenderMode.Paged : HtmlRenderMode.Continuous
+        };
+        foreach (AngleSharp.Dom.IElement element in document.QuerySelectorAll("link[rel], style")) {
+            if (string.Equals(element.LocalName, "style", StringComparison.OrdinalIgnoreCase)) {
+                if (!string.IsNullOrWhiteSpace(element.TextContent)
+                    && HtmlRenderStylesheetApplier.IsApplicableStyleElement(element, stylesheetOptions)) {
+                    options.AddDiagnostic(
+                        "HtmlStylesheetElementSkipped",
+                        "An active HTML stylesheet was not applied by the semantic RTF importer.",
+                        HtmlRenderStyleResolver.DescribeSource(element),
+                        action: RtfConversionAction.Omitted);
+                }
+                continue;
+            }
+
+            if (!HtmlRenderStylesheetApplier.IsApplicableStylesheetLink(element, stylesheetOptions)) continue;
+            string source = element.GetAttribute("href") ?? string.Empty;
+            options.AddDiagnostic(
+                "HtmlStylesheetLinkSkipped",
+                "An HTML stylesheet link was not loaded by the semantic RTF importer.",
+                string.IsNullOrWhiteSpace(source) ? HtmlRenderStyleResolver.DescribeSource(element) : source,
+                action: RtfConversionAction.Omitted);
+        }
     }
 
     private static void AddEditableLayoutDiagnostics(HtmlEditableLayoutProjection? projection, HtmlToRtfOptions options) {
