@@ -25,8 +25,8 @@ public static partial class HtmlAccessibilitySemantics {
             || cell.LocalName.Equals("th", StringComparison.OrdinalIgnoreCase)
             || cell.HasAttribute(nativeAttribute) ? nativeAttribute : "aria-" + nativeAttribute;
 
-    /// <summary>Resolves zero row spans in linear time within each authored row group.</summary>
-    internal static IReadOnlyDictionary<IElement, int> ResolveZeroTableRowSpans(IEnumerable<IElement> rows) {
+    /// <summary>Resolves row spans in linear time, clamping them to each authored row group.</summary>
+    internal static IReadOnlyDictionary<IElement, int> ResolveTableRowSpans(IEnumerable<IElement> rows) {
         var remainingByGroup = new Dictionary<IElement, int>();
         var spans = new Dictionary<IElement, int>();
         foreach (IElement row in rows.Reverse()) {
@@ -39,6 +39,8 @@ public static partial class HtmlAccessibilitySemantics {
                 if (int.TryParse(value, System.Globalization.NumberStyles.Integer,
                         System.Globalization.CultureInfo.InvariantCulture, out int span) && span == 0) {
                     spans[cell] = remaining;
+                } else if (HtmlIntegerSemantics.TryParsePositiveInteger(value, out int positive)) {
+                    spans[cell] = Math.Min(positive, remaining);
                 }
             }
         }

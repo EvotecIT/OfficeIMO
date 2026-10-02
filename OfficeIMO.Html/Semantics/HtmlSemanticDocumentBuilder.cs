@@ -187,7 +187,7 @@ internal static class HtmlSemanticDocumentBuilder {
         string title) {
         var rows = new List<HtmlSemanticTableRow>();
         int sourceRowIndex = 0;
-        IReadOnlyDictionary<IElement, int> zeroSpans = HtmlAccessibilitySemantics.ResolveZeroTableRowSpans(DirectRows(table));
+        IReadOnlyDictionary<IElement, int> rowSpans = HtmlAccessibilitySemantics.ResolveTableRowSpans(DirectRows(table));
         foreach (IElement rowElement in DirectRows(table)) {
             var cells = new List<HtmlSemanticTableCell>();
             foreach (IElement cell in rowElement.Children.Where(IsTableCell)) {
@@ -198,7 +198,7 @@ internal static class HtmlSemanticDocumentBuilder {
                     string.Concat(runs.Select(run => run.Text)),
                     Is(cell, "th") || HtmlAccessibilitySemantics.HasRole(cell, "columnheader")
                         || HtmlAccessibilitySemantics.HasRole(cell, "rowheader"),
-                    zeroSpans.TryGetValue(cell, out int remainingRows) ? remainingRows
+                    rowSpans.TryGetValue(cell, out int remainingRows) ? remainingRows
                         : ReadSpan(cell, HtmlAccessibilitySemantics.GetTableSpanAttributeName(cell, "rowspan")),
                     ReadSpan(cell, HtmlAccessibilitySemantics.GetTableSpanAttributeName(cell, "colspan")),
                     runs,

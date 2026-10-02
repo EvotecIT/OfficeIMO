@@ -227,7 +227,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
 
     [Fact]
     public void OversizedSingleCellTableRemainsVisibleWithStructureLossReported() {
-        string cellText = string.Join(' ', Enumerable.Repeat("Gallery entry with a description and source link.", 24));
+        string cellText = string.Join(" ", Enumerable.Repeat("Gallery entry with a description and source link.", 24));
         string html = "<article><h1>Gallery</h1><table><tr><td><a href='https://example.org/gallery'>Gallery source</a> " + cellText
             + "</td></tr></table><p>After gallery</p></article>";
 
@@ -260,7 +260,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
         using PowerPointPresentation presentation = result.Value;
 
         Assert.True(presentation.Slides.Count >= 3);
-        Assert.Contains(presentation.Slides[^1].TextBoxes, box => box.Text == "Second section region");
+        Assert.Contains(presentation.Slides[presentation.Slides.Count - 1].TextBoxes, box => box.Text == "Second section region");
         Assert.DoesNotContain(result.Report.Diagnostics, item =>
             item.Message.Contains("owning semantic slide was not created", StringComparison.Ordinal));
     }
