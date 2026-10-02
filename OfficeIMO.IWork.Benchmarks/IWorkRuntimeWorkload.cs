@@ -35,7 +35,7 @@ public sealed partial class IWorkRuntimeWorkload {
 
     /// <summary>Loads/projects or converts/saves once; excludes input generation and readback validation.</summary>
     public void Execute(string operation) {
-        _operation = operation; _projection = null; _output = null; VerifiedUnits = 0;
+        _operation = operation; ReleaseResults(); VerifiedUnits = 0;
         using var input = new MemoryStream(_input, writable: false);
         IWorkSourceDocument source = IWorkSourceDocument.Open(input, _kind);
         if (operation == "LoadProject") {
@@ -60,6 +60,12 @@ public sealed partial class IWorkRuntimeWorkload {
             result.Report.RequireCompleteEditableReconstruction(); result.Value.Save(saved);
         }
         _output = saved.ToArray();
+    }
+
+    /// <summary>Releases materialized results after validation; retains input and verified-unit metadata.</summary>
+    public void ReleaseResults() {
+        _projection = null;
+        _output = null;
     }
 
     /// <summary>Checks every source or saved destination unit outside timing; failures fail the lane.</summary>

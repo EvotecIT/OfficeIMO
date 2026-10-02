@@ -1,6 +1,7 @@
 $repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../..')).Path
 $binaryRoot = Get-BenchmarkInput BinaryRoot (Join-Path $repositoryRoot 'OfficeIMO.IWork.Benchmarks/bin/Release/net8.0')
 $factors = Get-BenchmarkInput Factors 1, 10, 100 -Int
+$measureRetainedMemory = Get-BenchmarkInput MeasureRetainedMemory $false -Bool
 $specPath = Join-Path $PSScriptRoot 'iwork-runtime.benchmark.ps1'
 $workloads = @{}
 [void] [Reflection.Assembly]::LoadFrom((Join-Path $binaryRoot 'OfficeIMO.IWork.Benchmarks.dll'))
@@ -9,6 +10,7 @@ New-BenchmarkSuite 'officeimo-iwork-runtime' {
     Set-BenchmarkPolicy -Warmup 2 -Iteration 5 -Order Rotated -OutlierMode None -MemoryCleanup BeforeIteration
     Add-BenchmarkMetadata Contract 'Deterministic synthetic ZIP or pinned native nim-iwork Pages/Numbers fixture: load/project or load/convert/save. Input generation and full semantic readback are outside timing. No native Apple appearance qualification.'
     Add-BenchmarkMetadata Measurement 'PowerForge elapsed time and managed allocation including host invocation. Working-set deltas are not peak or retained memory. Saving uses normal owner APIs.'
+    Add-BenchmarkMetadata RetainedMemory 'Opt-in collected process-wide managed heap before execution and after validation/result release. Includes host/cache effects; excludes native and peak memory.'
     Add-BenchmarkMetadata AffinityPolicy 'Inherited; macOS processor placement is unqualified. Keep competing work idle and record host power mode.'
     Add-BenchmarkMetadata Runtime ([Runtime.InteropServices.RuntimeInformation]::FrameworkDescription)
     Add-BenchmarkMetadata RunnerSha256 (Get-FileHash ([PowerForge.PowerShellBenchmarkRunner].Assembly.Location) -Algorithm SHA256).Hash
@@ -28,7 +30,7 @@ New-BenchmarkSuite 'officeimo-iwork-runtime' {
                 $workloads[$key] = if ($factor -eq 0) {
                     [OfficeIMO.IWork.Benchmarks.IWorkRuntimeWorkload]::new($kind, (Join-Path $repositoryRoot 'OfficeIMO.TestAssets/Documents/IWorkCorpus'))
                 } else { [OfficeIMO.IWork.Benchmarks.IWorkRuntimeWorkload]::new($kind, $units) }
-                [pscustomobject]@{ Name = "$kind-$size"; Kind = $kind; Source = $size; Units = $units; InputSha256 = $workloads[$key].InputSha256 }
+                [pscustomobject]@{ Name = "$kind-$size"; Kind = $kind; Source = $size; MeasureRetainedMemory = $measureRetainedMemory; Units = $units; InputSha256 = $workloads[$key].InputSha256 }
             }
         }
     }
@@ -41,6 +43,10 @@ New-BenchmarkSuite 'officeimo-iwork-runtime' {
             } else { [OfficeIMO.IWork.Benchmarks.IWorkRuntimeWorkload]::new($case.Kind, $case.Units) }
         }
         $run.Workload = $workloads[$key]
+        $run.Workload.ReleaseResults()
+        if ($measureRetainedMemory) {
+            $run.MemoryProbe = [PowerForge.BenchmarkManagedMemoryProbe]::new()
+        }
     }
     Add-BenchmarkEngine OfficeIMO {
         foreach ($operation in 'LoadProject', 'ConvertSave') {
@@ -54,9 +60,17 @@ New-BenchmarkSuite 'officeimo-iwork-runtime' {
         param($case, $run)
         $run.Workload.Validate()
         Assert-BenchmarkValue -Actual $run.Workload.VerifiedUnits -Expected $case.Units
+        $run.OutputBytes = $run.Workload.OutputBytes
+        $run.Workload.ReleaseResults()
+        if ($measureRetainedMemory) { $run.RetainedMemory = $run.MemoryProbe.Capture() }
     }
     Add-BenchmarkMetric VerifiedUnits { param($case, $run) $run.Workload.VerifiedUnits }
     Add-BenchmarkMetric InputBytes { param($case, $run) $run.Workload.InputBytes }
-    Add-BenchmarkMetric OutputBytes { param($case, $run) $run.Workload.OutputBytes }
+    Add-BenchmarkMetric OutputBytes { param($case, $run) $run.OutputBytes }
+    if ($measureRetainedMemory) {
+        Add-BenchmarkMetric ManagedBaselineBytes { param($case, $run) $run.RetainedMemory.BaselineBytes }
+        Add-BenchmarkMetric CollectedManagedBytes { param($case, $run) $run.RetainedMemory.CollectedBytes }
+        Add-BenchmarkMetric RetainedManagedDeltaBytes { param($case, $run) $run.RetainedMemory.DeltaBytes }
+    }
     Set-BenchmarkArtifacts Json, Csv, Markdown
 }

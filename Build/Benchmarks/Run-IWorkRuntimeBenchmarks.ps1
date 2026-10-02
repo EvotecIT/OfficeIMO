@@ -7,6 +7,7 @@ param(
     [ValidateSet('LoadProject', 'ConvertSave')] [string[]] $Operation = @('LoadProject', 'ConvertSave'),
     [ValidateRange(0, 100)] [int] $WarmupCount = 2,
     [ValidateRange(1, 100)] [int] $IterationCount = 5,
+    [switch] $MeasureRetainedMemory,
     [switch] $Plan
 )
 $ErrorActionPreference = 'Stop'
@@ -20,7 +21,7 @@ Import-Module $ModulePath -ErrorAction Stop
 $caseNames = @(foreach ($size in $Scale) { foreach ($family in $Kind) { "$family-$size" } })
 $factors = @(foreach ($size in $Scale) { switch ($size) { Small { 1 } Medium { 10 } Large { 100 } Native { 0 } } })
 $result = Invoke-BenchmarkSuite -Path (Join-Path $PSScriptRoot 'iwork-runtime.benchmark.ps1') `
-    -OutputRoot $OutputRoot -Variable @{ BinaryRoot = $BinaryRoot; Factors = $factors } `
+    -OutputRoot $OutputRoot -Variable @{ BinaryRoot = $BinaryRoot; Factors = $factors; MeasureRetainedMemory = [bool]$MeasureRetainedMemory } `
     -Case $caseNames -Operation $Operation -WarmupCount $WarmupCount -IterationCount $IterationCount -Plan:$Plan
 $result
 if (-not $Plan -and @($result.Samples | Where-Object Status -ne 'Succeeded').Count -gt 0) {
@@ -28,4 +29,10 @@ if (-not $Plan -and @($result.Samples | Where-Object Status -ne 'Succeeded').Cou
 }
 if (-not $Plan -and @($result.Samples | Where-Object { $null -eq $_.AllocatedBytes }).Count -gt 0) {
     throw 'The runner did not measure managed allocation. Use PowerForge with operation allocation measurement, including its source build through ModulePath.'
+}
+
+if (-not $Plan -and $MeasureRetainedMemory -and @($result.Samples | Where-Object {
+    -not $_.Metrics.ContainsKey('RetainedManagedDeltaBytes')
+}).Count -gt 0) {
+    throw 'The requested collected managed-heap observation is missing.'
 }

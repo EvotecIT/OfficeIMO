@@ -53,6 +53,22 @@ elapsed or allocation results. `AllocatedBytes` includes managed host invocation
 and concurrent threads in the same process. `WorkingSetDeltaBytes` is a signed
 resident-page difference, not peak or retained memory.
 
+Use `-MeasureRetainedMemory` with a PowerForge source build containing
+`BenchmarkManagedMemoryProbe` to record collected managed-heap observations.
+Setup releases the previous result and captures a collected baseline; validation
+reopens and checks the current output, records its size, releases the projection or
+saved bytes, and captures the collected heap again. Collection stays outside timing.
+`ManagedBaselineBytes`, `CollectedManagedBytes` and signed
+`RetainedManagedDeltaBytes` include live host state and cache changes in the process.
+The retained-memory option is recorded in case variables so its runs are distinct
+from normal allocation runs. It is off by default and does not need a new runtime
+dependency in OfficeIMO packages.
+
+Repeat an equivalent matrix after warmup before selecting a host-specific budget.
+Per-iteration deltas do not establish long-run stability, native-memory retention,
+peak usage or a portable leak threshold. Keep the native and synthetic workloads
+separate when interpreting their results.
+
 Use PowerForge `Test-BenchmarkGate -SummaryPath <summary.json> -BaselinePath
 <baseline.json> -Metric MedianMs -Update` to record an intentional host baseline,
 then omit `-Update` to compare an equivalent run. Use a separate baseline with
