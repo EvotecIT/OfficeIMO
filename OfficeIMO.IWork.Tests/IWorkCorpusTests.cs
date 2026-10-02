@@ -21,6 +21,46 @@ public sealed class IWorkCorpusTests {
         yield return new object[] { "keynotekit/imagedeck-v15.2.1.key", IWorkDocumentKind.Keynote };
     }
 
+    [Fact]
+    public void Pages_native_decimal_lists_survive_saved_docx_as_numbering() {
+        string path = Fixture("picodocs/sample-v14.4.pages");
+        IWorkSourceDocument source = IWorkSourceDocument.Open(path);
+        string[] items = { "First ordered item", "Second ordered item",
+            "Third ordered item with nested-looking text: 1.1 not actually nested" };
+        foreach (string item in items) {
+            IWorkTextParagraph paragraph = Assert.Single(source.ReadPages().Body.Paragraphs,
+                paragraph => paragraph.Text == item);
+            Assert.Equal(1732816ul, paragraph.ListIdentifier);
+            Assert.Equal("1.", paragraph.ListLabel);
+        }
+        using var result = source.ToWordDocumentResult(new IWorkConversionOptions {
+            Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        Assert.True(result.Report.IsPartialEditableReconstruction);
+        using var saved = new MemoryStream();
+        result.Value.Save(saved); saved.Position = 0;
+        using var document = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(saved, false);
+        var main = document.MainDocumentPart!;
+        var numbering = main.NumberingDefinitionsPart!.Numbering!;
+        int? sharedNumberId = null;
+        foreach (string item in items) {
+            var paragraph = Assert.Single(main.Document!.Body!.Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>(),
+                paragraph => paragraph.InnerText == item);
+            var properties = paragraph.ParagraphProperties!.NumberingProperties!;
+            int numberId = properties.NumberingId!.Val!.Value;
+            if (sharedNumberId.HasValue) Assert.Equal(sharedNumberId.Value, numberId);
+            sharedNumberId = numberId;
+            var instance = Assert.Single(numbering.Elements<DocumentFormat.OpenXml.Wordprocessing.NumberingInstance>(),
+                instance => instance.NumberID!.Value == numberId);
+            var definition = Assert.Single(numbering.Elements<DocumentFormat.OpenXml.Wordprocessing.AbstractNum>(),
+                definition => definition.AbstractNumberId!.Value == instance.AbstractNumId!.Val!.Value);
+            var level = Assert.Single(definition.Elements<DocumentFormat.OpenXml.Wordprocessing.Level>(),
+                level => level.LevelIndex!.Value == properties.NumberingLevelReference!.Val!.Value);
+            Assert.Equal(DocumentFormat.OpenXml.Wordprocessing.NumberFormatValues.Decimal, level.NumberingFormat!.Val!.Value);
+            Assert.Equal("%1.", level.LevelText!.Val!.Value);
+        }
+        Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(document));
+    }
+
     [Theory]
     [MemberData(nameof(Corpus))]
     public void Reads_independently_produced_versions_with_path_stream_parity(string relativePath,

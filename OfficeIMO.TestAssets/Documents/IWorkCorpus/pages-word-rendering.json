@@ -68,5 +68,12 @@
     "Screenshots are retained in the originating task tool history; generated DOCX bytes and conversion harness are task artifacts, not checked-in reference exports.",
     "No editing, link activation or Word save was performed."
   ],
-  "licensing": "Existing corpus source licensing and notices apply."
+  "licensing": "Existing corpus source licensing and notices apply.",
+  "numberingRemediation": {
+    "candidateBaseRevision": "2f4aa1fc7",
+    "source": "picodocs/sample-v14.4.pages",
+    "outputSha256": "B9A1E1F390B02708C91211FA5FC0A5E8E8FC0AAB4A280EAB6ABE0781F5D530FA",
+    "observation": "In the same Word version, the regenerated first page visibly renders the three ordered items as 1., 2., 3. and retains the preceding bullet list. The file opens without a repair prompt.",
+    "limits": "Single decimal list only; paragraph restart/continuation, tiered counters, other scripts and full layout equivalence remain unqualified."
+  }
 }

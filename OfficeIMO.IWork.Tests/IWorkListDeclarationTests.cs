@@ -145,6 +145,68 @@ public sealed partial class IWorkBoundaryTests {
             StringComparison.OrdinalIgnoreCase);
     }
 
+    [Theory]
+    [InlineData(0, "1.")]
+    [InlineData(1, "(1)")]
+    [InlineData(2, "1)")]
+    [InlineData(3, "I.")]
+    [InlineData(4, "(I)")]
+    [InlineData(5, "I)")]
+    [InlineData(6, "i.")]
+    [InlineData(7, "(i)")]
+    [InlineData(8, "i)")]
+    [InlineData(9, "A.")]
+    [InlineData(10, "(A)")]
+    [InlineData(11, "A)")]
+    [InlineData(12, "a.")]
+    [InlineData(13, "(a)")]
+    [InlineData(14, "a)")]
+    [InlineData(48, null)]
+    public void Native_number_kinds_select_markers_without_claiming_counter_fidelity(int kind, string? marker) {
+        using MemoryStream package = ListDeclarationPackage(IWorkDocumentKind.Pages,
+            Message(VarintField(11, 3), VarintField(15, (ulong)kind), StringField(16, "•")),
+            inherited: false, indent: 0);
+        IWorkTextContent text = Assert.Single(ReadSelectedRichTable(
+            IWorkSourceDocument.Open(package), IWorkDocumentKind.Pages).Item1.Cells).RichText!;
+        Assert.Equal(marker, Assert.Single(text.Paragraphs).ListLabel);
+        Assert.False(text.IsFormattingComplete);
+    }
+
+    [Theory]
+    [InlineData("wire")]
+    [InlineData("packed")]
+    [InlineData("enum")]
+    public void Invalid_native_number_vector_retains_physical_declaration_evidence(string defect) {
+        byte[] invalid = defect switch {
+            "wire" => FloatField(15, 0),
+            "packed" => BytesField(15, new byte[] { 0x80 }),
+            _ => VarintField(15, 65)
+        };
+        using MemoryStream package = ListDeclarationPackage(IWorkDocumentKind.Numbers,
+            Message(VarintField(11, 3), invalid), inherited: false, indent: 0);
+        var report = ConvertUnitReport(package, IWorkDocumentKind.Numbers);
+        AssertListDeclaration(Assert.Single(report.SourceDeclarationIssues), "15", 1);
+    }
+
+    [Fact]
+    public void Native_decimal_kind_survives_saved_keynote_table_text() {
+        using MemoryStream package = ListDeclarationPackage(IWorkDocumentKind.Keynote,
+            Message(VarintField(11, 3), BytesField(15, new byte[] { 0 })),
+            inherited: false, indent: 0);
+        using var result = IWorkSourceDocument.Open(package).ToPowerPointPresentationResult(
+            new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
+                AllowPartialEditableReconstruction = true });
+        Assert.True(result.Report.IsPartialEditableReconstruction);
+        using var saved = new MemoryStream();
+        result.Value.Save(saved); saved.Position = 0;
+        using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+        var paragraph = Assert.Single(Assert.Single(reopened.Slides).Tables).GetCell(0, 0).Paragraphs[0];
+        Assert.Equal("Value", paragraph.Text);
+        Assert.Equal(OfficeIMO.PowerPoint.PowerPointNumberingScheme.ArabicPeriod, paragraph.NumberingScheme);
+        Assert.Equal(1, paragraph.NumberingStartAt);
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
     private static MemoryStream InvalidListLabelPackage(IWorkDocumentKind kind) => ListDeclarationPackage(kind,
         Message(BytesField(16, new byte[] { 0xff }), StringField(16, "9.")));
 

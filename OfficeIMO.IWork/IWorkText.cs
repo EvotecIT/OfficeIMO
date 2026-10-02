@@ -168,7 +168,8 @@ public sealed class IWorkTextParagraph {
     public ulong? ListIdentifier { get; }
     /// <summary>Gets the zero-based list level, or -1 for a non-list paragraph.</summary>
     public int ListLevel { get; }
-    /// <summary>Gets the source list label, when directly recoverable.</summary>
+    /// <summary>Gets the source string label or the initial marker for a recovered numbering kind.
+    /// A numbering marker describes its format, not a qualified paragraph counter or restart value.</summary>
     public string? ListLabel { get; }
     /// <summary>Gets the delimiter that ended the paragraph.</summary>
     public IWorkParagraphBreakKind BreakKind { get; }
