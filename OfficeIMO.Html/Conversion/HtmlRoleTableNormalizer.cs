@@ -145,6 +145,9 @@ internal static class HtmlRoleTableNormalizer {
             }
             if (nativeCell.GetAttribute("rowspan")?.Trim() == "0") {
                 nativeCell.SetAttribute("rowspan", remainingRows.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            } else if (HtmlIntegerSemantics.TryParsePositiveInteger(nativeCell.GetAttribute("rowspan"), out int positiveSpan)
+                && positiveSpan > remainingRows) {
+                nativeCell.SetAttribute("rowspan", remainingRows.ToString(System.Globalization.CultureInfo.InvariantCulture));
             }
             if (keepSourceCell) {
                 nativeCell.AppendChild(cell);

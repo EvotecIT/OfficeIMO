@@ -46,9 +46,11 @@ public class HtmlRtfRoleTables {
         Assert.Equal(nameof(HtmlToRtfOptions.MaxHtmlDepth), exception.LimitSource);
     }
 
-    [Fact]
-    public void Rtf_AriaZeroRowSpanStopsAtRowGroupBoundary() {
-        const string html = "<div role='table'><div role='rowgroup'><div role='row'><span role='cell' aria-rowspan='0'>A</span><span role='cell'>B</span></div>"
+    [Theory]
+    [InlineData("0")]
+    [InlineData("99")]
+    public void Rtf_AriaRowSpanStopsAtRowGroupBoundary(string span) {
+        string html = "<div role='table'><div role='rowgroup'><div role='row'><span role='cell' aria-rowspan='" + span + "'>A</span><span role='cell'>B</span></div>"
             + "<div role='row'><span role='cell'>C</span></div></div><div role='rowgroup'><div role='row'><span role='cell'>D</span><span role='cell'>E</span></div></div></div>";
         var result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
         var reopened = RtfDocument.Load(result.RequireValue().ToBytes());
