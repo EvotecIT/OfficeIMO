@@ -6,6 +6,38 @@ namespace OfficeIMO.Workflows.Tests;
 
 public class WordImageWorkflowTests {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task MetadataDiagnosticsDistinguishProposalsFromAppliedRemoval(bool analyze, bool allowLoss) {
+        await InDirectory(async root => {
+            string input = Path.Combine(root, "source.docx"), output = Path.Combine(root, "output.docx");
+            byte[] source = CreateWord(withMetadata: true);
+            File.WriteAllBytes(input, source);
+            var result = await new OfficeWorkflowRunner().RunAsync(new() {
+                Operation = analyze ? OfficeWorkflowOperation.AnalyzeWordImages : OfficeWorkflowOperation.OptimizeWordImages,
+                InputPath = input, OutputPath = analyze ? null : output,
+                WordImageOptimization = new() { MetadataPolicy = OfficeImageMetadataPolicy.Strip, AllowMetadataLoss = allowLoss }
+            });
+            Assert.True(result.Succeeded, result.Summary);
+            var diagnostic = Assert.Single(result.Diagnostics, item => item.Code == (allowLoss ? "WordImageOptimized" : "WordImageMetadataLoss"));
+            Assert.Equal(OfficeWorkflowDiagnosticSeverity.Warning, diagnostic.Severity);
+            Assert.Contains("Xmp", diagnostic.Details["candidateMetadataStripped"]);
+            Assert.Equal((allowLoss && !analyze).ToString(), diagnostic.Details["applied"]);
+            Assert.Equal("400", diagnostic.Details["originalWidth"]);
+            var inventory = Assert.Single(result.Diagnostics, item => item.Code == "WordImageInventory");
+            Assert.Equal(allowLoss, long.Parse(inventory.Details["requiredStagedBytes"]) > 0);
+            Assert.Equal(source, File.ReadAllBytes(input));
+            if (!analyze) {
+                using WordDocument saved = WordDocument.Load(output);
+                string image = System.Text.Encoding.UTF8.GetString(saved.Images[0].ToBytes());
+                Assert.Equal(!allowLoss, image.Contains("private image metadata"));
+            }
+        });
+    }
+
+    [Theory]
     [InlineData("docx")]
     [InlineData("doc")]
     [InlineData("pdf")]
@@ -68,11 +100,14 @@ public class WordImageWorkflowTests {
         });
     }
 
-    private static byte[] CreateWord() {
+    private static byte[] CreateWord(bool withMetadata = false) {
         using WordDocument word = WordDocument.Create();
         var raster = new OfficeRasterImage(400, 200);
         for (int y = 0; y < 200; y++) for (int x = 0; x < 400; x++) raster.SetPixel(x, y, OfficeColor.FromRgb((byte)(x * 17), (byte)(y * 29), (byte)(x * y)));
-        using var image = new MemoryStream(OfficeJpegCodec.Encode(raster, new() { Quality = 98, Subsampling = OfficeJpegSubsampling.Y444 }));
+        using var image = new MemoryStream(OfficeJpegCodec.Encode(raster, new() {
+            Quality = 98, Subsampling = OfficeJpegSubsampling.Y444,
+            Metadata = new OfficeJpegMetadata(xmp: withMetadata ? System.Text.Encoding.UTF8.GetBytes("private image metadata") : null)
+        }));
         word.AddParagraph("Editable text").InsertImage(image, "image.jpg", 96, 48);
         return word.ToBytes();
     }

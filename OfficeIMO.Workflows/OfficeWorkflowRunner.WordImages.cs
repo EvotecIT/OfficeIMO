@@ -1,4 +1,5 @@
 using System.Globalization;
+using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 
@@ -22,18 +23,13 @@ public sealed partial class OfficeWorkflowRunner {
         }
         WordImageOptimizationOptions options = request.WordImageOptimization!;
         WordImageOptimizationReport report = analyze ? word.AnalyzeImageOptimization(options, token) : word.OptimizeImages(options, token);
-        foreach (WordImageOptimizationItem item in report.Images) {
-            diagnostics.Add(new OfficeWorkflowDiagnostic("WordImage" + item.Status,
-                item.PartUri + ": " + item.Status + "; " + item.BytesSaved.ToString(CultureInfo.InvariantCulture) + " encoded bytes saved.",
-                stage: "images", details: new Dictionary<string, string> {
-                    ["partUri"] = item.PartUri, ["references"] = item.ReferenceCount.ToString(CultureInfo.InvariantCulture),
-                    ["originalBytes"] = item.OriginalBytes.ToString(CultureInfo.InvariantCulture),
-                    ["finalBytes"] = item.FinalBytes.ToString(CultureInfo.InvariantCulture),
-                    ["status"] = item.Status.ToString()
-                }));
-        }
+        foreach (WordImageOptimizationItem item in report.Images) AddWordImageDiagnostic(item, report.Applied, diagnostics);
         diagnostics.Add(new OfficeWorkflowDiagnostic("WordImageInventory",
-            report.ImageCount + " unique embedded image(s); " + report.ExternalReferenceCount + " external reference(s) preserved.", stage: "images"));
+            report.ImageCount + " unique embedded image(s); " + report.ExternalReferenceCount + " external reference(s) preserved.",
+            stage: "images", details: new Dictionary<string, string> {
+                ["requiredStagedBytes"] = report.RequiredStagedBytes.ToString(CultureInfo.InvariantCulture),
+                ["applied"] = report.Applied.ToString()
+            }));
         string summary = report.OptimizedCount + " image candidate(s); " + report.BytesSaved + " encoded media bytes saved" + (analyze ? " by analysis." : ".");
         if (analyze) return new OperationArtifact(null, summary, null);
         byte[] bytes;
@@ -51,5 +47,36 @@ public sealed partial class OfficeWorkflowRunner {
             bytes = output.ToArray();
         }
         return new OperationArtifact(bytes, summary, null);
+    }
+
+    private static void AddWordImageDiagnostic(WordImageOptimizationItem item, bool applied,
+        List<OfficeWorkflowDiagnostic> diagnostics) {
+        bool removesMetadata = item.Metadata?.HasLoss == true ||
+            (item.Metadata != null && item.Metadata.Stripped != OfficeImageMetadataKinds.None);
+        var details = new Dictionary<string, string> {
+            ["partUri"] = item.PartUri, ["references"] = item.ReferenceCount.ToString(CultureInfo.InvariantCulture),
+            ["originalBytes"] = item.OriginalBytes.ToString(CultureInfo.InvariantCulture),
+            ["finalBytes"] = item.FinalBytes.ToString(CultureInfo.InvariantCulture),
+            ["originalFormat"] = item.Original.Format.ToString(), ["finalFormat"] = item.Final.Format.ToString(),
+            ["originalWidth"] = item.Original.Width.ToString(CultureInfo.InvariantCulture),
+            ["originalHeight"] = item.Original.Height.ToString(CultureInfo.InvariantCulture),
+            ["finalWidth"] = item.Final.Width.ToString(CultureInfo.InvariantCulture),
+            ["finalHeight"] = item.Final.Height.ToString(CultureInfo.InvariantCulture),
+            ["status"] = item.Status.ToString(),
+            ["applied"] = (applied && item.Status == WordImageOptimizationStatus.Optimized).ToString()
+        };
+        string metadata = "";
+        if (item.Metadata != null) {
+            details["candidateMetadataPolicy"] = item.Metadata.Policy.ToString();
+            details["candidateMetadataSource"] = item.Metadata.Source.ToString();
+            details["candidateMetadataPreserved"] = item.Metadata.Preserved.ToString();
+            details["candidateMetadataLost"] = item.Metadata.Lost.ToString();
+            details["candidateMetadataStripped"] = item.Metadata.Stripped.ToString();
+            if (removesMetadata) metadata = " Candidate metadata: lost " + item.Metadata.Lost + "; stripped " + item.Metadata.Stripped + ".";
+        }
+        diagnostics.Add(new OfficeWorkflowDiagnostic("WordImage" + item.Status,
+            item.PartUri + ": " + item.Status + "; " + item.BytesSaved.ToString(CultureInfo.InvariantCulture) + " encoded bytes saved." + metadata,
+            removesMetadata ? OfficeWorkflowDiagnosticSeverity.Warning : OfficeWorkflowDiagnosticSeverity.Information,
+            stage: "images", details: details));
     }
 }
