@@ -770,7 +770,7 @@
         },
         {
           "requirement": "Conformance case requests PDF/A-3b and PDF/UA-1 separately through each engine supported public policy API; validate exact bytes with pinned independent rule sets.",
-          "assessment": "partial: explicit OfficeIMO PDF/A-3b and combined PDF/A-3b/PDF/UA-1 pass veraPDF 1.30.2; standalone PDF/UA-1 rejects source attachment version. Separate reference-engine policy and manual accessibility not qualified"
+          "assessment": "OfficeIMO explicit A3b and combined A3b/UA1 artifacts pass veraPDF 1.30.2; standalone UA1 rejects the MathML attachment version. Reference A3b emits but fails embedded MathML file UF-key validation; reference tagged output emits but fails UA1 checks. Dedicated reference UA1 policy is not documented. Manual accessibility remains unqualified."
         }
       ],
       "content": {
@@ -822,7 +822,69 @@
   "remainingLimits": [
     "Standalone PDF/UA-1 with semantic MathML attachments remains rejected; combined PDF/A-3b/PDF/UA-1 is separately machine validated.",
     "Manual accessibility and column-note assistive-technology order are unqualified.",
-    "The reference comparison run does not qualify separately requested reference-engine conformance policies.",
     "Full MATH geometry, wider SVG/color profiles, additional language resources, native net472 execution, Windows/Linux budgets, and advertised AOT/trimming/WASM remain separate roadmap work."
-  ]
+  ],
+  "referenceProfileProbe": {
+    "package": "PeachPDF 0.9.20",
+    "creationDate": "2026-10-02T00:00:00Z",
+    "source": "Same frozen pdf-conformance.html; explicit DefaultLanguage=en-US; inline font retained",
+    "apiBoundary": "PdfAConformance.PdfA3B explicitly targets archival profile. EnableTaggedPdf documents PDF/UA-style tagging; no dedicated PDF/UA-1 conformance setting was found in the public configuration documentation. Tagged output is assessed, not represented as an explicit UA-1 guarantee.",
+    "results": [
+      {
+        "requested": "PdfA3B",
+        "pdfSha256": "b6ced1f6030d8933d9ba86176aa291ed3e85fb525f0c5f30c79e4b57537ca88b",
+        "validator": "veraPDF 1.30.2",
+        "profile": "PDF/A-3b validation profile",
+        "compliant": false,
+        "passedChecks": 1413,
+        "failedChecks": 1,
+        "failures": [
+          {
+            "clause": "6.8",
+            "description": "The file specification dictionary for an embedded file shall contain the F and UF keys"
+          }
+        ]
+      },
+      {
+        "requested": "TaggedPdf",
+        "pdfSha256": "00e04f4386b614a5f4d3f5e14897c8b2ecd6d780689d6b8c108c727b0b48c5b0",
+        "validator": "veraPDF 1.30.2",
+        "profile": "PDF/UA-1 validation profile",
+        "compliant": false,
+        "passedChecks": 557,
+        "failedChecks": 7,
+        "failures": [
+          {
+            "clause": "7.1",
+            "description": "The Catalog dictionary of a conforming file shall contain the Metadata key whose value is a metadata stream as defined in ISO 32000-1:2008, 14.3.2. The metadata stream dictionary shall contain entry Type with value /Metadata and entry Subtype with value /XML"
+          },
+          {
+            "clause": "7.11",
+            "description": "The file specification dictionary for an embedded file shall contain the non-empty F and UF keys"
+          },
+          {
+            "clause": "7.1",
+            "description": "Content shall be marked as Artifact or tagged as real content"
+          },
+          {
+            "clause": "7.18.1",
+            "description": "An annotation (except Widget annotations or hidden annotations, or those having rectangle outside the crop-box) shall have either Contents key or an Alt entry in the enclosing structure element"
+          },
+          {
+            "clause": "7.18.5",
+            "description": "Links shall contain an alternate description via their Contents key as described in ISO 32000-1:2008, 14.9.3"
+          },
+          {
+            "clause": "7.7",
+            "description": "All mathematical expressions shall be enclosed within a Formula tag as detailed in ISO 32000-1:2008, 14.8.4.5 and shall have Alt or ActualText attributes"
+          },
+          {
+            "clause": "7.18.5",
+            "description": "Links shall be tagged according to ISO 32000-1:2008, 14.8.4.4.2, Link Element"
+          }
+        ]
+      }
+    ],
+    "retainedArtifacts": "Ignore/MathAutoQualification/reference-profile-probe/output"
+  }
 }
