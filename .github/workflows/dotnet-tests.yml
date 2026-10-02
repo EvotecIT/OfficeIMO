@@ -50,6 +50,8 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - name: Test Studio
         shell: pwsh
+        env:
+          OFFICEIMO_STUDIO_VISUAL_OUTPUT: ${{ github.workspace }}/TestResults/Studio/Visual
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true

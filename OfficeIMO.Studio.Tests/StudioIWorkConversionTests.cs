@@ -65,9 +65,10 @@ public sealed class StudioIWorkConversionTests {
     }
 
     [Theory]
-    [InlineData(840, 600)]
-    [InlineData(1280, 800)]
-    public async Task Preview_coverage_requires_visible_acceptance_and_retains_saved_output_evidence(int width, int height) {
+    [InlineData(840, 600, 13)]
+    [InlineData(840, 600, 17)]
+    [InlineData(1280, 800, 13)]
+    public async Task Preview_coverage_requires_visible_acceptance_and_retains_saved_output_evidence(int width, int height, int fontSize) {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
             var services = ((App)Application.Current!).Services;
@@ -81,7 +82,7 @@ public sealed class StudioIWorkConversionTests {
             var job = Assert.Single(queue.Jobs);
             job.IWorkMode = IWorkConversionMode.VisualOnly;
             var view = new ConversionWorkbenchView { DataContext = model };
-            var window = new Window { Width = width, Height = height, Content = view };
+            var window = new Window { Width = width, Height = height, FontSize = fontSize, Content = view };
             try {
                 window.Show();
                 window.UpdateLayout();
@@ -91,20 +92,25 @@ public sealed class StudioIWorkConversionTests {
                 Assert.Equal(ConversionJobState.Failed, job.State);
                 Assert.False(job.HasOutput);
                 Assert.Contains("complete", job.Summary!, StringComparison.OrdinalIgnoreCase);
+                // Failure details can reflow the compact inspector. Scroll against
+                // the resulting layout, then settle each viewport change before clicking.
+                window.UpdateLayout();
                 var acceptance = view.FindControl<CheckBox>("IWorkPreviewChoice")!;
                 var detailsScroll = acceptance.GetVisualAncestors().OfType<ScrollViewer>().First();
                 Point scrollPoint = detailsScroll.TranslatePoint(new Point(detailsScroll.Bounds.Width / 2, detailsScroll.Bounds.Height / 2), window)!.Value;
                 window.MouseWheel(scrollPoint, new Vector(0, -4));
+                window.UpdateLayout();
                 acceptance.BringIntoView();
                 await Dispatcher.UIThread.InvokeAsync(() => window.UpdateLayout(), DispatcherPriority.Background);
                 Assert.True(acceptance.IsEffectivelyVisible && acceptance.IsEnabled);
                 Point point = acceptance.TranslatePoint(new Point(10, acceptance.Bounds.Height / 2), window)!.Value;
                 Assert.InRange(point.X, 0, width); Assert.InRange(point.Y, 0, height);
+                Capture(window, "apple-acceptance-" + width + "-" + fontSize);
                 var hit = window.InputHitTest(point) as Visual;
                 Assert.True(ReferenceEquals(hit, acceptance)
                     || hit?.GetVisualAncestors().Contains(acceptance) == true,
-                    "The acceptance checkbox must be reachable by pointer inside the scroll viewport.");
-                Capture(window, "apple-acceptance-" + width);
+                    "The acceptance checkbox must be reachable by pointer inside the scroll viewport. "
+                    + $"Point={point}; Hit={hit?.GetType().Name}; Offset={detailsScroll.Offset}; Viewport={detailsScroll.Viewport}; Bounds={acceptance.Bounds}");
                 window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left);
                 Assert.True(job.AllowIncompleteVisualPreview);
                 await queue.RetryFailedCommand.ExecuteAsync(null);
@@ -123,7 +129,7 @@ public sealed class StudioIWorkConversionTests {
                 Assert.NotEmpty(queue.OutputPreviewPages);
                 Assert.Contains("saved artifact", queue.OutputPreviewStatus, StringComparison.OrdinalIgnoreCase);
                 view.FindControl<StackPanel>("ConversionEvidencePanel")!.BringIntoView(); window.UpdateLayout();
-                Capture(window, "apple-result-" + width);
+                Capture(window, "apple-result-" + width + "-" + fontSize);
                 return true;
             } finally { window.Close(); }
         }, CancellationToken.None);
