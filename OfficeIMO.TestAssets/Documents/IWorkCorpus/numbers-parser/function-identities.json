@@ -23,6 +23,11 @@
       "sampleArgumentCount": 1
     },
     {
+      "index": 16,
+      "name": "AVERAGEA",
+      "sampleArgumentCount": 1
+    },
+    {
       "index": 22,
       "name": "COLUMN",
       "sampleArgumentCount": 0
@@ -100,6 +105,11 @@
     {
       "index": 84,
       "name": "MAX",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 85,
+      "name": "MAXA",
       "sampleArgumentCount": 1
     },
     {
