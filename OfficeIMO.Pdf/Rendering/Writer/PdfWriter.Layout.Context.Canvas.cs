@@ -305,6 +305,7 @@ internal static partial class PdfWriter {
                     options.ColumnSpan,
                     options.RowSpan,
                     options.AlternativeText);
+                if (structureElement != null) structureElement.AssociatedFiles = options.AssociatedFileSnapshots;
                 if (options.StructureElementKey != null && structureElement != null) {
                     canvasStructureElements[structureKey] = structureElement;
                 }

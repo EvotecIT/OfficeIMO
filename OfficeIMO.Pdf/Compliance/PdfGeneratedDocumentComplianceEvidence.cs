@@ -34,6 +34,10 @@ internal sealed class PdfGeneratedDocumentComplianceEvidence {
 
     public System.Collections.Generic.IReadOnlyList<PdfGeneratedFormAccessibilityEvidence> Forms { get; }
 
+    public PdfFileVersion? EffectiveFileVersion { get; init; }
+
+    public System.Collections.Generic.IReadOnlyList<PdfEmbeddedFile> StructureAssociatedFiles { get; init; } = System.Array.Empty<PdfEmbeddedFile>();
+
     public int PageCount { get; }
 
     public int PagesWithPrintProductionBoxes { get; }

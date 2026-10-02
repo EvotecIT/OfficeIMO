@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfComplianceAnalyzer {
 
-    private static void AddPdfARequirements(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfOptions options, PdfStandardFont[]? generatedStandardFonts, PdfGeneratedFontComplianceEvidence[]? generatedFontUsages) {
+    private static void AddPdfARequirements(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfOptions options, PdfStandardFont[]? generatedStandardFonts, PdfGeneratedFontComplianceEvidence[]? generatedFontUsages, PdfGeneratedDocumentComplianceEvidence? generatedEvidence) {
         PdfAIdentification? identification = options.PdfAIdentification;
         (int Part, string? Conformance) target = GetPdfAIdentificationTarget(profile);
 
@@ -31,7 +31,7 @@ internal static partial class PdfComplianceAnalyzer {
 
         requirements.Add(BuildOutputIntentPolicyRequirement(options));
 
-        requirements.Add(BuildPdfAEmbeddedFileModificationDateRequirement(options));
+        requirements.Add(BuildPdfAEmbeddedFileModificationDateRequirement(options, generatedEvidence));
 
         AddEmbeddedFontCoverageRequirement(requirements, options, generatedStandardFonts, generatedFontUsages);
 
@@ -42,8 +42,9 @@ internal static partial class PdfComplianceAnalyzer {
             "The optional veraPDF test gate exists for groundwork fixtures, but profile success has not been enabled for generated output."));
     }
 
-    private static PdfComplianceRequirement BuildPdfAEmbeddedFileModificationDateRequirement(PdfOptions options) {
-        IReadOnlyList<PdfEmbeddedFile> embeddedFiles = options.EmbeddedFiles;
+    private static PdfComplianceRequirement BuildPdfAEmbeddedFileModificationDateRequirement(PdfOptions options, PdfGeneratedDocumentComplianceEvidence? generatedEvidence) {
+        PdfEmbeddedFile[] embeddedFiles = options.EmbeddedFileSnapshots
+            .Concat(generatedEvidence?.StructureAssociatedFiles ?? System.Array.Empty<PdfEmbeddedFile>()).ToArray();
         string[] missingDates = embeddedFiles
             .Where(static file => !file.ModificationDate.HasValue)
             .Select(static file => file.FileName)
@@ -55,7 +56,7 @@ internal static partial class PdfComplianceAnalyzer {
                 "pdfa-embedded-file-modification-dates",
                 "PDF/A embedded-file modification dates",
                 PdfComplianceRequirementStatus.Satisfied,
-                embeddedFiles.Count == 0
+                embeddedFiles.Length == 0
                     ? "No embedded files require PDF/A stream-parameter modification dates."
                     : "Every embedded-file stream has a caller-controlled modification date for its /Params dictionary.");
         }

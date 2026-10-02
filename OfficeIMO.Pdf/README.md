@@ -661,6 +661,36 @@ byte[] formula = PdfDocument.Create(pdf => pdf.Content(content => content
 The role and description do not by themselves establish PDF/UA conformance.
 Validate the complete output against the requested profile.
 
+Associate a recoverable source with an individual structure element using
+`PdfCanvasStructureOptions.AddAssociatedFile`. For a MathML supplement, provide
+`application/mathml+xml` and the `Supplement` relationship:
+
+```csharp
+var formulaStructure = new PdfCanvasStructureOptions { AlternativeText = "x squared" }
+    .AddAssociatedFile(new PdfEmbeddedFile("x-squared.mathml",
+        System.Text.Encoding.UTF8.GetBytes(
+            "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"><msup><mi>x</mi><mn>2</mn></msup></math>"),
+        "application/mathml+xml", PdfAssociatedFileRelationship.Supplement));
+
+byte[] mathematicalPdf = PdfDocument.Create(pdf => pdf.Content(content => content
+    .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula,
+        expression => expression.ActualText("x^(2)",
+            paint => paint.Text("x2", 10, 10, 60, 20)), formulaStructure))),
+    new PdfOptions().EnableTaggedPdfCatalogMarkers()).ToBytes();
+```
+
+These files are attached to the structure element's `/AF` entry and are also
+discoverable through `PdfDocument.Attachments`. They are not document-level
+associations. Plain output selects PDF 2.0 when a structure association is emitted;
+PDF/A-3 groundwork retains its PDF 1.7 version. Tagging must be enabled. File names
+are unique across catalog and structure attachments; identical structure files
+share a payload, while conflicting descriptions or bytes fail generation. Supply
+`ModificationDate` when archival policy requires it. Undated PDF 2.0 associated files omit
+the optional stream-parameter dictionary; catalog associations in PDF 2.0 also
+require a MIME type. Explicit profile checks include structure-file dates and
+the selected output version. This API does not request or prove a
+compliance profile.
+
 ### Sections, generated navigation, and bounded stream output
 
 ```csharp
