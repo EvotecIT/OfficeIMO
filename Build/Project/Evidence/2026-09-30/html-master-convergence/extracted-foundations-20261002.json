@@ -1,14 +1,21 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "aa4072773b935a2885788464278b454d5583853e",
-  "masterCommit": "9f9b4952106734b138761c4832ecb67919d0778a",
+  "sourceCommit": "021f8bf70176059a6887f05a14a69869c06e4ddd",
+  "masterCommit": "8a774fa90db0b30b29f9c45025fbcd26743d5b0e",
   "mergedPullRequests": [
     2684,
     2685,
-    2686
+    2686,
+    2687,
+    2690,
+    2692,
+    2693,
+    2694
   ],
-  "integrationDelta": "Pinned hyphenation generator uses UTF-8 LF output and portable manifest paths; integration-only AVIF resources and SVG capabilities retained.",
-  "validation": {
+  "integrationDelta": "Preserved integration-only SVG effect-work accounting, fonts and AVIF routes; incorporated shared owner fixes. Extended HTML pixel-limit enforcement to AVIF before Word normalization.",
+  "retainedEvidence": "Ignore/ExtractionQualification/merged-foundations",
+  "remaining": "Other independent extraction PRs and larger static/runtime qualification remain open; no package publication inferred.",
+  "priorValidation": {
     "framework": "net10.0",
     "filter": "FullyQualifiedName~Hyphenation|FullyQualifiedName~SvgSymbol",
     "passed": 29,
@@ -16,6 +23,24 @@
     "buildOverride": "DeterministicSourcePaths=false",
     "limitation": "The normal Release build fails deterministic SourceRoot mapping on this host. Root cause is unconfirmed: source-control initialization reports matching physical top-level and nested ContainingRoot paths. This focused test override is not package or release qualification."
   },
-  "retainedEvidence": "Ignore/ExtractionQualification/merged-foundations",
-  "remaining": "Other independent extraction PRs and larger static/runtime qualification remain open; no package publication inferred."
+  "validation": {
+    "framework": "net10.0",
+    "drawingFocusedPassed": 240,
+    "htmlFocusedPassed": 113,
+    "pdfStructurePassed": 17,
+    "rtfPassed": 45,
+    "normalizedRasterBoundaryPassed": {
+      "net8.0": 8,
+      "net10.0": 8
+    },
+    "h4": {
+      "cases": 8,
+      "status": "Passed",
+      "failures": 0,
+      "path": "Ignore/ExtractionQualification/h4-merged-foundations-021f8bf70"
+    },
+    "normalReleaseBuild": "Core passed with zero warnings/errors; subsequent HTML/PDF/RTF tests used normal deterministic settings. Prior SourceRoot failure root cause remains unconfirmed.",
+    "review": "Independent merge review found AVIF pixel-limit bypass; reproduced for data/file/remote sources, fixed and targeted-confirmed.",
+    "scope": "Focused integration and H4 proof; not full H10, package publication or browser parity."
+  }
 }
