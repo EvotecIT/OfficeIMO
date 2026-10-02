@@ -77,7 +77,7 @@ internal static class LatexToMarkdownConverter {
             yield return new BlockCandidate(math.Syntax.Span, math);
         }
         foreach (LatexSyntaxNode verbatim in document.SyntaxTree.Root.DescendantsAndSelf().Where(node =>
-                     node.Kind == LatexSyntaxKind.Verbatim &&
+                     node.Kind == LatexSyntaxKind.Verbatim && LatexSemanticBuilder.IsActiveSyntax(node) &&
                      !string.Equals(node.Value, "verb", StringComparison.Ordinal) &&
                      IsInside(node.Span, start, end) && IsDirectChildSyntax(node, document.Body.Syntax))) {
             yield return new BlockCandidate(verbatim.Span, verbatim);
@@ -204,16 +204,33 @@ internal static class LatexToMarkdownConverter {
         if (source.Kind == LatexListKind.Ordered) {
             var list = new OrderedListBlock();
             foreach (LatexListItem item in source.Items) {
-                list.Items.Add(new ListItem(LatexInlineToMarkdownConverter.Convert(document, item.ContentSpan, diagnostics)));
+                list.Items.Add(new ListItem(ConvertListItem(document, item, diagnostics)));
             }
             target.Add(list);
         } else {
             var list = new UnorderedListBlock();
             foreach (LatexListItem item in source.Items) {
-                list.Items.Add(new ListItem(LatexInlineToMarkdownConverter.Convert(document, item.ContentSpan, diagnostics)));
+                list.Items.Add(new ListItem(ConvertListItem(document, item, diagnostics)));
             }
             target.Add(list);
         }
+    }
+
+    private static InlineSequence ConvertListItem(
+        LatexDocument document,
+        LatexListItem item,
+        List<LatexMarkdownConversionDiagnostic> diagnostics) {
+        InlineSequence content = LatexInlineToMarkdownConverter.Convert(document, item.ContentSpan, diagnostics);
+        if (item.ItemCommand.GetOptionalArgument(0) is LatexArgument label) {
+            InlineSequence labeled = LatexInlineToMarkdownConverter.Convert(document, label.ContentSpan, diagnostics);
+            labeled.AddRaw(new MarkdownTextRun(": "));
+            foreach (IMarkdownInline inline in content.Nodes) labeled.AddRaw(inline);
+            diagnostics.Add(new LatexMarkdownConversionDiagnostic(
+                "LATEXMD214", LatexMarkdownConversionOutcome.Simplified, "list-item-label",
+                "The custom TeX item label was retained as visible item text; target list markers use Markdown numbering or bullets.", item.ItemCommand.Syntax.Span));
+            return labeled;
+        }
+        return content;
     }
 
     private static void AddFigure(

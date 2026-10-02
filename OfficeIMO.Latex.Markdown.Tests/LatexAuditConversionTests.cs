@@ -85,9 +85,12 @@ public sealed class LatexAuditConversionTests {
         Assert.Equal("Definition body", PlainText(Assert.IsType<ParagraphBlock>(Assert.Single(entry.DefinitionBlocks)).Inlines));
     }
 
-    [Fact]
-    public void EncodedLabelNamesCannotCollideWithLiteralEscapeLookingIdentifiers() {
-        MarkdownDoc markdown = MarkdownReader.Parse("## A {#é}\n\n## B {#_00E9_}\n\n[A](#é) [B](#_00E9_)\n", new MarkdownReaderOptions { GenericAttributes = true });
+    [Theory]
+    [InlineData("é", "_00E9_")]
+    [InlineData("é00E9_", "_00E9é")]
+    [InlineData("_", "_005F_")]
+    public void EncodedLabelNamesCannotCollideWithLiteralEscapeLookingIdentifiers(string first, string second) {
+        MarkdownDoc markdown = MarkdownReader.Parse("## A {#" + first + "}\n\n## B {#" + second + "}\n\n[A](#" + first + ") [B](#" + second + ")\n", new MarkdownReaderOptions { GenericAttributes = true });
         MarkdownToLatexResult result = markdown.ToLatexDocumentResult(new MarkdownToLatexOptions { FirstHeadingIsTitle = false });
         string[] names = result.Value.Labels.Select(static label => label.Name).ToArray();
         Assert.Equal(2, names.Length);
@@ -111,12 +114,52 @@ public sealed class LatexAuditConversionTests {
     [InlineData("\n")]
     [InlineData("\r\n")]
     [InlineData("\r")]
-    public void PercentCommentsConsumeTheirLineEndingWithoutCreatingSpaceOrParagraphs(string ending) {
-        MarkdownDoc markdown = LatexDocument.Parse(Wrap("word% note" + ending + "join\n\nnext% note" + ending + ending + "line")).ToMarkdownDocument();
+    public void PercentCommentsConsumeTheirLineEndingAndPreserveFollowingBlankParagraphs(string ending) {
+        LatexDocument document = LatexDocument.Parse(Wrap("word% note" + ending + "join\n\nnext% note" + ending + " \t" + ending + "line"));
+        Assert.Equal(3, document.Paragraphs.Count);
+        MarkdownDoc markdown = document.ToMarkdownDocument();
         ParagraphBlock[] paragraphs = markdown.Blocks.OfType<ParagraphBlock>().ToArray();
-        Assert.Equal(2, paragraphs.Length);
+        Assert.Equal(3, paragraphs.Length);
         Assert.Equal("wordjoin", PlainText(paragraphs[0].Inlines));
-        Assert.Equal("next\nline", PlainText(paragraphs[1].Inlines));
+        Assert.Equal("next", PlainText(paragraphs[1].Inlines));
+        Assert.Equal("line", PlainText(paragraphs[2].Inlines));
+    }
+
+    [Theory]
+    [InlineData("\\texttt{\\textbf{important}}", "texttt")]
+    [InlineData("\\underline{\\emph{important}}", "underline")]
+    [InlineData("\\texttt{\\href{https://example.test}{important}}", "texttt")]
+    public void ScalarInlineNodesReportFlattenedChildFormatting(string source, string command) {
+        LatexToMarkdownResult result = LatexDocument.Parse(Wrap(source)).ToMarkdownDocumentResult();
+        Assert.Equal("important", PlainText(Assert.Single(result.Value.Blocks.OfType<ParagraphBlock>()).Inlines));
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD115" && diagnostic.Feature == "inline-formatting:" + command);
+        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+    }
+
+    [Theory]
+    [InlineData("\\newcommand{\\showtitle}{\\maketitle}")]
+    [InlineData("\\renewcommand{\\showtitle}{\\begin{verbatim}Inactive\\end{verbatim}}")]
+    [InlineData("\\providecommand{\\showtitle}{\\verb|Inactive|}")]
+    [InlineData("\\newtheorem{name}{\\maketitle}")]
+    public void InactiveDefinitionChildrenDoNotSplitOrReplaceTheVisibleDefinitionFallback(string definition) {
+        LatexDocument document = LatexDocument.Parse(Wrap(definition + "Actual"));
+        Assert.Equal(definition + "Actual", Assert.Single(document.Paragraphs).Content);
+        LatexToMarkdownResult result = document.ToMarkdownDocumentResult();
+        ParagraphBlock paragraph = Assert.Single(result.Value.Blocks.OfType<ParagraphBlock>());
+        Assert.Equal(definition, Assert.Single(paragraph.Inlines.Nodes.OfType<CodeSpanInline>()).Text);
+        Assert.EndsWith("Actual", PlainText(paragraph.Inlines), StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
+    }
+
+    [Theory]
+    [InlineData("itemize")]
+    [InlineData("enumerate")]
+    public void CustomListLabelsRemainVisibleAndTheirMarkerSimplificationIsReported(string environment) {
+        LatexDocument document = LatexDocument.Parse(Wrap("\\begin{" + environment + "}\\item[\\textbf{URGENT}] Call now\\end{" + environment + "}"));
+        document.Lists[0].Items[0].Label = "\\textbf{EDITED}";
+        LatexToMarkdownResult result = document.ToMarkdownDocumentResult();
+        Assert.Contains("**EDITED**: Call now", result.Value.ToMarkdown(), StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Code == "LATEXMD214" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Simplified);
     }
 
     [Fact]

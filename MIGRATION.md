@@ -15,9 +15,9 @@ LaTeX conversion projects the current edited source. Reader locations and conver
 
 Parse options, including opaque environment names and macro budgets, are snapshotted. Reparse with new options to change an existing document's interpretation or expansion limits.
 
-Generated TeX labels reserve `_XXXX_` escape sequences. Identifiers that literally contain an uppercase four-digit hexadecimal escape pattern now encode that underscore, preventing collisions with encoded Unicode identifiers. Regenerate declarations and references together when persisting generated label names outside the document.
+Generated TeX labels reserve `_XXXX_` escape sequences and encode every literal underscore as `_005F_`, preventing collisions between literal text and encoded Unicode identifiers. Existing generated labels containing underscores therefore change. Regenerate declarations and references together when persisting generated label names outside the document.
 
-Missing or unbraced required arguments, graphics options, counter-based references, unsupported containers, and source-only conversion produce fidelity diagnostics. Strict conversion callers must inspect these reports and accept the relevant approximations explicitly. Use braced arguments for supported commands.
+Missing or unbraced required arguments, graphics options, counter-based references, custom list markers, nested formatting flattened into scalar code or underline nodes, unsupported containers, and source-only conversion produce fidelity diagnostics. Strict conversion callers must inspect these reports and accept the relevant approximations explicitly. Use braced arguments for supported commands.
 
 ## OpenDocument independent saves and formula results
 

@@ -37,13 +37,13 @@ internal static class LatexInlineToMarkdownConverter {
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         var candidates = new List<InlineCandidate>();
         candidates.AddRange(document.Commands
-            .Where(command => command.Syntax.Span.Start.Offset >= start && command.Syntax.Span.End.Offset <= end)
+            .Where(command => LatexSemanticBuilder.IsActiveSyntax(command.Syntax) && command.Syntax.Span.Start.Offset >= start && command.Syntax.Span.End.Offset <= end)
             .Select(static command => new InlineCandidate(command.Syntax.Span, command, null)));
         candidates.AddRange(document.Math
             .Where(math => math.Syntax.Span.Start.Offset >= start && math.Syntax.Span.End.Offset <= end && math.Kind != LatexMathKind.Environment)
             .Select(static math => new InlineCandidate(math.Syntax.Span, null, math)));
         candidates.AddRange(document.SyntaxTree.Root.DescendantsAndSelf()
-            .Where(node => node.Kind == LatexSyntaxKind.Verbatim &&
+            .Where(node => node.Kind == LatexSyntaxKind.Verbatim && LatexSemanticBuilder.IsActiveSyntax(node) &&
                 node.Span.Start.Offset >= start && node.Span.End.Offset <= end)
             .Select(static node => new InlineCandidate(node.Span, null, null, node)));
         InlineCandidate[] ordered = candidates.OrderBy(static candidate => candidate.Span.Start.Offset)
@@ -85,10 +85,10 @@ internal static class LatexInlineToMarkdownConverter {
                 target.AddRaw(new ItalicSequenceInline(ConvertArgument(document, first, diagnostics)));
                 break;
             case "texttt":
-                target.AddRaw(new CodeSpanInline(InlinePlainText.Extract(ConvertArgument(document, first, diagnostics))));
+                target.AddRaw(new CodeSpanInline(ConvertScalarArgument(document, command, first, diagnostics)));
                 break;
             case "underline":
-                target.AddRaw(new UnderlineInline(InlinePlainText.Extract(ConvertArgument(document, first, diagnostics))));
+                target.AddRaw(new UnderlineInline(ConvertScalarArgument(document, command, first, diagnostics)));
                 break;
             case "textsuperscript":
                 target.AddRaw(new SuperscriptSequenceInline(ConvertArgument(document, first, diagnostics)));
@@ -150,6 +150,19 @@ internal static class LatexInlineToMarkdownConverter {
                     "Unknown or package-specific command retained as inline LaTeX source.", command.Syntax.Span);
                 break;
         }
+    }
+
+    private static string ConvertScalarArgument(
+        LatexDocument document,
+        LatexCommand command,
+        LatexArgument? argument,
+        List<LatexMarkdownConversionDiagnostic> diagnostics) {
+        InlineSequence children = ConvertArgument(document, argument, diagnostics);
+        if (children.Nodes.Any(static inline => !(inline is MarkdownTextRun))) {
+            Report(diagnostics, "LATEXMD115", LatexMarkdownConversionOutcome.Simplified, "inline-formatting:" + command.Name,
+                "Nested inline formatting was reduced to plain text inside the target code or underline node.", command.Syntax.Span);
+        }
+        return InlinePlainText.Extract(children);
     }
 
     private static InlineSequence ConvertArgument(

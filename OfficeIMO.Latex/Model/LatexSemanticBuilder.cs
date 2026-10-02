@@ -523,10 +523,10 @@ internal static class LatexSemanticBuilder {
             if (label != null) blocked.Add(label.Syntax.Span);
         }
         blocked.AddRange(body.Syntax.DescendantsAndSelf()
-            .Where(static node => node.Kind == LatexSyntaxKind.Command && string.Equals(node.Value, "maketitle", StringComparison.Ordinal))
+            .Where(static node => node.Kind == LatexSyntaxKind.Command && IsActiveSyntax(node) && string.Equals(node.Value, "maketitle", StringComparison.Ordinal))
             .Select(static node => node.Span));
         blocked.AddRange(body.Syntax.DescendantsAndSelf()
-            .Where(static node => node.Kind == LatexSyntaxKind.Verbatim &&
+            .Where(static node => node.Kind == LatexSyntaxKind.Verbatim && IsActiveSyntax(node) &&
                 !string.Equals(node.Value, "verb", StringComparison.Ordinal))
             .Select(static node => node.Span));
         blocked.AddRange(environments.Where(environment => !ReferenceEquals(environment, body) &&
@@ -561,7 +561,17 @@ internal static class LatexSemanticBuilder {
             if (source.Text[index] == '\\') { index += Math.Min(2, end - index); continue; }
             if (source.Text[index] == '%') {
                 while (index < end && source.Text[index] != '\r' && source.Text[index] != '\n') index++;
-                if (TryReadLineEnding(source.Text, index, end, out int commentEnding)) index += commentEnding;
+                if (TryReadLineEnding(source.Text, index, end, out int commentEnding)) {
+                    int nextLine = index + commentEnding;
+                    while (nextLine < end && (source.Text[nextLine] == ' ' || source.Text[nextLine] == '\t')) nextLine++;
+                    if (TryReadLineEnding(source.Text, nextLine, end, out int blankEnding)) {
+                        AddTrimmedParagraph(source, segmentStart, index, paragraphs);
+                        segmentStart = nextLine + blankEnding;
+                        index = segmentStart;
+                    } else {
+                        index += commentEnding;
+                    }
+                }
                 continue;
             }
             if (!TryReadLineEnding(source.Text, index, end, out int firstLength)) { index++; continue; }

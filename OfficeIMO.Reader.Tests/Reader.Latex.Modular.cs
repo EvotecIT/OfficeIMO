@@ -162,6 +162,17 @@ public sealed class ReaderLatexModularTests {
         Assert.Contains(chunks, static chunk => chunk.Text == "Updated paragraph" && chunk.Markdown?.Contains("Updated paragraph", StringComparison.Ordinal) == true);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CustomListLabelsRemainInReaderTextMarkdownAndWarnings(bool blocks) {
+        LatexDocument document = LatexDocument.Parse("\\begin{document}\\begin{itemize}\\item[URGENT] Call now\\end{itemize}\\end{document}");
+        ReaderChunk chunk = Assert.Single(LatexReaderAdapter.Read(document, latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks }));
+        Assert.Contains("URGENT: Call now", chunk.Text, StringComparison.Ordinal);
+        Assert.Contains("URGENT: Call now", chunk.Markdown, StringComparison.Ordinal);
+        Assert.Contains(chunk.Warnings ?? Array.Empty<string>(), static warning => warning.StartsWith("LATEXMD214:", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void RegistrationSnapshotsEveryNativeLimitAndCustomOpaqueEnvironment() {
         var parse = new LatexParseOptions {
