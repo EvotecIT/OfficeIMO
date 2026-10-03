@@ -96,7 +96,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         }
 
         await ExecuteCandidatesAsync(document, engineExecution, engineId, jobs, effective, budget, degree,
-            timedOutOperations, Accept, cancellationToken).ConfigureAwait(false);
+            timedOutOperations, documentPath, Accept, cancellationToken).ConfigureAwait(false);
 
         OfficeDocumentOcrEnrichmentResult enrichment = document.ApplyOcrResults(recognizedText, effective.EnrichmentOptions);
         OfficeDocumentReadResult enriched = enrichment.Document;
@@ -132,7 +132,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
     private static async Task ExecuteCandidatesAsync(
         OfficeDocumentReadResult document, OcrEngineExecution engineExecution, string engineId,
         IReadOnlyList<CandidateJob> jobs, ExecutionOptionsSnapshot options, ExecutionBudget budget,
-        int degree, TimedOutOcrOperationTracker timedOutOperations, Action<CandidateOutcome> accept,
+        int degree, TimedOutOcrOperationTracker timedOutOperations, string? documentPath, Action<CandidateOutcome> accept,
         CancellationToken cancellationToken) {
         var running = new List<Task<CandidateOutcome>>(degree);
         int nextJob = 0;
@@ -150,7 +150,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                             "OCR was not started because the execution's total time or recognized-text budget was reached.", true)));
                     } else {
                         running.Add(ExecuteCandidateAsync(document, engineExecution, engineId, jobs[nextJob++], options,
-                            budget, timedOutOperations, cancellationToken));
+                            budget, timedOutOperations, documentPath, cancellationToken));
                     }
                 }
                 if (running.Count == 0) continue;
@@ -181,7 +181,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         ExecutionOptionsSnapshot options,
         ExecutionBudget budget,
         TimedOutOcrOperationTracker timedOutOperations,
-        CancellationToken cancellationToken) {
+        string? documentPath, CancellationToken cancellationToken) {
         try {
             cancellationToken.ThrowIfCancellationRequested();
             if (timedOutOperations.HasTimedOutOperation) {
@@ -200,7 +200,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                 MediaType = job.Asset.MediaType ?? string.Empty,
                 FileName = job.Asset.FileName,
                 SourceId = document.Source?.SourceId,
-                SourceName = document.Source?.Path,
+                SourceName = documentPath,
                 CandidateId = job.Candidate.Id,
                 CandidateKind = job.Candidate.Kind,
                 PageNumber = job.Candidate.Location?.Page,
@@ -211,11 +211,12 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                 Language = options.Language,
                 ProviderOptions = options.ProviderOptions
             };
+            TimeSpan timeout = budget.RemainingTime;
+            bool totalDeadline = timeout <= options.CandidateTimeout;
+            if (timeout > options.CandidateTimeout) timeout = options.CandidateTimeout;
+            if (timeout <= TimeSpan.Zero) timeout = TimeSpan.FromTicks(1);
             try {
                 // Each retained diagnostic can have one empty key; other unique keys consume characters.
-                TimeSpan timeout = budget.RemainingTime;
-                if (timeout > options.CandidateTimeout) timeout = options.CandidateTimeout;
-                if (timeout <= TimeSpan.Zero) timeout = TimeSpan.FromTicks(1);
                 OcrResult result = await engineExecution.RecognizeAsync(
                     request,
                     timeout,
@@ -225,6 +226,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                 return CandidateOutcome.Success(job, result);
             } catch (OcrEngineTimeoutException exception) {
                 timedOutOperations.MarkTimedOut();
+                if (totalDeadline) budget.MarkDeadlineExpired();
                 if (options.ContinueOnError) {
                     OfficeDocumentDiagnostic diagnostic = BuildDiagnostic(
                         job.Candidate,
@@ -232,8 +234,8 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                         engineId,
                         OfficeDocumentDiagnosticSeverity.Error,
                         OfficeDocumentDiagnosticCategory.Ocr,
-                        budget.RemainingTime <= TimeSpan.Zero ? "ocr-total-time-limit" : "ocr-engine-timeout",
-                        budget.RemainingTime <= TimeSpan.Zero
+                        totalDeadline ? "ocr-total-time-limit" : "ocr-engine-timeout",
+                        totalDeadline
                             ? "OCR exceeded the execution TotalTimeout (" + options.TotalTimeout + ")."
                             : exception.ProviderCallStarted
                             ? "OCR engine exceeded CandidateTimeout (" + options.CandidateTimeout + ")."

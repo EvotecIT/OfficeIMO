@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Threading;
 using OfficeIMO.Ocr;
 
 namespace OfficeIMO.Reader;
@@ -8,6 +9,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
     private sealed class ExecutionBudget {
         private readonly Stopwatch _elapsed = Stopwatch.StartNew();
         private readonly ExecutionOptionsSnapshot _options;
+        private int _deadlineExpired;
 
         internal ExecutionBudget(ExecutionOptionsSnapshot options) {
             _options = options;
@@ -21,7 +23,8 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         internal int RemainingCharacters { get; private set; }
         internal int RemainingSpans { get; private set; }
         internal int RemainingSpanCharacters { get; private set; }
-        internal TimeSpan RemainingTime => _options.TotalTimeout - _elapsed.Elapsed;
+        internal TimeSpan RemainingTime => Volatile.Read(ref _deadlineExpired) != 0 ? TimeSpan.Zero : _options.TotalTimeout - _elapsed.Elapsed;
+        internal void MarkDeadlineExpired() => Interlocked.Exchange(ref _deadlineExpired, 1);
         internal bool CanRecognize => RemainingCharacters > 0 && RemainingTime > TimeSpan.Zero;
 
         internal void Consume(OcrResult result) {

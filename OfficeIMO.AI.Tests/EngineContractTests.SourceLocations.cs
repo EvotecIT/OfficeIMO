@@ -23,11 +23,11 @@ public sealed partial class EngineContractTests {
         Assert.Equal("Invoices", citation.SourceLocation.Sheet);
         Assert.Equal("A2:B3", citation.SourceLocation.A1Range);
         Assert.Equal(0, citation.SourceLocation.TableIndex);
-        Assert.Equal(1, citation.SourceLocation.RowIndex);
+        Assert.Equal(1, citation.SourceLocation.TableRowNumber);
         using var request = JsonDocument.Parse(Assert.Single(executor.Requests).InputJson);
         var source = request.RootElement.GetProperty("evidence")[1].GetProperty("sourceLocation");
         Assert.Equal("Invoices", source.GetProperty("Sheet").GetString());
-        Assert.Equal(1, source.GetProperty("RowIndex").GetInt32());
+        Assert.Equal(1, source.GetProperty("TableRowNumber").GetInt32());
         var restored = JsonSerializer.Deserialize<OfficeAiResult>(JsonSerializer.Serialize(answer))!;
         Assert.Equal(citation.SourceLocation, Assert.Single(Assert.Single(restored.Fields).Citations).SourceLocation);
     }

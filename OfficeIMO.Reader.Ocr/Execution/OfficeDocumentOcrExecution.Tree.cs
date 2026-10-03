@@ -24,12 +24,19 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         var diagnostics = new List<OfficeDocumentDiagnostic>();
         var report = new OfficeDocumentOcrExecutionReport { EngineId = execution.Id };
 
-        async Task<OfficeDocumentReadResult> Visit(OfficeDocumentReadResult input, string id, string? path, int depth) {
+        async Task<OfficeDocumentReadResult> Visit(OfficeDocumentReadResult input, string id, string? path, string originalVirtualPath, int depth) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!active.Add(input)) throw new ArgumentException("Nested OCR requires an acyclic document tree.", nameof(document));
             try {
                 OfficeDocumentOcrExecutionResult own = await ApplyOcrDocumentAsync(input, execution, effective,
                     budget, timedOut, id, path, cancellationToken).ConfigureAwait(false);
+                foreach (OfficeDocumentDiagnostic diagnostic in own.Diagnostics) {
+                    diagnostic.Location = ProjectLocation(diagnostic.Location, input.Source?.Path, originalVirtualPath,
+                        path, diagnostic.Location?.BlockAnchor ?? string.Empty);
+                    var attributes = diagnostic.Attributes.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+                    attributes["documentId"] = id;
+                    diagnostic.Attributes = attributes;
+                }
                 AddReport(report, own.Report);
                 recognitions.AddRange(own.Recognitions);
                 diagnostics.AddRange(own.Diagnostics);
@@ -54,8 +61,8 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                         diagnostics.Add(diagnostic);
                         output.Diagnostics = output.Diagnostics.Concat(new[] { diagnostic }).ToArray();
                     } else {
-                        child = await Visit(child, childId, childPath, depth + 1).ConfigureAwait(false);
-                        AppendNestedOcrProjection(output, entry.Document, child, childId, childPath,
+                        child = await Visit(child, childId, childPath, entry.Path, depth + 1).ConfigureAwait(false);
+                        AppendNestedOcrProjection(output, entry.Document, child, childId, childPath, entry.Path,
                             effective.EnrichmentOptions.AppendRecognizedTextToMarkdown, cancellationToken);
                     }
                     nestedResults.Add(new OfficeDocumentNestedResult { Path = entry.Path, Document = child });
@@ -67,7 +74,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
             }
         }
 
-        OfficeDocumentReadResult enriched = await Visit(document, "root", document.Source?.Path, 0).ConfigureAwait(false);
+        OfficeDocumentReadResult enriched = await Visit(document, "root", document.Source?.Path, document.Source?.Path ?? string.Empty, 0).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         enriched.Metadata = BuildExecutionMetadata(enriched.Metadata, report);
         return new OfficeDocumentOcrExecutionResult { Document = enriched, Recognitions = recognitions,
@@ -77,7 +84,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
     private static string? ResolveNestedPath(string? parent, string? originalParent, string child) {
         if (string.IsNullOrWhiteSpace(parent)) return string.IsNullOrWhiteSpace(child) ? null : child;
         if (string.IsNullOrWhiteSpace(child)) return parent;
-        if (IsNestedPath(parent, child) || System.IO.Path.IsPathRooted(child)) return child;
+        if (IsNestedPath(parent!, child) || System.IO.Path.IsPathRooted(child)) return child;
         if (originalParent != null && IsNestedPath(originalParent, child)) return parent + child.Substring(originalParent.Length);
         return parent + "!/" + child;
     }

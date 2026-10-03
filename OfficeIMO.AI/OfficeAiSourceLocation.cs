@@ -25,7 +25,7 @@ public sealed record OfficeAiSourceLocation {
     public int? TableIndex { get; init; }
     /// <summary>One-based data-row ordinal within the evidence table; null for its header.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public int? RowIndex { get; init; }
+    public int? TableRowNumber { get; init; }
     /// <summary>Producer-defined source block index.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? SourceBlockIndex { get; init; }
@@ -38,7 +38,7 @@ public sealed record OfficeAiSourceLocation {
 
     internal static OfficeAiSourceLocation FromReader(ReaderLocation? source, string? path, int? rowIndex) => new() {
         Path = source?.Path ?? path, Page = source?.Page, Slide = source?.Slide, Sheet = source?.Sheet,
-        A1Range = source?.A1Range, TableIndex = source?.TableIndex, RowIndex = rowIndex,
+        A1Range = source?.A1Range, TableIndex = source?.TableIndex, TableRowNumber = rowIndex,
         SourceBlockIndex = source?.SourceBlockIndex, StartLine = source?.StartLine, EndLine = source?.EndLine
     };
 }

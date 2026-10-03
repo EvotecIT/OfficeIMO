@@ -10,14 +10,10 @@ public sealed partial class OfficeAiEngine {
 
     private static string CanonicalDecimal(string value, NumberFormatInfo format) {
         value = value.Trim();
-        bool negative = value.StartsWith(format.NegativeSign, StringComparison.Ordinal)
-            || value.EndsWith(format.NegativeSign, StringComparison.Ordinal);
-        if (value.StartsWith(format.NegativeSign, StringComparison.Ordinal)) value = value[format.NegativeSign.Length..];
-        else if (negative) value = value[..^format.NegativeSign.Length];
+        bool negative = value.StartsWith(format.NegativeSign, StringComparison.Ordinal);
+        if (negative) value = value[format.NegativeSign.Length..];
         else if (format.PositiveSign.Length > 0 && value.StartsWith(format.PositiveSign, StringComparison.Ordinal))
             value = value[format.PositiveSign.Length..];
-        else if (format.PositiveSign.Length > 0 && value.EndsWith(format.PositiveSign, StringComparison.Ordinal))
-            value = value[..^format.PositiveSign.Length];
         if (format.NumberGroupSeparator is "\u00a0" or "\u202f") value = value.Replace(" ", format.NumberGroupSeparator, StringComparison.Ordinal);
         if (format.NumberGroupSeparator.Length > 0 && format.NumberGroupSeparator != format.NumberDecimalSeparator)
             value = value.Replace(format.NumberGroupSeparator, string.Empty, StringComparison.Ordinal);

@@ -45,7 +45,7 @@ public sealed class OfficeDocumentOcrExecutionOptions {
     /// <summary>Maximum documents visited by ApplyOcrTreeAsync, including the root. Defaults to 100.</summary>
     public int MaxDocuments { get; set; } = 100;
 
-    /// <summary>Maximum nested depth visited by ApplyOcrTreeAsync; the root has depth zero. Defaults to eight.</summary>
+    /// <summary>Maximum nested depth visited by ApplyOcrTreeAsync; the root has depth zero. Values from zero through 64 are accepted; defaults to eight.</summary>
     public int MaxNestedDepth { get; set; } = 8;
 
     /// <summary>Maximum recognized text characters retained across the entire execution. Defaults to 4 Mi characters.</summary>

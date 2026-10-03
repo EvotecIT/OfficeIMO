@@ -26,7 +26,6 @@ public sealed partial class EngineContractTests {
 
     [Theory]
     [InlineData("+001,234.5600", "en-US", "1234.5600")]
-    [InlineData("1234.56-", "en-US", "-1234.56")]
     [InlineData("1\u202f234,5600", "fr-FR", "1234.5600")]
     [InlineData("0.100000000000000000000000000000", "en-US", "0.1000000000000000000000000000")]
     public async Task ExactDecimalsAllowGroupingAndInsignificantZeros(string raw, string culture, string expected) {

@@ -77,6 +77,7 @@ public sealed partial class ReaderOcrCoreTests {
         Assert.Equal(budget == "text" ? "ABCDE" : "ABCDEF", Assert.Single(result.Recognitions).Result.Text);
         Assert.All(result.Document.NestedDocuments.Skip(1), nested => Assert.Single(nested.Document.OcrCandidates));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Category == OfficeDocumentDiagnosticCategory.Limit);
+        Assert.All(result.Diagnostics, diagnostic => Assert.StartsWith("scan.pdf!/scan-", diagnostic.Location!.Path));
     }
 
     [Fact]
@@ -151,12 +152,13 @@ public sealed partial class ReaderOcrCoreTests {
         }
         var reader = new OfficeDocumentReaderBuilder().AddImageHandler().AddZipHandler().AddEmailHandler().Build();
         var source = reader.ReadDocument(new MemoryStream(sourceBytes), name);
+        string expectedPath = emailContainer ? "mail.eml!/attachment.zip::scan.png" : "attachment.zip::scan.png";
         var engine = new DelegateOcrEngine("tree", (request, _) => {
             Assert.Equal(image, request.Payload);
+            Assert.Equal(expectedPath, request.SourceName);
             return Task.FromResult(new OcrResult { Text = "Recognized attachment 42" });
         });
         var result = await source.ApplyOcrTreeAsync(engine);
-        string expectedPath = emailContainer ? "mail.eml!/attachment.zip::scan.png" : "attachment.zip::scan.png";
         Assert.Equal(emailContainer ? 3 : 2, result.Report.DocumentCount);
         Assert.Equal(expectedPath, Assert.Single(result.Recognitions).DocumentPath);
         var content = Assert.Single(result.Document.EnumerateContent(), item => item.Block?.Text == "Recognized attachment 42" || item.Chunk?.Text == "Recognized attachment 42");
