@@ -10,7 +10,10 @@ public static class LatexTokenizer {
         LatexParseOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (source == null) throw new ArgumentNullException(nameof(source));
-        return Tokenize(new LatexSourceText(source), options, cancellationToken);
+        options = (options ?? new LatexParseOptions()).Clone();
+        cancellationToken.ThrowIfCancellationRequested();
+        Validate(source, options);
+        return Tokenize(new LatexSourceText(source, cancellationToken), options, cancellationToken);
     }
 
     internal static IReadOnlyList<LatexToken> Tokenize(
@@ -31,13 +34,16 @@ public static class LatexTokenizer {
             LatexTokenKind kind;
             string? value = null;
             bool isTerminated = true;
-            if (current == '\\' && TryReadVerbatim(source, options, ref index, out value, out isTerminated)) {
+            if (current == '\\' && TryReadVerbatim(source, options, ref index, out value, out isTerminated, cancellationToken)) {
                 kind = LatexTokenKind.Verbatim;
             } else if (current == '\\') {
                 index++;
                 if (index < source.Length && IsControlWordCharacter(source[index])) {
                     int nameStart = index;
-                    while (index < source.Length && IsControlWordCharacter(source[index])) index++;
+                    while (index < source.Length && IsControlWordCharacter(source[index])) {
+                    if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                    index++;
+                }
                     value = source.Substring(nameStart, index - nameStart);
                 } else if (index < source.Length) {
                     value = source[index].ToString();
@@ -48,7 +54,10 @@ public static class LatexTokenizer {
                 kind = LatexTokenKind.Command;
             } else if (current == '%') {
                 index++;
-                while (index < source.Length && source[index] != '\r' && source[index] != '\n') index++;
+                while (index < source.Length && source[index] != '\r' && source[index] != '\n') {
+                    if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                    index++;
+                }
                 kind = LatexTokenKind.Comment;
             } else if (current == '\r' || current == '\n') {
                 if (current == '\r' && index + 1 < source.Length && source[index + 1] == '\n') index += 2;
@@ -56,7 +65,10 @@ public static class LatexTokenizer {
                 kind = LatexTokenKind.LineEnding;
             } else if (current == ' ' || current == '\t') {
                 index++;
-                while (index < source.Length && (source[index] == ' ' || source[index] == '\t')) index++;
+                while (index < source.Length && (source[index] == ' ' || source[index] == '\t')) {
+                    if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                    index++;
+                }
                 kind = LatexTokenKind.Whitespace;
             } else if (current == '$') {
                 index++;
@@ -66,11 +78,15 @@ public static class LatexTokenizer {
                 index++;
             } else {
                 index++;
-                while (index < source.Length && !IsSpecial(source[index])) index++;
+                while (index < source.Length && !IsSpecial(source[index])) {
+                    if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                    index++;
+                }
                 kind = LatexTokenKind.Text;
             }
             tokens.Add(new LatexToken(kind, sourceText, value, start, index, isTerminated));
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return tokens;
     }
 
@@ -102,7 +118,7 @@ public static class LatexTokenizer {
         LatexParseOptions options,
         ref int index,
         out string? value,
-        out bool isTerminated) {
+        out bool isTerminated, CancellationToken cancellationToken) {
         value = null;
         isTerminated = true;
         int start = index;
@@ -113,21 +129,24 @@ public static class LatexTokenizer {
                 IsControlWordCharacter(source[delimiterIndex])) return false;
             char delimiter = source[delimiterIndex];
             int contentStart = delimiterIndex + 1;
-            int lineEnd = contentStart;
-            while (lineEnd < source.Length && source[lineEnd] != '\r' && source[lineEnd] != '\n') lineEnd++;
-            int close = source.IndexOf(delimiter, contentStart, lineEnd - contentStart);
-            index = close >= 0 ? close + 1 : lineEnd;
+            int close = contentStart;
+            while (close < source.Length && source[close] != delimiter && source[close] != '\r' && source[close] != '\n') {
+                if ((close & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                close++;
+            }
+            bool terminated = close < source.Length && source[close] == delimiter;
+            index = terminated ? close + 1 : close;
             value = "verb";
-            isTerminated = close >= 0;
+            isTerminated = terminated;
             return true;
         }
 
         if (!LatexVerbatimSyntax.TryReadEnvironmentOpening(
-                source, start, out string environmentName, out int environmentContentStart)) return false;
+                source, start, out string environmentName, out int environmentContentStart, cancellationToken)) return false;
         if (!options.VerbatimEnvironmentNames.Contains(environmentName)) return false;
 
         bool hasClosing = LatexVerbatimSyntax.TryFindEnvironmentClosing(
-            source, environmentContentStart, environmentName, out _, out int closingEnd);
+            source, environmentContentStart, environmentName, out _, out int closingEnd, cancellationToken);
         index = hasClosing ? closingEnd : source.Length;
         value = environmentName;
         isTerminated = hasClosing;
@@ -141,7 +160,8 @@ public static class LatexTokenizer {
         return end >= source.Length || !IsControlWordCharacter(source[end]);
     }
 
-    private static void Validate(string source, LatexParseOptions options) {
+    internal static void Validate(string source, LatexParseOptions options) {
+        options.ValidateNamedModes();
         if (options.MaximumInputBytes.HasValue && options.MaximumInputBytes.Value < 1) throw new ArgumentOutOfRangeException(nameof(options));
         if (options.MaximumInputLength.HasValue && options.MaximumInputLength.Value < 0) throw new ArgumentOutOfRangeException(nameof(options));
         if (options.MaximumInputLength.HasValue && source.Length > options.MaximumInputLength.Value) throw new ArgumentException("LaTeX source exceeds MaximumInputLength.", nameof(source));
@@ -150,5 +170,6 @@ public static class LatexTokenizer {
         if (options.MaximumExpansionDepth < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumExpansionDepth must be positive.");
         if (options.MaximumExpansionLength < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumExpansionLength must be positive.");
         if (options.MaximumExpansionInputLength < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumExpansionInputLength must be positive.");
+        if (options.MaximumExpansionTokenCount < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumExpansionTokenCount must be positive.");
     }
 }

@@ -63,7 +63,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
-    public async Task Reader_file_identity_describes_captured_iWork_content_after_path_replacement(bool asynchronous, bool chunksOnly) {
+    public async Task Reader_rejects_path_replacement_while_iWork_adapter_identity_describes_captured_bytes(bool asynchronous, bool chunksOnly) {
         using var original = CreatePagesPackage(includeBody: true, textBox: null, includePreview: false,
             bodyText: "Captured original content");
         using var replacement = CreatePagesPackage(includeBody: true, textBox: null, includePreview: false,
@@ -74,9 +74,11 @@ public sealed partial class IWorkBoundaryTests {
         string path = Path.Combine(root, "mutable.pages");
         try {
             File.WriteAllBytes(path, originalBytes);
+            OfficeDocumentReadResult? capturedResult = null;
             OfficeDocumentReadResult CaptureAndReplace(string input, ReaderOptions options, System.Threading.CancellationToken token) {
                 if (chunksOnly) File.WriteAllBytes(input, replacement.ToArray());
                 var captured = IWorkReaderAdapter.ReadDocument(input, options, new ReaderIWorkOptions(), token);
+                capturedResult = captured;
                 if (!chunksOnly) File.WriteAllBytes(input, replacement.ToArray());
                 return captured;
             }
@@ -86,9 +88,14 @@ public sealed partial class IWorkBoundaryTests {
             };
             if (!chunksOnly) registration.ReadDocumentPath = CaptureAndReplace;
             var reader = new OfficeDocumentReaderBuilder().AddHandler(registration).Build();
-            OfficeDocumentReadResult result = asynchronous
-                ? await reader.ReadDocumentAsync(path, new ReaderOptions { ComputeHashes = true })
-                : reader.ReadDocument(path, new ReaderOptions { ComputeHashes = true });
+            var readOptions = new ReaderOptions { ComputeHashes = true };
+            // Reader requires a stable path even when an adapter safely captures its own input.
+            if (asynchronous) {
+                await Assert.ThrowsAsync<IOException>(() => reader.ReadDocumentAsync(path, readOptions));
+            } else {
+                Assert.Throws<IOException>(() => reader.ReadDocument(path, readOptions));
+            }
+            OfficeDocumentReadResult result = Assert.IsType<OfficeDocumentReadResult>(capturedResult);
             byte[] capturedBytes = chunksOnly ? replacement.ToArray() : originalBytes;
             string expectedHash = Convert.ToHexString(SHA256.HashData(capturedBytes)).ToLowerInvariant();
             Assert.Equal(expectedHash, result.Source.SourceHash);

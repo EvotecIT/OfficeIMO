@@ -7,6 +7,19 @@ namespace OfficeIMO.Latex.Markdown.Tests;
 public sealed class LatexPdfAdapterContractTests {
     private const string MinimalDocument = "\\documentclass{article}\n\\begin{document}\nLifecycle marker.\n\\end{document}\n";
 
+    [Theory]
+    [InlineData("100\\% useful", "A\\\\", "100% useful")]
+    [InlineData("\\textbf{R\\&D} 50\\%", "A\\\\", "R&D 50%")]
+    [InlineData("Only 100\\%", "", "Only 100%")]
+    public void TableCaptionsRemainVisibleInRenderedPdf(string caption, string rows, string expected) {
+        LatexDocument document = LatexDocument.Parse("\\documentclass{article}\\begin{document}\\begin{table}\\caption{" + caption +
+            "}\\begin{tabular}{l}" + rows + "\\end{tabular}\\end{table}\\end{document}");
+        string text = OfficeIMO.Pdf.PdfReadDocument.Open(document.ToPdfDocumentResult().Value.ToBytes()).ExtractText();
+        Assert.Contains(expected, text, StringComparison.Ordinal);
+        Assert.DoesNotContain("\\%", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("\\textbf", text, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void ParserDiagnostics_FlowIntoFinalPdfResult() {
         LatexDocument document = LatexDocument.ParseResult("\\documentclass{article}\n\\begin{document}\nBroken $x^2\n").Document;

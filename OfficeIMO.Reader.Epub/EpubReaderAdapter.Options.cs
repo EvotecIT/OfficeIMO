@@ -40,6 +40,7 @@ internal static partial class EpubReaderAdapter {
             MaxNavigationDepth = source.MaxNavigationDepth,
             MaxChapters = source.MaxChapters,
             MaxChapterBytes = source.MaxChapterBytes,
+            MaxTotalTextCharacters = source.MaxTotalTextCharacters,
             MaxTotalRawHtmlBytes = source.MaxTotalRawHtmlBytes,
             IncludeRawHtml = includeRawHtml,
             IncludeResourceData = includeResourceData,

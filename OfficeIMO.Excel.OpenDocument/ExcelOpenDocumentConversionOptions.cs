@@ -10,6 +10,8 @@ public sealed class ExcelOpenDocumentConversionOptions {
     public bool IncludeBasicStyles { get; set; } = true;
     /// <summary>Maximum number of cells that conversion may materialize, including covered cells created by merges.</summary>
     public long MaximumExpandedCells { get; set; } = 1_000_000;
+    /// <summary>Maximum number of individual row-height or hidden-row layouts materialized from an ODS sheet.</summary>
+    public int MaximumRowLayoutRows { get; set; } = 4096;
     /// <summary>Maximum XLSX row index produced from an ODS sheet.</summary>
     public int MaximumRows { get; set; } = 1_048_576;
     /// <summary>Maximum XLSX column index produced from an ODS sheet.</summary>
@@ -17,6 +19,8 @@ public sealed class ExcelOpenDocumentConversionOptions {
 
     internal void Validate() {
         if (MaximumExpandedCells < 1) throw new ArgumentOutOfRangeException(nameof(MaximumExpandedCells));
+        if (MaximumRowLayoutRows < 1 || MaximumRowLayoutRows > 1_048_576)
+            throw new ArgumentOutOfRangeException(nameof(MaximumRowLayoutRows));
         if (MaximumRows < 1 || MaximumRows > 1_048_576) throw new ArgumentOutOfRangeException(nameof(MaximumRows));
         if (MaximumColumns < 1 || MaximumColumns > 16_384) throw new ArgumentOutOfRangeException(nameof(MaximumColumns));
     }

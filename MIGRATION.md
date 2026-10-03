@@ -9,6 +9,10 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## ODS row layout conversion
+
+ODS-to-XLSX conversion materializes at most 4,096 individual hidden-row or row-height layouts per sheet by default. Larger row-layout expansions are reported under `expansion-limits`; set `ExcelOpenDocumentConversionOptions.MaximumRowLayoutRows` when a trusted workbook needs a higher limit.
+
 ## ODT-to-Word image copies
 
 ODT-to-Word conversion now copies at most 64 MiB of embedded image bytes by default across the resulting document. Set `WordOpenDocumentConversionOptions.MaxConvertedImageBytes` to a larger value for trusted documents that need every image, and inspect the conversion report or use `LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss` when skipped images must fail conversion.
@@ -21,6 +25,18 @@ ODT-to-Word conversion now copies at most 64 MiB of embedded image bytes by defa
 
 
 Normalized RTF writing accepts `UnicodeSkipCount` values from 0 through 8. Set a larger authored value to a supported width before calling `ToRtf`; larger values now raise `ArgumentOutOfRangeException` instead of generating disproportionate fallback output. Reading and lossless source export still preserve an incoming `\uc` value, including one that cannot be used for normalized writing.
+
+## LaTeX editing and conversion contracts
+
+LaTeX conversion projects the current edited source. Reader locations and conversion diagnostic spans refer to that rebound source; native syntax spans continue to describe the original parse. Conflicting edits to the same span now throw instead of silently selecting one replacement. Edit one representation, or use identical replacements when two views describe the same region.
+
+Parse options, including opaque environment names and macro budgets, are snapshotted. Reparse with new options to change an existing document's interpretation or expansion limits.
+
+Document-level macro expansion honors edited definitions and defaults. Reverse fragment links now use explicit `\hyperref[label]{visible text}` navigation links instead of replacing their text with `\ref{label}`. Custom list numbering, task markers, callout layout and omitted image metadata produce conversion diagnostics. Missing PDF reference targets retain visible text with an `UnresolvedInternalLink` warning instead of failing the entire export.
+
+Generated TeX labels reserve `_XXXX_` escape sequences and encode every literal underscore as `_005F_`, preventing collisions between literal text and encoded Unicode identifiers. Existing generated labels containing underscores therefore change. Regenerate declarations and references together when persisting generated label names outside the document.
+
+Missing or unbraced required arguments, graphics options, counter-based references, custom list markers, nested formatting flattened into scalar code or underline nodes, unsupported containers, and source-only conversion produce fidelity diagnostics. Strict conversion callers must inspect these reports and accept the relevant approximations explicitly. Use braced arguments for supported commands.
 
 ## iWork destination omissions and Reader identity
 
@@ -124,6 +140,23 @@ continue to accept files. Document results use schema version 9 as described bel
 The ODS evaluator follows OpenFormula precedence: `-2^2` evaluates to `4`, and `2^3^2` evaluates to `64`. Aggregate functions distinguish scalar arguments from references; `COUNT` ignores referenced errors. Call `Recalculate` explicitly to refresh caches that depend on these corrected results. Oversized text results return an evaluation error under `MaximumResultCharacters` and `MaximumTotalResultCharacters`.
 
 ODT-to-Word conversion enforces aggregate table expansion limits before allocation. Adjust `WordOpenDocumentConversionOptions` for trusted larger workloads. Reader OpenDocument format settings belong to `ReaderOpenDocumentOptions`, passed to `AddOpenDocumentHandler`; generic size and password settings remain in `ReaderOptions`.
+
+## EPUB reading positions, text, and completeness
+
+EPUB extraction preserves repeated and empty spine positions. Applications that
+deduplicate or count chapters by resource path should use `SpineIndex` or `Order`
+for reading positions and retain path-based identity only for resources.
+`PreferSpineOrder = false` changes ordering while retaining spine selection;
+it does not include non-linear or unreferenced archive content implicitly.
+
+Extracted inline text no longer gains spaces between formatting elements.
+Rebuild persisted text hashes or search indexes when this changes their stored values.
+Invalid chapter encodings produce `epub.chapter.invalid-encoding` and are skipped.
+
+`MaxTotalTextCharacters` defaults to 32 Mi UTF-16 characters. Increase it explicitly
+when a larger publication is required. Check `ReadSummary.IsComplete` and structured
+diagnostics when limits or unreadable content can produce partial output; archive
+recovery scanning cannot establish publication completeness.
 
 ## Conversion batches replace the PDF archive surface
 
@@ -265,6 +298,10 @@ they no longer use OLE Automation's negative-fraction convention.
 
 ## OCR outcomes and AI evaluation
 
+Multi-batch `Ask` and `Explain` combine validated observations when multiple batches contribute facts. Budget for combination requests through `MaxRequests` and inspect `SynthesisStatus`: unfinished combination returns `Partial` with `answer-synthesis-incomplete`, replacing `cross-batch-reasoning-not-supported`. Original citations and quote offsets are preserved. This change can increase model request counts; it does not certify answer correctness.
+
+Process OCR retains the version-2 text-recognition request shape. Orientation bridges must explicitly advertise `SupportsOrientationDetection`, handle the `DetectOrientation` operation and return orientation evidence. Tesseract's complete resolution-estimation stderr is informational; unknown or truncated stderr still triggers review warnings.
+
 Calls through `OcrEngineRunner` now throw `OcrEngineExecutionException` for provider exceptions, null results, and nonrecoverable error diagnostics. Catch this type and inspect `Kind` instead of parsing provider exception messages. Provider exception text and inner exceptions are omitted; caller cancellation and shared timeouts remain distinct. Reader's continue-on-error mode records a failed candidate rather than enriching from a nonrecoverable result.
 
 Invalid Reader OCR confidence values now become `null` instead of being clamped to zero or one. Treat them as unavailable quality evidence. PDF workflows reject recognition with no eligible words and no native text; deliberate empty review selections still create an unchanged source copy. Image workflows reject empty recognition before review and publication.
@@ -326,6 +363,24 @@ Folder and detailed path reads apply the configured document processor pipeline.
 second processing pass that previously compensated for these routes bypassing processors.
 Word tables preserve complete Markdown when an atomic table exceeds `MaxChars` and emit a warning.
 Applications that require terminal limits should configure `ReaderOptions.ResourceLimits`.
+
+## Reader XML limits and changing sources
+
+XML extraction uses `XmlReadOptions.MaxDepth` (128), `MaxNodes` (200,000), and
+`MaxScalarLength` (1,048,576) by default. Inputs exceeding these limits throw
+`ReaderResourceLimitException`. Increase the relevant option for trusted larger inputs.
+XML and YAML values within their configured limits retain their full normalized text.
+
+Path reads reject a detected source change with `IOException`. Retry against a stable file.
+Keep incremental inputs stable until enumeration finishes: a later failure cannot withdraw
+chunks already delivered to the consumer.
+
+Async file reads use the same normalized file identity and timestamps as synchronous reads.
+Rebuild indexes that stored the previous async stream-derived source IDs or chunk hashes.
+Chunk-based container results describe the outer input in `Kind` and `Source`; member identity,
+hash, length and timestamps remain on the member chunks, including after document processing.
+Folder byte budgets charge the physical file size. Consumers that inferred the first member's
+kind or metadata from the root envelope should read that member's chunk instead.
 
 ## Reader document schema version 8
 

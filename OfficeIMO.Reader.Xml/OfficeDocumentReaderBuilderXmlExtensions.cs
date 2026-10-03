@@ -49,6 +49,9 @@ public static class OfficeDocumentReaderBuilderXmlExtensions {
 
         return new XmlReadOptions {
             ChunkRows = options.ChunkRows,
+            MaxDepth = options.MaxDepth,
+            MaxNodes = options.MaxNodes,
+            MaxScalarLength = options.MaxScalarLength,
             IncludeMarkdown = options.IncludeMarkdown
         };
     }

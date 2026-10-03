@@ -106,7 +106,7 @@ public static partial class MarkdownPdfConverterExtensions {
         string? normalizedLinkContents = linkUri == null || string.IsNullOrWhiteSpace(linkContents) ? null : linkContents;
 
         pdf.Image(preparedBytes, width, height, align: null, clipPath: null, fit: null, spacingBefore: null, spacingAfter: null, style: imageStyle, linkUri: linkUri, linkContents: normalizedLinkContents);
-        RenderFigureCaption(pdf, caption, figureStyle);
+        RenderCaption(pdf, caption, figureStyle);
     }
 
     private static void RenderImagePlaceholder(PdfCore.PdfDocument pdf, string? label, MarkdownPdfStyle visualTheme) {
@@ -139,7 +139,7 @@ public static partial class MarkdownPdfConverterExtensions {
         return style;
     }
 
-    private static void RenderFigureCaption(PdfCore.PdfDocument pdf, string? caption, MarkdownPdfFigureStyle figureStyle) {
+    private static void RenderCaption(PdfCore.PdfDocument pdf, string? caption, MarkdownPdfFigureStyle figureStyle) {
         if (string.IsNullOrWhiteSpace(caption)) {
             return;
         }

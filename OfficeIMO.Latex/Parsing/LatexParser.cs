@@ -10,10 +10,10 @@ internal static class LatexParser {
         LatexParseOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (source == null) throw new ArgumentNullException(nameof(source));
-        options ??= new LatexParseOptions();
-        options.ValidateNamedModes();
+        options = (options ?? new LatexParseOptions()).Clone();
         cancellationToken.ThrowIfCancellationRequested();
-        var sourceText = new LatexSourceText(source);
+        LatexTokenizer.Validate(source, options);
+        var sourceText = new LatexSourceText(source, cancellationToken);
         IReadOnlyList<LatexToken> tokens = LatexTokenizer.Tokenize(sourceText, options, cancellationToken);
         var diagnostics = new List<LatexDiagnostic>();
         var structural = new LatexStructuralParser(sourceText, tokens, options, diagnostics, cancellationToken);

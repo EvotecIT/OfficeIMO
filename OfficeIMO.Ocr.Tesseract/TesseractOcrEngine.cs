@@ -92,20 +92,9 @@ public sealed partial class TesseractOcrEngine : IOcrEngine {
             long outputLength = new FileInfo(outputPath).Length;
             if (outputLength > _options.MaxOutputBytes) throw new IOException("Tesseract TSV output exceeds MaxOutputBytes (" + _options.MaxOutputBytes + ").");
             OcrResult result = TesseractTsvParser.Parse(File.ReadAllText(outputPath, Encoding.UTF8), language);
-            if (!string.IsNullOrWhiteSpace(processResult.StandardError)) {
-                result.Diagnostics = (result.Diagnostics ?? Array.Empty<OcrDiagnostic>()).Concat(new[] {
-                    new OcrDiagnostic {
-                        Severity = OcrDiagnosticSeverity.Warning,
-                        Code = "tesseract-stderr",
-                        Message = processResult.StandardError,
-                        Source = Id,
-                        IsRecoverable = true,
-                        Attributes = new Dictionary<string, string>(StringComparer.Ordinal) {
-                            ["truncated"] = processResult.StandardErrorTruncated ? "true" : "false"
-                        }
-                    }
-                }).ToArray();
-            }
+            OcrDiagnostic? standardError = CreateStandardErrorDiagnostic(processResult, "tesseract-stderr");
+            if (standardError != null)
+                result.Diagnostics = (result.Diagnostics ?? Array.Empty<OcrDiagnostic>()).Concat(new[] { standardError }).ToArray();
             if (processResult.StandardOutputTruncated) {
                 result.Diagnostics = (result.Diagnostics ?? Array.Empty<OcrDiagnostic>()).Concat(new[] {
                     new OcrDiagnostic {
