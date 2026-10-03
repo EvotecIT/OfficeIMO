@@ -21,7 +21,7 @@ public partial class HtmlOfficeAdapters {
             .Where(item => item.Code == "HtmlStylesheetLinkSkipped").ToArray();
         Assert.Equal(128, skipped.Length);
         Assert.Equal("https://example.test/plain-0.css", skipped[0].Source);
-        Assert.Equal("https://example.test/titled-63.css", skipped[^1].Source);
+        Assert.Equal("https://example.test/titled-63.css", skipped[skipped.Length - 1].Source);
     }
 
     [Fact]
