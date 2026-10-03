@@ -5,6 +5,17 @@ using System.Linq;
 namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeManagedTextShapingProvider {
+    // Default Latin consumers can project the canonical substituted tokens directly. These
+    // tokens include continuation ownership and logical clusters, not just nominal cmap glyphs.
+    internal bool TryShapeDefaultLatinTokens(OfficeTextShapingRequest request,
+        out List<OfficeOpenTypeSubstitution.GlyphToken> tokens, out OfficeTextDirection direction) {
+        if (request == null) throw new ArgumentNullException(nameof(request));
+        tokens = null!;
+        direction = request.Direction;
+        return request.ApplyDefaultLatinLigatures && request.FeatureSettings.IsDefault &&
+            TryShapeTokens(request, out _, out tokens, out direction);
+    }
+
     // Default Latin shaping uses nominal advances and no positioning. Width consumers can
     // visit the same substituted tokens without allocating public shaped glyphs and clusters.
     // Explicit features and providers retain the complete shaping-result contract.
@@ -12,8 +23,7 @@ public sealed partial class OfficeManagedTextShapingProvider {
         if (request == null) throw new ArgumentNullException(nameof(request));
         if (measureGlyph == null) throw new ArgumentNullException(nameof(measureGlyph));
         advance = 0;
-        if (!request.ApplyDefaultLatinLigatures || !request.FeatureSettings.IsDefault ||
-            !TryShapeTokens(request, out _, out List<OfficeOpenTypeSubstitution.GlyphToken> tokens, out _)) return false;
+        if (!TryShapeDefaultLatinTokens(request, out List<OfficeOpenTypeSubstitution.GlyphToken> tokens, out _)) return false;
         foreach (OfficeOpenTypeSubstitution.GlyphToken token in tokens) {
             request.CancellationToken.ThrowIfCancellationRequested();
             advance = checked(advance + measureGlyph(token.GlyphId, token.UnicodeText));

@@ -8,6 +8,9 @@ internal static partial class PdfExternalTextShaper {
         Guard.NotNull(font, nameof(font));
 
         bool automaticLatin = options.ShapingProvider == null && options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures;
+        if (automaticLatin && options.FeatureSettings.IsDefault) return TryShapeDefaultLatinText(
+            text, font.FontName, font.FontDataForInspection, false, font.UnitsPerEm, font.GlyphCount,
+            font.GetGlyphWidth1000, options.RecordGlyphUsage ? font.RecordGlyphUsage : null, options, out glyphRun);
         IOfficeTextShapingProvider? provider = options.ShapingProvider;
         if (provider == null && (automaticLatin || !options.FeatureSettings.IsDefault || options.Direction != OfficeTextDirection.Auto)) provider = OfficeManagedTextShapingProvider.Instance;
         if (provider == null) {
@@ -55,6 +58,9 @@ internal static partial class PdfExternalTextShaper {
         Guard.NotNull(font, nameof(font));
 
         bool automaticLatin = options.ShapingProvider == null && options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures;
+        if (automaticLatin && options.FeatureSettings.IsDefault) return TryShapeDefaultLatinText(
+            text, font.FontName, font.FontDataForInspection, true, font.UnitsPerEm, font.GlyphCount,
+            font.GetGlyphWidth1000, options.RecordGlyphUsage ? font.RecordGlyphUsage : null, options, out glyphRun);
         IOfficeTextShapingProvider? provider = options.ShapingProvider;
         if (provider == null && (automaticLatin || !options.FeatureSettings.IsDefault || options.Direction != OfficeTextDirection.Auto)) provider = OfficeManagedTextShapingProvider.Instance;
         if (provider == null) {

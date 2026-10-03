@@ -140,7 +140,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         bool cacheable = PdfShortTextCache<PdfGlyphRun>.IsEligible(text, options);
         if (cacheable && _shortGlyphRuns.TryGet(text, options, out PdfGlyphRun cached)) {
             foreach (PdfGlyphInfo glyph in cached.Glyphs) RecordGlyphUsage(glyph.GlyphId, glyph.UnicodeText);
-            if (cached.SourceShapingResult != null) options.ProviderShapedTextRecorder?.Invoke(text, FontName, false, true);
+            if (cached.SourceShapingResult != null || cached.IsAutomaticallyShaped) options.ProviderShapedTextRecorder?.Invoke(text, FontName, false, true);
             return cached;
         }
         PdfGlyphRun result = ShapeUncachedText(text, options);

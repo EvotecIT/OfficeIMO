@@ -7,7 +7,7 @@ internal sealed class PdfGlyphRun {
         : this(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText: null, OfficeTextDirection.Auto) {
     }
 
-    public PdfGlyphRun(IReadOnlyList<PdfGlyphInfo> glyphs, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics, string? actualText = null, OfficeTextDirection direction = OfficeTextDirection.Auto, bool hasCompleteVerticalAdvances = false, OfficeTextShapingResult? sourceShapingResult = null, bool preserveGlyphUnicode = false) {
+    public PdfGlyphRun(IReadOnlyList<PdfGlyphInfo> glyphs, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics, string? actualText = null, OfficeTextDirection direction = OfficeTextDirection.Auto, bool hasCompleteVerticalAdvances = false, OfficeTextShapingResult? sourceShapingResult = null, bool preserveGlyphUnicode = false, bool isAutomaticallyShaped = false) {
         Glyphs = glyphs ?? throw new ArgumentNullException(nameof(glyphs));
         Diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
         ActualText = string.IsNullOrEmpty(actualText) ? null : actualText;
@@ -15,9 +15,11 @@ internal sealed class PdfGlyphRun {
         HasCompleteVerticalAdvances = hasCompleteVerticalAdvances;
         SourceShapingResult = sourceShapingResult;
         PreserveGlyphUnicode = preserveGlyphUnicode;
+        IsAutomaticallyShaped = isAutomaticallyShaped;
     }
 
     internal bool PreserveGlyphUnicode { get; }
+    internal bool IsAutomaticallyShaped { get; }
     public IReadOnlyList<PdfGlyphInfo> Glyphs { get; }
     public IReadOnlyList<PdfTextEncodingDiagnostic> Diagnostics { get; }
     public string? ActualText { get; }

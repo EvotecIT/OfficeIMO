@@ -16,6 +16,8 @@ public class PdfShortTextReuseTests {
     [InlineData(true, "123.45 ([)]")]
     [InlineData(false, "R09999 Value 42.00")]
     [InlineData(true, "R09999 Value 42.00")]
+    [InlineData(false, "\uFB01 office")]
+    [InlineData(true, "\uFB01 office e\u0301")]
     public void DefaultPdfRunPreservesTheManagedGlyphAndLogicalClusterContract(bool cff, string text) {
         string? path = cff ? PdfComplianceTestFonts.FindBundledOpenTypeCffFont() : PdfComplianceTestFonts.FindBundledTrueTypeFont();
         Assert.NotNull(path);
@@ -29,6 +31,12 @@ public class PdfShortTextReuseTests {
     [Fact]
     public void DefaultPdfRunPreservesMultipleSubstitutionContinuationGlyphs() =>
         Verify(ManagedTextShapingTestAssets.CreateFontWithMultipleSubstitution('A', scriptTag: "latn"), false, "A A");
+
+    [Theory]
+    [InlineData("A", true)]
+    [InlineData("AB", false)]
+    public void DefaultPdfRunPreservesComposedContinuationOwnership(string text, bool continuationOnly) =>
+        Verify(ManagedTextShapingTestAssets.CreateFontWithComposedMultipleLigature('B', continuationOnly), false, text);
 
     [Fact]
     public void DefaultPdfNumericRunDoesNotSelectUnsupportedLatinLookups() =>
@@ -72,8 +80,9 @@ public class PdfShortTextReuseTests {
             Assert.Equal(projected.NominalWidth1000, projected.AdvanceWidth1000);
             Assert.False(projected.HasPositioning);
         }
-        Assert.Equal(expected.Direction == OfficeTextDirection.LeftToRight ? null : text, actual.ActualText);
-        Assert.Equal(expected.Direction == OfficeTextDirection.LeftToRight, actual.PreserveGlyphUnicode);
+        bool includeActualText = expected.Direction != OfficeTextDirection.LeftToRight || OfficeManagedTextShaper.RequiresComplexLayout(text);
+        Assert.Equal(includeActualText ? text : null, actual.ActualText);
+        Assert.Equal(!includeActualText, actual.PreserveGlyphUnicode);
         Assert.Equal(expected.Glyphs.Select(glyph => glyph.GlyphId).Distinct().OrderBy(id => id),
             cff ? cffFont!.GetUsedGlyphIds() : trueType!.GetUsedGlyphIds());
         Assert.Equal(2, notifications);
