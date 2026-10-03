@@ -9,6 +9,14 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## DocBook, ADF and Data projection contracts
+
+ADF operations enforce resource limits through `AdfProcessingOptions` and `AdfConversionOptions`. If an application intentionally processes documents above the defaults, pass explicit limits to parsing, validation, JSON writing and conversion. Cyclic ADF content is rejected. Structural validation also rejects empty required content and missing panel types. Inspect new omission diagnostics when `RequireNoLoss()` rejects metadata or semantic projections that previously lost properties silently.
+
+DocBook Reader Markdown escapes literal syntax. Applications comparing exact Markdown strings must allow escapes; plain chunk text retains its source text. CALS cells use newlines between distinct block paragraphs. Typed component body additions are placed before child sections and indexes; raw XML with the opposite order receives `DB024`.
+
+Arrow decimals must fit both declared scale and precision. Redundant fractional zeros are accepted. Increase `DecimalPrecision` for values outside the declared coefficient range rather than relying on invalid Arrow output. `CollectionColumnMapping.HeaderPrefix` now changes displayed Excel and PowerPoint headers; use `null` for the original collection-path prefix. Column selection, formatting and flattened dictionary keys retain their original paths.
+
 ## Chart data label separators
 
 `OfficeChartLayout` accepts data label separators up to 64 characters. Shorten longer authored separators before constructing a layout; they now raise `ArgumentOutOfRangeException`. Native charts with longer separators are not projected into the shared chart layout, because the separator would be copied into every rendered point label.

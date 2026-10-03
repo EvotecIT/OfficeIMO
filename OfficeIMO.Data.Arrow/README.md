@@ -35,6 +35,10 @@ columns. Unsupported CLR types are converted to invariant text by default; set
 Decimal values must be exactly representable at `ArrowReadOptions.DecimalScale`; conversion
 fails instead of silently rounding an inexact value. Increase the scale when the source contains
 more significant fractional digits.
+Redundant fractional zeros do not cause rejection: `1.2300m` is accepted at scale 2.
+The absolute scaled coefficient must also fit `DecimalPrecision`; precision 5 and scale 2
+accept `999.99m` and reject `1000m`. Batch size bounds rows, not bytes; variable-size values
+and the source reader's buffering still determine memory use.
 When the source schema is already known, set `ArrowReadOptions.ColumnTypes` in ordinal order and
 leave reader-side inference disabled. The adapter snapshots and validates the explicit types before
 reading, so the conversion does not pay a schema-sampling pass.
@@ -85,3 +89,8 @@ exactly once without exposing an address. A second import or lease acquisition i
 cancellation token to `ExportArrowCStream` when native callbacks must be cancellable; the Arrow
 C ABI itself has no per-call cancellation argument. Each `get_next` call produces at most the
 configured batch size; the full worksheet or CSV is never collected into one `RecordBatch`.
+
+The CSV NativeAOT smoke consumes the C buffers directly and checks integer values, UTF-8
+offsets/data, null bitmaps, signed decimal coefficients, batch boundaries and release callbacks.
+This covers its declared primitive profile; it does not establish every native engine or a
+portable peak-memory budget.

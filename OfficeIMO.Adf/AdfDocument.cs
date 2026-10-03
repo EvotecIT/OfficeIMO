@@ -9,7 +9,7 @@ using System.Text.Json.Serialization.Metadata;
 namespace OfficeIMO.Adf;
 
 /// <summary>
-/// Represents an Atlas Document Format document while retaining fields that OfficeIMO does not yet understand.
+/// Represents an Atlassian Document Format document while retaining fields that OfficeIMO does not yet understand.
 /// </summary>
 public sealed class AdfDocument {
     private List<AdfNode>? _content;
@@ -46,14 +46,23 @@ public sealed class AdfDocument {
         (_extensionData ??= new Dictionary<string, JsonElement>(StringComparer.Ordinal))[name] = value;
 
     /// <summary>Parses an ADF JSON document and retains unrecognized fields for round trips.</summary>
-    /// <remarks>Parsing checks JSON shape and required fields; call <see cref="Validate"/> to inspect ADF structural rules.</remarks>
+    /// <remarks>Parsing checks JSON shape and required fields; call <see cref="Validate()"/> to inspect ADF structural rules.</remarks>
     public static AdfDocument Parse(string json) => AdfJsonSerializer.Parse(json);
+
+    /// <summary>Parses ADF JSON with explicit resource limits and cancellation.</summary>
+    public static AdfDocument Parse(string json, AdfProcessingOptions options) => AdfJsonSerializer.Parse(json, options);
 
     /// <summary>Serializes this document to ADF JSON without performing structural validation.</summary>
     public string ToJson(bool indented = false) => AdfJsonSerializer.Serialize(this, indented);
 
+    /// <summary>Serializes ADF JSON with explicit resource limits and cancellation.</summary>
+    public string ToJson(AdfProcessingOptions options, bool indented = false) => AdfJsonSerializer.Serialize(this, indented, options);
+
     /// <summary>Validates the structural ADF contract without rejecting unknown node or mark types.</summary>
     public AdfValidationResult Validate() => AdfValidator.Validate(this);
+
+    /// <summary>Validates ADF structure with explicit resource limits and cancellation.</summary>
+    public AdfValidationResult Validate(AdfProcessingOptions options) => AdfValidator.Validate(this, options);
 }
 
 /// <summary>An ADF content node.</summary>
@@ -62,6 +71,11 @@ public sealed class AdfNode {
     private List<AdfMark>? _marks;
     private Dictionary<string, JsonElement>? _attributes;
     private Dictionary<string, JsonElement>? _extensionData;
+
+    // Empty optional properties are significant to native JSON preservation.
+    internal bool HadContentProperty { get; set; }
+    internal bool HadMarksProperty { get; set; }
+    internal bool HadAttributesProperty { get; set; }
 
     /// <summary>Creates an ADF node.</summary>
     public AdfNode(string type) {
@@ -139,6 +153,7 @@ public sealed class AdfNode {
 public sealed class AdfMark {
     private Dictionary<string, JsonElement>? _attributes;
     private Dictionary<string, JsonElement>? _extensionData;
+    internal bool HadAttributesProperty { get; set; }
 
     /// <summary>Creates an ADF mark.</summary>
     public AdfMark(string type) {

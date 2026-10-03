@@ -789,7 +789,8 @@ namespace OfficeIMO.Data {
         private static CollectionMapAccessors CreateCollectionMapAccessors(CollectionMapAccessorKey key) {
             var keyProperty = key.ItemType.GetProperty(key.KeyProperty);
             var valueProperty = key.ItemType.GetProperty(key.ValueProperty);
-            if (keyProperty == null || valueProperty == null) {
+            if (keyProperty == null || valueProperty == null ||
+                !IsReadableInstanceProperty(keyProperty) || !IsReadableInstanceProperty(valueProperty)) {
                 return CollectionMapAccessors.Missing;
             }
 
@@ -804,6 +805,7 @@ namespace OfficeIMO.Data {
             Justification = "The generic Flatten<T> and GetPaths(Type) entry points preserve public properties for the supplied row type. Reflection is limited to reading those public properties and does not generate code at runtime.")]
         private static ObjectFlattenerProperty[] CreateObjectFlattenerProperties(Type type) {
             var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(IsReadableInstanceProperty)
                 .OrderBy(GetMetadataOrder)
                 .ThenBy(p => p.Name, StringComparer.Ordinal)
                 .ToArray();
@@ -828,6 +830,10 @@ namespace OfficeIMO.Data {
         private static ObjectFlattenerPropertyGetter CreateObjectFlattenerPropertyGetter(PropertyInfo property) {
             return row => property.GetValue(row, null);
         }
+
+        private static bool IsReadableInstanceProperty(PropertyInfo property) =>
+            property.GetMethod?.IsPublic == true && !property.GetMethod.IsStatic &&
+            property.GetIndexParameters().Length == 0;
 
         private static void BuildPathsWithoutExpansion(string prefix, ObjectFlattenerOptions opts, List<string> paths, HashSet<string> addedPaths, ObjectFlattenerProperty[] props) {
             foreach (var prop in props) {
@@ -1069,7 +1075,11 @@ public sealed class CollectionColumnMapping {
     public string KeyProperty { get; set; } = "Name";
     /// <summary>Property name on the item to use as the cell value.</summary>
     public string ValueProperty { get; set; } = "Value";
-    /// <summary>Optional prefix for generated column headers.</summary>
+    /// <summary>
+    /// Optional replacement for the collection path in displayed column headers.
+    /// Null keeps the collection path; an empty string displays only the item key.
+    /// Column selection, formatting and flattened dictionary keys keep their original paths.
+    /// </summary>
     public string? HeaderPrefix { get; set; }
 }
 }

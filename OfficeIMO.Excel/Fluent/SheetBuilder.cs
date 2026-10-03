@@ -446,11 +446,7 @@ namespace OfficeIMO.Excel.Fluent {
         }
 
         private static string TransformHeader(string path, ObjectFlattenerOptions opts) {
-            foreach (var prefix in opts.HeaderPrefixTrimPaths) {
-                if (path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) {
-                    path = path.Substring(prefix.Length);
-                }
-            }
+            path = opts.GetHeaderPath(path);
             return opts.HeaderCase switch {
                 HeaderCase.Pascal => TransformHeaderPascal(path),
                 HeaderCase.Title => string.Join(" ", path.Split('.').Select(s => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(s.ToLowerInvariant()))),

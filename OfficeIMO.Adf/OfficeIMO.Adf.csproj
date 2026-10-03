@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Atlas Document Format model and OfficeIMO conversion support.</Description>
+    <Description>Atlassian Document Format model and OfficeIMO conversion support.</Description>
     <AssemblyName>OfficeIMO.Adf</AssemblyName>
     <AssemblyTitle>OfficeIMO.Adf</AssemblyTitle>
     <VersionPrefix>3.4.4</VersionPrefix>

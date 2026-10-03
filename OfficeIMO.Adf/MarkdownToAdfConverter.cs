@@ -14,7 +14,22 @@ internal static class MarkdownToAdfConverter {
 
     private static AdfNode? ConvertBlock(IMarkdownBlock block, string path, List<AdfConversionDiagnostic> diagnostics) {
         switch (block) {
+            case ImageBlock imageBlock:
+                if (!string.IsNullOrEmpty(imageBlock.Title) || !string.IsNullOrEmpty(imageBlock.Caption) || imageBlock.Width.HasValue || imageBlock.Height.HasValue || !string.IsNullOrEmpty(imageBlock.LinkUrl) || imageBlock.PictureSources.Count > 0) {
+                    diagnostics.Add(Warning("MARKDOWN_IMAGE_PROPERTIES_DROPPED", path, "ADF image projection retains the source and alternate text; Markdown image title, caption, sizing, picture sources and wrapping link properties were omitted."));
+                }
+                var blockMedia = new AdfNode("media").SetAttribute("type", "external").SetAttribute("url", imageBlock.Path).SetAttribute("alt", imageBlock.PlainAlt ?? string.Empty);
+                var blockContainer = new AdfNode("mediaSingle").SetAttribute("layout", "center");
+                blockContainer.Content.Add(blockMedia);
+                return blockContainer;
             case ParagraphBlock paragraph:
+                if (paragraph.Inlines.Nodes.Count == 1 && paragraph.Inlines.Nodes[0] is ImageInline image) {
+                    if (!string.IsNullOrEmpty(image.Title)) diagnostics.Add(Warning("MARKDOWN_IMAGE_TITLE_DROPPED", path, "ADF external media does not preserve Markdown image titles."));
+                    var media = new AdfNode("media").SetAttribute("type", "external").SetAttribute("url", image.Src).SetAttribute("alt", image.PlainAlt);
+                    var container = new AdfNode("mediaSingle").SetAttribute("layout", "center");
+                    container.Content.Add(media);
+                    return container;
+                }
                 return WithInlines(new AdfNode("paragraph"), paragraph.Inlines, path, diagnostics);
             case HeadingBlock heading:
                 return WithInlines(new AdfNode("heading").SetAttribute("level", heading.Level), heading.Inlines, path, diagnostics);
@@ -77,7 +92,8 @@ internal static class MarkdownToAdfConverter {
     }
 
     private static bool CanConvertTaskList(IReadOnlyList<ListItem> items) =>
-        items.Count > 0 && items.All(item => item.IsTask && item.AdditionalParagraphs.Count == 0 && item.NestedBlocks.Count == 0);
+        items.Count > 0 && items.All(item => item.IsTask && item.AdditionalParagraphs.Count == 0 &&
+            item.NestedBlocks.All(block => block is UnorderedListBlock nested && CanConvertTaskList(nested.Items)));
 
     private static AdfNode ConvertTaskList(IReadOnlyList<ListItem> items, string path, List<AdfConversionDiagnostic> diagnostics) {
         var list = new AdfNode("taskList").SetAttribute("localId", Guid.NewGuid().ToString("D"));
@@ -88,6 +104,9 @@ internal static class MarkdownToAdfConverter {
                 .SetAttribute("state", sourceItem.Checked ? "DONE" : "TODO");
             WithInlines(item, sourceItem.Content, path + ".items[" + i + "]", diagnostics);
             list.Content.Add(item);
+            foreach (UnorderedListBlock nested in sourceItem.NestedBlocks) {
+                list.Content.Add(ConvertTaskList(nested.Items, path + ".items[" + i + "].nested", diagnostics));
+            }
         }
         return list;
     }
@@ -189,11 +208,19 @@ internal static class MarkdownToAdfConverter {
                     if (link.LabelInlines != null) AppendInlines(target, link.LabelInlines, AddMark(inheritedMarks, linkMark), inlinePath, diagnostics);
                     else target.Add(AdfNode.TextNode(link.Text, AddMark(inheritedMarks, linkMark)));
                     break;
+                case ImageInline image:
+                    diagnostics.Add(Warning("MARKDOWN_INLINE_IMAGE_PROJECTED", inlinePath, "Inline Markdown images are represented by their linked alternate text; ADF external media requires a block container."));
+                    target.Add(AdfNode.TextNode(image.PlainAlt.Length == 0 ? image.Src : image.PlainAlt,
+                        AddMark(inheritedMarks, new AdfMark("link").SetAttribute("href", image.Src))));
+                    break;
                 case HardBreakInline:
                     target.Add(new AdfNode("hardBreak"));
                     break;
                 case SoftBreakInline:
                     target.Add(AdfNode.TextNode("\n"));
+                    break;
+                case HtmlRawInline html when html.Html == "<!-- -->":
+                    // Empty comments separate adjacent Markdown delimiters and carry no content.
                     break;
                 default:
                     diagnostics.Add(Warning("MARKDOWN_UNSUPPORTED_INLINE", inlinePath, "Markdown inline '" + inline.GetType().Name + "' has no exact ADF mapping and was omitted."));

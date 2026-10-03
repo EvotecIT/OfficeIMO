@@ -4,20 +4,24 @@ using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Adf;
 
-internal static class AdfToMarkdownConverter {
+internal static partial class AdfToMarkdownConverter {
     internal static string Convert(AdfDocument document, AdfConversionOptions options, List<AdfConversionDiagnostic> diagnostics) {
         var builder = new StringBuilder();
         if (document.ExtensionData.Count > 0) {
             diagnostics.Add(Warning("ADF_ROOT_PROPERTIES_DROPPED", "$", "ADF root extension properties cannot be represented in Markdown and were omitted."));
         }
         for (int i = 0; i < document.Content.Count; i++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             AppendBlock(builder, document.Content[i], "$.content[" + i + "]", options, diagnostics, 0);
             if (i < document.Content.Count - 1 && !EndsWithBlankLine(builder)) builder.AppendLine().AppendLine();
+            if (builder.Length > options.MaxOutputCharacters) throw AdfGraphGuard.Limit("MaxOutputCharacters");
         }
         return builder.ToString();
     }
 
     private static void AppendBlock(StringBuilder builder, AdfNode node, string path, AdfConversionOptions options, List<AdfConversionDiagnostic> diagnostics, int listDepth) {
+        options.CancellationToken.ThrowIfCancellationRequested();
+        ReportBlockProperties(node, path, diagnostics);
         switch (node.Type) {
             case "paragraph":
                 if (node.Content.Count == 0) {
@@ -74,6 +78,13 @@ internal static class AdfToMarkdownConverter {
             case "rule":
                 builder.Append("---");
                 break;
+            case "blockCard":
+                AppendSemanticFallback(builder, node, path, diagnostics);
+                break;
+            case "mediaSingle":
+            case "mediaGroup":
+                AppendMedia(builder, node, path, diagnostics);
+                break;
             case "table":
                 AppendTable(builder, node, path, diagnostics);
                 break;
@@ -89,7 +100,7 @@ internal static class AdfToMarkdownConverter {
             default:
                 diagnostics.Add(Warning("ADF_UNSUPPORTED_NODE", path, "ADF node '" + node.Type + "' is retained in the ADF model but has no exact Markdown projection."));
                 if (node.Content.Count > 0) AppendChildrenAsBlocks(builder, node, path, options, diagnostics, listDepth);
-                else if (!string.IsNullOrEmpty(node.Text)) builder.Append(MarkdownEscaper.EscapeLiteralText(node.Text!));
+                else if (!string.IsNullOrEmpty(ExtractPlainText(node))) builder.Append(MarkdownEscaper.EscapeLiteralText(ExtractPlainText(node)));
                 else if (options.EmitUnsupportedPlaceholders) builder.Append("[Unsupported ADF node: ").Append(node.Type).Append(']');
                 break;
         }
@@ -113,11 +124,17 @@ internal static class AdfToMarkdownConverter {
                 "Markdown has no task identity syntax; taskList and taskItem localId attributes were omitted and will be regenerated when Markdown is imported."));
         }
         for (int i = 0; i < list.Content.Count; i++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             AdfNode item = list.Content[i];
             if (i > 0) builder.AppendLine();
+            if (item.Type == "taskList") {
+                AppendList(builder, item, path + ".content[" + i + "]", options, diagnostics, depth + 1);
+                continue;
+            }
+            ReportBlockProperties(item, path + ".content[" + i + "]", diagnostics);
             string marker = list.Type == "orderedList" ? (order + i).ToString(System.Globalization.CultureInfo.InvariantCulture) + ". " : "- ";
             if (item.Type == "taskItem") {
-                bool done = item.Attributes.TryGetValue("state", out var state) && string.Equals(state.GetString(), "DONE", StringComparison.OrdinalIgnoreCase);
+                bool done = string.Equals(item.GetStringAttribute("state"), "DONE", StringComparison.OrdinalIgnoreCase);
                 marker += done ? "[x] " : "[ ] ";
             }
             builder.Append(new string(' ', depth * 2)).Append(marker);
@@ -162,6 +179,7 @@ internal static class AdfToMarkdownConverter {
     }
 
     private static void AppendTableRow(StringBuilder builder, AdfNode row, int columns, string path, List<AdfConversionDiagnostic> diagnostics) {
+        ReportBlockProperties(row, path, diagnostics);
         builder.Append('|');
         for (int column = 0; column < columns; column++) {
             string value = column < row.Content.Count ? RenderCell(row.Content[column], path + ".content[" + column + "]", diagnostics) : string.Empty;
@@ -170,6 +188,7 @@ internal static class AdfToMarkdownConverter {
     }
 
     private static string RenderCell(AdfNode cell, string path, List<AdfConversionDiagnostic> diagnostics) {
+        ReportBlockProperties(cell, path, diagnostics);
         if (cell.Attributes.Count > 0 || cell.ExtensionData.Count > 0) {
             diagnostics.Add(Warning("ADF_TABLE_CELL_ATTRIBUTES_DROPPED", path, "ADF table-cell attributes cannot be represented in Markdown and were omitted."));
         }
@@ -179,6 +198,7 @@ internal static class AdfToMarkdownConverter {
         var builder = new StringBuilder();
         for (int i = 0; i < cell.Content.Count; i++) {
             if (i > 0) builder.Append("<br/>");
+            ReportBlockProperties(cell.Content[i], path + ".content[" + i + "]", diagnostics);
             builder.Append(RenderInlineContent(cell.Content[i], path + ".content[" + i + "]", diagnostics));
         }
         return builder.ToString();
@@ -186,7 +206,15 @@ internal static class AdfToMarkdownConverter {
 
     private static string RenderInlineContent(AdfNode node, string path, List<AdfConversionDiagnostic> diagnostics) {
         var builder = new StringBuilder();
-        for (int i = 0; i < node.Content.Count; i++) AppendInline(builder, node.Content[i], path + ".content[" + i + "]", diagnostics);
+        for (int i = 0; i < node.Content.Count; i++) {
+            var fragment = new StringBuilder();
+            AppendInline(fragment, node.Content[i], path + ".content[" + i + "]", diagnostics);
+            // Adjacent delimiter runs are parsed as one run by CommonMark. A comment
+            // separates their syntax without adding visible whitespace or changing marks.
+            if (builder.Length > 0 && fragment.Length > 0 && builder[builder.Length - 1] == fragment[0] &&
+                fragment[0] is '*' or '_' or '~' or '^' or '`') builder.Append("<!-- -->");
+            builder.Append(fragment);
+        }
         return builder.ToString();
     }
 
@@ -204,14 +232,16 @@ internal static class AdfToMarkdownConverter {
 
     private static void AppendInline(StringBuilder builder, AdfNode node, string path, List<AdfConversionDiagnostic> diagnostics) {
         if (node.Type == "hardBreak") {
+            ReportInlineProperties(node, path, diagnostics);
             builder.Append("<br />");
             return;
         }
         if (node.Type != "text") {
-            diagnostics.Add(Warning("ADF_UNSUPPORTED_INLINE", path, "ADF inline node '" + node.Type + "' was flattened to text."));
-            builder.Append(MarkdownEscaper.EscapeLiteralText(ExtractPlainText(node)));
+            AppendSemanticFallback(builder, node, path, diagnostics);
             return;
         }
+
+        ReportInlineProperties(node, path, diagnostics);
 
         string rawText = node.Text ?? string.Empty;
         bool hasCode = node.Marks.Any(mark => string.Equals(mark.Type, "code", StringComparison.Ordinal));
@@ -241,6 +271,7 @@ internal static class AdfToMarkdownConverter {
 
     private static string RenderMarkedText(string rawText, IEnumerable<AdfMark> marks, string path, List<AdfConversionDiagnostic> diagnostics) {
         AdfMark[] markList = marks.ToArray();
+        foreach (AdfMark mark in markList) ReportMarkProperties(mark, path, diagnostics);
         bool hasCode = markList.Any(mark => string.Equals(mark.Type, "code", StringComparison.Ordinal));
         string? scriptType = markList
             .FirstOrDefault(mark => string.Equals(mark.Type, "subsup", StringComparison.Ordinal))
@@ -252,16 +283,19 @@ internal static class AdfToMarkdownConverter {
                 : string.Equals(scriptType, "sub", StringComparison.OrdinalIgnoreCase)
                     ? MarkdownEscaper.EscapeLiteralSubscriptText(rawText)
                     : MarkdownEscaper.EscapeLiteralText(rawText);
+        var prefixes = new List<string>();
+        var suffixes = new List<string>();
+        void Wrap(string prefix, string suffix) { prefixes.Add(prefix); suffixes.Add(suffix); }
         foreach (AdfMark mark in markList.Where(mark => !string.Equals(mark.Type, "code", StringComparison.Ordinal))) {
             switch (mark.Type) {
-                case "strong": value = "**" + value + "**"; break;
-                case "em": value = "*" + value + "*"; break;
-                case "strike": value = "~~" + value + "~~"; break;
-                case "underline": value = "<u>" + value + "</u>"; break;
+                case "strong": Wrap("**", "**"); break;
+                case "em": Wrap("*", "*"); break;
+                case "strike": Wrap("~~", "~~"); break;
+                case "underline": Wrap("<u>", "</u>"); break;
                 case "subsup":
                     string? script = mark.GetStringAttribute("type");
-                    if (string.Equals(script, "sup", StringComparison.OrdinalIgnoreCase)) value = "^" + value + "^";
-                    else if (string.Equals(script, "sub", StringComparison.OrdinalIgnoreCase)) value = "~" + value + "~";
+                    if (string.Equals(script, "sup", StringComparison.OrdinalIgnoreCase)) Wrap("^", "^");
+                    else if (string.Equals(script, "sub", StringComparison.OrdinalIgnoreCase)) Wrap("~", "~");
                     else diagnostics.Add(Warning("ADF_SUBSUP_TYPE_UNSUPPORTED", path, "ADF subsup marks require attrs.type 'sup' or 'sub'; the invalid mark was flattened."));
                     break;
                 case "link":
@@ -272,7 +306,7 @@ internal static class AdfToMarkdownConverter {
                     }
                     if (!string.IsNullOrWhiteSpace(href)) {
                         string renderedTitle = MarkdownEscaper.FormatOptionalTitle(title);
-                        value = "[" + value + "](" + MarkdownEscaper.EscapeLinkUrl(href) + renderedTitle + ")";
+                        Wrap("[", "](" + MarkdownEscaper.EscapeLinkUrl(href) + renderedTitle + ")");
                     }
                     break;
                 default:
@@ -280,11 +314,19 @@ internal static class AdfToMarkdownConverter {
                     break;
             }
         }
-        return value;
+        if (prefixes.Count == 0) return value;
+        // Compose once instead of copying the entire text again for each mark.
+        var result = new StringBuilder();
+        for (int i = prefixes.Count - 1; i >= 0; i--) result.Append(prefixes[i]);
+        result.Append(value);
+        foreach (string suffix in suffixes) result.Append(suffix);
+        return result.ToString();
     }
 
     private static string ExtractPlainText(AdfNode node) {
         if (node.Type == "text") return node.Text ?? string.Empty;
+        string? label = node.GetStringAttribute("text") ?? node.GetStringAttribute("shortName") ?? node.GetStringAttribute("url") ?? node.GetStringAttribute("alt");
+        if (!string.IsNullOrEmpty(label)) return label!;
         var builder = new StringBuilder();
         foreach (AdfNode child in node.Content) builder.Append(ExtractPlainText(child));
         return builder.ToString();

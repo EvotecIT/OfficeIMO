@@ -93,10 +93,12 @@ internal static class AdfValidator {
 
     private static readonly HashSet<string> KnownMarks = new HashSet<string>(StringComparer.Ordinal) {
         "strong", "em", "code", "strike", "underline", "link", "subsup", "textColor", "backgroundColor", "annotation",
+        "alignment", "indentation", "fontSize", "border", "dataConsumer", "fragment",
     };
 
-    internal static AdfValidationResult Validate(AdfDocument document) {
+    internal static AdfValidationResult Validate(AdfDocument document, AdfProcessingOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
+        AdfGraphGuard.Check(document, options ?? new AdfProcessingOptions());
         var issues = new List<AdfValidationIssue>();
         if (document.Version != 1) issues.Add(Error("ADF_VERSION", "$.version", "Only ADF version 1 is supported."));
         if (!string.Equals(document.Type, "doc", StringComparison.Ordinal)) issues.Add(Error("ADF_ROOT_TYPE", "$.type", "ADF root type must be 'doc'."));
@@ -125,8 +127,17 @@ internal static class AdfValidator {
         } else if (isKnownNode && !isTextNode && node.Text != null) {
             issues.Add(Error("ADF_TEXT_NOT_ALLOWED", path + ".text", "ADF text payloads are allowed only on text nodes."));
         }
-        if (isKnownNode && !isTextNode && node.MarkItems.Count > 0) {
-            issues.Add(Error("ADF_MARKS_NOT_ALLOWED", path + ".marks", "ADF marks are allowed only on text nodes."));
+        if (isKnownNode && node.MarkItems.Any(mark => mark != null && KnownMarks.Contains(mark.Type) && !AdfNodeShape.AllowsMark(node.Type, mark.Type))) {
+            issues.Add(Error("ADF_MARKS_NOT_ALLOWED", path + ".marks", "The known ADF mark is not allowed on node '" + node.Type + "'."));
+        }
+        if (node.ContentItems.Count < AdfNodeShape.MinimumChildren(node.Type)) {
+            issues.Add(Error("ADF_CONTENT_REQUIRED", path + ".content", "ADF node '" + node.Type + "' requires non-empty content."));
+        }
+        if (node.Type == "mediaSingle" && node.ContentItems.Count > 2) {
+            issues.Add(Error("ADF_MEDIA_SINGLE_CONTENT", path + ".content", "ADF mediaSingle contains one media node and at most one caption."));
+        }
+        if (node.Type == "panel" && node.GetStringAttribute("panelType") is not ("info" or "note" or "tip" or "warning" or "error" or "success" or "custom")) {
+            issues.Add(Error("ADF_PANEL_TYPE", path + ".attrs.panelType", "ADF panels require a supported panelType attribute."));
         }
         if (isTextNode && string.Equals(parentType, "codeBlock", StringComparison.Ordinal) && node.MarkItems.Count > 0) {
             issues.Add(Error("ADF_CODE_MARKS_NOT_ALLOWED", path + ".marks", "ADF code-block text cannot contain marks."));
@@ -171,6 +182,9 @@ internal static class AdfValidator {
             else if (!KnownMarks.Contains(mark.Type)) issues.Add(Warning("ADF_UNKNOWN_MARK", path + ".marks[" + i + "]", "Unknown ADF mark '" + mark.Type + "' is retained but may be projected with reduced fidelity."));
             if (mark != null && string.Equals(mark.Type, "link", StringComparison.Ordinal) && string.IsNullOrWhiteSpace(mark.GetStringAttribute("href"))) {
                 issues.Add(Error("ADF_LINK_HREF_REQUIRED", path + ".marks[" + i + "].attrs.href", "ADF link marks require a non-empty string href attribute."));
+            }
+            if (mark != null && mark.Type == "alignment" && mark.GetStringAttribute("align") is not ("center" or "end")) {
+                issues.Add(Error("ADF_ALIGNMENT", path + ".marks[" + i + "].attrs.align", "ADF alignment requires 'center' or 'end'."));
             }
         }
         for (int i = 0; i < node.ContentItems.Count; i++) {
