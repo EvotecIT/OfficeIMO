@@ -4,7 +4,7 @@ namespace OfficeIMO.Latex;
 
 internal sealed partial class LatexStructuralParser {
     private readonly LatexSourceText _source;
-    private readonly IReadOnlyList<LatexToken> _tokens;
+    private readonly IReadOnlyList<LatexTokenView> _tokens;
     private readonly LatexParseOptions _options;
     private readonly List<LatexDiagnostic> _diagnostics;
     private readonly CancellationToken _cancellationToken;
@@ -13,7 +13,7 @@ internal sealed partial class LatexStructuralParser {
 
     internal LatexStructuralParser(
         LatexSourceText source,
-        IReadOnlyList<LatexToken> tokens,
+        IReadOnlyList<LatexTokenView> tokens,
         LatexParseOptions options,
         List<LatexDiagnostic> diagnostics,
         CancellationToken cancellationToken) {
@@ -34,7 +34,7 @@ internal sealed partial class LatexStructuralParser {
     private LatexSyntaxNode ParseNode(int depth, bool allowMath) {
         _cancellationToken.ThrowIfCancellationRequested();
         EnforceDepth(depth);
-        LatexToken token = _tokens[_index];
+        LatexTokenView token = _tokens[_index];
         switch (token.Kind) {
             case LatexTokenKind.Text when _textTokenOffset != 0:
                 int remainingStart = token.StartOffset + _textTokenOffset;
@@ -80,13 +80,13 @@ internal sealed partial class LatexStructuralParser {
         int depth,
         bool allowMath) {
         EnforceDepth(depth);
-        LatexToken opening = _tokens[_index++];
+        LatexTokenView opening = _tokens[_index++];
         var children = new List<LatexSyntaxNode> {
             Node(LatexSyntaxKind.GroupDelimiter, opening.StartOffset, opening.EndOffset, null)
         };
         bool terminated = false;
         while (_index < _tokens.Count) {
-            LatexToken token = _tokens[_index];
+            LatexTokenView token = _tokens[_index];
             if (token.Kind == closingKind) {
                 _index++;
                 children.Add(Node(LatexSyntaxKind.GroupDelimiter, token.StartOffset, token.EndOffset, null));
@@ -105,7 +105,7 @@ internal sealed partial class LatexStructuralParser {
 
     private LatexSyntaxNode ParseCommand(int depth, LatexCommandSyntaxSignature? explicitSignature = null) {
         EnforceDepth(depth);
-        LatexToken command = _tokens[_index++];
+        LatexTokenView command = _tokens[_index++];
         var children = new List<LatexSyntaxNode> {
             Node(LatexSyntaxKind.CommandToken, command.StartOffset, command.EndOffset, command.Value)
         };
@@ -114,7 +114,7 @@ internal sealed partial class LatexStructuralParser {
         if (signature != null) {
             if (signature.AllowsStar && _index < _tokens.Count &&
                 _tokens[_index].Kind == LatexTokenKind.Text && string.Equals(_tokens[_index].Text, "*", StringComparison.Ordinal)) {
-                LatexToken star = _tokens[_index++];
+                LatexTokenView star = _tokens[_index++];
                 children.Add(TokenNode(star));
                 end = star.EndOffset;
             }
@@ -146,11 +146,11 @@ internal sealed partial class LatexStructuralParser {
             if (lookahead >= _tokens.Count ||
                 (_tokens[lookahead].Kind != LatexTokenKind.OpenBrace && _tokens[lookahead].Kind != LatexTokenKind.OpenBracket)) break;
             while (_index < lookahead) {
-                LatexToken trivia = _tokens[_index++];
+                LatexTokenView trivia = _tokens[_index++];
                 children.Add(TokenNode(trivia));
                 end = trivia.EndOffset;
             }
-            LatexToken opening = _tokens[_index];
+            LatexTokenView opening = _tokens[_index];
             LatexSyntaxNode group = opening.Kind == LatexTokenKind.OpenBrace
                 ? ParseGroup(LatexTokenKind.CloseBrace, LatexSyntaxKind.RequiredGroup, depth + 1, true)
                 : ParseGroup(LatexTokenKind.CloseBracket, LatexSyntaxKind.OptionalGroup, depth + 1, true);
@@ -167,7 +167,7 @@ internal sealed partial class LatexStructuralParser {
         int lookahead = FindCommandArgumentStart();
         if (lookahead >= _tokens.Count || _tokens[lookahead].Kind != expectedOpening) return false;
         while (_index < lookahead) {
-            LatexToken trivia = _tokens[_index++];
+            LatexTokenView trivia = _tokens[_index++];
             children.Add(TokenNode(trivia));
             end = trivia.EndOffset;
         }
@@ -213,13 +213,13 @@ internal sealed partial class LatexStructuralParser {
 
     private LatexSyntaxNode ParseDollarMath(int depth) {
         EnforceDepth(depth);
-        LatexToken opening = _tokens[_index++];
+        LatexTokenView opening = _tokens[_index++];
         var children = new List<LatexSyntaxNode> {
             Node(LatexSyntaxKind.MathDelimiter, opening.StartOffset, opening.EndOffset, opening.Text)
         };
         bool terminated = false;
         while (_index < _tokens.Count) {
-            LatexToken token = _tokens[_index];
+            LatexTokenView token = _tokens[_index];
             if (token.Kind == LatexTokenKind.MathShift && string.Equals(token.Text, opening.Text, StringComparison.Ordinal)) {
                 _index++;
                 children.Add(Node(LatexSyntaxKind.MathDelimiter, token.StartOffset, token.EndOffset, token.Text));
@@ -238,14 +238,14 @@ internal sealed partial class LatexStructuralParser {
 
     private LatexSyntaxNode ParseCommandMath(int depth) {
         EnforceDepth(depth);
-        LatexToken opening = _tokens[_index++];
+        LatexTokenView opening = _tokens[_index++];
         string closingName = string.Equals(opening.Value, "(", StringComparison.Ordinal) ? ")" : "]";
         var children = new List<LatexSyntaxNode> {
             Node(LatexSyntaxKind.MathDelimiter, opening.StartOffset, opening.EndOffset, opening.Text)
         };
         bool terminated = false;
         while (_index < _tokens.Count) {
-            LatexToken token = _tokens[_index];
+            LatexTokenView token = _tokens[_index];
             if (token.Kind == LatexTokenKind.Command && string.Equals(token.Value, closingName, StringComparison.Ordinal)) {
                 _index++;
                 children.Add(Node(LatexSyntaxKind.MathDelimiter, token.StartOffset, token.EndOffset, token.Text));
@@ -289,7 +289,7 @@ internal sealed partial class LatexStructuralParser {
         return _source.Text.Substring(start, end - start).Trim();
     }
 
-    private LatexSyntaxNode TokenNode(LatexToken token) {
+    private LatexSyntaxNode TokenNode(LatexTokenView token) {
         LatexSyntaxKind kind = token.Kind == LatexTokenKind.Comment
             ? LatexSyntaxKind.Comment
             : token.Kind == LatexTokenKind.Verbatim
@@ -346,6 +346,6 @@ internal sealed partial class LatexStructuralParser {
         if (depth > _options.MaximumNestingDepth) throw new InvalidDataException("LaTeX source exceeds MaximumNestingDepth.");
     }
 
-    private static bool IsArgumentTrivia(LatexToken token) =>
+    private static bool IsArgumentTrivia(LatexTokenView token) =>
         token.Kind == LatexTokenKind.Whitespace || token.Kind == LatexTokenKind.LineEnding || token.Kind == LatexTokenKind.Comment;
 }

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
@@ -8,6 +9,7 @@ namespace OfficeIMO.Latex.Benchmarks;
 
 internal static class LatexEvidenceRunner {
     private static readonly string[] Operations = ["Parse", "ParseWrite"];
+    private static readonly string[] SupportedOperations = ["Parse", "ParseWrite", "ParseInspect"];
     private static readonly JsonSerializerOptions JsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
@@ -16,7 +18,7 @@ internal static class LatexEvidenceRunner {
 
     internal static int RunProbe(string[] args) {
         if (args.Length != 2) {
-            Console.Error.WriteLine("Usage: --evidence-probe <Parse|ParseWrite> <Small|Normal|Large>");
+            Console.Error.WriteLine("Usage: --evidence-probe <Parse|ParseWrite|ParseInspect> <Small|Normal|Large>");
             return 2;
         }
         try {
@@ -96,9 +98,14 @@ internal static class LatexEvidenceRunner {
         using Process process = Process.GetCurrentProcess();
         using var sampler = new LatexManagedHeapSampler();
         var stopwatch = Stopwatch.StartNew();
-        object result = string.Equals(operation, "Parse", StringComparison.Ordinal)
-            ? LatexDocument.ParseResult(fixture.Source)
-            : LatexDocument.ParseResult(fixture.Source).Document.ToLatex();
+        object result;
+        if (string.Equals(operation, "ParseWrite", StringComparison.Ordinal)) {
+            result = LatexDocument.ParseResult(fixture.Source).Document.ToLatex();
+        } else {
+            LatexParseResult parsed = LatexDocument.ParseResult(fixture.Source);
+            if (string.Equals(operation, "ParseInspect", StringComparison.Ordinal)) LatexBenchmarkValidation.InspectTokens(parsed.Document);
+            result = parsed;
+        }
         stopwatch.Stop();
         long peakManagedHeap = sampler.Stop();
         long allocatedBytes = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore;
@@ -119,7 +126,9 @@ internal static class LatexEvidenceRunner {
             allocatedBytes,
             retained,
             Math.Max(0, peakManagedHeap - heapBefore),
-            process.PeakWorkingSet64);
+            process.PeakWorkingSet64,
+            HashAssembly(typeof(LatexDocument).Assembly),
+            HashAssembly(typeof(LatexEvidenceRunner).Assembly));
     }
 
     private static void ValidateMeasuredResult(string operation, LatexBenchmarkFixture fixture, object result) {
@@ -185,7 +194,9 @@ internal static class LatexEvidenceRunner {
         }
     }
 
-    private static string SelectOperation(string value) => Operations.FirstOrDefault(
+    private static string HashAssembly(Assembly assembly) => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(assembly.Location)));
+
+    private static string SelectOperation(string value) => SupportedOperations.FirstOrDefault(
         operation => string.Equals(operation, value, StringComparison.OrdinalIgnoreCase))
         ?? throw new ArgumentException("Unknown LaTeX evidence operation: " + value);
 
@@ -246,7 +257,9 @@ internal sealed record LatexEvidenceMeasurement(
     long AllocatedBytes,
     long RetainedManagedHeapGrowthBytes,
     long PeakManagedHeapGrowthBytes,
-    long AbsoluteProcessPeakWorkingSetBytes);
+    long AbsoluteProcessPeakWorkingSetBytes,
+    string NativeAssemblySha256,
+    string HarnessAssemblySha256);
 
 internal sealed record LatexEvidenceReport(
     DateTimeOffset MeasuredAtUtc,

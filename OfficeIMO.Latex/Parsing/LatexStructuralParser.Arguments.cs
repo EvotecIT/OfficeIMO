@@ -7,7 +7,7 @@ internal sealed partial class LatexStructuralParser {
         EnforceDepth(depth + 1);
         int lookahead = FindCommandArgumentStart();
         if (lookahead >= _tokens.Count) return false;
-        LatexToken token = _tokens[lookahead];
+        LatexTokenView token = _tokens[lookahead];
         if (token.Kind == LatexTokenKind.CloseBrace || token.Kind == LatexTokenKind.OpenBrace ||
             token.Kind == LatexTokenKind.Verbatim || token.Kind == LatexTokenKind.MathShift ||
             IsArgumentTrivia(token)) return false;

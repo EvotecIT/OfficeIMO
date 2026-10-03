@@ -1,7 +1,7 @@
 # OfficeIMO LaTeX benchmarks
 
 This opt-in BenchmarkDotNet project measures complete lossless parsing and
-parse-plus-preserve-write workflows over deterministic small, normal, and large
+parse-plus-preserve-write and complete public-token inspection workflows over deterministic small, normal, and large
 documents. Every workload is validated before timing: parsing must be lossless,
 diagnostics must contain no errors, heading counts and content markers must
 match, and preserve writing must reproduce the input exactly.
@@ -25,6 +25,19 @@ peak, and output-size evidence, or enforce the checked-in regression budgets:
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Latex.Benchmarks -- --evidence --repeat 3 --json .benchmark-artifacts\latex\evidence.json
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Latex.Benchmarks -- --verify-budgets
 ```
+
+Measure full public-token inspection separately:
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Latex.Benchmarks -- --evidence --operation ParseInspect --repeat 3 --json .benchmark-artifacts\latex\inspection.json
+```
+
+`ParseInspect` reads and validates every token's text, value, span, and termination
+state, and retains the parsed document. This exposes allocation deferred by compact
+internal token storage. It has no checked-in budget; the default evidence and budget
+routes continue to select `Parse` and `ParseWrite`. Each isolated measurement records
+the SHA-256 hashes of the loaded native and benchmark assemblies. BenchmarkDotNet
+setup reports the same hashes and validates the complete inspection path.
 
 Start with a dry run, then use the short or default job for measurements:
 
