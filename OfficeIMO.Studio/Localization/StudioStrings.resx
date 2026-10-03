@@ -2461,4 +2461,35 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Apple.ReopenTab" xml:space="preserve"><value>Reopen Closed Tab</value></data>
   <data name="Apple.Open" xml:space="preserve"><value>Open…</value></data>
   <data name="Apple.SaveAs" xml:space="preserve"><value>Save As…</value></data>
+  <data name="Book.New" xml:space="preserve"><value>New book</value></data>
+  <data name="Book.Open" xml:space="preserve"><value>Open or import…</value></data>
+  <data name="Book.SaveProject" xml:space="preserve"><value>Save book project…</value></data>
+  <data name="Book.Export" xml:space="preserve"><value>Export EPUB…</value></data>
+  <data name="Book.Undo" xml:space="preserve"><value>Undo book edit</value></data>
+  <data name="Book.Redo" xml:space="preserve"><value>Redo book edit</value></data>
+  <data name="Book.Details" xml:space="preserve"><value>Book details</value></data>
+  <data name="Book.BookTitle" xml:space="preserve"><value>Title</value></data>
+  <data name="Book.Creator" xml:space="preserve"><value>Author (blank retains the current value)</value></data>
+  <data name="Book.Language" xml:space="preserve"><value>Language tag, such as en or pl-PL</value></data>
+  <data name="Book.Cover" xml:space="preserve"><value>Choose cover image…</value></data>
+  <data name="Book.Apply" xml:space="preserve"><value>Apply and validate edits</value></data>
+  <data name="Book.Stylesheet" xml:space="preserve"><value>Book typography CSS</value></data>
+  <data name="Book.StyleHint" xml:space="preserve"><value>Project styles follow imported styles. Use CSS to adjust typography; referenced assets must already belong to the book.</value></data>
+  <data name="Book.Unsaved" xml:space="preserve"><value>Unsaved project changes</value></data>
+  <data name="Book.Chapters" xml:space="preserve"><value>Chapters</value></data>
+  <data name="Book.AddChapter" xml:space="preserve"><value>Add chapter</value></data>
+  <data name="Book.RemoveChapter" xml:space="preserve"><value>Remove chapter</value></data>
+  <data name="Book.MoveUp" xml:space="preserve"><value>Move earlier</value></data>
+  <data name="Book.MoveDown" xml:space="preserve"><value>Move later</value></data>
+  <data name="Book.ChapterTitle" xml:space="preserve"><value>Chapter title</value></data>
+  <data name="Book.Rename" xml:space="preserve"><value>Rename chapter</value></data>
+  <data name="Book.Content" xml:space="preserve"><value>Chapter XHTML body</value></data>
+  <data name="Book.ContentHint" xml:space="preserve"><value>Edit the XHTML body. Keep its namespace and linked anchor identifiers; invalid edits leave the previous chapter intact.</value></data>
+  <data name="Book.Preview" xml:space="preserve"><value>Preview</value></data>
+  <data name="Book.PreviewChapter" xml:space="preserve"><value>Preview selected chapter</value></data>
+  <data name="Book.Review" xml:space="preserve"><value>Import review</value></data>
+  <data name="Book.ReviewHint" xml:space="preserve"><value>Review the import findings and the book's appearance. Missing dependencies or failed conversions block EPUB export. Reported omissions and approximations require your acknowledgment.</value></data>
+  <data name="Book.AcceptLoss" xml:space="preserve"><value>I reviewed and accept these import changes</value></data>
+  <data name="Command.PublishBook.Title" xml:space="preserve"><value>Publish a book</value></data>
+  <data name="Command.PublishBook.Description" xml:space="preserve"><value>Import manuscripts, organize chapters, review and export an EPUB book.</value></data>
 </root>

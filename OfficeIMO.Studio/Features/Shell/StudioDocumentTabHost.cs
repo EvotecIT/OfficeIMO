@@ -41,7 +41,7 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
     internal bool HasBusyDocuments => Tabs.Any(tab => tab.Document.CanCancelOperation) ||
                                       _emptyDocument.CanCancelOperation;
 
-    internal bool HasDirtyDocuments => Tabs.Any(tab => tab.Document.IsDirty);
+    internal bool HasDirtyDocuments => OperationDocuments.Any(document => document.IsDirty || document.BookWorkbench.IsDirty);
 
     partial void OnSelectedTabChanged(StudioDocumentTabViewModel? value) {
         ActiveDocument.SetPresentationActive(true);
@@ -69,22 +69,29 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
 
     internal bool CanPublishPath(string path) => CanDocumentOwnPath(null, path);
 
+    internal bool CanPublishBookPath(MainWindowViewModel? owner, string path) {
+        if (!CanDocumentOwnPath(null, path, ignoreBookOwner: owner)) return false;
+        return true;
+    }
+
     internal bool CanPublishDirectory(string path) {
         if (string.IsNullOrWhiteSpace(path)) return false;
         try {
-            return Tabs.All(tab => tab.Document.DocumentPath is not { Length: > 0 } source ||
-                (OfficeStorageIdentity.GetLocalPath(source) is null || !OfficePathIdentity.IsSameOrDescendant(source, path)));
+            return OperationDocuments.SelectMany(document => document.BookWorkbench.OwnedLocations
+                .Concat(document.DocumentPath is { Length: > 0 } source ? [source] : []))
+                .All(source => OfficeStorageIdentity.GetLocalPath(source) is null || !OfficePathIdentity.IsSameOrDescendant(source, path));
         } catch (Exception exception) when (IsPathIdentityFailure(exception)) {
             return false;
         }
     }
 
-    internal bool CanDocumentOwnPath(MainWindowViewModel? document, string path) {
+    internal bool CanDocumentOwnPath(MainWindowViewModel? document, string path, MainWindowViewModel? ignoreBookOwner = null) {
         if (string.IsNullOrWhiteSpace(path)) return false;
         try {
             string fullPath = OfficeStorageIdentity.Normalize(path);
-            return Tabs.All(tab => ReferenceEquals(tab.Document, document) ||
-                !DocumentOwnsPath(tab.Document, fullPath));
+            return OperationDocuments.All(candidate =>
+                (ReferenceEquals(candidate, document) || !DocumentOwnsPath(candidate, fullPath)) &&
+                (ReferenceEquals(candidate, ignoreBookOwner) || !candidate.BookWorkbench.OwnsPath(fullPath)));
         } catch (Exception exception) when (IsPathIdentityFailure(exception)) {
             // An uninspectable destination cannot safely be authorized for publication.
             return false;
@@ -209,6 +216,7 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
     }
 
     internal async Task<bool> RequestCloseAllAsync() {
+        if (!await _emptyDocument.PrepareCloseDocumentAsync().ConfigureAwait(true)) return false;
         StudioDocumentTabViewModel[] candidates = Tabs.ToArray();
         StudioDocumentTabViewModel? previousSelection = SelectedTab;
         bool prepared = false;

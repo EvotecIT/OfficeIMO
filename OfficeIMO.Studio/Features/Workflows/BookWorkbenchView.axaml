@@ -1,0 +1,70 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows"
+             xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+             x:Class="OfficeIMO.Studio.Features.Workflows.BookWorkbenchView"
+             x:DataType="workflow:BookWorkbenchViewModel">
+ <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="24" RowSpacing="12">
+  <StackPanel Spacing="6">
+   <TextBlock Text="{Binding Title}" Classes="pageTitle" />
+   <TextBlock Text="{Binding Description}" TextWrapping="Wrap" Classes="muted" />
+  </StackPanel>
+  <WrapPanel Grid.Row="1">
+   <Button Content="{loc:Loc Book.New}" Command="{Binding NewBookCommand}" Margin="0,0,8,8" />
+   <Button Content="{loc:Loc Book.Open}" Command="{Binding OpenBookCommand}" Margin="0,0,8,8" />
+   <Button Content="{loc:Loc Book.SaveProject}" Command="{Binding SaveProjectCommand}" Margin="0,0,8,8" />
+   <Button Content="{loc:Loc Book.Export}" Command="{Binding ExportBookCommand}" Classes="primary" Margin="0,0,8,8" />
+   <Button Content="{loc:Loc Book.Undo}" Command="{Binding UndoEditCommand}" Margin="0,0,8,8" />
+   <Button Content="{loc:Loc Book.Redo}" Command="{Binding RedoEditCommand}" Margin="0,0,8,8" />
+   <Button Content="{loc:Loc Common.Cancel}" Command="{Binding CancelCommand}" IsVisible="{Binding IsBusy}" Margin="0,0,8,8" />
+  </WrapPanel>
+  <TabControl Grid.Row="2" IsVisible="{Binding HasBook}">
+   <TabItem Header="{loc:Loc Book.Details}">
+    <ScrollViewer>
+     <StackPanel Spacing="12" Margin="0,16" MaxWidth="900" HorizontalAlignment="Stretch" IsEnabled="{Binding CanEditBook}">
+      <StackPanel Spacing="4"><TextBlock Text="{loc:Loc Book.BookTitle}" /><TextBox Text="{Binding BookTitle}" AutomationProperties.Name="{loc:Loc Book.BookTitle}" /></StackPanel>
+      <StackPanel Spacing="4"><TextBlock Text="{loc:Loc Book.Creator}" /><TextBox Text="{Binding Creator}" AutomationProperties.Name="{loc:Loc Book.Creator}" /></StackPanel>
+      <StackPanel Spacing="4"><TextBlock Text="{loc:Loc Book.Language}" /><TextBox Text="{Binding Language}" AutomationProperties.Name="{loc:Loc Book.Language}" /></StackPanel>
+      <WrapPanel><Button Content="{loc:Loc Book.Cover}" Command="{Binding ChooseCoverCommand}" Margin="0,0,8,8" /><Button Content="{loc:Loc Book.Apply}" Command="{Binding ApplyEditsCommand}" Margin="0,0,8,8" /></WrapPanel>
+      <TextBlock Text="{loc:Loc Book.Stylesheet}" FontWeight="SemiBold" />
+      <TextBlock Text="{loc:Loc Book.StyleHint}" TextWrapping="Wrap" Classes="muted" />
+      <TextBox Text="{Binding Stylesheet}" AcceptsReturn="True" MinHeight="200" FontFamily="monospace" TextWrapping="Wrap" AutomationProperties.Name="{loc:Loc Book.Stylesheet}" />
+      <TextBlock Text="{Binding ProjectName}" TextWrapping="Wrap" />
+      <CheckBox IsChecked="{Binding IsDirty}" IsEnabled="False" Content="{loc:Loc Book.Unsaved}" />
+     </StackPanel>
+    </ScrollViewer>
+   </TabItem>
+   <TabItem Header="{loc:Loc Book.Chapters}">
+    <ScrollViewer>
+     <StackPanel Spacing="12" Margin="0,16" IsEnabled="{Binding CanEditBook}">
+      <ComboBox ItemsSource="{Binding Chapters}" SelectedItem="{Binding SelectedChapter}" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Book.Chapters}">
+       <ComboBox.ItemTemplate><DataTemplate x:DataType="workflow:BookChapterChoice"><TextBlock Text="{Binding Title}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+      <WrapPanel><Button Content="{loc:Loc Book.MoveUp}" Command="{Binding MoveUpCommand}" Margin="0,0,8,8" /><Button Content="{loc:Loc Book.MoveDown}" Command="{Binding MoveDownCommand}" Margin="0,0,8,8" /></WrapPanel>
+      <WrapPanel><Button Content="{loc:Loc Book.AddChapter}" Command="{Binding AddChapterCommand}" Margin="0,0,8,8" /><Button Content="{loc:Loc Book.RemoveChapter}" Command="{Binding RemoveChapterCommand}" Margin="0,0,8,8" /></WrapPanel>
+      <TextBox Text="{Binding ChapterTitle}" IsEnabled="{Binding CanEditChapter}" AutomationProperties.Name="{loc:Loc Book.ChapterTitle}" />
+      <Button Content="{loc:Loc Book.Rename}" Command="{Binding RenameChapterCommand}" HorizontalAlignment="Left" />
+      <TextBlock Text="{loc:Loc Book.ContentHint}" Classes="muted" TextWrapping="Wrap" />
+      <TextBox Text="{Binding ChapterBody}" IsEnabled="{Binding CanEditChapter}" AcceptsReturn="True" MinHeight="320" FontFamily="monospace" TextWrapping="Wrap" AutomationProperties.Name="{loc:Loc Book.Content}" />
+      <Button Content="{loc:Loc Book.Apply}" Command="{Binding ApplyEditsCommand}" HorizontalAlignment="Left" />
+     </StackPanel>
+    </ScrollViewer>
+   </TabItem>
+   <TabItem Header="{loc:Loc Book.Preview}">
+    <ScrollViewer><StackPanel Spacing="12" Margin="0,16">
+     <Button Content="{loc:Loc Book.PreviewChapter}" Command="{Binding PreviewChapterCommand}" HorizontalAlignment="Left" />
+     <TextBlock Text="{Binding PreviewStatus}" TextWrapping="Wrap" />
+     <Image Source="{Binding Preview}" Stretch="Uniform" HorizontalAlignment="Center" AutomationProperties.Name="{loc:Loc Book.Preview}" />
+    </StackPanel></ScrollViewer>
+   </TabItem>
+   <TabItem Header="{loc:Loc Book.Review}">
+    <ScrollViewer><StackPanel Spacing="12" Margin="0,16">
+     <TextBlock Text="{loc:Loc Book.ReviewHint}" TextWrapping="Wrap" />
+     <ItemsControl ItemsSource="{Binding Diagnostics}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><SelectableTextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,4" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+     <Button Content="{loc:Loc Book.AcceptLoss}" Command="{Binding AcceptImportLossCommand}" IsVisible="{Binding NeedsReview}" HorizontalAlignment="Left" />
+    </StackPanel></ScrollViewer>
+   </TabItem>
+  </TabControl>
+  <StackPanel Grid.Row="3" Spacing="6"><ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" /><TextBlock Text="{Binding Status}" TextWrapping="Wrap" /></StackPanel>
+ </Grid>
+</UserControl>
