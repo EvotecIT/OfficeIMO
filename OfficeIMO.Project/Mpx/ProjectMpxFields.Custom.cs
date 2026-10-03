@@ -19,7 +19,7 @@ internal static partial class ProjectMpxFields {
             _ => throw new InvalidDataException("Unknown MPX custom value kind.")
         };
         private static string ParseDuration(string text, ProjectMpxValues values) {
-            decimal ticks = checked(values.Minutes(values.Duration(text)) * TimeSpan.TicksPerMinute);
+            decimal ticks = values.Ticks(values.Duration(text));
             if (ticks != decimal.Truncate(ticks)) throw new InvalidDataException("MPX custom durations require whole TimeSpan ticks.");
             return XmlConvert.ToString(TimeSpan.FromTicks(checked((long)ticks)));
         }
@@ -34,11 +34,11 @@ internal static partial class ProjectMpxFields {
                 return ProjectMpxValues.Text(date);
             }
             if (Kind != "Duration") return ProjectMpxValues.Text(decimal.Parse(value.Value, NumberStyles.Float, CultureInfo.InvariantCulture));
-            decimal minutes = XmlConvert.ToTimeSpan(value.Value).Ticks / (decimal)TimeSpan.TicksPerMinute;
+            long ticks = XmlConvert.ToTimeSpan(value.Value).Ticks;
             int format = value.DurationFormat ?? 3; int unitCode = format & ~32;
             if (unitCode < 3 || unitCode > 12) throw new InvalidDataException("Invalid custom duration format.");
             var duration = new ProjectDuration(1, (ProjectDurationUnit)((unitCode - 3) / 2), (unitCode & 1) == 0, (format & 32) != 0);
-            return ProjectMpxValues.Text(new ProjectDuration(minutes / values.Minutes(duration), duration.Unit, duration.IsElapsed, duration.IsEstimated));
+            return ProjectMpxValues.Text(ProjectDuration.FromTicks(ticks, duration.Unit, duration.IsElapsed, duration.IsEstimated, values.Minutes(duration)));
         }
     }
     private static readonly CustomMapping[] TaskCustom = BuildCustom(true), ResourceCustom = BuildCustom(false);

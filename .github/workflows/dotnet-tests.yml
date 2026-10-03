@@ -1765,9 +1765,9 @@ jobs:
   aot-trim-analyzers:
     name: 'AOT/Trim analyzers'
     runs-on: ubuntu-latest
-    # Analyzer builds plus isolated NativeAOT publishes now exceed the former
-    # 35-minute budget on a cold runner; retain room for evidence upload/cleanup.
-    timeout-minutes: 50
+    # The full isolated production matrix reaches its final tool publish near
+    # 50 minutes on cold runners; retain room for that publish and evidence upload.
+    timeout-minutes: 90
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -1832,8 +1832,8 @@ jobs:
   aot-windows:
     name: 'NativeAOT Windows'
     runs-on: windows-latest
-    # The production matrix can finish near 35 minutes before cache post-actions.
-    timeout-minutes: 50
+    # Cold production-matrix runs reach the final tool publish near 50 minutes.
+    timeout-minutes: 90
     steps:
       - name: Checkout code
         uses: actions/checkout@v7

@@ -52,7 +52,7 @@ public sealed partial class ProjectDocument {
     private bool IsValidLevelingDelay(ProjectDuration delay) {
         if (delay.Value < 0) return false;
         try {
-            decimal minutes = checked(delay.Value * ProjectXmlValue.MinutesPerUnit(delay.Unit, delay.IsElapsed, this));
+            decimal minutes = checked(delay.Minutes(ProjectXmlValue.MinutesPerUnit(delay.Unit, delay.IsElapsed, this)));
             return ProjectXmlValue.CanRepresentMinutes(minutes) && checked(minutes * 10m) % 1m == 0;
         } catch (OverflowException) { return false; }
     }

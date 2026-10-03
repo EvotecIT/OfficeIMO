@@ -7,12 +7,17 @@ public sealed class ProjectResourceTotals {
     internal ProjectResourceTotals(ProjectResource resource, ProjectAssignment[] assignments) {
         ResourceUid = resource.Uid; AssignmentCount = assignments.Length;
         Cost = Sum(assignments.Select(a => a.Cost)); ActualCost = Sum(assignments.Select(a => a.ActualCost)); RemainingCost = Sum(assignments.Select(a => a.RemainingCost));
-        WorkMinutes = Sum(assignments.Select(a => a.Work?.Minutes)); ActualWorkMinutes = Sum(assignments.Select(a => a.ActualWork?.Minutes));
-        RemainingWorkMinutes = Sum(assignments.Select(a => a.RemainingWork?.Minutes));
+        WorkMinutes = SumWork(assignments.Select(a => a.Work)); ActualWorkMinutes = SumWork(assignments.Select(a => a.ActualWork));
+        RemainingWorkMinutes = SumWork(assignments.Select(a => a.RemainingWork));
         StoredResourceCost = resource.Cost; StoredResourceActualCost = resource.ActualCost; StoredResourceRemainingCost = resource.RemainingCost;
     }
     private static decimal? Sum(IEnumerable<decimal?> values) {
         decimal sum = 0; foreach (var value in values) { if (!value.HasValue) return null; sum = checked(sum + value.Value); } return sum;
+    }
+    private static decimal? SumWork(IEnumerable<ProjectWork?> values) {
+        ProjectWork sum = default;
+        foreach (var value in values) { if (!value.HasValue) return null; sum = ProjectWork.Add(sum, value.Value); }
+        return sum.Minutes;
     }
     /// <summary>Resource identity.</summary>
     public int ResourceUid { get; }

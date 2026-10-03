@@ -18,6 +18,7 @@ internal static class ScaleWorkload {
                 var collection = shape == "deep" && tasks.Count != 0 ? tasks[tasks.Count - 1].Children : document.Tasks;
                 var task = collection.Add("Task " + (i + 1));
                 task.Duration = ProjectDuration.WorkingHours(1);
+                task.RemainingDuration = task.Duration;
                 task.Work = ProjectWork.Hours(1);
                 var assignment = document.Assignments.Add(task, resource);
                 assignment.Work = ProjectWork.Hours(1);
@@ -39,11 +40,24 @@ internal static class ScaleWorkload {
                 for (int i = 0; i < count; i++) {
                     var day = document.Calendar!.WeekDays.Add(); day.FromDate = new DateTime(2026, 10, 5).AddDays(i); day.ToDate = day.FromDate; day.IsWorking = true;
                     var legacy = day.WorkingTimes.Add(); legacy.From = TimeSpan.FromHours(8); legacy.To = TimeSpan.FromHours(12);
-                    var exception = document.Calendar.Exceptions.Add(); exception.FromDate = day.FromDate; exception.ToDate = day.ToDate; exception.IsWorking = true;
-                    var modern = exception.WorkingTimes.Add(); modern.From = legacy.From; modern.To = legacy.To;
                 }
             }
             document.Save(path, new ProjectSaveOptions { Indent = false });
+            if (shape == "calendar-mirrors") {
+                // Author one override, then mirror it in the producer's alternate XML
+                // representation. Two independent model overrides would overlap.
+                var xml = XDocument.Load(path); XNamespace authoredNamespace = xml.Root!.Name.Namespace;
+                var calendar = xml.Root.Element(authoredNamespace + "Calendars")!.Elements(authoredNamespace + "Calendar").Single();
+                var exceptions = new XElement(authoredNamespace + "Exceptions");
+                foreach (var day in calendar.Element(authoredNamespace + "WeekDays")!.Elements(authoredNamespace + "WeekDay").Where(d => d.Element(authoredNamespace + "TimePeriod") != null)) {
+                    var period = day.Element(authoredNamespace + "TimePeriod")!;
+                    exceptions.Add(new XElement(authoredNamespace + "Exception", new XElement(period),
+                        new XElement(authoredNamespace + "DayWorking", day.Element(authoredNamespace + "DayWorking")!.Value), new XElement(day.Element(authoredNamespace + "WorkingTimes")!)));
+                }
+                calendar.Add(exceptions);
+                using var writer = XmlWriter.Create(path, new XmlWriterSettings { Indent = false, Encoding = new System.Text.UTF8Encoding(false) });
+                xml.Save(writer);
+            }
             Console.WriteLine(new FileInfo(path).Length);
             return 0;
         }

@@ -79,7 +79,7 @@ internal static partial class ProjectNativeCodec {
         if (format < 3 || format > 12) throw new NotSupportedException("Unqualified native duration unit: " + format);
         var unit = (ProjectDurationUnit)((format - 3) / 2);
         bool elapsed = format % 2 == 0;
-        return new ProjectDuration(value.Value / 10m / ProjectXmlValue.MinutesPerUnit(unit, elapsed, document), unit, elapsed, estimated);
+        return ProjectDuration.FromMinutes(value.Value / 10m, unit, elapsed, estimated, ProjectXmlValue.MinutesPerUnit(unit, elapsed, document));
     }
     private static void ReadSettings(ProjectDocument document, Dictionary<uint, ProjectNativeValue> values) {
         ProjectNativeValue? Get(uint id) => values.TryGetValue(id, out var value) ? value : (ProjectNativeValue?)null;

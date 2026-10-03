@@ -164,10 +164,15 @@ internal sealed partial class ProjectNativeWriter {
         if (!_new && !ChangedTree("/Dependency") && !_taskGuidsChanged) return;
         Handle("/Dependency/Count");
         using var editor = Editor("Cons", 0x18, 0x0e400000);
-        foreach (int uid in editor.Uids.ToArray()) editor.Delete(uid);
+        var sourceLinks = editor.Uids.ToDictionary(uid =>
+            (Predecessor: editor.SourceInteger(uid, 0x0e400002) ?? -1, Successor: editor.SourceInteger(uid, 0x0e400005) ?? -1), uid => uid);
+        var desiredLinks = new HashSet<(int Predecessor, int Successor)>(_document.Dependencies.Select(link =>
+            (link.Predecessor?.Uid ?? link.SourcePredecessorUid, link.Successor.Uid)));
+        foreach (var pair in sourceLinks.Where(pair => !desiredLinks.Contains(pair.Key))) editor.Delete(pair.Value);
+        int nextUid = 1;
         int index = 0;
         foreach (var link in _document.Dependencies) {
-            _token.ThrowIfCancellationRequested(); int uid = index + 1; string path = "/Dependency[" + index++ + "]";
+            _token.ThrowIfCancellationRequested(); string path = "/Dependency[" + index++ + "]";
             foreach (string name in new[] { "Predecessor", "Successor", "Type", "CrossProject", "CrossProjectName", "Lag", "LagPercent", "LagPercentIsElapsed", "LagPercentIsEstimated" }) Handle(path + "/" + name);
             if (link.CrossProject == true || link.CrossProjectName != null) {
                 AddDiagnostic(new ProjectDiagnostic("PROJECT_NATIVE_CROSS_PROJECT_DEPENDENCY", ProjectDiagnosticSeverity.Error,
@@ -178,7 +183,11 @@ internal sealed partial class ProjectNativeWriter {
                 "Native output normalizes an absent dependency type to Finish-to-Start.", path + "/Type");
             if (!link.Lag.HasValue && !link.LagPercent.HasValue) Loss("PROJECT_NATIVE_DEPENDENCY_DEFAULT",
                 "Native output normalizes an absent dependency lag to zero working days.", path + "/Lag");
-            editor.Add(uid); editor.Integer(uid, 0x0e400000, uid);
+            if (!sourceLinks.TryGetValue((link.Predecessor?.Uid ?? link.SourcePredecessorUid, link.Successor.Uid), out int uid)) {
+                while (editor.Contains(nextUid)) nextUid = checked(nextUid + 1);
+                uid = nextUid; editor.Add(uid);
+            }
+            editor.Integer(uid, 0x0e400000, uid);
             Identity(editor, uid, 0x0e400015, NativeGuid(uid, 4));
             editor.Integer(uid, 0x0e400002, link.Predecessor?.Uid ?? link.SourcePredecessorUid); editor.Integer(uid, 0x0e400005, link.Successor.Uid);
             editor.Integer(uid, 0x0e400007, (int)(link.Type ?? ProjectDependencyType.FinishToStart));
