@@ -17,6 +17,9 @@ internal sealed class PstWriterFile : IDisposable {
     private readonly PstWriterAllocationMap _allocationMap;
     private readonly string _indexPrefix;
     private long _nextOffset = FirstDataOffset;
+    // Derived cursors are reconstructed once from the allocation horizon on resume.
+    private long _nextAmapOffset = FirstAmapOffset;
+    private long _nextPmapOffset = FirstPmapOffset;
     private ulong _nextBlockBid = 0x100;
     private ulong _nextPageBid = 0x100;
     private bool _finalized;
@@ -574,11 +577,13 @@ internal sealed class PstWriterFile : IDisposable {
     }
 
     private void RegisterMapPagesThrough(long end) {
-        for (long amap = FirstAmapOffset; amap < end; amap += AmapInterval) {
-            RegisterAllocation(amap, PageSize);
+        while (_nextAmapOffset < end) {
+            RegisterAllocation(_nextAmapOffset, PageSize);
+            _nextAmapOffset = checked(_nextAmapOffset + AmapInterval);
         }
-        for (long pmap = FirstPmapOffset; pmap < end; pmap += PmapInterval) {
-            RegisterAllocation(pmap, PageSize);
+        while (_nextPmapOffset < end) {
+            RegisterAllocation(_nextPmapOffset, PageSize);
+            _nextPmapOffset = checked(_nextPmapOffset + PmapInterval);
         }
     }
 
