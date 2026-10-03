@@ -211,14 +211,14 @@ Completion evidence: accepted physical-device journeys and explicit unsupported-
 
 ## Document assistant
 
-- [ ] Add operation-aware combination for questions and explanations that require facts from different input batches. Preserve contributing citations, distinguish missing source facts from an unsupported reasoning scope, and validate distant-page comparisons and joins against independently labelled answers within shared request budgets.
+- [ ] Qualify the implemented operation-aware combination for questions and explanations against independently labelled distant-page comparisons and joins. Measure semantic support and fact omissions within shared request budgets, including cases with missing source facts and incomplete reduction.
 
 Current APIs and qualification limits are documented in the [architecture and support matrix](officeimo.document-assistant-design.md) and package READMEs.
 
 - [ ] Extend the [hash-bound native OCR corpus](../OfficeIMO.TestAssets/OcrQuality/README.md) beyond blank forms, multilingual text and magazine scans to filled invoices, independently labelled field values, complex diagrams, broader scripts and table structure. Qualify confidence policies on held-out workloads, multi-column order and geometry alignment, and provider peak memory. Extend the synthetic AI corpus to independent documents with semantic support and fact-omission measurements by operation; compare specialist recognition with general vision on equivalent labelled inputs.
 - [ ] Improve repeated-call reliability across hosted and local model profiles, including exact scalar evidence and long-document coverage. Extend the synthetic Studio ChatGPT-login-import, local-model and reviewed-Tesseract checks to fresh browser authentication, account expiry, Copilot model quality and additional context/resource profiles; preserve failed runs and require equivalent extraction/reasoning assertions.
 - [ ] Extend headless operations with one supported edit proposal and explicitly attached document collections. Reuse mutation/publication guards, bind approval to source identity and concrete before/after changes, reject stale sources and reopen artifacts. Decide retention/storage before persistent history or indexing.
-- [ ] Extend Studio's read-only PDF assistant with explicit region selection, image evidence, source-quote highlights bound to verified glyph geometry, operation-specific summary/extraction controls and review previews for approved edits. Qualify hosted sign-in and model quality across Windows, Linux and macOS, retaining per-tab revision checks and bounded source citations. Mobile follows its separate acceptance gates.
+- [ ] Extend Studio's read-only PDF assistant with explicit region selection, image evidence, source-quote highlights bound to verified glyph geometry, extraction controls and review previews for approved edits. Qualify hosted sign-in and model quality across Windows, Linux and macOS, retaining per-tab revision checks and bounded source citations. Mobile follows its separate acceptance gates.
 
 ## Independent HTML engine
 
