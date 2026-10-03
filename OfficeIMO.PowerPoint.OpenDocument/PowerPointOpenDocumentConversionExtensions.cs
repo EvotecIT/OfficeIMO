@@ -9,6 +9,7 @@ namespace OfficeIMO.PowerPoint.OpenDocument;
 
 /// <summary>Explicit conversions between OfficeIMO PowerPoint and native OpenDocument presentation models.</summary>
 public static partial class PowerPointOpenDocumentConversionExtensions {
+    private const int MaximumOdpSlideNameLength = 128;
     /// <summary>Converts a PowerPoint presentation to an in-memory ODP document.</summary>
     public static OdpPresentation ToOpenDocument(this PowerPointPresentation source,
         PowerPointOpenDocumentConversionOptions? options = null) => source.ToOpenDocumentResult(options).Value;
@@ -57,8 +58,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             PowerPointSlide sourceSlide = source.Slides[slideIndex];
             string? authoredSlideName = sourceSlide.Name;
             bool normalizedAuthoredName = authoredSlideName != null && string.IsNullOrWhiteSpace(authoredSlideName);
-            if (normalizedAuthoredName) renamedSlides++;
-            string requestedSlideName = !string.IsNullOrWhiteSpace(authoredSlideName) ? authoredSlideName! :
+            bool shortenedAuthoredName = authoredSlideName?.Length > MaximumOdpSlideNameLength;
+            if (normalizedAuthoredName || shortenedAuthoredName) renamedSlides++;
+            string requestedSlideName = !normalizedAuthoredName && !shortenedAuthoredName && authoredSlideName != null ? authoredSlideName :
                 "Slide" + (slideIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
             string targetSlideName = requestedSlideName;
             if (!usedSlideNames.Add(targetSlideName)) {
@@ -68,7 +70,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
                     suffix++;
                 } while (!usedSlideNames.Add(targetSlideName));
-                if (authoredSlideName != null && !normalizedAuthoredName) renamedSlides++;
+                if (authoredSlideName != null && !normalizedAuthoredName && !shortenedAuthoredName) renamedSlides++;
             }
             targetSlideNames[slideIndex] = targetSlideName;
         }

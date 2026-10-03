@@ -58,7 +58,11 @@ public sealed partial class OfficeWorkflowRunner {
                 foreach (var diagnostic in page.ProviderDiagnostics) {
                     diagnostics.Add(new OfficeWorkflowDiagnostic(string.IsNullOrWhiteSpace(diagnostic.Code) ? "OcrProviderDiagnostic" : diagnostic.Code,
                         string.IsNullOrWhiteSpace(diagnostic.Message) ? "The OCR provider reported a recognition condition." : diagnostic.Message,
-                        diagnostic.Severity == OcrDiagnosticSeverity.Info ? OfficeWorkflowDiagnosticSeverity.Information : OfficeWorkflowDiagnosticSeverity.Warning,
+                        diagnostic.Severity switch {
+                            OcrDiagnosticSeverity.Error => OfficeWorkflowDiagnosticSeverity.Error,
+                            OcrDiagnosticSeverity.Warning => OfficeWorkflowDiagnosticSeverity.Warning,
+                            _ => OfficeWorkflowDiagnosticSeverity.Information
+                        },
                         "recognize", new Dictionary<string, string> {
                             ["page"] = page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
                             ["providerSeverity"] = diagnostic.Severity.ToString(), ["recoverable"] = diagnostic.IsRecoverable.ToString()

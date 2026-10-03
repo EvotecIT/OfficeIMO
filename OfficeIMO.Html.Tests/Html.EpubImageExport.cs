@@ -15,6 +15,89 @@ public sealed class HtmlEpubImageExportTests {
     private static readonly byte[] PixelPng = Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNg+P//HwAF/gL9HjcXBgAAAABJRU5ErkJggg==");
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task EpubImageExport_KeepsCaseDistinctResourcePayloads(bool asynchronous) {
+        byte[] package = OfficeIMO.Shared.Tests.EpubIntegrityFixtures.Package(new[] {
+            ("c", "chapter.xhtml", "application/xhtml+xml", ""),
+            ("upper", "images/A.png", "image/png", ""), ("lower", "images/a.png", "image/png", "") },
+            "<itemref idref='c'/>", new[] {
+                ("chapter.xhtml", OfficeIMO.Shared.Tests.EpubIntegrityFixtures.Xhtml("<p>Case-sensitive image</p><img src='images/a.png' width='64' height='64'/>")),
+                ("images/A.png", "not a PNG"), ("images/a.png", "placeholder")
+            });
+        package = OfficeIMO.Shared.Tests.EpubIntegrityFixtures.ReplaceEntry(package, "EPUB/images/a.png", PixelPng);
+        EpubDocument book = EpubDocument.Load(new MemoryStream(package), new EpubReadOptions {
+            IncludeRawHtml = true, IncludeResourceData = true
+        });
+        var options = new EpubImageExportOptions { Mode = HtmlRenderMode.Continuous };
+        IReadOnlyList<OfficeImageExportResult> results = asynchronous
+            ? await book.ExportImagesAsync(OfficeImageExportFormat.Png, options)
+            : book.ExportImages(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult image = Assert.Single(results);
+        Assert.DoesNotContain(image.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
+        Assert.DoesNotContain(image.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+        Assert.True(image.Bytes.Length > 100);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task EpubImageExport_AppliesRelativeHtmlBaseExactlyOnce(bool asynchronous) {
+        EpubDocument book = LoadBaseResourceBook("assets/", "pixel.png", "assets/pixel.png");
+        var options = new EpubImageExportOptions { Mode = HtmlRenderMode.Continuous };
+        OfficeImageExportResult result = Assert.Single(asynchronous
+            ? await book.ExportImagesAsync(OfficeImageExportFormat.Png, options)
+            : book.ExportImages(OfficeImageExportFormat.Png, options));
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task EpubImageExport_ExternalHtmlBaseCannotSelectPackageBytes(bool asynchronous) {
+        EpubDocument book = LoadBaseResourceBook("https://cdn.example/EPUB/", "images/pixel.png", "images/pixel.png");
+        int calls = 0;
+        var options = new EpubImageExportOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ResourceResolver = (request, token) => {
+                Assert.Equal("https://cdn.example/EPUB/images/pixel.png", request.Uri.AbsoluteUri);
+                calls++;
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(PixelPng, "image/png"));
+            }
+        };
+        OfficeImageExportResult result = Assert.Single(asynchronous
+            ? await book.ExportImagesAsync(OfficeImageExportFormat.Png, options)
+            : book.ExportImages(OfficeImageExportFormat.Png, options));
+        Assert.Equal(asynchronous ? 1 : 0, calls);
+        if (asynchronous) {
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+        } else {
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
+        }
+    }
+
+    [Fact]
+    public void EpubImageExport_OtherVirtualOriginPortDoesNotAliasPackageBytes() {
+        EpubDocument book = LoadBaseResourceBook("epub://document:123/EPUB/", "images/pixel.png", "images/pixel.png");
+        OfficeImageExportResult result = Assert.Single(book.ExportImages(OfficeImageExportFormat.Png,
+            new EpubImageExportOptions { Mode = HtmlRenderMode.Continuous }));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+    }
+
+    private static EpubDocument LoadBaseResourceBook(string baseHref, string imageHref, string resourcePath) {
+        byte[] package = OfficeIMO.Shared.Tests.EpubIntegrityFixtures.Package(new[] {
+            ("c", "chapter.xhtml", "application/xhtml+xml", ""), ("image", resourcePath, "image/png", "") },
+            "<itemref idref='c'/>", new[] {
+                ("chapter.xhtml", "<html xmlns='http://www.w3.org/1999/xhtml'><head><base href='" + baseHref +
+                    "'/></head><body><img src='" + imageHref + "' width='64' height='64'/></body></html>"),
+                (resourcePath, "placeholder")
+            });
+        package = OfficeIMO.Shared.Tests.EpubIntegrityFixtures.ReplaceEntry(package, "EPUB/" + resourcePath, PixelPng);
+        return EpubDocument.Load(new MemoryStream(package), new EpubReadOptions { IncludeRawHtml = true, IncludeResourceData = true });
+    }
+
     [Fact]
     public void EpubFitWithinBoundsHighRequestedScaleBeforeHtmlSurfaceValidation() {
         using var package = new MemoryStream(CreateEpub());

@@ -117,7 +117,11 @@ internal sealed class LatexStructuralParser {
                     ? LatexTokenKind.OpenBracket
                     : LatexTokenKind.OpenBrace;
                 if (!TryParseCommandGroup(openingKind, depth, children, ref end)) {
-                    if (signature.Arguments[index] == LatexArgumentGroupKind.Required) break;
+                    if (signature.Arguments[index] == LatexArgumentGroupKind.Required) {
+                        _diagnostics.Add(new LatexDiagnostic("LATEX007", LatexDiagnosticSeverity.Warning,
+                            "Command '" + command.Value + "' requires a braced argument in the bounded profile; missing or unbraced arguments remain source-preserved.", command.Span));
+                        break;
+                    }
                 }
             }
             return Node(LatexSyntaxKind.Command, command.StartOffset, end, command.Value, children);

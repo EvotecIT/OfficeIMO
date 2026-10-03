@@ -25,13 +25,15 @@ internal static class MarkdownToLatexConverter {
         }
         string? author = GetFrontMatter(document, "author");
         string? date = GetFrontMatter(document, "date");
+        string? titleSource = titleHeading == null ? (title == null ? null : MarkdownInlineToLatexConverter.EscapeText(title))
+            : MarkdownInlineToLatexConverter.Convert(titleHeading.Inlines, state, diagnostics, titleHeading);
 
         var body = new List<string>();
         for (int index = 0; index < document.Blocks.Count; index++) {
             IMarkdownBlock block = document.Blocks[index];
             if (title != null && !state.TitleConsumed && ReferenceEquals(block, titleHeading)) {
                 state.TitleConsumed = true;
-                body.Add("\\maketitle");
+                body.Add("\\maketitle" + Label(titleHeading!, diagnostics));
                 continue;
             }
             string converted = ConvertBlock(block, options, state, diagnostics);
@@ -42,12 +44,13 @@ internal static class MarkdownToLatexConverter {
         var source = new StringBuilder();
         source.Append("\\documentclass{").Append(options.DocumentClass).Append('}').Append(options.LineEnding);
         foreach (string package in state.Packages.OrderBy(static package => package, StringComparer.Ordinal)) {
-            source.Append("\\usepackage{").Append(package).Append('}').Append(options.LineEnding);
+            source.Append(package == "ulem" ? "\\usepackage[normalem]{" : "\\usepackage{")
+                .Append(package).Append('}').Append(options.LineEnding);
         }
         foreach (string theorem in state.TheoremEnvironments.OrderBy(static value => value, StringComparer.Ordinal)) {
             source.Append("\\newtheorem{").Append(theorem).Append("}{").Append(TheoremDisplayName(theorem)).Append('}').Append(options.LineEnding);
         }
-        if (title != null) source.Append("\\title{").Append(MarkdownInlineToLatexConverter.EscapeText(title)).Append('}').Append(options.LineEnding);
+        if (titleSource != null) source.Append("\\title{").Append(titleSource).Append('}').Append(options.LineEnding);
         if (author != null) source.Append("\\author{").Append(MarkdownInlineToLatexConverter.EscapeText(author)).Append('}').Append(options.LineEnding);
         if (date != null) source.Append("\\date{").Append(MarkdownInlineToLatexConverter.EscapeText(date)).Append('}').Append(options.LineEnding);
         source.Append("\\begin{document}").Append(options.LineEnding);
@@ -73,6 +76,12 @@ internal static class MarkdownToLatexConverter {
             case UnorderedListBlock unordered:
                 return ConvertList("itemize", unordered.Items, options, state, diagnostics);
             case OrderedListBlock ordered:
+                if (ordered.Start != 1 || ordered.Reversed || ordered.MarkerStyle != MarkdownOrderedListMarkerStyle.Decimal || ordered.MarkerDelimiter != '.' ||
+                    ordered.Items.Where((item, index) => !string.IsNullOrEmpty(item.MarkerText) &&
+                        item.MarkerText != (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + ".").Any()) {
+                    diagnostics.Add(new LatexMarkdownConversionDiagnostic("MDLATEX022", LatexMarkdownConversionOutcome.Simplified,
+                        "ordered-list-numbering", "Custom ordered-list numbering was reduced to standard enumerate numbering.", null, ordered.SourceSpan));
+                }
                 return ConvertList("enumerate", ordered.Items, options, state, diagnostics);
             case DefinitionListBlock definitions:
                 return ConvertDefinitions(definitions, options, state, diagnostics);
@@ -128,9 +137,18 @@ internal static class MarkdownToLatexConverter {
         output.Append("\\begin{").Append(environment).Append('}').Append(options.LineEnding);
         for (int index = 0; index < items.Count; index++) {
             ListItem item = items[index];
-            output.Append("\\item ").Append(MarkdownInlineToLatexConverter.Convert(item.Content, state, diagnostics, item));
-            for (int childIndex = 0; childIndex < item.NestedBlocks.Count; childIndex++) {
-                output.Append(options.LineEnding).Append(ConvertBlock(item.NestedBlocks[childIndex], options, state, diagnostics));
+            output.Append("\\item ").Append(Label(item, diagnostics));
+            if (item.IsTask) {
+                output.Append(item.Checked ? "\\texttt{[x]} " : "\\texttt{[ ]} ");
+                diagnostics.Add(new LatexMarkdownConversionDiagnostic("MDLATEX023", LatexMarkdownConversionOutcome.Simplified,
+                    "task-list", "Task state was retained as a visible text marker.", null, item.SourceSpan));
+            }
+            if (item.Level != 0) diagnostics.Add(new LatexMarkdownConversionDiagnostic("MDLATEX024", LatexMarkdownConversionOutcome.Simplified,
+                "list-level", "Flat list-item indentation was reduced to the current list environment; nested child lists remain structured.", null, item.SourceSpan));
+            IReadOnlyList<IMarkdownBlock> children = item.ChildBlocks;
+            for (int childIndex = 0; childIndex < children.Count; childIndex++) {
+                if (childIndex > 0) output.Append(options.LineEnding).Append(options.LineEnding);
+                output.Append(ConvertBlock(children[childIndex], options, state, diagnostics));
             }
             output.Append(options.LineEnding);
         }
@@ -145,7 +163,7 @@ internal static class MarkdownToLatexConverter {
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         var output = new StringBuilder("\\begin{description}").Append(options.LineEnding);
         foreach (DefinitionListEntry entry in source.Entries) {
-            output.Append("\\item[").Append(MarkdownInlineToLatexConverter.Convert(entry.Term, state, diagnostics, entry)).Append("] ");
+            output.Append("\\item[").Append(MarkdownInlineToLatexConverter.ProtectOptionalArgument(MarkdownInlineToLatexConverter.Convert(entry.Term, state, diagnostics, entry))).Append("] ");
             for (int index = 0; index < entry.DefinitionBlocks.Count; index++) {
                 if (index > 0) output.Append(options.LineEnding).Append(options.LineEnding);
                 output.Append(ConvertBlock(entry.DefinitionBlocks[index], options, state, diagnostics));
@@ -176,15 +194,27 @@ internal static class MarkdownToLatexConverter {
             output.Append(Label(source, diagnostics));
             if (!string.IsNullOrWhiteSpace(source.Attributes.ElementId)) output.Append(options.LineEnding);
         }
-        output.Append("\\begin{tabular}{").Append(new string('l', columns)).Append('}').Append(options.LineEnding);
+        output.Append("\\begin{tabular}{");
+        for (int column = 0; column < columns; column++) {
+            ColumnAlignment alignment = column < source.Alignments.Count ? source.Alignments[column] : ColumnAlignment.None;
+            output.Append(alignment == ColumnAlignment.Center ? 'c' : alignment == ColumnAlignment.Right ? 'r' : 'l');
+        }
+        output.Append('}').Append(options.LineEnding);
         for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++) {
+            int logicalColumn = 0;
             for (int cellIndex = 0; cellIndex < rows[rowIndex].Cells.Count; cellIndex++) {
                 if (cellIndex > 0) output.Append(" & ");
                 TableCell cell = rows[rowIndex].Cells[cellIndex];
                 string content = ConvertCell(cell, options, state, diagnostics);
                 if (cell.RowSpan > 1) { state.Packages.Add("multirow"); content = "\\multirow{" + cell.RowSpan + "}{*}{" + content + "}"; }
-                if (cell.ColumnSpan > 1) content = "\\multicolumn{" + cell.ColumnSpan + "}{l}{" + content + "}";
+                if (cell.ColumnSpan > 1 || cell.Alignment != ColumnAlignment.None) {
+                    ColumnAlignment alignment = cell.Alignment != ColumnAlignment.None ? cell.Alignment
+                        : logicalColumn < source.Alignments.Count ? source.Alignments[logicalColumn] : ColumnAlignment.None;
+                    char specifier = alignment == ColumnAlignment.Center ? 'c' : alignment == ColumnAlignment.Right ? 'r' : 'l';
+                    content = "\\multicolumn{" + cell.ColumnSpan + "}{" + specifier + "}{" + content + "}";
+                }
                 output.Append(content);
+                logicalColumn += cell.ColumnSpan;
             }
             output.Append(" \\\\").Append(options.LineEnding);
             if (rows[rowIndex].IsHeader) output.Append("\\hline").Append(options.LineEnding);
@@ -214,6 +244,12 @@ internal static class MarkdownToLatexConverter {
         ConversionState state,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         state.Packages.Add("graphicx");
+        if (!string.IsNullOrEmpty(source.PlainAlt) || !string.IsNullOrEmpty(source.Title) || source.Width != null || source.Height != null ||
+            !string.IsNullOrEmpty(source.LinkUrl) || !string.IsNullOrEmpty(source.LinkTitle) || !string.IsNullOrEmpty(source.LinkTarget) ||
+            !string.IsNullOrEmpty(source.LinkRel) || source.PictureSources.Count > 0 || !string.IsNullOrEmpty(source.PictureFallbackPath)) {
+            diagnostics.Add(new LatexMarkdownConversionDiagnostic("MDLATEX025", LatexMarkdownConversionOutcome.Omitted,
+                "image-metadata", "Image alternate text, title, link and layout metadata have no bounded LaTeX representation and were omitted.", null, source.SourceSpan));
+        }
         var output = new StringBuilder("\\begin{figure}").Append(options.LineEnding)
             .Append("\\includegraphics{").Append(MarkdownInlineToLatexConverter.EscapeArgument(source.Path)).Append('}').Append(options.LineEnding);
         if (!string.IsNullOrWhiteSpace(source.Caption)) output.Append("\\caption{").Append(MarkdownInlineToLatexConverter.EscapeText(source.Caption!)).Append('}').Append(options.LineEnding);
@@ -232,7 +268,8 @@ internal static class MarkdownToLatexConverter {
             state.Packages.Add("amsthm");
             if (!string.Equals(theoremKind, "proof", StringComparison.Ordinal)) state.TheoremEnvironments.Add(theoremKind);
             var output = new StringBuilder("\\begin{").Append(theoremKind).Append('}');
-            if (!string.IsNullOrWhiteSpace(source.Title)) output.Append('[').Append(MarkdownInlineToLatexConverter.EscapeText(source.Title)).Append(']');
+            if (!string.IsNullOrWhiteSpace(source.Title)) output.Append('[').Append(MarkdownInlineToLatexConverter.ProtectOptionalArgument(
+                MarkdownInlineToLatexConverter.Convert(source.TitleInlines, state, diagnostics, source))).Append(']');
             output.Append(options.LineEnding);
             if (!string.IsNullOrWhiteSpace(source.Attributes.ElementId)) output.Append(Label(source, diagnostics)).Append(options.LineEnding);
             foreach (IMarkdownBlock child in source.ChildBlocks) output.Append(ConvertBlock(child, options, state, diagnostics)).Append(options.LineEnding);
@@ -241,6 +278,10 @@ internal static class MarkdownToLatexConverter {
         }
         var quote = new StringBuilder("\\begin{quote}").Append(options.LineEnding)
             .Append("\\textbf{").Append(MarkdownInlineToLatexConverter.EscapeText(source.Kind.ToUpperInvariant())).Append(":} ");
+        quote.Append(MarkdownInlineToLatexConverter.Convert(source.TitleInlines, state, diagnostics, source)).Append(options.LineEnding)
+            .Append(Label(source, diagnostics));
+        diagnostics.Add(new LatexMarkdownConversionDiagnostic("MDLATEX026", LatexMarkdownConversionOutcome.Simplified,
+            "callout", "The callout kind, title and body were retained in a quote environment.", null, source.SourceSpan));
         foreach (IMarkdownBlock child in source.ChildBlocks) quote.Append(ConvertBlock(child, options, state, diagnostics)).Append(options.LineEnding);
         quote.Append("\\end{quote}");
         return quote.ToString();
@@ -254,7 +295,7 @@ internal static class MarkdownToLatexConverter {
         var body = new List<string>();
         if (source.ChildBlocks.Count > 0) body.AddRange(source.ChildBlocks.Select(block => ConvertBlock(block, options, state, diagnostics)));
         else body.AddRange(source.Lines.Select(MarkdownInlineToLatexConverter.EscapeText));
-        return "\\begin{quote}" + options.LineEnding + string.Join(options.LineEnding, body) + options.LineEnding + "\\end{quote}";
+        return "\\begin{quote}" + options.LineEnding + Label(source, diagnostics) + string.Join(options.LineEnding, body) + options.LineEnding + "\\end{quote}";
     }
 
     private static string ConvertVerbatim(
@@ -263,8 +304,15 @@ internal static class MarkdownToLatexConverter {
         List<LatexMarkdownConversionDiagnostic> diagnostics,
         string lineEnding) {
         string value = content;
-        if (value.IndexOf("\\end{verbatim}", StringComparison.Ordinal) >= 0) {
-            value = value.Replace("\\end{verbatim}", "\\textbackslash{}end\\{verbatim\\}");
+        var escaped = new StringBuilder();
+        int cursor = 0;
+        while (LatexVerbatimSyntax.TryFindEnvironmentClosing(content, cursor, "verbatim", out int closingStart, out int closingEnd)) {
+            escaped.Append(content, cursor, closingStart - cursor)
+                .Append(MarkdownInlineToLatexConverter.EscapeText(content.Substring(closingStart, closingEnd - closingStart)));
+            cursor = closingEnd;
+        }
+        if (cursor > 0) {
+            value = escaped.Append(content, cursor, content.Length - cursor).ToString();
             diagnostics.Add(new LatexMarkdownConversionDiagnostic(
                 "MDLATEX021", LatexMarkdownConversionOutcome.Simplified, "verbatim-delimiter",
                 "A verbatim closing delimiter inside code was escaped.", null, owner.SourceSpan));

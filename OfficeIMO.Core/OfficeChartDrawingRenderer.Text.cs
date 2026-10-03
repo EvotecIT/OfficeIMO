@@ -652,22 +652,16 @@ public static partial class OfficeChartDrawingRenderer {
             return false;
         }
 
-        if (ContainsDataLabelIndex(layout.HiddenDataLabelPointIndexes, seriesIndex, pointIndex)) {
+        if (layout.HidesDataLabelPoint(seriesIndex, pointIndex)) {
             return false;
         }
 
-        if (layout.DataLabelPointIndexes != null &&
-            layout.DataLabelPointIndexes.ContainsKey(seriesIndex)) {
-            return ContainsDataLabelIndex(layout.DataLabelPointIndexes, seriesIndex, pointIndex);
+        if (layout.HasDataLabelPointSelection(seriesIndex)) {
+            return layout.IncludesDataLabelPoint(seriesIndex, pointIndex);
         }
 
-        return layout.DataLabelSeriesIndexes == null || layout.DataLabelSeriesIndexes.Contains(seriesIndex);
+        return layout.IncludesDataLabelSeries(seriesIndex);
     }
-
-    private static bool ContainsDataLabelIndex(IReadOnlyDictionary<int, IReadOnlyCollection<int>>? indexes, int seriesIndex, int pointIndex) =>
-        indexes != null &&
-        indexes.TryGetValue(seriesIndex, out IReadOnlyCollection<int>? pointIndexes) &&
-        pointIndexes.Contains(pointIndex);
 
     private static string FormatDataLabelValue(double value, string? numberFormat) {
         if (TryFormatDataLabelValue(value, numberFormat, out string? formatted)) {

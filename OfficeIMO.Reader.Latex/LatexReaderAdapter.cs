@@ -1,3 +1,5 @@
+using OfficeIMO.Core.Internal;
+
 namespace OfficeIMO.Reader.Latex;
 
 /// <summary>LaTeX ingestion entry points.</summary>
@@ -10,12 +12,8 @@ internal static class LatexReaderAdapter {
         CancellationToken cancellationToken = default) {
         if (path == null) throw new ArgumentNullException(nameof(path));
         if (!File.Exists(path)) throw new FileNotFoundException("LaTeX file does not exist.", path);
-        ReaderOptions reader = readerOptions ?? new ReaderOptions();
-        ReaderInputLimits.EnforceFileSize(path, reader.MaxInputBytes);
-        cancellationToken.ThrowIfCancellationRequested();
-        ReaderLatexOptions adapter = ReaderLatexOptionsCloner.Clone(latexOptions);
-        LatexParseResult result = LatexDocument.ParseResult(File.ReadAllText(path), adapter.ParseOptions);
-        return ReadResult(result, path, reader, adapter, cancellationToken);
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return Read(stream, path, readerOptions, latexOptions, cancellationToken);
     }
 
     /// <summary>Reads a caller-owned LaTeX stream.</summary>
@@ -26,18 +24,20 @@ internal static class LatexReaderAdapter {
         ReaderLatexOptions? latexOptions = null,
         CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
-        if (!stream.CanRead) throw new ArgumentException("LaTeX stream must be readable.", nameof(stream));
         ReaderOptions reader = readerOptions ?? new ReaderOptions();
         ReaderLatexOptions adapter = ReaderLatexOptionsCloner.Clone(latexOptions);
-        Stream parseStream = ReaderInputLimits.EnsureSeekableReadStream(stream, reader.MaxInputBytes, cancellationToken, out bool ownsStream);
+        long? nativeLimit = adapter.ParseOptions.MaximumInputBytes;
+        adapter.ParseOptions.MaximumInputBytes = reader.MaxInputBytes.HasValue
+            ? nativeLimit.HasValue ? Math.Min(nativeLimit.Value, reader.MaxInputBytes.Value) : reader.MaxInputBytes
+            : nativeLimit;
+        LatexParseResult result;
         try {
-            using var textReader = new StreamReader(parseStream, Encoding.UTF8, true, 4096, leaveOpen: true);
-            LatexParseResult result = LatexDocument.ParseResult(textReader.ReadToEnd(), adapter.ParseOptions);
-            string name = string.IsNullOrWhiteSpace(sourceName) ? "document.tex" : sourceName!.Trim();
-            return ReadResult(result, name, reader, adapter, cancellationToken).ToArray();
-        } finally {
-            if (ownsStream) parseStream.Dispose();
+            result = LatexDocument.LoadResult(stream, adapter.ParseOptions, null, cancellationToken);
+        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
+            throw new IOException($"Input exceeds MaxInputBytes ({adapter.ParseOptions.MaximumInputBytes} bytes).", exception);
         }
+        string name = string.IsNullOrWhiteSpace(sourceName) ? "document.tex" : sourceName!.Trim();
+        return ReadResult(result, name, reader, adapter, cancellationToken).ToArray();
     }
 
     /// <summary>Adapts an already parsed document.</summary>

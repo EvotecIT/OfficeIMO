@@ -5,6 +5,8 @@
 
 `OfficeIMO.Markdown.Pdf` exports `OfficeIMO.Markdown` documents to PDF through the first-party `OfficeIMO.Pdf` engine. It is a thin adapter: Markdown parsing stays in `OfficeIMO.Markdown`, and PDF layout/writing stays in `OfficeIMO.Pdf`.
 
+Internal links resolve heading anchors, generic block identifiers and supported inline anchor carriers. Destinations follow the rendered block; identifiers inside flattened table or list-item content target that render unit. Missing targets retain visible link text and add an `UnresolvedInternalLink` warning to the conversion report.
+
 ## Install
 
 ```powershell

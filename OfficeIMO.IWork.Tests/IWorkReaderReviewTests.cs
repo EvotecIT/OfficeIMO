@@ -214,8 +214,9 @@ public sealed partial class IWorkBoundaryTests {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        Assert.Throws<OperationCanceledException>(() =>
+        OperationCanceledException exception = Assert.Throws<OperationCanceledException>(() =>
             IWorkReadProjection.RichTextMarkdown(paragraph, cancellation.Token));
+        Assert.Equal(cancellation.Token, exception.CancellationToken);
     }
 
     [Fact]

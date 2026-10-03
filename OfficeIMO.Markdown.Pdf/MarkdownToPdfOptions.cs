@@ -191,8 +191,11 @@ public sealed class MarkdownToPdfOptions {
     /// </summary>
     internal PdfCore.PdfConversionReport Report { get; private set; } = new PdfCore.PdfConversionReport();
 
+    internal MarkdownPdfConverterExtensions.AnchorContext? Anchors { get; set; }
+
     internal MarkdownToPdfOptions CloneForConversion() {
         var clone = (MarkdownToPdfOptions)MemberwiseClone();
+        clone.Anchors = null;
         clone._theme = _theme?.Clone();
         clone._style = _style?.Clone();
         clone.ResourcePolicy = ResourcePolicy.Clone();

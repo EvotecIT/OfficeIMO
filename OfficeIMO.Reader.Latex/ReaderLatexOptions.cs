@@ -20,15 +20,7 @@ internal static class ReaderLatexOptionsCloner {
         return new ReaderLatexOptions {
             ChunkByBlock = source.ChunkByBlock,
             IncludeDiagnostics = source.IncludeDiagnostics,
-            ParseOptions = new LatexParseOptions {
-                Profile = parse.Profile,
-                MaximumInputLength = parse.MaximumInputLength,
-                MaximumTokenCount = parse.MaximumTokenCount,
-                MaximumNestingDepth = parse.MaximumNestingDepth,
-                MacroExpansion = parse.MacroExpansion,
-                MaximumExpansionDepth = parse.MaximumExpansionDepth,
-                MaximumExpansionLength = parse.MaximumExpansionLength
-            },
+            ParseOptions = parse.Clone(),
             MarkdownOptions = new LatexToMarkdownOptions {
                 PreserveUnsupportedAsSource = markdown.PreserveUnsupportedAsSource,
                 IncludePreambleAsFrontMatter = markdown.IncludePreambleAsFrontMatter

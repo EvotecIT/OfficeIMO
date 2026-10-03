@@ -131,7 +131,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        internal static void UpdateDocumentProperties(PresentationPart presentationPart) {
+        internal static void UpdateDocumentProperties(PresentationPart presentationPart, long maximumSlideXmlCharacters) {
             EnsureDocumentProperties(presentationPart);
 
             if (presentationPart.OpenXmlPackage is not PresentationDocument presentationDocument) {
@@ -148,7 +148,7 @@ namespace OfficeIMO.PowerPoint {
             properties.Slides.Text = slideIds.Length.ToString(CultureInfo.InvariantCulture);
             properties.Notes.Text = presentationPart.SlideParts.Count(slidePart => slidePart.NotesSlidePart != null)
                 .ToString(CultureInfo.InvariantCulture);
-            properties.HiddenSlides.Text = slideIds.Count(slideId => IsHiddenSlide(presentationPart, slideId))
+            properties.HiddenSlides.Text = slideIds.Count(slideId => IsHiddenSlide(presentationPart, slideId, maximumSlideXmlCharacters))
                 .ToString(CultureInfo.InvariantCulture);
             properties.PresentationFormat.Text = GetPresentationFormat(presentationPart.Presentation?.SlideSize);
 
@@ -160,7 +160,7 @@ namespace OfficeIMO.PowerPoint {
             packageProperties.Modified = DateTime.UtcNow;
         }
 
-        private static bool IsHiddenSlide(PresentationPart presentationPart, SlideId slideId) {
+        private static bool IsHiddenSlide(PresentationPart presentationPart, SlideId slideId, long maximumSlideXmlCharacters) {
             string? relationshipId = slideId.RelationshipId?.Value;
             if (relationshipId is { Length: > 0 } &&
                 presentationPart.TryGetPartById(relationshipId, out OpenXmlPart? part) &&
@@ -171,7 +171,7 @@ namespace OfficeIMO.PowerPoint {
                 } else {
                     using Stream stream = slidePart.GetStream(FileMode.Open,
                         FileAccess.Read);
-                    show = PowerPointXmlReader.ReadSlideShow(stream);
+                    show = PowerPointXmlReader.ReadSlideShow(stream, maximumSlideXmlCharacters);
                 }
                 if (show.HasValue) return !show.Value;
             }
@@ -250,4 +250,3 @@ namespace OfficeIMO.PowerPoint {
         }
     }
 }
-

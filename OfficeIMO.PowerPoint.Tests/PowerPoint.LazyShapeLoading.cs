@@ -1,5 +1,6 @@
 using System.IO;
 using System.Linq;
+using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
@@ -86,6 +87,40 @@ namespace OfficeIMO.PowerPoint.Tests {
             Assert.DoesNotContain(reopenedId.GetAttributes(), attribute =>
                 attribute.LocalName == "show" && string.IsNullOrEmpty(attribute.NamespaceUri));
             Assert.False(reopenedPart.SlideParts.Single().Slide!.Show!.Value);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void MetadataSaveHonorsConfiguredLimitForUnloadedSlide(bool commentAfterRoot) {
+            byte[] source;
+            using (var created = PowerPointPresentation.Create(new MemoryStream())) {
+                created.AddSlide();
+                source = created.ToBytes();
+            }
+
+            using var packageStream = new MemoryStream(source.Length + 8192);
+            packageStream.Write(source, 0, source.Length);
+            packageStream.Position = 0;
+            using (var package = PresentationDocument.Open(packageStream, true,
+                       new OpenSettings { AutoSave = false })) {
+                SlidePart slidePart = package.PresentationPart!.SlideParts.Single();
+                string slideXml = slidePart.Slide!.OuterXml;
+                string comment = "<!--" + new string('x', 1_100_000) + "-->";
+                string xml = commentAfterRoot
+                    ? slideXml.Insert(slideXml.IndexOf('>') + 1, comment)
+                    : comment + slideXml;
+                byte[] bytes = Encoding.UTF8.GetBytes(xml);
+                using Stream stream = slidePart.GetStream(FileMode.Create, FileAccess.Write);
+                stream.Write(bytes, 0, bytes.Length);
+            }
+
+            using var loaded = PowerPointPresentation.Load(new MemoryStream(packageStream.ToArray()),
+                new PowerPointLoadOptions {
+                    OpenSettings = new OfficeOpenXmlLoadSettings { MaxCharactersInPart = 1_048_576 }
+                });
+            Assert.False(loaded.Slides[0].SlidePart.IsRootElementLoaded);
+            Assert.Throws<System.Xml.XmlException>(() => loaded.ToBytes());
         }
     }
 }

@@ -48,6 +48,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Reader.Latex" />
+    <InternalsVisibleTo Include="OfficeIMO.Latex.Markdown.Tests" />
   </ItemGroup>
 
 </Project>

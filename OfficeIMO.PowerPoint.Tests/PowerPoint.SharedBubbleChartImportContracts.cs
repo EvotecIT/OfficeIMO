@@ -138,6 +138,21 @@ public class PowerPointSharedBubbleChartImportContractTests {
     }
 
     [Fact]
+    public void BubbleChart_IgnoresHiddenWorkbookRowsOutsideReferencedRanges() {
+        using PowerPointPresentation presentation = CreatePresentation(out PowerPointChart chart);
+        ChartPart chartPart = presentation.Slides[0].SlidePart.ChartParts.Single();
+        EmbeddedPackagePart embedded = Assert.Single(chartPart.GetPartsOfType<EmbeddedPackagePart>());
+        using (Stream stream = embedded.GetStream(FileMode.Open, FileAccess.ReadWrite))
+        using (SpreadsheetDocument workbook = SpreadsheetDocument.Open(stream, true)) {
+            S.Worksheet worksheet = workbook.WorkbookPart!.WorksheetParts.Single().Worksheet!;
+            worksheet.GetFirstChild<S.SheetData>()!.Append(new S.Row { RowIndex = 1000U, Hidden = true });
+            worksheet.Save();
+        }
+
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Fact]
     public void BubbleChart_RecreatedDataLabelsPrecedeBubble3D() {
         using PowerPointPresentation presentation = CreatePresentation(out PowerPointChart chart);
 

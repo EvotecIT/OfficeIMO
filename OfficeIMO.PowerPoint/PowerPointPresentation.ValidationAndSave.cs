@@ -261,7 +261,7 @@ namespace OfficeIMO.PowerPoint {
             foreach (PowerPointSlide slide in _slides) {
                 slide.Save();
             }
-            PowerPointUtils.UpdateDocumentProperties(_presentationPart);
+            PowerPointUtils.UpdateDocumentProperties(_presentationPart, _maximumSlideXmlCharacters);
             PresentationRoot.Save();
             _document!.Save();
 

@@ -67,13 +67,14 @@ public sealed class OfficeTextMeasurer {
         }
 
         double width = 0D;
+        double fontWidthFactor = GetFontFamilyWidthFactor(style.FontInfo) * GetStyleWidthFactor(style.FontInfo);
         foreach (string element in OfficeTextElements.Enumerate(text)) {
             if (element == "\t") {
                 width += style.SpaceWidthPixels * 4D;
                 continue;
             }
 
-            width += style.FontSizePixels * GetTextElementWidthFactor(element, style.FontInfo);
+            width += style.FontSizePixels * GetTextElementWidthFactor(element, fontWidthFactor);
         }
 
         return width;
@@ -112,6 +113,10 @@ public sealed class OfficeTextMeasurer {
         dpi > 0.0001D ? dpi : DefaultDpi;
 
     internal static double GetCharacterWidthFactor(char value, OfficeFontInfo fontInfo) {
+        return GetCharacterBaseWidthFactor(value) * GetFontFamilyWidthFactor(fontInfo) * GetStyleWidthFactor(fontInfo);
+    }
+
+    private static double GetCharacterBaseWidthFactor(char value) {
         double factor;
         if (value == ' ' || value == '\u00a0') {
             factor = 0.34D;
@@ -138,19 +143,19 @@ public sealed class OfficeTextMeasurer {
             };
         }
 
-        return factor * GetFontFamilyWidthFactor(fontInfo) * GetStyleWidthFactor(fontInfo);
+        return factor;
     }
 
-    private static double GetTextElementWidthFactor(string element, OfficeFontInfo fontInfo) {
+    private static double GetTextElementWidthFactor(string element, double fontWidthFactor) {
         if (!TryGetBaseScalar(element, out int scalar)) return 0D;
         double factor = scalar <= char.MaxValue
-            ? GetCharacterWidthFactor((char)scalar, fontInfo)
-            : (IsCjkOrWide(scalar) || IsEmojiLike(scalar) ? 1D : 0.62D) * GetFontFamilyWidthFactor(fontInfo) * GetStyleWidthFactor(fontInfo);
+            ? GetCharacterBaseWidthFactor((char)scalar)
+            : (IsCjkOrWide(scalar) || IsEmojiLike(scalar) ? 1D : 0.62D);
         if (element.IndexOf('\u200d') >= 0 || element.IndexOf('\ufe0f') >= 0) {
-            factor = 1D * GetFontFamilyWidthFactor(fontInfo) * GetStyleWidthFactor(fontInfo);
+            factor = 1D;
         }
 
-        return factor;
+        return factor * fontWidthFactor;
     }
 
     private static bool TryGetBaseScalar(string element, out int scalar) {

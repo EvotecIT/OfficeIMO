@@ -44,8 +44,12 @@ public sealed class OcrReliabilityWorkflowTests {
         } finally { Directory.Delete(root, true); }
     }
 
-    [Fact]
-    public async Task CorrectionsAndRecoverableDiagnosticsSurviveSessionAndPdfReopen() {
+    [Theory]
+    [InlineData(OcrDiagnosticSeverity.Info, OfficeWorkflowDiagnosticSeverity.Information)]
+    [InlineData(OcrDiagnosticSeverity.Warning, OfficeWorkflowDiagnosticSeverity.Warning)]
+    [InlineData(OcrDiagnosticSeverity.Error, OfficeWorkflowDiagnosticSeverity.Error)]
+    public async Task CorrectionsAndRecoverableDiagnosticsSurviveSessionAndPdfReopen(OcrDiagnosticSeverity providerSeverity,
+        OfficeWorkflowDiagnosticSeverity expectedSeverity) {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-ocr-correct-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try {
@@ -54,7 +58,7 @@ public sealed class OcrReliabilityWorkflowTests {
             byte[] original = File.ReadAllBytes(source);
             var engine = new DelegateOcrEngine("fixture", (_, _) => Task.FromResult(new OcrResult {
                 Spans = [Word("Mispelled")], Diagnostics = [new OcrDiagnostic {
-                    Code = "uncertain", Message = "Review uncertain words.", Severity = OcrDiagnosticSeverity.Warning, IsRecoverable = true
+                    Code = "uncertain", Message = "Review uncertain words.", Severity = providerSeverity, IsRecoverable = true
                 }]
             }));
             var request = new PdfSearchableWorkflowRequest {
@@ -64,7 +68,7 @@ public sealed class OcrReliabilityWorkflowTests {
                     var replacements = new Dictionary<PdfRecognizedWord, string> { [word] = "Corrected" };
                     Assert.Equal("Corrected", review.ExtractText(replacements));
                     Assert.Equal("Mispelled", word.Text);
-                    Assert.Equal(OcrDiagnosticSeverity.Warning, Assert.Single(review.Ocr.Pages[0].ProviderDiagnostics).Severity);
+                    Assert.Equal(providerSeverity, Assert.Single(review.Ocr.Pages[0].ProviderDiagnostics).Severity);
                     return Task.FromResult<IReadOnlyDictionary<PdfRecognizedWord, string>>(replacements);
                 }
             };
@@ -74,7 +78,7 @@ public sealed class OcrReliabilityWorkflowTests {
             Assert.Equal("Corrected", PdfReadDocument.Open(File.ReadAllBytes(output)).ExtractText().Trim());
             Assert.Equal(original, File.ReadAllBytes(source));
             var diagnostic = Assert.Single(result.Diagnostics, item => item.Code == "uncertain");
-            Assert.Equal(OfficeWorkflowDiagnosticSeverity.Warning, diagnostic.Severity);
+            Assert.Equal(expectedSeverity, diagnostic.Severity);
             Assert.Equal("1", diagnostic.Details["page"]);
         } finally { Directory.Delete(root, true); }
     }
