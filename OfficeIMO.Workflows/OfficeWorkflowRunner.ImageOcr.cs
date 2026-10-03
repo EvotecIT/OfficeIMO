@@ -53,8 +53,11 @@ public sealed partial class OfficeWorkflowRunner {
             OfficeDocumentOcrExecutionResult recognition = await document.ApplyOcrAsync(engine, options, cancellationToken).ConfigureAwait(false);
             foreach (var diagnostic in recognition.Diagnostics) {
                 diagnostics.Add(new OfficeWorkflowDiagnostic(diagnostic.Code, diagnostic.Message,
-                    diagnostic.Severity == OfficeDocumentDiagnosticSeverity.Error ? OfficeWorkflowDiagnosticSeverity.Error
-                        : OfficeWorkflowDiagnosticSeverity.Warning, stage: "recognize-image"));
+                    diagnostic.Severity switch {
+                        OfficeDocumentDiagnosticSeverity.Error => OfficeWorkflowDiagnosticSeverity.Error,
+                        OfficeDocumentDiagnosticSeverity.Warning => OfficeWorkflowDiagnosticSeverity.Warning,
+                        _ => OfficeWorkflowDiagnosticSeverity.Information
+                    }, stage: "recognize-image"));
             }
             if (recognition.Report.FailedCandidateCount > 0 || recognition.Report.SkippedCandidateCount > 0 || recognition.Report.AttemptedCandidateCount == 0)
                 throw new InvalidDataException("Image recognition did not complete. Inspect the OCR diagnostics before retrying.");

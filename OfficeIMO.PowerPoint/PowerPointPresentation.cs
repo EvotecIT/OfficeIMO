@@ -23,6 +23,7 @@ namespace OfficeIMO.PowerPoint {
         private Stream? _packageStream;
         private Stream? _sourceStream;
         private DocumentPersistenceMode _persistenceMode = DocumentPersistenceMode.Explicit;
+        private long _maximumSlideXmlCharacters = PowerPointXmlReader.MaximumPackageXmlCharacters;
         private bool _discardChangesOnDispose;
         private string? _signedPackageOpenFingerprint;
         private PowerPointSlideSize? _slideSize;

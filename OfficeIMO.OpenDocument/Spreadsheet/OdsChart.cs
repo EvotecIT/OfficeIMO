@@ -66,13 +66,7 @@ public sealed class OdsChart {
     public long? AnchorColumn { get; }
 
     internal static OdsChart? TryRead(OdsDocument document, XElement frame, long? anchorRow, long? anchorColumn) {
-        XElement? objectElement = frame.Element(OdfNamespaces.Draw + "object");
-        string? href = (string?)objectElement?.Attribute(OdfNamespaces.XLink + "href");
-        if (string.IsNullOrWhiteSpace(href) || href!.Contains(":") || href.Contains("..") || href.StartsWith("/", StringComparison.Ordinal)) return null;
-        string directory = OdfPackagePath.NormalizeHref(href);
-        if (directory.Length == 0 || directory.Contains("..") || directory.StartsWith("/", StringComparison.Ordinal)) return null;
-        if (!directory.EndsWith("/", StringComparison.Ordinal)) directory += "/";
-        string partPath = directory + "content.xml";
+        if (!TryGetContentPath(frame, out string directory, out string partPath)) return null;
         if (!document.Package.ContainsEntry(partPath)) return null;
         try {
             XDocument part = document.Package.GetXml(partPath);
@@ -107,7 +101,7 @@ public sealed class OdsChart {
             XElement? defaultStyle = FindChartDefaultStyle(part)
                 ?? (stylesPart == null ? null : FindChartDefaultStyle(stylesPart));
             IReadOnlyDictionary<string, XElement> hatches = OdsChartPointStyles.IndexHatches(part, stylesPart);
-            var series = seriesElements.Select(element => {
+            IReadOnlyList<OdsChartSeries> series = Array.AsReadOnly(seriesElements.Select(element => {
                 string? seriesClass = NormalizeChartClass(element,
                     (string?)element.Attribute(chart + "class")) ?? chartClass;
                 bool radial = seriesClass is "chart:circle" or "chart:ring";
@@ -121,7 +115,7 @@ public sealed class OdsChart {
                     (string?)element.Attribute(chart + "label-cell-address"),
                     seriesClass,
                     pointStyles, unprojectedAppearance);
-            }).ToArray();
+            }).ToArray());
             var allProperties = new List<XElement>();
             bool AddStyleChain(string? name) {
                 var visited = new HashSet<string>(StringComparer.Ordinal);
@@ -171,18 +165,37 @@ public sealed class OdsChart {
                 }
                 vertical = parsed;
             }
-            OdfRect bounds = new OdfRect(
-                OdfLength.Parse((string?)frame.Attribute(OdfNamespaces.Svg + "x") ?? "0cm"),
-                OdfLength.Parse((string?)frame.Attribute(OdfNamespaces.Svg + "y") ?? "0cm"),
-                OdfLength.Parse((string?)frame.Attribute(OdfNamespaces.Svg + "width") ?? "0cm"),
-                OdfLength.Parse((string?)frame.Attribute(OdfNamespaces.Svg + "height") ?? "0cm"));
-            return new OdsChart((string?)frame.Attribute(OdfNamespaces.Draw + "name") ?? string.Empty,
+            var template = new OdsChart(string.Empty,
                 chartClass, title, titleCellRangeAddress, categories, series, stacked, percentage,
-                threeDimensional, vertical, bounds,
-                anchorRow, anchorColumn);
+                threeDimensional, vertical, default, null, null);
+            return template.WithFrame(frame, anchorRow, anchorColumn);
         } catch (InvalidDataException) {
             return null;
         }
+    }
+
+    internal static bool TryGetContentPath(XElement frame, out string directory, out string partPath) {
+        directory = partPath = string.Empty;
+        string? href = (string?)frame.Element(OdfNamespaces.Draw + "object")?
+            .Attribute(OdfNamespaces.XLink + "href");
+        if (string.IsNullOrWhiteSpace(href) || href!.Contains(":") || href.Contains("..") ||
+            href.StartsWith("/", StringComparison.Ordinal)) return false;
+        directory = OdfPackagePath.NormalizeHref(href);
+        if (directory.Length == 0 || directory.Contains("..") || directory.StartsWith("/", StringComparison.Ordinal)) return false;
+        if (!directory.EndsWith("/", StringComparison.Ordinal)) directory += "/";
+        partPath = directory + "content.xml";
+        return true;
+    }
+
+    internal OdsChart WithFrame(XElement frame, long? anchorRow, long? anchorColumn) {
+        var bounds = new OdfRect(
+            OdfLength.Parse((string?)frame.Attribute(OdfNamespaces.Svg + "x") ?? "0cm"),
+            OdfLength.Parse((string?)frame.Attribute(OdfNamespaces.Svg + "y") ?? "0cm"),
+            OdfLength.Parse((string?)frame.Attribute(OdfNamespaces.Svg + "width") ?? "0cm"),
+            OdfLength.Parse((string?)frame.Attribute(OdfNamespaces.Svg + "height") ?? "0cm"));
+        return new OdsChart((string?)frame.Attribute(OdfNamespaces.Draw + "name") ?? string.Empty,
+            ChartClass, Title, TitleCellRangeAddress, CategoriesAddress, Series, IsStacked, IsPercentage,
+            IsThreeDimensional, VerticalBars, bounds, anchorRow, anchorColumn);
     }
 
     private static Dictionary<string, XElement> IndexChartStyles(XDocument content, XDocument? styles) {

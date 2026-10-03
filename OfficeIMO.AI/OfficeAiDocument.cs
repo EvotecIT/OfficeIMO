@@ -46,7 +46,7 @@ public sealed class OfficeAiDocument {
     public IReadOnlyList<OfficeAiImage> Images { get; }
     /// <summary>Reader's native/computed/explicit/unknown page provenance.</summary>
     public string PageProvenance { get; }
-    /// <summary>True when the source reader reported diagnostics; AI cannot certify complete source reconstruction.</summary>
+    /// <summary>True when the source or a nested document reports limitations, pending OCR or truncated content; AI cannot certify complete source reconstruction.</summary>
     public bool HasSourceDiagnostics { get; }
 
     /// <summary>Reads and fingerprints a bounded source snapshot. The caller retains ownership of the stream.</summary>
@@ -164,17 +164,29 @@ public sealed class OfficeAiDocument {
             if (totalImageBytes > limits.MaxInputBytes) throw new InvalidDataException("Aggregate image evidence exceeds the snapshot byte limit.");
             imageList.Add(image); AddPage(image.Page);
         }
-        bool incompleteSource = document.Diagnostics.Any(diagnostic => diagnostic.Severity != OfficeDocumentDiagnosticSeverity.Information
-            || diagnostic.Category != OfficeDocumentDiagnosticCategory.Detection)
-            || document.Chunks.Any(chunk => chunk.Warnings?.Count > 0)
-            || document.OcrCandidates.Count > 0 || document.Pages.Any(page => page.OcrCandidates.Count > 0);
-        // Table truncation is independent of top-level diagnostics. Inspect every Reader owner,
-        // including chunk tables, so alternate projections cannot silently erase known omissions.
-        incompleteSource |= document.Tables.Concat(document.Pages.SelectMany(page => page.Tables))
-            .Concat(document.Chunks.SelectMany(chunk => chunk.Tables ?? Array.Empty<ReaderTable>()))
-            .Any(table => table.Truncated || table.TotalRowCount > table.Rows.Count);
         return new OfficeAiDocument(Convert.ToHexString(SHA256.HashData(sourceBytes)).ToLowerInvariant(), sourceBytes.Length, evidence.ToArray(),
-            pages.ToArray(), imageList.ToArray(), document.GetPageProvenance().ToString(), incompleteSource);
+            pages.ToArray(), imageList.ToArray(), document.GetPageProvenance().ToString(), HasIncompleteSource(document));
+    }
+
+    private static bool HasIncompleteSource(OfficeDocumentReadResult document) {
+        var pending = new Stack<OfficeDocumentReadResult>();
+        var visited = new HashSet<OfficeDocumentReadResult>(ReferenceEqualityComparer.Instance);
+        pending.Push(document);
+        while (pending.Count > 0) {
+            OfficeDocumentReadResult current = pending.Pop();
+            if (!visited.Add(current)) continue;
+            if (current.Diagnostics.Any(diagnostic => diagnostic.Severity != OfficeDocumentDiagnosticSeverity.Information
+                    || diagnostic.Category != OfficeDocumentDiagnosticCategory.Detection)
+                || current.Chunks.Any(chunk => chunk.Warnings?.Count > 0)
+                || current.OcrCandidates.Count > 0 || current.Pages.Any(page => page.OcrCandidates.Count > 0)
+                || current.Tables.Concat(current.Pages.SelectMany(page => page.Tables))
+                    .Concat(current.Chunks.SelectMany(chunk => chunk.Tables ?? Array.Empty<ReaderTable>()))
+                    .Any(table => table.Truncated || table.TotalRowCount > table.Rows.Count)) return true;
+            // Containers already project child text into their source observations. Inspect rich
+            // child limitations separately without adding the same text to the evidence again.
+            foreach (OfficeDocumentNestedResult nested in current.NestedDocuments) pending.Push(nested.Document);
+        }
+        return false;
     }
 
     private static async Task<byte[]> ReadBoundedAsync(Stream source, int maximum, CancellationToken cancellationToken) {

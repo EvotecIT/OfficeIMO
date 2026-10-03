@@ -48,6 +48,8 @@ public sealed class OfficeProvenanceWorkflowRequest {
 
     internal SortedSet<string>? BatchBlockedOutputIdentities { get; set; }
     internal string? BatchOwnReservedOutputIdentity { get; set; }
+    internal string? AuditRootPhysicalPath { get; set; }
+    internal string? AuditRootIdentity { get; set; }
 }
 
 /// <summary>Bounds sequential provenance batch execution.</summary>

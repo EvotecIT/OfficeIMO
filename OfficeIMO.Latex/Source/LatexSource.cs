@@ -56,10 +56,11 @@ public readonly struct LatexSourceSpan : IEquatable<LatexSourceSpan> {
 public sealed class LatexSourceText {
     private readonly int[] _lineStarts;
 
-    internal LatexSourceText(string text) {
+    internal LatexSourceText(string text, System.Threading.CancellationToken cancellationToken = default) {
         Text = text ?? throw new ArgumentNullException(nameof(text));
         var starts = new List<int> { 0 };
         for (int index = 0; index < text.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (text[index] == '\r') {
                 if (index + 1 < text.Length && text[index + 1] == '\n') index++;
                 starts.Add(index + 1);

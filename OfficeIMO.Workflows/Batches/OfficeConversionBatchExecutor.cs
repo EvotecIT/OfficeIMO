@@ -5,6 +5,10 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Workflows;
 
 /// <summary>Incremental conversion through the existing routes, with optional verified checkpoints.</summary>
+internal interface IOfficeWorkflowStagingGuard {
+    ValueTask EnsureStagingDirectoryAllowedAsync(string directory, CancellationToken cancellationToken);
+}
+
 internal static partial class OfficeConversionBatchExecutor {
     /// <summary>Runs a bounded local batch, reusing only hash-verified completed work under the same captured configuration.</summary>
     public static async Task<OfficeConversionBatchResult> RunAsync(IOfficeWorkflowRunner runner, OfficeConversionBatchRequest request,
@@ -18,6 +22,8 @@ internal static partial class OfficeConversionBatchExecutor {
              (settings.CheckpointDirectory != null && !await publicationGuard.CanPublishAsync(settings.CheckpointDirectory, true, cancellationToken).ConfigureAwait(false))))
             throw new UnauthorizedAccessException("Batch output or checkpoint directory is protected by the host publication policy.");
         Directory.CreateDirectory(settings.OutputDirectory);
+        EnsureNoLinks(settings.OutputDirectory);
+        string outputPhysicalRoot = OfficePathIdentity.ResolvePhysicalPath(settings.OutputDirectory);
         using var lease = OpenCheckpoint(settings);
         string configuration = settings.CheckpointDirectory == null ? string.Empty : CaptureConfiguration(settings);
         if (settings.CheckpointDirectory != null) {
@@ -45,13 +51,19 @@ internal static partial class OfficeConversionBatchExecutor {
                     string output = Path.Combine(settings.OutputDirectory, relative + settings.TargetExtension);
                     OfficeConversionBatchItemResult item;
                     if (settings.CheckpointDirectory == null) {
-                        OfficeWorkflowResult result = await runner.RunAsync(new OfficeWorkflowRequest {
-                            InputPath = input, OutputPath = output, Operation = OfficeWorkflowOperation.Convert,
-                            ConversionRouteId = route.Id, ConversionOptions = settings.ConversionOptions.ForRoute(route),
-                            OutputProfile = settings.OutputProfile, ConflictPolicy = settings.ConflictPolicy, PublicationGuard = publicationGuard, PdfPassword = settings.PdfPassword,
-                            Limits = new OfficeWorkflowLimits { MaximumInputBytes = settings.MaximumInputBytes, MaximumOutputBytes = settings.MaximumOutputBytes }
-                        }, cancellationToken: token).ConfigureAwait(false);
-                        item = new(input, result.OutputPath, result.Status, false, result.Summary, result.Diagnostics);
+                        try {
+                            EnsureNoLinks(input); EnsureNoLinks(output);
+                            OfficeWorkflowResult result = await runner.RunAsync(new OfficeWorkflowRequest {
+                                InputPath = input, OutputPath = output, Operation = OfficeWorkflowOperation.Convert,
+                                ConversionRouteId = route.Id, ConversionOptions = settings.ConversionOptions.ForRoute(route),
+                                OutputProfile = settings.OutputProfile, ConflictPolicy = settings.ConflictPolicy,
+                                PublicationGuard = new DirectBatchPublicationGuard(outputPhysicalRoot, publicationGuard), PdfPassword = settings.PdfPassword,
+                                Limits = new OfficeWorkflowLimits { MaximumInputBytes = settings.MaximumInputBytes, MaximumOutputBytes = settings.MaximumOutputBytes }
+                            }, cancellationToken: token).ConfigureAwait(false);
+                            item = new(input, result.OutputPath, result.Status, false, result.Summary, result.Diagnostics);
+                        } catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException and not OperationCanceledException) {
+                            item = new(input, null, OfficeWorkflowStatus.Failed, false, error.Message, []);
+                        }
                     } else {
                         string key = Hash(OfficePathIdentity.GetPathIdentityKey(input));
                         string receiptPath = Path.Combine(settings.CheckpointDirectory, "items", key[..2], key + ".json");
@@ -66,6 +78,22 @@ internal static partial class OfficeConversionBatchExecutor {
                 }).ConfigureAwait(false);
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { cancelled = true; }
         return new OfficeConversionBatchResult(selected, completed, reused, failed, cancelled, skipped);
+    }
+
+    private sealed class DirectBatchPublicationGuard(string outputPhysicalRoot, IOfficeWorkflowPublicationGuard? hostGuard)
+        : IOfficeWorkflowPublicationGuard, IOfficeWorkflowStagingGuard {
+        public ValueTask EnsureStagingDirectoryAllowedAsync(string directory, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
+            EnsureNoLinks(directory);
+            if (!OfficePathIdentity.IsSameOrDescendant(directory, outputPhysicalRoot))
+                throw new UnauthorizedAccessException("Batch staging directory escaped the selected output root.");
+            return ValueTask.CompletedTask;
+        }
+        public async ValueTask<bool> CanPublishAsync(string absoluteDestination, bool isDirectory, CancellationToken cancellationToken) {
+            EnsureNoLinks(absoluteDestination);
+            return OfficePathIdentity.IsSameOrDescendant(absoluteDestination, outputPhysicalRoot) &&
+                (hostGuard == null || await hostGuard.CanPublishAsync(absoluteDestination, isDirectory, cancellationToken).ConfigureAwait(false));
+        }
     }
 
     private static async Task<OfficeConversionBatchItemResult> RunItemAsync(IOfficeWorkflowRunner runner, OfficeConversionBatchRequest settings, string configuration, string routeId,

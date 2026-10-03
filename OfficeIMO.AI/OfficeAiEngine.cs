@@ -110,23 +110,23 @@ public sealed partial class OfficeAiEngine {
         omitted = omitted.Distinct(StringComparer.Ordinal).ToList();
         processed = processed.Distinct(StringComparer.Ordinal).Except(omitted, StringComparer.Ordinal).ToList();
         OfficeAiSynthesisStatus synthesisStatus = OfficeAiSynthesisStatus.NotRequired;
-        if (providerStopped && request.Operation == OfficeAiOperation.Summarize && claimBatches > 1) {
+        bool combinesClaims = request.Operation is OfficeAiOperation.Ask or OfficeAiOperation.Explain or OfficeAiOperation.Summarize;
+        string synthesisIncomplete = request.Operation == OfficeAiOperation.Summarize ? "summary-synthesis-incomplete" : "answer-synthesis-incomplete";
+        if (providerStopped && combinesClaims && claimBatches > 1) {
             synthesisStatus = OfficeAiSynthesisStatus.Incomplete;
-            diagnostics.Add("summary-synthesis-incomplete");
-        } else if (request.Operation == OfficeAiOperation.Summarize && claimBatches > 1) {
+            diagnostics.Add(synthesisIncomplete);
+        } else if (combinesClaims && claimBatches > 1) {
             ReportProgress(progress, new("Synthesizing", requestCount, request.Limits.MaxRequests));
             Synthesis synthesis = await SynthesizeAsync(claims, request, profile, requestId, requestCount, token).ConfigureAwait(false);
             claims = synthesis.Claims.ToList(); requestCount += synthesis.RequestCount;
             inputTokens = SumUsage(inputTokens, synthesis.InputTokens); outputTokens = SumUsage(outputTokens, synthesis.OutputTokens);
             synthesisStatus = synthesis.Completed ? OfficeAiSynthesisStatus.Completed : OfficeAiSynthesisStatus.Incomplete;
-            if (!synthesis.Completed) diagnostics.Add("summary-synthesis-incomplete");
+            if (!synthesis.Completed) diagnostics.Add(synthesisIncomplete);
             if (synthesis.FailureCode is not null) diagnostics.Add(synthesis.FailureCode);
         }
         IReadOnlyList<OfficeAiField> mergedFields = MergeFields(fields, request.Fields);
-        bool crossBatchReasoningUnsupported = plan.Batches.Count > 1 && request.Operation is OfficeAiOperation.Ask or OfficeAiOperation.Explain;
-        if (crossBatchReasoningUnsupported) diagnostics.Add("cross-batch-reasoning-not-supported");
         bool incomplete = omitted.Count > 0 || plan.EmptyPages.Count > 0 || document.HasSourceDiagnostics
-            || synthesisStatus == OfficeAiSynthesisStatus.Incomplete || crossBatchReasoningUnsupported;
+            || synthesisStatus == OfficeAiSynthesisStatus.Incomplete;
         if (incomplete) mergedFields = Array.AsReadOnly(mergedFields.Select(field => field.Status == OfficeAiFieldStatus.Missing
             ? field with { Status = OfficeAiFieldStatus.NotEvaluated } : field).ToArray());
         bool normalizationFailed = mergedFields.Any(field => field.Status == OfficeAiFieldStatus.Invalid);

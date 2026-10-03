@@ -245,14 +245,33 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
 
     private static int CountUnmappedOdpTextLayout(OdpPresentation source) {
         XDocument content = source.Package.GetXml("content.xml");
+        var paragraphStyles = new Dictionary<string, bool>(StringComparer.Ordinal);
+        var inlineStyles = new Dictionary<string, bool>(StringComparer.Ordinal);
         int paragraphs = content.Descendants().Count(paragraph =>
             (paragraph.Name == OdfNamespaces.Text + "p" || paragraph.Name == OdfNamespaces.Text + "h") &&
-            HasUnmappedOdpTextLayout(source, (string?)paragraph.Attribute(OdfNamespaces.Text + "style-name")));
-        int inlineStyles = content.Descendants().Count(element =>
+            HasUnmappedParagraphStyle((string?)paragraph.Attribute(OdfNamespaces.Text + "style-name")));
+        int unsupportedInlineStyles = content.Descendants().Count(element =>
             (element.Name == OdfNamespaces.Text + "span" || element.Name == OdfNamespaces.Text + "a") &&
-            HasUnmappedOdpCharacterSpacing(source, OdfStyleFamily.Text,
-                (string?)element.Attribute(OdfNamespaces.Text + "style-name")));
-        return paragraphs + inlineStyles;
+            HasUnmappedInlineStyle((string?)element.Attribute(OdfNamespaces.Text + "style-name")));
+        return paragraphs + unsupportedInlineStyles;
+
+        bool HasUnmappedParagraphStyle(string? styleName) {
+            string key = styleName ?? string.Empty;
+            if (!paragraphStyles.TryGetValue(key, out bool unsupported)) {
+                unsupported = HasUnmappedOdpTextLayout(source, styleName);
+                paragraphStyles.Add(key, unsupported);
+            }
+            return unsupported;
+        }
+
+        bool HasUnmappedInlineStyle(string? styleName) {
+            string key = styleName ?? string.Empty;
+            if (!inlineStyles.TryGetValue(key, out bool unsupported)) {
+                unsupported = HasUnmappedOdpCharacterSpacing(source, OdfStyleFamily.Text, styleName);
+                inlineStyles.Add(key, unsupported);
+            }
+            return unsupported;
+        }
     }
 
     private static bool HasUnmappedOdpTextLayout(OdpPresentation source, string? styleName) {

@@ -192,7 +192,7 @@ public sealed class LatexConversionRegressionTests {
 
         Assert.Contains("\\textsuperscript{up \\textbf{two}}", result.Source, StringComparison.Ordinal);
         Assert.Contains("\\textsubscript{sub \\emph{italic}}", result.Source, StringComparison.Ordinal);
-        Assert.Contains("\\usepackage{ulem}", result.Source, StringComparison.Ordinal);
+        Assert.Contains("\\usepackage[normalem]{ulem}", result.Source, StringComparison.Ordinal);
         Assert.Contains("\\sout{gone \\textbf{bold}}", result.Source, StringComparison.Ordinal);
         Assert.DoesNotContain("\\usepackage{amsmath}", result.Source, StringComparison.Ordinal);
     }

@@ -35,10 +35,15 @@ public sealed partial class OdsSheet {
         OdsCell anchor = Cell(anchorRow, anchorColumn);
         if (anchor.IsCovered) throw new InvalidOperationException("A chart cannot be anchored in a covered cell.");
 
+        var occupiedDirectories = new HashSet<string>(StringComparer.Ordinal);
+        foreach (OdfPackageEntry entry in _document.Package.Entries) {
+            int separator = entry.Name.IndexOf('/');
+            if (separator >= 0) occupiedDirectories.Add(entry.Name.Substring(0, separator + 1));
+        }
         int ordinal = 1;
         string directory;
         do { directory = "Object " + ordinal++.ToString(CultureInfo.InvariantCulture) + "/"; }
-        while (_document.Package.Entries.Any(entry => entry.Name.StartsWith(directory, StringComparison.Ordinal)));
+        while (occupiedDirectories.Contains(directory));
         string chartClass = type switch {
             OdsChartType.Line => "chart:line",
             OdsChartType.Pie => "chart:circle",
