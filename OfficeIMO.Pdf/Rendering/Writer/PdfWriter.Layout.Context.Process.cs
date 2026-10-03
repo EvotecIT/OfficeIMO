@@ -31,6 +31,7 @@ internal static partial class PdfWriter {
                     optionsStack.Pop();
                     currentPageGroupId = pageGroupStack.Pop();
                     currentOpts = optionsStack.Peek();
+                    currentPageBaseOptions = currentOpts;
                     currentPage = null;
                     continue;
                 }

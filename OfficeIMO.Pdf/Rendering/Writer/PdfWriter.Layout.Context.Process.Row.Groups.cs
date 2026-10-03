@@ -99,7 +99,8 @@ internal static partial class PdfWriter {
             group.FragmentTop = cursor;
             if (group.Semantic != null) flowSemanticScopes.Add(group.Semantic);
             if (group.Style != null) {
-                group.Decoration = new ContainerRenderScope(group.Style, columnX + group.XOffset, group.OuterWidth, currentPage!.Options);
+                group.Decoration = new ContainerRenderScope(group.Style, columnX + group.XOffset, group.OuterWidth,
+                    currentPage!.Options, currentOpts, currentOpts);
                 double next = BeginContainerFragment(group.Decoration, cursor);
                 ConsumeColumnSpace(cursor - next, ref cursor, ref remaining, ref consumed);
                 // Reserve bottom padding so an inner item cannot occupy the decoration's closing space.

@@ -98,6 +98,8 @@ internal static partial class PdfWriter {
         }
 
         private void RenderListItem(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, string marker, PdfStandardFont markerFont, PdfNamedFontFace? markerNamedFont, double markerSize, PdfColor? markerColor, double markerX, double markerWidth, PdfAlign markerAlign, double textX, double textWidth, PdfAlign textAlign, PdfColor? color, double size, double leading, double spacingBefore, double spacingAfter, string? bookmarkName, ref int? listStructureElementIndex, ref LayoutResult.Page? listStructurePage) {
+            double markerOffset = markerX - currentOpts.MarginLeft;
+            double textOffset = textX - currentOpts.MarginLeft;
             int lineIndex = 0;
             bool firstSegment = true;
             var listFont = ChooseNormal(currentOpts.DefaultFont);
@@ -173,7 +175,7 @@ internal static partial class PdfWriter {
                         GetFontResourceName(markerFont, markerNamedFont, ChooseNormal(currentOpts.DefaultFont)),
                         markerSize,
                         leading,
-                        markerX,
+                        currentOpts.MarginLeft + markerOffset,
                         markerWidth,
                         baselineY,
                         markerLines,
@@ -190,7 +192,7 @@ internal static partial class PdfWriter {
                 int? bodyMarkedContentId = firstSegment || listItemElement == null
                     ? RegisterTextStructureElement("LBody", listItemElementIndex)
                     : RegisterTextStructureElement("LBody", listItemElement);
-                WriteRichParagraph(sb, new RichParagraphBlock(runs, textAlign, color), segmentLines, segmentHeights, currentOpts, baselineY, size, leading, currentPage!.Annotations, textX, textWidth, structureType: "LBody", markedContentId: bodyMarkedContentId, structurePage: currentPage);
+                WriteRichParagraph(sb, new RichParagraphBlock(runs, textAlign, color), segmentLines, segmentHeights, currentOpts, baselineY, size, leading, currentPage!.Annotations, currentOpts.MarginLeft + textOffset, textWidth, structureType: "LBody", markedContentId: bodyMarkedContentId, structurePage: currentPage);
                 MarkRichFonts(runs);
                 y -= heightSum;
                 lineIndex += take;
@@ -734,6 +736,7 @@ internal static partial class PdfWriter {
         }
 
         private void RenderHorizontalRuleBlock(HorizontalRuleBlock block, double containerX, double containerWidth) {
+            double frameMarginLeft = currentOpts.MarginLeft;
             PdfHorizontalRuleStyle ruleStyle = ResolveHorizontalRuleStyle(block, currentOpts);
             ValidateHorizontalRule(ruleStyle);
             double spacingBefore = ResolveTopLevelSpacingBefore(ruleStyle.SpacingBefore);
@@ -744,6 +747,7 @@ internal static partial class PdfWriter {
                 spacingBefore = 0D;
             }
             if (spacingBefore > 0) y -= spacingBefore;
+            containerX += currentOpts.MarginLeft - frameMarginLeft;
             RecordFlowPlacement(y);
             double yLine = y - ruleStyle.Thickness * 0.5;
             DrawHLine(sb, ruleStyle.Color, ruleStyle.Thickness, containerX, containerX + containerWidth, yLine, emitGeneratedStructure);

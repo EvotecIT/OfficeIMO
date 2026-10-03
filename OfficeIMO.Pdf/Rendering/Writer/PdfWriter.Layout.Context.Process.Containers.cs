@@ -296,12 +296,13 @@ internal static partial class PdfWriter {
             PdfOptions parentOptions = currentOpts;
             double parentYStart = yStart;
             PdfOptions pageOptions = currentPage!.Options;
+            outerX = ResolveContainerFrame(style, currentOpts.MarginLeft, parentWidth).X;
             var nestedOptions = currentOpts.Clone();
             nestedOptions.MarginLeft = outerX + style.PaddingX;
             nestedOptions.MarginRight = nestedOptions.PageWidth - (outerX + outerWidth - style.PaddingX);
             nestedOptions.Validate();
 
-            var scope = new ContainerRenderScope(style, outerX, outerWidth, pageOptions);
+            var scope = new ContainerRenderScope(style, outerX, outerWidth, pageOptions, parentOptions, nestedOptions);
             activeContainerScopes.Add(scope);
             currentOpts = nestedOptions;
             width = contentWidth;
@@ -313,14 +314,14 @@ internal static partial class PdfWriter {
                 FinalizeContainerFragment(scope);
                 // Nested margin options can resolve new fallback mappings as well
                 // as glyphs. Transfer both to the page's font resource owner.
-                parentOptions.MergeFontProgramUsageFrom(nestedOptions);
+                scope.ParentOptions.MergeFontProgramUsageFrom(scope.NestedOptions);
             } finally {
                 activeContainerScopes.RemoveAt(activeContainerScopes.Count - 1);
-                currentOpts = parentOptions;
+                currentOpts = scope.ParentOptions;
                 width = parentWidth;
                 yStart = parentYStart;
                 if (currentPage != null) {
-                    currentPage.Options = pageOptions;
+                    currentPage.Options = scope.PageOptions;
                 }
             }
 
@@ -352,6 +353,7 @@ internal static partial class PdfWriter {
                 double bottomPadding = Math.Min(scope.Style.PaddingY, Math.Max(0D, y - currentOpts.MarginBottom));
                 y -= bottomPadding;
                 FinalizeContainerFragment(scope);
+                scope.ParentOptions.MergeFontProgramUsageFrom(scope.NestedOptions);
             }
         }
 
@@ -360,9 +362,19 @@ internal static partial class PdfWriter {
                 return;
             }
 
-            currentPage.Options = activeContainerScopes[0].PageOptions;
+            double marginShift = currentOpts.MarginLeft - activeContainerScopes[0].PageOptions.MarginLeft;
             for (int index = 0; index < activeContainerScopes.Count; index++) {
-                BeginContainerFragment(activeContainerScopes[index]);
+                ContainerRenderScope scope = activeContainerScopes[index];
+                scope.PageOptions = currentPage.Options;
+                scope.ParentOptions = currentOpts;
+                scope.OuterX += marginShift;
+                scope.NestedOptions = currentOpts.Clone();
+                scope.NestedOptions.MarginLeft = scope.OuterX + scope.Style.PaddingX;
+                scope.NestedOptions.MarginRight = currentOpts.PageWidth -
+                    (scope.OuterX + scope.OuterWidth - scope.Style.PaddingX);
+                currentOpts = scope.NestedOptions;
+                width = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
+                BeginContainerFragment(scope);
             }
         }
 
@@ -399,17 +411,22 @@ internal static partial class PdfWriter {
         }
 
         private sealed class ContainerRenderScope {
-            public ContainerRenderScope(PdfPanelStyle style, double outerX, double outerWidth, PdfOptions pageOptions) {
+            public ContainerRenderScope(PdfPanelStyle style, double outerX, double outerWidth, PdfOptions pageOptions,
+                PdfOptions parentOptions, PdfOptions nestedOptions) {
                 Style = style;
                 OuterX = outerX;
                 OuterWidth = outerWidth;
                 PageOptions = pageOptions;
+                ParentOptions = parentOptions;
+                NestedOptions = nestedOptions;
             }
 
             public PdfPanelStyle Style { get; }
-            public double OuterX { get; }
+            public double OuterX { get; set; }
             public double OuterWidth { get; }
-            public PdfOptions PageOptions { get; }
+            public PdfOptions PageOptions { get; set; }
+            public PdfOptions ParentOptions { get; set; }
+            public PdfOptions NestedOptions { get; set; }
             public int InsertionIndex { get; set; }
             public double FragmentTop { get; set; }
         }

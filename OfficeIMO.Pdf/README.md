@@ -1918,6 +1918,13 @@ PdfDocument.Create(pdf => pdf.Content(content => content
     .Save("draft.pdf");
 ```
 
+For facing-page layouts, set `PdfOptions.MirrorMargins = true` or use
+`page.MirrorMargins()` in a section. The authored left and right margins apply to
+odd visible page numbers and swap on even numbers. `PageNumberStart` restarts
+that parity. Flow content follows the current page frame, including automatic
+continuation through paragraphs, tables, lists, columns, and padded elements.
+Canvas coordinates remain absolute.
+
 ### Inspect and preflight before rewriting
 
 ```csharp

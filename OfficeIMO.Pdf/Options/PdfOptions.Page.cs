@@ -52,6 +52,8 @@ public sealed partial class PdfOptions {
     public double MarginLeft { get; set; } = 72; // 1 in
     /// <summary>Right margin in points. Default 72 (1 inch).</summary>
     public double MarginRight { get; set; } = 72;
+    /// <summary>Swaps the left and right margins on even visible page numbers. Numbering starts and restarts determine parity.</summary>
+    public bool MirrorMargins { get; set; }
     /// <summary>Top margin in points. Default 72 (1 inch).</summary>
     public double MarginTop { get; set; } = 72;
     /// <summary>Bottom margin in points. Default 72 (1 inch).</summary>

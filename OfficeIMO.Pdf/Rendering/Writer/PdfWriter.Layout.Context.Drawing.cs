@@ -416,6 +416,7 @@ internal static partial class PdfWriter {
         }
 
         private void RenderShapeBlock(ShapeBlock block, double containerX, double containerWidth) {
+            double frameMarginLeft = currentOpts.MarginLeft;
             PdfDrawingStyle style = ResolveDrawingStyle(block, currentOpts);
             PdfDocument.ValidateDrawingStyle(style, "Shape");
             double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
@@ -427,6 +428,7 @@ internal static partial class PdfWriter {
             }
             if (spacingBefore > 0) y -= spacingBefore;
             RecordFlowPlacement(y);
+            containerX += currentOpts.MarginLeft - frameMarginLeft;
             int? structElementIndex = DrawShapeAt(block, style, containerX, containerWidth, y);
             AddShapeLinkAnnotation(block, style, containerX, containerWidth, y, structElementIndex);
             DrawDebugFlowObjectBox(GetAlignedObjectX(containerX, containerWidth, block.Shape.Width, style.Align), y - block.Shape.Height, block.Shape.Width, block.Shape.Height);
@@ -434,6 +436,7 @@ internal static partial class PdfWriter {
         }
 
         private void RenderDrawingBlock(DrawingBlock block, double containerX, double containerWidth) {
+            double frameMarginLeft = currentOpts.MarginLeft;
             PdfDrawingStyle style = ResolveDrawingStyle(block, currentOpts);
             PdfDocument.ValidateDrawingStyle(style, "Drawing");
             double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
@@ -445,6 +448,7 @@ internal static partial class PdfWriter {
             }
             if (spacingBefore > 0) y -= spacingBefore;
             RecordFlowPlacement(y);
+            containerX += currentOpts.MarginLeft - frameMarginLeft;
             int? structElementIndex = DrawDrawingAt(block, style, containerX, containerWidth, y);
             AddDrawingLinkAnnotation(block, style, containerX, containerWidth, y, structElementIndex);
             DrawDebugFlowObjectBox(GetAlignedObjectX(containerX, containerWidth, block.Drawing.Width, style.Align), y - block.Drawing.Height, block.Drawing.Width, block.Drawing.Height);

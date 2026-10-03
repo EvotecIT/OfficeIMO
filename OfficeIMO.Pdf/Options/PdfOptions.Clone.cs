@@ -22,6 +22,7 @@ public sealed partial class PdfOptions {
             PageBackgroundShapes = ClonePageBackgroundShapes(_pageBackgroundShapes),
             MarginLeft = MarginLeft,
             MarginRight = MarginRight,
+            MirrorMargins = MirrorMargins,
             MarginTop = MarginTop,
             MarginBottom = MarginBottom,
             DefaultFont = DefaultFont,

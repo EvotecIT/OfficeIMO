@@ -2,6 +2,10 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
+        private static bool ShouldMirrorNativeMargins(WordSection section, WordToPdfOptions? options) =>
+            options?.Margins == null && section._document.Settings.MirrorMargins &&
+            !section._document.Settings.GutterAtTop;
+
         private static PdfCore.PageSize GetNativePageSize(WordSection section, WordToPdfOptions? options) {
             PdfCore.PageSize size;
             if (options?.PageSize != null) {

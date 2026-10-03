@@ -16,6 +16,11 @@ internal static partial class PdfWriter {
                         RenderCanvasEffect(new PdfCanvasEffectItem(paragraphAnchor.Items,
                             OfficeTransform.Translate(0D, currentOpts.PageHeight - (paragraphCanvasTop ?? y)), 1D, OfficeBlendMode.Normal));
                         break;
+                    case PdfCanvasMarginAnchorItem marginAnchor:
+                        RenderCanvasEffect(new PdfCanvasEffectItem(marginAnchor.Items,
+                            OfficeTransform.Translate(currentPage!.Options.MarginLeft - marginAnchor.AuthoredLeftMargin, 0D),
+                            1D, OfficeBlendMode.Normal));
+                        break;
                     case PdfCanvasArtifactItem artifact:
                         RenderCanvasArtifact(artifact);
                         break;

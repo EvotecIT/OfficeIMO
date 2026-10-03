@@ -132,6 +132,8 @@ internal static partial class PdfWriter {
 
                 double avail = y - currentOpts.MarginBottom;
                 if (avail <= 0.5) { NewPage(); avail = y - currentOpts.MarginBottom; }
+                xAcc = currentOpts.MarginLeft;
+                for (int i = 0; i < ncols; i++) { colXs[i] = xAcc; xAcc += colWs[i] + rowGap; }
 
                 int fragmentInsertionIndex = sb.Length;
                 double maxConsumed = 0;

@@ -244,6 +244,11 @@ public sealed class PdfPageBuilder {
         Options.Margins = margins;
         return this;
     }
+    /// <summary>Swaps left and right margins on even visible page numbers, including numbering restarts.</summary>
+    public PdfPageBuilder MirrorMargins(bool enabled = true) {
+        Options.MirrorMargins = enabled;
+        return this;
+    }
     /// <summary>Sets page margins (left, top, right, bottom in points).</summary>
     public PdfPageBuilder Margin(double left, double top, double right, double bottom) {
         Guard.NonNegative(left, nameof(left));
