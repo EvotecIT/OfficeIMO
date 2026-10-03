@@ -16,7 +16,14 @@ public static class LatexTokenizer {
         return Tokenize(new LatexSourceText(source, cancellationToken), options, cancellationToken);
     }
 
-    internal static IReadOnlyList<LatexToken> Tokenize(
+    internal static IReadOnlyList<LatexTokenView> TokenizeViews(string source, LatexParseOptions options,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        Validate(source, options);
+        return Tokenize(new LatexSourceText(source, cancellationToken), options, cancellationToken).Views;
+    }
+
+    internal static LatexTokenCollection Tokenize(
         LatexSourceText sourceText,
         LatexParseOptions? options = null,
         CancellationToken cancellationToken = default) {
@@ -24,7 +31,7 @@ public static class LatexTokenizer {
         string source = sourceText.Text;
         options ??= new LatexParseOptions();
         Validate(source, options);
-        var tokens = new List<LatexToken>();
+        var tokens = new LatexTokenCollection.Builder(sourceText);
         int index = 0;
         while (index < source.Length) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -84,10 +91,10 @@ public static class LatexTokenizer {
                 }
                 kind = LatexTokenKind.Text;
             }
-            tokens.Add(new LatexToken(kind, sourceText, value, start, index, isTerminated));
+            tokens.Add(new LatexTokenRecord(kind, value, start, index, isTerminated));
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return tokens;
+        return tokens.Build();
     }
 
     private static bool TryGetSingleKind(char value, out LatexTokenKind kind) {

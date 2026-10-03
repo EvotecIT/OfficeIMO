@@ -14,9 +14,9 @@ internal static class LatexParser {
         cancellationToken.ThrowIfCancellationRequested();
         LatexTokenizer.Validate(source, options);
         var sourceText = new LatexSourceText(source, cancellationToken);
-        IReadOnlyList<LatexToken> tokens = LatexTokenizer.Tokenize(sourceText, options, cancellationToken);
+        LatexTokenCollection tokens = LatexTokenizer.Tokenize(sourceText, options, cancellationToken);
         var diagnostics = new List<LatexDiagnostic>();
-        var structural = new LatexStructuralParser(sourceText, tokens, options, diagnostics, cancellationToken);
+        var structural = new LatexStructuralParser(sourceText, tokens.Views, options, diagnostics, cancellationToken);
         LatexSyntaxTree syntaxTree = structural.Parse();
         if (!syntaxTree.IsLossless) {
             diagnostics.Add(new LatexDiagnostic(

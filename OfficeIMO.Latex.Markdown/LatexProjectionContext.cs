@@ -61,7 +61,7 @@ internal sealed class LatexProjectionContext {
             inlines.Add(new LatexInlineCandidate(node.Span, null, null, node));
         }
         Verbatim = verbatim;
-        foreach (LatexToken token in document.Tokens) {
+        foreach (LatexTokenView token in document.TokenViews) {
             CheckCancellation();
             if (token.Kind != LatexTokenKind.Comment) continue;
             int end = token.Span.End.Offset;
