@@ -8,6 +8,37 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, true)]
+    public void SaveAsPdf_PaginationFragmentsIgnoreRemovedRevisionFieldMarkers(bool columnBreak, bool moveFrom, bool beginsInEarlierParagraph) {
+        using WordDocument document = WordDocument.Create();
+        if (columnBreak) document.Sections[0].ColumnCount = 2;
+        W.Paragraph paragraph = document.AddParagraph()._paragraph;
+        var begin = new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.Begin });
+        paragraph.Append(moveFrom
+            ? new W.MoveFromRun(begin) { Id = "1", Author = "OfficeIMO Tests", Date = new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc) }
+            : new W.DeletedRun(begin) { Id = "1", Author = "OfficeIMO Tests", Date = new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc) });
+        if (beginsInEarlierParagraph) paragraph = document.AddParagraph()._paragraph;
+        paragraph.Append(new W.Run(new W.Text("Before"),
+            new W.Break { Type = columnBreak ? W.BreakValues.Column : W.BreakValues.Page }, new W.Text("After")));
+        var end = new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.End });
+        paragraph.Append(moveFrom
+            ? new W.MoveFromRun(end) { Id = "2", Author = "OfficeIMO Tests", Date = new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc) }
+            : new W.DeletedRun(end) { Id = "2", Author = "OfficeIMO Tests", Date = new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc) });
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        string text = string.Join(" ", pdf.GetPages().Select(page => page.Text));
+        Assert.Equal(columnBreak ? 1 : 2, pdf.NumberOfPages);
+        Assert.Contains("Before", text);
+        Assert.Contains("After", text);
+    }
+
     [Fact]
     public void SaveAsPdf_PaginationFragmentsRetainMultipleColumnBreaks() {
         using WordDocument document = WordDocument.Create();
