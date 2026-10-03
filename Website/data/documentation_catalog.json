@@ -9,7 +9,7 @@
     "validationProjectCount": 37,
     "apiReferenceCount": 122,
     "conceptualPageCount": 97,
-    "conceptualWordCount": 44724
+    "conceptualWordCount": 44723
   },
   "categories": [
     {
@@ -1241,7 +1241,7 @@
       "projectPath": "OfficeIMO.Project/OfficeIMO.Project.csproj",
       "sourceFileCount": 188,
       "referencingTestProjectCount": 1,
-      "docsUrl": "/docs/capabilities/packages/",
+      "docsUrl": "/docs/project/",
       "apiUrl": "/api/project/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Project"
     },

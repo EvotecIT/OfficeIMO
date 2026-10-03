@@ -1,0 +1,10 @@
+[
+  {
+    "title": "Render and convert HTML",
+    "url": "/docs/html/",
+    "kind": "guide",
+    "targets": [
+      "OfficeIMO.Html.HtmlConversionDocument"
+    ]
+  }
+]

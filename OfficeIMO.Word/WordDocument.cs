@@ -13,6 +13,15 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Provides functionality for creating, loading and manipulating Word documents.
     /// </summary>
+    /// <example>
+    /// <code language="csharp">
+    /// using OfficeIMO.Word;
+    ///
+    /// using var document = WordDocument.Create();
+    /// document.AddParagraph("Hello from OfficeIMO.");
+    /// document.Save("hello.docx");
+    /// </code>
+    /// </example>
     public partial class WordDocument : IDisposable, IAsyncDisposable {
         internal int? _tableOfContentIndex;
         internal WordTableOfContentsStyle? _tableOfContentStyle;
