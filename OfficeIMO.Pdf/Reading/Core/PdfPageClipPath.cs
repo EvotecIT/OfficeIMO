@@ -907,7 +907,15 @@ internal readonly partial struct PdfPageClipPath {
     internal bool CanProveNoPositiveAreaIntersection(
         PdfPageClipPath other,
         PdfReadPage.VisualGeometryBudget geometryBudget) {
-        if (!IsExact || !other.IsExact || ContainsCurve(Commands) || ContainsCurve(other.Commands)) return false;
+        if (!IsExact || !other.IsExact) return false;
+        if (geometryBudget.Exceeded || Commands.Count > PdfReadPage.VisualGeometryBudget.MaximumFlattenedPoints ||
+            other.Commands.Count > PdfReadPage.VisualGeometryBudget.MaximumFlattenedPoints) {
+            geometryBudget.Exhaust();
+            return false;
+        }
+        if (!geometryBudget.TryUseOperations(Commands.Count) ||
+            !geometryBudget.TryUseOperations(other.Commands.Count)) return false;
+        if (ContainsCurve(Commands) || ContainsCurve(other.Commands)) return false;
         List<List<OfficePoint>> first = GetContours(this);
         List<List<OfficePoint>> second = GetContours(other);
         if (first.Count == 0 || second.Count == 0 ||
