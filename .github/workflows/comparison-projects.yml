@@ -1,7 +1,19 @@
-name: Verify comparison projects (manual)
+name: Verify optional qualification suites (manual)
 
 on:
   workflow_dispatch:
+    inputs:
+      suite:
+        description: Qualification suite
+        type: choice
+        default: comparisons
+        options:
+          - comparisons
+          - html-static
+      source_ref:
+        description: Source commit or branch (empty uses the selected workflow revision)
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -14,6 +26,7 @@ env:
 
 jobs:
   build:
+    if: inputs.suite == 'comparisons'
     name: Build isolated comparisons
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
@@ -52,3 +65,48 @@ jobs:
             dotnet restore $project
             dotnet build $project --configuration $env:BUILD_CONFIGURATION --no-restore
           }
+
+  html-static:
+    if: inputs.suite == 'html-static'
+    name: Static HTML qualification / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_ref || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Validate static conversion correctness
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          foreach ($framework in @('net8.0', 'net10.0')) {
+            dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj --configuration Release --framework $framework --filter 'Category!=Performance' --logger "trx;LogFileName=html-$framework.trx" --results-directory "$env:RUNNER_TEMP/html-static-tests"
+          }
+      - name: Validate packed public consumers
+        shell: pwsh
+        run: ./Build/Test-HtmlPackages.ps1
+      - name: Enforce opt-in static resource budgets
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet run --project Build/HtmlStaticBudget/OfficeIMO.Html.StaticBudget.csproj --configuration Release -- --iterations 3 --require-clean-source --output "$env:RUNNER_TEMP/html-static-budget"
+      - name: Retain qualification reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: html-static-qualification-${{ matrix.os }}
+          path: |
+            ${{ runner.temp }}/html-static-tests
+            ${{ runner.temp }}/html-static-budget
+          if-no-files-found: warn
+          retention-days: 7
