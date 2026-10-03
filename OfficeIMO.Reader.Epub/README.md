@@ -5,6 +5,13 @@
 
 `OfficeIMO.Reader.Epub` bridges `OfficeIMO.Epub` output into `OfficeIMO.Reader.Core` chunk contracts.
 
+Rich document metadata includes `RequestedChapterCount`, `SkippedChapterCount`,
+`ChaptersComplete`, and `UsedFallbackScan`. Limit and unreadable-content diagnostics
+retain their EPUB codes and source locations. The reader preserves distinct repeated
+spine positions and forwards cancellation into package reading and parsing.
+Configure `EpubReadOptions.MaxTotalTextCharacters` to bound the aggregate extracted
+text; its default is 32 Mi UTF-16 characters.
+
 ## Install
 
 ```powershell

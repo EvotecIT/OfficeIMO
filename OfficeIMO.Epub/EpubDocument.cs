@@ -13,6 +13,14 @@ public sealed partial class EpubDocument {
     /// <summary>Loads an EPUB document from a caller-owned stream.</summary>
     public static EpubDocument Load(Stream stream, EpubReadOptions? options = null) => EpubReader.Read(stream, options);
 
+    /// <summary>Loads a file with cancellation during package reading and parsing.</summary>
+    public static EpubDocument Load(string path, EpubReadOptions? options, CancellationToken cancellationToken) =>
+        EpubReader.Read(path, options, cancellationToken);
+
+    /// <summary>Loads a caller-owned stream with cancellation during reading and parsing.</summary>
+    public static EpubDocument Load(Stream stream, EpubReadOptions? options, CancellationToken cancellationToken) =>
+        EpubReader.Read(stream, options, cancellationToken);
+
     /// <summary>Asynchronously loads an EPUB document from a file.</summary>
     public static async Task<EpubDocument> LoadAsync(
         string path,
@@ -93,6 +101,9 @@ public sealed partial class EpubDocument {
     /// Extracted chapters.
     /// </summary>
     public IReadOnlyList<EpubChapter> Chapters { get; internal set; } = Array.Empty<EpubChapter>();
+
+    /// <summary>Chapter extraction counts and completeness under the selected reading policy.</summary>
+    public EpubReadSummary ReadSummary { get; internal set; } = new EpubReadSummary();
 
     /// <summary>
     /// OPF manifest resources in deterministic package order.

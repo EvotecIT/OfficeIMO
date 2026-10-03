@@ -120,6 +120,23 @@ The ODS evaluator follows OpenFormula precedence: `-2^2` evaluates to `4`, and `
 
 ODT-to-Word conversion enforces aggregate table expansion limits before allocation. Adjust `WordOpenDocumentConversionOptions` for trusted larger workloads. Reader OpenDocument format settings belong to `ReaderOpenDocumentOptions`, passed to `AddOpenDocumentHandler`; generic size and password settings remain in `ReaderOptions`.
 
+## EPUB reading positions, text, and completeness
+
+EPUB extraction preserves repeated and empty spine positions. Applications that
+deduplicate or count chapters by resource path should use `SpineIndex` or `Order`
+for reading positions and retain path-based identity only for resources.
+`PreferSpineOrder = false` changes ordering while retaining spine selection;
+it does not include non-linear or unreferenced archive content implicitly.
+
+Extracted inline text no longer gains spaces between formatting elements.
+Rebuild persisted text hashes or search indexes when this changes their stored values.
+Invalid chapter encodings produce `epub.chapter.invalid-encoding` and are skipped.
+
+`MaxTotalTextCharacters` defaults to 32 Mi UTF-16 characters. Increase it explicitly
+when a larger publication is required. Check `ReadSummary.IsComplete` and structured
+diagnostics when limits or unreadable content can produce partial output; archive
+recovery scanning cannot establish publication completeness.
+
 ## Conversion batches replace the PDF archive surface
 
 Replace `OfficePdfArchiveWorkflow.RunAsync(OfficePdfArchiveRequest)` with `OfficeWorkflowRunner.RunBatchAsync(OfficeConversionBatchRequest)` or `OfficeWorkflow.ConvertDirectory(...).ToDirectory(...).RunAsync()`. The batch uses the existing executable route catalog and can select other targets. Checkpoints are optional; ordinary batches also use the existing rename/replace policies. `OfficeConversionBatchResult` includes skipped counts, and `OfficeConversionBatchItemResult` distinguishes skipped files from failed conversions.
