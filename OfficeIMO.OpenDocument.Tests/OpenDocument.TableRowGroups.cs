@@ -7,6 +7,26 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OdfTableRowGroupTests {
+    [Fact]
+    public void DeepRowGroupsKeepOrderedReadsAndSparseEditsOffTheCallStack() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        XElement table = document.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Table + "table").Single();
+        XElement firstRow = table.Elements(OdfNamespaces.Table + "table-row").Single();
+        XElement nested = new XElement(firstRow);
+        for (int depth = 0; depth < 8192; depth++)
+            nested = new XElement(OdfNamespaces.Table + "table-row-group", nested);
+        table.Add(nested);
+        document.MarkPartDirty("content.xml");
+
+        Assert.Equal(2, sheet.RowCount);
+        sheet.Cell(0, 0).SetString("First");
+        sheet.Cell(1, 0).SetString("Second");
+        Assert.Equal(new[] { "First", "Second" },
+            sheet.RowRuns.Select(run => run.CellRuns[0].Value.DisplayText));
+    }
+
     [Theory]
     [InlineData("table-row-group")]
     [InlineData("table-rows")]
