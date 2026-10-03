@@ -4,6 +4,37 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class DrawingPngWriterTests {
         [Theory]
+        [InlineData(1)]
+        [InlineData(5)]
+        [InlineData(6)]
+        [InlineData(7)]
+        [InlineData(4095)]
+        [InlineData(4097)]
+        public void TrueColorScanlinesExpandEveryRgbChannelAndOpaqueAlphaAcrossTails(int width) {
+            const int height = 3;
+            var scanlines = new byte[(width * 3 + 1) * height];
+            var expected = new byte[width * height * 4];
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    int source = y * (width * 3 + 1) + 1 + x * 3;
+                    int target = (y * width + x) * 4;
+                    for (int channel = 0; channel < 3; channel++) {
+                        byte value = unchecked((byte)(x * (31 + channel * 46) + y * 128 + channel));
+                        scanlines[source + channel] = value;
+                        expected[target + channel] = value;
+                    }
+                    expected[target + 3] = 255;
+                }
+            }
+
+            byte[] png = OfficePngWriter.EncodeScanlines(width, height, 8, 2, scanlines);
+
+            Assert.True(OfficePngReader.TryDecode(png, out OfficeRasterImage? decoded));
+            Assert.NotNull(decoded);
+            Assert.Equal(expected, decoded!.GetPixels());
+        }
+
+        [Theory]
         [InlineData(15)]
         [InlineData(16)]
         [InlineData(17)]
