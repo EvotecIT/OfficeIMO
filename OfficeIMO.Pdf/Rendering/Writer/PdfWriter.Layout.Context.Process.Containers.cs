@@ -368,7 +368,8 @@ internal static partial class PdfWriter {
                 scope.PageOptions = currentPage.Options;
                 scope.ParentOptions = currentOpts;
                 scope.OuterX += marginShift;
-                scope.NestedOptions = currentOpts.Clone();
+                // Only the frame changes during continuation. Reuse child options
+                // and their accumulated font usage instead of copying assets per page.
                 scope.NestedOptions.MarginLeft = scope.OuterX + scope.Style.PaddingX;
                 scope.NestedOptions.MarginRight = currentOpts.PageWidth -
                     (scope.OuterX + scope.OuterWidth - scope.Style.PaddingX);

@@ -24,6 +24,7 @@ internal static partial class PdfWriter {
         private bool encounteredTableOfContents;
         private PdfOptions currentOpts;
         private PdfOptions currentPageBaseOptions;
+        private readonly Dictionary<PdfOptions, PdfOptions> mirroredPageOptions = new();
         private readonly HashSet<int> emittedPageGroups = new();
         private int previousVisiblePageNumber;
         private int currentVisiblePageNumber;
@@ -104,9 +105,15 @@ internal static partial class PdfWriter {
                 !emittedPageGroups.Contains(currentPageGroupId), previousVisiblePageNumber, options);
             currentOpts = options;
             if (options.MirrorMargins && currentVisiblePageNumber % 2 == 0) {
-                currentOpts = options.Clone();
-                currentOpts.MarginLeft = options.MarginRight;
-                currentOpts.MarginRight = options.MarginLeft;
+                // Keep one effective frame per source options instance. Deep copies
+                // retain document assets and font state, so they must not grow per page.
+                if (!mirroredPageOptions.TryGetValue(options, out PdfOptions? mirrored)) {
+                    mirrored = options.Clone();
+                    mirrored.MarginLeft = options.MarginRight;
+                    mirrored.MarginRight = options.MarginLeft;
+                    mirroredPageOptions.Add(options, mirrored);
+                }
+                currentOpts = mirrored;
             }
             width = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
             yStart = currentOpts.PageHeight - currentOpts.MarginTop;
