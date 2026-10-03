@@ -69,7 +69,7 @@ internal static partial class EpubReaderAdapter {
             chunks.Add(chunk);
         }
         if (chunks.Count == 0 && nonContentWarnings.Count > 0) {
-            chunks.Add(BuildStructuredOnlyChapterChunk(
+            chunks.Add(BuildEmptyChapterChunk(
                 chapter,
                 source,
                 options,
@@ -108,7 +108,7 @@ internal static partial class EpubReaderAdapter {
                chunk.Warnings?.Any(warning => string.Equals(warning, HtmlNoMarkdownWarning, StringComparison.Ordinal)) == true;
     }
 
-    private static ReaderChunk BuildStructuredOnlyChapterChunk(
+    private static ReaderChunk BuildEmptyChapterChunk(
         EpubChapter chapter,
         SourceMetadata source,
         ReaderOptions options,

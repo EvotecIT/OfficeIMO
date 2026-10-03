@@ -220,6 +220,8 @@ internal static partial class EpubReader {
 
     private sealed class EpubDiagnosticCollector {
         private readonly List<EpubDiagnostic> _items = new List<EpubDiagnostic>();
+        private readonly HashSet<(string Code, EpubDiagnosticSeverity Severity, string Message, string? Path, string? MediaType)> _seen =
+            new HashSet<(string, EpubDiagnosticSeverity, string, string?, string?)>();
 
         public IReadOnlyList<EpubDiagnostic> Items => _items.ToArray();
 
@@ -240,6 +242,9 @@ internal static partial class EpubReader {
             string message,
             string? path,
             string? mediaType) {
+            // Reading positions may repeat one resource. Report its identical failure once;
+            // the read summary still counts every requested and skipped position.
+            if (!_seen.Add((code, severity, message, path, mediaType))) return;
             _items.Add(new EpubDiagnostic {
                 Code = code,
                 Severity = severity,

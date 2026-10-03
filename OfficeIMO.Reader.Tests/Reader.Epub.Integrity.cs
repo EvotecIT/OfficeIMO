@@ -7,6 +7,18 @@ using static OfficeIMO.Shared.Tests.EpubIntegrityFixtures;
 namespace OfficeIMO.Tests;
 
 public sealed class ReaderEpubIntegrityTests {
+    [Fact]
+    public void ChunkReader_PreservesEmptyRepeatedPositionsWhenRawHtmlIsNotRetained() {
+        byte[] package = Package(new[] { ("c", "chapter.xhtml", "application/xhtml+xml", "") },
+            "<itemref idref='c'/><itemref idref='c'/>", new[] { ("chapter.xhtml", Xhtml("")) });
+        ReaderChunk[] chunks = EpubReaderAdapter.Read(new MemoryStream(package), "empty.epub",
+            epubOptions: new EpubReadOptions { MaxTotalRawHtmlBytes = 1 }).Where(chunk => chunk.Location.SourceBlockKind == "chapter").ToArray();
+        Assert.Equal(2, chunks.Length);
+        Assert.Equal(new int?[] { 0, 1 }, chunks.Select(chunk => chunk.Location.SourceBlockIndex));
+        Assert.Equal(2, chunks.Select(chunk => chunk.Id).Distinct().Count());
+        Assert.All(chunks, chunk => Assert.Empty(chunk.Text));
+    }
+
     [Theory]
     [InlineData("count", "epub.chapter.count-limit")]
     [InlineData("text", "epub.chapter.text-total-limit")]

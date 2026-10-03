@@ -6,6 +6,25 @@ using static OfficeIMO.Shared.Tests.EpubIntegrityFixtures;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed class EpubReaderFeedbackContracts {
+    [Theory]
+    [InlineData("malformed", "epub.chapter.invalid-xhtml")]
+    [InlineData("oversized", "epub.chapter.size-limit")]
+    [InlineData("missing", "epub.spine.resource-missing")]
+    [InlineData("unsupported", "epub.spine.unsupported-media-type")]
+    public void Load_RepeatedFailedPositionsKeepDiagnosticsBounded(string failure, string code) {
+        const int positions = 10_000;
+        byte[] package = Package(new[] { ("c", "chapter.xhtml", failure == "unsupported" ? "text/plain" : "application/xhtml+xml", "") },
+            string.Concat(Enumerable.Repeat("<itemref idref='c'/>", positions)), failure == "missing" ? Array.Empty<(string, string)>() :
+            new[] { ("chapter.xhtml", failure == "malformed" ? "<html>" : Xhtml("<p>Body</p>")) });
+        EpubDocument book = EpubDocument.Load(new MemoryStream(package), new EpubReadOptions {
+            MaxChapterBytes = failure == "oversized" ? 1 : null });
+        Assert.Empty(book.Chapters);
+        Assert.Equal(positions, book.ReadSummary.RequestedChapterCount);
+        Assert.Equal(positions, book.ReadSummary.SkippedChapterCount);
+        Assert.Single(book.Diagnostics, diagnostic => diagnostic.Code == code);
+        Assert.InRange(book.Diagnostics.Count, 1, 10);
+    }
+
     [Fact]
     public void Load_ArchiveOrderingPreservesSelectedAndRepeatedPositions() {
         byte[] package = Package(new[] { ("z", "z.xhtml", "application/xhtml+xml", ""),

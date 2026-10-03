@@ -59,6 +59,8 @@ Chapter count, chapter byte, and total text limits produce diagnostics when sele
 content is omitted. Total text is measured in UTF-16 characters and defaults to
 32 Mi characters. Adjust the budget explicitly for larger publications.
 Malformed character encodings are diagnosed and skipped rather than replaced silently.
+Repeated positions that fail for the same reason produce one identical diagnostic;
+the read summary still counts every skipped position.
 
 Spine selection is independent of ordering: repeated references remain distinct
 chapters, and `PreferSpineOrder = false` does not bypass non-linear exclusion.
