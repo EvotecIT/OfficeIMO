@@ -26,6 +26,8 @@ public static class EpubImageExportExtensions {
             "epub.resource.size-limit",
             "epub.resource.total-size-limit",
             "epub.spine.manifest-id-missing",
+            "epub.spine.fallback-missing",
+            "epub.spine.fallback-cycle",
             "epub.spine.remote-resource",
             "epub.spine.resource-missing",
             "epub.spine.unsupported-media-type"

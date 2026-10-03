@@ -33,6 +33,7 @@ internal static partial class EpubReader {
                     continue;
                 }
 
+                string primaryResourcePath = manifestItem.FullPath;
                 ManifestItem? selected = ResolveChapterResource(package, manifestItem, fallbackSelections, diagnostics, cancellationToken);
                 if (selected == null) continue;
                 manifestItem = selected;
@@ -57,6 +58,7 @@ internal static partial class EpubReader {
                 candidates.Add(new ChapterCandidate {
                     Entry = chapterEntry,
                     Path = chapterPath,
+                    PrimaryResourcePath = primaryResourcePath,
                     ManifestId = manifestItem.Id,
                     MediaType = manifestItem.MediaType,
                     SpineIndex = spineItem.SpineIndex,
@@ -456,10 +458,11 @@ internal static partial class EpubReader {
         localName.Equals("object", StringComparison.OrdinalIgnoreCase) ||
         localName.Equals("canvas", StringComparison.OrdinalIgnoreCase);
 
-    private static string? ResolveChapterTitle(ChapterMarkupInfo chapter, Dictionary<string, string> navTitleMap, string chapterPath) {
+    private static string? ResolveChapterTitle(ChapterMarkupInfo chapter, Dictionary<string, string> navTitleMap, string chapterPath, string? selectedPath = null) {
         if (navTitleMap.TryGetValue(chapterPath, out var navTitle) && !string.IsNullOrWhiteSpace(navTitle)) {
             return navTitle;
         }
+        if (selectedPath != null && navTitleMap.TryGetValue(selectedPath, out navTitle) && !string.IsNullOrWhiteSpace(navTitle)) return navTitle;
         return chapter.Title ?? chapter.Heading;
     }
 

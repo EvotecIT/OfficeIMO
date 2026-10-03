@@ -184,7 +184,7 @@ internal static partial class EpubReader {
                 }
             }
             emitted++;
-            string? title = ResolveChapterTitle(chapterMarkup, navigation.TitleMap, normalizedPath);
+            string? title = ResolveChapterTitle(chapterMarkup, navigation.TitleMap, candidate.PrimaryResourcePath ?? normalizedPath, normalizedPath);
 
             chapters.Add(new EpubChapter {
                 Order = emitted,
