@@ -18,6 +18,8 @@ result.Pipeline.RequireSuccess(); // exact output pipeline gate
 
 The zero-options resource policy is inherited from `MarkdownToPdfOptions`: system fonts and bounded in-source resources are allowed, while arbitrary local and remote reads require explicit trust configuration.
 
+Display metadata, figure and table captions, and theorem titles retain their decoded visible text. Table captions remain visible even when the table has no cell content. TeX numbering, placement, and nested formatting that a scalar caption cannot express remain diagnosed projection limits.
+
 ## Dependency footprint
 
 - **External:** None.

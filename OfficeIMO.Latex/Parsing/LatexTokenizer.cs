@@ -34,7 +34,7 @@ public static class LatexTokenizer {
             LatexTokenKind kind;
             string? value = null;
             bool isTerminated = true;
-            if (current == '\\' && TryReadVerbatim(source, options, ref index, out value, out isTerminated)) {
+            if (current == '\\' && TryReadVerbatim(source, options, ref index, out value, out isTerminated, cancellationToken)) {
                 kind = LatexTokenKind.Verbatim;
             } else if (current == '\\') {
                 index++;
@@ -86,6 +86,7 @@ public static class LatexTokenizer {
             }
             tokens.Add(new LatexToken(kind, sourceText, value, start, index, isTerminated));
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return tokens;
     }
 
@@ -117,7 +118,7 @@ public static class LatexTokenizer {
         LatexParseOptions options,
         ref int index,
         out string? value,
-        out bool isTerminated) {
+        out bool isTerminated, CancellationToken cancellationToken) {
         value = null;
         isTerminated = true;
         int start = index;
@@ -128,21 +129,24 @@ public static class LatexTokenizer {
                 IsControlWordCharacter(source[delimiterIndex])) return false;
             char delimiter = source[delimiterIndex];
             int contentStart = delimiterIndex + 1;
-            int lineEnd = contentStart;
-            while (lineEnd < source.Length && source[lineEnd] != '\r' && source[lineEnd] != '\n') lineEnd++;
-            int close = source.IndexOf(delimiter, contentStart, lineEnd - contentStart);
-            index = close >= 0 ? close + 1 : lineEnd;
+            int close = contentStart;
+            while (close < source.Length && source[close] != delimiter && source[close] != '\r' && source[close] != '\n') {
+                if ((close & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                close++;
+            }
+            bool terminated = close < source.Length && source[close] == delimiter;
+            index = terminated ? close + 1 : close;
             value = "verb";
-            isTerminated = close >= 0;
+            isTerminated = terminated;
             return true;
         }
 
         if (!LatexVerbatimSyntax.TryReadEnvironmentOpening(
-                source, start, out string environmentName, out int environmentContentStart)) return false;
+                source, start, out string environmentName, out int environmentContentStart, cancellationToken)) return false;
         if (!options.VerbatimEnvironmentNames.Contains(environmentName)) return false;
 
         bool hasClosing = LatexVerbatimSyntax.TryFindEnvironmentClosing(
-            source, environmentContentStart, environmentName, out _, out int closingEnd);
+            source, environmentContentStart, environmentName, out _, out int closingEnd, cancellationToken);
         index = hasClosing ? closingEnd : source.Length;
         value = environmentName;
         isTerminated = hasClosing;

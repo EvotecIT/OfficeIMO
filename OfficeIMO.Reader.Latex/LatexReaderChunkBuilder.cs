@@ -9,7 +9,9 @@ internal static class LatexReaderChunkBuilder {
         CancellationToken cancellationToken) {
         LatexMarkdownProjection projection = LatexToMarkdownConverter.Project(result.Document, options.MarkdownOptions, cancellationToken);
         var parse = new LatexParseResult(projection.Document, projection.Document.Diagnostics);
-        IReadOnlyList<LatexDiagnostic> globalParseDiagnostics = FindUnattachedDiagnostics(parse, projection.Blocks);
+        var parseByBlock = new List<LatexDiagnostic>[projection.Blocks.Count];
+        for (int index = 0; index < parseByBlock.Length; index++) parseByBlock[index] = new List<LatexDiagnostic>();
+        IReadOnlyList<LatexDiagnostic> globalParseDiagnostics = PartitionDiagnostics(parse, projection.Blocks, parseByBlock, cancellationToken);
         var headingStack = new List<HeadingState>();
         int emitted = 0;
         for (int sourceIndex = 0; sourceIndex < projection.Blocks.Count; sourceIndex++) {
@@ -20,17 +22,22 @@ internal static class LatexReaderChunkBuilder {
                 headingStack.Add(new HeadingState(heading.Level, heading.Text));
             }
             string markdown = block.Markdown;
-            string text = block.Text;
-            if (string.IsNullOrWhiteSpace(text)) text = markdown;
-            IReadOnlyList<string> parts = Split(text, readerOptions.MaxChars);
+            IReadOnlyList<LatexTextSegment> content = block.TextSegments(cancellationToken);
+            if (content.All(static segment => string.IsNullOrWhiteSpace(segment.Text)) && !string.IsNullOrWhiteSpace(markdown))
+                content = new[] { new LatexTextSegment(markdown, "markdown") };
+            IReadOnlyList<LatexReaderPart> parts = LatexReaderTextSplitter.Split(content, readerOptions.MaxChars, cancellationToken);
             if (parts.Count == 0 && options.IncludeDiagnostics && (block.Diagnostics.Count > 0 ||
-                parse.Diagnostics.Any(diagnostic => diagnostic.Span.Start.Offset >= block.Span.Start.Offset && diagnostic.Span.End.Offset <= block.Span.End.Offset))) {
-                parts = new[] { string.Empty };
+                parseByBlock[sourceIndex].Count > 0)) {
+                parts = new[] { new LatexReaderPart(string.Empty, string.Empty) };
             }
+            bool firstChunk = emitted == 0;
+            IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics = firstChunk
+                ? projection.GlobalDiagnostics.Concat(block.Diagnostics).ToArray() : block.Diagnostics;
+            IReadOnlyList<string>? warnings = options.IncludeDiagnostics ? BuildWarnings(parse.Document.IsRecognizedProfile, parseByBlock[sourceIndex], block.Diagnostics, parts.Count > 1, cancellationToken) : null;
+            IReadOnlyList<string>? firstWarnings = options.IncludeDiagnostics && firstChunk
+                ? BuildWarnings(parse.Document.IsRecognizedProfile, parseByBlock[sourceIndex], diagnostics, parts.Count > 1, cancellationToken, globalParseDiagnostics) : warnings;
             for (int partIndex = 0; partIndex < parts.Count; partIndex++) {
-                bool firstChunk = emitted == 0;
-                IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics = firstChunk
-                    ? projection.GlobalDiagnostics.Concat(block.Diagnostics).ToArray() : block.Diagnostics;
+                cancellationToken.ThrowIfCancellationRequested();
                 yield return new ReaderChunk {
                     Id = parts.Count == 1 ? "latex-" + sourceIndex : "latex-" + sourceIndex + "-part-" + (partIndex + 1),
                     Kind = ReaderInputKind.Latex,
@@ -40,26 +47,27 @@ internal static class LatexReaderChunkBuilder {
                         HeadingPath = headingStack.Count == 0 ? null : string.Join(" > ", headingStack.Select(static item => item.Title)),
                         SourceBlockKind = block.Kind, BlockAnchor = "latex-block-" + sourceIndex
                     },
-                    Text = parts[partIndex], Markdown = parts.Count == 1 ? markdown : parts[partIndex],
+                    Text = parts[partIndex].Text, Markdown = parts.Count == 1 ? markdown : parts[partIndex].Markdown,
                     Diagnostics = new ReaderChunkDiagnostics { SourceKind = "latex" },
-                    Warnings = options.IncludeDiagnostics ? BuildWarnings(parse, diagnostics, block.Span, parts.Count > 1,
-                        firstChunk ? globalParseDiagnostics : null) : null
+                    Warnings = partIndex == 0 ? firstWarnings : warnings
                 };
             }
         }
         string metadataMarkdown = emitted == 0 ? projection.Result.Value.ToMarkdown().TrimEnd() : string.Empty;
         if (emitted == 0 && (!string.IsNullOrWhiteSpace(metadataMarkdown) || options.IncludeDiagnostics && (projection.GlobalDiagnostics.Count > 0 || parse.Diagnostics.Count > 0))) {
-            IReadOnlyList<string> parts = Split(metadataMarkdown, readerOptions.MaxChars);
-            if (parts.Count == 0) parts = new[] { string.Empty };
+            IReadOnlyList<LatexReaderPart> parts = LatexReaderTextSplitter.Split(new[] { new LatexTextSegment(metadataMarkdown) }, readerOptions.MaxChars, cancellationToken);
+            IReadOnlyList<string>? firstWarnings = options.IncludeDiagnostics ? BuildWarnings(parse.Document.IsRecognizedProfile, parse.Diagnostics, projection.GlobalDiagnostics, parts.Count > 1, cancellationToken) : null;
+            IReadOnlyList<string>? splitWarnings = options.IncludeDiagnostics ? BuildWarnings(true, Array.Empty<LatexDiagnostic>(), Array.Empty<LatexMarkdownConversionDiagnostic>(), parts.Count > 1, cancellationToken) : null;
+            if (parts.Count == 0) parts = new[] { new LatexReaderPart(string.Empty, string.Empty) };
             for (int index = 0; index < parts.Count; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 yield return new ReaderChunk {
                     Id = parts.Count == 1 ? "latex-metadata" : "latex-metadata-part-" + (index + 1), Kind = ReaderInputKind.Latex,
                     Location = new ReaderLocation { Path = sourceName, BlockIndex = index, SourceBlockIndex = 0,
                         StartLine = 1, EndLine = projection.Document.Source.LineCount, SourceBlockKind = "metadata", BlockAnchor = "latex-metadata" },
-                    Text = parts[index], Markdown = parts[index],
+                    Text = parts[index].Text, Markdown = parts.Count == 1 ? metadataMarkdown : parts[index].Markdown,
                     Diagnostics = new ReaderChunkDiagnostics { SourceKind = "latex" },
-                    Warnings = options.IncludeDiagnostics ? BuildWarnings(parse, projection.GlobalDiagnostics, projection.Document.SyntaxTree.Root.Span, parts.Count > 1) : null
+                    Warnings = index == 0 ? firstWarnings : splitWarnings
                 };
             }
         }
@@ -71,10 +79,19 @@ internal static class LatexReaderChunkBuilder {
         LatexMarkdownProjection projection = LatexToMarkdownConverter.Project(result.Document, options.MarkdownOptions, cancellationToken);
         var parse = new LatexParseResult(projection.Document, projection.Document.Diagnostics);
         string markdown = projection.Result.Value.ToMarkdown().TrimEnd();
-        string text = string.Join("\n\n", projection.Blocks.Select(static block => block.Text).Where(static text => !string.IsNullOrWhiteSpace(text)));
-        if (string.IsNullOrWhiteSpace(text)) text = markdown;
-        IReadOnlyList<string> parts = Split(text, readerOptions.MaxChars);
-        if (parts.Count == 0 && options.IncludeDiagnostics && (projection.Result.Report.Diagnostics.Count > 0 || parse.Diagnostics.Count > 0)) parts = new[] { string.Empty };
+        var segments = new List<LatexTextSegment>();
+        foreach (LatexProjectedBlock block in projection.Blocks) {
+            cancellationToken.ThrowIfCancellationRequested();
+            IReadOnlyList<LatexTextSegment> content = block.TextSegments(cancellationToken);
+            if (content.All(static segment => string.IsNullOrWhiteSpace(segment.Text))) continue;
+            if (segments.Count > 0) segments.Add(new LatexTextSegment("\n\n"));
+            segments.AddRange(content);
+        }
+        if (segments.Count == 0) segments.Add(new LatexTextSegment(markdown));
+        IReadOnlyList<LatexReaderPart> parts = LatexReaderTextSplitter.Split(segments, readerOptions.MaxChars, cancellationToken);
+        IReadOnlyList<string>? firstWarnings = options.IncludeDiagnostics ? BuildWarnings(parse.Document.IsRecognizedProfile, parse.Diagnostics, projection.Result.Report.Diagnostics, parts.Count > 1, cancellationToken) : null;
+        IReadOnlyList<string>? splitWarnings = options.IncludeDiagnostics ? BuildWarnings(true, Array.Empty<LatexDiagnostic>(), Array.Empty<LatexMarkdownConversionDiagnostic>(), parts.Count > 1, cancellationToken) : null;
+        if (parts.Count == 0 && options.IncludeDiagnostics && (projection.Result.Report.Diagnostics.Count > 0 || parse.Diagnostics.Count > 0)) parts = new[] { new LatexReaderPart(string.Empty, string.Empty) };
         for (int index = 0; index < parts.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             yield return new ReaderChunk {
@@ -83,58 +100,57 @@ internal static class LatexReaderChunkBuilder {
                     Path = sourceName, BlockIndex = index, SourceBlockIndex = 0, StartLine = 1,
                     EndLine = projection.Document.Source.LineCount, SourceBlockKind = "document", BlockAnchor = "latex-document"
                 },
-                Text = parts[index], Markdown = parts.Count == 1 ? markdown : parts[index],
+                Text = parts[index].Text, Markdown = parts.Count == 1 ? markdown : parts[index].Markdown,
                 Diagnostics = new ReaderChunkDiagnostics { SourceKind = "latex" },
-                Warnings = options.IncludeDiagnostics ? BuildWarnings(parse, projection.Result.Report.Diagnostics, projection.Document.SyntaxTree.Root.Span, parts.Count > 1) : null
+                Warnings = index == 0 ? firstWarnings : splitWarnings
             };
         }
     }
 
     private static IReadOnlyList<string>? BuildWarnings(
-        LatexParseResult parse,
+        bool recognizedProfile,
+        IReadOnlyList<LatexDiagnostic> localParseDiagnostics,
         IReadOnlyList<LatexMarkdownConversionDiagnostic> conversion,
-        LatexSourceSpan span,
         bool split,
+        CancellationToken cancellationToken,
         IReadOnlyList<LatexDiagnostic>? globalParseDiagnostics = null) {
-        var warnings = parse.Diagnostics.Where(diagnostic => diagnostic.Span.Start.Offset >= span.Start.Offset && diagnostic.Span.End.Offset <= span.End.Offset)
-            .Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message).ToList();
-        if (globalParseDiagnostics != null) warnings.AddRange(globalParseDiagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message));
-        if (!parse.Document.IsRecognizedProfile) warnings.Add("LATEXR001: Source is not a recognized OfficeIMO LaTeX article, report, or book profile; preserved structures may be incomplete.");
-        warnings.AddRange(conversion.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message));
-        if (split) warnings.Add("LaTeX content was split due to ReaderOptions.MaxChars.");
+        var warnings = new List<string>();
+        foreach (LatexDiagnostic diagnostic in localParseDiagnostics) {
+            cancellationToken.ThrowIfCancellationRequested();
+            warnings.Add(diagnostic.Code + ": " + diagnostic.Message);
+        }
+        if (globalParseDiagnostics != null) {
+            foreach (LatexDiagnostic diagnostic in globalParseDiagnostics) {
+                cancellationToken.ThrowIfCancellationRequested();
+                warnings.Add(diagnostic.Code + ": " + diagnostic.Message);
+            }
+        }
+        if (!recognizedProfile) warnings.Add("LATEXR001: Source is not a recognized OfficeIMO LaTeX article, report, or book profile; preserved structures may be incomplete.");
+        foreach (LatexMarkdownConversionDiagnostic diagnostic in conversion) {
+            cancellationToken.ThrowIfCancellationRequested();
+            warnings.Add(diagnostic.Code + ": " + diagnostic.Message);
+        }
+        if (split) warnings.Add("LaTeX content was split due to ReaderOptions.MaxChars; split Markdown flattens layout and formatting while retaining literal text, code, and label anchors.");
         return warnings.Count == 0 ? null : warnings;
     }
 
-    private static IReadOnlyList<LatexDiagnostic> FindUnattachedDiagnostics(LatexParseResult parse, IReadOnlyList<LatexProjectedBlock> blocks) {
+    // Assign each parser diagnostic once. Repeated chunks reuse their block warnings.
+    private static IReadOnlyList<LatexDiagnostic> PartitionDiagnostics(LatexParseResult parse, IReadOnlyList<LatexProjectedBlock> blocks,
+        List<LatexDiagnostic>[] byBlock, CancellationToken cancellationToken) {
         var unattached = new List<LatexDiagnostic>();
-        int index = 0;
-        foreach (LatexDiagnostic diagnostic in parse.Diagnostics.OrderBy(static item => item.Span.Start.Offset)) {
-            while (index < blocks.Count && blocks[index].Span.End.Offset < diagnostic.Span.Start.Offset) index++;
-            if (index == blocks.Count || diagnostic.Span.Start.Offset < blocks[index].Span.Start.Offset || diagnostic.Span.End.Offset > blocks[index].Span.End.Offset) {
-                unattached.Add(diagnostic);
+        foreach (LatexDiagnostic diagnostic in parse.Diagnostics) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int low = 0, high = blocks.Count;
+            while (low < high) {
+                int middle = low + (high - low) / 2;
+                if (blocks[middle].Span.Start.Offset <= diagnostic.Span.Start.Offset) low = middle + 1;
+                else high = middle;
             }
+            int index = low - 1;
+            if (index >= 0 && diagnostic.Span.End.Offset <= blocks[index].Span.End.Offset) byBlock[index].Add(diagnostic);
+            else unattached.Add(diagnostic);
         }
         return unattached;
-    }
-
-    private static IReadOnlyList<string> Split(string value, int maximum) {
-        if (value.Length == 0) return Array.Empty<string>();
-        if (maximum <= 0 || value.Length <= maximum) return new[] { value };
-        var parts = new List<string>();
-        int offset = 0;
-        while (offset < value.Length) {
-            int length = Math.Min(maximum, value.Length - offset);
-            int end = offset + length;
-            if (end < value.Length) {
-                int split = value.LastIndexOf('\n', end - 1, length);
-                if (split <= offset) split = value.LastIndexOf(' ', end - 1, length);
-                if (split > offset) length = split - offset;
-            }
-            parts.Add(value.Substring(offset, length).Trim());
-            offset += length;
-            while (offset < value.Length && char.IsWhiteSpace(value[offset])) offset++;
-        }
-        return parts;
     }
 
     private static int InclusiveEnd(LatexSourceSpan span) => span.End.Column == 1 && span.End.Line > span.Start.Line ? span.End.Line - 1 : span.End.Line;

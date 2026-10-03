@@ -9,6 +9,7 @@ namespace OfficeIMO.Markdown.Pdf;
 /// </summary>
 public static partial class MarkdownPdfConverterExtensions {
     private static void RenderTable(PdfCore.PdfDocument pdf, TableBlock table, MarkdownPdfStyle visualTheme) {
+        RenderCaption(pdf, table.Attributes.GetAttribute("caption"), visualTheme.FigureStyleSnapshot);
         int columnCount = GetMarkdownTableColumnCount(table);
         if (columnCount == 0) {
             return;

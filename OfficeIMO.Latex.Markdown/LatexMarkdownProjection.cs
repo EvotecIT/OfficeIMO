@@ -27,72 +27,103 @@ internal sealed class LatexProjectedBlock {
     internal MarkdownDoc Document { get; }
     internal IReadOnlyList<LatexMarkdownConversionDiagnostic> Diagnostics { get; }
     internal string Text => Kind == "figure" ? LatexProjectedText.ExtractFigure(Document.Blocks) : LatexProjectedText.Extract(Document.Blocks);
+    internal IReadOnlyList<LatexTextSegment> TextSegments(System.Threading.CancellationToken cancellationToken) =>
+        LatexProjectedText.Segments(Document.Blocks, Kind == "figure", cancellationToken);
     internal string Markdown => Document.ToMarkdown().TrimEnd();
 }
 
+// Preserve the provenance of non-visible anchors and opaque payloads when Reader splits text.
+internal sealed class LatexTextSegment {
+    internal LatexTextSegment(string text, string? language = null, bool anchor = false) {
+        Text = text; Language = language; IsAnchor = anchor;
+    }
+    internal string Text { get; }
+    internal string? Language { get; }
+    internal bool IsAnchor { get; }
+}
+
 internal static class LatexProjectedText {
-    internal static string ExtractFigure(IEnumerable<IMarkdownBlock> blocks) {
-        var text = new List<string>();
+    internal static string ExtractFigure(IEnumerable<IMarkdownBlock> blocks) => Text(Segments(blocks, true));
+    internal static string Extract(IEnumerable<IMarkdownBlock> blocks) => Text(Segments(blocks));
+    internal static string Text(IEnumerable<LatexTextSegment> segments) => string.Concat(segments.Select(static segment => segment.Text));
+
+    internal static IReadOnlyList<LatexTextSegment> Segments(IEnumerable<IMarkdownBlock> blocks, bool figure = false,
+        System.Threading.CancellationToken cancellationToken = default) {
+        var parts = new List<IReadOnlyList<LatexTextSegment>>();
         var captions = new HashSet<string>(StringComparer.Ordinal);
         foreach (IMarkdownBlock block in blocks) {
-            if (block is ImageBlock image) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (figure && block is ImageBlock image) {
                 string caption = image.Caption ?? image.PlainAlt ?? string.Empty;
-                if (!string.IsNullOrWhiteSpace(caption) && captions.Add(caption)) text.Add(caption);
-                text.Add(image.Path);
-            } else {
-                string value = Extract(block);
-                if (!string.IsNullOrWhiteSpace(value)) text.Add(value);
-            }
+                if (!string.IsNullOrWhiteSpace(caption) && captions.Add(caption)) parts.Add(Plain(caption));
+                parts.Add(Plain(image.Path));
+            } else parts.Add(Block(block, cancellationToken));
         }
-        return string.Join("\n", text);
+        return Join(parts, figure ? "\n" : "\n\n");
     }
 
-    internal static string Extract(IEnumerable<IMarkdownBlock> blocks) =>
-        string.Join("\n\n", blocks.Select(Extract).Where(static text => !string.IsNullOrWhiteSpace(text)));
-
-    private static string Extract(IMarkdownBlock block) {
+    private static IReadOnlyList<LatexTextSegment> Block(IMarkdownBlock block, System.Threading.CancellationToken token) {
+        token.ThrowIfCancellationRequested();
         switch (block) {
-            case HeadingBlock heading: return ExtractInlines(heading.Inlines);
-            case ParagraphBlock paragraph: return ExtractInlines(paragraph.Inlines);
-            case CodeBlock code: return code.Content;
-            case SemanticFencedBlock semantic: return semantic.Content;
-            case ImageBlock image: return (image.Caption ?? image.PlainAlt ?? string.Empty) + "\n" + image.Path;
-            case UnorderedListBlock list: return ExtractItems(list.Items);
-            case OrderedListBlock list: return ExtractItems(list.Items);
+            case HeadingBlock heading: return Inlines(heading.Inlines, token);
+            case ParagraphBlock paragraph: return Inlines(paragraph.Inlines, token);
+            case CodeBlock code: return new[] { new LatexTextSegment(code.Content, code.Language) };
+            case SemanticFencedBlock semantic: return new[] { new LatexTextSegment(semantic.Content, semantic.Language) };
+            case ImageBlock image: return Plain((image.Caption ?? image.PlainAlt ?? string.Empty) + "\n" + image.Path);
+            case UnorderedListBlock list: return Items(list.Items, token);
+            case OrderedListBlock list: return Items(list.Items, token);
             case DefinitionListBlock definitions:
-                return string.Join("\n", definitions.Entries.Select(entry => ExtractInlines(entry.Term) + ": " + Extract(entry.DefinitionBlocks)));
+                return Join(definitions.Entries.Select(entry => (IReadOnlyList<LatexTextSegment>)Inlines(entry.Term, token)
+                    .Concat(Plain(": ")).Concat(Segments(entry.DefinitionBlocks, cancellationToken: token)).ToArray()), "\n");
             case TableBlock table: {
-                var rows = new List<string>();
-                string header = string.Join("\t", table.HeaderCells.Select(cell => Extract(cell.ChildBlocks)));
-                if (!string.IsNullOrWhiteSpace(header)) rows.Add(header);
-                rows.AddRange(table.RowCells.Select(row => string.Join("\t", row.Select(cell => Extract(cell.ChildBlocks)))));
+                var rows = new List<IReadOnlyList<LatexTextSegment>>();
                 string? caption = table.Attributes.Attributes.FirstOrDefault(static pair => pair.Key == "caption").Value;
-                if (!string.IsNullOrWhiteSpace(caption)) rows.Insert(0, caption!);
-                return string.Join("\n", rows);
+                if (!string.IsNullOrWhiteSpace(caption)) rows.Add(Plain(caption!));
+                IReadOnlyList<LatexTextSegment> header = Join(table.HeaderCells.Select(cell => Segments(cell.ChildBlocks, cancellationToken: token)), "\t", false);
+                if (!string.IsNullOrWhiteSpace(Text(header))) rows.Add(header);
+                rows.AddRange(table.RowCells.Select(row => Join(row.Select(cell => Segments(cell.ChildBlocks, cancellationToken: token)), "\t", false)));
+                return Join(rows, "\n", false);
             }
-            case IChildMarkdownBlockContainer container: return Extract(container.ChildBlocks);
-            default: return string.Empty;
+            case IChildMarkdownBlockContainer container: return Segments(container.ChildBlocks, cancellationToken: token);
+            default: return Array.Empty<LatexTextSegment>();
         }
     }
 
-    private static string ExtractItems(IEnumerable<ListItem> items) =>
-        string.Join("\n", items.Select(item => ExtractInlines(item.Content) + Extract(item.NestedBlocks)));
+    private static IReadOnlyList<LatexTextSegment> Items(IEnumerable<ListItem> items, System.Threading.CancellationToken token) =>
+        Join(items.Select(item => (IReadOnlyList<LatexTextSegment>)Inlines(item.Content, token)
+            .Concat(Segments(item.NestedBlocks, cancellationToken: token)).ToArray()), "\n");
 
-    // Split Reader chunks use this projection as their Markdown carrier too. Keep non-visible
-    // label anchors on their own line so ordinary whitespace splitting cannot sever the tag.
-    private static string ExtractInlines(InlineSequence? sequence) {
-        if (sequence == null) return string.Empty;
-        if (sequence.Nodes.Count == 1) {
-            if (sequence.Nodes[0] is MarkdownTextRun text) return text.Text;
-            if (sequence.Nodes[0] is CodeSpanInline code) return code.Text;
-        }
-        var output = new StringBuilder();
+    private static IReadOnlyList<LatexTextSegment> Inlines(InlineSequence? sequence, System.Threading.CancellationToken token) {
+        var parts = new List<LatexTextSegment>();
+        if (sequence == null) return parts;
         foreach (IMarkdownInline inline in sequence.Nodes) {
-            if (inline is HtmlRawInline html) output.Append('\n').Append(html.Html).Append('\n');
-            else if (inline is IInlineContainerMarkdownInline container) output.Append(ExtractInlines(container.NestedInlines));
-            else if (inline is InlineSequence nested) output.Append(ExtractInlines(nested));
-            else ((IPlainTextMarkdownInline)inline).AppendPlainText(output);
+            token.ThrowIfCancellationRequested();
+            if (inline is HtmlRawInline html) {
+                parts.Add(new LatexTextSegment("\n"));
+                parts.Add(new LatexTextSegment(html.Html, anchor: true));
+                parts.Add(new LatexTextSegment("\n"));
+            } else if (inline is CodeSpanInline code) parts.Add(new LatexTextSegment(code.Text, "text"));
+            else if (inline is IInlineContainerMarkdownInline container) parts.AddRange(Inlines(container.NestedInlines, token));
+            else if (inline is InlineSequence nested) parts.AddRange(Inlines(nested, token));
+            else {
+                var text = new StringBuilder();
+                ((IPlainTextMarkdownInline)inline).AppendPlainText(text);
+                parts.Add(new LatexTextSegment(text.ToString()));
+            }
         }
-        return output.ToString();
+        return parts;
+    }
+
+    private static IReadOnlyList<LatexTextSegment> Plain(string text) => new[] { new LatexTextSegment(text) };
+    private static IReadOnlyList<LatexTextSegment> Join(IEnumerable<IReadOnlyList<LatexTextSegment>> parts, string separator, bool omitWhitespace = true) {
+        var result = new List<LatexTextSegment>();
+        bool first = true;
+        foreach (IReadOnlyList<LatexTextSegment> part in parts) {
+            if (omitWhitespace && part.All(static segment => string.IsNullOrWhiteSpace(segment.Text))) continue;
+            if (!first) result.Add(new LatexTextSegment(separator));
+            result.AddRange(part);
+            first = false;
+        }
+        return result;
     }
 }

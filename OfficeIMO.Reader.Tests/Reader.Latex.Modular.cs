@@ -1,5 +1,6 @@
 using System.Threading;
 using OfficeIMO.Latex;
+using OfficeIMO.Latex.Markdown;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Latex;
 using Xunit;
@@ -8,6 +9,114 @@ namespace OfficeIMO.Tests;
 
 [Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderLatexModularTests {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void SplitOpaqueContentRetainsItsCodeCarrierAndExactPayload(bool blocks) {
+        const string payload = "  # Heading\n*value* [link](url) <a id=\"fake\"></a>\n```\n";
+        string content = string.Concat(Enumerable.Repeat(payload, 6));
+        LatexDocument document = LatexDocument.Parse("\\documentclass{article}\\begin{document}\\begin{verbatim}\n" + content + "\\end{verbatim}\\end{document}");
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(document, readerOptions: new ReaderOptions { MaxChars = 32 },
+            latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks, IncludeDiagnostics = false }).ToArray();
+        Assert.True(chunks.Length > 1);
+        string expected = Assert.Single(document.ToMarkdownDocument().Blocks.OfType<OfficeIMO.Markdown.CodeBlock>()).Content;
+        Assert.Equal(expected, string.Concat(chunks.Select(static chunk => chunk.Text)));
+        Assert.All(chunks, static chunk => {
+            Assert.InRange(chunk.Text.Length, 1, 32);
+            OfficeIMO.Markdown.MarkdownDoc parsed = OfficeIMO.Markdown.MarkdownReader.Parse(chunk.Markdown!);
+            Assert.All(parsed.Blocks, static block => Assert.IsType<OfficeIMO.Markdown.CodeBlock>(block));
+            Assert.DoesNotContain("<a id=\"fake\"></a>", parsed.ToHtmlFragment(), StringComparison.Ordinal);
+        });
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void SplitLiteralProseDoesNotActivateMarkdownOrHtml(bool blocks) {
+        string prose = string.Concat(Enumerable.Repeat("\\# Heading *value* [link](url) <a id=\"fake\"></a> ", 6));
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(LatexDocument.Parse("\\documentclass{article}\\begin{document}" + prose + "\\end{document}"),
+            readerOptions: new ReaderOptions { MaxChars = 32 }, latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks, IncludeDiagnostics = false }).ToArray();
+        Assert.True(chunks.Length > 1);
+        Assert.All(chunks, static chunk => {
+            OfficeIMO.Markdown.MarkdownDoc parsed = OfficeIMO.Markdown.MarkdownReader.Parse(chunk.Markdown!);
+            Assert.All(parsed.Blocks, static block => Assert.IsType<OfficeIMO.Markdown.ParagraphBlock>(block));
+            Assert.DoesNotContain(parsed.Descendants(), static node => node is OfficeIMO.Markdown.LinkInline || node is OfficeIMO.Markdown.ItalicSequenceInline);
+            Assert.DoesNotContain("<a id=\"fake\"></a>", parsed.ToHtmlFragment(), StringComparison.Ordinal);
+        });
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void SplitInlineCodeAndRealAnchorsRetainDistinctProvenance(bool blocks) {
+        string body = new string('p', 70) + "\\label{real}\\verb|<a id=\"fake\"></a> *value*|" + new string('s', 70);
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(LatexDocument.Parse("\\documentclass{article}\\begin{document}" + body + "\\end{document}"),
+            readerOptions: new ReaderOptions { MaxChars = 32 }, latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks, IncludeDiagnostics = false }).ToArray();
+        string html = string.Concat(chunks.Select(static chunk => OfficeIMO.Markdown.MarkdownReader.Parse(chunk.Markdown!).ToHtmlFragment()));
+        Assert.Contains("<a id=\"real\"></a>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<a id=\"fake\"></a>", html, StringComparison.Ordinal);
+        Assert.Contains(chunks, static chunk => OfficeIMO.Markdown.MarkdownReader.Parse(chunk.Markdown!).Blocks.OfType<OfficeIMO.Markdown.CodeBlock>().Any());
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void SplitMetadataCarriesGlobalWarningsOnce(bool blocks) {
+        string source = "\\documentclass{article}\\author{" + new string('a', 100) + "\\begin{comment}PRIVATE\\end{comment}}\\begin{document}\\end{document}";
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(LatexDocument.Parse(source), readerOptions: new ReaderOptions { MaxChars = 12 },
+            latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks }).ToArray();
+        Assert.True(chunks.Length > 1);
+        Assert.Single(chunks.SelectMany(static chunk => chunk.Warnings ?? Array.Empty<string>()), static warning => warning.StartsWith("LATEXMD210:", StringComparison.Ordinal));
+        Assert.All(chunks, static chunk => Assert.Contains(chunk.Warnings ?? Array.Empty<string>(), static warning => warning.Contains("MaxChars", StringComparison.Ordinal)));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TinySplitLimitsRetainCompleteUnicodeScalars(bool blocks) {
+        const string text = "\U0001F600\U0001F642";
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(LatexDocument.Parse("\\documentclass{article}\\begin{document}" + text + "\\end{document}"),
+            readerOptions: new ReaderOptions { MaxChars = 1 }, latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks, IncludeDiagnostics = false }).ToArray();
+        Assert.Equal(text, string.Concat(chunks.Select(static chunk => chunk.Text)));
+        Assert.Equal(2, chunks.Length);
+        Assert.All(chunks, static chunk => Assert.Equal(2, chunk.Text.Length));
+    }
+
+    [Theory]
+    [InlineData(true, "    ")]
+    [InlineData(false, "    ")]
+    [InlineData(true, "\t")]
+    [InlineData(false, " \t")]
+    public void SplitIndentedProseRetainsLiteralTextInsteadOfBecomingCode(bool blocks, string indentation) {
+        const string literal = "*value* <a id=\"fake\"></a>";
+        string body = new string('p', 70) + "\n" + indentation + literal;
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(LatexDocument.Parse("\\documentclass{article}\\begin{document}" + body + "\\end{document}"),
+            readerOptions: new ReaderOptions { MaxChars = 40 }, latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks, IncludeDiagnostics = false }).ToArray();
+        ReaderChunk part = Assert.Single(chunks, static chunk => chunk.Text.Contains("*value*", StringComparison.Ordinal));
+        OfficeIMO.Markdown.ParagraphBlock paragraph = Assert.IsType<OfficeIMO.Markdown.ParagraphBlock>(
+            Assert.Single(OfficeIMO.Markdown.MarkdownReader.Parse(part.Markdown!).Blocks));
+        var text = new StringBuilder();
+        foreach (OfficeIMO.Markdown.IPlainTextMarkdownInline inline in paragraph.Inlines.Nodes.OfType<OfficeIMO.Markdown.IPlainTextMarkdownInline>()) inline.AppendPlainText(text);
+        Assert.Equal(indentation + literal, text.ToString());
+    }
+
+    [Fact]
+    public void ParserWarningsRemainAttachedToTheirOwnBlocks() {
+        LatexDocument document = LatexDocument.Parse("\\begin{document}First }\n\nSecond }\n\nLast\\end{document}");
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(document).ToArray();
+        Assert.Equal(3, chunks.Length);
+        Assert.All(chunks.Take(2), static chunk => Assert.Single(chunk.Warnings ?? Array.Empty<string>(), static warning => warning.StartsWith("LATEX002:", StringComparison.Ordinal)));
+        Assert.DoesNotContain(chunks[2].Warnings ?? Array.Empty<string>(), static warning => warning.StartsWith("LATEX002:", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void SplitFirstBlockCarriesGlobalWarningsOnlyOnce() {
+        LatexDocument document = LatexDocument.Parse("\\author\\begin{document}" + new string('x', 100) + "\\end{document}");
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(document, readerOptions: new ReaderOptions { MaxChars = 12 }).ToArray();
+        Assert.True(chunks.Length > 1);
+        Assert.Single(chunks.SelectMany(static chunk => chunk.Warnings ?? Array.Empty<string>()), static warning => warning.StartsWith("LATEX007:", StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData(true, true)]
     [InlineData(true, false)]
@@ -86,7 +195,7 @@ public sealed class ReaderLatexModularTests {
         Assert.True(chunks.Length > 1);
         Assert.All(chunks, static chunk => {
             Assert.InRange(chunk.Text.Length, 1, 12);
-            Assert.InRange(chunk.Markdown!.Length, 1, 12);
+            Assert.False(string.IsNullOrEmpty(chunk.Markdown)); // escaping and fences may add carrier overhead
             Assert.Contains(chunk.Warnings ?? Array.Empty<string>(), static warning => warning.Contains("MaxChars", StringComparison.Ordinal));
         });
     }
