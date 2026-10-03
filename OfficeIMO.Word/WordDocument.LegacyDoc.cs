@@ -246,6 +246,9 @@ namespace OfficeIMO.Word {
         }
 
         private static void ApplyLegacyDocSectionFormatting(WordSection section, LegacyDocSectionFormat sectionFormat) {
+            // Native section dimensions do not provide a DOCX printer-form code.
+            // Do not retain the creation template's A4 hint for another paper size.
+            if (section._sectionProperties.GetFirstChild<PageSize>() is { } pageSize) pageSize.Code = null;
             if (!sectionFormat.HasFormatting) {
                 return;
             }
@@ -253,7 +256,7 @@ namespace OfficeIMO.Word {
             if (sectionFormat.SectionBreakType != null) {
                 SectionType? existingSectionType = section._sectionProperties.GetFirstChild<SectionType>();
                 existingSectionType?.Remove();
-                section._sectionProperties.Append(new SectionType { Val = sectionFormat.SectionBreakType.Value });
+                section._sectionProperties.AddChild(new SectionType { Val = sectionFormat.SectionBreakType.Value }, true);
             }
 
             if (sectionFormat.DifferentFirstPage) {
@@ -261,7 +264,14 @@ namespace OfficeIMO.Word {
             }
 
             if (sectionFormat.Orientation != null) {
-                section.PageOrientation = sectionFormat.Orientation.Value.ToOfficeEnum();
+                // DOC stores physical dimensions independently of its orientation flag.
+                // Swapping the seeded defaults loses a dimension that the source elides.
+                PageSize? sectionPageSize = section._sectionProperties.GetFirstChild<PageSize>();
+                if (sectionPageSize == null) {
+                    sectionPageSize = new PageSize();
+                    section._sectionProperties.AddChild(sectionPageSize, true);
+                }
+                sectionPageSize.Orient = sectionFormat.Orientation.Value;
             }
 
             if (sectionFormat.PageWidthTwips != null) {
