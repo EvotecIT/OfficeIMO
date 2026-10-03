@@ -4,26 +4,28 @@ using Xunit;
 namespace OfficeIMO.Tests.Rtf;
 
 public sealed class RtfSeparatedTableTests {
-    [Fact]
-    public void BodyParagraphSeparatesNativeTablesWithoutSplittingConsecutiveRows() {
-        const string rtf = @"{\rtf1\ansi
+    [Theory]
+    [InlineData("\\pard Between planets\\par", true)]
+    [InlineData("\\sect", false)]
+    public void BodyBoundarySeparatesNativeTablesWithoutSplittingConsecutiveRows(string separator, bool hasParagraph) {
+        string rtf = @"{\rtf1\ansi
 \trowd\cellx2000\pard\intbl Inner first\cell\row
-\trowd\cellx2000\pard\intbl Inner second\cell\row
-\pard Between planets\par
+\trowd\cellx2000\pard\intbl Inner second\cell\row" + separator + @"
 \trowd\cellx2000\pard\intbl Outer first\cell\row
 \trowd\cellx2000\pard\intbl Outer second\cell\row
 \pard After planets\par}";
 
         RtfDocument document = RtfDocument.Read(rtf).Document;
 
-        Assert.Collection(document.Blocks,
-            block => AssertRows(Assert.IsType<RtfTable>(block), "Inner first", "Inner second"),
-            block => Assert.Equal("Between planets", Assert.IsType<RtfParagraph>(block).ToPlainText()),
-            block => AssertRows(Assert.IsType<RtfTable>(block), "Outer first", "Outer second"),
-            block => Assert.Equal("After planets", Assert.IsType<RtfParagraph>(block).ToPlainText()));
+        Assert.Equal(hasParagraph ? 4 : 3, document.Blocks.Count);
+        AssertRows(Assert.IsType<RtfTable>(document.Blocks[0]), "Inner first", "Inner second");
+        int secondTable = hasParagraph ? 2 : 1;
+        if (hasParagraph) Assert.Equal("Between planets", Assert.IsType<RtfParagraph>(document.Blocks[1]).ToPlainText());
+        AssertRows(Assert.IsType<RtfTable>(document.Blocks[secondTable]), "Outer first", "Outer second");
+        Assert.Equal("After planets", Assert.IsType<RtfParagraph>(document.Blocks[secondTable + 1]).ToPlainText());
         RtfDocument reopened = RtfDocument.Read(document.ToRtf()).Document;
         Assert.Equal(2, reopened.Blocks.OfType<RtfTable>().Count());
-        Assert.Equal("Between planets", Assert.IsType<RtfParagraph>(reopened.Blocks[1]).ToPlainText());
+        if (hasParagraph) Assert.Equal("Between planets", Assert.IsType<RtfParagraph>(reopened.Blocks[1]).ToPlainText());
     }
 
     private static void AssertRows(RtfTable table, params string[] expected) =>
