@@ -47,4 +47,30 @@ public sealed partial class EngineContractTests {
         source.Blocks[0].Location.Path = "mail.eml::other.pdf";
         Assert.NotEqual(document.SnapshotHash, OfficeAiDocument.FromReadResult([1], source).SnapshotHash);
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ParseCoordinatesRequireACommonSourceContainer(bool sameSource) {
+        const string firstPath = "mail.eml::a.pdf";
+        var source = new OfficeDocumentReadResult { Blocks = [
+            new() { Id = "a", Text = "Amount 42", Location = new() { Path = firstPath, Page = 1 } },
+            new() { Id = "b", Text = "Amount 7", Location = new() { Path = sameSource ? firstPath : "mail.eml::b.pdf", Page = 1 } }
+        ] };
+        var evidence = new[] { new { id = "e1", quote = "42" }, new { id = "e2", quote = "7" } };
+        string response = JsonSerializer.Serialize(new {
+            claims = Array.Empty<object>(), fields = Array.Empty<object>(),
+            blocks = new[] { new { kind = "paragraph", text = "Amounts 42 and 7", evidence } },
+            tables = new[] { new { title = "Amounts", columns = new[] { "Amount" }, rows = new[] { new[] { "42" }, new[] { "7" } }, evidence } }
+        });
+        var document = OfficeAiDocument.FromReadResult([1], source);
+        var result = await new OfficeAiEngine(new Executor(response)).RunAsync(document, Request() with { Operation = OfficeAiOperation.Parse });
+        Assert.Equal(OfficeAiResultStatus.Completed, result.Status);
+        ReaderLocation[] locations = [Assert.Single(result.Blocks).Block.Location,
+            Assert.IsType<ReaderLocation>(Assert.Single(result.Tables).Table.Location)];
+        Assert.All(locations, location => {
+            Assert.Equal(sameSource ? firstPath : null, location.Path);
+            Assert.Equal(sameSource ? (int?)1 : null, location.Page);
+        });
+    }
 }

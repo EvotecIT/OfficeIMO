@@ -92,7 +92,9 @@ public sealed partial class EngineContractTests {
     [InlineData(OfficeDocumentDiagnosticSeverity.Information, OfficeDocumentDiagnosticCategory.Detection, "input-kind-detected", false)]
     [InlineData(OfficeDocumentDiagnosticSeverity.Warning, OfficeDocumentDiagnosticCategory.Parsing, "partial-parse", true)]
     [InlineData(OfficeDocumentDiagnosticSeverity.Information, OfficeDocumentDiagnosticCategory.Content, "omitted-content", true)]
-    public async Task SourceCoverageDistinguishesDetectionInformationFromOmissions(OfficeDocumentDiagnosticSeverity severity,
+    [InlineData(OfficeDocumentDiagnosticSeverity.Information, OfficeDocumentDiagnosticCategory.Limit, "content-limit", true)]
+    [InlineData(OfficeDocumentDiagnosticSeverity.Information, OfficeDocumentDiagnosticCategory.Adapter, "EMAIL_ATTACHMENT_READER_SUCCEEDED", false)]
+    public async Task SourceCoverageDistinguishesInformationFromOmissions(OfficeDocumentDiagnosticSeverity severity,
         OfficeDocumentDiagnosticCategory category, string code, bool incomplete) {
         var document = OfficeAiDocument.FromReadResult(new byte[] { 1 }, new OfficeDocumentReadResult {
             Blocks = new[] { new OfficeDocumentBlock { Text = "Total 42" } },

@@ -179,7 +179,7 @@ public sealed class OfficeAiDocument {
             OfficeDocumentReadResult current = pending.Pop();
             if (!visited.Add(current)) continue;
             if (current.Diagnostics.Any(diagnostic => diagnostic.Severity != OfficeDocumentDiagnosticSeverity.Information
-                    || diagnostic.Category != OfficeDocumentDiagnosticCategory.Detection)
+                    || diagnostic.Category is not (OfficeDocumentDiagnosticCategory.Detection or OfficeDocumentDiagnosticCategory.Adapter))
                 || current.Chunks.Any(chunk => chunk.Warnings?.Count > 0)
                 || current.OcrCandidates.Count > 0 || current.Pages.Any(page => page.OcrCandidates.Count > 0)
                 || current.Tables.Concat(current.Pages.SelectMany(page => page.Tables))

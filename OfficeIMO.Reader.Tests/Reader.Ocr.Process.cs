@@ -113,7 +113,7 @@ public sealed class ReaderOcrProcessTests {
         try {
             string scriptPath = Path.Combine(directory, "inherited-pipe.sh");
             string childProcessPath = Path.Combine(directory, "child.pid");
-            File.WriteAllText(scriptPath, "(trap '' HUP; sleep 30) &\necho $! > \"$1.tmp\"\nmv \"$1.tmp\" \"$1\"\nexit 0\n");
+            File.WriteAllText(scriptPath, "(trap '' HUP; sleep 30) &\necho $! > \"$1.tmp\"\necho $$ >> \"$1.tmp\"\nmv \"$1.tmp\" \"$1\"\nexit 0\n");
             operation = OcrProcessRunner.RunAsync(new OcrProcessCommand {
                 FileName = "/bin/sh",
                 Arguments = new[] { scriptPath, childProcessPath },
@@ -123,7 +123,10 @@ public sealed class ReaderOcrProcessTests {
             // Confirm the fixture exists before exercising termination; startup is not a latency contract.
             using var startup = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             await WaitForChildStartAsync(childProcessPath, operation, startup.Token);
-            childProcessId = int.Parse(File.ReadAllText(childProcessPath), CultureInfo.InvariantCulture);
+            string[] processIds = File.ReadAllLines(childProcessPath);
+            childProcessId = int.Parse(processIds[0], CultureInfo.InvariantCulture);
+            int wrapperProcessId = int.Parse(processIds[1], CultureInfo.InvariantCulture);
+            Assert.True(WaitForProcessExit(wrapperProcessId, TimeSpan.FromSeconds(2)), "The fixture wrapper did not exit.");
             cancellation.Cancel();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation);
             Assert.True(
