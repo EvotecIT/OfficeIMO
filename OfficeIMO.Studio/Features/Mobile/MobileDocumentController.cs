@@ -19,6 +19,7 @@ internal sealed class MobileDocumentController : IDisposable {
     private bool _sharing;
     private bool _creatingSample;
     private bool _disposed;
+    private readonly HashSet<MainWindowViewModel> _observed = [];
 
     internal MobileDocumentController(StudioApplicationServices services,
         Func<CancellationToken, Task<IStorageFile?>> pickPdf, Func<string, Task> share) {
@@ -27,12 +28,31 @@ internal sealed class MobileDocumentController : IDisposable {
         _documentsRoot = _locations.Path;
         _pickPdf = pickPdf;
         _share = share;
-        Document = new MainWindowViewModel(PickWorkingCopyAsync, services: services,
-            confirmUnsavedChanges: () => Task.FromResult(UnsavedChangesDecision.Save));
-        Document.PropertyChanged += OnDocumentChanged;
+        Tabs = new StudioDocumentTabHost(CreateDocument, _ => {
+            ActiveDocumentChanged?.Invoke(this, EventArgs.Empty);
+            PersistSession();
+        });
+        Tabs.Tabs.CollectionChanged += (_, _) => {
+            foreach (var document in _observed.Where(document => !Tabs.OperationDocuments.Contains(document)).ToArray()) {
+                document.PropertyChanged -= OnDocumentChanged;
+                _observed.Remove(document);
+            }
+            PersistSession();
+        };
     }
 
-    internal MainWindowViewModel Document { get; }
+    internal StudioDocumentTabHost Tabs { get; }
+    internal MainWindowViewModel Document => Tabs.ActiveDocument;
+    internal event EventHandler? ActiveDocumentChanged;
+
+    private MainWindowViewModel CreateDocument(Func<string, CancellationToken, Task> openInTab) {
+        var document = new MainWindowViewModel(PickWorkingCopyAsync, services: _services,
+            openDocumentInTab: openInTab,
+            confirmUnsavedChanges: () => Task.FromResult(UnsavedChangesDecision.Save));
+        document.PropertyChanged += OnDocumentChanged;
+        _observed.Add(document);
+        return document;
+    }
 
     internal async Task OpenSampleAsync() {
         if (_creatingSample || _sharing || _restoring || Document.IsWorkspaceBusy || Document.IsOpening || Document.OpenCommand.IsRunning) return;
@@ -42,21 +62,9 @@ internal sealed class MobileDocumentController : IDisposable {
             string path = Path.Combine(directory, "Welcome to Studio.pdf");
             await Task.Run(() => {
                 Directory.CreateDirectory(directory);
-                OfficeIMO.Pdf.PdfDocument.Create(pdf => pdf.Content(content => content
-                    .H1("A little room to think.")
-                    .Paragraph(p => p.Text("Welcome to OfficeIMO Studio"))
-                    .H2("Read at your own pace")
-                    .Paragraph(p => p.Text("Use the zoom controls to get closer. Pages opens the page list. On a wide iPad, your pages stay beside the document."))
-                    .H2("Leave a thought")
-                    .Paragraph(p => p.Text("Choose Note to add a review note. Undo lets you change your mind. Search finds words in the document."))
-                    .H2("Make it yours")
-                    .Paragraph(p => p.Text("Open a PDF from Files to create a working copy. Your original stays where it is. Share saves your changes and opens the Apple share sheet."))
-                    .H2("Keep going")
-                    .Paragraph(p => p.Text("Studio keeps recovery copies of edits and restores your reading position when you return."))),
-                    new OfficeIMO.Pdf.PdfOptions { DefaultFont = OfficeIMO.Pdf.PdfStandardFont.Helvetica, DefaultFontSize = 13 })
-                    .Meta(title: "Welcome to Studio", author: "OfficeIMO").Save(path);
+                MobileSampleDocument.Save(path);
             });
-            await Document.OpenDocumentAsync(path);
+            await Tabs.OpenDocumentAsync(path);
         } finally { _creatingSample = false; }
     }
 
@@ -93,14 +101,17 @@ internal sealed class MobileDocumentController : IDisposable {
     internal async Task RestoreAsync(CancellationToken token = default) {
         if (!_services.Preferences.Current.RememberSession) return;
         StudioSessionSnapshot snapshot = _services.DocumentHistory.RestartSession.Load();
-        StudioSessionDocument? previous = snapshot.Documents.FirstOrDefault(item => item.Path == snapshot.ActivePath);
-        if (previous is null || _locations.Resolve(previous.Path) is not { } path || !File.Exists(path)) return;
         _restoring = true;
         try {
-            await Document.OpenDocumentAsync(path, token);
-            if (!Document.HasDocument) return;
-            if (Document.HasRecovery) await Document.RestoreRecoveryCommand.ExecuteAsync(null);
-            Document.RestoreSessionViewState(previous.View);
+            foreach (StudioSessionDocument previous in snapshot.Documents) {
+                if (_locations.Resolve(previous.Path) is not { } path || !File.Exists(path)) continue;
+                await Tabs.OpenDocumentAsync(path, token);
+                if (Document.DocumentPath != path) continue;
+                if (Document.HasRecovery) await Document.RestoreRecoveryCommand.ExecuteAsync(null);
+                Document.RestoreSessionViewState(previous.View);
+            }
+            if (Tabs.Tabs.FirstOrDefault(tab => tab.SourcePath is { } path && _locations.GetIdentity(path) == snapshot.ActivePath) is { } active)
+                Tabs.SelectedTab = active;
         } finally { _restoring = false; }
         PersistSession();
     }
@@ -108,24 +119,26 @@ internal sealed class MobileDocumentController : IDisposable {
     internal async Task ShareAsync() {
         if (_sharing || _creatingSample || _restoring || Document.OpenCommand.IsRunning || Document.IsWorkspaceBusy || Document.IsOpening || Document.DocumentPath is not { } path) return;
         _sharing = true;
+        MainWindowViewModel document = Document;
         try {
-            Document.ErrorMessage = null;
-            if (Document.IsDirty) await Document.SaveCommand.ExecuteAsync(null);
-            if (Document.IsDirty || Document.HasError) return;
+            document.ErrorMessage = null;
+            if (document.IsDirty) await document.SaveCommand.ExecuteAsync(null);
+            if (document.IsDirty || document.HasError) return;
             PersistSession();
             await _share(path);
         } finally { _sharing = false; }
     }
 
     internal void Suspend() {
-        Document.SaveDocumentViewState();
+        foreach (var tab in Tabs.Tabs) tab.Document.SaveDocumentViewState();
         PersistSession();
-        Document.SetPresentationActive(false);
+        foreach (var document in Tabs.OperationDocuments) document.SetPresentationActive(false);
     }
 
     internal void Resume() {
         Document.SetPresentationActive(true);
         Document.SelectedPage?.AttachToViewport();
+        ActiveDocumentChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void OnDocumentChanged(object? sender, PropertyChangedEventArgs args) {
@@ -134,11 +147,13 @@ internal sealed class MobileDocumentController : IDisposable {
     }
 
     private void PersistSession() {
-        if (_disposed || _restoring || !_services.Preferences.Current.RememberSession || Document.IsOpening ||
-            Document.CaptureSessionDocument() is not { } state) return;
+        if (_disposed || _restoring || Tabs is null || !_services.Preferences.Current.RememberSession || Tabs.OperationDocuments.Any(document => document.IsOpening)) return;
         try {
-            state = state with { Path = _locations.GetIdentity(state.Path), Storage = null };
-            _services.DocumentHistory.RestartSession.Save(new(1, DateTimeOffset.UtcNow, state.Path, [state]));
+            var states = Tabs.Tabs.Select(tab => tab.Document.CaptureSessionDocument())
+                .OfType<StudioSessionDocument>()
+                .Select(state => state with { Path = _locations.GetIdentity(state.Path), Storage = null }).ToArray();
+            string? active = Document.DocumentPath is { } path ? _locations.GetIdentity(path) : null;
+            _services.DocumentHistory.RestartSession.Save(new(1, DateTimeOffset.UtcNow, active, states));
         } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
             Document.ErrorMessage = "The reading position could not be saved: " + error.Message;
         }
@@ -148,7 +163,8 @@ internal sealed class MobileDocumentController : IDisposable {
         if (_disposed) return;
         Suspend();
         _disposed = true;
-        Document.PropertyChanged -= OnDocumentChanged;
-        Document.Dispose();
+        foreach (var document in _observed) document.PropertyChanged -= OnDocumentChanged;
+        _observed.Clear();
+        Tabs.Dispose();
     }
 }

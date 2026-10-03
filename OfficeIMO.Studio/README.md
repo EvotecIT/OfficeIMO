@@ -160,7 +160,9 @@ The repository's single open-work plan is [`Docs/ROADMAP.md`](../Docs/ROADMAP.md
 
 `OfficeIMO.Studio.iOS` hosts the shared Avalonia touch workspace. It opens PDFs through Files into a separate local working copy, renders and searches pages, adds review notes, and saves the working copy before presenting the Apple share sheet. Session and recovery identities remain relative to the app document root so a changed container location does not invalidate them. Internal preferences and recovery files live in Application Support.
 
-Wide layouts keep the page list beside the document; compact layouts use a Pages sheet. The host includes safe-area padding, keyboard-aware sheets, zoom controls, and touch gesture handling. Choose **Try a sample** to open an app-generated PDF. External-process OCR is unavailable on iOS.
+Each PDF opens in a document tab with its own reading position, zoom, edits, and undo history. Closing a modified tab saves its working copy; a failed save keeps the document open. Studio restores open tabs and their recoverable edits after restart.
+
+Wide layouts show page thumbnails beside the document and grouped review tools above it. Compact layouts move review tools to the bottom and open thumbnails in a Pages sheet. Search stays beside the visible document, and notes use a keyboard-aware sheet. The host includes safe-area padding, zoom controls, and touch gesture handling. Choose **Try a sample** to open a three-page introduction. External-process OCR is unavailable on iOS.
 
 Build from `OfficeIMO.Studio.iOS` with its pinned SDK and the .NET iOS workload installed:
 

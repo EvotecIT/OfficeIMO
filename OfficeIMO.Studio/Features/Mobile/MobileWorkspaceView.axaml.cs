@@ -17,6 +17,8 @@ public sealed partial class MobileWorkspaceView : UserControl {
     private MainWindowViewModel? _observedDocument;
     private bool _submittingNote;
     private Func<Task>? _openSampleAsync;
+    private readonly HashSet<MainWindowViewModel> _configuredDocuments = [];
+    private readonly Dictionary<MainWindowViewModel, string> _noteDrafts = [];
 
     internal Func<Task>? OpenSampleAsync {
         get => _openSampleAsync;
@@ -26,6 +28,7 @@ public sealed partial class MobileWorkspaceView : UserControl {
     public MobileWorkspaceView() {
         InitializeComponent();
         InitializeTouchInput();
+        InitializeNavigation();
         SizeChanged += (_, _) => UpdateLayoutMode();
         PageScroll.SizeChanged += (_, e) => Document?.SetViewportSize(e.NewSize.Width, e.NewSize.Height);
         DataContextChanged += (_, _) => ObserveDocument();
@@ -36,22 +39,43 @@ public sealed partial class MobileWorkspaceView : UserControl {
         };
         KeyDown += (_, e) => {
             if (e.Key == Key.Escape && SheetScrim.IsVisible) { DismissSheet(); e.Handled = true; }
+            else if (e.Key == Key.Escape && SearchPanel.IsVisible) { CloseSearch(); e.Handled = true; }
+            else if (!SheetScrim.IsVisible && e.KeyModifiers.HasFlag(KeyModifiers.Meta)) {
+                if (e.Key == Key.O) { Document?.OpenCommand.Execute(null); e.Handled = true; }
+                else if (e.Key == Key.W && _controller is not null) { _ = _controller.Tabs.CloseSelectedTabAsync(); e.Handled = true; }
+                else if (e.Key == Key.F) { OnSearchClick(SearchButton, new RoutedEventArgs()); e.Handled = true; }
+                else if (e.Key is Key.OemOpenBrackets or Key.OemCloseBrackets && e.KeyModifiers.HasFlag(KeyModifiers.Shift)) {
+                    _controller?.Tabs.SelectRelativeTab(e.Key == Key.OemOpenBrackets); e.Handled = true;
+                }
+            }
         };
     }
 
     internal MainWindowViewModel? Document => DataContext as MainWindowViewModel;
 
     private void ObserveDocument() {
-        if (_observedDocument is not null) _observedDocument.PropertyChanged -= OnDocumentChanged;
+        if (_observedDocument is not null) {
+            _observedDocument.PropertyChanged -= OnDocumentChanged;
+            _noteDrafts[_observedDocument] = NoteText.Text ?? string.Empty;
+        }
         _observedDocument = Document;
+        NoteText.Text = Document is { } active && _noteDrafts.TryGetValue(active, out string? draft) ? draft : string.Empty;
+        _pinchStartZoom = null;
+        PageScroll.Offset = default;
+        RefreshPageList();
+        Document?.SetViewportSize(PageScroll.Bounds.Width, PageScroll.Bounds.Height);
         if (_observedDocument is null) return;
         _observedDocument.PropertyChanged += OnDocumentChanged;
-        FitNewDocument();
+        if (_configuredDocuments.Add(_observedDocument)) FitNewDocument();
     }
 
     private void OnDocumentChanged(object? sender, PropertyChangedEventArgs e) {
         // Opening restores desktop view preferences; the mobile surface always presents one page at a time.
-        if (e.PropertyName == nameof(MainWindowViewModel.IsOpening) && Document?.IsOpening == false) FitNewDocument();
+        if (e.PropertyName == nameof(MainWindowViewModel.IsOpening) && Document?.IsOpening == false) {
+            FitNewDocument();
+            RefreshPageList();
+        }
+        if (e.PropertyName == nameof(MainWindowViewModel.SelectedPage)) SelectCurrentThumbnail();
     }
 
     private void FitNewDocument() {
@@ -66,21 +90,47 @@ public sealed partial class MobileWorkspaceView : UserControl {
         set { _shareDocumentAsync = value; ShareButton.IsVisible = value is not null; }
     }
 
+    private bool HasSidebarRoom => Bounds.Width >= 720 && Bounds.Height >= 500;
+
     private void UpdateLayoutMode() {
-        bool sidebar = Bounds.Width >= 900 && _showPages;
+        bool wide = Bounds.Width >= 720;
+        bool sidebar = HasSidebarRoom && _showPages && Document?.HasDocument == true;
+        WideTools.IsVisible = wide;
+        CompactTools.IsVisible = !wide;
+        WideFit.IsVisible = wide;
+        ShareLabel.IsVisible = wide;
         PageSidebar.IsVisible = sidebar;
-        WorkspaceGrid.ColumnDefinitions[0].Width = new GridLength(sidebar ? 220 : 0);
+        WorkspaceGrid.ColumnDefinitions[0].Width = new GridLength(sidebar ? 196 : 0);
+        SheetCard.MaxHeight = Math.Max(180, Bounds.Height - 32);
+        SheetCard.Margin = wide ? new Thickness(20) : default;
+        SheetCard.CornerRadius = wide ? new CornerRadius(22) : new CornerRadius(22, 22, 0, 0);
+        if (HasSidebarRoom && SheetScrim.IsVisible && SheetPages.IsVisible) DismissSheet();
+        bool pageSheet = SheetScrim.IsVisible && SheetPages.IsVisible;
+        HostPageList(pageSheet ? SheetPages : sidebar ? SidebarPages : null);
+        _pageList.Height = pageSheet ? Math.Min(420, Math.Max(120, Bounds.Height - 180)) : double.NaN;
     }
 
     private void OnPagesClick(object? sender, RoutedEventArgs e) {
-        if (Bounds.Width >= 900) { _showPages = !_showPages; UpdateLayoutMode(); }
-        else ShowSheet("Pages", SheetPages, sender as Control);
+        if (HasSidebarRoom) { _showPages = !_showPages; UpdateLayoutMode(); }
+        else {
+            ShowSheet("Pages", SheetPages, sender as Control);
+            UpdateLayoutMode();
+            _pageList.ScrollIntoView(_pageList.SelectedItem!);
+        }
     }
 
     private void OnSearchClick(object? sender, RoutedEventArgs e) {
-        ShowSheet("Find in document", SearchPanel, sender as Control);
-        MobileSearchBox.Focus();
+        SearchPanel.IsVisible = !SearchPanel.IsVisible;
+        if (SearchPanel.IsVisible) MobileSearchBox.Focus();
+        else PageScroll.Focus();
     }
+
+    private void OnSearchKeyDown(object? sender, KeyEventArgs e) {
+        if (e.Key == Key.Enter) { Document?.SearchCommand.Execute(null); e.Handled = true; }
+    }
+
+    private void OnCloseSearchClick(object? sender, RoutedEventArgs e) => CloseSearch();
+    private void CloseSearch() { SearchPanel.IsVisible = false; PagesButton.Focus(); }
 
     private void OnNoteClick(object? sender, RoutedEventArgs e) {
         if (Document?.CanEditAnnotations != true) {
@@ -95,10 +145,9 @@ public sealed partial class MobileWorkspaceView : UserControl {
         _sheetOpener = opener;
         SheetTitle.Text = title;
         SheetPages.IsVisible = ReferenceEquals(content, SheetPages);
-        SearchPanel.IsVisible = ReferenceEquals(content, SearchPanel);
-        NotePanel.IsVisible = ReferenceEquals(content, NotePanel);
+        NoteScroll.IsVisible = ReferenceEquals(content, NotePanel);
         SheetScrim.IsVisible = true;
-        HeaderBar.IsEnabled = WorkspaceGrid.IsEnabled = FooterBar.IsEnabled = false;
+        HeaderBar.IsEnabled = TabBar.IsEnabled = SearchPanel.IsEnabled = WorkspaceGrid.IsEnabled = FooterBar.IsEnabled = false;
         SheetDone.Focus();
     }
 
@@ -107,13 +156,9 @@ public sealed partial class MobileWorkspaceView : UserControl {
     private void DismissSheet() {
         if (_submittingNote) return;
         SheetScrim.IsVisible = false;
-        HeaderBar.IsEnabled = WorkspaceGrid.IsEnabled = FooterBar.IsEnabled = true;
+        HeaderBar.IsEnabled = TabBar.IsEnabled = SearchPanel.IsEnabled = WorkspaceGrid.IsEnabled = FooterBar.IsEnabled = true;
+        UpdateLayoutMode();
         _sheetOpener?.Focus();
-    }
-
-    private void OnSheetPageSelected(object? sender, SelectionChangedEventArgs e) {
-        if (SheetPages.IsVisible && SheetScrim.IsVisible) DismissSheet();
-        PageScroll.Offset = default;
     }
 
     private async void OnAddNoteClick(object? sender, RoutedEventArgs e) {

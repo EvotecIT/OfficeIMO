@@ -27,7 +27,7 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App> {
     private Control CreateWorkspace(App app) {
         _workspace = new MobileWorkspaceView();
         _documents = new MobileDocumentController(app.Services, PickPdfAsync, ShareAsync);
-        _workspace.DataContext = _documents.Document;
+        _workspace.Connect(_documents);
         _workspace.ShareDocumentAsync = _documents.ShareAsync;
         _workspace.OpenSampleAsync = _documents.OpenSampleAsync;
         TopLevel.SetAutoSafeAreaPadding(_workspace, true);
@@ -43,8 +43,10 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App> {
 
     private async void OnWorkspaceLoaded(object? sender, Avalonia.Interactivity.RoutedEventArgs e) {
         _workspace!.Loaded -= OnWorkspaceLoaded;
+        _workspace.IsEnabled = false;
         try { await _documents!.RestoreAsync(); }
         catch (Exception error) { _documents!.Document.ErrorMessage = error.Message; }
+        finally { _workspace.IsEnabled = true; }
     }
 
     private async Task<IStorageFile?> PickPdfAsync(CancellationToken token) {

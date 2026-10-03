@@ -137,7 +137,7 @@
       </Grid>
     </Border>
 
-    <Grid ColumnDefinitions="*,Auto,*" MinHeight="22">
+    <Grid Classes="pageCaption" ColumnDefinitions="*,Auto,*" MinHeight="22">
       <TextBlock Grid.Column="1"
                  Text="{Binding PageLabel}"
                  Foreground="{DynamicResource StudioMutedTextBrush}"

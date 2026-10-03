@@ -4,7 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace OfficeIMO.Studio.Features.Shell;
 
-/// <summary>Represents one live document workspace in the desktop tab strip.</summary>
+/// <summary>Represents one live document workspace in a document tab strip.</summary>
 public sealed partial class StudioDocumentTabViewModel : ObservableObject, IDisposable {
     private readonly Func<StudioDocumentTabViewModel, Task> _close;
     private bool _disposed;

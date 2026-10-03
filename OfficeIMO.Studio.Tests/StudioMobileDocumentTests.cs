@@ -64,6 +64,7 @@ public sealed class StudioMobileDocumentTests {
                 Assert.Equal(original, file.Bytes);
                 Assert.Equal(0, file.Writes);
                 Assert.Equal(2, shares);
+                return true;
             }, CancellationToken.None);
         } finally { Directory.Delete(root, recursive: true); }
     }
