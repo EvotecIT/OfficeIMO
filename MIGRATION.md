@@ -25,6 +25,18 @@ Arrow decimals must fit both declared scale and precision. Redundant fractional 
 
 Normalized RTF writing accepts `UnicodeSkipCount` values from 0 through 8. Set a larger authored value to a supported width before calling `ToRtf`; larger values now raise `ArgumentOutOfRangeException` instead of generating disproportionate fallback output. Reading and lossless source export still preserve an incoming `\uc` value, including one that cannot be used for normalized writing.
 
+## LaTeX editing and conversion contracts
+
+LaTeX conversion projects the current edited source. Reader locations and conversion diagnostic spans refer to that rebound source; native syntax spans continue to describe the original parse. Conflicting edits to the same span now throw instead of silently selecting one replacement. Edit one representation, or use identical replacements when two views describe the same region.
+
+Parse options, including opaque environment names and macro budgets, are snapshotted. Reparse with new options to change an existing document's interpretation or expansion limits.
+
+Document-level macro expansion honors edited definitions and defaults. Reverse fragment links now use explicit `\hyperref[label]{visible text}` navigation links instead of replacing their text with `\ref{label}`. Custom list numbering, task markers, callout layout and omitted image metadata produce conversion diagnostics. Missing PDF reference targets retain visible text with an `UnresolvedInternalLink` warning instead of failing the entire export.
+
+Generated TeX labels reserve `_XXXX_` escape sequences and encode every literal underscore as `_005F_`, preventing collisions between literal text and encoded Unicode identifiers. Existing generated labels containing underscores therefore change. Regenerate declarations and references together when persisting generated label names outside the document.
+
+Missing or unbraced required arguments, graphics options, counter-based references, custom list markers, nested formatting flattened into scalar code or underline nodes, unsupported containers, and source-only conversion produce fidelity diagnostics. Strict conversion callers must inspect these reports and accept the relevant approximations explicitly. Use braced arguments for supported commands.
+
 ## iWork destination omissions and Reader identity
 
 Editable iWork output with known destination omissions requires `AllowPartialEditableReconstruction = true`. This includes Numbers cell padding, unsupported rich text and table paragraph styles, along with assessed Pages and Keynote destination omissions. Automatic conversion otherwise uses an available permitted visual preview; `EditableOnly` rejects the omission. Inspect `Report.IsPartialEditableReconstruction` and use `RequireCompleteEditableReconstruction()` when partial output is unacceptable. The shared workflow defaults reject these results before publication. Accepted approximation diagnostics and conservative unassessed source records retain their separate fidelity categories.
@@ -284,6 +296,10 @@ system extend the December 31, 1899 epoch backwards, including fractional days;
 they no longer use OLE Automation's negative-fraction convention.
 
 ## OCR outcomes and AI evaluation
+
+Multi-batch `Ask` and `Explain` combine validated observations when multiple batches contribute facts. Budget for combination requests through `MaxRequests` and inspect `SynthesisStatus`: unfinished combination returns `Partial` with `answer-synthesis-incomplete`, replacing `cross-batch-reasoning-not-supported`. Original citations and quote offsets are preserved. This change can increase model request counts; it does not certify answer correctness.
+
+Process OCR retains the version-2 text-recognition request shape. Orientation bridges must explicitly advertise `SupportsOrientationDetection`, handle the `DetectOrientation` operation and return orientation evidence. Tesseract's complete resolution-estimation stderr is informational; unknown or truncated stderr still triggers review warnings.
 
 Calls through `OcrEngineRunner` now throw `OcrEngineExecutionException` for provider exceptions, null results, and nonrecoverable error diagnostics. Catch this type and inspect `Kind` instead of parsing provider exception messages. Provider exception text and inner exceptions are omitted; caller cancellation and shared timeouts remain distinct. Reader's continue-on-error mode records a failed candidate rather than enriching from a nonrecoverable result.
 

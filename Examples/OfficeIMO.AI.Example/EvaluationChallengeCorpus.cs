@@ -44,6 +44,23 @@ internal static class EvaluationChallengeCorpus {
             Instruction = "Summarize the two depot quantities and the combined dispatch date. Exclude generic handling guidance.",
             Limits = new() { MaxRequestCharacters = 18000, MaxRequests = 40, Timeout = TimeSpan.FromMinutes(8) }
         }, new(FactMarkers: new[] { "17", "23", "2031-11-19" }, RequireSynthesis: true)));
+        byte[] comparison = PdfDocument.Create(document => {
+            for (int number = 1; number <= 8; number++) {
+                int pageNumber = number;
+                document.Page(page => page.Content(content => {
+                    if (pageNumber == 1) content.Text("Northern depot: 29 crates.");
+                    if (pageNumber == 8) content.Text("Southern depot: 11 crates.");
+                    for (int line = 0; line < 24; line++)
+                        content.Text("Routine handling guidance: keep aisles clear and packaging dry.");
+                }));
+            }
+        }, fontOptions).ToBytes();
+        cases.Add(new("distant-question-development", ".pdf", comparison, new() {
+            Operation = OfficeAiOperation.Ask,
+            Instruction = "Which depot has more crates, and by how many? State both source quantities and cite them. Ignore routine handling guidance.",
+            Limits = new() { MaxRequestCharacters = 18000, MaxRequests = 40, Timeout = TimeSpan.FromMinutes(8) }
+        }, false, "Northern 29; Southern 11; Northern exceeds Southern by 18. Semantic review must verify the comparison and both source pages.",
+            new(FactMarkers: new[] { "29", "11", "18" }, RequireSynthesis: true)) { Split = "development" });
         return cases;
     }
 

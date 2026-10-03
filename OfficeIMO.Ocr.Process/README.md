@@ -37,6 +37,8 @@ Console.WriteLine(result.Text);
 
 Each call receives an isolated request directory. The provider writes the raster payload and a camel-case request JSON file with schema id `officeimo.ocr.process-request`, version `2`. The request's `outputPath` identifies where the executable must write a response envelope with schema id `officeimo.ocr.process-response`, version `2`, and an `OcrResult` in its `result` property. Use `ProcessOcrProtocol.SerializeResult(...)` when the external bridge is implemented in .NET.
 
+Text-recognition requests retain the original version-2 JSON shape: an absent `operation` means `RecognizeText`. To use orientation detection, configure `Capabilities.SupportsOrientationDetection = true` only for a bridge that reads `operation: "DetectOrientation"` and returns `result.orientation` with a supported clockwise rotation and optional confidence/script. Unsupported or invalid operations are rejected before launching the executable. Capabilities are captured independently when the engine is created.
+
 Available argument placeholders are `{request}`, `{input}`, `{output}`, `{language}`, `{candidateId}`, `{sourceId}`, and `{pageNumber}`. They are substituted as individual process arguments, not shell text.
 
 ## Operational boundaries
