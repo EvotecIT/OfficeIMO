@@ -229,17 +229,10 @@ public static partial class ExcelIWorkConverter {
                             double width = PointsToExcelColumnWidth(table.DefaultColumnWidth.Value);
                             sheet.SetDefaultColumnWidthExact(width);
                         }
-                        foreach (var row in table.RowHeights) {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            sheet.SetRowHeightExact(row.Key, row.Value);
-                        }
+                        sheet.SetImportedRowLayout(table.RowHeights, table.HiddenRows, cancellationToken);
                         foreach (var column in table.ColumnWidths) {
                             cancellationToken.ThrowIfCancellationRequested();
                             sheet.SetColumnWidth(column.Key, PointsToExcelColumnWidth(column.Value));
-                        }
-                        foreach (int row in table.HiddenRows) {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            sheet.SetRowHidden(row, true);
                         }
                         foreach (int column in table.HiddenColumns) {
                             cancellationToken.ThrowIfCancellationRequested();
