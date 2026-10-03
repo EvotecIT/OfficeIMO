@@ -69,10 +69,8 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
 
     internal bool CanPublishPath(string path) => CanDocumentOwnPath(null, path);
 
-    internal bool CanPublishBookPath(MainWindowViewModel? owner, string path) {
-        if (!CanDocumentOwnPath(null, path, ignoreBookOwner: owner)) return false;
-        return true;
-    }
+    internal bool CanPublishBookPath(MainWindowViewModel? owner, string path) =>
+        CanDocumentOwnPath(null, path, ignoreBookOwner: owner);
 
     internal bool CanPublishDirectory(string path) {
         if (string.IsNullOrWhiteSpace(path)) return false;

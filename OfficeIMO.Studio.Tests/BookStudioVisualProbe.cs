@@ -44,9 +44,18 @@ internal static class BookStudioVisualProbe {
                         if (restored.Publication.Title != book.BookTitle || publication.Title != book.BookTitle || publication.Chapters.Count != 2)
                             throw new InvalidDataException("Native publication acceptance failed.");
                         if (state == "preview") await book.PreviewChapterCommand.ExecuteAsync(null);
+                        if (state == "review") {
+                            string reviewSource = Path.Combine(root, "review.html");
+                            await File.WriteAllTextAsync(reviewSource, "<title>Review an import</title><h1>Opening</h1><p onclick='execute()'>The static paragraph is retained; its active handler is omitted.</p><h1>Closing</h1><p>Review the import before publishing.</p>");
+                            await book.OpenLocationAsync(reviewSource, default);
+                            if (!book.NeedsReview || book.CanExport || book.Diagnostics.Count == 0)
+                                throw new InvalidDataException("Native review-state acceptance failed.");
+                        }
                     }
-                    var tabs = window.GetVisualDescendants().OfType<TabControl>().First(control => control.DataContext is BookWorkbenchViewModel);
-                    tabs.SelectedIndex = state switch { "chapters" => 1, "preview" => 2, "review" => 3, _ => 0 };
+                    if (state != "empty") {
+                        var tabs = window.GetVisualDescendants().OfType<TabControl>().First(control => control.DataContext is BookWorkbenchViewModel);
+                        tabs.SelectedIndex = state switch { "chapters" => 1, "preview" => 2, "review" => 3, _ => 0 };
+                    }
                     await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Render);
                     // Let the native compositor commit the newly selected content before rendering its visual tree.
                     await Task.Delay(300);

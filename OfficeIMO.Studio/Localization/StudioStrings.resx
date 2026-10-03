@@ -2488,7 +2488,7 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Book.Preview" xml:space="preserve"><value>Preview</value></data>
   <data name="Book.PreviewChapter" xml:space="preserve"><value>Preview selected chapter</value></data>
   <data name="Book.Review" xml:space="preserve"><value>Import review</value></data>
-  <data name="Book.ReviewHint" xml:space="preserve"><value>Review the import findings and the book's appearance. Missing dependencies or failed conversions block EPUB export. Reported omissions and approximations require your acknowledgment.</value></data>
+  <data name="Book.ReviewHint" xml:space="preserve"><value>Review the import findings and the book's appearance. Missing dependencies or failed conversions block EPUB export. Reported omissions and approximations require your acknowledgment. Independently check the final EPUB and its accessibility metadata before publishing; this workspace does not certify accessibility.</value></data>
   <data name="Book.AcceptLoss" xml:space="preserve"><value>I reviewed and accept these import changes</value></data>
   <data name="Command.PublishBook.Title" xml:space="preserve"><value>Publish a book</value></data>
   <data name="Command.PublishBook.Description" xml:space="preserve"><value>Import manuscripts, organize chapters, review and export an EPUB book.</value></data>

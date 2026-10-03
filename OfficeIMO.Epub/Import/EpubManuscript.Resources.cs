@@ -31,8 +31,8 @@ public static partial class EpubManuscript {
             diagnostics.Add(new OfficeConversionFidelityDiagnostic(diagnostic.Code, diagnostic.Message,
                 diagnostic.LossKind == OfficeConversionLossKind.None ? OfficeConversionLossKind.Omission : diagnostic.LossKind,
                 diagnostic.Component, diagnostic.Source));
-        var paths = new Dictionary<HtmlResolvedResource, string>();
-        var mediaTypes = new Dictionary<HtmlResolvedResource, string>();
+        var paths = new Dictionary<string, string>(StringComparer.Ordinal);
+        var mediaTypes = new Dictionary<string, string>(StringComparer.Ordinal);
         var declarations = new Dictionary<string, string>(StringComparer.Ordinal);
         var deduplicated = new Dictionary<string, string>(StringComparer.Ordinal);
         int count = 0;
@@ -46,15 +46,15 @@ public static partial class EpubManuscript {
                 path = "EPUB/resources/resource-" + (++count).ToString("D4") + Extension(mediaType);
                 deduplicated.Add(key, path);
             }
-            paths[resource] = path; mediaTypes[resource] = mediaType;
+            paths[entry.CanonicalSource] = path; mediaTypes[entry.CanonicalSource] = mediaType;
         }
         foreach (HtmlResourceSessionEntry entry in session.Resources) {
             token.ThrowIfCancellationRequested();
             if (!session.TryGet(entry.Source, entry.CanonicalSource, out HtmlResolvedResource resource)) continue;
-            string path = paths[resource];
+            string path = paths[entry.CanonicalSource];
             if (declarations.ContainsKey(path)) continue;
             byte[] bytes = resource.Bytes;
-            string mediaType = mediaTypes[resource];
+            string mediaType = mediaTypes[entry.CanonicalSource];
             if (mediaType == "text/css") {
                 if (!HtmlResourcePipeline.TryDecodeStylesheet(bytes, resource.ContentType, out string css)) {
                     AddDiagnostic(diagnostics, "EPUB_IMPORT_CSS_ENCODING_FAILED", "A stylesheet could not be decoded.", entry.CanonicalSource, OfficeConversionLossKind.Failure);
@@ -138,7 +138,7 @@ public static partial class EpubManuscript {
 
         string FindPath(string url, Uri? baseUri, HtmlResourceKind kind) {
             string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(url, baseUri, manuscript.ResourceUrlPolicy);
-            if (session.TryGet(null, resolved, out HtmlResolvedResource resource) && paths.TryGetValue(resource, out string? path)) return path;
+            if (session.TryGetResolvedSource(null, resolved, out string canonical) && paths.TryGetValue(canonical, out string? path)) return path;
             AddDiagnostic(diagnostics, "EPUB_IMPORT_RESOURCE_MISSING", "A manuscript dependency could not be collected. Supply an authorized resolver or repair the source reference.", url, OfficeConversionLossKind.Failure);
             return string.Empty;
         }

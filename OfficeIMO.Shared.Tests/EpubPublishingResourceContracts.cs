@@ -1,10 +1,44 @@
 using OfficeIMO.Epub;
 using OfficeIMO.Html;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Shared.Tests;
 
 public sealed class EpubPublishingResourceContracts {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SharedResolverObjectsRetainEachResourceBaseAndItsDistinctImage(bool svg) {
+        string references = svg ? "<img alt='First diagram' src='one/parent.svg'><img alt='Second diagram' src='two/parent.svg'>" : "<link rel='stylesheet' href='one/parent.css'><link rel='stylesheet' href='two/parent.css'>";
+        var source = HtmlConversionDocument.Parse("<title>Resources</title>" + references + "<h1>One</h1><p>Text</p>",
+            new HtmlConversionDocumentOptions { BaseUri = new Uri("https://example.test/book.html") });
+        var shared = new HtmlResolvedResource(System.Text.Encoding.UTF8.GetBytes(svg
+            ? "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'><image width='1' height='1' href='dot.svg'/></svg>"
+            : "p{background:url('dot.svg')}"), svg ? "image/svg+xml" : "text/css");
+        var result = await EpubManuscript.ImportHtmlAsync(source, new EpubManuscriptOptions {
+            ResourceResolver = (request, _) => Task.FromResult<HtmlResolvedResource?>(request.Uri.AbsolutePath.Contains("/parent.") ? shared :
+                new HtmlResolvedResource(System.Text.Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'><rect width='1' height='1' fill='" + (request.Uri.AbsolutePath.StartsWith("/one/") ? "red" : "blue") + "'/></svg>"), "image/svg+xml"))
+        });
+        result.Report.RequireNoLoss();
+        var parents = result.Publication.Manifest.Where(item => item.Id.StartsWith("manuscript-resource-") &&
+            (svg ? item.MediaType == "image/svg+xml" && System.Text.Encoding.UTF8.GetString(result.Publication.GetResourceBytes(item.Id)).Contains("<image") : item.MediaType == "text/css")).ToArray();
+        Assert.Equal(2, parents.Length);
+        foreach (var parent in parents) {
+            string content = System.Text.Encoding.UTF8.GetString(result.Publication.GetResourceBytes(parent.Id));
+            var image = result.Publication.Manifest.Single(item => item.MediaType == "image/svg+xml" && item != parent && content.Contains(System.IO.Path.GetFileName(item.Reference.ContainerPath!)));
+            string color = parent == parents[0] ? "red" : "blue";
+            Assert.Contains("fill=\"" + color + "\"", System.Text.Encoding.UTF8.GetString(result.Publication.GetResourceBytes(image.Id)));
+        }
+        result.Publication.Write().Report.RequireNoLoss();
+    }
+    [Fact]
+    public void ExcessiveImportFindingsStayBoundedAndCannotHideBehindSuccessfulTruncation() {
+        var result = EpubManuscript.ImportHtml(HtmlConversionDocument.Parse("<title>Book</title><h1>One</h1>" + string.Concat(Enumerable.Repeat("<p onclick='execute()'>Text</p>", 10_001))));
+        Assert.Equal(10_000, result.Report.FidelityDiagnostics.Count);
+        Assert.False(result.Succeeded);
+        Assert.Equal("EPUB_IMPORT_DIAGNOSTIC_LIMIT", result.Report.FidelityDiagnostics.Last().Code);
+    }
     [Fact]
     public void AuthoredPackageAndNavigationCarryLanguageAndMatchingAccessibilityRoles() {
         var publication = EpubManuscript.ImportHtml(HtmlConversionDocument.Parse("<html lang='pl'><title>Book</title><h1 id='one'>One</h1></html>")).RequireNoLoss();

@@ -759,3 +759,21 @@ byte[] cleanedCopy = result.ToArray();
 For memory-only report export, pass the inspected bytes and report to `OfficeProvenanceReportSerializer.FromBuffer(fileName, bytes, inspection, removal)` and serialize the returned result. These factories do not read paths or verify cryptographic authenticity.
 
 `OfficeTextIntegrityReview` in Core owns source-bound text selections and encoding-preserving export. `OfficeTextIntegrityReportSerializer.Serialize(review, review.Text, fileName, selectedIndices)` exports exact findings, selected occurrence indices, UTF-16 offset units, source hashes, encoding/BOM information, and the selected-copy digest. It does not include the full source text.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Create | 1 | 0 | 0 | 0 | 0 | 0 |
+| Read | 1 | 0 | 0 | 0 | 0 | 0 |
+| Edit | 1 | 0 | 0 | 0 | 0 | 0 |
+| Preserve | 1 | 0 | 0 | 0 | 0 | 0 |
+| Validate | 0 | 1 | 0 | 0 | 0 | 0 |
+| Convert | 0 | 2 | 0 | 0 | 0 | 0 |
+| Export | 1 | 0 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.Workflows` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

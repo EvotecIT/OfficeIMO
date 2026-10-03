@@ -30,8 +30,15 @@ public sealed class EpubManuscriptResult : IOfficeConversionResult<EpubPublicati
 
 /// <summary>Immutable category-preserving manuscript conversion evidence.</summary>
 public sealed class EpubManuscriptReport : IOfficeConversionReport {
-    internal EpubManuscriptReport(IEnumerable<OfficeConversionFidelityDiagnostic> diagnostics) =>
-        FidelityDiagnostics = Array.AsReadOnly(diagnostics.ToArray());
+    internal const int MaximumDiagnostics = 10_000;
+    internal EpubManuscriptReport(IEnumerable<OfficeConversionFidelityDiagnostic> diagnostics) {
+        var retained = diagnostics.Take(MaximumDiagnostics + 1).ToArray();
+        if (retained.Length > MaximumDiagnostics) retained = retained.Take(MaximumDiagnostics - 1).Concat(new[] { LimitDiagnostic() }).ToArray();
+        FidelityDiagnostics = Array.AsReadOnly(retained);
+    }
+    internal static OfficeConversionFidelityDiagnostic LimitDiagnostic() => new OfficeConversionFidelityDiagnostic(
+        "EPUB_IMPORT_DIAGNOSTIC_LIMIT", "The import exceeds the 10,000-finding review bound. Reduce the source's reported issues before publishing.",
+        OfficeConversionLossKind.Failure, "OfficeIMO.Epub.Import");
     /// <summary>Diagnostics emitted by source conversion and EPUB packaging.</summary>
     public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
     /// <summary>Whether every source conversion stage completed without a failure.</summary>

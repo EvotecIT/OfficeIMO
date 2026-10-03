@@ -9,6 +9,27 @@ using OfficeIMO.Workflows;
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class BookWorkbenchTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ImplicitDraftApplicationRefreshesChapterLabelsAfterSaveOrExport(bool export) {
+        using var storage = new StudioStorageAccess();
+        var source = new TestStorageFile("content://books/draft-source", Encoding.UTF8.GetBytes("# One\n\nFirst.\n\n# Two\n\nSecond."), "book.md");
+        var output = new TestStorageFile("content://books/draft-output", [], export ? "book.epub" : "book.oibook");
+        foreach (var file in new[] { source, output }) await storage.RegisterAsync(file.Item, default);
+        var dialogs = new Dialogs { Save = output.Location.AbsoluteUri };
+        using var book = new BookWorkbenchViewModel(() => dialogs, storage, null, () => Task.FromResult(UnsavedChangesDecision.Discard));
+        await book.OpenLocationAsync(source.Location.AbsoluteUri, default);
+        book.ChapterTitle = "Renamed opening";
+        if (export) await book.ExportBookCommand.ExecuteAsync(null);
+        else await book.SaveProjectCommand.ExecuteAsync(null);
+        Assert.Equal(1, output.Writes);
+        Assert.Equal("Renamed opening", book.Chapters[0].Title);
+        book.SelectedChapter = book.Chapters[1];
+        book.SelectedChapter = book.Chapters[0];
+        Assert.Equal("Renamed opening", book.ChapterTitle);
+        Assert.Equal("Renamed opening", book.Project!.Publication.Read().Chapters[0].Title);
+    }
     [Fact]
     public async Task ChapterDraftsSurviveSelectionAndStylesheetUndoRefreshesTheEditor() {
         using var storage = new StudioStorageAccess();

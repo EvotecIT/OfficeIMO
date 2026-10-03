@@ -29,7 +29,7 @@ public static partial class EpubManuscript {
         if (options.ChapterHeadingLevel < 0 || options.ChapterHeadingLevel > 6) throw new ArgumentOutOfRangeException(nameof(options.ChapterHeadingLevel));
         var source = manuscript.CreateSourceDocumentForConversion();
         string title = options.Title ?? source.Title ?? string.Empty;
-        string language = options.Language ?? source.DocumentElement?.GetAttribute("lang") ?? "en";
+        string language = options.Language ?? source.DocumentElement?.GetAttribute("lang") ?? source.DocumentElement?.GetAttribute("xml:lang") ?? "en";
         var publication = EpubPublication.Create(title, language, options.Identifier, retentionLimits: options.RetentionLimits);
         string? creator = options.Creator ?? source.QuerySelector("meta[name='author']")?.GetAttribute("content");
         if (!string.IsNullOrWhiteSpace(creator)) publication.Creator = creator;
@@ -75,6 +75,9 @@ public static partial class EpubManuscript {
     }
 
     private static void AddDiagnostic(List<OfficeConversionFidelityDiagnostic> diagnostics, string code, string message,
-        string? location, OfficeConversionLossKind loss = OfficeConversionLossKind.Omission) =>
-        diagnostics.Add(new OfficeConversionFidelityDiagnostic(code, message, loss, "OfficeIMO.Epub.Import", location));
+        string? location, OfficeConversionLossKind loss = OfficeConversionLossKind.Omission) {
+        if (diagnostics.Count >= EpubManuscriptReport.MaximumDiagnostics) return;
+        diagnostics.Add(diagnostics.Count == EpubManuscriptReport.MaximumDiagnostics - 1 ? EpubManuscriptReport.LimitDiagnostic() :
+            new OfficeConversionFidelityDiagnostic(code, message, loss, "OfficeIMO.Epub.Import", location));
+    }
 }

@@ -4,6 +4,7 @@ using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Epub;
+using OfficeIMO.Html;
 using OfficeIMO.Studio.Features.Shell;
 using OfficeIMO.Studio.Infrastructure;
 using OfficeIMO.Studio.Infrastructure.Localization;
@@ -132,6 +133,7 @@ public sealed partial class BookWorkbenchViewModel : ObservableObject, IDisposab
             ChapterBodies = new Dictionary<string, string>(_bodyDrafts), ChapterTitles = new Dictionary<string, string>(_titleDrafts), Stylesheet = _styleChanged ? Stylesheet : null };
         await Task.Run(() => _project!.ApplyEdits(edits, token), token).ConfigureAwait(true);
         _bodyDrafts.Clear(); _titleDrafts.Clear(); _styleChanged = false; _hasDraftEdits = false;
+        RefreshBook(SelectedChapter?.Index ?? 0);
     }
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
@@ -140,12 +142,11 @@ public sealed partial class BookWorkbenchViewModel : ObservableObject, IDisposab
         await RunAsync(_ => { _project = BookProject.Create(T("Untitled", "Untitled book")); ResetLocation(); IsDirty = true; RefreshBook(); return Task.CompletedTask; });
     }
     [RelayCommand(CanExecute = nameof(CanEditBook))]
-    private Task ApplyEditsAsync() => RunAsync(async token => { await ApplyDraftsAsync(token); RefreshBook(SelectedChapter?.Index ?? 0); Status = T("Applied", "Book changes validated."); });
+    private Task ApplyEditsAsync() => RunAsync(async token => { await ApplyDraftsAsync(token); Status = T("Applied", "Book changes validated."); });
     [RelayCommand(CanExecute = nameof(CanEditChapter))]
     private Task RenameChapterAsync() => RunAsync(async token => {
-        int index = SelectedChapter?.Index ?? throw new InvalidOperationException("Choose a chapter.");
         await ApplyDraftsAsync(token);
-        IsDirty = true; RefreshBook(index);
+        IsDirty = true;
     });
     [RelayCommand(CanExecute = nameof(CanMoveUp))] private Task MoveUpAsync() => MoveAsync(-1);
     [RelayCommand(CanExecute = nameof(CanMoveDown))] private Task MoveDownAsync() => MoveAsync(1);

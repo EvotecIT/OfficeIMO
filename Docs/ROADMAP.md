@@ -491,7 +491,7 @@ Treat a format as a full OfficeIMO product only when a stable public model can s
 ### Admission and sequencing
 
 - [ ] Extend the generated capability and conversion catalogs so every additional format declares `FullProduct`, `ReadConvert`, `SalvageRead`, or `IntentionalBoundary`, together with versions/profiles, security behavior, preservation guarantees, fixture provenance, and route maturity.
-- [ ] Deliver the remaining expansion wave in ownership order: the DbaClientX-backed DBF adapter; EPUB authoring; bounded JATS; then proprietary legacy and additional ebook readers selected by real fixture availability and consumer demand.
+- [ ] Deliver the remaining expansion wave in ownership order: the DbaClientX-backed DBF adapter; bounded JATS; then proprietary legacy and additional ebook readers selected by real fixture availability and consumer demand.
 - [ ] Require hostile-input limits, path and stream parity, cancellation where applicable, reopen or independent-reader evidence, deterministic-loss reporting, and license/provenance review before publishing any new format package. A file-extension detector or text scraper alone does not qualify as format support.
 
 ## Completion rule
