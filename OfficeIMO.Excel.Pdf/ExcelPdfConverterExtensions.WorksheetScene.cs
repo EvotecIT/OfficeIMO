@@ -9,47 +9,50 @@ namespace OfficeIMO.Excel.Pdf {
         private static void AddWorksheetCanvasPages(
             PdfCore.PdfDocument pdf,
             ExcelDocument document,
-            WorksheetPdfExportPlan plan,
+            IReadOnlyList<WorksheetPdfExportPlan> plans,
             ExcelToPdfOptions options,
             IReadOnlyDictionary<string, string> sheetDestinations,
             IReadOnlyDictionary<string, string> cellDestinations,
             PdfCore.PdfStandardFont defaultFontFamily) {
-            object?[,] values = plan.ExportData.Values;
-            int columns = values.GetLength(1);
-            PdfCore.PageSize pageSize = GetEffectivePageSize(options, plan.PageSetup);
-            PdfCore.PageMargins margins = GetEffectiveMargins(options, plan.PageSetup);
+            WorksheetPdfExportPlan firstPlan = plans[0];
+            PdfCore.PageSize pageSize = GetEffectivePageSize(options, firstPlan.PageSetup);
+            PdfCore.PageMargins margins = GetEffectiveMargins(options, firstPlan.PageSetup);
             double headingHeight = options.IncludeSheetHeadings ? WorksheetHeadingHeight : 0D;
             double availableWidth = Math.Max(1D, pageSize.Width - margins.Left - margins.Right);
             double availableHeight = Math.Max(1D, pageSize.Height - margins.Top - margins.Bottom - headingHeight);
-            IReadOnlyList<TableChunk> chunks = plan.HasTable
-                ? CreateWorksheetSceneChunks(plan, options, columns, availableWidth, availableHeight)
-                : new[] { new TableChunk(Array.Empty<int>(), 0, 0, 0) };
-
             pdf.Section(page => {
-                ApplyWorksheetPageSetup(page, plan.PageSetup, options);
-                ApplyWorksheetHeaderFooter(page, plan.HeaderFooter, plan.SheetName, document.FilePath, options);
-                page.Content(content => content.Item(item => item.Bookmark(plan.BookmarkName)));
-                for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) {
-                    if (chunkIndex > 0) {
-                        page.Content(content => content.Item(item => item.PageBreak()));
-                    }
+                ApplyWorksheetPageSetup(page, firstPlan.PageSetup, options);
+                ApplyWorksheetHeaderFooter(page, firstPlan.HeaderFooter, firstPlan.SheetName, document.FilePath, options);
+                for (int areaIndex = 0; areaIndex < plans.Count; areaIndex++) {
+                    WorksheetPdfExportPlan plan = plans[areaIndex];
+                    int columns = plan.ExportData.Values.GetLength(1);
+                    IReadOnlyList<TableChunk> chunks = plan.HasTable
+                        ? CreateWorksheetSceneChunks(plan, options, columns, availableWidth, availableHeight)
+                        : new[] { new TableChunk(Array.Empty<int>(), 0, 0, 0) };
+                    if (areaIndex > 0) page.Content(content => content.Item(item => item.PageBreak()));
+                    page.Content(content => content.Item(item => item.Bookmark(plan.BookmarkName)));
+                    for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) {
+                        if (chunkIndex > 0) {
+                            page.Content(content => content.Item(item => item.PageBreak()));
+                        }
 
-                    TableChunk chunk = chunks[chunkIndex];
-                    bool firstPageForSheet = chunkIndex == 0;
-                    page.Canvas(canvas => RenderWorksheetScene(
-                        canvas,
-                        plan,
-                        chunk,
-                        options,
-                        sheetDestinations,
-                        cellDestinations,
-                        defaultFontFamily,
-                        margins,
-                        availableWidth,
-                        availableHeight,
-                        headingHeight,
-                        firstPageForSheet,
-                        document.DateSystem));
+                        TableChunk chunk = chunks[chunkIndex];
+                        bool firstPageForSheet = areaIndex == 0 && chunkIndex == 0;
+                        page.Canvas(canvas => RenderWorksheetScene(
+                            canvas,
+                            plan,
+                            chunk,
+                            options,
+                            sheetDestinations,
+                            cellDestinations,
+                            defaultFontFamily,
+                            margins,
+                            availableWidth,
+                            availableHeight,
+                            headingHeight,
+                            firstPageForSheet,
+                            document.DateSystem));
+                    }
                 }
             });
         }

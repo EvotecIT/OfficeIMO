@@ -22,44 +22,30 @@ namespace OfficeIMO.Excel.Pdf {
                    workbookSheet.GetColumnDefinitions().Any(column => column.Hidden);
         }
 
-        private static string GetExportRange(ExcelSheetReader sheet, ExcelSheet? workbookSheet, ExcelToPdfOptions options) {
-            string? printArea = GetWorksheetPrintArea(workbookSheet, options);
-            if (!string.IsNullOrWhiteSpace(printArea)) {
-                if (ContainsMultiplePrintAreas(printArea!)) {
-                    AddWarning(
-                        options,
-                        sheet.Name,
-                        "WorksheetPrintArea",
-                        "Multi-area worksheet print areas are not supported by the first-party PDF exporter; exporting the worksheet used range instead.");
-                    return sheet.GetUsedRangeA1();
+        private static IReadOnlyList<string> GetExportRanges(ExcelSheetReader sheet, ExcelSheet? workbookSheet, ExcelToPdfOptions options) {
+            IReadOnlyList<string> areas = options.UseWorksheetPrintAreas && workbookSheet != null
+                ? workbookSheet.GetPrintAreas()
+                : Array.Empty<string>();
+            if (areas.Count == 0) return new[] { sheet.GetUsedRangeA1() };
+
+            A1.TryParseRange(NormalizeA1Range(sheet.GetUsedRangeA1()), out _, out _, out int usedLastRow, out int usedLastColumn);
+            var ranges = new List<string>(areas.Count);
+            foreach (string area in areas) {
+                options.CancellationToken.ThrowIfCancellationRequested();
+                if (!workbookSheet!.TryParsePrintAreaReference(area, out ExcelReference? reference) || reference == null) {
+                    throw new ArgumentException("Worksheet print area must be a valid local A1 reference: " + area, nameof(options));
                 }
-
-                return NormalizeA1Range(printArea!);
+                int firstRow = reference.Kind == ExcelReferenceKind.WholeColumn ? 1 : Math.Min(reference.Start.Row, reference.End.Row);
+                int lastRow = reference.Kind == ExcelReferenceKind.WholeColumn ? Math.Max(1, usedLastRow) : Math.Max(reference.Start.Row, reference.End.Row);
+                int firstColumn = reference.Kind == ExcelReferenceKind.WholeRow ? 1 : Math.Min(reference.Start.Column, reference.End.Column);
+                int lastColumn = reference.Kind == ExcelReferenceKind.WholeRow ? Math.Max(1, usedLastColumn) : Math.Max(reference.Start.Column, reference.End.Column);
+                ranges.Add(ToA1Range(firstRow, firstColumn, lastRow, lastColumn));
             }
-
-            return sheet.GetUsedRangeA1();
+            return ranges;
         }
 
         private static bool IsBoundedWorksheetRead(ExcelToPdfOptions options) =>
             options.UseBoundedWorksheetRead && options.MaxRowsPerSheet.HasValue;
-
-        private static bool ContainsMultiplePrintAreas(string printArea) {
-            bool inQuotedSheetName = false;
-            for (int i = 0; i < printArea.Length; i++) {
-                char current = printArea[i];
-                if (current == '\'') {
-                    if (inQuotedSheetName && i + 1 < printArea.Length && printArea[i + 1] == '\'') {
-                        i++;
-                    } else {
-                        inQuotedSheetName = !inQuotedSheetName;
-                    }
-                } else if (current == ',' && !inQuotedSheetName) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
 
         private static bool HasWorksheetPrintArea(ExcelSheet? workbookSheet, ExcelToPdfOptions options) =>
             !string.IsNullOrWhiteSpace(GetWorksheetPrintArea(workbookSheet, options));

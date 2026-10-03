@@ -531,7 +531,7 @@ namespace OfficeIMO.Excel {
                 "Worksheet drawing shapes and text boxes are present but are skipped by the first-party Excel-to-PDF path.",
                 pdfUnrenderedDrawingShapeDetails);
             Add(features, "Layout", "PDF-unsupported print areas", OfficeFeatureSupportLevel.PartiallyEditable, pdfUnsupportedPrintAreaCount, null,
-                "Worksheet print-area settings are present but the first-party Excel-to-PDF path falls back to the worksheet used range for multi-area print areas.",
+                "Worksheet print-area references cannot be exported as valid local A1 areas. Multiple valid areas are exported separately.",
                 pdfUnsupportedPrintAreaDetails);
             Add(features, "Layout", "PDF-unsupported print titles", OfficeFeatureSupportLevel.PartiallyEditable, pdfUnsupportedPrintTitleCount, null,
                 "Worksheet print-title columns are configured but the first-party Excel-to-PDF path currently repeats print-title rows only.",

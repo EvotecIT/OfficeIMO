@@ -40,50 +40,55 @@ namespace OfficeIMO.Excel.Pdf {
             var pdf = PdfCore.PdfDocument.Create(pdfOptions);
             IReadOnlyDictionary<string, string> sheetDestinations = BuildSheetDestinationMap(exportPlans);
             IReadOnlyDictionary<string, string> cellDestinations = BuildCellDestinationMap(exportPlans);
-            foreach (WorksheetPdfExportPlan plan in exportPlans) {
+            foreach (var worksheet in exportPlans.GroupBy(plan => plan.SheetName, StringComparer.OrdinalIgnoreCase)) {
                 cancellationToken.ThrowIfCancellationRequested();
+                WorksheetPdfExportPlan[] worksheetPlans = worksheet.ToArray();
+                WorksheetPdfExportPlan firstPlan = worksheetPlans[0];
                 if (options.WorksheetLayout == ExcelPdfWorksheetLayoutMode.WorksheetCanvas) {
-                    AddWorksheetCanvasPages(pdf, document, plan, options, sheetDestinations, cellDestinations, defaultFontFamily);
+                    AddWorksheetCanvasPages(pdf, document, worksheetPlans, options, sheetDestinations, cellDestinations, defaultFontFamily);
                     continue;
                 }
 
-                object?[,] values = plan.ExportData.Values;
-                int columns = values.GetLength(1);
-
                 pdf.Section(page => {
-                    ApplyWorksheetPageSetup(page, plan.PageSetup, options);
-                    ApplyWorksheetHeaderFooter(page, plan.HeaderFooter, plan.SheetName, document.FilePath, options);
+                    ApplyWorksheetPageSetup(page, firstPlan.PageSetup, options);
+                    ApplyWorksheetHeaderFooter(page, firstPlan.HeaderFooter, firstPlan.SheetName, document.FilePath, options);
                     page.Content(content => content.Item(item => {
-                        item.Bookmark(plan.BookmarkName);
-                        if (options.IncludeSheetHeadings) {
-                            item.H1(plan.SheetName);
-                        }
-
-                        IReadOnlyDictionary<string, IReadOnlyList<WorksheetImageExportData>> imagesByCellReference = CreateWorksheetImageMap(plan);
-                        foreach (WorksheetImageExportData image in plan.Images) {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            if (!imagesByCellReference.ContainsKey(NormalizeCellReference(image.CellReference))) {
-                                item.Image(image.Bytes, image.WidthPoints, image.HeightPoints, PdfCore.PdfAlign.Left, spacingBefore: 4, spacingAfter: 6, style: CreateConverterImageStyle(image));
+                        for (int areaIndex = 0; areaIndex < worksheetPlans.Length; areaIndex++) {
+                            WorksheetPdfExportPlan plan = worksheetPlans[areaIndex];
+                            object?[,] values = plan.ExportData.Values;
+                            int columns = values.GetLength(1);
+                            if (areaIndex > 0) item.PageBreak();
+                            item.Bookmark(plan.BookmarkName);
+                            if (options.IncludeSheetHeadings && areaIndex == 0) {
+                                item.H1(plan.SheetName);
                             }
-                        }
 
-                        foreach (WorksheetChartExportData chart in plan.Charts) {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            AddWorksheetChart(item, chart, plan.SheetName, options);
-                        }
-
-                        if (plan.HasTable) {
-                            IReadOnlyList<TableChunk> chunks = CreateTableChunks(plan, options, columns);
-                            for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) {
+                            IReadOnlyDictionary<string, IReadOnlyList<WorksheetImageExportData>> imagesByCellReference = CreateWorksheetImageMap(plan);
+                            foreach (WorksheetImageExportData image in plan.Images) {
                                 cancellationToken.ThrowIfCancellationRequested();
-                                TableChunk chunk = chunks[chunkIndex];
-                                if (chunkIndex > 0) {
-                                    item.PageBreak();
+                                if (!imagesByCellReference.ContainsKey(NormalizeCellReference(image.CellReference))) {
+                                    item.Image(image.Bytes, image.WidthPoints, image.HeightPoints, PdfCore.PdfAlign.Left, spacingBefore: 4, spacingAfter: 6, style: CreateConverterImageStyle(image));
                                 }
+                            }
 
-                                item.Table(
-                                    CreatePdfRows(values, plan.ExportData.Styles, plan.ExportData.Hyperlinks, plan.ExportData.CellReferences, plan.ExportData.StructuredTables, plan.ExportData.MergedCells, imagesByCellReference, chunk.RowIndexes, chunk.StartColumn, chunk.ColumnCount, options.EmptyCellText, sheetDestinations, cellDestinations, plan.SheetName, defaultFontFamily, dateSystem: document.DateSystem),
-                                    style: CreateTableStyle(options, plan.PageSetup, chunk.RowIndexes, chunk.HeaderRowCount, plan.ExportData.Styles, plan.ExportData.ConditionalFills, plan.ExportData.CellReferences, plan.ExportData.StructuredTables, plan.ExportData.ColumnWidths, plan.ExportData.RowHeights, chunk.StartColumn, chunk.ColumnCount));
+                            foreach (WorksheetChartExportData chart in plan.Charts) {
+                                cancellationToken.ThrowIfCancellationRequested();
+                                AddWorksheetChart(item, chart, plan.SheetName, options);
+                            }
+
+                            if (plan.HasTable) {
+                                IReadOnlyList<TableChunk> chunks = CreateTableChunks(plan, options, columns);
+                                for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) {
+                                    cancellationToken.ThrowIfCancellationRequested();
+                                    TableChunk chunk = chunks[chunkIndex];
+                                    if (chunkIndex > 0) {
+                                        item.PageBreak();
+                                    }
+
+                                    item.Table(
+                                        CreatePdfRows(values, plan.ExportData.Styles, plan.ExportData.Hyperlinks, plan.ExportData.CellReferences, plan.ExportData.StructuredTables, plan.ExportData.MergedCells, imagesByCellReference, chunk.RowIndexes, chunk.StartColumn, chunk.ColumnCount, options.EmptyCellText, sheetDestinations, cellDestinations, plan.SheetName, defaultFontFamily, dateSystem: document.DateSystem),
+                                        style: CreateTableStyle(options, plan.PageSetup, chunk.RowIndexes, chunk.HeaderRowCount, plan.ExportData.Styles, plan.ExportData.ConditionalFills, plan.ExportData.CellReferences, plan.ExportData.StructuredTables, plan.ExportData.ColumnWidths, plan.ExportData.RowHeights, chunk.StartColumn, chunk.ColumnCount));
+                                }
                             }
                         }
                     }));

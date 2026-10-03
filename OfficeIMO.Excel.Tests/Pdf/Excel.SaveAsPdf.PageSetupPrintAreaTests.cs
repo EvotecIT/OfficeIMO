@@ -91,12 +91,15 @@ public partial class Excel {
         Assert.DoesNotContain("OutsideCell", text);
     }
 
-    [Fact]
-    public void SaveAsPdf_ExcelWorkbook_Warns_And_Falls_Back_For_MultiArea_Print_Area() {
+    [Theory]
+    [InlineData(ExcelPdfWorksheetLayoutMode.WorksheetCanvas)]
+    [InlineData(ExcelPdfWorksheetLayoutMode.FlowTable)]
+    public void SaveAsPdf_ExcelWorkbook_Exports_MultiArea_Print_Areas_On_Separate_Pages(ExcelPdfWorksheetLayoutMode layout) {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfMultiAreaPrintArea.xlsx");
         var options = new ExcelToPdfOptions {
             IncludeSheetHeadings = false,
-            UseWorksheetPrintAreas = true
+            UseWorksheetPrintAreas = true,
+            WorksheetLayout = layout
         };
 
         byte[] bytes;
@@ -128,12 +131,16 @@ public partial class Excel {
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
-        string text = pdf.GetPage(1).Text;
-        Assert.Contains("UsedRangeTop", text);
-        Assert.Contains("AreaOne", text);
-        Assert.Contains("AreaTwo", text);
-        Assert.Contains("UsedRangeBottom", text);
-        Assert.Contains(result.Warnings, warning => warning.Source == "Report" && warning.Code == "WorksheetPrintArea");
+        Assert.Equal(2, pdf.NumberOfPages);
+        string firstPage = pdf.GetPage(1).Text;
+        string secondPage = pdf.GetPage(2).Text;
+        Assert.Contains("AreaOne", firstPage);
+        Assert.DoesNotContain("AreaTwo", firstPage);
+        Assert.Contains("AreaTwo", secondPage);
+        Assert.DoesNotContain("AreaOne", secondPage);
+        Assert.DoesNotContain("UsedRangeTop", firstPage + secondPage);
+        Assert.DoesNotContain("UsedRangeBottom", firstPage + secondPage);
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "WorksheetPrintArea");
     }
 
     [Fact]

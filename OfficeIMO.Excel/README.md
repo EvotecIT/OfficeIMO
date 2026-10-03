@@ -1328,6 +1328,18 @@ document.Compose("Members", composer => {
 document.Save();
 ```
 
+## Worksheet print areas
+
+Set one or several local A1 selections with `ExcelDocument.SetPrintArea`. Sheet names containing commas or apostrophes can be quoted; whole-row and whole-column selections are also supported.
+
+```csharp
+document.SetPrintArea(sheet, "B2:D20,F2:H20");
+IReadOnlyList<string> areas = sheet.GetPrintAreas();
+string? definedNameText = sheet.GetPrintArea();
+```
+
+`GetPrintAreas()` returns the individual stored references. `GetPrintArea()` returns the complete defined-name text. The setter validates all areas before replacing the previous selection and rejects references to another worksheet or workbook.
+
 ## Managed image export
 
 Ranges, worksheets, and workbook batches can be exported as PNG, JPEG, TIFF, lossless WebP, or SVG:

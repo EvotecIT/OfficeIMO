@@ -143,6 +143,8 @@ Compatible table segments continue across adjacent pages by default. The shared 
 - Source-faithful zero-options output: worksheet-name headings are opt-in through `IncludeSheetHeadings`.
 - Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
+Worksheet print areas are exported separately, in their stored order, with each area starting on a new page. Both worksheet layouts honor local A1 cells and ranges, whole-row and whole-column selections, and multiple areas. Content outside the selected areas is excluded. Repeated title rows, first/even/odd headers and footers, and page numbering belong to the worksheet and continue across its areas. Internal links to a cell appearing in several areas target its first exported occurrence. Invalid or external print-area references are rejected instead of widening the selection to the used range.
+
 ## Current limits
 
 - Workbook content is read through `OfficeIMO.Excel`; layout and PDF writing use `OfficeIMO.Pdf`.

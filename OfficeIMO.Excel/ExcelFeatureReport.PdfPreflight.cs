@@ -46,13 +46,11 @@ namespace OfficeIMO.Excel {
         }
 
         private static void AddUnsupportedPrintArea(ExcelSheet sheet, string sheetName, ref int count, List<string> details) {
-            string? printArea = sheet.GetPrintArea();
-            if (string.IsNullOrWhiteSpace(printArea) || !ContainsMultiplePrintAreas(printArea!)) {
-                return;
+            foreach (string area in sheet.GetPrintAreas()) {
+                if (sheet.TryParsePrintAreaReference(area, out _)) continue;
+                count++;
+                details.Add($"{sheetName}: {area} is not a valid local print-area reference; PDF export rejects it instead of expanding the printed range.");
             }
-
-            count++;
-            details.Add($"{sheetName}: {printArea} uses multiple print areas; the first-party PDF path exports the worksheet used range instead.");
         }
 
         private static void AddUnsupportedPrintTitles(ExcelSheet sheet, string sheetName, ref int count, List<string> details) {
@@ -63,28 +61,6 @@ namespace OfficeIMO.Excel {
 
             count++;
             details.Add($"{sheetName}: print-title columns {A1.ColumnIndexToLetters(titles.FirstColumn!.Value)}:{A1.ColumnIndexToLetters(titles.LastColumn!.Value)} are configured, but first-party PDF export repeats print-title rows only.");
-        }
-
-        private static bool ContainsMultiplePrintAreas(string printArea) {
-            bool inQuotedSheetName = false;
-            for (int i = 0; i < printArea.Length; i++) {
-                char current = printArea[i];
-                if (current == '\'') {
-                    if (inQuotedSheetName && i + 1 < printArea.Length && printArea[i + 1] == '\'') {
-                        i++;
-                        continue;
-                    }
-
-                    inQuotedSheetName = !inQuotedSheetName;
-                    continue;
-                }
-
-                if (current == ',' && !inQuotedSheetName) {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         private static void AddUnrenderedDrawingShapes(WorksheetPart worksheetPart, string sheetName, ref int count, List<string> details) {
