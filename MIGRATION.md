@@ -137,6 +137,10 @@ when a larger publication is required. Check `ReadSummary.IsComplete` and struct
 diagnostics when limits or unreadable content can produce partial output; archive
 recovery scanning cannot establish publication completeness.
 
+## AsciiDoc path saves
+
+`AsciiDocDocument.Save` / `SaveAsync` require atomic file publication. If a filesystem cannot atomically replace an existing destination, the operation fails and preserves that file. Applications saving to such filesystems should catch the filesystem exception and choose a destination that supports atomic replacement. Caller-owned stream saves retain their stream-writing behavior and can leave partial output on failure or cancellation.
+
 ## Conversion batches replace the PDF archive surface
 
 Replace `OfficePdfArchiveWorkflow.RunAsync(OfficePdfArchiveRequest)` with `OfficeWorkflowRunner.RunBatchAsync(OfficeConversionBatchRequest)` or `OfficeWorkflow.ConvertDirectory(...).ToDirectory(...).RunAsync()`. The batch uses the existing executable route catalog and can select other targets. Checkpoints are optional; ordinary batches also use the existing rename/replace policies. `OfficeConversionBatchResult` includes skipped counts, and `OfficeConversionBatchItemResult` distinguishes skipped files from failed conversions.

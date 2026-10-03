@@ -22,7 +22,7 @@ internal static class AsciiDocAttributeListParser {
                     if (current == quote) quote = '\0';
                     continue;
                 }
-                if (current == '\'' || current == '"') {
+                if (AsciiDocAttributeSyntax.IsValueQuote(content, index, start, content.Length)) {
                     quote = current;
                     continue;
                 }
@@ -65,7 +65,7 @@ internal static class AsciiDocAttributeListParser {
                 if (current == quote) quote = '\0';
                 continue;
             }
-            if (current == '\'' || current == '"') quote = current;
+            if (AsciiDocAttributeSyntax.IsValueQuote(value, index, 0, value.Length)) quote = current;
             else if (current == '=') return index;
         }
         return -1;

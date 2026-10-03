@@ -32,16 +32,22 @@ internal static class ReaderAsciiDocOptionsCloner {
             IncludeAttributes = source.IncludeAttributes,
             IncludeDiagnostics = source.IncludeDiagnostics,
             ParseOptions = new AsciiDocParseOptions {
+                Profile = parse.Profile,
                 MaximumInputLength = parse.MaximumInputLength,
                 MaximumBlockCount = parse.MaximumBlockCount,
                 MaximumInlineNestingDepth = parse.MaximumInlineNestingDepth,
-                MaximumInlineNodeCount = parse.MaximumInlineNodeCount
+                MaximumInlineNodeCount = parse.MaximumInlineNodeCount,
+                MaximumTableCellCount = parse.MaximumTableCellCount,
+                MaximumTableColumnCount = parse.MaximumTableColumnCount,
+                MaximumTableSpan = parse.MaximumTableSpan
             },
             MarkdownOptions = new AsciiDocToMarkdownOptions {
                 IncludeDocumentAttributesAsFrontMatter = markdown.IncludeDocumentAttributesAsFrontMatter,
                 PreserveUnsupportedAsSource = markdown.PreserveUnsupportedAsSource,
                 PreserveCommentsAsSource = markdown.PreserveCommentsAsSource,
                 ExpandDocumentAttributes = markdown.ExpandDocumentAttributes,
+                MaximumBlockNestingDepth = markdown.MaximumBlockNestingDepth,
+                References = markdown.References,
                 UndefinedAttributeBehavior = markdown.UndefinedAttributeBehavior
             }
         };

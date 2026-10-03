@@ -32,11 +32,14 @@ public sealed class AsciiDocDependencyGuardrailTests {
         }
     }
 
-    private static string GetRepositoryRoot() {
-        DirectoryInfo? directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory != null) {
-            if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln"))) return directory.FullName;
-            directory = directory.Parent;
+    private static string GetRepositoryRoot([System.Runtime.CompilerServices.CallerFilePath] string sourceFile = "") {
+        foreach (string start in new[] { AppContext.BaseDirectory, Path.GetDirectoryName(sourceFile) ?? string.Empty }) {
+            if (start.Length == 0) continue;
+            DirectoryInfo? directory = new DirectoryInfo(start);
+            while (directory != null) {
+                if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln"))) return directory.FullName;
+                directory = directory.Parent;
+            }
         }
         throw new DirectoryNotFoundException("Unable to locate OfficeIMO repository root.");
     }
