@@ -17,10 +17,7 @@ public sealed partial class PowerPointPresentation {
         cancellationToken.ThrowIfCancellationRequested();
         if (count == 0) return Array.Empty<PowerPointSlide>();
         SlideLayoutPart layoutPart = GetSlideLayoutPart(masterIndex, layoutIndex);
-        uint nextSlideId = GetNextSlideId();
-        if ((ulong)nextSlideId + (ulong)count - 1 > 2147483647U) {
-            throw new InvalidOperationException("The requested batch exceeds the supported slide ID range.");
-        }
+        uint nextSlideId = GetNextSlideId(count);
         HashSet<string> relationships = GetPresentationRelationships();
         long nextRelationship = 1;
         var added = new List<PowerPointSlide>(count);

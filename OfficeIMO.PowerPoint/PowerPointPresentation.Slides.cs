@@ -317,6 +317,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointSlide sourceSlide = _slides[index];
             SlidePart sourcePart = sourceSlide.SlidePart;
             Slide sourceSlideRoot = sourcePart.Slide ?? throw new InvalidOperationException("Source slide is missing its slide definition.");
+            uint nextSlideId = GetNextSlideId();
 
             sourceSlide.Save();
 
@@ -338,7 +339,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             SlideIdList slideIdList = PresentationRoot.SlideIdList ??= new SlideIdList();
-            SlideId slideId = new() { Id = GetNextSlideId() };
+            SlideId slideId = new() { Id = nextSlideId };
             PowerPointUtils.SetRelationshipIdValue(slideId, slideRelId);
             InsertSlideId(slideIdList, slideId, targetIndex);
             AssignSlideToNearestSection(slideId.Id?.Value ?? throw new InvalidOperationException("Slide ID is missing."),
@@ -397,6 +398,7 @@ namespace OfficeIMO.PowerPoint {
                 sourcePresentation, requestedSource, includeLinkedSlides);
             IReadOnlyList<PowerPointSlide> importSources = importPlan.Slides;
             ValidateSlideImportSources(importSources);
+            _ = GetNextSlideId(importSources.Count);
             Presentation originalPresentation = (Presentation)
                 PresentationRoot.CloneNode(true);
             var originalTopLevelParts = new HashSet<OpenXmlPart>(

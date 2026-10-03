@@ -61,4 +61,39 @@ public sealed class PowerPointSlideBatchTests {
         Assert.Single(presentation.AddSlides(1));
         Assert.Throws<InvalidOperationException>(() => presentation.AddSlide());
     }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void ExhaustedSlideIdsRejectCopiesWithoutChangingThePackage(int copyOperation) {
+        using var presentation = PowerPointPresentation.Create();
+        PowerPointSlide original = presentation.AddSlide();
+        original.AddTextBox("Original");
+        original.Notes.Text = "Original notes";
+        var part = presentation.OpenXmlDocument.PresentationPart!;
+        part.Presentation.SlideIdList!.Elements<SlideId>().Single().Id = 2147483647U;
+        using var other = PowerPointPresentation.Create();
+        other.AddSlide().AddTextBox("Imported");
+        var relationships = part.Parts.Select(pair => pair.RelationshipId).OrderBy(id => id).ToArray();
+        string slideIds = part.Presentation.SlideIdList.OuterXml;
+
+        for (int attempt = 0; attempt < 2; attempt++) {
+            Assert.Throws<InvalidOperationException>(() => {
+                if (copyOperation == 0) presentation.DuplicateSlide(0);
+                else presentation.ImportSlide(copyOperation == 1 ? presentation : other, 0);
+            });
+            Assert.Equal(relationships, part.Parts.Select(pair => pair.RelationshipId).OrderBy(id => id));
+            Assert.Equal(slideIds, part.Presentation.SlideIdList.OuterXml);
+            Assert.Same(original, Assert.Single(presentation.Slides));
+        }
+
+        using var saved = new MemoryStream();
+        presentation.Save(saved);
+        saved.Position = 0;
+        using var reopened = PowerPointPresentation.Load(saved);
+        Assert.Equal("Original", Assert.Single(Assert.Single(reopened.Slides).TextBoxes).Text);
+        Assert.Equal("Original notes", reopened.Slides[0].Notes.Text);
+        Assert.Empty(new OpenXmlValidator().Validate(reopened.OpenXmlDocument));
+    }
 }

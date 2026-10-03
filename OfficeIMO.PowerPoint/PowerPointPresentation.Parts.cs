@@ -74,7 +74,7 @@ namespace OfficeIMO.PowerPoint {
             return slideRelId;
         }
 
-        private uint GetNextSlideId() {
+        private uint GetNextSlideId(int requiredCount = 1) {
             uint maxId = 255;
             SlideIdList? slideIdList = PresentationRoot.SlideIdList;
             if (slideIdList != null && slideIdList.Elements<SlideId>().Any()) {
@@ -84,7 +84,11 @@ namespace OfficeIMO.PowerPoint {
             if (maxId >= 2147483647U) {
                 throw new InvalidOperationException("The presentation has exhausted the supported slide ID range.");
             }
-            return maxId >= 255 ? maxId + 1 : 256;
+            uint nextId = maxId >= 255 ? maxId + 1 : 256;
+            if ((ulong)nextId + (ulong)requiredCount - 1 > 2147483647U) {
+                throw new InvalidOperationException("The requested slides exceed the supported slide ID range.");
+            }
+            return nextId;
         }
 
         private SlideMasterPart GetSlideMasterPart(int masterIndex) {
