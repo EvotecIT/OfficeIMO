@@ -33,8 +33,16 @@ internal static partial class DocumentReaderEngine {
         string path,
         ReaderOptions effective,
         ReaderHandlerDescriptor handler,
-        CancellationToken cancellationToken) {
-        SourceInfo source = BuildSourceInfoFromPath(path, ShouldComputeSourceHash(handler, effective), cancellationToken);
+        CancellationToken cancellationToken) =>
+        ReadResolvedPath(path, effective, handler, cancellationToken, out _);
+
+    private static ReaderChunk[] ReadResolvedPath(
+        string path,
+        ReaderOptions effective,
+        ReaderHandlerDescriptor handler,
+        CancellationToken cancellationToken,
+        out SourceInfo source) {
+        source = BuildSourceInfoFromPath(path, ShouldComputeSourceHash(handler, effective), cancellationToken);
         IEnumerable<ReaderChunk> chunks;
         if (handler.ReadPath != null) {
             chunks = handler.ReadPath(path, effective, cancellationToken)
@@ -47,14 +55,15 @@ internal static partial class DocumentReaderEngine {
             throw CreateAsyncOnlyHandlerException(handler.Id, "path");
         } else if (handler.SupportsStreamInput) {
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-            ReaderChunk[] streamed = ReadResolvedStream(stream, path, effective, handler, cancellationToken);
+            ReaderChunk[] streamed = ReadResolvedStream(stream, path, effective, handler, cancellationToken, out _, source);
             ValidateUnchangedPathSource(source, cancellationToken);
             return streamed;
         } else {
             throw new NotSupportedException($"Reader handler '{handler.Id}' does not support path input.");
         }
 
-        ReaderChunk[] resultChunks = chunks.Select(chunk => EnrichChunk(chunk, source, effective.ComputeHashes)).ToArray();
+        SourceInfo chunkSource = source;
+        ReaderChunk[] resultChunks = chunks.Select(chunk => EnrichChunk(chunk, chunkSource, effective.ComputeHashes)).ToArray();
         ValidateUnchangedPathSource(source, cancellationToken);
         return resultChunks;
     }
@@ -265,8 +274,8 @@ internal static partial class DocumentReaderEngine {
                 ? ReadDocument(path, options, cancellationToken)
                 : read(path, options, cancellationToken);
             source.SourceHash = result.Source.SourceHash;
-            source.LengthBytes = result.Source.LengthBytes ?? source.LengthBytes;
-            source.LastWriteUtc = result.Source.LastWriteUtc ?? source.LastWriteUtc;
+            source.LengthBytes ??= result.Source.LengthBytes;
+            source.LastWriteUtc ??= result.Source.LastWriteUtc;
             return BuildSourceDocument(source, true, result.Chunks, null);
         } catch (OperationCanceledException) {
             throw;

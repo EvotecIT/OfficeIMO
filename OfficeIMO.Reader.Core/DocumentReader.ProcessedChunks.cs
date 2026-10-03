@@ -52,10 +52,19 @@ internal static partial class DocumentReaderEngine {
             cancellationToken.ThrowIfCancellationRequested();
             ReaderChunk chunk = chunks[index]
                 ?? throw new InvalidOperationException($"Processed document chunk at index {index} is null.");
-            chunk.SourceId = sourceId;
-            chunk.SourceHash = sourceHash;
-            chunk.SourceLastWriteUtc = sourceLastWriteUtc;
-            chunk.SourceLengthBytes = sourceLengthBytes;
+            ProcessedChunkState? prior = FindOriginalChunk(chunk, index, aggregateSnapshot.Chunks);
+            if (prior.HasValue && !string.IsNullOrWhiteSpace(prior.Value.SourceId) &&
+                !string.Equals(prior.Value.SourceId, sourceFallback.SourceId, StringComparison.Ordinal)) {
+                chunk.SourceId = prior.Value.SourceId;
+                chunk.SourceHash = prior.Value.SourceHash;
+                chunk.SourceLastWriteUtc = prior.Value.SourceLastWriteUtc;
+                chunk.SourceLengthBytes = prior.Value.SourceLengthBytes;
+            } else {
+                chunk.SourceId = sourceId;
+                chunk.SourceHash = sourceHash;
+                chunk.SourceLastWriteUtc = sourceLastWriteUtc;
+                chunk.SourceLengthBytes = sourceLengthBytes;
+            }
             chunk.TokenEstimate = EstimateTokenCount(chunk.Markdown ?? chunk.Text);
             if (computeHashes) chunk.ChunkHash = ComputeChunkHash(chunk);
         }
@@ -294,6 +303,10 @@ internal readonly struct ProcessedChunkState {
         Text = text;
         Markdown = markdown;
         ContinuesPreviousChunk = continuesPreviousChunk;
+        SourceId = chunk?.SourceId;
+        SourceHash = chunk?.SourceHash;
+        SourceLastWriteUtc = chunk?.SourceLastWriteUtc;
+        SourceLengthBytes = chunk?.SourceLengthBytes;
     }
 
     internal ReaderChunk? Chunk { get; }
@@ -301,6 +314,10 @@ internal readonly struct ProcessedChunkState {
     internal string? Text { get; }
     internal string? Markdown { get; }
     internal bool ContinuesPreviousChunk { get; }
+    internal string? SourceId { get; }
+    internal string? SourceHash { get; }
+    internal DateTime? SourceLastWriteUtc { get; }
+    internal long? SourceLengthBytes { get; }
 }
 
 internal readonly struct ProcessedBlockState {

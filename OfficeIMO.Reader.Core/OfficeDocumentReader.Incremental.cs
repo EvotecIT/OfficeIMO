@@ -16,7 +16,7 @@ public sealed partial class OfficeDocumentReader {
         var effective = DocumentReaderEngine.NormalizeOptions(options);
         return Scope(ProcessorPipeline.Count == 0
             ? DocumentReaderEngine.EnumerateChunks(path, effective, cancellationToken)
-            : EnumerateProcessedChunks(() => ReadDocument(path, effective, cancellationToken)), effective);
+            : EnumerateProcessedChunks(() => ReadDocument(path, effective, cancellationToken), cancellationToken), effective);
     }
 
     /// <summary>Pulls chunks from a stable caller-owned stream without a full snapshot when the handler supports it.</summary>
@@ -28,11 +28,14 @@ public sealed partial class OfficeDocumentReader {
         var effective = DocumentReaderEngine.NormalizeOptions(options);
         return Scope(ProcessorPipeline.Count == 0
             ? DocumentReaderEngine.EnumerateChunks(stream, sourceName, effective, cancellationToken)
-            : EnumerateProcessedChunks(() => ReadDocument(stream, sourceName, effective, cancellationToken)), effective);
+            : EnumerateProcessedChunks(() => ReadDocument(stream, sourceName, effective, cancellationToken), cancellationToken), effective);
     }
 
-    private static IEnumerable<ReaderChunk> EnumerateProcessedChunks(Func<OfficeDocumentReadResult> read) {
-        foreach (var chunk in read().Chunks) yield return chunk;
+    private static IEnumerable<ReaderChunk> EnumerateProcessedChunks(Func<OfficeDocumentReadResult> read, CancellationToken cancellationToken) {
+        foreach (var chunk in read().Chunks) {
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return chunk;
+        }
     }
 
 #if NET8_0_OR_GREATER

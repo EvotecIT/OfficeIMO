@@ -66,13 +66,12 @@ public sealed partial class OfficeDocumentReader {
 
     private static OfficeDocumentSource SnapshotSource(OfficeDocumentReadResult document) {
         OfficeDocumentSource source = document.Source ?? new OfficeDocumentSource();
-        ReaderChunk? firstChunk = document.Chunks?.FirstOrDefault(chunk => chunk != null);
         return new OfficeDocumentSource {
-            Path = string.IsNullOrWhiteSpace(source.Path) ? firstChunk?.Location?.Path : source.Path,
-            SourceId = string.IsNullOrWhiteSpace(source.SourceId) ? firstChunk?.SourceId : source.SourceId,
-            SourceHash = string.IsNullOrWhiteSpace(source.SourceHash) ? firstChunk?.SourceHash : source.SourceHash,
-            LastWriteUtc = source.LastWriteUtc ?? firstChunk?.SourceLastWriteUtc,
-            LengthBytes = source.LengthBytes ?? firstChunk?.SourceLengthBytes,
+            Path = source.Path,
+            SourceId = source.SourceId,
+            SourceHash = source.SourceHash,
+            LastWriteUtc = source.LastWriteUtc,
+            LengthBytes = source.LengthBytes,
             Title = source.Title,
             Author = source.Author,
             Subject = source.Subject,

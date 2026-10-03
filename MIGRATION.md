@@ -20,6 +20,13 @@ Path reads reject a detected source change with `IOException`. Retry against a s
 Keep incremental inputs stable until enumeration finishes: a later failure cannot withdraw
 chunks already delivered to the consumer.
 
+Async file reads use the same normalized file identity and timestamps as synchronous reads.
+Rebuild indexes that stored the previous async stream-derived source IDs or chunk hashes.
+Chunk-based container results describe the outer input in `Kind` and `Source`; member identity,
+hash, length and timestamps remain on the member chunks, including after document processing.
+Folder byte budgets charge the physical file size. Consumers that inferred the first member's
+kind or metadata from the root envelope should read that member's chunk instead.
+
 ## RTF Unicode fallback width
 
 Normalized RTF writing accepts `UnicodeSkipCount` values from 0 through 8. Set a larger authored value to a supported width before calling `ToRtf`; larger values now raise `ArgumentOutOfRangeException` instead of generating disproportionate fallback output. Reading and lossless source export still preserve an incoming `\uc` value, including one that cannot be used for normalized writing.
