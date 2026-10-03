@@ -52,9 +52,8 @@ public sealed class EmlxMetadataPreservationTests {
     public void ExactMetadataEditsAndRemovalOverrideReadOnlyFlatAliases() {
         EmailDocument document = Read(Encoding.UTF8.GetBytes(
             "<plist><dict><key>vendor</key><string>old</string><key>remove</key><string>old</string><key>flags</key><integer>1099511627777</integer></dict></plist>"), out _);
-        var exact = new Dictionary<string, object?>(Metadata(document), StringComparer.Ordinal) {
-            ["vendor"] = "new"
-        };
+        var exact = Metadata(document).ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        exact["vendor"] = "new";
         exact.Remove("remove");
         exact.Remove("flags");
         document.Properties["Emlx:Metadata"] = exact;
