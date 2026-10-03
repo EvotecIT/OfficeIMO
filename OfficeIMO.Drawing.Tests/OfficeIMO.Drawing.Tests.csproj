@@ -78,6 +78,7 @@
     <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\AvifMain10\*.yuv16" Link="TestAssets\Avif\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\ScanQuality\**\*" Link="ScanQuality\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="ManagedTextShapingTestAssets.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.Math.cs" Link="ManagedTextShapingTestAssets.Math.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.Tracking.cs" Link="ManagedTextShapingTestAssets.Tracking.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\TypographyEvidenceCorpus.cs" Link="TypographyEvidenceCorpus.cs" />
     <None Include="..\Website\Apps\OfficeIMO.Web.Converter\Assets\Fonts\Carlito-Regular.ttf" Link="TestAssets\Carlito-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />

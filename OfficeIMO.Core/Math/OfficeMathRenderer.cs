@@ -104,7 +104,7 @@ public static partial class OfficeMathRenderer {
             } else if (command.Kind == LayoutCommandKind.Line) {
                 OfficeShape line = OfficeShape.Line(x + command.X, y + command.Y, x + command.X2, y + command.Y2);
                 line.StrokeColor = options.Color;
-                line.StrokeWidth = options.RuleThickness;
+                line.StrokeWidth = command.RuleThickness ?? options.RuleThickness;
                 drawing.AddShape(line, Math.Min(x + command.X, x + command.X2), Math.Min(y + command.Y, y + command.Y2));
             } else {
                 OfficeShape rectangle = OfficeShape.Rectangle(command.Width, command.Height);
@@ -120,21 +120,40 @@ public static partial class OfficeMathRenderer {
         private readonly OfficeMathRenderOptions _options;
         private readonly OfficeTextMeasurer _measurer;
         private readonly bool _compact;
+        private readonly bool _cramped;
+        private readonly int _scriptLevel;
+        private readonly OfficeMathFontConstants? _mathConstants;
         private readonly CancellationToken _cancellationToken;
-        private LayoutEngine? _compactEngine;
+        private readonly Dictionary<int, LayoutEngine> _childEngines = new Dictionary<int, LayoutEngine>();
         private readonly Func<string, OfficeFontInfo, (double Advance, double Left, double Top, double Right, double Bottom, bool HasInk)> _measureScopedText;
 
         internal LayoutEngine(OfficeMathRenderOptions options, bool compact, CancellationToken cancellationToken,
-            Func<string, OfficeFontInfo, (double Advance, double Left, double Top, double Right, double Bottom, bool HasInk)>? measureScopedText = null) {
+            Func<string, OfficeFontInfo, (double Advance, double Left, double Top, double Right, double Bottom, bool HasInk)>? measureScopedText = null,
+            int scriptLevel = 0, bool cramped = false) {
+            cancellationToken.ThrowIfCancellationRequested();
             _options = options;
             _compact = compact;
+            _scriptLevel = scriptLevel;
+            _cramped = cramped;
             _cancellationToken = cancellationToken;
             _measurer = OfficeTextMeasurer.Create(options.Font);
             _measureScopedText = measureScopedText ?? OfficeRasterCanvas.CreateScopedPositionedTextMeasurement(options.Fonts, cancellationToken);
+            if (options.UseFontMathMetrics && options.Fonts.TryResolveFaceForText("x", options.Font.FamilyName,
+                    options.Font.Style, FontSize(1D), out OfficeFontFace? face))
+                _mathConstants = (face!.Program as IOfficeMathFontProgram)?.MathConstants;
         }
 
-        private LayoutBox CompactLayout(OfficeMathExpression expression, double scale) =>
-            (_compact ? this : (_compactEngine ??= new LayoutEngine(_options, true, _cancellationToken, _measureScopedText))).Layout(expression, scale);
+        private LayoutBox CompactLayout(OfficeMathExpression expression, double scale, bool script = false, bool cramped = false) {
+            bool effectiveCramped = _cramped || cramped;
+            if (_compact && !script && effectiveCramped == _cramped) return Layout(expression, scale);
+            int key = (script ? 1 : 0) | (effectiveCramped ? 2 : 0);
+            if (!_childEngines.TryGetValue(key, out LayoutEngine? engine)) {
+                engine = new LayoutEngine(_options, true, _cancellationToken, _measureScopedText,
+                    _scriptLevel + (script ? 1 : 0), effectiveCramped);
+                _childEngines.Add(key, engine);
+            }
+            return engine.Layout(expression, scale);
+        }
 
         private double FontSize(double scale) => Math.Max(0.1D, _options.Font.Size * _options.Dpi / 72D * scale);
 
@@ -215,7 +234,7 @@ public static partial class OfficeMathRenderer {
             return result;
         }
 
-        private double MathAxis(double scale) =>
+        private double MathAxis(double scale) => _mathConstants != null ? MathValue(OfficeMathConstant.AxisHeight, scale) :
             _options.Fonts.TryResolveFaceForText("x", _options.Font.FamilyName, _options.Font.Style,
                 FontSize(scale), out _)
                 ? Text("x", scale).Baseline / 2D : FontSize(scale) * 0.25D;
@@ -231,9 +250,10 @@ public static partial class OfficeMathRenderer {
         }
 
         private LayoutBox Fraction(OfficeMathExpression expression, double scale) {
-            double childScale = _compact ? scale * _options.ScriptScale : scale;
-            LayoutBox numerator = CompactLayout(expression.Children[0], childScale);
-            LayoutBox denominator = CompactLayout(expression.Children[1], childScale);
+            double childScale = _compact ? ScriptScale(scale) : scale;
+            LayoutBox numerator = CompactLayout(expression.Children[0], childScale, script: _compact);
+            LayoutBox denominator = CompactLayout(expression.Children[1], childScale, script: _compact, cramped: true);
+            if (_mathConstants != null) return FontFraction(numerator, denominator, scale);
             // Without font MATH constants, compact fractions use the caller's minimum
             // rule gap; display fractions use three times that gap (MathML Core fallback).
             double gap = _options.RuleGap * scale * (_compact ? 1D : 3D);
@@ -279,8 +299,9 @@ public static partial class OfficeMathRenderer {
             LayoutBox basis = Layout(expression.Children[0], scale);
             int subIndex = hasSubscript ? 1 : -1;
             int superIndex = hasSuperscript ? (hasSubscript ? 2 : 1) : -1;
-            LayoutBox? sub = subIndex >= 0 ? CompactLayout(expression.Children[subIndex], scale * _options.ScriptScale) : null;
-            LayoutBox? sup = superIndex >= 0 ? CompactLayout(expression.Children[superIndex], scale * _options.ScriptScale) : null;
+            LayoutBox? sub = subIndex >= 0 ? CompactLayout(expression.Children[subIndex], ScriptScale(scale), script: true, cramped: true) : null;
+            LayoutBox? sup = superIndex >= 0 ? CompactLayout(expression.Children[superIndex], ScriptScale(scale), script: true) : null;
+            if (_mathConstants != null) return FontScripts(basis, sub, sup, scale, left: false);
             double scriptWidth = Math.Max(sub?.Width ?? 0D, sup?.Width ?? 0D);
             double supHeight = sup?.Height ?? 0D;
             double baseline = Math.Max(basis.Baseline, sup == null ? 0D : sup.Baseline + FontSize(scale) * 0.48D);
@@ -296,8 +317,9 @@ public static partial class OfficeMathRenderer {
 
         private LayoutBox LeftScripts(OfficeMathExpression expression, double scale) {
             LayoutBox basis = Layout(expression.Children[0], scale);
-            LayoutBox sub = CompactLayout(expression.Children[1], scale * _options.ScriptScale);
-            LayoutBox sup = CompactLayout(expression.Children[2], scale * _options.ScriptScale);
+            LayoutBox sub = CompactLayout(expression.Children[1], ScriptScale(scale), script: true, cramped: true);
+            LayoutBox sup = CompactLayout(expression.Children[2], ScriptScale(scale), script: true);
+            if (_mathConstants != null) return FontScripts(basis, sub, sup, scale, left: true);
             double scriptWidth = Math.Max(sub.Width, sup.Width);
             double baseline = Math.Max(basis.Baseline, sup.Baseline + FontSize(scale) * 0.48D);
             double basisY = baseline - basis.Baseline;
@@ -312,7 +334,8 @@ public static partial class OfficeMathRenderer {
 
         private LayoutBox Limit(OfficeMathExpression expression, double scale, bool over) {
             LayoutBox basis = Layout(expression.Children[0], scale);
-            LayoutBox limit = CompactLayout(expression.Children[1], scale * _options.ScriptScale);
+            LayoutBox limit = CompactLayout(expression.Children[1], ScriptScale(scale), script: true, cramped: !over);
+            if (_mathConstants != null) return FontLimit(basis, limit, scale, over);
             double gap = _options.RuleGap * scale;
             double width = Math.Max(basis.Width, limit.Width);
             double basisY = over ? limit.Height + gap : 0D;
@@ -332,8 +355,14 @@ public static partial class OfficeMathRenderer {
 
         private LayoutBox Nary(OfficeMathExpression expression, double scale) {
             LayoutBox symbol = Text(expression.Character ?? "∑", scale * 1.35D);
-            LayoutBox? lower = expression.NaryLowerLimit != null ? CompactLayout(expression.NaryLowerLimit, scale * _options.ScriptScale) : null;
-            LayoutBox? upper = expression.NaryUpperLimit != null ? CompactLayout(expression.NaryUpperLimit, scale * _options.ScriptScale) : null;
+            LayoutBox? lower = expression.NaryLowerLimit != null ? CompactLayout(expression.NaryLowerLimit, ScriptScale(scale), script: true, cramped: true) : null;
+            LayoutBox? upper = expression.NaryUpperLimit != null ? CompactLayout(expression.NaryUpperLimit, ScriptScale(scale), script: true) : null;
+            if (_mathConstants != null) {
+                LayoutBox fontOperator = symbol;
+                if (upper != null) fontOperator = FontLimit(fontOperator, upper, scale, over: true);
+                if (lower != null) fontOperator = FontLimit(fontOperator, lower, scale, over: false);
+                return CombineOnBaseline(fontOperator, Layout(expression.Children[0], scale), 2D * scale);
+            }
             double operatorWidth = Math.Max(symbol.Width, Math.Max(lower?.Width ?? 0D, upper?.Width ?? 0D));
             double upperHeight = upper?.Height ?? 0D;
             double operatorHeight = upperHeight + symbol.Height + (lower?.Height ?? 0D);
@@ -432,6 +461,7 @@ public static partial class OfficeMathRenderer {
 
         private LayoutBox Bar(OfficeMathExpression contentExpression, double scale, bool over) {
             LayoutBox content = Layout(contentExpression, scale);
+            if (_mathConstants != null) return FontBar(content, scale, over);
             double gap = _options.RuleGap * scale;
             double extra = gap + _options.RuleThickness;
             var box = new LayoutBox(content.Width, content.Height + extra, content.Baseline + (over ? extra : 0D));
@@ -477,16 +507,17 @@ public static partial class OfficeMathRenderer {
         internal double FontSize { get; private set; }
         internal double Baseline { get; private set; }
         internal double Advance { get; private set; }
+        internal double? RuleThickness { get; private set; }
 
         internal static LayoutCommand TextCommand(string text, double x, double y, double width, double height, double fontSize, double baseline, double advance, string? logicalText = null) =>
             new LayoutCommand { Kind = LayoutCommandKind.Text, Text = text, LogicalText = logicalText, X = x, Y = y, Width = width, Height = height, FontSize = fontSize, Baseline = baseline, Advance = advance };
-        internal static LayoutCommand Line(double x1, double y1, double x2, double y2) =>
-            new LayoutCommand { Kind = LayoutCommandKind.Line, X = x1, Y = y1, X2 = x2, Y2 = y2 };
+        internal static LayoutCommand Line(double x1, double y1, double x2, double y2, double? thickness = null) =>
+            new LayoutCommand { Kind = LayoutCommandKind.Line, X = x1, Y = y1, X2 = x2, Y2 = y2, RuleThickness = thickness };
         internal static LayoutCommand Rectangle(double x, double y, double width, double height) =>
             new LayoutCommand { Kind = LayoutCommandKind.Rectangle, X = x, Y = y, Width = width, Height = height };
         internal LayoutCommand Translate(double x, double y) => new LayoutCommand {
             Kind = Kind, Text = Text, LogicalText = LogicalText, X = X + x, Y = Y + y, X2 = X2 + x, Y2 = Y2 + y,
-            Width = Width, Height = Height, FontSize = FontSize, Baseline = Baseline, Advance = Advance
+            Width = Width, Height = Height, FontSize = FontSize, Baseline = Baseline, Advance = Advance, RuleThickness = RuleThickness
         };
     }
 

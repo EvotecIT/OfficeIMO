@@ -429,8 +429,12 @@ fonts. Portable deterministic policy disables installed-font discovery; explicit
 supplied mathematical faces remain available.
 Authored CSS overrides the defaults. To retain surrounding typography, use
 `math { font-family: inherit; font-weight: inherit; font-style: inherit; }`.
-Automatic mathematical italics and full OpenType MATH-table geometry remain outside
-this font-selection contract.
+Single-letter identifiers use `text-transform: math-auto` unless overridden by
+MathML or CSS. Scoped static math fonts supply MATH constants for fraction geometry,
+right/left script placement and scale, limits and bars through the shared Core renderer.
+Missing or malformed constants use deterministic fallback geometry. Stretchy glyph
+variants, assemblies, per-glyph math kerning and accent attachment remain outside
+this qualified subset; radicals and fences retain approximate construction.
 
 For documents that opt into `hyphens:auto`, the managed renderer selects embedded US English
 (`lang="en-US"` or `en`) and reformed German (`lang="de-DE"`, `de`, `de-1996` or `de-DE-1996`)

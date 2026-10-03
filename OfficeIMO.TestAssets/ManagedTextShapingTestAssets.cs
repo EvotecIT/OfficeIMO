@@ -222,7 +222,8 @@ internal static partial class ManagedTextShapingTestAssets {
         int ascender = 800,
         int descender = -200,
         bool inkedNotdef = false,
-        byte[]? tracking = null) {
+        byte[]? tracking = null,
+        byte[]? math = null) {
         byte[] glyph = CreateVisibleGlyph(400);
         var glyf = new byte[(glyphCount - (inkedNotdef ? 0 : 1)) * glyph.Length];
         var loca = new byte[(glyphCount + 1) * 2];
@@ -253,6 +254,7 @@ internal static partial class ManagedTextShapingTestAssets {
         if (gpos != null) tables.Add(("GPOS", gpos));
         if (colr != null) tables.Add(("COLR", colr));
         if (cpal != null) tables.Add(("CPAL", cpal));
+        if (math != null) tables.Add(("MATH", math));
 
         int tableDirectoryLength = 12 + (tables.Count * 16);
         var offsets = new int[tables.Count];

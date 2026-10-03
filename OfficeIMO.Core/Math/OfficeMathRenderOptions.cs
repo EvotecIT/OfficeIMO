@@ -16,14 +16,18 @@ public sealed class OfficeMathRenderOptions {
     /// <summary>Padding around the expression in drawing units.</summary>
     public double Padding { get; set; } = 8D;
 
-    /// <summary>Relative scale applied to scripts, limits, and root indices.</summary>
+    /// <summary>Uses available static OpenType MATH constants for supported geometry. Disable
+    /// to use caller-supplied script and rule settings throughout.</summary>
+    public bool UseFontMathMetrics { get; set; } = true;
+
+    /// <summary>Fallback relative scale applied to scripts, limits, and root indices.</summary>
     public double ScriptScale { get; set; } = 0.71D;
 
-    /// <summary>Minimum gap around compact fraction and decoration rules.
+    /// <summary>Fallback minimum gap around compact fraction and decoration rules.
     /// Display fractions use three times this gap.</summary>
     public double RuleGap { get; set; } = 2D;
 
-    /// <summary>Thickness of fraction, radical, bar, and box rules.</summary>
+    /// <summary>Fallback thickness of fraction and bar rules; thickness of radical and box rules.</summary>
     public double RuleThickness { get; set; } = 1D;
 
     /// <summary>Horizontal and vertical gap between matrix cells.</summary>
@@ -34,7 +38,7 @@ public sealed class OfficeMathRenderOptions {
     public double Dpi { get; set; } = 72D;
 
     /// <summary>Uses display fractions with full-size children. Compact fractions and
-    /// fractions inside scripts reduce children by <see cref="ScriptScale"/>.</summary>
+    /// fractions inside scripts use available font script percentages or the fallback <see cref="ScriptScale"/>.</summary>
     public bool DisplayStyle { get; set; } = true;
 
     /// <summary>Scoped font programs used for deterministic advances and painted glyph bounds.</summary>
@@ -51,6 +55,7 @@ public sealed class OfficeMathRenderOptions {
         Color = Color,
         BackgroundColor = BackgroundColor,
         Padding = Padding,
+        UseFontMathMetrics = UseFontMathMetrics,
         ScriptScale = ScriptScale,
         RuleGap = RuleGap,
         RuleThickness = RuleThickness,

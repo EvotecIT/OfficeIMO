@@ -15,7 +15,7 @@ namespace OfficeIMO.Drawing;
 /// It supports the simple glyf/cmap/hmtx path needed by OfficeIMO renderers and falls back
 /// cleanly when no suitable platform font file is available.
 /// </remarks>
-public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOfficeFontBaselineMetrics, IOfficeVariableFontProgram, IOfficeColorFontProgram {
+public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOfficeFontBaselineMetrics, IOfficeVariableFontProgram, IOfficeColorFontProgram, IOfficeMathFontProgram {
     private const uint MaxTrueTypeCollectionFonts = 256;
     private const int MaxFontTableRecords = 512;
     private const int MaxFontCacheEntries = 1024;
@@ -49,6 +49,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     private readonly short _indexToLocFormat;
     private readonly int? _collectionIndex;
     private readonly string _fingerprint;
+    /// <summary>Static font math design metrics, when the selected face supplies a valid MATH table.</summary>
+    public OfficeMathFontConstants? MathConstants { get; }
 
     private OfficeTrueTypeFont(
         byte[] data,
@@ -105,6 +107,9 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         _tracking = tables.TryGetValue("trak", out int trackingOffset)
             ? OfficeOpenTypeTracking.Parse(data, trackingOffset, tableLengths["trak"]) : null;
         _unitsPerEm = ReadUInt16(_data, _head + 18);
+        MathConstants = !_variationModel.IsVariable && tables.TryGetValue("MATH", out int mathOffset)
+            ? OfficeOpenTypeMathConstants.TryRead(data, mathOffset, tableLengths["MATH"], _unitsPerEm)
+            : null;
         _indexToLocFormat = ReadInt16(_data, _head + 50);
         OfficeOpenTypeMvarMetrics? mvar = reader != null && _variationModel.IsVariable
             ? OfficeOpenTypeMvarMetrics.TryParse(reader, _variationModel)
