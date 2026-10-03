@@ -84,6 +84,13 @@ public static partial class OfficePngReader {
         OfficeRasterImage result,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
+#if NET8_0_OR_GREATER
+        if (payload.ColorType == 6 && payload.BitDepth == 8 && payload.Stride >= 64
+            && System.Runtime.Intrinsics.X86.Ssse3.IsSupported) {
+            DecodeRgbaScanlines(payload, result, cancellationToken);
+            return;
+        }
+#endif
         byte[] previous = new byte[payload.Stride];
         cancellationToken.ThrowIfCancellationRequested();
         byte[] current = new byte[payload.Stride];
