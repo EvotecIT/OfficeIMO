@@ -37,19 +37,21 @@ public partial class PdfExternalEngineProofTests {
             return;
         }
         PdfExternalProcessResult result = validator.Run(pdf, "logical-text.pdf");
+        string? output = Environment.GetEnvironmentVariable("OFFICEIMO_PDF_ENGINE_PROOF_OUTPUT");
+        if (!string.IsNullOrWhiteSpace(output)) {
+            Directory.CreateDirectory(output);
+            string name = "logical-text-" + scenario;
+            File.WriteAllBytes(Path.Combine(output, name + ".pdf"), pdf);
+            File.WriteAllText(Path.Combine(output, name + ".json"), JsonSerializer.Serialize(new {
+                Scenario = scenario, PdfFile = name + ".pdf", PdfLength = pdf.Length,
+                PdfSha256 = Convert.ToHexString(SHA256.HashData(pdf)).ToLowerInvariant(),
+                result.ValidatorName, validator.ExecutablePath, result.ExitCode, ExpectedText = replacement,
+                ActualText = result.Output.Trim(),
+                Passed = result.ExitCode == 0 && string.Equals(replacement, result.Output.Trim(), StringComparison.Ordinal)
+            }, new JsonSerializerOptions { WriteIndented = true }));
+        }
         Assert.True(result.ExitCode == 0, result.GetDiagnosticText());
         Assert.Equal(replacement, result.Output.Trim());
-        string? output = Environment.GetEnvironmentVariable("OFFICEIMO_PDF_ENGINE_PROOF_OUTPUT");
-        if (string.IsNullOrWhiteSpace(output)) return;
-        Directory.CreateDirectory(output);
-        string name = "logical-text-" + scenario;
-        File.WriteAllBytes(Path.Combine(output, name + ".pdf"), pdf);
-        File.WriteAllText(Path.Combine(output, name + ".json"), JsonSerializer.Serialize(new {
-            Scenario = scenario, PdfFile = name + ".pdf", PdfLength = pdf.Length,
-            PdfSha256 = Convert.ToHexString(SHA256.HashData(pdf)).ToLowerInvariant(),
-            result.ValidatorName, result.ExitCode, ExpectedText = replacement,
-            ActualText = result.Output.Trim(), Passed = true
-        }, new JsonSerializerOptions { WriteIndented = true }));
     }
 }
 #endif
