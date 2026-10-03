@@ -6,6 +6,25 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfProductionPreflightTests {
     [Fact]
+    public void ColorInspectionWorkLimitAppliesAcrossSelectedPages() {
+        const string content = "q Q";
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Resources << >> /Contents 5 0 R >>", "endobj",
+            "4 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Resources << >> /Contents 5 0 R >>", "endobj",
+            "5 0 obj", "<< /Length 3 >>", "stream", content, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF", string.Empty
+        }));
+        var options = new PdfLoadOptions { Limits = new PdfReadLimits { MaxPrintProductionOperations = 4 } };
+
+        PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Load(source, options).Proof.PreflightProduction());
+        Assert.Equal(PdfReadLimitKind.PrintProductionOperations, error.Kind);
+    }
+
+    [Fact]
     public void ProposedPageBoxesRequireSelectionAndAreReinspectedAfterRewrite() {
         PdfDocument source = PdfDocument.Load(PdfDocument.Create(new PdfOptions { PageWidth = 300D, PageHeight = 200D })
             .Paragraph(paragraph => paragraph.Text("Print proof"))
@@ -694,6 +713,39 @@ public sealed class PdfProductionPreflightTests {
 
         Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.LowImageResolution);
         Assert.DoesNotContain(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.UninspectableImageResolution);
+    }
+
+    [Fact]
+    public void PrintPropertyAliasesPreserveUnsupportedGroupAndReferenceGeneration() {
+        var group = new PdfDictionary();
+        group.Items["Type"] = new PdfName("OCG");
+        var membership = new PdfDictionary();
+        membership.Items["Type"] = new PdfName("OCMD");
+        var groups = new PdfArray();
+        groups.Items.Add(new PdfReference(6, 0));
+        membership.Items["OCGs"] = groups;
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [6] = new PdfIndirectObject(6, 0, group),
+            [8] = new PdfIndirectObject(8, 0, new PdfReference(10, 0)),
+            [9] = new PdfIndirectObject(9, 0, new PdfReference(10, 0)),
+            [10] = new PdfIndirectObject(10, 0, membership)
+        };
+        var properties = new PdfDictionary();
+        properties.Items["Stale"] = new PdfReference(8, 1);
+        properties.Items["First"] = new PdfReference(8, 0);
+        properties.Items["Second"] = new PdfReference(9, 0);
+        var resources = new PdfDictionary();
+        resources.Items["Properties"] = properties;
+        var state = new PdfPageOptionalContentVisibility.DocumentState(objects,
+            new Dictionary<int, bool> { [6] = true }, new HashSet<int>(), new HashSet<int> { 6 },
+            maxExpressionDepth: 64, hasUnsupportedViewUsageApplications: false);
+
+        PdfPageOptionalContentVisibility visibility = Assert.IsType<PdfPageOptionalContentVisibility>(
+            PdfPageOptionalContentVisibility.Create(resources, state));
+
+        Assert.False(visibility.IsUnsupported("Stale"));
+        Assert.True(visibility.IsUnsupported("First"));
+        Assert.True(visibility.IsUnsupported("Second"));
     }
 
     [Fact]
