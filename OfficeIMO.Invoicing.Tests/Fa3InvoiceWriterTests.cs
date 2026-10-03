@@ -23,7 +23,7 @@ public class Fa3InvoiceWriterTests {
         invoice.Seller.Contact = new InvoiceContact { Email = "missing-at.example.test" };
         Assert.Contains(Fa3InvoiceWriter.Inspect(invoice, Fa3InvoiceFixture.Options()), diagnostic =>
             diagnostic.Location == "Seller.Contact.Email" &&
-            diagnostic.Message.Contains("schema pattern", StringComparison.Ordinal));
+            diagnostic.Message.IndexOf("schema pattern", StringComparison.Ordinal) >= 0);
 
         invoice.Seller.Contact.Email = "seller@example.test";
         Assert.Empty(Fa3InvoiceWriter.Inspect(invoice, Fa3InvoiceFixture.Options()));
