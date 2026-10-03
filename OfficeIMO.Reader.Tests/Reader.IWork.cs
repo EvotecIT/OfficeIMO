@@ -223,10 +223,12 @@ public sealed class ReaderIWorkTests {
         Assert.Equal(ReaderInputKind.Word, wordDetection.Kind);
     }
 
-    [Fact]
-    public async Task NestedIWorkIndexIsDetectedWithoutAnIWorkExtension() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task NestedIWorkIndexIsDetectedWithoutAnIWorkExtension(bool preserveIndexPrefix) {
         byte[] nestedPackage = CreateNestedIndexPackage(
-            File.ReadAllBytes(Fixture("nim-iwork/simple.pages")));
+            File.ReadAllBytes(Fixture("nim-iwork/simple.pages")), preserveIndexPrefix);
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
             .AddAllOfficeIMOHandlers().Build();
 
@@ -236,11 +238,15 @@ public sealed class ReaderIWorkTests {
             new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
         OfficeDocumentReadResult namedDocument = reader.ReadDocument(nestedPackage,
             "renamed.pages", new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
+        OfficeDocumentReadResult asyncDocument = await reader.ReadDocumentAsync(nestedPackage,
+            "renamed.zip", new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
 
         Assert.Equal(ReaderInputKind.IWork, sync.Kind);
         Assert.Equal(ReaderInputKind.IWork, asyncResult.Kind);
         Assert.Equal(ReaderInputKind.IWork, document.Kind);
         Assert.Equal(ReaderInputKind.IWork, namedDocument.Kind);
+        Assert.Equal(ReaderInputKind.IWork, asyncDocument.Kind);
+        Assert.Equal(document.Chunks.Select(chunk => chunk.Text), asyncDocument.Chunks.Select(chunk => chunk.Text));
         Assert.Contains(document.Chunks, chunk =>
             chunk.Text.Contains("hello pages", StringComparison.OrdinalIgnoreCase));
     }
@@ -397,7 +403,7 @@ public sealed class ReaderIWorkTests {
         return stream.ToArray();
     }
 
-    private static byte[] CreateNestedIndexPackage(byte[] directPackage) {
+    private static byte[] CreateNestedIndexPackage(byte[] directPackage, bool preserveIndexPrefix = false) {
         using var originalStream = new MemoryStream(directPackage, writable: false);
         using var original = new ZipArchive(originalStream, ZipArchiveMode.Read);
         using var nestedStream = new MemoryStream();
@@ -407,7 +413,7 @@ public sealed class ReaderIWorkTests {
             foreach (ZipArchiveEntry entry in original.Entries) {
                 string name = entry.FullName;
                 bool isIndex = name.StartsWith("Index/", StringComparison.Ordinal);
-                string targetName = isIndex ? name.Substring("Index/".Length) : name;
+                string targetName = isIndex && !preserveIndexPrefix ? name.Substring("Index/".Length) : name;
                 ZipArchive target = isIndex ? nested : outer;
                 using Stream input = entry.Open();
                 using Stream output = target.CreateEntry(targetName).Open();

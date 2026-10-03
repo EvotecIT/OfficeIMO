@@ -8,9 +8,9 @@ public sealed record OfficeConversionBatchRequest {
     public string? InputDirectory { get; set; }
     /// <summary>Explicit local files. When InputDirectory is set, files must be inside that root and retain relative paths.</summary>
     public string[]? InputPaths { get; set; }
-    /// <summary>Destination extension from the executable conversion catalog, including its leading dot.</summary>
+    /// <summary>Destination extension from the configured runner's executable routes, including its leading dot.</summary>
     public string TargetExtension { get; set; } = ".pdf";
-    /// <summary>Optional explicit route for ambiguous inputs; otherwise the catalog selects the route.</summary>
+    /// <summary>Optional explicit route for ambiguous inputs; otherwise the configured runner's routes select the conversion.</summary>
     public string? ConversionRouteId { get; set; }
     /// <summary>Runtime PDF source password, equivalent to OfficeWorkflowRequest.PdfPassword. Not stored in checkpoints.</summary>
     public string? PdfPassword { get; set; }
@@ -26,7 +26,7 @@ public sealed record OfficeConversionBatchRequest {
     public string[]? SourceExtensions { get; set; }
     /// <summary>Separate destination directory. Relative paths retain the full source name plus the target extension.</summary>
     public required string OutputDirectory { get; set; }
-    /// <summary>Private durable state directory, outside both source and output trees.</summary>
+    /// <summary>Private durable state directory, outside both source and output trees. Only built-in routes support checkpoints.</summary>
     public string? CheckpointDirectory { get; set; }
     /// <summary>Maximum simultaneously executing files, from 1 through 32.</summary>
     public int MaximumConcurrency { get; set; } = 2;

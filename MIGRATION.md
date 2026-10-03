@@ -31,6 +31,12 @@ kind or metadata from the root envelope should read that member's chunk instead.
 
 Normalized RTF writing accepts `UnicodeSkipCount` values from 0 through 8. Set a larger authored value to a supported width before calling `ToRtf`; larger values now raise `ArgumentOutOfRangeException` instead of generating disproportionate fallback output. Reading and lossless source export still preserve an incoming `\uc` value, including one that cannot be used for normalized writing.
 
+## iWork destination omissions and Reader identity
+
+Editable iWork output with known destination omissions requires `AllowPartialEditableReconstruction = true`. This includes Numbers cell padding, unsupported rich text and table paragraph styles, along with assessed Pages and Keynote destination omissions. Automatic conversion otherwise uses an available permitted visual preview; `EditableOnly` rejects the omission. Inspect `Report.IsPartialEditableReconstruction` and use `RequireCompleteEditableReconstruction()` when partial output is unacceptable. The shared workflow defaults reject these results before publication. Accepted approximation diagnostics and conservative unassessed source records retain their separate fidelity categories.
+
+Reader file and stream hashes and byte lengths now describe the captured bytes used for extraction. Reingest sources whose stored content and hash could have come from different file versions. Directory bundles retain their logical package-content hashes. Nested `Index.zip` detection accepts both supported document paths. Recovered Keynote slides retain their source positions after missing or malformed earlier references; refresh stored slide citations that depended on compacted indices.
+
 ## iWork list-marker interpretation
 
 Use `IWorkTextParagraph.ListMarkerKind` when interpreting `ListLabel`; do not infer ordered numbering from a numeric-looking string. Literal markers such as `1.` or `iv.` remain literal DOCX bullets and unordered Reader lists. PPTX uses destination fallback for multi-character text markers. Reconvert earlier imports when those labels were incorrectly turned into counters.

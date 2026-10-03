@@ -168,6 +168,20 @@ public sealed partial class PdfStaticFormRecognizerTests {
         Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, error.Kind);
     }
 
+    [Fact]
+    public void RepeatedNonrectangularTextClipChecksShareRecognitionWorkBudget() {
+        string text = string.Join(" ", Enumerable.Range(0, 16).Select(index =>
+            $"BT /F1 12 Tf 10 {85 + index} Td (Name) Tj ET"));
+        byte[] source = StaticPdf("q 0 0 m 240 0 l 120 200 l h W n " + text + " Q",
+            "/Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>");
+
+        PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Load(source).Forms.RecognizeStaticLayout(
+                new PdfStaticFormRecognitionOptions { MaxCandidateScanWork = 100 }));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, error.Kind);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -326,6 +340,22 @@ public sealed partial class PdfStaticFormRecognizerTests {
         var label = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 100D, 70D, 120D, 1D) };
 
         Assert.Single(PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: label).Proposals);
+    }
+
+    [Fact]
+    public void RepeatedImageClipChecksRespectRecognitionWorkBudget() {
+        const string image = "q 190 101 m 210 101 l 210 120 l h W n 150 0 0 60 70 70 cm /Im1 Do Q ";
+        byte[] source = StaticPdf("0 0 0 RG 1 w 80 80 120 20 re S " +
+            string.Concat(Enumerable.Repeat(image, 16)),
+            "/Resources << /XObject << /Im1 5 0 R >> >> ",
+            "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>\nstream\nAAA\nendstream\nendobj");
+        var label = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 100D, 70D, 120D, 1D) };
+
+        PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Load(source).Forms.RecognizeStaticLayout(
+                new PdfStaticFormRecognitionOptions { MaxCandidateScanWork = 100 }, label));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, error.Kind);
     }
 
     [Fact]

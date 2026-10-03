@@ -44,6 +44,15 @@ internal sealed class ReaderReadScope : IDisposable {
         scope.Budget?.AddDocument(result);
         return result;
     }
+    internal static void AttachPendingNested(OfficeDocumentReadResult result) {
+        var scope = Current;
+        if (scope == null) return;
+        lock (scope._nested) {
+            if (scope._nested.Count == 0) return;
+            result.NestedDocuments = result.NestedDocuments.Concat(scope._nested).Distinct().ToArray();
+            scope._nested.Clear();
+        }
+    }
     internal static void RecordNested(string path, OfficeDocumentReadResult document) {
         var scope = Current;
         if (scope == null) return;
