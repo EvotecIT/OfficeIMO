@@ -67,6 +67,13 @@ See the [LaTeX support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master
 
 Targets: `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows.
 
+Parsing retains compact internal token records. `LatexDocument.Tokens` and
+`LatexTokenizer.Tokenize` expose the same read-only public token contract, with
+stable object identity when a token is read repeatedly or concurrently. Inspecting
+every token materializes the public token objects and has a different allocation
+cost from parsing or sparse inspection. See the [model memory evidence](../Docs/benchmarks/officeimo.latex-model-memory-2026-10-03.md)
+for measured workloads and platform limits.
+
 ## Dependency footprint
 
 - **External:** None; no TeX runtime, compiler, or parser package.

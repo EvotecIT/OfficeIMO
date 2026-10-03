@@ -1,7 +1,7 @@
 # OfficeIMO LaTeX benchmarks
 
-This opt-in BenchmarkDotNet project measures complete lossless parsing and
-parse-plus-preserve-write and complete public-token inspection workflows over deterministic small, normal, and large
+This opt-in BenchmarkDotNet project measures complete lossless parsing,
+parse-plus-preserve-write and complete public-token inspection over deterministic small, normal, and large
 documents. Every workload is validated before timing: parsing must be lossless,
 diagnostics must contain no errors, heading counts and content markers must
 match, and preserve writing must reproduce the input exactly.
@@ -56,3 +56,7 @@ dotnet run -c Release -f net10.0 --project .\OfficeIMO.Latex.Benchmarks -- --fil
 BenchmarkDotNet artifacts are machine-specific. Keep them under the ignored
 `.benchmark-artifacts` root or another temporary location and publish only
 environment-qualified results.
+
+The [2026-10-03 model memory evidence](../Docs/benchmarks/officeimo.latex-model-memory-2026-10-03.md)
+records controlled comparisons, native platform qualification and the allocation
+tradeoff when callers inspect every public token.
