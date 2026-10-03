@@ -27,6 +27,9 @@
   <ItemGroup>
     <None Include="README.md" Pack="True" PackagePath="\" />
     <None Include="..\Assets\OfficeIMO.png" Pack="True" PackagePath="\" />
+    <EmbeddedResource Include="Schema/adf-schema.json" />
+    <None Include="THIRD-PARTY-NOTICES.md" Pack="True" PackagePath="\" />
+    <None Include="Schema/UPSTREAM-LICENSE.txt;Schema/LICENSE-APACHE-2.0.txt" Pack="True" PackagePath="Schema/" />
   </ItemGroup>
 
   <ItemGroup>

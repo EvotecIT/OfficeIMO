@@ -544,6 +544,38 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        internal void CellLayout(int row, int column, ExcelHorizontalAlignment? horizontal,
+            ExcelVerticalAlignment? vertical, bool? wrap,
+            Dictionary<(uint BaseStyle, ExcelHorizontalAlignment? Horizontal,
+                ExcelVerticalAlignment? Vertical, bool? Wrap), uint> styleIndexes) {
+            if (!horizontal.HasValue && !vertical.HasValue && !wrap.HasValue) return;
+            WriteLockConditional(() => {
+                Cell cell = GetCell(row, column);
+                uint baseStyle = cell.StyleIndex?.Value ?? 0U;
+                var key = (baseStyle, horizontal, vertical, wrap);
+                if (!styleIndexes.TryGetValue(key, out uint styleIndex)) {
+                    WorkbookPart workbookPart = _excelDocument.WorkbookPartRoot
+                        ?? throw new InvalidOperationException("WorkbookPart is null");
+                    WorkbookStylesPart stylesPart = workbookPart.WorkbookStylesPart
+                        ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+                    Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+                    EnsureDefaultStylePrimitives(stylesheet);
+                    CellFormat format = GetBaseCellFormat(stylesheet, baseStyle);
+                    Alignment alignment = format.Alignment != null
+                        ? (Alignment)format.Alignment.CloneNode(true) : new Alignment();
+                    if (horizontal.HasValue) alignment.Horizontal = horizontal.Value.ToOpenXml();
+                    if (vertical.HasValue) alignment.Vertical = vertical.Value.ToOpenXml();
+                    if (wrap.HasValue) alignment.WrapText = wrap.Value ? true : null;
+                    format.Alignment = alignment;
+                    format.ApplyAlignment = true;
+                    styleIndex = AppendOrReuseCellFormat(stylesheet, format);
+                    styleIndexes.Add(key, styleIndex);
+                    stylesPart.Stylesheet.Save();
+                }
+                cell.StyleIndex = styleIndex;
+            });
+        }
+
         /// <summary>
         /// Sets or clears shrink-to-fit text alignment on a single cell.
         /// </summary>

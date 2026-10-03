@@ -64,6 +64,7 @@ internal static class TextReaderAdapter {
             Kind = kind,
             Location = new ReaderLocation { Path = sourceName, BlockIndex = index, StartLine = startLine, SourceBlockKind = kind == ReaderInputKind.Unknown ? "unknown" : "text" },
             Text = text,
+            ContinuesPreviousChunk = index > 0,
             Warnings = kind == ReaderInputKind.Unknown ? new[] { "Input was projected through the explicit unknown-payload fallback." } : null
         };
 }

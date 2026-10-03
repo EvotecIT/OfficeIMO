@@ -1,26 +1,26 @@
 namespace OfficeIMO.AsciiDoc;
 
 internal static class AsciiDocIncludeSelector {
-    internal static string Apply(string source, AsciiDocElementAttributes attributes) {
-        string selected = source;
+    internal static IReadOnlyList<AsciiDocSelectedLine> Apply(string source, AsciiDocElementAttributes attributes, System.Threading.CancellationToken token) {
+        IReadOnlyList<AsciiDocSelectedLine> selected = AsciiDocLineReader.Read(source, token).Select(line => new AsciiDocSelectedLine(line)).ToArray();
         string? lines = attributes.GetNamedValue("lines");
-        if (!string.IsNullOrWhiteSpace(lines)) selected = SelectLines(selected, lines!);
+        if (!string.IsNullOrWhiteSpace(lines)) selected = SelectLines(selected, lines!, token);
 
         string? tags = attributes.GetNamedValue("tags") ?? attributes.GetNamedValue("tag");
-        if (!string.IsNullOrWhiteSpace(tags)) selected = SelectTags(selected, tags!);
+        if (!string.IsNullOrWhiteSpace(tags)) selected = SelectTags(selected, tags!, token);
 
         string? levelOffset = attributes.GetNamedValue("leveloffset");
         if (!string.IsNullOrWhiteSpace(levelOffset) && TryParseSignedInteger(levelOffset!, out int offset) && offset != 0) {
-            selected = ApplyLevelOffset(selected, offset);
+            ApplyLevelOffset(selected, offset, token);
         }
         return selected;
     }
 
-    private static string SelectLines(string source, string specification) {
-        IReadOnlyList<AsciiDocSourceLine> lines = AsciiDocLineReader.Read(source);
+    private static IReadOnlyList<AsciiDocSelectedLine> SelectLines(IReadOnlyList<AsciiDocSelectedLine> lines, string specification, System.Threading.CancellationToken token) {
         var selected = new HashSet<int>();
         string[] parts = specification.Split(new[] { ';', ',' }, StringSplitOptions.RemoveEmptyEntries);
         for (int index = 0; index < parts.Length; index++) {
+            token.ThrowIfCancellationRequested();
             string part = parts[index].Trim();
             int range = part.IndexOf("..", StringComparison.Ordinal);
             if (range < 0) {
@@ -32,23 +32,27 @@ internal static class AsciiDocIncludeSelector {
             int start = startText.Length == 0 ? 1 : (int.TryParse(startText, out int parsedStart) ? parsedStart : -1);
             int end = endText.Length == 0 || endText == "-1" ? lines.Count : (int.TryParse(endText, out int parsedEnd) ? parsedEnd : -1);
             if (start < 1 || end < start) continue;
-            for (int line = start; line <= end && line <= lines.Count; line++) selected.Add(line);
+            for (int line = start; line <= end && line <= lines.Count; line++) {
+                if ((line & 1023) == 0) token.ThrowIfCancellationRequested();
+                selected.Add(line);
+            }
         }
 
-        var output = new StringBuilder();
+        var output = new List<AsciiDocSelectedLine>();
         for (int index = 0; index < lines.Count; index++) {
-            if (selected.Contains(index + 1)) output.Append(lines[index].FullText);
+            token.ThrowIfCancellationRequested();
+            if (selected.Contains(index + 1)) output.Add(lines[index]);
         }
-        return output.ToString();
+        return output.AsReadOnly();
     }
 
-    private static string SelectTags(string source, string specification) {
+    private static IReadOnlyList<AsciiDocSelectedLine> SelectTags(IReadOnlyList<AsciiDocSelectedLine> lines, string specification, System.Threading.CancellationToken token) {
         TagFilter filter = TagFilter.Parse(specification);
         var active = new Dictionary<string, int>(StringComparer.Ordinal);
-        IReadOnlyList<AsciiDocSourceLine> lines = AsciiDocLineReader.Read(source);
-        var output = new StringBuilder();
+        var output = new List<AsciiDocSelectedLine>();
         for (int index = 0; index < lines.Count; index++) {
-            AsciiDocSourceLine line = lines[index];
+            token.ThrowIfCancellationRequested();
+            AsciiDocSelectedLine line = lines[index];
             if (TryGetTagMarker(line.Content, out string name, out bool isStart)) {
                 active.TryGetValue(name, out int depth);
                 if (isStart) active[name] = depth + 1;
@@ -56,9 +60,9 @@ internal static class AsciiDocIncludeSelector {
                 else active[name] = depth - 1;
                 continue;
             }
-            if (filter.IsSelected(active.Keys)) output.Append(line.FullText);
+            if (filter.IsSelected(active.Keys)) output.Add(line);
         }
-        return output.ToString();
+        return output.AsReadOnly();
     }
 
     private static bool TryGetTagMarker(string content, out string name, out bool isStart) {
@@ -103,19 +107,15 @@ internal static class AsciiDocIncludeSelector {
         (value >= 'a' && value <= 'z') || (value >= 'A' && value <= 'Z') ||
         (value >= '0' && value <= '9') || value == '_';
 
-    private static string ApplyLevelOffset(string source, int offset) {
-        IReadOnlyList<AsciiDocSourceLine> lines = AsciiDocLineReader.Read(source);
-        var output = new StringBuilder(source.Length);
+    private static void ApplyLevelOffset(IReadOnlyList<AsciiDocSelectedLine> lines, int offset, System.Threading.CancellationToken token) {
         for (int index = 0; index < lines.Count; index++) {
-            AsciiDocSourceLine line = lines[index];
+            token.ThrowIfCancellationRequested();
+            AsciiDocSelectedLine line = lines[index];
             if (AsciiDocLineClassifier.TryParseHeading(line.Content, out int markerLength, out int titleStart)) {
-                int adjusted = Math.Max(1, Math.Min(6, markerLength + offset));
-                output.Append(new string('=', adjusted)).Append(line.Content.Substring(titleStart - 1)).Append(line.LineEnding);
-            } else {
-                output.Append(line.FullText);
+                int adjusted = (int)Math.Max(1, Math.Min(6, (long)markerLength + offset));
+                if (adjusted != markerLength) line.ReplaceContent(new string('=', adjusted) + line.Content.Substring(titleStart - 1));
             }
         }
-        return output.ToString();
     }
 
     private static bool TryParseSignedInteger(string value, out int result) {

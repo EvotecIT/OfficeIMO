@@ -46,6 +46,16 @@ public sealed class AsciiDocInlineSequence {
         _items = items;
     }
 
+    /// <summary>Parses standalone AsciiDoc inline source without interpreting it as block syntax.</summary>
+    public static AsciiDocInlineSequence Parse(string source, AsciiDocParseOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        if (source == null) throw new ArgumentNullException(nameof(source));
+        options ??= new AsciiDocParseOptions();
+        AsciiDocParser.ValidateOptions(source, options);
+        cancellationToken.ThrowIfCancellationRequested();
+        var factory = new AsciiDocSyntaxFactory(new AsciiDocSourceText(source, cancellationToken), cancellationToken, options);
+        return new AsciiDocInlineParser(factory, options, cancellationToken).Parse(0, source.Length);
+    }
+
     /// <summary>Lossless syntax for the whole sequence.</summary>
     public AsciiDocSyntaxNode Syntax { get; }
 

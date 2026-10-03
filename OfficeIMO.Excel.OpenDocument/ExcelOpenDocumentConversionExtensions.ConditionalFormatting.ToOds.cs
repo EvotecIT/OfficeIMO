@@ -23,8 +23,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         ref long materializedCells, ref bool truncated) {
         int ruleCount = worksheet.ConditionalFormattingRuleCount;
         if (ruleCount == 0 || ruleCount > MaximumExcelConditionalRulesPerSheet) return 0;
-        IReadOnlyList<ExcelConditionalFormattingInfo> rules = sourceSheet.GetConditionalFormattingRules();
-        if (rules.Count != ruleCount) return 0;
+        IReadOnlyList<ExcelConditionalFormattingInfo> rules = sourceSheet.GetConditionalFormattingRules(
+            null, MaximumExcelConditionalRulesPerSheet, out bool rulesTruncated);
+        if (rulesTruncated || rules.Count != ruleCount) return 0;
         var plans = new List<ExcelConditionalRangePlan>();
         long totalCells = 0;
         long newCells = 0;

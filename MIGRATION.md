@@ -9,6 +9,18 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## ODS row layout conversion
+
+ODS-to-XLSX conversion materializes at most 4,096 individual hidden-row or row-height layouts per sheet by default. Larger row-layout expansions are reported under `expansion-limits`; set `ExcelOpenDocumentConversionOptions.MaximumRowLayoutRows` when a trusted workbook needs a higher limit.
+
+## Chart data label separators
+
+`OfficeChartLayout` accepts data label separators up to 64 characters. Shorten longer authored separators before constructing a layout; they now raise `ArgumentOutOfRangeException`. Native charts with longer separators are not projected into the shared chart layout, because the separator would be copied into every rendered point label.
+
+## RTF Unicode fallback width
+
+Normalized RTF writing accepts `UnicodeSkipCount` values from 0 through 8. Set a larger authored value to a supported width before calling `ToRtf`; larger values now raise `ArgumentOutOfRangeException` instead of generating disproportionate fallback output. Reading and lossless source export still preserve an incoming `\uc` value, including one that cannot be used for normalized writing.
+
 ## Apple Mail and Outlook for Mac stores
 
 `EmailStoreReaderOptions` adds `maxDirectoryEntryCount` while retaining its original constructor
@@ -48,14 +60,6 @@ is projected before the session closes, while returned assets carry metadata wit
 If an application needs retained attachment bytes, register the handler with
 `new ReaderEmailStoreOptions { StreamAttachmentContent = false }` and leave the item's explicit
 streaming preference disabled. Keep `StoreOptions.RetainAttachmentContent` enabled for that workflow.
-
-## Chart data label separators
-
-`OfficeChartLayout` accepts data label separators up to 64 characters. Shorten longer authored separators before constructing a layout; they now raise `ArgumentOutOfRangeException`. Native charts with longer separators are not projected into the shared chart layout, because the separator would be copied into every rendered point label.
-
-## RTF Unicode fallback width
-
-Normalized RTF writing accepts `UnicodeSkipCount` values from 0 through 8. Set a larger authored value to a supported width before calling `ToRtf`; larger values now raise `ArgumentOutOfRangeException` instead of generating disproportionate fallback output. Reading and lossless source export still preserve an incoming `\uc` value, including one that cannot be used for normalized writing.
 
 ## LaTeX editing and conversion contracts
 
@@ -188,6 +192,16 @@ Invalid chapter encodings produce `epub.chapter.invalid-encoding` and are skippe
 when a larger publication is required. Check `ReadSummary.IsComplete` and structured
 diagnostics when limits or unreadable content can produce partial output; archive
 recovery scanning cannot establish publication completeness.
+
+## CSL contributor roles, availability dates, and item types
+
+CSL JSON parsing places all standard contributor roles in `BibliographyItem.Contributors`, all standard date roles in `Dates`, and all standard item types in `Type`. Applications reading recognized properties such as `director`, `container-author`, or `available-date` from item `NativeFields` should use the corresponding contributor role or `GetDate(BibliographyDateRole.Available)`. Incorrectly shaped and unknown properties remain native fields, and unchanged preserve-mode writing retains the original source.
+
+Existing enum numeric values remain stable; the additional item types, contributor roles, and availability date are appended. Extend application switches that assumed the earlier enum set. When converting to a format with a smaller vocabulary, inspect the conversion report or enable `RequireNoLoss` to reject unsupported roles, dates, and types.
+
+## Bibliography and AsciiDoc path saves
+
+`BibliographyDocument.Save` / `SaveAsync` and `AsciiDocDocument.Save` / `SaveAsync` require atomic file publication. If a filesystem cannot atomically replace an existing destination, the operation fails and preserves that file. Applications saving to such filesystems should catch the filesystem exception and choose a destination that supports atomic replacement. Caller-owned stream saves retain their stream-writing behavior and can leave partial output on failure or cancellation.
 
 ## Conversion batches replace the PDF archive surface
 
@@ -394,6 +408,24 @@ Folder and detailed path reads apply the configured document processor pipeline.
 second processing pass that previously compensated for these routes bypassing processors.
 Word tables preserve complete Markdown when an atomic table exceeds `MaxChars` and emit a warning.
 Applications that require terminal limits should configure `ReaderOptions.ResourceLimits`.
+
+## Reader XML limits and changing sources
+
+XML extraction uses `XmlReadOptions.MaxDepth` (128), `MaxNodes` (200,000), and
+`MaxScalarLength` (1,048,576) by default. Inputs exceeding these limits throw
+`ReaderResourceLimitException`. Increase the relevant option for trusted larger inputs.
+XML and YAML values within their configured limits retain their full normalized text.
+
+Path reads reject a detected source change with `IOException`. Retry against a stable file.
+Keep incremental inputs stable until enumeration finishes: a later failure cannot withdraw
+chunks already delivered to the consumer.
+
+Async file reads use the same normalized file identity and timestamps as synchronous reads.
+Rebuild indexes that stored the previous async stream-derived source IDs or chunk hashes.
+Chunk-based container results describe the outer input in `Kind` and `Source`; member identity,
+hash, length and timestamps remain on the member chunks, including after document processing.
+Folder byte budgets charge the physical file size. Consumers that inferred the first member's
+kind or metadata from the root envelope should read that member's chunk instead.
 
 ## Reader document schema version 8
 

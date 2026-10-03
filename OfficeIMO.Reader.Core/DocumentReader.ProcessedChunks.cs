@@ -52,10 +52,19 @@ internal static partial class DocumentReaderEngine {
             cancellationToken.ThrowIfCancellationRequested();
             ReaderChunk chunk = chunks[index]
                 ?? throw new InvalidOperationException($"Processed document chunk at index {index} is null.");
-            chunk.SourceId = sourceId;
-            chunk.SourceHash = sourceHash;
-            chunk.SourceLastWriteUtc = sourceLastWriteUtc;
-            chunk.SourceLengthBytes = sourceLengthBytes;
+            ProcessedChunkState? prior = FindOriginalChunk(chunk, index, aggregateSnapshot.Chunks);
+            if (prior.HasValue && !string.IsNullOrWhiteSpace(prior.Value.SourceId) &&
+                !string.Equals(prior.Value.SourceId, sourceFallback.SourceId, StringComparison.Ordinal)) {
+                chunk.SourceId = prior.Value.SourceId;
+                chunk.SourceHash = prior.Value.SourceHash;
+                chunk.SourceLastWriteUtc = prior.Value.SourceLastWriteUtc;
+                chunk.SourceLengthBytes = prior.Value.SourceLengthBytes;
+            } else {
+                chunk.SourceId = sourceId;
+                chunk.SourceHash = sourceHash;
+                chunk.SourceLastWriteUtc = sourceLastWriteUtc;
+                chunk.SourceLengthBytes = sourceLengthBytes;
+            }
             chunk.TokenEstimate = EstimateTokenCount(chunk.Markdown ?? chunk.Text);
             if (computeHashes) chunk.ChunkHash = ComputeChunkHash(chunk);
         }
@@ -214,12 +223,25 @@ internal static partial class DocumentReaderEngine {
         }
         if (!string.IsNullOrWhiteSpace(chunk.Id)) {
             ProcessedChunkState? match = null;
+            int bestScore = -1;
+            bool ambiguous = false;
             for (int stateIndex = 0; stateIndex < original.Count; stateIndex++) {
-                if (!string.Equals(chunk.Id, original[stateIndex].Id, StringComparison.Ordinal)) continue;
-                if (match.HasValue) return null;
-                match = original[stateIndex];
+                ProcessedChunkState state = original[stateIndex];
+                if (!string.Equals(chunk.Id, state.Id, StringComparison.Ordinal)) continue;
+                // Local IDs can repeat across members. Retained location references or source/path
+                // identity disambiguate copies without guessing from their position in the list.
+                int score = chunk.Location != null && ReferenceEquals(chunk.Location, state.Location) ? 4 : 0;
+                if (!string.IsNullOrWhiteSpace(chunk.SourceId) && chunk.SourceId == state.SourceId) score += 2;
+                if (!string.IsNullOrWhiteSpace(chunk.Location?.Path) && chunk.Location!.Path == state.LocationPath) score++;
+                if (score > bestScore) {
+                    match = state;
+                    bestScore = score;
+                    ambiguous = false;
+                } else if (score == bestScore) {
+                    ambiguous = true;
+                }
             }
-            return match;
+            return ambiguous ? null : match;
         }
         return null;
     }
@@ -294,6 +316,12 @@ internal readonly struct ProcessedChunkState {
         Text = text;
         Markdown = markdown;
         ContinuesPreviousChunk = continuesPreviousChunk;
+        SourceId = chunk?.SourceId;
+        SourceHash = chunk?.SourceHash;
+        SourceLastWriteUtc = chunk?.SourceLastWriteUtc;
+        SourceLengthBytes = chunk?.SourceLengthBytes;
+        Location = chunk?.Location;
+        LocationPath = chunk?.Location?.Path;
     }
 
     internal ReaderChunk? Chunk { get; }
@@ -301,6 +329,12 @@ internal readonly struct ProcessedChunkState {
     internal string? Text { get; }
     internal string? Markdown { get; }
     internal bool ContinuesPreviousChunk { get; }
+    internal string? SourceId { get; }
+    internal string? SourceHash { get; }
+    internal DateTime? SourceLastWriteUtc { get; }
+    internal long? SourceLengthBytes { get; }
+    internal ReaderLocation? Location { get; }
+    internal string? LocationPath { get; }
 }
 
 internal readonly struct ProcessedBlockState {

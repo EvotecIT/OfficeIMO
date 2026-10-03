@@ -64,6 +64,7 @@ internal static class BibliographyConversionInspector {
         InspectKeys(document, format, report, cancellationToken);
         InspectDocumentStructure(document, format, report, cancellationToken);
         foreach (BibliographyItem item in Cancellable(document.Items, cancellationToken)) {
+            BibliographyRichTextInspector.Inspect(item, document.SourceFormat, format, report, cancellationToken);
             InspectType(item, document.SourceFormat, format, report, cancellationToken); InspectContributors(item, format, report, cancellationToken); InspectDates(item, format, report, cancellationToken); InspectNestedNativeFields(item, format, report, cancellationToken); InspectProperties(item, format, report, cancellationToken); InspectIdentifiers(item, format, report, cancellationToken); InspectRepeatableValues(item, format, report); InspectTextEncoding(item, format, report, cancellationToken); InspectNativeStructure(item, format, report, cancellationToken);
         }
     }
@@ -148,7 +149,7 @@ internal static class BibliographyConversionInspector {
             switch (format) {
                 case BibliographyFormat.BibTex: exact = role == BibliographyContributorRole.Author || role == BibliographyContributorRole.Editor; break;
                 case BibliographyFormat.BibLatex: exact = role == BibliographyContributorRole.Author || role == BibliographyContributorRole.Editor || role == BibliographyContributorRole.Translator; break;
-                case BibliographyFormat.CslJson: exact = role == BibliographyContributorRole.Author || role == BibliographyContributorRole.Editor || role == BibliographyContributorRole.Translator || role == BibliographyContributorRole.Recipient || role == BibliographyContributorRole.Interviewer || role == BibliographyContributorRole.Composer || role == BibliographyContributorRole.CollectionEditor; break;
+                case BibliographyFormat.CslJson: exact = CslVocabulary.SupportsContributor(role); break;
                 case BibliographyFormat.Ris: exact = role == BibliographyContributorRole.Author || role == BibliographyContributorRole.Editor; break;
                 case BibliographyFormat.Nbib: exact = role == BibliographyContributorRole.Author; break;
                 case BibliographyFormat.EndNoteXml: exact = role == BibliographyContributorRole.Author || role == BibliographyContributorRole.Editor || role == BibliographyContributorRole.CollectionEditor || role == BibliographyContributorRole.Translator; break;
@@ -178,6 +179,15 @@ internal static class BibliographyConversionInspector {
     }
 
     private static bool ReordersContributors(BibliographyItem item, BibliographyFormat format, CancellationToken cancellationToken) {
+        if (format == BibliographyFormat.CslJson) {
+            int previous = -1;
+            foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken)) {
+                if (!CslVocabulary.TryContributorOrder(contributor.Role, out int order)) continue;
+                if (order < previous) return true;
+                previous = order;
+            }
+            return false;
+        }
         BibliographyContributor[] source;
         BibliographyContributor[] output;
         switch (format) {
@@ -185,11 +195,6 @@ internal static class BibliographyConversionInspector {
                 BibliographyContributorRole[] bibRoles = { BibliographyContributorRole.Author, BibliographyContributorRole.Editor, BibliographyContributorRole.Translator };
                 source = Cancellable(item.Contributors, cancellationToken).Where(contributor => bibRoles.Contains(contributor.Role)).ToArray();
                 output = bibRoles.SelectMany(role => Cancellable(source, cancellationToken).Where(contributor => contributor.Role == role)).ToArray();
-                break;
-            case BibliographyFormat.CslJson:
-                BibliographyContributorRole[] cslRoles = { BibliographyContributorRole.Author, BibliographyContributorRole.Editor, BibliographyContributorRole.Translator, BibliographyContributorRole.Recipient, BibliographyContributorRole.Interviewer, BibliographyContributorRole.Composer, BibliographyContributorRole.CollectionEditor };
-                source = Cancellable(item.Contributors, cancellationToken).Where(contributor => cslRoles.Contains(contributor.Role)).ToArray();
-                output = cslRoles.SelectMany(role => Cancellable(source, cancellationToken).Where(contributor => contributor.Role == role)).ToArray();
                 break;
             case BibliographyFormat.EndNoteXml:
                 BibliographyContributorRole[] endNoteRoles = { BibliographyContributorRole.Author, BibliographyContributorRole.Editor, BibliographyContributorRole.CollectionEditor, BibliographyContributorRole.Translator };
@@ -245,7 +250,7 @@ internal static class BibliographyConversionInspector {
 
     private static void InspectDates(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
         foreach (BibliographyDateRole role in Cancellable(item.Dates, cancellationToken).Select(static value => value.Role).Distinct()) {
-            bool exact = format == BibliographyFormat.CslJson ? role == BibliographyDateRole.Issued || role == BibliographyDateRole.Accessed || role == BibliographyDateRole.Submitted || role == BibliographyDateRole.Original || role == BibliographyDateRole.Event
+            bool exact = format == BibliographyFormat.CslJson ? CslVocabulary.DateProperty(role) != null
                 : (format == BibliographyFormat.BibLatex || format == BibliographyFormat.Ris) ? role == BibliographyDateRole.Issued || role == BibliographyDateRole.Accessed
                 : format == BibliographyFormat.BibTex ? role == BibliographyDateRole.Issued
                 : role == BibliographyDateRole.Issued;
@@ -285,7 +290,7 @@ internal static class BibliographyConversionInspector {
 
     private static bool CanRoundTripDateRange(BibliographyFormat format, BibliographyDateRole role) {
         if (format == BibliographyFormat.CslJson)
-            return role == BibliographyDateRole.Issued || role == BibliographyDateRole.Accessed || role == BibliographyDateRole.Submitted || role == BibliographyDateRole.Original || role == BibliographyDateRole.Event;
+            return CslVocabulary.DateProperty(role) != null;
         if (format == BibliographyFormat.BibLatex || format == BibliographyFormat.Ris)
             return role == BibliographyDateRole.Issued || role == BibliographyDateRole.Accessed;
         return (format == BibliographyFormat.Nbib || format == BibliographyFormat.EndNoteXml) && role == BibliographyDateRole.Issued;

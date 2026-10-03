@@ -1,0 +1,719 @@
+<?xml version="1.0" encoding="utf-8"?>
+<locale xmlns="http://purl.org/net/xbiblio/csl" version="1.0" xml:lang="da-DK">
+  <info>
+    <translator>
+      <name>Niels Erik Wille</name>
+    </translator>
+    <translator>
+      <name>Jonas Nyrup</name>
+    </translator>
+    <translator>
+      <name>hafnius</name>
+    </translator>
+    <translator>
+      <name>mufalab</name>
+      <email>mufa@kb.dk</email>
+    </translator>
+    <rights license="http://creativecommons.org/licenses/by-sa/3.0/">This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 License</rights>
+    <updated>2026-04-29T00:00:00+00:00</updated>
+  </info>
+  <style-options punctuation-in-quote="false"/>
+  <date form="text">
+    <date-part name="day" form="ordinal" suffix=" "/>
+    <date-part name="month" suffix=" "/>
+    <date-part name="year"/>
+  </date>
+  <date form="numeric">
+    <date-part name="day" form="numeric-leading-zeros" suffix="-" range-delimiter="/"/>
+    <date-part name="month" form="numeric-leading-zeros" suffix="-" range-delimiter="/"/>
+    <date-part name="year"/>
+  </date>
+  <terms>
+        <!-- LONG GENERAL TERMS -->
+    <term name="accessed">set</term>
+    <term name="advance-online-publication">online forhåndsvisning</term>
+    <term name="album">album</term>
+    <term name="and">og</term>
+    <term name="and others">med flere</term>
+    <term name="anonymous">anonym</term>
+    <term name="at">på</term>
+    <term name="audio-recording">lydoptagelse</term>
+    <term name="available at">tilgængelig hos</term>
+    <term name="by">af</term>
+    <term name="circa">cirka</term>
+    <term name="cited">henvist</term>
+    <term name="et-al">m.fl.</term>
+    <term name="film">film</term>
+    <term name="forthcoming">kommende</term>
+    <term name="from">fra</term>
+    <term name="henceforth">fra nu af</term>
+    <term name="ibid">ibid.</term>
+    <term name="in">i</term>
+    <term name="in press">i trykken</term>
+    <term name="internet">internet</term>
+    <term name="letter">brev</term>
+    <term name="loc-cit">loc. cit.</term> <!-- like ibid., the abbreviated form is the regular form  -->
+    <term name="no date">uden år</term>
+    <term name="no-place">uden sted</term>
+    <term name="no-publisher">uden forlag</term> <!-- sine nomine -->
+    <term name="on">on</term>
+    <term name="online">online</term>
+    <term name="op-cit">op. cit.</term> <!-- like ibid., the abbreviated form is the regular form  -->
+    <term name="original-work-published">originalt værk udgivet</term>
+    <term name="personal-communication">personlig kommunikation</term>
+    <term name="podcast">podcast</term>
+    <term name="podcast-episode">podcast episode</term>
+    <term name="preprint">preprint</term>
+    <term name="presented at">præsenteret ved</term>
+    <term name="radio-broadcast">radio broadcast</term>
+    <term name="radio-series">radio series</term>
+    <term name="radio-series-episode">radioudsendelse</term>
+    <term name="reference">
+      <single>reference</single>
+      <multiple>referencer</multiple>
+    </term>
+    <term name="retrieved">hentet</term>
+    <term name="review-of">anmeldelse af</term>
+    <term name="scale">skala</term>
+    <term name="special-issue">temanummer</term>
+    <term name="special-section">særafsnit</term>
+    <term name="television-broadcast">tv-udsendelse</term>
+    <term name="television-series">tv-serie</term>
+    <term name="television-series-episode">tv-serie episode</term>
+    <term name="video">video</term>
+    <term name="working-paper">arbejdspapir</term>
+
+    <!-- SHORT GENERAL TERMS -->
+    <term name="anonymous" form="short">anon.</term>
+    <term name="circa" form="short">ca.</term>
+    <term name="no date" form="short">u.å.</term>
+    <term name="no-place" form="short">u.s.</term>
+    <term name="no-publisher" form="short">u.f.</term>
+    <term name="reference" form="short">
+      <single>ref.</single>
+      <multiple>refr.</multiple>
+    </term>
+    <term name="review-of" form="short">rev. of</term>
+
+    <!-- SYMBOLIC GENERAL FORMS -->
+
+    <!-- LONG ITEM TYPE FORMS -->
+    <term name="article">artikel</term>
+    <term name="article-journal">tidsskriftsartikel</term>
+    <term name="article-magazine">magasinartikel</term>
+    <term name="article-newspaper">avisartikel</term>
+    <term name="bill">lovforslag</term>
+    <!-- book is in the list of locator terms -->
+    <term name="broadcast">broadcast</term>
+    <!-- chapter is in the list of locator terms -->
+    <term name="classic">klassik</term>
+    <term name="collection">samling</term>
+    <term name="dataset">dataset</term>
+    <term name="document">dokument</term>
+    <term name="entry">entry</term>
+    <term name="entry-dictionary">ordbog opslag</term>
+    <term name="entry-encyclopedia">encyklopædi opslag</term>
+    <term name="event">begivenhed</term>
+    <!-- figure is in the list of locator terms -->
+    <term name="graphic">figur</term>
+    <term name="hearing">høring</term>
+    <term name="interview">interview</term>
+    <term name="legal_case">dom</term>
+    <term name="legislation">lovgivning</term>
+    <term name="manuscript">manuskript</term>
+    <term name="map">kort</term>
+    <term name="motion_picture">film</term>
+    <term name="musical_score">partitur</term>
+    <term name="pamphlet">pamflet</term>
+    <term name="paper-conference">konferencepapir</term>
+    <term name="patent">patent</term>
+    <term name="performance">performance</term>
+    <term name="periodical">tidsskrift</term>
+    <term name="personal_communication">personlig kommunikation</term>
+    <term name="post">post</term>
+    <term name="post-weblog">blog post</term>
+    <term name="regulation">bestemmelse</term>
+    <term name="report">rapport</term>
+    <term name="review">anmeldelse</term>
+    <term name="review-book">boganmeldelse</term>
+    <term name="software">software</term>
+    <term name="song">sang</term>
+    <term name="speech">presentation</term>
+    <term name="standard">standard</term>
+    <term name="thesis">afhandling</term>
+    <term name="treaty">traktat</term>
+    <term name="webpage">hjemmeside</term>
+
+    <!-- SHORT ITEM TYPE FORMS -->
+    <term name="article-journal" form="short">tss.art.</term>
+    <term name="article-magazine" form="short">mag.art.</term>
+    <term name="article-newspaper" form="short">avisart.</term>
+    <!-- book is in the list of locator terms -->
+    <!-- chapter is in the list of locator terms -->
+    <term name="document" form="short">doc.</term>
+    <!-- figure is in the list of locator terms -->
+    <term name="graphic" form="short">fig.</term>
+    <term name="interview" form="short">interv.</term>
+    <term name="manuscript" form="short">MS</term>
+    <term name="motion_picture" form="short">film</term>
+    <term name="report" form="short">rep.</term>
+    <term name="review" form="short">rev.</term>
+    <term name="review-book" form="short">bog anm.</term>
+    <term name="song" form="short">sang</term>
+
+    <!-- LONG VERB ITEM TYPE FORMS -->
+    <!-- Only where applicable -->
+    <term name="hearing" form="verb">testimony of</term>
+    <term name="review" form="verb">review of</term>
+    <term name="review-book" form="verb">review of the book</term>
+
+    <!-- SHORT VERB ITEM TYPE FORMS -->
+
+    <!-- HISTORICAL ERA TERMS -->
+    <term name="ad">e.v.t.</term>
+    <term name="bc">f.v.t.</term>
+    <term name="bce">BCE</term>
+    <term name="ce">CE</term>
+
+    <!-- PUNCTUATION -->
+    <term name="open-quote">“</term>
+    <term name="close-quote">”</term>
+    <term name="open-inner-quote">‘</term>
+    <term name="close-inner-quote">’</term>
+    <term name="page-range-delimiter">–</term>
+    <term name="colon">:</term>
+    <term name="comma">,</term>
+    <term name="semicolon">;</term>
+
+    <!-- ORDINALS -->
+    <term name="ordinal">.</term>
+
+    <!-- LONG ORDINALS -->
+    <term name="long-ordinal-01">første</term>
+    <term name="long-ordinal-02">anden</term>
+    <term name="long-ordinal-03">tredje</term>
+    <term name="long-ordinal-04">fjerde</term>
+    <term name="long-ordinal-05">femte</term>
+    <term name="long-ordinal-06">sjette</term>
+    <term name="long-ordinal-07">syvende</term>
+    <term name="long-ordinal-08">ottende</term>
+    <term name="long-ordinal-09">niende</term>
+    <term name="long-ordinal-10">tiende</term>
+
+    <!-- LONG LOCATOR FORMS -->
+    <term name="act">
+      <single>act</single>
+      <multiple>acts</multiple>
+    </term>
+    <term name="appendix">
+      <single>appendix</single>
+      <multiple>appendices</multiple>
+    </term>
+    <term name="article-locator">
+      <single>article</single>
+      <multiple>articles</multiple>
+    </term>
+    <term name="book">
+      <single>bog</single>
+      <multiple>bøger</multiple>
+    </term>
+    <term name="canon">
+      <single>canon</single>
+      <multiple>canons</multiple>
+    </term>
+    <term name="chapter">
+      <single>kapitel</single>
+      <multiple>kapitler</multiple>
+    </term>
+    <term name="column">
+      <single>kolonne</single>
+      <multiple>kolonner</multiple>
+    </term>
+    <term name="elocation">
+      <single>location</single>
+      <multiple>locations</multiple>
+    </term>
+    <term name="equation">
+      <single>equation</single>
+      <multiple>equations</multiple>
+    </term>
+    <term name="figure">
+      <single>figur</single>
+      <multiple>figurer</multiple>
+    </term>
+    <term name="folio">
+      <single>folio</single>
+      <multiple>folio</multiple>
+    </term>
+    <term name="issue">
+      <single>nummer</single>
+      <multiple>numre</multiple>
+    </term>
+    <term name="line">
+      <single>linje</single>
+      <multiple>linjer</multiple>
+    </term>
+    <term name="note">
+      <single>note</single>
+      <multiple>noter</multiple>
+    </term>
+    <term name="opus">
+      <single>opus</single>
+      <multiple>opus</multiple>
+    </term>
+    <term name="page">
+      <single>side</single>
+      <multiple>sider</multiple>
+    </term>
+    <term name="paragraph">
+      <single>afsnit</single>
+      <multiple>afsnit</multiple>
+    </term>
+    <term name="part">
+      <single>del</single>
+      <multiple>dele</multiple>
+    </term>
+    <term name="rule">
+      <single>rule</single>
+      <multiple>rules</multiple>
+    </term>
+    <term name="scene">
+      <single>scene</single>
+      <multiple>scenes</multiple>
+    </term>
+    <term name="section">
+      <single>paragraf</single>
+      <multiple>paragraffer</multiple>
+    </term>
+    <term name="sub-verbo">
+      <single>sub voce</single>
+      <multiple>sub voce</multiple>
+    </term>
+    <term name="supplement">
+      <single>supplement</single>
+      <multiple>supplements</multiple>
+    </term>
+    <term name="table">
+      <single>table</single>
+      <multiple>tables</multiple>
+    </term>
+    <term name="timestamp"> <!-- generally blank -->
+      <single/>
+      <multiple/>
+    </term>
+    <term name="title-locator">
+      <single>title</single>
+      <multiple>titles</multiple>
+    </term>
+    <term name="verse">
+      <single>vers</single>
+      <multiple>vers</multiple>
+    </term>
+    <term name="volume">
+      <single>bind</single>
+      <multiple>bind</multiple>
+    </term>
+
+    <!-- SHORT LOCATOR FORMS -->
+    <term name="appendix" form="short">
+      <single>app.</single>
+      <multiple>apps.</multiple>
+    </term>
+    <term name="article-locator" form="short">
+      <single>art.</single>
+      <multiple>arts.</multiple>
+    </term>
+    <term name="book" form="short">b.</term>
+    <term name="chapter" form="short">kap.</term>
+    <term name="column" form="short">kol.</term>
+    <term name="elocation" form="short">
+      <single>loc.</single>
+      <multiple>locs.</multiple>
+    </term>
+    <term name="equation" form="short">
+      <single>eq.</single>
+      <multiple>eqs.</multiple>
+    </term>
+    <term name="figure" form="short">fig.</term>
+    <term name="folio" form="short">fol.</term>
+    <term name="issue" form="short">nr.</term>
+    <term name="line" form="short">l.</term>
+    <term name="note" form="short">n.</term>
+    <term name="opus" form="short">op.</term>
+    <term name="page" form="short">
+      <single>s.</single>
+      <multiple>s.</multiple>
+    </term>
+    <term name="paragraph" form="short">afs.</term>
+    <term name="part" form="short">d.</term>
+    <term name="rule" form="short">
+      <single>r.</single>
+      <multiple>rr.</multiple>
+    </term>
+    <term name="scene" form="short">
+      <single>sc.</single>
+      <multiple>scs.</multiple>
+    </term>
+    <term name="section" form="short">par.</term>
+    <term name="sub-verbo" form="short">
+      <single>s.v.</single>
+      <multiple>s.v.</multiple>
+    </term>
+    <term name="supplement" form="short">
+      <single>supp.</single>
+      <multiple>supps.</multiple>
+    </term>
+    <term name="table" form="short">
+      <single>tbl.</single>
+      <multiple>tbls.</multiple>
+    </term>
+    <term name="timestamp" form="short"> <!-- generally blank -->
+      <single/>
+      <multiple/>
+    </term>
+    <term name="title-locator" form="short">
+      <single>tit.</single>
+      <multiple>tits.</multiple>
+    </term>
+    <term name="verse" form="short">
+      <single>v.</single>
+      <multiple>v.</multiple>
+    </term>
+    <term name="volume" form="short">
+      <single>bd.</single>
+      <multiple>bd.</multiple>
+    </term>
+
+    <!-- SYMBOLIC LOCATOR FORMS -->
+    <term name="paragraph" form="symbol">
+      <single>¶</single>
+      <multiple>¶¶</multiple>
+    </term>
+    <term name="section" form="symbol">
+      <single>§</single>
+      <multiple>§§</multiple>
+    </term>
+
+    <!-- LONG NUMBER VARIABLE FORMS -->
+    <term name="chapter-number">
+      <single>chapter</single>
+      <multiple>chapters</multiple>
+    </term>
+    <term name="citation-number">
+      <single>citation</single>
+      <multiple>citations</multiple>
+    </term>
+    <term name="collection-number">
+      <single>nummer</single>
+      <multiple>numre</multiple>
+    </term>
+    <term name="edition">
+      <single>udgave</single>
+      <multiple>udgaver</multiple>
+    </term>
+    <term name="first-reference-note-number">
+      <single>note</single>
+      <multiple>noter</multiple>
+    </term>
+    <term name="number">
+      <single>nummer</single>
+      <multiple>numre</multiple>
+    </term>
+    <term name="number-of-pages">
+      <single>side</single>
+      <multiple>sider</multiple>
+    </term>
+    <term name="number-of-volumes">
+      <single>volume</single>
+      <multiple>volumes</multiple>
+    </term>
+    <term name="page-first">
+      <single>page</single>
+      <multiple>pages</multiple>
+    </term>
+    <term name="printing">
+      <single>printing</single>
+      <multiple>printings</multiple>
+    </term>
+    <term name="version">version</term>
+
+    <!-- SHORT NUMBER VARIABLE FORMS -->
+    <term name="chapter-number" form="short">
+      <single>chap.</single>
+      <multiple>chaps.</multiple>
+    </term>
+    <term name="citation-number" form="short">
+      <single>cit.</single>
+      <multiple>cits.</multiple>
+    </term>
+    <term name="collection-number" form="short">nr.</term>
+    <term name="edition" form="short">udg.</term>
+    <term name="first-reference-note-number" form="short">n.</term>
+    <term name="number" form="short">
+      <single>no.</single>
+      <multiple>nos.</multiple>
+    </term>
+    <term name="number-of-pages" form="short">
+      <single>s.</single>
+      <multiple>s.</multiple>
+    </term>
+    <term name="number-of-volumes" form="short">
+      <single>vol.</single>
+      <multiple>vols.</multiple>
+    </term>
+    <term name="page-first" form="short">
+      <single>p.</single>
+      <multiple>pp.</multiple>
+    </term>
+    <term name="printing" form="short">
+      <single>print.</single>
+      <multiple>prints.</multiple>
+    </term>
+
+    <!-- LONG ROLE FORMS -->
+    <term name="author"/> <!-- generally blank -->
+    <term name="chair">
+      <single>chair</single>
+      <multiple>chairs</multiple>
+    </term>
+    <term name="collection-editor">
+      <single>ed.</single>
+      <multiple>eds.</multiple>
+    </term>
+    <term name="compiler">
+      <single>compiler</single>
+      <multiple>compilers</multiple>
+    </term>
+    <term name="composer"/> <!-- generally blank -->
+    <term name="container-author"/> <!-- generally blank -->
+    <term name="contributor">
+      <single>contributor</single>
+      <multiple>contributors</multiple>
+    </term>
+    <term name="curator">
+      <single>curator</single>
+      <multiple>curators</multiple>
+    </term>
+    <term name="director">
+      <single>instruktør</single>
+      <multiple>instruktører</multiple>
+    </term>
+    <term name="editor">
+      <single>redaktør</single>
+      <multiple>redaktører</multiple>
+    </term>
+    <term name="editor-translator">
+      <single>redaktør &amp; oversætter</single>
+      <multiple>redaktører &amp; oversættere</multiple>
+    </term>
+    <term name="editortranslator">
+      <single>redaktør &amp; oversætter</single>
+      <multiple>redaktører &amp; oversættere</multiple>
+    </term>
+    <term name="editorial-director">
+      <single>redaktør</single>
+      <multiple>redaktører</multiple>
+    </term>
+    <term name="executive-producer">
+      <single>executive producer</single>
+      <multiple>executive producers</multiple>
+    </term>
+    <term name="guest">
+      <single>guest</single>
+      <multiple>guests</multiple>
+    </term>
+    <term name="host">
+      <single>host</single>
+      <multiple>hosts</multiple>
+    </term>
+    <term name="illustrator">
+      <single>illustrator</single>
+      <multiple>illustratorer</multiple>
+    </term>
+    <term name="interviewer"/> <!-- generally blank -->
+    <term name="narrator">
+      <single>narrator</single>
+      <multiple>narrators</multiple>
+    </term>
+    <term name="organizer">
+      <single>organizer</single>
+      <multiple>organizers</multiple>
+    </term>
+    <term name="original-author"/> <!-- generally blank -->
+    <term name="performer">
+      <single>performer</single>
+      <multiple>performers</multiple>
+    </term>
+    <term name="producer">
+      <single>producer</single>
+      <multiple>producers</multiple>
+    </term>
+    <term name="recipient"/> <!-- generally blank -->
+    <term name="reviewed-author"/> <!-- generally blank -->
+    <term name="script-writer">
+      <single>writer</single>
+      <multiple>writers</multiple>
+    </term>
+    <term name="series-creator">
+      <single>series creator</single>
+      <multiple>series creators</multiple>
+    </term>
+    <term name="translator">
+      <single>oversætter</single>
+      <multiple>oversættere</multiple>
+    </term>
+
+    <!-- SHORT ROLE FORMS -->
+    <term name="compiler" form="short">
+      <single>comp.</single>
+      <multiple>comps.</multiple>
+    </term>
+    <term name="contributor" form="short">
+      <single>contrib.</single>
+      <multiple>contribs.</multiple>
+    </term>
+    <term name="curator" form="short">
+      <single>cur.</single>
+      <multiple>curs.</multiple>
+    </term>
+    <term name="director" form="short">
+      <single>instr.</single>
+      <multiple>instr.</multiple>
+    </term>
+    <term name="editor" form="short">
+      <single>red.</single>
+      <multiple>red.</multiple>
+    </term>
+    <term name="editor-translator" form="short">
+      <single>red. &amp; overs.</single>
+      <multiple>red. &amp; overs.</multiple>
+    </term>
+    <term name="editortranslator" form="short">
+      <single>red. &amp; overs.</single>
+      <multiple>red. &amp; overs.</multiple>
+    </term>
+    <term name="editorial-director" form="short">
+      <single>red.</single>
+      <multiple>red.</multiple>
+    </term>
+    <term name="executive-producer" form="short">
+      <single>exec. prod.</single>
+      <multiple>exec. prods.</multiple>
+    </term>
+    <term name="illustrator" form="short">
+      <single>ill.</single>
+      <multiple>ill.</multiple>
+    </term>
+    <term name="narrator" form="short">
+      <single>narr.</single>
+      <multiple>narrs.</multiple>
+    </term>
+    <term name="organizer" form="short">
+      <single>org.</single>
+      <multiple>orgs.</multiple>
+    </term>
+    <term name="performer" form="short">
+      <single>perf.</single>
+      <multiple>perfs.</multiple>
+    </term>
+    <term name="producer" form="short">
+      <single>prod.</single>
+      <multiple>prods.</multiple>
+    </term>
+    <term name="script-writer" form="short">
+      <single>writ.</single>
+      <multiple>writs.</multiple>
+    </term>
+    <term name="series-creator" form="short">
+      <single>cre.</single>
+      <multiple>cres.</multiple>
+    </term>
+    <term name="translator" form="short">
+      <single>overs.</single>
+      <multiple>overs.</multiple>
+    </term>
+
+    <!-- VERB ROLE FORMS -->
+    <term name="chair" form="verb">chaired by</term>
+    <term name="collection-editor" form="verb">edited by</term>
+    <term name="compiler" form="verb">compiled by</term>
+    <term name="container-author" form="verb">af</term>
+    <term name="contributor" form="verb">with</term>
+    <term name="curator" form="verb">curated by</term>
+    <term name="director" form="verb">instrueret af</term>
+    <term name="editor" form="verb">redigeret af</term>
+    <term name="editor-translator" form="verb">redigeret &amp; oversat af</term>
+    <term name="editortranslator" form="verb">redigeret &amp; oversat af</term>
+    <term name="editorial-director" form="verb">redigeret af</term>
+    <term name="executive-producer" form="verb">executive produced by</term>
+    <term name="guest" form="verb">with guest</term>
+    <term name="host" form="verb">hosted by</term>
+    <term name="illustrator" form="verb">illustreret af</term>
+    <term name="interviewer" form="verb">interviewet af</term>
+    <term name="narrator" form="verb">narrated by</term>
+    <term name="organizer" form="verb">organized by</term>
+    <term name="performer" form="verb">performed by</term>
+    <term name="producer" form="verb">produced by</term>
+    <term name="recipient" form="verb">modtaget af</term>
+    <term name="reviewed-author" form="verb">af</term>
+    <term name="script-writer" form="verb">written by</term>
+    <term name="series-creator" form="verb">created by</term>
+    <term name="translator" form="verb">oversat af</term>
+
+    <!-- SHORT VERB ROLE FORMS -->
+    <term name="collection-editor" form="verb-short">ed. by</term>
+    <term name="compiler" form="verb-short">comp. by</term>
+    <term name="contributor" form="verb-short">w.</term>
+    <term name="curator" form="verb-short">cur. by</term>
+    <term name="director" form="verb-short">instr.</term>
+    <term name="editor" form="verb-short">red.</term>
+    <term name="editor-translator" form="verb-short">red. &amp; overs. af</term>
+    <term name="editortranslator" form="verb-short">red. &amp; overs. af</term>
+    <term name="editorial-director" form="verb-short">red.</term>
+    <term name="executive-producer" form="verb-short">exec. prod. by</term>
+    <term name="guest" form="verb-short">w. guest</term>
+    <term name="host" form="verb-short">hosted by</term>
+    <term name="illustrator" form="verb-short">illus.</term>
+    <term name="narrator" form="verb-short">narr. by</term>
+    <term name="organizer" form="verb-short">org. by</term>
+    <term name="performer" form="verb-short">perf. by</term>
+    <term name="producer" form="verb-short">prod. by</term>
+    <term name="script-writer" form="verb-short">writ. by</term>
+    <term name="series-creator" form="verb-short">cre. by</term>
+    <term name="translator" form="verb-short">overs.</term>
+
+    <!-- LONG MONTH FORMS -->
+    <term name="month-01">januar</term>
+    <term name="month-02">februar</term>
+    <term name="month-03">marts</term>
+    <term name="month-04">april</term>
+    <term name="month-05">maj</term>
+    <term name="month-06">juni</term>
+    <term name="month-07">juli</term>
+    <term name="month-08">august</term>
+    <term name="month-09">september</term>
+    <term name="month-10">oktober</term>
+    <term name="month-11">november</term>
+    <term name="month-12">december</term>
+
+    <!-- SHORT MONTH FORMS -->
+    <term name="month-01" form="short">jan.</term>
+    <term name="month-02" form="short">feb.</term>
+    <term name="month-03" form="short">mar.</term>
+    <term name="month-04" form="short">apr.</term>
+    <term name="month-05" form="short">maj</term>
+    <term name="month-06" form="short">jun.</term>
+    <term name="month-07" form="short">jul.</term>
+    <term name="month-08" form="short">aug.</term>
+    <term name="month-09" form="short">sep.</term>
+    <term name="month-10" form="short">okt.</term>
+    <term name="month-11" form="short">nov.</term>
+    <term name="month-12" form="short">dec.</term>
+
+    <!-- SEASONS -->
+    <term name="season-01">Forår</term>
+    <term name="season-02">Sommer</term>
+    <term name="season-03">Efterår</term>
+    <term name="season-04">Vinter</term>
+  </terms>
+</locale>
