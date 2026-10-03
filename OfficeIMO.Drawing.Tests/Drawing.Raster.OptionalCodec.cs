@@ -210,7 +210,7 @@ public sealed class DrawingRasterOptionalCodecTests {
         // The inspector's 64 KiB allowance fits, but the 128 KiB provider input clone does not.
         long retained = OfficeRasterGuards.MaximumDecodedBytes - bytes.Length - 65536 - 1024;
         var options = new OfficeRasterDecodeOptions { ImageCodec = codec, RetainedManagedBytes = retained };
-        Assert.True(OfficeRasterContainerInspector.TryInspectForDecode(bytes, options, out _, out _));
+        Assert.True(OfficeRasterContainerInspector.TryInspectForDecode(bytes, options, out _, out _, out _));
         Assert.False(OfficeRasterImageDecoder.TryDecode(bytes,
             new OfficeRasterDecodeOptions { ImageCodec = codec, RetainedManagedBytes = retained }, out var image, out _));
         Assert.Null(image);

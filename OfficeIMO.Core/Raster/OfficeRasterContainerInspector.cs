@@ -16,25 +16,28 @@ public static class OfficeRasterContainerInspector {
         OfficeRasterDecodeOptions? options,
         out OfficeRasterContainerInfo? container) =>
         TryInspectCore(
-            encodedBytes, options, enforceAllTiffPagePixelLimits: true, out container, out _);
+            encodedBytes, options, enforceAllTiffPagePixelLimits: true, out container, out _, out _);
 
     internal static bool TryInspectForDecode(
         byte[]? encodedBytes,
         OfficeRasterDecodeOptions options,
         out OfficeRasterContainerInfo? container,
-        out OfficeImageFormat detectedFormat) =>
+        out OfficeImageFormat detectedFormat,
+        out OfficeRasterImage? inspectedImage) =>
         TryInspectCore(
             encodedBytes, options, enforceAllTiffPagePixelLimits: false,
-            out container, out detectedFormat);
+            out container, out detectedFormat, out inspectedImage);
 
     private static bool TryInspectCore(
         byte[]? encodedBytes,
         OfficeRasterDecodeOptions? options,
         bool enforceAllTiffPagePixelLimits,
         out OfficeRasterContainerInfo? container,
-        out OfficeImageFormat detectedFormat) {
+        out OfficeImageFormat detectedFormat,
+        out OfficeRasterImage? inspectedImage) {
         container = null;
         detectedFormat = OfficeImageFormat.Unknown;
+        inspectedImage = null;
         OfficeRasterDecodeOptions effective = options ?? new OfficeRasterDecodeOptions();
         effective.Validate();
         effective.CancellationToken.ThrowIfCancellationRequested();
@@ -62,7 +65,7 @@ public static class OfficeRasterContainerInspector {
                     encodedBytes, effective, enforceAllTiffPagePixelLimits, out container);
             case OfficeImageFormat.Webp:
                 return TryInspectWebp(encodedBytes, imageInfo, effective,
-                    validateDecodedPayload: enforceAllTiffPagePixelLimits, out container);
+                    validateDecodedPayload: enforceAllTiffPagePixelLimits, out container, out inspectedImage);
             case OfficeImageFormat.Jpeg:
                 return TryInspectJpeg(
                     encodedBytes, imageInfo, effective,
@@ -395,8 +398,10 @@ public static class OfficeRasterContainerInspector {
         OfficeImageInfo imageInfo,
         OfficeRasterDecodeOptions options,
         bool validateDecodedPayload,
-        out OfficeRasterContainerInfo? container) {
+        out OfficeRasterContainerInfo? container,
+        out OfficeRasterImage? inspectedImage) {
         container = null;
+        inspectedImage = null;
         var frames = new List<OfficeRasterFrameInfo>();
         int loopCount = 1;
         OfficeColor background = OfficeColor.Transparent;
@@ -466,6 +471,9 @@ public static class OfficeRasterContainerInspector {
                     out OfficeRasterImage? decoded) ||
                 decoded == null || decoded.Width != imageInfo.Width || decoded.Height != imageInfo.Height) return false;
             container = CreateStatic(imageInfo);
+            // Lossless static WebP inspection already validated and decoded the
+            // complete payload. Transfer its owned pixels only to this request.
+            if (!validateDecodedPayload) inspectedImage = decoded;
             return true;
         }
         container = new OfficeRasterContainerInfo(
