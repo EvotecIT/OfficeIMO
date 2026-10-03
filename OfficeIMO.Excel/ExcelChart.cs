@@ -48,8 +48,16 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChartDataRange? DataRange => _dataRange;
 
+        internal ExcelChartDataRange? GetSourceDataRange(int maximumSeries) =>
+            _dataRange != null
+                ? _dataRange.SeriesCount <= maximumSeries ? _dataRange : null
+                : ExcelChartUtils.TryExtractDataRange(GetChartPart(), maximumSeries);
+
         internal bool HasCanonicalWorksheetReferences() => _dataRange != null &&
             ExcelChartUtils.HasCanonicalWorksheetReferences(GetChartPart(), _dataRange);
+
+        internal bool HasCanonicalWorksheetReferences(ExcelChartDataRange range) =>
+            ExcelChartUtils.HasCanonicalWorksheetReferences(GetChartPart(), range);
 
         /// <summary>
         /// Gets this chart anchor's zero-based order in the worksheet drawing layer.
