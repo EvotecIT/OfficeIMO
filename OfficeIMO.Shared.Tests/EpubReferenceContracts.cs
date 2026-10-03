@@ -4,6 +4,18 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed class EpubReferenceContractTests {
+    [Theory]
+    [InlineData(".", "EPUB/text/image.png", "EPUB/text/#notes")]
+    [InlineData("sections/..", "EPUB/text/image.png", "EPUB/text/#notes")]
+    [InlineData("sections/.", "EPUB/text/sections/image.png", "EPUB/text/sections/#notes")]
+    [InlineData("%2e?edition=2", "EPUB/text/image.png", "EPUB/text/?edition=2#notes")]
+    [InlineData("sections/%2e%2e", "EPUB/text/image.png", "EPUB/text/#notes")]
+    [InlineData("sections\\..", "EPUB/text/image.png", "EPUB/text/#notes")]
+    public void Resolve_PreservesTerminalDotSegmentDirectoryBases(string baseHref, string image, string fragment) {
+        Assert.Equal(image, EpubReference.Resolve("EPUB/text/chapter.xhtml", baseHref, "image.png").ResolvedValue);
+        Assert.Equal(fragment, EpubReference.Resolve("EPUB/text/chapter.xhtml", baseHref, "#notes").ResolvedValue);
+    }
+
     [Fact]
     public void Resolve_PreservesQueryAndFragmentWhileResolvingEncodedContainerPath() {
         EpubReference reference = EpubReference.Resolve(

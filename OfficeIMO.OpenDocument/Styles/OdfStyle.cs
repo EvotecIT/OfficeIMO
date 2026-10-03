@@ -438,6 +438,7 @@ public sealed class OdfStyle {
     }
 
     internal static string? NormalizeFontFamily(string? value) {
+        if (value?.Length > 4096) return value;
         string? normalized = value?.Trim();
         if (normalized == null || normalized.Length == 0) return null;
         return OdfFontFamilySyntax.TryParse(normalized, out OdfFontFamilySyntax? syntax)

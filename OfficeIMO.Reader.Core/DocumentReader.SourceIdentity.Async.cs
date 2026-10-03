@@ -27,6 +27,11 @@ internal static partial class DocumentReaderEngine {
         return source;
     }
 
+    private static async Task ValidateUnchangedPathSourceAsync(SourceInfo source, CancellationToken token) {
+        SourceInfo current = await BuildSourceInfoFromPathAsync(source.Path, source.SourceHash != null, token).ConfigureAwait(false);
+        ValidatePathSourceRevision(source, current, verifyHash: true);
+    }
+
     private static async Task<string?> TryComputeStreamSha256Async(Stream stream, CancellationToken cancellationToken) {
         if (!stream.CanSeek) return null;
         long position;

@@ -23,11 +23,11 @@ public sealed record OfficeAiCitation(string EvidenceId, int? Page, string? Quot
 /// <summary>A contiguous UTF-16 range supplied in a successfully validated request.</summary>
 public sealed record OfficeAiEvidenceRange(string EvidenceId, int Start, int Length);
 
-/// <summary>Whether a summary combines the validated batch drafts.</summary>
+/// <summary>Whether Ask, Explain or Summarize combines the validated batch observations.</summary>
 public enum OfficeAiSynthesisStatus {
     /// <summary>The operation did not need multi-batch synthesis.</summary>
     NotRequired,
-    /// <summary>All draft groups were combined into a single validated summary response.</summary>
+    /// <summary>All draft groups were combined into a single validated response.</summary>
     Completed,
     /// <summary>Request, response or duration constraints prevented complete synthesis; validated drafts remain available.</summary>
     Incomplete
@@ -92,9 +92,9 @@ public sealed record OfficeAiResult {
     public IReadOnlyList<string> OmittedEvidenceIds { get; init; } = Array.Empty<string>();
     /// <summary>Validated text coverage in original snapshot coordinates, including partially processed records.</summary>
     public IReadOnlyList<OfficeAiEvidenceRange> ProcessedTextRanges { get; init; } = Array.Empty<OfficeAiEvidenceRange>();
-    /// <summary>Number of model execution attempts, including summary synthesis and failed calls.</summary>
+    /// <summary>Number of model execution attempts, including cross-batch synthesis and failed calls.</summary>
     public int RequestCount { get; init; }
-    /// <summary>Outcome of combining summary drafts across requests.</summary>
+    /// <summary>Outcome of combining validated observations across requests.</summary>
     public OfficeAiSynthesisStatus SynthesisStatus { get; init; }
     /// <summary>Known selected pages for which no text/image evidence was available.</summary>
     public IReadOnlyList<int> EmptyPages { get; init; } = Array.Empty<int>();

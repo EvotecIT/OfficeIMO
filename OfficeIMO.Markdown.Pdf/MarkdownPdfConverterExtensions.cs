@@ -43,6 +43,7 @@ public static partial class MarkdownPdfConverterExtensions {
         visualTheme.ApplyPageDecorations(pdf, pdfOptions);
 
         IReadOnlyList<IMarkdownBlock> topLevelBlocks = GetPdfTopLevelBlocks(document);
+        options.Anchors = new AnchorContext(document, topLevelBlocks, options);
         ApplyMetadata(pdf, document, options);
         string? promotedFrontMatterTitle = GetPromotedFrontMatterTitle(document, options);
         RenderBlocks(pdf, topLevelBlocks, document, options, visualTheme, promotedFrontMatterTitle);
@@ -246,6 +247,7 @@ public static partial class MarkdownPdfConverterExtensions {
             IMarkdownBlock block = materializedBlocks[i];
             if (!skippedPromotedHeading && skipFirstHeadingTitle != null && block is HeadingBlock heading && heading.Level == 1 && IsSameNormalizedText(heading.Text, skipFirstHeadingTitle)) {
                 skippedPromotedHeading = true;
+                options.Anchors?.Register(pdf, block);
                 continue;
             }
 
@@ -255,6 +257,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 ShouldRenderTocAsPanel(toc) &&
                 toc.IncludeTitle &&
                 IsSameNormalizedText(tocTitleHeading.Text, toc.Title)) {
+                options.Anchors?.Register(pdf, block);
                 continue;
             }
 

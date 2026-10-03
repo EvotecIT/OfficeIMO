@@ -78,7 +78,6 @@ internal static partial class HtmlReaderAdapter {
         HtmlToMarkdownOptions projectionOptions = effectiveHtmlOptions.HtmlToMarkdownOptions ?? HtmlToMarkdownOptions.CreateOfficeIMOProfile();
         bool hasProjectionFilters = projectionOptions.ExcludeSelectors.Count > 0 || projectionOptions.ElementFilters.Count > 0;
         string projectedHtml = html;
-        ReaderHtmlOptions chunkHtmlOptions = effectiveHtmlOptions;
         HtmlConversionDocument conversionDocument = ParseConversionDocument(
             html,
             effectiveHtmlOptions,
@@ -90,11 +89,11 @@ internal static partial class HtmlReaderAdapter {
         HtmlLogicalDocument logical = HtmlLogicalDocumentBuilder.FromDocument(filtered, useBodyContentsOnly: false);
         if (hasProjectionFilters) {
             projectedHtml = filtered.DocumentElement?.OuterHtml ?? html;
-            chunkHtmlOptions = effectiveHtmlOptions.Clone();
-            chunkHtmlOptions.HtmlToMarkdownOptions?.ExcludeSelectors.Clear();
-            chunkHtmlOptions.HtmlToMarkdownOptions?.ElementFilters.Clear();
         }
-        ReaderChunk[] chunks = ReadContent(projectedHtml, source, readerOptions, chunkHtmlOptions, cancellationToken).ToArray();
+        string markdown = hasProjectionFilters
+            ? HtmlMarkdownConverterExtensions.ToMarkdownPreparedDocument(conversionDocument, filtered, projectionOptions)
+            : conversionDocument.ToMarkdown(projectionOptions);
+        ReaderChunk[] chunks = ChunkMarkdown(markdown, source, readerOptions, effectiveHtmlOptions, cancellationToken).ToArray();
         HtmlProjection projection = ProjectHtml(logical, source.Path, readerOptions.MaxTableRows, projectionOptions, cancellationToken);
         var documentSource = new OfficeDocumentSource {
             Path = source.Path,

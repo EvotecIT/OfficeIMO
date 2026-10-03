@@ -17,7 +17,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         long nextChartDataRow = 1;
         var readers = new Dictionary<string, ChartCellReader>(StringComparer.Ordinal);
         foreach ((OdsSheet odsSheet, ExcelSheet excelSheet) in chartTargets) {
-            foreach (OdsChart chart in odsSheet.Charts) {
+            IReadOnlyList<OdsChart> charts = odsSheet.GetCharts(OdsSheet.DefaultMaximumChartFrames,
+                out bool chartFramesTruncated);
+            if (chartFramesTruncated) truncated = true;
+            foreach (OdsChart chart in charts) {
                 if (!TryCreateExcelChartData(source, odsSheet.Name, chart, options, readers,
                     out ExcelChartData? data, out ExcelChartType chartType, out int row, out int column,
                     out int width, out int height, out bool sourceLimitExceeded)) {

@@ -18,7 +18,7 @@ public enum LatexMacroExpansion {
 
 /// <summary>Options for dependency-free LaTeX parsing.</summary>
 public sealed class LatexParseOptions {
-    private readonly HashSet<string> _verbatimEnvironmentNames = new HashSet<string>(StringComparer.Ordinal) {
+    private HashSet<string> _verbatimEnvironmentNames = new HashSet<string>(StringComparer.Ordinal) {
         "verbatim", "verbatim*", "Verbatim", "lstlisting", "minted", "comment"
     };
 
@@ -63,6 +63,13 @@ public sealed class LatexParseOptions {
 
     /// <summary>Maximum tokens consumed across one explicit safe macro expansion.</summary>
     public int MaximumExpansionTokenCount { get; set; } = 2_000_000;
+
+    internal LatexParseOptions Clone() {
+        var copy = (LatexParseOptions)MemberwiseClone();
+        // The opaque environment set is mutable and must belong to the snapshot.
+        copy._verbatimEnvironmentNames = new HashSet<string>(_verbatimEnvironmentNames, StringComparer.Ordinal);
+        return copy;
+    }
 
     internal void ValidateNamedModes() {
         if (Profile != LatexDocumentProfile.OfficeIMO && Profile != LatexDocumentProfile.PreserveOnly) {

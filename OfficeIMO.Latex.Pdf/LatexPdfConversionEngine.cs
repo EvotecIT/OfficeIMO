@@ -11,9 +11,10 @@ internal static class LatexPdfConversionEngine {
     internal static PdfCore.PdfDocumentConversionResult Convert(LatexDocument document, LatexToPdfOptions? options, System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
+        document = document.GetCurrentView(cancellationToken);
 
         LatexToPdfOptions operation = (options ?? new LatexToPdfOptions()).CloneForConversion();
-        LatexToMarkdownResult projection = document.ToMarkdownDocumentResult(operation.ProjectionOptions);
+        LatexToMarkdownResult projection = document.ToMarkdownDocumentResult(operation.ProjectionOptions, cancellationToken);
         PdfCore.PdfDocumentConversionResult result = projection.Value.ToPdfDocumentResult(operation.MarkdownOptions, cancellationToken);
         return result
             .WithSourceConversionReport(projection.Report)

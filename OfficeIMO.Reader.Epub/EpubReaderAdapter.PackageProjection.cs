@@ -14,6 +14,10 @@ internal static partial class EpubReaderAdapter {
         int assetCount) {
         var metadata = new List<OfficeDocumentMetadataEntry> {
             EpubMetadata("epub-chapter-count", "ChapterCount", document.Chapters.Count, "count"),
+            EpubMetadata("epub-requested-chapter-count", "RequestedChapterCount", document.ReadSummary.RequestedChapterCount, "count"),
+            EpubMetadata("epub-skipped-chapter-count", "SkippedChapterCount", document.ReadSummary.SkippedChapterCount, "count"),
+            EpubMetadata("epub-chapters-complete", "ChaptersComplete", document.ReadSummary.IsComplete, "boolean"),
+            EpubMetadata("epub-fallback-scan", "UsedFallbackScan", document.ReadSummary.UsedFallbackScan, "boolean"),
             EpubMetadata("epub-resource-count", "ResourceCount", document.Resources.Count, "count"),
             EpubMetadata("epub-remote-resource-count", "RemoteResourceCount", document.Resources.Count(static item => item.IsRemote), "count"),
             EpubMetadata("epub-rootfile-count", "RootfileCount", document.Rootfiles.Count, "count"),

@@ -4,7 +4,7 @@
 
 Public API examples belong in the [engine README](../OfficeIMO.AI/README.md) and [adapter README](../OfficeIMO.AI.IntelligenceX/README.md). [ROADMAP.md](ROADMAP.md#document-assistant) owns open work. This page records ownership, supported behavior, and qualification limits.
 
-Questions and explanations currently evaluate each input batch independently. Multi-batch `Ask` and `Explain` results are `Partial` with `cross-batch-reasoning-not-supported`, including when no individual batch can answer. Summary reduction is the supported operation that combines batch drafts.
+Questions, explanations and summaries collect source-linked batch observations and combine them within shared request limits. The engine attaches contributing citations locally and rejects invented or dropped draft identifiers. Incomplete combination retains observations and reports `Partial`. Protocol and citation tests qualify this orchestration; independent answer labels and live model evaluation remain necessary to qualify interpretation across distant pages.
 
 ## Ownership and dependencies
 
@@ -56,7 +56,7 @@ Cancellation stops waiting and suppresses late results. A provider that ignores 
 | Evidence readiness | Local page/text counts, empty-page detection and immutable snapshot reuse; Studio routes scans through reviewed OCR output | Availability is not recognition accuracy; hiding the assistant or switching tabs releases prepared evidence |
 | Structure | Proposed Reader blocks and rectangular tables | Original geometry is preserved; model output does not invent authoritative geometry or establish searchable-PDF fidelity |
 | Scalars | Explicit-culture decimals, integers, Boolean values, exact-format dates | Ambiguity/conflicts remain review states; no guessed date formats |
-| Long documents | Measured text windows, original citation offsets, partial text ranges and bounded summary synthesis | No retrieval index; incomplete reduction retains drafts and reports Partial |
+| Long documents | Measured text windows, original citation offsets, partial text ranges and bounded combination for Ask, Explain and Summarize | No retrieval index; incomplete combination retains observations and reports Partial; model reasoning needs independent qualification |
 | ChatGPT | Native IX transport, text and inline images, enforced schema | Opt-in live synthetic corpus; model quality varies between calls |
 | Compatible hosted/local | Same operations, inline image mapping, enforced-schema or prompted-JSON profiles | Qualify the actual model, context and deployment; a protocol fixture alone does not establish accuracy |
 | Copilot | Native HTTPS treatment with an explicit account-available model; shared image and JSON Schema contracts | Qualify vision, schema enforcement and context limits for the selected model; no CLI or workspace tools |

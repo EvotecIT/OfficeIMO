@@ -6,6 +6,8 @@ namespace OfficeIMO.OpenDocument;
 /// Parsed CSS-style font-family syntax used by ODF text properties.
 /// </summary>
 public sealed class OdfFontFamilySyntax {
+    private const int MaximumValueLength = 4096;
+    private const int MaximumFamilies = 32;
     private readonly string[] _families;
 
     private OdfFontFamilySyntax(string[] families) {
@@ -33,7 +35,7 @@ public sealed class OdfFontFamilySyntax {
     /// <summary>Tries to parse an ODF font-family value without regular-expression rewriting.</summary>
     public static bool TryParse(string? value, out OdfFontFamilySyntax? syntax) {
         syntax = null;
-        if (string.IsNullOrWhiteSpace(value)) return false;
+        if (string.IsNullOrWhiteSpace(value) || value!.Length > MaximumValueLength) return false;
 
         var families = new List<string>();
         var current = new StringBuilder();
@@ -85,6 +87,7 @@ public sealed class OdfFontFamilySyntax {
     public override string ToString() => string.Join(", ", _families.Select(FormatFamily));
 
     private static bool AddFamily(ICollection<string> families, StringBuilder current) {
+        if (families.Count >= MaximumFamilies) return false;
         string family = current.ToString().Trim();
         current.Clear();
         if (family.Length == 0) return false;

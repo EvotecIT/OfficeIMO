@@ -28,7 +28,7 @@ public static class MarkdownEscaper {
     /// Escapes literal text so Markdown punctuation, HTML-like text, and character-reference-like
     /// text are preserved as text when parsed again.
     /// </summary>
-    public static string EscapeLiteralText(string? text) => EscapeMarkdownLineStarts(EncodeLiteralMarkdownText(text));
+    public static string EscapeLiteralText(string? text) => EscapeMarkdownLineStarts(EncodeLiteralMarkdownText(text), escapeIndentation: true);
 
     internal static string EscapeRenderedLineStarts(string? text) => string.IsNullOrEmpty(text) ? string.Empty : EscapeMarkdownLineStarts(text!);
     internal static string EscapeRenderedListItemLineStarts(string? text) => string.IsNullOrEmpty(text) ? string.Empty : EscapeMarkdownLineStarts(text!, preserveDefinitionText: true);
@@ -78,7 +78,7 @@ public static class MarkdownEscaper {
         return sb.ToString();
     }
 
-    private static string EscapeMarkdownLineStarts(string text, bool preserveDefinitionText = false) {
+    private static string EscapeMarkdownLineStarts(string text, bool preserveDefinitionText = false, bool escapeIndentation = false) {
         if (string.IsNullOrEmpty(text)) {
             return string.Empty;
         }
@@ -90,7 +90,7 @@ public static class MarkdownEscaper {
             int length = newlineIndex < 0 ? text.Length - start : newlineIndex - start;
             sb.Append(EscapeMarkdownLineStart(
                 text.Substring(start, length),
-                preserveDefinitionText: preserveDefinitionText));
+                preserveDefinitionText: preserveDefinitionText, escapeIndentation: escapeIndentation));
             if (newlineIndex < 0) {
                 break;
             }
@@ -102,9 +102,21 @@ public static class MarkdownEscaper {
         return sb.ToString();
     }
 
-    private static string EscapeMarkdownLineStart(string line, bool preserveDefinitionText = false) {
+    private static string EscapeMarkdownLineStart(string line, bool preserveDefinitionText = false, bool escapeIndentation = false) {
         if (line.Length == 0) {
             return line;
+        }
+
+        if (escapeIndentation) {
+            int columns = 0;
+            for (int index = 0; index < line.Length && columns < 4; index++) {
+                if (line[index] == ' ') columns++;
+                else if (line[index] == '\t') columns += 4 - columns % 4;
+                else break;
+            }
+            // Encoding one leading character preserves the whitespace as text while
+            // preventing CommonMark from interpreting the line as indented code.
+            if (columns >= 4) return (line[0] == '\t' ? "&#9;" : "&#32;") + line.Substring(1);
         }
 
         int markerIndex = 0;

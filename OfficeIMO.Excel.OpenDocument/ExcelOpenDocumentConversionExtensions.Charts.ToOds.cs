@@ -27,6 +27,18 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 try {
                     if (chart.IsPivotChart || chart.HasAbsoluteAnchor
                         || !TryGetOdsChartType(chart.ChartType, out OdsChartType type)
+                        || chart.GetSourceDataRange(MaximumConvertedChartSeries) is not ExcelChartDataRange range
+                        || !range.HasHeaderRow
+                        || range.CategoryCount < 1 || range.CategoryCount > MaximumConvertedChartPoints
+                        || range.SeriesCount < 1 || range.SeriesCount > MaximumConvertedChartSeries
+                        || type == OdsChartType.Pie && range.SeriesCount != 1
+                        || !chart.HasCanonicalWorksheetReferences(range)
+                        || source.Sheets.FirstOrDefault(sheet => string.Equals(sheet.Name, range.SheetName,
+                            StringComparison.OrdinalIgnoreCase)) is not ExcelSheet dataSourceSheet
+                        || !convertedCellsBySheet.TryGetValue(dataSourceSheet.Name,
+                            out HashSet<(int Row, int Column)>? dataCells)
+                        || target.GetSheet(dataSourceSheet.Name) is not OdsSheet dataSheet
+                        || !HasChartSourceCoordinates(range, dataCells)
                         || !chart.TryGetSnapshot(out ExcelChartSnapshot snapshot)) continue;
                     if ((type == OdsChartType.Pie || type == OdsChartType.Doughnut) &&
                         (snapshot.RadialLayout.FirstSliceAngleDegrees != OfficeChartRadialLayout.Default.FirstSliceAngleDegrees ||
@@ -35,13 +47,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                         unsupportedRadialGeometry++;
                         continue;
                     }
-                    if (chart.DataRange is not ExcelChartDataRange range
-                        || !chart.HasCanonicalWorksheetReferences()
-                        || !range.HasHeaderRow
-                        || range.CategoryCount < 1 || range.CategoryCount > MaximumConvertedChartPoints
-                        || range.SeriesCount < 1 || range.SeriesCount > MaximumConvertedChartSeries
-                        || type == OdsChartType.Pie && range.SeriesCount != 1
-                        || snapshot.Data.Categories.Count != range.CategoryCount
+                    if (snapshot.Data.Categories.Count != range.CategoryCount
                         || snapshot.Data.Series.Count != range.SeriesCount
                         || type == OdsChartType.Line && snapshot.Data.Series.Any(series =>
                             series.PointStyles?.Any(style => style != null) == true)
@@ -55,11 +61,6 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                         || snapshot.WidthPixels < 1 || snapshot.HeightPixels < 1
                         || snapshot.WidthPixels > 2000 || snapshot.HeightPixels > 2000
                         || snapshot.Title?.Length > 32767
-                        || source.Sheets.FirstOrDefault(sheet => string.Equals(sheet.Name, range.SheetName,
-                            StringComparison.OrdinalIgnoreCase)) is not ExcelSheet dataSourceSheet
-                        || !convertedCellsBySheet.TryGetValue(dataSourceSheet.Name,
-                            out HashSet<(int Row, int Column)>? dataCells)
-                        || target.GetSheet(dataSourceSheet.Name) is not OdsSheet dataSheet
                         || !HasAllChartSourceCells(range, dataCells, dataSheet, snapshot.Data)) continue;
                     var series = new OdsChartSeries[range.SeriesCount];
                     bool valid = true;
@@ -172,5 +173,33 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             }
         }
         return data.Series.All(series => !string.IsNullOrWhiteSpace(series.Name));
+    }
+
+    private static bool HasChartSourceCoordinates(ExcelChartDataRange range,
+        HashSet<(int Row, int Column)> converted) {
+        if (range.HasHeaderRow) {
+            for (int series = 0; series < range.SeriesCount; series++) {
+                int row = range.Orientation == ExcelChartDataOrientation.Vertical
+                    ? range.StartRow : range.SeriesStartRow + series;
+                int column = range.Orientation == ExcelChartDataOrientation.Vertical
+                    ? range.SeriesStartColumn + series : range.StartColumn;
+                if (!converted.Contains((row, column))) return false;
+            }
+        }
+        for (int point = 0; point < range.CategoryCount; point++) {
+            int categoryRow = range.Orientation == ExcelChartDataOrientation.Vertical
+                ? range.CategoryStartRow + point : range.CategoryStartRow;
+            int categoryColumn = range.Orientation == ExcelChartDataOrientation.Vertical
+                ? range.CategoryStartColumn : range.CategoryStartColumn + point;
+            if (!converted.Contains((categoryRow, categoryColumn))) return false;
+            for (int series = 0; series < range.SeriesCount; series++) {
+                int valueRow = range.Orientation == ExcelChartDataOrientation.Vertical
+                    ? range.SeriesStartRow + point : range.SeriesStartRow + series;
+                int valueColumn = range.Orientation == ExcelChartDataOrientation.Vertical
+                    ? range.SeriesStartColumn + series : range.SeriesStartColumn + point;
+                if (!converted.Contains((valueRow, valueColumn))) return false;
+            }
+        }
+        return true;
     }
 }

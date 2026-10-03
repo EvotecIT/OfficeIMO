@@ -66,6 +66,7 @@ public static class ZipTraversal {
         int accepted = 0;
         int visited = 0;
 
+        var indices = archive.Entries.Select((entry, index) => (entry, index)).ToDictionary(item => item.entry, item => item.index);
         IEnumerable<ZipArchiveEntry> entries = archive.Entries;
         if (options.DeterministicOrder) {
             entries = entries.OrderBy(e => e.FullName, StringComparer.Ordinal);
@@ -153,6 +154,8 @@ public static class ZipTraversal {
             var lastWriteUtc = TryGetLastWriteUtc(entry);
             list.Add(new ZipEntryDescriptor {
                 FullName = fullName,
+                RawFullName = entry.FullName,
+                EntryIndex = indices[entry],
                 Name = entry.Name ?? string.Empty,
                 IsDirectory = isDirectory,
                 Depth = depth,

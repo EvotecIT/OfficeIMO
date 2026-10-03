@@ -442,7 +442,10 @@ namespace OfficeIMO.PowerPoint {
                 var presentation = new PowerPointPresentation(document, filePath ?? string.Empty, isNewPresentation: false) {
                     _packageStream = packageStream,
                     _sourceStream = associatedStream,
-                    _persistenceMode = options.PersistenceMode
+                    _persistenceMode = options.PersistenceMode,
+                    _maximumSlideXmlCharacters = options.OpenSettings?.MaxCharactersInPart > 0
+                        ? Math.Min(PowerPointXmlReader.MaximumPackageXmlCharacters, options.OpenSettings.MaxCharactersInPart)
+                        : PowerPointXmlReader.MaximumPackageXmlCharacters
                 };
                 if (hasSignature) {
                     presentation._signedPackageOpenFingerprint = CreatePackageFingerprint(document);

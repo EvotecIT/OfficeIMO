@@ -76,6 +76,39 @@ public sealed class OfficeProvenanceAuditTests : IDisposable {
         Assert.Equal(OfficeProvenanceCheckStatus.NotRequested, result.Checks.Structural);
         Assert.Equal(Path.Combine(_root, "missing.txt"), result.InputPath);
     }
+    [Fact]
+    public async Task AuditRejectsDirectoryReplacedByLinkAfterDiscovery() {
+        string selected = Path.Combine(_root, "selected");
+        string queued = Path.Combine(selected, "queued");
+        string outside = Path.Combine(_root, "outside");
+        Directory.CreateDirectory(queued);
+        Directory.CreateDirectory(outside);
+        File.WriteAllText(Path.Combine(queued, "report.txt"), "selected input");
+        File.WriteAllText(Path.Combine(outside, "report.txt"), "\u202E outside input");
+
+        var result = Assert.Single(await OfficeProvenanceAudit.RunAsync(
+            new OfficeProvenanceAuditRequest { Inputs = [selected] },
+            new SwapDirectoryBeforeAssessment(queued, outside, Path.Combine(_root, "parked"))));
+
+        Assert.False(result.Succeeded);
+        Assert.Null(result.InputSha256);
+        Assert.Null(result.Assessment);
+    }
+
+    private sealed class SwapDirectoryBeforeAssessment(string queued, string outside, string parked)
+        : IOfficeProvenanceWorkflowRunner {
+        public Task<OfficeProvenanceWorkflowResult> RunProvenanceAsync(OfficeProvenanceWorkflowRequest request,
+            IProgress<OfficeWorkflowProgress>? progress = null, CancellationToken cancellationToken = default) =>
+            new OfficeWorkflowRunner().RunProvenanceAsync(request, progress, cancellationToken);
+
+        public Task<IReadOnlyList<OfficeProvenanceWorkflowResult>> RunProvenanceBatchAsync(
+            IEnumerable<OfficeProvenanceWorkflowRequest> requests, OfficeProvenanceWorkflowBatchOptions? options = null,
+            IProgress<OfficeWorkflowProgress>? progress = null, CancellationToken cancellationToken = default) {
+            Directory.Move(queued, parked);
+            Directory.CreateSymbolicLink(queued, outside);
+            return new OfficeWorkflowRunner().RunProvenanceBatchAsync(requests, options, progress, cancellationToken);
+        }
+    }
     [Theory]
     [InlineData(OfficeWorkflowConflictPolicy.Fail)]
     [InlineData(OfficeWorkflowConflictPolicy.Replace)]
