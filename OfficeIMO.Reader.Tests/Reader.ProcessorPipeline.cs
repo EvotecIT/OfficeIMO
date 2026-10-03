@@ -1,8 +1,10 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Markdown;
+using OfficeIMO.Reader.Zip;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.IO.Compression;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -295,6 +297,109 @@ public sealed class ReaderProcessorPipelineTests {
         string json = reader.ReadDocumentJson(source, "secret.md");
         Assert.Contains("[redacted]", json, StringComparison.Ordinal);
         Assert.DoesNotContain("Sensitive body", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task InstanceReader_RedactsNestedZipResultsBeforeSerialization() {
+        const string sensitive = "SENSITIVE-NESTED-CONTENT-739";
+        using var stream = new MemoryStream();
+        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true)) {
+            using var writer = new StreamWriter(archive.CreateEntry("note.txt").Open());
+            writer.Write(sensitive);
+        }
+        byte[] zip = stream.ToArray();
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddPlainTextHandlers()
+            .AddZipHandler()
+            .AddProcessor(new DelegateOfficeDocumentProcessor("redact", (document, _) => {
+                foreach (ReaderChunk chunk in document.Chunks) chunk.Text = "[redacted]";
+                return document;
+            }))
+            .Build();
+
+        OfficeDocumentReadResult sync = reader.ReadDocument(zip, "bundle.zip");
+        OfficeDocumentReadResult asyncResult = await reader.ReadDocumentAsync(zip, "bundle.zip");
+        Assert.NotEmpty(sync.NestedDocuments);
+        Assert.NotEmpty(asyncResult.NestedDocuments);
+        Assert.Equal("[redacted]", Assert.Single(sync.NestedDocuments).Document.Markdown);
+        Assert.Equal("[redacted]", Assert.Single(asyncResult.NestedDocuments).Document.Markdown);
+        Assert.All(Assert.Single(sync.NestedDocuments).Document.Chunks, chunk => Assert.Equal("[redacted]", chunk.Text));
+        Assert.All(Assert.Single(asyncResult.NestedDocuments).Document.Blocks, block => Assert.Equal("[redacted]", block.Text));
+        Assert.DoesNotContain(sensitive, reader.ReadDocumentJson(zip, "bundle.zip"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task InstanceReader_ProcessesNestedResultsPassedToPublicProcessorMethods() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddProcessor(new DelegateOfficeDocumentProcessor("redact", (document, _) => {
+                foreach (ReaderChunk chunk in document.Chunks) chunk.Text = "[redacted]";
+                return document;
+            }))
+            .Build();
+        static OfficeDocumentReadResult Input() => new() {
+            NestedDocuments = [new OfficeDocumentNestedResult {
+                Path = "child.txt",
+                Document = new OfficeDocumentReadResult { Chunks = [new ReaderChunk {
+                    Text = "private child body", ChunkHash = "caller-owned-hash"
+                }] }
+            }]
+        };
+
+        OfficeDocumentProcessingResult sync = reader.ProcessDocument(Input());
+        OfficeDocumentProcessingResult asyncResult = await reader.ProcessDocumentAsync(Input());
+        Assert.Equal("[redacted]", Assert.Single(Assert.Single(sync.Document.NestedDocuments).Document.Chunks).Text);
+        Assert.Equal("[redacted]", Assert.Single(Assert.Single(asyncResult.Document.NestedDocuments).Document.Chunks).Text);
+        Assert.Equal("caller-owned-hash", Assert.Single(Assert.Single(sync.Document.NestedDocuments).Document.Chunks).ChunkHash);
+        Assert.Equal("caller-owned-hash", Assert.Single(Assert.Single(asyncResult.Document.NestedDocuments).Document.Chunks).ChunkHash);
+    }
+
+    [Fact]
+    public async Task InstanceReader_ReportsNestedProcessorFailureInPublicResults() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddProcessor(new DelegateOfficeDocumentProcessor("child-check", (document, _) => {
+                if (document.Chunks.Any(chunk => chunk.Text == "private child body"))
+                    throw new FormatException("Child rejected");
+                return document;
+            }))
+            .WithProcessorFailureBehavior(OfficeDocumentProcessorFailureBehavior.ContinueWithDiagnostic)
+            .Build();
+        static OfficeDocumentReadResult Input() => new() {
+            NestedDocuments = [new OfficeDocumentNestedResult {
+                Path = "child.txt",
+                Document = new OfficeDocumentReadResult { Chunks = [new ReaderChunk { Text = "private child body" }] }
+            }]
+        };
+
+        OfficeDocumentProcessingResult sync = reader.ProcessDocument(Input());
+        OfficeDocumentProcessingResult asyncResult = await reader.ProcessDocumentAsync(Input());
+        Assert.False(sync.Succeeded);
+        Assert.False(asyncResult.Succeeded);
+        Assert.Equal(OfficeDocumentProcessorStepStatus.Failed, Assert.Single(sync.Steps).Status);
+        Assert.Equal(OfficeDocumentProcessorStepStatus.Failed, Assert.Single(asyncResult.Steps).Status);
+        Assert.Equal("processor-failed", Assert.Single(Assert.Single(sync.Document.NestedDocuments).Document.Diagnostics).Code);
+    }
+
+    [Fact]
+    public async Task InstanceReader_ProcessesNestedResultsCreatedDuringProcessing() {
+        const string sensitive = "SENSITIVE-PROCESSOR-CHILD-611";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddPlainTextHandlers()
+            .AddProcessor(new DelegateOfficeDocumentProcessor("redact", (document, _) => {
+                if (document.Chunks.Any(chunk => chunk.Text == "root trigger")) {
+                    using var child = new MemoryStream(Encoding.UTF8.GetBytes(sensitive));
+                    ReaderNestedContent.ReadDocument(child, "child.txt");
+                }
+                foreach (ReaderChunk chunk in document.Chunks) chunk.Text = "[redacted]";
+                return document;
+            }))
+            .Build();
+        byte[] source = Encoding.UTF8.GetBytes("root trigger");
+
+        OfficeDocumentReadResult sync = reader.ReadDocument(source, "root.txt");
+        OfficeDocumentReadResult asyncResult = await reader.ReadDocumentAsync(source, "root.txt");
+        Assert.Equal("[redacted]", Assert.Single(sync.NestedDocuments).Document.Markdown);
+        Assert.Equal("[redacted]", Assert.Single(asyncResult.NestedDocuments).Document.Markdown);
+        Assert.DoesNotContain(sensitive, reader.ReadDocumentJson(source, "root.txt"), StringComparison.Ordinal);
     }
 
     [Fact]
