@@ -107,7 +107,7 @@ public sealed partial class EpubPublication {
             Manifest.SingleOrDefault(resource => resource.Id == (string?)RequireSection("spine").Attribute("toc"));
         if (item == null) throw new InvalidDataException("Package has no declared navigation resource.");
         string expected = PackageVersion == "3.0" ? "application/xhtml+xml" : "application/x-dtbncx+xml";
-        if (item.MediaType != expected) throw new InvalidDataException("Navigation resource must declare " + expected + ".");
+        if (!HasMediaType(item.MediaType, expected)) throw new InvalidDataException("Navigation resource must declare " + expected + ".");
         string path = RequireLocalPath(item);
         if (!_entries.ContainsKey(path)) throw new InvalidDataException("Navigation resource is missing.");
         return path;

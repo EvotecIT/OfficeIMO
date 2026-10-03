@@ -200,6 +200,33 @@ public sealed class EpubWriterRetentionContracts {
         using var output = new MemoryStream(); input.CopyTo(output); return output.ToArray();
     }
 
+    [Theory]
+    [InlineData(EpubVersion.Epub2, false)]
+    [InlineData(EpubVersion.Epub2, true)]
+    [InlineData(EpubVersion.Epub3, false)]
+    [InlineData(EpubVersion.Epub3, true)]
+    public void MixedCaseMediaTypes_PreserveUneditedImportsAndSupportContentEdits(EpubVersion version, bool allResources) {
+        EpubPublication book = EpubWritingContracts.CreateBook(version);
+        byte[] source = book.Write().Bytes;
+        XDocument package = book.GetPackageXml();
+        foreach (XElement item in package.Descendants(Opf + "item").Where(item => allResources || (string?)item.Attribute("id") == "navigation"))
+            item.Attribute("media-type")!.Value = item.Attribute("media-type")!.Value.ToUpperInvariant();
+        source = EpubWritingContracts.ReplaceEntry(source, book.PackagePath, Encoding.UTF8.GetBytes(package.ToString()));
+        book = EpubPublication.Load(new MemoryStream(source));
+        Assert.Equal(source, book.Write().Bytes);
+        string declared = book.Manifest.Single(item => item.Id == "navigation").MediaType;
+        book.Title = "Edited";
+        XDocument content = book.GetContentXml("first");
+        content.Root!.Element(Html + "body")!.Add(new XElement(Html + "p", "Edit"));
+        book.SetContentXml("first", content);
+        book.AddChapter("third", "EPUB/third.xhtml", "Third", "<p>Third</p>", new[] { "style" });
+        book.AddResource("cover", "EPUB/cover.png", "IMAGE/PNG", new byte[] { 1 });
+        book.SetCoverImage("cover");
+        EpubPublication loaded = EpubPublication.Load(new MemoryStream(book.Write().Bytes));
+        Assert.Equal(declared, loaded.Manifest.Single(item => item.Id == "navigation").MediaType);
+        Assert.Equal("IMAGE/PNG", loaded.Manifest.Single(item => item.Id == "cover").MediaType);
+    }
+
     [Fact]
     public void Epub2_IdentitySynchronizationEnforcesRetainedNcxEntryBytes() {
         EpubPublication book = EpubWritingContracts.CreateBook(EpubVersion.Epub2);

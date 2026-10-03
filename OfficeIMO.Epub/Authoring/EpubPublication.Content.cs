@@ -78,7 +78,7 @@ public sealed partial class EpubPublication {
         var head = new XElement(Html + "head", new XElement(Html + "title", title));
         foreach (string stylesheet in stylesheets ?? Array.Empty<string>()) {
             EpubManifestItem style = RequireManifestItem(stylesheet);
-            if (style.MediaType != "text/css") throw new ArgumentException("Stylesheet id must select a CSS resource.", nameof(stylesheets));
+            if (!HasMediaType(style.MediaType, "text/css")) throw new ArgumentException("Stylesheet id must select a CSS resource.", nameof(stylesheets));
             string path = RequireLocalPath(style);
             head.Add(new XElement(Html + "link", new XAttribute("rel", "stylesheet"), new XAttribute("type", "text/css"),
                 new XAttribute("href", RelativeHref(containerPath, path))));
@@ -111,7 +111,7 @@ public sealed partial class EpubPublication {
     /// <summary>Selects a manifest image as the cover, preserving other item properties.</summary>
     public void SetCoverImage(string manifestId) {
         EpubManifestItem selected = RequireManifestItem(manifestId);
-        if (!selected.MediaType.StartsWith("image/", StringComparison.Ordinal)) throw new ArgumentException("Cover must be an image resource.");
+        if (!selected.MediaType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("Cover must be an image resource.");
         if (PackageVersion == "3.0") {
             EditPackageElement(RequireSection("manifest"), proposed => {
                 foreach (XElement item in proposed.Elements(Opf + "item")) {
@@ -167,7 +167,7 @@ public sealed partial class EpubPublication {
             Root.Element(Opf + "bindings")?.Elements(Opf + "mediaType").Any(binding => (string?)binding.Attribute("handler") == manifestId) == true ||
             HasToken(item.Properties, "nav") || HasToken(item.Properties, "cover-image") ||
             RequireSection("metadata").Elements(Opf + "meta").Any(meta => (string?)meta.Attribute("name") == "cover" && (string?)meta.Attribute("content") == manifestId) ||
-            item.MediaType == "application/x-dtbncx+xml" || _encryption.Any(encryption => encryption.Path == path))
+            HasMediaType(item.MediaType, "application/x-dtbncx+xml") || _encryption.Any(encryption => encryption.Path == path))
             throw new InvalidOperationException("Resource is referenced by package structure or protection metadata.");
         EditPackageElement(RequireSection("manifest"), proposed => proposed.Elements(Opf + "item").Single(element => (string?)element.Attribute("id") == manifestId).Remove());
         if (!Manifest.Any(resource => resource.Reference.ContainerPath == path) && _entries.TryGetValue(path, out byte[]? removed)) {
@@ -201,14 +201,15 @@ public sealed partial class EpubPublication {
     }
     private static string[] Tokens(string? value) => (value ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
     private static bool HasToken(string? value, string token) => Tokens(value).Contains(token, StringComparer.Ordinal);
+    private static bool HasMediaType(string? value, string expected) => string.Equals(value, expected, StringComparison.OrdinalIgnoreCase);
     private static bool IsScriptMediaType(string mediaType) => new[] { "application/javascript", "text/javascript", "application/ecmascript", "text/ecmascript", "text/jscript" }
         .Contains(mediaType.Split(';')[0].Trim(), StringComparer.OrdinalIgnoreCase);
     private static string EncodePath(string path) => string.Join("/", path.Split('/').Select(Uri.EscapeDataString));
     private static string RelativeHref(string ownerPath, string targetPath) =>
         new Uri("epub://package/" + EncodePath(ownerPath)).MakeRelativeUri(new Uri("epub://package/" + EncodePath(targetPath))).OriginalString;
     private static void ValidateContent(XDocument document, string mediaType) {
-        XName expected = mediaType == "application/xhtml+xml" ? Html + "html" :
-            mediaType == "image/svg+xml" ? XName.Get("svg", "http://www.w3.org/2000/svg") : throw new NotSupportedException("Expected XHTML or SVG content.");
+        XName expected = HasMediaType(mediaType, "application/xhtml+xml") ? Html + "html" :
+            HasMediaType(mediaType, "image/svg+xml") ? XName.Get("svg", "http://www.w3.org/2000/svg") : throw new NotSupportedException("Expected XHTML or SVG content.");
         if (document.Root?.Name != expected) throw new InvalidDataException("Content document root does not match its declared media type.");
         if (document.Descendants().Any(element => element.Name.LocalName == "script" ||
             element.Attributes().Any(attribute => attribute.Name.NamespaceName.Length == 0 &&

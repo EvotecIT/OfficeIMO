@@ -64,8 +64,8 @@ public sealed partial class EpubPublication {
         foreach (XElement position in spine) {
             string id = (string?)position.Attribute("idref") ?? string.Empty;
             if (!byId.TryGetValue(id, out EpubManifestItem? item)) throw new InvalidDataException("Spine manifest id missing: " + id);
-            while (item.MediaType != "application/xhtml+xml" && item.MediaType != "image/svg+xml" && item.FallbackId != null) item = byId[item.FallbackId];
-            if (item.MediaType != "application/xhtml+xml" && item.MediaType != "image/svg+xml") throw new NotSupportedException("Spine item has no XHTML/SVG fallback: " + id);
+            while (!HasMediaType(item.MediaType, "application/xhtml+xml") && !HasMediaType(item.MediaType, "image/svg+xml") && item.FallbackId != null) item = byId[item.FallbackId];
+            if (!HasMediaType(item.MediaType, "application/xhtml+xml") && !HasMediaType(item.MediaType, "image/svg+xml")) throw new NotSupportedException("Spine item has no XHTML/SVG fallback: " + id);
         }
         string navPath = NavigationPath();
         XDocument navigation = ParseXml(entries[navPath], 64L * 1024 * 1024);
@@ -74,7 +74,7 @@ public sealed partial class EpubPublication {
         var anchors = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
         var fragmented = new List<(string Owner, EpubReference Reference)>();
         foreach (EpubManifestItem item in manifest.Where(item => item.Reference.Kind == EpubReferenceKind.Container &&
-            (item.MediaType == "application/xhtml+xml" || item.MediaType == "image/svg+xml" || item.MediaType == "application/x-dtbncx+xml"))) {
+            (HasMediaType(item.MediaType, "application/xhtml+xml") || HasMediaType(item.MediaType, "image/svg+xml") || HasMediaType(item.MediaType, "application/x-dtbncx+xml")))) {
             token.ThrowIfCancellationRequested();
             string path = RequireLocalPath(item);
             if (_encryption.Any(encryption => encryption.Path == path && encryption.RequiresDecryption)) continue;
@@ -82,8 +82,8 @@ public sealed partial class EpubPublication {
             anchors[path] = new HashSet<string>(content.Descendants().Attributes().Where(attribute => attribute.Name == "id" ||
                 attribute.Name == XNamespace.Xml + "id").Select(attribute => attribute.Value), StringComparer.Ordinal);
             bool rewritten = !_originalEntries.TryGetValue(path, out byte[]? original) || !original.SequenceEqual(entries[path]) ||
-                OriginalManifestItem(item.Id)?.MediaType != item.MediaType;
-            if (rewritten && item.MediaType != "application/x-dtbncx+xml") {
+                !HasMediaType(OriginalManifestItem(item.Id)?.MediaType, item.MediaType);
+            if (rewritten && !HasMediaType(item.MediaType, "application/x-dtbncx+xml")) {
                 ValidateContent(content, item.MediaType);
                 var resources = OfficeIMO.Html.HtmlResourcePipeline.BuildManifest(content.ToString(SaveOptions.DisableFormatting));
                 if (resources.Resources.Any(resource => !resource.IsAllowed)) throw new NotSupportedException("Authored content contains a URL blocked by the shared HTML policy.");
@@ -135,7 +135,7 @@ public sealed partial class EpubPublication {
     private static void UpdateContentProperties(EpubManifestItem item, XDocument content, string owner, OfficeIMO.Html.HtmlResourceManifest resources) {
         // Linked CSS dependencies are not exhaustively traversed, so retain an explicit remote declaration.
         var properties = new List<string>(Tokens(item.Properties).Where(token => token != "svg" && token != "mathml"));
-        if (content.Descendants().Any(element => element.Name.NamespaceName == "http://www.w3.org/2000/svg" && element.Name.LocalName == "svg") && item.MediaType == "application/xhtml+xml") properties.Add("svg");
+        if (content.Descendants().Any(element => element.Name.NamespaceName == "http://www.w3.org/2000/svg" && element.Name.LocalName == "svg") && HasMediaType(item.MediaType, "application/xhtml+xml")) properties.Add("svg");
         if (content.Descendants().Any(element => element.Name.NamespaceName == "http://www.w3.org/1998/Math/MathML")) properties.Add("mathml");
         // Shared HTML discovery also covers inline CSS, srcset, and non-hyperlink resource URLs.
         if (resources.Resources.Any(resource => resource.Kind != OfficeIMO.Html.HtmlResourceKind.Hyperlink &&
@@ -147,7 +147,7 @@ public sealed partial class EpubPublication {
 
     private bool IsRetainedScriptDeclaration(EpubManifestItem item, IReadOnlyDictionary<string, byte[]> entries) {
         EpubManifestItem? original = OriginalManifestItem(item.Id);
-        if (_originalBytes == null || original == null || original.Href != item.Href || original.MediaType != item.MediaType ||
+        if (_originalBytes == null || original == null || original.Href != item.Href || !HasMediaType(original.MediaType, item.MediaType) ||
             HasToken(original.Properties, "scripted") != HasToken(item.Properties, "scripted")) return false;
         if (item.Reference.Kind == EpubReferenceKind.External) return true;
         string path = item.Reference.ContainerPath ?? string.Empty;
