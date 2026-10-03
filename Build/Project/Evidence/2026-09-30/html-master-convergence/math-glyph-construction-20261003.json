@@ -1,0 +1,424 @@
+{
+  "schemaVersion": 1,
+  "measuredUtc": "2026-10-03T11:52:17.568454+00:00",
+  "scope": "Two static math milestones: font glyph construction and per-glyph placement",
+  "status": "Implementation, correctness, rendered artifacts and packages qualified; unchanged macOS timing gate pending",
+  "source": {
+    "implementationCommit": "395d5ce4874c45e919c0bf91be3c694b692bfd47",
+    "baseCommit": "40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40",
+    "implementationGitPatchIdStable": "37dd37b03bb3e4f13b893845b4348621793f88d1",
+    "sdk": "10.0.112",
+    "host": "macOS Arm64",
+    "runtime": [
+      ".NET 8.0.23",
+      ".NET 10.0.12"
+    ]
+  },
+  "productApiAssessment": {
+    "recommendation": "Keep the bounded implementation in shared Core/font and PDF owners on the dedicated HTML branches",
+    "outcome": "Selected static fonts provide designed radicals, fences, display operators, accents and script placement; HTML consumes the shared renderer.",
+    "publicSurface": "No new public dependency or provider API. Existing UseFontMathMetrics opt-out and provider fallback remain.",
+    "ownership": "Core owns bounded font parsing and math geometry. The PDF writer/reader owns logical text across visible effect Forms. No consumer workaround.",
+    "compatibility": "Missing, malformed, variable or geometrically unusable MATH data falls back through the existing caller-controlled behavior.",
+    "dependencies": "No new production packages, executables, vendored engines or font outlines; Core package declares zero external runtime dependencies."
+  },
+  "qualifiedBehavior": [
+    "Bounded MATH 1.0 variants/assemblies and Coverage formats 1/2 in static TrueType/CFF programs",
+    "Vertical radicals, degree placement, common fences/matrix brackets and display operators; legal horizontal accent assemblies",
+    "Legal minimum/maximum connector overlap, equal extender repetition, cached contours and one logical token per outlined glyph",
+    "Detached metadata bounded to 65536 records and 256 variants/parts; construction bounded to 1024 glyphs and one million points",
+    "Italic correction, operator limit placement, two-height per-corner script kerning, accent attachment and tight ink bounds",
+    "Preserved MathML stretchy/largeop flags, cramped style, font callbacks, cancellation and caller opt-out",
+    "Formula descriptions, ActualText, link semantics and decoded MathML attachments preserved across HTML PDF intents",
+    "PDF ActualText follows the real positioned anchor or visible nested Form paint; repeated and hidden Forms do not emit duplicate/hidden replacement text"
+  ],
+  "standards": [
+    {
+      "name": "OpenType MATH",
+      "url": "https://learn.microsoft.com/en-us/typography/opentype/spec/math"
+    },
+    {
+      "name": "MathML Core",
+      "url": "https://www.w3.org/TR/mathml-core/"
+    }
+  ],
+  "fontOracle": {
+    "tool": "fontTools 4.46.0",
+    "unitsPerEm": 1000,
+    "stixAndSyntheticMetadata": {
+      "stix": {
+        "equal": true,
+        "counts": {
+          "vertical": 118,
+          "horizontal": 47,
+          "italics": 889,
+          "accents": 2652,
+          "kerns": 233
+        },
+        "sha256": "3a5f3f26f40d5698b3c62dd085d48d6663696a3f80825aab8b553d5097518e8c"
+      },
+      "fixture": {
+        "equal": true,
+        "counts": {
+          "vertical": 4,
+          "horizontal": 1,
+          "italics": 2,
+          "accents": 2,
+          "kerns": 1
+        },
+        "sha256": "db8334b017a154cd4e80aa048e226dfb308c67fde671b97c1061f649fa203613"
+      }
+    },
+    "source": "Installed STIX Two Math CFF plus a test-only synthetic TrueType fixture with locally constructed rectangular outlines",
+    "observedFallback": {
+      "fontSha256": "3a5f3f26f40d5698b3c62dd085d48d6663696a3f80825aab8b553d5097518e8c",
+      "glyph": "uni2192",
+      "minimumOverlap": 100,
+      "parts": [
+        {
+          "name": "horizontal.x",
+          "start": 250,
+          "end": 250,
+          "advance": 597,
+          "extender": true
+        },
+        {
+          "name": "uni2192.var",
+          "start": 0,
+          "end": 200,
+          "advance": 505,
+          "extender": false
+        }
+      ],
+      "outcome": "No legal >=100-unit connection to the arrow part; largest supplied variant remains fallback. This is a bounded rendering difference from Chromium, not a positive assembly proof. Synthetic legal horizontal pieces and STIX combining overline provide positive construction proof."
+    },
+    "comparison": {
+      "path": "Ignore/MathGlyphQualification/independent-font-check.json",
+      "sha256": "928eb4203a804c8285d0b1ad74f6f114665a8daddc6949bda629a18ffdec6bcc"
+    }
+  },
+  "browserProof": {
+    "cases": 16,
+    "engine": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+    "surface": "HtmlTinkerX isolated Chromium; identical selected installed font bytes; one-page PDFs and inspected raster output",
+    "positiveAssemblyProof": "STIX combining overline and synthetic legal horizontal pieces; oversized radical/fence fixtures cover vertical construction",
+    "visualChecks": "Continuous radical rule, italic script positions/overhangs, natural stretchy=false accent, oversized fences and large operators inspected after final fixes",
+    "limits": "Outer paragraph placement and general operator spacing still differ. No pixel parity or full MathML/browser conformance claim.",
+    "artifacts": [
+      {
+        "path": "Ignore/MathGlyphQualification/browser-settled/fixture.html",
+        "sha256": "b810c74230184f1e101baefe38d3868eb982bd0e88af6850eb25ea299fe3128f"
+      },
+      {
+        "path": "Ignore/MathGlyphQualification/browser-settled/officeimo.pdf",
+        "sha256": "d3ba0c5a21f726d3548e2d2165587593f8d07b68a18e71febd053ccd5984c1cd"
+      },
+      {
+        "path": "Ignore/MathGlyphQualification/browser-settled/chromium.pdf",
+        "sha256": "9e8edb454a28c857a978ab00a9fde5f5da226180ac2e552011a19abe24289389"
+      },
+      {
+        "path": "Ignore/MathGlyphQualification/browser-settled/officeimo.png",
+        "sha256": "a7fa4b15dd09abfd7e07f41d1ed75e10b2054829d037beaf89ae8b98a5d628d9"
+      },
+      {
+        "path": "Ignore/MathGlyphQualification/browser-settled/chromium.png",
+        "sha256": "e57aeaddee6043682e0114ab4a7379605570e35019aebff4a956da40b3a93874"
+      }
+    ],
+    "ownerArtifacts": [
+      {
+        "path": "Ignore/MathGlyphQualification/owner-settled/geometry.json",
+        "sha256": "5765334ebd51739fe354be6252ee0e1a5938b3b5f5be70c4715b6fecdcf0fe7a"
+      },
+      {
+        "path": "Ignore/MathGlyphQualification/owner-settled/fixture-wide-accent.png",
+        "sha256": "22c397f0ce26271b612acc8d41046ae5cf658b96ea6f23970b9150290b29f724"
+      }
+    ]
+  },
+  "tests": {
+    "correctnessFilter": "Category!=Performance",
+    "results": {
+      "drawing-final-net8.trx": {
+        "total": 3352,
+        "passed": 3352,
+        "failed": 0,
+        "path": "Ignore/MathGlyphQualification/tests/drawing-final-net8.trx",
+        "sha256": "6b08058a453a2d5c5f7e291418dde03533d2dad001cd67b4d333a402a3375534"
+      },
+      "drawing-final-net10.trx": {
+        "total": 3352,
+        "passed": 3352,
+        "failed": 0,
+        "path": "Ignore/MathGlyphQualification/tests/drawing-final-net10.trx",
+        "sha256": "5c9f14cf942348c4c389513f778e6238d5ce730829a2f917dd5b0cf8e53b6aae"
+      },
+      "html-settled-net8.trx": {
+        "total": 4186,
+        "passed": 4186,
+        "failed": 0,
+        "path": "Ignore/MathGlyphQualification/tests/html-settled-net8.trx",
+        "sha256": "22c737e4394b087fb71e298f7c52b5c3d6452858a6b2f619da24691a57bf10d1"
+      },
+      "html-final-net10.trx": {
+        "total": 4186,
+        "passed": 4186,
+        "failed": 0,
+        "path": "Ignore/MathGlyphQualification/tests/html-final-net10.trx",
+        "sha256": "47fa8a6b6239c34e2669f05cf44a90ac2c948d3905f55b29e7780491a73deef1"
+      },
+      "pdf-state-full-net10.trx": {
+        "total": 8670,
+        "passed": 8670,
+        "failed": 0,
+        "path": "Ignore/MathGlyphQualification/tests/pdf-state-full-net10.trx",
+        "sha256": "04cd16ade3567da074bd4ddcb760d7913617a330709c3851801037f14c2028c6"
+      },
+      "pdf-state-net8.trx": {
+        "total": 211,
+        "passed": 211,
+        "failed": 0,
+        "path": "Ignore/MathGlyphQualification/tests/pdf-state-net8.trx",
+        "sha256": "6a8786ce316b5cd1733e3d259632c06dff460b492dc2040c68c5dfe78a380cc6"
+      },
+      "pdf-state-settled-net10.trx": {
+        "total": 99,
+        "passed": 99,
+        "failed": 0,
+        "path": "Ignore/MathGlyphQualification/tests/pdf-state-settled-net10.trx",
+        "sha256": "85066aa8804bc5bddf5584ee30d5d4351f1da0e232f32306fcc2999ac757ce95"
+      },
+      "poppler-state-settled.trx": {
+        "total": 4,
+        "passed": 4,
+        "failed": 0,
+        "path": "Ignore/MathGlyphQualification/tests/poppler-state-settled.trx",
+        "sha256": "816fd1872db49695459a2f8d2f248a850a9d2501a4c99ec91523a14ad403257d"
+      }
+    },
+    "generatedSupportContract": "Build/Export-HtmlSupportMatrix.ps1 regenerated the support matrix; executable support contract passed.",
+    "earlierFailures": "Incorrect namespace-free serialization expectation and test-only empty ActualText fixture corrected. The prior 100ms deadline test expired before its fake encryption began under contention; unchanged settled net8 suite passes. Compact summaries retain these failures."
+  },
+  "review": {
+    "math": {
+      "fullPassAndTargetedConfirmation": true,
+      "confirmationFingerprint": "6be6b8aed09484ffd0e9c636e6833f7b4e7dda5b",
+      "reproducedP2Fixed": [
+        "Radical bar detached from an oversized variant",
+        "Script advance/origin placement and overhang",
+        "Accent lost explicit stretchy=false"
+      ]
+    },
+    "pdf": {
+      "fullPassAndTargetedConfirmation": true,
+      "confirmationFingerprint": "044ae0f483616fd6422175e0fd757f9aa7ff261e",
+      "reproducedP2Fixed": [
+        "Synthetic replacement changed positioned geometry",
+        "Synthetic replacement bypassed hidden optional-content Form policy"
+      ],
+      "finalShape": "Propagate shared marked-content state into visible Forms; preserve actual anchor and emit replacement only once."
+    },
+    "unresolvedInScopeFindings": []
+  },
+  "packages": {
+    "normalCanonicalScript": "pwsh -NoProfile -File Build/Test-HtmlPackages.ps1 -Version 3.3.0 -ArtifactsPath Ignore/MathGlyphQualification/packages-clean-395d5ce48",
+    "count": 19,
+    "coreFrameworks": [
+      "net10.0",
+      "net472",
+      "net8.0",
+      "netstandard2.0"
+    ],
+    "coreExternalRuntimeDependencies": 0,
+    "packedConsumers": "Document-only and full HTML public consumers passed net8/net10; additional public math glyph consumer passed both.",
+    "nativeNet472Execution": "Not available; packed net472 library is compile/pack evidence only.",
+    "localVersion": "Controlled local test packages, not a public dependency pin or release.",
+    "restoreRace": "An earlier concurrent validation restore overwrote framework assets; exclusive canonical pack passed without a product workaround.",
+    "logs": [
+      {
+        "path": "Ignore/MathGlyphQualification/packages-clean.log",
+        "sha256": "7a1bf6943dae15a6743247e3e5a67e82ef6740c6d1ab4b68043a97a7fef351d6"
+      },
+      {
+        "path": "Ignore/MathGlyphQualification/package-api-net8.log",
+        "sha256": "ada3fb7313f1645f7297b7ba0b0b98c0bf8ca7ca72942ada135f0372c0aaa461"
+      },
+      {
+        "path": "Ignore/MathGlyphQualification/package-api-net10.log",
+        "sha256": "cbaaf6cd9c04c21b32d99fd1e24bfa91e78af2d92fe9041f1b6a10cd1ee49dad"
+      }
+    ],
+    "corePackage": {
+      "path": "Ignore/MathGlyphQualification/packages-clean-395d5ce48/feed/OfficeIMO.Core.3.3.0.nupkg",
+      "sha256": "525f5a743949447063618a149747b790f58be969ae31e3e3c88181bce314d63d"
+    }
+  },
+  "pdfCompliance": {
+    "machineValidation": [
+      {
+        "profile": "PDF/A-3b validation profile",
+        "compliant": true,
+        "passedChecks": 2111,
+        "failedChecks": 0,
+        "path": "Ignore/MathGlyphQualification/profiles-settled/vera-a3b.json",
+        "sha256": "ad5b42ad37021e9e0643f2be299f265bcffbbafb72d0c153038c0fad88252c26"
+      },
+      {
+        "profile": "PDF/A-3b validation profile",
+        "compliant": true,
+        "passedChecks": 2125,
+        "failedChecks": 0,
+        "path": "Ignore/MathGlyphQualification/profiles-settled/vera-combined-a3b.json",
+        "sha256": "23be4d241b25f9f417ece465573325f6b3044996d4ebaf2d0190f2a132d10391"
+      },
+      {
+        "profile": "PDF/UA-1 validation profile",
+        "compliant": true,
+        "passedChecks": 551,
+        "failedChecks": 0,
+        "path": "Ignore/MathGlyphQualification/profiles-settled/vera-combined-ua1.json",
+        "sha256": "45e5aee72811a655f8fa5a7261f00509c0ec5b0485c5e1e9ddf2258b6b000f0b"
+      }
+    ],
+    "profilePolicy": "Standalone PDF/UA-1 plus associated files rejects explicitly; selecting PDF/A-3b permits supplements, including the explicit combined profile. No profile/data is changed automatically.",
+    "manualAssistiveTechnology": "Not qualified by these machine checks."
+  },
+  "corpus": {
+    "h4": {
+      "sourceCommit": "395d5ce4874c45e919c0bf91be3c694b692bfd47",
+      "caseCount": 8,
+      "acceptancePassed": true,
+      "report": {
+        "path": "Ignore/MathGlyphQualification/h4-clean-395d5ce48/html-corpus-evidence.json",
+        "sha256": "c79f96136f099b997a400b00439ad83a2554cc044660ef8e346d443b63061d2a"
+      }
+    },
+    "static": {
+      "sourceCommit": "395d5ce4874c45e919c0bf91be3c694b692bfd47",
+      "caseCount": 18,
+      "artifactCount": 150,
+      "byteIdentical": 136,
+      "changedCaseIds": [
+        "mathml-semantics",
+        "pdf-conformance"
+      ],
+      "pageCountsTextFormulaLinksDecodedAttachmentsPreserved": true,
+      "baselineCommit": "cdb8a9bd64e09c1cc4b83c23f462978ba836d528",
+      "comparison": {
+        "path": "Ignore/MathGlyphQualification/static-regression-comparison.json",
+        "sha256": "6ffa85962203682871b730ef79d3fd03e4dbece755f31e65b8c23d9574891320"
+      }
+    }
+  },
+  "macosStaticBudget": {
+    "status": "Pending timing qualification",
+    "ceilingChanged": false,
+    "ceiling": {
+      "osFamily": "macOS",
+      "coldProcessElapsedMilliseconds": 8000,
+      "warmIterationElapsedMilliseconds": 3000,
+      "coldManagedAllocatedBytes": 1250000000,
+      "warmManagedAllocatedBytes": 1100000000,
+      "peakWorkingSetBytes": 700000000,
+      "outputBytesPerIteration": 3000000,
+      "cancellationElapsedMilliseconds": 250
+    },
+    "retainedRuns": [
+      {
+        "sourceCommit": "395d5ce4874c45e919c0bf91be3c694b692bfd47",
+        "worktreeClean": true,
+        "coldMilliseconds": 10973.9658,
+        "warmMilliseconds": [
+          3850.6259,
+          2023.9045,
+          2470.1089
+        ],
+        "deterministic": true,
+        "fingerprint": "df37e54aafd262a230744c629f1c0e8f72561c42318e694a987e0ed542f24df4",
+        "peakBytes": 454737920,
+        "failures": [
+          "cold process elapsed milliseconds 10974.0 exceeded ceiling 8000.0.",
+          "warm iteration 1 elapsed milliseconds 3850.6 exceeded ceiling 3000.0."
+        ],
+        "path": "Ignore/MathGlyphQualification/static-budget-clean-395d5ce48/html-static-budget.json",
+        "sha256": "990ce146a9c59c49745b96a704324ddfd0dc518938b32393f5df8f471c94dc08"
+      },
+      {
+        "sourceCommit": "395d5ce4874c45e919c0bf91be3c694b692bfd47",
+        "worktreeClean": true,
+        "coldMilliseconds": 18631.9295,
+        "warmMilliseconds": [
+          8776.3093,
+          5414.7773,
+          5276.8505
+        ],
+        "deterministic": true,
+        "fingerprint": "df37e54aafd262a230744c629f1c0e8f72561c42318e694a987e0ed542f24df4",
+        "peakBytes": 388055040,
+        "failures": [
+          "cold process elapsed milliseconds 18631.9 exceeded ceiling 8000.0.",
+          "warm iteration 1 elapsed milliseconds 8776.3 exceeded ceiling 3000.0.",
+          "warm iteration 2 elapsed milliseconds 5414.8 exceeded ceiling 3000.0.",
+          "warm iteration 3 elapsed milliseconds 5276.9 exceeded ceiling 3000.0."
+        ],
+        "path": "Ignore/MathGlyphQualification/static-budget-quiet-395d5ce48/html-static-budget.json",
+        "sha256": "19c5ddd154a90b0af7022668ea1dc71c202c5bfa52e3fb091c40c89ac857d72c"
+      },
+      {
+        "sourceCommit": "395d5ce4874c45e919c0bf91be3c694b692bfd47",
+        "worktreeClean": true,
+        "coldMilliseconds": 25011.1826,
+        "warmMilliseconds": [
+          2946.1975,
+          3082.3374,
+          5043.1907
+        ],
+        "deterministic": true,
+        "fingerprint": "df37e54aafd262a230744c629f1c0e8f72561c42318e694a987e0ed542f24df4",
+        "peakBytes": 497795072,
+        "failures": [
+          "cold process elapsed milliseconds 25011.2 exceeded ceiling 8000.0.",
+          "warm iteration 2 elapsed milliseconds 3082.3 exceeded ceiling 3000.0.",
+          "warm iteration 3 elapsed milliseconds 5043.2 exceeded ceiling 3000.0."
+        ],
+        "path": "Ignore/MathGlyphQualification/static-budget-settled-395d5ce48/html-static-budget.json",
+        "sha256": "d870f3514182fd788e13f5f91cf5b80dfd0f7c9d66b14437320619bedcfc3870"
+      },
+      {
+        "sourceCommit": "395d5ce4874c45e919c0bf91be3c694b692bfd47",
+        "worktreeClean": true,
+        "coldMilliseconds": 5376.2824,
+        "warmMilliseconds": [
+          10731.9438,
+          7842.1767,
+          4692.9522
+        ],
+        "deterministic": true,
+        "fingerprint": "df37e54aafd262a230744c629f1c0e8f72561c42318e694a987e0ed542f24df4",
+        "peakBytes": 367460352,
+        "failures": [
+          "warm iteration 1 elapsed milliseconds 10731.9 exceeded ceiling 3000.0.",
+          "warm iteration 2 elapsed milliseconds 7842.2 exceeded ceiling 3000.0.",
+          "warm iteration 3 elapsed milliseconds 4693.0 exceeded ceiling 3000.0."
+        ],
+        "path": "Ignore/MathGlyphQualification/static-budget-recheck-395d5ce48/html-static-budget.json",
+        "sha256": "91c5dfeb95e894a7a3448a4e5dc6ccdff62f399fc7982fd2ee40530397757ec6"
+      }
+    ],
+    "outputAllocationsMemoryCancellation": "All retained runs pass these unchanged ceilings; output fingerprint matches the prior qualified constant-metrics baseline.",
+    "timingLimit": "Unrelated compiler/simulator activity was observed during earlier runs. Latest cold process passes but all three warm iterations fail. A timing regression is not excluded by unchanged deterministic output or allocation counts.",
+    "nextCheck": "Recheck after a quiet interval. If failure persists without contention, run an equivalent prior-source/package control and investigate before integration; do not repeatedly retry or relax ceilings."
+  },
+  "remainingMathScopes": [
+    "Variable-font MATH metrics",
+    "Stack and matrix-specific font geometry",
+    "Broader operator spacing and MathML attribute/CSS grammar",
+    "Manual assistive-technology qualification"
+  ],
+  "remainingMilestoneGate": "Unchanged macOS timing budget, followed by evidence finalization and fast-forward synchronization of the two HTML branches.",
+  "releaseBoundary": "Branch checkpoint only. No full HTML/runtime PR, HTML merge into master, package release or upstream polling.",
+  "retainedArtifactRoot": "Ignore/MathGlyphQualification/",
+  "cleanup": "Superseded probes, private expanded package cache, task-only fontTools environment and duplicate intermediate test/artifact output removed through verified containment checks. Decisive outputs, nineteen packages, compact failure summaries and final tests retained. Unrelated worktrees preserved.",
+  "integrationBuildLimit": "Earlier external-provider checkout deterministic SourceRoot failure remains a separate larger-runtime validation gap; normal package proof here is not qualification of that checkout."
+}
