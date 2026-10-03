@@ -91,8 +91,8 @@ internal static partial class PdfWriter {
                 run.Italic)
             ?? options?.EmbeddedFontFallbacksSnapshot;
         if (fallbackSet != null
-            && (TryPlanFallbackTextRuns(fallbackSet, run.Text, run, options, ResolveFontForRun(run, baseFont), out System.Collections.Generic.IReadOnlyList<PdfTextRun> plannedRuns)
-                || TryPlanFallbackRunsPreservingSelectedFont(run, baseFont, options, fallbackSet, out plannedRuns))) {
+            && (TryPlanFallbackRunsPreservingSelectedFont(run, baseFont, options, fallbackSet, out System.Collections.Generic.IReadOnlyList<PdfTextRun> plannedRuns)
+                || TryPlanFallbackTextRuns(fallbackSet, run.Text, run, options, ResolveFontForRun(run, baseFont), out plannedRuns))) {
             return plannedRuns;
         }
 
@@ -154,6 +154,7 @@ internal static partial class PdfWriter {
             runs.AddRange(fallbackRuns);
         }
 
+        PdfTextFallbackPlan.KeepHorizontalOffsetOnFirstGeneratedRun(runs);
         plannedRuns = runs.AsReadOnly();
         return true;
     }
