@@ -105,6 +105,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
 
     private static bool TryApplyOdsValidation(ExcelSheet sheet, string sourceSheetName,
         string references, OdsValidation validation, IReadOnlyDictionary<string, string> sheetNameMap) {
+        // Excel cannot retain a validation formula longer than 255 characters.
+        // Leave room for translation without parsing arbitrarily large authored conditions.
+        if (validation.Condition.Length > 1024) return false;
         OdsValidationConditionSyntax? condition = validation.ParsedCondition;
         if (condition == null) return false;
         if (condition.ValueKind == OdsValidationValueKind.CustomFormula) {

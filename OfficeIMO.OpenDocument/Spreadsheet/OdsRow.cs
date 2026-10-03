@@ -6,11 +6,14 @@ public sealed class OdsRowRun {
     private readonly XElement _element;
     private readonly Func<long, string?>? _inheritedStyleResolver;
     private readonly Func<IReadOnlyList<OdsColumnRun>>? _columnRunsProvider;
+    private readonly Func<bool>? _hasColumnDefaultsProvider;
     internal OdsRowRun(OdsDocument document, XElement element, long startRow, long repeatCount,
-        Func<long, string?>? inheritedStyleResolver = null, Func<IReadOnlyList<OdsColumnRun>>? columnRunsProvider = null) {
+        Func<long, string?>? inheritedStyleResolver = null, Func<IReadOnlyList<OdsColumnRun>>? columnRunsProvider = null,
+        Func<bool>? hasColumnDefaultsProvider = null) {
         _document = document; _element = element; StartRow = startRow; RepeatCount = repeatCount;
         _inheritedStyleResolver = inheritedStyleResolver;
         _columnRunsProvider = columnRunsProvider;
+        _hasColumnDefaultsProvider = hasColumnDefaultsProvider;
     }
     /// <summary>Zero-based first logical row.</summary>
     public long StartRow { get; }
@@ -26,7 +29,7 @@ public sealed class OdsRowRun {
             foreach (XElement cell in OdsSheet.CellElements(_element)) {
                 long count = OdsRepeatModel.Read(cell, OdfNamespaces.Table + "number-columns-repeated");
                 long end = checked(start + count);
-                bool usesColumnDefault = columnRuns != null
+                bool usesColumnDefault = _hasColumnDefaultsProvider?.Invoke() == true && columnRuns != null
                     && cell.Attribute(OdfNamespaces.Table + "style-name") == null
                     && _element.Attribute(OdfNamespaces.Table + "default-cell-style-name") == null;
                 for (long column = start; column < end;) {

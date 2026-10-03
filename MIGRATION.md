@@ -9,6 +9,10 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## ODS row layout conversion
+
+ODS-to-XLSX conversion materializes at most 4,096 individual hidden-row or row-height layouts per sheet by default. Larger row-layout expansions are reported under `expansion-limits`; set `ExcelOpenDocumentConversionOptions.MaximumRowLayoutRows` when a trusted workbook needs a higher limit.
+
 ## Chart data label separators
 
 `OfficeChartLayout` accepts data label separators up to 64 characters. Shorten longer authored separators before constructing a layout; they now raise `ArgumentOutOfRangeException`. Native charts with longer separators are not projected into the shared chart layout, because the separator would be copied into every rendered point label.
