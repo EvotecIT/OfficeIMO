@@ -49,16 +49,16 @@ internal static class EmailTransportIntegrity {
             }
             ReportPayloadHeaders(item.Document.Headers, item.Path);
             ReportPayloadHeaders(item.Document.Body.HtmlMimeHeaders, item.Path + "/html");
-            for (int index = 0; index < item.Document.Attachments.Count; index++) {
-                EmailAttachment attachment = item.Document.Attachments[index];
+            IList<EmailAttachment> attachments = writesMime ? item.Document.Attachments :
+                OutlookTaskCommunicationAttachmentProjection.GetAttachmentsForPreflight(item.Document);
+            for (int index = 0; index < attachments.Count; index++) {
+                EmailAttachment attachment = attachments[index];
                 ReportPayloadHeaders(attachment.MimeHeaders, item.Path + "/attachment/" + index);
                 // MIME cleanup can keep an embedded message's exact payload while rewriting its parent.
                 if (writesMime && attachment.EmbeddedDocument != null && MimeWriter.CanPreservePartHeaders(attachment)) continue;
                 EmailDocument? child = attachment.EmbeddedDocument;
                 if (child != null) pending.Push((child, item.Path + "/attachment/" + index, item.Depth + 1));
             }
-            if (!writesMime && OutlookTaskCommunicationAttachmentProjection.GetEmbeddedTaskForWriting(item.Document) is EmailDocument task)
-                pending.Push((task, item.Path + "/task/embedded", item.Depth + 1));
         }
 
         void ReportPayloadHeaders(IEnumerable<EmailHeader> headers, string location) {

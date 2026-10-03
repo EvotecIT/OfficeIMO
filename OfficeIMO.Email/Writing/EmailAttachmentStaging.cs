@@ -36,7 +36,9 @@ internal sealed class EmailAttachmentStaging : IDisposable {
         int depth, int maxDepth, MutableLong attachmentCount, int maxAttachments, bool includeTaskPayload) {
         if (depth > maxDepth) throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxNestedMessageDepth), depth, maxDepth);
         if (!visited.Add(document)) return;
-        foreach (EmailAttachment attachment in document.Attachments) {
+        IEnumerable<EmailAttachment> attachments = includeTaskPayload
+            ? OutlookTaskCommunicationAttachmentProjection.GetAttachmentsForPreflight(document) : document.Attachments;
+        foreach (EmailAttachment attachment in attachments) {
             cancellationToken.ThrowIfCancellationRequested();
             if (++attachmentCount.Value > maxAttachments) throw new EmailLimitExceededException("MaxAttachments", attachmentCount.Value, maxAttachments);
             if (attachment.EmbeddedDocument != null) {
@@ -83,12 +85,7 @@ internal sealed class EmailAttachmentStaging : IDisposable {
             totalBytes.Value = checked(totalBytes.Value + stagedLength);
             _sources.Add(attachment, new StagedFileContentSource(path, stagedLength));
         }
-        if (includeTaskPayload && OutlookTaskCommunicationAttachmentProjection.GetEmbeddedTaskForWriting(document) is EmailDocument task &&
-            !visited.Contains(task)) {
-            if (++attachmentCount.Value > maxAttachments) throw new EmailLimitExceededException("MaxAttachments", attachmentCount.Value, maxAttachments);
-            await StageDocumentAsync(task, visited, maximumBytes, totalBytes, cancellationToken, bytesRead,
-                depth + 1, maxDepth, attachmentCount, maxAttachments, includeTaskPayload).ConfigureAwait(false);
-        }
+
     }
 
     private string EnsureDirectory() {

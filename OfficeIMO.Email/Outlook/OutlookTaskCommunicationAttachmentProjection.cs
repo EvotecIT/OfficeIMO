@@ -1,13 +1,12 @@
 namespace OfficeIMO.Email;
 
 internal static class OutlookTaskCommunicationAttachmentProjection {
-    /// <summary>Returns the synthesized task payload without mutating its model or creating attachment wrappers.</summary>
-    internal static EmailDocument? GetEmbeddedTaskForWriting(EmailDocument document) {
-        OutlookTaskCommunication? communication = document.TaskCommunication;
-        return communication != null && communication.Kind != OutlookTaskCommunicationKind.None ? communication.EmbeddedTask : null;
-    }
+    /// <summary>Uses the writer's payload selection without assigning task identities or copying raw metadata buffers.</summary>
+    internal static EmailAttachment[] GetAttachmentsForPreflight(EmailDocument document) => GetAttachments(document, prepareForWrite: false);
 
-    internal static EmailAttachment[] GetWritableAttachments(EmailDocument document) {
+    internal static EmailAttachment[] GetWritableAttachments(EmailDocument document) => GetAttachments(document, prepareForWrite: true);
+
+    private static EmailAttachment[] GetAttachments(EmailDocument document, bool prepareForWrite) {
         EmailAttachment[] attachments = document.Attachments
             .Where(attachment => !attachment.IsProjectedSemanticContent)
             .ToArray();
@@ -21,10 +20,10 @@ internal static class OutlookTaskCommunicationAttachmentProjection {
             throw new InvalidOperationException(string.Concat("The task communication is invalid. ", detail));
         }
 
-        EmailDocument embeddedTask = GetEmbeddedTaskForWriting(document)!;
+        EmailDocument embeddedTask = communication.EmbeddedTask!;
         if (embeddedTask.Task == null)
             throw new InvalidOperationException("The task communication payload does not contain an Outlook task.");
-        if (!embeddedTask.Task.GlobalId.HasValue) embeddedTask.Task.GlobalId = Guid.NewGuid();
+        if (prepareForWrite && !embeddedTask.Task.GlobalId.HasValue) embeddedTask.Task.GlobalId = Guid.NewGuid();
 
         EmailAttachment? source = communication.PayloadAttachment;
         if (source == null || !attachments.Contains(source)) {
@@ -32,13 +31,13 @@ internal static class OutlookTaskCommunicationAttachmentProjection {
                 ReferenceEquals(attachment.EmbeddedDocument, embeddedTask));
         }
         var result = new List<EmailAttachment>(attachments.Length + (source == null ? 1 : 0)) {
-            CreateCanonicalAttachment(source, embeddedTask)
+            CreateCanonicalAttachment(source, embeddedTask, prepareForWrite)
         };
         result.AddRange(attachments.Where(attachment => !ReferenceEquals(attachment, source)));
         return result.ToArray();
     }
 
-    private static EmailAttachment CreateCanonicalAttachment(EmailAttachment? source, EmailDocument embeddedTask) {
+    private static EmailAttachment CreateCanonicalAttachment(EmailAttachment? source, EmailDocument embeddedTask, bool cloneProperties) {
         var attachment = new EmailAttachment {
             FileName = source?.FileName,
             ContentType = source?.ContentType,
@@ -58,7 +57,7 @@ internal static class OutlookTaskCommunicationAttachmentProjection {
         if (source == null) return attachment;
         foreach (KeyValuePair<string, string> parameter in source.ContentTypeParameters)
             attachment.ContentTypeParameters[parameter.Key] = parameter.Value;
-        foreach (MapiProperty property in source.MapiProperties) attachment.MapiProperties.Add(Clone(property));
+        foreach (MapiProperty property in source.MapiProperties) attachment.MapiProperties.Add(cloneProperties ? Clone(property) : property);
         foreach (TnefAttribute attribute in source.TnefAttributes) attachment.TnefAttributes.Add(attribute);
         return attachment;
     }

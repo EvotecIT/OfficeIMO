@@ -66,15 +66,18 @@ internal static class EmailConversionAnalyzer {
             // Only the outer RFC message has an EMLX envelope for its Apple metadata.
             foreach (EmailDiagnostic diagnostic in AnalyzeArchiveMetadata(item.Document,
                          preservesAppleMailMetadata && item.Depth == 0, options.ConversionLossPolicy)) Add(diagnostic);
-            for (int index = 0; index < item.Document.Attachments.Count; index++) {
-                EmailAttachment attachment = item.Document.Attachments[index];
+            IList<EmailAttachment> attachments = targetFormat == EmailFileFormat.Eml ? item.Document.Attachments :
+                OutlookTaskCommunicationAttachmentProjection.GetAttachmentsForPreflight(item.Document);
+            for (int index = 0; index < attachments.Count; index++) {
+                EmailAttachment attachment = attachments[index];
                 if (targetFormat == EmailFileFormat.Eml && MimeWriter.CanPreservePartHeaders(attachment)) continue;
-                if (attachment.EmbeddedDocument != null) pending.Push((attachment.EmbeddedDocument,
-                    item.Path + "attachment/" + index.ToString(CultureInfo.InvariantCulture) + "/", item.Depth + 1));
+                if (attachment.EmbeddedDocument == null) continue;
+                bool taskPayload = targetFormat != EmailFileFormat.Eml && index == 0 &&
+                    item.Document.TaskCommunication?.Kind != OutlookTaskCommunicationKind.None &&
+                    ReferenceEquals(attachment.EmbeddedDocument, item.Document.TaskCommunication?.EmbeddedTask);
+                string path = taskPayload ? "task/embedded/" : "attachment/" + index.ToString(CultureInfo.InvariantCulture) + "/";
+                pending.Push((attachment.EmbeddedDocument, item.Path + path, item.Depth + 1));
             }
-            if (targetFormat != EmailFileFormat.Eml &&
-                OutlookTaskCommunicationAttachmentProjection.GetEmbeddedTaskForWriting(item.Document) is EmailDocument task)
-                pending.Push((task, item.Path + "task/embedded/", item.Depth + 1));
 
             void Add(EmailDiagnostic diagnostic) {
                 if (item.Path.Length == 0) { diagnostics.Add(diagnostic); return; }

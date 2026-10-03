@@ -101,6 +101,46 @@ public sealed class SynthesizedTaskPayloadTests {
         }
     }
 
+    [Theory]
+    [InlineData(EmailFileFormat.OutlookMsg)]
+    [InlineData(EmailFileFormat.Tnef)]
+    public async Task ReplacingAReadTaskPayloadDoesNotVisitDiscardedContent(EmailFileFormat format) {
+        EmailDocument original = Request();
+        original.TaskCommunication!.EmbeddedTask!.Attachments.Add(new EmailAttachment { FileName = "old.bin", Content = new byte[4096], Length = 4096 });
+        byte[] artifact = new EmailDocumentWriter().ToBytes(original, format, out EmailWriteResult initial);
+        initial.RequireNoLoss();
+        EmailDocument root = new EmailDocumentReader().Read(artifact).Document;
+        OutlookTaskCommunication communication = root.TaskCommunication!;
+        EmailDocument discarded = communication.EmbeddedTask!;
+        discarded.Headers.Add(new EmailHeader("DKIM-Signature", "v=1; bh=old; b=old"));
+        discarded.Properties["Emlx:Metadata:remote-id"] = "discarded";
+        var unused = new AsyncSource(new byte[4096]);
+        discarded.Attachments[0].Content = null;
+        discarded.Attachments[0].ContentSource = unused;
+        EmailDocument replacement = Request().TaskCommunication!.EmbeddedTask!;
+        replacement.Subject = "Replacement";
+        communication.EmbeddedTask = replacement;
+        Assert.Same(discarded, communication.PayloadAttachment!.EmbeddedDocument);
+        var writer = new EmailDocumentWriter();
+        Assert.True(writer.AnalyzeConversion(root, format).CanWrite);
+        foreach (bool asynchronous in new[] { false, true }) {
+            using var output = new MemoryStream();
+            EmailWriteResult result = asynchronous ? await writer.WriteAsync(root, output, format) : writer.Write(root, output, format);
+            Assert.False(result.HasErrors);
+            EmailDocument read = new EmailDocumentReader().Read(output.ToArray()).Document;
+            Assert.Equal("Replacement", read.TaskCommunication!.EmbeddedTask!.Subject);
+            Assert.Empty(read.TaskCommunication.EmbeddedTask.Attachments);
+        }
+        // For TNEF the replacement fits in this budget; the discarded payload does not.
+        if (format == EmailFileFormat.Tnef) {
+            using var bounded = new MemoryStream();
+            EmailWriteResult result = await new EmailDocumentWriter(new EmailWriterOptions(maxOutputBytes: 2048)).WriteAsync(root, bounded, format);
+            Assert.False(result.HasErrors);
+            Assert.True(bounded.Length <= 2048);
+        }
+        Assert.Equal(0, unused.AsyncOpenCount);
+    }
+
     private static EmailDocument Request() => new EmailDocument {
         OutlookItemKind = OutlookItemKind.Task, Subject = "Task request",
         TaskCommunication = OutlookTaskCommunication.Create(OutlookTaskCommunicationKind.Request, new EmailDocument {
