@@ -47,12 +47,16 @@ internal static partial class DocumentReaderEngine {
             throw CreateAsyncOnlyHandlerException(handler.Id, "path");
         } else if (handler.SupportsStreamInput) {
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-            return ReadResolvedStream(stream, path, effective, handler, cancellationToken);
+            ReaderChunk[] streamed = ReadResolvedStream(stream, path, effective, handler, cancellationToken);
+            ValidateUnchangedPathSource(source, cancellationToken);
+            return streamed;
         } else {
             throw new NotSupportedException($"Reader handler '{handler.Id}' does not support path input.");
         }
 
-        return chunks.Select(chunk => EnrichChunk(chunk, source, effective.ComputeHashes)).ToArray();
+        ReaderChunk[] resultChunks = chunks.Select(chunk => EnrichChunk(chunk, source, effective.ComputeHashes)).ToArray();
+        ValidateUnchangedPathSource(source, cancellationToken);
+        return resultChunks;
     }
 
     public static IEnumerable<ReaderChunk> ReadFolder(

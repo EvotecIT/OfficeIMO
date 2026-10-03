@@ -30,8 +30,9 @@ public static class EmailStoreItemReader {
         CancellationToken cancellationToken = default) {
         if (reader == null) throw new ArgumentNullException(nameof(reader));
         if (path == null) throw new ArgumentNullException(nameof(path));
-        return reader.Scope(ReadCore(path, readerOptions ?? new ReaderOptions(),
-            ReaderEmailStoreOptionsCloner.CloneOrDefault(emailStoreOptions), cancellationToken));
+        var effective = DocumentReaderEngine.NormalizeOptions(readerOptions);
+        return reader.Scope(ReadCore(path, effective,
+            ReaderEmailStoreOptionsCloner.CloneOrDefault(emailStoreOptions), cancellationToken), effective);
     }
 
     /// <summary>
@@ -49,12 +50,13 @@ public static class EmailStoreItemReader {
         if (reader == null) throw new ArgumentNullException(nameof(reader));
         if (path == null) throw new ArgumentNullException(nameof(path));
         if (string.IsNullOrWhiteSpace(itemId)) throw new ArgumentException("Item id cannot be empty.", nameof(itemId));
+        var effective = DocumentReaderEngine.NormalizeOptions(readerOptions);
         return reader.Scope(ReadByIdCore(
             path,
             itemId,
-            readerOptions ?? new ReaderOptions(),
+            effective,
             ReaderEmailStoreOptionsCloner.CloneOrDefault(emailStoreOptions),
-            cancellationToken)).Single();
+            cancellationToken), effective).Single();
     }
 
     private static IEnumerable<ReaderEmailStoreItemResult> ReadCore(

@@ -38,6 +38,7 @@ internal static partial class DocumentReaderEngine {
             OfficeDocumentReadResult result = await ValidateDocumentTaskAsync(
                 handler.ReadDocumentPathAsync(path, opt, cancellationToken),
                 handler.Id).ConfigureAwait(false);
+            await ValidateUnchangedPathSourceAsync(source, cancellationToken).ConfigureAwait(false);
             return EnrichChunks(ReaderReadScope.Complete(result).Chunks, source, opt.ComputeHashes, cancellationToken);
         }
 
@@ -46,8 +47,12 @@ internal static partial class DocumentReaderEngine {
                 () => Read(path, opt, cancellationToken).ToArray(),
                 cancellationToken).ConfigureAwait(false);
         }
+        SourceInfo pathSource = await BuildSourceInfoFromPathAsync(path,
+            resolution.Handler != null && ShouldComputeSourceHash(resolution.Handler, opt), cancellationToken).ConfigureAwait(false);
         using var stream = OpenAsyncReadStream(path);
-        return await ReadAsync(stream, path, opt, cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<ReaderChunk> streamed = await ReadAsync(stream, path, opt, cancellationToken).ConfigureAwait(false);
+        await ValidateUnchangedPathSourceAsync(pathSource, cancellationToken).ConfigureAwait(false);
+        return streamed;
     }
 
     /// <summary>
@@ -129,11 +134,12 @@ internal static partial class DocumentReaderEngine {
         if (resolution.Handler?.ReadDocumentPathAsync != null) {
             ReaderHandlerDescriptor handler = resolution.Handler;
             cancellationToken.ThrowIfCancellationRequested();
+            SourceInfo source = await BuildSourceInfoFromPathAsync(path,
+                ShouldComputeSourceHash(handler, opt), cancellationToken).ConfigureAwait(false);
             OfficeDocumentReadResult result = await ValidateDocumentTaskAsync(
                 handler.ReadDocumentPathAsync(path, opt, cancellationToken),
                 handler.Id).ConfigureAwait(false);
-            SourceInfo source = await BuildSourceInfoFromPathAsync(path,
-                ShouldComputeSourceHash(handler, opt), cancellationToken).ConfigureAwait(false);
+            await ValidateUnchangedPathSourceAsync(source, cancellationToken).ConfigureAwait(false);
             return ReaderReadScope.Complete(ApplyDetectionDiagnostics(FinalizeHandlerDocumentResult(result, source, opt.ComputeHashes), resolution.Detection));
         }
 
@@ -142,8 +148,12 @@ internal static partial class DocumentReaderEngine {
                 () => ReadDocument(path, opt, cancellationToken),
                 cancellationToken).ConfigureAwait(false);
         }
+        SourceInfo pathSource = await BuildSourceInfoFromPathAsync(path,
+            resolution.Handler != null && ShouldComputeSourceHash(resolution.Handler, opt), cancellationToken).ConfigureAwait(false);
         using var stream = OpenAsyncReadStream(path);
-        return await ReadDocumentAsync(stream, path, opt, cancellationToken).ConfigureAwait(false);
+        OfficeDocumentReadResult streamed = await ReadDocumentAsync(stream, path, opt, cancellationToken).ConfigureAwait(false);
+        await ValidateUnchangedPathSourceAsync(pathSource, cancellationToken).ConfigureAwait(false);
+        return streamed;
     }
 
     /// <summary>

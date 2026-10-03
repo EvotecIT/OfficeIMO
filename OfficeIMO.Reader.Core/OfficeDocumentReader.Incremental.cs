@@ -9,7 +9,9 @@ namespace OfficeIMO.Reader;
 public sealed partial class OfficeDocumentReader {
     /// <summary>Pulls chunks on demand from incremental handlers, with a materialized fallback for other handlers.</summary>
     /// <remarks>Document processors require a complete rich result. Source hashing reads the complete source first;
-    /// disable ComputeHashes for earliest first-chunk delivery. Dispose the enumerator on early termination.</remarks>
+    /// disable ComputeHashes for earliest first-chunk delivery. Keep the file stable throughout enumeration;
+    /// detected changes throw IOException, but previously delivered chunks cannot be withdrawn.
+    /// Dispose the enumerator on early termination.</remarks>
     public IEnumerable<ReaderChunk> EnumerateChunks(string path, ReaderOptions? options = null, CancellationToken cancellationToken = default) {
         var effective = DocumentReaderEngine.NormalizeOptions(options);
         return Scope(ProcessorPipeline.Count == 0

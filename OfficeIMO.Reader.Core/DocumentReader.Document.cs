@@ -28,8 +28,9 @@ internal static partial class DocumentReaderEngine {
             throw CreateUnsupportedInputException(path, detection);
         }
         if (handler.ReadDocumentPath != null) {
-            OfficeDocumentReadResult result = ValidateDocumentResult(handler.ReadDocumentPath(path, opt, cancellationToken), handler.Id);
             SourceInfo source = BuildSourceInfoFromPath(path, ShouldComputeSourceHash(handler, opt), cancellationToken);
+            OfficeDocumentReadResult result = ValidateDocumentResult(handler.ReadDocumentPath(path, opt, cancellationToken), handler.Id);
+            ValidateUnchangedPathSource(source, cancellationToken);
             return ReaderReadScope.Complete(ApplyDetectionDiagnostics(FinalizeHandlerDocumentResult(result, source, opt.ComputeHashes), detection));
         }
 

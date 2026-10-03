@@ -9,6 +9,17 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## Reader XML limits and changing sources
+
+XML extraction uses `XmlReadOptions.MaxDepth` (128), `MaxNodes` (200,000), and
+`MaxScalarLength` (1,048,576) by default. Inputs exceeding these limits throw
+`ReaderResourceLimitException`. Increase the relevant option for trusted larger inputs.
+XML and YAML values within their configured limits retain their full normalized text.
+
+Path reads reject a detected source change with `IOException`. Retry against a stable file.
+Keep incremental inputs stable until enumeration finishes: a later failure cannot withdraw
+chunks already delivered to the consumer.
+
 ## iWork list-marker interpretation
 
 Use `IWorkTextParagraph.ListMarkerKind` when interpreting `ListLabel`; do not infer ordered numbering from a numeric-looking string. Literal markers such as `1.` or `iv.` remain literal DOCX bullets and unordered Reader lists. PPTX uses destination fallback for multi-character text markers. Reconvert earlier imports when those labels were incorrectly turned into counters.

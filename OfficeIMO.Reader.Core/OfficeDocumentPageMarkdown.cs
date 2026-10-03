@@ -66,12 +66,18 @@ public static partial class OfficeDocumentReadResultExtensions {
                 markdown.AppendLine();
             }
 
-            var emitted = new HashSet<string>(StringComparer.Ordinal);
-            foreach (OfficeDocumentBlock block in page.Blocks ?? Array.Empty<OfficeDocumentBlock>()) {
-                if (!string.IsNullOrEmpty(block.Id) && !emitted.Add(block.Id)) {
-                    continue;
+            var pageDocument = new OfficeDocumentReadResult { Pages = new[] { page } };
+            OfficeDocumentContentItem[] content = pageDocument.EnumerateContent().ToArray();
+            var tableAnchors = new HashSet<string>(content.Where(item => item.Table?.Location?.BlockAnchor != null)
+                .Select(item => item.Table!.Location!.BlockAnchor!), StringComparer.Ordinal);
+            foreach (OfficeDocumentContentItem item in content) {
+                if (item.Table != null) {
+                    markdown.AppendLine(item.Table.ToMarkdownTable());
+                    markdown.AppendLine();
+                } else if (item.Block != null && !(item.Block.Kind == "table"
+                    && item.Block.Location?.BlockAnchor != null && tableAnchors.Contains(item.Block.Location.BlockAnchor))) {
+                    AppendBlockMarkdown(markdown, item.Block);
                 }
-                AppendBlockMarkdown(markdown, block);
             }
 
             pages.Add(new OfficeDocumentPageMarkdown(

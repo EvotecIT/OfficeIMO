@@ -24,8 +24,10 @@ internal static partial class DocumentReaderEngine {
         var source = BuildSourceInfoFromPath(path, ShouldComputeSourceHash(handler, options), token);
         foreach (var chunk in handler.ReadPath!(path, options, token)) {
             token.ThrowIfCancellationRequested();
+            ValidateUnchangedPathSource(source, token, verifyHash: false);
             yield return EnrichChunk(chunk, source, options.ComputeHashes);
         }
+        ValidateUnchangedPathSource(source, token);
     }
 
     internal static IEnumerable<ReaderChunk> EnumerateChunks(Stream stream, string? name, ReaderOptions options, CancellationToken token) {
