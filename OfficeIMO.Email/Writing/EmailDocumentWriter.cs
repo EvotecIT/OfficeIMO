@@ -59,7 +59,8 @@ public sealed class EmailDocumentWriter {
         using (EmailAttachmentStaging staging = preparation.PreservedSource != null
                    ? EmailAttachmentStaging.CreateEmpty()
                    : await EmailAttachmentStaging.CreateAsync(
-                       document, _options.MaxOutputBytes, cancellationToken, maxDepth: _options.MaxNestedMessageDepth).ConfigureAwait(false))
+                       document, _options.MaxOutputBytes, cancellationToken, maxDepth: _options.MaxNestedMessageDepth,
+                       includeTaskPayload: format != EmailFileFormat.Eml).ConfigureAwait(false))
         using (staging.EnterScope()) {
             EmailWriteResult? result = null;
             await OfficeFileCommit.WriteAsync(filePath,
@@ -81,7 +82,8 @@ public sealed class EmailDocumentWriter {
         using (EmailAttachmentStaging staging = preparation.PreservedSource != null
                    ? EmailAttachmentStaging.CreateEmpty()
                    : await EmailAttachmentStaging.CreateAsync(
-                       document, _options.MaxOutputBytes, cancellationToken, maxDepth: _options.MaxNestedMessageDepth).ConfigureAwait(false))
+                       document, _options.MaxOutputBytes, cancellationToken, maxDepth: _options.MaxNestedMessageDepth,
+                       includeTaskPayload: format != EmailFileFormat.Eml).ConfigureAwait(false))
         using (staging.EnterScope()) {
             EmailWriteResult? result = null;
             await OfficeStreamWriter.WriteAsync(stream,

@@ -72,6 +72,9 @@ internal static class EmailConversionAnalyzer {
                 if (attachment.EmbeddedDocument != null) pending.Push((attachment.EmbeddedDocument,
                     item.Path + "attachment/" + index.ToString(CultureInfo.InvariantCulture) + "/", item.Depth + 1));
             }
+            if (targetFormat != EmailFileFormat.Eml &&
+                OutlookTaskCommunicationAttachmentProjection.GetEmbeddedTaskForWriting(item.Document) is EmailDocument task)
+                pending.Push((task, item.Path + "task/embedded/", item.Depth + 1));
 
             void Add(EmailDiagnostic diagnostic) {
                 if (item.Path.Length == 0) { diagnostics.Add(diagnostic); return; }

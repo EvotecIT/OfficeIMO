@@ -34,6 +34,9 @@ internal static class EmailOutputPreflight {
                 total = Add(total, sourceLength, maxOutputBytes);
             }
         }
+        if (format != EmailFileFormat.Eml &&
+            OutlookTaskCommunicationAttachmentProjection.GetEmbeddedTaskForWriting(document) is EmailDocument task)
+            total = Add(total, CountRetainedPayloadBytes(task, format, visited, maxOutputBytes), maxOutputBytes);
         return total;
     }
 

@@ -598,7 +598,8 @@ message flags. Unsupported or malformed trailers remain in `Emlx:RawMetadata`: `
 opaque metadata rewrites, while `Warn` and `Allow` copy the trailer unchanged and report that edits
 could not be reconciled. The default `Block` policy rejects exports that omit retained EMLX, OLM
 or MAPI/TNEF metadata, including regenerated embedded messages. Regenerated embedded messages also
-undergo the same calendar, contact and protected-content loss checks as the outer message.
+undergo the same calendar, contact and protected-content loss checks as the outer message, including
+task payloads synthesized from `TaskCommunication.EmbeddedTask`.
 Exact preserved MIME attachment payloads are copied without regenerating their projected models.
 Select `new EmailWriterOptions(EmailConversionLossPolicy.Warn)` to export
 the common message content with diagnostics for the omitted fields.

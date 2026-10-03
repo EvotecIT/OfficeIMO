@@ -1,6 +1,12 @@
 namespace OfficeIMO.Email;
 
 internal static class OutlookTaskCommunicationAttachmentProjection {
+    /// <summary>Returns the synthesized task payload without mutating its model or creating attachment wrappers.</summary>
+    internal static EmailDocument? GetEmbeddedTaskForWriting(EmailDocument document) {
+        OutlookTaskCommunication? communication = document.TaskCommunication;
+        return communication != null && communication.Kind != OutlookTaskCommunicationKind.None ? communication.EmbeddedTask : null;
+    }
+
     internal static EmailAttachment[] GetWritableAttachments(EmailDocument document) {
         EmailAttachment[] attachments = document.Attachments
             .Where(attachment => !attachment.IsProjectedSemanticContent)
@@ -15,7 +21,7 @@ internal static class OutlookTaskCommunicationAttachmentProjection {
             throw new InvalidOperationException(string.Concat("The task communication is invalid. ", detail));
         }
 
-        EmailDocument embeddedTask = communication.EmbeddedTask!;
+        EmailDocument embeddedTask = GetEmbeddedTaskForWriting(document)!;
         if (embeddedTask.Task == null)
             throw new InvalidOperationException("The task communication payload does not contain an Outlook task.");
         if (!embeddedTask.Task.GlobalId.HasValue) embeddedTask.Task.GlobalId = Guid.NewGuid();

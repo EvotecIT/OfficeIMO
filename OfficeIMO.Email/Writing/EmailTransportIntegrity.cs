@@ -57,6 +57,8 @@ internal static class EmailTransportIntegrity {
                 EmailDocument? child = attachment.EmbeddedDocument;
                 if (child != null) pending.Push((child, item.Path + "/attachment/" + index, item.Depth + 1));
             }
+            if (!writesMime && OutlookTaskCommunicationAttachmentProjection.GetEmbeddedTaskForWriting(item.Document) is EmailDocument task)
+                pending.Push((task, item.Path + "/task/embedded", item.Depth + 1));
         }
 
         void ReportPayloadHeaders(IEnumerable<EmailHeader> headers, string location) {
