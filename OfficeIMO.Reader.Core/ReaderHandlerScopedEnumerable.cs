@@ -50,7 +50,8 @@ internal sealed class ReaderHandlerScopedEnumerator<T> : IEnumerator<T> {
     public bool MoveNext() {
         using var readScope = ReaderReadScope.Use(_readScope);
         using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
-            return _inner.MoveNext();
+            try { return _inner.MoveNext(); }
+            finally { _readScope.ClearNestedResults(); }
         }
     }
 
@@ -63,7 +64,8 @@ internal sealed class ReaderHandlerScopedEnumerator<T> : IEnumerator<T> {
     public void Dispose() {
         using var readScope = ReaderReadScope.Use(_readScope);
         using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
-            _inner.Dispose();
+            try { _inner.Dispose(); }
+            finally { _readScope.ClearNestedResults(); }
         }
     }
 }
