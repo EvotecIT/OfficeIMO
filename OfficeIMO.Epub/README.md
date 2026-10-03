@@ -1,9 +1,11 @@
-# OfficeIMO.Epub - EPUB extraction primitives
+# OfficeIMO.Epub - EPUB reading and authoring
 
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Epub)](https://www.nuget.org/packages/OfficeIMO.Epub)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Epub?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Epub)
 
-`OfficeIMO.Epub` provides reusable EPUB extraction primitives for modular OfficeIMO ingestion pipelines.
+`OfficeIMO.Epub` reads EPUB publications and creates or edits bounded EPUB 2/3 packages.
+Use `EpubDocument` for extraction and `EpubPublication` when the complete package must
+survive editing and saving.
 
 ## Install
 
@@ -240,15 +242,192 @@ foreach (string warning in book.Warnings) {
 }
 ```
 
+## Create a publication
+
+```csharp
+using OfficeIMO.Epub;
+
+EpubPublication publication = EpubPublication.Create("A publishing example", "en");
+publication.Creator = "Author";
+publication.AddStylesheet("style", "EPUB/style.css",
+    "body { font-family: sans-serif; } p { line-height: 1.4; }");
+publication.AddChapter("opening", "EPUB/opening.xhtml", "Opening",
+    "<h1 id='opening'>Opening</h1><p>A chapter with <em>formatted</em> text.</p>",
+    new[] { "style" });
+publication.SetNavigation(new[] {
+    new EpubNavigationEntry("Opening", "EPUB/opening.xhtml#opening")
+});
+publication.AddMetadataProperty("schema:accessMode", "textual");
+publication.AddMetadataProperty("schema:accessibilityFeature", "structuralNavigation");
+EpubWriteReport report = publication.Save("book.epub");
+report.RequireNoLoss();
+```
+
+`AddChapter` accepts a well-formed XHTML **body fragment**, not a complete document or
+arbitrary HTML. Escape text containing `&` or `<`. Stylesheet arguments are manifest ids.
+Chapter and resource paths are canonical container paths; navigation targets are
+URL-encoded container paths with optional fragments. A publication needs at least one
+linear reading position. To create EPUB 2.0.1 with NCX navigation, pass
+`version: EpubVersion.Epub2` to `Create`.
+
+`AddResource` copies image, font, media, or other payload bytes into a manifest resource.
+`SetCoverImage` selects an existing image. Spine APIs edit positions without deduplicating
+repeated imported references. New positions require distinct manifest ids; repeated
+content needs a separate chapter resource. `SetNavigation` accepts hierarchical TOC entries, page-list entries,
+and landmarks (EPUB 2 uses NCX and guide references, with flat page-list and guide
+entries). Generated XHTML navigation links respect retained local HTML base URLs;
+navigation authoring rejects an external base that cannot address container content.
+Clearing an EPUB 2 page list with retained headers or extension XML requires explicit
+`GetContentXml`, serialization, and `UpdateResource` because NCX cannot retain an empty page-list shell.
+`SetMetadataProperty` updates a
+property; `AddMetadataProperty` adds repeatable values. `AddDublinCoreMetadata` adds
+contributors, languages, or other Dublin Core values with optional ids and language.
+EPUB 3 vocabulary prefixes, page progression, and rendition-layout declarations are
+available; declaring fixed layout does not generate page geometry.
+
+Accessibility metadata describes supplied content and does not certify conformance.
+The writer adds SVG and MathML properties discovered in rewritten XHTML and remote-resource
+properties discovered in rewritten XHTML/SVG. Existing remote-resource declarations remain
+intact. Dependencies reached through external stylesheets require correct manifest
+declarations from the caller and independent validation.
+
+## Edit and preserve a package
+
+```csharp
+using OfficeIMO.Epub;
+using System.Xml.Linq;
+
+EpubPublication publication = EpubPublication.Load("book.epub");
+publication.Title = "Revised title";
+string chapterId = publication.Spine[0].ManifestId;
+XDocument chapter = publication.GetContentXml(chapterId);
+XNamespace xhtml = "http://www.w3.org/1999/xhtml";
+chapter.Root!.Element(xhtml + "body")!.Add(new XElement(xhtml + "p", "An added paragraph."));
+publication.SetContentXml(chapterId, chapter);
+EpubWriteResult result = publication.Write();
+Console.WriteLine($"{result.Report.PreservedEntries.Count} unchanged entry payloads");
+publication.Save("revised.epub");
+```
+
+Loaded publications retain all bounded file entries, including unmanifested extension
+payloads, other rootfiles, unknown OPF nodes, and declaration attributes. An unedited
+write with default options returns the exact original compressed package. Selecting
+`CompressEntries = false` rebuilds the archive with stored entries while retaining
+unchanged payloads. Edited output rewrites the selected
+OPF and changed content; unchanged entry payloads retain their bytes. ZIP order,
+timestamps, compression, XML formatting, and lexical prefixes may differ after editing.
+`GetPackageXml` returns an inspection copy; typed metadata, manifest, and spine APIs
+edit the retained package. `GetContentXml` / `SetContentXml` support targeted XHTML/SVG
+editing. Instances are mutable and are not thread-safe.
+
+`EpubWriteReport` identifies preserved, regenerated, and removed entries. Explicit
+resource or signature removal produces omission diagnostics; `RequireNoLoss` rejects
+them. `RemoveResource` blocks structural and cover references, declared rootfiles,
+and payloads referenced by retained alternate packages or their XHTML/SVG/NCX content.
+Removal fails before mutation if an alternate package or its XML content cannot be
+inspected safely. Update content and navigation links before removing their targets.
+Raw resource APIs reject replacement or removal of `mimetype`, declared rootfiles,
+and `META-INF` controls. A manifested signature may be removed from the model, but
+writing still requires the explicit signature-removal policy described below.
+
+Imported duplicate spine references retain their reading positions and produce
+`EPUB_WRITE_RETAINED_DUPLICATE_SPINE`. This preserves the source's semantics but retains
+its nonconformance; `RequireNoLoss` checks omissions, not EPUB validity.
+
+MIME type comparisons accept equivalent casing while preserving declared spelling.
+EPUBCheck 5.4.0 flags uppercase EPUB 3 navigation and cover media types. For these
+imports, assign lowercase `MediaType` values explicitly when validator compatibility is required.
+
+Editing a package with `signatures.xml` or a ZIP central-directory signature fails unless
+`RemoveInvalidatedSignatures = true` is supplied in `EpubWriteOptions`; removal is reported.
+IDPF/Adobe-obfuscated font bytes remain unchanged when editing
+other content; replacing them or changing their package identity is rejected.
+Unsupported encrypted-resource edits are rejected. Unedited supported imports retain
+their protection metadata and ciphertext; the writer neither decrypts nor re-keys them.
+Editable loading rejects unreadable, over-budget, or ambiguous encryption declarations
+so protection guards cannot be bypassed by incomplete classification.
+
+## Save validation and limits
+
+Save preflight checks required metadata, unique package ids, manifest targets and
+relationships, acyclic fallbacks, linear spine positions, navigation, direct content
+URLs, responsive image targets, and XHTML/SVG fragment ids. Imported packages need
+canonical, unique ZIP paths and a physically leading stored `mimetype` entry.
+Cover declarations are checked against the final manifest, including their image
+type and the EPUB 3 single-cover property. `SetCoverImage` also updates retained
+legacy cover metadata, so replacing a cover keeps both declarations consistent.
+Media-overlay associations require an
+EPUB 3 content document and a SMIL target; SMIL timing is outside this validation.
+Spine items resolve to XHTML in EPUB 2, or XHTML/SVG in EPUB 3, through any fallback
+chain. EPUB 2 image and stylesheet resources belong inside content documents;
+direct spine references to them are rejected, including SVG with a fallback.
+Navigation targets require explicit spine entries. A fallback can be listed as a
+non-linear entry to make it navigable without repeating it in the primary reading order.
+Remote-resource
+declarations and URL-policy checks include retained media/source alternatives and
+stylesheet links, even when the renderer selects a different alternative.
+New or rewritten XHTML/SVG requires manifest declarations for embedded container
+resources and remote audio, video, or fonts. EPUB 3 remote images, stylesheets, and
+embedded documents are rejected. Inline CSS references are checked across media
+conditions; linked stylesheet dependency closure still requires independent validation.
+Data URLs are limited to inert raster image, audio/video, and font contexts. Embedded
+data documents, SVG data URLs, and data hyperlinks are rejected under the writer's
+non-scripted contract. Referenced imported scripted resources cannot be newly embedded.
+Newly authored or rewritten forms are rejected under the scripted-content restriction;
+unchanged imported scripted content remains eligible for preservation.
+Language authoring requires well-formed BCP 47 syntax, including private-use and
+grandfathered tags. Edited packages validate every Dublin Core language value.
+Unedited imports retain their original language declarations.
+Custom vocabulary declarations reject EPUB-prohibited mappings. Declare custom
+prefixes before assigning metadata, manifest, or spine properties. Newly assigned
+property tokens require valid declared or reserved prefixes and nonempty references;
+unrelated imported extension declarations remain intact.
+External content is never downloaded or executed. CSS resource closure, full schema
+validation, accessibility certification, and EPUB conformance need independent validation,
+such as [EPUBCheck](https://github.com/w3c/epubcheck).
+
+| Boundary | Default |
+| --- | ---: |
+| Compressed input / output | 128 MiB each |
+| Expanded retained / output bytes | 256 MiB each |
+| Individual retained entry | 64 MiB |
+| Package/container XML at load | 4 MiB |
+| Archive entries | 10,000 |
+| Authored navigation depth | 64 nested levels |
+
+Use `EpubPublicationLoadOptions` for retained input and creation resource limits;
+use `EpubWriteOptions` for output limits, modification time, and compression.
+Retained entry limits include mandatory package entries and apply when adding resources.
+Unedited writes count every physical ZIP record, including directories, against output
+limits. XHTML/SVG/NCX inspection, editing, and write preflight use the configured
+retained entry-byte bound; package XML uses the configured metadata bound.
+Rewritten XHTML/SVG checks XML against that bound before shared HTML analysis,
+allowing for canonical XML escaping while retaining the shared DOM, stylesheet,
+and responsive-resource complexity safeguards.
+Ordinary entries are deflated by default; `mimetype` is always stored first without
+extra fields. Repeated writes of unchanged model state use stable modification metadata
+and deterministic ZIP ordering. Supply `ModifiedAt` for a reproducible timestamp
+across separately created publications with identical identity and content.
+
+File saves use staged atomic replacement: validation, bounds, or cancellation failure
+before commit preserves an existing destination. Seekable caller streams are replaced
+and rewound; all caller streams remain open. Stream I/O failure or cancellation during
+the final copy can leave partial bytes. Async saves stage serialization synchronously
+before asynchronous destination I/O. Load and save APIs accept cancellation tokens.
+
+`publication.Read(options)` projects the current publication through `EpubDocument`
+for existing Reader and image-conversion consumers. It applies the writer's default
+save policy first, including signature and output-limit checks.
+
 ## Content provenance
 
 `EpubDocument.InspectProvenance("book.epub")` reports C2PA and AI-specific IPTC metadata in the EPUB package and supported embedded images. `EpubDocument.RemoveProvenance("book.epub", "clean.epub")` performs a targeted bounded rewrite while preserving the required uncompressed, first `mimetype` entry. Signed-package mutation is blocked unless removal of invalidated `META-INF/signatures.xml` is requested explicitly. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.
 
 ## Boundaries
 
-- This package owns reusable EPUB parsing primitives.
+- This package owns EPUB parsing, native authoring, and package-preserving editing.
 - Reader integration belongs in `OfficeIMO.Reader.Epub`.
-- The content model is read-only. The provenance and content-safety APIs provide only targeted, reviewed removal; they do not provide general package authoring, browser layout, scripting, DRM, or general encrypted-resource support. IDPF and Adobe font deobfuscation is bounded reader behavior, not a general encryption API.
+- `EpubDocument` remains a read-only extraction model; use `EpubPublication` for writing. Browser layout, scripting, DRM, general encrypted-resource editing, media-overlay authoring, manuscript import, and fixed-page geometry creation are outside the writer contract. IDPF and Adobe font deobfuscation remains bounded reader behavior.
 
 ## Targets and license
 
@@ -271,11 +450,12 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Create | 1 | 0 | 0 | 0 | 2 | 0 |
+| Create | 2 | 0 | 0 | 0 | 1 | 0 |
 | Read | 2 | 0 | 0 | 0 | 0 | 1 |
-| Edit | 0 | 0 | 0 | 1 | 1 | 1 |
+| Edit | 1 | 0 | 0 | 1 | 0 | 1 |
+| Preserve | 1 | 0 | 0 | 0 | 0 | 0 |
 | Inspect | 4 | 0 | 0 | 0 | 0 | 0 |
-| Validate | 2 | 0 | 0 | 0 | 0 | 1 |
+| Validate | 2 | 1 | 0 | 0 | 0 | 1 |
 | Remove | 2 | 0 | 0 | 0 | 0 | 1 |
 
 The complete rows for `OfficeIMO.Epub` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

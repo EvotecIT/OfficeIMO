@@ -3,17 +3,9 @@ namespace OfficeIMO.Epub;
 internal static partial class EpubReader {
     private static void ReadVocabularyPrefixes(XElement? element, EpubPackage package, EpubDiagnosticCollector diagnostics) {
         if (element == null) return;
-        string[] parts = GetUnqualifiedAttribute(element, "prefix")
-            .Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-        for (int index = 0; index < parts.Length; index += 2) {
-            string prefix = parts[index];
-            if (index + 1 >= parts.Length || !prefix.EndsWith(":", StringComparison.Ordinal) || prefix.Length < 2 ||
-                !Uri.TryCreate(parts[index + 1], UriKind.Absolute, out _)) {
-                diagnostics.Warning("epub.package.prefix-invalid", "Ignored invalid package vocabulary prefix declaration.", package.OpfPath);
-                continue;
-            }
-            package.VocabularyPrefixes[prefix.Substring(0, prefix.Length - 1)] = parts[index + 1];
-        }
+        var prefixes = EpubVocabulary.ReadPrefixes(GetUnqualifiedAttribute(element, "prefix"), () =>
+            diagnostics.Warning("epub.package.prefix-invalid", "Ignored invalid package vocabulary prefix declaration.", package.OpfPath));
+        foreach (var pair in prefixes) package.VocabularyPrefixes[pair.Key] = pair.Value;
     }
 
     private static bool IsRenditionProperty(EpubPackage package, string value, string localName) {
