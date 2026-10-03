@@ -5,6 +5,61 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfReviewComparerTests {
     [Fact]
+    public void ChangedPixelsOutsideSkipsUnchangedRowsWithoutLosingCoverage() {
+        var changed = new System.Collections.BitArray(12);
+        changed[0] = true;
+        changed[11] = true;
+        var page = new PdfVisualPageComparison(1, 1, false, 2, 6, 12, 2, 255, 0D,
+            Array.Empty<byte>(), Array.Empty<byte>(), Array.Empty<byte>(), false,
+            new PdfPixelRegion(0, 0, 2, 6), changed,
+            Array.Empty<PdfRenderCapabilityDiagnostic>(), Array.Empty<PdfRenderCapabilityDiagnostic>());
+
+        Assert.False(page.HasChangedPixelsOutside(new[] {
+            new PdfPixelRegion(0, 0, 1, 1), new PdfPixelRegion(1, 5, 1, 1)
+        }, default));
+        Assert.True(page.HasChangedPixelsOutside(new[] { new PdfPixelRegion(0, 0, 1, 1) }, default));
+    }
+
+    [Fact]
+    public void ReviewsOnlyChangedPageWhenRepeatedImagesAppearOnAlignedPages() {
+        byte[] image = PdfPngTestImages.CreateRgbPng(20, 60, 180);
+        static PdfDocument Make(byte[] image, string lastText) {
+            PdfDocument document = PdfDocument.Create(new PdfOptions { PageWidth = 240D, PageHeight = 180D });
+            for (int index = 0; index < 4; index++) {
+                if (index > 0) document.PageBreak();
+                string text = index == 3 ? lastText : "Unchanged";
+                document.Canvas(canvas => canvas.Image(image, 20D, 50D, 40D, 40D)
+                    .Text(text, 80D, 30D, 120D, 25D));
+            }
+            return PdfDocument.Load(document.ToBytes());
+        }
+
+        PdfReviewComparisonReport report = Make(image, "Original").Proof.CompareReview(Make(image, "Revised"));
+
+        PdfReviewPageComparison page = Assert.Single(report.Pages);
+        Assert.Equal(4, page.ExpectedPageNumber);
+        Assert.Contains(page.Changes, static change => change.Kind == PdfReviewChangeKind.TextChanged);
+    }
+
+    [Fact]
+    public void RepeatedLongDashComparisonsRespectReviewWorkLimit() {
+        string sharedDashPrefix = string.Join(" ", Enumerable.Repeat("1", 9_999));
+        string rectangles = string.Concat(Enumerable.Repeat("-1000 -1000 10 10 re f\n", 120));
+        static string Content(string text, string dashPrefix, string lastDash, string rectangles) =>
+            "[" + dashPrefix + " " + lastDash + "] 0 d " + rectangles +
+            "BT /F1 12 Tf 25 90 Td (" + text + ") Tj ET";
+        PdfDocument expected = PdfDocument.Load(InvisibleTextOperationsPdf(
+            Content("ABC", sharedDashPrefix, "2", rectangles)));
+        PdfDocument actual = PdfDocument.Load(InvisibleTextOperationsPdf(
+            Content("DEF", sharedDashPrefix, "3", rectangles)));
+
+        PdfReadLimitException failure = Assert.Throws<PdfReadLimitException>(() =>
+            expected.Proof.CompareReview(actual));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, failure.Kind);
+    }
+
+    [Fact]
     public void ClassifiesChangedTextAndRetainsRenderedPageProof() {
         PdfDocument expected = Page("Original", 20D);
         PdfDocument actual = Page("Revised", 20D);

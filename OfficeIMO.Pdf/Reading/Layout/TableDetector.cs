@@ -343,7 +343,7 @@ internal static partial class TableDetector {
                 // treated as a column boundary.
                 if (s.Text.Length >= 3 && IsLeaderSpan(s.Text)) {
                     double mid = s.X + Math.Max(0, s.Advance) / 2.0;
-                    cands.Add(mid);
+                    if (!double.IsNaN(mid) && !double.IsInfinity(mid)) cands.Add(mid);
                 }
             }
             for (int i = 1; i < ln.Spans.Count; i++) {
@@ -354,29 +354,38 @@ internal static partial class TableDetector {
                 double threshold = Math.Max(18.0, em * 2.0);
                 if (gap >= threshold) {
                     double mid = prevEnd + (gap / 2.0);
-                    cands.Add(mid);
+                    if (!double.IsNaN(mid) && !double.IsInfinity(mid)) cands.Add(mid);
                 }
             }
         }
         if (eligibleLines == 0 || cands.Count == 0) return new List<double>();
         // Histogram candidates into 4pt bins and select peaks with sufficient votes
         double binW = 4.0;
-        double minX = cands.Min(); double maxX = cands.Max();
-        int bins = Math.Max(1, (int)Math.Ceiling((maxX - minX) / binW));
-        var hist = new int[bins];
+        double minX = cands.Min();
+        double lastBin = Math.Max(0D, Math.Ceiling((cands.Max() - minX) / binW) - 1D);
+        var hist = new Dictionary<double, int>();
         foreach (var x in cands) {
-            int b = (int)Math.Floor((x - minX) / binW);
-            if (b < 0) b = 0; if (b >= bins) b = bins - 1; hist[b]++;
+            double b = Math.Floor((x - minX) / binW);
+            if (double.IsInfinity(b)) continue;
+            if (b < 0D) b = 0D;
+            if (!double.IsInfinity(lastBin) && b > lastBin) b = lastBin;
+            hist.TryGetValue(b, out int votes);
+            hist[b] = votes + 1;
         }
+        if (hist.Count == 0) return new List<double>();
         int voteCut = eligibleLines == 1 ? 1 : Math.Max(2, (int)Math.Ceiling(eligibleLines * 0.35));
         var peaks = new List<double>();
-        for (int b = 0; b < bins; b++) if (hist[b] >= voteCut) peaks.Add(minX + b * binW + binW / 2.0);
+        foreach (KeyValuePair<double, int> bin in hist) {
+            double peak = minX + bin.Key * binW + binW / 2.0;
+            if (bin.Value >= voteCut && !double.IsInfinity(peak)) peaks.Add(peak);
+        }
         if (peaks.Count == 0) {
             // Fallback for narrow bands: pick the strongest bin if any votes exist
-            int maxVotes = 0; int maxBin = -1;
-            for (int b = 0; b < bins; b++) if (hist[b] > maxVotes) { maxVotes = hist[b]; maxBin = b; }
-            if (maxVotes > 0 && maxBin >= 0) peaks.Add(minX + maxBin * binW + binW / 2.0);
-            else return new List<double>();
+            KeyValuePair<double, int> strongest = hist.OrderByDescending(static bin => bin.Value)
+                .ThenBy(static bin => bin.Key).First();
+            double peak = minX + strongest.Key * binW + binW / 2.0;
+            if (double.IsInfinity(peak)) return new List<double>();
+            peaks.Add(peak);
         }
         // Merge nearby peaks (< 16pt apart)
         peaks.Sort();

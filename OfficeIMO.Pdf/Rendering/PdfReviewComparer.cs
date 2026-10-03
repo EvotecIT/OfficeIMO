@@ -27,17 +27,10 @@ internal static class PdfReviewComparer {
         if (changedPairCount > maximumVisualPairs) throw PdfReadLimitException.Create(PdfReadLimitKind.RenderPages, maximumVisualPairs, changedPairCount);
         if (pairs.Length == 0) return new PdfReviewComparisonReport(alignment, Array.Empty<PdfReviewPageComparison>());
 
-        PdfDocumentReadResult expectedLogical = PdfDocumentReadEngine.Read(expected, new PdfReadOptions {
-            Profile = PdfReadProfile.Fast,
-            PageSelection = PdfPageSelection.From(pairs.Select(static pair => pair.ExpectedPageNumber!.Value).ToArray()),
-            Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = effective.MaxAlignedPagePairs }
-        }, cancellationToken);
-        PdfDocumentReadResult actualLogical = PdfDocumentReadEngine.Read(actual, new PdfReadOptions {
-            Profile = PdfReadProfile.Fast,
-            PageSelection = PdfPageSelection.From(pairs.Select(static pair => pair.ActualPageNumber!.Value).ToArray()),
-            Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = effective.MaxAlignedPagePairs }
-        }, cancellationToken);
-
+        IReadOnlyDictionary<int, IReadOnlyList<PdfLogicalFormWidget>> expectedWidgets =
+            PdfDocumentReadResult.IndexFormWidgetsByPageNumber(expected.FormFields);
+        IReadOnlyDictionary<int, IReadOnlyList<PdfLogicalFormWidget>> actualWidgets =
+            PdfDocumentReadResult.IndexFormWidgetsByPageNumber(actual.FormFields);
         long totalPixels = 0;
         long totalOutputBytes = 0;
         var pages = new List<PdfReviewPageComparison>(pairs.Length);
@@ -48,8 +41,12 @@ internal static class PdfReviewComparer {
             PdfVisualPageComparison? visual = pair.Kind == PdfPageChangeKind.ModifiedCandidate
                 ? PdfVisualComparer.ComparePages(expected, expectedNumber, actual, actualNumber, effective.Visual, ref totalPixels, cancellationToken)
                 : null;
-            PdfLogicalPage expectedPage = expectedLogical.PagesBySourcePageNumber[expectedNumber][0];
-            PdfLogicalPage actualPage = actualLogical.PagesBySourcePageNumber[actualNumber][0];
+            // Reconstruct one aligned pair at a time. A shared image resource can otherwise
+            // become a separate retained payload for every selected page on both sides.
+            PdfLogicalPage expectedPage = PdfDocumentReadEngine.ReadLogicalPage(expected, expectedNumber,
+                expectedWidgets, cancellationToken);
+            PdfLogicalPage actualPage = PdfDocumentReadEngine.ReadLogicalPage(actual, actualNumber,
+                actualWidgets, cancellationToken);
             IReadOnlyList<PdfReviewChange> changes = PdfReviewSemanticComparer.Compare(
                 expectedPage, actualPage, expected.Pages[expectedNumber - 1], actual.Pages[actualNumber - 1],
                 visual, pair.UsesIgnoredRegions, effective, cancellationToken);
@@ -69,4 +66,5 @@ internal static class PdfReviewComparer {
         }
         return new PdfReviewComparisonReport(alignment, pages);
     }
+
 }
