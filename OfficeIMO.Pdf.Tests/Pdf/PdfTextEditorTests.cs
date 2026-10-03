@@ -4,7 +4,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public class PdfTextEditorTests {
+public partial class PdfTextEditorTests {
     [Theory]
     [InlineData(0)]
     [InlineData(90)]
