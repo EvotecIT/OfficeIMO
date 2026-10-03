@@ -9,6 +9,12 @@ public sealed class ZipEntryDescriptor {
     /// </summary>
     public string FullName { get; set; } = string.Empty;
 
+    /// <summary>Original entry name, before display-path normalization.</summary>
+    public string RawFullName { get; set; } = string.Empty;
+
+    /// <summary>Zero-based entry index in the original archive, including skipped entries.</summary>
+    public int EntryIndex { get; set; }
+
     /// <summary>
     /// File name component of the entry.
     /// </summary>

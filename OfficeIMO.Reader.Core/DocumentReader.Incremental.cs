@@ -9,7 +9,10 @@ internal static partial class DocumentReaderEngine {
 
     internal static IEnumerable<ReaderChunk> EnumerateChunks(string path, ReaderOptions options, CancellationToken token) {
         if (Directory.Exists(path)) {
-            foreach (var chunk in ReadDocument(path, options, token).Chunks) yield return chunk;
+            foreach (var chunk in ReadDocument(path, options, token).Chunks) {
+                token.ThrowIfCancellationRequested();
+                yield return chunk;
+            }
             yield break;
         }
         ValidateFilePath(path);
@@ -18,14 +21,19 @@ internal static partial class DocumentReaderEngine {
             throw CreateUnsupportedInputException(path, detection);
         }
         if (!handler.SupportsIncrementalPath) {
-            foreach (var chunk in ReadDocument(path, options, token).Chunks) yield return chunk;
+            foreach (var chunk in ReadDocument(path, options, token).Chunks) {
+                token.ThrowIfCancellationRequested();
+                yield return chunk;
+            }
             yield break;
         }
         var source = BuildSourceInfoFromPath(path, ShouldComputeSourceHash(handler, options), token);
         foreach (var chunk in handler.ReadPath!(path, options, token)) {
             token.ThrowIfCancellationRequested();
+            ValidateUnchangedPathSource(source, token, verifyHash: false);
             yield return EnrichChunk(chunk, source, options.ComputeHashes);
         }
+        ValidateUnchangedPathSource(source, token);
     }
 
     internal static IEnumerable<ReaderChunk> EnumerateChunks(Stream stream, string? name, ReaderOptions options, CancellationToken token) {
@@ -37,7 +45,10 @@ internal static partial class DocumentReaderEngine {
         if (options.DetectionMode == ReaderDetectionMode.PreferContent ||
             !GetActiveHandlerRegistry().TryResolve(NormalizeExtension(TryGetExtension(sourceName)), out var handler) ||
             !handler.SupportsIncrementalStream || (!stream.CanSeek && options.ComputeHashes)) {
-            foreach (var chunk in ReadDocument(stream, sourceName, options, token).Chunks) yield return chunk;
+            foreach (var chunk in ReadDocument(stream, sourceName, options, token).Chunks) {
+                token.ThrowIfCancellationRequested();
+                yield return chunk;
+            }
             yield break;
         }
         long? maximum = ResolveStreamMaxInputBytes(sourceName, options, stream.CanSeek);

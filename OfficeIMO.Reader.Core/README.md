@@ -187,6 +187,16 @@ network clients, hosted providers, and native tools remain explicit host choices
 
 ## Stable contracts
 
+File reads retain the same source identity and timestamps through synchronous, asynchronous and batch
+routes. Container result envelopes describe the outer input; member chunks retain their own provenance
+through document processors. Folder byte limits charge the physical files accepted for parsing.
+Native async file handlers are awaited directly. Synchronous file handlers run on a worker through the
+reader's concurrency gate; their file-specific behavior also applies to async and batch reads.
+
+Table exports accept cancellation while scanning and writing rows. Pass a token to
+`reader.ExportTables(tables, cancellationToken: token)` for CSV, Markdown and JSON together, or use
+`table.ToCsv(token)`, `table.ToMarkdownTable(token)` and `table.ToJson(indented: true, cancellationToken: token)` separately.
+
 - `ReaderOptions` and format-neutral input/processing limits
 - `ReaderChunk` and the schema-versioned `OfficeDocumentReadResult`
 - tables, pages, visuals, assets, links, forms, metadata, and diagnostics

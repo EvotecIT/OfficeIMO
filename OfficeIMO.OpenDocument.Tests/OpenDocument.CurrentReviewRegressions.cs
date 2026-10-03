@@ -21,6 +21,7 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
         Assert.Equal("\"Liberation, Sans\", Arial, sans-serif", syntax.ToString());
         Assert.False(OdfFontFamilySyntax.TryParse("'unterminated", out _));
         Assert.False(OdfFontFamilySyntax.TryParse("Arial,,sans-serif", out _));
+        Assert.False(OdfFontFamilySyntax.TryParse(new string('A', 4097), out _));
     }
 
     [Fact]

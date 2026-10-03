@@ -11,6 +11,24 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class SpreadsheetCellLayoutConversionTests {
     [Fact]
+    public void RepeatedHiddenRowsRespectIndividualLayoutBudget() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Layout");
+        sheet.Row(0).Hidden = true;
+        XElement row = sheet.Element.Descendants(OdfNamespaces.Table + "table-row").Single();
+        row.SetAttributeValue(OdfNamespaces.Table + "number-rows-repeated", 6);
+        source.MarkPartDirty("content.xml");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult(
+            new ExcelOpenDocumentConversionOptions { MaximumRowLayoutRows = 2 });
+        using ExcelDocument target = conversion.Value;
+        Assert.Equal(new[] { 1, 2 }, target.CreateInspectionSnapshot().Worksheets.Single().Rows
+            .Where(item => item.Hidden).Select(item => item.Index));
+        Assert.Contains(conversion.Report.ForFeature("expansion-limits"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Skipped);
+    }
+
+    [Fact]
     public void ExcelAlignmentAndWrapRoundTripThroughOdsCellStyle() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddWorksheet("Layout");

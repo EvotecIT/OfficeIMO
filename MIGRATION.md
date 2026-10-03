@@ -17,6 +17,10 @@ DocBook Reader Markdown escapes literal syntax. Applications comparing exact Mar
 
 Arrow decimals must fit both declared scale and precision. Redundant fractional zeros are accepted. Increase `DecimalPrecision` for values outside the declared coefficient range rather than relying on invalid Arrow output. `CollectionColumnMapping.HeaderPrefix` now changes displayed Excel and PowerPoint headers; use `null` for the original collection-path prefix. Column selection, formatting and flattened dictionary keys retain their original paths.
 
+## ODS row layout conversion
+
+ODS-to-XLSX conversion materializes at most 4,096 individual hidden-row or row-height layouts per sheet by default. Larger row-layout expansions are reported under `expansion-limits`; set `ExcelOpenDocumentConversionOptions.MaximumRowLayoutRows` when a trusted workbook needs a higher limit.
+
 ## Chart data label separators
 
 `OfficeChartLayout` accepts data label separators up to 64 characters. Shorten longer authored separators before constructing a layout; they now raise `ArgumentOutOfRangeException`. Native charts with longer separators are not projected into the shared chart layout, because the separator would be copied into every rendered point label.
@@ -362,6 +366,24 @@ Folder and detailed path reads apply the configured document processor pipeline.
 second processing pass that previously compensated for these routes bypassing processors.
 Word tables preserve complete Markdown when an atomic table exceeds `MaxChars` and emit a warning.
 Applications that require terminal limits should configure `ReaderOptions.ResourceLimits`.
+
+## Reader XML limits and changing sources
+
+XML extraction uses `XmlReadOptions.MaxDepth` (128), `MaxNodes` (200,000), and
+`MaxScalarLength` (1,048,576) by default. Inputs exceeding these limits throw
+`ReaderResourceLimitException`. Increase the relevant option for trusted larger inputs.
+XML and YAML values within their configured limits retain their full normalized text.
+
+Path reads reject a detected source change with `IOException`. Retry against a stable file.
+Keep incremental inputs stable until enumeration finishes: a later failure cannot withdraw
+chunks already delivered to the consumer.
+
+Async file reads use the same normalized file identity and timestamps as synchronous reads.
+Rebuild indexes that stored the previous async stream-derived source IDs or chunk hashes.
+Chunk-based container results describe the outer input in `Kind` and `Source`; member identity,
+hash, length and timestamps remain on the member chunks, including after document processing.
+Folder byte budgets charge the physical file size. Consumers that inferred the first member's
+kind or metadata from the root envelope should read that member's chunk instead.
 
 ## Reader document schema version 8
 

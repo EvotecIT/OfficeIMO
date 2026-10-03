@@ -547,9 +547,6 @@ internal static class YamlReaderAdapter {
         if (value.Length == 0) return string.Empty;
 
         var normalized = value.Replace("\r\n", "\n").Replace('\r', '\n');
-        if (normalized.Length > 2048) {
-            normalized = normalized.Substring(0, 2048);
-        }
 
         return normalized;
     }
@@ -722,7 +719,7 @@ internal static class YamlReaderAdapter {
         }
 
         if (!containsWhitespace) {
-            return value.Length <= 2048 ? value : value.Substring(0, 2048);
+            return value;
         }
 
         var sb = new StringBuilder(value.Length);
@@ -740,9 +737,6 @@ internal static class YamlReaderAdapter {
         }
 
         var normalized = sb.ToString().Trim();
-        if (normalized.Length > 2048) {
-            normalized = normalized.Substring(0, 2048);
-        }
 
         return normalized;
     }
