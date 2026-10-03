@@ -4,7 +4,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public sealed class PdfTableCellViewportTests {
+public sealed partial class PdfTableCellViewportTests {
     [Theory]
     [InlineData("flow")]
     [InlineData("column")]
@@ -102,14 +102,12 @@ public sealed class PdfTableCellViewportTests {
     }
 
     [Fact]
-    public void Viewport_rejects_cell_objects_that_require_separate_placement() {
+    public void Viewport_rejects_interactive_cell_fields_that_require_separate_placement() {
         var viewport = new PdfTableCellViewport(100, 48, 100, 24);
         var checkBox = new PdfTableCell("Check", checkBoxes: new[] { new PdfTableCellCheckBox("check") });
         var field = new PdfTableCell("Field", formFields: new[] { PdfTableCellFormField.TextField("field") });
-        var image = PdfTableCell.WithImages("Image", new[] { new PdfTableCellImage(PdfPngTestImages.CreateRgbPng(2, 2), 12, 12) });
         Assert.Throws<ArgumentException>(() => checkBox.WithViewport(viewport));
         Assert.Throws<ArgumentException>(() => field.WithViewport(viewport));
-        Assert.Throws<ArgumentException>(() => image.WithViewport(viewport));
         Assert.Null(checkBox.WithViewport(null).Viewport);
         Assert.Single(checkBox.WithViewport(null).CheckBoxes);
     }

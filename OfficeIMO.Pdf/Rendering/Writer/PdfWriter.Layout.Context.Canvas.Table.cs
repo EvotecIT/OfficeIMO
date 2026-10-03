@@ -417,18 +417,16 @@ internal static partial class PdfWriter {
                     RenderTableCellInlineCheckBox(currentPage!, cell, align, lines.Lines[0], cellX + padLeft, innerWidth, firstBaseline);
                 } else {
                     double textHeight = MeasureTableCellTextHeight(lines, 0, lineCount, leading);
-                    double formFieldTop = cellTop - padTop - verticalOffset - (string.IsNullOrEmpty(cell.Text) ? 0D : textHeight + TableCellCheckBoxGap);
+                    double formFieldTop = contentFrame.Top - padTop - verticalOffset - (string.IsNullOrEmpty(cell.Text) ? 0D : textHeight + TableCellCheckBoxGap);
+                    TableCellContentFrame? clip = cell.Viewport == null ? null : new TableCellContentFrame(cellX, cellTop, cellWidth, cellHeight);
                     RenderTableCellObjects(
                         currentPage!,
                         cell,
                         align,
-                        cellX + padLeft,
+                        contentFrame.Left + padLeft,
                         innerWidth,
                         formFieldTop,
-                        pageImage => {
-                            pageImage.InlineDrawToken = AllocateInlineImageDrawToken(currentPage!);
-                            sb.Append(pageImage.InlineDrawToken);
-                        });
+                        pageImage => WriteTableCellViewportImage(pageImage, clip), clip);
                 }
             }
 

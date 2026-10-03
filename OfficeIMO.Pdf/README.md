@@ -640,11 +640,13 @@ fragmentStyle.ColumnWidthPoints = new List<double?> { 100 };
 fragmentStyle.FixedRowHeights = new List<double?> { 24 };
 fragmentStyle.VerticalAlignments = new List<PdfCellVerticalAlign> { PdfCellVerticalAlign.Bottom };
 
-PdfDocument.Create().Table(new[] { new[] { lowerHalf } }, style: fragmentStyle)
+PdfDocument.Create().Compose(document => document.Page(page =>
+    page.Content(content => content.Item(item =>
+        item.Table(new[] { new[] { lowerHalf } }, style: fragmentStyle)))))
     .Save("cell-fragment.pdf");
 ```
 
-The viewport scales with the rendered cell dimensions and preserves cell links and named destinations. Data bars and icons retain their full-cell geometry too. It works in normal flow, column flow and canvas tables. A row containing a viewport must fit on one page; split larger cells into explicit fragments before rendering. A cell with images, check boxes or form fields rejects a viewport; place those objects separately. Pass `null` to `WithViewport` to return a copy with ordinary cell layout. `PdfCellIcon.HorizontalAlignment` can position an icon independently of the cell text.
+The viewport scales with the rendered cell dimensions and preserves cell links and named destinations. Images, data bars and icons retain their full-cell geometry too and clip to each visible fragment. It works in normal flow, column flow and canvas tables. A viewport's complete visible row span must fit on one page; split larger cells into explicit fragments before rendering. A cell with check boxes or form fields rejects a viewport; place interactive fields separately. Pass `null` to `WithViewport` to return a copy with ordinary cell layout. `PdfCellIcon.HorizontalAlignment` can position an icon independently of the cell text.
 
 ### Floating tables
 

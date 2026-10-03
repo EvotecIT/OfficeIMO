@@ -1,6 +1,18 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
+    private sealed partial class LayoutContext {
+        private void WriteTableCellViewportImage(PageImage image, TableCellContentFrame? clipFrame) {
+            image.InlineDrawToken = AllocateInlineImageDrawToken(currentPage!);
+            if (clipFrame.HasValue) {
+                TableCellContentFrame clip = clipFrame.Value;
+                new ContentStreamBuilder(sb).SaveState().Rectangle(clip.Left, clip.Top - clip.Height, clip.Width, clip.Height).ClipPath().EndPath();
+            }
+            sb.Append(image.InlineDrawToken);
+            if (clipFrame.HasValue) new ContentStreamBuilder(sb).RestoreState();
+        }
+    }
+
     private readonly struct TableCellContentFrame {
         internal TableCellContentFrame(double left, double top, double width, double height) {
             Left = left;
@@ -34,8 +46,37 @@ internal static partial class PdfWriter {
     private static TableCellContentFrame? GetTableCellDiagonalFrame(TableCellLayout cell, double left, double bottom, double width, double height) =>
         cell.Viewport == null ? null : GetTableCellContentFrame(cell, left, bottom + height, width, height);
 
-    private static bool TableRowHasViewport(TableBlock table, int row, int columns) =>
-        GetTableCellLayouts(table, row, columns).Any(cell => cell.Viewport != null);
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<TableBlock, ViewportRowGroups> TableViewportRowGroups = new();
+
+    private sealed class ViewportRowGroups {
+        internal ViewportRowGroups(TableBlock table, int columns) {
+            Ends = Enumerable.Repeat(-1, table.Rows.Count).ToArray();
+            var anchorEnds = Enumerable.Repeat(-1, table.Rows.Count).ToArray();
+            for (int row = 0; row < table.Rows.Count; row++) {
+                foreach (TableCellLayout cell in GetTableCellLayouts(table, row, columns)) {
+                    if (cell.Viewport != null) anchorEnds[row] = Math.Max(anchorEnds[row], row + cell.RowSpan - 1);
+                }
+            }
+            for (int row = 0; row < anchorEnds.Length; row++) {
+                if (anchorEnds[row] < row) continue;
+                int start = row;
+                int end = anchorEnds[row];
+                while (row < end) { row++; end = Math.Max(end, anchorEnds[row]); }
+                for (int member = start; member <= end; member++) Ends[member] = end;
+            }
+        }
+        internal int[] Ends { get; }
+    }
+
+    private static int[] GetTableViewportRowGroups(TableBlock table, int columns) =>
+        TableViewportRowGroups.GetValue(table, key => new ViewportRowGroups(key, columns)).Ends;
+
+    private static bool TableRowHasViewport(TableBlock table, int row, int columns) => GetTableViewportRowGroups(table, columns)[row] >= row;
+
+    private static bool StartsTableViewportRowGroup(int[] groups, int row) => groups[row] >= row && (row == 0 || groups[row - 1] < row);
+
+    private static double GetTableViewportPlacementHeight(int[] groups, double[] rowHeights, int row, double rowGap) =>
+        StartsTableViewportRowGroup(groups, row) ? GetTableRowsHeight(rowHeights, row, groups[row] - row + 1, rowGap) : rowHeights[row];
 
     private static void DrawTableCellDiagonals(System.Text.StringBuilder sb, PdfCellBorder border, double x, double y, double width, double height, TableCellContentFrame? frame, bool artifact) {
         if (!border.DiagonalUp && !border.DiagonalDown) return;

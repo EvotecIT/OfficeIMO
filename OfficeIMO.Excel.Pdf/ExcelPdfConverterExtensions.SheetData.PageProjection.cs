@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel.Pdf {
                             localRow < chunk.HeaderRowCount ? chunk.HeaderRowCount : rows.Count);
                         int columnSpan = CountMergeFragmentAxis(columns, localColumn, region.Column + region.Span.ColumnSpan, columns.Count);
                         PdfCore.PdfTableCellViewport? viewport = CreateMergeViewport(plan, region, row, column, rowSpan, columnSpan);
-                        merged.SetSpan(localRow, localColumn, rowSpan, columnSpan, viewport);
+                        merged.SetSpan(localRow, localColumn, rowSpan, columnSpan, viewport, source.CellReferences?[region.Row, region.Column]);
                         values[localRow, localColumn] = source.Values[region.Row, region.Column];
                         if (source.ConditionalFills != null) {
                             CopyMergeAnchorVisual(source.ConditionalFills.FillColors, conditionalFills!, region, localRow, localColumn);

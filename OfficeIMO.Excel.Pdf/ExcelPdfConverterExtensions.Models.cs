@@ -267,7 +267,7 @@ namespace OfficeIMO.Excel.Pdf {
 
             public bool HasAny { get; private set; }
 
-            public void SetSpan(int row, int column, int rowSpan, int columnSpan, PdfCore.PdfTableCellViewport? textViewport = null) {
+            public void SetSpan(int row, int column, int rowSpan, int columnSpan, PdfCore.PdfTableCellViewport? textViewport = null, string? imageAnchorReference = null) {
                 if (row < 0 || column < 0 || row >= _mergeIndexes.GetLength(0) || column >= _mergeIndexes.GetLength(1)) {
                     return;
                 }
@@ -278,7 +278,7 @@ namespace OfficeIMO.Excel.Pdf {
                     return;
                 }
 
-                _regions.Add(new MergeRegion(row, column, new MergeSpan(rowSpan, columnSpan, textViewport)));
+                _regions.Add(new MergeRegion(row, column, new MergeSpan(rowSpan, columnSpan, textViewport, imageAnchorReference)));
                 for (int r = row; r < row + rowSpan; r++) {
                     for (int c = column; c < column + columnSpan; c++) {
                         _mergeIndexes[r, c] = _regions.Count;
@@ -299,7 +299,7 @@ namespace OfficeIMO.Excel.Pdf {
 
             public void CopyTo(MergeLayoutData target, int rowOffset, int columnOffset = 0) {
                 foreach (MergeRegion region in _regions)
-                    target.SetSpan(region.Row + rowOffset, region.Column + columnOffset, region.Span.RowSpan, region.Span.ColumnSpan, region.Span.Viewport);
+                    target.SetSpan(region.Row + rowOffset, region.Column + columnOffset, region.Span.RowSpan, region.Span.ColumnSpan, region.Span.Viewport, region.Span.ImageAnchorReference);
             }
         }
 
@@ -311,15 +311,17 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private sealed class MergeSpan {
-            public MergeSpan(int rowSpan, int columnSpan, PdfCore.PdfTableCellViewport? textViewport = null) {
+            public MergeSpan(int rowSpan, int columnSpan, PdfCore.PdfTableCellViewport? textViewport = null, string? imageAnchorReference = null) {
                 RowSpan = rowSpan;
                 ColumnSpan = columnSpan;
                 Viewport = textViewport;
+                ImageAnchorReference = imageAnchorReference;
             }
 
             public int RowSpan { get; }
             public int ColumnSpan { get; }
             public PdfCore.PdfTableCellViewport? Viewport { get; }
+            public string? ImageAnchorReference { get; }
         }
     }
 }

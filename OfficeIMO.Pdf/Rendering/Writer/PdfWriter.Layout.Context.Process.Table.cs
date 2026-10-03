@@ -383,8 +383,9 @@ internal static partial class PdfWriter {
                 }
             }
 
+            int[] viewportRowGroups = GetTableViewportRowGroups(tb, cols);
             double GetRequiredSegmentHeight(int rowIndex, int startLine, bool requireWholeRow) =>
-                requireWholeRow ? rowHeights[rowIndex] : MeasureTableRowSegmentHeight(rowIndex, startLine, 1, suppressCellObjects: false);
+                requireWholeRow ? GetTableViewportPlacementHeight(viewportRowGroups, rowHeights, rowIndex, rowGapPx) : MeasureTableRowSegmentHeight(rowIndex, startLine, 1, suppressCellObjects: false);
 
             double GetTableContinuationRequiredHeight(int rowIndex, int startLine, bool requireWholeRow) {
                 double rowRequiredHeight = GetRequiredSegmentHeight(rowIndex, startLine, requireWholeRow);
@@ -470,6 +471,7 @@ internal static partial class PdfWriter {
                 MeasureTableRowSegmentHeight(rowIndex, 0, Math.Min(2, rowLineCounts[rowIndex]), suppressCellObjects: false) <= y - TableBottom() + 0.001;
 
             bool ShouldBreakBeforeFinalBodyRows(int rowIndex) {
+                if (viewportRowGroups[rowIndex] >= rowIndex && !StartsTableViewportRowGroup(viewportRowGroups, rowIndex)) return false;
                 int minimumBodyRows = Math.Min(style.MinimumBodyRowsOnLastPage, Math.Max(0, footerStartRowIndex - headerRowCount));
                 if (minimumBodyRows <= 0 || footerStartRowIndex - rowIndex != minimumBodyRows) {
                     return false;
@@ -752,8 +754,10 @@ internal static partial class PdfWriter {
                         if (CanRenderTableCellCheckBoxInline(cell, lines, sourceStartLine, visibleLineCount)) {
                             RenderTableCellInlineCheckBox(currentPage!, cell, align, lines.Lines[sourceStartLine], xi + cellPadLeft, innerW, firstBaseline);
                         } else {
-                            double formFieldTop = y - cellPadTop - verticalOffset - (string.IsNullOrEmpty(cell.Text) ? 0D : visibleTextHeight + TableCellCheckBoxGap);
-                            RenderTableCellObjects(currentPage!, cell, align, xi + cellPadLeft, innerW, formFieldTop);
+                            double formFieldTop = contentFrame.Top - cellPadTop - verticalOffset - (string.IsNullOrEmpty(cell.Text) ? 0D : visibleTextHeight + TableCellCheckBoxGap);
+                            TableCellContentFrame? clip = cell.Viewport == null ? null : new TableCellContentFrame(xi, y, cellWidth, cellHeight);
+                            RenderTableCellObjects(currentPage!, cell, align, contentFrame.Left + cellPadLeft, innerW, formFieldTop,
+                                clip.HasValue ? image => WriteTableCellViewportImage(image, clip) : null, clip);
                         }
                     }
 
@@ -856,6 +860,9 @@ internal static partial class PdfWriter {
             int firstRowIndex = skipInitialHeaderRows ? headerRowCount : 0;
             for (int rowIndex = firstRowIndex; rowIndex < tb.Rows.Count; rowIndex++) {
                 cancellationToken.ThrowIfCancellationRequested();
+                double placementHeight = GetTableViewportPlacementHeight(viewportRowGroups, rowHeights, rowIndex, rowGapPx);
+                if (viewportRowGroups[rowIndex] >= rowIndex && placementHeight > maxContentHeight + 0.001D)
+                    throw new ArgumentException("A cell viewport's complete visible row span must fit within one page; divide it into explicit fragments before rendering.");
                 double requiredRowHeight = GetTableRowFixedHeight(style, rowIndex) ?? GetTableRowMinHeight(style, rowIndex);
                 if (requiredRowHeight > maxContentHeight + 0.001D)
                     throw new ArgumentException("Table row height requirement exceeds the available page content height.");
@@ -871,7 +878,7 @@ internal static partial class PdfWriter {
                     continue;
                 }
 
-                if (ShouldBreakBefore(rowHeights[rowIndex])) {
+                if (ShouldBreakBefore(placementHeight)) {
                     if (CanSplitTableRowIntoRemainingSpace(rowIndex)) {
                         DrawSplitTableRow(rowIndex, renderAsHeader: rowIndex < headerRowCount);
                         y -= GetTableRowGapAfter(rowIndex, tb.Rows.Count, rowGapPx);
@@ -882,6 +889,9 @@ internal static partial class PdfWriter {
                 } else if (ShouldBreakBeforeFinalBodyRows(rowIndex)) {
                     NewTablePage(rowIndex, requireWholeRow: true);
                 }
+
+                if (viewportRowGroups[rowIndex] >= rowIndex && placementHeight > y - TableBottom() + 0.001D)
+                    throw new ArgumentException("A cell viewport's complete visible row span cannot fit in the current page frame.");
 
                 DrawTableRow(rowIndex, renderAsHeader: rowIndex < headerRowCount);
             }

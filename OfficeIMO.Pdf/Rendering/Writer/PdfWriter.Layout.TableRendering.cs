@@ -46,7 +46,8 @@ internal static partial class PdfWriter {
         double textX,
         double innerWidth,
         double topY,
-        System.Action<PageImage>? onImageAdded = null) {
+        System.Action<PageImage>? onImageAdded = null,
+        TableCellContentFrame? clipFrame = null) {
         double yCursor = topY;
         int objectCount = 0;
         for (int index = 0; index < cell.Images.Count; index++) {
@@ -69,9 +70,14 @@ internal static partial class PdfWriter {
                 _ => textX
             };
             PageImage pageImage = CreatePageImage(block, imageStyle, x, yCursor - imageBox.Height, imageBox.Width, imageBox.Height);
-            page.Images.Add(pageImage);
-            onImageAdded?.Invoke(pageImage);
-            AddTableCellImageLinkAnnotation(page, image, imageStyle, pageImage, x, yCursor - imageBox.Height, imageBox.Width, imageBox.Height);
+            GetImageAnnotationBounds(imageStyle, pageImage, x, yCursor - imageBox.Height, imageBox.Width, imageBox.Height,
+                out double imageLeft, out double imageBottom, out double imageRight, out double imageTop);
+            if (!clipFrame.HasValue || imageRight > clipFrame.Value.Left && imageLeft < clipFrame.Value.Left + clipFrame.Value.Width
+                && imageTop > clipFrame.Value.Top - clipFrame.Value.Height && imageBottom < clipFrame.Value.Top) {
+                page.Images.Add(pageImage);
+                onImageAdded?.Invoke(pageImage);
+                AddTableCellImageLinkAnnotation(page, image, imageStyle, pageImage, x, yCursor - imageBox.Height, imageBox.Width, imageBox.Height, clipFrame);
+            }
             yCursor -= imageBox.Height;
             objectCount++;
         }
@@ -137,12 +143,19 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void AddTableCellImageLinkAnnotation(LayoutResult.Page page, PdfTableCellImage image, PdfImageStyle style, PageImage pageImage, double targetX, double targetBottomY, double targetWidth, double targetHeight) {
+    private static void AddTableCellImageLinkAnnotation(LayoutResult.Page page, PdfTableCellImage image, PdfImageStyle style, PageImage pageImage, double targetX, double targetBottomY, double targetWidth, double targetHeight, TableCellContentFrame? clipFrame = null) {
         if (string.IsNullOrEmpty(image.LinkUri)) {
             return;
         }
 
         GetImageAnnotationBounds(style, pageImage, targetX, targetBottomY, targetWidth, targetHeight, out double x1, out double y1, out double x2, out double y2);
+        if (clipFrame.HasValue) {
+            x1 = System.Math.Max(x1, clipFrame.Value.Left);
+            x2 = System.Math.Min(x2, clipFrame.Value.Left + clipFrame.Value.Width);
+            y1 = System.Math.Max(y1, clipFrame.Value.Top - clipFrame.Value.Height);
+            y2 = System.Math.Min(y2, clipFrame.Value.Top);
+            if (x2 <= x1 || y2 <= y1) return;
+        }
 
         page.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = image.LinkUri!, Contents = image.LinkContents, LinkedImage = pageImage });
     }

@@ -275,7 +275,7 @@ namespace OfficeIMO.Excel.Pdf {
                     string? cellDestinationName = TryGetCellDestinationName(cellReferences, row, column, sheetName, cellDestinations, out string? destinationName)
                         ? destinationName
                         : null;
-                    IReadOnlyList<WorksheetImageExportData>? cellImages = GetCellImages(imagesByCellReference, cellReferences, row, column);
+                    IReadOnlyList<WorksheetImageExportData>? cellImages = GetCellImages(imagesByCellReference, cellReferences, row, column, span?.ImageAnchorReference);
                     string? formatColor = style != null && values[row, column] is { } value && TryGetDouble(value, out double number)
                         ? ExcelNumberFormatDisplay.GetNumericFormatColor(number, style.NumberFormatId, style.NumberFormatCode)
                         : null;
@@ -286,12 +286,12 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static IReadOnlyList<WorksheetImageExportData>? GetCellImages(IReadOnlyDictionary<string, IReadOnlyList<WorksheetImageExportData>>? imagesByCellReference, string?[,]? cellReferences, int row, int column) {
+        private static IReadOnlyList<WorksheetImageExportData>? GetCellImages(IReadOnlyDictionary<string, IReadOnlyList<WorksheetImageExportData>>? imagesByCellReference, string?[,]? cellReferences, int row, int column, string? imageAnchorReference = null) {
             if (imagesByCellReference == null || imagesByCellReference.Count == 0 || cellReferences == null || row >= cellReferences.GetLength(0) || column >= cellReferences.GetLength(1)) {
                 return null;
             }
 
-            string? cellReference = cellReferences[row, column];
+            string? cellReference = imageAnchorReference ?? cellReferences[row, column];
             if (string.IsNullOrWhiteSpace(cellReference)) {
                 return null;
             }

@@ -2,9 +2,9 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>
 /// Describes the visible portion of a larger table cell. The renderer lays out
-/// text, diagonal borders, data bars and icons in the full box and clips them to
+/// text, images, diagonal borders, data bars and icons in the full box and clips them to
 /// the containing cell, preserving wrapping and alignment across page fragments.
-/// Images, check boxes and form fields require separate placement.
+/// Check boxes and form fields require separate placement.
 /// </summary>
 public sealed class PdfTableCellViewport {
     /// <summary>
@@ -20,12 +20,14 @@ public sealed class PdfTableCellViewport {
         ValidatePositive(height, nameof(height));
         ValidateOffset(offsetX, nameof(offsetX));
         ValidateOffset(offsetY, nameof(offsetY));
-        if (width > contentWidth || offsetX > contentWidth - width)
+        if (width > contentWidth || offsetX + width > contentWidth)
             throw new ArgumentOutOfRangeException(nameof(width), "The horizontal viewport must fit inside the content box.");
-        if (height > contentHeight || offsetY > contentHeight - height)
+        if (height > contentHeight || offsetY + height > contentHeight)
             throw new ArgumentOutOfRangeException(nameof(height), "The vertical viewport must fit inside the content box.");
-        if (double.IsInfinity(contentWidth / width) || double.IsInfinity(contentHeight / height))
+        if (double.IsInfinity(contentWidth / width))
             throw new ArgumentOutOfRangeException(nameof(width), "Viewport scale ratios must remain finite.");
+        if (double.IsInfinity(contentHeight / height))
+            throw new ArgumentOutOfRangeException(nameof(height), "Viewport scale ratios must remain finite.");
         ContentWidth = contentWidth;
         ContentHeight = contentHeight;
         Width = width;

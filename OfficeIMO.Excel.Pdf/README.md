@@ -152,7 +152,7 @@ Worksheet print areas are exported separately, in their stored order, with each 
 
 Print-title rows can start inside the print area. Canvas automatic pages and both layouts' manual row chunks repeat only title rows reached before the current body segment, including a break within a title block. Flow-table automatic continuation still repeats leading header rows; title rows starting later in a single flowing table are not repeated automatically.
 
-Manual row and column breaks also divide merged cells. Each fragment retains the original cell's full text box for wrapping and alignment, then clips it to that page. Outer borders stay at the original merge edges. Diagonal borders retain their full-cell slope on the fragment containing the source anchor. Worksheet formatting keeps Excel's default bottom alignment when the source cell has no explicit alignment. Breaks on constrained fit axes still follow the fit settings.
+Manual row and column breaks also divide merged cells. Each fragment retains the original cell's full text box for wrapping and alignment, then clips it to that page. Flow-table cell images retain their full-cell placement and clip to each fragment; canvas images retain worksheet coordinates. Outer borders stay at the original merge edges. Diagonal borders retain their full-cell slope on the fragment containing the source anchor. Worksheet formatting keeps Excel's default bottom alignment when the source cell has no explicit alignment. Breaks on constrained fit axes still follow the fit settings.
 
 ## Current limits
 

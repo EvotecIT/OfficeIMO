@@ -76,8 +76,8 @@ public sealed class PdfTableCell {
         FormFields = SnapshotFormFields(formFields, nameof(formFields));
         Images = SnapshotImages(images, nameof(images));
         Paragraphs = SnapshotParagraphs(paragraphs, nameof(paragraphs));
-        if (viewport != null && (Images.Count > 0 || FormFields.Count > 0 || CheckBoxes.Count > 0))
-            throw new System.ArgumentException("A table cell viewport supports text and borders; images and form fields require separate placement.", nameof(viewport));
+        if (viewport != null && (FormFields.Count > 0 || CheckBoxes.Count > 0))
+            throw new System.ArgumentException("A table cell viewport does not support interactive form fields; place them separately.", nameof(viewport));
         NoWrap = noWrap;
         Viewport = viewport;
     }
@@ -115,7 +115,7 @@ public sealed class PdfTableCell {
     /// <summary>Images rendered inside this cell.</summary>
     public System.Collections.Generic.IReadOnlyList<PdfTableCellImage> Images { get; }
 
-    /// <summary>Optional full-cell geometry used to position text and diagonal borders within a clipped fragment.</summary>
+    /// <summary>Optional full-cell geometry used to position cell content within a clipped fragment.</summary>
     public PdfTableCellViewport? Viewport { get; }
 
     internal System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> Paragraphs { get; }
@@ -167,7 +167,7 @@ public sealed class PdfTableCell {
     /// </summary>
     public PdfTableCell WithNoWrap(bool noWrap = true) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, noWrap, Viewport);
 
-    /// <summary>Returns a copy that renders the given portion of the full cell. Cells containing images, check boxes or form fields cannot use a viewport.</summary>
+    /// <summary>Returns a copy that renders the given portion of the full cell, including images. Cells containing check boxes or form fields cannot use a viewport.</summary>
     public PdfTableCell WithViewport(PdfTableCellViewport? viewport) => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, NoWrap, viewport);
 
     internal PdfTableCell Clone() => new PdfTableCell(Runs, Paragraphs, ColumnSpan, LinkUri, LinkContents, RowSpan, CheckBoxes, FormFields, Images, LinkDestinationName, NamedDestinationName, NoWrap, Viewport);

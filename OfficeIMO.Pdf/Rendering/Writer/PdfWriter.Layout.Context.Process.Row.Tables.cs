@@ -33,6 +33,7 @@ internal static partial class PdfWriter {
             table.ColumnWidths[table.ColumnWidths.Length - 1]);
 
         double maxContentHeight = fullColumnHeight;
+        int[] viewportRowGroups = GetTableViewportRowGroups(tbColumn, table.Columns);
         double tableSpacingBefore = state.Line == 0 && state.Consumed > 0.001 ? tableStyle.SpacingBefore : 0D;
         if (state.Line == 0 && tableStyle.KeepTogether) {
             double keepHeight = tableSpacingBefore + table.CaptionHeight + GetTableRowsHeight(table.RowHeights, 0, table.RowHeights.Length, columnTableRowGap) + tableStyle.SpacingAfter;
@@ -180,6 +181,7 @@ internal static partial class PdfWriter {
             MeasureColumnTableRowSegmentHeight(rowIndex, 0, Math.Min(2, table.RowLineCounts[rowIndex]), suppressCellObjects: false) <= state.Remaining + 0.001;
 
         bool ShouldBreakBeforeFinalColumnTableBodyRows(int rowIndex) {
+            if (viewportRowGroups[rowIndex] >= rowIndex && !StartsTableViewportRowGroup(viewportRowGroups, rowIndex)) return false;
             int minimumBodyRows = Math.Min(tableStyle.MinimumBodyRowsOnLastPage, Math.Max(0, table.FooterStartRowIndex - table.HeaderRowCount));
             if (minimumBodyRows <= 0 || table.FooterStartRowIndex - rowIndex != minimumBodyRows) {
                 return false;
@@ -379,8 +381,10 @@ internal static partial class PdfWriter {
                     if (CanRenderTableCellCheckBoxInline(cell, lines, sourceStartLine, visibleLineCount)) {
                         RenderTableCellInlineCheckBox(currentPage!, cell, align, lines.Lines[sourceStartLine], xi + cellPadLeft, innerW, firstBaseline);
                     } else {
-                        double formFieldTop = state.Y - cellPadTop - verticalOffset - (string.IsNullOrEmpty(cell.Text) ? 0D : visibleTextHeight + TableCellCheckBoxGap);
-                        RenderTableCellObjects(currentPage!, cell, align, xi + cellPadLeft, innerW, formFieldTop);
+                        double formFieldTop = contentFrame.Top - cellPadTop - verticalOffset - (string.IsNullOrEmpty(cell.Text) ? 0D : visibleTextHeight + TableCellCheckBoxGap);
+                        TableCellContentFrame? clip = cell.Viewport == null ? null : new TableCellContentFrame(xi, state.Y, cellWidth, cellHeight);
+                        RenderTableCellObjects(currentPage!, cell, align, contentFrame.Left + cellPadLeft, innerW, formFieldTop,
+                            clip.HasValue ? image => WriteTableCellViewportImage(image, clip) : null, clip);
                     }
                 }
 
@@ -505,6 +509,9 @@ internal static partial class PdfWriter {
         int rowStartLine = state.Subline;
         while (rowIndex < tbColumn.Rows.Count) {
             double rowHeight = table.RowHeights[rowIndex];
+            double placementHeight = GetTableViewportPlacementHeight(viewportRowGroups, table.RowHeights, rowIndex, columnTableRowGap);
+            if (viewportRowGroups[rowIndex] >= rowIndex && placementHeight > maxContentHeight + 0.001D)
+                throw new ArgumentException("A cell viewport's complete visible row span must fit within one page; divide it into explicit fragments before rendering.");
             double requiredRowHeight = GetTableRowFixedHeight(tableStyle, rowIndex) ?? GetTableRowMinHeight(tableStyle, rowIndex);
             if (requiredRowHeight > maxContentHeight + 0.001D)
                 throw new ArgumentException("Table row height requirement exceeds the available page content height.");
@@ -559,8 +566,8 @@ internal static partial class PdfWriter {
             bool repeatHeaderBeforeRow = rowIndex >= table.HeaderRowCount &&
                 HasRepeatableHeader() &&
                 AtContinuationPageTop() &&
-                repeatHeaderHeight + rowHeight <= state.Remaining + 0.001;
-            double neededForNextRow = rowHeight + GetTableRowGapAfter(rowIndex, tbColumn.Rows.Count, columnTableRowGap) + (repeatHeaderBeforeRow ? repeatHeaderHeight : 0);
+                repeatHeaderHeight + placementHeight <= state.Remaining + 0.001;
+            double neededForNextRow = placementHeight + (StartsTableViewportRowGroup(viewportRowGroups, rowIndex) ? 0D : GetTableRowGapAfter(rowIndex, tbColumn.Rows.Count, columnTableRowGap)) + (repeatHeaderBeforeRow ? repeatHeaderHeight : 0);
             if (rowHeight > state.Remaining + 0.001 && state.Consumed > 0 && CanSplitColumnTableRowIntoRemainingSpace(rowIndex)) {
                 int take = Math.Min(table.RowLineCounts[rowIndex], GetColumnTableRowSegmentLineCountThatFits(rowIndex, 0, state.Remaining));
                 DrawColumnTableRowSegment(rowIndex, renderAsHeader: false, 0, take);
