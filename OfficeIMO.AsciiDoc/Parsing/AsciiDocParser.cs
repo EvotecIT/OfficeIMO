@@ -3,15 +3,16 @@ namespace OfficeIMO.AsciiDoc;
 /// <summary>Dependency-free, lossless AsciiDoc parser.</summary>
 internal static class AsciiDocParser {
     /// <summary>Parses source into a lossless syntax tree and typed semantic blocks.</summary>
-    public static AsciiDocParseResult Parse(string source, AsciiDocParseOptions? options = null) {
+    public static AsciiDocParseResult Parse(string source, AsciiDocParseOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         options ??= new AsciiDocParseOptions();
         ValidateOptions(source, options);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        var sourceText = new AsciiDocSourceText(source);
-        IReadOnlyList<AsciiDocSourceLine> lines = AsciiDocLineReader.Read(source);
-        var factory = new AsciiDocSyntaxFactory(sourceText);
-        var inlineParser = new AsciiDocInlineParser(factory, options);
+        var sourceText = new AsciiDocSourceText(source, cancellationToken);
+        IReadOnlyList<AsciiDocSourceLine> lines = AsciiDocLineReader.Read(source, cancellationToken);
+        var factory = new AsciiDocSyntaxFactory(sourceText, cancellationToken, options);
+        var inlineParser = new AsciiDocInlineParser(factory, options, cancellationToken);
         var blocks = new List<AsciiDocBlock>();
         var syntaxNodes = new List<AsciiDocSyntaxNode>();
         var diagnostics = new List<AsciiDocDiagnostic>();
@@ -19,6 +20,7 @@ internal static class AsciiDocParser {
 
         int lineIndex = 0;
         while (lineIndex < lines.Count) {
+            cancellationToken.ThrowIfCancellationRequested();
             EnforceBlockLimit(blocks.Count, options);
             AsciiDocSourceLine line = lines[lineIndex];
             string content = line.Content;
@@ -31,7 +33,7 @@ internal static class AsciiDocParser {
 
             if (AsciiDocLineClassifier.TryGetDelimiter(content, out AsciiDocDelimitedBlockKind delimiterKind)) {
                 AsciiDocTableConfiguration? tableConfiguration = delimiterKind == AsciiDocDelimitedBlockKind.Table
-                    ? AsciiDocTableConfiguration.Create(content, GetPendingAttributeLists(blocks))
+                    ? AsciiDocTableConfiguration.Create(content, GetPendingAttributeLists(blocks), options.MaximumTableColumnCount)
                     : null;
                 lineIndex = AddDelimitedBlock(lines, lineIndex, delimiterKind, sourceText, factory, tableConfiguration, blocks, syntaxNodes, diagnostics);
                 hasStructuralContent = true;
@@ -124,6 +126,7 @@ internal static class AsciiDocParser {
 
         BindBlockMetadata(blocks);
         BindListContinuations(blocks);
+        foreach (AsciiDocDelimitedBlock block in blocks.OfType<AsciiDocDelimitedBlock>()) block.SetBodyOptions(options);
         var document = new AsciiDocDocument(sourceText, syntaxTree, blocks, diagnostics, options.Profile);
         return new AsciiDocParseResult(document, diagnostics);
     }
@@ -222,13 +225,13 @@ internal static class AsciiDocParser {
             factory.AddLineEnding(children, line);
             AsciiDocSyntaxNode syntax = factory.Node(AsciiDocSyntaxKind.ListItem, line.Start, line.End, children);
             itemSyntax.Add(syntax);
-            items.Add(new AsciiDocListItem(syntax, kind, parts.Marker, parts.MarkerLength, parts.Text, inlines, line.LineEnding));
+            items.Add(new AsciiDocListItem(syntax, kind, parts.Marker, kind == AsciiDocListKind.Callout ? 1 : parts.MarkerLength, parts.Text, inlines, line.LineEnding));
             index++;
         }
 
         AsciiDocSourceLine first = lines[startIndex];
         AsciiDocSourceLine last = lines[index - 1];
-        AsciiDocSyntaxKind syntaxKind = kind == AsciiDocListKind.Ordered ? AsciiDocSyntaxKind.OrderedList : AsciiDocSyntaxKind.UnorderedList;
+        AsciiDocSyntaxKind syntaxKind = kind == AsciiDocListKind.Callout ? AsciiDocSyntaxKind.CalloutList : kind == AsciiDocListKind.Ordered ? AsciiDocSyntaxKind.OrderedList : AsciiDocSyntaxKind.UnorderedList;
         AsciiDocSyntaxNode blockSyntax = factory.Node(syntaxKind, first.Start, last.End, itemSyntax);
         syntaxNodes.Add(blockSyntax);
         blocks.Add(new AsciiDocListBlock(blockSyntax, kind, items, last.LineEnding));
@@ -249,6 +252,7 @@ internal static class AsciiDocParser {
         string delimiter = opening.Content;
         int closingIndex = -1;
         for (int index = startIndex + 1; index < lines.Count; index++) {
+            if ((index & 1023) == 0) factory.CancellationToken.ThrowIfCancellationRequested();
             if (string.Equals(lines[index].Content, delimiter, StringComparison.Ordinal)) {
                 closingIndex = index;
                 break;
@@ -270,7 +274,7 @@ internal static class AsciiDocParser {
                 factory,
                 contentStart,
                 contentEnd,
-                tableConfiguration ?? new AsciiDocTableConfiguration(AsciiDocTableFormat.Psv, "|", null, false));
+                tableConfiguration ?? new AsciiDocTableConfiguration(AsciiDocTableFormat.Psv, "|", Array.Empty<char>(), false));
             children.Add(table.Syntax);
         } else if (contentEnd > contentStart) {
             children.Add(factory.Node(AsciiDocSyntaxKind.BlockContent, contentStart, contentEnd));
@@ -567,7 +571,7 @@ internal static class AsciiDocParser {
         return null;
     }
 
-    private static void ValidateOptions(string source, AsciiDocParseOptions options) {
+    internal static void ValidateOptions(string source, AsciiDocParseOptions options) {
         if (options.Profile != AsciiDocDocumentProfile.OfficeIMO
             && options.Profile != AsciiDocDocumentProfile.PreserveOnly) {
             throw new ArgumentOutOfRangeException(nameof(options), "Profile must be a defined AsciiDoc document profile.");
@@ -584,6 +588,8 @@ internal static class AsciiDocParser {
         if (options.MaximumInlineNodeCount < 1) {
             throw new ArgumentOutOfRangeException(nameof(options), "MaximumInlineNodeCount must be positive.");
         }
+        if (options.MaximumTableCellCount < 1 || options.MaximumTableColumnCount < 1 || options.MaximumTableSpan < 1)
+            throw new ArgumentOutOfRangeException(nameof(options), "Table limits must be positive.");
         if (options.MaximumInputLength.HasValue && source.Length > options.MaximumInputLength.Value) {
             throw new ArgumentException("AsciiDoc source exceeds MaximumInputLength.", nameof(source));
         }

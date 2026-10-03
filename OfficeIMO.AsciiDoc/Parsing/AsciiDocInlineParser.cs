@@ -3,11 +3,16 @@ namespace OfficeIMO.AsciiDoc;
 internal sealed class AsciiDocInlineParser {
     private readonly AsciiDocSyntaxFactory _factory;
     private readonly AsciiDocParseOptions _options;
+    private readonly System.Threading.CancellationToken _cancellationToken;
     private int _nodeCount;
+    private int _failedMacroNameStart = -1;
+    private int _failedMacroNameEnd;
+    private Dictionary<string, (int Start, int End)>? _failedTokenSearches;
 
-    internal AsciiDocInlineParser(AsciiDocSyntaxFactory factory, AsciiDocParseOptions options) {
+    internal AsciiDocInlineParser(AsciiDocSyntaxFactory factory, AsciiDocParseOptions options, System.Threading.CancellationToken cancellationToken = default) {
         _factory = factory;
         _options = options;
+        _cancellationToken = cancellationToken;
     }
 
     internal AsciiDocInlineSequence Parse(int start, int end) => ParseRange(start, end, 0);
@@ -19,6 +24,7 @@ internal sealed class AsciiDocInlineParser {
         int textStart = start;
         int index = start;
         while (index < end) {
+            if ((index & 1023) == 0) _cancellationToken.ThrowIfCancellationRequested();
             // An escape consumes itself and the following character. Because the parser
             // advances past both characters, it never lands on an escaped backslash and
             // does not need to rescan the preceding run for every slash.
@@ -42,7 +48,7 @@ internal sealed class AsciiDocInlineParser {
         if (source[start] == '[' && start + 1 < end && source[start + 1] == '[') return ParseReference(start, end, true, out next);
         if (source[start] == '{') return ParseAttributeReference(start, end, out next);
         if (AsciiDocText.IsAsciiLetter(source[start])) {
-            AsciiDocInline? macro = ParseMacro(start, end, out next);
+            AsciiDocInline? macro = ParseMacro(start, end, depth, out next);
             if (macro != null) return macro;
         }
         if (source[start] == '+') return ParsePassthrough(start, end, out next);
@@ -51,19 +57,21 @@ internal sealed class AsciiDocInlineParser {
 
     private AsciiDocInline? ParseReference(int start, int end, bool anchor, out int next) {
         string source = _factory.Source.Text;
-        string close = anchor ? "]]" : ">>";
-        int closing = FindToken(source, close, start + 2, end);
+        bool bibliography = anchor && start + 2 < end && source[start + 2] == '[';
+        int markerLength = bibliography ? 3 : 2;
+        string close = anchor ? new string(']', markerLength) : ">>";
+        int closing = FindToken(source, close, start + markerLength, end);
         if (closing < 0) { next = start; return null; }
-        int contentStart = start + 2;
+        int contentStart = start + markerLength;
         string content = source.Substring(contentStart, closing - contentStart);
         int comma = FindUnescaped(content, ',');
         string target = comma < 0 ? content : content.Substring(0, comma);
         string? label = comma < 0 ? null : content.Substring(comma + 1);
-        next = closing + 2;
+        next = closing + markerLength;
         AsciiDocSyntaxKind kind = anchor ? AsciiDocSyntaxKind.InlineAnchor : AsciiDocSyntaxKind.InlineCrossReference;
         AsciiDocSyntaxNode syntax = _factory.Node(kind, start, next);
         return anchor
-            ? new AsciiDocAnchorInline(syntax, target, label)
+            ? new AsciiDocAnchorInline(syntax, target, label, bibliography)
             : new AsciiDocCrossReferenceInline(syntax, target, label);
     }
 
@@ -77,21 +85,45 @@ internal sealed class AsciiDocInlineParser {
         return new AsciiDocAttributeReferenceInline(_factory.Node(AsciiDocSyntaxKind.InlineAttributeReference, start, next), name);
     }
 
-    private AsciiDocInline? ParseMacro(int start, int end, out int next) {
+    private AsciiDocInline? ParseMacro(int start, int end, int depth, out int next) {
+        // Suffixes of a failed identifier use the same target and brackets.
+        // Scanning each suffix again would be quadratic on long literal words.
+        if (start >= _failedMacroNameStart && start < _failedMacroNameEnd) {
+            next = start;
+            return null;
+        }
         string source = _factory.Source.Text;
         int nameEnd = start + 1;
-        while (nameEnd < end && (AsciiDocText.IsAsciiLetter(source[nameEnd]) || char.IsDigit(source[nameEnd]) || source[nameEnd] == '_' || source[nameEnd] == '-')) nameEnd++;
-        if (nameEnd >= end || source[nameEnd] != ':') { next = start; return null; }
+        while (nameEnd < end && (AsciiDocText.IsAsciiLetter(source[nameEnd]) || char.IsDigit(source[nameEnd]) || source[nameEnd] == '_' || source[nameEnd] == '-')) {
+            if ((nameEnd & 1023) == 0) _cancellationToken.ThrowIfCancellationRequested();
+            nameEnd++;
+        }
+        _failedMacroNameStart = start;
+        _failedMacroNameEnd = nameEnd;
+        if (nameEnd >= end || source[nameEnd] != ':') {
+            next = start;
+            return null;
+        }
+        // Footnotes may immediately follow a word. Retain the failed-name cache
+        // for the prefix, but let the next scan recognize the supported suffix.
+        const string footnoteName = "footnote";
+        int footnoteStart = nameEnd - footnoteName.Length;
+        if (footnoteStart > start && string.CompareOrdinal(source, footnoteStart, footnoteName, 0, footnoteName.Length) == 0) {
+            _failedMacroNameEnd = footnoteStart;
+            next = start;
+            return null;
+        }
+        string name = source.Substring(start, nameEnd - start);
         int open = FindUnescaped(source, '[', nameEnd + 1, end);
         if (open < 0) { next = start; return null; }
-        int close = FindMatchingBracket(source, open, end);
+        int close = FindMatchingBracket(source, open, end, name != footnoteName && !IsStem(name) && name != "pass");
         if (close < 0) { next = start; return null; }
-        string name = source.Substring(start, nameEnd - start);
         string target = source.Substring(nameEnd + 1, open - nameEnd - 1);
         string attributes = source.Substring(open + 1, close - open - 1);
         next = close + 1;
         AsciiDocSyntaxKind kind = IsStem(name) ? AsciiDocSyntaxKind.InlineStem : AsciiDocSyntaxKind.InlineMacro;
         AsciiDocSyntaxNode syntax = _factory.Node(kind, start, next);
+        if (name == "footnote") return new AsciiDocFootnoteInline(syntax, target, attributes, ParseRange(open + 1, close, depth + 1));
         return IsStem(name) && target.Length == 0
             ? new AsciiDocStemInline(syntax, name, attributes)
             : new AsciiDocMacroInline(syntax, name, target, attributes);
@@ -160,29 +192,23 @@ internal sealed class AsciiDocInlineParser {
 
     private static bool IsConstrainedOpening(string source, int start, int end) {
         int inner = start + 1;
-        if (inner >= end || char.IsWhiteSpace(source[inner])) return false;
-        if (start == 0) return true;
-        char before = source[start - 1];
-        return !IsWord(before) && before != ':' && before != ';' && before != '}';
+        return AsciiDocInlineFormattingRules.CanOpen(start == 0 ? null : (char?)source[start - 1], inner < end ? (char?)source[inner] : null);
     }
 
     private static bool IsConstrainedClosing(string source, int close, int length, int end) {
-        if (close <= 0 || char.IsWhiteSpace(source[close - 1])) return false;
         int afterIndex = close + length;
-        if (afterIndex >= end) return true;
-        char after = source[afterIndex];
-        return !IsWord(after) && after != ':' && after != ';' && after != '{';
+        return AsciiDocInlineFormattingRules.CanClose(close > 0 ? (char?)source[close - 1] : null, afterIndex < end ? (char?)source[afterIndex] : null);
     }
-
-    private static bool IsWord(char value) => char.IsLetterOrDigit(value) || value == '_';
 
     private static bool IsStem(string name) =>
         string.Equals(name, "stem", StringComparison.Ordinal) ||
         string.Equals(name, "latexmath", StringComparison.Ordinal) ||
         string.Equals(name, "asciimath", StringComparison.Ordinal);
 
-    private static int FindToken(string source, string token, int start, int end) {
+    private int FindToken(string source, string token, int start, int end) {
+        if (WasFailedSearch(source, token, start, end)) return -1;
         for (int index = start; index + token.Length <= end; index++) {
+            if ((index & 1023) == 0) _cancellationToken.ThrowIfCancellationRequested();
             if (source[index] == '\\') { index++; continue; }
             bool match = true;
             for (int offset = 0; offset < token.Length; offset++) {
@@ -190,29 +216,44 @@ internal sealed class AsciiDocInlineParser {
             }
             if (match) return index;
         }
+        RememberFailedSearch(source, token, start, end);
         return -1;
     }
 
-    private static int FindUnescaped(string source, char token, int start, int end) {
+    private int FindUnescaped(string source, char token, int start, int end) {
+        string key = token.ToString();
+        if (WasFailedSearch(source, key, start, end)) return -1;
         for (int index = start; index < end; index++) {
+            if ((index & 1023) == 0) _cancellationToken.ThrowIfCancellationRequested();
             if (source[index] == '\\') { index++; continue; }
             if (source[index] == token) return index;
         }
+        RememberFailedSearch(source, key, start, end);
         return -1;
     }
 
-    private static int FindUnescaped(string source, char token) => FindUnescaped(source, token, 0, source.Length);
+    private bool WasFailedSearch(string source, string token, int start, int end) =>
+        ReferenceEquals(source, _factory.Source.Text) && _failedTokenSearches != null &&
+        _failedTokenSearches.TryGetValue(token, out var range) && start >= range.Start && end <= range.End;
 
-    private static int FindMatchingBracket(string source, int open, int end) {
+    private void RememberFailedSearch(string source, string token, int start, int end) {
+        if (!ReferenceEquals(source, _factory.Source.Text)) return;
+        (_failedTokenSearches ??= new Dictionary<string, (int Start, int End)>(StringComparer.Ordinal))[token] = (start, end);
+    }
+
+    private int FindUnescaped(string source, char token) => FindUnescaped(source, token, 0, source.Length);
+
+    private int FindMatchingBracket(string source, int open, int end, bool attributeQuotes) {
         char quote = '\0';
         for (int index = open + 1; index < end; index++) {
+            if ((index & 1023) == 0) _cancellationToken.ThrowIfCancellationRequested();
             char current = source[index];
             if (current == '\\') { index++; continue; }
             if (quote != '\0') {
                 if (current == quote) quote = '\0';
                 continue;
             }
-            if (current == '\'' || current == '"') quote = current;
+            if (attributeQuotes && AsciiDocAttributeSyntax.IsValueQuote(source, index, open + 1, end, _cancellationToken)) quote = current;
             else if (current == ']') return index;
         }
         return -1;

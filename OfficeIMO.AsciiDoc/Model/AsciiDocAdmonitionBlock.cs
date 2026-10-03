@@ -16,8 +16,7 @@ public enum AsciiDocAdmonitionKind {
 
 /// <summary>Source-backed admonition paragraph.</summary>
 public sealed class AsciiDocAdmonitionBlock : AsciiDocBlock {
-    private string _text;
-    private bool _textWasAssigned;
+    private readonly AsciiDocEditableInlineContent _content;
 
     internal AsciiDocAdmonitionBlock(
         AsciiDocSyntaxNode syntax,
@@ -28,8 +27,7 @@ public sealed class AsciiDocAdmonitionBlock : AsciiDocBlock {
         string trailingLineEnding) : base(syntax, trailingLineEnding) {
         Kind = kind;
         Label = label;
-        _text = text;
-        Inlines = inlines;
+        _content = new AsciiDocEditableInlineContent(text, inlines);
     }
 
     /// <summary>Admonition kind.</summary>
@@ -40,22 +38,22 @@ public sealed class AsciiDocAdmonitionBlock : AsciiDocBlock {
 
     /// <summary>Admonition content after the label.</summary>
     public string Text {
-        get => !_textWasAssigned && Inlines.IsModified ? Inlines.ToAsciiDoc() : _text;
+        get => _content.Text;
         set {
             string normalized = value ?? string.Empty;
             AsciiDocText.EnsureSingleLine(normalized, nameof(value));
-            if (SetValue(ref _text, normalized)) _textWasAssigned = true;
+            _content.Assign(normalized);
         }
     }
 
     /// <summary>Typed inline content.</summary>
-    public AsciiDocInlineSequence Inlines { get; }
+    public AsciiDocInlineSequence Inlines => _content.Inlines;
 
     /// <inheritdoc />
-    public override bool IsModified => base.IsModified || Inlines.IsModified;
+    public override bool IsModified => base.IsModified || _content.IsModified;
 
-    internal override string WriteCore(AsciiDocWriterContext context) =>
-        Label + ":" + ((_textWasAssigned ? _text : Inlines.Write(context)).Length == 0
-            ? string.Empty
-            : " " + (_textWasAssigned ? _text : Inlines.Write(context))) + EffectiveTrailingLineEnding(context);
+    internal override string WriteCore(AsciiDocWriterContext context) {
+        string text = _content.Write(context);
+        return Label + ":" + (text.Length == 0 ? string.Empty : " " + text) + EffectiveTrailingLineEnding(context);
+    }
 }
