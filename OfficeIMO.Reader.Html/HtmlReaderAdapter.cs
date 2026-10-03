@@ -85,15 +85,19 @@ internal static partial class HtmlReaderAdapter {
 
     internal static IEnumerable<ReaderChunk> ReadContent(string html, SourceMetadata source, ReaderOptions effective, ReaderHtmlOptions? htmlOptions, CancellationToken cancellationToken) {
         var effectiveHtmlOptions = ReaderHtmlOptionsCloner.CloneOrDefault(htmlOptions);
-        int maxChars = effective.MaxChars > 0 ? effective.MaxChars : 8_000;
-        var logicalSourceName = source.Path;
-
         HtmlConversionDocument conversionDocument = ParseConversionDocument(
             html,
             effectiveHtmlOptions,
             effectiveHtmlOptions.HtmlToMarkdownOptions?.BaseUri);
         string markdown = conversionDocument.ToMarkdown(effectiveHtmlOptions.HtmlToMarkdownOptions);
 
+        return ChunkMarkdown(markdown, source, effective, effectiveHtmlOptions, cancellationToken);
+    }
+
+    private static IEnumerable<ReaderChunk> ChunkMarkdown(string markdown, SourceMetadata source,
+        ReaderOptions effective, ReaderHtmlOptions effectiveHtmlOptions, CancellationToken cancellationToken) {
+        int maxChars = effective.MaxChars > 0 ? effective.MaxChars : 8_000;
+        string logicalSourceName = source.Path;
         if (string.IsNullOrWhiteSpace(markdown)) {
             yield return EnrichChunk(BuildWarningChunk(logicalSourceName, "html-warning-0000", "HTML content produced no markdown text."), source, effective.ComputeHashes);
             yield break;

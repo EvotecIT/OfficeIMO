@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Globalization;
 using OfficeIMO.Zip;
 
 namespace OfficeIMO.Reader.Zip;
@@ -162,29 +163,24 @@ internal static class ZipReaderAdapter {
                 readerOptions.ComputeHashes);
         }
 
+        var duplicatePaths = traversal.Entries.GroupBy(item => item.FullName, StringComparer.Ordinal)
+            .Where(group => group.Count() > 1).Select(group => group.Key);
+        var duplicatePathSet = new HashSet<string>(duplicatePaths, StringComparer.Ordinal);
         foreach (var descriptor in traversal.Entries) {
             cancellationToken.ThrowIfCancellationRequested();
             if (descriptor.IsDirectory) continue;
 
             var entryName = descriptor.FullName;
-            var entry = archive.GetEntry(entryName);
-            if (entry == null) {
-                yield return BuildWarningChunk(
-                    archiveSource,
-                    archivePath,
-                    entryName,
-                    warningCounter.Next(),
-                    "Skipped ZIP entry because it could not be opened from archive index.",
-                    readerOptions.ComputeHashes,
-                    sourceLengthBytes: descriptor.UncompressedLength);
-                continue;
-            }
-
+            var entry = archive.Entries[descriptor.EntryIndex];
+            // A second container boundary keeps duplicate identities distinct without changing extensions.
+            string entryArchivePath = duplicatePathSet.Contains(entryName)
+                ? archivePath + "!/entry-" + descriptor.EntryIndex.ToString("D6", CultureInfo.InvariantCulture)
+                : archivePath;
             if (IsZipEntry(entryName)) {
                 foreach (var nestedChunk in ReadNestedZipEntry(
                              entry,
                              archiveSource,
-                             archivePath,
+                             entryArchivePath,
                              entryName,
                              nestedDepth,
                              readerOptions,
@@ -203,7 +199,7 @@ internal static class ZipReaderAdapter {
             if (readerOptions.MaxInputBytes.HasValue && descriptor.UncompressedLength > readerOptions.MaxInputBytes.Value) {
                 yield return BuildWarningChunk(
                     archiveSource,
-                    archivePath,
+                    entryArchivePath,
                     entryName,
                     warningCounter.Next(),
                     $"Skipped ZIP entry because it exceeds MaxInputBytes ({descriptor.UncompressedLength} > {readerOptions.MaxInputBytes.Value}).",
@@ -216,7 +212,7 @@ internal static class ZipReaderAdapter {
             if (descriptor.UncompressedLength > int.MaxValue) {
                 yield return BuildWarningChunk(
                     archiveSource,
-                    archivePath,
+                    entryArchivePath,
                     entryName,
                     warningCounter.Next(),
                     "Skipped ZIP entry because it is too large to materialize in memory.",
@@ -237,7 +233,7 @@ internal static class ZipReaderAdapter {
             if (readError != null) {
                 yield return BuildWarningChunk(
                     archiveSource,
-                    archivePath,
+                    entryArchivePath,
                     entryName,
                     warningCounter.Next(),
                     readError,
@@ -252,7 +248,7 @@ internal static class ZipReaderAdapter {
             string? parseError = null;
             try {
                 using var content = new MemoryStream(bytes!, 0, bytes!.Length, writable: false, publiclyVisible: true);
-                nestedDocument = ReaderNestedContent.ReadDocumentInContainer(content, entryName, BuildVirtualPath(archivePath, entryName), readerOptions, cancellationToken);
+                nestedDocument = ReaderNestedContent.ReadDocumentInContainer(content, entryName, BuildVirtualPath(entryArchivePath, entryName), readerOptions, cancellationToken);
                 chunks = nestedDocument.Chunks;
             } catch (Exception ex) when (ex is not OperationCanceledException and not ReaderResourceLimitException) {
                 parseError = $"Skipped ZIP entry due parse error: {ex.GetType().Name}.";
@@ -261,7 +257,7 @@ internal static class ZipReaderAdapter {
             if (parseError != null) {
                 yield return BuildWarningChunk(
                     archiveSource,
-                    archivePath,
+                    entryArchivePath,
                     entryName,
                     warningCounter.Next(),
                     parseError,
@@ -271,7 +267,7 @@ internal static class ZipReaderAdapter {
                 continue;
             }
 
-            var virtualPath = BuildVirtualPath(archivePath, entryName);
+            var virtualPath = BuildVirtualPath(entryArchivePath, entryName);
             DocumentReaderEngine.ApplyExternalSourceMetadata(nestedDocument!, BuildSourceId(virtualPath),
                 NormalizeLastWriteUtc(entry.LastWriteTime), descriptor.UncompressedLength, readerOptions.ComputeHashes);
             foreach (var child in chunks!) {

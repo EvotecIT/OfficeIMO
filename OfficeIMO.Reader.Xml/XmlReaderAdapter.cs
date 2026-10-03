@@ -3,7 +3,7 @@ namespace OfficeIMO.Reader.Xml;
 /// <summary>
 /// XML ingestion helpers for <see cref="OfficeDocumentReader"/>.
 /// </summary>
-internal static class XmlReaderAdapter {
+internal static partial class XmlReaderAdapter {
     /// <summary>
     /// Reads XML content from a path with tree-aware chunking.
     /// </summary>
@@ -45,35 +45,23 @@ internal static class XmlReaderAdapter {
         UpdateSourceMetadataFromSeekableStream(source, parseStream, effectiveReaderOptions.ComputeHashes);
 
         try {
-            XDocument? doc = null;
+            List<StructuredRow>? rows = null;
             string? parseError = null;
             try {
-                var settings = new XmlReaderSettings {
-                    DtdProcessing = DtdProcessing.Ignore,
-                    XmlResolver = null
-                };
-
-                using var reader = XmlReader.Create(parseStream, settings);
-                doc = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+                rows = ReadRows(parseStream, options, cancellationToken);
             } catch (Exception ex) when (ex is not OperationCanceledException and not ReaderResourceLimitException) {
                 parseError = "XML parse error: " + ex.GetType().Name + ".";
             }
-
             if (parseError != null) {
                 yield return EnrichChunk(BuildWarningChunk(sourcePath, "xml-warning-0000", parseError), source, effectiveReaderOptions.ComputeHashes);
                 yield break;
             }
-
-            var root = doc!.Root;
-            if (root == null) {
+            if (rows!.Count == 0) {
                 yield return EnrichChunk(BuildWarningChunk(sourcePath, "xml-warning-0001", "XML document does not contain a root element."), source, effectiveReaderOptions.ComputeHashes);
                 yield break;
             }
 
-            var rows = new List<StructuredRow>(capacity: 1024);
-            TraverseXml(root, parentPath: string.Empty, siblingIndex: 1, rows, cancellationToken);
-
-            foreach (var chunk in BuildStructuredChunks(source, rows, options, effectiveReaderOptions.ComputeHashes, cancellationToken)) {
+            foreach (var chunk in BuildStructuredChunks(source, rows!, options, effectiveReaderOptions.ComputeHashes, cancellationToken)) {
                 yield return chunk;
             }
         } finally {
@@ -137,30 +125,6 @@ internal static class XmlReaderAdapter {
         }
     }
 
-    private static void TraverseXml(XElement element, string parentPath, int siblingIndex, List<StructuredRow> rows, CancellationToken cancellationToken) {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var currentPath = BuildXmlPath(element, parentPath, siblingIndex);
-        rows.Add(new StructuredRow(currentPath, "element", NormalizeText(GetDirectText(element))));
-
-        foreach (var attribute in element.Attributes()) {
-            rows.Add(new StructuredRow(
-                currentPath + "/@" + GetQualifiedName(element, attribute.Name),
-                "attribute",
-                NormalizeText(attribute.Value)));
-        }
-
-        var siblingCounts = new SiblingNameCounter();
-        foreach (var child in element.Elements()) {
-            TraverseXml(child, currentPath, siblingCounts.Next(child.Name), rows, cancellationToken);
-        }
-    }
-
-    private static string BuildXmlPath(XElement element, string parentPath, int siblingIndex) {
-        var segment = GetQualifiedName(element, element.Name) + "[" + siblingIndex.ToString(CultureInfo.InvariantCulture) + "]";
-        return parentPath.Length == 0 ? segment : parentPath + "/" + segment;
-    }
-
     private struct SiblingNameCounter {
         private XName? _name1;
         private XName? _name2;
@@ -210,37 +174,6 @@ internal static class XmlReaderAdapter {
         }
     }
 
-    private static string GetQualifiedName(XElement context, XName name) {
-        if (name.Namespace == XNamespace.None) {
-            return name.LocalName;
-        }
-
-        var prefix = context.GetPrefixOfNamespace(name.Namespace);
-        if (!string.IsNullOrWhiteSpace(prefix)) {
-            return prefix + ":" + name.LocalName;
-        }
-
-        return "{" + name.NamespaceName + "}" + name.LocalName;
-    }
-
-    private static string GetDirectText(XElement element) {
-        var sb = new StringBuilder();
-        foreach (var node in element.Nodes()) {
-            switch (node) {
-                case XCData cdata:
-                    sb.Append(cdata.Value);
-                    sb.Append(' ');
-                    break;
-                case XText text:
-                    sb.Append(text.Value);
-                    sb.Append(' ');
-                    break;
-            }
-        }
-
-        return sb.ToString();
-    }
-
     private static ReaderChunk BuildWarningChunk(string path, string id, string warning) {
         return new ReaderChunk {
             Id = id,
@@ -269,9 +202,6 @@ internal static class XmlReaderAdapter {
         }
 
         var normalized = sb.ToString().Trim();
-        if (normalized.Length > 2048) {
-            normalized = normalized.Substring(0, 2048);
-        }
 
         return normalized;
     }
@@ -317,10 +247,15 @@ internal static class XmlReaderAdapter {
 
         var normalized = new XmlReadOptions {
             ChunkRows = source.ChunkRows,
+            MaxDepth = source.MaxDepth,
+            MaxNodes = source.MaxNodes,
+            MaxScalarLength = source.MaxScalarLength,
             IncludeMarkdown = source.IncludeMarkdown
         };
 
         if (normalized.ChunkRows < 1) normalized.ChunkRows = 1;
+        if (normalized.MaxDepth < 1 || normalized.MaxNodes < 1 || normalized.MaxScalarLength < 1)
+            throw new ArgumentOutOfRangeException(nameof(options), "XML parser limits must be positive.");
 
         return normalized;
     }

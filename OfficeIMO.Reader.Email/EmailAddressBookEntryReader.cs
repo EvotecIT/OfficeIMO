@@ -22,8 +22,9 @@ public static class EmailAddressBookEntryReader {
         CancellationToken cancellationToken = default) {
         if (reader == null) throw new ArgumentNullException(nameof(reader));
         if (path == null) throw new ArgumentNullException(nameof(path));
-        return reader.Scope(ReadPathCore(path, readerOptions ?? new ReaderOptions(),
-            ReaderEmailAddressBookOptionsCloner.CloneOrDefault(addressBookOptions), cancellationToken));
+        var effective = DocumentReaderEngine.NormalizeOptions(readerOptions);
+        return reader.Scope(ReadPathCore(path, effective,
+            ReaderEmailAddressBookOptionsCloner.CloneOrDefault(addressBookOptions), cancellationToken), effective);
     }
 
     /// <summary>
@@ -38,8 +39,9 @@ public static class EmailAddressBookEntryReader {
         CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
-        return ReadStreamCore(stream, sourceName, readerOptions ?? new ReaderOptions(),
-            ReaderEmailAddressBookOptionsCloner.CloneOrDefault(addressBookOptions), cancellationToken);
+        var effective = DocumentReaderEngine.NormalizeOptions(readerOptions);
+        return OfficeDocumentReader.Default.Scope(ReadStreamCore(stream, sourceName, effective,
+            ReaderEmailAddressBookOptionsCloner.CloneOrDefault(addressBookOptions), cancellationToken), effective);
     }
 
     private static IEnumerable<ReaderEmailAddressBookEntryResult> ReadPathCore(
@@ -140,6 +142,7 @@ public static class EmailAddressBookEntryReader {
                 summary = summary ?? entry.ToSummary();
                 ReaderChunk chunk = EmailAddressBookReaderProjection.CreateChunk(
                     entry, logicalPath, readerOptions, adapterOptions);
+                ReaderReadScope.Current?.Budget?.AddChunk(chunk);
                 result = new ReaderEmailAddressBookEntryResult(
                     reference, summary, logicalPath, new[] { chunk }, entry.Diagnostics,
                     index == 0 ? openingDiagnostics : null);

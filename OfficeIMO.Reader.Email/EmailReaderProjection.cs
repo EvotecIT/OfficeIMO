@@ -15,6 +15,9 @@ internal static partial class EmailReaderProjection {
         var projection = new Projection(sourceName, document.Format) { IncludeEmbeddedMessageContent = includeEmbeddedMessageContent };
         projection.Diagnostics.AddRange(diagnostics);
         AddDocument(document, null, logicalPath, projection, options, cursor, depth: 0, cancellationToken);
+        ReaderReadScope.Current?.Budget?.AddDocument(new OfficeDocumentReadResult {
+            Chunks = projection.Chunks, Assets = projection.Assets
+        });
         projectedDiagnostics = projection.Diagnostics;
         return projection.Chunks;
     }
