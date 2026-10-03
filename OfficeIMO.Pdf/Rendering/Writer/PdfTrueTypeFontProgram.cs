@@ -197,6 +197,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         lock (_usageLock) {
             _usedGlyphIds.Clear();
             _usedGlyphToUnicode.Clear();
+            _usedAsciiLow = _usedAsciiHigh = 0;
         }
     }
 
