@@ -32,9 +32,9 @@ public sealed class AdfResourceContractsTests {
         var paragraph = new AdfNode("paragraph");
         paragraph.Content.Add(paragraph);
         var document = new AdfDocument(new[] { paragraph });
-        Assert.Throws<InvalidOperationException>(() => document.ToJson());
-        Assert.Throws<InvalidOperationException>(() => document.Validate());
-        Assert.Throws<InvalidOperationException>(() => AdfConverter.ToMarkdown(document));
+        Assert.Throws<InvalidDataException>(() => document.ToJson());
+        Assert.Contains(document.Validate().Issues, issue => issue.Code == "ADF_CYCLIC_CONTENT");
+        Assert.Throws<InvalidDataException>(() => AdfConverter.ToMarkdown(document));
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public sealed class AdfResourceContractsTests {
         var outer = new AdfNode("paragraph");
         outer.Content.Add(AdfNode.TextNode("abcd"));
         var document = new AdfDocument(new[] { outer });
-        Assert.Throws<InvalidDataException>(() => document.Validate(new AdfProcessingOptions { MaxDepth = 1 }));
+        Assert.Contains(document.Validate(new AdfProcessingOptions { MaxDepth = 1 }).Issues, issue => issue.Code == "ADF_CONTENT_DEPTH_EXCEEDED");
         Assert.Throws<InvalidDataException>(() => AdfConverter.ToMarkdown(document, new AdfConversionOptions { MaxTextCharacters = 3 }));
     }
 

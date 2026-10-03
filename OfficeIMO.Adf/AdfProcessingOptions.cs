@@ -20,6 +20,12 @@ public class AdfProcessingOptions {
     /// <summary>Cancellation observed during ADF traversal and JSON writes.</summary>
     public CancellationToken CancellationToken { get; set; }
 
+    internal AdfProcessingOptions WithCancellation(CancellationToken token) => new AdfProcessingOptions {
+        MaxInputBytes = MaxInputBytes, MaxDepth = MaxDepth, MaxNodes = MaxNodes,
+        MaxTextCharacters = MaxTextCharacters, MaxOutputBytes = MaxOutputBytes,
+        MaxOutputCharacters = MaxOutputCharacters, CancellationToken = token
+    };
+
     internal void Check() {
         if (MaxInputBytes <= 0 || MaxDepth <= 0 || MaxDepth > 256 || MaxNodes <= 0 || MaxTextCharacters <= 0 || MaxOutputBytes <= 0 || MaxOutputCharacters <= 0)
             throw new ArgumentOutOfRangeException(nameof(AdfProcessingOptions), "ADF limits must be positive, and MaxDepth must not exceed 256.");

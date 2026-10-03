@@ -1,6 +1,6 @@
 # Structured format conformance
 
-This opt-in runner checks generated ADF JSON against Atlassian's full schema and DocBook output against OASIS DocBook 5.2 RELAX NG. It includes valid output, deliberately invalid shapes, empty native arrays, block marks, typed content ordering, and the independently produced DocBook fixture. Each schema download must match its checked-in SHA-256 pin; changed schemas require review.
+This opt-in runner checks generated ADF JSON against Atlassian's full schema and DocBook output against OASIS DocBook 5.2 RELAX NG. It compares ADF's structural and bundled full-schema profiles with the independent JSON validator. Cases include valid output, deliberately invalid shapes, empty native arrays, block marks, typed content ordering, and the independently produced DocBook fixture. Each schema download must match its checked-in SHA-256 pin; changed schemas require review.
 
 Use Python with `jsonschema` and `lxml` in an isolated validation environment, plus the repository's pinned .NET SDK:
 

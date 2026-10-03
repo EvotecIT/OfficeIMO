@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 
 namespace OfficeIMO.Adf;
 
@@ -38,25 +39,26 @@ internal static class AdfJsonSerializer {
         }
 
         CopyExtensionProperties(root, document);
-        AdfGraphGuard.Check(document, options);
+        AdfGraphSafety.EnsureSafe(document, options);
         return document;
     }
 
     internal static string Serialize(AdfDocument document, bool indented, AdfProcessingOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         options ??= new AdfProcessingOptions();
-        AdfGraphGuard.Check(document, options);
+        AdfGraphSafety.EnsureSafe(document, options);
+        CancellationToken cancellationToken = options.CancellationToken;
 
         using var stream = new AdfJsonOutputStream(options);
-        using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = indented })) {
+        using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = indented, MaxDepth = options.MaxDepth * 3 + 8 })) {
             writer.WriteStartObject();
             writer.WriteNumber("version", document.Version);
             writer.WriteString("type", document.Type);
             writer.WritePropertyName("content");
             writer.WriteStartArray();
-            foreach (AdfNode node in document.ContentItems) WriteNode(writer, node);
+            foreach (AdfNode node in document.ContentItems) WriteNode(writer, node, cancellationToken);
             writer.WriteEndArray();
-            WriteExtensionProperties(writer, document.ExtensionItems, PropertySet.Root);
+            WriteExtensionProperties(writer, document.ExtensionItems, PropertySet.Root, cancellationToken);
             writer.WriteEndObject();
         }
 
@@ -105,15 +107,15 @@ internal static class AdfJsonSerializer {
             node.Text = text.GetString();
         }
         if (hasAttributes) {
-            node.HadAttributesProperty = true;
             if (attributes.ValueKind != JsonValueKind.Object) throw FormatException(path, ".attrs must be an object.");
+            node.IncludeEmptyAttributes = true;
             foreach (JsonProperty attribute in attributes.EnumerateObject()) {
                 node.AddAttribute(attribute.Name, attribute.Value.Clone());
             }
         }
         if (hasContent) {
-            node.HadContentProperty = true;
             if (content.ValueKind != JsonValueKind.Array) throw FormatException(path, ".content must be an array.");
+            node.IncludeEmptyContent = true;
             int childIndex = 0;
             foreach (JsonElement child in content.EnumerateArray()) {
                 int pathLength = path.Length;
@@ -124,10 +126,11 @@ internal static class AdfJsonSerializer {
             }
         }
         if (hasMarks) {
-            node.HadMarksProperty = true;
             if (marks.ValueKind != JsonValueKind.Array) throw FormatException(path, ".marks must be an array.");
+            node.IncludeEmptyMarks = true;
             int markIndex = 0;
             foreach (JsonElement mark in marks.EnumerateArray()) {
+                options.CancellationToken.ThrowIfCancellationRequested();
                 int pathLength = path.Length;
                 path.Append(".marks[").Append(markIndex).Append(']');
                 node.Marks.Add(ReadMark(mark, path));
@@ -157,8 +160,8 @@ internal static class AdfJsonSerializer {
             }
         }
         if (hasAttributes) {
-            mark.HadAttributesProperty = true;
             if (attributes.ValueKind != JsonValueKind.Object) throw FormatException(path, ".attrs must be an object.");
+            mark.IncludeEmptyAttributes = true;
             foreach (JsonProperty attribute in attributes.EnumerateObject()) {
                 mark.AddAttribute(attribute.Name, attribute.Value.Clone());
             }
@@ -166,40 +169,43 @@ internal static class AdfJsonSerializer {
         return mark;
     }
 
-    private static void WriteNode(Utf8JsonWriter writer, AdfNode node) {
+    private static void WriteNode(Utf8JsonWriter writer, AdfNode node, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (node == null) throw new InvalidOperationException("ADF content cannot contain null nodes.");
         writer.WriteStartObject();
         writer.WriteString("type", node.Type);
-        if (node.AttributeItems.Count > 0 || node.HadAttributesProperty) WriteObject(writer, "attrs", node.AttributeItems);
+        if (node.AttributeItems.Count > 0 || node.IncludeEmptyAttributes) WriteObject(writer, "attrs", node.AttributeItems, cancellationToken);
         if (node.Text != null) writer.WriteString("text", node.Text);
-        if (node.MarkItems.Count > 0 || node.HadMarksProperty) {
+        if (node.MarkItems.Count > 0 || node.IncludeEmptyMarks) {
             writer.WritePropertyName("marks");
             writer.WriteStartArray();
-            foreach (AdfMark mark in node.MarkItems) WriteMark(writer, mark);
+            foreach (AdfMark mark in node.MarkItems) WriteMark(writer, mark, cancellationToken);
             writer.WriteEndArray();
         }
-        if (node.ContentItems.Count > 0 || node.HadContentProperty || AdfNodeShape.RequiresContent(node.Type)) {
+        if (node.ContentItems.Count > 0 || node.IncludeEmptyContent || AdfNodeShape.RequiresContent(node.Type)) {
             writer.WritePropertyName("content");
             writer.WriteStartArray();
-            foreach (AdfNode child in node.ContentItems) WriteNode(writer, child);
+            foreach (AdfNode child in node.ContentItems) WriteNode(writer, child, cancellationToken);
             writer.WriteEndArray();
         }
-        WriteExtensionProperties(writer, node.ExtensionItems, PropertySet.Node);
+        WriteExtensionProperties(writer, node.ExtensionItems, PropertySet.Node, cancellationToken);
         writer.WriteEndObject();
     }
 
-    private static void WriteMark(Utf8JsonWriter writer, AdfMark mark) {
+    private static void WriteMark(Utf8JsonWriter writer, AdfMark mark, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         writer.WriteStartObject();
         writer.WriteString("type", mark.Type);
-        if (mark.AttributeItems.Count > 0 || mark.HadAttributesProperty) WriteObject(writer, "attrs", mark.AttributeItems);
-        WriteExtensionProperties(writer, mark.ExtensionItems, PropertySet.Mark);
+        if (mark.AttributeItems.Count > 0 || mark.IncludeEmptyAttributes) WriteObject(writer, "attrs", mark.AttributeItems, cancellationToken);
+        WriteExtensionProperties(writer, mark.ExtensionItems, PropertySet.Mark, cancellationToken);
         writer.WriteEndObject();
     }
 
-    private static void WriteObject(Utf8JsonWriter writer, string name, IReadOnlyDictionary<string, JsonElement> values) {
+    private static void WriteObject(Utf8JsonWriter writer, string name, IReadOnlyDictionary<string, JsonElement> values, CancellationToken cancellationToken) {
         writer.WritePropertyName(name);
         writer.WriteStartObject();
         foreach (KeyValuePair<string, JsonElement> value in values) {
+            cancellationToken.ThrowIfCancellationRequested();
             writer.WritePropertyName(value.Key);
             value.Value.WriteTo(writer);
         }
@@ -212,8 +218,9 @@ internal static class AdfJsonSerializer {
         }
     }
 
-    private static void WriteExtensionProperties(Utf8JsonWriter writer, IReadOnlyDictionary<string, JsonElement> values, PropertySet propertySet) {
+    private static void WriteExtensionProperties(Utf8JsonWriter writer, IReadOnlyDictionary<string, JsonElement> values, PropertySet propertySet, CancellationToken cancellationToken) {
         foreach (KeyValuePair<string, JsonElement> value in values) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (IsKnownProperty(value.Key, propertySet)) continue;
             writer.WritePropertyName(value.Key);
             value.Value.WriteTo(writer);
@@ -238,7 +245,7 @@ internal static class AdfJsonSerializer {
         new(path.ToString() + suffix);
 
     private static int ReadRequiredInt32(JsonElement element, string name, string path) {
-        if (!element.TryGetProperty(name, out JsonElement value) || value.ValueKind != JsonValueKind.Number || !value.TryGetInt32(out int result)) {
+        if (!element.TryGetProperty(name, out JsonElement value) || !AdfJsonValue.TryGetInt32(value, out int result)) {
             throw new FormatException(path + "." + name + " must be an integer.");
         }
         return result;

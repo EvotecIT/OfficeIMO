@@ -9,7 +9,8 @@ var cases = new List<object>();
 void AdfCase(string name, AdfDocument document, bool valid) {
     string file = name + ".json";
     File.WriteAllText(Path.Combine(output, file), document.ToJson());
-    cases.Add(new { file, format = "adf", expectedValid = valid, boundedValid = document.Validate().IsValid });
+    cases.Add(new { file, format = "adf", expectedValid = valid, boundedValid = document.Validate().IsValid,
+        fullSchemaValid = document.Validate(new AdfValidationOptions { Profile = AdfValidationProfile.FullSchema }).IsValid });
 }
 void NativeAdf(string name, string nodes, bool valid) => AdfCase(name, AdfDocument.Parse("{\"version\":1,\"type\":\"doc\",\"content\":" + nodes + "}"), valid);
 void DocBookCase(string name, DocBookDocument document, bool valid) {

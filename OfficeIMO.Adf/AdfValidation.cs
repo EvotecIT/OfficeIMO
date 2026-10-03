@@ -36,8 +36,8 @@ public sealed class AdfValidationIssue {
 
 /// <summary>Result of validating an ADF document.</summary>
 public sealed class AdfValidationResult {
-    internal AdfValidationResult(IReadOnlyList<AdfValidationIssue> issues) => Issues = issues;
-    /// <summary>Gets the issues found while validating the document, including non-fatal warnings.</summary>
+    internal AdfValidationResult(IReadOnlyList<AdfValidationIssue> issues) => Issues = Array.AsReadOnly(issues.ToArray());
+    /// <summary>Gets an immutable snapshot of validation issues, including non-fatal warnings.</summary>
     public IReadOnlyList<AdfValidationIssue> Issues { get; }
 
     /// <summary>Gets whether the issue list contains no <see cref="AdfValidationSeverity.Error"/> entries.</summary>
@@ -50,17 +50,18 @@ internal static class AdfValidator {
         "doc", "paragraph", "heading", "text", "hardBreak", "rule", "blockquote", "codeBlock",
         "bulletList", "orderedList", "listItem", "taskList", "taskItem", "table", "tableRow",
         "tableHeader", "tableCell", "media", "mediaSingle", "mediaGroup", "mention", "emoji",
-        "inlineCard", "blockCard", "extension", "inlineExtension", "bodiedExtension", "panel", "caption",
+        "inlineCard", "blockCard", "extension", "inlineExtension", "bodiedExtension", "panel",
+        "status", "date", "expand", "nestedExpand", "decisionList", "decisionItem", "caption",
     };
 
     private static readonly HashSet<string> RootBlockNodes = new HashSet<string>(StringComparer.Ordinal) {
         "paragraph", "heading", "rule", "blockquote", "codeBlock", "bulletList", "orderedList",
         "taskList", "table", "mediaSingle", "mediaGroup", "blockCard", "extension",
-        "bodiedExtension", "panel",
+        "bodiedExtension", "panel", "expand", "decisionList",
     };
 
     private static readonly HashSet<string> InlineNodes = Nodes(
-        "text", "hardBreak", "mention", "emoji", "inlineCard", "inlineExtension");
+        "text", "hardBreak", "mention", "emoji", "inlineCard", "inlineExtension", "status", "date");
 
     // Relationships for node types this library recognizes follow Atlassian's full ADF schema.
     // Unknown node types stay warning-only so newer vendor nodes can still round-trip.
@@ -79,37 +80,40 @@ internal static class AdfValidator {
             ["tableRow"] = Nodes("tableCell", "tableHeader"),
             ["tableCell"] = Nodes(
                 "paragraph", "panel", "blockquote", "orderedList", "bulletList", "rule", "heading",
-                "codeBlock", "mediaSingle", "mediaGroup", "taskList", "blockCard", "extension"),
+                "codeBlock", "mediaSingle", "mediaGroup", "taskList", "blockCard", "extension", "decisionList", "nestedExpand"),
             ["tableHeader"] = Nodes(
                 "paragraph", "panel", "blockquote", "orderedList", "bulletList", "rule", "heading",
-                "codeBlock", "mediaSingle", "mediaGroup", "taskList", "blockCard", "extension"),
+                "codeBlock", "mediaSingle", "mediaGroup", "taskList", "blockCard", "extension", "decisionList", "nestedExpand"),
             ["mediaSingle"] = Nodes("media", "caption"),
             ["caption"] = Nodes("text", "hardBreak", "mention", "emoji", "inlineCard"),
             ["mediaGroup"] = Nodes("media"),
             ["panel"] = Nodes(
                 "paragraph", "heading", "bulletList", "orderedList", "blockCard", "mediaGroup",
-                "mediaSingle", "codeBlock", "taskList", "rule", "extension"),
+                "mediaSingle", "codeBlock", "taskList", "rule", "extension", "decisionList"),
             ["bodiedExtension"] = Nodes(
                 "paragraph", "panel", "blockquote", "orderedList", "bulletList", "rule", "heading",
-                "codeBlock", "mediaGroup", "mediaSingle", "taskList", "table", "blockCard", "extension"),
+                "codeBlock", "mediaGroup", "mediaSingle", "taskList", "table", "blockCard", "extension", "decisionList"),
+            ["expand"] = Nodes("blockCard", "blockquote", "bulletList", "codeBlock", "decisionList", "extension", "heading", "mediaGroup", "mediaSingle", "nestedExpand", "orderedList", "panel", "paragraph", "rule", "table", "taskList"),
+            ["nestedExpand"] = Nodes("blockquote", "bulletList", "codeBlock", "decisionList", "extension", "heading", "mediaGroup", "mediaSingle", "orderedList", "panel", "paragraph", "rule", "taskList"),
+            ["decisionList"] = Nodes("decisionItem"),
+            ["decisionItem"] = InlineNodes,
         };
 
     private static readonly HashSet<string> KnownMarks = new HashSet<string>(StringComparer.Ordinal) {
         "strong", "em", "code", "strike", "underline", "link", "subsup", "textColor", "backgroundColor", "annotation",
-        "alignment", "indentation", "fontSize", "border", "dataConsumer", "fragment",
+        "alignment", "indentation", "fontSize", "fragment", "border", "breakout", "dataConsumer",
     };
 
     internal static AdfValidationResult Validate(AdfDocument document, AdfProcessingOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         options ??= new AdfProcessingOptions();
-        AdfGraphGuard.Check(document, options);
+        AdfValidationIssue? graphIssue = AdfGraphSafety.Inspect(document, options);
+        if (graphIssue != null) return new AdfValidationResult(new[] { graphIssue });
         CancellationToken cancellationToken = options.CancellationToken;
-        cancellationToken.ThrowIfCancellationRequested();
         var issues = new List<AdfValidationIssue>();
         if (document.Version != 1) issues.Add(Error("ADF_VERSION", "$.version", "Only ADF version 1 is supported."));
         if (!string.Equals(document.Type, "doc", StringComparison.Ordinal)) issues.Add(Error("ADF_ROOT_TYPE", "$.type", "ADF root type must be 'doc'."));
         for (int i = 0; i < document.ContentItems.Count; i++) {
-            cancellationToken.ThrowIfCancellationRequested();
             AdfNode node = document.ContentItems[i];
             string path = "$.content[" + i + "]";
             if (node != null && KnownNodes.Contains(node.Type) && !RootBlockNodes.Contains(node.Type)) {
@@ -137,14 +141,24 @@ internal static class AdfValidator {
             issues.Add(Error("ADF_TEXT_NOT_ALLOWED", path + ".text", "ADF text payloads are allowed only on text nodes."));
         }
         if (node.ContentItems.Count < AdfNodeShape.MinimumChildren(node.Type)) {
-            issues.Add(Error("ADF_CONTENT_REQUIRED", path + ".content", "ADF node '" + node.Type + "' requires non-empty content."));
+            issues.Add(Error("ADF_CONTENT_REQUIRED", path + ".content", "ADF node '" + node.Type + "' requires at least one content node."));
         }
-        if (node.Type == "mediaSingle" && node.ContentItems.Count > 2) {
+        if (node.Type == "mediaSingle" && node.ContentItems.Count > 2)
             issues.Add(Error("ADF_MEDIA_SINGLE_CONTENT", path + ".content", "ADF mediaSingle contains one media node and at most one caption."));
-        }
-        if (node.Type == "panel" && node.GetStringAttribute("panelType") is not ("info" or "note" or "tip" or "warning" or "error" or "success" or "custom")) {
+        if (node.Type == "panel" && node.GetStringAttribute("panelType") is not ("info" or "note" or "tip" or "warning" or "error" or "success" or "custom"))
             issues.Add(Error("ADF_PANEL_TYPE", path + ".attrs.panelType", "ADF panels require a supported panelType attribute."));
-        }
+        if (node.Type == "mention" && node.GetStringAttribute("id") == null)
+            issues.Add(Error("ADF_MENTION_ID", path + ".attrs.id", "ADF mentions require a string id attribute."));
+        if (node.Type == "emoji" && node.GetStringAttribute("shortName") == null)
+            issues.Add(Error("ADF_EMOJI_SHORT_NAME", path + ".attrs.shortName", "ADF emoji nodes require a string shortName attribute."));
+        if (node.Type == "date" && string.IsNullOrEmpty(node.GetStringAttribute("timestamp")))
+            issues.Add(Error("ADF_DATE_TIMESTAMP", path + ".attrs.timestamp", "ADF date nodes require a nonempty string timestamp."));
+        if (node.Type == "status" && (string.IsNullOrEmpty(node.GetStringAttribute("text")) || node.GetStringAttribute("color") == null))
+            issues.Add(Error("ADF_STATUS_ATTRIBUTES", path + ".attrs", "ADF status nodes require nonempty text and a string color."));
+        if ((node.Type == "decisionList" || node.Type == "decisionItem") && node.GetStringAttribute("localId") == null)
+            issues.Add(Error("ADF_DECISION_LOCAL_ID", path + ".attrs.localId", "ADF decision nodes require a string localId."));
+        if (node.Type == "decisionItem" && node.GetStringAttribute("state") == null)
+            issues.Add(Error("ADF_DECISION_STATE", path + ".attrs.state", "ADF decision items require a string state."));
         if (isTextNode && string.Equals(parentType, "codeBlock", StringComparison.Ordinal) && node.MarkItems.Count > 0) {
             issues.Add(Error("ADF_CODE_MARKS_NOT_ALLOWED", path + ".marks", "ADF code-block text cannot contain marks."));
         }
@@ -186,28 +200,23 @@ internal static class AdfValidator {
         for (int i = 0; i < node.MarkItems.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             AdfMark mark = node.MarkItems[i];
-            marksNotAllowed |= isKnownNode && mark != null && KnownMarks.Contains(mark.Type) && !AdfNodeShape.AllowsMark(node.Type, mark.Type);
+            marksNotAllowed |= isKnownNode && mark != null && KnownMarks.Contains(mark.Type) && !AdfNodeShape.AllowsMark(node.Type, mark.Type, parentType);
             if (mark == null || string.IsNullOrWhiteSpace(mark.Type)) issues.Add(Error("ADF_MARK_TYPE", path + ".marks[" + i + "]", "ADF mark type is required."));
             else if (!KnownMarks.Contains(mark.Type)) issues.Add(Warning("ADF_UNKNOWN_MARK", path + ".marks[" + i + "]", "Unknown ADF mark '" + mark.Type + "' is retained but may be projected with reduced fidelity."));
             if (mark != null && string.Equals(mark.Type, "link", StringComparison.Ordinal) && string.IsNullOrWhiteSpace(mark.GetStringAttribute("href"))) {
                 issues.Add(Error("ADF_LINK_HREF_REQUIRED", path + ".marks[" + i + "].attrs.href", "ADF link marks require a non-empty string href attribute."));
             }
-            if (mark != null && mark.Type == "alignment" && mark.GetStringAttribute("align") is not ("center" or "end")) {
+            if (mark != null && mark.Type == "alignment" && mark.GetStringAttribute("align") is not ("center" or "end"))
                 issues.Add(Error("ADF_ALIGNMENT", path + ".marks[" + i + "].attrs.align", "ADF alignment requires 'center' or 'end'."));
-            }
         }
-        if (marksNotAllowed) {
-            issues.Add(Error("ADF_MARKS_NOT_ALLOWED", path + ".marks", "The known ADF mark is not allowed on node '" + node.Type + "'."));
-        }
+        if (marksNotAllowed) issues.Add(Error("ADF_MARKS_NOT_ALLOWED", path + ".marks", "The known ADF mark is not allowed on node '" + node.Type + "'."));
         for (int i = 0; i < node.ContentItems.Count; i++) {
-            cancellationToken.ThrowIfCancellationRequested();
             AdfNode? child = node.ContentItems[i];
             string childPath = path + ".content[" + i + "]";
             if (child != null) {
                 ValidateKnownChild(node, child, childPath, issues);
-                if (node.Type == "mediaSingle" && KnownNodes.Contains(child.Type) && child.Type != (i == 0 ? "media" : "caption")) {
+                if (node.Type == "mediaSingle" && KnownNodes.Contains(child.Type) && child.Type != (i == 0 ? "media" : "caption"))
                     issues.Add(Error("ADF_MEDIA_SINGLE_CONTENT", childPath, "ADF mediaSingle requires media first and an optional caption second."));
-                }
             }
             ValidateNode(child, childPath, node.Type, issues, cancellationToken);
         }

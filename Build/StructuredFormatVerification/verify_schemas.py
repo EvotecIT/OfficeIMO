@@ -46,10 +46,10 @@ def main():
             detail = [str(error) for error in list(validator.error_log)[:3]]
         results.append({**case, "officialValid": valid, "errors": detail})
     (output / "results.json").write_text(json.dumps({"schemaHashes": {name: value[1] for name, value in SCHEMAS.items()}, "cases": results}, indent=2))
-    failures = [case["file"] for case in results if case["officialValid"] != case["expectedValid"] or case["boundedValid"] != case["expectedValid"]]
+    failures = [case["file"] for case in results if case["officialValid"] != case["expectedValid"] or case["boundedValid"] != case["expectedValid"] or case.get("fullSchemaValid", case["expectedValid"]) != case["expectedValid"]]
     if failures:
         raise RuntimeError("Conformance mismatch: " + ", ".join(failures))
-    print(f"PASS | {len(results)} cases match pinned official schemas and bounded validation")
+    print(f"PASS | {len(results)} cases match pinned official schemas, bounded validation and the bundled ADF schema profile")
 
 
 if __name__ == "__main__":

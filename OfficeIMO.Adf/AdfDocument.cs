@@ -5,11 +5,12 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization.Metadata;
+using System.Threading;
 
 namespace OfficeIMO.Adf;
 
 /// <summary>
-/// Represents an Atlassian Document Format document while retaining fields that OfficeIMO does not yet understand.
+/// Represents an Atlas Document Format document while retaining fields that OfficeIMO does not yet understand.
 /// </summary>
 public sealed class AdfDocument {
     private List<AdfNode>? _content;
@@ -53,6 +54,7 @@ public sealed class AdfDocument {
     public static AdfDocument Parse(string json, AdfProcessingOptions options) => AdfJsonSerializer.Parse(json, options);
 
     /// <summary>Serializes this document to ADF JSON without performing structural validation.</summary>
+    /// <remarks>Default graph limits are 64 levels and 100,000 nodes and marks. Null values and ancestor cycles are rejected.</remarks>
     public string ToJson(bool indented = false) => AdfJsonSerializer.Serialize(this, indented);
 
     /// <summary>Serializes ADF JSON with explicit resource limits and cancellation.</summary>
@@ -62,7 +64,30 @@ public sealed class AdfDocument {
     public AdfValidationResult Validate() => AdfValidator.Validate(this);
 
     /// <summary>Validates ADF structure with explicit resource limits and cancellation.</summary>
-    public AdfValidationResult Validate(AdfProcessingOptions options) => AdfValidator.Validate(this, options);
+    public AdfValidationResult Validate(AdfProcessingOptions options) {
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        return options is AdfValidationOptions validation ? Validate(validation) : AdfValidator.Validate(this, options);
+    }
+
+    /// <summary>Validates against the selected structural or bundled full-schema contract.</summary>
+    public AdfValidationResult Validate(AdfValidationOptions options) => Validate(options, CancellationToken.None);
+
+    /// <summary>Validates against the selected contract with cancellation during graph and rule traversal.</summary>
+    public AdfValidationResult Validate(AdfValidationOptions options, CancellationToken cancellationToken) {
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        if (options.MaximumSchemaEvaluations < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumSchemaEvaluations must be positive.");
+        using var linked = options.CancellationToken.CanBeCanceled && cancellationToken.CanBeCanceled && options.CancellationToken != cancellationToken
+            ? CancellationTokenSource.CreateLinkedTokenSource(options.CancellationToken, cancellationToken) : null;
+        CancellationToken effectiveToken = linked?.Token ?? (cancellationToken.CanBeCanceled ? cancellationToken : options.CancellationToken);
+        AdfProcessingOptions processing = effectiveToken == options.CancellationToken ? options : options.WithCancellation(effectiveToken);
+        processing.Check();
+        AdfValidationResult result = options.Profile switch {
+            AdfValidationProfile.ForwardCompatible => AdfValidator.Validate(this, processing),
+            AdfValidationProfile.FullSchema => AdfPinnedSchema.Validate(this, options.MaximumSchemaEvaluations, processing),
+            _ => throw new ArgumentOutOfRangeException(nameof(options), "Unknown ADF validation profile.")
+        };
+        return options.DestinationPolicy?.Validate(this, result, effectiveToken) ?? result;
+    }
 }
 
 /// <summary>An ADF content node.</summary>
@@ -71,11 +96,6 @@ public sealed class AdfNode {
     private List<AdfMark>? _marks;
     private Dictionary<string, JsonElement>? _attributes;
     private Dictionary<string, JsonElement>? _extensionData;
-
-    // Empty optional properties are significant to native JSON preservation.
-    internal bool HadContentProperty { get; set; }
-    internal bool HadMarksProperty { get; set; }
-    internal bool HadAttributesProperty { get; set; }
 
     /// <summary>Creates an ADF node.</summary>
     public AdfNode(string type) {
@@ -88,6 +108,13 @@ public sealed class AdfNode {
 
     /// <summary>Text payload for text nodes.</summary>
     public string? Text { get; set; }
+
+    /// <summary>Includes an empty attributes object when no attributes are set. Parsing retains explicit source presence.</summary>
+    public bool IncludeEmptyAttributes { get; set; }
+    /// <summary>Includes an empty content array when there are no children. Parsing retains explicit source presence.</summary>
+    public bool IncludeEmptyContent { get; set; }
+    /// <summary>Includes an empty marks array when there are no marks. Parsing retains explicit source presence.</summary>
+    public bool IncludeEmptyMarks { get; set; }
 
     /// <summary>Child nodes.</summary>
     public List<AdfNode> Content => _content ??= new List<AdfNode>();
@@ -144,7 +171,7 @@ public sealed class AdfNode {
 
     /// <summary>Gets an integer attribute when present.</summary>
     public int? GetInt32Attribute(string name) =>
-        _attributes != null && _attributes.TryGetValue(name, out JsonElement value) && value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out int result)
+        _attributes != null && _attributes.TryGetValue(name, out JsonElement value) && AdfJsonValue.TryGetInt32(value, out int result)
             ? result
             : null;
 }
@@ -153,7 +180,6 @@ public sealed class AdfNode {
 public sealed class AdfMark {
     private Dictionary<string, JsonElement>? _attributes;
     private Dictionary<string, JsonElement>? _extensionData;
-    internal bool HadAttributesProperty { get; set; }
 
     /// <summary>Creates an ADF mark.</summary>
     public AdfMark(string type) {
@@ -163,6 +189,9 @@ public sealed class AdfMark {
 
     /// <summary>Mark type.</summary>
     public string Type { get; set; }
+
+    /// <summary>Includes an empty attributes object when no attributes are set. Parsing retains explicit source presence.</summary>
+    public bool IncludeEmptyAttributes { get; set; }
 
     /// <summary>Mark attributes retained as arbitrary JSON values.</summary>
     public IDictionary<string, JsonElement> Attributes =>
@@ -223,6 +252,14 @@ internal sealed class EmptyJsonValues : IReadOnlyDictionary<string, JsonElement>
 }
 
 internal static class AdfJsonValue {
+    internal static bool TryGetInt32(JsonElement value, out int result) {
+        result = 0;
+        if (value.ValueKind != JsonValueKind.Number) return false;
+        if (value.TryGetInt32(out result)) return true;
+        if (!value.TryGetDecimal(out decimal number) || number != decimal.Truncate(number) || number < int.MinValue || number > int.MaxValue) return false;
+        result = (int)number;
+        return true;
+    }
     internal static JsonElement Create(object? value) {
         if (value is JsonElement element) return element.Clone();
         if (value is JsonDocument document) return document.RootElement.Clone();
