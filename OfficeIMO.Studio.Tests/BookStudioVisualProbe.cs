@@ -32,11 +32,27 @@ internal static class BookStudioVisualProbe {
                         await File.WriteAllTextAsync(source, "---\ntitle: A field guide to publishing\nauthor: Sample author\nlanguage: en\n---\n# Opening chapter\n\nA reflowable book keeps its **meaning** as the reader changes the page size.\n\n- [x] Import the manuscript\n- [ ] Review the final EPUB\n\n## A small table\n\n| Stage | Result |\n| --- | --- |\n| Import | Typed book |\n| Export | EPUB file |\n\n# Second chapter\n\nA second chapter with a [return link](#opening-chapter).\n");
                         await book.OpenLocationAsync(source, default);
                         book.BookTitle = "A field guide to EPUB publishing";
+                        book.Stylesheet = "body{font-family:serif;line-height:1.5}";
                         await book.ApplyEditsCommand.ExecuteAsync(null);
                         string project = Path.Combine(root, "book.oibook"), epub = Path.Combine(root, "book.epub");
                         window.ViewModel.FileDialogs = new LocalDialogs(window, services.Storage, project, epub);
                         await book.SaveProjectCommand.ExecuteAsync(null);
                         if (book.IsDirty) throw new InvalidOperationException(book.Status);
+                        await book.ExportBookCommand.ExecuteAsync(null);
+                        await book.OpenLocationAsync(project, default);
+                        if (book.IsDirty || book.Stylesheet != "body{font-family:serif;line-height:1.5}")
+                            throw new InvalidDataException("Opening the styled native project created phantom edits.");
+                        string originalTitle = book.ChapterTitle;
+                        book.ChapterTitle = originalTitle + " revised";
+                        book.Stylesheet = "body{font-family:serif;line-height:1.7}";
+                        await book.ApplyEditsCommand.ExecuteAsync(null);
+                        await book.UndoEditCommand.ExecuteAsync(null);
+                        if (!book.CanRedo || book.ChapterTitle != originalTitle || book.Stylesheet != "body{font-family:serif;line-height:1.5}")
+                            throw new InvalidDataException("The native combined edit could not be undone and redone.");
+                        await book.RedoEditCommand.ExecuteAsync(null);
+                        if (book.ChapterTitle != originalTitle + " revised") throw new InvalidDataException("Native redo lost the chapter title.");
+                        await book.UndoEditCommand.ExecuteAsync(null);
+                        await book.SaveProjectCommand.ExecuteAsync(null);
                         await book.ExportBookCommand.ExecuteAsync(null);
                         BookProject restored = BookProject.LoadProject(await File.ReadAllBytesAsync(project));
                         using var exported = File.OpenRead(epub);

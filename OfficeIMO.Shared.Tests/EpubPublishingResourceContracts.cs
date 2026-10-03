@@ -7,6 +7,36 @@ namespace OfficeIMO.Shared.Tests;
 
 public sealed class EpubPublishingResourceContracts {
     [Theory]
+    [InlineData("<map id='sites' name='sites'><area href='#two' alt='Next' shape='rect' coords='0,0,1,1'/></map>")]
+    [InlineData("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><a href='#two'><text x='0' y='1'>Next</text></a></svg>")]
+    [InlineData("<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 10 10'><a xlink:href='#two'><text x='0' y='1'>Next</text></a></svg>")]
+    public void RetainedAreaAndSvgLinksFollowTheirTargetsAcrossSplitChapters(string link) {
+        var result = EpubManuscript.ImportHtml(HtmlConversionDocument.Parse("<title>Links</title><h1 id='one'>One</h1>" + link + "<h1 id='two'>Two</h1><p>Target</p>"));
+        result.Report.RequireNoLoss();
+        var target = result.Publication.GetContentXml("chapter-1").Descendants().Single(element => element.Name.LocalName is "area" or "a");
+        Assert.Equal("chapter-0002.xhtml#two", target.Attributes().Single(attribute => attribute.Name.LocalName == "href").Value);
+        result.Publication.Write().Report.RequireNoLoss();
+    }
+    [Fact]
+    public async Task ResponsivePictureRetainsBothSelectedSourceAndFallbackImage() {
+        var requested = new HashSet<string>();
+        var source = HtmlConversionDocument.Parse("<title>Picture</title><h1>Picture</h1><picture><source media='(min-width:1px)' srcset='wide.png 1x'><img alt='A dot' src='fallback.png' srcset='fallback-large.png 2x'></picture>",
+            new HtmlConversionDocumentOptions { BaseUri = new Uri("https://example.test/book.html") });
+        var result = await EpubManuscript.ImportHtmlAsync(source, new EpubManuscriptOptions {
+            ResourceResolver = (request, _) => {
+                requested.Add(request.Uri.AbsolutePath);
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="), "image/png"));
+            }
+        });
+        result.Report.RequireNoLoss();
+        Assert.Contains("/wide.png", requested);
+        Assert.Contains("/fallback.png", requested);
+        Assert.Contains("/fallback-large.png", requested);
+        var picture = result.Publication.GetContentXml("chapter-1").Descendants(System.Xml.Linq.XName.Get("picture", "http://www.w3.org/1999/xhtml")).Single();
+        Assert.Contains("resource-", picture.Element(System.Xml.Linq.XName.Get("img", "http://www.w3.org/1999/xhtml"))!.Attribute("src")!.Value);
+        result.Publication.Write().Report.RequireNoLoss();
+    }
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task SharedResolverObjectsRetainEachResourceBaseAndItsDistinctImage(bool svg) {

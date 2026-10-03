@@ -83,9 +83,11 @@ public static partial class EpubManuscript {
             .Where(element => element.Attribute("id") != null).Select(element => new { Id = (string)element.Attribute("id")!, Chapter = chapter }))
             .ToDictionary(item => item.Id, item => item.Chapter, StringComparer.Ordinal);
         foreach (Chapter chapter in chapters) {
-            foreach (XElement element in chapter.Body.Descendants().Where(element => element.Name == Xhtml + "a")) {
-                XAttribute? href = element.Attribute("href");
-                if (href == null) continue;
+            foreach (XAttribute href in chapter.Body.Descendants()
+                .Where(element => element.Name == Xhtml + "a" || element.Name == Xhtml + "area" ||
+                    element.Name == XName.Get("a", "http://www.w3.org/2000/svg"))
+                .SelectMany(element => element.Attributes().Where(attribute => attribute.Name == "href" ||
+                    attribute.Name == XName.Get("href", "http://www.w3.org/1999/xlink"))).ToArray()) {
                 string value = href.Value.Trim();
                 if (!value.StartsWith("#", StringComparison.Ordinal) && manuscript.BaseUri != null &&
                     Uri.TryCreate(manuscript.BaseUri, value, out Uri? absolute) && absolute.Fragment.Length != 0 &&

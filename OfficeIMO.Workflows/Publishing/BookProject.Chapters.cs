@@ -47,7 +47,7 @@ public sealed partial class BookProject {
         if (proposed.Spine.Count <= 1) throw new InvalidOperationException("A book must retain at least one chapter.");
         string id = proposed.Spine[index].ManifestId;
         string path = proposed.Manifest.Single(item => item.Id == id).Reference.ContainerPath!;
-        EpubDocument reading = proposed.Read(new EpubReadOptions { MaxChapters = proposed.Spine.Count }, cancellationToken);
+        EpubDocument reading = ReadCompleteNavigation(proposed, cancellationToken);
         IEnumerable<EpubNavigationEntry> Keep(IEnumerable<EpubNavigationItem> items) {
             foreach (var item in items) {
                 if (item.Target == path) { foreach (var child in Keep(item.Children)) yield return child; }

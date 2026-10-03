@@ -82,6 +82,9 @@ retain the previous publication. Deleting a linked chapter requires repairing it
 remaining links first. A blank creator retains the current creator. Package edits
 have one bounded session-only undo/redo step; the history is not saved in the project.
 `PreviewChapter` renders through `OfficeIMO.Epub.Image` using retained package assets.
+It selects the requested spine position and fails if that chapter was omitted by the
+bounded reading policy. Navigation edits also reject incomplete reader projections,
+retaining the complete publication when item, depth, or XML size limits are reached.
 
 The `.oibook` container stores `publication.epub` and a versioned review record, with
 physical ZIP validation and byte/count limits. Loading never extracts files.

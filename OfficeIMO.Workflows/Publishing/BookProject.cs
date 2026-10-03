@@ -90,7 +90,7 @@ public sealed partial class BookProject {
     /// <summary>Moves a chapter and its top-level navigation entry atomically, retaining nested navigation.</summary>
     public void MoveChapter(int fromIndex, int toIndex, CancellationToken cancellationToken = default) {
         Mutate(proposed => {
-            EpubDocument reading = proposed.Read(cancellationToken: cancellationToken);
+            EpubDocument reading = ReadCompleteNavigation(proposed, cancellationToken);
             string path = proposed.Manifest.Single(item => item.Id == proposed.Spine[fromIndex].ManifestId).Reference.ContainerPath!;
             string targetPath = proposed.Manifest.Single(item => item.Id == proposed.Spine[toIndex].ManifestId).Reference.ContainerPath!;
             var roots = reading.TableOfContents.ToList();
@@ -112,7 +112,8 @@ public sealed partial class BookProject {
             ArgumentException.ThrowIfNullOrWhiteSpace(title);
             string id = proposed.Spine[index].ManifestId;
             string path = proposed.Manifest.Single(item => item.Id == id).Reference.ContainerPath!;
-            EpubDocument reading = proposed.Read(cancellationToken: cancellationToken);
+            EpubDocument reading = ReadCompleteNavigation(proposed, cancellationToken);
+            EpubNavigationItem? primary = FindPrimaryNavigation(reading.TableOfContents, path);
             XDocument content = proposed.GetContentXml(id);
             XNamespace html = "http://www.w3.org/1999/xhtml";
             XElement documentTitle = content.Root?.Element(html + "head")?.Element(html + "title")
@@ -123,7 +124,7 @@ public sealed partial class BookProject {
             if (heading?.Value.Trim() == previousTitle && !heading.Elements().Any()) heading.Value = title;
             documentTitle.Value = title;
             proposed.SetContentXml(id, content);
-            proposed.SetNavigation(reading.TableOfContents.Select(item => ToNavigation(item, path, title)));
+            proposed.SetNavigation(reading.TableOfContents.Select(item => ToNavigation(item, primary, title)));
     }
     /// <summary>Changes the project typography stylesheet without replacing imported source CSS.</summary>
     public void SetStylesheet(string css, CancellationToken cancellationToken = default) {
@@ -201,9 +202,12 @@ public sealed partial class BookProject {
     /// <summary>Renders one current chapter through the existing EPUB image owner, using retained package resources only.</summary>
     public IReadOnlyList<OfficeImageExportResult> PreviewChapter(int index, double width = 816,
         CancellationToken cancellationToken = default) {
+        if (index < 0 || index >= _publication.Spine.Count) throw new ArgumentOutOfRangeException(nameof(index));
         EpubDocument source = _publication.Read(new EpubReadOptions { IncludeRawHtml = true, IncludeResourceData = true, MaxChapters = _publication.Spine.Count }, cancellationToken);
+        int extractedIndex = Enumerable.Range(0, source.Chapters.Count).FirstOrDefault(position => source.Chapters[position].SpineIndex == index + 1, -1);
+        if (extractedIndex < 0) throw new InvalidDataException("The selected chapter could not be extracted under the preview reading policy.");
         return source.ExportImages(OfficeImageExportFormat.Png, new EpubImageExportOptions {
-            ChapterIndex = index, ChapterCount = 1, ViewportWidth = width, Mode = HtmlRenderMode.Continuous,
+            ChapterIndex = extractedIndex, ChapterCount = 1, ViewportWidth = width, Mode = HtmlRenderMode.Continuous,
             MaximumOutputCount = 1
         }, cancellationToken);
     }
@@ -217,9 +221,30 @@ public sealed partial class BookProject {
         if (!bytes.SequenceEqual(validated)) { _undo = bytes.LongLength <= 128L * 1024 * 1024 ? bytes : null; _redo = null; }
         _publication = proposed;
     }
-    private static EpubNavigationEntry ToNavigation(EpubNavigationItem item, string? renamePath = null, string? title = null) =>
-        new EpubNavigationEntry(item.Target == renamePath ? title! : item.Label,
+    private static EpubDocument ReadCompleteNavigation(EpubPublication publication, CancellationToken token) {
+        EpubDocument reading = publication.Read(cancellationToken: token);
+        EpubDiagnostic? incomplete = reading.Diagnostics.FirstOrDefault(item => item.Code is
+            "epub.navigation.depth-limit" or "epub.navigation.item-count-limit" or
+            "epub.navigation.metadata-size-limit" or "epub.navigation.invalid-xml" or
+            "epub.navigation.remote" or "epub.navigation.missing" or "epub.navigation.target-invalid" or
+            "epub.ncx.metadata-size-limit" or "epub.ncx.invalid-xml" or "epub.ncx.remote" or
+            "epub.ncx.missing" or "epub.ncx.target-invalid" or "epub.guide.invalid-target");
+        if (reading.OpfPath != publication.PackagePath || incomplete != null)
+            throw new InvalidDataException("Navigation editing requires a complete reader projection." +
+                (incomplete == null ? string.Empty : " " + incomplete.Code + ": " + incomplete.Message));
+        return reading;
+    }
+    private static EpubNavigationItem? FindPrimaryNavigation(IEnumerable<EpubNavigationItem> items, string path) {
+        foreach (EpubNavigationItem item in items) {
+            if (!item.IsRemote && item.Target == path && !string.IsNullOrWhiteSpace(item.Label)) return item;
+            EpubNavigationItem? child = FindPrimaryNavigation(item.Children, path);
+            if (child != null) return child;
+        }
+        return null;
+    }
+    private static EpubNavigationEntry ToNavigation(EpubNavigationItem item, EpubNavigationItem? renamedItem = null, string? title = null) =>
+        new EpubNavigationEntry(ReferenceEquals(item, renamedItem) ? title! : item.Label,
             (item.Target ?? throw new InvalidDataException("Navigation entry has no resolved target.")) +
                 (item.Fragment == null ? string.Empty : "#" + Uri.EscapeDataString(item.Fragment)),
-            item.Children.Select(child => ToNavigation(child)), item.SemanticType);
+            item.Children.Select(child => ToNavigation(child, renamedItem, title)), item.SemanticType);
 }

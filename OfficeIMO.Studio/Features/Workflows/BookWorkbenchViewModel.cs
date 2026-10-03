@@ -79,12 +79,13 @@ public sealed partial class BookWorkbenchViewModel : ObservableObject, IDisposab
     }
     partial void OnSelectedChapterChanged(BookChapterChoice? value) {
         ClearPreview();
+        bool wasRefreshing = _refreshing;
         _refreshing = true;
         try {
             ChapterTitle = value == null ? string.Empty : _titleDrafts.TryGetValue(value.Id, out string? title) ? title : value.Title;
             ChapterBody = value?.IsXhtml != true ? string.Empty : _bodyDrafts.TryGetValue(value.Id, out string? draft) ? draft :
                 _project!.Publication.GetContentXml(value.Id).Root!.Element(XName.Get("body", "http://www.w3.org/1999/xhtml"))!.ToString(SaveOptions.OmitDuplicateNamespaces);
-        } finally { _refreshing = false; }
+        } finally { _refreshing = wasRefreshing; }
         NotifyCommands();
     }
     partial void OnIsBusyChanged(bool value) => NotifyCommands();
@@ -100,6 +101,7 @@ public sealed partial class BookWorkbenchViewModel : ObservableObject, IDisposab
         UndoEditCommand.NotifyCanExecuteChanged(); RedoEditCommand.NotifyCanExecuteChanged(); OnPropertyChanged(nameof(CanUndo)); OnPropertyChanged(nameof(CanRedo));
     }
     private void RefreshBook(int index = 0) {
+        bool wasRefreshing = _refreshing;
         _refreshing = true;
         try {
             BookTitle = _project!.Publication.Title; Language = _project.Publication.Language; Creator = _project.Publication.Creator ?? string.Empty;
@@ -116,7 +118,7 @@ public sealed partial class BookWorkbenchViewModel : ObservableObject, IDisposab
             if (!_styleChanged) Stylesheet = style != null && HtmlResourcePipeline.TryDecodeStylesheet(_project.Publication.GetResourceBytes(style.Id), "text/css", out string css) ? css : string.Empty;
             Diagnostics.Clear();
             foreach (var diagnostic in _project.ImportDiagnostics) Diagnostics.Add(diagnostic.Code + ": " + diagnostic.Message);
-        } finally { _refreshing = false; }
+        } finally { _refreshing = wasRefreshing; }
         NotifyCommands();
     }
     private async Task RunAsync(Func<CancellationToken, Task> action) {
@@ -176,7 +178,11 @@ public sealed partial class BookWorkbenchViewModel : ObservableObject, IDisposab
     private void ClearPreview() { Preview?.Dispose(); Preview = null; PreviewStatus = string.Empty; }
     private void ResetLocation() {
         _sourceLocation = _projectLocation = _projectFingerprint = _sourceIdentity = _projectIdentity = null; ProjectName = string.Empty;
-        _bodyDrafts.Clear(); _titleDrafts.Clear(); _styleChanged = false; _hasDraftEdits = false; _refreshing = true; Stylesheet = string.Empty; _refreshing = false; ClearPreview();
+        _bodyDrafts.Clear(); _titleDrafts.Clear(); _styleChanged = false; _hasDraftEdits = false;
+        bool wasRefreshing = _refreshing;
+        _refreshing = true;
+        try { Stylesheet = string.Empty; } finally { _refreshing = wasRefreshing; }
+        ClearPreview();
     }
     internal async Task<bool> PrepareCloseAsync() {
         if (IsBusy) return false;

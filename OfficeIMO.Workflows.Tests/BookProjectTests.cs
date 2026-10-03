@@ -6,6 +6,96 @@ namespace OfficeIMO.Workflows.Tests;
 
 public sealed class BookProjectTests {
     [Theory]
+    [InlineData("rename", EpubVersion.Epub3)]
+    [InlineData("move", EpubVersion.Epub3)]
+    [InlineData("remove", EpubVersion.Epub3)]
+    [InlineData("batch", EpubVersion.Epub3)]
+    [InlineData("rename", EpubVersion.Epub2)]
+    [InlineData("move", EpubVersion.Epub2)]
+    [InlineData("remove", EpubVersion.Epub2)]
+    [InlineData("batch", EpubVersion.Epub2)]
+    public void TruncatedNavigationCannotBeUsedToRewriteThePublication(string operation, EpubVersion version) {
+        var publication = EpubPublication.Create("Book", "en", version: version);
+        publication.AddChapter("one", "EPUB/one.xhtml", "One", "<p>One</p>");
+        publication.AddChapter("two", "EPUB/two.xhtml", "Two", "<p>Two</p>");
+        publication.SetNavigation(new[] { new EpubNavigationEntry("One", "EPUB/one.xhtml"), new EpubNavigationEntry("Two", "EPUB/two.xhtml") }
+            .Concat(Enumerable.Range(0, 10_000).Select(index => new EpubNavigationEntry("Section " + index, "EPUB/one.xhtml"))));
+        var project = BookProject.FromEpub(publication.Write().Bytes);
+        byte[] before = project.Export().Bytes;
+        Assert.Throws<InvalidDataException>(() => {
+            if (operation == "rename") project.RenameChapter(0, "Renamed");
+            else if (operation == "move") project.MoveChapter(0, 1);
+            else if (operation == "batch") project.ApplyEdits(new BookProjectEdits { Title = "Changed", ChapterTitles = new Dictionary<string, string> { ["one"] = "Renamed" } });
+            else project.RemoveChapter(1);
+        });
+        Assert.Equal(before, project.Export().Bytes);
+    }
+    [Theory]
+    [InlineData(EpubVersion.Epub3)]
+    [InlineData(EpubVersion.Epub2)]
+    public void OversizedNavigationIsRetainedWhenItsProjectionCannotBeEdited(EpubVersion version) {
+        var publication = EpubPublication.Create("Book", "en", version: version);
+        publication.AddChapter("one", "EPUB/one.xhtml", "One", "<p>One</p>");
+        XDocument navigation = publication.GetContentXml("navigation");
+        navigation.Root!.Add(new XComment(new string('x', 5 * 1024 * 1024)));
+        publication.UpdateResource("navigation", System.Text.Encoding.UTF8.GetBytes(navigation.ToString()));
+        var project = BookProject.FromEpub(publication.Write().Bytes);
+        byte[] before = project.Export().Bytes;
+        Assert.Throws<InvalidDataException>(() => project.RenameChapter(0, "Changed"));
+        Assert.Equal(before, project.Export().Bytes);
+    }
+    [Fact]
+    public void NavigationBeyondTheReaderDepthIsPreservedWhenRenameIsRejected() {
+        var publication = EpubPublication.Create("Book", "en");
+        publication.AddChapter("one", "EPUB/one.xhtml", "One", "<p>One</p>");
+        var nested = new EpubNavigationEntry("Leaf", "EPUB/one.xhtml");
+        for (int depth = 0; depth < 64; depth++) nested = new EpubNavigationEntry("Level " + depth, "EPUB/one.xhtml", [nested]);
+        publication.SetNavigation([nested]);
+        var project = BookProject.FromEpub(publication.Write().Bytes);
+        byte[] before = project.Export().Bytes;
+        Assert.Throws<InvalidDataException>(() => project.RenameChapter(0, "Changed"));
+        Assert.Equal(before, project.Export().Bytes);
+    }
+    [Fact]
+    public void RemovingAChapterCannotDiscardTruncatedPageListOrLandmarks() {
+        var publication = EpubPublication.Create("Book", "en");
+        publication.AddChapter("one", "EPUB/one.xhtml", "One", "<p>One</p>");
+        publication.AddChapter("two", "EPUB/two.xhtml", "Two", "<p>Two</p>");
+        publication.SetNavigation([new("One", "EPUB/one.xhtml"), new("Two", "EPUB/two.xhtml")],
+            Enumerable.Range(1, 10_000).Select(index => new EpubNavigationEntry(index.ToString(), "EPUB/one.xhtml")),
+            [new("Start", "EPUB/one.xhtml", semanticType: "bodymatter")]);
+        var project = BookProject.FromEpub(publication.Write().Bytes);
+        byte[] before = project.Export().Bytes;
+        Assert.Throws<InvalidDataException>(() => project.RemoveChapter(1));
+        Assert.Equal(before, project.Export().Bytes);
+    }
+    [Fact]
+    public void ChapterRenameUpdatesOnlyItsPrimaryNavigationLabelIncludingNestedEntries() {
+        var publication = EpubPublication.Create("Book", "en");
+        publication.AddChapter("one", "EPUB/one.xhtml", "One", "<h1 id='one'>One</h1><h2 id='details'>Details</h2>");
+        publication.AddChapter("two", "EPUB/two.xhtml", "Two", "<p>Two</p>");
+        publication.SetNavigation(new[] {
+            new EpubNavigationEntry("Two", "EPUB/two.xhtml", new[] { new EpubNavigationEntry("One", "EPUB/one.xhtml#one") }),
+            new EpubNavigationEntry("Details", "EPUB/one.xhtml#details")
+        });
+        var project = BookProject.FromEpub(publication.Write().Bytes);
+        project.RenameChapter(0, "Renamed");
+        var toc = project.Publication.Read().TableOfContents;
+        Assert.Equal("Renamed", toc[0].Children[0].Label);
+        Assert.Equal("Details", toc[1].Label);
+    }
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void PreviewUsesSpineIdentityWhenAnEarlierChapterExceedsTheReadBudget(bool selectLargeChapter) {
+        var publication = EpubPublication.Create("Book", "en");
+        publication.AddChapter("large", "EPUB/large.xhtml", "Large", "<p>Large</p><!--" + new string('x', 5 * 1024 * 1024) + "-->");
+        publication.AddChapter("small", "EPUB/small.xhtml", "Small", "<p>Small selected chapter</p>");
+        var project = BookProject.FromEpub(publication.Write().Bytes);
+        if (selectLargeChapter) Assert.Throws<InvalidDataException>(() => project.PreviewChapter(0));
+        else Assert.NotEmpty(Assert.Single(project.PreviewChapter(1)).Bytes!);
+    }
+    [Theory]
     [InlineData("{\"Version\":2,\"Diagnostics\":[]}", typeof(NotSupportedException))]
     [InlineData("{\"Version\":1,\"Diagnostics\":[],\"Unexpected\":true}", typeof(System.Text.Json.JsonException))]
     [InlineData("{\"Version\":1,\"Diagnostics\":[{\"Code\":\"TEST\",\"Message\":\"Finding\",\"Source\":\"HTML\",\"LossKind\":99}]}", typeof(InvalidDataException))]

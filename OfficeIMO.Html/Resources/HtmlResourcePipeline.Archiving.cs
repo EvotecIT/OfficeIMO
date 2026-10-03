@@ -68,6 +68,10 @@ public static partial class HtmlResourcePipeline {
                 AddAttribute(manifest, element.ParentElement?.LocalName == "picture" ? HtmlResourceKind.Image : HtmlResourceKind.Media, element, "src", baseUri, options);
                 AddSrcSet(manifest, HtmlResourceKind.Image, element, "srcset", baseUri, options);
             }
+            if (name == "img") {
+                AddAttribute(manifest, HtmlResourceKind.Image, element, "src", baseUri, options);
+                AddSrcSet(manifest, HtmlResourceKind.Image, element, "srcset", baseUri, options);
+            }
         }
         Uri cssBase = baseUri ?? new Uri("officeimo-unresolved://manuscript/");
         foreach (string css in document.QuerySelectorAll("style").Select(element => element.TextContent)

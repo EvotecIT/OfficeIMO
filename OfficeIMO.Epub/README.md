@@ -469,9 +469,9 @@ save policy first, including signature and output-limit checks.
 
 ## Boundaries
 
-- This package owns EPUB parsing, native authoring, and package-preserving editing.
+- This package owns EPUB parsing, native authoring, package-preserving editing, and bounded HTML manuscript import.
 - Reader integration belongs in `OfficeIMO.Reader.Epub`.
-- `EpubDocument` remains a read-only extraction model; use `EpubPublication` for writing. Browser layout, scripting, DRM, general encrypted-resource editing, media-overlay authoring, manuscript import, and fixed-page geometry creation are outside the writer contract. IDPF and Adobe font deobfuscation remains bounded reader behavior.
+- `EpubDocument` remains a read-only extraction model; use `EpubPublication` for writing. Browser layout, scripting, DRM, general encrypted-resource editing, media-overlay authoring, and fixed-page geometry creation are outside the writer contract. IDPF and Adobe font deobfuscation remains bounded reader behavior.
 
 ## Targets and license
 

@@ -9,6 +9,18 @@ using OfficeIMO.Workflows;
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class BookWorkbenchTests {
+    [Fact]
+    public async Task OpeningAProjectWithStylesDoesNotCreateDraftEdits() {
+        using var storage = new StudioStorageAccess();
+        var project = BookProject.Create("Styled book");
+        project.SetStylesheet("p{color:navy}");
+        var file = new TestStorageFile("content://books/styled-project", project.ToProjectBytes(), "book.oibook");
+        await storage.RegisterAsync(file.Item, default);
+        using var book = new BookWorkbenchViewModel(() => new Dialogs(), storage, null, () => Task.FromResult(UnsavedChangesDecision.Cancel));
+        await book.OpenLocationAsync(file.Location.AbsoluteUri, default);
+        Assert.Equal("p{color:navy}", book.Stylesheet);
+        Assert.False(book.IsDirty);
+    }
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -44,12 +56,16 @@ public sealed class BookWorkbenchTests {
         Assert.Contains("Draft body", book.ChapterBody);
         await book.ApplyEditsCommand.ExecuteAsync(null);
         Assert.Equal("Draft title", book.Project!.Publication.Read().Chapters[1].Title);
+        book.ChapterTitle = "Styled draft title";
         book.Stylesheet = "p{color:navy}";
         await book.ApplyEditsCommand.ExecuteAsync(null);
         await book.UndoEditCommand.ExecuteAsync(null);
         Assert.Equal(string.Empty, book.Stylesheet);
+        Assert.Equal("Draft title", book.ChapterTitle);
+        Assert.True(book.CanRedo);
         await book.RedoEditCommand.ExecuteAsync(null);
         Assert.Equal("p{color:navy}", book.Stylesheet);
+        Assert.Equal("Styled draft title", book.ChapterTitle);
     }
     [Fact]
     public async Task ProviderManuscriptCanBeEditedSavedExportedAndReopened() {
