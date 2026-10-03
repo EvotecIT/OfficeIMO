@@ -61,17 +61,30 @@ internal sealed partial class PdfPageOptionalContentVisibility {
         var knownProperties = new HashSet<string>(StringComparer.Ordinal);
         var invalidProperties = new HashSet<string>(StringComparer.Ordinal);
         var unsupportedProperties = new HashSet<string>(StringComparer.Ordinal);
+        var propertyResultCache = new Dictionary<(PdfObject Value, int ReferenceDepth),
+            (bool Invalid, bool Unsupported, bool Hidden)>();
         if (properties != null) {
             foreach (KeyValuePair<string, PdfObject> entry in properties.Items) {
                 knownProperties.Add(entry.Key);
-                if (IsOptionalContentObjectInvalid(entry.Value, groupVisibility, objects, new HashSet<int>(), effectiveMaxExpressionDepth, depth: 0)) {
+                bool cacheable = TryGetOptionalContentCacheKey(entry.Value, objects, groupVisibility,
+                    effectiveMaxExpressionDepth, out (PdfObject Value, int ReferenceDepth) cacheKey);
+                if (!cacheable || !propertyResultCache.TryGetValue(cacheKey, out var result)) {
+                    result = (
+                        IsOptionalContentObjectInvalid(entry.Value, groupVisibility, objects,
+                            new HashSet<int>(), effectiveMaxExpressionDepth, depth: 0),
+                        ReferencesUnsupportedGroup(entry.Value, documentState.UnsupportedGroupNumbers, objects,
+                            new HashSet<PdfObject>(), effectiveMaxExpressionDepth, depth: 0),
+                        IsOptionalContentObjectHidden(entry.Value, groupVisibility, objects,
+                            new HashSet<int>(), effectiveMaxExpressionDepth, depth: 0));
+                    if (cacheable) propertyResultCache[cacheKey] = result;
+                }
+                if (result.Invalid) {
                     invalidProperties.Add(entry.Key);
                 }
-                if (ReferencesUnsupportedGroup(entry.Value, documentState.UnsupportedGroupNumbers, objects,
-                    new HashSet<PdfObject>(), effectiveMaxExpressionDepth, depth: 0)) {
+                if (result.Unsupported) {
                     unsupportedProperties.Add(entry.Key);
                 }
-                if (IsOptionalContentObjectHidden(entry.Value, groupVisibility, objects, new HashSet<int>(), effectiveMaxExpressionDepth, depth: 0)) {
+                if (result.Hidden) {
                     hiddenProperties[entry.Key] = true;
                 }
             }
@@ -80,6 +93,26 @@ internal sealed partial class PdfPageOptionalContentVisibility {
         return new PdfPageOptionalContentVisibility(hiddenProperties, knownProperties, invalidProperties,
             unsupportedProperties, documentState.HiddenObjectNumbers, documentState.UnsupportedGroupNumbers,
             groupVisibility, objects, effectiveMaxExpressionDepth, hasUnsupportedViewUsageApplications);
+    }
+
+    private static bool TryGetOptionalContentCacheKey(PdfObject value,
+        Dictionary<int, PdfIndirectObject> objects, Dictionary<int, bool> groupVisibility,
+        int maximumDepth, out (PdfObject Value, int ReferenceDepth) key) {
+        key = default;
+        var visited = new HashSet<(int ObjectNumber, int Generation)>();
+        int depth = 0;
+        while (value is PdfReference reference) {
+            if (depth >= maximumDepth || groupVisibility.ContainsKey(reference.ObjectNumber) ||
+                !visited.Add((reference.ObjectNumber, reference.Generation)) ||
+                !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject indirect)) return false;
+            value = indirect.Value;
+            depth++;
+        }
+        if (value is not PdfDictionary dictionary ||
+            ResolveObject(dictionary.Items.TryGetValue("Type", out PdfObject? type) ? type : null, objects)
+                is not PdfName { Name: "OCMD" }) return false;
+        key = (value, depth);
+        return true;
     }
 
     public bool IsHidden(string propertyName) =>
@@ -100,6 +133,7 @@ internal sealed partial class PdfPageOptionalContentVisibility {
 
     private static bool ReferencesUnsupportedGroup(PdfObject value, HashSet<int> unsupportedGroups,
         Dictionary<int, PdfIndirectObject> objects, HashSet<PdfObject> visited, int maximumDepth, int depth) {
+        if (unsupportedGroups.Count == 0) return false;
         if (depth > maximumDepth || !visited.Add(value)) return false;
         if (value is PdfReference reference) {
             if (unsupportedGroups.Contains(reference.ObjectNumber)) return true;
@@ -111,8 +145,12 @@ internal sealed partial class PdfPageOptionalContentVisibility {
                 visited, maximumDepth, depth + 1));
         }
         if (value is PdfDictionary dictionary) {
-            return dictionary.Items.Values.Any(item => ReferencesUnsupportedGroup(item, unsupportedGroups, objects,
-                visited, maximumDepth, depth + 1));
+            // Only optional-content relationships can affect a group's print visibility.
+            // Walking arbitrary dictionary values repeatedly expands unrelated resource graphs.
+            return dictionary.Items.TryGetValue("OCGs", out PdfObject? groups) &&
+                    ReferencesUnsupportedGroup(groups, unsupportedGroups, objects, visited, maximumDepth, depth + 1) ||
+                dictionary.Items.TryGetValue("VE", out PdfObject? expression) &&
+                    ReferencesUnsupportedGroup(expression, unsupportedGroups, objects, visited, maximumDepth, depth + 1);
         }
         return false;
     }

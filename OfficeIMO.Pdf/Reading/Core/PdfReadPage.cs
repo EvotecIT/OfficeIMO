@@ -619,18 +619,62 @@ public sealed partial class PdfReadPage {
         int pageNumber,
         int maximumPlacements,
         Action<long> consumeWork,
-        Action cancellationCheck) {
+        Action cancellationCheck) =>
+        GetImagePlacementsBounded(pageNumber, maximumPlacements, consumeWork, cancellationCheck,
+            prepareOutputIntent: false, CancellationToken.None);
+
+    internal IReadOnlyList<PdfImagePlacement> GetImagePlacements(
+        int pageNumber,
+        int maximumPlacements,
+        Action<long> consumeWork,
+        Action cancellationCheck,
+        CancellationToken cancellationToken) =>
+        GetImagePlacementsBounded(pageNumber, maximumPlacements, consumeWork, cancellationCheck,
+            prepareOutputIntent: true, cancellationToken);
+
+    private IReadOnlyList<PdfImagePlacement> GetImagePlacementsBounded(
+        int pageNumber, int maximumPlacements, Action<long> consumeWork, Action cancellationCheck,
+        bool prepareOutputIntent, CancellationToken cancellationToken) {
 #pragma warning disable CA1512 // ThrowIfNegative is unavailable on netstandard2.0 and net472.
         if (maximumPlacements < 0) throw new ArgumentOutOfRangeException(nameof(maximumPlacements));
 #pragma warning restore CA1512
         Guard.NotNull(consumeWork, nameof(consumeWork));
         Guard.NotNull(cancellationCheck, nameof(cancellationCheck));
+        if (prepareOutputIntent) PrepareOutputIntentRendering(cancellationToken);
         return GetImagePlacements(
             pageNumber,
             includeHiddenOptionalContent: false,
             maximumPlacements: maximumPlacements,
             consumeWork: consumeWork,
-            cancellationCheck: cancellationCheck);
+            cancellationCheck: cancellationCheck,
+            cancellationToken: cancellationToken);
+    }
+
+    internal bool TryGetImagePixelDimensions(PdfImagePlacement placement, out int width, out int height) {
+        PdfStream? stream = placement.InlineImageStream;
+        if (stream is null && placement.ObjectNumber > 0 &&
+            _objects.TryGetValue(placement.ObjectNumber, out PdfIndirectObject? indirect)) {
+            stream = indirect.Value as PdfStream;
+        }
+        if (stream is null) {
+            PdfDictionary? resources = placement.EffectiveResources ?? ResolveDictionary(GetInheritedValue("Resources"));
+            PdfDictionary? xObjects = resources != null && resources.Items.TryGetValue("XObject", out PdfObject? xObject)
+                ? ResolveDictionary(xObject)
+                : null;
+            if (xObjects != null && xObjects.Items.TryGetValue(placement.ResourceName, out PdfObject? imageObject))
+                stream = ResolveObject(imageObject) as PdfStream;
+        }
+        width = 0;
+        height = 0;
+        if (stream?.Dictionary.Get<PdfName>("Subtype")?.Name != "Image" && placement.InlineImageStream is null)
+            return false;
+        double declaredWidth = stream?.Dictionary.Get<PdfNumber>("Width")?.Value ?? 0;
+        double declaredHeight = stream?.Dictionary.Get<PdfNumber>("Height")?.Value ?? 0;
+        if (declaredWidth <= 0 || declaredHeight <= 0 || declaredWidth > int.MaxValue || declaredHeight > int.MaxValue)
+            return false;
+        width = (int)declaredWidth;
+        height = (int)declaredHeight;
+        return width > 0 && height > 0;
     }
 
     internal IReadOnlyList<PdfImagePlacement> GetImagePlacementsIncludingHiddenOptionalContent(int pageNumber) {
