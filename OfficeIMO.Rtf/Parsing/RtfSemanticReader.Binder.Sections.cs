@@ -382,6 +382,7 @@ internal static partial class RtfSemanticReader {
 
             _currentSection = new RtfSection();
             _currentSectionColumnNumber = null;
+            _currentTable = null;
         }
 
         private void CompleteOpenSection() {
