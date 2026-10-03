@@ -182,6 +182,7 @@ public static partial class MarkdownReader {
         }
         bool TryConsumeBareAutolinkNode(int start, out int nextPosition) {
             nextPosition = start;
+            if (!allowLinks) return false;
 
             if (options.AutolinkUrls && StartsWithHttp(text, start, options, out int urlEnd)) {
                 var url = text.Substring(start, urlEnd - start);
@@ -661,7 +662,7 @@ public static partial class MarkdownReader {
             // Angle-bracket autolinks: <https://example.com>, <mailto:user@example.com>, <tel:+123>, <user@example.com>
             if (text[pos] == '<' && TryParseAngleAutolink(text, pos, out int consumedAngle, out var labelAngle, out var hrefAngle)) {
                 var resolved = ResolveUrl(hrefAngle, options);
-                if (resolved is null) {
+                if (!allowLinks || resolved is null) {
                     AddTextNode(text.Substring(pos, consumedAngle), pos, consumedAngle);
                 } else {
                     AddAutolinkNode(
@@ -990,10 +991,10 @@ public static partial class MarkdownReader {
                 if (text[pos] == '\\' && pos + 1 < text.Length && IsBackslashEscapable(text[pos + 1])) break;
                 if (text[pos] == '&' && TryConsumeHtmlEntityText(text, pos, out _, out _)) break;
                 if (text[pos] == '<' && IsAngleAutolinkStart(text, pos)) break;
-                if (options.AutolinkUrls && (text[pos] == 'h' || text[pos] == 'H') && StartsWithHttp(text, pos, options, out _)) break;
-                if (options.AutolinkWwwUrls && (text[pos] == 'w' || text[pos] == 'W') && StartsWithWww(text, pos, options, out _)) break;
-                if (options.AutolinkBareSchemeUrls && IsBareSchemeAutolinkStartCandidate(text[pos]) && TryConsumeBareSchemeAutolink(text, pos, options, out _, out _, out _)) break;
-                if (options.AutolinkEmails && IsEmailStartChar(text[pos]) && TryConsumePlainEmail(text, pos, options, out _, out _)) break;
+                if (allowLinks && options.AutolinkUrls && (text[pos] == 'h' || text[pos] == 'H') && StartsWithHttp(text, pos, options, out _)) break;
+                if (allowLinks && options.AutolinkWwwUrls && (text[pos] == 'w' || text[pos] == 'W') && StartsWithWww(text, pos, options, out _)) break;
+                if (allowLinks && options.AutolinkBareSchemeUrls && IsBareSchemeAutolinkStartCandidate(text[pos]) && TryConsumeBareSchemeAutolink(text, pos, options, out _, out _, out _)) break;
+                if (allowLinks && options.AutolinkEmails && IsEmailStartChar(text[pos]) && TryConsumePlainEmail(text, pos, options, out _, out _)) break;
                 if (options.Abbreviations && TryConsumeAbbreviation(text, pos, state, out _)) break;
                 if (inlineParserExtensions.Count > 0
                     && TryParseInlineExtension(

@@ -610,11 +610,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static string TransformHeader(string path, ObjectFlattenerOptions opts) {
-            foreach (var prefix in opts.HeaderPrefixTrimPaths) {
-                if (path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) {
-                    path = path.Substring(prefix.Length);
-                }
-            }
+            path = opts.GetHeaderPath(path);
             return opts.HeaderCase switch {
                 HeaderCase.Pascal => string.Concat(path.Split('.').Select(s => char.ToUpperInvariant(s[0]) + s.Substring(1))),
                 HeaderCase.Title => string.Join(" ", path.Split('.').Select(s => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(s.ToLowerInvariant()))),

@@ -4,17 +4,36 @@ namespace OfficeIMO.Adf;
 
 internal sealed class MarkdownToAdfConverter {
     private readonly Func<string, string>? _localIdFactory;
-    private readonly string _identityRoot;
+    private string _identityRoot = string.Empty;
+    private readonly List<(AdfNode Node, string Path)> _taskIdentities = new List<(AdfNode, string)>();
     private readonly HashSet<string> _localIds = new HashSet<string>(StringComparer.Ordinal);
 
-    private MarkdownToAdfConverter(MarkdownDoc source, AdfConversionOptions options) {
+    private MarkdownToAdfConverter(AdfConversionOptions options) {
         _localIdFactory = options.LocalIdFactory;
-        using var hash = System.Security.Cryptography.SHA256.Create();
-        _identityRoot = BitConverter.ToString(hash.ComputeHash(System.Text.Encoding.UTF8.GetBytes(source.ToMarkdown())));
     }
 
-    internal static AdfDocument Convert(MarkdownDoc source, List<AdfConversionDiagnostic> diagnostics, AdfConversionOptions options) =>
-        new MarkdownToAdfConverter(source, options).ConvertCore(source, diagnostics);
+    internal static AdfDocument Convert(MarkdownDoc source, List<AdfConversionDiagnostic> diagnostics, AdfConversionOptions options) {
+        var converter = new MarkdownToAdfConverter(options);
+        AdfDocument document = converter.ConvertCore(source, diagnostics);
+        converter.AssignTaskIdentities(document, options);
+        return document;
+    }
+
+    private void AssignTaskIdentities(AdfDocument document, AdfConversionOptions options) {
+        if (_taskIdentities.Count == 0) return;
+        AdfGraphSafety.EnsureSafe(document, options);
+        if (_localIdFactory == null) {
+            // Hash bounded canonical content only when default task IDs are needed.
+            // No recursive Markdown rendering occurs before resource checks.
+            string json = document.ToJson(options);
+            using var hash = System.Security.Cryptography.SHA256.Create();
+            _identityRoot = BitConverter.ToString(hash.ComputeHash(System.Text.Encoding.UTF8.GetBytes(json)));
+        }
+        foreach (var task in _taskIdentities) {
+            options.CancellationToken.ThrowIfCancellationRequested();
+            task.Node.SetAttribute("localId", LocalId(task.Path));
+        }
+    }
 
     private AdfDocument ConvertCore(MarkdownDoc source, List<AdfConversionDiagnostic> diagnostics) {
         var document = new AdfDocument();
@@ -27,7 +46,17 @@ internal sealed class MarkdownToAdfConverter {
 
     private AdfNode? ConvertBlock(IMarkdownBlock block, string path, List<AdfConversionDiagnostic> diagnostics, string parentType = "doc") {
         switch (block) {
+            case ImageBlock imageBlock:
+                if (!string.IsNullOrEmpty(imageBlock.Title) || !string.IsNullOrEmpty(imageBlock.Caption) || imageBlock.Width.HasValue || imageBlock.Height.HasValue || !string.IsNullOrEmpty(imageBlock.LinkUrl) || imageBlock.PictureSources.Count > 0)
+                    diagnostics.Add(Warning("MARKDOWN_IMAGE_PROPERTIES_DROPPED", path, "ADF image projection retains the source and alternate text; Markdown image title, caption, sizing, picture sources and wrapping link properties were omitted."));
+                var blockMedia = new AdfNode("media").SetAttribute("type", "external").SetAttribute("url", imageBlock.Path).SetAttribute("alt", imageBlock.PlainAlt ?? string.Empty);
+                return new AdfNode("mediaSingle") { Content = { blockMedia } }.SetAttribute("layout", "center");
             case ParagraphBlock paragraph:
+                if (paragraph.Inlines.Nodes.Count == 1 && paragraph.Inlines.Nodes[0] is ImageInline image) {
+                    if (!string.IsNullOrEmpty(image.Title)) diagnostics.Add(Warning("MARKDOWN_IMAGE_TITLE_DROPPED", path, "ADF external media does not preserve Markdown image titles."));
+                    var media = new AdfNode("media").SetAttribute("type", "external").SetAttribute("url", image.Src).SetAttribute("alt", image.PlainAlt);
+                    return new AdfNode("mediaSingle") { Content = { media } }.SetAttribute("layout", "center");
+                }
                 return WithInlines(new AdfNode("paragraph"), paragraph.Inlines, path, diagnostics);
             case HeadingBlock heading:
                 return WithInlines(new AdfNode("heading").SetAttribute("level", heading.Level), heading.Inlines, path, diagnostics);
@@ -93,17 +122,23 @@ internal sealed class MarkdownToAdfConverter {
     }
 
     private bool CanConvertTaskList(IReadOnlyList<ListItem> items) =>
-        items.Count > 0 && items.All(item => item.IsTask && item.AdditionalParagraphs.Count == 0 && item.NestedBlocks.Count == 0);
+        items.Count > 0 && items.All(item => item.IsTask && item.AdditionalParagraphs.Count == 0 &&
+            item.NestedBlocks.All(block => block is UnorderedListBlock nested && CanConvertTaskList(nested.Items)));
 
     private AdfNode ConvertTaskList(IReadOnlyList<ListItem> items, string path, List<AdfConversionDiagnostic> diagnostics) {
-        var list = new AdfNode("taskList").SetAttribute("localId", LocalId(path));
+        var list = new AdfNode("taskList");
+        _taskIdentities.Add((list, path));
         for (int i = 0; i < items.Count; i++) {
             ListItem sourceItem = items[i];
             var item = new AdfNode("taskItem")
-                .SetAttribute("localId", LocalId(path + ".items[" + i + "]"))
                 .SetAttribute("state", sourceItem.Checked ? "DONE" : "TODO");
+            _taskIdentities.Add((item, path + ".items[" + i + "]"));
             WithInlines(item, sourceItem.Content, path + ".items[" + i + "]", diagnostics);
             list.Content.Add(item);
+            for (int nestedIndex = 0; nestedIndex < sourceItem.NestedBlocks.Count; nestedIndex++) {
+                var nested = (UnorderedListBlock)sourceItem.NestedBlocks[nestedIndex];
+                list.Content.Add(ConvertTaskList(nested.Items, path + ".items[" + i + "].nested[" + nestedIndex + "]", diagnostics));
+            }
         }
         return list;
     }
@@ -224,6 +259,15 @@ internal sealed class MarkdownToAdfConverter {
                     break;
                 case SoftBreakInline:
                     target.Add(AdfNode.TextNode("\n"));
+                    break;
+                case ImageInline image:
+                    diagnostics.Add(Warning("MARKDOWN_INLINE_IMAGE_PROJECTED", inlinePath, "Inline Markdown images are represented by their linked alternate text; ADF external media requires a block container."));
+                    target.Add(AdfNode.TextNode(image.PlainAlt.Length == 0 ? image.Src : image.PlainAlt,
+                        inheritedMarks.Any(mark => mark.Type == "link") ? CloneMarks(inheritedMarks) :
+                        AddMark(inheritedMarks, new AdfMark("link").SetAttribute("href", image.Src))));
+                    break;
+                case HtmlRawInline html when html.Html == "<!-- -->":
+                    // Empty comments separate adjacent Markdown delimiters and carry no content.
                     break;
                 default:
                     diagnostics.Add(Warning("MARKDOWN_UNSUPPORTED_INLINE", inlinePath, "Markdown inline '" + inline.GetType().Name + "' has no exact ADF mapping and was omitted."));

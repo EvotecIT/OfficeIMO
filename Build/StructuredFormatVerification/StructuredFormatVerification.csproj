@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../OfficeIMO.Adf/OfficeIMO.Adf.csproj" />
+    <ProjectReference Include="../../OfficeIMO.DocBook/OfficeIMO.DocBook.csproj" />
+    <None Include="../../OfficeIMO.DocBook.Tests/Fixtures/pandoc-3.12-common-structure.docbook" Link="Fixtures/pandoc-3.12-common-structure.docbook" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
