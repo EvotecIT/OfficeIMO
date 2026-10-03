@@ -14,14 +14,16 @@ internal static class HtmlCommand {
 OfficeIMO.Tool - HTML
 
 Usage:
-  officeimo html convert <input.html|input.mhtml|-> [--input-format html|mhtml] [--output <file|->]
+  officeimo html convert <input.html|input.mhtml|input.zip|-> [--input-format html|mhtml|site-bundle] [--output <file|->]
                          [--stylesheet <file.css>] [--base-uri <absolute-uri>]
                          [--font-family <name> --font-regular <file.ttf>]
                          [--font-bold <file.ttf>] [--font-italic <file.ttf>]
                          [--font-bold-italic <file.ttf>]
                          [--max-input-bytes <bytes>] [--max-pages <count>]
+                         [--entry-path <archive-path>] [--max-bundle-entry-bytes <bytes>]
+                         [--max-bundle-decoded-bytes <bytes>] [--max-bundle-entries <count>]
                          [--pdf-ua-language <tag>] [--force]
-  officeimo html render <input.html|input.mhtml|-> [--input-format html|mhtml] [--output <archive.zip|->]
+  officeimo html render <input.html|input.mhtml|input.zip|-> [--input-format html|mhtml|site-bundle] [--output <archive.zip|->]
                         [--profile screen-viewport|screen-full-page|print-paged|screen-media-paged|screen-snapshot-paged|continuous-vector]
                         [--encoder png|svg] [--pages all|<page>|<first-last>|stitched]
                         [--viewport-width <css-px>] [--viewport-height <css-px>] [--scale <factor>]
@@ -30,11 +32,15 @@ Usage:
                         [--font-bold <file.ttf>] [--font-italic <file.ttf>]
                         [--font-bold-italic <file.ttf>] [--max-input-bytes <bytes>]
                         [--max-pages <count>] [--max-archive-bytes <bytes>]
+                        [--entry-path <archive-path>] [--max-bundle-entry-bytes <bytes>]
+                        [--max-bundle-decoded-bytes <bytes>] [--max-bundle-entries <count>]
                         [--max-manifest-bytes <bytes>] [--force]
   officeimo html capabilities [--format text|json]
 
-Local and remote resource reads are disabled by default. Data URIs and bounded MHTML
-resources remain available. PDF/UA mode configures and analyzes groundwork; it does not
+Local and remote resource reads are disabled by default. Bounded data-URI, MHTML
+and ZIP resources remain available. For ZIP input --base-uri assigns the virtual
+HTTP(S) archive directory; --max-input-bytes limits encoded ZIP bytes, separately
+from decoded entry limits. PDF/UA mode configures and analyzes groundwork; it does not
 claim conformance without passing external validator evidence.
 """;
 
@@ -114,7 +120,13 @@ claim conformance without passing external validator evidence.
 
         PdfDocumentConversionResult conversion;
         using var inputStream = new MemoryStream(input, writable: false);
-        if (arguments.ResolveInputFormat() == HtmlInputFormat.Mhtml) {
+        if (arguments.ResolveInputFormat() == HtmlInputFormat.SiteBundle) {
+            HtmlSiteBundle bundle = await LoadBundleInputAsync(inputStream, arguments, cancellationToken).ConfigureAwait(false);
+            options.BaseUri = bundle.BaseUri;
+            conversion = (await bundle.RenderToPdfResultAsync(HtmlRenderRequest.Create(
+                HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, options), cancellationToken)
+                .ConfigureAwait(false)).Output;
+        } else if (arguments.ResolveInputFormat() == HtmlInputFormat.Mhtml) {
             MhtmlDocument document = await MhtmlDocument.LoadAsync(inputStream, cancellationToken: cancellationToken).ConfigureAwait(false);
             conversion = await document.ToPdfDocumentResultAsync(options, cancellationToken).ConfigureAwait(false);
         } else {
@@ -192,9 +204,14 @@ claim conformance without passing external validator evidence.
         }
 
         HtmlConversionDocument htmlDocument;
+        HtmlSiteBundle? bundle = null;
         IReadOnlyList<HtmlDiagnostic> inputDiagnostics = Array.Empty<HtmlDiagnostic>();
         using var inputStream = new MemoryStream(input, writable: false);
-        if (arguments.ResolveInputFormat() == HtmlInputFormat.Mhtml) {
+        if (arguments.ResolveInputFormat() == HtmlInputFormat.SiteBundle) {
+            bundle = await LoadBundleInputAsync(inputStream, arguments, cancellationToken).ConfigureAwait(false);
+            htmlDocument = bundle.HtmlDocument;
+            options.BaseUri = bundle.BaseUri;
+        } else if (arguments.ResolveInputFormat() == HtmlInputFormat.Mhtml) {
             MhtmlDocument mhtml = await MhtmlDocument.LoadAsync(inputStream, cancellationToken: cancellationToken).ConfigureAwait(false);
             mhtml.ConfigureRenderOptions(options);
             htmlDocument = mhtml.HtmlDocument;
@@ -215,6 +232,7 @@ claim conformance without passing external validator evidence.
         HtmlRenderRequest request = template
             .WithOptions(options)
             .WithPageSet(arguments.RenderPageSet);
+        if (bundle != null) request = bundle.CreateRenderRequest(request);
         HtmlRenderResult retained = await HtmlRenderEngine.ExecuteAsync(htmlDocument, request, cancellationToken).ConfigureAwait(false);
         if (inputDiagnostics.Count > 0) retained = retained.WithAdditionalDiagnostics(inputDiagnostics);
         HtmlRenderArchiveResult archive = retained.ExportArchive(new HtmlRenderArchiveOptions {
@@ -240,6 +258,18 @@ claim conformance without passing external validator evidence.
                    .Any(diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error)
             ? (int)OfficeImoToolExitCode.OutputFailed
             : (int)OfficeImoToolExitCode.Success;
+    }
+
+    private static async Task<HtmlSiteBundle> LoadBundleInputAsync(Stream source, HtmlArguments arguments,
+        CancellationToken cancellationToken) {
+        try {
+            return await HtmlSiteBundle.LoadAsync(source, arguments.BundleOptions,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+        } catch (InvalidDataException exception) {
+            // Translate malformed input at the reader boundary, without classifying
+            // an output or renderer integrity failure as unsupported input.
+            throw new IOException("Invalid ZIP site bundle: " + exception.Message, exception);
+        }
     }
 
     private static HtmlDiagnostic MapMhtmlDiagnostic(EmailDiagnostic diagnostic) {

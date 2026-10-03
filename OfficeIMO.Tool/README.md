@@ -167,6 +167,10 @@ officeimo workflow print-plan complete.pdf --paper A4 --pages-per-sheet 2 --scal
 officeimo html render dashboard.html --profile screen-full-page --encoder png --output dashboard.render.zip
 officeimo html render report.mhtml --profile print-paged --encoder svg --pages 2-4 --output report-pages.zip
 
+# Convert an archived site using its own styles, fonts and images
+officeimo html convert saved-site.zip --entry-path articles/report.html --output report.pdf
+officeimo html render saved-site.zip --entry-path articles/report.html --encoder svg --output report-pages.zip
+
 # Inspect or assess provenance with versioned JSON output
 officeimo provenance inspect report.docx
 officeimo provenance assess page.html
@@ -182,6 +186,14 @@ officeimo pdf redact apply contract.pdf --recipe redaction.recipe.json --decisio
     --ocr-provider my-provider --ocr-language en --ocr-option model=document
 officeimo pdf redact batch --request redaction.batch.json
 ```
+
+HTML ZIP input uses the bounded `OfficeIMO.Html.HtmlSiteBundle` loader. Use
+`--input-format site-bundle` for standard input. `--entry-path` selects a page
+when root `index.html`/`index.htm` or a single HTML entry is insufficient.
+`--max-input-bytes` bounds encoded ZIP bytes; `--max-bundle-entry-bytes`,
+`--max-bundle-decoded-bytes` and `--max-bundle-entries` apply separate decoded
+and entry-count limits. For ZIP input, `--base-uri` is the virtual HTTP(S)
+archive directory. Archive loading enables no local or remote reads.
 
 The positional destination is optional for DOCX, XLSX, and PPTX to PDF conversion. When omitted, the tool writes a sibling `.pdf` file. `--output <path>` remains available for scripts that prefer named options.
 

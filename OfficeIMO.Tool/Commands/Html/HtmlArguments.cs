@@ -13,7 +13,8 @@ internal enum HtmlCommandKind {
 internal enum HtmlInputFormat {
     Auto,
     Html,
-    Mhtml
+    Mhtml,
+    SiteBundle
 }
 
 internal sealed class HtmlArguments {
@@ -46,6 +47,8 @@ internal sealed class HtmlArguments {
     internal bool Force { get; private set; }
     internal bool JsonCapabilities { get; private set; }
     internal List<string> StylesheetPaths { get; } = new List<string>();
+    internal HtmlSiteBundleOptions BundleOptions { get; } = new();
+    private bool _hasBundleOption;
 
     internal static HtmlArguments Parse(string[] args) {
         if (args == null) throw new ArgumentNullException(nameof(args));
@@ -79,6 +82,22 @@ internal sealed class HtmlArguments {
                     break;
                 case "--input-format":
                     parsed.InputFormat = ParseInputFormat(NextValue(args, ref index, token));
+                    break;
+                case "--entry-path":
+                    parsed.BundleOptions.EntryPath = NextValue(args, ref index, token);
+                    parsed._hasBundleOption = true;
+                    break;
+                case "--max-bundle-entry-bytes":
+                    parsed.BundleOptions.MaximumEntryBytes = ParseBoundedInt(NextValue(args, ref index, token), token, 1, int.MaxValue);
+                    parsed._hasBundleOption = true;
+                    break;
+                case "--max-bundle-decoded-bytes":
+                    parsed.BundleOptions.MaximumTotalDecodedBytes = ParsePositiveLong(NextValue(args, ref index, token), token);
+                    parsed._hasBundleOption = true;
+                    break;
+                case "--max-bundle-entries":
+                    parsed.BundleOptions.MaximumEntryCount = ParseBoundedInt(NextValue(args, ref index, token), token, 1, int.MaxValue);
+                    parsed._hasBundleOption = true;
                     break;
                 case "--stylesheet":
                     if (parsed.StylesheetPaths.Count >= MaxStylesheetCount) {
@@ -169,9 +188,9 @@ internal sealed class HtmlArguments {
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(InputPath)) throw new HtmlUsageException("The " + Command.ToString().ToLowerInvariant() + " command requires <input.html|input.mhtml|->.");
+        if (string.IsNullOrWhiteSpace(InputPath)) throw new HtmlUsageException("The " + Command.ToString().ToLowerInvariant() + " command requires <input.html|input.mhtml|input.zip|->.");
         if (InputPath == "-" && InputFormat == HtmlInputFormat.Auto) {
-            throw new HtmlUsageException("Standard input requires --input-format html|mhtml.");
+            throw new HtmlUsageException("Standard input requires --input-format html|mhtml|site-bundle.");
         }
         if (string.IsNullOrWhiteSpace(OutputPath)) {
             OutputPath = InputPath == "-" ? "-" : Command == HtmlCommandKind.Render
@@ -195,6 +214,20 @@ internal sealed class HtmlArguments {
             || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeFile))) {
             throw new HtmlUsageException("--base-uri must be an absolute http, https, or file URI.");
         }
+        if (ResolveInputFormat() == HtmlInputFormat.SiteBundle) {
+            if (MaxInputBytes > int.MaxValue) throw new HtmlUsageException("ZIP --max-input-bytes cannot exceed " + int.MaxValue + ".");
+            BundleOptions.MaximumArchiveBytes = MaxInputBytes;
+            if (BaseUri != null) {
+                var root = new Uri(BaseUri, UriKind.Absolute);
+                if (root.IsFile || root.UserInfo.Length != 0 || root.Query.Length != 0 || root.Fragment.Length != 0
+                    || !root.AbsolutePath.EndsWith("/", StringComparison.Ordinal)) {
+                    throw new HtmlUsageException("For ZIP input, --base-uri must be an HTTP(S) directory URI without credentials, query or fragment.");
+                }
+                BundleOptions.ArchiveBaseUri = root;
+            }
+        } else if (_hasBundleOption) {
+            throw new HtmlUsageException("Bundle entry and decoded limits require ZIP site-bundle input.");
+        }
         if (PdfUaLanguage != null && string.IsNullOrWhiteSpace(PdfUaLanguage)) {
             throw new HtmlUsageException("--pdf-ua-language requires a non-empty language tag.");
         }
@@ -210,13 +243,18 @@ internal sealed class HtmlArguments {
     internal HtmlInputFormat ResolveInputFormat() {
         if (InputFormat != HtmlInputFormat.Auto) return InputFormat;
         string extension = Path.GetExtension(InputPath!).ToLowerInvariant();
-        return extension is ".mhtml" or ".mht" ? HtmlInputFormat.Mhtml : HtmlInputFormat.Html;
+        return extension switch {
+            ".mhtml" or ".mht" => HtmlInputFormat.Mhtml,
+            ".zip" => HtmlInputFormat.SiteBundle,
+            _ => HtmlInputFormat.Html
+        };
     }
 
     private static HtmlInputFormat ParseInputFormat(string value) => value.ToLowerInvariant() switch {
         "html" or "htm" => HtmlInputFormat.Html,
         "mhtml" or "mht" => HtmlInputFormat.Mhtml,
-        _ => throw new HtmlUsageException("--input-format must be 'html' or 'mhtml'.")
+        "site-bundle" or "zip" => HtmlInputFormat.SiteBundle,
+        _ => throw new HtmlUsageException("--input-format must be 'html', 'mhtml' or 'site-bundle'.")
     };
 
     private static HtmlRenderIntentProfile ParseRenderProfile(string value) => value.ToLowerInvariant() switch {

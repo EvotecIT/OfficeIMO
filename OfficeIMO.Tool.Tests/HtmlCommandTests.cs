@@ -166,7 +166,7 @@ public sealed class HtmlCommandTests {
         Assert.Equal(0, exitCode);
         using JsonDocument json = JsonDocument.Parse(output.ToArray());
         Assert.Equal(JsonValueKind.Object, json.RootElement.ValueKind);
-        Assert.Equal(2, json.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(3, json.RootElement.GetProperty("schemaVersion").GetInt32());
         Assert.Contains(json.RootElement.GetProperty("profiles").EnumerateArray(), item =>
             item.GetProperty("id").GetString() == HtmlCapabilityProfileIds.StaticScreenV1
             && item.GetProperty("promotion").GetString() == "StableDefault");
@@ -174,7 +174,8 @@ public sealed class HtmlCommandTests {
             item.GetProperty("id").GetString() == "screen-snapshot-paged-v1"
             && item.GetProperty("cssMedia").GetString() == "Screen"
             && item.GetProperty("pagination").GetString() == "FixedCanvasSlicing"
-            && item.GetProperty("coverage").GetString() == "Unqualified");
+            && item.GetProperty("coverage").GetString() == "Qualified"
+            && item.GetProperty("promotion").GetString() == "QualifiedOptIn");
         Assert.Contains(json.RootElement.GetProperty("capabilities").EnumerateArray(), item =>
             item.GetProperty("id").GetString() == "css-length-math"
             && item.GetProperty("stages").EnumerateArray().Any(stage => stage.GetString() == "Layout")
@@ -198,7 +199,7 @@ public sealed class HtmlCommandTests {
 
         Assert.Equal(0, exitCode);
         string text = Encoding.UTF8.GetString(output.ToArray());
-        Assert.Contains("schemaVersion\t2", text, StringComparison.Ordinal);
+        Assert.Contains("schemaVersion\t3", text, StringComparison.Ordinal);
         Assert.Contains("profile\tstatic-screen-v1\t1.0\tStableDefault", text, StringComparison.Ordinal);
         Assert.Contains("renderProfile\tprint-paged-v1\tPrint\tPaged\tFragmentedReflow\tSeparate\tQualified\tStableDefault", text, StringComparison.Ordinal);
         Assert.Contains("capability\tcss-length-math\tCss\tCascadeAndCompute, Layout\tstatic-screen-v1\tQualified\tNative", text, StringComparison.Ordinal);
