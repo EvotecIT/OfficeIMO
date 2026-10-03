@@ -1,6 +1,6 @@
 {
   "$schema": "officeimo.html.static-delivery-qualification",
-  "recordedAtUtc": "2026-10-03T15:45:29.877824+00:00",
+  "recordedAtUtc": "2026-10-03T17:38:04.872208+00:00",
   "control": {
     "sourceCommit": "0aea7880f94a317c12d1367485d0617af1647f91",
     "workflowCommit": "7c1226b65ff39ccf517ef6eab39f63b9d869e3ac",
@@ -475,7 +475,8 @@
     "Committed Studio release locks still identify the old provider graph; regenerate and qualify the selected graph before release readiness.",
     "The optional runtime Worker retains its existing provider pins and fork references. Its CSS dependency closure requires deliberate alignment after static qualification; this run does not qualify Runtime/Worker.",
     "The shared HTML/MHTML/site-bundle job and H10 named page/resource acceptance remain open in Docs/ROADMAP.md.",
-    "No public static delivery PR, full HTML/runtime merge or package publication is represented by these branch checkpoints."
+    "No public static delivery PR, full HTML/runtime merge or package publication is represented by these branch checkpoints.",
+    "Current hosted library/package qualification is source22f3c97ee; CLI729aab1ee has independent local tests and actual executable proof. Workbench/browser adoption, broader H10 appearance, case-specific platform budgets and unchanged static-budget qualification remain open."
   ],
   "localValidationEnvironment": {
     "host": "EvoMini",
@@ -494,11 +495,748 @@
       "AngleSharp.Css": "1.0.1"
     },
     "stateAtDispatch": "queued",
-    "changes": "same bounded font fix, valid per-resource/total fixture limits, package cleanup and Linux IPA font environment; no site-bundle implementation or provider upgrade"
+    "changes": "same bounded font fix, valid per-resource/total fixture limits, package cleanup and Linux IPA font environment; no site-bundle implementation or provider upgrade",
+    "settledResult": "failed; full HTML correctness and installed-math contract pass on all three platforms; nineteen packages and consumers pass; unchanged opt-in budgets fail",
+    "measurements": [
+      {
+        "reportSha256": "536bfcbdb1eed16974622bb00bdde8d88c7ebd04032fc0a6f3a7540db99cd17d",
+        "sourceCommit": "897707b2e0015dd9e0533503e691091aa80081a3",
+        "worktreeClean": true,
+        "osFamily": "macOS",
+        "runtime": ".NET 10.0.12",
+        "processorCount": 3,
+        "corpusManifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+        "coldMilliseconds": 9485.7224,
+        "coldAllocatedBytes": 1084021224,
+        "coldPeakWorkingSetBytes": 337805312,
+        "warmMilliseconds": [
+          3816.3642,
+          5453.3813,
+          3561.1967
+        ],
+        "warmAllocatedBytes": [
+          895047104,
+          896074368,
+          896046056
+        ],
+        "warmPeakWorkingSetBytes": 492371968,
+        "fingerprints": [
+          "df37e54aafd262a230744c629f1c0e8f72561c42318e694a987e0ed542f24df4"
+        ],
+        "cancellation": {
+          "status": "Passed",
+          "elapsedMilliseconds": 2.9942,
+          "detail": "Cancellation propagated through the asynchronous resource boundary."
+        },
+        "failures": [
+          "cold process elapsed milliseconds 9485.7 exceeded ceiling 8000.0.",
+          "warm iteration 1 elapsed milliseconds 3816.4 exceeded ceiling 3000.0.",
+          "warm iteration 2 elapsed milliseconds 5453.4 exceeded ceiling 3000.0.",
+          "warm iteration 3 elapsed milliseconds 3561.2 exceeded ceiling 3000.0."
+        ]
+      },
+      {
+        "reportSha256": "c366045f70c59f59da77aa8f76c0e09ecb0154ba451ae7b18f6e7d90bda095b8",
+        "sourceCommit": "897707b2e0015dd9e0533503e691091aa80081a3",
+        "worktreeClean": true,
+        "osFamily": "Windows",
+        "runtime": ".NET 10.0.12",
+        "processorCount": 4,
+        "corpusManifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+        "coldMilliseconds": 16203.6207,
+        "coldAllocatedBytes": 2399291520,
+        "coldPeakWorkingSetBytes": 942354432,
+        "warmMilliseconds": [
+          5586.8622,
+          5109.4392,
+          5090.5995
+        ],
+        "warmAllocatedBytes": [
+          1000518240,
+          1000401920,
+          1000405096
+        ],
+        "warmPeakWorkingSetBytes": 1322020864,
+        "fingerprints": [
+          "10b8f4e51e16010338fb7a36ced61397f2655ba13b11c321f066c4c1851f3c3b"
+        ],
+        "cancellation": {
+          "status": "Passed",
+          "elapsedMilliseconds": 7.7998,
+          "detail": "Cancellation propagated through the asynchronous resource boundary."
+        },
+        "failures": [
+          "cold process elapsed milliseconds 16203.6 exceeded ceiling 12000.0.",
+          "warm iteration 1 elapsed milliseconds 5586.9 exceeded ceiling 4000.0.",
+          "warm iteration 2 elapsed milliseconds 5109.4 exceeded ceiling 4000.0.",
+          "warm iteration 3 elapsed milliseconds 5090.6 exceeded ceiling 4000.0."
+        ]
+      },
+      {
+        "reportSha256": "388993e3bbd2f01e84f35dd84816647682e4793a82167972b6794e9fcc52e664",
+        "sourceCommit": "897707b2e0015dd9e0533503e691091aa80081a3",
+        "worktreeClean": true,
+        "osFamily": "Linux",
+        "runtime": ".NET 10.0.12",
+        "processorCount": 4,
+        "corpusManifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+        "coldMilliseconds": 12537.2588,
+        "coldAllocatedBytes": 1555095232,
+        "coldPeakWorkingSetBytes": 711999488,
+        "warmMilliseconds": [
+          4499.7757,
+          4423.6509,
+          4381.9786
+        ],
+        "warmAllocatedBytes": [
+          809907960,
+          810985832,
+          810996736
+        ],
+        "warmPeakWorkingSetBytes": 655515648,
+        "fingerprints": [
+          "c01a57e26d6c65777032ba36c76518887fa078c998befc1945b18a09f866ba46"
+        ],
+        "cancellation": {
+          "status": "Passed",
+          "elapsedMilliseconds": 6.1657,
+          "detail": "Cancellation propagated through the asynchronous resource boundary."
+        },
+        "failures": [
+          "cold process elapsed milliseconds 12537.3 exceeded ceiling 12000.0.",
+          "cold managed allocated bytes 1555095232.0 exceeded ceiling 1100000000.0.",
+          "peak working-set bytes 711999488.0 exceeded ceiling 500000000.0."
+        ]
+      }
+    ]
   },
   "currentRemediation": {
     "testBudget": "b61f4d45db82745dd20975b9c01fb58433242d95 sets both per-resource and total byte limits to the derived font/SVG budget; focused tests pass net8/net10",
-    "linuxFonts": "IPA Gothic added only to the manual validation host; verify restored Japanese coverage in the next run",
-    "timing": "No ceiling changes. A comparable old-provider control is required before assigning timing failures to the update."
+    "linuxFonts": "Manual qualification host with IPA Gothic restores the Japanese fixture on current sources; all three platforms pass full HTML tests.",
+    "timing": "All three selected sources measured. No ceiling changes. Prior constants and fixed old-provider controls also fail; next investigate font discovery/decoding allocation and a quiet-host paired timing comparison, rather than repeated contended runs."
+  },
+  "currentReleasedProviderQualification": {
+    "sourceCommit": "22f3c97eed2c69d148ddaea5209d50cbaeec7730",
+    "workflowCommit": "897707b2e0015dd9e0533503e691091aa80081a3",
+    "runId": 37136503485,
+    "url": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37136503485",
+    "status": "completed",
+    "conclusion": "failure",
+    "createdAtUtc": "2026-10-03T16:20:46Z",
+    "finishedAtUtc": "2026-10-03T16:53:34Z",
+    "jobs": [
+      {
+        "name": "Static HTML qualification / windows-latest",
+        "conclusion": "failure",
+        "steps": [
+          {
+            "name": "Validate static conversion correctness",
+            "conclusion": "success"
+          },
+          {
+            "name": "Validate installed math font resource accounting",
+            "conclusion": "success"
+          },
+          {
+            "name": "Validate packed public consumers",
+            "conclusion": "success"
+          },
+          {
+            "name": "Enforce opt-in static resource budgets",
+            "conclusion": "failure"
+          }
+        ]
+      },
+      {
+        "name": "Static HTML qualification / macos-latest",
+        "conclusion": "failure",
+        "steps": [
+          {
+            "name": "Validate static conversion correctness",
+            "conclusion": "success"
+          },
+          {
+            "name": "Validate installed math font resource accounting",
+            "conclusion": "success"
+          },
+          {
+            "name": "Validate packed public consumers",
+            "conclusion": "success"
+          },
+          {
+            "name": "Enforce opt-in static resource budgets",
+            "conclusion": "failure"
+          }
+        ]
+      },
+      {
+        "name": "Static HTML qualification / ubuntu-latest",
+        "conclusion": "failure",
+        "steps": [
+          {
+            "name": "Validate static conversion correctness",
+            "conclusion": "success"
+          },
+          {
+            "name": "Validate installed math font resource accounting",
+            "conclusion": "success"
+          },
+          {
+            "name": "Validate packed public consumers",
+            "conclusion": "success"
+          },
+          {
+            "name": "Enforce opt-in static resource budgets",
+            "conclusion": "failure"
+          }
+        ]
+      }
+    ],
+    "providers": {
+      "AngleSharp": "1.8.3",
+      "AngleSharp.Css": "1.1.2"
+    },
+    "measurements": [
+      {
+        "reportSha256": "674634737f2d3b7091f56e4456ae05c8f22783b1c13e738139498f347ebd5f4e",
+        "sourceCommit": "22f3c97eed2c69d148ddaea5209d50cbaeec7730",
+        "worktreeClean": true,
+        "osFamily": "macOS",
+        "runtime": ".NET 10.0.12",
+        "processorCount": 3,
+        "corpusManifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+        "coldMilliseconds": 15216.3857,
+        "coldAllocatedBytes": 1074035472,
+        "coldPeakWorkingSetBytes": 346832896,
+        "warmMilliseconds": [
+          4893.9802,
+          4320.5759,
+          3947.548
+        ],
+        "warmAllocatedBytes": [
+          883548152,
+          884746152,
+          884729296
+        ],
+        "warmPeakWorkingSetBytes": 528744448,
+        "fingerprints": [
+          "df37e54aafd262a230744c629f1c0e8f72561c42318e694a987e0ed542f24df4"
+        ],
+        "cancellation": {
+          "status": "Passed",
+          "elapsedMilliseconds": 8.8239,
+          "detail": "Cancellation propagated through the asynchronous resource boundary."
+        },
+        "failures": [
+          "cold process elapsed milliseconds 15216.4 exceeded ceiling 8000.0.",
+          "warm iteration 1 elapsed milliseconds 4894.0 exceeded ceiling 3000.0.",
+          "warm iteration 2 elapsed milliseconds 4320.6 exceeded ceiling 3000.0.",
+          "warm iteration 3 elapsed milliseconds 3947.5 exceeded ceiling 3000.0."
+        ]
+      },
+      {
+        "reportSha256": "1ef90916bcfdc84e7d3e022a99c670b426088636231d295282d9320c30201302",
+        "sourceCommit": "22f3c97eed2c69d148ddaea5209d50cbaeec7730",
+        "worktreeClean": true,
+        "osFamily": "Linux",
+        "runtime": ".NET 10.0.12",
+        "processorCount": 4,
+        "corpusManifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+        "coldMilliseconds": 11797.0469,
+        "coldAllocatedBytes": 1541406776,
+        "coldPeakWorkingSetBytes": 706334720,
+        "warmMilliseconds": [
+          4328.1426,
+          4453.1604,
+          4224.8291
+        ],
+        "warmAllocatedBytes": [
+          798036848,
+          798608640,
+          798609688
+        ],
+        "warmPeakWorkingSetBytes": 706121728,
+        "fingerprints": [
+          "c01a57e26d6c65777032ba36c76518887fa078c998befc1945b18a09f866ba46"
+        ],
+        "cancellation": {
+          "status": "Passed",
+          "elapsedMilliseconds": 6.1127,
+          "detail": "Cancellation propagated through the asynchronous resource boundary."
+        },
+        "failures": [
+          "cold managed allocated bytes 1541406776.0 exceeded ceiling 1100000000.0.",
+          "peak working-set bytes 706334720.0 exceeded ceiling 500000000.0."
+        ]
+      },
+      {
+        "reportSha256": "1bf876c159a78e72b53255484c23e248a146280f229ae9a6f278cd9b416a5952",
+        "sourceCommit": "22f3c97eed2c69d148ddaea5209d50cbaeec7730",
+        "worktreeClean": true,
+        "osFamily": "Windows",
+        "runtime": ".NET 10.0.12",
+        "processorCount": 4,
+        "corpusManifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+        "coldMilliseconds": 12662.4215,
+        "coldAllocatedBytes": 2387216848,
+        "coldPeakWorkingSetBytes": 823328768,
+        "warmMilliseconds": [
+          4509.2101,
+          4012.8859,
+          3884.3897
+        ],
+        "warmAllocatedBytes": [
+          988056320,
+          987993344,
+          987935776
+        ],
+        "warmPeakWorkingSetBytes": 1491611648,
+        "fingerprints": [
+          "10b8f4e51e16010338fb7a36ced61397f2655ba13b11c321f066c4c1851f3c3b"
+        ],
+        "cancellation": {
+          "status": "Passed",
+          "elapsedMilliseconds": 5.0456,
+          "detail": "Cancellation propagated through the asynchronous resource boundary."
+        },
+        "failures": [
+          "cold process elapsed milliseconds 12662.4 exceeded ceiling 12000.0.",
+          "warm iteration 1 elapsed milliseconds 4509.2 exceeded ceiling 4000.0.",
+          "warm iteration 2 elapsed milliseconds 4012.9 exceeded ceiling 4000.0."
+        ]
+      }
+    ],
+    "correctness": {
+      "htmlPassedPerFrameworkPerPlatform": 4215,
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "platforms": [
+        "Windows",
+        "Linux",
+        "macOS"
+      ],
+      "failed": 0
+    },
+    "packedConsumers": {
+      "packageCount": 19,
+      "packageFrameworks": [
+        "net472",
+        "netstandard2.0",
+        "net8.0",
+        "net10.0"
+      ],
+      "executedConsumersNet8AndNet10": "passed on all three platforms",
+      "windowsNet472Targets": "both consumers passed on .NET Framework 4.8.9345.0",
+      "installedNet472Runtime": "not qualified"
+    }
+  },
+  "priorConstantsControl": {
+    "sourceCommit": "cdb8a9bd64e09c1cc4b83c23f462978ba836d528",
+    "workflowCommit": "897707b2e0015dd9e0533503e691091aa80081a3",
+    "runId": 37136958062,
+    "url": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37136958062",
+    "status": "completed",
+    "conclusion": "failure",
+    "createdAtUtc": "2026-10-03T16:28:08Z",
+    "finishedAtUtc": "2026-10-03T17:10:36Z",
+    "jobs": [
+      {
+        "name": "Static HTML qualification / ubuntu-latest",
+        "conclusion": "failure",
+        "steps": [
+          {
+            "name": "Validate static conversion correctness",
+            "conclusion": "failure"
+          },
+          {
+            "name": "Validate installed math font resource accounting",
+            "conclusion": "success"
+          },
+          {
+            "name": "Validate packed public consumers",
+            "conclusion": "failure"
+          },
+          {
+            "name": "Enforce opt-in static resource budgets",
+            "conclusion": "failure"
+          }
+        ]
+      },
+      {
+        "name": "Static HTML qualification / windows-latest",
+        "conclusion": "failure",
+        "steps": [
+          {
+            "name": "Validate static conversion correctness",
+            "conclusion": "failure"
+          },
+          {
+            "name": "Validate installed math font resource accounting",
+            "conclusion": "success"
+          },
+          {
+            "name": "Validate packed public consumers",
+            "conclusion": "success"
+          },
+          {
+            "name": "Enforce opt-in static resource budgets",
+            "conclusion": "failure"
+          }
+        ]
+      },
+      {
+        "name": "Static HTML qualification / macos-latest",
+        "conclusion": "failure",
+        "steps": [
+          {
+            "name": "Validate static conversion correctness",
+            "conclusion": "success"
+          },
+          {
+            "name": "Validate installed math font resource accounting",
+            "conclusion": "success"
+          },
+          {
+            "name": "Validate packed public consumers",
+            "conclusion": "failure"
+          },
+          {
+            "name": "Enforce opt-in static resource budgets",
+            "conclusion": "failure"
+          }
+        ]
+      }
+    ],
+    "measurements": [
+      {
+        "reportSha256": "de45b770fb2408e43cae9ae4f3e09ceb58d18811d01ab12dd1d48f09fda80824",
+        "sourceCommit": "cdb8a9bd64e09c1cc4b83c23f462978ba836d528",
+        "worktreeClean": true,
+        "osFamily": "macOS",
+        "runtime": ".NET 10.0.12",
+        "processorCount": 3,
+        "corpusManifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+        "coldMilliseconds": 14920.364,
+        "coldAllocatedBytes": 1084156960,
+        "coldPeakWorkingSetBytes": 337805312,
+        "warmMilliseconds": [
+          5062.1914,
+          3568.9692,
+          3711.184
+        ],
+        "warmAllocatedBytes": [
+          895594992,
+          897076232,
+          897049072
+        ],
+        "warmPeakWorkingSetBytes": 546406400,
+        "fingerprints": [
+          "df37e54aafd262a230744c629f1c0e8f72561c42318e694a987e0ed542f24df4"
+        ],
+        "cancellation": {
+          "status": "Passed",
+          "elapsedMilliseconds": 4.7737,
+          "detail": "Cancellation propagated through the asynchronous resource boundary."
+        },
+        "failures": [
+          "cold process elapsed milliseconds 14920.4 exceeded ceiling 8000.0.",
+          "warm iteration 1 elapsed milliseconds 5062.2 exceeded ceiling 3000.0.",
+          "warm iteration 2 elapsed milliseconds 3569.0 exceeded ceiling 3000.0.",
+          "warm iteration 3 elapsed milliseconds 3711.2 exceeded ceiling 3000.0."
+        ]
+      },
+      {
+        "reportSha256": "026062e3354f5d4a7b85c5767670c0a60de15a1d80012ab25a3f39ca0035d58e",
+        "sourceCommit": "cdb8a9bd64e09c1cc4b83c23f462978ba836d528",
+        "worktreeClean": true,
+        "osFamily": "Linux",
+        "runtime": ".NET 10.0.12",
+        "processorCount": 4,
+        "corpusManifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+        "coldMilliseconds": 9243.0413,
+        "coldAllocatedBytes": 1553667680,
+        "coldPeakWorkingSetBytes": 656105472,
+        "warmMilliseconds": [
+          3725.0593,
+          3517.4396,
+          3461.4396
+        ],
+        "warmAllocatedBytes": [
+          809579776,
+          810987608,
+          810938328
+        ],
+        "warmPeakWorkingSetBytes": 658026496,
+        "fingerprints": [
+          "c01a57e26d6c65777032ba36c76518887fa078c998befc1945b18a09f866ba46"
+        ],
+        "cancellation": {
+          "status": "Passed",
+          "elapsedMilliseconds": 4.3104,
+          "detail": "Cancellation propagated through the asynchronous resource boundary."
+        },
+        "failures": [
+          "cold managed allocated bytes 1553667680.0 exceeded ceiling 1100000000.0.",
+          "peak working-set bytes 658026496.0 exceeded ceiling 500000000.0."
+        ]
+      },
+      {
+        "reportSha256": "73afd827a8cefac43f104ab6a8950b681e730f29009acfa224d4a1c3a2c3ee86",
+        "sourceCommit": "cdb8a9bd64e09c1cc4b83c23f462978ba836d528",
+        "worktreeClean": true,
+        "osFamily": "Windows",
+        "runtime": ".NET 10.0.12",
+        "processorCount": 4,
+        "corpusManifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+        "coldMilliseconds": 15013.5318,
+        "coldAllocatedBytes": 2400047944,
+        "coldPeakWorkingSetBytes": 944279552,
+        "warmMilliseconds": [
+          5169.07,
+          4980.8839,
+          4941.9127
+        ],
+        "warmAllocatedBytes": [
+          1000545624,
+          1000459352,
+          1000458864
+        ],
+        "warmPeakWorkingSetBytes": 1322369024,
+        "fingerprints": [
+          "10b8f4e51e16010338fb7a36ced61397f2655ba13b11c321f066c4c1851f3c3b"
+        ],
+        "cancellation": {
+          "status": "Passed",
+          "elapsedMilliseconds": 7.8115,
+          "detail": "Cancellation propagated through the asynchronous resource boundary."
+        },
+        "failures": [
+          "cold process elapsed milliseconds 15013.5 exceeded ceiling 12000.0.",
+          "warm iteration 1 elapsed milliseconds 5169.1 exceeded ceiling 4000.0.",
+          "warm iteration 2 elapsed milliseconds 4980.9 exceeded ceiling 4000.0.",
+          "warm iteration 3 elapsed milliseconds 4941.9 exceeded ceiling 4000.0."
+        ]
+      }
+    ],
+    "scope": "Prior mathematical-constants source on the same workflow/font prerequisites. Correctness/package failures reflect retained older defects; independent budget steps ran and failed. Not a green control.",
+    "assessment": "Same per-platform output fingerprints; allocations close to the fixed old-provider control. Hosted timing and Linux allocation/peak ceilings also fail before glyph-construction and provider changes; this excludes those changes as the sole cause, but neither waives the ceilings nor establishes noise."
+  },
+  "siteBundleQualification": {
+    "sourceCommit": "22f3c97eed2c69d148ddaea5209d50cbaeec7730",
+    "implementation": "Inert ZIP HTML/resources through the existing HtmlConversionDocument and HtmlRenderRequest/Result owners; PDF adapter preserves explicit resource permissions. No extraction, execution, default network access or new runtime dependency.",
+    "contracts": [
+      "deterministic entry selection and exact explicit path",
+      "normalized traversal/duplicates/nonregular rejection",
+      "encoded, per-entry, decoded-total, count and inflate-ratio bounds",
+      "raw stored/deflate length and CRC validation against actual EOF",
+      "all entries checked, including unused resources",
+      "caller stream remains open, seek position restored",
+      "sync and async resource routing, policy and cancellation"
+    ],
+    "review": "One independent full read-only pass and one targeted confirmation; three reproduced P2 findings addressed, including shared raw-inflate and input/output path-policy separation. No outstanding findings in this selected boundary.",
+    "tests": {
+      "fullHtmlNet8": 4215,
+      "fullHtmlNet10": 4215,
+      "latestFocusedNet10": 30,
+      "sharedZipNet10": 18
+    },
+    "packages": {
+      "count": 19,
+      "frameworks": [
+        "net472",
+        "netstandard2.0",
+        "net8.0",
+        "net10.0"
+      ],
+      "manifestSha256": "96d9213bc13487e7df84a72e111530091d4f0052c31d3c317e1202d027fefbba",
+      "publicBundleConsumer": "sync/async SVG and PDF passed in packed net8/net10 consumers"
+    },
+    "h4": {
+      "cases": 8,
+      "failures": 0,
+      "artifactFiles": 72,
+      "byteIdenticalTo395d5ce4874c45e919c0bf91be3c694b692bfd47": 72,
+      "comparisonSha256": "4002d6eb866eed9dd8763589a02f505a4e171cdc01d03a26468a73995705f7e7"
+    },
+    "staticCorpus": {
+      "cases": 18,
+      "failures": 0,
+      "artifactFiles": 150,
+      "byteIdenticalTo395d5ce4874c45e919c0bf91be3c694b692bfd47": 150,
+      "comparisonSha256": "92d9db3efd7d1f2a074288d86ab70b201f836b6566ae39e823831292ac4529fd"
+    }
+  },
+  "cliQualification": {
+    "sourceCommit": "729aab1ee591042bd2c6860b58c4ace99dc16111",
+    "libraryOwnerChangesSince22f3c97ee": "none",
+    "routes": [
+      "html convert .zip to PDF",
+      "html render .zip to existing PDF/SVG/raster encoders",
+      "explicit site-bundle/zip stdin and entry selection"
+    ],
+    "limits": "encoded input budget independent of decoded archive and HTML character limits",
+    "failures": "argument validation and malformed/limited archive errors produce no output; only reader InvalidDataException translated at the input boundary",
+    "tests": {
+      "net8": 27,
+      "net10": 27,
+      "newBundleContracts": 10
+    },
+    "executableBuild": "normal exact-source Tool build: zero warnings/errors",
+    "livePdf": "one A4 page, tagged, no JavaScript, independently extracted labels and visually inspected blue heading/photo/footer",
+    "liveSvg": "one scene in ZIP with manifest.json, print-paged-v1, HasLoss=false",
+    "review": "Narrow thin wiring, direct contract tests and actual executable proof; no additional full local review for this head."
+  },
+  "frozenNasaReplay": {
+    "sourceCommit": "729aab1ee591042bd2c6860b58c4ace99dc16111",
+    "worktreeClean": true,
+    "ownerVersions": {
+      "Core": "3.4.4+729aab1ee591042bd2c6860b58c4ace99dc16111",
+      "Email": "3.4.4+729aab1ee591042bd2c6860b58c4ace99dc16111",
+      "HTML Core": "3.4.4+729aab1ee591042bd2c6860b58c4ace99dc16111",
+      "HTML AngleSharp": "3.4.4+729aab1ee591042bd2c6860b58c4ace99dc16111",
+      "HTML": "3.4.4+729aab1ee591042bd2c6860b58c4ace99dc16111",
+      "HTML PDF": "3.4.4+729aab1ee591042bd2c6860b58c4ace99dc16111",
+      "MHTML": "3.4.4+729aab1ee591042bd2c6860b58c4ace99dc16111",
+      "MHTML PDF": "3.4.4+729aab1ee591042bd2c6860b58c4ace99dc16111",
+      "PDF": "3.4.4+729aab1ee591042bd2c6860b58c4ace99dc16111",
+      "evidence runner": "1.0.0+729aab1ee591042bd2c6860b58c4ace99dc16111"
+    },
+    "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+    "archiveBytes": 2641258,
+    "baselineSourceCommit": "40bd3f7bbbf0aff338336511ed899d27f79cd3fe",
+    "officeimoIntentCount": 11,
+    "failures": [],
+    "operations": [
+      {
+        "intent": "officeimo-print",
+        "pageCount": 19,
+        "wholeDocumentTokensEqual": true,
+        "perPageTokensEqual": true,
+        "textTokens": 3170,
+        "pdfImageRows": 24,
+        "sha256": "49e354f203a139175ae10b7a79cddffd5ce243f5d9efcf1c0561b81927c0599c"
+      },
+      {
+        "intent": "officeimo-print-zero-margin",
+        "pageCount": 16,
+        "wholeDocumentTokensEqual": true,
+        "perPageTokensEqual": true,
+        "textTokens": 3171,
+        "pdfImageRows": 24,
+        "sha256": "6a3212270488c87e2bfd274bb55e4bf44d14d1734a2676e8ac342fb0833b277a"
+      },
+      {
+        "intent": "officeimo-print-fit-browser-viewport",
+        "pageCount": 16,
+        "wholeDocumentTokensEqual": true,
+        "perPageTokensEqual": true,
+        "textTokens": 3168,
+        "pdfImageRows": 24,
+        "sha256": "c3e401a9604908c79f742dfbf6d7815068c5ea0ab7beed9c45444fdaed16709b"
+      },
+      {
+        "intent": "officeimo-print-fit-1200",
+        "pageCount": 11,
+        "wholeDocumentTokensEqual": true,
+        "perPageTokensEqual": true,
+        "textTokens": 3165,
+        "pdfImageRows": 24,
+        "sha256": "e3f7265e2ac771129826c568ee777434f457d1f6c49d818ffd48c7123e6d8bea"
+      },
+      {
+        "intent": "officeimo-print-fit-1200-local-fonts",
+        "pageCount": 11,
+        "wholeDocumentTokensEqual": true,
+        "perPageTokensEqual": true,
+        "textTokens": 3165,
+        "pdfImageRows": 24,
+        "sha256": "e3f7265e2ac771129826c568ee777434f457d1f6c49d818ffd48c7123e6d8bea"
+      },
+      {
+        "intent": "officeimo-print-browser-ua",
+        "pageCount": 16,
+        "wholeDocumentTokensEqual": true,
+        "perPageTokensEqual": true,
+        "textTokens": 3171,
+        "pdfImageRows": 24,
+        "sha256": "6a3212270488c87e2bfd274bb55e4bf44d14d1734a2676e8ac342fb0833b277a"
+      },
+      {
+        "intent": "officeimo-print-zero-margin-local-fonts",
+        "pageCount": 16,
+        "wholeDocumentTokensEqual": true,
+        "perPageTokensEqual": true,
+        "textTokens": 3171,
+        "pdfImageRows": 24,
+        "sha256": "6a3212270488c87e2bfd274bb55e4bf44d14d1734a2676e8ac342fb0833b277a"
+      },
+      {
+        "intent": "officeimo-screen-media",
+        "pageCount": 21,
+        "wholeDocumentTokensEqual": true,
+        "perPageTokensEqual": true,
+        "textTokens": 3166,
+        "pdfImageRows": 26,
+        "sha256": "821bfefa14c78425b627ce404bf1267e6e54be2fa9502c1e4d979a44b848cbb8"
+      },
+      {
+        "intent": "officeimo-screen-media-local-fonts",
+        "pageCount": 21,
+        "wholeDocumentTokensEqual": true,
+        "perPageTokensEqual": true,
+        "textTokens": 3166,
+        "pdfImageRows": 26,
+        "sha256": "821bfefa14c78425b627ce404bf1267e6e54be2fa9502c1e4d979a44b848cbb8"
+      },
+      {
+        "intent": "officeimo-screen-snapshot",
+        "pageCount": 16,
+        "wholeDocumentTokensEqual": true,
+        "perPageTokensEqual": true,
+        "textTokens": 3166,
+        "pdfImageRows": 34,
+        "sha256": "32f25472a608c51f0be91707b81f81e587bca3b48cb75f9e5c6a21ea6123d0f1"
+      },
+      {
+        "intent": "officeimo-screen-snapshot-local-fonts",
+        "pageCount": 16,
+        "wholeDocumentTokensEqual": true,
+        "perPageTokensEqual": true,
+        "textTokens": 3166,
+        "pdfImageRows": 34,
+        "sha256": "32f25472a608c51f0be91707b81f81e587bca3b48cb75f9e5c6a21ea6123d0f1"
+      },
+      {
+        "intent": "peachpdf-print",
+        "pageCount": 14,
+        "wholeDocumentTokensEqual": true,
+        "perPageTokensEqual": true,
+        "textTokens": 3141,
+        "pdfImageRows": 15,
+        "sha256": "e4a3cc9a261160bd1981676195f79c826fb36f47796687f49541f3910f6e3b85"
+      }
+    ],
+    "tokenMethod": "Independent Poppler whitespace-token multiset per page and whole document; counts differ from prior owned-reader tokenization and are not interchangeable. Image rows from pdfimages, including masks as emitted.",
+    "zeroMarginRaster": {
+      "dpi": 72,
+      "pages": 16,
+      "byteIdenticalPages": 15,
+      "changedPage": {
+        "page": 16,
+        "differenceBoundsPixels": [
+          17,
+          147,
+          61,
+          159
+        ],
+        "differentPixels": 236,
+        "visualObservation": "The Join Us footer link text shifts upward by approximately two pixels. Direct pixel inspection confirms the red arrow exists in both images; all other visible pixels are unchanged. Earlier preview-based missing-arrow interpretation was incorrect.",
+        "comparison": "RGBA composed over white before comparing visible pixels"
+      }
+    },
+    "reference": "PeachPDF 0.9.20 now completes 14 pages. The retained master baseline also completed; the earlier bookmark failure is not current. Text/image differences between engines and named browser/fidelity gaps remain unqualified.",
+    "comparisonSha256": "cd7474fa7b1dec12c145eeb94a932acef0df86ef50c17e944bd757595608b87b"
   }
 }
