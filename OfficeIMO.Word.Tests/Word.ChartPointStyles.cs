@@ -29,6 +29,20 @@ public sealed class WordChartPointStylesTests {
     }
 
     [Fact]
+    public void PointStyles_RejectDuplicateNativeMarkersOnOnePoint() {
+        using WordDocument document = WordDocument.Create();
+        WordChart chart = document.AddChart(OfficeChartKind.Line,
+            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeChartSeries("Measured", new[] { 2d, 3d }) }));
+        C.LineChartSeries native = chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().Single();
+        var point = new C.DataPoint(new C.Index { Val = 0 });
+        point.Append(new C.Marker(new C.ChartShapeProperties()), new C.Marker(new C.ChartShapeProperties()));
+        native.AddChild(point, true);
+
+        Assert.False(chart.TryGetSnapshot(out _));
+    }
+
+    [Fact]
     public void PointStyles_RejectUnprojectedNativeShapeAttributes() {
         using WordDocument document = WordDocument.Create();
         WordChart chart = document.AddChart("Status", false, 360, 180);

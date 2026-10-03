@@ -20,6 +20,8 @@ namespace OfficeIMO.OpenXml.Internal {
             ISet<uint> preservedSeriesIndexes, IDictionary<uint, uint> axisBindings) {
             List<OpenXmlCompositeElement> sourceLayers = source.ChildElements
                 .OfType<OpenXmlCompositeElement>().Where(IsSharedChartLayer).ToList();
+            var sourceLayerPositions = sourceLayers.Select((layer, index) => (layer, index))
+                .ToDictionary(item => item.layer, item => item.index);
             var sourceGroups = OfficeOpenXmlChartAxisGroups.Create(source);
             var replacementGroups = OfficeOpenXmlChartAxisGroups.Create(replacement);
             var requestedSeries = replacement.ChildElements.OfType<OpenXmlCompositeElement>()
@@ -47,15 +49,18 @@ namespace OfficeIMO.OpenXml.Internal {
                     int reservedForLaterLayers = Math.Min(matches.Count - layerIndex - 1, remaining - 1);
                     int count = layerIndex == matches.Count - 1 ? remaining :
                         Math.Min(oldCount, remaining - reservedForLaterLayers);
-                    var slice = (OpenXmlCompositeElement)generated.CloneNode(true);
-                    foreach (OpenXmlCompositeElement item in slice.ChildElements.OfType<OpenXmlCompositeElement>().Where(IsSharedSeriesElement).ToList()) item.Remove();
+                    var slice = (OpenXmlCompositeElement)generated.CloneNode(false);
+                    foreach (OpenXmlElement child in generated.ChildElements) {
+                        if (child is not OpenXmlCompositeElement composite || !IsSharedSeriesElement(composite))
+                            slice.Append(child.CloneNode(true));
+                    }
                     foreach (OpenXmlCompositeElement item in generatedSeries.Skip(offset).Take(count)) InsertSeries(slice, item.CloneNode(true));
                     var preserved = (OpenXmlCompositeElement)match.CloneNode(true);
                     ReplaceSharedSeriesData(preserved, slice, preservedSeriesIndexes);
                     BindSharedAxisReferences(match, generated, sourceGroups, replacementGroups, axisBindings);
                     ReplaceSharedAxisReferences(preserved, generated);
                     replacement.InsertBefore(preserved, generated);
-                    sourceOrder.Add(preserved, sourceLayers.IndexOf(match));
+                    sourceOrder.Add(preserved, sourceLayerPositions[match]);
                     usedLayers.Add(match);
                     offset += count;
                 }

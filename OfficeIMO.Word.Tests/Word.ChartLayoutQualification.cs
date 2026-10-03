@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.Word;
 using Xunit;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
@@ -7,6 +8,26 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public sealed class WordChartLayoutQualificationTests {
+    [Fact]
+    public void SuppressedLabelsUseLowestMatchingAxisMaximum() {
+        using var document = WordDocument.Create();
+        WordChart chart = Create(document, OfficeChartKind.ColumnClustered);
+        C.Chart native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
+        C.PlotArea plot = native.PlotArea!;
+        C.ValueAxis axis = plot.Elements<C.ValueAxis>().Single();
+        axis.Scaling!.AddChild(new C.MaxAxisValue { Val = 100 }, true);
+        plot.GetFirstChild<C.BarChart>()!.AddChild(new C.DataLabels(new C.ShowValue { Val = true }), true);
+        native.GetFirstChild<C.ShowDataLabelsOverMaximum>()!.Val = false;
+        var series = new[] { new OfficeChartSeries("Values", new[] { 2d, 5d }) };
+        Assert.False(OfficeOpenXmlChartSeriesReader.HasSuppressedOverMaximumDataLabels(native, series, OfficeChartKind.ColumnClustered));
+
+        var extra = (C.ValueAxis)axis.CloneNode(true);
+        extra.AxisId!.Val = 9999U;
+        extra.Scaling!.GetFirstChild<C.MaxAxisValue>()!.Val = 1.5;
+        plot.Append(extra);
+        Assert.True(OfficeOpenXmlChartSeriesReader.HasSuppressedOverMaximumDataLabels(native, series, OfficeChartKind.ColumnClustered));
+    }
+
     [Fact]
     public void Snapshot_RejectsRadarAxisUnitsThatTheRendererCannotDraw() {
         using var document = WordDocument.Create();
