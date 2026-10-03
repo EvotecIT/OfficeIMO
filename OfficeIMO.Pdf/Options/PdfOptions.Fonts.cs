@@ -323,12 +323,14 @@ public sealed partial class PdfOptions {
         EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: false), regular, BuildFontFamilyFaceName(familyName, "Bold"));
         EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: false, italic: true), regular, BuildFontFamilyFaceName(familyName, "Italic"), syntheticOblique: true);
         EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: true), regular, BuildFontFamilyFaceName(familyName, "BoldItalic"), syntheticOblique: true);
+        (_fallbackOwnedFontFamilies ??= new HashSet<PdfStandardFont>()).Add(normalizedFamily);
         return this;
     }
 
     // Only mappings still carrying the previous fallback's bytes, generated face
     // names and synthesis choices may be replaced. A later caller owns the whole family.
     internal bool IsRegisteredFallbackFontFamily(PdfStandardFont family, PdfEmbeddedFontFallbackCandidate candidate) {
+        if (_fallbackOwnedFontFamilies?.Contains(PdfStandardFontMapper.GetFontFamily(family)) != true) return false;
         bool found = false;
         for (int style = 0; style < 4; style++) {
             PdfStandardFont font = PdfStandardFontMapper.GetStyledFont(family,
@@ -373,6 +375,7 @@ public sealed partial class PdfOptions {
     private void SetCallerEmbeddedFontFallbacks(
         PdfEmbeddedFontFallbackSet? fallbackSet) {
         if (fallbackSet == null) {
+            ReleasePreviousFallbackFontSlots(_embeddedFontFallbacks);
             _embeddedFontFallbacks = null;
             _renderingProfileDeclaredFallbackCandidates = null;
             return;
@@ -408,11 +411,12 @@ public sealed partial class PdfOptions {
         }
 
         _renderingProfileDeclaredFallbackCandidates = null;
+        ReleasePreviousFallbackFontSlots(previous);
         _embeddedFontFallbacks = prepared;
         if (prepared.UsesNamedFontFamilies) {
             prepared.RegisterFonts(this);
         } else {
-            prepared.RegisterUnoccupiedFontSlots(this, previous);
+            prepared.RegisterUnoccupiedFontSlots(this);
         }
     }
 
