@@ -7,12 +7,14 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeMathMarkup {
     // The HTML adapter supplies bounded, namespace-aware XML with DOM annotations.
-    // This hook records token presentation without changing the public semantic model.
+    // This hook records token presentation in the shared expression model.
     internal static OfficeMathExpression FromMathMl(XElement root, Action<XElement, OfficeMathExpression> tokenParsed) =>
         new MathMlParser(tokenParsed).ParseMathMlElement(root);
 
     private sealed class MathMlParser {
         private readonly Action<XElement, OfficeMathExpression>? _tokenParsed;
+        private static bool? OperatorBoolean(XElement element, string attribute) =>
+            bool.TryParse((string?)element.Attribute(attribute), out bool value) ? value : (bool?)null;
         internal MathMlParser(Action<XElement, OfficeMathExpression>? tokenParsed = null) => _tokenParsed = tokenParsed;
         internal OfficeMathExpression ParseMathMlElement(XElement element) {
             OfficeMathExpression expression = ParseElementCore(element);
@@ -40,7 +42,8 @@ public static partial class OfficeMathMarkup {
                 case "mtext": return OfficeMath.Text(element.Value);
                 case "mi": return OfficeMath.Identifier(element.Value);
                 case "mn": return OfficeMath.Number(element.Value);
-                case "mo": return OfficeMath.Operator(element.Value);
+                case "mo": return OfficeMath.Create(OfficeMathKind.Operator, text: element.Value,
+                    stretchy: OperatorBoolean(element, "stretchy"), largeOperator: OperatorBoolean(element, "largeop"));
                 case "mfrac":
                     return string.Equals((string?)element.Attribute("bevelled"), "true", StringComparison.OrdinalIgnoreCase)
                         ? OfficeMath.SlashedFraction(ParseRequired(children, 0, name), ParseRequired(children, 1, name))
@@ -95,7 +98,7 @@ public static partial class OfficeMathMarkup {
             if (children.Count != 2) return false;
             OfficeMathExpression head = children[0];
             OfficeMathExpression content = children[1];
-            if (head.Kind == OfficeMathKind.Operator && IsNarySymbol(head.Text)) {
+            if (head.Kind == OfficeMathKind.Operator && head.LargeOperator != false && IsNarySymbol(head.Text)) {
                 expression = OfficeMath.Nary(head.Text!, content);
                 return true;
             }
@@ -107,7 +110,7 @@ public static partial class OfficeMathMarkup {
         private OfficeMathExpression ParseOverUnder(List<XElement> children, bool over, bool both, XElement source) {
             OfficeMathExpression basis = ParseRequired(children, 0, source.Name.LocalName);
             OfficeMathExpression first = ParseRequired(children, 1, source.Name.LocalName);
-            if (basis.Kind == OfficeMathKind.Operator && IsNarySymbol(basis.Text)) {
+            if (basis.Kind == OfficeMathKind.Operator && basis.LargeOperator != false && IsNarySymbol(basis.Text)) {
                 OfficeMathExpression content = OfficeMath.Text(string.Empty);
                 return both
                     ? OfficeMath.Nary(basis.Text!, content, first, ParseRequired(children, 2, source.Name.LocalName))
@@ -115,9 +118,10 @@ public static partial class OfficeMathMarkup {
             }
             if (both) return OfficeMath.SubSuperscript(basis, first, ParseRequired(children, 2, source.Name.LocalName));
             bool accent = string.Equals((string?)source.Attribute(over ? "accent" : "accentunder"), "true", StringComparison.OrdinalIgnoreCase);
-            if (accent && first.ToPlainText() == (over ? "¯" : "_")) return over ? OfficeMath.Overbar(basis) : OfficeMath.Underbar(basis);
+            if (accent && first.Stretchy != false && first.ToPlainText() == (over ? "¯" : "_")) return over ? OfficeMath.Overbar(basis) : OfficeMath.Underbar(basis);
             if (accent && over) {
-                OfficeMathExpression accented = OfficeMath.Accent(basis, first.ToPlainText());
+                OfficeMathExpression accented = OfficeMath.Create(OfficeMathKind.Accent, children: new[] { basis },
+                    character: first.ToPlainText(), stretchy: first.Stretchy);
                 _tokenParsed?.Invoke(children[1], accented);
                 return accented;
             }

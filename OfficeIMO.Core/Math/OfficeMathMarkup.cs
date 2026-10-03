@@ -81,7 +81,11 @@ public static partial class OfficeMathMarkup {
             case OfficeMathKind.Text: return Element("mtext", expression.Text);
             case OfficeMathKind.Identifier: return Element("mi", expression.Text);
             case OfficeMathKind.Number: return Element("mn", expression.Text);
-            case OfficeMathKind.Operator: return Element("mo", expression.Text);
+            case OfficeMathKind.Operator:
+                XElement op = Element("mo", expression.Text);
+                if (expression.Stretchy.HasValue) op.SetAttributeValue("stretchy", expression.Stretchy.Value ? "true" : "false");
+                if (expression.LargeOperator.HasValue) op.SetAttributeValue("largeop", expression.LargeOperator.Value ? "true" : "false");
+                return op;
             case OfficeMathKind.Row: return Element("mrow", expression.Children.Select(ToMathMlElement));
             case OfficeMathKind.Fraction:
                 return Element("mfrac", ToMathMlElement(expression.Children[0]), ToMathMlElement(expression.Children[1]));
@@ -127,7 +131,8 @@ public static partial class OfficeMathMarkup {
                 return MatrixMathMl(expression);
             case OfficeMathKind.Accent:
                 return new XElement(MathMlNamespace + "mover", new XAttribute("accent", "true"),
-                    ToMathMlElement(expression.Children[0]), Element("mo", expression.Character ?? "^"));
+                    ToMathMlElement(expression.Children[0]), ToMathMlElement(OfficeMath.Create(OfficeMathKind.Operator,
+                        text: expression.Character ?? "^", stretchy: expression.Stretchy)));
             case OfficeMathKind.Overbar:
                 return new XElement(MathMlNamespace + "mover", new XAttribute("accent", "true"),
                     ToMathMlElement(expression.Children[0]), Element("mo", "¯"));

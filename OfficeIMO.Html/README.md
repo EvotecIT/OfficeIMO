@@ -432,9 +432,14 @@ Authored CSS overrides the defaults. To retain surrounding typography, use
 Single-letter identifiers use `text-transform: math-auto` unless overridden by
 MathML or CSS. Scoped static math fonts supply MATH constants for fraction geometry,
 right/left script placement and scale, limits and bars through the shared Core renderer.
-Missing or malformed constants use deterministic fallback geometry. Stretchy glyph
-variants, assemblies, per-glyph math kerning and accent attachment remain outside
-this qualified subset; radicals and fences retain approximate construction.
+The managed static font readers supply designed radical, fence and large-operator
+variants, bounded connector assemblies, italic correction, per-corner script
+kerning and accent attachment. Explicit `stretchy="false"` and `largeop="false"`
+retain natural operators. Missing or unusable records use deterministic fallback
+geometry. Variable MATH metrics, complete matrix/stack typesetting and the full
+MathML attribute/CSS grammar remain outside this subset. See the
+[shared math contract](../OfficeIMO.Core/README.md#structured-math) for limits and
+the caller's font-metric opt-out.
 
 For documents that opt into `hyphens:auto`, the managed renderer selects embedded US English
 (`lang="en-US"` or `en`) and reformed German (`lang="de-DE"`, `de`, `de-1996` or `de-DE-1996`)

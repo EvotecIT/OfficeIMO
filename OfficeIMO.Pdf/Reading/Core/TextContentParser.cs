@@ -105,7 +105,7 @@ internal static partial class TextContentParser {
         }
     }
 
-    private readonly struct ActualTextValue {
+    internal readonly struct ActualTextValue {
         private readonly string? _text;
         private readonly byte[]? _bytes;
 
@@ -131,7 +131,7 @@ internal static partial class TextContentParser {
         }
     }
 
-    private sealed class MarkedContentState {
+    internal sealed class MarkedContentState {
         private readonly ActualTextValue? _actualText;
         public bool HasActualText { get; }
         public bool IsArtifact { get; }
@@ -349,7 +349,9 @@ internal static partial class TextContentParser {
         Func<string, byte[], bool>? isEmptyPaintedGlyphForResource = null,
         Func<string, byte[], string?>? visualEncodingForResource = null,
         double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D,
-        bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0") {
+        bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0",
+        MarkedContentState? inheritedActualTextState = null,
+        Action<int, MarkedContentState>? onActualTextForm = null) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -782,6 +784,13 @@ internal static partial class TextContentParser {
                     break;
                 case "Tj": if (args.Count >= 1) { ShowTextRun(ToBytes(args[args.Count - 1]), paintOrder, forceCannotRestamp: false); pendingGapPt = 0; args.Clear(); } break;
                 case "TJ": if (args.Count >= 1) { ShowTextArray(args[args.Count - 1], paintOrder); args.Clear(); } break;
+                case "Do":
+                    // Share replacement ownership with visible Form paint, retaining its
+                    // real glyph geometry when no page-level text anchor emits it first.
+                    if (useLogicalTextFilters && args.Count >= 1 && GetActiveActualTextState() is { } formActualText)
+                        onActualTextForm?.Invoke(operation.OperatorOffset, formActualText);
+                    args.Clear();
+                    break;
                 case "BDC":
                     markedContentStack.Push(new MarkedContentState(
                         GetActualText(args.Count > 0 ? args[args.Count - 1] : null),
@@ -1298,6 +1307,7 @@ internal static partial class TextContentParser {
         }
 
         MarkedContentState? GetActiveActualTextState() {
+            if (inheritedActualTextState != null) return inheritedActualTextState;
             foreach (var state in markedContentStack) {
                 if (state.HasActualText) {
                     return state;

@@ -30,7 +30,6 @@ internal static partial class PdfWriter {
                 return;
             }
 
-            bool artifactContent = _suppressCanvasActualTextChildren;
             int annotationStart = currentPage!.Annotations.Count;
             int textAnnotationStart = currentPage.TextAnnotations.Count;
             int freeTextAnnotationStart = currentPage.FreeTextAnnotations.Count;
@@ -51,7 +50,8 @@ internal static partial class PdfWriter {
 
             string groupContent = sb.ToString(contentStart, sb.Length - contentStart);
             sb.Length = contentStart;
-            if (artifactContent) groupContent = "/Artifact BMC\n" + groupContent + "EMC\n";
+            // The enclosing ActualText span owns this paint, including translucent Forms.
+            // Artifact marking here would illegally nest Artifact inside tagged content.
             ResolveEffectGroupBounds(transform, out double boundsLeft, out double boundsBottom, out double boundsRight, out double boundsTop);
             string token = "\n%OIMO_EFFECT_GROUP_" + (currentPage.EffectGroups.Count + 1).ToString("D6", CultureInfo.InvariantCulture) + "\n";
             currentPage.EffectGroups.Add(new PageEffectGroup {

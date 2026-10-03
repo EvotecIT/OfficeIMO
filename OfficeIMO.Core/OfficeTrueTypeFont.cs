@@ -15,7 +15,7 @@ namespace OfficeIMO.Drawing;
 /// It supports the simple glyf/cmap/hmtx path needed by OfficeIMO renderers and falls back
 /// cleanly when no suitable platform font file is available.
 /// </remarks>
-public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOfficeFontBaselineMetrics, IOfficeVariableFontProgram, IOfficeColorFontProgram, IOfficeMathFontProgram {
+public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOfficeFontBaselineMetrics, IOfficeVariableFontProgram, IOfficeColorFontProgram, IOfficeMathFontProgram, IOfficeMathGlyphProgram {
     private const uint MaxTrueTypeCollectionFonts = 256;
     private const int MaxFontTableRecords = 512;
     private const int MaxFontCacheEntries = 1024;
@@ -51,6 +51,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     private readonly string _fingerprint;
     /// <summary>Static font math design metrics, when the selected face supplies a valid MATH table.</summary>
     public OfficeMathFontConstants? MathConstants { get; }
+    OfficeMathGlyphData? IOfficeMathGlyphProgram.MathGlyphData => _mathGlyphData;
+    private readonly OfficeMathGlyphData? _mathGlyphData;
 
     private OfficeTrueTypeFont(
         byte[] data,
@@ -119,6 +121,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         _lineGap = checked(ReadInt16(_data, _hhea + 8) + (mvar?.HorizontalLineGapDelta ?? 0));
         _numHMetrics = ReadUInt16(_data, _hhea + 34);
         _numGlyphs = ReadUInt16(_data, _maxp + 4);
+        _mathGlyphData = !_variationModel.IsVariable && tables.TryGetValue("MATH", out int glyphMathOffset)
+            ? OfficeOpenTypeMathGlyphs.TryRead(data, glyphMathOffset, tableLengths["MATH"], _numGlyphs) : null;
         _colorGlyphs = reader == null ? null : OfficeOpenTypeColorGlyphs.TryParse(reader);
         _variations = variationModel != null && variationModel.IsVariable
             ? OfficeTrueTypeVariations.Parse(data, tables, variationModel, _numGlyphs)

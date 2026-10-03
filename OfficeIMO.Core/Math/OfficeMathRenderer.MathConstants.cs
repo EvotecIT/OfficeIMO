@@ -62,12 +62,29 @@ public static partial class OfficeMathRenderer {
             double descent = Math.Max(basis.Height - basis.Baseline, Math.Max(
                 sub == null ? 0D : sub.Height - sub.Baseline + subShift,
                 sup == null ? 0D : sup.Height - sup.Baseline - superShift));
-            double scriptWidth = Math.Max(sub?.Width ?? 0D, sup?.Width ?? 0D);
             double space = Math.Max(0D, MathValue(OfficeMathConstant.SpaceAfterScript, scale));
-            var box = new LayoutBox(basis.Width + scriptWidth + space, baseline + descent, baseline);
-            box.Add(basis, left ? scriptWidth + space : 0D, baseline - basis.Baseline);
-            if (sup != null) box.Add(sup, left ? space + scriptWidth - sup.Width : basis.Width, baseline - (superShift + sup.Baseline));
-            if (sub != null) box.Add(sub, left ? space + scriptWidth - sub.Width : basis.Width, baseline + subShift - sub.Baseline);
+            double italic = basis.LargeOperator ? 0D : basis.ItalicCorrection;
+            double largeItalic = basis.LargeOperator ? basis.ItalicCorrection : 0D;
+            double supKern = sup == null ? 0D : ScriptKern(basis, sup, superShift, over: true, left);
+            double subKern = sub == null ? 0D : ScriptKern(basis, sub, -subShift, over: false, left);
+            double baseOrigin = basis.GlyphUnit > 0D ? basis.GlyphOrigin : 0D;
+            double baseAdvance = basis.GlyphUnit > 0D ? basis.GlyphAdvance : basis.Width;
+            double ScriptX(LayoutBox? script, double correction, double kern) {
+                if (script == null) return 0D;
+                double origin = script.GlyphUnit > 0D ? script.GlyphOrigin : 0D;
+                double advance = script.GlyphUnit > 0D ? script.GlyphAdvance : script.Width;
+                return left ? baseOrigin - advance - origin - correction - kern
+                    : baseOrigin + baseAdvance + correction + kern - origin;
+            }
+            double supX = ScriptX(sup, italic, supKern);
+            double subX = ScriptX(sub, -largeItalic, subKern);
+            double start = Math.Min(0D, Math.Min(sup == null ? 0D : supX, sub == null ? 0D : subX));
+            double end = Math.Max(basis.Width, Math.Max(sup == null ? 0D : supX + sup.Width, sub == null ? 0D : subX + sub.Width));
+            double origin = -start + (left ? space : 0D);
+            var box = new LayoutBox(end - start + space, baseline + descent, baseline);
+            box.Add(basis, origin, baseline - basis.Baseline);
+            if (sup != null) box.Add(sup, origin + supX, baseline - (superShift + sup.Baseline));
+            if (sub != null) box.Add(sub, origin + subX, baseline + subShift - sub.Baseline);
             return box;
         }
 
@@ -78,12 +95,17 @@ public static partial class OfficeMathRenderer {
                 : Math.Max(MathValue(OfficeMathConstant.LowerLimitGapMin, scale),
                     MathValue(OfficeMathConstant.LowerLimitBaselineDropMin, scale) - limit.Baseline);
             gap = Math.Max(0D, gap);
-            double width = Math.Max(basis.Width, limit.Width);
+            double center = basis.LimitCenter ?? basis.Width / 2D;
+            double limitX = center - limit.Width / 2D + (over ? 1D : -1D) * basis.ItalicCorrection / 2D;
+            double left = Math.Min(0D, limitX);
+            double width = Math.Max(basis.Width, limitX + limit.Width) - left;
             double basisY = over ? limit.Height + gap : 0D;
             double limitY = over ? 0D : basis.Height + gap;
             var box = new LayoutBox(width, basis.Height + gap + limit.Height, basisY + basis.Baseline);
-            box.Add(basis, (width - basis.Width) / 2D, basisY);
-            box.Add(limit, (width - limit.Width) / 2D, limitY);
+            box.Add(basis, -left, basisY);
+            box.Add(limit, limitX - left, limitY);
+            box.ItalicCorrection = basis.ItalicCorrection;
+            box.LimitCenter = center - left;
             return box;
         }
 

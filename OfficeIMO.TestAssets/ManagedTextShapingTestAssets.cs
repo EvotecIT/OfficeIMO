@@ -223,7 +223,11 @@ internal static partial class ManagedTextShapingTestAssets {
         int descender = -200,
         bool inkedNotdef = false,
         byte[]? tracking = null,
-        byte[]? math = null) {
+        byte[]? math = null,
+        IReadOnlyDictionary<int, int>? glyphHeights = null,
+        IReadOnlyDictionary<int, int>? glyphBottoms = null,
+        IReadOnlyDictionary<int, int>? glyphWidths = null,
+        IReadOnlyDictionary<int, int>? glyphLefts = null) {
         byte[] glyph = CreateVisibleGlyph(400);
         var glyf = new byte[(glyphCount - (inkedNotdef ? 0 : 1)) * glyph.Length];
         var loca = new byte[(glyphCount + 1) * 2];
@@ -232,12 +236,24 @@ internal static partial class ManagedTextShapingTestAssets {
         for (int glyphIndex = inkedNotdef ? 0 : 1; glyphIndex < glyphCount; glyphIndex++) {
             byte[] currentGlyph = distinctSecondGlyph && glyphIndex == 2 ? CreateVisibleGlyph(600) : glyph;
             if (glyphIndex == 1 && baseGlyphHeight != 700) currentGlyph = CreateVisibleGlyph(400, baseGlyphHeight);
+            if (glyphHeights != null && glyphHeights.TryGetValue(glyphIndex, out int height))
+                currentGlyph = CreateVisibleGlyph(glyphWidths != null && glyphWidths.TryGetValue(glyphIndex, out int glyphWidth) ? glyphWidth : 400, height,
+                    glyphBottoms != null && glyphBottoms.TryGetValue(glyphIndex, out int bottom) ? bottom : 0,
+                    glyphLefts != null && glyphLefts.TryGetValue(glyphIndex, out int left) ? left : 0);
             int byteOffset = (glyphIndex - (inkedNotdef ? 0 : 1)) * glyph.Length;
             Array.Copy(currentGlyph, 0, glyf, byteOffset, glyph.Length);
             WriteUInt16(loca, (glyphIndex + 1) * 2, checked((ushort)((byteOffset + glyph.Length) / 2)));
         }
         if (!includeTrailingMetric && glyphCount == 2) hmtx = new byte[] { 0x01, 0xF4, 0x00, 0x00 };
         var maxp = new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, checked((byte)glyphCount) };
+        if (math != null) {
+            // The independent MATH oracle also reads maxp while naming covered glyphs.
+            // Supply the complete TrueType 1.0 record for these rectangular fixtures.
+            Array.Resize(ref maxp, 32);
+            WriteUInt16(maxp, 6, 4); // maxPoints
+            WriteUInt16(maxp, 8, 1); // maxContours
+            WriteUInt16(maxp, 14, 1); // maxZones
+        }
         var tables = new List<(string Tag, byte[] Data)> {
             ("cmap", cmap),
             ("glyf", glyf),
@@ -841,19 +857,23 @@ internal static partial class ManagedTextShapingTestAssets {
         WriteUInt16(data, offset + 26, 1);
     }
 
-    private static byte[] CreateVisibleGlyph(int width, int height = 700) {
+    private static byte[] CreateVisibleGlyph(int width, int height = 700, int bottom = 0, int left = 0) {
         var glyph = new byte[34];
         WriteUInt16(glyph, 0, 1);
-        WriteUInt16(glyph, 6, checked((ushort)width));
-        WriteUInt16(glyph, 8, checked((ushort)height));
+        WriteUInt16(glyph, 2, unchecked((ushort)left));
+        WriteUInt16(glyph, 6, checked((ushort)(width + left)));
+        WriteUInt16(glyph, 4, checked((ushort)bottom));
+        WriteUInt16(glyph, 8, checked((ushort)(height + bottom)));
         WriteUInt16(glyph, 10, 3);
         glyph[14] = 0x01;
         glyph[15] = 0x01;
         glyph[16] = 0x01;
         glyph[17] = 0x01;
         WriteUInt16(glyph, 20, checked((ushort)width));
+        WriteUInt16(glyph, 18, unchecked((ushort)left));
         WriteUInt16(glyph, 24, unchecked((ushort)-width));
         WriteUInt16(glyph, 30, checked((ushort)height));
+        WriteUInt16(glyph, 26, checked((ushort)bottom));
         return glyph;
     }
 

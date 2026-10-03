@@ -8,7 +8,7 @@ public static partial class OfficeMathRenderer {
             Text(_options.TokenPaintText?.Invoke(expression) ?? expression.Text ?? string.Empty,
                 scale, expression.Text);
 
-        private LayoutBox Text(string text, double scale, string? logicalText = null) {
+        private LayoutBox Text(string text, double scale, string? logicalText = null, bool tightInk = false) {
             double size = FontSize(scale);
             OfficeTextMeasurementStyle style = _measurer.CreateStyle(_options.Font.WithSize(size), 72D);
             double width = Math.Max(size * 0.2D, _measurer.MeasureWidth(text, style));
@@ -29,6 +29,17 @@ public static partial class OfficeMathRenderer {
                 }
             }
             var box = new LayoutBox(width, height, baseline);
+            if (_options.UseFontMathMetrics && TryGlyph(text, scale, out var font, out var data, out int glyph)) {
+                if (tightInk) {
+                    var bounds = Bounds(GlyphContours(font!, glyph, text, size));
+                    if (bounds.Bottom > bounds.Top) {
+                        baseline = -bounds.Top;
+                        height = bounds.Bottom - bounds.Top;
+                        box = new LayoutBox(width, height, baseline);
+                    }
+                }
+                SetGlyphInfo(box, font!, data!, glyph, size, (width - advance) / 2D, advance);
+            }
             if (!string.IsNullOrEmpty(text)) {
                 box.Commands.Add(LayoutCommand.TextCommand(text, 0D, 0D, width, height, size, baseline, advance, logicalText));
             }
