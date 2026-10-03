@@ -170,8 +170,10 @@ public sealed class ReaderSourceProvenanceTests {
     private static OfficeDocumentReader CreateZipReader() =>
         new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler().Build();
 
-    private static string RelativePath(string path) => Uri.UnescapeDataString(
-        new Uri(Environment.CurrentDirectory + Path.DirectorySeparatorChar).MakeRelativeUri(new Uri(path)).ToString());
+    private static string RelativePath(string path) {
+        Uri relative = new Uri(Environment.CurrentDirectory + Path.DirectorySeparatorChar).MakeRelativeUri(new Uri(path));
+        return relative.IsAbsoluteUri ? path : Uri.UnescapeDataString(relative.ToString()).Replace('/', Path.DirectorySeparatorChar);
+    }
 
     private static byte[] BuildZip(bool empty, bool duplicateNames = false) {
         using var bytes = new MemoryStream();
