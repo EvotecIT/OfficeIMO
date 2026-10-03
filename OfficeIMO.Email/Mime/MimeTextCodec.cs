@@ -395,9 +395,7 @@ internal static class MimeTextCodec {
             }
             int padding = (4 - compactLength % 4) % 4;
             for (int index = 0; index < padding; index++) compact[compactLength++] = (byte)'=';
-            System.Buffers.OperationStatus status = System.Buffers.Text.Base64.DecodeFromUtf8(
-                compact.AsSpan(0, compactLength), output, out int consumed, out int written);
-            if (status == System.Buffers.OperationStatus.Done && consumed == compactLength &&
+            if (TryDecodeBase64Block(compact, compactLength, output, out int written) &&
                 written == output.Length) {
                 if (padding > 0) {
                     diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_PADDING_RECOVERED",
@@ -417,6 +415,29 @@ internal static class MimeTextCodec {
         return output;
     }
 #endif
+
+    // Decodes a whitespace-free, padded block into caller-owned bounded storage.
+    internal static bool TryDecodeBase64Block(byte[] input, int count, byte[] output, out int written) {
+#if NET8_0_OR_GREATER
+        System.Buffers.OperationStatus status = System.Buffers.Text.Base64.DecodeFromUtf8(
+            input.AsSpan(0, count), output, out int consumed, out written);
+        return status == System.Buffers.OperationStatus.Done && consumed == count;
+#else
+        written = 0;
+        if (count % 4 != 0) return false;
+        for (int index = 0; index < count; index += 4) {
+            int first, second, third, fourth;
+            if (!TryBase64Value(input[index], out first) || !TryBase64Value(input[index + 1], out second)) return false;
+            if (input[index + 2] == '=') third = -2;
+            else if (!TryBase64Value(input[index + 2], out third)) return false;
+            if (input[index + 3] == '=') fourth = -2;
+            else if (!TryBase64Value(input[index + 3], out fourth)) return false;
+            if (!WriteBase64Quartet(output, ref written, first, second, third, fourth)) return false;
+            if ((third == -2 || fourth == -2) && index + 4 != count) return false;
+        }
+        return true;
+#endif
+    }
 
     private static bool WriteBase64Quartet(byte[] output, ref int outputIndex,
         int first, int second, int third, int fourth) {

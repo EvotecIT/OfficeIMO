@@ -19,6 +19,7 @@ when Windows and Linux validate the same mounted source checkout.
 | Lane | Evidence | Existing opt-in prerequisite |
 | --- | --- | --- |
 | Managed | Ordinary email artifact, store, address-book, Reader and HTML regression tests, including generated independent-producer fixtures; excludes `Category=Performance` | None |
+| ApplePartial | Pinned independent partial EMLX and decoded sibling payload, MIME-part recovery and EML export byte verification | `OFFICEIMO_EMAIL_APPLE_PARTIAL_CORPUS` containing the catalog's `Messages` and `Attachments` paths |
 | MsgReader | MSGReader sample corpus with per-artifact semantic comparison | `OFFICEIMO_EMAIL_CORPUS_ROOT` or `EVOTEC_GITHUB_ROOT` containing `MSGReader` |
 | MimeKit | MIME, TNEF and mbox sample corpus, adversarial scenarios and duplicate-header order | The same corpus root containing `MimeKit` |
 | LibPff | Generated Unicode PST inspection and semantic export through libpff | `OFFICEIMO_EMAIL_STORE_PFFINFO` and the corresponding export tool, or Windows `OFFICEIMO_EMAIL_STORE_LIBPFF_WSL` |
@@ -32,6 +33,13 @@ lanes only after their prerequisites are configured. Outlook tests may launch th
 installed application and use its configured profile. Corpus provenance and licenses
 are described in [the producer catalog](../../OfficeIMO.Email.Tests/Corpora/producer-corpora.json).
 Host-dependent measurements have a separate [email performance evidence lane](../../OfficeIMO.Email.Tests/README.md).
+
+The `ApplePartial` fixture comes from the MIT-licensed `qqilihq/partial-emlx-converter`
+repository at the revision and hashes in the producer catalog. Copy its five identified
+files from `test/__testdata/input` into the same relative paths under the corpus root.
+This qualifies that storage example; the fixture does not identify its Apple Mail
+version and does not qualify current native Mail import/export. No downloaded fixture
+is required by the runtime package or ordinary tests.
 
 Each requested lane must produce a TRX result with at least one test, no skips or
 failures, and every named test executed. A missing prerequisite, zero-test selection,

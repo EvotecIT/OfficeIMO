@@ -100,6 +100,7 @@ public sealed class EmailMailboxReader {
     private EmailMailboxReadResult Parse(byte[] data, CancellationToken cancellationToken) {
         var diagnostics = new List<EmailDiagnostic>();
         var mailbox = new EmailMailbox();
+        if (data.Length == 0) return new EmailMailboxReadResult(mailbox, diagnostics.AsReadOnly(), 0);
         List<Envelope> envelopes = FindEnvelopes(data, _options.MaxMessageCount, cancellationToken);
         if (envelopes.Count == 0 || envelopes[0].LineStart != 0) {
             diagnostics.Add(new EmailDiagnostic("EMAIL_MBOX_ENVELOPE_MISSING",
@@ -218,11 +219,25 @@ public sealed class EmailMailboxReader {
         return true;
     }
 
+    internal static EmailReadResult ReadEntryMessage(EmailDocumentReader reader, Stream messageStream,
+        EmailReaderOptions options, CancellationToken cancellationToken) {
+        EmailReadResult result = reader.ReadStreaming(messageStream, "indexed.eml", cancellationToken);
+        if (!RequiresHeaderlessFallback(result)) return result;
+        result.Dispose();
+        messageStream.Position = 0;
+        // The rare headerless path uses the established bounded plain-body recovery contract.
+        return ReadEntryMessage(reader, EmailByteReader.ReadAll(messageStream, options.MaxInputBytes, cancellationToken),
+            options, cancellationToken);
+    }
+
+    private static bool RequiresHeaderlessFallback(EmailReadResult result) =>
+        result.Document.Format == EmailFileFormat.Unknown &&
+        result.Diagnostics.Any(diagnostic => diagnostic.Code == "EMAIL_FORMAT_UNKNOWN");
+
     internal static EmailReadResult ReadEntryMessage(EmailDocumentReader reader, byte[] messageBytes,
         EmailReaderOptions options, CancellationToken cancellationToken) {
         EmailReadResult result = reader.Read(messageBytes, cancellationToken);
-        if (result.Document.Format != EmailFileFormat.Unknown ||
-            !result.Diagnostics.Any(diagnostic => diagnostic.Code == "EMAIL_FORMAT_UNKNOWN")) return result;
+        if (!RequiresHeaderlessFallback(result)) return result;
 
         var diagnostics = result.Diagnostics
             .Where(diagnostic => diagnostic.Code != "EMAIL_FORMAT_UNKNOWN")

@@ -381,8 +381,8 @@ public sealed class CmsSecurityTests {
 
         CmsDecryptionResult result = CmsEnvelopedDataService.Decrypt(encoded, recipient);
 
-        Assert.True(result.Parsed);
-        Assert.True(result.Decrypted);
+        Assert.True(result.Parsed, string.Join("; ", result.Findings.Select(finding => finding.Message)));
+        Assert.True(result.Decrypted, string.Join("; ", result.Findings.Select(finding => finding.Message)));
         Assert.Equal(content, result.Content);
         Assert.NotNull(result.ContentEncryptionAlgorithmOid);
         Assert.NotNull(result.KeyEncryptionAlgorithmOid);

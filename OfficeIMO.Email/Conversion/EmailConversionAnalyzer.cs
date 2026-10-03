@@ -2,7 +2,7 @@ namespace OfficeIMO.Email;
 
 internal static class EmailConversionAnalyzer {
     internal static EmailConversionReport Analyze(EmailDocument document, EmailFileFormat targetFormat,
-        EmailWriterOptions options) {
+        EmailWriterOptions options, bool preservesAppleMailMetadata = false) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (options == null) throw new ArgumentNullException(nameof(options));
 
@@ -45,7 +45,37 @@ internal static class EmailConversionAnalyzer {
                 EmailDiagnosticSeverity.Warning, "source-metadata", OfficeConversionLossKind.Omission));
         }
 
+        diagnostics.AddRange(AnalyzeArchiveMetadata(document, preservesAppleMailMetadata));
+
         return new EmailConversionReport(document.Format, targetFormat, diagnostics.AsReadOnly());
+    }
+
+    internal static IReadOnlyList<EmailDiagnostic> AnalyzeArchiveMetadata(EmailDocument document, bool preservesAppleMailMetadata = false) {
+        var diagnostics = new List<EmailDiagnostic>();
+        if (!preservesAppleMailMetadata && document.Properties.Keys.Any(key =>
+                key.Equals("Emlx:Metadata", StringComparison.OrdinalIgnoreCase) ||
+                key.Equals("Emlx:RawMetadata", StringComparison.OrdinalIgnoreCase) ||
+                key.StartsWith("Emlx:Metadata:", StringComparison.OrdinalIgnoreCase))) {
+            diagnostics.Add(new EmailDiagnostic("EMAIL_EMLX_METADATA_NOT_REPRESENTED",
+                "The Apple Mail plist trailer, including mailbox flags and source-specific fields, has no representation in this message artifact.",
+                EmailDiagnosticSeverity.Warning, "source-metadata/emlx", OfficeConversionLossKind.Omission));
+        }
+        if (document.Properties.Keys.Any(key => key.StartsWith("Olm:", StringComparison.OrdinalIgnoreCase) &&
+                !key.Equals("Olm:EntryPath", StringComparison.OrdinalIgnoreCase) &&
+                !key.Equals("Olm:ElementName", StringComparison.OrdinalIgnoreCase))) {
+            diagnostics.Add(new EmailDiagnostic("EMAIL_OLM_METADATA_NOT_REPRESENTED",
+                "Retained Outlook for Mac XML properties are available in the source projection but are omitted from this message artifact.",
+                EmailDiagnosticSeverity.Warning, "source-metadata/olm", OfficeConversionLossKind.Omission));
+        }
+
+        if (document.Properties.TryGetValue("Emlx:IsPartial", out object? partial) && partial is true) {
+            diagnostics.Add(new EmailDiagnostic("EMAIL_EMLX_PARTIAL_CONTENT",
+                "The source is a partial Apple Mail message. Supported local siblings are included when recovered; missing or remote content cannot be proven complete offline.",
+                EmailDiagnosticSeverity.Warning, "source-content/emlx", "artifact-conversion", null, null, null, null,
+                EmailDiagnosticDisposition.Observed, EmailDataLossRisk.Possible,
+                "Recover and verify the missing content before treating the output as a complete archive.", false, OfficeConversionLossKind.Omission));
+        }
+        return diagnostics;
     }
 
     internal static IReadOnlyList<EmailDiagnostic> AnalyzePortableContent(EmailDocument document, EmailWriterOptions options) {

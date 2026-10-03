@@ -9,6 +9,26 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## Apple Mail and Outlook for Mac stores
+
+`EmailStoreReaderOptions` adds `maxDirectoryEntryCount` while retaining its original constructor
+signature. The new bound counts all visited directory entries rather than only message files.
+Use `MaxDirectoryFileCount` for candidate message and Apple sibling-storage files, and `MaxItemCount`
+for projected messages. Files inside identified Apple attachment storage are payloads, including
+those with `.eml` extensions, and are no longer indexed as independent messages.
+Account directories and empty mailbox folders now participate in directory folder identity. Reopen
+directory sessions and recreate durable checkpoints after upgrading; old fingerprints do not use
+the current catalog schema.
+
+Use the case-sensitive dictionary in `EmailDocument.Properties["Emlx:Metadata"]` when editing
+Apple metadata. Flat `Emlx:Metadata:<key>` values are read aliases and participate in writing only
+when no exact catalog is supplied. Ambiguous case-colliding aliases are not created. Opaque trailer rewrites require explicit `Warn` or `Allow`; omitted metadata and partial
+content produce conversion diagnostics. Strict PST creation rejects omitted EMLX/OLM metadata.
+
+OLM sessions project selected items on demand. Request `PreferStreamingAttachmentContent` on
+`EmailStoreItemReadOptions` for file-backed payloads and keep the owning session alive until the
+content has been copied or written. Session disposal expires both new and outstanding readers.
+
 ## OpenDocument independent saves and formula results
 
 `SaveCopy` and `SaveCopyAsync` leave the attached source and its pending edits unchanged. `Serialize`, `ToBytes`, and `ToStream` also preserve the source version, signatures, and encryption state. Stream saves behave this way when the document has a source path. Use a path-based `Save` or `SaveAsync` when the output should become the document's accepted state. Removing encryption from a copy does not authorize overwriting the encrypted source without a password or explicit removal option.

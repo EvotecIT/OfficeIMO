@@ -4,13 +4,18 @@ namespace OfficeIMO.Email;
 /// <summary>Serializes <see cref="EmailDocument"/> instances into deterministic email artifacts.</summary>
 public sealed class EmailDocumentWriter {
     private readonly EmailWriterOptions _options;
+    private readonly bool _preservesAppleMailMetadata;
 
     /// <summary>Creates a writer with the default deterministic policy.</summary>
     public EmailDocumentWriter() : this(EmailWriterOptions.Default) { }
 
     /// <summary>Creates a writer with an immutable serialization policy.</summary>
-    public EmailDocumentWriter(EmailWriterOptions options) {
+    public EmailDocumentWriter(EmailWriterOptions options) : this(options, preservesAppleMailMetadata: false) { }
+
+    // Only the EMLX envelope writer can account for its out-of-band Apple Mail metadata.
+    internal EmailDocumentWriter(EmailWriterOptions options, bool preservesAppleMailMetadata) {
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _preservesAppleMailMetadata = preservesAppleMailMetadata;
     }
 
     /// <summary>Writer policy used by this instance.</summary>
@@ -122,7 +127,7 @@ public sealed class EmailDocumentWriter {
                 EmailDiagnosticSeverity.Warning));
         }
 
-        EmailConversionReport conversion = EmailConversionAnalyzer.Analyze(document, format, _options);
+        EmailConversionReport conversion = EmailConversionAnalyzer.Analyze(document, format, _options, _preservesAppleMailMetadata);
         diagnostics.AddRange(conversion.Diagnostics);
         if (!conversion.CanWrite) {
             return new WritePreparation(document, format, diagnostics, preservedSource: null,
@@ -196,7 +201,7 @@ public sealed class EmailDocumentWriter {
             format != EmailFileFormat.OutlookTemplate && format != EmailFileFormat.Tnef) {
             throw new NotSupportedException("The requested email artifact format cannot be serialized.");
         }
-        return EmailConversionAnalyzer.Analyze(document, format, _options);
+        return EmailConversionAnalyzer.Analyze(document, format, _options, _preservesAppleMailMetadata);
     }
 
     private static void ThrowIfBlocked(EmailWriteResult result) {

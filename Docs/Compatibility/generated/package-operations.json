@@ -1540,7 +1540,7 @@
       "evidence":"OfficeIMO.Email.Tests EMLX bounded read, edit, write, native export, metadata, inspection, and validation contracts::Create",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".emlx"],
-      "limitation":"EMLX writes regenerate the RFC message and supported Apple property-list metadata. Unsupported binary or unrecognized metadata remains diagnostic evidence rather than a complete byte-preserving round trip."
+      "limitation":"EMLX reads XML and binary property-list metadata. Writes regenerate the RFC message and supported metadata while retaining unknown values and flag bits. Opaque trailers require accepted loss. Directory sessions recover identified empty MIME parts from bounded Apple Mail sibling storage as normalized Base64; unsupported or ambiguous parts and remote completeness remain explicit gaps."
     },
     {
       "id":"native:email-store-emlx:read",
@@ -1554,7 +1554,7 @@
       "evidence":"OfficeIMO.Email.Tests EMLX bounded read, edit, write, native export, metadata, inspection, and validation contracts::Read",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".emlx"],
-      "limitation":"EMLX writes regenerate the RFC message and supported Apple property-list metadata. Unsupported binary or unrecognized metadata remains diagnostic evidence rather than a complete byte-preserving round trip."
+      "limitation":"EMLX reads XML and binary property-list metadata. Writes regenerate the RFC message and supported metadata while retaining unknown values and flag bits. Opaque trailers require accepted loss. Directory sessions recover identified empty MIME parts from bounded Apple Mail sibling storage as normalized Base64; unsupported or ambiguous parts and remote completeness remain explicit gaps."
     },
     {
       "id":"native:email-store-emlx:edit",
@@ -1568,7 +1568,7 @@
       "evidence":"OfficeIMO.Email.Tests EMLX bounded read, edit, write, native export, metadata, inspection, and validation contracts::Edit",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".emlx"],
-      "limitation":"EMLX writes regenerate the RFC message and supported Apple property-list metadata. Unsupported binary or unrecognized metadata remains diagnostic evidence rather than a complete byte-preserving round trip."
+      "limitation":"EMLX reads XML and binary property-list metadata. Writes regenerate the RFC message and supported metadata while retaining unknown values and flag bits. Opaque trailers require accepted loss. Directory sessions recover identified empty MIME parts from bounded Apple Mail sibling storage as normalized Base64; unsupported or ambiguous parts and remote completeness remain explicit gaps."
     },
     {
       "id":"native:email-store-emlx:preserve",
@@ -1582,7 +1582,7 @@
       "evidence":"OfficeIMO.Email.Tests EMLX bounded read, edit, write, native export, metadata, inspection, and validation contracts::Preserve",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".emlx"],
-      "limitation":"EMLX writes regenerate the RFC message and supported Apple property-list metadata. Unsupported binary or unrecognized metadata remains diagnostic evidence rather than a complete byte-preserving round trip."
+      "limitation":"EMLX reads XML and binary property-list metadata. Writes regenerate the RFC message and supported metadata while retaining unknown values and flag bits. Opaque trailers require accepted loss. Directory sessions recover identified empty MIME parts from bounded Apple Mail sibling storage as normalized Base64; unsupported or ambiguous parts and remote completeness remain explicit gaps."
     },
     {
       "id":"native:email-store-emlx:inspect",
@@ -1596,7 +1596,7 @@
       "evidence":"OfficeIMO.Email.Tests EMLX bounded read, edit, write, native export, metadata, inspection, and validation contracts::Inspect",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".emlx"],
-      "limitation":"EMLX writes regenerate the RFC message and supported Apple property-list metadata. Unsupported binary or unrecognized metadata remains diagnostic evidence rather than a complete byte-preserving round trip."
+      "limitation":"EMLX reads XML and binary property-list metadata. Writes regenerate the RFC message and supported metadata while retaining unknown values and flag bits. Opaque trailers require accepted loss. Directory sessions recover identified empty MIME parts from bounded Apple Mail sibling storage as normalized Base64; unsupported or ambiguous parts and remote completeness remain explicit gaps."
     },
     {
       "id":"native:email-store-emlx:validate",
@@ -1610,7 +1610,7 @@
       "evidence":"OfficeIMO.Email.Tests EMLX bounded read, edit, write, native export, metadata, inspection, and validation contracts::Validate",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".emlx"],
-      "limitation":"EMLX writes regenerate the RFC message and supported Apple property-list metadata. Unsupported binary or unrecognized metadata remains diagnostic evidence rather than a complete byte-preserving round trip."
+      "limitation":"EMLX reads XML and binary property-list metadata. Writes regenerate the RFC message and supported metadata while retaining unknown values and flag bits. Opaque trailers require accepted loss. Directory sessions recover identified empty MIME parts from bounded Apple Mail sibling storage as normalized Base64; unsupported or ambiguous parts and remote completeness remain explicit gaps."
     },
     {
       "id":"native:email-store-emlx:export",
@@ -1624,7 +1624,7 @@
       "evidence":"OfficeIMO.Email.Tests EMLX bounded read, edit, write, native export, metadata, inspection, and validation contracts::Export",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".emlx"],
-      "limitation":"EMLX writes regenerate the RFC message and supported Apple property-list metadata. Unsupported binary or unrecognized metadata remains diagnostic evidence rather than a complete byte-preserving round trip."
+      "limitation":"EMLX reads XML and binary property-list metadata. Writes regenerate the RFC message and supported metadata while retaining unknown values and flag bits. Opaque trailers require accepted loss. Directory sessions recover identified empty MIME parts from bounded Apple Mail sibling storage as normalized Base64; unsupported or ambiguous parts and remote completeness remain explicit gaps."
     },
     {
       "id":"native:email-store-mbox:create",

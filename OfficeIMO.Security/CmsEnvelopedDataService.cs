@@ -80,39 +80,41 @@ public static class CmsEnvelopedDataService {
                     findings);
             }
 
-            Org.BouncyCastle.Crypto.AsymmetricKeyParameter privateKey;
-            try {
-                privateKey = DotNetUtilities.GetRsaKeyPair(rsa).Private;
-            } catch (Exception exception) when (exception is CryptographicException or NotSupportedException) {
-                findings.Add(new SecurityFinding(
-                    SecurityFindingSeverity.Error,
-                    "EnvelopePrivateKeyNotExportable",
-                    "CMS decryption requires an exportable RSA private key with the current Bouncy Castle recipient adapter: " +
-                    exception.Message));
-                return Failure(
-                    parsed: true,
-                    envelope.EncryptionAlgorithmID.Algorithm.Id,
-                    recipient.KeyEncryptionAlgorithmID.Algorithm.Id,
-                    findings);
-            }
-
-            CmsTypedStream decryptedContent = recipient.GetContentStream(privateKey);
             byte[] decrypted;
             try {
-                using Stream contentStream = decryptedContent.ContentStream;
-                using var buffer = new BoundedMemoryStream(options.MaxContentBytes);
-                contentStream.CopyTo(buffer);
-                decrypted = buffer.ToArray();
+#if NET8_0_OR_GREATER
+                if (PlatformCmsEnvelopeDecryptor.Supports(envelope, recipient)) {
+                    decrypted = PlatformCmsEnvelopeDecryptor.Decrypt(envelope, recipient, rsa, options.MaxContentBytes);
+                } else
+#endif
+                {
+                    Org.BouncyCastle.Crypto.AsymmetricKeyParameter privateKey;
+                    try {
+                        privateKey = DotNetUtilities.GetRsaKeyPair(rsa).Private;
+                    } catch (Exception exception) when (exception is CryptographicException or NotSupportedException) {
+                        findings.Add(new SecurityFinding(
+                            SecurityFindingSeverity.Error,
+                            "EnvelopePrivateKeyNotExportable",
+                            "CMS decryption requires an exportable RSA private key with the current Bouncy Castle recipient adapter: " +
+                            exception.Message));
+                        return Failure(
+                            parsed: true,
+                            envelope.EncryptionAlgorithmID.Algorithm.Id,
+                            recipient.KeyEncryptionAlgorithmID.Algorithm.Id,
+                            findings);
+                    }
+
+                    CmsTypedStream decryptedContent = recipient.GetContentStream(privateKey);
+                    using Stream contentStream = decryptedContent.ContentStream;
+                    using var buffer = new BoundedMemoryStream(options.MaxContentBytes);
+                    contentStream.CopyTo(buffer);
+                    decrypted = buffer.ToArray();
+                }
             } catch (SecurityContentLimitExceededException exception) {
-                findings.Add(new SecurityFinding(
-                    SecurityFindingSeverity.Error,
-                    "EnvelopeContentLimitExceeded",
-                    exception.Message));
-                return Failure(
-                    parsed: true,
-                    envelope.EncryptionAlgorithmID.Algorithm.Id,
-                    recipient.KeyEncryptionAlgorithmID.Algorithm.Id,
-                    findings);
+                findings.Add(new SecurityFinding(SecurityFindingSeverity.Error,
+                    "EnvelopeContentLimitExceeded", exception.Message));
+                return Failure(parsed: true, envelope.EncryptionAlgorithmID.Algorithm.Id,
+                    recipient.KeyEncryptionAlgorithmID.Algorithm.Id, findings);
             }
             return new CmsDecryptionResult(
                 parsed: true,

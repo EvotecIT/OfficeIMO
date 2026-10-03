@@ -252,12 +252,10 @@ public sealed partial class EmailStoreSession : IDisposable {
                     backend = new PstStoreSessionBackend(stream, format, options, cancellationToken);
                     break;
                 case EmailStoreFormat.Olm:
-                    backend = new MaterializedEmailStoreSessionBackend(
-                        new OlmStoreReader(options).Read(stream, sourceName, cancellationToken));
+                    backend = new OlmStoreSessionBackend(stream, sourceName, options, cancellationToken);
                     break;
                 case EmailStoreFormat.Emlx:
-                    backend = new MaterializedEmailStoreSessionBackend(
-                        new EmlxStoreReader(options).Read(stream, sourceName, cancellationToken));
+                    backend = new EmlxStoreSessionBackend(stream, sourceName, options, cancellationToken);
                     break;
                 case EmailStoreFormat.Mbox:
                     backend = new MboxStoreSessionBackend(

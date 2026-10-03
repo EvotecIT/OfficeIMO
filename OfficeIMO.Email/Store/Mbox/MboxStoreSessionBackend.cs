@@ -5,10 +5,13 @@ namespace OfficeIMO.Email.Store;
 /// <summary>Indexes an mbox aggregate with one-message memory and decodes selected entries on demand.</summary>
 internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
     private const string FolderId = "mbox:folder:root";
-    private readonly Stream _stream;
+    private readonly Stream? _stream;
+    private readonly Func<Stream>? _openSource;
+    private readonly long _sourceLength;
     private readonly EmailStoreReaderOptions _options;
-    private readonly List<EmailStoreDiagnostic> _diagnostics = new List<EmailStoreDiagnostic>();
-    private readonly HashSet<DiagnosticKey> _diagnosticKeys = new HashSet<DiagnosticKey>();
+    private readonly EmailStoreDiagnosticCollection _diagnostics = new EmailStoreDiagnosticCollection();
+    private readonly EmailStoreReadResources _resources;
+    private readonly bool _ownsResources;
     private readonly List<MboxItem> _items = new List<MboxItem>();
     private readonly Dictionary<string, MboxItem> _itemsById =
         new Dictionary<string, MboxItem>(StringComparer.Ordinal);
@@ -18,8 +21,27 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
         EmailStoreReaderOptions options, CancellationToken cancellationToken) {
         _stream = stream ?? throw new ArgumentNullException(nameof(stream));
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _resources = new EmailStoreReadResources(options);
+        _ownsResources = true;
+        _sourceLength = stream.Length;
         DisplayName = GetDisplayName(sourceName);
-        Index(cancellationToken);
+        Index(stream, cancellationToken);
+        _folders = new[] {
+            new EmailStoreFolderInfo(FolderId, null, DisplayName ?? "Mailbox", _items.Count, 0)
+        };
+    }
+
+    internal MboxStoreSessionBackend(Func<Stream> openSource, string? sourceName,
+        EmailStoreReaderOptions options, CancellationToken cancellationToken, EmailStoreReadResources? resources = null) {
+        _openSource = openSource ?? throw new ArgumentNullException(nameof(openSource));
+        _options = options ?? throw new ArgumentNullException(nameof(options));
+        _resources = resources ?? new EmailStoreReadResources(options);
+        _ownsResources = resources == null;
+        DisplayName = GetDisplayName(sourceName);
+        using (Stream stream = openSource()) {
+            _sourceLength = stream.Length;
+            Index(stream, cancellationToken);
+        }
         _folders = new[] {
             new EmailStoreFolderInfo(FolderId, null, DisplayName ?? "Mailbox", _items.Count, 0)
         };
@@ -27,7 +49,7 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
 
     public EmailStoreFormat Format => EmailStoreFormat.Mbox;
     public string? DisplayName { get; }
-    public long SourceLength => _stream.Length;
+    public long SourceLength => _sourceLength;
     public IReadOnlyList<EmailStoreFolderInfo> Folders => _folders;
     public IReadOnlyList<EmailStoreDiagnostic> Diagnostics => _diagnostics;
 
@@ -66,8 +88,21 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
                     maxDecodedPropertyBytes: options.MaxDecodedPropertyBytes,
                     includeEmbeddedMessages: options.Includes(EmailStoreItemReadParts.EmbeddedItems)),
                 maximumMessages: 1);
-            using (var input = new ReadOnlySegmentStream(_stream, item.Offset, item.Length)) {
-                entry = new EmailMailboxReader(mailboxOptions).ReadEntries(input, cancellationToken).Single();
+            Stream source = _openSource?.Invoke() ?? _stream!;
+            try {
+                if (source.Length != _sourceLength) {
+                    throw new InvalidDataException("The mbox source length changed after it was indexed.");
+                }
+                using (var input = new EmailStoreSegmentStream(source, item.Offset, item.Length)) {
+                    if (options.PreferStreamingAttachmentContent) {
+                        using EmailReadResult result = MboxSelectedMessageReader.Read(input, mailboxOptions,
+                            cancellationToken, out EmailMailboxEntry mailboxEntry);
+                        _resources.Adopt(result);
+                        entry = new EmailMailboxEntryReadResult(mailboxEntry, result.Diagnostics, item.Length);
+                    } else entry = new EmailMailboxReader(mailboxOptions).ReadEntries(input, cancellationToken).Single();
+                }
+            } finally {
+                if (_openSource != null) source.Dispose();
             }
         } catch (EmailLimitExceededException exception) {
             throw ConvertLimit(exception);
@@ -84,9 +119,9 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
             loadedParts: loadedParts, format: EmailStoreFormat.Mbox, summary: item.Summary);
     }
 
-    public void Dispose() { }
+    public void Dispose() { if (_ownsResources) _resources.Dispose(); }
 
-    private void Index(CancellationToken cancellationToken) {
+    private void Index(Stream stream, CancellationToken cancellationToken) {
         long offset = 0;
         long totalAttachmentBytes = 0;
         var mailboxOptions = CreateMailboxOptions(
@@ -95,7 +130,7 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
         try {
             int index = 0;
             foreach (EmailMailboxEntryReadResult result in
-                     new EmailMailboxReader(mailboxOptions).ReadEntries(_stream, cancellationToken)) {
+                     new EmailMailboxReader(mailboxOptions).ReadEntries(stream, cancellationToken)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 totalAttachmentBytes = EmailStoreAttachmentBudget.AddDocument(
                     result.Entry.Document, totalAttachmentBytes, _options.MaxTotalAttachmentBytes);
@@ -119,9 +154,9 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
                 "EMAIL_MBOX_ENVELOPE_MISSING",
                 "The mailbox does not begin with an mbox From separator.",
                 EmailStoreDiagnosticSeverity.Error));
-            offset = _stream.Length;
+            offset = stream.Length;
         }
-        if (offset != _stream.Length) {
+        if (offset != stream.Length) {
             throw new InvalidDataException("The mbox index did not consume the complete source stream.");
         }
     }
@@ -150,11 +185,11 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
             string location = diagnostic.Location == null
                 ? itemId
                 : string.Concat(itemId, "/", diagnostic.Location);
-            var key = new DiagnosticKey(diagnostic.Code, diagnostic.Message, severity, location);
-            if (_diagnosticKeys.Add(key)) {
-                _diagnostics.Add(new EmailStoreDiagnostic(
-                    diagnostic.Code, diagnostic.Message, severity, location));
-            }
+            _diagnostics.Add(new EmailStoreDiagnostic(
+                diagnostic.Code, diagnostic.Message, severity, location,
+                diagnostic.Operation, diagnostic.ByteOffset, diagnostic.LimitName,
+                diagnostic.ActualValue, diagnostic.MaximumValue, diagnostic.Disposition,
+                diagnostic.DataLossRisk, diagnostic.SuggestedAction, diagnostic.IsRetryable));
         }
     }
 
@@ -206,96 +241,4 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
         internal EmailStoreItemSummary Summary { get; }
     }
 
-    private readonly struct DiagnosticKey : IEquatable<DiagnosticKey> {
-        internal DiagnosticKey(string code, string message,
-            EmailStoreDiagnosticSeverity severity, string location) {
-            Code = code;
-            Message = message;
-            Severity = severity;
-            Location = location;
-        }
-
-        private string Code { get; }
-        private string Message { get; }
-        private EmailStoreDiagnosticSeverity Severity { get; }
-        private string Location { get; }
-
-        public bool Equals(DiagnosticKey other) =>
-            string.Equals(Code, other.Code, StringComparison.Ordinal) &&
-            string.Equals(Message, other.Message, StringComparison.Ordinal) &&
-            Severity == other.Severity &&
-            string.Equals(Location, other.Location, StringComparison.Ordinal);
-
-        public override bool Equals(object? obj) => obj is DiagnosticKey other && Equals(other);
-
-        public override int GetHashCode() {
-            unchecked {
-                int hash = StringComparer.Ordinal.GetHashCode(Code);
-                hash = hash * 397 ^ StringComparer.Ordinal.GetHashCode(Message);
-                hash = hash * 397 ^ (int)Severity;
-                return hash * 397 ^ StringComparer.Ordinal.GetHashCode(Location);
-            }
-        }
-    }
-
-    private sealed class ReadOnlySegmentStream : Stream {
-        private readonly Stream _source;
-        private readonly long _start;
-        private readonly long _length;
-        private long _position;
-
-        internal ReadOnlySegmentStream(Stream source, long start, long length) {
-            _source = source;
-            _start = start;
-            _length = length;
-        }
-
-        public override bool CanRead => true;
-        public override bool CanSeek => true;
-        public override bool CanWrite => false;
-        public override long Length => _length;
-        public override long Position {
-            get => _position;
-            set {
-                if (value < 0 || value > _length) throw new ArgumentOutOfRangeException(nameof(value));
-                _position = value;
-            }
-        }
-
-        public override int Read(byte[] buffer, int offset, int count) {
-            if (buffer == null) throw new ArgumentNullException(nameof(buffer));
-            if (offset < 0 || count < 0 || offset > buffer.Length - count)
-                throw new ArgumentOutOfRangeException();
-            int bounded = (int)Math.Min(count, _length - _position);
-            if (bounded == 0) return 0;
-            long absolutePosition = checked(_start + _position);
-            if (_source.Position != absolutePosition) _source.Position = absolutePosition;
-            int read = _source.Read(buffer, offset, bounded);
-            _position += read;
-            return read;
-        }
-
-        public override int ReadByte() {
-            if (_position >= _length) return -1;
-            long absolutePosition = checked(_start + _position);
-            if (_source.Position != absolutePosition) _source.Position = absolutePosition;
-            int value = _source.ReadByte();
-            if (value >= 0) _position++;
-            return value;
-        }
-
-        public override long Seek(long offset, SeekOrigin origin) {
-            long target = origin == SeekOrigin.Begin
-                ? offset
-                : origin == SeekOrigin.Current
-                    ? checked(_position + offset)
-                    : checked(_length + offset);
-            Position = target;
-            return _position;
-        }
-
-        public override void Flush() { }
-        public override void SetLength(long value) => throw new NotSupportedException();
-        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-    }
 }

@@ -269,7 +269,22 @@ internal sealed partial class OlmStoreReader {
         }
         _totalAttachmentBytes = AddBounded(_totalAttachmentBytes, attachment.Length,
             nameof(EmailStoreReaderOptions.MaxTotalAttachmentBytes), _options.MaxTotalAttachmentBytes);
-        if (_options.RetainAttachmentContent) {
+        bool includeContent = _catalogItem == null && (_readOptions?.Includes(EmailStoreItemReadParts.AttachmentContent) ?? _options.RetainAttachmentContent);
+        if (includeContent && _workspace != null) {
+            string key = "olm:attachment:" + document.Attachments.Count.ToString(CultureInfo.InvariantCulture);
+            using (Stream source = OpenDecodedEntry(entry, _options.MaxAttachmentBytes, nameof(EmailStoreReaderOptions.MaxAttachmentBytes)))
+            using (Stream destination = _workspace.OpenExternalDestination(key, entry.Length)) {
+                var buffer = new byte[81920];
+                while (true) {
+                    _cancellationToken.ThrowIfCancellationRequested();
+                    int read = source.Read(buffer, 0, buffer.Length);
+                    if (read == 0) break;
+                    destination.Write(buffer, 0, read);
+                }
+                if (destination.Length != entry.Length) throw new InvalidDataException("The OLM attachment length differs from its ZIP directory declaration.");
+            }
+            attachment.ContentSource = _workspace.GetSources()[key];
+        } else if (includeContent) {
             byte[] content = ReadEntryBytes(entry);
             if (content.LongLength > attachment.Length) {
                 _totalAttachmentBytes = AddBounded(
@@ -376,23 +391,32 @@ internal sealed partial class OlmStoreReader {
     }
 
     private static void PreserveScalarProperties(EmailDocument document, XElement item) {
+        if (item.HasAttributes) {
+            document.Properties["Olm:ItemAttributes"] = new XElement(item.Name, item.Attributes()).ToString(SaveOptions.DisableFormatting);
+        }
+        var repeatedNames = new HashSet<string>(item.Elements().GroupBy(element => element.Name.LocalName,
+            StringComparer.OrdinalIgnoreCase).Where(group => group.Count() > 1).Select(group => group.Key), StringComparer.OrdinalIgnoreCase);
+        string[] structured = item.Elements().Where(element => element.HasElements || element.HasAttributes ||
+            repeatedNames.Contains(element.Name.LocalName)).Select(element => element.ToString(SaveOptions.DisableFormatting)).ToArray();
+        if (structured.Length > 0) document.Properties["Olm:StructuredProperties"] = structured;
         foreach (XElement element in item.Elements().Where(element => !element.HasElements)) {
             string name = element.Name.LocalName;
-            if (IsProjectedLargeBody(name) || string.IsNullOrEmpty(element.Value)) continue;
+            if (IsProjectedLargeBody(name, document.OutlookItemKind) || string.IsNullOrEmpty(element.Value)) continue;
             document.Properties[string.Concat("Olm:", name)] = element.Value;
         }
     }
 
-    private static bool IsProjectedLargeBody(string name) {
-        return name.EndsWith("CopyBody", StringComparison.OrdinalIgnoreCase) ||
-               name.EndsWith("CopyHTMLBody", StringComparison.OrdinalIgnoreCase) ||
-               name.EndsWith("CopyDescription", StringComparison.OrdinalIgnoreCase) ||
-               name.EndsWith("CopyDescriptionPlain", StringComparison.OrdinalIgnoreCase) ||
-               name.EndsWith("CopyNote", StringComparison.OrdinalIgnoreCase) ||
-               name.EndsWith("CopyNotePlain", StringComparison.OrdinalIgnoreCase) ||
-               name.EndsWith("CopyNotes", StringComparison.OrdinalIgnoreCase) ||
-               name.EndsWith("CopyNotesPlain", StringComparison.OrdinalIgnoreCase) ||
-               name.EndsWith("CopyText", StringComparison.OrdinalIgnoreCase);
+    private static bool IsProjectedLargeBody(string name, OutlookItemKind kind) {
+        switch (kind) {
+            case OutlookItemKind.Message: return Matches("OPFMessageCopyBody", "OPFMessageCopyHTMLBody");
+            case OutlookItemKind.Appointment: return Matches("OPFCalendarEventCopyDescription", "OPFCalendarEventCopyDescriptionPlain");
+            case OutlookItemKind.Contact: return Matches("OPFContactCopyNotes", "OPFContactCopyNotesPlain");
+            case OutlookItemKind.Task: return Matches("OPFTaskCopyNote", "OPFTaskCopyNotePlain");
+            case OutlookItemKind.Note: return Matches("OPFNoteCopyText", "OPFNoteCopyText");
+            default: return false;
+        }
+        bool Matches(string first, string second) => string.Equals(name, first, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, second, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string GetMessageClass(OutlookItemKind kind) {
