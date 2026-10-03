@@ -49,6 +49,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             failureStage = WorkflowFailureStage.Input;
             Report(progress, validated.Id, "validate", "Validating input and workflow limits", 0.05D);
             cancellationToken.ThrowIfCancellationRequested();
+            IOfficeWorkflowStagingGuard? stagingGuard = validated.PublicationGuard as IOfficeWorkflowStagingGuard;
             validated = await inputs.CaptureAsync(validated, cancellationToken).ConfigureAwait(false);
             if (validated.Registration is not null) inputs.ReportSourceCapture(diagnostics);
             inputBytes = new FileInfo(validated.InputPath).Length;
@@ -91,7 +92,11 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             failureStage = WorkflowFailureStage.Output;
             string outputDirectory = validated.OutputStream is null ? Path.GetDirectoryName(validated.OutputPath!)!
                 : providerStagingDirectory = OfficeIMO.Core.Internal.OfficeTemporaryDirectory.Create("officeimo-provider-output-");
+            if (stagingGuard != null)
+                await stagingGuard.EnsureStagingDirectoryAllowedAsync(outputDirectory, cancellationToken).ConfigureAwait(false);
             Directory.CreateDirectory(outputDirectory);
+            if (stagingGuard != null)
+                await stagingGuard.EnsureStagingDirectoryAllowedAsync(outputDirectory, cancellationToken).ConfigureAwait(false);
             stagingPath = Path.Combine(
                 outputDirectory,
                 "." + Path.GetFileName(validated.OutputStream?.Name ?? validated.OutputPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
