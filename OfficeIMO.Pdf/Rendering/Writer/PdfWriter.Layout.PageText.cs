@@ -669,6 +669,8 @@ internal static partial class PdfWriter {
                     current.Add(CreateStyledTextRun(text.Substring(segmentStart, index - segmentStart), run, run.Font));
                 }
 
+                if (lines.Count >= MaximumTextLayoutLines)
+                    throw new System.IO.InvalidDataException("PDF page text layout exceeds the 100,000-line limit.");
                 current = new System.Collections.Generic.List<PdfTextRun>();
                 lines.Add(current);
                 if (ch == '\r' && index + 1 < text.Length && text[index + 1] == '\n') {
