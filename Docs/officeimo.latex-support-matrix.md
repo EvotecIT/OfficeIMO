@@ -89,6 +89,20 @@ Conversion uses the current edited document source. Native source spans retain t
 
 Reverse conversion preserves rich title content and labels, visible fragment-link text through `\hyperref[label]{text}`, and ordered loose-list child content. Custom numbering, task markers and ordinary callout layout report simplifications. Unrepresented image metadata reports omissions. Code closing-delimiter variants are escaped with a diagnostic. PDF destinations cover heading, theorem, table, figure and paragraph labels; unresolved links retain visible text and produce a warning.
 
+## Qualification boundary
+
+The native and conversion suites include unchanged `small2e.tex` and `sample2e.tex`
+inputs from the official LaTeX2e source distribution. Their pinned revision, hashes
+and redistribution terms are recorded in the [fixture provenance](../OfficeIMO.Latex.Tests/Fixtures/latex2e/README.md).
+These independent inputs exercise source preservation, lists, quotations and footnotes.
+
+Generated optional arguments, literals, labels, links, structured footnotes and
+common table alignments are also qualified with an isolated external TeX compiler.
+Independent PDF extraction and rendering check text order, single emission of note
+bodies, font emphasis and real link destinations. Compilation remains a qualification
+step outside shipped packages and normal installation. It does not establish arbitrary
+package semantics, TeX page-layout equivalence or exhaustive independent-producer coverage.
+
 ## Deliberate limits
 
 OfficeIMO does not compile `.tex`, resolve `input`/`include`, load CTAN packages, execute arbitrary macros, run BibTeX/Biber, calculate TeX counters/page references, build indexes or glossaries, execute code-generation environments, or reproduce TeX line breaking and page composition. Complex package-defined syntax remains lossless source and receives an explicit conversion fallback when it cannot be represented semantically.
