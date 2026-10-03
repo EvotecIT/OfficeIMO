@@ -646,7 +646,7 @@ PdfDocument.Create().Compose(document => document.Page(page =>
     .Save("cell-fragment.pdf");
 ```
 
-The viewport scales with the rendered cell dimensions and preserves cell links and named destinations. Images, data bars and icons retain their full-cell geometry too and clip to each visible fragment. It works in normal flow, column flow and canvas tables. A viewport's complete visible row span must fit on one page; split larger cells into explicit fragments before rendering. A cell with check boxes or form fields rejects a viewport; place interactive fields separately. Pass `null` to `WithViewport` to return a copy with ordinary cell layout. `PdfCellIcon.HorizontalAlignment` can position an icon independently of the cell text.
+The viewport scales with the rendered cell dimensions and preserves cell links and named destinations. Images, data bars and icons retain their full-cell geometry too and clip to each visible fragment. Rotated and cropped images remain visible when their drawn content crosses the fragment, and their links stay inside it. It works in normal flow, column flow and canvas tables. A viewport's complete visible row span must fit on one page; split larger cells into explicit fragments before rendering. A cell with check boxes or form fields rejects a viewport; place interactive fields separately. Pass `null` to `WithViewport` to return a copy with ordinary cell layout. `PdfCellIcon.HorizontalAlignment` can position an icon independently of the cell text.
 
 ### Floating tables
 
