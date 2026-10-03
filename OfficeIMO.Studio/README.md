@@ -117,6 +117,8 @@ User-facing XAML, dialogs, file pickers, and capability notices resolve stable, 
 
 Studio follows Avalonia's platform font selection and fallback instead of forcing a Windows-only typeface. System, light, dark, and explicit high-contrast appearance preferences share the same semantic color resources. Navigation and editing controls expose automation names, icon-only controls include help text, normal tab order follows the visual flow, and the shell supports the primary platform modifier for Open, Find, tab switching, tab closing, zoom, and fit commands. Page navigation also supports arrows, Page Up/Down, Home, and End.
 
+Open documents appear as tabs with a separate close action and an unsaved-changes indicator. Use Left/Right or Home/End while a tab has keyboard focus, or Control+Tab and Control+Shift+Tab to switch from elsewhere in the window. The **Open documents** menu beside the tab strip lists every open document, including those outside the visible strip. Narrow windows use a document picker. Closing a focused tab moves keyboard focus to the next selected tab.
+
 Crash diagnostics stay local, bounded, and privacy-safe. They record stable event codes, runtime metadata, exception type/HResult, and sanitized stack frames. They do not record document contents, document names, document paths, or exception messages.
 
 ## Distribution

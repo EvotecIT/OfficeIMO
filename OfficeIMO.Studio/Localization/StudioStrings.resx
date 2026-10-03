@@ -2461,4 +2461,5 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Apple.ReopenTab" xml:space="preserve"><value>Reopen Closed Tab</value></data>
   <data name="Apple.Open" xml:space="preserve"><value>Open…</value></data>
   <data name="Apple.SaveAs" xml:space="preserve"><value>Save As…</value></data>
+  <data name="Tabs.CloseDocument" xml:space="preserve"><value>Close {0}</value></data>
 </root>

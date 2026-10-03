@@ -155,7 +155,7 @@ public sealed class StudioOcrSessionTests {
                 window.Show();
                 window.ViewModel.ShowOcrCommand.Execute(null);
                 window.UpdateLayout();
-                var selector = window.GetVisualDescendants().OfType<TabControl>().Single();
+                var selector = window.GetVisualDescendants().OfType<TabControl>().Single(control => control.Classes.Contains("pageTabs"));
                 selector.SelectedIndex = 1;
                 window.UpdateLayout();
                 var view = window.GetVisualDescendants().OfType<OcrSessionView>().Single();

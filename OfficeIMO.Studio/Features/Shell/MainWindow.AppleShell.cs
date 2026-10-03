@@ -17,7 +17,7 @@ public sealed partial class MainWindow {
             });
             // Let AppKit own the traffic lights and title. The document toolbar stays below it.
             ExtendClientAreaToDecorationsHint = false;
-            FontFamily = new FontFamily("Helvetica Neue");
+            FontFamily = FontFamily.Default;
             TitleBarLogo.IsVisible = false;
         }
         RefreshNativeMenus();
@@ -33,7 +33,7 @@ public sealed partial class MainWindow {
         ApplyResponsiveLayout(Bounds.Width);
     }
 
-    private async void OnCloseDocumentClick(object? sender, RoutedEventArgs e) => await TabHost.CloseSelectedTabAsync();
+    private async void OnCloseDocumentClick(object? sender, RoutedEventArgs e) => await CloseSelectedDocumentTabAsync();
 
     /// <summary>Adapts shared navigation to the available content width, including narrow split views.</summary>
     internal void ApplyResponsiveLayout(double width) {
@@ -43,7 +43,7 @@ public sealed partial class MainWindow {
         double sidebar = narrow ? 0 : apple ? (_sidebarHidden ? 0 : width >= 1100 ? 208 : 176) : 72;
         Classes.Set("narrow", narrow);
         ShellRoot.ColumnDefinitions[0].Width = new GridLength(sidebar);
-        ShellRoot.RowDefinitions[0].Height = new GridLength(apple || narrow ? 52 : 44);
+        ShellRoot.RowDefinitions[0].Height = new GridLength(narrow ? 52 : 44);
         NavigationRail.IsVisible = sidebar > 0;
         CompactNavigation.IsVisible = narrow;
         SidebarToggle.IsVisible = apple && !narrow;
@@ -52,16 +52,17 @@ public sealed partial class MainWindow {
         Grid.SetColumn(TitleBar, sidebar > 0 ? 1 : 0);
         Grid.SetColumnSpan(TitleBar, sidebar > 0 ? 1 : 2);
         TitleBar.Margin = new Thickness(apple && _sidebarHidden && !narrow ? 52 : 0, 0, apple ? 10 : 0, 0);
-        TitleBar.ColumnDefinitions[0].Width = narrow ? new GridLength(1, GridUnitType.Star) : GridLength.Auto;
-        TitleBar.ColumnDefinitions[1].Width = narrow ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
+        TitleBar.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
+        TitleBar.ColumnDefinitions[1].Width = new GridLength(0);
         TitleDocuments.IsVisible = !narrow;
         CompactDocumentPicker.IsVisible = narrow && TabHost.HasTabs;
         CompactTitle.IsVisible = narrow && !TabHost.HasTabs;
-        CommandSearchLabel.IsVisible = !narrow && width >= 1100;
-        CommandSearchKeycap.IsVisible = !narrow && width >= 1100;
-        CommandSearchButton.Width = narrow ? 44 : width < 1100 ? 36 : 240;
-        CommandSearchButton.Padding = narrow || width < 1100 ? new Thickness(10) : new Thickness(10, 0, 6, 0);
-        ThemeToggle.IsVisible = !narrow;
+        CommandSearchLabel.IsVisible = !apple && !narrow && width >= 1100;
+        CommandSearchKeycap.IsVisible = !apple && !narrow && width >= 1100;
+        CommandSearchButton.Width = narrow ? 44 : apple || width < 1100 ? 36 : 240;
+        CommandSearchButton.Padding = apple || narrow || width < 1100 ? new Thickness(10) : new Thickness(10, 0, 6, 0);
+        ThemeToggle.IsVisible = !apple && !narrow;
+        DocumentListButton.IsVisible = !narrow && TabHost.HasTabs;
         AssistantToggle.IsVisible = !narrow;
         // Open remains reachable when the tab strip gives way to the document picker.
         if (narrow) {
@@ -82,7 +83,7 @@ public sealed partial class MainWindow {
             OpenDocumentTabButton.Height = 30;
         }
         DocumentTabs.VerticalAlignment = apple ? Avalonia.Layout.VerticalAlignment.Center : Avalonia.Layout.VerticalAlignment.Bottom;
-        DocumentTabs.MaxWidth = Math.Max(140, width - sidebar - (width >= 1100 ? 390 : 180));
+        DocumentTabs.MaxWidth = double.PositiveInfinity;
         ContentSurface.CornerRadius = apple || narrow ? new CornerRadius(0) : new CornerRadius(10, 0, 0, 0);
         ContentSurface.BorderThickness = new Thickness(sidebar > 0 ? 1 : 0, 1, 0, 0);
         AssistantHost.OpenPaneLength = Math.Min(400, Math.Max(0, width - sidebar));
@@ -92,5 +93,6 @@ public sealed partial class MainWindow {
         DocumentWorkspace.ApplyResponsiveLayout(workspaceWidth);
         ConversionView.ApplyResponsiveLayout(workspaceWidth);
         DocumentHealthView.ApplyResponsiveLayout(workspaceWidth);
+        RevealSelectedDocumentTab();
     }
 }

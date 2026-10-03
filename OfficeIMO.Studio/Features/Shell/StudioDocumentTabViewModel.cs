@@ -24,10 +24,14 @@ public sealed partial class StudioDocumentTabViewModel : ObservableObject, IDisp
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DisplayTitle))]
+    [NotifyPropertyChangedFor(nameof(CloseLabel))]
     private string _title;
 
     /// <summary>The document name without the unsaved-changes marker; the tab shows a dot instead.</summary>
     public string DisplayTitle => Title.TrimEnd(' ', '*');
+
+    /// <summary>Names the document affected by the close action for assistive technology.</summary>
+    public string CloseLabel => Infrastructure.Localization.StudioLocalization.Current.Format("Tabs.CloseDocument", DisplayTitle);
 
     public bool IsDirty => Document.IsDirty;
 

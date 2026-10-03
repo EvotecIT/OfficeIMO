@@ -26,7 +26,7 @@ public sealed partial class MainWindow {
             return new NativeMenuItem(Text(name)) { Menu = menu };
         }
 
-        var close = new AsyncRelayCommand(TabHost.CloseSelectedTabAsync, () => TabHost.HasTabs);
+        var close = new AsyncRelayCommand(CloseSelectedDocumentTabAsync, () => TabHost.HasTabs);
         var reopen = new AsyncRelayCommand(TabHost.ReopenClosedTabAsync);
         var open = Item("Open", "Meta+O"); open.Header = Text("Open");
         var saveAs = Item("SaveAs", "Meta+Shift+S"); saveAs.Header = Text("SaveAs");

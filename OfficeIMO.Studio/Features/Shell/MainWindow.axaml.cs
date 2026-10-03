@@ -255,11 +255,11 @@ public sealed partial class MainWindow : Window {
             Background = chrome;
     }
 
-    private void OnDocumentTabPointerReleased(object? sender, PointerReleasedEventArgs e) {
+    private async void OnDocumentTabPointerReleased(object? sender, PointerReleasedEventArgs e) {
         if (e.InitialPressMouseButton != MouseButton.Middle ||
             sender is not Control { DataContext: StudioDocumentTabViewModel tab }) return;
         e.Handled = true;
-        tab.CloseCommand.Execute(null);
+        await CloseDocumentTabAsync(tab);
     }
 
     private async void OnWindowKeyDown(object? sender, KeyEventArgs e) {
@@ -309,7 +309,7 @@ public sealed partial class MainWindow : Window {
             return;
         }
         if (primaryModifier && e.Key == Key.W) {
-            await TabHost.CloseSelectedTabAsync();
+            await CloseSelectedDocumentTabAsync();
             e.Handled = true;
             return;
         }
