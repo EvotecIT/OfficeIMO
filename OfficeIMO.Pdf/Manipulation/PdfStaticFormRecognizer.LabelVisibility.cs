@@ -8,6 +8,7 @@ internal static partial class PdfStaticFormRecognizer {
         double pageWidth, double pageHeight,
         IReadOnlyList<PaintArea> filledAreas, IReadOnlyList<PdfPageDrawingEffectTransition> effects, IReadOnlyList<VisualRect> tableBounds, IReadOnlyList<PdfPageVisualPrimitive> primitives,
         out List<VisualRect> nativeTextBounds, ref long candidateScanWork, int maxCandidateScanWork,
+        PdfReadPage.VisualGeometryBudget geometryBudget,
         CancellationToken cancellationToken) {
         var labels = new List<Label>();
         nativeTextBounds = new List<VisualRect>();
@@ -38,8 +39,9 @@ internal static partial class PdfStaticFormRecognizer {
                         var paintedText = PdfPageClipPath.Rectangle(spanBounds.Left,
                             page.Height - spanBounds.Top, spanBounds.Right - spanBounds.Left,
                             spanBounds.Top - spanBounds.Bottom);
-                        if (clip.Width <= 0D || clip.Height <= 0D ||
-                            clip.CanProveNoPositiveAreaIntersection(paintedText)) continue;
+                        if (clip.Width <= 0D || clip.Height <= 0D) continue;
+                        if (ClipProvesSeparate(clip, paintedText, ref candidateScanWork,
+                            maxCandidateScanWork, geometryBudget)) continue;
                         fullyVisibleText = clip.IsRectangle && clip.IsExact && !clip.ContainsTextClipping &&
                             clip.X <= paintedText.X && clip.Y <= paintedText.Y &&
                             clip.X + clip.Width >= paintedText.X + paintedText.Width &&

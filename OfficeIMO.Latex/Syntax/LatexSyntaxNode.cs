@@ -110,6 +110,8 @@ public sealed class LatexSyntaxNode {
 
     internal bool HasSource(LatexSourceText source) => ReferenceEquals(GetSource(), source);
 
+    internal LatexSourceText Source => GetSource();
+
     private LatexSourceText GetSource() {
         LatexSyntaxNode? current = this;
         while (current != null) {

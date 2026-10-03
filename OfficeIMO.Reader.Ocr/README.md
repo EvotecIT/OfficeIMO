@@ -2,7 +2,7 @@
 
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Ocr)](https://www.nuget.org/packages/OfficeIMO.Reader.Ocr)
 
-`OfficeIMO.Reader.Ocr` applies any `OfficeIMO.Ocr.IOcrEngine` to image candidates emitted by modular OfficeIMO readers. It adds recognized content to `OfficeDocumentReadResult` while preserving native text, source locations, assets, diagnostics, and provider evidence.
+`OfficeIMO.Reader.Ocr` applies any `OfficeIMO.Ocr.IOcrEngine` to image candidates emitted by modular OfficeIMO readers. It adds recognized content to `OfficeDocumentReadResult` while preserving native text, source locations, assets, diagnostics, nested document results, and provider evidence. OCR processes candidates owned by the supplied result; nested documents remain intact.
 
 ## Install
 

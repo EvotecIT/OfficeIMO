@@ -1,3 +1,4 @@
+using System;
 using OfficeIMO.Drawing;
 using Xunit;
 
@@ -75,5 +76,20 @@ public class DrawingSceneTests {
         Assert.Equal(1, issue.RelatedElementIndex);
         Assert.Contains("Revenue", issue.Message);
         Assert.Contains("Target", issue.Message);
+    }
+
+    [Fact]
+    public void OfficeDrawingQualityAnalyzerBoundsCoincidentTextDiagnostics() {
+        var drawing = new OfficeDrawing(160, 80);
+        for (int index = 0; index < 100; index++)
+            drawing.AddText("Point", 12, 12, 70, 16);
+
+        Assert.Throws<NotSupportedException>(() => OfficeDrawingQualityAnalyzer.Analyze(drawing));
+    }
+
+    [Fact]
+    public void ChartLayoutRejectsSeparatorCopiedIntoEveryPointBeyondLimit() {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeChartLayout(
+            dataLabelSeparator: new string('x', OfficeChartLayout.MaximumDataLabelSeparatorCharacters + 1)));
     }
 }

@@ -28,7 +28,13 @@ internal static class LatexWriter {
         string output = document.Source.Text;
         ILatexSourceEdit[] edits = document.GetSourceEdits().Where(static edit => edit.IsModified)
             .GroupBy(static edit => new { Start = edit.EditSpan.Start.Offset, End = edit.EditSpan.End.Offset })
-            .Select(static group => group.First())
+            .Select(static group => {
+                ILatexSourceEdit first = group.First();
+                if (group.Any(edit => !string.Equals(edit.Replacement, first.Replacement, StringComparison.Ordinal))) {
+                    throw new InvalidOperationException("Modified LaTeX semantic regions have conflicting replacements for the same span.");
+                }
+                return first;
+            })
             .OrderBy(static edit => edit.EditSpan.Start.Offset)
             .ToArray();
         ValidateNonOverlapping(edits);

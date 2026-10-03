@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 namespace OfficeIMO.Drawing;
 
@@ -8,6 +9,8 @@ namespace OfficeIMO.Drawing;
 /// Performs dependency-free quality checks over shared drawing scenes before format-specific rendering.
 /// </summary>
 public static class OfficeDrawingQualityAnalyzer {
+    private const int MaximumTextOverlapIssues = 4096;
+    private const int MaximumTextOverlapComparisons = 1_000_000;
     /// <summary>
     /// Analyzes a drawing for reusable visual quality issues such as element overflow and text overlap.
     /// </summary>
@@ -55,17 +58,25 @@ public static class OfficeDrawingQualityAnalyzer {
     }
 
     private static void AddTextOverlapIssues(IReadOnlyList<(int Index, string Text, DrawingBounds Bounds)> textBoxes, double tolerance, List<OfficeDrawingQualityIssue> issues) {
-        for (int i = 0; i < textBoxes.Count; i++) {
-            for (int j = i + 1; j < textBoxes.Count; j++) {
-                if (!Overlaps(textBoxes[i].Bounds, textBoxes[j].Bounds, tolerance)) {
+        var ordered = textBoxes.OrderBy(item => item.Bounds.Left).ToArray();
+        int comparisons = 0;
+        int overlapIssues = 0;
+        for (int i = 0; i < ordered.Length; i++) {
+            for (int j = i + 1; j < ordered.Length &&
+                ordered[j].Bounds.Left < ordered[i].Bounds.Right - tolerance; j++) {
+                if (++comparisons > MaximumTextOverlapComparisons)
+                    throw new NotSupportedException("Drawing text overlap analysis exceeds its work limit.");
+                if (!Overlaps(ordered[i].Bounds, ordered[j].Bounds, tolerance)) {
                     continue;
                 }
 
                 issues.Add(new OfficeDrawingQualityIssue(
                     OfficeDrawingQualityIssueKind.TextOverlap,
-                    "Text box '" + Shorten(textBoxes[i].Text) + "' overlaps text box '" + Shorten(textBoxes[j].Text) + "'.",
-                    textBoxes[i].Index,
-                    textBoxes[j].Index));
+                    "Text box '" + Shorten(ordered[i].Text) + "' overlaps text box '" + Shorten(ordered[j].Text) + "'.",
+                    ordered[i].Index,
+                    ordered[j].Index));
+                if (++overlapIssues > MaximumTextOverlapIssues)
+                    throw new NotSupportedException("Drawing text overlap analysis exceeds its diagnostic limit.");
             }
         }
     }

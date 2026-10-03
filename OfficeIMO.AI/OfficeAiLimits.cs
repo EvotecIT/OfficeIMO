@@ -18,7 +18,7 @@ public sealed record OfficeAiLimits {
     public int MaxResponseCharacters { get; init; } = 64_000;
     /// <summary>Maximum model requests in the whole operation; no automatic repair requests are made.</summary>
     public int MaxRequests { get; init; } = 32;
-    /// <summary>Maximum hierarchical summary reduction passes sharing the operation request budget.</summary>
+    /// <summary>Maximum hierarchical combination passes for Ask, Explain and Summarize, sharing the operation request budget.</summary>
     public int MaxSynthesisPasses { get; init; } = 3;
     /// <summary>Maximum records of each result kind per batch.</summary>
     public int MaxResultItems { get; init; } = 200;

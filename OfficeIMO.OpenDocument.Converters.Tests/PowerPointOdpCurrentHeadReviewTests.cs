@@ -132,6 +132,17 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     }
 
     [Fact]
+    public void OversizedPresentationThumbnailIsReportedWithoutExpansion() {
+        using PowerPointPresentation source = CreatePowerPoint();
+        ThumbnailPart thumbnail = source.OpenXmlDocument.ThumbnailPart!;
+        using (Stream stream = thumbnail.GetStream(FileMode.Create, FileAccess.Write)) {
+            stream.Write(new byte[2 * 1024 * 1024], 0, 2 * 1024 * 1024);
+        }
+
+        AssertPowerPointLoss(source, "presentation-thumbnail");
+    }
+
+    [Fact]
     public void OdpTableTemplateAppearanceIsExplicitLoss() {
         OdpPresentation source = OdpPresentation.Create();
         source.AddSlide().AddTable(OdfRect.FromCentimeters(1, 1, 8, 3), 1, 1);
@@ -328,6 +339,41 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
             .Descendants(OdfNamespaces.Text + "a").Single();
         Assert.Equal("#Agenda_2", (string?)link.Attribute(OdfNamespaces.XLink + "href"));
         Assert.Equal("Agenda_2", target.Slides[2].Name);
+    }
+
+    [Fact]
+    public void LongSlideNameUsesBoundedAliasForInternalLinks() {
+        using PowerPointPresentation source = CreatePowerPoint();
+        PowerPointSlide destination = source.AddSlide(PowerPointSlideLayoutType.Blank);
+        destination.Name = new string('A', 2048);
+        source.Slides[0].AddTextBoxPoints("Open slide", 20, 20, 200, 40)
+            .Paragraphs[0].Runs[0].SetHyperlink(destination);
+
+        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        Assert.Equal("Slide2", conversion.Value.Slides[1].Name);
+        XElement link = conversion.Value.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Text + "a").Single();
+        Assert.Equal("#Slide2", (string?)link.Attribute(OdfNamespaces.XLink + "href"));
+        Assert.Contains(conversion.Report.ForFeature("slide-names"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Approximated);
+    }
+
+    [Fact]
+    public void ReusedParagraphStyleStillReportsEachUnmappedLayout() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdfStyle style = source.Styles.CreateNamed("Tabbed", OdfStyleFamily.Paragraph);
+        style.Element.Add(new XElement(OdfNamespaces.Style + "paragraph-properties",
+            new XElement(OdfNamespaces.Style + "tab-stops",
+                new XElement(OdfNamespaces.Style + "tab-stop"))));
+        source.Package.MarkXmlDirty("styles.xml");
+        OdpTextBox box = source.AddSlide().AddTextBox(OdfRect.FromCentimeters(1, 1, 4, 2));
+        box.AddParagraph("One").StyleName = style.Name;
+        box.AddParagraph("Two").StyleName = style.Name;
+
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        Assert.Contains(conversion.Report.ForFeature("paragraph-layout"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 2);
     }
 
     [Fact]

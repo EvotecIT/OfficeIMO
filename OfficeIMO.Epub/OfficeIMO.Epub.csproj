@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>EPUB extraction primitives for modular OfficeIMO ingestion pipelines.</Description>
+    <Description>Bounded EPUB 2/3 reading, authoring, editing and package preservation for OfficeIMO.</Description>
     <AssemblyName>OfficeIMO.Epub</AssemblyName>
     <AssemblyTitle>OfficeIMO.Epub</AssemblyTitle>
     <VersionPrefix>3.4.4</VersionPrefix>
@@ -13,7 +13,7 @@
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Epub</PackageId>
-    <PackageTags>epub;ingestion;reader;officeimo</PackageTags>
+    <PackageTags>epub;ingestion;reader;writer;authoring;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>

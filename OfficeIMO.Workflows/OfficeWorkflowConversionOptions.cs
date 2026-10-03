@@ -62,7 +62,12 @@ public sealed class OfficeWorkflowConversionOptions {
     public OfficeWorkflowConversionOptions ForRoute(string routeId) {
         OfficeWorkflowRoute route = OfficeWorkflowCatalog.FindExecutable(routeId)
             ?? throw new ArgumentException("Choose an executable conversion route.", nameof(routeId));
-        routeId = route.Id;
+        return ForRoute(route);
+    }
+
+    /// <summary>Selects settings using the executable route captured from the configured runner.</summary>
+    internal OfficeWorkflowConversionOptions ForRoute(OfficeWorkflowRoute route) {
+        string routeId = route.Id;
         var copy = Clone();
         if (routeId is not "docx-pdf" and not "xlsx-pdf" and not "pptx-pdf") copy.SourcePassword = null;
         if (routeId is not "doc-pdf" and not "docx-pdf") copy.Word = null;

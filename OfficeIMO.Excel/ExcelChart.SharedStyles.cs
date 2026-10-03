@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -70,17 +71,17 @@ namespace OfficeIMO.Excel {
                 existing.Remove();
                 changed = true;
             }
+            var trailing = legend.ChildElements.Where(child => child is not C.LegendPosition).ToArray();
+            foreach (OpenXmlElement child in trailing) child.Remove();
             bool radial = ChartType == ExcelChartType.Pie || ChartType == ExcelChartType.Doughnut;
             int entryCount = radial ? (seriesStyles.Count == 0 ? 0 : seriesStyles[0].Values.Count) : seriesLegendVisibility.Count;
             for (int index = 0; index < entryCount; index++) {
                 if (radial ? !hasHiddenSeries : seriesLegendVisibility[index]) continue;
                 var entry = new C.LegendEntry(new C.Index { Val = (uint)index }, new C.Delete { Val = true });
-                OpenXmlElement? insertBefore = legend.GetFirstChild<C.Layout>();
-                insertBefore ??= legend.GetFirstChild<C.Overlay>();
-                if (insertBefore != null) legend.InsertBefore(entry, insertBefore);
-                else legend.Append(entry);
+                legend.Append(entry);
                 changed = true;
             }
+            foreach (OpenXmlElement child in trailing) legend.Append(child);
             return changed;
         }
 

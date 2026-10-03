@@ -307,13 +307,24 @@ public static partial class HtmlResourcePipeline {
             return;
         }
 
+        HtmlResourceKind kind = GetLinkResourceKind(rel, element.GetAttribute("as"));
+        AddAttribute(manifest, kind, element, "href", baseUri, options);
+        if (isPreload && kind == HtmlResourceKind.Image) {
+            AddSrcSet(manifest, HtmlResourceKind.Image, element, "imagesrcset", baseUri, options);
+        }
+    }
+
+    /// <summary>Classifies an HTML link independently of the media context selecting it for rendering.</summary>
+    internal static HtmlResourceKind GetLinkResourceKind(string? rel, string? preloadAs) {
+        HashSet<string> relTokens = GetRelTokens(rel ?? string.Empty);
+        bool isStylesheet = relTokens.Contains("stylesheet"), isPreload = relTokens.Contains("preload");
         HtmlResourceKind kind;
         if (isStylesheet) {
             kind = HtmlResourceKind.Stylesheet;
         } else if (relTokens.Contains("modulepreload")) {
             kind = HtmlResourceKind.Script;
         } else if (isPreload) {
-            kind = GetPreloadKind(element.GetAttribute("as"));
+            kind = GetPreloadKind(preloadAs);
             if (kind == HtmlResourceKind.Stylesheet) kind = HtmlResourceKind.Other;
         } else if (relTokens.Contains("font")) {
             kind = HtmlResourceKind.Font;
@@ -323,10 +334,7 @@ public static partial class HtmlResourcePipeline {
             kind = HtmlResourceKind.Hyperlink;
         }
 
-        AddAttribute(manifest, kind, element, "href", baseUri, options);
-        if (isPreload && kind == HtmlResourceKind.Image) {
-            AddSrcSet(manifest, HtmlResourceKind.Image, element, "imagesrcset", baseUri, options);
-        }
+        return kind;
     }
 
     private static bool IsSelectedAlternateStylesheet(IElement link, HtmlResourcePipelineOptions options,

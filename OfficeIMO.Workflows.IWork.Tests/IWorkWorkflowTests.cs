@@ -6,7 +6,56 @@ using Xunit;
 
 namespace OfficeIMO.Workflows.IWork.Tests;
 
-public sealed class IWorkWorkflowTests {
+public sealed partial class IWorkWorkflowTests {
+    [Theory]
+    [InlineData("pages", "pages-docx", "docx", false)]
+    [InlineData("numbers", "numbers-xlsx", "xlsx", false)]
+    [InlineData("key", "keynote-pptx", "pptx", false)]
+    [InlineData("numbers", "numbers-xlsx", "xlsx", true)]
+    public async Task Ordinary_batches_use_registered_routes_and_the_runners_captured_acceptance(string source, string route, string target, bool explicitRoute) {
+        using var files = new Files(source, target);
+        var runner = IWorkWorkflow.CreateRunner(conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        var outcomes = new List<OfficeConversionBatchItemResult>();
+        var request = new OfficeConversionBatchRequest {
+            InputPaths = [files.Input], OutputDirectory = Path.Combine(files.Root, "batch"), TargetExtension = "." + target,
+            ConversionRouteId = explicitRoute ? route.ToUpperInvariant() : null,
+            ConversionOptions = new() { PlainText = new OfficeIMO.Pdf.PdfPlainTextOptions { TabSize = 4 } }
+        };
+        var result = await runner.RunBatchAsync(request, new BatchProgress(outcomes));
+        Assert.Equal(1, result.Completed);
+        Assert.Equal(0, result.Skipped); Assert.Equal(0, result.Failed);
+        var item = Assert.Single(outcomes);
+        Assert.True(File.Exists(item.OutputPath), item.Summary);
+        Assert.Contains(item.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Registered_batches_cannot_reuse_unfingerprinted_checkpoint_configuration(bool explicitRoute) {
+        using var files = new Files("numbers", "xlsx");
+        var runner = IWorkWorkflow.CreateRunner(conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        var request = new OfficeConversionBatchRequest {
+            InputPaths = [files.Input], OutputDirectory = Path.Combine(files.Root, "batch"), TargetExtension = ".xlsx",
+            CheckpointDirectory = Path.Combine(files.Root, "state"), ConversionRouteId = explicitRoute ? "numbers-xlsx" : null
+        };
+        if (explicitRoute) {
+            var error = await Assert.ThrowsAsync<NotSupportedException>(() => runner.RunBatchAsync(request));
+            Assert.Contains("without checkpoints", error.Message);
+            Assert.False(Directory.Exists(request.OutputDirectory));
+        } else {
+            var outcomes = new List<OfficeConversionBatchItemResult>();
+            var result = await runner.RunBatchAsync(request, new BatchProgress(outcomes));
+            Assert.Equal(1, result.Failed); Assert.Equal(0, result.Completed); Assert.Equal(0, result.Skipped);
+            Assert.Contains("without checkpoints", Assert.Single(outcomes).Summary);
+            Assert.Empty(Directory.GetFiles(request.OutputDirectory));
+        }
+    }
+
+    private sealed class BatchProgress(List<OfficeConversionBatchItemResult> items) : IProgress<OfficeConversionBatchItemResult> {
+        public void Report(OfficeConversionBatchItemResult value) { lock (items) items.Add(value); }
+    }
+
     [Theory]
     [InlineData("pages", "pages-docx", "docx")]
     [InlineData("numbers", "numbers-xlsx", "xlsx")]
@@ -69,13 +118,7 @@ public sealed class IWorkWorkflowTests {
         byte[] storage = Join(B(3, System.Text.Encoding.UTF8.GetBytes("Value")),
             B(8, B(1, Join(V(1, 0), R(2, 3)))));
         byte[] records = Join(A(1, 10000, R(4, 2)), A(2, 2001, storage), A(3, 2023, []));
-        byte[] literal = records.Length <= 60 ? [(byte)((records.Length - 1) << 2)]
-            : [(byte)(60 << 2), (byte)(records.Length - 1)];
-        byte[] block = Join(U((ulong)records.Length), literal, records);
-        using (var zip = new System.IO.Compression.ZipArchive(File.Create(files.Input), System.IO.Compression.ZipArchiveMode.Create)) {
-            using var entry = zip.CreateEntry("Index/Document.iwa").Open();
-            entry.Write(Join([0, (byte)block.Length, (byte)(block.Length >> 8), 0], block));
-        }
+        WritePackage(files.Input, records);
         var runner = IWorkWorkflow.CreateRunner(conversionOptions: new IWorkConversionOptions {
             AllowPartialEditableReconstruction = true
         });
@@ -92,19 +135,6 @@ public sealed class IWorkWorkflowTests {
         using var reopened = OfficeIMO.Word.WordDocument.Load(files.Output);
         Assert.Contains(reopened.Paragraphs, paragraph => paragraph.Text == "Value");
 
-        static byte[] Join(params byte[][] values) => values.SelectMany(value => value).ToArray();
-        static byte[] U(ulong value) {
-            var bytes = new List<byte>();
-            do { byte next = (byte)(value & 127); value >>= 7; bytes.Add(value == 0 ? next : (byte)(next | 128)); } while (value != 0);
-            return bytes.ToArray();
-        }
-        static byte[] V(int field, ulong value) => Join(U((ulong)(field << 3)), U(value));
-        static byte[] B(int field, byte[] value) => Join(U((ulong)((field << 3) | 2)), U((ulong)value.Length), value);
-        static byte[] R(int field, ulong target) => B(field, V(1, target));
-        static byte[] A(ulong id, ulong type, byte[] value) {
-            byte[] info = Join(V(1, id), B(2, Join(V(1, type), V(3, (ulong)value.Length))));
-            return Join(U((ulong)info.Length), info, value);
-        }
     }
 
     [Fact]

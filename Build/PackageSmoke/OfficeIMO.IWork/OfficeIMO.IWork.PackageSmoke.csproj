@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <EnableOfficeIMOIWorkPackageSmoke Condition="'$(EnableOfficeIMOIWorkPackageSmoke)' == ''">false</EnableOfficeIMOIWorkPackageSmoke>
+    <OfficeIMOIWorkPackageVersion Condition="'$(OfficeIMOIWorkPackageVersion)' == ''">3.4.4</OfficeIMOIWorkPackageVersion>
+    <IsPackable>false</IsPackable>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(EnableOfficeIMOIWorkPackageSmoke)' == 'true'">
+    <PackageReference Include="OfficeIMO.Reader.IWork" Version="[$(OfficeIMOIWorkPackageVersion)]" />
+    <PackageReference Include="OfficeIMO.Workflows.IWork" Version="[$(OfficeIMOIWorkPackageVersion)]" />
+    <None Include="../../../OfficeIMO.TestAssets/Documents/IWorkCorpus/nim-iwork/simple.*"
+          Link="Fixtures/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="RequirePackageSmokeOptIn" BeforeTargets="CoreCompile"
+          Condition="'$(EnableOfficeIMOIWorkPackageSmoke)' != 'true'">
+    <Error Text="Set EnableOfficeIMOIWorkPackageSmoke=true and restore from a feed containing the packed iWork, Reader and workflow package families." />
+  </Target>
+</Project>

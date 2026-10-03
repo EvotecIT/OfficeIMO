@@ -111,6 +111,8 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal("center", reopened.Sheets[0].GetCellStyle(1, 2).VerticalAlignment);
             Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED"
                 && diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission);
+            Assert.True(result.Report.IsPartialEditableReconstruction);
+            Assert.Throws<InvalidOperationException>(() => result.Report.RequireCompleteEditableReconstruction());
         } else {
             using var result = source.ToPowerPointPresentationResult(policy);
             Assert.False(result.IsVisualFallback);
@@ -132,6 +134,25 @@ public sealed partial class IWorkBoundaryTests {
         var read = builder.Build().ReadDocument(package, "layout." + (kind == IWorkDocumentKind.Pages ? "pages" : kind == IWorkDocumentKind.Numbers ? "numbers" : "key"));
         Assert.Equal(new[] { "42", string.Empty }, Assert.Single(Assert.Single(read.Tables).Rows));
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "IWORK_READER_TABLE_STYLE_PARTIAL");
+    }
+
+    [Theory]
+    [InlineData(IWorkConversionMode.Auto)]
+    [InlineData(IWorkConversionMode.EditableOnly)]
+    public void Numbers_destination_padding_omission_requires_explicit_partial_policy(IWorkConversionMode mode) {
+        using var package = CellFillPackage(new[] { CellLayoutStyle(30, BytesField(9, CellPadding(4))) },
+            kind: IWorkDocumentKind.Numbers);
+        var source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers);
+        Assert.True(source.ReadNumbers().HasEditableContent);
+        var policy = new IWorkConversionOptions { Mode = mode };
+        if (mode == IWorkConversionMode.EditableOnly) {
+            Assert.Contains("padding", Assert.Throws<InvalidDataException>(() => source.ToExcelDocumentResult(policy)).Message,
+                StringComparison.OrdinalIgnoreCase);
+        } else {
+            using var result = source.ToExcelDocumentResult(policy);
+            Assert.True(result.IsVisualFallback);
+            Assert.Throws<InvalidOperationException>(() => result.Report.RequireCompleteEditableReconstruction());
+        }
     }
 
     [Theory]

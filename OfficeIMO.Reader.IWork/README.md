@@ -27,7 +27,11 @@ foreach (ReaderTable table in document.Tables) {
 }
 ```
 
-For a stream, pass its source name: `reader.ReadDocument(stream, "report.numbers")`. The extension identifies the expected iWork kind. `OfficeIMO.Reader.All` also registers this handler. Content detection recognizes direct IWA indexes and inspects up to 16 MiB of a nested `Index.zip` to identify renamed packages. Keep a `.pages`, `.numbers`, or `.key` source name for larger nested indexes.
+For a stream, pass its source name: `reader.ReadDocument(stream, "report.numbers")`. The extension identifies the expected iWork kind. `OfficeIMO.Reader.All` also registers this handler. Content detection recognizes direct IWA indexes and inspects up to 16 MiB of a nested `Index.zip` to identify renamed packages. Both `Document.iwa` and `Index/Document.iwa` are recognized inside that archive. Keep a `.pages`, `.numbers`, or `.key` source name for larger nested indexes.
+
+File and stream reads extract content from one bounded snapshot. When `ComputeHashes` is enabled, the result and its chunks use that snapshot's SHA-256 and byte length, including when a source file changes during ingestion. Seekable streams are read from the beginning and restored to their original position; caller-owned streams remain open. Directory bundles retain the separate package-content identity described below.
+
+Keynote logical page numbers and chunk slide citations retain source slide-tree positions. Missing, malformed, duplicate, or skipped earlier references do not renumber recovered slides; source diagnostics remain available.
 
 Pages content is projected as text, drawable tables and images, plus headers and footers. Qualified body attachments retain their text/table/image order. Inline images have anchor blocks even without alternative text, and their assets reference those blocks. Attachment-run links reference the emitted image or table block. Mixed text/object paragraphs are split into ordered blocks with a layout diagnostic. Numbers sheets become logical pages with tables and text boxes in their shared source order. Keynote slides become logical pages with text boxes, tables, images, and presenter notes. Rich text becomes Markdown and linked runs become link entries. Formula cells expose their cached display values in Reader tables; use `OfficeIMO.IWork` directly when formula syntax and typed cells are needed.
 

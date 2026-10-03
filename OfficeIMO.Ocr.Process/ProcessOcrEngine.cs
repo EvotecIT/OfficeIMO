@@ -22,6 +22,9 @@ public sealed class ProcessOcrEngine : IOcrEngine {
         if (request == null) throw new ArgumentNullException(nameof(request));
         if (request.Payload == null || request.Payload.Length == 0) throw new ArgumentException("OCR request payload cannot be empty.", nameof(request));
         if (request.Payload.LongLength > _options.MaxInputBytes) throw new IOException("OCR request payload exceeds MaxInputBytes (" + _options.MaxInputBytes + ").");
+        if (!Enum.IsDefined(typeof(OcrOperation), request.Operation)) throw new ArgumentOutOfRangeException(nameof(request.Operation));
+        if (request.Operation == OcrOperation.DetectOrientation && !_options.Capabilities.SupportsOrientationDetection)
+            throw new NotSupportedException("The configured OCR process does not support orientation detection.");
         cancellationToken.ThrowIfCancellationRequested();
         string temporaryRoot = Path.GetFullPath(_options.TemporaryDirectory ?? Path.GetTempPath());
         string requestDirectory = OcrTemporaryStorage.CreateRequestDirectory(temporaryRoot, "officeimo-ocr-");
@@ -31,6 +34,7 @@ public sealed class ProcessOcrEngine : IOcrEngine {
             string outputPath = Path.Combine(requestDirectory, "result.json");
             OcrTemporaryStorage.WriteAllBytes(inputPath, request.Payload);
             var processRequest = new ProcessOcrRequest {
+                Operation = request.Operation,
                 CandidateId = request.CandidateId,
                 CandidateKind = request.CandidateKind,
                 MediaType = request.MediaType,
@@ -163,15 +167,7 @@ public sealed class ProcessOcrEngine : IOcrEngine {
                 MaxInputBytes = options.MaxInputBytes,
                 MaxProcessOutputCharacters = options.MaxProcessOutputCharacters,
                 KeepTemporaryFiles = options.KeepTemporaryFiles,
-                Capabilities = new OcrEngineCapabilities {
-                    SupportedMediaTypes = (capabilities.SupportedMediaTypes ?? Array.Empty<string>()).ToArray(),
-                    SupportedLanguages = (capabilities.SupportedLanguages ?? Array.Empty<string>()).ToArray(),
-                    SupportsLineSpans = capabilities.SupportsLineSpans,
-                    SupportsWordSpans = capabilities.SupportsWordSpans,
-                    SupportsCharacterSpans = capabilities.SupportsCharacterSpans,
-                    SupportsConfidence = capabilities.SupportsConfidence,
-                    SupportsConcurrentRequests = capabilities.SupportsConcurrentRequests
-                }
+                Capabilities = capabilities.Clone()
             };
         }
     }

@@ -1893,6 +1893,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelCharts_DuplicatePrimaryAxisReferenceDoesNotEscapeSnapshot() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.DuplicatePrimaryAxisReference.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorksheet("Summary");
+                var data = new ExcelChartData(new[] { "Q1", "Q2" }, new[] {
+                    new ExcelChartSeries("Sales", new[] { 10d, 20d }, ExcelChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
+                    new ExcelChartSeries("Trend", new[] { 12d, 18d }, ExcelChartType.Line, OfficeChartAxisGroup.Secondary)
+                });
+                sheet.AddChart(data, row: 1, column: 6, widthPixels: 480, heightPixels: 320,
+                    type: ExcelChartType.ColumnClustered, title: "Combo");
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                ChartPart chartPart = GetWorksheetPartWithCharts(spreadsheet).DrawingsPart!.ChartParts.First();
+                C.PlotArea plot = chartPart.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
+                C.BarChart primary = plot.GetFirstChild<C.BarChart>()!;
+                uint primaryValueId = plot.Elements<C.ValueAxis>().Single(axis =>
+                    axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Left).AxisId!.Val!.Value;
+                primary.Append(new C.AxisId { Val = primaryValueId });
+                chartPart.ChartSpace.Save();
+            }
+
+            using var loaded = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+            ExcelChart chart = Assert.Single(loaded.Sheets.Single(sheet => sheet.Name == "Summary").Charts);
+            Assert.Null(Record.Exception(() => chart.TryGetSnapshot(out _)));
+        }
+
+        [Fact]
         public void Test_ExcelCharts_SeriesDataLabels_AndSecondaryAxisFormat() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SeriesLabels.xlsx");
 

@@ -192,6 +192,39 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Keeps_Even_Pages_Blank_When_Even_References_Are_Absent() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeMissingEvenReferences.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeMissingEvenReferences.pdf");
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddHeadersAndFooters();
+            document.DifferentOddAndEvenPages = true;
+            RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("Odd only header");
+            RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Odd only footer");
+            for (int i = 0; i < 240; i++) document.AddParagraph($"Body paragraph {i}");
+            document.Save();
+        }
+        using (WordprocessingDocument package = WordprocessingDocument.Open(docPath, true)) {
+            foreach (SectionProperties section in package.MainDocumentPart!.Document.Body!.Descendants<SectionProperties>()) {
+                foreach (HeaderReference reference in section.Elements<HeaderReference>().Where(reference => reference.Type?.Value == HeaderFooterValues.Even).ToList())
+                    reference.Remove();
+                foreach (FooterReference reference in section.Elements<FooterReference>().Where(reference => reference.Type?.Value == HeaderFooterValues.Even).ToList())
+                    reference.Remove();
+            }
+            package.Save();
+        }
+        using (WordDocument document = WordDocument.Load(docPath)) {
+            Assert.False(document.Sections[0].DifferentOddAndEvenPages);
+            document.SaveAsPdf(pdfPath);
+        }
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.True(pdf.NumberOfPages >= 3);
+        Assert.Contains("Odd only header", pdf.GetPage(1).Text);
+        Assert.DoesNotContain("Odd only header", pdf.GetPage(2).Text);
+        Assert.DoesNotContain("Odd only footer", pdf.GetPage(2).Text);
+        Assert.Contains("Odd only header", pdf.GetPage(3).Text);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Configured_Header_And_Footer_Offsets() {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();

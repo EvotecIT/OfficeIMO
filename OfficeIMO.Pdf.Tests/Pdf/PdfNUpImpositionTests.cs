@@ -214,6 +214,33 @@ public sealed class PdfNUpImpositionTests {
     }
 
     [Fact]
+    public void SharedNullMetadataReferenceTailDoesNotRequireFeatureLossApproval() {
+        const int firstReference = 6;
+        const int lastReference = 255;
+        string entries = string.Join(" ", Enumerable.Range(0, 80)
+            .Select(index => "/Custom" + index + " " + (firstReference + index) + " 0 R"));
+        var objects = new List<string> {
+            "%PDF-1.7", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", "", "endstream", "endobj",
+            "5 0 obj", "<< " + entries + " >>", "endobj"
+        };
+        for (int number = firstReference; number <= lastReference; number++) {
+            objects.Add(number + " 0 obj");
+            objects.Add(number == lastReference ? "null" : (number + 1) + " 0 R");
+            objects.Add("endobj");
+        }
+        objects.AddRange(new[] { "trailer", "<< /Root 1 0 R /Info 5 0 R /Size 256 >>", "%%EOF", "" });
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", objects));
+
+        PdfImpositionResult result = PdfDocument.Load(source).Pages.ImposeNUp(
+            new PdfNUpOptions(new PageSize(600, 400), 2, 1));
+
+        Assert.Equal(PdfImpositionSourceFeatureLoss.None, result.SourceFeatureLoss);
+    }
+
+    [Fact]
     public void RepeatedPageContentCannotExceedAggregateImpositionBudget() {
         string content = "q\n%" + new string('x', 8192) + "\nQ\n";
         byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {

@@ -52,10 +52,19 @@ public sealed class ProvenanceWorkbenchTests {
                 Assert.NotEmpty(workspace.Changes);
                 Assert.Contains("‮", await File.ReadAllTextAsync(workspace.OutputPath));
                 await workspace.ExportReportCommand.ExecuteAsync(null);
+                var exported = services.Jobs.Entries[0];
+                Assert.True(exported.IsSucceeded, exported.Summary);
+                Assert.Equal(workspace.ReportPath, exported.OutputPath);
                 using var report = JsonDocument.Parse(await File.ReadAllTextAsync(workspace.ReportPath));
                 Assert.Equal("officeimo.provenance.result.v2", report.RootElement.GetProperty("schema").GetString());
                 Assert.Equal(workspace.OutputHash, report.RootElement.GetProperty("outputSha256").GetString());
                 copyButton.BringIntoView(); window.UpdateLayout(); Capture(window, "provenance-copy-" + width);
+                var jobs = new StudioJobsView { DataContext = model.Jobs };
+                window.Content = jobs; window.UpdateLayout();
+                Assert.Contains(jobs.GetVisualDescendants().OfType<Button>(), button =>
+                    ReferenceEquals(button.Command, model.Jobs.OpenOutputCommand) &&
+                    ReferenceEquals(button.CommandParameter, exported) && button.IsEnabled);
+                Capture(window, "provenance-jobs-" + width);
                 workspace.InputPath = Path.Combine(services.Paths.Root, "other.html");
                 Assert.False(workspace.CanCreateCopy); Assert.False(workspace.CanExportReport);
             } finally { window.Close(); }

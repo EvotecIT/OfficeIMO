@@ -70,7 +70,10 @@ public sealed partial class InvoiceWorkbenchViewModel : ObservableObject, IDispo
     public string Title => T("Title", "Invoices");
     public string Description => T("Description", "Inspect electronic invoice data, validate exact XML, create another format, or edit selected source headers.");
     public string EditingHint => T("EditingHint", "Blank fields retain their current values. Replacements require an existing unique field. Signed XML is protected; related references change only when supplied separately.");
-    public string StandardsHint => T("StandardsHint", "Standards checks require the pinned rule files and a Java/Saxon runtime. Requested checks must pass before output is created.");
+    public bool IsStandardsAvailable => StudioDistributionPolicy.ExternalToolsAllowed;
+    public string StandardsHint => IsStandardsAvailable
+        ? T("StandardsHint", "Standards checks require the pinned rule files and a Java/Saxon runtime. Requested checks must pass before output is created.")
+        : T("StandardsUnavailable", "External Java/Saxon standards checks are unavailable in the Mac App Store edition. XML inspection, model checks, conversion and PDF creation remain available.");
     public string InputFileName => string.IsNullOrWhiteSpace(InputPath) ? T("NoInput", "No invoice selected") : _storage?.Describe(InputPath).Name ?? OfficeStorageIdentity.GetFileName(InputPath);
     public bool IsRendering => SelectedOperation.Value is OfficeInvoiceWorkflowOperation.RenderPresentationPdf or OfficeInvoiceWorkflowOperation.RenderHybridPdf;
     public bool IsEditing => SelectedOperation.Value == OfficeInvoiceWorkflowOperation.EditSource;

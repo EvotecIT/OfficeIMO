@@ -1,7 +1,6 @@
 # OfficeIMO.Latex support matrix
 
 - Status: bounded-profile implementation
-- Updated: 2026-08-20
 - Profiles: `LatexDocumentProfile.OfficeIMO`, `LatexDocumentProfile.PreserveOnly`
 - Runtime dependencies: BCL and existing OfficeIMO project references only
 
@@ -22,11 +21,11 @@
 | Decoded character source and locations | Semantic | Complete source string with offset/line/column spans. |
 | TeX-aware tokens | Semantic | Control words, control symbols, braces, brackets, comments, whitespace/line endings, math shifts, alignment tabs, parameter markers, superscript/subscript, and other special tokens. |
 | Lossless nested syntax | Semantic | Commands with arguments, groups, environments, math, comments, and trivia cover the source exactly. |
-| Profile-aware argument binding | Semantic | Known commands and environment starts use bounded signatures, including starred headings and optional `tabular` placement. Literal square brackets and standalone brace groups are not claimed by unrelated zero-argument commands. Unknown commands retain a source-preserving fallback binding policy. |
-| Preserve writer | Semantic | Unchanged input is returned character-for-character. Non-overlapping semantic edits replace only their source spans. |
+| Profile-aware argument binding | Semantic | Known commands and environment starts use bounded signatures, including starred headings and optional `tabular` placement. Literal square brackets and standalone brace groups are not claimed by unrelated zero-argument commands. Unknown commands retain a source-preserving fallback binding policy. Missing or unbraced required arguments are diagnosed and remain visible during conversion. |
+| Preserve writer | Semantic | Unchanged input is returned character-for-character. Non-overlapping semantic edits replace only their source spans. Conflicting edits to identical or overlapping spans are rejected; identical replacements to the same span are deduplicated. |
 | Canonical writer | Semantic | Normalizes line endings when requested; canonical source generation is owned by the Markdown adapter. |
 | Recovery | Semantic | Unclosed groups, unexpected closing braces, unclosed math, unclosed environments, and mismatched `\end` names are diagnosed without discarding source. |
-| Budgets | Semantic | Input length, token count, nesting, macro-expansion depth, and macro-output limits are configurable. |
+| Budgets | Semantic | Encoded input bytes, decoded characters, token count, nesting, macro input/output length, aggregate expansion tokens, and expansion depth are bounded. Character limits apply before line-map allocation; substitution checks output limits before appending. Options and opaque environment names are snapshotted. |
 | Original encoding and BOM | Unsupported | The engine's fidelity contract is decoded character source, not byte-for-byte file encoding. |
 | TeX execution | Unsupported | Parsing never invokes TeX, a shell, an external process, or package code. |
 | `PreserveOnly` profile | Semantic structure only | Tokens, syntax, commands, environments, and math remain available, while OfficeIMO headings, paragraphs, lists, figures, tables, references, theorems, and macro semantics are deliberately not bound. |
@@ -40,15 +39,15 @@
 | Package declarations | Source-backed commands | Preserved/diagnosed | A declaration never loads or activates package code. |
 | Title, author, and date | Semantic | Converted | Common front-matter commands are typed. `\maketitle` is structural and not emitted as visible paragraph text. |
 | Parts, chapters, sections, and subsections | Semantic | Converted | Common starred/unstarred headings map to the closest target level. |
-| Paragraphs | Semantic | Converted | Source-backed paragraph spans outside structural environments. |
+| Paragraphs | Semantic | Converted | Source-backed paragraph spans within the active document body and outside structural environments; inert source after `\end{document}` remains native source. |
 | Common inline formatting | Semantic command binding | Converted | Common bold, emphasis, monospace, underline, URL/link, and line-break commands map through the inline adapter. Unknown commands remain visible or diagnosed. |
-| `itemize`, `enumerate`, `description` | Semantic | Converted | Items and optional description labels are typed; item content is editable. |
-| Figures and `includegraphics` | Semantic | Converted | Target, option text, caption, and label are retained. No resource is loaded by the native engine. |
-| `table` and `tabular` | Semantic | Converted | Alignment preamble, rows, cells, captions, and labels are carried where representable. A headerless table receives a visible blank Markdown header and a simplification diagnostic. Reverse conversion generates logical column counts and valid common `multicolumn`/`multirow` nesting. Unrepresented container source remains visible and diagnosed. |
-| Labels and references | Semantic | Converted | `label`, `ref`, `pageref`, `eqref`, and common hyperlink forms are typed where recognized. No counter engine computes page numbers. |
+| `itemize`, `enumerate`, `description` | Semantic | Converted | Items and optional labels are typed and editable. Custom unordered or ordered labels remain visible in item text and report the target marker simplification; description labels become definition terms. |
+| Figures and `includegraphics` | Semantic | Converted | Native target, option text, caption, and label are retained. Conversion decodes literal paths and reports unevaluated graphics options. No resource is loaded by the native engine. |
+| `table` and `tabular` | Semantic | Converted | Alignment preamble, rows, empty cell positions, captions, and labels are carried where representable. A headerless table receives a visible blank Markdown header and a simplification diagnostic. Reverse conversion generates logical column counts and valid common `multicolumn`/`multirow` nesting. Unrepresented container source remains visible and diagnosed. |
+| Labels and references | Semantic | Converted | `label`, `ref`, `pageref`, `eqref`, and common hyperlink forms are typed where recognized. Conversion reports counter, page-number, prefix, and equation-format simplifications; no counter engine computes page numbers. |
 | Citations | Semantic | Converted with diagnostics | Common `cite`, `citep`, `citet`, and `nocite` keys are typed. Bibliography formatting is not executed. |
 | Theorem-like environments | Semantic | Converted | Theorem, lemma, proposition, corollary, definition, remark, and proof environments map to named callouts. Reverse conversion emits the required `amsthm` package and deterministic `newtheorem` declarations for generated non-proof environments. |
-| Verbatim and quotation environments | Source-preserved/semantic conversion | Converted | Verbatim is carried as code; quotes use target quote semantics. Package variants may fall back. |
+| Verbatim and quotation environments | Source-preserved/semantic conversion | Converted | Verbatim is carried as code; quotes use target quote semantics. Configured opaque variants become code. Line comments and comment environments are suppressed in projected text, including quotations. Percent comments consume their line ending while a following blank line still ends the paragraph. |
 | Unknown commands and environments | Source-preserved | Visible fallback with diagnostics | They remain in the lossless tree and never disappear merely because the profile does not understand them. |
 
 ## Mathematics
@@ -68,8 +67,8 @@ Macro expansion is opt-in through `LatexMacroExpansion.SafeSimpleDefinitions`. T
 
 | Feature | Status | Current contract |
 |---|---|---|
-| `newcommand`, `renewcommand`, `providecommand` metadata | Semantic | Simple command name, parameter count, and replacement body are retained. |
-| Argument-only expansion | Semantic, opt-in | A deliberately small subset substitutes `#1`-`#9` with depth, cycle, and output limits. |
+| `newcommand`, `renewcommand`, `providecommand` metadata | Semantic | Simple command name, parameter count, and replacement body are retained. Commands and environments inside definition bodies do not contribute active document semantics. |
+| Argument-only expansion | Semantic, opt-in | A deliberately small subset substitutes `#1`-`#9` with depth, cycle, and output limits. Current edits and optional defaults are rebound before document expansion; braces shield brackets inside optional arguments. |
 | Replacement commands | Allow-listed | A replacement may contain parameters, plain source, another transitively safe document-local simple macro, or an explicitly allowed formatting/reference command. Every other control word—including definition, package, file, graphics, dynamic-control-sequence, and category-code primitives—is rejected for expansion. |
 | `def`, `edef`, package macros, conditionals, counters | Source-preserved | No general TeX expansion or execution. |
 | Document-controlled code/process execution | Unsupported | There is no shell escape, process invocation, package download, or assembly loading. |
@@ -81,9 +80,13 @@ The expander only performs bounded string substitution. Its allow-list does not 
 | Surface | Status | Contract |
 |---|---|---|
 | `OfficeIMO.Latex` | Implemented | Native BCL-only tokenizer, parser, semantic profile, safe macro subset, and writer. |
-| `OfficeIMO.Latex.Markdown` | Implemented both directions | Forward conversion reports simplification/fallbacks and retains residual container source. Reverse conversion emits escaped arguments, deterministic TeX-safe labels, declarations required by generated theorem environments, canonical bounded-profile LaTeX, and reparses it losslessly. |
-| `OfficeIMO.Reader.Latex` | Implemented | Modular `.tex` path/stream handler with heading hierarchy, ordered whole-document projection, source spans, typed unordered/ordered/description lists, figures with captions, tables, math diagnostics, limits, and a visible fallback for unrecognized plain TeX. |
+| `OfficeIMO.Latex.Markdown` | Implemented both directions | Forward conversion reports simplification/fallbacks and retains residual container source. Reverse conversion emits escaped arguments, collision-free deterministic TeX-safe labels and bracket-safe optional arguments, declarations required by generated theorem environments, canonical bounded-profile LaTeX, and reparses it losslessly. |
+| `OfficeIMO.Reader.Latex` | Implemented | Modular `.tex` path/stream handler with heading hierarchy, ordered whole-document projection, source spans, typed unordered/ordered/description lists, figures with captions, tables, math diagnostics, limits, and a diagnosed visible fallback for unrecognized plain TeX. Reader uses the canonical Markdown block projection for both text and Markdown, honors native byte limits and opaque environment names, and passes cancellation through loading and parsing. |
 | Word, HTML, and PDF | Available through Markdown | Semantic OfficeIMO output, not TeX or package-renderer parity. |
+
+Conversion uses the current edited document source. Native source spans retain the original parse offsets; conversion and Reader spans refer to the rebound source after edits. The `PreserveOnly` profile produces a diagnosed source fallback during conversion.
+
+Reverse conversion preserves rich title content and labels, visible fragment-link text through `\hyperref[label]{text}`, and ordered loose-list child content. Custom numbering, task markers and ordinary callout layout report simplifications. Unrepresented image metadata reports omissions. Code closing-delimiter variants are escaped with a diagnostic. PDF destinations cover heading, theorem, table, figure and paragraph labels; unresolved links retain visible text and produce a warning.
 
 ## Deliberate limits
 

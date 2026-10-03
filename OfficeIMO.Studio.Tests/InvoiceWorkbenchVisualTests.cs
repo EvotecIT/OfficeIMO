@@ -41,6 +41,12 @@ public sealed class InvoiceWorkbenchVisualTests {
                 scroll.Offset = new Vector(0, 0); window.UpdateLayout();
                 Assert.All(model.AvailableTargets, t => Assert.Equal(OfficeIMO.Invoicing.InvoiceSyntax.Cii, t.Options.Syntax));
                 Capture(window, $"invoice-{width}-presentation.png");
+                view.FindControl<Expander>("InvoiceStandardsPanel")!.IsExpanded = true;
+                window.UpdateLayout();
+                var standards = view.FindControl<CheckBox>("InvoiceStandardsToggle")!;
+                standards.BringIntoView(); window.UpdateLayout();
+                Assert.Equal(model.IsStandardsAvailable, standards.IsEnabled);
+                Capture(window, $"invoice-{width}-standards.png");
             } finally { window.Close(); }
             return true;
         }, CancellationToken.None);
