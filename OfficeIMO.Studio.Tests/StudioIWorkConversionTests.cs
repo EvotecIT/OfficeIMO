@@ -102,10 +102,13 @@ public sealed class StudioIWorkConversionTests {
                 window.UpdateLayout();
                 acceptance.BringIntoView();
                 await Dispatcher.UIThread.InvokeAsync(() => window.UpdateLayout(), DispatcherPriority.Background);
+                // Hit testing needs the rendered scroll clip even when captures are disabled.
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                window.UpdateLayout();
                 Assert.True(acceptance.IsEffectivelyVisible && acceptance.IsEnabled);
+                Capture(window, "apple-acceptance-" + width + "-" + fontSize);
                 Point point = acceptance.TranslatePoint(new Point(10, acceptance.Bounds.Height / 2), window)!.Value;
                 Assert.InRange(point.X, 0, width); Assert.InRange(point.Y, 0, height);
-                Capture(window, "apple-acceptance-" + width + "-" + fontSize);
                 var hit = window.InputHitTest(point) as Visual;
                 Assert.True(ReferenceEquals(hit, acceptance)
                     || hit?.GetVisualAncestors().Contains(acceptance) == true,
@@ -244,11 +247,11 @@ public sealed class StudioIWorkConversionTests {
 
     private static string Fixture(string name) => Path.Combine(AppContext.BaseDirectory, "Fixtures", "IWork", name);
     private static void Capture(Window window, string name) {
+        using var frame = window.CaptureRenderedFrame();
+        Assert.NotNull(frame);
         string? output = Environment.GetEnvironmentVariable("OFFICEIMO_STUDIO_VISUAL_OUTPUT");
         if (string.IsNullOrWhiteSpace(output)) return;
         Directory.CreateDirectory(output);
-        using var frame = window.CaptureRenderedFrame();
-        Assert.NotNull(frame);
         frame.Save(Path.Combine(output, name + ".png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
     }
 }
