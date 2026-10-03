@@ -209,15 +209,16 @@ internal sealed partial class LatexStructuralParser {
     private LatexSyntaxNode ParseDollarMath(int depth) {
         EnforceDepth(depth);
         LatexTokenView opening = _tokens[_index++];
+        string delimiter = opening.Text;
         var children = new List<LatexSyntaxNode> {
-            Node(LatexSyntaxKind.MathDelimiter, opening.StartOffset, opening.EndOffset, opening.Text)
+            Node(LatexSyntaxKind.MathDelimiter, opening.StartOffset, opening.EndOffset, delimiter)
         };
         bool terminated = false;
         while (_index < _tokens.Count) {
             LatexTokenView token = _tokens[_index];
-            if (token.Kind == LatexTokenKind.MathShift && string.Equals(token.Text, opening.Text, StringComparison.Ordinal)) {
+            if (token.Kind == LatexTokenKind.MathShift && token.EndOffset - token.StartOffset == delimiter.Length) {
                 _index++;
-                children.Add(Node(LatexSyntaxKind.MathDelimiter, token.StartOffset, token.EndOffset, token.Text));
+                children.Add(Node(LatexSyntaxKind.MathDelimiter, token.StartOffset, token.EndOffset, delimiter));
                 terminated = true;
                 break;
             }
@@ -228,15 +229,16 @@ internal sealed partial class LatexStructuralParser {
             _diagnostics.Add(new LatexDiagnostic("LATEX003", LatexDiagnosticSeverity.Error,
                 "Math region is not terminated.", opening.Span));
         }
-        return Node(LatexSyntaxKind.Math, opening.StartOffset, end, opening.Text, children);
+        return Node(LatexSyntaxKind.Math, opening.StartOffset, end, delimiter, children);
     }
 
     private LatexSyntaxNode ParseCommandMath(int depth) {
         EnforceDepth(depth);
         LatexTokenView opening = _tokens[_index++];
+        string delimiter = opening.Text;
         string closingName = string.Equals(opening.Value, "(", StringComparison.Ordinal) ? ")" : "]";
         var children = new List<LatexSyntaxNode> {
-            Node(LatexSyntaxKind.MathDelimiter, opening.StartOffset, opening.EndOffset, opening.Text)
+            Node(LatexSyntaxKind.MathDelimiter, opening.StartOffset, opening.EndOffset, delimiter)
         };
         bool terminated = false;
         while (_index < _tokens.Count) {
@@ -254,7 +256,7 @@ internal sealed partial class LatexStructuralParser {
             _diagnostics.Add(new LatexDiagnostic("LATEX003", LatexDiagnosticSeverity.Error,
                 "Math region is not terminated.", opening.Span));
         }
-        return Node(LatexSyntaxKind.Math, opening.StartOffset, end, opening.Text, children);
+        return Node(LatexSyntaxKind.Math, opening.StartOffset, end, delimiter, children);
     }
 
     private bool TryGetEnvironmentName(int commandIndex, out string name) {

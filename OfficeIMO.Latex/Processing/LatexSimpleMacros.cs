@@ -219,10 +219,11 @@ public static class LatexSimpleMacroExpander {
             LatexTokenView token = tokens[index];
             if (token.Kind == LatexTokenKind.Parameter && index + 1 < tokens.Count) {
                 LatexTokenView next = tokens[index + 1];
-                if (next.Kind == LatexTokenKind.Text && next.Text.Length > 0 && next.Text[0] >= '1' && next.Text[0] <= '9') {
-                    int parameter = next.Text[0] - '1';
+                string? parameterText = next.Kind == LatexTokenKind.Text ? next.Text : null;
+                if (parameterText != null && parameterText.Length > 0 && parameterText[0] >= '1' && parameterText[0] <= '9') {
+                    int parameter = parameterText[0] - '1';
                     if (parameter < arguments.Count) AppendBounded(output, arguments[parameter], maximumOutputLength);
-                    if (next.Text.Length > 1) AppendBounded(output, next.Text.Substring(1), maximumOutputLength);
+                    if (parameterText.Length > 1) AppendBounded(output, parameterText.Substring(1), maximumOutputLength);
                     index++;
                     continue;
                 }
