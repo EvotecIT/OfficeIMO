@@ -7,7 +7,9 @@ internal static class OfficeTrueTypeCollection {
 
     internal static System.Collections.Generic.List<byte[]> ExtractPrograms(byte[] data) {
         if (!IsTrueTypeCollection(data)) {
-            return new System.Collections.Generic.List<byte[]> { data };
+            return HasTrueTypeOutlines(data, 0)
+                ? new System.Collections.Generic.List<byte[]> { data }
+                : new System.Collections.Generic.List<byte[]>();
         }
 
         EnsureRange(data, 0, 12);
@@ -25,6 +27,10 @@ internal static class OfficeTrueTypeCollection {
                 throw new System.NotSupportedException("TrueType collection font offset is too large.");
             }
 
+            // Installed collections can contain CFF faces. The TrueType consumer cannot
+            // use them; reject them before copying potentially large shared tables.
+            // ExtractFace remains the format-neutral single-face extraction boundary.
+            if (!HasTrueTypeOutlines(data, (int)offset)) continue;
             byte[] font = ExtractTrueTypeCollectionFont(data, (int)offset);
             extractedBytes = checked(extractedBytes + font.Length);
             if (extractedBytes > MaxExtractedTrueTypeCollectionBytes) {
@@ -35,6 +41,30 @@ internal static class OfficeTrueTypeCollection {
         }
 
         return fonts;
+    }
+
+    private static bool HasTrueTypeOutlines(byte[] data, int fontOffset) {
+        EnsureRange(data, fontOffset, 12);
+        uint scaler = ReadUInt32(data, fontOffset);
+        ushort tableCount = ReadUInt16(data, fontOffset + 4);
+        if (tableCount == 0) throw new System.NotSupportedException("Font has no tables.");
+        EnsureRange(data, fontOffset, checked(12 + tableCount * 16));
+        bool glyf = false;
+        bool loca = false;
+        for (int i = 0; i < tableCount; i++) {
+            int record = fontOffset + 12 + i * 16;
+            uint tag = ReadUInt32(data, record);
+            uint offset = ReadUInt32(data, record + 8);
+            uint length = ReadUInt32(data, record + 12);
+            if (offset > int.MaxValue || length > int.MaxValue)
+                throw new System.NotSupportedException("Font table offsets are too large.");
+            // Preserve range validation even for an unsupported face; skipping its
+            // payload allocation must not turn malformed collection data into a match.
+            EnsureRange(data, (int)offset, (int)length);
+            glyf |= tag == 0x676c7966;
+            loca |= tag == 0x6c6f6361;
+        }
+        return (scaler == 0x00010000 || scaler == 0x74727565) && glyf && loca;
     }
 
     internal static bool IsTrueTypeCollection(byte[] data) =>

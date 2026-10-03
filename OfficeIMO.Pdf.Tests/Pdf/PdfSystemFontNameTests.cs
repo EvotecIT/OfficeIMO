@@ -85,7 +85,7 @@ public class PdfSystemFontNameTests {
         }
     }
 
-    private static byte[] WithNames(params (int Platform, int Language, int Id, string Text)[] names) {
+    internal static byte[] WithNames(params (int Platform, int Language, int Id, string Text)[] names) {
         byte[][] strings = names.Select(name => Encoding.BigEndianUnicode.GetBytes(name.Text)).ToArray();
         int stringOffset = 6 + names.Length * 12;
         byte[] table = new byte[stringOffset + strings.Sum(value => value.Length)];

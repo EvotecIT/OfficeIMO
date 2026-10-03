@@ -34,9 +34,10 @@ selects the source to check out; an empty value uses the workflow revision.
 Use a full 40-character commit SHA when comparing a control with a candidate.
 The checkout action treats an abbreviated SHA as a branch or tag name.
 
-This suite also runs static HTML correctness on .NET 8 and .NET 10, the installed
-mathematical-font resource contract, and the canonical packed-consumer smoke script.
-The Windows package lane executes the .NET Framework 4.7.2 consumers. Independent
+This suite also runs static HTML and font-selection correctness on .NET 8 and .NET 10,
+PDF correctness on .NET 10, the installed mathematical-font resource contract,
+and the canonical packed-consumer smoke script.
+The Windows package lane executes net472-targeted consumers on its installed .NET Framework runtime. Independent
 package and measurement steps still run after a correctness failure, while the
 failed job remains failed. Reports are retained as workflow artifacts for seven days.
 
