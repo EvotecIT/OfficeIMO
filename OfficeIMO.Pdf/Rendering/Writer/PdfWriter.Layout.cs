@@ -65,6 +65,9 @@ internal static partial class PdfWriter {
         public TableCellTextLayout(System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, System.Collections.Generic.List<PdfAlign?>? lineAlignments = null, System.Collections.Generic.List<double>? lineXOffsets = null, System.Collections.Generic.List<double>? lineWidths = null, double topSpacing = 0D, System.Collections.Generic.List<double>? lineBoxHeights = null) {
             Lines = lines;
             LineHeights = lineHeights;
+            LineHeightPrefix = new double[lineHeights.Count + 1];
+            for (int index = 0; index < lineHeights.Count; index++)
+                LineHeightPrefix[index + 1] = LineHeightPrefix[index] + lineHeights[index];
             LineBoxHeights = lineBoxHeights ?? lineHeights;
             LineAlignments = lineAlignments;
             LineXOffsets = lineXOffsets;
@@ -74,6 +77,7 @@ internal static partial class PdfWriter {
 
         public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines { get; }
         public System.Collections.Generic.List<double> LineHeights { get; }
+        public double[] LineHeightPrefix { get; }
         public System.Collections.Generic.List<double> LineBoxHeights { get; }
         public System.Collections.Generic.List<PdfAlign?>? LineAlignments { get; }
         public System.Collections.Generic.List<double>? LineXOffsets { get; }
