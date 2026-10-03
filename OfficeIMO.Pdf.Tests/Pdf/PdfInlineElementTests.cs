@@ -37,6 +37,13 @@ public class PdfInlineElementTests {
         Assert.Contains("/Figure << /Alt <496E6C696E652073746174757320626F78>", raw, StringComparison.Ordinal);
         Assert.Contains("0.2 0.7 0.3 rg", raw, StringComparison.Ordinal);
         Assert.Contains("1 w", raw, StringComparison.Ordinal);
+        var tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
+        var paragraph = Assert.Single(tagged.StructureElements, element => element.StructureType == "P");
+        var children = paragraph.ChildElementObjectNumbers.Select(number =>
+            tagged.StructureElements.Single(element => element.ObjectNumber == number)).ToArray();
+        Assert.Equal(new[] { "Span", "Figure", "Span", "Figure", "Span" }, children.Select(element => element.StructureType));
+        var ids = children.SelectMany(element => element.MarkedContentReferences).Select(reference => reference.MarkedContentId).ToArray();
+        Assert.Equal(ids.OrderBy(id => id).Distinct(), ids);
     }
 
     [Fact]

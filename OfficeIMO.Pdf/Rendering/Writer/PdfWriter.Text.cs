@@ -1991,6 +1991,7 @@ internal static partial class PdfWriter {
                         textMarkedContentOpen = false;
                     }
 
+                    if (structurePage != null) PromoteTextStructureContainer(structurePage, textStructElementIndex);
                     AppendInlineElement(
                         sb,
                         s.InlineElement,
@@ -2014,10 +2015,12 @@ internal static partial class PdfWriter {
                 int? linkStructElementIndex = null;
                 if (hasLinkTarget && opts.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers && structurePage != null) {
                     linkMarkedContentId = structurePage.NextMarkedContentId++;
+                    PromoteTextStructureContainer(structurePage, textStructElementIndex);
                     linkStructElementIndex = structurePage.StructElements.Count;
                     structurePage.StructElements.Add(new PageStructElement {
                         MarkedContentId = linkMarkedContentId,
-                        StructureType = "Link"
+                        StructureType = "Link",
+                        ParentElementIndex = textStructElementIndex
                     });
                 }
 
@@ -2210,11 +2213,18 @@ internal static partial class PdfWriter {
         content.EndText();
         int markedContentId = structurePage.NextMarkedContentId++;
         PageStructElement element = structurePage.StructElements[textStructElementIndex.Value];
-        if (element.AdditionalMarkedContentIds == null) {
-            element.AdditionalMarkedContentIds = new System.Collections.Generic.List<int>();
+        if (!element.MarkedContentId.HasValue) {
+            structurePage.StructElements.Add(new PageStructElement {
+                MarkedContentId = markedContentId,
+                StructureType = "Span",
+                ParentElementIndex = textStructElementIndex
+            });
+        } else {
+            if (element.AdditionalMarkedContentIds == null) {
+                element.AdditionalMarkedContentIds = new System.Collections.Generic.List<int>();
+            }
+            element.AdditionalMarkedContentIds.Add(markedContentId);
         }
-
-        element.AdditionalMarkedContentIds.Add(markedContentId);
         AppendMarkedContentBegin(sb, structureType, markedContentId);
         content = new ContentStreamBuilder(sb)
             .BeginText()

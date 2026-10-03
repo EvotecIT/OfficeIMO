@@ -886,5 +886,6 @@
       }
     ],
     "retainedArtifacts": "Ignore/MathAutoQualification/reference-profile-probe/output"
-  }
+  },
+  "accessibilityFollowUp": "static-pdf-accessibility-20261003.json: unique Note IDs, ordered rich content and explicit attachment-profile policy; manual assistive-technology qualification remains open. Original artifact hashes above describe the earlier run."
 }

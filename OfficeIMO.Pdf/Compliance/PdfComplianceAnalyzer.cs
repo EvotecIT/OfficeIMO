@@ -43,7 +43,8 @@ internal static partial class PdfComplianceAnalyzer {
 
         PdfFileVersion effectiveFileVersion = generatedEvidence?.EffectiveFileVersion ?? options.FileVersion;
         if (RequiresPdf17FileVersion(profile)) {
-            AddFileVersionRequirement(requirements, effectiveFileVersion);
+            AddFileVersionRequirement(requirements, effectiveFileVersion,
+                generatedEvidence?.StructureAssociatedFiles.Count > 0 && options.PdfAIdentificationSnapshot?.Part != 3);
         }
 
         if (RequiresPdf20FileVersion(profile)) {
@@ -85,11 +86,13 @@ internal static partial class PdfComplianceAnalyzer {
         return new PdfComplianceReadinessReport(profile, GetDisplayName(profile), requirements.AsReadOnly());
     }
 
-    private static void AddFileVersionRequirement(List<PdfComplianceRequirement> requirements, PdfFileVersion fileVersion) {
+    private static void AddFileVersionRequirement(List<PdfComplianceRequirement> requirements, PdfFileVersion fileVersion, bool structureFilesRequirePdf20) {
         Add(requirements, "pdf-file-version", "PDF 1.7 file header",
             fileVersion == PdfFileVersion.Pdf17,
             "Generated output is configured for a PDF 1.7 file header.",
-            "Set PdfOptions.FileVersion or PdfDocument.FileVersion(...) to PdfFileVersion.Pdf17 for PDF/A-2, PDF/A-3, PDF/UA-1, and e-invoice profile groundwork.");
+            structureFilesRequirePdf20
+                ? "Structure-associated files require PDF 2.0 unless PDF/A-3 is explicitly selected. This conflicts with the requested PDF 1.7 profile; setting FileVersion to Pdf17 cannot remove that requirement. Preserve the attachments by explicitly selecting a compatible PDF 2.0 profile or, where appropriate, PDF/A-3 alongside PDF/UA-1. No profile or attachment is changed automatically."
+                : "Set PdfOptions.FileVersion or PdfDocument.FileVersion(...) to PdfFileVersion.Pdf17 for PDF/A-2, PDF/A-3, PDF/UA-1, and e-invoice profile groundwork.");
     }
 
     private static void AddUnicodeRequirements(List<PdfComplianceRequirement> requirements, PdfOptions options, PdfGeneratedFontComplianceEvidence[]? generatedFontUsages) {

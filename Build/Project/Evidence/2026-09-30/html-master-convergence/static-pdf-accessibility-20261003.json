@@ -1,0 +1,185 @@
+{
+  "sourceBase": "795499cc1cdcb161078cb6cae7a311cf81809235",
+  "scope": "Static PDF logical structure, note identity and explicit semantic-attachment profile policy",
+  "validator": {
+    "name": "veraPDF",
+    "version": "1.30.2",
+    "installerSha256": "6cc6341cb1af644044054b81f00a6590a7918abb18f762243de115258bcad838"
+  },
+  "confirmedDefects": [
+    "PDF/UA-1 Note tags lacked required unique IDs (two ISO 14289-1:2014 clause 7.9 failures in baseline column-note fixture)",
+    "Positioned link runs were serialized outside their logical paragraph or note",
+    "Mixed text/link and inline-figure continuations visited trailing text before intervening content",
+    "Attachment version rejection advised PDF 1.7 even when attachments imposed PDF 2.0"
+  ],
+  "contracts": [
+    "Note IDs resolve through the structure ID name tree",
+    "Text, links and inline figures retain source order under their semantic container",
+    "Annotation-bearing containers retain ordered child references alongside OBJRs",
+    "Incompatible standalone PDF/UA-1 rejects before destination writes; requested profile and MathML retained",
+    "Explicit PDF/A-3b and combined PDF/A-3b/PDF/UA-1 remain supported fixture routes; no automatic profile switch or source omission"
+  ],
+  "validation": {
+    "pdfNet10Full": 8662,
+    "htmlNet10Full": 4184,
+    "pdfNet8Focused": 278,
+    "pdfNet10Focused": 131,
+    "columnNotesPages": 3,
+    "columnNotesPixelAndPerPageTextIdentical": true,
+    "mixedLogicalText": "BEFORE LINK AFTER CELL-BEFORE CELL-AFTER",
+    "independentReview": {
+      "task": "pdf_note_accessibility_review",
+      "initialFinding": "P2 mixed-run reading order; fixed",
+      "targetedConfirmationFinding": "P2 annotation-bearing container lost inline children; fixed in shared builder and four regular/column/decorative/described table regressions",
+      "furtherReview": "No additional full review; focused and broad artifact/tests own closure"
+    },
+    "packages": {
+      "frameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ],
+      "count": 19,
+      "consumerRuntimes": [
+        ".NET 8.0.23",
+        ".NET 10.0.12"
+      ],
+      "command": "Build/Test-HtmlPackages.ps1 -ArtifactsPath Ignore/HtmlPdfAccessibility/packages",
+      "artifacts": [
+        {
+          "name": "OfficeIMO.Core.3.3.0.nupkg",
+          "sha256": "4d898e0eb4579e4117a11f3c49e8a9091e0fc606ed23076ec557ac9491237b88"
+        },
+        {
+          "name": "OfficeIMO.Email.3.3.0.nupkg",
+          "sha256": "f391c7442aa2007af6d0e32dcfe86b5d35dc60aae8f803586a84bd42b7ef4a7b"
+        },
+        {
+          "name": "OfficeIMO.Excel.3.3.0.nupkg",
+          "sha256": "86d47bae64443074e4ded9fc52489fe4f6bf841a0b02f281ecc32a7bc3e79233"
+        },
+        {
+          "name": "OfficeIMO.Excel.Html.3.3.0.nupkg",
+          "sha256": "32bbccdbf0a46f0b5ddf1a8312cf2edf7fefadf71543d35a6b6733dfd6a21027"
+        },
+        {
+          "name": "OfficeIMO.Html.3.3.0.nupkg",
+          "sha256": "92192fab9a1cf7e75484fe498a4c9632c0ecca5bf0e554ae852c86b0c7c82190"
+        },
+        {
+          "name": "OfficeIMO.Html.AngleSharp.3.3.0.nupkg",
+          "sha256": "d3f68b1d71e76cff299e61e8b1263757402f9f25d746fac0ddc91d463124150b"
+        },
+        {
+          "name": "OfficeIMO.Html.Core.3.3.0.nupkg",
+          "sha256": "f4fe0ca4b06bb48db54b33fabff86f7e38c5c351ec0256161439a38f27145c2a"
+        },
+        {
+          "name": "OfficeIMO.Html.Pdf.3.3.0.nupkg",
+          "sha256": "ce85ca1c469865fe4bcf1351998a3ba859e6124317809ff52dbb9cf6dd1e3aa9"
+        },
+        {
+          "name": "OfficeIMO.Html.Rtf.3.3.0.nupkg",
+          "sha256": "b5690d89490c58a7b5d5534239fbadd965462f8b77786943a81dc755d18ab2ff"
+        },
+        {
+          "name": "OfficeIMO.Markdown.3.3.0.nupkg",
+          "sha256": "b5fe259820e41f761bda192e0fdd057f4e7adbf0d44d62b90fb601f16ddc8c9b"
+        },
+        {
+          "name": "OfficeIMO.Markdown.Html.3.3.0.nupkg",
+          "sha256": "94c0c82b4c5098c1350175a9ac46a64082d123d6bf431030855d8d36461277ac"
+        },
+        {
+          "name": "OfficeIMO.Mhtml.3.3.0.nupkg",
+          "sha256": "2bd17e70f0541137cc9d2c9bf0c142e1aa11a2dd2ddcc12733f9bea44788e705"
+        },
+        {
+          "name": "OfficeIMO.Mhtml.Pdf.3.3.0.nupkg",
+          "sha256": "5f4ca1aa8e3300ffbe88c870401a5ebeb8006e72ce09dc4e5537d5d278043aa2"
+        },
+        {
+          "name": "OfficeIMO.Pdf.3.3.0.nupkg",
+          "sha256": "2af8d32e92c6a382afbb43b999199742ef7f00df4fa2d81315a0f429e2f4c6a5"
+        },
+        {
+          "name": "OfficeIMO.PowerPoint.3.3.0.nupkg",
+          "sha256": "858e01b1dcc34c36690f1aaa1f6646694294b4b4a8c74e64f0276205ac854fad"
+        },
+        {
+          "name": "OfficeIMO.PowerPoint.Html.3.3.0.nupkg",
+          "sha256": "26a870c7334eaa3c3fdc8e74b6f6875c8541f99ec98a861ec27789f0665b9dd8"
+        },
+        {
+          "name": "OfficeIMO.Rtf.3.3.0.nupkg",
+          "sha256": "9d6f582546c3a41730a99f85510559ffcc85fc951c84abceabc3958ac0771ff9"
+        },
+        {
+          "name": "OfficeIMO.Word.3.3.0.nupkg",
+          "sha256": "7eb92d4455e22f6b78b8535f4dcfefa79756394a5b53f5d084179dcca250bf39"
+        },
+        {
+          "name": "OfficeIMO.Word.Html.3.3.0.nupkg",
+          "sha256": "d9d1752fd52cce59e3ccd3bb743e3465df02524dc53bebfb4f80ddd0fefaeebc"
+        }
+      ]
+    }
+  },
+  "externalValidation": [
+    {
+      "artifact": "Ignore/HtmlPdfAccessibility/column-notes-final.pdf",
+      "sha256": "53edf1f2a11d6b57592e0f6caba79cc9711fa1351da7243364c8001c355a49f6",
+      "bytes": 60947,
+      "profile": "PDF/UA-1 validation profile",
+      "compliant": true,
+      "passedChecks": 12016,
+      "failedChecks": 0
+    },
+    {
+      "artifact": "Ignore/HtmlPdfAccessibility/mixed-content.pdf",
+      "sha256": "4fa3e6f8d81962f5692b39e91e1a99351e62da3fc9e58b8545148375b9b43d3d",
+      "bytes": 56365,
+      "profile": "PDF/UA-1 validation profile",
+      "compliant": true,
+      "passedChecks": 676,
+      "failedChecks": 0
+    },
+    {
+      "artifact": "Ignore/HtmlPdfAccessibility/math-profile-final/PdfA3B.pdf",
+      "sha256": "1a1d4957873236cf29a7a1e11a9c1c832d2bb2a8ed4d35cd3e0b3a225e0f0296",
+      "bytes": 166240,
+      "profile": "PDF/A-3b validation profile",
+      "compliant": true,
+      "passedChecks": 1528,
+      "failedChecks": 0
+    },
+    {
+      "artifact": "Ignore/HtmlPdfAccessibility/math-profile-final/PdfUa1WithPdfA3B.pdf",
+      "sha256": "b3b04890511fa2665581ac3cee649ac540e7a0f29e28d2955944194785741057",
+      "bytes": 167129,
+      "profile": "PDF/A-3b validation profile",
+      "compliant": true,
+      "passedChecks": 1542,
+      "failedChecks": 0
+    },
+    {
+      "artifact": "Ignore/HtmlPdfAccessibility/math-profile-final/PdfUa1WithPdfA3B.pdf",
+      "sha256": "b3b04890511fa2665581ac3cee649ac540e7a0f29e28d2955944194785741057",
+      "bytes": 167129,
+      "profile": "PDF/UA-1 validation profile",
+      "compliant": true,
+      "passedChecks": 524,
+      "failedChecks": 0
+    }
+  ],
+  "qualificationPending": [
+    "clean-source H4 and eighteen-case static replay"
+  ],
+  "limitations": [
+    "Manual assistive-technology acceptance remains open; validator success does not establish complete accessibility",
+    "Standalone PDF/UA-1 cannot retain native PDF 2.0 Formula attachments; caller must explicitly select a compatible profile",
+    "Full MATH geometry, wider fonts/profiles, Windows/Linux budgets and optional runtime productization remain separate scopes"
+  ],
+  "retainedArtifacts": "Ignore/HtmlPdfAccessibility"
+}
