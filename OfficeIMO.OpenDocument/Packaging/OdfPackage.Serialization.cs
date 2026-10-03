@@ -26,11 +26,13 @@ internal sealed partial class OdfPackage {
         XElement root = clone.GetXml("META-INF/manifest.xml").Root!;
         var listed = new HashSet<string>(root.Elements(OdfNamespaces.Manifest + "file-entry")
             .Select(element => (string?)element.Attribute(OdfNamespaces.Manifest + "full-path") ?? string.Empty), StringComparer.Ordinal);
+        var removed = new HashSet<string>(clone._entries.Where(entry => entry.IsRemoved)
+            .Select(entry => entry.Name), StringComparer.Ordinal);
+        root.Elements(OdfNamespaces.Manifest + "file-entry")
+            .Where(element => removed.Contains((string?)element.Attribute(OdfNamespaces.Manifest + "full-path") ?? string.Empty))
+            .Remove();
         foreach (OdfPackageEntry entry in clone._entries) {
-            if (entry.IsRemoved) {
-                root.Elements(OdfNamespaces.Manifest + "file-entry")
-                    .Where(element => (string?)element.Attribute(OdfNamespaces.Manifest + "full-path") == entry.Name).Remove();
-            } else if (entry.IsNew && !entry.Name.StartsWith("META-INF/", StringComparison.Ordinal) &&
+            if (!entry.IsRemoved && entry.IsNew && !entry.Name.StartsWith("META-INF/", StringComparison.Ordinal) &&
                 entry.Name != "mimetype" && listed.Add(entry.Name)) {
                 root.Add(OdfPackageTemplates.FileEntry(entry.Name, entry.MediaType ?? GuessMediaType(entry.Name), null));
             }
