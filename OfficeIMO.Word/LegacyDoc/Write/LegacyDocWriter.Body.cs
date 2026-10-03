@@ -18,6 +18,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 byte[] pictureData,
                 bool hasPictures,
                 bool facingPages,
+                bool mirrorMargins,
+                bool gutterAtTop,
                 EndnotePositionValues? endnotePosition,
                 bool trackRevisions,
                 bool lockRevisionTracking) {
@@ -53,6 +55,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 PictureData = pictureData;
                 HasPictures = hasPictures;
                 FacingPages = facingPages;
+                MirrorMargins = mirrorMargins;
+                GutterAtTop = gutterAtTop;
                 EndnotePosition = endnotePosition;
                 TrackRevisions = trackRevisions;
                 LockRevisionTracking = lockRevisionTracking;
@@ -159,6 +163,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool FacingPages { get; }
 
+            internal bool MirrorMargins { get; }
+
+            internal bool GutterAtTop { get; }
+
             internal byte[] PictureData { get; }
 
             internal bool HasPictures { get; }
@@ -212,11 +220,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal bool HasBookmarks => SttbfBkmk.Length > 0 && PlcfBkf.Length > 0 && PlcfBkl.Length > 0;
 
             internal bool HasDocumentOptions => FacingPages
+                || MirrorMargins
+                || GutterAtTop
                 || EndnotePosition != null
                 || TrackRevisions
                 || LockRevisionTracking;
 
-            internal int DopLength => EndnotePosition != null ? DopBaseEndnotePlacementLength : DopBaseLength;
+            internal int DopLength => GutterAtTop ? DopBaseFullLength
+                : EndnotePosition != null ? DopBaseEndnotePlacementLength : DopBaseLength;
 
             internal IReadOnlyList<IReadOnlyList<LegacyDocWritableSegment>> ChpxPages { get; }
 

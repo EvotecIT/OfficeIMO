@@ -6,7 +6,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
     /// <summary>
     /// Neutral legacy binary Word document model for the supported import subset.
     /// </summary>
-    public sealed class LegacyDocDocument {
+    public sealed partial class LegacyDocDocument {
         private readonly List<LegacyDocImportDiagnostic> _diagnostics = new();
         private readonly List<string> _paragraphs = new();
         private readonly List<IReadOnlyList<LegacyDocTextRun>> _paragraphTextRuns = new();
@@ -52,6 +52,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal IReadOnlyList<LegacyDocBookmark> Bookmarks { get; private set; } = Array.Empty<LegacyDocBookmark>();
 
         internal bool DifferentOddAndEvenPages { get; private set; }
+
+        internal bool MirrorMargins { get; private set; }
+
+        internal bool GutterAtTop { get; private set; }
 
         internal bool RevisionMarkingEnabled { get; private set; }
 
@@ -160,6 +164,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             byte[] tableStream = tableStreamCandidate!;
             DifferentOddAndEvenPages = ReadDopFacingPagesFlag(tableStream, fib);
+            ReadDopMarginSettings(tableStream, fib);
             EndnotePositionValues? dopEndnotePosition = ReadDopEndnotePlacement(tableStream, fib);
 
             if (!LegacyDocPieceTable.TryRead(wordDocumentStream, tableStream, fib, options.MaxDecodedCharacters, out LegacyDocTextContent textContent, out string? textError)) {

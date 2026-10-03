@@ -940,9 +940,7 @@ namespace OfficeIMO.Word {
                 var sectionProperties = _sectionProperties;
                 if (sectionProperties != null) {
                     var rtlGutter = sectionProperties.GetFirstChild<GutterOnRight>();
-                    if (rtlGutter?.Val != null) {
-                        return rtlGutter.Val;
-                    }
+                    if (rtlGutter != null) return rtlGutter.Val?.Value ?? true;
                 }
                 return false;
             }
@@ -957,7 +955,7 @@ namespace OfficeIMO.Word {
                 } else {
                     if (rtlGutter == null) {
                         rtlGutter = new GutterOnRight();
-                        sectionProperties.Append(rtlGutter);
+                        sectionProperties.AddChild(rtlGutter, true);
                     }
                     rtlGutter.Val = value;
                 }

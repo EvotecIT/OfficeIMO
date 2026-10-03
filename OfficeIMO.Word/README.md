@@ -103,6 +103,8 @@ Presets include Letter, Legal, Statement, Executive, A3–A6, JIS B4/B5, Tabloid
 
 `Width` and `Height` expose custom dimensions in twips (1/20 point). Changing `Orientation` swaps those dimensions. The preset getter recognizes matching dimensions when a producer omits the optional printer code, with a one-twip tolerance for unit rounding. Native DOC retains physical dimensions and orientation; its imported page settings do not carry the DOCX printer code. PDF conversion preserves stored width and height, including a wide custom page without an orientation flag, and supports explicit export orientation overrides.
 
+Set `section.Margins.Gutter` in twips to reserve binding space. `document.Settings.GutterAtTop` places that space above the body; otherwise `section.RtlGutter` selects the right edge and the default is the left edge. `document.Settings.MirrorMargins` stores the document's facing-page margin setting. These settings survive DOCX and supported native DOC saves. Present on/off XML elements without a `val` attribute remain enabled. The [PDF conversion contract](../OfficeIMO.Word.Pdf/README.md) describes rendering support separately.
+
 ## Paragraph tab stops
 
 Use `AddTabStop` to configure a paragraph's explicit tab positions in twentieths of a point. `ClearTabStops()` removes those local stops without changing paragraph spacing, alignment, or inherited defaults.

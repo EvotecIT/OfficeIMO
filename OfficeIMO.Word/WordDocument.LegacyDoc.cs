@@ -182,6 +182,8 @@ namespace OfficeIMO.Word {
         }
 
         private static void ApplyLegacyDocDocumentOptions(WordDocument document, LegacyDocDocument legacyDocument) {
+            document.Settings.MirrorMargins = legacyDocument.MirrorMargins;
+            document.Settings.GutterAtTop = legacyDocument.GutterAtTop;
             if (legacyDocument.RevisionMarkingEnabled || legacyDocument.LockedRevisionTrackingEnabled) {
                 document.Settings.TrackRevisions = true;
             }

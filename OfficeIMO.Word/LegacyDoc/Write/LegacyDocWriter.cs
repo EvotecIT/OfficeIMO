@@ -91,11 +91,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const int LcbPlcfBklOffset = 0x156;
         private const int FcPlcfHddOffset = 0xF2;
         private const int LcbPlcfHddOffset = 0xF6;
-        private const int DopBaseLength = 8;
-        private const int DopBaseEndnotePlacementLength = 56;
-        private const int DopBaseEndnotePlacementOffset = 52;
-        private const int DopBaseEndnotePlacementShift = 16;
-        private const ushort FacingPagesDopFlag = 0x0001;
         private const ushort NoteTextParagraphStyleIndex = 0x0023;
         private static readonly byte[] PlainParagraphPapx = { 0x00, 0x01, 0x00, 0x00 };
         private static readonly byte[] FootnoteTextParagraphPapx = { 0x00, 0x01, (byte)NoteTextParagraphStyleIndex, (byte)(NoteTextParagraphStyleIndex >> 8) };
@@ -268,6 +263,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 pictures.DataBytes,
                 pictures.HasPictures,
                 HasEvenAndOddHeaders(mainPart),
+                settings?.Elements<MirrorMargins>().Any(IsOnOffEnabled) == true,
+                settings?.Elements<GutterAtTop>().Any(IsOnOffEnabled) == true,
                 ReadDocumentEndnotePosition(sections),
                 trackRevisions || lockRevisionTracking,
                 lockRevisionTracking);
@@ -839,31 +836,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             return table;
-        }
-
-        private static byte[] CreateDopBase(LegacyDocWritableBody body) {
-            var dop = new byte[body.DopLength];
-            if (body.FacingPages) {
-                WriteUInt16(dop, 0, FacingPagesDopFlag);
-            }
-
-            uint revisionFlags = 0;
-            if (body.TrackRevisions) {
-                revisionFlags |= 0x00008000;
-            }
-            if (body.LockRevisionTracking) {
-                revisionFlags |= 0x40000000;
-            }
-            if (revisionFlags != 0) {
-                WriteUInt32(dop, 4, revisionFlags);
-            }
-
-            if (body.EndnotePosition != null) {
-                uint placement = (uint)GetEndnotePositionOperand(body.EndnotePosition.Value)!.Value;
-                WriteUInt32(dop, DopBaseEndnotePlacementOffset, placement << DopBaseEndnotePlacementShift);
-            }
-
-            return dop;
         }
 
         private static bool CanWriteCompressedText(string text) {
