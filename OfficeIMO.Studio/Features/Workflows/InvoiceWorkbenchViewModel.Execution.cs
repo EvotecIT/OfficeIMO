@@ -31,7 +31,7 @@ public sealed partial class InvoiceWorkbenchViewModel {
         StudioStorageAccess.DirectoryOutputSession? providerOutput = null;
         try {
             // Capture all UI choices before awaiting permission or a storage provider.
-            var request = CaptureRequest(); var validator = CaptureValidator();
+            var validator = CaptureValidator(); var request = CaptureRequest();
             string outputName = GetOutputName(), folder = OutputFolder, label = SelectedOperation.Label;
             if (request.OutputPath != null && !string.IsNullOrWhiteSpace(folder) && _storage?.UsesProviderPublication(folder) == true) {
                 if (!await _confirmProviderWrite(folder).ConfigureAwait(true)) {

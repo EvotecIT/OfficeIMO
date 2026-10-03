@@ -59,7 +59,7 @@ internal static partial class OfficeConversionBatchExecutor {
                 throw new InvalidDataException("Batch paths must not traverse symbolic links or junctions.");
     }
 
-    private static OfficeConversionBatchRequest Snapshot(OfficeConversionBatchRequest request) {
+    private static OfficeConversionBatchRequest Snapshot(OfficeConversionBatchRequest request, IReadOnlyList<OfficeWorkflowRoute> routes) {
         ArgumentNullException.ThrowIfNull(request);
         if (request.MaximumConcurrency is < 1 or > 32 || request.MaximumFiles < 1 || request.MaximumInputBytes < 1 || request.MaximumOutputBytes < 1)
             throw new ArgumentException("Batch resource limits are invalid.", nameof(request));
@@ -78,10 +78,13 @@ internal static partial class OfficeConversionBatchExecutor {
         if (!Enum.IsDefined(copy.OutputProfile) || !Enum.IsDefined(copy.ConflictPolicy)) throw new ArgumentException("Choose supported output settings.");
         if (copy.CheckpointDirectory != null && copy.ConflictPolicy != OfficeWorkflowConflictPolicy.Fail)
             throw new ArgumentException("Durable jobs require the Fail conflict policy. Ordinary batches also support Rename and Replace.");
-        if (!OfficeWorkflowCatalog.ExecutableRoutes.Any(route => route.TargetExtension == copy.TargetExtension))
+        if (!routes.Any(route => route.TargetExtension == copy.TargetExtension))
             throw new NotSupportedException("No executable conversion route produces the requested target format.");
-        if (copy.ConversionRouteId != null && OfficeWorkflowCatalog.FindExecutable(copy.ConversionRouteId)?.TargetExtension != copy.TargetExtension)
+        if (copy.ConversionRouteId != null && routes.FirstOrDefault(route =>
+                string.Equals(route.Id, copy.ConversionRouteId, StringComparison.OrdinalIgnoreCase))?.TargetExtension != copy.TargetExtension)
             throw new ArgumentException("The explicit route must be executable and produce the requested target format.");
+        if (copy.CheckpointDirectory != null && copy.ConversionRouteId != null && OfficeWorkflowCatalog.FindExecutable(copy.ConversionRouteId) is null)
+            throw new NotSupportedException("Registered conversion routes require an ordinary batch without checkpoints; their runtime configuration cannot be fingerprinted.");
         string[] roots = new[] { copy.InputDirectory, copy.OutputDirectory, copy.CheckpointDirectory }.OfType<string>().ToArray();
         foreach (string root in roots) EnsureNoLinks(root);
         for (int first = 0; first < roots.Length; first++)
@@ -96,7 +99,7 @@ internal static partial class OfficeConversionBatchExecutor {
             if (OfficePathIdentity.IsSameOrDescendant(input, copy.OutputDirectory) ||
                 (copy.CheckpointDirectory != null && OfficePathIdentity.IsSameOrDescendant(input, copy.CheckpointDirectory)))
                 throw new ArgumentException("Selected input files must be outside output and checkpoint trees.");
-            if (copy.CheckpointDirectory != null && SelectRoute(copy, input) is { } route && GetResourceRoot(copy, route.Id, input) is { } resourceRoot) {
+            if (copy.CheckpointDirectory != null && SelectRoute(copy, input, routes) is { } route && GetResourceRoot(copy, route.Id, input) is { } resourceRoot) {
                 EnsureNoLinks(resourceRoot);
                 foreach (string generatedRoot in new[] { copy.OutputDirectory, copy.CheckpointDirectory })
                     if (OfficePathIdentity.IsSameOrDescendant(generatedRoot, resourceRoot) ||
@@ -125,14 +128,14 @@ internal static partial class OfficeConversionBatchExecutor {
         return normalized;
     }
 
-    private static OfficeWorkflowRoute? SelectRoute(OfficeConversionBatchRequest settings, string input) {
+    private static OfficeWorkflowRoute? SelectRoute(OfficeConversionBatchRequest settings, string input, IReadOnlyList<OfficeWorkflowRoute> routes) {
         string extension = Path.GetExtension(input);
         if (settings.SourceExtensions != null && !settings.SourceExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase)) return null;
         if (settings.ConversionRouteId is { } id) {
-            var route = OfficeWorkflowCatalog.FindExecutable(id)!;
+            var route = routes.First(item => string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase));
             return route.SourceExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase) ? route : null;
         }
-        return OfficeWorkflowCatalog.Find(extension, settings.TargetExtension, executableOnly: true);
+        return OfficeWorkflowCatalog.Find(extension, settings.TargetExtension, routes);
     }
 
     private static FileStream? OpenCheckpoint(OfficeConversionBatchRequest settings) {

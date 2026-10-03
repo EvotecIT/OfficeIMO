@@ -83,8 +83,9 @@ internal sealed class IWorkObjectIndex {
         out int unresolvedReferenceCount) => DereferenceAll(message, field, out unresolvedReferenceCount, out _);
 
     internal IReadOnlyList<IWorkArchiveRecord> DereferenceAll(IWorkWireMessage message, int field,
-        out int unresolvedReferenceCount, out bool rejectedReferenceSet) {
+        out int unresolvedReferenceCount, out bool rejectedReferenceSet, List<int>? resolvedPositions = null) {
         var result = new List<IWorkArchiveRecord>();
+        resolvedPositions?.Clear();
         unresolvedReferenceCount = 0;
         IReadOnlyList<IWorkWireMessage> references = TryGetMessages(message, field, out bool malformed);
         rejectedReferenceSet = malformed;
@@ -92,7 +93,9 @@ internal sealed class IWorkObjectIndex {
             unresolvedReferenceCount = message.FieldCount(field);
             return result;
         }
+        int position = 0;
         foreach (IWorkWireMessage reference in references) {
+            position++;
             if (reference.FieldCount(1) != 1
                 || reference.HasUnexpectedWireKind(1, IWorkWireKind.Varint)) {
                 unresolvedReferenceCount++;
@@ -101,6 +104,7 @@ internal sealed class IWorkObjectIndex {
             ulong? identifier = reference.GetUnsigned(1);
             if (identifier.HasValue && _objects.TryGetValue(identifier.Value, out IWorkArchiveRecord? record)) {
                 result.Add(record);
+                resolvedPositions?.Add(position);
             } else {
                 unresolvedReferenceCount++;
             }

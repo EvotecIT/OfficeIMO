@@ -1,10 +1,28 @@
 using OfficeIMO.Ocr.Tesseract;
 using OfficeIMO.Studio.Infrastructure;
+using OfficeIMO.Studio.Features.Workflows;
 using Xunit;
 
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioDistributionPolicyTests {
+    [Fact]
+    public async Task StoreChannelBlocksInvoiceStandardsBeforeRuleDiscovery() {
+        using var model = new InvoiceWorkbenchViewModel(_ => Task.FromResult<string?>(null), _ => Task.FromResult<string?>(null)) {
+            InputPath = "invoice.xml", RequireStandards = true,
+            RuleBundlePath = "missing-rule-bundle", SaxonJarPath = "missing-saxon.jar", JavaExecutable = "missing-java"
+        };
+        Assert.Equal(StudioDistributionPolicy.ExternalToolsAllowed, model.IsStandardsAvailable);
+#if OFFICEIMO_MAC_APP_STORE
+        await model.RunCommand.ExecuteAsync(null);
+        Assert.Contains("Mac App Store edition", model.Status);
+        Assert.False(model.HasOutput);
+#else
+        Assert.Contains("Java/Saxon", model.StandardsHint);
+        await Task.CompletedTask;
+#endif
+    }
+
     [Fact]
     public async Task StoreChannelBlocksExternalOcrBeforeToolDiscovery() {
 #if OFFICEIMO_MAC_APP_STORE

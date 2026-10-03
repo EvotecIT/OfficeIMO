@@ -40,10 +40,18 @@ public sealed partial class OfficeWorkflowRunner {
         var accesses = sources.Where(item => item.Stream is not null)
             .GroupBy(item => item.Location, StringComparer.Ordinal)
             .Select(group => new WorkflowSourceAccess(group.Key, group.First().Stream!)).ToArray();
-        var destinations = batch.Select(item => OfficeStorageIdentity.Normalize(item.Pdf?.OutputPath ?? item.Image!.OutputPath)).ToArray();
+        var destinations = batch.Select(item => {
+            var output = item.Pdf?.OutputStream ?? item.Image?.OutputStream;
+            return (Location: OfficeStorageIdentity.Normalize(item.Pdf?.OutputPath ?? item.Image!.OutputPath),
+                PendingName: output?.PrepareDestination is not null ? output.Name : null);
+        }).ToArray();
         for (int index = 0; index < destinations.Length; index++) {
             for (int previous = 0; previous < index; previous++) {
-                if (OfficeStorageIdentity.AreEquivalent(destinations[index], destinations[previous]))
+                // Deferred children can share a parent location before creation. Actual destinations
+                // are still checked against earlier outputs by the publication guard after creation.
+                if (OfficeStorageIdentity.AreEquivalent(destinations[index].Location, destinations[previous].Location) &&
+                    (destinations[index].PendingName is null || destinations[previous].PendingName is null ||
+                     string.Equals(destinations[index].PendingName, destinations[previous].PendingName, StringComparison.OrdinalIgnoreCase)))
                     throw new ArgumentException("OCR session outputs must have distinct destinations.");
             }
         }

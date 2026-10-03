@@ -63,8 +63,10 @@ public sealed class StudioOcrSessionTests {
         }, CancellationToken.None);
     }
 
-    [Fact]
-    public async Task SameNamedSourcesGetDistinctStableOutputs() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SameNamedSourcesGetDistinctStableOutputs(bool providerFolder) {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
             var services = ((App)Application.Current!).Services;
@@ -75,12 +77,17 @@ public sealed class StudioOcrSessionTests {
                 File.WriteAllBytes(source, OfficeRasterImageEncoder.Encode(new OfficeRasterImage(20, 30, OfficeColor.White), OfficeImageExportFormat.Png));
             }
             var engine = new DelegateOcrEngine("naming-fixture", (_, _) => Task.FromResult(new OcrResult { Text = "Recognized" }));
+            var folder = providerFolder ? new StudioProviderOutputFolderTests.OutputFolder() : null;
+            string destination = folder is null ? services.Paths.Root
+                : (await services.Storage.RegisterFolderAsync([folder.Item], default))!;
             using var model = new OcrSessionViewModel(_ => Task.FromResult<IReadOnlyList<string>>(sources),
-                _ => Task.FromResult<string?>(services.Paths.Root), services.Localizer,
+                _ => Task.FromResult<string?>(destination), services.Localizer,
+                storage: services.Storage, jobs: services.Jobs, recovery: services.WorkflowRecovery,
+                confirmProvider: _ => Task.FromResult(true),
                 createEngine: (_, _, _) => Task.FromResult<IOcrEngine>(engine));
             await model.AddFilesCommand.ExecuteAsync(null);
             Assert.Equal(new[] { "scan.png.txt", "scan.png (2).txt" }, model.Items.Select(item => item.OutputName));
-            model.OutputFolder = services.Paths.Root;
+            model.OutputFolder = destination;
             var running = model.RunCommand.ExecuteAsync(null);
             ImageOcrReviewViewModel? previous = null;
             for (int index = 0; index < 2; index++) {
@@ -92,8 +99,13 @@ public sealed class StudioOcrSessionTests {
             }
             await running;
             Assert.All(model.Items, item => Assert.Equal(OfficeWorkflowStatus.Completed, item.Status));
-            Assert.Equal("Reviewed 0", File.ReadAllText(model.Items[0].OutputPath!));
-            Assert.Equal("Reviewed 1", File.ReadAllText(model.Items[1].OutputPath!));
+            for (int index = 0; index < 2; index++) {
+                var output = await services.Storage.ReadSnapshotAsync(model.Items[index].OutputPath!, default);
+                Assert.Equal("Reviewed " + index, System.Text.Encoding.UTF8.GetString(output.Bytes));
+                Assert.Contains(services.Jobs.Entries, job => job.HasOutput && job.OutputPath == model.Items[index].OutputPath);
+            }
+            if (folder is not null) Assert.Equal(2, folder.Creations);
+            Assert.Empty(services.WorkflowRecovery.GetRecoveries());
             return true;
         }, CancellationToken.None);
     }

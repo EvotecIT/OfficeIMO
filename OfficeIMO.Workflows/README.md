@@ -14,7 +14,7 @@ Provider directory packages use `OfficeWorkflowRequest.InputDirectoryPackage` wi
 
 ## Single conversions and file batches
 
-`OfficeWorkflowRunner` executes the routes in `OfficeWorkflowCatalog.ExecutableRoutes`. Directory and selected-file batches use those same routes, profiles, renderer options, diagnostics and publication policies. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown and RTF. Other targets use the existing PDF-to-DOCX/XLSX/PPTX/HTML routes. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
+`OfficeWorkflowRunner` executes its configured `ConversionRoutes`. Ordinary directory and selected-file batches use those same routes, including registered adapters, profiles, renderer options, diagnostics and publication policies. Registered adapters use the options captured when the runner was created. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown and RTF. Other built-in targets use the existing PDF-to-DOCX/XLSX/PPTX/HTML routes. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
 
 ```csharp
 using OfficeIMO.Pdf;
@@ -26,7 +26,7 @@ var options = new OfficeWorkflowConversionOptions {
 var runner = new OfficeWorkflowRunner();
 var single = await runner.RunAsync(new OfficeWorkflowRequest {
     Operation = OfficeWorkflowOperation.Convert,
-    InputPath = "report.txt", OutputPath = "report.pdf", ConversionOptions = options
+    InputPath = "report.txt", OutputPath = "report.pdf", ConversionRouteId = "txt-pdf", ConversionOptions = options
 }, cancellationToken: cancellationToken);
 
 OfficeConversionBatchResult batch = await OfficeWorkflow.ConvertDirectory("Documents")
@@ -48,6 +48,8 @@ Ordinary batches support the existing `Fail`, `Rename` and `Replace` conflict po
 ## Optional checkpoints
 
 Add `.WithCheckpoint("PDF-State")` to the builder, or set `CheckpointDirectory` on `OfficeConversionBatchRequest`, for restartable execution. Source, output and checkpoint trees must be separate local folders. For selected HTML files and Markdown files with local resources enabled, output and checkpoint folders must also be outside each file's resource tree, including an explicit Markdown `BaseDirectory`. Checkpoint jobs require `Fail`: recorded completed artifacts are immutable and verified by source, rendering-settings, local-resource and output hashes before reuse.
+
+Checkpoints support built-in routes. Registered adapters require an ordinary batch because their captured runtime configuration cannot be fingerprinted. An explicit registered route with checkpoints is rejected before execution; a registered input discovered in a mixed checkpoint batch reports a failed item without publishing it.
 
 Before publication, the runner flushes validated staged output and records its hash and staging identity. Restart can finish that recorded move or verify an output moved before the final receipt was written. Changed completed sources or settings, altered/missing outputs and outputs without a bound receipt fail the item for inspection. `RetryFailed` permits retrying recorded failures, including corrected failed inputs. Completed files and recorded pending publications survive cancellation. An interruption before publication intent is recorded can leave a hidden staging file; inspect it before removing it.
 

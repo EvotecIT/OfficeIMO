@@ -121,6 +121,7 @@ try {
         'OfficeIMO.Security' = @('OfficeIMO.Core')
         'OfficeIMO.IWork' = @('OfficeIMO.Core')
         'OfficeIMO.Reader.IWork' = @('OfficeIMO.IWork', 'OfficeIMO.Reader.Core')
+        'OfficeIMO.Workflows.IWork' = @('OfficeIMO.Workflows', 'OfficeIMO.Word.IWork', 'OfficeIMO.Excel.IWork', 'OfficeIMO.PowerPoint.IWork')
         'OfficeIMO.Word' = @('OfficeIMO.Core')
         'OfficeIMO.Excel' = @('OfficeIMO.Core')
         'OfficeIMO.PowerPoint' = @('OfficeIMO.Core')
@@ -431,6 +432,14 @@ internal sealed class ReleaseGeneratedRow
     Invoke-DotNet restore $projectPath --configfile $nugetConfigPath --packages $packagesPath --no-cache --force-evaluate
     Invoke-DotNet build $projectPath --configuration Release --no-restore
     Invoke-DotNet run --project $projectPath --configuration Release --no-build
+
+    $iWorkProject = Join-Path $PSScriptRoot 'PackageSmoke/OfficeIMO.IWork/OfficeIMO.IWork.PackageSmoke.csproj'
+    $iWorkProperties = @('-p:EnableOfficeIMOIWorkPackageSmoke=true', "-p:OfficeIMOIWorkPackageVersion=$Version")
+    $iWorkArtifacts = Join-Path $workingPath 'iwork-artifacts'
+    Invoke-DotNet restore $iWorkProject @iWorkProperties --configfile $nugetConfigPath --packages $packagesPath --artifacts-path $iWorkArtifacts --no-cache --force-evaluate
+    foreach ($framework in @('net8.0', 'net10.0')) {
+        Invoke-DotNet run --project $iWorkProject --configuration Release --framework $framework --no-restore @iWorkProperties --artifacts-path $iWorkArtifacts
+    }
 
     $visioPdfProjectXml = @"
 <Project Sdk="Microsoft.NET.Sdk">

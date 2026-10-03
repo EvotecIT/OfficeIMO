@@ -38,6 +38,10 @@ public static partial class PowerPointIWorkConverter {
                 ? FindPowerPointProjectionDiagnostics(projection, cancellationToken)
                 : Array.Empty<IWorkDiagnostic>())
             .ToArray();
+        if (editable && settings.FindUnacceptedDestinationOmission(destinationDiagnostics) is { } omission) {
+            destinationLimitation = omission;
+            editable = false;
+        }
         if (editable && settings.AllowPartialEditableReconstruction &&
             (!projection.HasEditableContent || projection.Diagnostics.Any(diagnostic =>
                 diagnostic.Severity != IWorkDiagnosticSeverity.Information)
@@ -45,7 +49,7 @@ public static partial class PowerPointIWorkConverter {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_PARTIAL_EDITABLE_RECONSTRUCTION",
-                    "Recovered editable content was retained under the explicit partial-reconstruction policy; source diagnostics describe incomplete details.")
+                    "Recovered editable content was retained under the explicit partial-reconstruction policy; source and destination diagnostics describe incomplete details.")
             }).ToArray();
         }
         if (!editable && mode == IWorkConversionMode.EditableOnly) {
