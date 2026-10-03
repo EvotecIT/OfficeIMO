@@ -11,14 +11,23 @@ public sealed class ArchiveLossPolicyTests {
     public async Task RegeneratedEmbeddedMessagesHonorPolicyInEveryArtifact(EmailConversionLossPolicy policy) {
         foreach (EmailFileFormat format in new[] { EmailFileFormat.Eml, EmailFileFormat.Emlx,
                      EmailFileFormat.OutlookMsg, EmailFileFormat.OutlookTemplate, EmailFileFormat.Tnef }) {
-            foreach (string kind in new[] { "Emlx", "Olm", "Partial", "Mapi" }) {
+            foreach (string kind in new[] { "Emlx", "Olm", "Partial", "Mapi", "TnefMessage", "TnefAttachment" }) {
                 if (kind == "Mapi" && format != EmailFileFormat.Eml && format != EmailFileFormat.Emlx) continue;
+                if (kind.StartsWith("Tnef", StringComparison.Ordinal) &&
+                    format != EmailFileFormat.OutlookMsg && format != EmailFileFormat.OutlookTemplate) continue;
                 var child = new EmailDocument { Subject = "Nested source" };
                 child.Body.Text = "Nested content";
                 if (kind == "Emlx") child.Properties["Emlx:Metadata:remote-id"] = "42";
                 else if (kind == "Olm") child.Properties["Olm:RawXml"] = "<source/>";
                 else if (kind == "Partial") child.Properties["Emlx:IsPartial"] = true;
-                else child.MessageMetadata.IconIndex = 1;
+                else if (kind == "Mapi") child.MessageMetadata.IconIndex = 1;
+                else if (kind == "TnefMessage") child.TnefAttributes.Add(new TnefAttribute(
+                    TnefAttributeLevel.Message, 0x0006F001, new byte[] { 7, 8 }));
+                else {
+                    var payload = new EmailAttachment { FileName = "payload.bin", Content = new byte[] { 1 }, Length = 1 };
+                    payload.TnefAttributes.Add(new TnefAttribute(TnefAttributeLevel.Attachment, 0x0006F001, new byte[] { 7, 8 }));
+                    child.Attachments.Add(payload);
+                }
                 var parent = new EmailDocument { Subject = "Parent" };
                 parent.Attachments.Add(new EmailAttachment { EmbeddedDocument = child, FileName = "child.eml" });
                 var root = new EmailDocument { Subject = "Root" };

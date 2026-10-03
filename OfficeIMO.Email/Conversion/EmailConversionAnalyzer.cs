@@ -31,14 +31,6 @@ internal static class EmailConversionAnalyzer {
                 "semantic-content"));
         }
 
-        if ((targetFormat == EmailFileFormat.OutlookMsg || targetFormat == EmailFileFormat.OutlookTemplate) &&
-            TnefWriter.HasUnmanagedRawAttributes(document)) {
-            diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
-                "EMAIL_TNEF_ATTRIBUTES_NOT_REPRESENTED_IN_MSG",
-                "Raw TNEF message or attachment attributes cannot be represented in an Outlook MSG artifact.",
-                "source-metadata/tnef"));
-        }
-
         AnalyzeSourceMetadataTree(document, targetFormat, options, preservesAppleMailMetadata, reusesSource, diagnostics);
 
         return new EmailConversionReport(document.Format, targetFormat, diagnostics.AsReadOnly());
@@ -55,6 +47,13 @@ internal static class EmailConversionAnalyzer {
             if (!visited.Add(item.Document)) continue;
             if (item.Depth > options.MaxNestedMessageDepth)
                 throw new EmailLimitExceededException(nameof(options.MaxNestedMessageDepth), item.Depth, options.MaxNestedMessageDepth);
+            if ((targetFormat == EmailFileFormat.OutlookMsg || targetFormat == EmailFileFormat.OutlookTemplate) &&
+                TnefWriter.HasUnmanagedRawAttributes(item.Document)) {
+                Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                    "EMAIL_TNEF_ATTRIBUTES_NOT_REPRESENTED_IN_MSG",
+                    "Raw TNEF message or attachment attributes cannot be represented in an Outlook MSG artifact.",
+                    "source-metadata/tnef"));
+            }
             if (targetFormat == EmailFileFormat.Eml && !(item.Depth == 0 && reusesRootSource) &&
                 HasSourceSpecificMetadata(item.Document)) {
                 Add(CreateLossDiagnostic(options.ConversionLossPolicy, "EMAIL_SOURCE_METADATA_NOT_REPRESENTED_IN_EML",
