@@ -2,6 +2,8 @@
 
 This modular adapter adds `.tex` ingestion backed by `OfficeIMO.Latex`. It extracts the bounded OfficeIMO profile and diagnoses preserved or simplified content; it does not compile TeX or load packages.
 
+PreserveOnly mode carries the complete visible source, including preamble declarations, through block and whole-document chunks. Description items without a visible term retain their body without an added colon; label anchors remain available when chunks split.
+
 ```csharp
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Latex;

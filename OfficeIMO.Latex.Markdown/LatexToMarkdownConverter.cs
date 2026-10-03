@@ -35,7 +35,7 @@ internal static class LatexToMarkdownConverter {
         BlockCandidate[] candidates = BuildCandidates(context)
             .OrderBy(static candidate => candidate.Span.Start.Offset)
             .ThenByDescending(static candidate => candidate.Span.Length).ToArray();
-        int consumedUntil = document.Body?.ContentSpan.Start.Offset ?? 0;
+        int consumedUntil = document.Profile == LatexDocumentProfile.PreserveOnly ? 0 : document.Body?.ContentSpan.Start.Offset ?? 0;
         foreach (BlockCandidate candidate in candidates) {
             cancellationToken.ThrowIfCancellationRequested();
             if (candidate.Span.Start.Offset < consumedUntil) continue;
@@ -55,7 +55,7 @@ internal static class LatexToMarkdownConverter {
 
     private static IEnumerable<BlockCandidate> BuildCandidates(LatexProjectionContext context) {
         if (context.Document.Body == null || context.Document.Profile == LatexDocumentProfile.PreserveOnly) {
-            LatexSourceSpan fallback = context.Document.Body?.ContentSpan ?? context.Document.SyntaxTree.Root.Span;
+            LatexSourceSpan fallback = context.Document.SyntaxTree.Root.Span;
             context.CheckCancellation();
             yield return new BlockCandidate(fallback, fallback);
             yield break;
@@ -246,7 +246,8 @@ internal static class LatexToMarkdownConverter {
         InlineSequence content = LatexInlineToMarkdownConverter.Convert(context, item.ContentSpan, diagnostics);
         if (item.ItemCommand.GetOptionalArgument(0) is LatexArgument label) {
             InlineSequence labeled = LatexInlineToMarkdownConverter.Convert(context, label.ContentSpan, diagnostics);
-            labeled.AddRaw(new MarkdownTextRun(": "));
+            if (LatexProjectedText.HasVisibleText(labeled, context.CancellationToken) && LatexProjectedText.HasVisibleText(content, context.CancellationToken))
+                labeled.AddRaw(new MarkdownTextRun(": "));
             foreach (IMarkdownInline inline in content.Nodes) labeled.AddRaw(inline);
             diagnostics.Add(new LatexMarkdownConversionDiagnostic(
                 "LATEXMD214", LatexMarkdownConversionOutcome.Simplified, "list-item-label",
@@ -459,7 +460,8 @@ internal static class LatexToMarkdownConverter {
         string visible = context.ExtractResidual(span, context.Comments(span).Select(static item => item.Span));
         ReportOmittedComments(context, comments.Where(item => IsInside(item.Span, span.Start.Offset, span.End.Offset)), diagnostics);
         if (string.IsNullOrWhiteSpace(visible)) return;
-        if (options.PreserveUnsupportedAsSource) target.Code("latex", visible.Trim());
+        if (options.PreserveUnsupportedAsSource) target.Code("latex",
+            context.Document.Profile == LatexDocumentProfile.PreserveOnly ? visible : visible.Trim());
         diagnostics.Add(new LatexMarkdownConversionDiagnostic("LATEXMD297",
             options.PreserveUnsupportedAsSource ? LatexMarkdownConversionOutcome.SourceFallback : LatexMarkdownConversionOutcome.Omitted,
             "unprojected-source", "Source outside the semantic document profile requires a source fallback.", span));

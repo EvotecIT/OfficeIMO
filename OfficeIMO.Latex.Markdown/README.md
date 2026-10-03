@@ -2,6 +2,10 @@
 
 This package maps the bounded `OfficeIMO.Latex` profile to and from `OfficeIMO.Markdown`. It reports source fallbacks and simplifications, especially for TeX math layout, package-specific commands, bibliography formatting, and unknown environments.
 
+`LatexDocumentProfile.PreserveOnly` retains the complete visible source in a diagnosed LaTeX code block, including preamble declarations and source after `\end{document}`. Setting `PreserveUnsupportedAsSource` to `false` omits that source and reports its full span. Comment suppression still applies. The active OfficeIMO profile projects the document body and ignores the inert trailer.
+
+Literal control words follow TeX delimiter rules: `A\textasciitilde B` becomes `A~B`, while `A\textasciitilde{} B` keeps the space after the group. Text, metadata, captions, URLs and image paths share this decoding rule.
+
 ```csharp
 using OfficeIMO.Latex;
 using OfficeIMO.Latex.Markdown;

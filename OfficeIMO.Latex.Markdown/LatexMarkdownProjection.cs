@@ -73,8 +73,7 @@ internal static class LatexProjectedText {
             case UnorderedListBlock list: return Items(list.Items, token);
             case OrderedListBlock list: return Items(list.Items, token);
             case DefinitionListBlock definitions:
-                return Join(definitions.Entries.Select(entry => (IReadOnlyList<LatexTextSegment>)Inlines(entry.Term, token)
-                    .Concat(Plain(": ")).Concat(Segments(entry.DefinitionBlocks, cancellationToken: token)).ToArray()), "\n");
+                return Join(definitions.Entries.Select(entry => Definition(entry, token)), "\n");
             case TableBlock table: {
                 var rows = new List<IReadOnlyList<LatexTextSegment>>();
                 string? caption = table.Attributes.Attributes.FirstOrDefault(static pair => pair.Key == "caption").Value;
@@ -92,6 +91,29 @@ internal static class LatexProjectedText {
     private static IReadOnlyList<LatexTextSegment> Items(IEnumerable<ListItem> items, System.Threading.CancellationToken token) =>
         Join(items.Select(item => (IReadOnlyList<LatexTextSegment>)Inlines(item.Content, token)
             .Concat(Segments(item.NestedBlocks, cancellationToken: token)).ToArray()), "\n");
+
+    internal static bool HasVisibleText(InlineSequence sequence, System.Threading.CancellationToken token) =>
+        HasVisibleText(Inlines(sequence, token), token);
+
+    private static bool HasVisibleText(IEnumerable<LatexTextSegment> segments, System.Threading.CancellationToken token) {
+        foreach (LatexTextSegment segment in segments) {
+            token.ThrowIfCancellationRequested();
+            if (segment.IsAnchor) continue;
+            for (int index = 0; index < segment.Text.Length; index++) {
+                if ((index & 1023) == 0) token.ThrowIfCancellationRequested();
+                if (!char.IsWhiteSpace(segment.Text[index])) return true;
+            }
+        }
+        return false;
+    }
+
+    private static IReadOnlyList<LatexTextSegment> Definition(DefinitionListEntry entry, System.Threading.CancellationToken token) {
+        IReadOnlyList<LatexTextSegment> term = Inlines(entry.Term, token);
+        IReadOnlyList<LatexTextSegment> body = Segments(entry.DefinitionBlocks, cancellationToken: token);
+        bool visibleTerm = HasVisibleText(term, token);
+        if (!visibleTerm && !term.Any(static segment => segment.IsAnchor)) term = Array.Empty<LatexTextSegment>();
+        return term.Concat(visibleTerm && HasVisibleText(body, token) ? Plain(": ") : Array.Empty<LatexTextSegment>()).Concat(body).ToArray();
+    }
 
     private static IReadOnlyList<LatexTextSegment> Inlines(InlineSequence? sequence, System.Threading.CancellationToken token) {
         var parts = new List<LatexTextSegment>();

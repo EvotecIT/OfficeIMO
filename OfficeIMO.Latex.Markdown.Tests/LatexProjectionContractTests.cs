@@ -6,6 +6,63 @@ namespace OfficeIMO.Latex.Markdown.Tests;
 public sealed class LatexProjectionContractTests {
     private static string Wrap(string body) => "\\documentclass{article}\n\\begin{document}\n" + body + "\n\\end{document}";
 
+    [Theory]
+    [InlineData("A\\textasciitilde B", "A~B")]
+    [InlineData("A\\textbackslash B", "A\\B")]
+    [InlineData("A\\textasciicircum B", "A^B")]
+    [InlineData("A\\textasciitilde \t\r\n B", "A~B")]
+    [InlineData("A\\textasciitilde% comment\n  B", "A~B")]
+    [InlineData("A\\textasciitilde{} B", "A~ B")]
+    [InlineData("A\\textasciitilde \t{} B", "A~ B")]
+    [InlineData("A\\textasciitilde{B} C", "A~B C")]
+    [InlineData("A\\% B", "A% B")]
+    public void LiteralControlWordsDiscardDelimiterWhitespaceInTextAndScalars(string source, string expected) {
+        MarkdownDoc markdown = LatexDocument.Parse("\\author{" + source + "}" + Wrap(source)).ToMarkdownDocument();
+        Assert.Equal(expected, markdown.FindFrontMatterEntry("author")?.Value);
+        var text = new StringBuilder();
+        foreach (IPlainTextMarkdownInline inline in Assert.Single(markdown.Blocks.OfType<ParagraphBlock>()).Inlines.Nodes.OfType<IPlainTextMarkdownInline>()) inline.AppendPlainText(text);
+        Assert.Equal(expected, text.ToString());
+    }
+
+    [Fact]
+    public void LiteralControlWordDelimitersDoNotConsumeParagraphsOrExplicitGroupSpaces() {
+        MarkdownDoc markdown = LatexDocument.Parse(Wrap("A\\textasciitilde \n\nB\n\nC\\newline D")).ToMarkdownDocument();
+        ParagraphBlock[] paragraphs = markdown.Blocks.OfType<ParagraphBlock>().ToArray();
+        Assert.Equal(3, paragraphs.Length);
+        Assert.Equal("A~", PlainText(paragraphs[0].Inlines));
+        Assert.Equal("B", PlainText(paragraphs[1].Inlines));
+        Assert.Equal("C D", PlainText(paragraphs[2].Inlines));
+        Assert.Single(paragraphs[2].Inlines.Nodes.OfType<HardBreakInline>());
+    }
+
+    [Fact]
+    public void ResourceLiteralCommandsShareControlWordDelimiterHandling() {
+        MarkdownDoc markdown = LatexDocument.Parse(Wrap("\\url{https://example.test/\\textasciitilde alice} " +
+            "\\href{https://example.test/\\textasciitilde alice}{Link} \\includegraphics{\\textasciitilde images/a.png}")).ToMarkdownDocument();
+        InlineSequence inlines = Assert.Single(markdown.Blocks.OfType<ParagraphBlock>()).Inlines;
+        Assert.All(inlines.Nodes.OfType<LinkInline>(), static link => Assert.Equal("https://example.test/~alice", link.Url));
+        Assert.Equal("~images/a.png", Assert.Single(inlines.Nodes.OfType<ImageInline>()).Src);
+    }
+
+    [Theory]
+    [InlineData("[]")]
+    [InlineData("[ ]")]
+    [InlineData("[\\label{item}]")]
+    public void EmptyCustomListLabelsDoNotInjectVisiblePunctuation(string label) {
+        MarkdownDoc markdown = LatexDocument.Parse(Wrap("\\begin{itemize}\\item" + label + " Body\\end{itemize}")).ToMarkdownDocument();
+        ListItem item = Assert.Single(Assert.Single(markdown.Blocks.OfType<UnorderedListBlock>()).Items);
+        string rendered = MarkdownDoc.Create().Add(new ParagraphBlock(item.Content)).ToMarkdown();
+        Assert.DoesNotContain(":", rendered, StringComparison.Ordinal);
+        Assert.Contains("Body", rendered, StringComparison.Ordinal);
+        if (label.Contains("label")) Assert.Contains("<a id=\"item\"></a>", rendered, StringComparison.Ordinal);
+    }
+
+    private static string PlainText(InlineSequence inlines) {
+        var text = new StringBuilder();
+        foreach (IPlainTextMarkdownInline inline in inlines.Nodes.OfType<IPlainTextMarkdownInline>()) inline.AppendPlainText(text);
+        return text.ToString();
+    }
+
     [Fact]
     public void DisplayScalarsDecodeEscapesAndReportFlattenedFormatting() {
         string body = "\\begin{figure}\\includegraphics{~/a.png}\\caption{\\textbf{R\\&D} 100\\%}\\end{figure}\n" +

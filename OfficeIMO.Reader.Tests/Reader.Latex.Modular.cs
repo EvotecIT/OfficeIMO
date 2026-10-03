@@ -10,6 +10,55 @@ namespace OfficeIMO.Tests;
 [Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderLatexModularTests {
     [Theory]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public void PreservationOnlyReaderRetainsOrDiagnosesWholeSource(bool blocks, bool preserve) {
+        const string source = "\\usepackage{custom}\n\\newcommand{\\greet}{Hello}\n\\begin{document}\n\\greet World\n\\end{document}\nTRAILER";
+        LatexDocument document = LatexDocument.Parse(source, new LatexParseOptions { Profile = LatexDocumentProfile.PreserveOnly });
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(document, readerOptions: new ReaderOptions { MaxChars = 32 },
+            latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks, MarkdownOptions = new LatexToMarkdownOptions {
+                IncludePreambleAsFrontMatter = false, PreserveUnsupportedAsSource = preserve
+            } }).ToArray();
+        Assert.Equal(preserve ? source : string.Empty, string.Concat(chunks.Select(static chunk => chunk.Text)));
+        Assert.Contains(chunks.SelectMany(static chunk => chunk.Warnings ?? Array.Empty<string>()), static warning => warning.StartsWith("LATEXMD297:", StringComparison.Ordinal));
+        if (preserve) Assert.All(chunks, static chunk => Assert.IsType<OfficeIMO.Markdown.CodeBlock>(Assert.Single(OfficeIMO.Markdown.MarkdownReader.Parse(chunk.Markdown!).Blocks)));
+        else Assert.All(chunks, static chunk => Assert.Equal(string.Empty, chunk.Markdown));
+        Assert.Equal(1, chunks[0].Location.StartLine);
+        Assert.Equal(6, chunks[0].Location.EndLine);
+    }
+
+    [Theory]
+    [InlineData(true, "")]
+    [InlineData(false, "")]
+    [InlineData(true, "[]")]
+    [InlineData(false, "[]")]
+    [InlineData(true, "[ ]")]
+    [InlineData(false, "[ ]")]
+    [InlineData(true, "[\\label{term}]")]
+    [InlineData(false, "[\\label{term}]")]
+    public void EmptyDescriptionTermsDoNotInjectPunctuationAndAnchorsSurviveSplitting(bool blocks, string label) {
+        string source = "\\begin{document}\\begin{description}\\item" + label + " Body text\\end{description}\\end{document}";
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(LatexDocument.Parse(source), readerOptions: new ReaderOptions { MaxChars = 6 },
+            latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks, IncludeDiagnostics = false }).ToArray();
+        string text = string.Concat(chunks.Select(static chunk => chunk.Text));
+        Assert.DoesNotContain(":", text, StringComparison.Ordinal);
+        Assert.Contains("Body text", text, StringComparison.Ordinal);
+        if (label.Contains("label")) Assert.Contains("<a id=\"term\"></a>", string.Concat(chunks.Select(static chunk => chunk.Markdown)), StringComparison.Ordinal);
+        else Assert.Equal("Body text", text);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void NonemptyDescriptionTermsKeepTheirSeparatorButEmptyBodiesDoNotGainOne(bool blocks) {
+        const string source = "\\begin{document}\\begin{description}\\item[Term] Definition\\item[Only]\\end{description}\\end{document}";
+        ReaderChunk chunk = Assert.Single(LatexReaderAdapter.Read(LatexDocument.Parse(source), latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks }));
+        Assert.Equal("Term: Definition\nOnly", chunk.Text);
+    }
+
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void SourceAfterDocumentEndDoesNotLeakIntoReaderChunks(bool blocks) {

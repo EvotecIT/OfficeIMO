@@ -61,6 +61,13 @@ public sealed class LatexAuditConversionTests {
         });
         LatexToMarkdownResult result = document.ToMarkdownDocumentResult(new LatexToMarkdownOptions { IncludePreambleAsFrontMatter = false });
         Assert.Contains("IMPORTANT CONTENT", result.Value.ToMarkdown(), StringComparison.Ordinal);
+        if (preserveOnly) {
+            CodeBlock fallback = Assert.Single(result.Value.Blocks.OfType<CodeBlock>());
+            Assert.Equal(source, fallback.Content);
+            LatexMarkdownConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, static item => item.Code == "LATEXMD297");
+            Assert.Equal(0, diagnostic.LatexSpan!.Value.Start.Offset);
+            Assert.Equal(source.Length, diagnostic.LatexSpan.Value.End.Offset);
+        }
         Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
         Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
         LatexToMarkdownResult omitted = document.ToMarkdownDocumentResult(new LatexToMarkdownOptions { PreserveUnsupportedAsSource = false });
@@ -230,6 +237,34 @@ public sealed class LatexAuditConversionTests {
         Assert.True(conversion.HasLoss);
         Assert.Contains(conversion.FidelityDiagnostics, static diagnostic => diagnostic.Code == "LATEXMD297");
         Assert.Contains("IMPORTANT CONTENT", PdfReadDocument.Open(conversion.Value.ToBytes()).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PreservationOnlyFallbackIncludesPreambleAndTrailerAndReportsWholeSourceOmission() {
+        const string source = "\\documentclass{article}\n\\usepackage{custom}\n\\newcommand{\\greet}{Hello}\n" +
+            "\\begin{document}\n\\greet World\n\\end{document}\nTRAILER";
+        LatexDocument document = LatexDocument.Parse(source, new LatexParseOptions { Profile = LatexDocumentProfile.PreserveOnly });
+        LatexToMarkdownResult preserved = document.ToMarkdownDocumentResult(new LatexToMarkdownOptions { IncludePreambleAsFrontMatter = false });
+        Assert.Equal(source, Assert.Single(preserved.Value.Blocks.OfType<CodeBlock>()).Content);
+        var pdf = document.ToPdfDocumentResult();
+        string extracted = PdfReadDocument.Open(pdf.Value.ToBytes()).ExtractText();
+        foreach (string text in new[] { "usepackage", "newcommand", "greet World", "TRAILER" }) Assert.Contains(text, extracted, StringComparison.Ordinal);
+        LatexToMarkdownResult omitted = document.ToMarkdownDocumentResult(new LatexToMarkdownOptions { IncludePreambleAsFrontMatter = false, PreserveUnsupportedAsSource = false });
+        Assert.Empty(omitted.Value.Blocks);
+        LatexMarkdownConversionDiagnostic diagnostic = Assert.Single(omitted.Report.Diagnostics, static item => item.Code == "LATEXMD297");
+        Assert.Equal(LatexMarkdownConversionOutcome.Omitted, diagnostic.Outcome);
+        Assert.Equal(0, diagnostic.LatexSpan!.Value.Start.Offset);
+        Assert.Equal(source.Length, diagnostic.LatexSpan.Value.End.Offset);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PreservationOnlyFallbackKeepsOuterWhitespaceWithOrWithoutDocumentBody(bool body) {
+        string source = " \n" + (body ? "\\begin{document}Body\\end{document}" : "\\newcommand{\\greet}{Hello}") + "\n ";
+        LatexToMarkdownResult result = LatexDocument.Parse(source, new LatexParseOptions { Profile = LatexDocumentProfile.PreserveOnly })
+            .ToMarkdownDocumentResult(new LatexToMarkdownOptions { IncludePreambleAsFrontMatter = false });
+        Assert.Equal(source, Assert.Single(result.Value.Blocks.OfType<CodeBlock>()).Content);
     }
     [Fact]
     public void PdfReportsParserErrorsIntroducedByNativeEdits() {

@@ -35,6 +35,10 @@ internal static class LatexInlineToMarkdownConverter {
             else if (candidate.Math != null) AddMath(target, context, candidate.Math, diagnostics);
             else if (candidate.Verbatim != null) AddVerbatim(target, context, candidate.Verbatim, diagnostics);
             cursor = candidate.Span.End.Offset;
+            if (candidate.Command is LatexCommand command && command.Arguments.Count == 0 &&
+                (command.Name == "textbackslash" || command.Name == "textasciitilde" || command.Name == "textasciicircum" ||
+                 command.Name == "newline" || command.Name == "linebreak"))
+                cursor = LatexLiteralText.SkipControlWordDelimiter(context.Document.Source.Text, cursor, end, context.CancellationToken);
         }
         if (cursor < end) AddPlain(target, context, cursor, end);
     }

@@ -29,10 +29,39 @@ internal static class LatexLiteralText {
             string? literal = command == "textbackslash" ? "\\" : command == "textasciitilde" ? "~" : command == "textasciicircum" ? "^" : null;
             if (literal == null) { output.Append(current); continue; }
             output.Append(literal);
+            end = SkipControlWordDelimiter(source, end, source.Length, cancellationToken);
             index = end - 1;
             if (end + 1 < source.Length && source[end] == '{' && source[end + 1] == '}') index += 2;
         }
         cancellationToken.ThrowIfCancellationRequested();
         return output.ToString();
+    }
+
+    // TeX discards spaces, tabs and one end-of-line after a control word. A
+    // comment also discards its line ending; a second live end-of-line is a
+    // paragraph boundary. A group ends this scanning state, even when empty.
+    internal static int SkipControlWordDelimiter(string source, int cursor, int end,
+        System.Threading.CancellationToken cancellationToken) {
+        bool lineEnded = false;
+        while (cursor < end) {
+            if ((cursor & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            char current = source[cursor];
+            if (current == ' ' || current == '\t') { cursor++; continue; }
+            if (current == '%') {
+                while (cursor < end && source[cursor] != '\r' && source[cursor] != '\n') {
+                    if ((cursor & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+                    cursor++;
+                }
+                if (cursor < end && source[cursor] == '\r') cursor++;
+                if (cursor < end && source[cursor] == '\n') cursor++;
+                continue;
+            }
+            if (current != '\r' && current != '\n' || lineEnded) break;
+            lineEnded = true;
+            if (current == '\r' && cursor + 1 < end && source[cursor + 1] == '\n') cursor++;
+            cursor++;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return cursor;
     }
 }
