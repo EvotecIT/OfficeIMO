@@ -125,9 +125,10 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
         diagnostic.LossKind != global::OfficeIMO.OfficeConversionLossKind.None);
     /// <summary>Gets whether the parser or semantic projection reported an error diagnostic.</summary>
     public bool HasErrors => Diagnostics.Any(diagnostic => diagnostic.Severity == IWorkDiagnosticSeverity.Error);
-    /// <summary>Gets whether the explicit partial-reconstruction policy was needed to retain editable content.</summary>
+    /// <summary>Gets whether editable output needed the partial-reconstruction policy, including known source or destination omissions.</summary>
     public bool IsPartialEditableReconstruction => ProjectionKind == IWorkProjectionKind.EditableReconstruction
-        && Diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_PARTIAL_EDITABLE_RECONSTRUCTION");
+        && Diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_PARTIAL_EDITABLE_RECONSTRUCTION"
+            || diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission);
 
     /// <summary>Throws unless the output is an editable reconstruction without explicitly partial content.</summary>
     public IWorkConversionReport RequireCompleteEditableReconstruction() {

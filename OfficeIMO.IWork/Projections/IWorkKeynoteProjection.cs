@@ -274,11 +274,12 @@ internal static partial class IWorkKeynoteReader {
                 "The Keynote show declares an invalid slide size; editable reconstruction is incomplete.",
                 show.EntryPath, show.Identifier));
         }
-        int position = 0;
         int materializedCellCount = 0;
         var projectionBudget = new IWorkProjectionBudget(source.Options);
+        var nodePositions = new List<int>();
         IReadOnlyList<IWorkArchiveRecord> nodes = references.ReadAll(
-            show, slideTree, 2, out int unresolvedNodeCount, "3/2", allowedType: type => type == SlideNodeArchive);
+            show, slideTree, 2, out int unresolvedNodeCount, "3/2", allowedType: type => type == SlideNodeArchive,
+            resolvedPositions: nodePositions);
         if (nodes.Count > source.Options.MaximumProjectedSlides) {
             throw new InvalidDataException($"Keynote slide count exceeds the configured projection limit of {source.Options.MaximumProjectedSlides}.");
         }
@@ -291,8 +292,9 @@ internal static partial class IWorkKeynoteReader {
         }
         var projectedNodeIdentifiers = new HashSet<ulong>();
         var projectedSlideIdentifiers = new HashSet<ulong>();
-        foreach (IWorkArchiveRecord node in nodes) {
-            position++;
+        for (int nodeIndex = 0; nodeIndex < nodes.Count; nodeIndex++) {
+            IWorkArchiveRecord node = nodes[nodeIndex];
+            int position = nodePositions[nodeIndex];
             if (node.MessageType != SlideNodeArchive) {
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,

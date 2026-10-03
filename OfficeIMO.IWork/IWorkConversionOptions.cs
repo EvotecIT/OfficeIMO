@@ -17,6 +17,11 @@ public sealed class IWorkConversionOptions {
     /// <remarks>Defaults to false. Renames are reported and the original source sheet/table identity remains available on the conversion result.</remarks>
     public bool NormalizeWorksheetNames { get; set; }
 
+    /// <summary>Returns a known destination omission that requires the explicit partial policy.</summary>
+    internal string? FindUnacceptedDestinationOmission(IEnumerable<IWorkDiagnostic> diagnostics) =>
+        AllowPartialEditableReconstruction ? null : diagnostics.FirstOrDefault(diagnostic =>
+            diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission)?.Message;
+
     internal void ValidateVisualPreview(IWorkPreviewAsset? preview) {
         if (RequireCompleteVisualCoverage && preview?.Coverage != IWorkVisualCoverage.FullDocument) {
             throw new InvalidDataException("The source preview is not known to cover the complete document. Use editable reconstruction or explicitly permit incomplete visual coverage.");

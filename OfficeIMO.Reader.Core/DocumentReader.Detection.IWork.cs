@@ -134,7 +134,7 @@ internal static partial class DocumentReaderEngine {
             if (!ReadExact(nested, name, 0, name.Length)) return false;
             long next = nested.Position + extraLength + commentLength;
             if (next < nested.Position || next > nested.Length) return false;
-            if (NormalizeZipEntryName(name) == "document.iwa" &&
+            if (NormalizeZipEntryName(name) is "document.iwa" or "index/document.iwa" &&
                 ReadUInt32(header, 24) > 0) return true;
             nested.Position = next;
         }

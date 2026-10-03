@@ -8,15 +8,20 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Partial_rich_formula_cache_remains_editable_with_a_cached_value() {
         using MemoryStream package = CreateNumbersWithPartialRichCell(hasFormula: true);
+        Assert.Throws<InvalidDataException>(() => ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
+            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
+        package.Position = 0;
 
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
             conversionOptions: new IWorkConversionOptions {
-                Mode = IWorkConversionMode.EditableOnly
+                Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true
             });
         IWorkTableCell cell = Assert.Single(Assert.Single(Assert.Single(
             result.Projection.Sheets).Tables).Cells);
 
         Assert.False(result.IsVisualFallback);
+        Assert.True(result.Report.IsPartialEditableReconstruction);
+        Assert.Throws<InvalidOperationException>(() => result.Report.RequireCompleteEditableReconstruction());
         IWorkFormulaCellStatus assessment = Assert.Single(result.Report.FormulaCells);
         Assert.True(assessment.ExpressionIsComplete);
         Assert.Equal(IWorkFormulaCacheStatus.Partial, assessment.CacheStatus);
@@ -85,9 +90,12 @@ public sealed partial class IWorkBoundaryTests {
             includeUnusedRichEntry: true);
 
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+            conversionOptions: new IWorkConversionOptions {
+                Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true
+            });
 
         Assert.False(result.IsVisualFallback);
+        Assert.True(result.Projection.HasEditableContent);
         Assert.DoesNotContain(result.Projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_TABLE_RICH_TEXT_STORAGE_UNSUPPORTED");
     }
@@ -139,9 +147,12 @@ public sealed partial class IWorkBoundaryTests {
             includeUnusedRichEntry: true, invalidUnusedWrapper: true);
 
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+            conversionOptions: new IWorkConversionOptions {
+                Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true
+            });
 
         Assert.False(result.IsVisualFallback);
+        Assert.True(result.Projection.HasEditableContent);
         Assert.DoesNotContain(result.Projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_TABLE_RICH_TEXT_STORAGE_UNSUPPORTED");
     }
