@@ -351,6 +351,8 @@ internal static partial class RtfSemanticReader {
 
         private void AddDocumentBlock(IRtfBlock block) {
             CountSemanticBlock();
+            // A body block ends the preceding table, including standalone images.
+            if (!(block is RtfTable)) _currentTable = null;
             _document.AddParsedBlock(block);
             EnsureCurrentSection().AddParsedBlock(block);
         }
