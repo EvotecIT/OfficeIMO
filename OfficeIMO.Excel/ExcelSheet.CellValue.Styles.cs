@@ -196,7 +196,12 @@ namespace OfficeIMO.Excel {
         /// <param name="column">The 1-based column index of the cell to inspect.</param>
         /// <param name="text">When this method returns, contains the extracted cell text if successful; otherwise, an empty string.</param>
         /// <returns><see langword="true"/> if text was read successfully; otherwise, <see langword="false"/>.</returns>
-        public bool TryGetCellText(int row, int column, out string text) {
+        public bool TryGetCellText(int row, int column, out string text) =>
+            TryGetCellText(row, column, null, out text);
+
+        // Conversion operations may reuse one immutable shared-string snapshot while
+        // independent public calls still observe edits to the workbook's native roots.
+        internal bool TryGetCellText(int row, int column, SharedStringCache? sharedStrings, out string text) {
             text = string.Empty;
             try {
                 if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
@@ -212,7 +217,7 @@ namespace OfficeIMO.Excel {
                 // Resolve shared string if needed
                 if (cell.DataType != null && cell.DataType.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) {
                     if (TryParseCellTextSharedStringIndex(cell.InnerText, out int ssid)) {
-                        string? sharedText = BuildCellTextSharedStringSnapshot().Get(ssid);
+                        string? sharedText = (sharedStrings ?? BuildCellTextSharedStringSnapshot()).Get(ssid);
                         if (sharedText != null) {
                             text = sharedText;
                             return true;
