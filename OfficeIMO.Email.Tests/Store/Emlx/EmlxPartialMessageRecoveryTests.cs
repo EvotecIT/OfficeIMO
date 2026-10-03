@@ -132,6 +132,23 @@ public sealed class EmlxPartialMessageRecoveryTests {
     }
 
     [Fact]
+    public void SameLengthSiblingMutationInvalidatesEarlierStreamingContent() {
+        using var tree = new PartialTree();
+        tree.WriteMessage();
+        tree.Write("Attachments/123/2.1/payload.bin", Encoding.ASCII.GetBytes("Original"));
+        using EmailStoreSession session = EmailStoreSession.Open(tree.Root);
+        EmailStoreItemReference reference = Assert.Single(session.EnumerateItems());
+        EmailStoreItem first = session.ReadItem(reference, new EmailStoreItemReadOptions(preferStreamingAttachmentContent: true));
+        IEmailContentSource content = first.Document.Attachments[0].ContentSource!;
+        using Stream outstanding = content.OpenRead();
+        Assert.Equal((int)'O', outstanding.ReadByte());
+        tree.Write("Attachments/123/2.1/payload.bin", Encoding.ASCII.GetBytes("Modified"));
+        Assert.Throws<InvalidDataException>(() => session.ReadItem(reference));
+        Assert.Throws<ObjectDisposedException>(() => content.OpenRead());
+        Assert.Throws<ObjectDisposedException>(() => outstanding.ReadByte());
+    }
+
+    [Fact]
     public void SiblingLengthMutationAndRecoveryLimitsRejectBeforeReturningAnItem() {
         using var tree = new PartialTree();
         tree.WriteMessage();

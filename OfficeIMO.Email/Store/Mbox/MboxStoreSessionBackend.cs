@@ -8,6 +8,7 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
     private readonly Stream? _stream;
     private readonly Func<Stream>? _openSource;
     private readonly long _sourceLength;
+    private readonly EmailStoreSourceGuard _sourceGuard;
     private readonly EmailStoreReaderOptions _options;
     private readonly EmailStoreDiagnosticCollection _diagnostics = new EmailStoreDiagnosticCollection();
     private readonly EmailStoreReadResources _resources;
@@ -18,14 +19,16 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
     private readonly IReadOnlyList<EmailStoreFolderInfo> _folders;
 
     internal MboxStoreSessionBackend(Stream stream, string? sourceName,
-        EmailStoreReaderOptions options, CancellationToken cancellationToken) {
+        EmailStoreReaderOptions options, CancellationToken cancellationToken, bool isSnapshot = false) {
         _stream = stream ?? throw new ArgumentNullException(nameof(stream));
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _resources = new EmailStoreReadResources(options);
         _ownsResources = true;
         _sourceLength = stream.Length;
         DisplayName = GetDisplayName(sourceName);
-        Index(stream, cancellationToken);
+        _sourceGuard = new EmailStoreSourceGuard(stream, _sourceLength, options.MaxInputBytes, _resources.Dispose, cancellationToken, isSnapshot);
+        try { Index(stream, cancellationToken); _sourceGuard.Validate(stream, cancellationToken); }
+        catch { _resources.Dispose(); throw; }
         _folders = new[] {
             new EmailStoreFolderInfo(FolderId, null, DisplayName ?? "Mailbox", _items.Count, 0)
         };
@@ -40,7 +43,9 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
         DisplayName = GetDisplayName(sourceName);
         using (Stream stream = openSource()) {
             _sourceLength = stream.Length;
-            Index(stream, cancellationToken);
+            _sourceGuard = new EmailStoreSourceGuard(stream, _sourceLength, options.MaxInputBytes, _resources.Dispose, cancellationToken);
+            try { Index(stream, cancellationToken); _sourceGuard.Validate(stream, cancellationToken); }
+            catch { if (_ownsResources) _resources.Dispose(); throw; }
         }
         _folders = new[] {
             new EmailStoreFolderInfo(FolderId, null, DisplayName ?? "Mailbox", _items.Count, 0)
@@ -90,16 +95,18 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
                 maximumMessages: 1);
             Stream source = _openSource?.Invoke() ?? _stream!;
             try {
-                if (source.Length != _sourceLength) {
-                    throw new InvalidDataException("The mbox source length changed after it was indexed.");
-                }
+                _sourceGuard.Validate(source, cancellationToken);
                 using (var input = new EmailStoreSegmentStream(source, item.Offset, item.Length)) {
                     if (options.PreferStreamingAttachmentContent) {
                         using EmailReadResult result = MboxSelectedMessageReader.Read(input, mailboxOptions,
                             cancellationToken, out EmailMailboxEntry mailboxEntry);
+                        _sourceGuard.Validate(source, cancellationToken);
                         _resources.Adopt(result);
                         entry = new EmailMailboxEntryReadResult(mailboxEntry, result.Diagnostics, item.Length);
-                    } else entry = new EmailMailboxReader(mailboxOptions).ReadEntries(input, cancellationToken).Single();
+                    } else {
+                        entry = new EmailMailboxReader(mailboxOptions).ReadEntries(input, cancellationToken).Single();
+                        _sourceGuard.Validate(source, cancellationToken);
+                    }
                 }
             } finally {
                 if (_openSource != null) source.Dispose();

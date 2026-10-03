@@ -55,7 +55,9 @@ public sealed class MboxStoreReaderTests {
     [Fact]
     public void OpeningMboxStreamsWithoutRequestingTheWholeAggregate() {
         byte[] bytes = CreateLargeMailboxBytes();
-        using var stream = new MaximumReadSizeStream(bytes, 32);
+        // Indexing and source identity scans remain bounded independently of the aggregate size.
+        Assert.True(bytes.Length > 64 * 1024);
+        using var stream = new MaximumReadSizeStream(bytes, 64 * 1024);
 
         using EmailStoreSession session = EmailStoreSession.Open(stream, "large.mbox");
 

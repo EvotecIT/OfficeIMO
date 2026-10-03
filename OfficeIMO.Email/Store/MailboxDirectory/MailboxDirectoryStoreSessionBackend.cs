@@ -74,7 +74,7 @@ internal sealed partial class MailboxDirectoryStoreSessionBackend : IEmailStoreS
             reference.IsAssociated || reference.IsOrphaned) throw new KeyNotFoundException("The item reference does not belong to this mailbox-directory session.");
         if (file.Summary != null) {
             using FileStream input = OpenRegularMailboxFile(file.Path);
-            ValidateFileLength(file, input);
+            ValidateFileSource(file, input, cancellationToken);
             return file.Summary;
         }
         file.Summary = EmailStoreItemSummary.FromItem(ReadItem(reference,
@@ -103,13 +103,14 @@ internal sealed partial class MailboxDirectoryStoreSessionBackend : IEmailStoreS
         bool includeAttachmentContent = options.Includes(EmailStoreItemReadParts.AttachmentContent);
         bool includeEmbeddedMessages = options.Includes(EmailStoreItemReadParts.EmbeddedItems);
         using (FileStream stream = OpenRegularMailboxFile(file.Path)) {
-            ValidateFileLength(file, stream);
+            ValidateFileSource(file, stream, cancellationToken);
             EmailDocument document;
             if (file.IsEmlx) {
                 EmailStoreReadResult result = new EmlxStoreReader(_options, includeAttachmentContent, options.MaxDecodedPropertyBytes,
                     includeEmbeddedMessages, _resources, options.PreferStreamingAttachmentContent,
-                    part => OpenPartialPart(file, part))
+                    part => OpenPartialPart(file, part, cancellationToken))
                     .Read(stream, Path.GetFileName(file.Path), cancellationToken);
+                ValidateFileSource(file, stream, cancellationToken);
                 foreach (EmailStoreDiagnostic diagnostic in result.Diagnostics) AddDiagnostic(diagnostic, file.RelativePath);
                 document = result.Store.Folders.SelectMany(folder => folder.Items).Single().Document;
             } else {
@@ -117,6 +118,7 @@ internal sealed partial class MailboxDirectoryStoreSessionBackend : IEmailStoreS
                     includeAttachmentContent, options.MaxDecodedPropertyBytes, includeEmbeddedMessages, options.PreferStreamingAttachmentContent);
                 CopyDiagnostics(result.Diagnostics, file.RelativePath);
                 document = result.Document;
+                ValidateFileSource(file, stream, cancellationToken);
                 _resources.Adopt(result);
             }
             ApplyDirectoryProperties(document, file.Id, file.FolderId, file.RelativePath);
@@ -131,11 +133,14 @@ internal sealed partial class MailboxDirectoryStoreSessionBackend : IEmailStoreS
 
     public void Dispose() => _resources.Dispose();
 
-    private static void ValidateFileLength(MailboxFile file, Stream input) {
-        if (input.Length != file.Length) throw new InvalidDataException("The mailbox item length changed after it was indexed; reopen the session.");
+    private void ValidateFileSource(MailboxFile file, Stream input, CancellationToken cancellationToken) {
+        // Directory catalogs remain lazy: pin each selected file at its first projection.
+        if (file.SourceGuard == null) file.SourceGuard = new EmailStoreSourceGuard(input, file.Length,
+            _options.MaxInputBytes, _resources.Dispose, cancellationToken);
+        else file.SourceGuard.Validate(input, cancellationToken);
     }
 
-    private Stream? OpenPartialPart(MailboxFile message, string part) {
+    private Stream? OpenPartialPart(MailboxFile message, string part, CancellationToken cancellationToken) {
         string name = Path.GetFileName(message.Path);
         const string suffix = ".partial.emlx";
         if (!name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)) return null;
@@ -147,7 +152,10 @@ internal sealed partial class MailboxDirectoryStoreSessionBackend : IEmailStoreS
         // Only files captured inside the caller-selected root can supply a part; a MIME filename never becomes a path.
         if (!_partialFiles.TryGetValue(path, out List<MailboxFile>? files) || files.Count != 1) return null;
         FileStream input = OpenRegularMailboxFile(files[0].Path);
-        try { ValidateFileLength(files[0], input); return input; }
+        try {
+            ValidateFileSource(files[0], input, cancellationToken);
+            return new EmailStoreValidatedReadStream(input, files[0].SourceGuard!, cancellationToken);
+        }
         catch { input.Dispose(); throw; }
     }
 
@@ -365,6 +373,7 @@ internal sealed partial class MailboxDirectoryStoreSessionBackend : IEmailStoreS
         internal string Path { get; }
         internal long Length { get; }
         internal EmailStoreItemSummary? Summary { get; set; }
+        internal EmailStoreSourceGuard? SourceGuard { get; set; }
         internal string RelativePath { get; }
         internal bool IsEmlx { get; }
         internal string? MaildirFlags { get; }

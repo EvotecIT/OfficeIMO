@@ -5,6 +5,7 @@ namespace OfficeIMO.Email.Store;
 /// <summary>Keeps an OLM catalog and projects selected XML records without retaining every document.</summary>
 internal sealed class OlmStoreSessionBackend : IEmailStoreSessionBackend {
     private readonly Stream _source;
+    private readonly EmailStoreSourceGuard _sourceGuard;
     private readonly ZipArchive _archive;
     private readonly OlmStoreReader _reader;
     private readonly EmailStoreReadResources _resources;
@@ -12,10 +13,11 @@ internal sealed class OlmStoreSessionBackend : IEmailStoreSessionBackend {
     private readonly Dictionary<string, IndexedItem> _byId = new Dictionary<string, IndexedItem>(StringComparer.Ordinal);
 
     internal OlmStoreSessionBackend(Stream source, string? sourceName, EmailStoreReaderOptions options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, bool isSnapshot = false) {
         _source = source;
         SourceLength = source.Length;
         _resources = new EmailStoreReadResources(options);
+        _sourceGuard = new EmailStoreSourceGuard(source, SourceLength, options.MaxInputBytes, _resources.Dispose, cancellationToken, isSnapshot);
         _reader = new OlmStoreReader(options);
         source.Position = 0;
         _archive = new ZipArchive(source, ZipArchiveMode.Read, leaveOpen: true);
@@ -33,6 +35,7 @@ internal sealed class OlmStoreSessionBackend : IEmailStoreSessionBackend {
                 .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
             Folders = catalog.Store.Folders.Select(folder => new EmailStoreFolderInfo(folder.Id,
                 folder.ParentId, folder.Name, counts.TryGetValue(folder.Id, out int count) ? count : 0, 0)).ToArray();
+            _sourceGuard.Validate(source, cancellationToken);
         } catch {
             _archive.Dispose();
             _resources.Dispose();
@@ -81,6 +84,7 @@ internal sealed class OlmStoreSessionBackend : IEmailStoreSessionBackend {
         try {
             EmailStoreItem result = _reader.ReadSelected(item.Path, item.Index, item.Kind, reference.Id,
                 reference.FolderId, options, workspace, cancellationToken);
+            _sourceGuard.Validate(_source, cancellationToken);
             if (workspace != null) {
                 using (var content = new EmailReadResult(result.Document, Array.Empty<EmailDiagnostic>(), 0, workspace)) {
                     _resources.Adopt(content);
@@ -98,7 +102,7 @@ internal sealed class OlmStoreSessionBackend : IEmailStoreSessionBackend {
         if (!_byId.TryGetValue(reference.Id, out IndexedItem? item) ||
             item.Reference.FolderId != reference.FolderId || reference.IsAssociated || reference.IsOrphaned)
             throw new KeyNotFoundException("The item reference does not belong to this OLM session.");
-        if (_source.Length != SourceLength) throw new InvalidDataException("The OLM source length changed after indexing.");
+        _sourceGuard.Validate(_source, cancellationToken);
         return item;
     }
 

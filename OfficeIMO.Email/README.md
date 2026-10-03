@@ -597,14 +597,19 @@ writing EMLX preserves unknown supported values and unknown flag bits while upda
 message flags. Unsupported or malformed trailers remain in `Emlx:RawMetadata`: `Block` rejects
 opaque metadata rewrites, while `Warn` and `Allow` copy the trailer unchanged and report that edits
 could not be reconciled. The default `Block` policy rejects exports that omit retained EMLX, OLM
-or MAPI/TNEF metadata, including regenerated embedded messages.
+or MAPI/TNEF metadata, including regenerated embedded messages. Regenerated embedded messages also
+undergo the same calendar, contact and protected-content loss checks as the outer message.
+Exact preserved MIME attachment payloads are copied without regenerating their projected models.
 Select `new EmailWriterOptions(EmailConversionLossPolicy.Warn)` to export
 the common message content with diagnostics for the omitted fields.
 
-Standalone EMLX sessions reject same-length source changes by checking a bounded SHA-256 before
-and after each selected read. The buffer size stays fixed, but these checks read the complete source.
-Use `EmailStoreSession.OpenSnapshot` when repeated reads need a private stable copy without repeated
-source hashing. The initial snapshot copy and hash perform source I/O.
+Live EMLX, mbox and OLM sessions reject same-length source changes by checking a bounded SHA-256
+before and after each selected read. Directory sessions pin each message and recovered attachment
+file when it is first projected, and reject subsequent content changes. A detected change expires
+retained attachment streams; reopen the session to read the changed source.
+The buffer size stays fixed, but each check reads the complete artifact or selected directory file.
+Use `EmailStoreSession.OpenSnapshot` for repeated reads of a standalone archive when a private stable
+copy can avoid repeated source hashing. The initial snapshot copy and hash perform source I/O.
 Directory sessions recover empty MIME parts in `Messages/<numeric-id>.partial.emlx`
 from `Attachments/<numeric-id>/<one-based-MIME-part-path>/<file>`. For example, nested part
 `2.1` is the first child of the second root part. Each part directory must contain exactly

@@ -252,14 +252,14 @@ public sealed partial class EmailStoreSession : IDisposable {
                     backend = new PstStoreSessionBackend(stream, format, options, cancellationToken);
                     break;
                 case EmailStoreFormat.Olm:
-                    backend = new OlmStoreSessionBackend(stream, sourceName, options, cancellationToken);
+                    backend = new OlmStoreSessionBackend(stream, sourceName, options, cancellationToken, isSnapshot);
                     break;
                 case EmailStoreFormat.Emlx:
                     backend = new EmlxStoreSessionBackend(stream, sourceName, options, cancellationToken, isSnapshot);
                     break;
                 case EmailStoreFormat.Mbox:
                     backend = new MboxStoreSessionBackend(
-                        stream, sourceName, options, cancellationToken);
+                        stream, sourceName, options, cancellationToken, isSnapshot);
                     break;
                 default:
                     throw new InvalidDataException("The source is not a supported email-store artifact.");

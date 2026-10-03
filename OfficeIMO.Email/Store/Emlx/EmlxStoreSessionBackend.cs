@@ -8,8 +8,7 @@ internal sealed class EmlxStoreSessionBackend : IEmailStoreSessionBackend {
     private readonly EmailStoreReadResources _resources;
     private readonly EmailStoreItemReference _reference;
     private readonly EmailStoreItemSummary _summary;
-    private readonly string? _sourceFingerprint;
-    private bool _sourceChanged;
+    private readonly EmailStoreSourceGuard _sourceGuard;
     private readonly EmailStoreDiagnosticCollection _diagnostics = new EmailStoreDiagnosticCollection();
 
     internal EmlxStoreSessionBackend(Stream stream, string? sourceName, EmailStoreReaderOptions options,
@@ -19,7 +18,7 @@ internal sealed class EmlxStoreSessionBackend : IEmailStoreSessionBackend {
         _options = options;
         _resources = new EmailStoreReadResources(options);
         SourceLength = stream.Length;
-        _sourceFingerprint = isSnapshot ? null : EmailStoreSourceFingerprint.Compute(stream, SourceLength, options.MaxInputBytes, cancellationToken);
+        _sourceGuard = new EmailStoreSourceGuard(stream, SourceLength, options.MaxInputBytes, _resources.Dispose, cancellationToken, isSnapshot);
         EmailStoreReadResult index = new EmlxStoreReader(options, includeAttachmentContent: false,
             includeEmbeddedMessages: false).Read(stream, sourceName, cancellationToken);
         DisplayName = index.Store.DisplayName;
@@ -73,20 +72,7 @@ internal sealed class EmlxStoreSessionBackend : IEmailStoreSessionBackend {
         ValidateSource(cancellationToken);
     }
 
-    private void ValidateSource(CancellationToken cancellationToken) {
-        if (_sourceChanged) throw new InvalidDataException("The EMLX source changed after it was indexed.");
-        try {
-            if (_stream.Length != SourceLength || _sourceFingerprint != null &&
-                !string.Equals(_sourceFingerprint, EmailStoreSourceFingerprint.Compute(_stream, SourceLength,
-                    _options.MaxInputBytes, cancellationToken), StringComparison.Ordinal)) {
-                throw new InvalidDataException("The EMLX source changed after it was indexed.");
-            }
-        } catch (InvalidDataException) {
-            _sourceChanged = true;
-            _resources.Dispose();
-            throw;
-        }
-    }
+    private void ValidateSource(CancellationToken cancellationToken) => _sourceGuard.Validate(_stream, cancellationToken);
 
     private void AddDiagnostics(IEnumerable<EmailStoreDiagnostic> diagnostics) {
         foreach (EmailStoreDiagnostic diagnostic in diagnostics) _diagnostics.Add(diagnostic);
