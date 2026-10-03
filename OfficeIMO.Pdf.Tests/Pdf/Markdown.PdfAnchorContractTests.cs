@@ -6,6 +6,20 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class MarkdownPdfAnchorContractTests {
     [Theory]
+    [InlineData("details")]
+    [InlineData("footnote")]
+    public void DirectlyRenderedSummaryAndFootnoteParagraphAnchorsAreRegistered(string kind) {
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(MarkdownReader.Parse("**before <a id=\"direct\"></a> after**").Blocks));
+        IMarkdownBlock target = kind == "details"
+            ? new DetailsBlock(new SummaryBlock(paragraph.Inlines))
+            : new FootnoteDefinitionBlock("note", new IMarkdownBlock[] { paragraph });
+        var document = MarkdownDoc.Create().Add(new ParagraphBlock(new InlineSequence().Link("Jump", "#direct"))).Add(target);
+        var result = document.ToPdfDocumentResult();
+        Assert.NotEmpty(result.Value.ToBytes());
+        Assert.DoesNotContain(result.Report.Warnings, diagnostic => diagnostic.Code == "UnresolvedInternalLink");
+    }
+
+    [Theory]
     [InlineData("<a id=\">")]
     [InlineData("<a id='>")]
     public void IncompleteAnchorCarriersRetainPlainTextWithoutBreakingExport(string html) {

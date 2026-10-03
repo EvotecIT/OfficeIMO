@@ -145,9 +145,10 @@ internal static class MarkdownToLatexConverter {
             }
             if (item.Level != 0) diagnostics.Add(new LatexMarkdownConversionDiagnostic("MDLATEX024", LatexMarkdownConversionOutcome.Simplified,
                 "list-level", "Flat list-item indentation was reduced to the current list environment; nested child lists remain structured.", null, item.SourceSpan));
-            for (int childIndex = 0; childIndex < item.ChildBlocks.Count; childIndex++) {
+            IReadOnlyList<IMarkdownBlock> children = item.ChildBlocks;
+            for (int childIndex = 0; childIndex < children.Count; childIndex++) {
                 if (childIndex > 0) output.Append(options.LineEnding).Append(options.LineEnding);
-                output.Append(ConvertBlock(item.ChildBlocks[childIndex], options, state, diagnostics));
+                output.Append(ConvertBlock(children[childIndex], options, state, diagnostics));
             }
             output.Append(options.LineEnding);
         }

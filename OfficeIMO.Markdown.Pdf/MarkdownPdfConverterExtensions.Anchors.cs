@@ -23,8 +23,10 @@ public static partial class MarkdownPdfConverterExtensions {
                     MarkdownObject node = entry.Node;
                     if (node is HtmlCommentBlock || (node is FrontMatterBlock && options.FrontMatterRenderMode == MarkdownPdfFrontMatterRenderMode.Hidden)) continue;
                     IMarkdownBlock owner = entry.Owner;
+                    bool renderedWithOwner = node is SummaryBlock && owner is DetailsBlock ||
+                        owner is FootnoteDefinitionBlock footnote && footnote.ChildBlocks.Count > 0 && ReferenceEquals(node, footnote.ChildBlocks[0]);
                     if (!entry.Flattened && node is IMarkdownBlock childBlock &&
-                        !(node is ParagraphBlock && node.Parent is ListItem)) owner = childBlock;
+                        !renderedWithOwner && !(node is ParagraphBlock && node.Parent is ListItem)) owner = childBlock;
                     string? identifier = node.Attributes.ElementId;
                     if (node is HeadingBlock heading) Add(owner, document.GetHeadingAnchor(heading));
                     Add(owner, identifier);
