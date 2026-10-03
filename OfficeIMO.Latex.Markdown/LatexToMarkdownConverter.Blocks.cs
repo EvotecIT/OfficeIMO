@@ -4,10 +4,12 @@ internal static partial class LatexToMarkdownConverter {
     // A block inside a command argument belongs to that enclosing command. If
     // native block ranges fragment its syntax, preserve the complete command
     // before projecting any child block. Paragraphs on either side stay visible.
-    private static BlockCandidate[] WithCommandFallbacks(LatexProjectionContext context, BlockCandidate[] candidates) {
+    private static BlockCandidate[] WithCommandFallbacks(LatexProjectionContext context, BlockCandidate[] candidates,
+        LatexSourceSpan? contentSpan = null) {
         if (context.Document.Body == null || context.Document.Profile == LatexDocumentProfile.PreserveOnly) return candidates;
         var dominant = new List<BlockCandidate>();
-        int end = context.Document.Body.ContentSpan.Start.Offset;
+        LatexSourceSpan scope = contentSpan ?? context.Document.Body.ContentSpan;
+        int end = scope.Start.Offset;
         foreach (BlockCandidate candidate in candidates) {
             context.CheckCancellation();
             if (candidate.Span.Start.Offset < end) continue;
@@ -16,8 +18,8 @@ internal static partial class LatexToMarkdownConverter {
         }
         var fallbacks = new List<BlockCandidate>();
         int blockIndex = 0, fallbackEnd = 0;
-        int bodyStart = context.Document.Body.ContentSpan.Start.Offset;
-        int bodyEnd = context.Document.Body.ContentSpan.End.Offset;
+        int bodyStart = scope.Start.Offset;
+        int bodyEnd = scope.End.Offset;
         foreach (LatexInlineCandidate inline in context.InlineCandidates(bodyStart, bodyEnd)) {
             context.CheckCancellation();
             if (inline.Command is not LatexCommand command) continue;

@@ -2,13 +2,14 @@ using System.Threading;
 
 namespace OfficeIMO.Latex;
 
-internal sealed class LatexStructuralParser {
+internal sealed partial class LatexStructuralParser {
     private readonly LatexSourceText _source;
     private readonly IReadOnlyList<LatexToken> _tokens;
     private readonly LatexParseOptions _options;
     private readonly List<LatexDiagnostic> _diagnostics;
     private readonly CancellationToken _cancellationToken;
     private int _index;
+    private int _textTokenOffset;
 
     internal LatexStructuralParser(
         LatexSourceText source,
@@ -35,6 +36,11 @@ internal sealed class LatexStructuralParser {
         EnforceDepth(depth);
         LatexToken token = _tokens[_index];
         switch (token.Kind) {
+            case LatexTokenKind.Text when _textTokenOffset != 0:
+                int remainingStart = token.StartOffset + _textTokenOffset;
+                _textTokenOffset = 0;
+                _index++;
+                return Node(LatexSyntaxKind.Text, remainingStart, token.EndOffset, null);
             case LatexTokenKind.OpenBrace: return ParseGroup(LatexTokenKind.CloseBrace, LatexSyntaxKind.RequiredGroup, depth + 1, allowMath);
             case LatexTokenKind.OpenBracket:
             case LatexTokenKind.CloseBracket:
@@ -118,8 +124,10 @@ internal sealed class LatexStructuralParser {
                     : LatexTokenKind.OpenBrace;
                 if (!TryParseCommandGroup(openingKind, depth, children, ref end)) {
                     if (signature.Arguments[index] == LatexArgumentGroupKind.Required) {
+                        if (command.Value != "begin" && command.Value != "end" &&
+                            TryParseSingleTokenArgument(depth, children, ref end)) continue;
                         _diagnostics.Add(new LatexDiagnostic("LATEX007", LatexDiagnosticSeverity.Warning,
-                            "Command '" + command.Value + "' requires a braced argument in the bounded profile; missing or unbraced arguments remain source-preserved.", command.Span));
+                            "Command '" + command.Value + "' has a missing or unsupported required argument; the incomplete command remains source-preserved.", command.Span));
                         break;
                     }
                 }
@@ -156,8 +164,7 @@ internal sealed class LatexStructuralParser {
         int depth,
         List<LatexSyntaxNode> children,
         ref int end) {
-        int lookahead = _index;
-        while (lookahead < _tokens.Count && IsArgumentTrivia(_tokens[lookahead])) lookahead++;
+        int lookahead = FindCommandArgumentStart();
         if (lookahead >= _tokens.Count || _tokens[lookahead].Kind != expectedOpening) return false;
         while (_index < lookahead) {
             LatexToken trivia = _tokens[_index++];

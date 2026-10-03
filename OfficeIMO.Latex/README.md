@@ -28,9 +28,18 @@ LatexDocument preserved = LatexDocument.Parse(
     LatexParseOptions.CreateProfile(LatexDocumentProfile.PreserveOnly));
 ```
 
-`OfficeIMO` binds the typed document semantics described below. `PreserveOnly` retains the structural syntax tree without profile-specific headings, paragraphs, lists, figures, tables, citations, references, labels, theorems, or macro-definition projections. Both profiles remain lossless and non-executing.
+`OfficeIMO` binds the typed document semantics described below. `PreserveOnly` retains the structural syntax tree without profile-specific headings, paragraphs, lists, figures, tables, citations, references, labels, theorems, footnotes, or macro-definition projections. Both profiles remain lossless and non-executing.
 
-The profile recognizes article/report/book structure, paragraphs, lists, figures, tabular data, labels/references, citations, theorem-like environments, and inline/display math. Unknown commands and environments remain source-backed instead of disappearing. Definition bodies retain syntax without contributing active headings, tables, or references. Known required arguments must be braced; missing or unbraced arguments are preserved and diagnosed.
+The profile recognizes article/report/book structure, paragraphs, lists, figures, tabular data, labels/references, citations, theorem-like environments, footnotes, and inline/display math. Unknown commands and environments remain source-backed instead of disappearing. Definition bodies retain syntax without contributing active headings, tables, or references. Known required arguments bind either a brace group or one character/control-sequence token. `LatexArgument.IsSingleToken` identifies the latter; editing it writes the replacement in braces so following text stays outside the argument. Missing arguments are preserved and diagnosed. Environment names still require braces.
+
+`LatexDocument.Footnotes` exposes source-backed `\footnote` commands in source order. `Content` edits the body through the same argument owner used by other semantic edits. `Mark` retains an existing optional mark; it does not calculate TeX counters or insert a new optional argument.
+
+```csharp
+LatexDocument document = LatexDocument.Parse(
+    @"\begin{document}Text\footnote{Original note.}\end{document}");
+document.Footnotes[0].Content = "Updated note.";
+string updated = document.ToLatex();
+```
 
 `\verb` and verbatim-like environments are opaque tokenizer nodes: braces, percent signs, commands, and environment-looking text inside them are never reparsed as LaTeX structure. The default set includes `verbatim`, `Verbatim`, `lstlisting`, `minted`, and `comment`; add producer-specific names through `LatexParseOptions.VerbatimEnvironmentNames`. Unterminated opaque constructs produce structural diagnostics.
 
