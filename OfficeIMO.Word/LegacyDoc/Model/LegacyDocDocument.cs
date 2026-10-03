@@ -822,10 +822,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     } else if (inTable) {
                         FlushTable(GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset), textCharacter.CharacterPosition + 1);
                     } else if (!isSectionMark || currentRuns.Count > 0 || runText.Length > 0 ||
+                        !paragraphFormat.Equals(LegacyDocParagraphFormat.Default) &&
+                        !paragraphFormat.Equals(new LegacyDocParagraphFormat(null, styleIndex: 0)) ||
                         Bookmarks.Any(bookmark =>
                             bookmark.StartCharacter >= currentParagraphStartCharacter && bookmark.StartCharacter <= textCharacter.CharacterPosition + 1 ||
                             bookmark.EndCharacter >= currentParagraphStartCharacter && bookmark.EndCharacter <= textCharacter.CharacterPosition + 1)) {
-                        AddCurrentTextAsParagraph(paragraphFormat);
+                        AddCurrentTextAsParagraph(paragraphFormat, isSectionMark);
                     }
 
                     bodyText.Append('\r');
@@ -1068,7 +1070,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 currentHyperlinkTarget = default;
             }
 
-            void AddCurrentTextAsParagraph(LegacyDocParagraphFormat paragraphFormat) {
+            void AddCurrentTextAsParagraph(LegacyDocParagraphFormat paragraphFormat, bool endsWithSectionMark = false) {
                 FlushRun();
                 IReadOnlyList<LegacyDocTextRun> runs = currentRuns.ToArray();
                 _paragraphTextRuns.Add(runs);
@@ -1080,7 +1082,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     paragraphFormat,
                     currentParagraphStartCharacter,
                     paragraphEndCharacter,
-                    bookmarkProjection.ExtractProjectedParagraphBookmarks(currentParagraphStartCharacter, paragraphEndCharacter)));
+                    bookmarkProjection.ExtractProjectedParagraphBookmarks(currentParagraphStartCharacter, paragraphEndCharacter),
+                    endsWithSectionMark));
                 currentRuns.Clear();
                 hasCurrentRun = false;
             }

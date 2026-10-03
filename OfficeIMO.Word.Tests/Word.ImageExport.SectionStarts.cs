@@ -6,6 +6,44 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(WordFileFormat.Docx, false)]
+    [InlineData(WordFileFormat.Docx, true)]
+    [InlineData(WordFileFormat.Doc, false)]
+    [InlineData(WordFileFormat.Doc, true)]
+    public void ImageExport_SectionMarkOnlyDoesNotAddBlankPages(WordFileFormat format, bool pageBreakBefore) {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("First");
+        document.AddSection();
+        var properties = (DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties)document.Sections[0]._sectionProperties.Parent!;
+        properties.AddChild(new DocumentFormat.OpenXml.Wordprocessing.PageBreakBefore { Val = pageBreakBefore }, true);
+        properties.AddChild(new DocumentFormat.OpenXml.Wordprocessing.SpacingBetweenLines { Before = "240" }, true);
+        document.AddParagraph("Second");
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes(format)));
+        IReadOnlyList<WordDocumentVisualSnapshot> pages = loaded.CreateVisualSnapshots();
+        Assert.Equal(2, loaded.GetEstimatedPageCount());
+        Assert.Equal(2, pages.Count);
+        Assert.Contains(pages[0].Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "First");
+        Assert.Contains(pages[1].Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Second");
+    }
+
+    [Theory]
+    [InlineData(1, false)]
+    [InlineData(2, true)]
+    public void ImageExport_UnmergedNextColumnBoundaryCountsOneTransition(int columns, bool differentGeometry) {
+        using WordDocument document = WordDocument.Create();
+        document.Sections[0].ColumnCount = columns;
+        document.AddParagraph("First");
+        WordSection second = document.AddSection(WordSectionBreakType.NextColumn);
+        if (differentGeometry) second.PageSettings.PageSize = WordPageSize.A5;
+        second.AddParagraph("Second");
+        IReadOnlyList<WordDocumentVisualSnapshot> pages = document.CreateVisualSnapshots();
+        Assert.Equal(2, document.GetEstimatedPageCount());
+        Assert.Equal(2, pages.Count);
+        Assert.Contains(pages[0].Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "First");
+        Assert.Contains(pages[1].Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Second");
+    }
+
+    [Theory]
     [InlineData("OddPage", 3, WordFileFormat.Doc)]
     [InlineData("EvenPage", 4, WordFileFormat.Doc)]
     [InlineData("OddPage", 3, WordFileFormat.Docx)]

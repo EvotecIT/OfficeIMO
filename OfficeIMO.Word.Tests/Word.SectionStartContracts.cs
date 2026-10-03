@@ -8,6 +8,33 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void SectionStartContract_NativeDocRetainsFormattedEmptyBoundary(bool pageBreakBefore) {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("First");
+        document.AddSection();
+        var boundaryProperties = (ParagraphProperties)document.Sections[0]._sectionProperties.Parent!;
+        boundaryProperties.AddChild(new PageBreakBefore { Val = pageBreakBefore }, true);
+        boundaryProperties.AddChild(new SpacingBetweenLines { Before = "240" }, true);
+        boundaryProperties.AddChild(new ParagraphMarkRunProperties(new Bold(), new FontSize { Val = "30" }), true);
+        WordParagraph second = document.AddParagraph("Second");
+        second.LineSpacingBeforePoints = 6;
+        second.PageBreakBeforeOverride = !pageBreakBefore;
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        WordParagraph boundary = Assert.Single(loaded.Paragraphs, paragraph => string.IsNullOrEmpty(paragraph.Text));
+        Assert.Same(boundary._paragraph, loaded.Sections[0]._sectionProperties.Parent?.Parent);
+        Assert.Equal(3, loaded._wordprocessingDocument.MainDocumentPart!.Document.Body!.Elements<Paragraph>().Count());
+        Assert.Equal(pageBreakBefore, boundary.PageBreakBeforeOverride);
+        Assert.Equal(12D, boundary.LineSpacingBeforePoints);
+        Assert.Equal("30", boundary._paragraph.ParagraphProperties?.ParagraphMarkRunProperties?.GetFirstChild<FontSize>()?.Val?.Value);
+        WordParagraph reloadedSecond = Assert.Single(loaded.Paragraphs, paragraph => paragraph.Text == "Second");
+        Assert.Equal(6D, reloadedSecond.LineSpacingBeforePoints);
+        Assert.Equal(!pageBreakBefore, reloadedSecond.PageBreakBeforeOverride);
+        Assert.Equal(2, loaded.Sections.Count);
+    }
+
+    [Theory]
     [InlineData(WordSectionBreakType.NextPage, WordFileFormat.Docx)]
     [InlineData(WordSectionBreakType.Continuous, WordFileFormat.Docx)]
     [InlineData(WordSectionBreakType.NextColumn, WordFileFormat.Docx)]

@@ -633,18 +633,14 @@ namespace OfficeIMO.Word {
             return AddSectionCore(null);
         }
 
-        private WordSection AddSectionCore(SectionMarkValues? sectionMark) {
-            Paragraph paragraph = new Paragraph();
-
-            ParagraphProperties paragraphProperties = new ParagraphProperties();
+        private WordSection AddSectionCore(SectionMarkValues? sectionMark, Paragraph? existingBoundaryParagraph = null) {
+            Paragraph paragraph = existingBoundaryParagraph ?? new Paragraph();
+            ParagraphProperties paragraphProperties = paragraph.ParagraphProperties ??= new ParagraphProperties();
 
             SectionProperties sectionProperties = WordHeadersAndFooters.CreateSectionProperties();
 
-            paragraphProperties.Append(sectionProperties);
-            paragraph.Append(paragraphProperties);
-
-
-            AppendBlockToBody(paragraph);
+            paragraphProperties.AddChild(sectionProperties, true);
+            if (existingBoundaryParagraph == null) AppendBlockToBody(paragraph);
 
 
             WordSection wordSection = new WordSection(this, paragraph);

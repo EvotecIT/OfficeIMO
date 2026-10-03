@@ -180,7 +180,8 @@ namespace OfficeIMO.Word {
                 }
 
                 bool added = AddParagraphContent(document, paragraph, context, diagnostics, listMarkers);
-                if (IsNextColumnSectionBreak(GetSectionBoundaryProperties(document, paragraph))) {
+                SectionProperties? boundaryProperties = GetSectionBoundaryProperties(document, paragraph);
+                if (IsNextColumnSectionBreak(boundaryProperties) && IsMergedNextColumnImageBoundary(document, boundaryProperties)) {
                     context.AdvanceColumnOrPage();
                     return true;
                 }
@@ -189,6 +190,14 @@ namespace OfficeIMO.Word {
             }
 
             return AddBodyElementContent(document, element, context, diagnostics, listMarkers);
+        }
+
+        private static bool IsMergedNextColumnImageBoundary(WordDocument document, SectionProperties? boundaryProperties) {
+            for (int index = 1; index < document.Sections.Count; index++) {
+                if (ReferenceEquals(document.Sections[index]._sectionProperties, boundaryProperties))
+                    return CanMergeImageNextColumnSection(document.Sections[index - 1], document.Sections[index]);
+            }
+            return false;
         }
 
         private static SectionProperties? GetSectionBoundaryProperties(WordDocument document, OpenXmlElement element) {

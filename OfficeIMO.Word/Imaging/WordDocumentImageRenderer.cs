@@ -444,6 +444,7 @@ namespace OfficeIMO.Word {
             List<OfficeImageExportDiagnostic> diagnostics,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             context.ThrowIfCancellationRequested();
+            if (WordParagraph.IsSectionMarkOnly(paragraph)) return true;
             bool added = false;
             var colorScheme = GetDocumentColorScheme(document);
             WordImageListMarker? listMarker = CreateListMarker(document, paragraph, listMarkers);

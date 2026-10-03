@@ -277,6 +277,7 @@ namespace OfficeIMO.Word {
         }
 
         private static bool ResolvePageBreakBefore(WordDocument document, Paragraph paragraph) {
+            if (WordParagraph.IsSectionMarkOnly(paragraph)) return false;
             PageBreakBefore? direct = paragraph.ParagraphProperties?.GetFirstChild<PageBreakBefore>();
             bool? directValue = ReadOnOff(direct);
             if (directValue.HasValue) {

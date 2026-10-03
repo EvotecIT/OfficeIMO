@@ -8,6 +8,26 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    [Theory]
+    [InlineData(WordFileFormat.Docx, false)]
+    [InlineData(WordFileFormat.Docx, true)]
+    [InlineData(WordFileFormat.Doc, false)]
+    [InlineData(WordFileFormat.Doc, true)]
+    public void SaveAsPdf_SectionMarkOnlyRetainsFormattingWithoutBlankPages(WordFileFormat format, bool pageBreakBefore) {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("First");
+        document.AddSection();
+        var properties = (W.ParagraphProperties)document.Sections[0]._sectionProperties.Parent!;
+        properties.AddChild(new W.PageBreakBefore { Val = pageBreakBefore }, true);
+        properties.AddChild(new W.SpacingBetweenLines { Before = "240" }, true);
+        document.AddParagraph("Second");
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes(format)));
+        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("First", pdf.GetPage(1).Text);
+        Assert.Contains("Second", pdf.GetPage(2).Text);
+    }
+
     public static IEnumerable<object[]> SectionStartNumberingCases() {
         var cases = new[] {
             (WordSectionBreakType.OddPage, 1, 2, 0, 2), (WordSectionBreakType.OddPage, 2, 2, 0, 4),

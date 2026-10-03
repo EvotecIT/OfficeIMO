@@ -78,6 +78,12 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
+            // A formatted section terminator is editable metadata, not a separate blank body line.
+            if (WordParagraph.IsSectionMarkOnly(paragraph._paragraph)) {
+                if (!string.IsNullOrEmpty(paragraph.Bookmark?.Name)) pdf.Bookmark(paragraph.Bookmark!.Name!);
+                return;
+            }
+
             if (TryRenderNativeParagraphPageBreaks(pdf, paragraph, marker, getMarker, footnoteNumbersById,
                 options, headingDestinations, nativeDefaults, nativeFontMap, renderSpacingOnlyEmptyParagraphLineBox, nextParagraph)) return;
 

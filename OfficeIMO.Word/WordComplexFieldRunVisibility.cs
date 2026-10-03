@@ -35,6 +35,8 @@ namespace OfficeIMO.Word {
         }
 
         internal static WordComplexFieldRunVisibility ForParagraph(Paragraph paragraph) {
+            if (paragraph.Annotation<FragmentPrefix>() is FragmentPrefix fragmentPrefix)
+                return new WordComplexFieldRunVisibility(fragmentPrefix.State);
             OpenXmlElement? textBoxStory = paragraph.Ancestors<TextBoxContent>().FirstOrDefault();
             OpenXmlElement story = textBoxStory ?? paragraph.Ancestors().FirstOrDefault(element =>
                 element is Footnote or Endnote or Header or Footer)
@@ -56,6 +58,23 @@ namespace OfficeIMO.Word {
                 visibility.ObserveParagraphMarkers(earlier);
             }
             return visibility;
+        }
+
+        /// <summary>Retains the source story's field state on detached pagination fragments.</summary>
+        internal static void PreserveFragmentContext(Paragraph source, Paragraph before, Paragraph after, OpenXmlElement boundary) {
+            WordComplexFieldRunVisibility visibility = ForParagraph(source);
+            before.AddAnnotation(new FragmentPrefix(visibility.CurrentState));
+            foreach (OpenXmlElement element in source.Descendants()) {
+                if (ReferenceEquals(element, boundary)) break;
+                if (element is FieldChar marker && ReferenceEquals(marker.Ancestors<Paragraph>().FirstOrDefault(), source))
+                    visibility.Observe(marker);
+            }
+            after.AddAnnotation(new FragmentPrefix(visibility.CurrentState));
+        }
+
+        private sealed class FragmentPrefix {
+            internal FragmentPrefix(FieldState? state) => State = state;
+            internal FieldState? State { get; }
         }
 
         private static Dictionary<Paragraph, FieldState> BuildStoryPrefixes(OpenXmlElement story, bool isTextBoxStory) {

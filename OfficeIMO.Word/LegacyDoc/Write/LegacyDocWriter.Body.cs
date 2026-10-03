@@ -511,17 +511,20 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         }
 
                         return PlainParagraphPapx;
-                    });
+                    }, new HashSet<int>(Sections.Select(section => section.EndCharacter)));
             }
 
             private static void AddStoryParagraphSegments(
                 List<LegacyDocWritableParagraphSegment> segments,
                 string story,
                 int storyStart,
-                Func<LegacyDocWritableParagraphRange, object> selectParagraphFormat) {
+                Func<LegacyDocWritableParagraphRange, object> selectParagraphFormat,
+                HashSet<int>? sectionEndCharacters = null) {
                 int paragraphStart = 0;
                 for (int index = 0; index < story.Length; index++) {
-                    if (story[index] != '\r' && story[index] != '\a') {
+                    bool isSectionMark = story[index] == LegacyDocSpecialCharacters.PageBreak &&
+                        sectionEndCharacters?.Contains(storyStart + index + 1) == true;
+                    if (story[index] != '\r' && story[index] != '\a' && !isSectionMark) {
                         continue;
                     }
 

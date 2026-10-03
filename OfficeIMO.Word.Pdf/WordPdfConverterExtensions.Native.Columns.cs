@@ -191,14 +191,15 @@ namespace OfficeIMO.Word.Pdf {
             bool sawColumnBreak = false;
             int currentColumn = 0;
             foreach (WordElement element in elements) {
-                if (IsNativeColumnBreakElement(element)) {
+                if (element is WordBreak wordBreak && wordBreak.BreakType == WordBreakType.Column) {
                     sawColumnBreak = true;
                     AdvanceNativeColumn(columns, ref currentColumn);
                     continue;
                 }
 
                 if (element is WordParagraph paragraph) {
-                    if (TrySplitNativeParagraphAtColumnBreak(paragraph, out WordParagraph? beforeColumnBreak, out WordParagraph? afterColumnBreak)) {
+                    WordParagraph? remaining = paragraph;
+                    while (remaining != null && TrySplitNativeParagraphAtColumnBreak(remaining, out WordParagraph? beforeColumnBreak, out WordParagraph? afterColumnBreak)) {
                         sawColumnBreak = true;
                         if (beforeColumnBreak != null) {
                             columns[currentColumn].Add(beforeColumnBreak);
@@ -206,27 +207,9 @@ namespace OfficeIMO.Word.Pdf {
 
                         AdvanceNativeColumn(columns, ref currentColumn);
 
-                        if (afterColumnBreak != null) {
-                            columns[currentColumn].Add(afterColumnBreak);
-                        }
-
-                        continue;
+                        remaining = afterColumnBreak;
                     }
-
-                    NativeColumnBreakPlacement columnBreakPlacement = GetNativeParagraphColumnBreakPlacement(paragraph);
-                    if (columnBreakPlacement != NativeColumnBreakPlacement.None) {
-                        sawColumnBreak = true;
-                    }
-
-                    if (columnBreakPlacement == NativeColumnBreakPlacement.StartsWithBreak) {
-                        AdvanceNativeColumn(columns, ref currentColumn);
-                    }
-
-                    columns[currentColumn].Add(element);
-                    if (columnBreakPlacement == NativeColumnBreakPlacement.EndsWithBreak ||
-                        columnBreakPlacement == NativeColumnBreakPlacement.ContainsBreak) {
-                        AdvanceNativeColumn(columns, ref currentColumn);
-                    }
+                    if (remaining != null) columns[currentColumn].Add(remaining);
 
                     continue;
                 }
@@ -242,11 +225,8 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool TrySplitNativeParagraphAtColumnBreak(WordParagraph paragraph, out WordParagraph? before, out WordParagraph? after) {
-            return TrySplitNativeParagraphAtBreak(paragraph, W.BreakValues.Column, null, out before, out after);
+            return TrySplitNativeParagraphAtVisibleBreak(paragraph, W.BreakValues.Column, out before, out after);
         }
-
-        private static bool IsNativeColumnBreakOpenXml(DocumentFormat.OpenXml.OpenXmlElement element) =>
-            element is W.Break wordBreak && wordBreak.Type?.Value == W.BreakValues.Column;
 
         private static IReadOnlyList<IReadOnlyList<WordElement>> SplitNativeElementsAcrossAutomaticColumns(IReadOnlyList<WordElement> elements, int columnCount) {
             var columns = new List<List<WordElement>>(columnCount);
@@ -346,70 +326,6 @@ namespace OfficeIMO.Word.Pdf {
         private static void AdvanceNativeColumn(List<List<WordElement>> columns, ref int currentColumn) {
             if (columns[currentColumn].Count > 0) {
                 currentColumn = Math.Min(columns.Count - 1, currentColumn + 1);
-            }
-        }
-
-        private static bool IsNativeColumnBreakElement(WordElement element) {
-            if (element is WordBreak wordBreak) {
-                return wordBreak.BreakType == WordBreakType.Column;
-            }
-
-            return element is WordParagraph paragraph &&
-                paragraph.Break?.BreakType == WordBreakType.Column &&
-                string.IsNullOrWhiteSpace(paragraph.Text);
-        }
-
-        private enum NativeColumnBreakPlacement {
-            None,
-            StartsWithBreak,
-            EndsWithBreak,
-            ContainsBreak
-        }
-
-        private static NativeColumnBreakPlacement GetNativeParagraphColumnBreakPlacement(WordParagraph paragraph) {
-            if (paragraph._paragraph == null) {
-                return NativeColumnBreakPlacement.None;
-            }
-
-            bool sawColumnBreak = false;
-            bool hasContentBefore = false;
-            bool hasContentAfter = false;
-            InspectNativeColumnBreakFlow(paragraph._paragraph, ref sawColumnBreak, ref hasContentBefore, ref hasContentAfter);
-            if (!sawColumnBreak) {
-                return NativeColumnBreakPlacement.None;
-            }
-
-            if (hasContentBefore && hasContentAfter) {
-                return NativeColumnBreakPlacement.ContainsBreak;
-            }
-
-            if (hasContentBefore) {
-                return NativeColumnBreakPlacement.EndsWithBreak;
-            }
-
-            if (hasContentAfter) {
-                return NativeColumnBreakPlacement.StartsWithBreak;
-            }
-
-            return NativeColumnBreakPlacement.None;
-        }
-
-        private static void InspectNativeColumnBreakFlow(DocumentFormat.OpenXml.OpenXmlElement element, ref bool sawColumnBreak, ref bool hasContentBefore, ref bool hasContentAfter) {
-            foreach (DocumentFormat.OpenXml.OpenXmlElement child in element.ChildElements) {
-                if (child is W.Break wordBreak && wordBreak.Type?.Value == W.BreakValues.Column) {
-                    sawColumnBreak = true;
-                    continue;
-                }
-
-                if (child is W.Text text && !string.IsNullOrEmpty(text.Text)) {
-                    if (sawColumnBreak) {
-                        hasContentAfter = true;
-                    } else {
-                        hasContentBefore = true;
-                    }
-                } else {
-                    InspectNativeColumnBreakFlow(child, ref sawColumnBreak, ref hasContentBefore, ref hasContentAfter);
-                }
             }
         }
 
