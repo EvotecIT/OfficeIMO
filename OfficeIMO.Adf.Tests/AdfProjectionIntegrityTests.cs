@@ -122,6 +122,20 @@ public sealed class AdfProjectionIntegrityTests {
         Assert.Equal("![Diagram](https://example.com/a.png)", result.Value);
     }
 
+    [Theory]
+    [InlineData("[shown ![Alt](https://example.test/image.png)](https://example.test/target)", "https://example.test/target", false)]
+    [InlineData("[shown **![Alt](https://example.test/image.png)**](https://example.test/target)", "https://example.test/target", true)]
+    [InlineData("shown ![Alt](https://example.test/image.png)", "https://example.test/image.png", false)]
+    public void InlineImagesRetainOneAuthoredLinkDestination(string markdown, string destination, bool bold) {
+        var result = AdfConverter.FromMarkdown(markdown);
+        AdfNode projected = result.Value.Content.Single().Content.Single(node => node.Text == "Alt");
+        AdfMark link = Assert.Single(projected.Marks, mark => mark.Type == "link");
+        Assert.Equal(destination, link.GetStringAttribute("href"));
+        Assert.Equal(bold, projected.Marks.Any(mark => mark.Type == "strong"));
+        Assert.True(result.Value.Validate(new AdfValidationOptions { Profile = AdfValidationProfile.FullSchema }).IsValid);
+        Assert.DoesNotContain("](", AdfConverter.ToHtml(result.Value).Value);
+    }
+
     [Fact]
     public void NestedTaskListsRetainHierarchyAndCompletion() {
         var result = AdfConverter.FromMarkdown("- [x] outer\n  - [ ] inner\n  - [x] ready\n- [ ] next");

@@ -14,11 +14,12 @@ public enum AdfValidationSeverity {
 
 /// <summary>A structural ADF validation issue.</summary>
 public sealed class AdfValidationIssue {
-    internal AdfValidationIssue(string code, string path, string message, AdfValidationSeverity severity) {
+    internal AdfValidationIssue(string code, string path, string message, AdfValidationSeverity severity, bool isGraphSafetyFailure = false) {
         Code = code;
         Path = path;
         Message = message;
         Severity = severity;
+        IsGraphSafetyFailure = isGraphSafetyFailure;
     }
 
     /// <summary>Gets the identifier of the validation rule that produced this issue.</summary>
@@ -32,6 +33,8 @@ public sealed class AdfValidationIssue {
 
     /// <summary>Gets the issue severity used to determine whether validation succeeded.</summary>
     public AdfValidationSeverity Severity { get; }
+
+    internal bool IsGraphSafetyFailure { get; }
 }
 
 /// <summary>Result of validating an ADF document.</summary>

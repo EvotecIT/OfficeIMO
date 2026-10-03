@@ -66,7 +66,7 @@ internal static class AdfGraphSafety {
         }
         return length;
     }
-    private static AdfValidationIssue Error(string code, string path, string message) => new AdfValidationIssue(code, path, message, AdfValidationSeverity.Error);
+    private static AdfValidationIssue Error(string code, string path, string message) => new AdfValidationIssue(code, path, message, AdfValidationSeverity.Error, isGraphSafetyFailure: true);
     private sealed class Frame {
         internal Frame(AdfNode? owner, IReadOnlyList<AdfNode> children, string path) { Owner = owner; Children = children; Path = path; }
         internal AdfNode? Owner { get; }

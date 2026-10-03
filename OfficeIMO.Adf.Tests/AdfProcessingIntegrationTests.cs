@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using OfficeIMO.Adf;
 using OfficeIMO.Markdown;
@@ -26,6 +27,31 @@ public sealed class AdfProcessingIntegrationTests {
         Assert.Contains(document.Validate(options).Issues, issue => issue.Code == "ADF_NODE_LIMIT_EXCEEDED");
         options.MaxNodes = 100; options.MaxTextCharacters = 3;
         Assert.Contains(document.Validate(options).Issues, issue => issue.Code == "ADF_TEXT_LIMIT_EXCEEDED");
+    }
+
+    [Theory]
+    [InlineData(AdfValidationProfile.ForwardCompatible, true)]
+    [InlineData(AdfValidationProfile.ForwardCompatible, false)]
+    [InlineData(AdfValidationProfile.FullSchema, true)]
+    [InlineData(AdfValidationProfile.FullSchema, false)]
+    public void DestinationPoliciesStopWhenTextLimitsLeaveDescendantsUnchecked(AdfValidationProfile profile, bool rootText) {
+        foreach (string unsafeContent in new[] { "null-node", "null-mark", "cycle" }) {
+            var paragraph = new AdfNode("paragraph") { Text = rootText ? null : "oversized" };
+            if (unsafeContent == "cycle") paragraph.Content.Add(paragraph);
+            else if (unsafeContent == "null-node") paragraph.Content.Add(null!);
+            else paragraph.Content.Add(AdfNode.TextNode("child", new AdfMark[] { null! }));
+            var document = new AdfDocument(new[] { paragraph });
+            using var metadata = JsonDocument.Parse("\"oversized\"");
+            if (rootText) document.ExtensionData["vendorMetadata"] = metadata.RootElement.Clone();
+            // A watchdog prevents a regressed destination walker from hanging on the cyclic fixture.
+            using var watchdog = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var result = document.Validate(new AdfValidationOptions {
+                Profile = profile, MaxTextCharacters = 1, CancellationToken = watchdog.Token,
+                DestinationPolicy = new AdfDestinationPolicy("unrestricted-test-destination")
+            });
+            Assert.False(result.IsValid);
+            Assert.Equal("ADF_TEXT_LIMIT_EXCEEDED", Assert.Single(result.Issues).Code);
+        }
     }
 
     [Theory]

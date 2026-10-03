@@ -263,6 +263,7 @@ internal sealed class MarkdownToAdfConverter {
                 case ImageInline image:
                     diagnostics.Add(Warning("MARKDOWN_INLINE_IMAGE_PROJECTED", inlinePath, "Inline Markdown images are represented by their linked alternate text; ADF external media requires a block container."));
                     target.Add(AdfNode.TextNode(image.PlainAlt.Length == 0 ? image.Src : image.PlainAlt,
+                        inheritedMarks.Any(mark => mark.Type == "link") ? CloneMarks(inheritedMarks) :
                         AddMark(inheritedMarks, new AdfMark("link").SetAttribute("href", image.Src))));
                     break;
                 case HtmlRawInline html when html.Html == "<!-- -->":
