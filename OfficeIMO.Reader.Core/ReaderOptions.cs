@@ -41,6 +41,9 @@ public sealed class ReaderOptions {
     /// </summary>
     public long? MaxInputBytes { get; set; }
 
+    // Aggregate ingestion limits must not override the actual handler's default input limit.
+    internal long? InputByteBudget { get; set; }
+
     /// <summary>
     /// Default encoding for plain-text input without a Unicode byte-order mark.
     /// Null selects UTF-8. A BOM takes precedence. Encoding settings are snapshotted per read.

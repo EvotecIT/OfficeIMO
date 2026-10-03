@@ -297,7 +297,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 new(0x0180, 0U),
                 new(0x0181, PackOfficeArtColor(fill)),
                 new(0x0183, PackOfficeArtColor(fill)),
-                new(0x01BF, 0x00100010U),
+                new(0x01BF, table.GetCell(row, column).NoFill ? 0x00100000U : 0x00100010U),
                 new(0x01D6, 1U),
                 new(0x01FF, 0x00090000U)
             };

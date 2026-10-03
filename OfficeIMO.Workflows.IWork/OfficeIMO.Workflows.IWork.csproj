@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Opt-in Pages, Numbers, and Keynote conversion routes for OfficeIMO Workflows.</Description>
+    <PackageId>OfficeIMO.Workflows.IWork</PackageId>
+    <AssemblyName>OfficeIMO.Workflows.IWork</AssemblyName>
+    <AssemblyTitle>OfficeIMO.Workflows.IWork</AssemblyTitle>
+    <VersionPrefix>3.4.4</VersionPrefix>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageTags>documents;workflow;conversion;pdf;provenance;c2pa;office;officeimo</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>OfficeIMO.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\Assets\OfficeIMO.png" Pack="True" PackagePath="\" />
+    <None Include="README.md" Pack="True" PackagePath="README.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.IWork\OfficeIMO.Word.IWork.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel.IWork\OfficeIMO.Excel.IWork.csproj" />
+    <ProjectReference Include="..\OfficeIMO.PowerPoint.IWork\OfficeIMO.PowerPoint.IWork.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -939,6 +939,8 @@ public sealed class OfficeOutputWorkflowTests {
         string folder = Path.Combine(scope.Path, "folder");
         Directory.CreateDirectory(folder);
         CreatePdf(folder, "A.pdf", "Uppercase");
+        // APFS can be case-insensitive; the host OS does not establish the volume contract.
+        if (File.Exists(Path.Combine(folder, "a.pdf"))) return;
         CreatePdf(folder, "a.pdf", "Lowercase");
         string output = Path.Combine(scope.Path, "assembled.pdf");
 

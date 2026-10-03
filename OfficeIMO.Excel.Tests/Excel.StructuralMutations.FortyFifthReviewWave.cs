@@ -76,6 +76,31 @@ namespace OfficeIMO.Tests {
             Assert.Empty(document.ValidateOpenXml());
         }
 
+        [Theory]
+        [InlineData("modern")]
+        [InlineData("legacy")]
+        [InlineData("imported-cache")]
+        public void Test_RejectedFormulaPrefixExpansion_PreservesExistingInCellImages(string entryPoint) {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Images");
+            sheet.SetInCellImage(1, 1, TinyPng, altText: "Owner");
+            sheet.SetInCellImage(1, 2, TinyPng, altText: "Spill");
+            string formula = "TEXTJOIN(\"\",FALSE,\"" + new string('x', 8190 - "TEXTJOIN(\"\",FALSE,\"\")".Length) + "\")";
+            Assert.Throws<ArgumentException>(() => {
+                if (entryPoint == "modern") sheet.SetArrayFormula("A1:B1", formula);
+                else if (entryPoint == "legacy") sheet.SetLegacyArrayFormula("A1:B1", formula);
+                else sheet.CellFormulaWithTextCache(1, 1, formula, "replacement");
+            });
+            using var output = new MemoryStream(); document.Save(output); output.Position = 0;
+            using var reopened = ExcelDocument.Load(output);
+            var images = reopened.Sheets[0].GetInCellImages().OrderBy(i => i.CellReference).ToArray();
+            Assert.Equal(new[] { "A1", "B1" }, images.Select(i => i.CellReference));
+            Assert.Equal(new[] { "Owner", "Spill" }, images.Select(i => i.AltText));
+            Assert.All(images, image => Assert.Equal(TinyPng, image.Bytes));
+            Assert.Empty(reopened.Sheets[0].GetFormulaCells());
+            Assert.Empty(reopened.ValidateOpenXml());
+        }
+
         [Fact]
         public void Test_FormulaInspection_BoundsUnloadedCellMetadataBeforeMaterialization() {
             using var document = ExcelDocument.Create(new MemoryStream());

@@ -20,17 +20,6 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Mixed_case_pages_alphabetic_markers_use_visual_fallback() {
-        using MemoryStream package = CreatePagesPackageWithListLabel(
-            "Ab.", includePreview: true);
-
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
-
-        Assert.True(result.Projection.HasEditableContent);
-        Assert.True(result.IsVisualFallback);
-    }
-
-    [Fact]
     public void Covered_merge_cells_report_materialized_content() {
         var merge = new IWorkTableMergeRange(1, 1, 1, 2);
         var anchorOnly = new IWorkTable("Anchor", 1, 2, new[] {

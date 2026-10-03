@@ -19,6 +19,7 @@ namespace OfficeIMO.Word {
         public static WordComment Create(WordDocument document, string author, string initials, string comment, WordComment? parent = null) {
             var comments = GetCommentsPart(document);
             var commentsEx = GetCommentsExPart(document);
+            WordCommentIdentityPlan.Prepare(comments, commentsEx).Apply(commentsEx);
             var paraId = GetNewParaId(commentsEx, comments);
             // Compose a new Comment and add it to the Comments part.
             Paragraph p = new Paragraph(new Run(new Text(comment))) {
@@ -49,6 +50,7 @@ namespace OfficeIMO.Word {
 
             var comments = GetCommentsPart(document);
             var commentsEx = GetCommentsExPart(document);
+            WordCommentIdentityPlan.Prepare(comments, commentsEx).Apply(commentsEx);
             var paraId = GetNewParaId(commentsEx, comments);
             Comment cmt = new Comment() {
                 Id = GetNewId(document),
@@ -243,6 +245,9 @@ namespace OfficeIMO.Word {
             }
 
             CommentsEx commentsEx = GetCommentsExPart(_document);
+            WordCommentIdentityPlan identities = WordCommentIdentityPlan.Prepare(commentsPart.Comments, commentsEx);
+            identities.Apply(commentsEx);
+            if (identities.HasChanges) commentsPart.Comments.Save();
             List<CommentEx> commentExList = commentsEx.Elements<CommentEx>().ToList();
             CommentEx? commentEx = FindCommentExForComment(_comment, commentExList, index);
             if (commentEx != null) {
@@ -258,24 +263,7 @@ namespace OfficeIMO.Word {
                 return commentEx;
             }
 
-            while (commentsEx.Elements<CommentEx>().Count() <= index) {
-                commentsEx.AppendChild(new CommentEx { ParaId = GetNewParaId(commentsEx, commentsPart.Comments) });
-            }
-
-            commentEx = commentsEx.Elements<CommentEx>().ElementAt(index);
-            if (string.IsNullOrWhiteSpace(commentEx.ParaId?.Value)) {
-                commentEx.ParaId = _commentEx?.ParaId ?? GetNewParaId(commentsEx, commentsPart.Comments);
-            }
-
-            string? ensuredParagraphId = commentEx.ParaId?.Value;
-            if (!string.IsNullOrWhiteSpace(ensuredParagraphId) && string.IsNullOrWhiteSpace(GetCommentParagraphId(_comment))) {
-                Paragraph paragraph = _comment.Elements<Paragraph>().First();
-                paragraph.ParagraphId = ensuredParagraphId;
-                commentsPart.Comments.Save();
-            }
-
-            _commentEx = commentEx;
-            return commentEx;
+            throw new InvalidOperationException("The comment has no stable paragraph identity.");
         }
 
         private void SaveCommentsEx() {

@@ -1,0 +1,140 @@
+{
+  "producer": "numbers-parser",
+  "producerVersion": "4.19.0",
+  "sourceSha256": "6f45fa942ab26b2e9a3c2487fec491d5c43e85cfe1c191520134d5b64ac61475",
+  "qualification": "Independent-producer metadata and source display text. Destination display uses explicit currency identifiers with reported approximation; no Apple native export or appearance claim.",
+  "cases": [
+    {
+      "row": 1,
+      "label": "USD grouped",
+      "value": 1234.5,
+      "currencyCode": "USD",
+      "decimalPlaces": 2,
+      "thousandsSeparator": true,
+      "negativeStyle": 0,
+      "useAccountingStyle": false,
+      "sourceDisplayText": "$1,234.50",
+      "destinationDisplayText": "USD 1,234.50"
+    },
+    {
+      "row": 2,
+      "label": "USD minus",
+      "value": -1234.5,
+      "currencyCode": "USD",
+      "decimalPlaces": 2,
+      "thousandsSeparator": true,
+      "negativeStyle": 0,
+      "useAccountingStyle": false,
+      "sourceDisplayText": "$-1,234.50",
+      "destinationDisplayText": "USD -1,234.50"
+    },
+    {
+      "row": 3,
+      "label": "EUR red",
+      "value": -12.500000000000002,
+      "currencyCode": "EUR",
+      "decimalPlaces": 2,
+      "thousandsSeparator": false,
+      "negativeStyle": 1,
+      "useAccountingStyle": false,
+      "sourceDisplayText": "\u20ac12.50",
+      "destinationDisplayText": "EUR 12.50"
+    },
+    {
+      "row": 4,
+      "label": "GBP parentheses",
+      "value": -12.500000000000002,
+      "currencyCode": "GBP",
+      "decimalPlaces": 1,
+      "thousandsSeparator": false,
+      "negativeStyle": 2,
+      "useAccountingStyle": false,
+      "sourceDisplayText": "\u00a3(12.5)",
+      "destinationDisplayText": "GBP (12.5)"
+    },
+    {
+      "row": 5,
+      "label": "JPY red parentheses",
+      "value": -1234.625,
+      "currencyCode": "JPY",
+      "decimalPlaces": 0,
+      "thousandsSeparator": true,
+      "negativeStyle": 3,
+      "useAccountingStyle": false,
+      "sourceDisplayText": "JP\u00a5(1,235)",
+      "destinationDisplayText": "JPY (1,235)"
+    },
+    {
+      "row": 6,
+      "label": "PLN precision",
+      "value": 12.125000000000002,
+      "currencyCode": "PLN",
+      "decimalPlaces": 3,
+      "thousandsSeparator": false,
+      "negativeStyle": 0,
+      "useAccountingStyle": false,
+      "sourceDisplayText": "PLN 12.125",
+      "destinationDisplayText": "PLN 12.125"
+    },
+    {
+      "row": 7,
+      "label": "CHF zero",
+      "value": 0.0,
+      "currencyCode": "CHF",
+      "decimalPlaces": 2,
+      "thousandsSeparator": false,
+      "negativeStyle": 0,
+      "useAccountingStyle": false,
+      "sourceDisplayText": "CHF 0.00",
+      "destinationDisplayText": "CHF 0.00"
+    },
+    {
+      "row": 8,
+      "label": "USD accounting positive",
+      "value": 1234.5,
+      "currencyCode": "USD",
+      "decimalPlaces": 2,
+      "thousandsSeparator": true,
+      "negativeStyle": 0,
+      "useAccountingStyle": true,
+      "sourceDisplayText": "$\t1,234.50",
+      "destinationDisplayText": "USD 1,234.50"
+    },
+    {
+      "row": 9,
+      "label": "USD accounting negative",
+      "value": -1234.5,
+      "currencyCode": "USD",
+      "decimalPlaces": 2,
+      "thousandsSeparator": true,
+      "negativeStyle": 0,
+      "useAccountingStyle": true,
+      "sourceDisplayText": "$\t(1,234.50)",
+      "destinationDisplayText": "USD (1,234.50)"
+    },
+    {
+      "row": 10,
+      "label": "EUR accounting zero",
+      "value": 0.0,
+      "currencyCode": "EUR",
+      "decimalPlaces": 2,
+      "thousandsSeparator": false,
+      "negativeStyle": 0,
+      "useAccountingStyle": true,
+      "sourceDisplayText": "\u20ac\t0.00",
+      "destinationDisplayText": "EUR 0.00"
+    },
+    {
+      "row": 11,
+      "label": "USD automatic",
+      "value": 1.5,
+      "currencyCode": "USD",
+      "decimalPlaces": null,
+      "thousandsSeparator": false,
+      "negativeStyle": 0,
+      "useAccountingStyle": false,
+      "sourceDisplayText": "$1.5",
+      "destinationDisplayText": "USD 1.5"
+    }
+  ]
+}

@@ -19,7 +19,7 @@ internal static class OfficeImoToolApp {
 OfficeIMO.Tool
 
 Usage:
-  officeimo convert <input> [output.pdf|output.md|output.json] [options]
+  officeimo convert <input> [output.pdf|output.docx|output.xlsx|output.pptx|output.md|output.json] [options]
   officeimo read <path|-> [options]
   officeimo extract <path|-> [options]
   officeimo inspect <path> [options]

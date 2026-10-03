@@ -899,7 +899,7 @@ namespace OfficeIMO.Word {
 
                 Settings settings = _wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!;
                 EvenAndOddHeaders? setting = settings.GetFirstChild<EvenAndOddHeaders>();
-                if (setting == null) settings.Append(new EvenAndOddHeaders());
+                if (setting == null) settings.AddChild(new EvenAndOddHeaders(), true);
                 else setting.Val = true;
             }
         }

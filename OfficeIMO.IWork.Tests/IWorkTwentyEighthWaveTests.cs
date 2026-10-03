@@ -40,7 +40,7 @@ public sealed partial class IWorkBoundaryTests {
             BytesField(1, Message(VarintField(1, 0), ReferenceField(2, firstAttributeId))),
             BytesField(1, Message(VarintField(1, 0), ReferenceField(2, secondAttributeId))));
         byte[] attribute = archiveType switch {
-            2023 => Message(VarintField(11, 1)),
+            2023 => Message(VarintField(11, 2)),
             2032 => Message(StringField(2, "https://example.test/")),
             _ => Message()
         };

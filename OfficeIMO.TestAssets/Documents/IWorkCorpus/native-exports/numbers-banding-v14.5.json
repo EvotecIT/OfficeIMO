@@ -1,0 +1,442 @@
+{
+  "schemaVersion": 1,
+  "provider": "numbers-parser",
+  "providerVersion": "4.19.0",
+  "sourceFixture": "native-exports/numbers-banding-v14.5.numbers",
+  "sourceSha256": "669c2ef12bce79e75991bb73b660b0200711253303f655e421c9235da7447867",
+  "producer": {
+    "application": "Apple Numbers",
+    "version": "14.5",
+    "build": "7045.0.17",
+    "operatingSystem": "macOS 27.0.1 26A434",
+    "exportedUtc": "2026-10-01T14:59:53Z"
+  },
+  "sourceLicense": "OfficeIMO-authored fixture; repository MIT license",
+  "exportOptions": {
+    "xlsx": "One worksheet per table; overview disabled; no password",
+    "pdf": "Fit each sheet to one page; best image quality; no password",
+    "nativeTableTitleRowOffset": 1
+  },
+  "pdf": {
+    "pageCount": 3,
+    "fontProvenance": "Apple Numbers/Quartz embedded subsets; no standalone fonts copied"
+  },
+  "artifacts": [
+    {
+      "path": "numbers-banding-v14.5.xlsx",
+      "sha256": "5116f157e5dbd52949b813ceef6e843759d1cb21cf3473935fd65adce2a1c7bf"
+    },
+    {
+      "path": "numbers-banding-v14.5.pdf",
+      "sha256": "72ba73f2baa53d30c1d12bef9bd924ff331607ca084a2c66cb532420a46cb9ac"
+    }
+  ],
+  "tables": [
+    {
+      "modelIdentifier": 904538,
+      "sheet": "Headers1",
+      "headerRows": 1,
+      "bandedBodyRgb": "F7F7F6",
+      "roles": {
+        "body_cell_style": null,
+        "header_row_style": "00A2FF",
+        "header_column_style": null,
+        "footer_row_style": "ECECEA"
+      },
+      "worksheetIndex": 1,
+      "cells": [
+        {
+          "row": 1,
+          "column": 1,
+          "rgb": "00A2FF"
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "rgb": "00A2FF"
+        },
+        {
+          "row": 1,
+          "column": 3,
+          "rgb": "00A2FF"
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "rgb": null
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "rgb": null
+        },
+        {
+          "row": 2,
+          "column": 3,
+          "rgb": null
+        },
+        {
+          "row": 3,
+          "column": 1,
+          "rgb": null
+        },
+        {
+          "row": 3,
+          "column": 2,
+          "rgb": "F7F7F6"
+        },
+        {
+          "row": 3,
+          "column": 3,
+          "rgb": "F7F7F6"
+        },
+        {
+          "row": 4,
+          "column": 1,
+          "rgb": null
+        },
+        {
+          "row": 4,
+          "column": 2,
+          "rgb": null
+        },
+        {
+          "row": 4,
+          "column": 3,
+          "rgb": null
+        },
+        {
+          "row": 5,
+          "column": 1,
+          "rgb": null
+        },
+        {
+          "row": 5,
+          "column": 2,
+          "rgb": "F7F7F6"
+        },
+        {
+          "row": 5,
+          "column": 3,
+          "rgb": "F7F7F6"
+        },
+        {
+          "row": 6,
+          "column": 1,
+          "rgb": null
+        },
+        {
+          "row": 6,
+          "column": 2,
+          "rgb": null
+        },
+        {
+          "row": 6,
+          "column": 3,
+          "rgb": null
+        },
+        {
+          "row": 7,
+          "column": 1,
+          "rgb": null
+        },
+        {
+          "row": 7,
+          "column": 2,
+          "rgb": "F7F7F6"
+        },
+        {
+          "row": 7,
+          "column": 3,
+          "rgb": "F7F7F6"
+        },
+        {
+          "row": 8,
+          "column": 1,
+          "rgb": "ECECEA"
+        },
+        {
+          "row": 8,
+          "column": 2,
+          "rgb": "ECECEA"
+        },
+        {
+          "row": 8,
+          "column": 3,
+          "rgb": "ECECEA"
+        }
+      ]
+    },
+    {
+      "modelIdentifier": 907372,
+      "sheet": "Headers0",
+      "headerRows": 0,
+      "bandedBodyRgb": "F7F7F6",
+      "roles": {
+        "body_cell_style": null,
+        "header_row_style": "00A2FF",
+        "header_column_style": null,
+        "footer_row_style": "ECECEA"
+      },
+      "worksheetIndex": 2,
+      "cells": [
+        {
+          "row": 1,
+          "column": 1,
+          "rgb": null
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "rgb": null
+        },
+        {
+          "row": 1,
+          "column": 3,
+          "rgb": null
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "rgb": null
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "rgb": "F7F7F6"
+        },
+        {
+          "row": 2,
+          "column": 3,
+          "rgb": "F7F7F6"
+        },
+        {
+          "row": 3,
+          "column": 1,
+          "rgb": null
+        },
+        {
+          "row": 3,
+          "column": 2,
+          "rgb": null
+        },
+        {
+          "row": 3,
+          "column": 3,
+          "rgb": null
+        },
+        {
+          "row": 4,
+          "column": 1,
+          "rgb": null
+        },
+        {
+          "row": 4,
+          "column": 2,
+          "rgb": "F7F7F6"
+        },
+        {
+          "row": 4,
+          "column": 3,
+          "rgb": "F7F7F6"
+        },
+        {
+          "row": 5,
+          "column": 1,
+          "rgb": null
+        },
+        {
+          "row": 5,
+          "column": 2,
+          "rgb": null
+        },
+        {
+          "row": 5,
+          "column": 3,
+          "rgb": null
+        },
+        {
+          "row": 6,
+          "column": 1,
+          "rgb": null
+        },
+        {
+          "row": 6,
+          "column": 2,
+          "rgb": "F7F7F6"
+        },
+        {
+          "row": 6,
+          "column": 3,
+          "rgb": "F7F7F6"
+        },
+        {
+          "row": 7,
+          "column": 1,
+          "rgb": null
+        },
+        {
+          "row": 7,
+          "column": 2,
+          "rgb": null
+        },
+        {
+          "row": 7,
+          "column": 3,
+          "rgb": null
+        },
+        {
+          "row": 8,
+          "column": 1,
+          "rgb": "ECECEA"
+        },
+        {
+          "row": 8,
+          "column": 2,
+          "rgb": "ECECEA"
+        },
+        {
+          "row": 8,
+          "column": 3,
+          "rgb": "ECECEA"
+        }
+      ]
+    },
+    {
+      "modelIdentifier": 908283,
+      "sheet": "Headers2",
+      "headerRows": 2,
+      "bandedBodyRgb": "F7F7F6",
+      "roles": {
+        "body_cell_style": null,
+        "header_row_style": "00A2FF",
+        "header_column_style": null,
+        "footer_row_style": "ECECEA"
+      },
+      "worksheetIndex": 3,
+      "cells": [
+        {
+          "row": 1,
+          "column": 1,
+          "rgb": "00A2FF"
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "rgb": "00A2FF"
+        },
+        {
+          "row": 1,
+          "column": 3,
+          "rgb": "00A2FF"
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "rgb": "00A2FF"
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "rgb": "00A2FF"
+        },
+        {
+          "row": 2,
+          "column": 3,
+          "rgb": "00A2FF"
+        },
+        {
+          "row": 3,
+          "column": 1,
+          "rgb": null
+        },
+        {
+          "row": 3,
+          "column": 2,
+          "rgb": null
+        },
+        {
+          "row": 3,
+          "column": 3,
+          "rgb": null
+        },
+        {
+          "row": 4,
+          "column": 1,
+          "rgb": null
+        },
+        {
+          "row": 4,
+          "column": 2,
+          "rgb": "F7F7F6"
+        },
+        {
+          "row": 4,
+          "column": 3,
+          "rgb": "F7F7F6"
+        },
+        {
+          "row": 5,
+          "column": 1,
+          "rgb": null
+        },
+        {
+          "row": 5,
+          "column": 2,
+          "rgb": null
+        },
+        {
+          "row": 5,
+          "column": 3,
+          "rgb": null
+        },
+        {
+          "row": 6,
+          "column": 1,
+          "rgb": null
+        },
+        {
+          "row": 6,
+          "column": 2,
+          "rgb": "F7F7F6"
+        },
+        {
+          "row": 6,
+          "column": 3,
+          "rgb": "F7F7F6"
+        },
+        {
+          "row": 7,
+          "column": 1,
+          "rgb": null
+        },
+        {
+          "row": 7,
+          "column": 2,
+          "rgb": null
+        },
+        {
+          "row": 7,
+          "column": 3,
+          "rgb": null
+        },
+        {
+          "row": 8,
+          "column": 1,
+          "rgb": "ECECEA"
+        },
+        {
+          "row": 8,
+          "column": 2,
+          "rgb": "ECECEA"
+        },
+        {
+          "row": 8,
+          "column": 3,
+          "rgb": "ECECEA"
+        }
+      ]
+    }
+  ],
+  "limitations": "Qualifies opaque sRGB role fills and alternating body-row fills for this Numbers 14.5 fixture. Selected overrides are tested separately. Other producers, gradients, transparency, complete appearance and pagination are not qualified."
+}

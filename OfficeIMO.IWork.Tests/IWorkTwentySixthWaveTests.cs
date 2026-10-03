@@ -40,7 +40,8 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Pages_list_placeholder_levels_adopt_their_authored_numbering_kind() {
         using MemoryStream package = CreatePagesPackageWithDescendingListLevels();
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = IWorkSourceDocument.Open(package).ToWordDocumentResult(
+            new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
@@ -140,7 +141,8 @@ public sealed partial class IWorkBoundaryTests {
             BytesField(1, Message(VarintField(1, 0), ReferenceField(2, deepStyleId))),
             BytesField(1, Message(VarintField(1, 5), ReferenceField(2, middleStyleId))));
         byte[] listStyle = Message(
-            VarintField(11, 1), VarintField(11, 1), VarintField(11, 1),
+            VarintField(11, 2), VarintField(11, 3), VarintField(11, 3),
+            VarintField(15, 0), VarintField(15, 12), VarintField(15, 0),
             FloatField(13, 0f), FloatField(13, 18f), FloatField(13, 36f),
             StringField(16, "•"), StringField(16, "a."), StringField(16, "1."));
         byte[] records = Message(

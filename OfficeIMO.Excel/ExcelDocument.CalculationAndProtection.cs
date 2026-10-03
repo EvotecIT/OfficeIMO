@@ -291,25 +291,17 @@ namespace OfficeIMO.Excel {
         /// Evaluates supported formulas and writes cached values.
         /// </summary>
         public int RecalculateSupportedFormulas() {
-            ExcelSheet? pendingSheet = MaterializePendingDirectCellValueSheetIfNeeded();
-
-            int count = 0;
-            string? recalculatedPendingSheetName = null;
-            if (pendingSheet != null) {
-                count += pendingSheet.RecalculateSupportedFormulas();
-                recalculatedPendingSheetName = pendingSheet.Name;
-            }
-
-            foreach (var sheet in Sheets) {
-                if (recalculatedPendingSheetName != null
-                    && string.Equals(sheet.Name, recalculatedPendingSheetName, System.StringComparison.OrdinalIgnoreCase)) {
-                    continue;
+            return Locking.ExecuteWrite(EnsureLock(), () => {
+                ExcelSheet? pendingSheet = MaterializePendingDirectCellValueSheetIfNeeded();
+                var context = new ExcelSheet.FormulaCalculationContext();
+                int count = 0;
+                if (pendingSheet != null) count += pendingSheet.RecalculateSupportedFormulas(context);
+                foreach (var sheet in GetSheetsForLockedOperation()) {
+                    if (pendingSheet != null && string.Equals(sheet.Name, pendingSheet.Name, StringComparison.OrdinalIgnoreCase)) continue;
+                    count += sheet.RecalculateSupportedFormulas(context);
                 }
-
-                count += sheet.RecalculateSupportedFormulas();
-            }
-
-            return count;
+                return count;
+            });
         }
 
         /// <summary>

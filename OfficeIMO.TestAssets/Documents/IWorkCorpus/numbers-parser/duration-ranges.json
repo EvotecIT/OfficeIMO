@@ -1,0 +1,348 @@
+{
+  "extractorVersion": "numbers-parser 4.19.0",
+  "qualification": "Selected abbreviated fixed day-only and week/day/hour declarations and saved caches. Whole-day display has independent parser evidence including negative values. Fractional-day rounding, mixed-unit XLSX representation, native exports, locale and appearance remain unqualified.",
+  "packages": [
+    {
+      "source": "cross-table-formulas.numbers",
+      "sourceSha256": "9371c5b1d6ee4dfa17569097f064eba9c67f804d88b48638efbbeeb459d07dd4",
+      "cells": []
+    },
+    {
+      "source": "endpoint-formulas.numbers",
+      "sourceSha256": "3deb8e3b868be60d7b8924336d2839fcd690db2b138e6c2170d6c22c4aca48dc",
+      "cells": [
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 41,
+          "column": 2,
+          "formatHex": "088c0238017802800102c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 2,
+            "duration_unit_smallest": 2,
+            "use_automatic_duration_units": false
+          },
+          "seconds": 8726400.0,
+          "independentDisplayText": "101d"
+        },
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 41,
+          "column": 3,
+          "formatHex": "088c0238017802800102c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 2,
+            "duration_unit_smallest": 2,
+            "use_automatic_duration_units": false
+          },
+          "seconds": 8726400.0,
+          "independentDisplayText": "101d"
+        },
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 56,
+          "column": 2,
+          "formatHex": "088c0238017801800104c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 1,
+            "duration_unit_smallest": 4,
+            "use_automatic_duration_units": false
+          },
+          "seconds": 788400.0,
+          "independentDisplayText": "1w 2d 3h"
+        },
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 56,
+          "column": 3,
+          "formatHex": "088c0238017801800104c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 1,
+            "duration_unit_smallest": 4,
+            "use_automatic_duration_units": false
+          },
+          "seconds": 788400.0,
+          "independentDisplayText": "1w 2d 3h"
+        },
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 89,
+          "column": 2,
+          "formatHex": "088c0238017802800102c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 2,
+            "duration_unit_smallest": 2,
+            "use_automatic_duration_units": false
+          },
+          "seconds": 19958400.0,
+          "independentDisplayText": "231d"
+        },
+        {
+          "sheet": "Formulas",
+          "table": "Tests",
+          "row": 89,
+          "column": 3,
+          "formatHex": "088c0238017802800102c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 2,
+            "duration_unit_smallest": 2,
+            "use_automatic_duration_units": false
+          },
+          "seconds": 19958400.0,
+          "independentDisplayText": "231d"
+        }
+      ]
+    },
+    {
+      "source": "single-cell-formulas.numbers",
+      "sourceSha256": "4ce0593faa61bf159bde0752ade1fa202afcd142317ba16fdec8eb71a7149170",
+      "cells": [
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 42,
+          "column": 2,
+          "formatHex": "088c0238017802800102c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 2,
+            "duration_unit_smallest": 2,
+            "use_automatic_duration_units": false
+          },
+          "seconds": -31017600.0,
+          "independentDisplayText": "-359d"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 42,
+          "column": 3,
+          "formatHex": "088c0238017802800102c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 2,
+            "duration_unit_smallest": 2,
+            "use_automatic_duration_units": false
+          },
+          "seconds": -31017600.0,
+          "independentDisplayText": "-359d"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 43,
+          "column": 2,
+          "formatHex": "088c0238017802800102c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 2,
+            "duration_unit_smallest": 2,
+            "use_automatic_duration_units": false
+          },
+          "seconds": 5184000.0,
+          "independentDisplayText": "60d"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 43,
+          "column": 3,
+          "formatHex": "088c0238017802800102c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 2,
+            "duration_unit_smallest": 2,
+            "use_automatic_duration_units": false
+          },
+          "seconds": 5184000.0,
+          "independentDisplayText": "60d"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 44,
+          "column": 2,
+          "formatHex": "088c0238017802800102c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 2,
+            "duration_unit_smallest": 2,
+            "use_automatic_duration_units": false
+          },
+          "seconds": 86400.0,
+          "independentDisplayText": "1d"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 44,
+          "column": 3,
+          "formatHex": "088c0238017802800102c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 2,
+            "duration_unit_smallest": 2,
+            "use_automatic_duration_units": false
+          },
+          "seconds": 86400.0,
+          "independentDisplayText": "1d"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 45,
+          "column": 2,
+          "formatHex": "088c0238017802800102c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 2,
+            "duration_unit_smallest": 2,
+            "use_automatic_duration_units": false
+          },
+          "seconds": 5097600.0,
+          "independentDisplayText": "59d"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 45,
+          "column": 3,
+          "formatHex": "088c0238017802800102c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 2,
+            "duration_unit_smallest": 2,
+            "use_automatic_duration_units": false
+          },
+          "seconds": 5097600.0,
+          "independentDisplayText": "59d"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 56,
+          "column": 2,
+          "formatHex": "088c0238017802800102c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 2,
+            "duration_unit_smallest": 2,
+            "use_automatic_duration_units": false
+          },
+          "seconds": 9504000.0,
+          "independentDisplayText": "110d"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 56,
+          "column": 3,
+          "formatHex": "088c0238017802800102c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 2,
+            "duration_unit_smallest": 2,
+            "use_automatic_duration_units": false
+          },
+          "seconds": 9504000.0,
+          "independentDisplayText": "110d"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 57,
+          "column": 2,
+          "formatHex": "088c0238017802800102c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 2,
+            "duration_unit_smallest": 2,
+            "use_automatic_duration_units": false
+          },
+          "seconds": 1900800.0,
+          "independentDisplayText": "22d"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 57,
+          "column": 3,
+          "formatHex": "088c0238017802800102c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 2,
+            "duration_unit_smallest": 2,
+            "use_automatic_duration_units": false
+          },
+          "seconds": 1900800.0,
+          "independentDisplayText": "22d"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 58,
+          "column": 2,
+          "formatHex": "088c0238017802800102c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 2,
+            "duration_unit_smallest": 2,
+            "use_automatic_duration_units": false
+          },
+          "seconds": -1814400.0,
+          "independentDisplayText": "-21d"
+        },
+        {
+          "sheet": "Date",
+          "table": "Tests",
+          "row": 58,
+          "column": 3,
+          "formatHex": "088c0238017802800102c00200",
+          "settings": {
+            "format_type": 268,
+            "duration_style": 1,
+            "duration_unit_largest": 2,
+            "duration_unit_smallest": 2,
+            "use_automatic_duration_units": false
+          },
+          "seconds": -1814400.0,
+          "independentDisplayText": "-21d"
+        }
+      ]
+    },
+    {
+      "source": "issue-102-v15.1.numbers",
+      "sourceSha256": "88a9fa7be095d03004478393a87a4a97602d7468f839d067ec9118c524c55176",
+      "cells": []
+    }
+  ]
+}

@@ -358,6 +358,7 @@ namespace OfficeIMO.PowerPoint {
             _comment.Remove();
             if (_part.CommentList == null
                 || !_part.CommentList.Elements<P188.Comment>().Any()) {
+                PowerPointPresentation.RemoveModernCommentRelationship(_slide.SlidePart, _part);
                 _slide.SlidePart.DeletePart(_part);
             }
             foreach (string? authorId in authorIds) {
@@ -557,6 +558,7 @@ namespace OfficeIMO.PowerPoint {
                 commentsPart.CommentList = new P188.CommentList();
             }
             if (commentsPart.CommentList == null) commentsPart.CommentList = new P188.CommentList();
+            EnsureModernCommentRelationship(slide.SlidePart, commentsPart);
             commentsPart.CommentList.Append(comment);
             return new PowerPointModernComment(this, slide, commentsPart, comment);
         }

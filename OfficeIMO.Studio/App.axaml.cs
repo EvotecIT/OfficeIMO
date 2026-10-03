@@ -58,6 +58,7 @@ public sealed partial class App : Application {
             var window = new MainWindow(Services);
             window.OpenInitialDocument(desktop.Args);
             desktop.MainWindow = window;
+            AttachFileActivation(desktop, window);
         }
 
         base.OnFrameworkInitializationCompleted();

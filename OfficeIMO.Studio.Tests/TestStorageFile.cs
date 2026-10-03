@@ -15,6 +15,7 @@ internal sealed class TestStorageFile {
     internal int Writes { get; private set; }
     internal int Disposals { get; private set; }
     internal bool DenyRead { get; set; }
+    internal bool DenyBookmark { get; set; }
     internal bool FailWrite { get; set; }
     internal bool CorruptWrite { get; set; }
     internal Action? BeforeRead { get; set; }
@@ -29,7 +30,7 @@ internal sealed class TestStorageFile {
             "get_Name" => Name,
             "get_Path" => Location,
             "get_CanBookmark" => true,
-            "SaveBookmarkAsync" => Task.FromResult<string?>(Bookmark),
+            "SaveBookmarkAsync" => DenyBookmark ? throw new UnauthorizedAccessException("Provider permission expired.") : Task.FromResult<string?>(Bookmark),
             "ReleaseBookmarkAsync" => Task.CompletedTask,
             "OpenReadAsync" => OpenRead(),
             "OpenWriteAsync" => OpenWrite(),

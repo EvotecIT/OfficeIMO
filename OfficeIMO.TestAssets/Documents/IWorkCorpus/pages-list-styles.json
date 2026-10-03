@@ -1,0 +1,266 @@
+{
+  "provider": "numbers-parser",
+  "providerVersion": "4.19.0",
+  "offsetUnit": "UTF-16 code units before marker removal",
+  "labelTypeNames": {
+    "0": "kNone",
+    "1": "kImage",
+    "2": "kString",
+    "3": "kNumber"
+  },
+  "numberTypeNames": {
+    "0": "kNumericDecimal",
+    "1": "kNumericDoubleParen",
+    "2": "kNumericRightParen",
+    "3": "kRomanUpperDecimal",
+    "4": "kRomanUpperDoubleParen",
+    "5": "kRomanUpperRightParen",
+    "6": "kRomanLowerDecimal",
+    "7": "kRomanLowerDoubleParen",
+    "8": "kRomanLowerRightParen",
+    "9": "kAlphaUpperDecimal",
+    "10": "kAlphaUpperDoubleParen",
+    "11": "kAlphaUpperRightParen",
+    "12": "kAlphaLowerDecimal",
+    "13": "kAlphaLowerDoubleParen",
+    "14": "kAlphaLowerRightParen",
+    "15": "kIdeographicJapaneseDecimalKind",
+    "16": "kIdeographicJapaneseDoubleParenKind",
+    "17": "kIdeographicJapaneseRightParenKind",
+    "18": "kHiraganaDecimalKind",
+    "19": "kHiraganaDoubleParenKind",
+    "20": "kHiraganaRightParenKind",
+    "21": "kKatakanaDecimalKind",
+    "22": "kKatakanaDoubleParenKind",
+    "23": "kKatakanaRightParenKind",
+    "24": "kHiraganaIrohaDecimalKind",
+    "25": "kHiraganaIrohaDoubleParenKind",
+    "26": "kHiraganaIrohaRightParenKind",
+    "27": "kKatakanaIrohaDecimalKind",
+    "28": "kKatakanaIrohaDoubleParenKind",
+    "29": "kKatakanaIrohaRightParenKind",
+    "30": "kIdeographicSimplifiedChineseDecimalKind",
+    "31": "kIdeographicSimplifiedChineseDoubleParenKind",
+    "32": "kIdeographicSimplifiedChineseRightParenKind",
+    "33": "kIdeographicTraditionalChineseDecimalKind",
+    "34": "kIdeographicTraditionalChineseDoubleParenKind",
+    "35": "kIdeographicTraditionalChineseRightParenKind",
+    "36": "kIdeographicFormalJapaneseDecimalKind",
+    "37": "kIdeographicFormalJapaneseDoubleParenKind",
+    "38": "kIdeographicFormalJapaneseRightParenKind",
+    "39": "kIdeographicFormalSimplifiedChineseDecimalKind",
+    "40": "kIdeographicFormalSimplifiedChineseDoubleParenKind",
+    "41": "kIdeographicFormalSimplifiedChineseRightParenKind",
+    "42": "kIdeographicFormalTraditionalChineseDecimalKind",
+    "43": "kIdeographicFormalTraditionalChineseDoubleParenKind",
+    "44": "kIdeographicFormalTraditionalChineseRightParenKind",
+    "45": "kKoreanAlphabetDecimalKind",
+    "46": "kKoreanAlphabetDoubleParenKind",
+    "47": "kKoreanAlphabetRightParenKind",
+    "48": "kCircledNumberKind",
+    "49": "kArabianNumericDecimalKind",
+    "50": "kArabianNumericDoubleParenKind",
+    "51": "kArabianNumericRightParenKind",
+    "52": "kArabianAlphaDecimalKind",
+    "53": "kArabianAlphaDoubleParenKind",
+    "54": "kArabianAlphaRightParenKind",
+    "55": "kArabianAbjadDecimalKind",
+    "56": "kArabianAbjadDoubleParenKind",
+    "57": "kArabianAbjadRightParenKind",
+    "58": "kHebrewAlphaDecimalKind",
+    "59": "kHebrewAlphaDoubleParenKind",
+    "60": "kHebrewAlphaRightParenKind",
+    "61": "kHebrewBiblicalStandardKind",
+    "62": "kHebrewBiblicalDecimalKind",
+    "63": "kHebrewBiblicalDoubleParenKind",
+    "64": "kHebrewBiblicalRightParenKind"
+  },
+  "sources": [
+    {
+      "path": "picodocs/sample-v14.4.pages",
+      "sha256": "4714477138d0a4090fc2ee2ba2ebb6adcd0fb6ce20a28897a6247a8e17d1ddce",
+      "storages": [
+        {
+          "identifier": 1732640,
+          "listSelections": [
+            {
+              "characterOffset": 0,
+              "styleIdentifier": 1731456
+            },
+            {
+              "characterOffset": 575,
+              "styleIdentifier": 1732814
+            },
+            {
+              "characterOffset": 753,
+              "styleIdentifier": 1732816
+            },
+            {
+              "characterOffset": 861,
+              "styleIdentifier": 1731456
+            }
+          ],
+          "paragraphData": [
+            {
+              "characterOffset": 0,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "characterOffset": 575,
+              "first": 0,
+              "second": 1
+            },
+            {
+              "characterOffset": 627,
+              "first": 0,
+              "second": 0
+            },
+            {
+              "characterOffset": 753,
+              "first": 0,
+              "second": 1
+            },
+            {
+              "characterOffset": 772,
+              "first": 0,
+              "second": 0
+            }
+          ]
+        }
+      ],
+      "selectedStyles": [
+        {
+          "identifier": 1731456,
+          "parentIdentifier": null,
+          "labelTypes": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "numberTypes": [],
+          "strings": [],
+          "indents": [
+            0.0,
+            36.0,
+            72.0,
+            108.0,
+            144.0,
+            180.0,
+            216.0,
+            252.0,
+            288.0
+          ],
+          "tieredNumbers": [],
+          "fontName": null,
+          "fontNameCleared": null
+        },
+        {
+          "identifier": 1732814,
+          "parentIdentifier": null,
+          "labelTypes": [
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2
+          ],
+          "numberTypes": [],
+          "strings": [
+            "\u2022",
+            "\u2022",
+            "\u2022",
+            "\u2022",
+            "\u2022",
+            "\u2022",
+            "\u2022",
+            "\u2022",
+            "\u2022"
+          ],
+          "indents": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "tieredNumbers": [],
+          "fontName": "Symbol",
+          "fontNameCleared": null
+        },
+        {
+          "identifier": 1732816,
+          "parentIdentifier": null,
+          "labelTypes": [
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3,
+            3
+          ],
+          "numberTypes": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "strings": [],
+          "indents": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "tieredNumbers": [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+          ],
+          "fontName": null,
+          "fontNameCleared": true
+        }
+      ]
+    }
+  ],
+  "listLevelEvidence": {
+    "repository": "https://github.com/LibreOffice/libetonyek",
+    "revision": "6d19ce365f64a6217791a9438c85f4b1851ca7e0",
+    "source": "src/lib/IWAParser.cpp",
+    "contract": "Storage field 6 entries select list levels from entry field 2 at field 1 character offsets."
+  },
+  "limits": "Selected native declarations only. Paragraph-data first is the explicit list level; second semantics, restarts, continuation, tiered numbering and destination rendering are not qualified by this extraction."
+}

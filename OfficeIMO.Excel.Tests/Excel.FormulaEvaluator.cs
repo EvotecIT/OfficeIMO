@@ -1329,15 +1329,15 @@ namespace OfficeIMO.Tests {
 
                 ExcelFormulaInspection before = document.InspectFormulas();
                 Assert.Equal(10, before.TotalFormulas);
-                Assert.Equal(8, before.SupportedFormulas);
+                Assert.Equal(9, before.SupportedFormulas);
                 Assert.Contains("ROW", before.Capabilities.SupportedFunctions);
                 Assert.Contains("COLUMN", before.Capabilities.SupportedFunctions);
                 Assert.Contains("ROWS", before.Capabilities.SupportedFunctions);
                 Assert.Contains("COLUMNS", before.Capabilities.SupportedFunctions);
-                Assert.Contains(before.Formulas, formula => formula.SheetName == "Reference" && formula.CellReference == "D9" && !formula.IsSupportedByOfficeIMO);
+                Assert.Contains(before.Formulas, formula => formula.SheetName == "Reference" && formula.CellReference == "D9" && formula.IsSupportedByOfficeIMO);
                 Assert.Contains(before.Formulas, formula => formula.SheetName == "Reference" && formula.CellReference == "D10" && !formula.IsSupportedByOfficeIMO);
 
-                Assert.Equal(8, document.Calculate());
+                Assert.Equal(9, document.Calculate());
                 ExcelFormulaInspection after = document.InspectFormulas();
                 Assert.Contains(after.Formulas, formula => formula.SheetName == "Reference" && formula.CellReference == "D1" && formula.CachedValue == "5");
                 Assert.Contains(after.Formulas, formula => formula.SheetName == "Reference" && formula.CellReference == "D2" && formula.CachedValue == "3");
@@ -1347,6 +1347,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(after.Formulas, formula => formula.SheetName == "Reference" && formula.CellReference == "D6" && formula.CachedValue == "4");
                 Assert.Contains(after.Formulas, formula => formula.SheetName == "Reference" && formula.CellReference == "D7" && formula.CachedValue == "4");
                 Assert.Contains(after.Formulas, formula => formula.SheetName == "Reference" && formula.CellReference == "D8" && formula.CachedValue == "3");
+                Assert.Contains(after.Formulas, formula => formula.CellReference == "D9" && formula.CachedValue == "9");
                 document.Save();
             }
 

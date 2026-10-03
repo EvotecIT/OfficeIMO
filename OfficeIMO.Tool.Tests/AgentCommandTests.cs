@@ -108,7 +108,7 @@ public sealed class AgentCommandTests {
             await File.WriteAllTextAsync(configuredPath, "# Configured");
             AgentPathPolicy policy = AgentPathPolicy.ForMcp(configuredRoot, workingDirectory);
 
-            Assert.Equal(configuredPath, policy.ResolveInput(configuredPath));
+            Assert.Equal(OfficeImoToolPathSafety.ResolveExistingLinks(configuredPath), policy.ResolveInput(configuredPath));
             Assert.Throws<UnauthorizedAccessException>(() => policy.ResolveInput(workingPath));
         } finally {
             if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
@@ -182,7 +182,7 @@ public sealed class AgentCommandTests {
 
             AgentConvertResult result = await service.ConvertAsync(
                 source, output, overwrite: true);
-            Assert.Equal(output, result.OutputPath);
+            Assert.Equal(OfficeImoToolPathSafety.ResolveExistingLinks(output), result.OutputPath);
             Assert.Contains("# Source", await File.ReadAllTextAsync(output), StringComparison.Ordinal);
         } finally {
             if (Directory.Exists(root)) Directory.Delete(root, recursive: true);

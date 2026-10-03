@@ -11,7 +11,7 @@ public interface IOfficeConversionReport {
     /// </summary>
     IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
 
-    /// <summary>True when the conversion stage approximated, omitted, or could not preserve source content.</summary>
+    /// <summary>True when the conversion stage approximated, omitted, could not preserve, or has unassessed source content.</summary>
     bool HasLoss { get; }
 
     /// <summary>Throws when the conversion stage reported possible content loss.</summary>

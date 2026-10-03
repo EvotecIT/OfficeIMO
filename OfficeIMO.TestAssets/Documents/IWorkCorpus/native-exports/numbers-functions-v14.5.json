@@ -1,0 +1,433 @@
+{
+  "producer": "Apple Numbers 14.5 (7045.0.17), macOS 27.0.1 (26A434)",
+  "provenance": "OfficeIMO-authored cache-free OOXML intake built with Python standard-library ZIP/XML; imported, evaluated, saved and exported through native Numbers. No OfficeIMO writer or evaluator produced the oracles.",
+  "license": "MIT, OfficeIMO contributors",
+  "extractorVersion": "numbers-parser 4.19.0",
+  "qualification": "Function IDs, argument counts, expressions and numeric caches match the independent native XLSX exports. Random caches are snapshots, not reproducible random sequences. Native error cells have no XLSX cache, so no native error-code equivalence is claimed. Fractional RANDBETWEEN returned zero in this producer import and remains unqualified for local evaluation. PDF is a native appearance reference only; full layout and dynamic array semantics are not qualified.",
+  "fixtures": [
+    {
+      "source": "numbers-functions-v14.5.numbers",
+      "sheet": "Functions",
+      "table": "Tabela 1",
+      "rows": 10,
+      "columns": 5,
+      "artifacts": [
+        {
+          "path": "numbers-functions-v14.5.numbers",
+          "sha256": "55c7c77a9acaa5af765293ad20c6ff3ee4e06092116d3cfff5e597cf1f2fd46b"
+        },
+        {
+          "path": "numbers-functions-v14.5.xlsx",
+          "sha256": "66ea37f9385fdb307a0a5d74233291cc1d4177d1a96e67c76dce178e8733721d"
+        },
+        {
+          "path": "numbers-functions-intake.xlsx",
+          "sha256": "32aac4e525f7af82ea8c6d19d11880bb5ac29b983ccc7e62cac8b067f14c4dd0"
+        },
+        {
+          "path": "numbers-functions-v14.5.pdf",
+          "sha256": "964d6a4c8761e8d4218087b9f35240f865d8e176fccc9054b248e154b6e4ff4e"
+        }
+      ],
+      "cells": [
+        {
+          "row": 2,
+          "column": 5,
+          "formula": "PROB(A2:A5,B2:B5,2)",
+          "nativeNumericCache": 0.1,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 112,
+              "name": "PROB",
+              "argumentCount": 3
+            }
+          ]
+        },
+        {
+          "row": 3,
+          "column": 5,
+          "formula": "PROB(A2:A5,B2:B5,1,3)",
+          "nativeNumericCache": 0.8,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 112,
+              "name": "PROB",
+              "argumentCount": 4
+            }
+          ]
+        },
+        {
+          "row": 4,
+          "column": 5,
+          "formula": "PROB(A2:A5,B2:B5,5)",
+          "nativeNumericCache": 0.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 112,
+              "name": "PROB",
+              "argumentCount": 3
+            }
+          ]
+        },
+        {
+          "row": 5,
+          "column": 5,
+          "formula": "OFFSET(A2,2,0)",
+          "nativeNumericCache": 2.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 101,
+              "name": "OFFSET",
+              "argumentCount": 3
+            }
+          ]
+        },
+        {
+          "row": 6,
+          "column": 5,
+          "formula": "SUM(OFFSET(A2,1,0,3,1))",
+          "nativeNumericCache": 6.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 101,
+              "name": "OFFSET",
+              "argumentCount": 5
+            },
+            {
+              "index": 168,
+              "name": "SUM",
+              "argumentCount": 1
+            }
+          ]
+        },
+        {
+          "row": 7,
+          "column": 5,
+          "formula": "RANDBETWEEN(7,7)",
+          "nativeNumericCache": 7.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ]
+        },
+        {
+          "row": 8,
+          "column": 5,
+          "formula": "RANDBETWEEN(1,10)",
+          "nativeNumericCache": 4.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ]
+        },
+        {
+          "row": 9,
+          "column": 5,
+          "formula": "PROB(A2:A5,B2:B4,1)",
+          "nativeNumericCache": null,
+          "nativeXlsxHasCache": false,
+          "functions": [
+            {
+              "index": 112,
+              "name": "PROB",
+              "argumentCount": 3
+            }
+          ]
+        },
+        {
+          "row": 10,
+          "column": 5,
+          "formula": "PROB(A2:A5,C2:C5,1)",
+          "nativeNumericCache": null,
+          "nativeXlsxHasCache": false,
+          "functions": [
+            {
+              "index": 112,
+              "name": "PROB",
+              "argumentCount": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "numbers-function-edges-v14.5.numbers",
+      "sheet": "Functions",
+      "table": "Tabela 1",
+      "rows": 18,
+      "columns": 6,
+      "artifacts": [
+        {
+          "path": "numbers-function-edges-v14.5.numbers",
+          "sha256": "d49961e5ae807a7ee2119b10d62ef6f196d1028227b088bab09e46f4a5704e09"
+        },
+        {
+          "path": "numbers-function-edges-v14.5.xlsx",
+          "sha256": "d4d206fe831ceee137083b4d3f085068e5790940dce7ce8374bab776fbb5a584"
+        },
+        {
+          "path": "numbers-function-edges-intake.xlsx",
+          "sha256": "d8b4394200cf9e52bf2f2db8d005f2382908ec813f238346590aaaa51a0cbc66"
+        }
+      ],
+      "cells": [
+        {
+          "row": 2,
+          "column": 5,
+          "formula": "PROB(A2:A5,B2:B5,2)",
+          "nativeNumericCache": 0.1,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 112,
+              "name": "PROB",
+              "argumentCount": 3
+            }
+          ]
+        },
+        {
+          "row": 3,
+          "column": 5,
+          "formula": "PROB(A2:A5,B2:B5,1,3)",
+          "nativeNumericCache": 0.8,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 112,
+              "name": "PROB",
+              "argumentCount": 4
+            }
+          ]
+        },
+        {
+          "row": 4,
+          "column": 5,
+          "formula": "PROB(A2:A5,B2:B5,5)",
+          "nativeNumericCache": 0.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 112,
+              "name": "PROB",
+              "argumentCount": 3
+            }
+          ]
+        },
+        {
+          "row": 5,
+          "column": 5,
+          "formula": "OFFSET(A2,2,0)",
+          "nativeNumericCache": 2.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 101,
+              "name": "OFFSET",
+              "argumentCount": 3
+            }
+          ]
+        },
+        {
+          "row": 6,
+          "column": 5,
+          "formula": "SUM(OFFSET(A2,1,0,3,1))",
+          "nativeNumericCache": 6.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 101,
+              "name": "OFFSET",
+              "argumentCount": 5
+            },
+            {
+              "index": 168,
+              "name": "SUM",
+              "argumentCount": 1
+            }
+          ]
+        },
+        {
+          "row": 7,
+          "column": 5,
+          "formula": "RANDBETWEEN(7,7)",
+          "nativeNumericCache": 7.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ]
+        },
+        {
+          "row": 8,
+          "column": 5,
+          "formula": "RANDBETWEEN(1,10)",
+          "nativeNumericCache": 6.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ]
+        },
+        {
+          "row": 9,
+          "column": 5,
+          "formula": "PROB(A2:A5,B2:B4,1)",
+          "nativeNumericCache": null,
+          "nativeXlsxHasCache": false,
+          "functions": [
+            {
+              "index": 112,
+              "name": "PROB",
+              "argumentCount": 3
+            }
+          ]
+        },
+        {
+          "row": 10,
+          "column": 5,
+          "formula": "PROB(A2:A5,C2:C5,1)",
+          "nativeNumericCache": null,
+          "nativeXlsxHasCache": false,
+          "functions": [
+            {
+              "index": 112,
+              "name": "PROB",
+              "argumentCount": 3
+            }
+          ]
+        },
+        {
+          "row": 11,
+          "column": 5,
+          "formula": "PROB(A2:A5,F2:F5,0,3)",
+          "nativeNumericCache": 1.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 112,
+              "name": "PROB",
+              "argumentCount": 4
+            }
+          ]
+        },
+        {
+          "row": 12,
+          "column": 5,
+          "formula": "PROB(A2:A5,B2:B5,3,1)",
+          "nativeNumericCache": 0.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 112,
+              "name": "PROB",
+              "argumentCount": 4
+            }
+          ]
+        },
+        {
+          "row": 13,
+          "column": 5,
+          "formula": "RANDBETWEEN(2.2,2.9)",
+          "nativeNumericCache": 0.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ]
+        },
+        {
+          "row": 14,
+          "column": 5,
+          "formula": "RANDBETWEEN(7.1,7.1)",
+          "nativeNumericCache": 0.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ]
+        },
+        {
+          "row": 15,
+          "column": 5,
+          "formula": "PROB(A2:A5,B2:B5,0,3)",
+          "nativeNumericCache": 1.0,
+          "nativeXlsxHasCache": true,
+          "functions": [
+            {
+              "index": 112,
+              "name": "PROB",
+              "argumentCount": 4
+            }
+          ]
+        },
+        {
+          "row": 16,
+          "column": 5,
+          "formula": "OFFSET(A2,-2,0)",
+          "nativeNumericCache": null,
+          "nativeXlsxHasCache": false,
+          "functions": [
+            {
+              "index": 101,
+              "name": "OFFSET",
+              "argumentCount": 3
+            }
+          ]
+        },
+        {
+          "row": 17,
+          "column": 5,
+          "formula": "OFFSET(A2,0,0,0,1)",
+          "nativeNumericCache": null,
+          "nativeXlsxHasCache": false,
+          "functions": [
+            {
+              "index": 101,
+              "name": "OFFSET",
+              "argumentCount": 5
+            }
+          ]
+        },
+        {
+          "row": 18,
+          "column": 5,
+          "formula": "RANDBETWEEN(10,1)",
+          "nativeNumericCache": null,
+          "nativeXlsxHasCache": false,
+          "functions": [
+            {
+              "index": 119,
+              "name": "RANDBETWEEN",
+              "argumentCount": 2
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -26,6 +26,16 @@ internal static partial class DocumentReaderEngine {
                 continue;
             }
 
+            if (IsRegisteredDirectoryBundle(path)) {
+                if (effectiveFolder.MaxTotalBytes.HasValue) {
+                    if (!TryGetKnownDocumentLength(path, effectiveFolder.MaxTotalBytes.Value - totalBytes,
+                            cancellationToken, out long length)) continue;
+                    totalBytes += length;
+                }
+                yield return NormalizeDirectoryPackagePath(path);
+                continue;
+            }
+
             int filesEnumerated = 0;
             foreach (string file in EnumerateFilesSafeDeterministic(path, effectiveFolder, cancellationToken)) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -38,7 +48,8 @@ internal static partial class DocumentReaderEngine {
                 }
 
                 if (effectiveFolder.MaxTotalBytes.HasValue) {
-                    if (!TryGetKnownFileLength(file, out long fileLength) ||
+                    if (!TryGetKnownDocumentLength(file, effectiveFolder.MaxTotalBytes.Value - totalBytes,
+                            cancellationToken, out long fileLength) ||
                         fileLength > effectiveFolder.MaxTotalBytes.Value - totalBytes) {
                         continue;
                     }
@@ -50,6 +61,29 @@ internal static partial class DocumentReaderEngine {
                 yield return file;
             }
         }
+    }
+
+    private static bool TryGetKnownDocumentLength(string path, long maximumBytes,
+        CancellationToken cancellationToken, out long length) {
+        if (Directory.Exists(path) && IsRegisteredDirectoryBundle(path)) {
+            length = 0;
+            if (maximumBytes <= 0) return false;
+            try {
+                OfficeDocumentReadResult result = ReadDirectoryBundle(path,
+                    ApplyFolderInputBudget(new ReaderOptions { ComputeHashes = false }, maximumBytes), cancellationToken);
+                length = result.Source.LengthBytes!.Value;
+                return true;
+            } catch (OperationCanceledException) {
+                throw;
+            } catch (InvalidDataException) {
+                return false;
+            } catch (IOException) {
+                return false;
+            } catch (NotSupportedException) {
+                return false;
+            }
+        }
+        return TryGetKnownFileLength(path, out length);
     }
 
     private static bool TryGetKnownFileLength(string path, out long length) {

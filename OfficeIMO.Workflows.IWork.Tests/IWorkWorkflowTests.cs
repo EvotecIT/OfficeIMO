@@ -1,0 +1,393 @@
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using OfficeIMO.IWork;
+using OfficeIMO.Workflows.IWork;
+using Xunit;
+
+namespace OfficeIMO.Workflows.IWork.Tests;
+
+public sealed class IWorkWorkflowTests {
+    [Theory]
+    [InlineData("pages", "pages-docx", "docx")]
+    [InlineData("numbers", "numbers-xlsx", "xlsx")]
+    [InlineData("key", "keynote-pptx", "pptx")]
+    public async Task Registered_routes_publish_reopened_destinations_with_typed_source_evidence(string source, string route, string target) {
+        using var files = new Files(source, target);
+        OfficeWorkflowRunner runner = IWorkWorkflow.CreateRunner();
+        Assert.Contains(runner.ConversionRoutes, item => item.Id == route && item.CanExecute);
+        var request = files.Request(route);
+        OfficeWorkflowResult result = await runner.RunAsync(request);
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.True(File.Exists(files.Output));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
+        var snapshot = Assert.Single(result.Diagnostics, diagnostic => diagnostic.Code == "SourceSnapshot");
+        Assert.Equal(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(files.Input))), snapshot.Details["sha256"], ignoreCase: true);
+        OfficeWorkflowConversionEvidence evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
+        Assert.Equal("EditableReconstruction", evidence.Facts["projectionKind"]);
+        if (source == "key") {
+            Assert.Equal("True", evidence.Facts["partialEditableReconstruction"]);
+            Assert.Contains(evidence.FidelityDiagnostics, d => d.Code == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED");
+        }
+        int unitCount = int.Parse(evidence.Facts["sourceUnitCount"], System.Globalization.CultureInfo.InvariantCulture);
+        int reconstructed = int.Parse(evidence.Facts["reconstructedSourceUnitCount"], System.Globalization.CultureInfo.InvariantCulture);
+        int omitted = int.Parse(evidence.Facts["omittedSourceUnitCount"], System.Globalization.CultureInfo.InvariantCulture);
+        int unassessed = int.Parse(evidence.Facts["unassessedSourceUnitCount"], System.Globalization.CultureInfo.InvariantCulture);
+        Assert.True(reconstructed > 0);
+        int formulas = int.Parse(evidence.Facts["sourceFormulaCellCount"], System.Globalization.CultureInfo.InvariantCulture);
+        Assert.Equal(formulas, int.Parse(evidence.Facts["sourceCompleteFormulaExpressionCount"]) + int.Parse(evidence.Facts["sourceIncompleteFormulaExpressionCount"]) + int.Parse(evidence.Facts["sourceUnassessedFormulaExpressionCount"]));
+        Assert.Equal(formulas, int.Parse(evidence.Facts["sourceCompleteFormulaCacheCount"]) + int.Parse(evidence.Facts["sourcePartialFormulaCacheCount"]) + int.Parse(evidence.Facts["sourceApproximateFormulaCacheCount"]) + int.Parse(evidence.Facts["sourceMissingFormulaCacheCount"]) + int.Parse(evidence.Facts["sourceUnassessedFormulaCacheCount"]));
+        Assert.Equal(unitCount, reconstructed + omitted + unassessed);
+        int referenceIssues = int.Parse(evidence.Facts["sourceReferenceIssueCount"]);
+        Assert.Equal(referenceIssues, int.Parse(evidence.Facts["sourceMissingReferenceTargetCount"])
+            + int.Parse(evidence.Facts["sourceMalformedReferenceCount"])
+            + int.Parse(evidence.Facts["sourceRejectedReferenceSetCount"])
+            + int.Parse(evidence.Facts["sourceUnexpectedReferenceTargetTypeCount"]));
+        IWorkSourceDocument coreSource = IWorkSourceDocument.Open(files.Input);
+        int declarationIssues = coreSource.Kind switch {
+            IWorkDocumentKind.Pages => coreSource.ReadPages().SourceDeclarationIssues.Count,
+            IWorkDocumentKind.Numbers => coreSource.ReadNumbers().SourceDeclarationIssues.Count,
+            _ => coreSource.ReadKeynote().SourceDeclarationIssues.Count
+        };
+        Assert.Equal(declarationIssues, int.Parse(evidence.Facts["sourceDeclarationIssueCount"],
+            System.Globalization.CultureInfo.InvariantCulture));
+        IEnumerable<IWorkTable> tables = coreSource.Kind switch {
+            IWorkDocumentKind.Pages => coreSource.ReadPages().Tables,
+            IWorkDocumentKind.Numbers => coreSource.ReadNumbers().Sheets.SelectMany(sheet => sheet.Tables),
+            _ => coreSource.ReadKeynote().Slides.SelectMany(slide => slide.Tables)
+        };
+        Assert.Equal(tables.Sum(table => table.Cells.Count(cell => cell.HasDecodeError)),
+            int.Parse(evidence.Facts["sourceCellIssueCount"], System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Contains(evidence.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
+        Assert.Throws<InvalidOperationException>(evidence.RequireNoLoss);
+        Assert.Equal(new FileInfo(files.Input).Length, result.InputBytes);
+    }
+
+    [Fact]
+    public async Task Wrong_type_style_evidence_survives_conversion_disposal_and_destination_reopen() {
+        using var files = new Files("pages", "docx");
+        // A paragraph body selects a character attribute whose target is a list style.
+        byte[] storage = Join(B(3, System.Text.Encoding.UTF8.GetBytes("Value")),
+            B(8, B(1, Join(V(1, 0), R(2, 3)))));
+        byte[] records = Join(A(1, 10000, R(4, 2)), A(2, 2001, storage), A(3, 2023, []));
+        byte[] literal = records.Length <= 60 ? [(byte)((records.Length - 1) << 2)]
+            : [(byte)(60 << 2), (byte)(records.Length - 1)];
+        byte[] block = Join(U((ulong)records.Length), literal, records);
+        using (var zip = new System.IO.Compression.ZipArchive(File.Create(files.Input), System.IO.Compression.ZipArchiveMode.Create)) {
+            using var entry = zip.CreateEntry("Index/Document.iwa").Open();
+            entry.Write(Join([0, (byte)block.Length, (byte)(block.Length >> 8), 0], block));
+        }
+        var runner = IWorkWorkflow.CreateRunner(conversionOptions: new IWorkConversionOptions {
+            AllowPartialEditableReconstruction = true
+        });
+        OfficeWorkflowResult result = await runner.RunAsync(files.Request("pages-docx"));
+        Assert.True(result.Succeeded, result.Summary);
+        var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
+        Assert.Equal("1", evidence.Facts["sourceReferenceIssueCount"]);
+        Assert.Equal("1", evidence.Facts["sourceUnexpectedReferenceTargetTypeCount"]);
+        Assert.Equal("0", evidence.Facts["sourceMissingReferenceTargetCount"]);
+        Assert.Equal("0", evidence.Facts["sourceMalformedReferenceCount"]);
+        Assert.Equal("0", evidence.Facts["sourceRejectedReferenceSetCount"]);
+        Assert.Contains(evidence.FidelityDiagnostics, d => d.Code == "IWORK_SOURCE_REFERENCES_UNRESOLVED"
+            && d.LossKind == OfficeConversionLossKind.Unassessed);
+        using var reopened = OfficeIMO.Word.WordDocument.Load(files.Output);
+        Assert.Contains(reopened.Paragraphs, paragraph => paragraph.Text == "Value");
+
+        static byte[] Join(params byte[][] values) => values.SelectMany(value => value).ToArray();
+        static byte[] U(ulong value) {
+            var bytes = new List<byte>();
+            do { byte next = (byte)(value & 127); value >>= 7; bytes.Add(value == 0 ? next : (byte)(next | 128)); } while (value != 0);
+            return bytes.ToArray();
+        }
+        static byte[] V(int field, ulong value) => Join(U((ulong)(field << 3)), U(value));
+        static byte[] B(int field, byte[] value) => Join(U((ulong)((field << 3) | 2)), U((ulong)value.Length), value);
+        static byte[] R(int field, ulong target) => B(field, V(1, target));
+        static byte[] A(ulong id, ulong type, byte[] value) {
+            byte[] info = Join(V(1, id), B(2, Join(V(1, type), V(3, (ulong)value.Length))));
+            return Join(U((ulong)info.Length), info, value);
+        }
+    }
+
+    [Fact]
+    public async Task Default_runner_keeps_iWork_opt_in() {
+        using var files = new Files("numbers", "xlsx");
+        var runner = new OfficeWorkflowRunner();
+        Assert.DoesNotContain(runner.ConversionRoutes, route => route.Id == "numbers-xlsx");
+        OfficeWorkflowResult result = await runner.RunAsync(files.Request("numbers-xlsx"));
+        Assert.Equal(OfficeWorkflowFailureKind.ValidationFailed, result.FailureKind);
+        Assert.False(File.Exists(files.Output));
+    }
+
+    [Fact]
+    public async Task Configured_policy_is_captured_and_unknown_visual_coverage_is_rejected() {
+        using var files = new Files("pages", "docx");
+        var policy = new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly, RequireCompleteVisualCoverage = true };
+        var reading = new IWorkReadOptions();
+        OfficeWorkflowRunner runner = IWorkWorkflow.CreateRunner(reading, policy);
+        policy.RequireCompleteVisualCoverage = false;
+        policy.Mode = IWorkConversionMode.EditableOnly;
+        reading.MaximumPackageBytes = 1;
+        var request = files.Request("pages-docx");
+        request.RegisteredConversionSettings = null; // Exercise the runner's captured policy.
+        OfficeWorkflowResult result = await runner.RunAsync(request);
+        Assert.False(result.Succeeded);
+        Assert.Contains("complete", result.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.False(File.Exists(files.Output));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Input_and_output_limits_keep_existing_destination_intact(bool inputLimit) {
+        using var files = new Files("numbers", "xlsx");
+        byte[] existing = [1, 2, 3];
+        File.WriteAllBytes(files.Output, existing);
+        OfficeWorkflowRequest request = files.Request("numbers-xlsx");
+        request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+        if (inputLimit) request.Limits.MaximumInputBytes = 1;
+        else request.Limits.MaximumOutputBytes = 32;
+        OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
+        Assert.False(result.Succeeded);
+        Assert.Equal(existing, File.ReadAllBytes(files.Output));
+        Assert.Equal(2, Directory.GetFiles(files.Root).Length);
+    }
+
+    [Fact]
+    public async Task Source_mutation_before_publication_is_rejected() {
+        using var files = new Files("numbers", "xlsx");
+        OfficeWorkflowRequest request = files.Request("numbers-xlsx");
+        request.PublicationGuard = new MutatingGuard(files.Input);
+        OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
+        Assert.False(result.Succeeded);
+        Assert.False(File.Exists(files.Output));
+        Assert.Single(Directory.GetFiles(files.Root));
+    }
+
+    [Fact]
+    public async Task Provider_zip_stream_uses_the_same_converter_and_publication_contract() {
+        using var files = new Files("numbers", "xlsx");
+        OfficeWorkflowRequest request = files.Request("numbers-xlsx");
+        request.InputPath = "https://provider.invalid/budget";
+        request.InputStream = new OfficeWorkflowStreamInput("budget.numbers", token => {
+            token.ThrowIfCancellationRequested();
+            return Task.FromResult<Stream>(File.OpenRead(files.Input));
+        });
+        OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.NotNull(result.ConversionEvidence);
+    }
+
+    [Fact]
+    public async Task Cancellation_does_not_publish() {
+        using var files = new Files("numbers", "xlsx");
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(files.Request("numbers-xlsx"), cancellationToken: cancelled.Token);
+        Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
+        Assert.False(File.Exists(files.Output));
+    }
+
+    [Fact]
+    public async Task Registered_converter_cannot_publish_an_invalid_destination() {
+        using var files = new Files("pages", "docx");
+        var converter = new OfficeWorkflowConversionRegistration("pages-docx", (input, output, limits, token) => {
+            output.Write(new byte[] { 1, 2, 3 });
+            return new OfficeWorkflowConversionEvidence(new EmptyReport());
+        });
+        var runner = new OfficeWorkflowRunner(null, null, conversions: [converter]);
+        OfficeWorkflowResult result = await runner.RunAsync(files.Request("pages-docx"));
+        Assert.False(result.Succeeded);
+        Assert.False(File.Exists(files.Output));
+        Assert.Single(Directory.GetFiles(files.Root));
+    }
+
+    [Fact]
+    public void Registration_rejects_duplicate_and_builtin_owners() {
+        Assert.Throws<ArgumentException>(() => new OfficeWorkflowConversionRegistration("docx-pdf", (_, _, _, _) => new(new EmptyReport())));
+        var registrations = IWorkWorkflow.CreateRegistrations();
+        Assert.Throws<ArgumentException>(() => new OfficeWorkflowRunner(null, null, conversions: [registrations[0], registrations[0]]));
+    }
+
+    [Theory]
+    [InlineData("pages", "pages-docx", "docx")]
+    [InlineData("numbers", "numbers-xlsx", "xlsx")]
+    [InlineData("key", "keynote-pptx", "pptx")]
+    public async Task Unix_special_inputs_are_rejected_without_waiting_for_a_writer(string source, string route, string target) {
+        if (OperatingSystem.IsWindows()) return;
+        using var files = new Files(source, target);
+        File.Delete(files.Input);
+        Assert.Equal(0, MkFifo(files.Input, 0x180));
+        OfficeWorkflowResult result = await Task.Run(() => IWorkWorkflow.CreateRunner().RunAsync(files.Request(route))).WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.False(result.Succeeded);
+        Assert.Equal(OfficeWorkflowFailureKind.UnsupportedInput, result.FailureKind);
+        Assert.False(File.Exists(files.Output));
+    }
+
+    [Theory]
+    [InlineData("pdf", "pdf-docx", "docx")]
+    [InlineData("docx", "docx-pdf", "pdf")]
+    public async Task Builtin_conversion_siblings_reject_Unix_special_inputs(string source, string route, string target) {
+        if (OperatingSystem.IsWindows()) return;
+        using var files = new Files("numbers", target);
+        string special = Path.ChangeExtension(files.Input, "." + source);
+        Assert.Equal(0, MkFifo(special, 0x180));
+        OfficeWorkflowRequest request = files.Request(route);
+        request.InputPath = special;
+        OfficeWorkflowResult result = await Task.Run(() => new OfficeWorkflowRunner().RunAsync(request)).WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.False(result.Succeeded);
+        Assert.False(File.Exists(files.Output));
+    }
+
+    [Fact]
+    public async Task A_selected_local_symlink_keeps_its_regular_source_identity() {
+        if (OperatingSystem.IsWindows()) return;
+        using var files = new Files("numbers", "xlsx");
+        string selected = Path.Combine(files.Root, "selected.numbers");
+        File.CreateSymbolicLink(selected, files.Input);
+        OfficeWorkflowRequest request = files.Request("numbers-xlsx");
+        request.InputPath = selected;
+        OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.True(File.Exists(files.Output));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Cancellation_during_capture_or_output_validation_does_not_publish(bool duringValidation) {
+        using var files = new Files("numbers", "xlsx");
+        using var cancellation = new CancellationTokenSource();
+        OfficeWorkflowRequest request = files.Request("numbers-xlsx");
+        if (!duringValidation) request.InputStream = new OfficeWorkflowStreamInput("source.numbers", _ =>
+            Task.FromResult<Stream>(new CancellingInput(File.ReadAllBytes(files.Input), cancellation)));
+        OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request,
+            new InlineProgress(update => { if (duringValidation && update.Stage == "validate-output") cancellation.Cancel(); }), cancellation.Token);
+        Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
+        Assert.False(File.Exists(files.Output));
+        Assert.Single(Directory.GetFiles(files.Root));
+    }
+
+    [Fact]
+    public async Task Unconfirmed_provider_output_retains_fidelity_and_reopenable_recovery() {
+        using var files = new Files("numbers", "xlsx");
+        var store = new OfficeWorkflowOutputRecoveryStore(Path.Combine(files.Root, "recovery"));
+        OfficeWorkflowRequest request = files.Request("numbers-xlsx");
+        request.OutputPath = "content://provider/selected";
+        request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+        request.OutputStream = new OfficeWorkflowStreamOutput("selected.xlsx", _ => Task.FromResult<Stream>(new MemoryStream()),
+            _ => throw new IOException("Provider write failed."), store);
+        OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
+        Assert.Equal(OfficeWorkflowStatus.Unconfirmed, result.Status);
+        Assert.True(result.ConversionEvidence!.HasLoss);
+        var recovery = Assert.Single(store.GetRecoveries());
+        await store.VerifyAsync(recovery);
+        using (var workbook = OfficeIMO.Excel.ExcelDocument.Load(recovery.FilePath)) Assert.Single(workbook.Sheets);
+        store.Discard(recovery);
+    }
+
+    private sealed class CancellingInput(byte[] bytes, CancellationTokenSource cancellation) : MemoryStream(bytes) {
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken token) {
+            cancellation.Cancel();
+            token.ThrowIfCancellationRequested();
+            return base.ReadAsync(buffer, offset, count, token);
+        }
+    }
+
+    private sealed class InlineProgress(Action<OfficeWorkflowProgress> report) : IProgress<OfficeWorkflowProgress> {
+        public void Report(OfficeWorkflowProgress value) => report(value);
+    }
+
+    [DllImport("libc", EntryPoint = "mkfifo", SetLastError = true)]
+    private static extern int MkFifo(string path, uint mode);
+
+    [Fact]
+    public async Task Request_acceptance_is_snapshotted_before_provider_capture() {
+        using var files = new Files("pages", "docx");
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var proceed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var settings = new IWorkWorkflowSettings {
+            ConversionOptions = new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly, RequireCompleteVisualCoverage = false }
+        };
+        OfficeWorkflowRequest request = files.Request("pages-docx");
+        request.RegisteredConversionSettings = settings;
+        request.InputStream = new OfficeWorkflowStreamInput("source.pages", async token => {
+            entered.TrySetResult();
+            await proceed.Task.WaitAsync(token);
+            return File.OpenRead(files.Input);
+        });
+        Task<OfficeWorkflowResult> run = IWorkWorkflow.CreateRunner().RunAsync(request);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        settings.ConversionOptions.Mode = IWorkConversionMode.EditableOnly;
+        settings.ConversionOptions.RequireCompleteVisualCoverage = true;
+        settings.ReadOptions.MaximumPackageBytes = 1;
+        proceed.SetResult();
+        OfficeWorkflowResult result = await run;
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal("VisualFallback", result.ConversionEvidence!.Facts["projectionKind"]);
+        Assert.Contains(result.ConversionEvidence.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Theory]
+    [InlineData("pages-docx")]
+    [InlineData("docx-pdf")]
+    public async Task Wrong_settings_contract_is_rejected_before_opening_input(string route) {
+        using var files = new Files("pages", route == "docx-pdf" ? "pdf" : "docx");
+        bool opened = false;
+        OfficeWorkflowRequest request = files.Request(route);
+        request.InputStream = new OfficeWorkflowStreamInput(route == "docx-pdf" ? "source.docx" : "source.pages", _ => {
+            opened = true;
+            return Task.FromResult<Stream>(File.OpenRead(files.Input));
+        });
+        request.RegisteredConversionSettings = new OtherSettings();
+        OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
+        Assert.Equal(OfficeWorkflowFailureKind.ValidationFailed, result.FailureKind);
+        Assert.False(opened);
+        Assert.False(File.Exists(files.Output));
+    }
+
+    [Fact]
+    public void Fluent_adapter_settings_are_independent_from_the_caller() {
+        var settings = new IWorkWorkflowSettings();
+        var builder = OfficeWorkflow.Convert("source.pages").Via("pages-docx").To("output.docx").WithRegisteredConversionSettings(settings);
+        settings.ConversionOptions.AllowPartialEditableReconstruction = true;
+        var request = builder.Build();
+        var captured = Assert.IsType<IWorkWorkflowSettings>(request.RegisteredConversionSettings);
+        Assert.False(captured.ConversionOptions.AllowPartialEditableReconstruction);
+        Assert.True(captured.ConversionOptions.RequireCompleteVisualCoverage);
+    }
+
+    private sealed class OtherSettings : IOfficeWorkflowConversionSettings {
+        public IOfficeWorkflowConversionSettings Snapshot() => new OtherSettings();
+    }
+
+    private sealed class EmptyReport : IOfficeConversionReport {
+        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => Array.Empty<OfficeConversionFidelityDiagnostic>();
+        public bool HasLoss => false;
+        public void RequireNoLoss() { }
+    }
+
+    private sealed class MutatingGuard(string path) : IOfficeWorkflowPublicationGuard {
+        public ValueTask<bool> CanPublishAsync(string outputPath, bool isDirectory, CancellationToken token) {
+            File.AppendAllText(path, "changed");
+            return ValueTask.FromResult(true);
+        }
+    }
+
+    private sealed class Files : IDisposable {
+        public Files(string source, string target) {
+            Root = Path.Combine(Path.GetTempPath(), "officeimo-iwork-workflow-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Root);
+            Input = Path.Combine(Root, "source." + source);
+            Output = Path.Combine(Root, "output." + target);
+            File.Copy(Path.Combine(AppContext.BaseDirectory, "Corpus", source == "key" ? "tabledeck.key" : "simple." + source), Input);
+        }
+        public string Root { get; }
+        public string Input { get; }
+        public string Output { get; }
+        public OfficeWorkflowRequest Request(string route) => new() { InputPath = Input, OutputPath = Output,
+            Operation = OfficeWorkflowOperation.Convert, ConversionRouteId = route,
+            RegisteredConversionSettings = new IWorkWorkflowSettings {
+                ConversionOptions = new() { AllowPartialEditableReconstruction = true, RequireCompleteVisualCoverage = true }
+            } };
+        public void Dispose() => Directory.Delete(Root, recursive: true);
+    }
+}

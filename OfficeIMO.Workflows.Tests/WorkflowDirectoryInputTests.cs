@@ -132,8 +132,62 @@ public sealed class WorkflowDirectoryInputTests {
         size.Limits.MaximumInputBytes = bytes.Length;
         var sizeResult = await new OfficeWorkflowRunner().AssemblePdfAsync(size);
         Assert.Equal(OfficeWorkflowStatus.Failed, sizeResult.Status);
-        Assert.Contains("input limit", sizeResult.Summary);
+        Assert.Contains("configured size limit", sizeResult.Summary);
         Assert.False(System.IO.File.Exists(fixture.Output));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task EmptyResourceFitsAnExactlyConsumedByteBudgetRegardlessOfEnumerationOrder(bool emptyFirst) {
+        using var fixture = new Fixture();
+        byte[] html = Encoding.UTF8.GetBytes("<html><head><link rel=\"stylesheet\" href=\"empty.css\"></head><body>Exact byte budget</body></html>");
+        var empty = File("empty.css", []);
+        if (emptyFirst) fixture.Entries.Add(empty);
+        fixture.Entries.Add(File("source.html", html));
+        if (!emptyFirst) fixture.Entries.Add(empty);
+        var request = fixture.Request();
+        request.Limits.MaximumInputBytes = html.Length;
+        var result = await new OfficeWorkflowRunner().AssemblePdfAsync(request);
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal(1, PdfDocument.Load(result.OutputPath!).Inspect().PageCount);
+        Assert.True(fixture.Enumerations >= 3);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task EmptySecondFolderIsVerifiedAfterTheAggregateByteBudgetIsConsumed(bool changedAtPublication) {
+        using var fixture = new Fixture();
+        byte[] html = Encoding.UTF8.GetBytes("<html><body>Exact multi-folder budget</body></html>");
+        fixture.Entries.Add(File("source.html", html));
+        var request = fixture.Request();
+        int enumerations = 0;
+        byte[] resource = [];
+        const string second = "provider://folder/empty";
+        var first = request.Sources[0];
+        request.Sources = [first, second];
+        request.SourceDirectories = new Dictionary<string, OfficeWorkflowDirectoryInput> {
+            [first] = request.SourceDirectories![first], [second] = new(EmptyFolder)
+        };
+        request.Limits.MaximumInputBytes = html.Length;
+        async IAsyncEnumerable<OfficeWorkflowDirectoryEntry> EmptyFolder(OfficeWorkflowDirectoryReadOptions options,
+            [EnumeratorCancellation] CancellationToken token) {
+            await Task.CompletedTask;
+            token.ThrowIfCancellationRequested();
+            enumerations++;
+            yield return File("empty.css", resource);
+        }
+        request.PublicationGuard = new Guard(() => { if (changedAtPublication) resource = [1]; return true; });
+        var result = await new OfficeWorkflowRunner().AssemblePdfAsync(request);
+        if (changedAtPublication) {
+            Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+            Assert.False(System.IO.File.Exists(fixture.Output));
+            return;
+        }
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.True(enumerations >= 3);
+        Assert.Equal(1, PdfDocument.Load(result.OutputPath!).Inspect().PageCount);
     }
 
     private static OfficeWorkflowDirectoryEntry File(string relative, byte[] bytes) => new(relative,

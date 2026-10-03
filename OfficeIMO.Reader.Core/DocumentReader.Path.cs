@@ -11,6 +11,8 @@ internal static partial class DocumentReaderEngine {
         string path,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
+        if (path == null) throw new ArgumentNullException(nameof(path));
+        if (Directory.Exists(path)) return ReadDirectoryBundle(path, options, cancellationToken).Chunks;
         ValidateFilePath(path);
         ReaderOptions effective = NormalizeOptions(options);
         using var readScope = ReaderReadScope.Enter(effective);
@@ -66,7 +68,7 @@ internal static partial class DocumentReaderEngine {
         ReaderOptions? options,
         Action<ReaderProgress>? onProgress,
         CancellationToken cancellationToken = default,
-        Func<string, ReaderOptions?, CancellationToken, IEnumerable<ReaderChunk>>? read = null) {
+        Func<string, ReaderOptions?, CancellationToken, OfficeDocumentReadResult>? read = null) {
         foreach (ReaderSourceDocument document in ReadFolderDocumentsCore(
                      folderPath, folderOptions, options, includeSkippedWarningChunks: true,
                      onProgress, cancellationToken, read)) {
@@ -80,7 +82,7 @@ internal static partial class DocumentReaderEngine {
         ReaderOptions? options = null,
         Action<ReaderProgress>? onProgress = null,
         CancellationToken cancellationToken = default,
-        Func<string, ReaderOptions?, CancellationToken, IEnumerable<ReaderChunk>>? read = null) =>
+        Func<string, ReaderOptions?, CancellationToken, OfficeDocumentReadResult>? read = null) =>
         ReadFolderDocumentsCore(folderPath, folderOptions, options,
             includeSkippedWarningChunks: false, onProgress, cancellationToken, read);
 
@@ -91,7 +93,7 @@ internal static partial class DocumentReaderEngine {
         bool includeChunks = true,
         Action<ReaderProgress>? onProgress = null,
         CancellationToken cancellationToken = default,
-        Func<string, ReaderOptions?, CancellationToken, IEnumerable<ReaderChunk>>? read = null) {
+        Func<string, ReaderOptions?, CancellationToken, OfficeDocumentReadResult>? read = null) {
         var files = new List<ReaderIngestFileResult>();
         List<ReaderChunk>? chunks = includeChunks ? new List<ReaderChunk>() : null;
         var warnings = new List<string>();
@@ -144,9 +146,9 @@ internal static partial class DocumentReaderEngine {
         int? maxReturnedChunks = null,
         Action<ReaderProgress>? onProgress = null,
         CancellationToken cancellationToken = default,
-        Func<string, ReaderOptions?, CancellationToken, IEnumerable<ReaderChunk>>? read = null) {
+        Func<string, ReaderOptions?, CancellationToken, OfficeDocumentReadResult>? read = null) {
         if (path == null) throw new ArgumentNullException(nameof(path));
-        ReaderSourceDocument[] documents = Directory.Exists(path)
+        ReaderSourceDocument[] documents = Directory.Exists(path) && !IsRegisteredDirectoryBundle(path)
             ? ReadFolderDocumentsCore(path, folderOptions, options,
                 includeSkippedWarningChunks: true, onProgress, cancellationToken, read).ToArray()
             : new[] { ReadSingleDocument(path, options, cancellationToken, read) };
@@ -195,7 +197,7 @@ internal static partial class DocumentReaderEngine {
         bool includeSkippedWarningChunks,
         Action<ReaderProgress>? onProgress,
         CancellationToken cancellationToken,
-        Func<string, ReaderOptions?, CancellationToken, IEnumerable<ReaderChunk>>? read = null) {
+        Func<string, ReaderOptions?, CancellationToken, OfficeDocumentReadResult>? read = null) {
         if (folderPath == null) throw new ArgumentNullException(nameof(folderPath));
         if (!Directory.Exists(folderPath)) throw new DirectoryNotFoundException($"Directory '{folderPath}' does not exist.");
         ReaderFolderOptions effectiveFolder = NormalizeFolderOptions(folderOptions);
@@ -219,7 +221,11 @@ internal static partial class DocumentReaderEngine {
                 document = BuildSourceDocument(source, false, null,
                     new[] { "Skipped before parsing because MaxTotalBytes would be exceeded." });
             } else {
-                document = ReadSingleDocument(file, options, cancellationToken, read);
+                ReaderOptions readOptions = effectiveFolder.MaxTotalBytes.HasValue
+                    ? ApplyFolderInputBudget(options, remainingBytes) : NormalizeOptions(options);
+                document = remainingBytes == 0
+                    ? BuildSourceDocument(source, false, null, new[] { "Skipped before parsing because MaxTotalBytes is exhausted." })
+                    : ReadSingleDocument(file, readOptions, cancellationToken, read);
                 if (document.Parsed && effectiveFolder.MaxTotalBytes.HasValue &&
                     (document.SourceLengthBytes ?? 0) > remainingBytes) {
                     document = BuildSourceDocument(source, false, null,
@@ -248,13 +254,16 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static ReaderSourceDocument ReadSingleDocument(string path, ReaderOptions? options, CancellationToken cancellationToken,
-        Func<string, ReaderOptions?, CancellationToken, IEnumerable<ReaderChunk>>? read = null) {
+        Func<string, ReaderOptions?, CancellationToken, OfficeDocumentReadResult>? read = null) {
         SourceInfo source = BuildSourceInfoFromPath(path, computeHash: false, cancellationToken);
         try {
-            ReaderChunk[] chunks = (read == null ? Read(path, options, cancellationToken) : read(path, options, cancellationToken)).ToArray();
-            ReaderChunk? first = chunks.FirstOrDefault();
-            source.SourceHash = first?.SourceHash;
-            return BuildSourceDocument(source, true, chunks, null);
+            OfficeDocumentReadResult result = read == null
+                ? ReadDocument(path, options, cancellationToken)
+                : read(path, options, cancellationToken);
+            source.SourceHash = result.Source.SourceHash;
+            source.LengthBytes = result.Source.LengthBytes ?? source.LengthBytes;
+            source.LastWriteUtc = result.Source.LastWriteUtc ?? source.LastWriteUtc;
+            return BuildSourceDocument(source, true, result.Chunks, null);
         } catch (OperationCanceledException) {
             throw;
         } catch (ReaderResourceLimitException) {
@@ -266,6 +275,11 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static IEnumerable<string> EnumerateFilesSafeDeterministic(string folderPath, ReaderFolderOptions options, CancellationToken cancellationToken) {
+        if (IsRegisteredDirectoryBundle(folderPath)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return NormalizeDirectoryPackagePath(folderPath);
+            yield break;
+        }
         var directories = new Queue<string>();
         int entriesInspected = 0;
         directories.Enqueue(folderPath);
@@ -296,7 +310,8 @@ internal static partial class DocumentReaderEngine {
                 try { attributes = File.GetAttributes(entry); } catch { continue; }
                 if (options.SkipReparsePoints && (attributes & FileAttributes.ReparsePoint) != 0) continue;
                 if ((attributes & FileAttributes.Directory) != 0) {
-                    if (options.Recurse) directories.Enqueue(entry);
+                    if (IsRegisteredDirectoryBundle(entry)) yield return entry;
+                    else if (options.Recurse) directories.Enqueue(entry);
                 } else {
                     yield return entry;
                 }

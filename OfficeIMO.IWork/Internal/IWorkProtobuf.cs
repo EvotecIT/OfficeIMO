@@ -56,16 +56,14 @@ internal sealed class IWorkWireMessage {
         foreach (IWorkWireValue value in Values(field)) {
             if (value.Kind == IWorkWireKind.Varint) {
                 if (result.Count >= effectiveMaximum) {
-                    throw new InvalidDataException(
-                        $"A repeated protobuf value exceeds the {limitDescription}.");
+                    throw IWorkProtobuf.LimitException($"A repeated protobuf value exceeds the {limitDescription}.");
                 }
                 result.Add(value.Unsigned);
             } else if (packed && value.Kind == IWorkWireKind.Bytes && value.Bytes != null) {
                 int offset = 0;
                 while (offset < value.Bytes.Length) {
                     if (result.Count >= effectiveMaximum) {
-                        throw new InvalidDataException(
-                            $"A repeated protobuf value exceeds the {limitDescription}.");
+                        throw IWorkProtobuf.LimitException($"A repeated protobuf value exceeds the {limitDescription}.");
                     }
                     result.Add(IWorkProtobuf.ReadVarint(value.Bytes, ref offset));
                 }
@@ -108,6 +106,9 @@ internal sealed class IWorkWireMessage {
     internal bool HasField(int field) => Values(field).Count > 0;
 
     internal int FieldCount(int field) => Values(field).Count;
+    internal int TotalFieldCount => _fields.Values.Sum(values => values.Count);
+
+    internal IEnumerable<IWorkWireValue> EnumerateValues(int field) => Values(field);
 
     internal bool HasUnexpectedWireKind(int field, params IWorkWireKind[] expectedKinds) {
         IReadOnlyList<IWorkWireValue> values = Values(field);
@@ -181,11 +182,19 @@ internal sealed class IWorkWireMessage {
 }
 
 internal static class IWorkProtobuf {
-    private const string FieldLimitMarker = "OfficeIMO.IWork.ProtobufFieldLimit";
+    private const string LimitMarker = "OfficeIMO.IWork.ProtobufLimit";
     private const ulong MaximumFieldNumber = (1UL << 29) - 1;
 
-    internal static bool IsFieldLimitException(InvalidDataException exception) =>
-        exception.Data.Contains(FieldLimitMarker);
+    /// <summary>Distinguishes configured limits from malformed source bytes during recovery.</summary>
+    internal static bool IsLimitException(InvalidDataException exception) =>
+        exception.Data.Contains(LimitMarker);
+
+    /// <summary>Marks a configured limit so nested readers cannot downgrade it to partial content.</summary>
+    internal static InvalidDataException LimitException(string message) {
+        var exception = new InvalidDataException(message);
+        exception.Data[LimitMarker] = true;
+        return exception;
+    }
 
     internal static int CountFields(byte[] data, int targetField, int maximumFields) {
         return CountFields(data, targetField, maximumFields, out _);
@@ -231,10 +240,7 @@ internal static class IWorkProtobuf {
             }
             fieldCount++;
             if (fieldCount > maximumFields) {
-                var exception = new InvalidDataException(
-                    $"A protobuf message exceeds the configured field limit of {maximumFields}.");
-                exception.Data[FieldLimitMarker] = true;
-                throw exception;
+                throw LimitException($"A protobuf message exceeds the configured field limit of {maximumFields}.");
             }
         }
         totalFieldCount = fieldCount;
@@ -279,15 +285,14 @@ internal static class IWorkProtobuf {
                     EnsureAvailable(data, offset, length, "length-delimited field");
                     if (target) {
                         if (matchCount >= maximumMatches) {
-                            throw new InvalidDataException(
-                                $"A protobuf field exceeds the configured match limit of {maximumMatches}.");
+                            throw LimitException($"A protobuf field exceeds the configured match limit of {maximumMatches}.");
                         }
                         matchCount++;
                         var bytes = new byte[length];
                         Buffer.BlockCopy(data, offset, bytes, 0, length);
                         try {
                             result.Add(Parse(bytes, options, depth: 1));
-                        } catch (InvalidDataException) {
+                        } catch (InvalidDataException exception) when (!IsLimitException(exception)) {
                             malformedTarget = true;
                         }
                     }
@@ -304,8 +309,7 @@ internal static class IWorkProtobuf {
             }
             fieldCount++;
             if (fieldCount > options.MaximumProtobufFieldCount) {
-                throw new InvalidDataException(
-                    $"A protobuf message exceeds the configured field limit of {options.MaximumProtobufFieldCount}.");
+                throw LimitException($"A protobuf message exceeds the configured field limit of {options.MaximumProtobufFieldCount}.");
             }
         }
         return result;
@@ -313,7 +317,7 @@ internal static class IWorkProtobuf {
 
     internal static IWorkWireMessage Parse(byte[] data, IWorkReadOptions options, int depth = 0) {
         if (depth > options.MaximumProtobufDepth) {
-            throw new InvalidDataException($"Protobuf nesting exceeds the configured depth of {options.MaximumProtobufDepth}.");
+            throw LimitException($"Protobuf nesting exceeds the configured depth of {options.MaximumProtobufDepth}.");
         }
 
         var fields = new Dictionary<int, List<IWorkWireValue>>();
@@ -359,7 +363,7 @@ internal static class IWorkProtobuf {
 
             fieldCount++;
             if (fieldCount > options.MaximumProtobufFieldCount) {
-                throw new InvalidDataException($"A protobuf message exceeds the configured field limit of {options.MaximumProtobufFieldCount}.");
+                throw LimitException($"A protobuf message exceeds the configured field limit of {options.MaximumProtobufFieldCount}.");
             }
             if (!fields.TryGetValue(field, out List<IWorkWireValue>? values)) {
                 values = new List<IWorkWireValue>();

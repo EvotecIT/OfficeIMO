@@ -1,11 +1,6 @@
 namespace OfficeIMO.IWork.Internal;
 
 internal static class IWorkMergeRangeValidator {
-    internal static bool HasOverlaps(IReadOnlyList<IWorkTableMergeRange> ranges, int columnCount) {
-        if (ranges.Count < 2 || columnCount == 0) return false;
-        return HasOverlapsOrCoveredCells(ranges, Array.Empty<IWorkTableCell>(), columnCount);
-    }
-
     internal static bool HasOverlapsOrCoveredCells(IReadOnlyList<IWorkTableMergeRange> ranges,
         IReadOnlyList<IWorkTableCell> orderedCells, int columnCount) {
         if (ranges.Count == 0 || columnCount == 0) return false;
@@ -34,7 +29,9 @@ internal static class IWorkMergeRangeValidator {
             }
             while (cellIndex < orderedCells.Count && orderedCells[cellIndex].Row == row) {
                 IWorkTableCell cell = orderedCells[cellIndex++];
-                if (columns.Maximum(cell.Column - 1, cell.Column - 1) > 0
+                // Empty formatting records are not covered content. Native merged cells
+                // can retain these records without making the merge destructive.
+                if ((cell.Kind != IWorkCellKind.Empty || cell.Comment != null) && columns.Maximum(cell.Column - 1, cell.Column - 1) > 0
                     && !anchors.Contains(Key(cell.Row, cell.Column))) return true;
             }
         }

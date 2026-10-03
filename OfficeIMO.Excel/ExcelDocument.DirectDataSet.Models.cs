@@ -384,7 +384,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (trimmed.Length > 31) {
-                    trimmed = trimmed.Substring(0, 31);
+                    trimmed = ExcelSheetNameText.Truncate(trimmed, 31);
                 }
 
                 if (!used.Contains(trimmed)) {
@@ -396,7 +396,7 @@ namespace OfficeIMO.Excel {
                     string suffixText = " (" + suffix.ToString(CultureInfo.InvariantCulture) + ")";
                     int prefixLength = Math.Max(1, 31 - suffixText.Length);
                     string candidate = trimmed.Length > prefixLength
-                        ? trimmed.Substring(0, prefixLength) + suffixText
+                        ? ExcelSheetNameText.Truncate(trimmed, prefixLength) + suffixText
                         : trimmed + suffixText;
                     if (!used.Contains(candidate)) {
                         return candidate;
@@ -431,7 +431,7 @@ namespace OfficeIMO.Excel {
                     string suffixText = suffix.ToString(CultureInfo.InvariantCulture);
                     int prefixLength = Math.Max(1, maxLength - suffixText.Length);
                     string candidate = trimmed.Length > prefixLength
-                        ? trimmed.Substring(0, prefixLength) + suffixText
+                        ? ExcelSheetNameText.Truncate(trimmed, prefixLength) + suffixText
                         : trimmed + suffixText;
                     if (used.Add(candidate)) {
                         return candidate;
@@ -455,7 +455,7 @@ namespace OfficeIMO.Excel {
                     return "Sheet1";
                 }
 
-                return value.Length > 31 ? value.Substring(0, 31) : value;
+                return value.Length > 31 ? ExcelSheetNameText.Truncate(value, 31) : value;
             }
 
             private static string SanitizeTableName(string name) {

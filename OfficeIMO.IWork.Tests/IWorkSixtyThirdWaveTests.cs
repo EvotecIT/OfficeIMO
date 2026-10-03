@@ -62,6 +62,9 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal("1", sheet.GetFormulaText(1, 1));
         Assert.True(sheet.TryGetCachedFormulaValue(1, 1, out string? cached));
         Assert.Equal("#ERROR", cached);
+        Assert.Equal(IWorkFormulaCacheStatus.Approximate, Assert.Single(result.Report.FormulaCells).CacheStatus);
+        Assert.Equal(1, result.Report.FormulaSummary.ApproximateCacheCount);
+        Assert.Equal(0, result.Report.FormulaSummary.CompleteCacheCount);
 
         using var saved = new MemoryStream();
         result.Value.Save(saved);

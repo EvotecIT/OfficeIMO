@@ -700,7 +700,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 6, 200d);
                 sheet.CellValue(2, 7, 300d);
                 sheet.CellFormula(3, 1, "SUM(A1:A2)");
-                sheet.CellFormula(4, 1, "VLOOKUP(A1,B1:C2,2,FALSE)");
+                sheet.CellFormula(4, 1, "VLOOKUP(A1,B1:C2,2,TRUE)");
                 sheet.CellFormula(5, 1, "ABS(-4)");
                 sheet.CellFormula(6, 1, "ROUND(2.345,2)");
                 sheet.CellFormula(7, 1, "A1+A2");
@@ -847,7 +847,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(sheetInspection.Formulas, formula => formula.CellReference == "A4"
                     && !formula.IsSupportedByOfficeIMO
                     && !string.IsNullOrWhiteSpace(formula.UnsupportedReason));
-                Assert.Contains("| Calc | A4 | VLOOKUP(A1,B1:C2,2,FALSE) | no | no | no |", sheetInspection.ToMarkdown());
+                Assert.Contains("| Calc | A4 | VLOOKUP(A1,B1:C2,2,TRUE) | no | no | no |", sheetInspection.ToMarkdown());
                 InvalidOperationException unsupportedException = Assert.Throws<InvalidOperationException>(() => sheetInspection.EnsureAllSupported());
                 Assert.Contains("Calc!A4", unsupportedException.Message);
                 InvalidOperationException missingCacheException = Assert.Throws<InvalidOperationException>(() => sheetInspection.EnsureAllHaveCachedResults());
@@ -1575,7 +1575,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Calc");
                 sheet.CellValue(1, 1, 2d);
-                sheet.CellFormula(2, 1, "VLOOKUP(A1,B1:C2,2,FALSE)");
+                sheet.CellFormula(2, 1, "VLOOKUP(A1,B1:C2,2,TRUE)");
                 sheet.CellFormula(3, 1, "SUM(" + new string('A', 9000) + ")");
                 sheet.CellFormula(4, 1, "SUM(Calc!A1:A2)");
 

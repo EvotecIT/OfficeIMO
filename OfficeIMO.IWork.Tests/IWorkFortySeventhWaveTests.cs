@@ -4,10 +4,12 @@ using OfficeIMO.IWork;
 namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkBoundaryTests {
-    [Fact]
-    public void Numbers_tile_fields_are_bounded_before_row_metadata_materialization() {
+    [Theory]
+    [InlineData(2)]
+    [InlineData(7)]
+    public void Numbers_tile_fields_are_bounded_before_row_metadata_materialization(int unexpectedFields) {
         using MemoryStream package = CreateNumbersPackage(new[] {
-            new TableSpec("Tile fields", 1, 1, 1d, unexpectedTileFieldCount: 7)
+            new TableSpec("Tile fields", 1, 1, 1d, unexpectedTileFieldCount: unexpectedFields)
         }, includePreview: true);
 
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);

@@ -269,12 +269,12 @@ public partial class ExcelDocument {
             .Select(character => invalid.Contains(character) ? '_' : character)
             .ToArray()).Trim('\'');
         if (string.IsNullOrWhiteSpace(sanitized)) sanitized = "Sheet";
-        if (sanitized.Length > 31) sanitized = sanitized.Substring(0, 31);
+        if (sanitized.Length > 31) sanitized = ExcelSheetNameText.Truncate(sanitized, 31);
         string candidate = sanitized;
         int suffix = 2;
         while (!used.Add(candidate)) {
             string ending = "_" + suffix++;
-            candidate = sanitized.Substring(0, Math.Min(sanitized.Length, 31 - ending.Length)) + ending;
+            candidate = ExcelSheetNameText.Truncate(sanitized, 31 - ending.Length) + ending;
         }
         return candidate;
     }
