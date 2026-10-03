@@ -28,7 +28,8 @@ namespace OfficeIMO.Core.Internal {
             Func<CancellationToken, Task<Stream>> openRead, string extension, long maximumBytes,
             string? expectedFingerprint, CancellationToken token) {
             if (openRead == null) throw new ArgumentNullException(nameof(openRead));
-            if (maximumBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+            // A zero remaining aggregate budget can still capture an empty member.
+            if (maximumBytes < 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
             if (extension == null || extension.Length < 2 || extension.Length > 17 || extension[0] != '.') {
                 throw new ArgumentException("A short file extension is required.", nameof(extension));
             }

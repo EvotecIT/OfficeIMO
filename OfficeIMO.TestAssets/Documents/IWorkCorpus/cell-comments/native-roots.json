@@ -1,0 +1,61 @@
+{
+  "upstream": "https://github.com/den-frie-vilje/cupertino-files",
+  "revision": "6879e6ed49e0eed7e7f393ff4ee558dc2dbec561",
+  "upstreamPath": "fixtures/olekristensen-v26.3-demo06-formulas-round8.numbers",
+  "sourceSha256": "81814eec7d90108595f3a6e41457b980c1fd935e16a74d77bad20ab11006dcaf",
+  "extractorVersion": "numbers-parser 4.19.0",
+  "license": "MIT, copyright 2026 Ole Kristensen",
+  "buildVersionHistory": [
+    "Template: Blank (dev/15.3)",
+    "M15.2.1-7048.0.3-2",
+    "T15.3 (7375.0.54)"
+  ],
+  "qualification": "Native selected root comments with plain text, display author and Apple-epoch creation time. No replies, export equivalence or visual rendering qualification.",
+  "cases": [
+    {
+      "sheet": "Sheet 1",
+      "table": "CrossCheck",
+      "row": 2,
+      "column": 3,
+      "catalogId": 1000164,
+      "selector": 1,
+      "commentId": 1001235,
+      "authorId": 1000403,
+      "text": "Shows 0, references own table, not the other one",
+      "author": "ole kristensen",
+      "appleEpochSeconds": 808669540.711675,
+      "creationDateUtc": "2026-08-17T14:25:40.711675+00:00",
+      "replyCount": 0
+    },
+    {
+      "sheet": "Sheet 1",
+      "table": "Table 1",
+      "row": 14,
+      "column": 3,
+      "catalogId": 1000151,
+      "selector": 1,
+      "commentId": 1000402,
+      "authorId": 1000403,
+      "text": "Still just showing the number 5",
+      "author": "ole kristensen",
+      "appleEpochSeconds": 808669399.667501,
+      "creationDateUtc": "2026-08-17T14:23:19.667501+00:00",
+      "replyCount": 0
+    },
+    {
+      "sheet": "Sheet 1",
+      "table": "Table 1",
+      "row": 24,
+      "column": 3,
+      "catalogId": 1000151,
+      "selector": 2,
+      "commentId": 1001234,
+      "authorId": 1000403,
+      "text": "Still just a cached number. No formula or reference ",
+      "author": "ole kristensen",
+      "appleEpochSeconds": 808669512.85391,
+      "creationDateUtc": "2026-08-17T14:25:12.853910+00:00",
+      "replyCount": 0
+    }
+  ]
+}

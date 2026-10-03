@@ -37,6 +37,25 @@ public class PowerPointBackgroundSnapshotTests {
     }
 
     [Fact]
+    public void Explicit_no_fill_replaces_local_fill_and_suppresses_inherited_background_after_reopen() {
+        using var stream = new MemoryStream();
+        using var presentation = PowerPointPresentation.Create(stream);
+        var slide = presentation.AddSlide();
+        slide.SlidePart.SlideLayoutPart!.SlideLayout.CommonSlideData!.Background =
+            new DocumentFormat.OpenXml.Presentation.Background(
+                new DocumentFormat.OpenXml.Presentation.BackgroundProperties(
+                    new A.SolidFill(new A.RgbColorModelHex { Val = "FF0000" })));
+        slide.SetBackgroundGradient("112233", "445566");
+        slide.SetBackgroundNoFill();
+        Assert.Equal(PowerPointSlideBackgroundKind.None, slide.GetBackground().Kind);
+        Assert.Empty(presentation.ValidateDocument());
+        using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
+        using var reopened = PowerPointPresentation.Load(saved);
+        Assert.Equal(PowerPointSlideBackgroundKind.None, reopened.Slides[0].GetBackground().Kind);
+        Assert.IsType<A.NoFill>(Assert.Single(reopened.Slides[0].SlidePart.Slide.CommonSlideData!.Background!.BackgroundProperties!.ChildElements));
+    }
+
+    [Fact]
     public void GetBackground_PreservesImageSourceCrop() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

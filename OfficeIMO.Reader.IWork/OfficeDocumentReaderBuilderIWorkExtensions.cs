@@ -34,6 +34,8 @@ public static class OfficeDocumentReaderBuilderIWorkExtensions {
                     registered.Clone(), token).Chunks,
             ReadDocumentPath = (path, readerOptions, token) =>
                 IWorkReaderAdapter.ReadDocument(path, readerOptions, registered.Clone(), token),
+            ReadDirectoryBundle = (path, readerOptions, token) =>
+                IWorkReaderAdapter.ReadDocument(path, readerOptions, registered.Clone(), token),
             ReadDocumentStream = (stream, sourceName, readerOptions, token) =>
                 IWorkReaderAdapter.ReadDocument(stream, sourceName, readerOptions,
                     registered.Clone(), token)

@@ -6,11 +6,13 @@ public sealed partial class OfficeWorkflowRunner {
     /// <summary>Captures and verifies local identity inside the selected provider's readable access scope.</summary>
     private sealed class WorkflowSourceAccess(string location, OfficeWorkflowStreamInput source) {
         internal string Location { get; } = location;
+        internal IOfficeWorkflowPublicationGuard? SourceGuard => source.SourcePublicationGuard;
+        internal bool IsDirectoryPackage => source.SnapshotKind == OfficeWorkflowSourceSnapshotKind.DirectoryPackage;
         internal string? LocalPath { get; } = OfficeStorageIdentity.GetLocalPath(location);
         private string? _identity;
         internal bool HasCapturedIdentity => _identity is not null;
 
-        internal OfficeWorkflowStreamInput CreateInput() => new(source.Name, OpenReadAsync, source.ExpectedSha256);
+        internal OfficeWorkflowStreamInput CreateInput() => new(source.Name, OpenReadAsync, source.ExpectedSha256, source.SnapshotKind, source.SourcePublicationGuard);
 
         internal async Task<Stream> OpenReadAsync(CancellationToken token) {
             Stream stream = await source.OpenRead(token).ConfigureAwait(false);
@@ -89,8 +91,14 @@ public sealed partial class OfficeWorkflowRunner {
                 }
                 token.ThrowIfCancellationRequested();
                 if (!SourcesAreSeparate(path, isDirectory)) return false;
+                foreach (var access in _accesses) {
+                    if (access.SourceGuard is { } guard && !await guard.CanPublishAsync(path, isDirectory, token).ConfigureAwait(false)) return false;
+                }
                 if (_host is not null && !await _host.CanPublishAsync(path, isDirectory, token).ConfigureAwait(false)) return false;
                 token.ThrowIfCancellationRequested();
+                foreach (var access in _accesses) {
+                    if (access.SourceGuard is { } guard && !await guard.CanPublishAsync(path, isDirectory, token).ConfigureAwait(false)) return false;
+                }
                 return SourcesAreSeparate(path, isDirectory);
             } finally {
                 List<Exception>? failures = null;
@@ -111,6 +119,9 @@ public sealed partial class OfficeWorkflowRunner {
                     throw new IOException("The workflow source was replaced during execution.");
             }
             if (_sources.Any(source => OfficeStorageIdentity.AreEquivalent(source, path))) return false;
+            if (_accesses.Any(access => access.IsDirectoryPackage && access.LocalPath is { } local &&
+                OfficeStorageIdentity.GetLocalPath(path) is { } output &&
+                OfficePathIdentity.IsSameOrDescendant(output, local))) return false;
             string? outputDirectory = isDirectory ? OfficeStorageIdentity.GetLocalPath(path) : null;
             return outputDirectory is null || !_sources.Any(source => OfficeStorageIdentity.GetLocalPath(source) is { } local &&
                 OfficePathIdentity.IsSameOrDescendant(local, outputDirectory));

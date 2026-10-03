@@ -39,7 +39,7 @@ namespace OfficeIMO.Word {
             // Specify the text range for the Comment.
             // Insert the new CommentRangeStart before the first run of paragraph.
             var commentStart = new CommentRangeStart { Id = wordComment.Id };
-            OpenXmlElement? firstChild = rangeStart.GetFirstChild<OpenXmlElement>();
+            OpenXmlElement? firstChild = rangeStart.ChildElements.FirstOrDefault(child => child is not ParagraphProperties);
             if (firstChild == null) {
                 rangeStart.Append(commentStart);
             } else {

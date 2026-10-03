@@ -14,7 +14,7 @@ public sealed partial class ProjectDocument {
         long revision = Revision;
         string?[] Values(params object?[] values) { cancellationToken.ThrowIfCancellationRequested(); return values.Select(ProjectDataSchema.Text).ToArray(); }
         var tasks = ProjectDataSchema.Export(ProjectDataKind.Tasks, AllTasks.Select(t => Values(t.Uid, t.Name, t.Parent?.Uid, t.IsSummary, t.Calendar?.Uid,
-            t.Start, t.Finish, t.Duration is ProjectDuration duration ? duration.Value * ProjectTimeUnits.MinutesPerUnit(duration.Unit, duration.IsElapsed, Settings) : (decimal?)null,
+            t.Start, t.Finish, t.Duration is ProjectDuration duration ? ProjectTimeUnits.Minutes(duration, Settings) : (decimal?)null,
             t.Duration?.IsElapsed, t.Work?.Minutes, t.Cost, t.PercentComplete)), maxRows, maxCells);
         var resources = ProjectDataSchema.Export(ProjectDataKind.Resources, Resources.Select(r => Values(r.Uid, r.Name, r.Type, r.Calendar?.Uid, r.MaxUnits?.Value)), maxRows, maxCells);
         var assignments = ProjectDataSchema.Export(ProjectDataKind.Assignments, Assignments.Select(a => Values(a.Uid, a.Task?.Uid, a.Resource?.Uid ?? (a.SourceResourceUid < 0 ? -1 : a.SourceResourceUid), a.Units?.Value,

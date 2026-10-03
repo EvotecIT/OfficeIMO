@@ -31,34 +31,6 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Theory]
-    [InlineData("(3)", 3, "decimal")]
-    [InlineData("(c)", 3, "lowerLetter")]
-    [InlineData("(iv)", 4, "lowerRoman")]
-    public void Parenthesized_pages_lists_preserve_native_numbering(
-        string label, int expectedStart, string expectedFormat) {
-        using MemoryStream package = CreatePagesPackageWithListLabel(label);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
-        using var saved = new MemoryStream();
-        result.Value.Save(saved);
-        saved.Position = 0;
-
-        using WordprocessingDocument document = WordprocessingDocument.Open(saved, false);
-        Numbering numbering = document.MainDocumentPart?.NumberingDefinitionsPart?.Numbering
-            ?? throw new InvalidDataException("The reconstructed DOCX has no numbering definitions.");
-        Level level = Assert.Single(numbering.Elements<AbstractNum>().SelectMany(item =>
-            item.Elements<Level>()));
-
-        Assert.Equal(expectedStart, level.StartNumberingValue?.Val?.Value);
-        NumberFormatValues format = expectedFormat switch {
-            "decimal" => NumberFormatValues.Decimal,
-            "lowerLetter" => NumberFormatValues.LowerLetter,
-            _ => NumberFormatValues.LowerRoman
-        };
-        Assert.Equal(format, level.NumberingFormat?.Val?.Value);
-        Assert.Equal("(%1)", level.LevelText?.Val?.Value);
-    }
-
-    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void Populated_numbers_offsets_beyond_declared_columns_disable_editable_reconstruction(

@@ -25,7 +25,11 @@ namespace OfficeIMO.Excel.Pdf {
             cancellationToken.ThrowIfCancellationRequested();
             PdfCore.PdfOptions pdfOptions = CreatePdfOptions(options, out bool preserveConfiguredFontSlots);
             PdfCore.PdfStandardFont defaultFontFamily = PdfCore.PdfStandardFontMapper.GetFontFamily(pdfOptions.DefaultFont);
-            using ExcelDocumentReader reader = document.CreateReader();
+            // Styled output needs the original serial, including negative sub-day durations
+            // and precision that a DateTime carrier cannot preserve.
+            using ExcelDocumentReader reader = document.CreateReader(new ExcelReadOptions {
+                TreatDatesUsingNumberFormat = !options.UseWorksheetCellStyles
+            });
             IReadOnlyList<string> sheetNames = GetSheetNames(reader, options);
             bool hasExplicitSheetSelection = HasExplicitSheetSelection(options);
             IReadOnlyList<WorksheetPdfExportPlan> exportPlans = BuildWorksheetExportPlans(document, reader, sheetNames, options, hasExplicitSheetSelection, defaultFontFamily);
@@ -78,7 +82,7 @@ namespace OfficeIMO.Excel.Pdf {
                                 }
 
                                 item.Table(
-                                    CreatePdfRows(values, plan.ExportData.Styles, plan.ExportData.Hyperlinks, plan.ExportData.CellReferences, plan.ExportData.StructuredTables, plan.ExportData.MergedCells, imagesByCellReference, chunk.RowIndexes, chunk.StartColumn, chunk.ColumnCount, options.EmptyCellText, sheetDestinations, cellDestinations, plan.SheetName, defaultFontFamily),
+                                    CreatePdfRows(values, plan.ExportData.Styles, plan.ExportData.Hyperlinks, plan.ExportData.CellReferences, plan.ExportData.StructuredTables, plan.ExportData.MergedCells, imagesByCellReference, chunk.RowIndexes, chunk.StartColumn, chunk.ColumnCount, options.EmptyCellText, sheetDestinations, cellDestinations, plan.SheetName, defaultFontFamily, dateSystem: document.DateSystem),
                                     style: CreateTableStyle(options, plan.PageSetup, chunk.RowIndexes, chunk.HeaderRowCount, plan.ExportData.Styles, plan.ExportData.ConditionalFills, plan.ExportData.CellReferences, plan.ExportData.StructuredTables, plan.ExportData.ColumnWidths, plan.ExportData.RowHeights, chunk.StartColumn, chunk.ColumnCount));
                             }
                         }

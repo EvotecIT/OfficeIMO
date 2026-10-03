@@ -44,6 +44,24 @@ namespace OfficeIMO.Core.Internal {
             IReadOnlyDictionary<string, byte[]> replacementStreams,
             IReadOnlyCollection<string>? removedPaths = null, long maxOutputBytes = int.MaxValue,
             System.Threading.CancellationToken cancellationToken = default) {
+            OfficeCompoundWriterLayout layout = PrepareRewrite(source, replacementStreams, removedPaths, maxOutputBytes, cancellationToken);
+            using (var output = CreateExactOutput(layout)) {
+                Write(output, layout, source.RootEntry.ClassId == Guid.Empty ? null : source.RootEntry.ClassId, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                return GetExactOutputBuffer(output);
+            }
+        }
+
+        /// <summary>Measures the same bounded rewrite layout without materializing its output bytes.</summary>
+        internal static long GetRewriteLength(OfficeCompoundFile source,
+            IReadOnlyDictionary<string, byte[]> replacementStreams,
+            IReadOnlyCollection<string>? removedPaths = null, long maxOutputBytes = int.MaxValue,
+            CancellationToken cancellationToken = default) =>
+            GetSerializedLength(PrepareRewrite(source, replacementStreams, removedPaths, maxOutputBytes, cancellationToken));
+
+        private static OfficeCompoundWriterLayout PrepareRewrite(OfficeCompoundFile source,
+            IReadOnlyDictionary<string, byte[]> replacementStreams, IReadOnlyCollection<string>? removedPaths,
+            long maxOutputBytes, CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             if (maxOutputBytes < 1) throw new ArgumentOutOfRangeException(nameof(maxOutputBytes));
             if (source == null) throw new ArgumentNullException(nameof(source));
@@ -93,16 +111,7 @@ namespace OfficeIMO.Core.Internal {
             OfficeCompoundWriterLayout layout = OfficeCompoundWriterLayout.Create(streams, source, removals);
             if (GetSerializedLength(layout) > maxOutputBytes) throw OfficeOutputLimit.Create("Compound output exceeds the configured byte limit.");
             cancellationToken.ThrowIfCancellationRequested();
-            using (var output = CreateExactOutput(layout)) {
-                Write(
-                    output,
-                    layout,
-                    source.RootEntry.ClassId == Guid.Empty
-                        ? null
-                        : source.RootEntry.ClassId, cancellationToken);
-                cancellationToken.ThrowIfCancellationRequested();
-                return GetExactOutputBuffer(output);
-            }
+            return layout;
         }
 
         private static string NormalizePath(string path) =>

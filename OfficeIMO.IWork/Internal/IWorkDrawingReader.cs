@@ -85,7 +85,7 @@ internal static class IWorkDrawingReader {
         IWorkWireMessage message;
         try {
             message = index.Message(record);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             complete = false;
             return null;
         }
@@ -122,7 +122,7 @@ internal static class IWorkDrawingReader {
         IWorkWireMessage message;
         try {
             message = source.Index.Message(record);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             complete = false;
             return null;
         }
@@ -197,7 +197,7 @@ internal static class IWorkDrawingReader {
         }
         return new IWorkImageAsset(data.PreferredFileName, entry.Path, mediaType, entry.Bytes,
             pixelWidth, pixelHeight, geometry, hasMask,
-            hyperlink, accessibilityDescription);
+            hyperlink, accessibilityDescription, new IWorkObjectIdentity(record));
     }
 
     internal static bool IsEditableOwnerImageMediaType(string mediaType) =>
@@ -226,7 +226,7 @@ internal static class IWorkDrawingReader {
             metadataEntryCount = IWorkProtobuf.CountFields(metadata.Payload, 4,
                 source.Options.MaximumProtobufFieldCount);
         } catch (InvalidDataException exception)
-            when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            when (!IWorkProtobuf.IsLimitException(exception)) {
             metadataComplete = false;
             return new Dictionary<ulong, DataEntry>();
         }

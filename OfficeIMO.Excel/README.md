@@ -58,9 +58,11 @@ document.Save();
 ## What it does
 
 - Creates and edits workbooks, worksheets, cells, ranges, tables, styles, hyperlinks, formulas, names, comments, images, charts, filters, and page setup.
-- Reads tabular values through the forward-only `ExcelDocument.OpenDataReader(...)` API and typed `ExcelSheet.RowsAs<T>(...)` helpers.
+- Reads tabular values through the forward-only `ExcelDocument.OpenDataReader(...)` API and typed `ExcelSheet.RowsAs<T>(...)` helpers. Numeric cells and formula caches retain stored double precision across range, streaming, and typed reads; numeric-looking text retains its text type.
 - Edits loaded workbooks through the normal worksheet, cell, range, table, and fluent authoring APIs.
 - Handles practical workbook hygiene such as table/filter conflicts, safe table names, deterministic save order, and feature inspection.
+- Renders supported numeric display formats consistently in PDF and image export, including mixed fractions that retain whole values beyond `Int64`, optional decimals, scientific mantissa precision and exponent sign/case/padding, and red negative-number sections. Quoted or escaped exponent letters and decimal points remain literals. Numeric-looking text retains its type, contents, and font color. Other number-format colors are not projected.
+- Renders common date/time and elapsed formats through the same formatter in PDF and image export. Custom patterns retain date separators, quoted or escaped labels, 12-hour markers, elapsed unit padding, and selected negative or conditional sections. Fractional seconds support one to seven digits and round across component boundaries. Month and weekday names use invariant English; locale directives and alternate calendars are not localized.
 - Applies optional shared package-security policy before parsing Open XML, XLSB, or compound XLS files.
 - Includes parallel execution controls for heavy export and autofit workloads while serializing the Open XML mutation phase safely.
 
@@ -866,6 +868,81 @@ supported function arguments. For example, `SUM(A1,2)*3` and
 and nested function evaluation are bounded to 128 levels; unsupported formulas
 continue to be reported explicitly rather than calculated from stale caches.
 
+`INT`, `MOD` and `SQRT` evaluate finite numeric scalar arguments, including
+references and nested expressions. Boolean operands retain the existing 0/1
+coercion. `INT` floors negative values; `MOD` uses the
+divisor's sign. A negative square root produces `#NUM!`, a zero divisor produces
+`#DIV/0!`, and a nonfinite result produces `#NUM!`. These errors replace old
+numeric caches and propagate through arithmetic and error handlers. Invalid
+argument counts, multi-cell scalar ranges and unsupported operand types remain
+unevaluated.
+
+`EXP`, `LN`, `LOG` and `LOG10` evaluate finite numeric scalar operands with
+strict argument counts. `LOG` defaults to base 10 and also accepts an explicit
+positive base. Nonpositive logarithm arguments or bases produce `#NUM!`; base 1
+produces `#DIV/0!`, and exponential overflow produces `#NUM!`. Typed errors
+propagate through references, arithmetic and `IFERROR`. Unsupported operands
+and signatures remain unevaluated and preserve existing caches. Results use
+floating-point math, so inverse functions need not return exact original values.
+
+`SIGN`, `TRUNC`, `ROUNDUP` and `ROUNDDOWN` also use scalar arguments with
+exact supported signatures. `TRUNC` defaults omitted digits to zero. Digit
+arguments are supported from −15 through 15; other values remain unevaluated.
+Directional rounding uses the same decimal normalization as `ROUND`, so exact
+decimal boundaries such as `TRUNC(0.29,2)` and `ROUNDUP(0.07,2)` stay unchanged.
+Large integral values avoid unnecessary scaling, and nonfinite results produce
+`#NUM!` instead of invalid numeric caches. All operands, including supported
+digit bounds, qualify before an argument error is propagated.
+
+`COMBIN` evaluates two finite scalar operands with a nonnegative item count up to
+2^53−1, truncating fractions. Negative inputs, a chosen count larger than the item
+count, and results beyond the numeric range return `#NUM!`. Integer arithmetic
+avoids factorial overflow and accumulated rounding; large finite results use the
+workbook’s floating-point representation. Evaluation takes at most 1,023 steps.
+Unsupported signatures, ranges, text and larger item counts retain existing caches.
+
+`FACT` evaluates one finite scalar, truncating nonnegative fractions before
+multiplication. Zero returns one. Negative inputs and values at least 171 produce
+`#NUM!`; at most 169 multiplications are needed for a finite result. Large
+factorials use floating-point arithmetic. Typed errors propagate, while
+unsupported operands and signatures preserve existing caches.
+
+`EVEN` and `ODD` round one finite scalar away from zero to the nearest integer
+of the requested parity. `EVEN(0)` is zero and `ODD(0)` is one. Typed errors
+propagate; unsupported operands and argument counts retain existing caches.
+`ODD` retains its cache when the result would exceed ±(2^53−1), because larger
+odd integers cannot be represented exactly by the evaluator's numeric type.
+`EVEN` supports larger finite values that are already even binary64 integers.
+
+`CEILING` and `FLOOR` require two scalar operands and treat explicit omitted
+operands as zero. Negative numbers with negative significance round away from
+zero for `CEILING` and toward zero for `FLOOR`; positive significance rounds
+negative numbers toward positive and negative infinity, respectively. Positive
+numbers with negative significance produce `#NUM!`. Zero numbers return zero;
+zero significance returns zero for `CEILING` and `#DIV/0!` for nonzero `FLOOR`.
+Decimal normalization preserves exact multiples such as `CEILING(0.07,0.01)`.
+Remainder-based calculation avoids quotient overflow for finite rounded results;
+nonfinite results produce `#NUM!`. Typed errors propagate, while unsupported
+operands, ranges and argument counts preserve existing caches. The `.MATH`
+variants retain their separate direction and mode contracts.
+
+`OFFSET` resolves a single-cell value or a rectangular reference argument for
+functions such as `SUM`, within worksheet bounds and 32 reference levels.
+Multi-cell scalar results, implicit intersection and spills remain unsupported.
+`PROB` evaluates finite numeric vectors with a shared 100,000-cell input budget;
+mixed text, Boolean and blank vector coercion remains unsupported. Probabilities
+must lie between zero and one and sum to one within `1e-12` rounding tolerance.
+`RANDBETWEEN` accepts inclusive integer bounds from `-9007199254740991` to
+`9007199254740991` (the consecutive exact integer range through ±(2^53−1)) and draws a fresh
+value on each calculation pass; dependent formulas reuse that pass's cell cache.
+Fractional bounds and bounds outside that range retain their producer cache without local
+evaluation. Inspection reports direct references; dynamic `OFFSET` targets are
+resolved during calculation and its runtime dependency guards apply. Invalid
+reference errors propagate through reference consumers and error handlers.
+Unsupported inputs and resource limits remain unevaluated inside `IFERROR`,
+`IFNA` and error predicates, preserving existing caches. Completed supported
+lookup searches return typed `#N/A` when no match exists.
+
 Named references can resolve to A1 ranges or numeric, text, Boolean, and error
 constants, including bounded aliases and worksheet-local scope. Arbitrary
 formulas stored in defined names remain outside this calculation subset.
@@ -995,6 +1072,16 @@ document.Save("report.xlsx", new ExcelSaveOptions {
     ForceFullCalculationOnOpen = true
 });
 ```
+
+### TEXTJOIN formula storage
+
+Author `TEXTJOIN` through the normal cell and array-formula APIs. The writer stores these calls as `_xlfn.TEXTJOIN` in XLSX, including nested calls; `GetFormulaText` exposes the stored spelling. Existing prefixes, string literals, quoted worksheet names and structured references retain their text. Prefix expansion is checked against the 8,192-character formula limit.
+
+`Calculate()` supports both empty-cell policies, quoted worksheet names with punctuation, and typed error propagation through `TEXTJOIN`, `CONCAT` and `CONCATENATE`. Ordinary text such as `#N/A` remains text. Joined results above the 32,767-character cell-text limit become `#VALUE!`. The evaluator remains bounded by its supported expression and range contracts. Rejected prefix expansion preserves existing cells and in-cell images.
+
+### Referenced values in aggregates
+
+`Calculate()` preserves referenced types for numeric aggregates. `MINA`, `MAXA` and `AVERAGEA` include Boolean values as one or zero and referenced text as zero, skip blank cells, and preserve typed errors. Empty `MINA` and `MAXA` ranges return zero; empty `AVERAGEA` ranges return `#DIV/0!`. Ordinary numeric aggregates skip referenced Boolean and text values, including numeric-looking strings. Boolean formula results and selected text results retain their types through references and saved caches. `SUMSQ`, `LARGE` and `SMALL` filter referenced data values; the rank argument keeps scalar coercion. Scalar numeric coercion remains available. Positional statistical helpers require numeric-only ranges; mixed-type series remain unevaluated rather than losing their paired coordinates.
 
 ### Preflight a workbook before choosing a workflow
 
@@ -1325,6 +1412,8 @@ static OfficeProvenanceReport InspectUploadedExcel(byte[] packageBytes) =>
 - **Security:** Open XML and VBA signature carriers are inspected and signed-package mutations fail safely without a cryptographic dependency. Package and VBA signature creation and cryptographic validation accept an explicit `IOfficeSecurityProvider`; `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+
+`ExcelSheet.AddThreadedComments(...)` adds a batch of roots and replies in input order. It validates the complete ID/parent plan before appending comments, indexes workbook IDs and author names once, and saves each comment/person part once. Replies must reference an existing root or an earlier root in the batch on the same worksheet and cell. `AddThreadedComment(...)` uses the same writer for one item.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

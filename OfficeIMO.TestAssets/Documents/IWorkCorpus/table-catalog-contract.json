@@ -1,0 +1,3273 @@
+{
+  "provider": "numbers-parser",
+  "providerVersion": "4.19.0",
+  "registry": "https://github.com/masaccio/numbers-parser/blob/d3836ebda1110b5c13b8722642ca61111fe8e865/src/numbers_parser/generated/mapping.py",
+  "revision": "d3836ebda1110b5c13b8722642ca61111fe8e865",
+  "catalogTypeAliases": [
+    6005,
+    6201
+  ],
+  "qualification": "Declared catalog type and required list kind only. Model records may be inactive; no selected-content, Apple export or appearance claim.",
+  "sources": [
+    {
+      "path": "cell-comments/native-roots.numbers",
+      "sha256": "81814eec7d90108595f3a6e41457b980c1fd935e16a74d77bad20ab11006dcaf",
+      "catalogs": [
+        {
+          "model": 904595,
+          "field": "stringTable",
+          "target": 1000143,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 17
+        },
+        {
+          "model": 904595,
+          "field": "styleTable",
+          "target": 1000144,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 11
+        },
+        {
+          "model": 904595,
+          "field": "formula_table",
+          "target": 1000147,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 8
+        },
+        {
+          "model": 904595,
+          "field": "rich_text_table",
+          "target": 1000150,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 904595,
+          "field": "commentStorageTable",
+          "target": 1000151,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 2
+        },
+        {
+          "model": 904595,
+          "field": "format_table",
+          "target": 1000146,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 2
+        },
+        {
+          "model": 1000013,
+          "field": "stringTable",
+          "target": 1000156,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 6
+        },
+        {
+          "model": 1000013,
+          "field": "styleTable",
+          "target": 1000157,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 10
+        },
+        {
+          "model": 1000013,
+          "field": "formula_table",
+          "target": 1000160,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 2
+        },
+        {
+          "model": 1000013,
+          "field": "rich_text_table",
+          "target": 1000163,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 1000013,
+          "field": "commentStorageTable",
+          "target": 1000164,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 1
+        },
+        {
+          "model": 1000013,
+          "field": "format_table",
+          "target": 1000159,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 2
+        },
+        {
+          "model": 1000081,
+          "field": "stringTable",
+          "target": 1000169,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 3
+        },
+        {
+          "model": 1000081,
+          "field": "styleTable",
+          "target": 1000170,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 4
+        },
+        {
+          "model": 1000081,
+          "field": "formula_table",
+          "target": 1000173,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 1000081,
+          "field": "rich_text_table",
+          "target": 1000176,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 1000081,
+          "field": "commentStorageTable",
+          "target": 1000177,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 1000081,
+          "field": "format_table",
+          "target": 1000172,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 2
+        }
+      ]
+    },
+    {
+      "path": "iwork-converter/a.key",
+      "sha256": "929347827a7478c123dd3e3828e9751b5cf2ae977d2edd2a5f0774014fc4fefc",
+      "catalogs": []
+    },
+    {
+      "path": "iwork-converter/a.numbers",
+      "sha256": "43afd5a01cff9283fea5a11716d96f696b5853b75f82a3fe4469f240dfb82947",
+      "catalogs": [
+        {
+          "model": 903598,
+          "field": "stringTable",
+          "target": 903571,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 33
+        },
+        {
+          "model": 903598,
+          "field": "styleTable",
+          "target": 903572,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 903598,
+          "field": "formula_table",
+          "target": 903575,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 903598,
+          "field": "rich_text_table",
+          "target": 903578,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 903598,
+          "field": "commentStorageTable",
+          "target": 903579,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 903598,
+          "field": "format_table",
+          "target": 903574,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 4
+        },
+        {
+          "model": 905377,
+          "field": "stringTable",
+          "target": 905351,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 27
+        },
+        {
+          "model": 905377,
+          "field": "styleTable",
+          "target": 905352,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 905377,
+          "field": "formula_table",
+          "target": 905355,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 1
+        },
+        {
+          "model": 905377,
+          "field": "rich_text_table",
+          "target": 905358,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 905377,
+          "field": "commentStorageTable",
+          "target": 905359,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 905377,
+          "field": "format_table",
+          "target": 905354,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 5
+        }
+      ]
+    },
+    {
+      "path": "iwork-converter/a.pages",
+      "sha256": "8481e3071c8ea1cc9543354bcd1ff66f79e6c2c8686096fa3ae60ab96fd49ebf",
+      "catalogs": [
+        {
+          "model": 1686807,
+          "field": "stringTable",
+          "target": 1686781,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 5
+        },
+        {
+          "model": 1686807,
+          "field": "styleTable",
+          "target": 1686782,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 5
+        },
+        {
+          "model": 1686807,
+          "field": "formula_table",
+          "target": 1686785,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 1686807,
+          "field": "rich_text_table",
+          "target": 1686788,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 24
+        },
+        {
+          "model": 1686807,
+          "field": "commentStorageTable",
+          "target": 1686789,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 1686807,
+          "field": "format_table",
+          "target": 1686784,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 2
+        }
+      ]
+    },
+    {
+      "path": "keynotekit/imagedeck-v15.2.1.key",
+      "sha256": "a9af589197588e04ee52388b0aa6c2dad1110e5d6db814b58afe543831cf2128",
+      "catalogs": []
+    },
+    {
+      "path": "keynotekit/tabledeck-v15.2.1.key",
+      "sha256": "384962b1fff18abc5a901b59dc5f8820c2a959977f18f90dc9cd10095bdd0a56",
+      "catalogs": [
+        {
+          "model": 2652491,
+          "field": "stringTable",
+          "target": 2652463,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 5
+        },
+        {
+          "model": 2652491,
+          "field": "styleTable",
+          "target": 2652464,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 2652491,
+          "field": "formula_table",
+          "target": 2652467,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 2652491,
+          "field": "rich_text_table",
+          "target": 2652470,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 2652491,
+          "field": "commentStorageTable",
+          "target": 2652471,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 2652491,
+          "field": "format_table",
+          "target": 2652466,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 2
+        }
+      ]
+    },
+    {
+      "path": "native-exports/numbers-banding-v14.5.numbers",
+      "sha256": "669c2ef12bce79e75991bb73b660b0200711253303f655e421c9235da7447867",
+      "catalogs": [
+        {
+          "model": 904538,
+          "field": "stringTable",
+          "target": 904489,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 15
+        },
+        {
+          "model": 904538,
+          "field": "styleTable",
+          "target": 904496,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "formula_table",
+          "target": 904490,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "rich_text_table",
+          "target": 904492,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "commentStorageTable",
+          "target": 904482,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "format_table",
+          "target": 904498,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 2
+        },
+        {
+          "model": 907372,
+          "field": "stringTable",
+          "target": 907343,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 15
+        },
+        {
+          "model": 907372,
+          "field": "styleTable",
+          "target": 907355,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 907372,
+          "field": "formula_table",
+          "target": 907353,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 907372,
+          "field": "rich_text_table",
+          "target": 907345,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 907372,
+          "field": "commentStorageTable",
+          "target": 907352,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 907372,
+          "field": "format_table",
+          "target": 907349,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 2
+        },
+        {
+          "model": 908283,
+          "field": "stringTable",
+          "target": 908219,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 15
+        },
+        {
+          "model": 908283,
+          "field": "styleTable",
+          "target": 908210,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 908283,
+          "field": "formula_table",
+          "target": 908226,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 908283,
+          "field": "rich_text_table",
+          "target": 908232,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 908283,
+          "field": "commentStorageTable",
+          "target": 908228,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 908283,
+          "field": "format_table",
+          "target": 908217,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 2
+        }
+      ]
+    },
+    {
+      "path": "native-exports/numbers-function-edges-v14.5.numbers",
+      "sha256": "d49961e5ae807a7ee2119b10d62ef6f196d1028227b088bab09e46f4a5704e09",
+      "catalogs": [
+        {
+          "model": 905278,
+          "field": "stringTable",
+          "target": 905254,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 22
+        },
+        {
+          "model": 905278,
+          "field": "styleTable",
+          "target": 905255,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 905278,
+          "field": "formula_table",
+          "target": 905258,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 17
+        },
+        {
+          "model": 905278,
+          "field": "rich_text_table",
+          "target": 905261,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 905278,
+          "field": "commentStorageTable",
+          "target": 905262,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 905278,
+          "field": "format_table",
+          "target": 905257,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 2
+        }
+      ]
+    },
+    {
+      "path": "native-exports/numbers-functions-v14.5.numbers",
+      "sha256": "55c7c77a9acaa5af765293ad20c6ff3ee4e06092116d3cfff5e597cf1f2fd46b",
+      "catalogs": [
+        {
+          "model": 905278,
+          "field": "stringTable",
+          "target": 905254,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 14
+        },
+        {
+          "model": 905278,
+          "field": "styleTable",
+          "target": 905255,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 905278,
+          "field": "formula_table",
+          "target": 905258,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 9
+        },
+        {
+          "model": 905278,
+          "field": "rich_text_table",
+          "target": 905261,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 905278,
+          "field": "commentStorageTable",
+          "target": 905262,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 905278,
+          "field": "format_table",
+          "target": 905257,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 2
+        }
+      ]
+    },
+    {
+      "path": "nim-iwork/simple.key",
+      "sha256": "ba95755df82ceb0ca834e1e03e2777c34fad906320d8336b4f3fefc6b48607eb",
+      "catalogs": []
+    },
+    {
+      "path": "nim-iwork/simple.numbers",
+      "sha256": "d0b00d9cae5985cccaa3b2fb251fae92eb0e38360fb4b5df8b4350eb658f752b",
+      "catalogs": [
+        {
+          "model": 906217,
+          "field": "stringTable",
+          "target": 906191,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 6
+        },
+        {
+          "model": 906217,
+          "field": "styleTable",
+          "target": 906192,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 906217,
+          "field": "formula_table",
+          "target": 906195,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 906217,
+          "field": "rich_text_table",
+          "target": 906198,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 906217,
+          "field": "commentStorageTable",
+          "target": 906199,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 906217,
+          "field": "format_table",
+          "target": 906194,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 2
+        }
+      ]
+    },
+    {
+      "path": "nim-iwork/simple.pages",
+      "sha256": "5aee6d03277d2db2104f593e64afe081dec539f0117b97124b6f99158124c93e",
+      "catalogs": []
+    },
+    {
+      "path": "numbers-parser/cross-table-formulas.numbers",
+      "sha256": "9371c5b1d6ee4dfa17569097f064eba9c67f804d88b48638efbbeeb459d07dd4",
+      "catalogs": [
+        {
+          "model": 904538,
+          "field": "stringTable",
+          "target": 904489,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 45
+        },
+        {
+          "model": 904538,
+          "field": "styleTable",
+          "target": 904496,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 3
+        },
+        {
+          "model": 904538,
+          "field": "formula_table",
+          "target": 904490,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 36
+        },
+        {
+          "model": 904538,
+          "field": "rich_text_table",
+          "target": 904492,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 2
+        },
+        {
+          "model": 904538,
+          "field": "commentStorageTable",
+          "target": 904482,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "format_table",
+          "target": 904498,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 4
+        },
+        {
+          "model": 913065,
+          "field": "stringTable",
+          "target": 913039,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 0
+        },
+        {
+          "model": 913065,
+          "field": "styleTable",
+          "target": 913040,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 2
+        },
+        {
+          "model": 913065,
+          "field": "formula_table",
+          "target": 913043,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 3
+        },
+        {
+          "model": 913065,
+          "field": "rich_text_table",
+          "target": 913046,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 913065,
+          "field": "commentStorageTable",
+          "target": 913047,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 913065,
+          "field": "format_table",
+          "target": 913042,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 1
+        },
+        {
+          "model": 920405,
+          "field": "stringTable",
+          "target": 920379,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 20
+        },
+        {
+          "model": 920405,
+          "field": "styleTable",
+          "target": 920380,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 920405,
+          "field": "formula_table",
+          "target": 920383,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 920405,
+          "field": "rich_text_table",
+          "target": 920386,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 920405,
+          "field": "commentStorageTable",
+          "target": 920387,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 920405,
+          "field": "format_table",
+          "target": 920382,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 1
+        },
+        {
+          "model": 946821,
+          "field": "stringTable",
+          "target": 946795,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 15
+        },
+        {
+          "model": 946821,
+          "field": "styleTable",
+          "target": 946796,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 946821,
+          "field": "formula_table",
+          "target": 946799,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 946821,
+          "field": "rich_text_table",
+          "target": 946802,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 946821,
+          "field": "commentStorageTable",
+          "target": 946803,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 946821,
+          "field": "format_table",
+          "target": 946798,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 1
+        },
+        {
+          "model": 951260,
+          "field": "stringTable",
+          "target": 951219,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 20
+        },
+        {
+          "model": 951260,
+          "field": "styleTable",
+          "target": 951230,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 951260,
+          "field": "formula_table",
+          "target": 951223,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 951260,
+          "field": "rich_text_table",
+          "target": 951214,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 951260,
+          "field": "commentStorageTable",
+          "target": 951234,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 951260,
+          "field": "format_table",
+          "target": 951229,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 1
+        },
+        {
+          "model": 954844,
+          "field": "stringTable",
+          "target": 954789,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 20
+        },
+        {
+          "model": 954844,
+          "field": "styleTable",
+          "target": 954795,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 954844,
+          "field": "formula_table",
+          "target": 954776,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 954844,
+          "field": "rich_text_table",
+          "target": 954786,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 954844,
+          "field": "commentStorageTable",
+          "target": 954784,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 954844,
+          "field": "format_table",
+          "target": 954782,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 1
+        },
+        {
+          "model": 963748,
+          "field": "stringTable",
+          "target": 963716,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 30
+        },
+        {
+          "model": 963748,
+          "field": "styleTable",
+          "target": 963730,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 963748,
+          "field": "formula_table",
+          "target": 963723,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 963748,
+          "field": "rich_text_table",
+          "target": 963736,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 963748,
+          "field": "commentStorageTable",
+          "target": 963717,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 963748,
+          "field": "format_table",
+          "target": 963714,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 1
+        },
+        {
+          "model": 972666,
+          "field": "stringTable",
+          "target": 972633,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 20
+        },
+        {
+          "model": 972666,
+          "field": "styleTable",
+          "target": 972639,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 972666,
+          "field": "formula_table",
+          "target": 972634,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 972666,
+          "field": "rich_text_table",
+          "target": 972650,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 972666,
+          "field": "commentStorageTable",
+          "target": 972631,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 972666,
+          "field": "format_table",
+          "target": 972645,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 1
+        },
+        {
+          "model": 974126,
+          "field": "stringTable",
+          "target": 974100,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 60
+        },
+        {
+          "model": 974126,
+          "field": "styleTable",
+          "target": 974101,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 2
+        },
+        {
+          "model": 974126,
+          "field": "formula_table",
+          "target": 974104,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 57
+        },
+        {
+          "model": 974126,
+          "field": "rich_text_table",
+          "target": 974107,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 974126,
+          "field": "commentStorageTable",
+          "target": 974108,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 974126,
+          "field": "format_table",
+          "target": 974103,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 3
+        },
+        {
+          "model": 1053502,
+          "field": "stringTable",
+          "target": 1053476,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 35
+        },
+        {
+          "model": 1053502,
+          "field": "styleTable",
+          "target": 1053477,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 1
+        },
+        {
+          "model": 1053502,
+          "field": "formula_table",
+          "target": 1053480,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 1053502,
+          "field": "rich_text_table",
+          "target": 1053483,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 1053502,
+          "field": "commentStorageTable",
+          "target": 1053484,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 1053502,
+          "field": "format_table",
+          "target": 1053479,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 4
+        },
+        {
+          "model": 1118222,
+          "field": "stringTable",
+          "target": 1118196,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 15
+        },
+        {
+          "model": 1118222,
+          "field": "styleTable",
+          "target": 1118197,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 1118222,
+          "field": "formula_table",
+          "target": 1118200,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 1118222,
+          "field": "rich_text_table",
+          "target": 1118203,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 1118222,
+          "field": "commentStorageTable",
+          "target": 1118204,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 1118222,
+          "field": "format_table",
+          "target": 1118199,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 1
+        },
+        {
+          "model": 1161362,
+          "field": "stringTable",
+          "target": 1161296,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 20
+        },
+        {
+          "model": 1161362,
+          "field": "styleTable",
+          "target": 1161293,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 1161362,
+          "field": "formula_table",
+          "target": 1161302,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 1161362,
+          "field": "rich_text_table",
+          "target": 1161290,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 1161362,
+          "field": "commentStorageTable",
+          "target": 1161291,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 1161362,
+          "field": "format_table",
+          "target": 1161305,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 1
+        },
+        {
+          "model": 1241568,
+          "field": "stringTable",
+          "target": 1241542,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 4
+        },
+        {
+          "model": 1241568,
+          "field": "styleTable",
+          "target": 1241543,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 1241568,
+          "field": "formula_table",
+          "target": 1241546,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 1241568,
+          "field": "rich_text_table",
+          "target": 1241549,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 1241568,
+          "field": "commentStorageTable",
+          "target": 1241550,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 1241568,
+          "field": "format_table",
+          "target": 1241545,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 1
+        },
+        {
+          "model": 1242397,
+          "field": "stringTable",
+          "target": 1242386,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 8
+        },
+        {
+          "model": 1242397,
+          "field": "styleTable",
+          "target": 1242385,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 1242397,
+          "field": "formula_table",
+          "target": 1242384,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 1242397,
+          "field": "rich_text_table",
+          "target": 1242376,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 1242397,
+          "field": "commentStorageTable",
+          "target": 1242375,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 1242397,
+          "field": "format_table",
+          "target": 1242377,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 1
+        }
+      ]
+    },
+    {
+      "path": "numbers-parser/currency-formats.numbers",
+      "sha256": "6f45fa942ab26b2e9a3c2487fec491d5c43e85cfe1c191520134d5b64ac61475",
+      "catalogs": [
+        {
+          "model": 904538,
+          "field": "stringTable",
+          "target": 904489,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 11
+        },
+        {
+          "model": 904538,
+          "field": "styleTable",
+          "target": 904496,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "formula_table",
+          "target": 904490,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "rich_text_table",
+          "target": 904492,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "commentStorageTable",
+          "target": 904482,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "format_table",
+          "target": 904498,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 9
+        }
+      ]
+    },
+    {
+      "path": "numbers-parser/endpoint-formulas.numbers",
+      "sha256": "3deb8e3b868be60d7b8924336d2839fcd690db2b138e6c2170d6c22c4aca48dc",
+      "catalogs": [
+        {
+          "model": 903997,
+          "field": "stringTable",
+          "target": 1163720,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 173
+        },
+        {
+          "model": 903997,
+          "field": "styleTable",
+          "target": 1163721,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 3
+        },
+        {
+          "model": 903997,
+          "field": "formula_table",
+          "target": 1163724,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 164
+        },
+        {
+          "model": 903997,
+          "field": "rich_text_table",
+          "target": 1163727,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 903997,
+          "field": "commentStorageTable",
+          "target": 1163728,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 903997,
+          "field": "format_table",
+          "target": 1163723,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 19
+        },
+        {
+          "model": 955169,
+          "field": "stringTable",
+          "target": 955086,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 18
+        },
+        {
+          "model": 955169,
+          "field": "styleTable",
+          "target": 955084,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 955169,
+          "field": "formula_table",
+          "target": 955096,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 955169,
+          "field": "rich_text_table",
+          "target": 955094,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 955169,
+          "field": "commentStorageTable",
+          "target": 955075,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 955169,
+          "field": "format_table",
+          "target": 955080,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 3
+        }
+      ]
+    },
+    {
+      "path": "numbers-parser/fraction-formats.numbers",
+      "sha256": "da140e7eeac3122505690af655a5896aa056573dd15826a2f84d035388fbff55",
+      "catalogs": [
+        {
+          "model": 904538,
+          "field": "stringTable",
+          "target": 904489,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 26
+        },
+        {
+          "model": 904538,
+          "field": "styleTable",
+          "target": 904496,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "formula_table",
+          "target": 904490,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "rich_text_table",
+          "target": 904492,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "commentStorageTable",
+          "target": 904482,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "format_table",
+          "target": 904498,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 9
+        }
+      ]
+    },
+    {
+      "path": "numbers-parser/individual-dimensions.numbers",
+      "sha256": "ccecc5494a71b9943e9a37641f843d0e8ce4e7c3531d72a50031dd7c23b38762",
+      "catalogs": [
+        {
+          "model": 904538,
+          "field": "stringTable",
+          "target": 904489,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 3
+        },
+        {
+          "model": 904538,
+          "field": "styleTable",
+          "target": 904496,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "formula_table",
+          "target": 904490,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "rich_text_table",
+          "target": 904492,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "commentStorageTable",
+          "target": 904482,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "format_table",
+          "target": 904498,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 0
+        }
+      ]
+    },
+    {
+      "path": "numbers-parser/issue-102-v15.1.numbers",
+      "sha256": "88a9fa7be095d03004478393a87a4a97602d7468f839d067ec9118c524c55176",
+      "catalogs": [
+        {
+          "model": 1123832,
+          "field": "stringTable",
+          "target": 1123821,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 7
+        },
+        {
+          "model": 1123832,
+          "field": "styleTable",
+          "target": 1123822,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 11
+        },
+        {
+          "model": 1123832,
+          "field": "formula_table",
+          "target": 1123825,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 1
+        },
+        {
+          "model": 1123832,
+          "field": "rich_text_table",
+          "target": 1123828,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 1123832,
+          "field": "commentStorageTable",
+          "target": 1123829,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 1123832,
+          "field": "format_table",
+          "target": 1123824,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 3
+        }
+      ]
+    },
+    {
+      "path": "numbers-parser/number-formats.numbers",
+      "sha256": "1fb277a6897c0fc4387cd50a51c57de0a08323b694b98a5926b9bc5190717b1f",
+      "catalogs": [
+        {
+          "model": 904538,
+          "field": "stringTable",
+          "target": 904489,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 13
+        },
+        {
+          "model": 904538,
+          "field": "styleTable",
+          "target": 904496,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "formula_table",
+          "target": 904490,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "rich_text_table",
+          "target": 904492,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "commentStorageTable",
+          "target": 904482,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "format_table",
+          "target": 904498,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 12
+        }
+      ]
+    },
+    {
+      "path": "numbers-parser/scientific-formats.numbers",
+      "sha256": "23bfaa5cf394c46ec5192e9612aca75c29f00e84331f11ffc338ef338aa5847d",
+      "catalogs": [
+        {
+          "model": 904538,
+          "field": "stringTable",
+          "target": 904489,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 14
+        },
+        {
+          "model": 904538,
+          "field": "styleTable",
+          "target": 904496,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "formula_table",
+          "target": 904490,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "rich_text_table",
+          "target": 904492,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "commentStorageTable",
+          "target": 904482,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 904538,
+          "field": "format_table",
+          "target": 904498,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 8
+        }
+      ]
+    },
+    {
+      "path": "numbers-parser/single-cell-formulas.numbers",
+      "sha256": "4ce0593faa61bf159bde0752ade1fa202afcd142317ba16fdec8eb71a7149170",
+      "catalogs": [
+        {
+          "model": 903662,
+          "field": "stringTable",
+          "target": 903633,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 80
+        },
+        {
+          "model": 903662,
+          "field": "styleTable",
+          "target": 903634,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 4
+        },
+        {
+          "model": 903662,
+          "field": "formula_table",
+          "target": 903637,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 77
+        },
+        {
+          "model": 903662,
+          "field": "rich_text_table",
+          "target": 903640,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 903662,
+          "field": "commentStorageTable",
+          "target": 903641,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 903662,
+          "field": "format_table",
+          "target": 903636,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 7
+        },
+        {
+          "model": 903698,
+          "field": "stringTable",
+          "target": 903674,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 122
+        },
+        {
+          "model": 903698,
+          "field": "styleTable",
+          "target": 903675,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 2
+        },
+        {
+          "model": 903698,
+          "field": "formula_table",
+          "target": 903678,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 114
+        },
+        {
+          "model": 903698,
+          "field": "rich_text_table",
+          "target": 903681,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 903698,
+          "field": "commentStorageTable",
+          "target": 903682,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 903698,
+          "field": "format_table",
+          "target": 903677,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 4
+        },
+        {
+          "model": 903770,
+          "field": "stringTable",
+          "target": 2652913,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 17
+        },
+        {
+          "model": 903770,
+          "field": "styleTable",
+          "target": 2652914,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 3
+        },
+        {
+          "model": 903770,
+          "field": "formula_table",
+          "target": 2652917,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 13
+        },
+        {
+          "model": 903770,
+          "field": "rich_text_table",
+          "target": 2652920,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 903770,
+          "field": "commentStorageTable",
+          "target": 2652921,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 903770,
+          "field": "format_table",
+          "target": 2652916,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 2
+        },
+        {
+          "model": 903843,
+          "field": "stringTable",
+          "target": 903819,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 171
+        },
+        {
+          "model": 903843,
+          "field": "styleTable",
+          "target": 903820,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 3
+        },
+        {
+          "model": 903843,
+          "field": "formula_table",
+          "target": 903823,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 168
+        },
+        {
+          "model": 903843,
+          "field": "rich_text_table",
+          "target": 903826,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 903843,
+          "field": "commentStorageTable",
+          "target": 903827,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 903843,
+          "field": "format_table",
+          "target": 903822,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 5
+        },
+        {
+          "model": 903916,
+          "field": "stringTable",
+          "target": 903892,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 74
+        },
+        {
+          "model": 903916,
+          "field": "styleTable",
+          "target": 903893,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 3
+        },
+        {
+          "model": 903916,
+          "field": "formula_table",
+          "target": 903896,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 46
+        },
+        {
+          "model": 903916,
+          "field": "rich_text_table",
+          "target": 903899,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 903916,
+          "field": "commentStorageTable",
+          "target": 903900,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 903916,
+          "field": "format_table",
+          "target": 903895,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 4
+        },
+        {
+          "model": 903952,
+          "field": "stringTable",
+          "target": 2652925,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 81
+        },
+        {
+          "model": 903952,
+          "field": "styleTable",
+          "target": 2652926,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 3
+        },
+        {
+          "model": 903952,
+          "field": "formula_table",
+          "target": 2652929,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 78
+        },
+        {
+          "model": 903952,
+          "field": "rich_text_table",
+          "target": 2652932,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 903952,
+          "field": "commentStorageTable",
+          "target": 2652933,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 903952,
+          "field": "format_table",
+          "target": 2652928,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 4
+        },
+        {
+          "model": 944911,
+          "field": "stringTable",
+          "target": 944838,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 1
+        },
+        {
+          "model": 944911,
+          "field": "styleTable",
+          "target": 944840,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 1
+        },
+        {
+          "model": 944911,
+          "field": "formula_table",
+          "target": 944841,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 944911,
+          "field": "rich_text_table",
+          "target": 944837,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 944911,
+          "field": "commentStorageTable",
+          "target": 944843,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 944911,
+          "field": "format_table",
+          "target": 944842,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 2
+        },
+        {
+          "model": 965639,
+          "field": "stringTable",
+          "target": 965612,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 12
+        },
+        {
+          "model": 965639,
+          "field": "styleTable",
+          "target": 965603,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 965639,
+          "field": "formula_table",
+          "target": 965607,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 965639,
+          "field": "rich_text_table",
+          "target": 965602,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 965639,
+          "field": "commentStorageTable",
+          "target": 965591,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 965639,
+          "field": "format_table",
+          "target": 965593,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 3
+        },
+        {
+          "model": 1002200,
+          "field": "stringTable",
+          "target": 1002125,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 9
+        },
+        {
+          "model": 1002200,
+          "field": "styleTable",
+          "target": 1002124,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 1002200,
+          "field": "formula_table",
+          "target": 1002116,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 1002200,
+          "field": "rich_text_table",
+          "target": 1002121,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 1002200,
+          "field": "commentStorageTable",
+          "target": 1002108,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 1002200,
+          "field": "format_table",
+          "target": 1002131,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 2
+        },
+        {
+          "model": 1168521,
+          "field": "stringTable",
+          "target": 1168493,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 12
+        },
+        {
+          "model": 1168521,
+          "field": "styleTable",
+          "target": 1168494,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 1168521,
+          "field": "formula_table",
+          "target": 1168502,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 1168521,
+          "field": "rich_text_table",
+          "target": 1168488,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 1168521,
+          "field": "commentStorageTable",
+          "target": 1168506,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 1168521,
+          "field": "format_table",
+          "target": 1168503,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 2
+        }
+      ]
+    },
+    {
+      "path": "numbers-parser/test-10-formulas.numbers",
+      "sha256": "dd85bad68898ce5b065f277c0b9be1f3c32d696e3baa6b09d3614bbd35a5249f",
+      "catalogs": [
+        {
+          "model": 903091,
+          "field": "stringTable",
+          "target": 903047,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 1
+        },
+        {
+          "model": 903091,
+          "field": "styleTable",
+          "target": 903039,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 1
+        },
+        {
+          "model": 903091,
+          "field": "formula_table",
+          "target": 903041,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 17
+        },
+        {
+          "model": 903091,
+          "field": "rich_text_table",
+          "target": 903052,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 903091,
+          "field": "commentStorageTable",
+          "target": 903038,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 903091,
+          "field": "format_table",
+          "target": 903036,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 5
+        },
+        {
+          "model": 907295,
+          "field": "stringTable",
+          "target": 907261,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 14
+        },
+        {
+          "model": 907295,
+          "field": "styleTable",
+          "target": 907262,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 1
+        },
+        {
+          "model": 907295,
+          "field": "formula_table",
+          "target": 907265,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 11
+        },
+        {
+          "model": 907295,
+          "field": "rich_text_table",
+          "target": 907268,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 907295,
+          "field": "commentStorageTable",
+          "target": 907269,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 907295,
+          "field": "format_table",
+          "target": 907264,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 3
+        }
+      ]
+    },
+    {
+      "path": "numbers-parser/test-9-merges.numbers",
+      "sha256": "d640c0012d629834161827cb2f564d0966d24e159586f82426a69c12a8f334cf",
+      "catalogs": [
+        {
+          "model": 1058328,
+          "field": "stringTable",
+          "target": 875166,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 29
+        },
+        {
+          "model": 1058328,
+          "field": "styleTable",
+          "target": 875167,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 1058328,
+          "field": "formula_table",
+          "target": 875170,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 1058328,
+          "field": "rich_text_table",
+          "target": 875173,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 1058328,
+          "field": "commentStorageTable",
+          "target": 875174,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 1058328,
+          "field": "format_table",
+          "target": 875169,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 1
+        },
+        {
+          "model": 6403528,
+          "field": "stringTable",
+          "target": 6403494,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 11
+        },
+        {
+          "model": 6403528,
+          "field": "styleTable",
+          "target": 6403495,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 0
+        },
+        {
+          "model": 6403528,
+          "field": "formula_table",
+          "target": 6403498,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 6403528,
+          "field": "rich_text_table",
+          "target": 6403501,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 0
+        },
+        {
+          "model": 6403528,
+          "field": "commentStorageTable",
+          "target": 6403502,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 6403528,
+          "field": "format_table",
+          "target": 6403497,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 1
+        }
+      ]
+    },
+    {
+      "path": "picodocs/sample-v14.4.pages",
+      "sha256": "4714477138d0a4090fc2ee2ba2ebb6adcd0fb6ce20a28897a6247a8e17d1ddce",
+      "catalogs": [
+        {
+          "model": 1732845,
+          "field": "stringTable",
+          "target": 1732819,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 0
+        },
+        {
+          "model": 1732845,
+          "field": "styleTable",
+          "target": 1732820,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 6
+        },
+        {
+          "model": 1732845,
+          "field": "formula_table",
+          "target": 1732823,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 1732845,
+          "field": "rich_text_table",
+          "target": 1732826,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 18
+        },
+        {
+          "model": 1732845,
+          "field": "commentStorageTable",
+          "target": 1732827,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 1732845,
+          "field": "format_table",
+          "target": 1732822,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 1
+        },
+        {
+          "model": 1732937,
+          "field": "stringTable",
+          "target": 1732911,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 0
+        },
+        {
+          "model": 1732937,
+          "field": "styleTable",
+          "target": 1732912,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 5
+        },
+        {
+          "model": 1732937,
+          "field": "formula_table",
+          "target": 1732915,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 0
+        },
+        {
+          "model": 1732937,
+          "field": "rich_text_table",
+          "target": 1732918,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 24
+        },
+        {
+          "model": 1732937,
+          "field": "commentStorageTable",
+          "target": 1732919,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 1732937,
+          "field": "format_table",
+          "target": 1732914,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 1
+        },
+        {
+          "model": 1737269,
+          "field": "stringTable",
+          "target": 1737210,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 1,
+          "expected": 1,
+          "entries": 2
+        },
+        {
+          "model": 1737269,
+          "field": "styleTable",
+          "target": 1737222,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 4,
+          "expected": 4,
+          "entries": 10
+        },
+        {
+          "model": 1737269,
+          "field": "formula_table",
+          "target": 1737201,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 3,
+          "expected": 3,
+          "entries": 2
+        },
+        {
+          "model": 1737269,
+          "field": "rich_text_table",
+          "target": 1737215,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 8,
+          "expected": 8,
+          "entries": 6
+        },
+        {
+          "model": 1737269,
+          "field": "commentStorageTable",
+          "target": 1737208,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 10,
+          "expected": 10,
+          "entries": 0
+        },
+        {
+          "model": 1737269,
+          "field": "format_table",
+          "target": 1737203,
+          "targetType": 6005,
+          "hasListType": true,
+          "listType": 2,
+          "expected": 2,
+          "entries": 4
+        }
+      ]
+    }
+  ]
+}

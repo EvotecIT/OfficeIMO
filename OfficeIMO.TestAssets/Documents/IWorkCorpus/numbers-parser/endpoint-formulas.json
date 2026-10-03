@@ -1,0 +1,147 @@
+{
+  "upstream": "https://github.com/masaccio/numbers-parser",
+  "revision": "d3836ebda1110b5c13b8722642ca61111fe8e865",
+  "upstreamPath": "tests/data/test-extra-formulas.numbers",
+  "sourceSha256": "3deb8e3b868be60d7b8924336d2839fcd690db2b138e6c2170d6c22c4aca48dc",
+  "extractorVersion": "numbers-parser 4.19.0",
+  "license": "MIT, copyright Jon Connell",
+  "buildVersionHistory": [
+    "csv",
+    "M11.1-7031.0.102-2",
+    "M12.2-7035.0.159-2"
+  ],
+  "qualification": "Native node-36 target identities and mixed coordinates, plus selected scalar function nodes; independent computations agree with numeric/text/Boolean caches. Scalar text cases use ASCII literals. Build metadata is retained in this manifest. No Apple export/render oracle.",
+  "cases": [
+    {
+      "sourceSheet": "Formulas",
+      "sourceTable": "Tests",
+      "row": 29,
+      "column": 2,
+      "sourceFormula": "COUNTBLANK(Data::C2:C18)",
+      "cachedValue": 2.0,
+      "computedCurrentValue": 2,
+      "targetSheet": "Formulas",
+      "targetTable": "Data",
+      "references": [
+        {
+          "address": "C2",
+          "row": 2,
+          "column": 3,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "6c7b94d07689558027497541e7701635"
+        },
+        {
+          "address": "C18",
+          "row": 18,
+          "column": 3,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "6c7b94d07689558027497541e7701635"
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Formulas",
+      "sourceTable": "Tests",
+      "row": 79,
+      "column": 2,
+      "sourceFormula": "MAX(Data::C2:C6)",
+      "cachedValue": 40.0,
+      "computedCurrentValue": 40.0,
+      "targetSheet": "Formulas",
+      "targetTable": "Data",
+      "references": [
+        {
+          "address": "C2",
+          "row": 2,
+          "column": 3,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "6c7b94d07689558027497541e7701635"
+        },
+        {
+          "address": "C6",
+          "row": 6,
+          "column": 3,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "6c7b94d07689558027497541e7701635"
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Formulas",
+      "sourceTable": "Tests",
+      "row": 102,
+      "column": 2,
+      "sourceFormula": "OFFSET(Data::A1,2,2)",
+      "cachedValue": 38.0,
+      "computedCurrentValue": 38.0,
+      "targetSheet": "Formulas",
+      "targetTable": "Data",
+      "references": [
+        {
+          "address": "A1",
+          "row": 1,
+          "column": 1,
+          "rowAbsolute": false,
+          "columnAbsolute": false,
+          "targetUuid": "6c7b94d07689558027497541e7701635"
+        }
+      ]
+    }
+  ],
+  "scalarFunctionCases": [
+    {
+      "sourceSheet": "Formulas",
+      "sourceTable": "Tests",
+      "row": 47,
+      "column": 2,
+      "sourceFormula": "DEGREES(PI()\u00f72)",
+      "cachedValue": 90.0,
+      "computedCurrentValue": 90.0,
+      "functionIndex": 44,
+      "functionName": "DEGREES",
+      "argumentCount": 1,
+      "excelFormula": "DEGREES(PI()/2)"
+    },
+    {
+      "sourceSheet": "Formulas",
+      "sourceTable": "Tests",
+      "row": 68,
+      "column": 2,
+      "sourceFormula": "IFERROR(1\u00f70,\"DIV ZERO\")",
+      "cachedValue": "DIV ZERO",
+      "computedCurrentValue": "DIV ZERO",
+      "functionIndex": 235,
+      "functionName": "IFERROR",
+      "argumentCount": 2,
+      "excelFormula": "IFERROR(1/0,\"DIV ZERO\")"
+    },
+    {
+      "sourceSheet": "Formulas",
+      "sourceTable": "Tests",
+      "row": 95,
+      "column": 2,
+      "sourceFormula": "NOT(0)",
+      "cachedValue": true,
+      "computedCurrentValue": true,
+      "functionIndex": 96,
+      "functionName": "NOT",
+      "argumentCount": 1
+    },
+    {
+      "sourceSheet": "Formulas",
+      "sourceTable": "Tests",
+      "row": 145,
+      "column": 2,
+      "sourceFormula": "UPPER(\"wiBble\")",
+      "cachedValue": "WIBBLE",
+      "computedCurrentValue": "WIBBLE",
+      "functionIndex": 158,
+      "functionName": "UPPER",
+      "argumentCount": 1
+    }
+  ]
+}

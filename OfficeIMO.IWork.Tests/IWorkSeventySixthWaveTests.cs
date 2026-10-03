@@ -154,7 +154,7 @@ public sealed partial class IWorkBoundaryTests {
                 ArchiveRecord(2, 2001, Message(StringField(3, "Body"))),
                 ArchiveRecord(tableId, 6000, table, new[] { modelId }),
                 ArchiveRecord(modelId, 6001, model, new[] { catalogId }),
-                ArchiveRecord(catalogId, formula ? 6201u : 6200u,
+                ArchiveRecord(catalogId, formula ? 6201u : 6005u,
                     new byte[] { 0x80 }))
             : Message(
                 ArchiveRecord(1, 1, Message(ReferenceField(2, 2))),
@@ -163,7 +163,7 @@ public sealed partial class IWorkBoundaryTests {
                 ArchiveRecord(4, 5, Message(ReferenceField(6, tableId))),
                 ArchiveRecord(tableId, 6000, table, new[] { modelId }),
                 ArchiveRecord(modelId, 6001, model, new[] { catalogId }),
-                ArchiveRecord(catalogId, formula ? 6201u : 6200u,
+                ArchiveRecord(catalogId, formula ? 6201u : 6005u,
                     new byte[] { 0x80 }));
         return CreatePackage(
             (kind == IWorkDocumentKind.Pages ? "Index/Document.iwa" : "Index/Slide.iwa",

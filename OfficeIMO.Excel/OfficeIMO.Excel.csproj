@@ -99,6 +99,7 @@
         <InternalsVisibleTo Include="OfficeIMO.Excel.Benchmarks" />
         <InternalsVisibleTo Include="OfficeIMO.Excel.Csv" />
         <InternalsVisibleTo Include="OfficeIMO.Excel.Html" />
+        <InternalsVisibleTo Include="OfficeIMO.Excel.Pdf" />
         <InternalsVisibleTo Include="OfficeIMO.Excel.OpenDocument" />
         <InternalsVisibleTo Include="OfficeIMO.Reader.Excel" />
         <InternalsVisibleTo Include="OfficeIMO.Web.Converter" />

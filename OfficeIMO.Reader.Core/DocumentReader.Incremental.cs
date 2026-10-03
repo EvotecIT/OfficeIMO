@@ -8,6 +8,10 @@ internal static partial class DocumentReaderEngine {
         (pathInput ? handler.SupportsIncrementalPath : handler.SupportsIncrementalStream);
 
     internal static IEnumerable<ReaderChunk> EnumerateChunks(string path, ReaderOptions options, CancellationToken token) {
+        if (Directory.Exists(path)) {
+            foreach (var chunk in ReadDocument(path, options, token).Chunks) yield return chunk;
+            yield break;
+        }
         ValidateFilePath(path);
         EnforceFileSize(path, ResolveInitialMaxInputBytes(path, options));
         if (!TryResolvePathHandler(path, options, token, out var handler, out var detection)) {

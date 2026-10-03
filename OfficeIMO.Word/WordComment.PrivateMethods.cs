@@ -165,6 +165,9 @@ namespace OfficeIMO.Word {
             if (comments == null) throw new ArgumentNullException(nameof(comments));
             if (commentsEx == null) throw new ArgumentNullException(nameof(commentsEx));
 
+            WordCommentIdentityPlan identities = WordCommentIdentityPlan.Prepare(comments, commentsEx);
+            identities.Apply(commentsEx);
+            if (identities.HasChanges) comments.Save();
             string? paraId = comment.ParaId;
             if (string.IsNullOrWhiteSpace(paraId)) {
                 paraId = GetNewParaId(commentsEx, comments);

@@ -63,10 +63,17 @@ internal sealed class ProjectMpxValues {
                 'm' => ProjectDurationUnit.Minute, 'h' => ProjectDurationUnit.Hour, 'd' => ProjectDurationUnit.Day, 'w' => ProjectDurationUnit.Week,
                 _ => throw new InvalidDataException("Unknown MPX duration unit.")
             };
-        return new ProjectDuration(Number(match.Groups[1].Value), kind, match.Groups[2].Success && match.Groups[2].Length != 0, match.Groups[4].Success);
+        bool elapsed = match.Groups[2].Success && match.Groups[2].Length != 0;
+        return ProjectDuration.FromDecodedValue(Number(match.Groups[1].Value), kind, elapsed, match.Groups[4].Success,
+            ProjectTimeUnits.MinutesPerUnit(kind, elapsed, MinutesPerDay, MinutesPerWeek));
     }
-    internal decimal Minutes(ProjectDuration value) => checked(value.Value * ProjectTimeUnits.MinutesPerUnit(value.Unit, value.IsElapsed, MinutesPerDay, MinutesPerWeek));
-    internal ProjectWork Work(string value) => new ProjectWork(Minutes(Duration(value, DefaultWorkUnit)));
+    internal decimal Minutes(ProjectDuration value) => value.Minutes(ProjectTimeUnits.MinutesPerUnit(value.Unit, value.IsElapsed, MinutesPerDay, MinutesPerWeek));
+    internal decimal Ticks(ProjectDuration value) => value.Ticks(ProjectTimeUnits.MinutesPerUnit(value.Unit, value.IsElapsed, MinutesPerDay, MinutesPerWeek));
+    internal ProjectWork Work(string value) {
+        var duration = Duration(value, DefaultWorkUnit); decimal ticks = Ticks(duration);
+        return ticks == decimal.Truncate(ticks) && ticks >= 0 && ticks <= long.MaxValue
+            ? ProjectWork.FromTicks((long)ticks) : new ProjectWork(Minutes(duration));
+    }
     internal ProjectUnits Units(string value) => value.EndsWith("%", StringComparison.Ordinal)
         ? ProjectUnits.Percent(Number(value.Substring(0, value.Length - 1))) : ProjectUnits.Fraction(Number(value));
     internal decimal Rate(string value) {

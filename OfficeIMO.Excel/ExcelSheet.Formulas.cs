@@ -17,11 +17,11 @@ namespace OfficeIMO.Excel {
         private Dictionary<string, IReadOnlyDictionary<uint, SharedFormulaDefinition>>? _formulaEvaluationSharedDefinitionsBySheet;
         private string? _formulaEvaluationCellReference;
 
-        private sealed class FormulaEvaluationGuardState {
+        internal sealed class FormulaEvaluationGuardState {
             internal bool DependencyGuardBlocked { get; set; }
         }
 
-        private sealed class FormulaEvaluationDepthFrame {
+        internal sealed class FormulaEvaluationDepthFrame {
             internal int MaximumChildDepth { get; private set; }
             internal bool DependencyGuardBlocked { get; private set; }
             internal bool UsedUnevaluatedFormulaCache { get; private set; }
@@ -80,7 +80,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Evaluates supported formulas on this sheet and writes cached results.
         /// </summary>
-        public int RecalculateSupportedFormulas() {
+        public int RecalculateSupportedFormulas() => RecalculateSupportedFormulas(new FormulaCalculationContext());
+
+        internal int RecalculateSupportedFormulas(FormulaCalculationContext context) {
             MaterializePendingDirectCellValues();
 
             int count = 0;
@@ -95,11 +97,11 @@ namespace OfficeIMO.Excel {
                 var previousGuardState = _formulaEvaluationGuardState;
                 var previousSharedDefinitions = _formulaEvaluationSharedDefinitions;
                 var previousSharedDefinitionsBySheet = _formulaEvaluationSharedDefinitionsBySheet;
-                _formulaEvaluationCache = new Dictionary<string, FormulaArgumentValue>(StringComparer.OrdinalIgnoreCase);
-                _formulaEvaluationDepthCache = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-                _formulaEvaluationStack = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                _formulaEvaluationDepthFrames = new Stack<FormulaEvaluationDepthFrame>();
-                _formulaEvaluationGuardState = new FormulaEvaluationGuardState();
+                _formulaEvaluationCache = context.Cache;
+                _formulaEvaluationDepthCache = context.DepthCache;
+                _formulaEvaluationStack = context.Stack;
+                _formulaEvaluationDepthFrames = context.DepthFrames;
+                _formulaEvaluationGuardState = context.GuardState;
                 _formulaEvaluationSharedDefinitions = BuildSharedFormulaDefinitions();
                 _formulaEvaluationSharedDefinitionsBySheet = new Dictionary<string, IReadOnlyDictionary<uint, SharedFormulaDefinition>>(
                     StringComparer.OrdinalIgnoreCase) {
@@ -296,9 +298,15 @@ namespace OfficeIMO.Excel {
                 cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean;
                 return;
             }
+            if (!result.IsError && result.SourceCellKind == ExcelCellDataKind.Text && result.Text != null) {
+                cell.CellValue = new CellValue(result.Text);
+                cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String;
+                return;
+            }
             if (result.Number.HasValue) {
                 cell.CellValue = new CellValue(InvariantNumberText.Get(result.Number.Value));
-                cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
+                cell.DataType = result.IsBoolean ? DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean
+                    : DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
                 return;
             }
 
@@ -527,6 +535,7 @@ namespace OfficeIMO.Excel {
 
         private void SetArrayFormulaCore(string a1Range, string formula, bool dynamic) {
             if (string.IsNullOrWhiteSpace(formula)) throw new ArgumentNullException(nameof(formula));
+            string safeFormula = Utilities.ExcelSanitizer.SanitizeFormula(formula);
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
             WriteLock(() => {
                 foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
@@ -542,7 +551,7 @@ namespace OfficeIMO.Excel {
                 bool retainsCachedValue = topLeft.CellValue != null;
                 ClearCellValueMetadata(topLeft);
                 topLeft.CellMetaIndex = dynamic ? EnsureDynamicArrayMetadata() : null;
-                topLeft.CellFormula = new CellFormula(QualifyAuthoredArrayFunctions(Utilities.ExcelSanitizer.SanitizeFormula(formula))) {
+                topLeft.CellFormula = new CellFormula(QualifyAuthoredArrayFunctions(safeFormula)) {
                     FormulaType = CellFormulaValues.Array,
                     Reference = a1Range
                 };
@@ -570,6 +579,7 @@ namespace OfficeIMO.Excel {
 
         internal void SetLegacyArrayFormula(string a1Range, string formula) {
             if (string.IsNullOrWhiteSpace(formula)) throw new ArgumentNullException(nameof(formula));
+            string safeFormula = Utilities.ExcelSanitizer.SanitizeFormula(formula);
             int r2;
             int c2;
             if (!A1.TryParseRange(a1Range, out int r1, out int c1, out r2, out c2)) {
@@ -589,7 +599,7 @@ namespace OfficeIMO.Excel {
                 }
                 var topLeft = GetCell(r1, c1);
                 bool retainsCachedValue = topLeft.CellValue != null;
-                topLeft.CellFormula = new CellFormula(Utilities.ExcelSanitizer.SanitizeFormula(formula)) {
+                topLeft.CellFormula = new CellFormula(safeFormula) {
                     FormulaType = CellFormulaValues.Array,
                     Reference = a1Range
                 };
@@ -651,30 +661,27 @@ namespace OfficeIMO.Excel {
 
         private int _scalarFormulaEvaluationDepth;
 
-        private bool TryEvaluateFormulaValue(string formula, out FormulaArgumentValue result, bool allowScalarExpression = true) {
-            result = default;
-            if (!HasSufficientFormulaExecutionStack()) return false;
-            if (_scalarFormulaEvaluationDepth >= 128) return false;
-            _scalarFormulaEvaluationDepth++;
-            try {
-                return TryEvaluateFormulaValueCore(formula, out result, allowScalarExpression);
-            } finally {
-                _scalarFormulaEvaluationDepth--;
-            }
-        }
-
-        private bool TryEvaluateFormulaValueCore(string formula, out FormulaArgumentValue result, bool allowScalarExpression) {
+        private bool TryEvaluateFormulaValueCore(string formula, out FormulaArgumentValue result) {
             result = default;
             if (string.IsNullOrWhiteSpace(formula) || formula.Length > MaxSupportedFormulaLength) {
                 return false;
             }
 
             formula = NormalizeSupportedFunctionPrefix(formula);
-            if (allowScalarExpression) return TryEvaluateScalarExpression(formula, out result);
+            string literal = formula.Trim().TrimStart('=').Trim();
+            if (literal.Equals("TRUE", StringComparison.OrdinalIgnoreCase) || literal.Equals("FALSE", StringComparison.OrdinalIgnoreCase)) {
+                result = FormulaArgumentValue.Boolean(literal.Equals("TRUE", StringComparison.OrdinalIgnoreCase));
+                return true;
+            }
             ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(formula, out ExcelFormulaFunctionCallSyntax? functionCall);
             if (functionCall != null) {
                     string function = functionCall.Name.ToUpperInvariant();
                     string args = functionCall.Arguments;
+                    if (function == "MATCH" || function == "XMATCH") return TryEvaluateMatchValue(function, args, out result);
+                    if (function is "INT" or "MOD" or "SQRT" or "SIGN" or "TRUNC" or "ROUNDUP" or "ROUNDDOWN" or "EXP" or "LN" or "LOG" or "LOG10" or "CEILING" or "FLOOR" or "EVEN" or "ODD" or "FACT" or "COMBIN") return TryEvaluateScalarMathValue(function, args, out result);
+                    if (function == "PROB") return TryEvaluateProbabilityValue(args, out result);
+                    if (function == "RANDBETWEEN") return TryEvaluateRandomBetweenValue(args, out result);
+                    if (function == "OFFSET") return TryEvaluateOffsetValue(args, out result);
                     if (function == "GETPIVOTDATA") return TryEvaluatePivotDataValue(args, out result);
                     if ((function == "TRUE" || function == "FALSE") && string.IsNullOrWhiteSpace(args)) {
                         bool boolean = function == "TRUE";
@@ -713,6 +720,11 @@ namespace OfficeIMO.Excel {
 
                     if ((function == "ISBLANK" || function == "ISNUMBER" || function == "ISLOGICAL" || function == "ISTEXT" || function == "ISERROR" || function == "ISERR" || function == "ISNA" || function == "ISFORMULA")
                         && TryEvaluateInfoFunction(function, args, out result)) {
+                        return true;
+                    }
+
+                    if ((function == "AVERAGEA" || function == "MINA" || function == "MAXA")
+                        && TryEvaluateAValueAggregate(function, args, out result)) {
                         return true;
                     }
 
@@ -766,6 +778,22 @@ namespace OfficeIMO.Excel {
             if (functionCall != null) {
                     string function = functionCall.Name.ToUpperInvariant();
                     string args = functionCall.Arguments;
+                    if (function is "INT" or "MOD" or "SQRT" or "SIGN" or "TRUNC" or "ROUNDUP" or "ROUNDDOWN" or "EXP" or "LN" or "LOG" or "LOG10" or "CEILING" or "FLOOR" or "EVEN" or "ODD" or "FACT" or "COMBIN") {
+                        if (!TryEvaluateScalarMathValue(function, args, out FormulaArgumentValue value)) return false;
+                        if (value.IsError) { error = value; return false; }
+                        result = value.Number!.Value;
+                        return true;
+                    }
+                    if (function == "PROB" || function == "RANDBETWEEN" || function == "OFFSET") {
+                        bool evaluated = function == "PROB" ? TryEvaluateProbabilityValue(args, out FormulaArgumentValue value)
+                            : function == "RANDBETWEEN" ? TryEvaluateRandomBetweenValue(args, out value)
+                            : TryEvaluateOffsetValue(args, out value);
+                        if (!evaluated) return false;
+                        if (value.IsError) { error = value; return false; }
+                        if (!value.Number.HasValue) return false;
+                        result = value.Number.Value;
+                        return true;
+                    }
                     if (function == "IFERROR" || function == "IFNA") {
                         if (!TryEvaluateErrorFallback(function, args, out result)) {
                             return false;
@@ -902,13 +930,27 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (function == "MATCH" || function == "XMATCH") {
-                        return TryEvaluateMatchFunction(function, args, out result);
+                        if (!TryEvaluateMatchValue(function, args, out FormulaArgumentValue value)) return false;
+                        if (value.IsError) { error = value; return false; }
+                        if (!value.Number.HasValue) return false;
+                        result = value.Number.Value;
+                        return true;
                     }
 
                     if (TryEvaluateTextFunction(function, args, out FormulaArgumentValue textFunctionResult)
                         && textFunctionResult.Number.HasValue) {
                         result = textFunctionResult.Number.Value;
                         return true;
+                    }
+
+                    if (function == "AVERAGEA" || function == "MINA" || function == "MAXA") {
+                        if (!TryEvaluateAValueAggregate(function, args, out FormulaArgumentValue aggregate) || !aggregate.Number.HasValue) return false;
+                        result = aggregate.Number.Value;
+                        return true;
+                    }
+
+                    if (function == "LARGE" || function == "SMALL") {
+                        return TryEvaluateRankedAggregate(function, args, out result);
                     }
 
                     if (!TryResolveFormulaArguments(args, out var values) || values.Any(value => value.IsUnresolvedFormula)) {
@@ -926,21 +968,10 @@ namespace OfficeIMO.Excel {
                         }
                     }
 
-                    var numbers = values.Where(v => v.Number.HasValue).Select(v => v.Number!.Value).ToList();
-                    if (function == "AVERAGEA" || function == "MINA" || function == "MAXA") {
-                        if (!TryConvertFormulaAValues(values, out var aValues) || aValues.Count == 0) {
-                            return false;
-                        }
 
-                        if (function == "AVERAGEA") {
-                            result = aValues.Average();
-                            return IsFinite(result);
-                        }
-
-                        result = function == "MINA" ? aValues.Min() : aValues.Max();
-                        return IsFinite(result);
-                    }
-
+                    bool numericReferencesOnly = function is "SUM" or "AVERAGE" or "MIN" or "MAX" or "COUNT" or "PRODUCT" or "MEDIAN" or "SUMSQ";
+                    var numbers = values.Where(v => v.Number.HasValue && (!numericReferencesOnly || v.IsNumericAggregateValue))
+                        .Select(v => v.Number!.Value).ToList();
                     if (function == "COUNT") {
                         result = numbers.Count;
                         return true;
@@ -955,33 +986,12 @@ namespace OfficeIMO.Excel {
                         return true;
                     }
 
-                    if (function == "SIGN") {
-                        if (numbers.Count != 1) {
-                            return false;
-                        }
-
-                        result = Math.Sign(numbers[0]);
-                        return true;
-                    }
-
                     if (function == "ROUND") {
                         if (numbers.Count != 2 || !TryGetSupportedDecimalPlaces(numbers[1], out int digits)) {
                             return false;
                         }
 
                         result = RoundAtDigits(numbers[0], digits, MidpointRounding.AwayFromZero);
-                        return true;
-                    }
-
-                    if (function == "ROUNDUP" || function == "ROUNDDOWN") {
-                        if (numbers.Count != 2 || !TryGetSupportedDecimalPlaces(numbers[1], out int digits)) {
-                            return false;
-                        }
-
-                        double factor = Math.Pow(10, digits);
-                        double shifted = Math.Abs(numbers[0]) * factor;
-                        double rounded = function == "ROUNDUP" ? Math.Ceiling(shifted) : Math.Floor(shifted);
-                        result = Math.Sign(numbers[0]) * rounded / factor;
                         return true;
                     }
 
@@ -993,46 +1003,11 @@ namespace OfficeIMO.Excel {
                         return true;
                     }
 
-                    if (function == "TRUNC") {
-                        if (numbers.Count < 1 || numbers.Count > 2) {
-                            return false;
-                        }
-
-                        int digits = 0;
-                        if (numbers.Count == 2 && !TryGetSupportedDecimalPlaces(numbers[1], out digits)) {
-                            return false;
-                        }
-
-                        double factor = Math.Pow(10, digits);
-                        result = Math.Truncate(numbers[0] * factor) / factor;
-                        return true;
-                    }
-
-                    if (function == "INT") {
-                        if (numbers.Count != 1) {
-                            return false;
-                        }
-
-                        result = Math.Floor(numbers[0]);
-                        return true;
-                    }
-
                     if (function == "CEILING.MATH" || function == "FLOOR.MATH") {
                         if (numbers.Count < 1 || numbers.Count > 3 || !TryEvaluateMathRoundFunction(function, numbers, out result)) {
                             return false;
                         }
 
-                        return true;
-                    }
-
-                    if (function == "CEILING" || function == "FLOOR") {
-                        if (numbers.Count != 2 || numbers[1] <= 0) {
-                            return false;
-                        }
-
-                        double value = numbers[0] / numbers[1];
-                        double rounded = function == "CEILING" ? Math.Ceiling(value) : Math.Floor(value);
-                        result = rounded * numbers[1];
                         return true;
                     }
 
@@ -1047,37 +1022,6 @@ namespace OfficeIMO.Excel {
                         }
 
                         result = value;
-                        return true;
-                    }
-
-                    if (function == "SQRT") {
-                        if (numbers.Count != 1 || numbers[0] < 0) {
-                            return false;
-                        }
-
-                        result = Math.Sqrt(numbers[0]);
-                        return true;
-                    }
-
-                    if (function == "LN" || function == "LOG10") {
-                        if (numbers.Count != 1 || numbers[0] <= 0) {
-                            return false;
-                        }
-
-                        result = function == "LN" ? Math.Log(numbers[0]) : Math.Log10(numbers[0]);
-                        return true;
-                    }
-
-                    if (function == "EXP") {
-                        if (numbers.Count != 1) {
-                            return false;
-                        }
-
-                        result = Math.Exp(numbers[0]);
-                        if (double.IsNaN(result) || double.IsInfinity(result)) {
-                            return false;
-                        }
-
                         return true;
                     }
 
@@ -1099,30 +1043,10 @@ namespace OfficeIMO.Excel {
                         return true;
                     }
 
-                    if (function == "MOD") {
-                        if (numbers.Count != 2 || Math.Abs(numbers[1]) < double.Epsilon) {
-                            return false;
-                        }
-
-                        result = numbers[0] - numbers[1] * Math.Floor(numbers[0] / numbers[1]);
-                        return true;
-                    }
-
-                    if (function == "LARGE" || function == "SMALL") {
-                        if (numbers.Count < 2 || !TryGetWholeNumber(numbers[numbers.Count - 1], out int rank)) {
-                            return false;
-                        }
-
-                        var sorted = numbers.Take(numbers.Count - 1).OrderBy(value => value).ToList();
-                        if (rank < 1 || rank > sorted.Count) {
-                            return false;
-                        }
-
-                        result = function == "LARGE" ? sorted[sorted.Count - rank] : sorted[rank - 1];
-                        return true;
-                    }
-
                     if (numbers.Count == 0) {
+                        if (function is "SUM" or "SUMSQ" or "MIN" or "MAX" or "PRODUCT") return true;
+                        if (function == "AVERAGE") error = FormulaArgumentValue.Error("#DIV/0!");
+                        else if (function == "MEDIAN") error = FormulaArgumentValue.Error("#NUM!");
                         return false;
                     }
 

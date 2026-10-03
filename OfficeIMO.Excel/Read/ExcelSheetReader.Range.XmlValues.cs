@@ -99,7 +99,7 @@ namespace OfficeIMO.Excel {
                             if (!numericAsDecimal
                                 && !useDateStyle
                                 && (cellKind == XmlCellKind.Default || cellKind == XmlCellKind.Number)
-                                && (TryParseInvariantDoubleFast(rawText, out double numericValue)
+                                && (TryParseInvariantDouble(rawText, out double numericValue)
                                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out numericValue))) {
                                 return numericValue;
                             }
@@ -169,7 +169,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (useDateStyle
-                && (TryParseInvariantDoubleFast(rawText, out double oa)
+                && (TryParseInvariantDouble(rawText, out double oa)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))) {
                 return FromExcelSerialDate(oa, calendarStyle);
             }
@@ -179,7 +179,7 @@ namespace OfficeIMO.Excel {
                 return decimalNumber;
             }
 
-            return (TryParseInvariantDoubleFast(rawText, out double number)
+            return (TryParseInvariantDouble(rawText, out double number)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number))
                 ? number
                 : rawText;
@@ -217,13 +217,13 @@ namespace OfficeIMO.Excel {
                         if (useCachedFormulaResult) {
                             if (!numericAsDecimal
                                 && !useDateStyle
-                                && (TryParseInvariantDoubleFast(rawText, out double numericValue)
+                                && (TryParseInvariantDouble(rawText, out double numericValue)
                                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out numericValue))) {
                                 return numericValue;
                             }
 
                             if (useDateStyle
-                                && (TryParseInvariantDoubleFast(rawText, out double oa)
+                                && (TryParseInvariantDouble(rawText, out double oa)
                                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))) {
                                 return FromExcelSerialDate(oa, calendarStyle);
                             }
@@ -237,7 +237,7 @@ namespace OfficeIMO.Excel {
                                 return decimalNumber;
                             }
 
-                            return (TryParseInvariantDoubleFast(rawText, out double number)
+                            return (TryParseInvariantDouble(rawText, out double number)
                                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number))
                                 ? number
                                 : rawText;
@@ -281,7 +281,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (useDateStyle
-                && (TryParseInvariantDoubleFast(rawText, out double oaValue)
+                && (TryParseInvariantDouble(rawText, out double oaValue)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oaValue))) {
                 return FromExcelSerialDate(oaValue, calendarStyle);
             }
@@ -291,7 +291,7 @@ namespace OfficeIMO.Excel {
                 return rawDecimalNumber;
             }
 
-            return (TryParseInvariantDoubleFast(rawText, out double rawNumber)
+            return (TryParseInvariantDouble(rawText, out double rawNumber)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out rawNumber))
                 ? rawNumber
                 : rawText;
@@ -430,7 +430,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (TryParseInvariantDoubleFast(rawText, out double number)
+            if (TryParseInvariantDouble(rawText, out double number)
                 || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number)) {
                 if (asDate) {
                     objectValue = new ExcelDataReaderDateSerial(number, _dateSystem, calendarStyle);
@@ -553,7 +553,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (useDateStyle
-                && (TryParseInvariantDoubleFast(rawText, out double oa)
+                && (TryParseInvariantDouble(rawText, out double oa)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))) {
                 value = FromExcelSerialDate(oa, calendarStyle);
                 return true;
@@ -565,7 +565,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            value = (TryParseInvariantDoubleFast(rawText, out double number)
+            value = (TryParseInvariantDouble(rawText, out double number)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number))
                 ? number
                 : rawText;
@@ -707,7 +707,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (rawText == null) {
-                if (TryParseInvariantDoubleFast(buffer.AsSpan(0, length), out value)) {
+                if (TryParseInvariantDouble(buffer.AsSpan(0, length), out value)) {
                     return true;
                 }
 
@@ -715,7 +715,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            return TryParseInvariantDoubleFast(rawText, out value);
+            return TryParseInvariantDouble(rawText, out value);
         }
 
         private bool TryReadXmlBufferedValueTextAndSkipCell(XmlReader valueReader, int cellDepth, out char[] buffer, out int length, out string? rawText) {

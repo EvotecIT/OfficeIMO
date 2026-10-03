@@ -2,8 +2,8 @@ namespace OfficeIMO.IWork;
 
 /// <summary>Bounds and preservation preferences applied while reading an iWork source.</summary>
 public sealed class IWorkReadOptions {
-    /// <summary>Gets or sets whether raw records not losslessly represented by a typed projection remain available on the result.</summary>
-    public bool PreserveUnsupportedRecords { get; set; } = true;
+    /// <summary>Gets or sets whether raw source records are included in the conversion report for inspection.</summary>
+    public bool PreserveSourceRecords { get; set; } = true;
 
     /// <summary>Gets or sets the maximum source package size in bytes.</summary>
     public long MaximumPackageBytes { get; set; } = 512L * 1024 * 1024;
@@ -41,6 +41,12 @@ public sealed class IWorkReadOptions {
     /// <summary>Gets or sets the maximum combined ArchiveInfo version, object-reference, and data-reference values across the package.</summary>
     public int MaximumArchiveReferenceCount { get; set; } = 8_000_000;
 
+    /// <summary>Gets or sets the maximum declared reference occurrences inspected in distinct source fields for unresolved-reference evidence across one semantic projection, including readable siblings in a field with failures.</summary>
+    public int MaximumSourceReferenceIssues { get; set; } = 100_000;
+
+    /// <summary>Gets or sets the maximum distinct selected source paths retained as unreadable or rejected declaration evidence across one semantic projection.</summary>
+    public int MaximumSourceDeclarationIssues { get; set; } = 100_000;
+
     /// <summary>Gets or sets the maximum number of fields decoded from one protobuf message.</summary>
     public int MaximumProtobufFieldCount { get; set; } = 1_000_000;
 
@@ -58,6 +64,9 @@ public sealed class IWorkReadOptions {
 
     /// <summary>Gets or sets the maximum combined string and formula catalog entries decoded across one iWork source.</summary>
     public int MaximumTableCatalogEntries { get; set; } = 100_000;
+
+    /// <summary>Gets or sets the maximum combined table dimension headers, bucket references, bounded modern row offset slots, hidden-state declarations, selected UUID position maps and filter references inspected across one iWork source.</summary>
+    public int MaximumTableDimensionEntries { get; set; } = 1_100_000;
 
     /// <summary>Gets or sets the maximum number of projected sheets across one Numbers source.</summary>
     public int MaximumProjectedSheets { get; set; } = 4096;
@@ -98,7 +107,7 @@ public sealed class IWorkReadOptions {
     /// <summary>Gets or sets the maximum number of decoded text characters across one semantic projection.</summary>
     public long MaximumProjectedTextCharacters { get; set; } = 16L * 1024 * 1024;
 
-    /// <summary>Gets or sets the maximum cross-record inheritance depth of an iWork text style.</summary>
+    /// <summary>Gets or sets the maximum cross-record inheritance depth of an iWork text or table style.</summary>
     public int MaximumTextStyleInheritanceDepth { get; set; } = 64;
 
     /// <summary>Returns a validated copy suitable for an isolated reader registration.</summary>
@@ -117,12 +126,15 @@ public sealed class IWorkReadOptions {
         ValidatePositive(MaximumRecordBytes, nameof(MaximumRecordBytes));
         ValidatePositive(MaximumRecordCount, nameof(MaximumRecordCount));
         ValidatePositive(MaximumArchiveReferenceCount, nameof(MaximumArchiveReferenceCount));
+        ValidatePositive(MaximumSourceReferenceIssues, nameof(MaximumSourceReferenceIssues));
+        ValidatePositive(MaximumSourceDeclarationIssues, nameof(MaximumSourceDeclarationIssues));
         ValidatePositive(MaximumProtobufFieldCount, nameof(MaximumProtobufFieldCount));
         ValidatePositive(MaximumProtobufDepth, nameof(MaximumProtobufDepth));
         ValidatePositive(MaximumTableRows, nameof(MaximumTableRows));
         ValidatePositive(MaximumTableColumns, nameof(MaximumTableColumns));
         ValidatePositive(MaximumMaterializedCells, nameof(MaximumMaterializedCells));
         ValidatePositive(MaximumTableCatalogEntries, nameof(MaximumTableCatalogEntries));
+        ValidatePositive(MaximumTableDimensionEntries, nameof(MaximumTableDimensionEntries));
         ValidatePositive(MaximumProjectedSheets, nameof(MaximumProjectedSheets));
         ValidatePositive(MaximumProjectedSlides, nameof(MaximumProjectedSlides));
         ValidatePositive(MaximumProjectedTables, nameof(MaximumProjectedTables));

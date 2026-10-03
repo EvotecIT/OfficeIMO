@@ -1,0 +1,47 @@
+{
+  "extractorVersion": "numbers-parser 4.19.0",
+  "sourceFixture": "numbers-parser/test-10-formulas.numbers",
+  "sourceSha256": "dd85bad68898ce5b065f277c0b9be1f3c32d696e3baa6b09d3614bbd35a5249f",
+  "nativeExport": "native-exports/numbers-formulas-v14.5.xlsx",
+  "nativeExportSha256": "8c1184a0793fd4a580f2116d5664b4d0438b888016812f855cd405d84e497a70",
+  "producer": {
+    "application": "Apple Numbers",
+    "version": "14.5",
+    "build": "7045.0.17",
+    "operatingSystem": "macOS 27.0 26A428",
+    "exportedUtc": "2026-09-30T10:44:24Z",
+    "documentLocale": "pl-PL"
+  },
+  "qualification": "Selected fixed abbreviated hours/minutes and saved XLSX code/value in this paired native fixture. Other duration ranges/styles, automatic units, negative rounding, locale and appearance equivalence remain unqualified.",
+  "formatFieldNumbers": {
+    "format_type": 1,
+    "duration_style": 7,
+    "duration_unit_largest": 15,
+    "duration_unit_smallest": 16,
+    "use_automatic_duration_units": 40
+  },
+  "source": {
+    "sheet": "Sheet 1",
+    "table": "Table 1",
+    "row": 5,
+    "column": 3,
+    "formatKey": 5,
+    "formatHex": "088c0238017804800108c00200",
+    "settings": {
+      "format_type": 268,
+      "duration_style": 1,
+      "duration_unit_largest": 4,
+      "duration_unit_smallest": 8,
+      "use_automatic_duration_units": false
+    },
+    "seconds": 8640.0,
+    "producerDisplayText": "2h 24m"
+  },
+  "native": {
+    "sheet": 1,
+    "cell": "C6",
+    "valueDays": 0.1,
+    "formatCode": "[h]\"h\" m\"m\"",
+    "formula": "$C5-C4"
+  }
+}

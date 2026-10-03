@@ -75,6 +75,7 @@ internal static class ReaderCapabilityManifestJson {
             sb.Append("],"); AppendNewLine();
             WriteBoolean("supportsPath", handler.SupportsPath, trailingComma: true);
             WriteBoolean("supportsStream", handler.SupportsStream, trailingComma: true);
+            WriteBoolean("supportsDirectoryBundle", handler.SupportsDirectoryBundle, trailingComma: true);
             WriteBoolean("supportsDocumentPath", handler.SupportsDocumentPath, trailingComma: true);
             WriteBoolean("supportsDocumentStream", handler.SupportsDocumentStream, trailingComma: true);
             WriteBoolean("supportsAsyncPath", handler.SupportsAsyncPath, trailingComma: true);

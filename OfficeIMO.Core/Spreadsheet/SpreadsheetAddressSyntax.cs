@@ -83,6 +83,13 @@ public sealed class SpreadsheetRangeReference {
     /// <summary>Gets whether the syntax represents a range.</summary>
     public bool IsRange => End != null;
 
+    /// <summary>Creates a relative, unqualified single-cell address from one-based coordinates.</summary>
+    /// <param name="column">One-based column index.</param>
+    /// <param name="row">One-based row index.</param>
+    /// <remarks>Formatting as Excel A1 still enforces Excel's grid bounds; use UnboundedA1 for larger source grids.</remarks>
+    public static SpreadsheetRangeReference FromCell(int column, long row) =>
+        new SpreadsheetRangeReference(new SpreadsheetCellReference(null, false, column, false, row, false), null);
+
     /// <summary>Parses a complete address using the requested grammar.</summary>
     public static SpreadsheetRangeReference Parse(string text, SpreadsheetAddressDialect dialect) {
         if (text == null) throw new ArgumentNullException(nameof(text));

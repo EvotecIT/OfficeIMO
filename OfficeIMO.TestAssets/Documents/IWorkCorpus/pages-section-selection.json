@@ -1,0 +1,82 @@
+{
+  "provider": "numbers-parser",
+  "providerVersion": "4.19.0",
+  "schema": {
+    "repository": "https://github.com/orcastor/iwork-converter",
+    "revision": "be4828260466c9c022ec12f9dc9dbfeb15ab1dea",
+    "path": "proto/TP/TPArchives.pb.go",
+    "message": "SectionArchive",
+    "fields": {
+      "17": "inherit_previous_header_footer",
+      "18": "section_template_first_page_different",
+      "19": "section_template_even_odd_pages_different",
+      "28": "section_template_first_page_hides_header_footer",
+      "23": "first_section_template_page",
+      "24": "even_section_template_page",
+      "25": "odd_section_template_page"
+    }
+  },
+  "source": "picodocs/sample-v14.4.pages",
+  "sourceSha256": "4714477138d0a4090fc2ee2ba2ebb6adcd0fb6ce20a28897a6247a8e17d1ddce",
+  "sections": [
+    {
+      "identifier": 1732641,
+      "entry": "Index/Document.iwa",
+      "flags": {
+        "17": [
+          0
+        ],
+        "18": [
+          0
+        ],
+        "19": [
+          0
+        ],
+        "28": [
+          0
+        ]
+      },
+      "templateReferences": {
+        "23": [
+          1732642
+        ],
+        "24": [
+          1732649
+        ],
+        "25": [
+          1732656
+        ]
+      }
+    },
+    {
+      "identifier": 1732888,
+      "entry": "Index/Document.iwa",
+      "flags": {
+        "17": [
+          0
+        ],
+        "18": [
+          0
+        ],
+        "19": [
+          0
+        ],
+        "28": [
+          0
+        ]
+      },
+      "templateReferences": {
+        "23": [
+          1732889
+        ],
+        "24": [
+          1732896
+        ],
+        "25": [
+          1732903
+        ]
+      }
+    }
+  ],
+  "limits": "Native declarations only. Both sections disable alternate templates and inheritance. Enabled variants and hidden first pages require separate native qualification; synthetic saved-output tests cover their conversion."
+}

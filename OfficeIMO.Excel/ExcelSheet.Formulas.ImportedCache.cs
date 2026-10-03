@@ -8,6 +8,7 @@ namespace OfficeIMO.Excel {
             if (formula is null) throw new ArgumentNullException(nameof(formula));
             if (cachedText is null) throw new ArgumentNullException(nameof(cachedText));
             CoerceValueHelper.ValidateSharedStringLength(cachedText, nameof(cachedText));
+            string safeFormula = Utilities.ExcelSanitizer.SanitizeFormula(formula);
             WriteLock(() => {
                 MaterializePendingDirectCellValues();
                 MaterializeDeferredDataSetImportIfNeeded();
@@ -15,7 +16,7 @@ namespace OfficeIMO.Excel {
                 ClearCellValueMetadata(cell);
                 SetExistingCellPlainStringValue(cell, cachedText);
                 CompleteCellValueMutation(row, column);
-                CellFormulaCore(row, column, formula);
+                CellFormulaCore(row, column, safeFormula);
             });
         }
     }

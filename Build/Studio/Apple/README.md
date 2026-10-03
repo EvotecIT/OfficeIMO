@@ -99,7 +99,9 @@ or create a Store submission. See Apple's
 
 The [direct-download configuration](../powerforge.dotnetpublish.json) produces architecture-specific, multi-file self-contained `.app` bundles and `ditto` ZIP archives. PowerForge signs the native libraries in place instead of relying on single-file extraction. `Direct.entitlements` grants only the JIT permission required by the current non-NativeAOT .NET runtime.
 
-The direct-download package configuration uses ad-hoc signing for packaging proof only. Use the development configuration above for routine local app use. A public artifact requires all of the following on a trusted macOS builder:
+The direct-download package configuration uses ad-hoc signing for packaging proof only. Use the development configuration above for routine local app use. PowerForge omits hardened runtime for ad-hoc bundles because their nested libraries do not share an Apple Team ID. The configured hardened-runtime option takes effect with a distribution signing identity; an ad-hoc launch does not qualify that contract.
+
+A public artifact requires all of the following on a trusted macOS builder:
 
 1. A `Developer ID Application` identity replaces the ad-hoc identity.
 2. Secure timestamps remain enabled.

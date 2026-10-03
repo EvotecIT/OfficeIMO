@@ -212,7 +212,7 @@ public sealed partial class IWorkBoundaryTests {
                     BytesField(7, listTable)),
                 new[] { listStyleId, paragraphStyleId }),
             ArchiveRecord(listStyleId, 2023,
-                Message(VarintField(11, 1), VarintField(11, 1),
+                Message(VarintField(11, 2), VarintField(11, 2),
                     FloatField(13, 0f), FloatField(13, 18f),
                     StringField(16, "•"), StringField(16, "◦"))),
             ArchiveRecord(paragraphStyleId, 2022,

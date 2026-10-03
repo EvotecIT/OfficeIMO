@@ -1,0 +1,120 @@
+{
+  "provider": "numbers-parser",
+  "providerVersion": "4.19.0",
+  "sources": [
+    {
+      "path": "nim-iwork/simple.numbers",
+      "sha256": "d0b00d9cae5985cccaa3b2fb251fae92eb0e38360fb4b5df8b4350eb658f752b",
+      "tables": [
+        {
+          "modelIdentifier": 906217,
+          "extents": [
+            {
+              "direction": 0,
+              "filterIdentifier": 906413,
+              "filterEnabled": false,
+              "baseStateCount": 0,
+              "summaryStateCount": 0
+            },
+            {
+              "direction": 1,
+              "filterIdentifier": 906414,
+              "filterEnabled": false,
+              "baseStateCount": 0,
+              "summaryStateCount": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "picodocs/sample-v14.4.pages",
+      "sha256": "4714477138d0a4090fc2ee2ba2ebb6adcd0fb6ce20a28897a6247a8e17d1ddce",
+      "tables": [
+        {
+          "modelIdentifier": 1732845,
+          "extents": [
+            {
+              "direction": 0,
+              "filterIdentifier": 1733051,
+              "filterEnabled": false,
+              "baseStateCount": 0,
+              "summaryStateCount": 0
+            },
+            {
+              "direction": 1,
+              "filterIdentifier": 1733052,
+              "filterEnabled": false,
+              "baseStateCount": 0,
+              "summaryStateCount": 0
+            }
+          ]
+        },
+        {
+          "modelIdentifier": 1732937,
+          "extents": [
+            {
+              "direction": 0,
+              "filterIdentifier": 1733088,
+              "filterEnabled": false,
+              "baseStateCount": 0,
+              "summaryStateCount": 0
+            },
+            {
+              "direction": 1,
+              "filterIdentifier": 1733089,
+              "filterEnabled": false,
+              "baseStateCount": 0,
+              "summaryStateCount": 0
+            }
+          ]
+        },
+        {
+          "modelIdentifier": 1737269,
+          "extents": [
+            {
+              "direction": 0,
+              "filterIdentifier": 1737241,
+              "filterEnabled": false,
+              "baseStateCount": 0,
+              "summaryStateCount": 0
+            },
+            {
+              "direction": 1,
+              "filterIdentifier": 1737233,
+              "filterEnabled": false,
+              "baseStateCount": 0,
+              "summaryStateCount": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "keynotekit/tabledeck-v15.2.1.key",
+      "sha256": "384962b1fff18abc5a901b59dc5f8820c2a959977f18f90dc9cd10095bdd0a56",
+      "tables": [
+        {
+          "modelIdentifier": 2652491,
+          "extents": [
+            {
+              "direction": 0,
+              "filterIdentifier": 2652501,
+              "filterEnabled": false,
+              "baseStateCount": 0,
+              "summaryStateCount": 0
+            },
+            {
+              "direction": 1,
+              "filterIdentifier": 2652502,
+              "filterEnabled": false,
+              "baseStateCount": 0,
+              "summaryStateCount": 0
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "limits": "Empty native extents and disabled filter sets only. Positive hidden states, positions, active filtering and Apple export equivalence remain unqualified."
+}

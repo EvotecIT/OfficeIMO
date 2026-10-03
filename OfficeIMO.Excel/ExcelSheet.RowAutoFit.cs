@@ -264,7 +264,8 @@ namespace OfficeIMO.Excel {
             return Math.Min(height, 409D);
         }
 
-        private void SetRowHeightCore(int rowIndex, double height, bool normalizeForExcelVisibleHeight = false) {
+        private void SetRowHeightCore(int rowIndex, double height, bool normalizeForExcelVisibleHeight = false,
+            bool roundToHundredths = true) {
             var worksheet = WorksheetRoot;
             SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
             if (sheetData == null) return;
@@ -276,7 +277,7 @@ namespace OfficeIMO.Excel {
                 double storedHeight = normalizeForExcelVisibleHeight
                     ? height * 1.5
                     : height;
-                row.Height = Math.Round(storedHeight, 2);
+                row.Height = roundToHundredths ? Math.Round(storedHeight, 2) : storedHeight;
                 row.CustomHeight = true;
             } else {
                 row.Height = null;
@@ -379,7 +380,13 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="rowIndex">1-based row index.</param>
         /// <param name="height">Row height in points.</param>
-        public void SetRowHeight(int rowIndex, double height) {
+        public void SetRowHeight(int rowIndex, double height) =>
+            SetRowHeightValue(rowIndex, height, roundToHundredths: true);
+
+        internal void SetRowHeightExact(int rowIndex, double height) =>
+            SetRowHeightValue(rowIndex, height, roundToHundredths: false);
+
+        private void SetRowHeightValue(int rowIndex, double height, bool roundToHundredths) {
             if (rowIndex <= 0) {
                 return;
             }
@@ -389,7 +396,7 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 SheetData sheetData = GetOrCreateSheetData();
                 GetOrCreateRowElement(sheetData, rowIndex);
-                SetRowHeightCore(rowIndex, height);
+                SetRowHeightCore(rowIndex, height, roundToHundredths: roundToHundredths);
                 UpdateSheetFormat();
                 WorksheetRoot.Save();
             });

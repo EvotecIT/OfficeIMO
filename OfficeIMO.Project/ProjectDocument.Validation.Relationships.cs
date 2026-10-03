@@ -108,7 +108,7 @@ public sealed partial class ProjectDocument {
             CheckEnum(link.Type, location + "/Type", add);
             try {
                 if (link.Lag is ProjectDuration duration) {
-                    decimal minutes = checked(duration.Value * ProjectXmlValue.MinutesPerUnit(duration.Unit, duration.IsElapsed, this));
+                    decimal minutes = checked(duration.Minutes(ProjectXmlValue.MinutesPerUnit(duration.Unit, duration.IsElapsed, this)));
                     if (!ProjectXmlValue.CanRepresentMinutes(minutes)) throw new OverflowException();
                 }
                 decimal? rawLag = ProjectXmlCodec.DependencyLag(link, this);

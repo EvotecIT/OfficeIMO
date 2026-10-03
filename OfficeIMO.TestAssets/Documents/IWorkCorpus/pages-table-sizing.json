@@ -1,0 +1,93 @@
+{
+  "provider": "numbers-parser",
+  "providerVersion": "4.19.0",
+  "source": {
+    "path": "picodocs/sample-v14.4.pages",
+    "sha256": "4714477138d0a4090fc2ee2ba2ebb6adcd0fb6ce20a28897a6247a8e17d1ddce"
+  },
+  "tables": [
+    {
+      "modelIdentifier": 1732845,
+      "name": "Table 1",
+      "styleIdentifiers": [
+        1731694
+      ],
+      "autoResizeRows": true,
+      "rowHeights": [
+        {
+          "row": 1,
+          "heightPoints": 16.5
+        },
+        {
+          "row": 2,
+          "heightPoints": 16.5
+        },
+        {
+          "row": 3,
+          "heightPoints": 16.5
+        },
+        {
+          "row": 4,
+          "heightPoints": 16.5
+        },
+        {
+          "row": 5,
+          "heightPoints": 16.5
+        }
+      ]
+    },
+    {
+      "modelIdentifier": 1732937,
+      "name": "Table 2",
+      "styleIdentifiers": [
+        1731694
+      ],
+      "autoResizeRows": true,
+      "rowHeights": [
+        {
+          "row": 1,
+          "heightPoints": 16.5
+        },
+        {
+          "row": 2,
+          "heightPoints": 16.5
+        },
+        {
+          "row": 3,
+          "heightPoints": 16.5
+        },
+        {
+          "row": 4,
+          "heightPoints": 16.5
+        }
+      ]
+    },
+    {
+      "modelIdentifier": 1737269,
+      "name": "Table 2-1",
+      "styleIdentifiers": [
+        1731694
+      ],
+      "autoResizeRows": true,
+      "rowHeights": [
+        {
+          "row": 1,
+          "heightPoints": 16.5
+        },
+        {
+          "row": 2,
+          "heightPoints": 16.5
+        },
+        {
+          "row": 3,
+          "heightPoints": 16.5
+        },
+        {
+          "row": 4,
+          "heightPoints": 16.5
+        }
+      ]
+    }
+  ],
+  "limits": "Source row-height values and automatic-resize declarations only. Apple export, complete styling and pagination are not qualified."
+}

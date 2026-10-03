@@ -76,7 +76,7 @@ public partial class Excel {
             cell.StyleIndex = part.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>().Skip(1).First().Elements<Cell>().Single().StyleIndex?.Value;
             part.Worksheet.Save();
         }
-        using var document = ExcelDocumentReader.Open(path, new ExcelReadOptions { CellValueConverter = _ => ExcelCellValue.NotHandled });
+        using var document = ExcelDocumentReader.Open(path, new ExcelReadOptions { NormalizeHeaders = false, CellValueConverter = _ => ExcelCellValue.NotHandled });
         using var reader = document.GetSheet("Data").ReadRangeAsDataReader($"A1:{(char)('A' + width - 1)}4098", schemaSampleRows: samples);
         Assert.Equal(DateTime.FromOADate(1.5d).ToString(), reader.GetName(0));
         Assert.True(reader.Read());

@@ -40,7 +40,7 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
     public ConversionRouteChoice Route { get; }
     public string RouteLabel => Route.Route.Source + " → " + Route.Route.Target;
     public string Engine => Route.Engine;
-    public string Fidelity => UsesRasterPages ? T("VisualFidelity", "Visual page images · review rendering and editability limits") : Route.Fidelity;
+    public string Fidelity => UsesRasterPages || SupportsIWorkOptions && IWorkMode == OfficeIMO.IWork.IWorkConversionMode.VisualOnly ? T("VisualFidelity", "Visual page images · review rendering and editability limits") : Route.Fidelity;
     public string KnownLimitations => Route.KnownLimitations;
 
     public OfficeWorkflowOutputProfile OutputProfile { get; internal set; } = OfficeWorkflowOutputProfile.Faithful;
@@ -78,6 +78,8 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
         OutputPath = null;
         Summary = null;
         Diagnostics = Array.Empty<OfficeWorkflowDiagnostic>();
+        ConversionEvidence = null;
+        OnPropertyChanged(nameof(SourceFingerprint));
         OnPropertyChanged(nameof(HasWarnings));
     }
 
@@ -110,6 +112,8 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
         OutputPath = result.OutputPath;
         Summary = result.Summary;
         Diagnostics = result.Diagnostics;
+        ConversionEvidence = result.ConversionEvidence;
+        OnPropertyChanged(nameof(SourceFingerprint));
         ProgressFraction = result.Status == OfficeWorkflowStatus.Cancelled ? ProgressFraction : 1D;
         Status = result.Status switch {
             OfficeWorkflowStatus.Completed when HasWarnings => T("CompletedWithWarnings", "Completed with warnings"),
