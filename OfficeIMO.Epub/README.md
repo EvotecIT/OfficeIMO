@@ -329,6 +329,10 @@ Imported duplicate spine references retain their reading positions and produce
 `EPUB_WRITE_RETAINED_DUPLICATE_SPINE`. This preserves the source's semantics but retains
 its nonconformance; `RequireNoLoss` checks omissions, not EPUB validity.
 
+MIME type comparisons accept equivalent casing while preserving declared spelling.
+EPUBCheck 5.4.0 flags uppercase EPUB 3 navigation and cover media types. For these
+imports, assign lowercase `MediaType` values explicitly when validator compatibility is required.
+
 Editing a package with `signatures.xml` or a ZIP central-directory signature fails unless
 `RemoveInvalidatedSignatures = true` is supplied in `EpubWriteOptions`; removal is reported.
 IDPF/Adobe-obfuscated font bytes remain unchanged when editing
