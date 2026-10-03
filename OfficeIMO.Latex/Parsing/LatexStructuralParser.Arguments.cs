@@ -1,6 +1,23 @@
 namespace OfficeIMO.Latex;
 
 internal sealed partial class LatexStructuralParser {
+    private void TryParseStarModifier(List<LatexSyntaxNode> children, ref int end) {
+        int lookahead = FindCommandArgumentStart();
+        if (lookahead >= _tokens.Count || _tokens[lookahead].Kind != LatexTokenKind.Text) return;
+        LatexTokenView token = _tokens[lookahead];
+        int start = token.StartOffset + _textTokenOffset;
+        if (_source.Text[start] != '*') return;
+        while (_index < lookahead) children.Add(TokenNode(_tokens[_index++]));
+        children.Add(Node(LatexSyntaxKind.Text, start, start + 1, null));
+        end = start + 1;
+        if (end == token.EndOffset) {
+            _index++;
+            _textTokenOffset = 0;
+        } else {
+            _textTokenOffset = end - token.StartOffset;
+        }
+    }
+
     // The tokenizer deliberately coalesces ordinary text. Argument binding consumes
     // one Unicode scalar without splitting or changing the public token inventory.
     private bool TryParseSingleTokenArgument(int depth, List<LatexSyntaxNode> children, ref int end) {

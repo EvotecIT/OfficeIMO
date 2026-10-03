@@ -112,12 +112,7 @@ internal sealed partial class LatexStructuralParser {
         int end = command.EndOffset;
         LatexCommandSyntaxSignature? signature = explicitSignature ?? LatexProfileSyntaxCatalog.GetCommand(command.Value ?? string.Empty);
         if (signature != null) {
-            if (signature.AllowsStar && _index < _tokens.Count &&
-                _tokens[_index].Kind == LatexTokenKind.Text && string.Equals(_tokens[_index].Text, "*", StringComparison.Ordinal)) {
-                LatexTokenView star = _tokens[_index++];
-                children.Add(TokenNode(star));
-                end = star.EndOffset;
-            }
+            if (signature.AllowsStar) TryParseStarModifier(children, ref end);
             for (int index = 0; index < signature.Arguments.Count; index++) {
                 LatexTokenKind openingKind = signature.Arguments[index] == LatexArgumentGroupKind.Optional
                     ? LatexTokenKind.OpenBracket
