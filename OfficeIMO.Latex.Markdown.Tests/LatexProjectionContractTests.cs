@@ -93,7 +93,6 @@ public sealed class LatexProjectionContractTests {
     [InlineData("\\textbf{A\\label{x}B}", "**AB**")]
     [InlineData("\\emph{A\\textbf{B\\label{x}C}D}", "**BC**")]
     [InlineData("$A\\label{x}B$", "`AB`")]
-    [InlineData("\\unknown{A\\label{x}B}", "\\unknown{AB}")]
     public void TheoremLabelsDoNotSliceEnclosingInlineSyntax(string body, string expected) {
         LatexToMarkdownResult result = LatexDocument.Parse(Wrap("\\begin{theorem}" + body + "\\end{theorem}")).ToMarkdownDocumentResult();
         CalloutBlock callout = Assert.Single(result.Value.Blocks.OfType<CalloutBlock>());

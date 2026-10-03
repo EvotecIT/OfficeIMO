@@ -10,6 +10,62 @@ namespace OfficeIMO.Tests;
 [Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderLatexModularTests {
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void InertMetadataDoesNotCreateReaderTextOrFrontMatter(bool blocks) {
+        const string source = @"\documentclass{article}\begin{document}Public\end{document}\title{INERT}\author{PRIVATE}\date{INERT}";
+        ReaderChunk chunk = Assert.Single(LatexReaderAdapter.Read(LatexDocument.Parse(source),
+            latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks }));
+        Assert.Equal("Public", chunk.Text);
+        Assert.DoesNotContain("INERT", chunk.Markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("PRIVATE", chunk.Markdown, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ListSetupAndItemlessSourceReachReaderTextAndWarnings(bool blocks) {
+        const string source = @"\documentclass{article}\begin{document}\begin{enumerate}\setcounter{enumi}{4}\item Five\end{enumerate}\begin{itemize}IMPORTANT\end{itemize}\end{document}";
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(LatexDocument.Parse(source), readerOptions: new ReaderOptions { MaxChars = 9 },
+            latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks }).ToArray();
+        string text = string.Concat(chunks.Select(static chunk => chunk.Text));
+        Assert.Contains(@"\setcounter{enumi}{4}", text, StringComparison.Ordinal);
+        Assert.Contains("Five", text, StringComparison.Ordinal);
+        Assert.Contains("IMPORTANT", text, StringComparison.Ordinal);
+        Assert.Contains(chunks.SelectMany(static chunk => chunk.Warnings ?? Array.Empty<string>()),
+            static warning => warning.StartsWith("LATEXMD298:", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CompleteWrappedCommandsStayOpaqueAcrossReaderSplits(bool blocks) {
+        const string command = @"\resizebox{10cm}{!}{\begin{tabular}{c}A\\\end{tabular}}";
+        string source = @"\documentclass{article}\begin{document}Before " + command + @" After\end{document}";
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(LatexDocument.Parse(source), readerOptions: new ReaderOptions { MaxChars = 9 },
+            latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks }).ToArray();
+        string text = string.Concat(chunks.Select(static chunk => chunk.Text));
+        Assert.Contains(command, text, StringComparison.Ordinal);
+        Assert.Contains("Before", text, StringComparison.Ordinal);
+        Assert.Contains("After", text, StringComparison.Ordinal);
+        Assert.Contains(chunks.SelectMany(static chunk => chunk.Warnings ?? Array.Empty<string>()),
+            static warning => warning.StartsWith("LATEXMD297:", StringComparison.Ordinal));
+        Assert.Contains(chunks, static chunk => chunk.Markdown?.Contains("```latex", StringComparison.Ordinal) == true);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CommonTableAlignmentsReachReaderMarkdown(bool blocks) {
+        const string source = @"\documentclass{article}\begin{document}\begin{tabular}{lcr}\textbf{L}&\textbf{C}&\textbf{R}\\left&center&right\\\end{tabular}\end{document}";
+        ReaderChunk chunk = Assert.Single(LatexReaderAdapter.Read(LatexDocument.Parse(source),
+            latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks }));
+        OfficeIMO.Markdown.TableBlock table = Assert.Single(OfficeIMO.Markdown.MarkdownReader.Parse(chunk.Markdown!).Blocks.OfType<OfficeIMO.Markdown.TableBlock>());
+        Assert.Equal(new[] { OfficeIMO.Markdown.ColumnAlignment.Left, OfficeIMO.Markdown.ColumnAlignment.Center, OfficeIMO.Markdown.ColumnAlignment.Right }, table.Alignments);
+        Assert.Contains("left\tcenter\tright", chunk.Text, StringComparison.Ordinal);
+    }
+
+    [Theory]
     [InlineData(true, true)]
     [InlineData(true, false)]
     [InlineData(false, true)]

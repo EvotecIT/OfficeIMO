@@ -194,7 +194,12 @@ internal static class MarkdownToLatexConverter {
             output.Append(Label(source, diagnostics));
             if (!string.IsNullOrWhiteSpace(source.Attributes.ElementId)) output.Append(options.LineEnding);
         }
-        output.Append("\\begin{tabular}{").Append(new string('l', columns)).Append('}').Append(options.LineEnding);
+        output.Append("\\begin{tabular}{");
+        for (int column = 0; column < columns; column++) {
+            ColumnAlignment alignment = column < source.Alignments.Count ? source.Alignments[column] : ColumnAlignment.None;
+            output.Append(alignment == ColumnAlignment.Center ? 'c' : alignment == ColumnAlignment.Right ? 'r' : 'l');
+        }
+        output.Append('}').Append(options.LineEnding);
         for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++) {
             for (int cellIndex = 0; cellIndex < rows[rowIndex].Cells.Count; cellIndex++) {
                 if (cellIndex > 0) output.Append(" & ");

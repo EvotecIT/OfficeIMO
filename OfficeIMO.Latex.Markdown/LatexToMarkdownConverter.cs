@@ -1,7 +1,7 @@
 namespace OfficeIMO.Latex.Markdown;
 
 /// <summary>Converts the bounded OfficeIMO LaTeX profile to typed Markdown.</summary>
-internal static class LatexToMarkdownConverter {
+internal static partial class LatexToMarkdownConverter {
     /// <summary>Converts recognized semantics and diagnoses source fallbacks.</summary>
     internal static LatexToMarkdownResult Convert(
         LatexDocument document,
@@ -32,9 +32,9 @@ internal static class LatexToMarkdownConverter {
             aggregateBlocks.AddRange(titleDoc.Blocks);
             blocks.Add(new LatexProjectedBlock(titleCommand!.Syntax.Span, "title", titleDoc, titleDiagnostics));
         }
-        BlockCandidate[] candidates = BuildCandidates(context)
+        BlockCandidate[] candidates = WithCommandFallbacks(context, BuildCandidates(context)
             .OrderBy(static candidate => candidate.Span.Start.Offset)
-            .ThenByDescending(static candidate => candidate.Span.Length).ToArray();
+            .ThenByDescending(static candidate => candidate.Span.Length).ToArray());
         int consumedUntil = document.Profile == LatexDocumentProfile.PreserveOnly ? 0 : document.Body?.ContentSpan.Start.Offset ?? 0;
         foreach (BlockCandidate candidate in candidates) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -138,12 +138,15 @@ internal static class LatexToMarkdownConverter {
                     break;
                 }
             case LatexParagraph paragraph: {
-                    InlineSequence inlines = LatexInlineToMarkdownConverter.Convert(context, paragraph.Span, diagnostics);
+                    InlineSequence inlines = LatexInlineToMarkdownConverter.Convert(context, candidate.Span, diagnostics);
                     if (inlines.Nodes.Count > 0) target.Add(new ParagraphBlock(inlines));
                     break;
                 }
             case LatexList list:
-                AddList(context, target, list, diagnostics);
+                AddList(context, target, list, options, diagnostics);
+                break;
+            case LatexCommand command:
+                AddSourceFallback(context, target, command.Syntax.Span, options, diagnostics, "command:" + command.Name);
                 break;
             case LatexFigure figure:
                 AddFigure(context, target, figure, options, diagnostics);
@@ -196,7 +199,7 @@ internal static class LatexToMarkdownConverter {
     }
 
     private static int GetMarkdownHeadingLevel(LatexProjectionContext context, LatexHeading heading) {
-        int firstSectionLevel = string.Equals(context.Document.DocumentClassName, "article", StringComparison.Ordinal) ? 2 : 1;
+        int firstSectionLevel = string.Equals(context.DocumentClassName, "article", StringComparison.Ordinal) ? 2 : 1;
         bool hasPart = context.HasPart;
         if (hasPart && heading.Level == 0) return 1;
         int markdownLevel = heading.Level - firstSectionLevel + 1;
@@ -208,10 +211,15 @@ internal static class LatexToMarkdownConverter {
         LatexProjectionContext context,
         MarkdownDoc target,
         LatexList source,
+        LatexToMarkdownOptions options,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
+        IReadOnlyList<LatexListItem> items = DirectListItems(context, source);
+        AddResidualSource(context, target, source.Environment,
+            items.SelectMany(static item => new[] { item.ItemCommand.Syntax.Span, item.ContentSpan }),
+            options, diagnostics, "list-content");
         if (source.Kind == LatexListKind.Description) {
             var definitions = new DefinitionListBlock();
-            foreach (LatexListItem item in source.Items) {
+            foreach (LatexListItem item in items) {
                 context.CheckCancellation();
                 var term = item.ItemCommand.GetOptionalArgument(0) is LatexArgument label
                     ? LatexInlineToMarkdownConverter.Convert(context, label.ContentSpan, diagnostics)
@@ -224,19 +232,40 @@ internal static class LatexToMarkdownConverter {
         }
         if (source.Kind == LatexListKind.Ordered) {
             var list = new OrderedListBlock();
-            foreach (LatexListItem item in source.Items) {
+            foreach (LatexListItem item in items) {
                 context.CheckCancellation();
                 list.Items.Add(new ListItem(ConvertListItem(context, item, diagnostics)));
             }
             target.Add(list);
         } else {
             var list = new UnorderedListBlock();
-            foreach (LatexListItem item in source.Items) {
+            foreach (LatexListItem item in items) {
                 context.CheckCancellation();
                 list.Items.Add(new ListItem(ConvertListItem(context, item, diagnostics)));
             }
             target.Add(list);
         }
+    }
+
+    private static IReadOnlyList<LatexListItem> DirectListItems(LatexProjectionContext context, LatexList source) {
+        var items = new List<LatexListItem>();
+        foreach (LatexListItem item in source.Items) {
+            context.CheckCancellation();
+            if (!LatexSemanticBuilder.IsInsideCommandArgument(item.ItemCommand.Syntax)) items.Add(item);
+        }
+        if (items.Count == source.Items.Count) return source.Items;
+        // Native inventory includes commands in preserved arguments. Rebind item
+        // bodies to actual item boundaries without promoting those inner commands.
+        string text = context.Document.Source.Text;
+        for (int index = 0; index < items.Count; index++) {
+            context.CheckCancellation();
+            int start = items[index].ItemCommand.Syntax.Span.End.Offset;
+            int end = index + 1 < items.Count ? items[index + 1].ItemCommand.Syntax.Span.Start.Offset : source.Environment.ContentSpan.End.Offset;
+            while (start < end && char.IsWhiteSpace(text[start])) { if ((start & 1023) == 0) context.CheckCancellation(); start++; }
+            while (end > start && char.IsWhiteSpace(text[end - 1])) { if ((end & 1023) == 0) context.CheckCancellation(); end--; }
+            items[index] = new LatexListItem(items[index].ItemCommand, context.Document.Source.CreateSpan(start, end), text.Substring(start, end - start));
+        }
+        return items;
     }
 
     private static InlineSequence ConvertListItem(
@@ -263,12 +292,19 @@ internal static class LatexToMarkdownConverter {
         LatexFigure source,
         LatexToMarkdownOptions options,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
-        string caption = LatexInlineToMarkdownConverter.ReadDisplayArgument(context, source.CaptionCommand?.GetRequiredArgument(0), diagnostics, "figure-caption");
-        string label = LatexInlineToMarkdownConverter.ReadArgumentSource(context, source.LabelCommand?.GetRequiredArgument(0), diagnostics);
-        var images = new List<IMarkdownBlock>();
-        for (int index = 0; index < source.Images.Count; index++) {
+        LatexCommand? captionCommand = context.FindDirectCommand(source.Environment, "caption");
+        LatexCommand? labelCommand = context.FindDirectCommand(source.Environment, "label");
+        string caption = LatexInlineToMarkdownConverter.ReadDisplayArgument(context, captionCommand?.GetRequiredArgument(0), diagnostics, "figure-caption");
+        string label = LatexInlineToMarkdownConverter.ReadArgumentSource(context, labelCommand?.GetRequiredArgument(0), diagnostics);
+        var graphics = new List<LatexImage>();
+        foreach (LatexImage image in source.Images) {
             context.CheckCancellation();
-            LatexImage image = source.Images[index];
+            if (!LatexSemanticBuilder.IsInsideCommandArgument(image.Command.Syntax)) graphics.Add(image);
+        }
+        var images = new List<IMarkdownBlock>();
+        for (int index = 0; index < graphics.Count; index++) {
+            context.CheckCancellation();
+            LatexImage image = graphics[index];
             LatexInlineToMarkdownConverter.ReportGraphicsOptions(image.Command, diagnostics);
             var block = new ImageBlock(LatexLiteralText.Decode(LatexInlineToMarkdownConverter.ReadArgumentSource(context, image.Command.GetRequiredArgument(0), diagnostics), context.CancellationToken), caption);
             if (!string.IsNullOrWhiteSpace(label)) block.SetAttributes(MarkdownAttributeSet.Create(label));
@@ -276,66 +312,14 @@ internal static class LatexToMarkdownConverter {
             images.Add(block);
         }
         target.AddRange(images);
-        if (source.Images.Count == 0) {
+        if (graphics.Count == 0) {
             AddEnvironmentFallback(context, target, source.Environment, options, diagnostics);
             return;
         }
-        var represented = source.Images.Select(static image => image.Command.Syntax.Span).ToList();
-        if (source.CaptionCommand != null) represented.Add(source.CaptionCommand.Syntax.Span);
-        if (source.LabelCommand != null) represented.Add(source.LabelCommand.Syntax.Span);
+        var represented = graphics.Select(static image => image.Command.Syntax.Span).ToList();
+        if (captionCommand != null) represented.Add(captionCommand.Syntax.Span);
+        if (labelCommand != null) represented.Add(labelCommand.Syntax.Span);
         AddResidualSource(context, target, source.Environment, represented, options, diagnostics, "figure-content");
-    }
-
-    private static TableBlock ConvertTable(
-        LatexProjectionContext context,
-        LatexTable source,
-        List<LatexMarkdownConversionDiagnostic> diagnostics) {
-        var target = new TableBlock();
-        bool header = source.Rows.Count > 1 && source.Rows[0].Cells.All(static cell => cell.Content.TrimStart().StartsWith("\\textbf", StringComparison.Ordinal));
-        var structuredHeaders = new List<TableCell>();
-        var structuredRows = new List<IReadOnlyList<TableCell>>();
-        if (!header && source.Rows.Count > 0) {
-            int columnCount = Math.Max(1, source.Rows.Max(static row => row.Cells.Count));
-            for (int index = 0; index < columnCount; index++) {
-                target.Headers.Add(string.Empty);
-                structuredHeaders.Add(new TableCell(new IMarkdownBlock[] { new ParagraphBlock(new InlineSequence()) }));
-            }
-            diagnostics.Add(new LatexMarkdownConversionDiagnostic(
-                "LATEXMD211", LatexMarkdownConversionOutcome.Simplified, "table-header",
-                "A blank Markdown header was added because pipe tables require a header row.", source.Environment.Syntax.Span));
-        }
-        for (int rowIndex = 0; rowIndex < source.Rows.Count; rowIndex++) {
-            context.CheckCancellation();
-            var values = new List<string>();
-            var cells = new List<TableCell>();
-            foreach (LatexTableCell sourceCell in source.Rows[rowIndex].Cells) {
-                context.CheckCancellation();
-                InlineSequence inlines = LatexInlineToMarkdownConverter.Convert(context, sourceCell.Span, diagnostics);
-                string markdown = MarkdownDoc.Create().Add(new ParagraphBlock(inlines)).ToMarkdown().Trim();
-                values.Add(markdown);
-                cells.Add(new TableCell(new IMarkdownBlock[] { new ParagraphBlock(inlines) }));
-            }
-            if (header && rowIndex == 0) {
-                target.Headers.AddRange(values);
-                structuredHeaders.AddRange(cells);
-            } else {
-                target.Rows.Add(values);
-                structuredRows.Add(cells);
-            }
-        }
-        target.SetStructuredCells(structuredHeaders, structuredRows, target.ComputeContentSignature());
-        LatexEnvironment? container = context.FindAncestorEnvironment(source.Environment, "table");
-        LatexCommand? caption = context.FindDirectCommand(container, "caption");
-        LatexCommand? label = context.FindDirectCommand(container, "label");
-        string captionText = LatexInlineToMarkdownConverter.ReadDisplayArgument(context, caption?.GetRequiredArgument(0), diagnostics, "table-caption");
-        string labelText = LatexInlineToMarkdownConverter.ReadArgumentSource(context, label?.GetRequiredArgument(0), diagnostics);
-        if (!string.IsNullOrWhiteSpace(captionText) || !string.IsNullOrWhiteSpace(labelText)) {
-            var attributes = string.IsNullOrWhiteSpace(captionText)
-                ? null
-                : new[] { new KeyValuePair<string, string?>("caption", captionText) };
-            target.SetAttributes(MarkdownAttributeSet.Create(labelText, attributes: attributes));
-        }
-        return target;
     }
 
     private static void AddTheorem(
@@ -343,16 +327,17 @@ internal static class LatexToMarkdownConverter {
         MarkdownDoc target,
         LatexTheorem source,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
-        InlineSequence body = source.LabelCommand == null
+        LatexCommand? labelCommand = context.FindTheoremLabel(source.Environment);
+        InlineSequence body = labelCommand == null
             ? LatexInlineToMarkdownConverter.Convert(context, source.Environment.ContentSpan, diagnostics)
             : LatexInlineToMarkdownConverter.ConvertExcluding(
                 context,
                 source.Environment.ContentSpan,
-                new[] { source.LabelCommand.Syntax.Span },
+                new[] { labelCommand.Syntax.Span },
                 diagnostics);
         var callout = new CalloutBlock(source.Kind, LatexInlineToMarkdownConverter.ReadDisplayArgument(context, source.Environment.BeginCommand.GetOptionalArgument(0), diagnostics, "theorem-title"),
             new IMarkdownBlock[] { new ParagraphBlock(body) });
-        string label = LatexInlineToMarkdownConverter.ReadArgumentSource(context, source.LabelCommand?.GetRequiredArgument(0), diagnostics);
+        string label = LatexInlineToMarkdownConverter.ReadArgumentSource(context, labelCommand?.GetRequiredArgument(0), diagnostics);
         if (!string.IsNullOrWhiteSpace(label)) callout.SetAttributes(MarkdownAttributeSet.Create(label));
         target.Add(callout);
     }
@@ -434,7 +419,7 @@ internal static class LatexToMarkdownConverter {
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         if (!options.IncludePreambleAsFrontMatter) return;
         var values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-        if (source.Document.DocumentClassName != null) values["documentclass"] = source.Document.DocumentClassName;
+        if (source.DocumentClassName != null) values["documentclass"] = source.DocumentClassName;
         AddCommandValue(source, values, "title", diagnostics);
         AddCommandValue(source, values, "author", diagnostics);
         AddCommandValue(source, values, "date", diagnostics);
@@ -455,7 +440,7 @@ internal static class LatexToMarkdownConverter {
     }
 
     private static void AddSourceFallback(LatexProjectionContext context, MarkdownDoc target, LatexSourceSpan span,
-        LatexToMarkdownOptions options, List<LatexMarkdownConversionDiagnostic> diagnostics) {
+        LatexToMarkdownOptions options, List<LatexMarkdownConversionDiagnostic> diagnostics, string feature = "unprojected-source") {
         LatexSyntaxNode[] comments = context.Comments(span).Where(static item => item.OpaqueSyntax != null).Select(static item => item.OpaqueSyntax!).ToArray();
         string visible = context.ExtractResidual(span, context.Comments(span).Select(static item => item.Span));
         ReportOmittedComments(context, comments.Where(item => IsInside(item.Span, span.Start.Offset, span.End.Offset)), diagnostics);
@@ -464,7 +449,7 @@ internal static class LatexToMarkdownConverter {
             context.Document.Profile == LatexDocumentProfile.PreserveOnly ? visible : visible.Trim());
         diagnostics.Add(new LatexMarkdownConversionDiagnostic("LATEXMD297",
             options.PreserveUnsupportedAsSource ? LatexMarkdownConversionOutcome.SourceFallback : LatexMarkdownConversionOutcome.Omitted,
-            "unprojected-source", "Source outside the semantic document profile requires a source fallback.", span));
+            feature, "Source outside the semantic document profile requires a source fallback.", span));
     }
 
     private static bool IsDirectChildEnvironment(LatexSyntaxNode node, LatexSyntaxNode body) {
@@ -501,6 +486,7 @@ internal static class LatexToMarkdownConverter {
             LatexMath => "math-display",
             LatexEnvironment environment => "environment-" + environment.Name,
             LatexSyntaxNode => "verbatim",
+            LatexCommand => "source-fallback",
             _ => "source-fallback"
         };
     }

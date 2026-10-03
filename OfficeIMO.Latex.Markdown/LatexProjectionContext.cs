@@ -10,6 +10,7 @@ internal sealed class LatexProjectionContext {
     private readonly LatexLabel[] _labels;
     private readonly Dictionary<string, LatexCommand> _firstCommands = new(StringComparer.Ordinal);
     private readonly Dictionary<LatexSyntaxNode, Dictionary<string, LatexCommand>> _directCommands = new();
+    private readonly Dictionary<LatexSyntaxNode, LatexCommand> _theoremLabels = new();
     private readonly Dictionary<LatexSyntaxNode, LatexEnvironment> _environments = new();
     private readonly HashSet<LatexEnvironment> _semanticEnvironments = new();
     private readonly IReadOnlyList<LatexSourceSpan> _excluded = Array.Empty<LatexSourceSpan>();
@@ -27,9 +28,14 @@ internal sealed class LatexProjectionContext {
             CheckCancellation();
             if (!LatexSemanticBuilder.IsActiveSyntax(command.Syntax)) continue;
             inlines.Add(new LatexInlineCandidate(command.Syntax.Span, command, null, null));
-            if (!_firstCommands.ContainsKey(command.Name)) _firstCommands.Add(command.Name, command);
+            if (command.Syntax.Span.End.Offset > (document.Body?.Syntax.Span.End.Offset ?? document.Source.Text.Length)) continue;
             LatexSyntaxNode? owner = command.Syntax.Parent;
             while (owner != null && owner.Kind != LatexSyntaxKind.Environment) owner = owner.Parent;
+            if (owner != null && command.Name == "label" && !IsInsidePreservedArgument(command.Syntax) && !_theoremLabels.ContainsKey(owner))
+                _theoremLabels.Add(owner, command);
+            if (LatexSemanticBuilder.IsInsideCommandArgument(command.Syntax)) continue;
+            if ((owner == null || ReferenceEquals(owner, document.Body?.Syntax)) && !_firstCommands.ContainsKey(command.Name))
+                _firstCommands.Add(command.Name, command);
             if (owner == null) continue;
             if (!_directCommands.TryGetValue(owner, out var commands)) {
                 commands = new Dictionary<string, LatexCommand>(StringComparer.Ordinal);
@@ -70,11 +76,7 @@ internal sealed class LatexProjectionContext {
             LatexEnvironment? container = FindAncestorEnvironment(item.Environment, "table");
             if (container != null) _semanticEnvironments.Add(container);
         }
-        foreach (LatexHeading heading in document.Headings) {
-            CheckCancellation();
-            if (heading.Level == 0 && document.Body != null && heading.Command.Syntax.Span.Start.Offset >= document.Body.ContentSpan.Start.Offset
-                && heading.Command.Syntax.Span.End.Offset <= document.Body.ContentSpan.End.Offset) HasPart = true;
-        }
+        HasPart = document.Body != null && FindDirectCommand(document.Body, "part") != null;
         _inlines = inlines.OrderBy(static item => item.Span.Start.Offset).ThenByDescending(static item => item.Span.End.Offset).ToArray();
         _comments = comments.OrderBy(static item => item.Span.Start.Offset).ToArray();
         _labels = document.Labels.OrderBy(static item => item.Command.Syntax.Span.Start.Offset).ToArray();
@@ -95,6 +97,7 @@ internal sealed class LatexProjectionContext {
         _labels = source._labels;
         _firstCommands = source._firstCommands;
         _directCommands = source._directCommands;
+        _theoremLabels = source._theoremLabels;
         _environments = source._environments;
         _semanticEnvironments = source._semanticEnvironments;
         _excluded = excluded;
@@ -110,9 +113,29 @@ internal sealed class LatexProjectionContext {
         excluded.Start.Offset <= span.Start.Offset && excluded.End.Offset >= span.End.Offset);
     internal void CheckCancellation() => CancellationToken.ThrowIfCancellationRequested();
     internal LatexCommand? FirstCommand(string name) => _firstCommands.TryGetValue(name, out var command) ? command : null;
+    internal string? DocumentClassName => FirstCommand("documentclass")?.GetRequiredArgument(0)?.Content.Trim();
     internal bool HasSemanticProjection(LatexEnvironment environment) => _semanticEnvironments.Contains(environment);
     internal LatexCommand? FindDirectCommand(LatexEnvironment? environment, string name) => environment != null
         && _directCommands.TryGetValue(environment.Syntax, out var commands) && commands.TryGetValue(name, out var command) ? command : null;
+    internal LatexCommand? FindTheoremLabel(LatexEnvironment environment) =>
+        _theoremLabels.TryGetValue(environment.Syntax, out var command) ? command : null;
+
+    // Inline formatting is projected recursively, so a label can be removed from its
+    // children without slicing the enclosing syntax. Preserved command arguments are
+    // opaque source: their labels must stay inside that source rather than escape it.
+    private static bool IsInsidePreservedArgument(LatexSyntaxNode node) {
+        for (LatexSyntaxNode? parent = node.Parent; parent != null; parent = parent.Parent) {
+            if (parent.Kind != LatexSyntaxKind.Command) continue;
+            switch (parent.Value) {
+                case "textbf": case "textit": case "emph": case "texttt": case "underline":
+                case "textsuperscript": case "textsubscript": case "sout":
+                    break;
+                default:
+                    return true;
+            }
+        }
+        return false;
+    }
 
     internal LatexEnvironment? FindAncestorEnvironment(LatexEnvironment source, string name) {
         LatexSyntaxNode? current = source.Syntax.Parent;
