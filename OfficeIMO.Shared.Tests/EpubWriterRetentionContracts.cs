@@ -232,6 +232,7 @@ public sealed class EpubWriterRetentionContracts {
         EpubPublication book = EpubWritingContracts.CreateBook(EpubVersion.Epub2);
         XDocument ncx = book.GetContentXml("navigation");
         ncx.Root!.Name = XName.Get("ncx", "urn:foreign");
+        ncx.Root.Attribute("xmlns")?.Remove();
         book.UpdateResource("navigation", Encoding.UTF8.GetBytes(ncx.ToString()));
         Assert.Throws<InvalidDataException>(() => book.Write());
     }
