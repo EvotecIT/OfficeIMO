@@ -72,6 +72,8 @@ try {
     }
 } finally {
     if (-not $retainArtifacts -and (Test-Path -LiteralPath $workingPath)) {
-        Remove-Item -LiteralPath $workingPath -Recurse
+        # NuGet creates dot-prefixed metadata that PowerShell treats as hidden on Unix.
+        # This path is the fresh temporary tree created by this invocation.
+        [System.IO.Directory]::Delete($workingPath, $true)
     }
 }
