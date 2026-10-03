@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Provenance;
 using OfficeIMO.Workflows;
 
@@ -134,14 +135,40 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
         if (!Path.IsPathFullyQualified(OutputFolder) || !Directory.Exists(OutputFolder)) { Status = "Choose an existing local folder for the report."; return; }
         var result = _lastResult!; int revision = _revision;
         string path = Path.Combine(OutputFolder, "provenance-report-" + Guid.NewGuid().ToString("N") + ".json");
-        string temporary = path + ".tmp";
+        using var cancellation = new CancellationTokenSource(); _cancellation = cancellation;
+        StudioJobRecord? job = null;
         IsBusy = true;
+        async Task VerifyDestinationAsync(CancellationToken token) {
+            if (_disposed || revision != _revision) cancellation.Cancel();
+            token.ThrowIfCancellationRequested();
+            if (_publicationGuard != null && !await _publicationGuard.CanPublishAsync(path, false, token).ConfigureAwait(false))
+                throw new IOException("The report destination is protected by the host publication policy.");
+            token.ThrowIfCancellationRequested();
+        }
         try {
-            await File.WriteAllTextAsync(temporary, OfficeProvenanceReportSerializer.Serialize(result), new UTF8Encoding(false));
+            job = _jobs?.Start("Provenance report", result.InputPath ?? InputPath, path, cancellation.Cancel);
+            Status = "Queued";
+            using IDisposable? permit = _jobs is null ? null : await _jobs.EnterAsync(cancellation.Token);
+            Status = "Exporting report…";
+            job?.Report(new("provenance-report", "publish", Status, 0, 0));
+            await VerifyDestinationAsync(cancellation.Token);
+            byte[] bytes = Encoding.UTF8.GetBytes(OfficeProvenanceReportSerializer.Serialize(result));
+            await OfficeFileCommit.WriteAsync(path, async (stream, token) => {
+                await stream.WriteAsync(bytes, token).ConfigureAwait(false);
+                await VerifyDestinationAsync(token).ConfigureAwait(false);
+            }, OfficeFileCommit.ConflictPolicy.FailIfExists, cancellation.Token);
+            job?.Complete(OfficeWorkflowStatus.Completed, path, "Report exported.");
             if (_disposed || revision != _revision) return;
-            File.Move(temporary, path); ReportPath = path; Status = "Report exported.";
-        } catch (Exception error) when (error is not OutOfMemoryException) { if (!_disposed) Status = "Report export failed: " + error.Message; }
-        finally { if (File.Exists(temporary)) File.Delete(temporary); IsBusy = false; }
+            ReportPath = path; Status = "Report exported.";
+        } catch (OperationCanceledException) when (cancellation.IsCancellationRequested) {
+            job?.Complete(OfficeWorkflowStatus.Cancelled, null, "Report export cancelled.");
+            if (!_disposed) Status = "Report export cancelled.";
+        } catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) {
+            string message = "Report export failed: " + error.Message;
+            job?.Complete(OfficeWorkflowStatus.Failed, null, message);
+            if (!_disposed) Status = message;
+        }
+        finally { _cancellation = null; IsBusy = false; }
     }
     [RelayCommand] private void Cancel() => _cancellation?.Cancel();
     public void Dispose() { if (_disposed) return; _disposed = true; _revision++; _cancellation?.Cancel(); }
