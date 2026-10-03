@@ -12,7 +12,7 @@ public sealed class ProjectScheduleOptions {
     public bool RescheduleRemainingAfterStatusDate { get; set; }
     /// <summary>Recompute actual costs from recorded actual work and rates. Otherwise stored actual costs are retained.</summary>
     public bool RecalculateActualCosts { get; set; }
-    /// <summary>Maximum materialized assignment and cost intervals for one calculation.</summary>
+    /// <summary>Maximum simultaneously materialized assignment and cost intervals, including temporary passes and resolved external projects, for one calculation.</summary>
     public int MaxIntervals { get; set; } = 1_000_000;
     /// <summary>Maximum calendar dates visited by an arithmetic operation; prevents infinite searches in closed calendars.</summary>
     public int MaxCalendarDays { get; set; } = 36600;

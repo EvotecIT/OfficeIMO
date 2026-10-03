@@ -5,17 +5,17 @@ public static class ProjectWorkEquation {
     /// <summary>Computes work from working minutes and allocation units. Elapsed durations must first be resolved against a calendar.</summary>
     public static ProjectWork Work(decimal workingMinutes, ProjectUnits units) {
         if (workingMinutes < 0) throw new ArgumentOutOfRangeException(nameof(workingMinutes));
-        return new ProjectWork(checked(workingMinutes * units.Value));
+        return ProjectWork.FromMinutes(workingMinutes).Scale(units.Value);
     }
     /// <summary>Computes the uniform working duration for a fixed amount of work and positive total units.</summary>
     public static decimal DurationMinutes(ProjectWork work, ProjectUnits totalUnits) {
         if (totalUnits.Value <= 0) throw new ArgumentOutOfRangeException(nameof(totalUnits), "Fixed work requires positive allocation units.");
-        return work.Minutes / totalUnits.Value;
+        return work.MultiplyDivide(1, totalUnits.Value).Minutes;
     }
     /// <summary>Computes allocation for fixed work and duration. Zero-duration work cannot be inferred.</summary>
     public static ProjectUnits Units(ProjectWork work, decimal workingMinutes) {
         if (workingMinutes <= 0) throw new ArgumentOutOfRangeException(nameof(workingMinutes));
-        return ProjectUnits.Fraction(work.Minutes / workingMinutes);
+        return ProjectUnits.Fraction(work.Ratio(ProjectWork.FromMinutes(workingMinutes)));
     }
     /// <summary>Uniform planned work cost: regular hours times standard hourly rate plus overtime hours times overtime hourly rate plus the assignment's per-use charge, already scaled by work-resource units.</summary>
     public static decimal WorkCost(ProjectWork totalWork, ProjectWork overtimeWork, decimal standardHourlyRate, decimal overtimeHourlyRate, decimal costPerUse = 0) {

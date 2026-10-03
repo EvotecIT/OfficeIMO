@@ -28,22 +28,17 @@ internal sealed class ProjectExternalProjectContext {
     private readonly HashSet<ProjectDocument> _active = new();
     private readonly Dictionary<(ProjectDocument Origin, string Reference), ProjectDocument> _resolved = new();
     private readonly Dictionary<ProjectDocument, ProjectScheduleResult> _calculated = new();
-    private readonly Dictionary<ProjectDocument, long> _intervalCounts = new();
     private long _tasks;
-    private long _intervals;
-    internal ProjectExternalProjectContext(ProjectScheduleOptions options, CancellationToken token) { _options = options; _token = token; }
+    internal ProjectIntervalBudget IntervalBudget { get; }
+    internal ProjectExternalProjectContext(ProjectScheduleOptions options, CancellationToken token) {
+        _options = options; _token = token; IntervalBudget = new ProjectIntervalBudget(options.MaxIntervals);
+    }
     internal void Enter(ProjectDocument document) {
         if (_active.Contains(document)) throw new InvalidDataException("External projects contain a dependency cycle.");
         if (_active.Count > _options.MaxExternalDepth) throw new InvalidDataException("External project dependencies exceed MaxExternalDepth.");
         _active.Add(document);
     }
     internal void Leave(ProjectDocument document) { _active.Remove(document); }
-    internal bool WithinIntervalLimit(ProjectDocument document, long intervals) {
-        _intervalCounts.TryGetValue(document, out long previous);
-        _intervals = checked(_intervals - previous + intervals);
-        _intervalCounts[document] = intervals;
-        return _intervals <= _options.MaxIntervals;
-    }
     internal (ProjectScheduleResult Schedule, ProjectTaskSchedule Task, string Reference) Resolve(ProjectDocument origin, ProjectDependency dependency) {
         _token.ThrowIfCancellationRequested();
         var resolver = _options.ExternalProjectResolver ?? throw new InvalidDataException("External dependencies require an explicit caller-controlled project resolver.");
@@ -69,6 +64,7 @@ internal sealed class ProjectExternalProjectContext {
                     throw new InvalidDataException("The resolved external projects exceed MaxExternalTasks.");
             }
             schedule = new ProjectScheduler(document, _options, _token, externalContext: this).Calculate();
+            if (schedule.Report.Diagnostics.Any(d => d.Code == "PROJECT_CALCULATION_INTERVAL_LIMIT")) throw new ProjectIntervalLimitException();
             schedule.Report.ThrowIfErrors();
             _calculated.Add(document, schedule);
         }

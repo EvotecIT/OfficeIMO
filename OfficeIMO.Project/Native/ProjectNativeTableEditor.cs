@@ -7,6 +7,7 @@ internal sealed class ProjectNativeTableEditor : IProjectNativeTableEditor {
     private readonly string _prefix;
     private readonly ProjectNativeTable _table;
     private readonly Dictionary<int, int> _rows = new Dictionary<int, int>();
+    private readonly Dictionary<int, ProjectNativeRecord> _sourceRecords = new Dictionary<int, ProjectNativeRecord>();
     private readonly List<byte[]> _metadata = new List<byte[]>(), _secondaryMetadata = new List<byte[]>();
     private readonly MemoryStream _fixed = new MemoryStream(), _secondary = new MemoryStream();
     private readonly Dictionary<int, Dictionary<uint, byte[]>> _variable = new Dictionary<int, Dictionary<uint, byte[]>>();
@@ -17,7 +18,7 @@ internal sealed class ProjectNativeTableEditor : IProjectNativeTableEditor {
     private bool _dirty;
     private readonly ProjectNativeProfile _profile;
     private readonly bool _hasSecondaryStorage;
-    private readonly HashSet<int> _deletedRows = new HashSet<int>();
+    private readonly SortedSet<int> _deletedRows = new SortedSet<int>();
 
     internal ProjectNativeTableEditor(OfficeCompoundFile source, Dictionary<uint, ProjectNativeValue> properties, string name, uint tableId,
         uint uidField, long budget, CancellationToken token, ProjectNativeProfile profile) {
@@ -48,6 +49,7 @@ internal sealed class ProjectNativeTableEditor : IProjectNativeTableEditor {
             int uid = record.Integer(uidField) ?? throw new InvalidDataException("Native record UID is absent.");
             if (_rows.ContainsKey(uid)) throw new InvalidDataException("Duplicate native record UID.");
             _rows.Add(uid, record.MetadataIndex);
+            _sourceRecords.Add(uid, record);
         }
         ValidateRecordRanges(_metadata, _dataWidth);
         if (_hasSecondaryStorage) ValidateRecordRanges(_secondaryMetadata, _secondaryDataWidth);
@@ -66,6 +68,7 @@ internal sealed class ProjectNativeTableEditor : IProjectNativeTableEditor {
     public bool Contains(int uid) => _rows.ContainsKey(uid);
     public bool HasField(uint id) => _table.Fields.ContainsKey(id);
     public IEnumerable<int> Uids => _rows.Keys;
+    public int? SourceInteger(int uid, uint id) => _sourceRecords.TryGetValue(uid, out var record) ? record.Integer(id) : null;
     public void Integer(int uid, uint id, int value) {
         if (!_table.Fields.TryGetValue(id, out var field)) throw new NotSupportedException("Missing native field.");
         Set(uid, id, field.Size == 2 ? BitConverter.GetBytes(checked((short)value)) : BitConverter.GetBytes(value));
@@ -99,6 +102,15 @@ internal sealed class ProjectNativeTableEditor : IProjectNativeTableEditor {
         _dirty = true;
         if (_rows.ContainsKey(uid)) throw new InvalidOperationException("Native UID already exists.");
         var first = new byte[_metadataWidth]; var second = new byte[_secondaryMetadataWidth];
+        if (_deletedRows.Count > 0) {
+            int row = _deletedRows.Min; _deletedRows.Remove(row);
+            int offset = BitConverter.ToInt32(_metadata[row], 4), secondaryOffset = BitConverter.ToInt32(_secondaryMetadata[row], 4);
+            Put(first, 4, offset); Put(second, 4, secondaryOffset);
+            ClearRecord(_fixed, offset, _dataWidth);
+            ClearRecord(_secondary, secondaryOffset, _secondaryDataWidth);
+            _metadata[row] = first; _secondaryMetadata[row] = second; _rows.Add(uid, row);
+            return;
+        }
         Put(first, 4, checked((int)_fixed.Length)); Put(second, 4, checked((int)_secondary.Length));
         Append(_fixed, new byte[_dataWidth]); Append(_secondary, new byte[_secondaryDataWidth]);
         _rows.Add(uid, _metadata.Count); _metadata.Add(first); _secondaryMetadata.Add(second);
@@ -146,11 +158,32 @@ internal sealed class ProjectNativeTableEditor : IProjectNativeTableEditor {
         byte[] metaBytes = metadata.ToArray(); Put(metaBytes, 8, count); Put(metaBytes, 20, checked((int)variable.Length));
         replacements[_prefix + "VarMeta"] = metaBytes; replacements[_prefix + "Var2Data"] = variable.ToArray();
         var indexes = Enumerable.Range(0, _metadata.Count).Where(i => !_deletedRows.Contains(i)).ToArray();
+        TrimDeletedTail(_fixed, _metadata, _dataWidth);
+        if (_hasSecondaryStorage) TrimDeletedTail(_secondary, _secondaryMetadata, _secondaryDataWidth);
         replacements[_prefix + "FixedMeta"] = Metadata(_fixedHeader, indexes.Select(i => _metadata[i]).ToArray(), _fixed.Length);
         replacements[_prefix + "FixedData"] = _fixed.ToArray();
         if (_hasSecondaryStorage) {
             replacements[_prefix + "Fixed2Meta"] = Metadata(_secondaryHeader, indexes.Select(i => _secondaryMetadata[i]).ToArray(), _secondary.Length);
             replacements[_prefix + "Fixed2Data"] = _secondary.ToArray();
+        }
+    }
+
+    private void ClearRecord(MemoryStream data, int offset, int width) {
+        if (width == 0) return;
+        _token.ThrowIfCancellationRequested();
+        if (offset < 0 || offset > data.Length - width) throw new InvalidDataException("Deleted native record range is truncated.");
+        if (width > _budget) throw OfficeOutputLimit.Create("Native output record exceeds its byte budget.");
+        data.Position = offset; data.Write(new byte[width], 0, width);
+    }
+
+    private void TrimDeletedTail(MemoryStream data, List<byte[]> metadata, int width) {
+        if (width == 0) return;
+        // Reclaim only complete deleted records at the physical end. Leave source
+        // padding, opaque tails and all live record offsets untouched.
+        foreach (int row in _deletedRows.OrderByDescending(i => BitConverter.ToInt32(metadata[i], 4))) {
+            _token.ThrowIfCancellationRequested();
+            int offset = BitConverter.ToInt32(metadata[row], 4);
+            if (offset >= 0 && (long)offset + width == data.Length) data.SetLength(offset);
         }
     }
 

@@ -112,4 +112,58 @@ public sealed class ProjectCalculationBoundaryTests {
         Assert.True(exceeded.Report.HasErrors);
         Assert.Throws<InvalidDataException>(() => document.ApplySchedule(exceeded));
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void IntervalBudgetBoundsTheResultAcrossIndependentTasks(bool recordedActuals) {
+        using var document = ProjectDocument.Create();
+        document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;
+        var resource = document.Resources.AddWork("Crew"); resource.StandardRate = 60m;
+        for (int index = 0; index < 20; index++) {
+            var task = document.Tasks.Add("Task " + index); task.Duration = ProjectDuration.WorkingMinutes(1);
+            var assignment = document.Assignments.Add(task, resource, ProjectUnits.Percent(100));
+            if (recordedActuals) {
+                task.ActualStart = Monday; task.ActualFinish = Monday.AddMinutes(1);
+                task.ActualDuration = task.Duration; task.RemainingDuration = ProjectDuration.WorkingMinutes(0);
+                assignment.Work = new ProjectWork(1m); assignment.ActualWork = assignment.Work; assignment.RemainingWork = new ProjectWork(0m);
+                assignment.ActualStart = task.ActualStart; assignment.ActualFinish = task.ActualFinish;
+            }
+        }
+        var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true, MaxIntervals = 4 });
+        Assert.Contains(result.Report.Diagnostics, d => d.Code == "PROJECT_CALCULATION_INTERVAL_LIMIT");
+        Assert.InRange(result.Assignments.Sum(a => a.Intervals.Count + a.Costs.Count), 0, 4);
+        Assert.Throws<InvalidDataException>(() => document.ApplySchedule(result));
+        Assert.Null(document.Tasks[0].Start);
+    }
+
+    [Fact]
+    public void TemporaryDatePassIntervalsDoNotConsumeTheFinalProposalBudget() {
+        using var document = ProjectDocument.Create();
+        document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;
+        var resource = document.Resources.AddWork("Crew"); resource.StandardRate = 60m;
+        var first = document.Tasks.Add("First"); first.Duration = ProjectDuration.WorkingMinutes(1);
+        var second = document.Tasks.Add("Second"); second.Duration = ProjectDuration.WorkingMinutes(1);
+        document.Dependencies.Add(first, second);
+        document.Assignments.Add(first, resource); document.Assignments.Add(second, resource);
+        var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true, MaxIntervals = 4 });
+        result.Report.ThrowIfErrors(); Assert.Equal(4, result.Assignments.Sum(a => a.Intervals.Count + a.Costs.Count));
+        Assert.Equal(Monday.AddMinutes(2), result.Tasks.Single(t => t.TaskUid == second.Uid).Finish);
+    }
+
+    [Theory]
+    [InlineData(ProjectCostAccrual.Start)]
+    [InlineData(ProjectCostAccrual.End)]
+    public void DiscardedAccrualIntervalsReleaseTheirBudgetBeforeTheNextAssignment(ProjectCostAccrual accrual) {
+        using var document = ProjectDocument.Create();
+        document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Settings.StartDate = Monday;
+        var task = document.Tasks.Add("Delivery"); task.Duration = ProjectDuration.WorkingMinutes(60);
+        for (int index = 0; index < 2; index++) {
+            var resource = document.Resources.AddWork("Engineer " + index); resource.StandardRate = 60; resource.AccrueAt = accrual;
+            document.Assignments.Add(task, resource, ProjectUnits.Percent(100));
+        }
+        var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true, MaxIntervals = 5 });
+        result.Report.ThrowIfErrors(); Assert.Equal(4, result.Assignments.Sum(a => a.Intervals.Count + a.Costs.Count));
+        Assert.All(result.Assignments, a => Assert.Equal(60m, a.Cost));
+    }
 }
