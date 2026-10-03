@@ -1,0 +1,9 @@
+stop-words.json is the unmodified CSL 1.0.2 title-case data from the Citation
+Style Language schema project, tag v1.0.2:
+https://github.com/citation-style-language/schema/tree/v1.0.2/schemas/styles
+Commit: 506040022f6c37846343edd36658b23e85b5b8ff
+
+SHA-256: E00A7AB53A61368740003B5A7169D1887C2ED12A6800574BF4F6B789E5BDE1E5
+
+Copyright (c) 2007-2018 Citation Style Language and contributors.
+The data is distributed under the MIT license retained in LICENSE.txt.

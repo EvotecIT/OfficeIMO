@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Source-preserving citation data, deterministic bibliography codecs, and local reference resolution for .NET.</Description>
+    <Description>Source-preserving citation data, deterministic bibliography codecs, local reference resolution, and managed CSL rendering for .NET.</Description>
     <AssemblyName>OfficeIMO.Bibliography</AssemblyName>
     <AssemblyTitle>OfficeIMO.Bibliography</AssemblyTitle>
     <VersionPrefix>3.4.4</VersionPrefix>
@@ -11,7 +11,7 @@
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Bibliography</PackageId>
-    <PackageTags>bibliography;citations;bibtex;biblatex;csl-json;ris;nbib;medline;endnote</PackageTags>
+    <PackageTags>bibliography;citations;bibtex;biblatex;csl;csl-json;ris;nbib;medline;endnote</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
@@ -34,6 +34,11 @@
   <ItemGroup>
     <None Include="..\Assets\OfficeIMO.png" Pack="true" PackagePath="\" Link="OfficeIMO.png" />
     <None Include="README.md" Pack="true" PackagePath="\" />
+    <EmbeddedResource Include="Citations/Locales/locales-*.xml" />
+    <EmbeddedResource Include="Citations/Locales/locales.json" />
+    <EmbeddedResource Include="Citations/Data/stop-words.json" />
+    <None Include="Citations/Locales/NOTICE.txt" Pack="true" PackagePath="licenses/csl-locales/" />
+    <None Include="Citations/Data/NOTICE.txt;Citations/Data/LICENSE.txt" Pack="true" PackagePath="licenses/csl-schema/" />
   </ItemGroup>
 
   <ItemGroup>

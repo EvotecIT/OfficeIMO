@@ -1,6 +1,6 @@
 # OfficeIMO.Bibliography
 
-`OfficeIMO.Bibliography` is the citation-data owner for OfficeIMO. It provides one editable model and deterministic codecs for BibTeX, BibLaTeX, CSL JSON, RIS, PubMed NBIB/MEDLINE, and EndNote XML.
+`OfficeIMO.Bibliography` is the citation-data owner for OfficeIMO. It provides one editable model and deterministic codecs for BibTeX, BibLaTeX, CSL JSON, RIS, PubMed NBIB/MEDLINE, and EndNote XML. Its managed CSL renderer accepts caller-supplied styles without an external citation engine or executable.
 
 Install the package from NuGet:
 
@@ -98,9 +98,81 @@ Crossref fills missing fields and maps common book/proceedings/periodical titles
 
 `Document` retains source-order records, data containers, and reference fields for native writing. `CitationItems` excludes `@xdata` containers. `Provenance` identifies the ultimate source record/field and the complete reference path for each inherited field or role group; it describes the operation snapshot and does not change after edits. Item, edge, depth, copied-value, expanded-character, diagnostic, and cancellation limits bound the operation.
 
+## Render citations with a local CSL style
+
+```csharp
+CslStyle style = CslStyle.Parse(styleXml);
+var processor = new CslProcessor(read.Document, style,
+    new CslRenderOptions { OutputFormat = CslOutputFormat.Html });
+
+var citation = new CslCitation("citation-1");
+citation.Items.Add(new CslCitationItem(item.Key) {
+    Locator = "12–14",
+    LocatorType = "page"
+});
+CslRenderResult rendered = processor.Render(new[] { citation });
+string citationHtml = rendered.Citations[0].Content;
+IReadOnlyList<CslRenderedEntry> entries = rendered.Bibliography;
+var visibleEntries = entries.Where(entry => !entry.IsEmpty).ToArray();
+```
+
+The renderer supports plain text and escaped HTML, style macros, names and dates, sorting, locale terms, citation positions, disambiguation, and collapse rules. It accepts independent styles and resolves dependent styles through a caller-supplied `CslStyleLoadOptions.IndependentStyleResolver`. Style resolution performs no network or filesystem access.
+
+Citation and bibliography snapshots retain a keyed entry when a style produces no text. `CslRenderedEntry.IsEmpty` identifies these entries in both output formats, including HTML entries with an empty wrapper. Hosts can omit them from display while retaining their keys and citation numbers. Text consisting of explicit style whitespace remains content.
+
+CSL-JSON `shortTitle` and `journalAbbreviation` supply `title-short` and `container-title-short` when the corresponding canonical field is absent. Rendering, variable conditions, sorting, and name substitution use the same values. An explicit canonical field takes precedence, including an empty value, and writing retains the supplied field names. Put metadata in its CSL-JSON fields; the `note` field remains annotation text.
+
+`CslRenderOptions` controls locale overrides, abbreviations, output and intermediate sizes, citation count, and rendering-operation budgets. Style XML is bounded and rejects DTDs, external entities, undefined macros, and recursive macro references. Embedded CSL locales have their own attribution and license notices in the package.
+
+Set `CslCitationItem.AuthorOnly` for a narrative citation. It uses the style's first names expression, including its name formatting and substitutions; a numeric style without names uses default long author formatting. Citation-layout affixes are omitted when every item in a cluster is narrative. `AuthorOnly` and `SuppressAuthor` cannot both be enabled on one item. Initials retain supported input emphasis. Sorting and disambiguation share the rendering work budget.
+
+Name substitutions suppress selected variables, including their short forms, as they render. Variable-presence and numeric conditions still inspect the source values after substitution suppresses repeated output. An empty candidate releases its variable, name-comparison, and alignment state before the next fallback. Bibliography author replacement applies to name and text fallbacks, including an empty replacement that hides repeated names. Contributor labels retain their position and formatting beside replacement names. Punctuation cleanup resolves collisions between fields, delimiters, and affixes while retaining punctuation inside each field and its HTML formatting. Locale quote rules move adjoining commas and periods across inline formatting while preserving emphasis and identifier links. Adjacent single and double input quotes retain their nested quotation levels, including when formatting divides the quote characters. Apostrophes remain distinct from closing quotation marks, unmatched quotes retain their input treatment, and punctuation does not move between display containers.
+
+Use `form="count"` on `cs:name` to count the contributors selected by the style's abbreviation rules, including a retained last name and combined editor/translator lists. Abbreviation requires both effective `et-al-min` and `et-al-use-first` settings; inheritance, subsequent-citation settings and macro sort overrides can supply either value. Identical editor and translator lists combine when those are the two selected roles. Expressions selecting additional roles render each role independently, including when an earlier substitution suppresses one role. Missing contributors can use the same substitutions as ordinary names. A present list selected down to zero names produces `0`. Macro sort keys honor `names-min`, `names-use-first`, and `names-use-last` overrides. Name and title sorting ignores punctuation while preserving internal word spaces, numeric runs, and contributor boundaries; displayed punctuation remains visible.
+
+Use `BibliographyName.DroppingParticle` and `NonDroppingParticle`, or the matching CSL-JSON fields, to control particle placement and sorting. The family name retains the supplied text, including particles that belong in its primary sort key. For example, `{"family":"Gogh","given":"Vincent","non-dropping-particle":"van"}` lets a style demote `van`, while `{"family":"de Gaulle","given":"Charles"}` keeps the full family name together. Quotation marks in name fields remain literal text. Supply an existing initial such as `Ts.` in `given` when a name uses a multiletter abbreviation.
+
+Initialization retains emphasis around each compound given-name component, including lowercase continuations such as `Guo-ping`. The style's `initialize-with-hyphen` option controls the separator between initialized components. Standalone lowercase name particles retain their text, and `initialize="false"` retains full compound names.
+
+Name comparison treats single-letter given-name initials such as `J.J.`, `J. J.`, and `J J` as equivalent. This prevents typographical spacing from triggering disambiguation and lets equivalent editor/translator lists share a role label. Full given names and corporate literal names retain their distinct identities; displayed names retain the style's formatting.
+
+Rich-text fields retain supported emphasis beside HTML entities. Escaped tags remain literal text. Small-caps spans accept whitespace in their CSS declaration; the renderer emits only supported formatting and discards other input declarations and attributes.
+
+Set `page-range-format` on the style to expand or abbreviate page ranges. The renderer supports `expanded`, `minimal`, `minimal-two`, `chicago`/`chicago-15`, and `chicago-16`, including matching page prefixes and Roman range delimiters. Endpoints with different digit widths retain all significant digits. Distinct prefixes or suffixes retain their identifier text. Without this option, `cs:text` preserves page-range text; citation locators follow their own range rules.
+
+Page expansion resolves abbreviated endpoints before `cs:number` converts them to Roman or ordinal forms. Decimal page digits retain their original glyphs, including fullwidth and Persian digits.
+
+`cs:number` transforms bare numeric units individually and preserves generated locale text. Contextual labels recognize Arabic and Roman numeral lists; page and volume counts use their count value. A dotted version such as `4.2` is one value; a list or range such as `4.2 & 5.3` is plural. Nonnumeric identifiers such as `ES-22-8` retain their hyphens. Ordinals use the accompanying noun's gender, including the selected locator type. Partial locale suffix sets retain their matching rules, and an explicitly empty long ordinal remains empty. Numeric classification, numeral extraction, separators, and page ranges use linear scans with cancellation checkpoints. Numeral and connector expansion observes `MaximumIntermediateCharacters`.
+
+Name sort keys use the CSL priority of family, particles, given name, and suffix. Short-name macros omit dropping particles and suffixes; given-only names sort by their visible name. Institutional sort keys omit initial English articles, including those followed by Unicode whitespace. Displayed names retain their text and formatting.
+
+Note disambiguation compares citation text across full, subsequent, and near-note forms. Subsequent name options and first-note variables participate even when the style has no position condition. Short notes receive the names or titles needed to identify a work, including when they collide with another work's full note. First-note references participate in that comparison, and overlapping ambiguity sets share one bibliography-ordered year-suffix assignment.
+
+Conditional disambiguation selects the detail needed to distinguish works. A title can resolve a collision without adding an edition; works that still match can receive further detail. Locator-dependent branches retain the detail needed to identify a work when page numbers are added. Repeated macro calls and unique full notes avoid redundant additions. Nested and sibling conditions can contribute together, and explicit conditional year-suffix fields are reconsidered after suffix assignment. Trials share the rendering work limit and are recalculated for each document sequence.
+
+Date-only citations can collapse repeated years and year-suffix ranges. Layouts without a names expression and expressions whose names are empty share the same visible-name group. Citation prefixes and suffixes keep affixed cites separate from adjacent collapse operations.
+
+XML indentation in an empty locale term does not render. To make whitespace itself a term, set `xml:space="preserve"` on that term or an enclosing element. Nonempty term values retain their spaces, including text separated by XML comments or CDATA. Output attributes such as `prefix`, `suffix`, and `delimiter` retain their values.
+
+Supply `citation-label` values as record data when a style uses them; the renderer does not generate labels from author names and years. Metadata written as field declarations inside an annotation `note` remains annotation text. Supply those values in their CSL fields, such as `reviewed-title` or `container-title`. Name conjunctions use the style's generic joining rules; use an explicit name delimiter when a script requires different spacing.
+
+`Render` recalculates a complete document sequence. Pass the revised sequence after inserting, removing, replacing, or moving citations; successive operations do not retain the previous document's numbering or disambiguation state. Results contain the current citations and bibliography. Hosts decide which displayed regions to refresh.
+
+Set `CslCitation.NoteIndex` to the footnote or endnote number, or zero for a body citation. Body and note citations keep separate position histories. Across notes, `ibid` requires consecutive note numbers and an unambiguous previous note containing one work; within a cluster, it follows the rendered item order. Empty and absent locators both mean no locator. First-note references remain empty in body citations and in the work's first note.
+
+Note styles capitalize the opening of the first rendered citation in a note, preserving formatting and case-protected text. Set `NoteHasPrecedingText = true` when inserting a citation into existing note prose. An item prefix containing text also prevents automatic capitalization. Later citations in the same note retain their casing.
+
+`rendered.BibliographyLayout` carries hanging-indent, line-spacing, entry-spacing, and second-field alignment settings for a document or HTML host. HTML entries use `csl-left-margin` and `csl-right-inline` blocks for automatic second-field alignment and retain explicit CSL display blocks. Layout, group, and macro-wrapper affixes stay with their own first and last fields; formatting preserves emphasis and links. Mixed inline fields and display blocks retain their order. Apply the returned settings in the host's layout system; `MaximumLeftMarginCharacters` counts the final visible UTF-16 text after layout transformations, so use actual text measurement when selecting a column width.
+
+HTML bibliography entries link rendered `URL`, `DOI`, `PMID`, and `PMCID` values to absolute HTTP or HTTPS targets. URI prefixes stay inside the anchor; descriptive affixes stay outside. Set `LinkBibliographyIdentifiers = false` to disable links. Citation clusters and plain text output remain text, and rendering never fetches a link.
+
+Title casing uses the versioned CSL English stop-word list, including phrases and hyphenated words. The item language controls Unicode casing and whether English title casing applies; without an item language, title casing follows the style's default language. Output-locale overrides control locale terms separately. Case-protected input retains its original text, and ordinal day formatting uses the month term's grammatical gender.
+
+Inspect `processor.DataConversionReport` when rendering a bibliography imported from another format; set `RequireNoDataLoss` to reject lossy CSL data projection. This report describes data conversion, not full style conformance. The renderer implements a qualified subset of CSL 1.0.2 behavior; the [support matrix](../Docs/officeimo.bibliography-support-matrix.md) records its current limits.
+
 ## Boundaries
 
-The package does not execute TeX, fetch DOI or PubMed metadata, resolve remote resources, manage attachments, remove DRM, or decrypt resources.
+The package does not execute TeX, fetch DOI or PubMed metadata, resolve remote resources, manage attachments, remove DRM, or decrypt resources. Citation rendering uses local style and locale data supplied by the caller or embedded in the package.
 
 `OfficeIMO.Word` does not depend on this package.
 
