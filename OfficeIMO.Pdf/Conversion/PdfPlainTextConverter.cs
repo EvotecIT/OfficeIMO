@@ -35,6 +35,7 @@ public static class PdfPlainTextConverter {
         cancellationToken.ThrowIfCancellationRequested();
         var normalized = new StringBuilder(Math.Min(text.Length, settings.MaximumCharacters));
         int column = 0;
+        int pageCount = 1;
         for (int index = 0; index < text.Length; index++) {
             if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             char value = text[index];
@@ -42,6 +43,8 @@ public static class PdfPlainTextConverter {
                 if (index + 1 < text.Length && text[index + 1] == '\n') index++;
                 value = '\n';
             }
+            if (value == '\f' && ++pageCount > settings.MaximumPages)
+                throw new InvalidDataException("Plain text exceeds the explicit page limit.");
             int count = value == '\t' ? settings.TabSize - column % settings.TabSize : 1;
             if (normalized.Length > settings.MaximumCharacters - count)
                 throw new InvalidDataException("Plain text exceeds the expanded character limit.");

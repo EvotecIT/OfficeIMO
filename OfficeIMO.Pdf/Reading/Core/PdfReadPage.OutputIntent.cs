@@ -14,6 +14,8 @@ public sealed partial class PdfReadPage {
         bool foundTransparency = false;
         var activeForms = new HashSet<PdfStream>();
         var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
+        var colorClassifier = new PdfPrintProductionColorInspector.ResourceColorSpaceClassifier(
+            _objects, _limits.MaxObjectNestingDepth, _limits.MaxDecodedStreamBytes);
         Scan(GetContentStreamContent(budget), resources, false, false, false, false,
             (Fill: false, Stroke: false, Blend: false, SoftMask: false),
             initialTextMode: 0, initialFont: null, depth: 0);
@@ -244,16 +246,14 @@ public sealed partial class PdfReadPage {
             (bool UsesDeviceRgb, bool UsesDeviceIndependent) ClassifySelected(string? name) {
                 if (name == null) return default;
                 if (!selectedColorSpaces.TryGetValue(name, out var usage)) {
-                    usage = PdfPrintProductionColorInspector.ClassifySelectedColorSpace(name, currentResources,
-                        _objects, _limits.MaxObjectNestingDepth, _limits.MaxDecodedStreamBytes);
+                    usage = colorClassifier.ClassifySelected(name, currentResources);
                     selectedColorSpaces.Add(name, usage);
                 }
                 return usage;
             }
 
             (bool UsesDeviceRgb, bool UsesDeviceIndependent) ClassifyColorObject(PdfObject? value) =>
-                PdfPrintProductionColorInspector.ClassifyColorSpaceObject(value,
-                    currentResources, _objects, _limits.MaxObjectNestingDepth, _limits.MaxDecodedStreamBytes);
+                colorClassifier.Classify(value, currentResources);
         }
     }
 

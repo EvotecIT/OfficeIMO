@@ -17,13 +17,17 @@ internal static class OdfTableRowElements {
     }
 
     private static IEnumerable<XElement> EnumerateChild(XElement child) {
-        if (child.Name == OdfNamespaces.Table + "table-row") {
-            yield return child;
-        } else if (child.Name == OdfNamespaces.Table + "table-header-rows"
-            || child.Name == OdfNamespaces.Table + "table-rows"
-            || child.Name == OdfNamespaces.Table + "table-row-group") {
-            foreach (XElement nested in child.Elements()) {
-                foreach (XElement row in EnumerateChild(nested)) yield return row;
+        var pending = new Stack<XElement>();
+        pending.Push(child);
+        while (pending.Count > 0) {
+            XElement current = pending.Pop();
+            if (current.Name == OdfNamespaces.Table + "table-row") {
+                yield return current;
+            } else if (current.Name == OdfNamespaces.Table + "table-header-rows"
+                || current.Name == OdfNamespaces.Table + "table-rows"
+                || current.Name == OdfNamespaces.Table + "table-row-group") {
+                XElement[] children = current.Elements().ToArray();
+                for (int index = children.Length - 1; index >= 0; index--) pending.Push(children[index]);
             }
         }
     }

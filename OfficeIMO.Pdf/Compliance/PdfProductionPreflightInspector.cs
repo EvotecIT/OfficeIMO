@@ -25,6 +25,7 @@ internal static class PdfProductionPreflightInspector {
 
         var findings = new List<PdfProductionFinding>();
         var fixups = new List<PdfProductionFixupProposal>();
+        var colorWorkBudget = new PdfPrintProductionColorInspector.InspectionWorkBudget(document.ReadOptions.Limits);
         InspectOutputIntents();
         foreach (int pageNumber in pageNumbers) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -136,7 +137,8 @@ internal static class PdfProductionPreflightInspector {
         }
 
         PdfPrintProductionColorEvidence InspectColor(int pageNumber, PdfReadPage printPage, bool unresolvedPrintResources) {
-            PdfPrintProductionColorEvidence color = PdfPrintProductionColorInspector.Inspect(document, pageNumber, cancellationToken);
+            PdfPrintProductionColorEvidence color = PdfPrintProductionColorInspector.Inspect(document, pageNumber,
+                colorWorkBudget, cancellationToken);
             if (unresolvedPrintResources) {
                 (bool definiteRgb, bool definiteIndependent, bool definiteTransparency) = printPage.GetDefinitePrintVisibleColorUse(cancellationToken);
                 if (definiteRgb) {
@@ -189,43 +191,51 @@ internal static class PdfProductionPreflightInspector {
                     PdfProductionFindingSeverity.Indeterminate, pageNumber,
                     "The optional-content print configuration could not be evaluated completely."));
             }
-            IReadOnlyList<PdfImagePlacement> placements = readPage.GetImagePlacements(pageNumber, cancellationToken);
+            long placementWork = 0;
+            void ConsumePlacementWork(long units) {
+                placementWork = checked(placementWork + units);
+                if (placementWork > PdfUnderstandingPipelineOptions.DefaultMaxWorkUnitsPerPage)
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts,
+                        PdfUnderstandingPipelineOptions.DefaultMaxWorkUnitsPerPage, placementWork);
+            }
+            IReadOnlyList<PdfImagePlacement> placements = readPage.GetImagePlacements(pageNumber,
+                PdfUnderstandingPipelineOptions.DefaultMaxImageRegionsPerPage,
+                ConsumePlacementWork, cancellationToken.ThrowIfCancellationRequested, cancellationToken);
             if (unsupportedPrintContent) {
                 HashSet<PdfContentOrderKey> definiteImages = readPage.GetDefinitePrintVisibleImageContentOrderKeys(cancellationToken);
                 placements = placements.Where(placement => placement.ContentOrderKey is { } key &&
                     definiteImages.Contains(key)).ToArray();
             }
             placements = placements.Where(static placement => placement.Opacity > 0D).ToArray();
-            int understoodPlacements = 0;
-            var matchedPlacements = new HashSet<PdfImagePlacement>();
-            foreach (PdfExtractedImage image in readPage.GetImages(pageNumber, placements, cancellationToken)) {
-                foreach (PdfImagePlacement placement in PdfLogicalPage.MatchImagePlacements(image, placements)) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (!matchedPlacements.Add(placement)) continue;
-                    understoodPlacements++;
-                    double userUnit = readPage.GetGeometry().UserUnit ?? 1D;
-                    double horizontalPoints = Math.Sqrt(placement.A * placement.A + placement.B * placement.B) * userUnit;
-                    double verticalPoints = Math.Sqrt(placement.C * placement.C + placement.D * placement.D) * userUnit;
-                    if (!IsPositiveFinite(horizontalPoints) || !IsPositiveFinite(verticalPoints) ||
-                        image.Width <= 0 || image.Height <= 0) {
-                        AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableImageResolution,
-                            PdfProductionFindingSeverity.Indeterminate, pageNumber, "A placed image lacks usable pixel or transform dimensions."));
-                        continue;
-                    }
-                    double ppi = Math.Min(image.Width * 72D / horizontalPoints, image.Height * 72D / verticalPoints);
-                    if (ppi >= effective.EffectiveMinimumImagePpi) continue;
-                    PdfVisualBounds visual = readPage.TransformBoundsToVisual(placement.X, placement.Y,
-                        placement.X + placement.Width, placement.Y + placement.Height);
-                    AddFinding(new PdfProductionFinding(PdfProductionFindingKind.LowImageResolution,
-                        effective.Profile == PdfProductionPreflightProfile.GeneralPrint ? PdfProductionFindingSeverity.Warning : PdfProductionFindingSeverity.Error,
-                        pageNumber, $"Image placement resolves to {ppi:0.#} ppi, below {effective.EffectiveMinimumImagePpi:0.#} ppi.",
-                        new PdfLogicalVisualBounds(visual.Left, visual.Top, visual.Right, visual.Bottom), ppi));
+            int uninspectablePlacements = 0;
+            foreach (PdfImagePlacement placement in placements) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!readPage.TryGetImagePixelDimensions(placement, out int imageWidth, out int imageHeight)) {
+                    uninspectablePlacements++;
+                    continue;
                 }
+                double userUnit = readPage.GetGeometry().UserUnit ?? 1D;
+                double horizontalPoints = Math.Sqrt(placement.A * placement.A + placement.B * placement.B) * userUnit;
+                double verticalPoints = Math.Sqrt(placement.C * placement.C + placement.D * placement.D) * userUnit;
+                if (!IsPositiveFinite(horizontalPoints) || !IsPositiveFinite(verticalPoints) ||
+                    imageWidth <= 0 || imageHeight <= 0) {
+                    AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableImageResolution,
+                        PdfProductionFindingSeverity.Indeterminate, pageNumber, "A placed image lacks usable pixel or transform dimensions."));
+                    continue;
+                }
+                double ppi = Math.Min(imageWidth * 72D / horizontalPoints, imageHeight * 72D / verticalPoints);
+                if (ppi >= effective.EffectiveMinimumImagePpi) continue;
+                PdfVisualBounds visual = readPage.TransformBoundsToVisual(placement.X, placement.Y,
+                    placement.X + placement.Width, placement.Y + placement.Height);
+                AddFinding(new PdfProductionFinding(PdfProductionFindingKind.LowImageResolution,
+                    effective.Profile == PdfProductionPreflightProfile.GeneralPrint ? PdfProductionFindingSeverity.Warning : PdfProductionFindingSeverity.Error,
+                    pageNumber, $"Image placement resolves to {ppi:0.#} ppi, below {effective.EffectiveMinimumImagePpi:0.#} ppi.",
+                    new PdfLogicalVisualBounds(visual.Left, visual.Top, visual.Right, visual.Bottom), ppi));
             }
-            if (understoodPlacements < placements.Count) {
+            if (uninspectablePlacements > 0) {
                 AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableImageResolution,
                     PdfProductionFindingSeverity.Indeterminate, pageNumber,
-                    $"{placements.Count - understoodPlacements} image placement(s) lacked usable extraction metadata."));
+                    $"{uninspectablePlacements} image placement(s) lacked usable pixel dimensions."));
             }
             if (color.HasUninspectedImagePlacementSources && !unsupportedPrintContent) {
                 AddFinding(new PdfProductionFinding(PdfProductionFindingKind.UninspectableImageResolution,

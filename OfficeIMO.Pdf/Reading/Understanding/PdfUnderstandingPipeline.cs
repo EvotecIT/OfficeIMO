@@ -49,12 +49,14 @@ public sealed class PdfUnderstandingPipelineOptions {
     public int MaxTableCandidatesPerPage { get; set; } = 1_024;
     /// <summary>Maximum regions and semantic elements retained for one page.</summary>
     public int MaxRegionsPerPage { get; set; } = 10_000;
+    internal const int DefaultMaxImageRegionsPerPage = 10_000;
     /// <summary>Maximum positioned image regions retained for one page.</summary>
-    public int MaxImageRegionsPerPage { get; set; } = 10_000;
+    public int MaxImageRegionsPerPage { get; set; } = DefaultMaxImageRegionsPerPage;
     /// <summary>Maximum viable image-caption association edges retained before deterministic matching.</summary>
     public int MaxImageCaptionCandidatesPerPage { get; set; } = 100_000;
+    internal const long DefaultMaxWorkUnitsPerPage = 10_000_000;
     /// <summary>Maximum comparison and traversal work performed by built-in stages for one page.</summary>
-    public long MaxWorkUnitsPerPage { get; set; } = 10_000_000;
+    public long MaxWorkUnitsPerPage { get; set; } = DefaultMaxWorkUnitsPerPage;
     /// <summary>Maximum comparison and traversal work performed by document-wide semantic enrichment.</summary>
     public long MaxDocumentWorkUnits { get; set; } = 10_000_000;
 
@@ -305,7 +307,8 @@ internal sealed class PdfUnderstandingPipeline {
             pageNumber,
             _limits.MaxImageRegionsPerPage,
             context.ConsumeWork,
-            context.ThrowIfCancellationRequested);
+            context.ThrowIfCancellationRequested,
+            cancellationToken);
         return context;
     }
 

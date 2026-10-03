@@ -22,7 +22,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             var pictures = new Dictionary<int, LegacyDocPicture>();
-            var picturesByDataOffset = new Dictionary<int, LegacyDocPicture>();
+            // A null value remembers a rejected PICF offset as well as successful pictures.
+            var picturesByDataOffset = new Dictionary<int, LegacyDocPicture?>();
             var ranges = new Dictionary<int, int>();
             int decodedImageBytes = 0;
             string? warning = null;
@@ -39,7 +40,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 int offset = format.PictureDataOffset.Value;
                 if (picturesByDataOffset.TryGetValue(offset, out LegacyDocPicture? cachedPicture)) {
-                    pictures[character.CharacterPosition] = cachedPicture;
+                    if (cachedPicture != null) pictures[character.CharacterPosition] = cachedPicture;
                     continue;
                 }
                 int remainingImageBytes = maximumDecodedImageBytes - decodedImageBytes;
@@ -47,6 +48,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         out LegacyDocPicture? picture, out int consumedLength,
                         out string? pictureWarning)) {
                     warning ??= pictureWarning;
+                    picturesByDataOffset.Add(offset, null);
                     continue;
                 }
 
