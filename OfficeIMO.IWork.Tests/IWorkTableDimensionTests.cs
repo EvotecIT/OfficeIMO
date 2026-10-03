@@ -8,6 +8,27 @@ namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkBoundaryTests {
     [Fact]
+    public void Numbers_empty_rows_preserve_explicit_heights() {
+        const int rowCount = 512;
+        byte[] headers = Message(Enumerable.Range(0, rowCount).Reverse()
+            .Select(index => BytesField(2, DimensionHeader((ulong)index, 20.123457f))).ToArray());
+        using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers,
+            firstBucketPayload: Message(VarintField(1, 1), headers),
+            secondBucketPayload: Message(VarintField(1, 1)), rowCount: rowCount);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        Assert.False(result.IsVisualFallback, string.Join("; ", result.Report.Diagnostics.Select(item => item.Code + ": " + item.Message)));
+        using var saved = new MemoryStream(result.Value.ToBytes());
+        using var zip = new ZipArchive(saved, ZipArchiveMode.Read, leaveOpen: true);
+        using Stream xml = zip.GetEntry("xl/worksheets/sheet1.xml")!.Open();
+        XElement[] rows = XDocument.Load(xml).Descendants(SpreadsheetNs + "row").ToArray();
+        Assert.Equal(rowCount, rows.Length);
+        for (int index = 0; index < rows.Length; index++) {
+            Assert.Equal(index + 1, (int)rows[index].Attribute("r")!);
+            Assert.Equal((double)20.123457f, double.Parse(rows[index].Attribute("ht")!.Value, CultureInfo.InvariantCulture));
+        }
+    }
+
+    [Fact]
     public void Independent_dimension_fixture_preserves_nonuniform_rows_and_columns() {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus",
             "numbers-parser", "individual-dimensions.numbers");
@@ -169,12 +190,12 @@ public sealed partial class IWorkBoundaryTests {
         bool duplicate = false, bool missingBucket = false, float scale = 1f, bool repeatTable = false,
         byte[]? firstBucketPayload = null, byte[]? secondBucketPayload = null, byte[]? columnBucketPayload = null,
         int repeatBucketCount = 0, uint firstBucketType = 6006,
-        byte[]? tableStyleReference = null, byte[][]? styleRecords = null) {
+        byte[]? tableStyleReference = null, byte[][]? styleRecords = null, int rowCount = 3) {
         byte[] store = Message(
             BytesField(1, Message(VarintField(1, 1), ReferenceField(2, missingBucket ? 99UL : 12UL), ReferenceField(2, 13),
                 Message(Enumerable.Range(0, repeatBucketCount).Select(_ => ReferenceField(2, 12)).ToArray()))),
             ReferenceField(2, 14), BytesField(3, Message()));
-        byte[] model = Message(tableStyleReference ?? Array.Empty<byte>(), BytesField(4, store), VarintField(6, 3), VarintField(7, 2),
+        byte[] model = Message(tableStyleReference ?? Array.Empty<byte>(), BytesField(4, store), VarintField(6, (ulong)rowCount), VarintField(7, 2),
             StringField(8, "Dimensions"), DoubleField(16, 10), DoubleField(17, 20));
         byte[] firstBucket = Message(VarintField(1, 1), BytesField(2, firstRowHeader ?? DimensionHeader(0, 20.25f)),
             BytesField(2, DimensionHeader(1, 0)));

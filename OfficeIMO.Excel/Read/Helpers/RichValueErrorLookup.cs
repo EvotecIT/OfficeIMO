@@ -53,27 +53,53 @@ namespace OfficeIMO.Excel {
             Rich.RichValue[] richValues = Bounded(values.Elements<Rich.RichValue>());
             Rich.RichValueStructure[] richStructures = Bounded(structures.Elements<Rich.RichValueStructure>());
             var errors = new Dictionary<uint, string>();
+            // References may alias the same large payload. Cache successful and failed
+            // decodes for this operation only, so editable roots remain observable later.
+            var futureErrors = new Dictionary<uint, string?>();
+            var valueErrors = new Dictionary<uint, string?>();
+            var keyLayouts = new Dictionary<uint, (int Count, int ErrorIndex)>();
+            string? DecodeValue(uint valueIndex) {
+                if (valueErrors.TryGetValue(valueIndex, out string? cached)) return cached;
+                string? error = null;
+                Rich.RichValue value = richValues[valueIndex];
+                if (TryIndex(value, "s", out uint structureIndex) && structureIndex < richStructures.Length) {
+                    Rich.RichValueStructure structure = richStructures[structureIndex];
+                    if (structure.T?.Value == "_error") {
+                        if (!keyLayouts.TryGetValue(structureIndex, out var layout)) {
+                            Rich.Key[] keys = Bounded(structure.Elements<Rich.Key>());
+                            int errorIndex = Array.FindIndex(keys, key => key.N?.Value == "errorType"
+                                && key.GetAttributes().Any(attribute => attribute.LocalName == "t"
+                                    && string.IsNullOrEmpty(attribute.NamespaceUri) && attribute.Value == "i"));
+                            if (keys.Count(key => key.N?.Value == "errorType") != 1) errorIndex = -1;
+                            layout = (keys.Length, errorIndex);
+                            keyLayouts.Add(structureIndex, layout);
+                        }
+                        Rich.Value[] entries = Bounded(value.Elements<Rich.Value>());
+                        if (layout.Count == entries.Length && layout.ErrorIndex >= 0) {
+                            string code = entries[layout.ErrorIndex].Text;
+                            error = code == "8" ? "#SPILL!" : code == "13" ? "#CALC!" : null;
+                        }
+                    }
+                }
+                valueErrors.Add(valueIndex, error);
+                return error;
+            }
+            string? DecodeFuture(uint futureIndex) {
+                if (futureErrors.TryGetValue(futureIndex, out string? cached)) return cached;
+                OpenXmlElement? valueBlock = future[futureIndex].Descendants()
+                    .FirstOrDefault(item => item.LocalName == "rvb"
+                        && item.NamespaceUri == "http://schemas.microsoft.com/office/spreadsheetml/2017/richdata");
+                string? error = valueBlock != null && TryIndex(valueBlock, "i", out uint valueIndex)
+                    && valueIndex < richValues.Length ? DecodeValue(valueIndex) : null;
+                futureErrors.Add(futureIndex, error);
+                return error;
+            }
             for (int i = 0; i < blocks.Length; i++) {
                 foreach (MetadataRecord record in blocks[i].Elements<MetadataRecord>()) {
                     if (!TryIndex(record, "t", out uint type) || type == 0 || type > types.Length
                         || types[type - 1].Name?.Value != "XLRICHVALUE"
                         || !TryIndex(record, "v", out uint futureIndex) || futureIndex >= future.Length) continue;
-                    OpenXmlElement? valueBlock = future[futureIndex].Descendants()
-                        .FirstOrDefault(item => item.LocalName == "rvb"
-                            && item.NamespaceUri == "http://schemas.microsoft.com/office/spreadsheetml/2017/richdata");
-                    if (valueBlock == null || !TryIndex(valueBlock, "i", out uint valueIndex) || valueIndex >= richValues.Length) continue;
-                    Rich.RichValue value = richValues[valueIndex];
-                    if (!TryIndex(value, "s", out uint structureIndex) || structureIndex >= richStructures.Length) continue;
-                    Rich.RichValueStructure structure = richStructures[structureIndex];
-                    if (structure.T?.Value != "_error") continue;
-                    Rich.Key[] keys = Bounded(structure.Elements<Rich.Key>());
-                    Rich.Value[] entries = Bounded(value.Elements<Rich.Value>());
-                    if (keys.Length != entries.Length) continue;
-                    int keyIndex = Array.FindIndex(keys, key => key.N?.Value == "errorType"
-                        && key.GetAttributes().Any(attribute => attribute.LocalName == "t"
-                            && string.IsNullOrEmpty(attribute.NamespaceUri) && attribute.Value == "i"));
-                    if (keyIndex < 0 || keys.Count(key => key.N?.Value == "errorType") != 1) continue;
-                    string? error = entries[keyIndex].Text == "8" ? "#SPILL!" : entries[keyIndex].Text == "13" ? "#CALC!" : null;
+                    string? error = DecodeFuture(futureIndex);
                     if (error != null) errors[(uint)i + 1] = error;
                 }
             }

@@ -90,7 +90,6 @@ internal sealed partial class ProjectTaskAllocation {
                 total += storedActual - computedActual; computedActual = storedActual;
             }
         }
-        if (stored.Length > 0 && !stored.All(charges.Contains)) _intervalScope!.Release(stored.Length);
         return (total, computedActual);
     }
     private ProjectCostInterval[] ReadActualCostCurves(ProjectAssignment assignment) {

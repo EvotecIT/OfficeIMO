@@ -183,7 +183,7 @@ public sealed partial class IWorkBoundaryTests {
                 BytesField(3, Message(VarintField(1, 1), ReferenceField(9, 2))),
                 BytesField(3, Message(VarintField(1, 2), ReferenceField(9, 2))))),
             Record(2, 6218, Message(ReferenceField(1, 3))),
-            Record(3, 2001, Message(StringField(3, "Before\uFFFCafter")))
+            Record(3, 2001, Message(StringField(3, "Before\uFFFCafter\nsecond")))
         };
         var catalog = CreateRichCatalog(records, options);
         Assert.Empty(catalog.Materialized);
@@ -193,9 +193,10 @@ public sealed partial class IWorkBoundaryTests {
         bool complete = catalog.FullyReconstructed;
 
         Assert.False(complete);
-        Assert.Equal("Beforeafter", strings[1].PlainText);
+        Assert.Equal("Beforeafter\nsecond", strings[1].PlainText);
         Assert.False(strings[1].IsTextComplete);
         Assert.Same(strings[1], strings[2]);
+        Assert.Same(strings[1].PlainText, strings[2].PlainText);
 
         static IWorkArchiveRecord Record(ulong id, uint type, byte[] payload) =>
             new(id, type, Array.Empty<uint>(), Array.Empty<ulong>(),

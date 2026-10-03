@@ -29,6 +29,10 @@ OLM sessions project selected items on demand. Request `PreferStreamingAttachmen
 `EmailStoreItemReadOptions` for file-backed payloads and keep the owning session alive until the
 content has been copied or written. Session disposal expires both new and outstanding readers.
 
+## RTF Unicode fallback width
+
+Normalized RTF writing accepts `UnicodeSkipCount` values from 0 through 8. Set a larger authored value to a supported width before calling `ToRtf`; larger values now raise `ArgumentOutOfRangeException` instead of generating disproportionate fallback output. Reading and lossless source export still preserve an incoming `\uc` value, including one that cannot be used for normalized writing.
+
 ## iWork list-marker interpretation
 
 Use `IWorkTextParagraph.ListMarkerKind` when interpreting `ListLabel`; do not infer ordered numbering from a numeric-looking string. Literal markers such as `1.` or `iv.` remain literal DOCX bullets and unordered Reader lists. PPTX uses destination fallback for multi-character text markers. Reconvert earlier imports when those labels were incorrectly turned into counters.
