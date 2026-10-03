@@ -15,8 +15,8 @@ internal static class AsciiDocReaderAdapter {
         ReaderOptions reader = readerOptions ?? new ReaderOptions();
         ReaderInputLimits.EnforceFileSize(path, reader.MaxInputBytes);
         cancellationToken.ThrowIfCancellationRequested();
-        string source = File.ReadAllText(path);
-        AsciiDocParseResult result = AsciiDocDocument.ParseResult(source, ReaderAsciiDocOptionsCloner.Clone(asciiDocOptions).ParseOptions);
+        AsciiDocDocument document = AsciiDocDocument.Load(path, ReaderAsciiDocOptionsCloner.Clone(asciiDocOptions).ParseOptions, null, cancellationToken);
+        var result = new AsciiDocParseResult(document, document.Diagnostics);
         return ReadAsciiDocResult(result, path, reader, asciiDocOptions, cancellationToken);
     }
 
@@ -34,10 +34,8 @@ internal static class AsciiDocReaderAdapter {
         ReaderAsciiDocOptions adapter = ReaderAsciiDocOptionsCloner.Clone(asciiDocOptions);
         Stream parseStream = ReaderInputLimits.EnsureSeekableReadStream(stream, reader.MaxInputBytes, cancellationToken, out bool ownsStream);
         try {
-            using var textReader = new StreamReader(parseStream, Encoding.UTF8, true, 4096, leaveOpen: true);
-            string source = textReader.ReadToEnd();
-            cancellationToken.ThrowIfCancellationRequested();
-            AsciiDocParseResult result = AsciiDocDocument.ParseResult(source, adapter.ParseOptions);
+            AsciiDocDocument document = AsciiDocDocument.Load(parseStream, adapter.ParseOptions, null, cancellationToken);
+            var result = new AsciiDocParseResult(document, document.Diagnostics);
             string logicalName = string.IsNullOrWhiteSpace(sourceName) ? "document.adoc" : sourceName!.Trim();
             return ReadAsciiDocResult(result, logicalName, reader, adapter, cancellationToken).ToArray();
         } finally {

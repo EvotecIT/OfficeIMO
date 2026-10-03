@@ -58,6 +58,8 @@ internal sealed class ReaderReadScope : IDisposable {
         if (scope == null) return;
         lock (scope._nested) scope._nested.Add(new OfficeDocumentNestedResult { Path = path, Document = document });
     }
+    // Iterator scopes share budgets, but must release completed item captures between pulls.
+    internal void ClearNestedResults() { lock (_nested) _nested.Clear(); }
     public void Dispose() { Active.Value = _previous; }
     private sealed class Restore : IDisposable {
         private readonly ReaderReadScope? _previous;

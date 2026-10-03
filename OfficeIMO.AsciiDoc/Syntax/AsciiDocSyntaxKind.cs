@@ -105,5 +105,7 @@ public enum AsciiDocSyntaxKind {
     /// <summary>Exact whitespace or punctuation trivia between recognized tokens.</summary>
     Trivia,
     /// <summary>Source-preserved construct without current profile semantics.</summary>
-    Raw
+    Raw,
+    /// <summary>Numbered callout explanations following a verbatim block.</summary>
+    CalloutList
 }

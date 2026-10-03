@@ -1,0 +1,723 @@
+<?xml version="1.0" encoding="utf-8"?>
+<locale xmlns="http://purl.org/net/xbiblio/csl" version="1.0" xml:lang="vi-VN">
+  <info>
+    <translator>
+      <name>dowens76</name>
+    </translator>
+    <translator>
+      <name>Hung Quoc Vo</name>
+    </translator>
+    <translator>
+      <name>Tran Quang Cuong</name>
+    </translator>
+    <rights license="http://creativecommons.org/licenses/by-sa/3.0/">This work is licensed under a Creative Commons Attribution-ShareAlike 3.0 License</rights>
+    <updated>2025-10-16T03:24:00+00:00</updated>
+  </info>
+  <style-options punctuation-in-quote="false"/>
+  <date form="text">
+    <date-part name="day" suffix=" "/>
+    <date-part name="month" suffix=" "/>
+    <date-part name="year"/>
+  </date>
+  <date form="numeric">
+    <date-part name="day" form="numeric-leading-zeros" suffix="/"/>
+    <date-part name="month" form="numeric-leading-zeros" suffix="/"/>
+    <date-part name="year"/>
+  </date>
+  <terms>
+    <!-- LONG GENERAL TERMS -->
+    <term name="accessed">truy cập</term>
+    <term name="advance-online-publication">tiền bản trực tuyến</term>  <!-- đã chấp nhận đăng, có DOI, được xuất bản online, nhưng chưa có tập, số, trang  -->
+    <term name="album">album</term>
+    <term name="and">và</term>
+    <term name="and others">và những người khác</term>
+    <term name="anonymous">khuyết danh</term>
+    <term name="at">tại</term>
+    <term name="audio-recording">bản ghi âm</term>
+    <term name="available at">có tại</term>
+    <term name="by">bởi</term>
+    <term name="circa">khoảng</term>
+    <term name="cited">được trích dẫn</term>
+    <term name="et-al">và c.s.</term>
+    <term name="film">phim</term>
+    <term name="forthcoming">sắp tới</term>
+    <term name="from">từ</term>
+    <term name="henceforth">kể từ đây</term>
+    <term name="ibid">n.t.</term>
+    <term name="in">trong</term>
+    <term name="in press">in press</term>
+    <term name="internet">internet</term>
+    <term name="letter">thư</term>
+    <term name="loc-cit">n.t.</term> <!-- như trên, cùng nguồn đã dẫn trước đó; like ibid., the abbreviated form is the regular form  -->
+    <term name="no date">không ngày</term>
+    <term name="no-place">không rõ địa điểm</term>
+    <term name="no-publisher">không rõ nhà xuất bản</term> <!-- sine nomine -->
+    <term name="on">vào</term>
+    <term name="online">online</term>
+    <term name="op-cit">đ.d.</term> <!-- đã dẫn; like ibid., the abbreviated form is the regular form -->
+    <term name="original-work-published">nguyên bản</term>
+    <term name="personal-communication">giao tiếp cá nhân</term>
+    <term name="podcast">podcast</term>
+    <term name="podcast-episode">tập podcast</term>
+    <term name="preprint">preprint</term>
+    <term name="presented at">được trình bày tại</term>
+    <term name="radio-broadcast">phát thanh</term>
+    <term name="radio-series">xê-ri phát thanh</term>
+    <term name="radio-series-episode">tập của xê-ri phát thanh</term>
+    <term name="reference">
+      <single>tài liệu tham khảo</single>
+      <multiple>tài liệu tham khảo</multiple>
+    </term>
+    <term name="retrieved">truy vấn</term>
+    <term name="review-of">bài đánh giá về</term>
+    <term name="scale">scale</term>
+    <term name="special-issue">số đặc biệt</term>
+    <term name="special-section">mục đặc biệt</term>
+    <term name="television-broadcast">truyền hình</term>
+    <term name="television-series">xê-ri truyền hình</term>
+    <term name="television-series-episode">tập của xê-ri truyền hình</term>
+    <term name="video">video</term>
+    <term name="working-paper">bản thảo nghiên cứu</term>
+
+    <!-- SHORT GENERAL TERMS -->
+    <term name="anonymous" form="short">k.d</term>
+    <term name="circa" form="short">k.</term>
+    <term name="no date" form="short">không ngày</term>
+    <term name="no-place" form="short">k.r.đ.đ.</term>
+    <term name="no-publisher" form="short">k.r.n.x.b.</term>
+    <term name="reference" form="short">
+      <single>t.l.t.k.</single>
+      <multiple>t.l.t.k.</multiple>
+    </term>
+    <term name="review-of" form="short">b.đ.g. về</term>
+
+    <!-- SYMBOLIC GENERAL FORMS -->
+
+    <!-- LONG ITEM TYPE FORMS -->
+    <term name="article">preprint</term>
+    <term name="article-journal">bài báo khoa học</term>
+    <term name="article-magazine">bài báo tạp chí</term>
+    <term name="article-newspaper">bài báo báo chí</term>
+    <term name="bill">dự luật</term>
+    <!-- book is in the list of locator terms -->
+    <term name="broadcast">phát sóng</term>
+    <!-- chapter is in the list of locator terms -->
+    <term name="classic">tác phẩm kinh điển</term>
+    <term name="collection">tuyển tập</term>
+    <term name="dataset">tập dữ liệu</term>
+    <term name="document">tài liệu</term>
+    <term name="entry">mục</term>
+    <term name="entry-dictionary">mục từ điển</term>
+    <term name="entry-encyclopedia">mục bách khoa</term>
+    <term name="event">sự kiện</term>
+    <!-- figure is in the list of locator terms -->
+    <term name="graphic">hình ảnh</term>
+    <term name="hearing">phiên điều trần</term>
+    <term name="interview">phỏng vấn</term>
+    <term name="legal_case">vụ án pháp lý</term>
+    <term name="legislation">văn bản pháp luật</term>
+    <term name="manuscript">bản thảo</term>
+    <term name="map">bản đồ</term>
+    <term name="motion_picture">phim điện ảnh</term>
+    <term name="musical_score">bản nhạc</term>
+    <term name="pamphlet">tờ rơi or sách mỏng</term>
+    <term name="paper-conference">báo cáo hội nghị</term>
+    <term name="patent">bằng sáng chế</term>
+    <term name="performance">buổi biểu diễn</term>
+    <term name="periodical">định kỳ or tạp chí định kỳ</term>
+    <term name="personal_communication">giao tiếp cá nhân</term>
+    <term name="post">bài đăng</term>
+    <term name="post-weblog">bài đăng blog</term>
+    <term name="regulation">quy định</term>
+    <term name="report">báo cáo</term>
+    <term name="review">đánh giá</term>
+    <term name="review-book">đánh giá sách</term>
+    <term name="software">phần mềm</term>
+    <term name="song">bản ghi âm</term>
+    <term name="speech">bài trình chiếu</term>
+    <term name="standard">chuẩn</term>
+    <term name="thesis">luận văn</term>
+    <term name="treaty">hiệp ước</term>
+    <term name="webpage">trang web</term>
+
+    <!-- SHORT ITEM TYPE FORMS -->
+    <term name="article-journal" form="short">b.b. k.h.</term>
+    <term name="article-magazine" form="short">báo tc.</term>
+    <term name="article-newspaper" form="short">báo</term>
+    <!-- book is in the list of locator terms -->
+    <!-- chapter is in the list of locator terms -->
+    <term name="document" form="short">doc.</term>
+    <!-- figure is in the list of locator terms -->
+    <term name="graphic" form="short">graph.</term>
+    <term name="interview" form="short">interv.</term>
+    <term name="manuscript" form="short">MS</term>
+    <term name="motion_picture" form="short">phim</term>
+    <term name="report" form="short">rep.</term>
+    <term name="review" form="short">rev.</term>
+    <term name="review-book" form="short">đ.g. s.</term>
+    <term name="song" form="short">b.h.</term>
+
+    <!-- LONG VERB ITEM TYPE FORMS -->
+    <!-- Only where applicable -->
+    <term name="hearing" form="verb">lời khai của</term>
+    <term name="review" form="verb">bài đánh giá về</term>
+    <term name="review-book" form="verb">đánh giá sách</term>
+
+    <!-- SHORT VERB ITEM TYPE FORMS -->
+
+    <!-- HISTORICAL ERA TERMS -->
+    <term name="ad">SCN</term>
+    <term name="bc">TCN</term>
+    <term name="bce">TCN</term>
+    <term name="ce">SCN</term>
+
+    <!-- PUNCTUATION -->
+    <term name="open-quote">“</term>
+    <term name="close-quote">”</term>
+    <term name="open-inner-quote">‘</term>
+    <term name="close-inner-quote">’</term>
+    <term name="page-range-delimiter">–</term>
+    <term name="colon">:</term>
+    <term name="comma">,</term>
+    <term name="semicolon">;</term>
+
+    <!-- ORDINALS -->
+    <term name="ordinal"/> <!-- In Vietnamse: "the first" = "thứ nhất" (not 1st), the second = thứ nhì/thứ hai -->
+    <term name="ordinal-01"/>
+    <term name="ordinal-02"/>
+    <term name="ordinal-03"/>
+    <term name="ordinal-11"/>
+    <term name="ordinal-12"/>
+    <term name="ordinal-13"/>
+
+    <!-- LONG ORDINALS -->
+    <term name="long-ordinal-01">thứ nhất</term>
+    <term name="long-ordinal-02">thứ hai</term>
+    <term name="long-ordinal-03">thứ ba</term>
+    <term name="long-ordinal-04">thứ tư</term>
+    <term name="long-ordinal-05">thứ năm</term>
+    <term name="long-ordinal-06">thứ sáu</term>
+    <term name="long-ordinal-07">thứ bảy</term>
+    <term name="long-ordinal-08">thứ tám</term>
+    <term name="long-ordinal-09">thứ chín</term>
+    <term name="long-ordinal-10">thứ mười</term>
+
+    <!-- LONG LOCATOR FORMS -->
+    <term name="act">
+      <single>act</single>
+      <multiple>acts</multiple>
+    </term>
+    <term name="appendix">
+      <single>appendix</single>
+      <multiple>appendices</multiple>
+    </term>
+    <term name="article-locator">
+      <single>article</single>
+      <multiple>articles</multiple>
+    </term>
+    <term name="book">
+      <single>sách</single>
+      <multiple>sách</multiple>
+    </term>
+    <term name="canon">
+      <single>canon</single>
+      <multiple>canons</multiple>
+    </term>
+    <term name="chapter">
+      <single>chương</single>
+      <multiple>chương</multiple>
+    </term>
+    <term name="column">
+      <single>cột</single>
+      <multiple>cột</multiple>
+    </term>
+    <term name="elocation">
+      <single>location</single>
+      <multiple>locations</multiple>
+    </term>
+    <term name="equation">
+      <single>equation</single>
+      <multiple>equations</multiple>
+    </term>
+    <term name="figure">
+      <single>figure</single>
+      <multiple>figures</multiple>
+    </term>
+    <term name="folio">
+      <single>folio</single>
+      <multiple>folios</multiple>
+    </term>
+    <term name="issue">
+      <single>số</single>
+      <multiple>số</multiple>
+    </term>
+    <term name="line">
+      <single>dòng</single>
+      <multiple>dòng</multiple>
+    </term>
+    <term name="note">
+      <single>ghi chú</single>
+      <multiple>ghi chú</multiple>
+    </term>
+    <term name="opus">
+      <single>opus</single>
+      <multiple>opera</multiple>
+    </term>
+    <term name="page">
+      <single>trang</single>
+      <multiple>trang</multiple>
+    </term>
+    <term name="paragraph">
+      <single>đoạn</single>
+      <multiple>đoạn</multiple>
+    </term>
+    <term name="part">
+      <single>phần</single>
+      <multiple>phần</multiple>
+    </term>
+    <term name="rule">
+      <single>rule</single>
+      <multiple>rules</multiple>
+    </term>
+    <term name="scene">
+      <single>scene</single>
+      <multiple>scenes</multiple>
+    </term>
+    <term name="section">
+      <single>mục</single>
+      <multiple>mục</multiple>
+    </term>
+    <term name="sub-verbo">
+      <single>sub verbo</single>
+      <multiple>sub verbis</multiple>
+    </term>
+    <term name="supplement">
+      <single>phụ lục</single>
+      <multiple>phụ lục</multiple>
+    </term>
+    <term name="table">
+      <single>table</single>
+      <multiple>tables</multiple>
+    </term>
+    <term name="timestamp"> <!-- generally blank -->
+      <single/>
+      <multiple/>
+    </term>
+    <term name="title-locator">
+      <single>title</single>
+      <multiple>titles</multiple>
+    </term>
+    <term name="verse">
+      <single>câu</single>
+      <multiple>câu</multiple>
+    </term>
+    <term name="volume">
+      <single>tập</single>
+      <multiple>tập</multiple>
+    </term>
+
+    <!-- SHORT LOCATOR FORMS -->
+    <term name="appendix" form="short">
+      <single>p.l.</single>
+      <multiple>p.l.</multiple>
+    </term>
+    <term name="article-locator" form="short">
+      <single>art.</single>
+      <multiple>arts.</multiple>
+    </term>
+    <term name="book" form="short">sách</term>
+    <term name="chapter" form="short">ch.</term>
+    <term name="column" form="short">cột</term>
+    <term name="elocation" form="short">
+      <single>loc.</single>
+      <multiple>locs.</multiple>
+    </term>
+    <term name="equation" form="short">
+      <single>eq.</single>
+      <multiple>eqs.</multiple>
+    </term>
+    <term name="figure" form="short">hình</term>
+    <term name="folio" form="short">f</term>
+    <term name="issue" form="short">số</term>
+    <term name="line" form="short">d.</term>
+    <term name="note" form="short">g.c.</term>
+    <term name="opus" form="short">op</term>
+    <term name="page" form="short">
+      <single>tr</single>
+      <multiple>tr</multiple>
+    </term>
+    <term name="paragraph" form="short">đ.</term>
+    <term name="rule" form="short">
+      <single>r.</single>
+      <multiple>rr.</multiple>
+    </term>
+    <term name="scene" form="short">
+      <single>sc.</single>
+      <multiple>scs.</multiple>
+    </term>
+    <term name="section" form="short">m.</term>
+    <term name="sub-verbo" form="short">
+      <single>s.v.</single>
+      <multiple>s.vv.</multiple>
+    </term>
+    <term name="supplement" form="short">
+      <single>p.l.</single>
+      <multiple>p.l.</multiple>
+    </term>
+    <term name="table" form="short">
+      <single>tbl.</single>
+      <multiple>tbls.</multiple>
+    </term>
+    <term name="timestamp" form="short"> <!-- generally blank -->
+      <single/>
+      <multiple/>
+    </term>
+    <term name="title-locator" form="short">
+      <single>tit.</single>
+      <multiple>tits.</multiple>
+    </term>
+    <term name="verse" form="short">
+      <single>v</single>
+      <multiple>vv</multiple>
+    </term>
+    <term name="volume" form="short">
+      <single>tập</single>
+      <multiple>tập</multiple>
+    </term>
+
+    <!-- SYMBOLIC LOCATOR FORMS -->
+    <term name="paragraph" form="symbol">
+      <single>¶</single>
+      <multiple>¶¶</multiple>
+    </term>
+    <term name="section" form="symbol">
+      <single>§</single>
+      <multiple>§§</multiple>
+    </term>
+
+    <!-- LONG NUMBER VARIABLE FORMS -->
+    <term name="chapter-number">
+      <single>chương</single>
+      <multiple>chương</multiple>
+    </term>
+    <term name="citation-number">
+      <single>tài liệu</single>
+      <multiple>tài liệu</multiple>
+    </term>
+    <term name="collection-number">
+      <single>số</single>
+      <multiple>số</multiple>
+    </term>
+    <term name="edition">
+      <single>ấn bản</single>
+      <multiple>ấn bản</multiple>
+    </term>
+    <term name="first-reference-note-number">
+      <single>tài liệu</single>
+      <multiple>tài liệu</multiple>
+    </term>
+    <term name="number">
+      <single>số</single>
+      <multiple>số</multiple>
+    </term>
+    <term name="number-of-pages">
+      <single>trang</single>
+      <multiple>trang</multiple>
+    </term>
+    <term name="number-of-volumes">
+      <single>tập</single>
+      <multiple>tập</multiple>
+    </term>
+    <term name="page-first">
+      <single>trang</single>
+      <multiple>trang</multiple>
+    </term>
+    <term name="printing">
+      <single>printing</single>
+      <multiple>printings</multiple>
+    </term>
+    <term name="version">phiên bản</term>
+
+    <!-- SHORT NUMBER VARIABLE FORMS -->
+    <term name="chapter-number" form="short">
+      <single>ch.</single>
+      <multiple>ch.</multiple>
+    </term>
+    <term name="citation-number" form="short">
+      <single>tl.</single> <!-- Tài liệu -->
+      <multiple>tl.</multiple>
+    </term>
+    <term name="collection-number" form="short">số p.h</term>
+    <term name="edition" form="short">a.b</term>
+    <term name="first-reference-note-number" form="short">
+      <single>t.l.</single>
+      <multiple>t.l.</multiple>
+    </term>
+    <term name="number" form="short">
+      <single>số</single>
+      <multiple>số</multiple>
+    </term>
+    <term name="number-of-pages" form="short">
+      <single>tr</single>
+      <multiple>tr</multiple>
+    </term>
+    <term name="number-of-volumes" form="short">
+      <single>t.</single>
+      <multiple>t.</multiple>
+    </term>
+    <term name="page-first" form="short">
+      <single>tr.</single>
+      <multiple>tr.</multiple>
+    </term>
+    <term name="printing" form="short">
+      <single>print.</single>
+      <multiple>prints.</multiple>
+    </term>
+
+    <!-- LONG ROLE FORMS -->
+    <term name="author"/> <!-- generally blank -->
+    <term name="chair">
+      <single>chủ tọa</single>
+      <multiple>chủ tọa</multiple>
+    </term>
+    <term name="collection-editor">
+      <single>b.t.</single>
+      <multiple>b.t.</multiple>
+    </term>
+    <term name="compiler">
+      <single>người tổng hợp</single>
+      <multiple>người tổng hợp</multiple>
+    </term>
+    <term name="composer"/> <!-- generally blank -->
+    <term name="container-author"/> <!-- generally blank -->
+    <term name="contributor">
+      <single>cộng tác viên</single>
+      <multiple>cộng tác viên</multiple>
+    </term>
+    <term name="curator">
+      <single>người giám tuyển</single>
+      <multiple>người giám tuyển</multiple>
+    </term>
+    <term name="director">
+      <single>chủ biênr</single>
+      <multiple>chủ biên</multiple>
+    </term>
+    <term name="editor">
+      <single>biên tập viên</single>
+      <multiple>biên tập viên</multiple>
+    </term>
+    <term name="editor-translator">
+      <single>biên tập viên &amp; biên dịch viên</single>
+      <multiple>biên tập viên &amp; biên dịch viên</multiple>
+    </term>
+    <term name="editortranslator">
+      <single>biên tập viên &amp; biên dịch viên</single>
+      <multiple>biên tập viên &amp; biên dịch viên</multiple>
+    </term>
+    <term name="editorial-director">
+      <single>tổng biên tập</single>
+      <multiple>tổng biên tập</multiple>
+    </term>
+    <term name="executive-producer">
+      <single>sản xuất - điều hành</single>
+      <multiple>esản xuất - điều hành</multiple>
+    </term>
+    <term name="guest">
+      <single>khách</single>
+      <multiple>khách</multiple>
+    </term>
+    <term name="host">
+      <single>người dẫn</single>
+      <multiple>người dẫn</multiple>
+    </term>
+    <term name="illustrator">
+      <single>họa sĩ</single>
+      <multiple>họa sĩ</multiple>
+    </term>
+    <term name="interviewer"/> <!-- generally blank -->
+    <term name="narrator">
+      <single>tường thuật viên</single>
+      <multiple>tường thuật viên</multiple>
+    </term>
+    <term name="organizer">
+      <single>người tổ chức</single>
+      <multiple>người tổ chức</multiple>
+    </term>
+    <term name="original-author"/> <!-- generally blank -->
+    <term name="performer">
+      <single>nghệ sĩ</single>
+      <multiple>nghệ sĩ</multiple>
+    </term>
+    <term name="producer">
+      <single>nhà sản xuất</single>
+      <multiple>nhà sản xuất</multiple>
+    </term>
+    <term name="recipient"/> <!-- generally blank -->
+    <term name="reviewed-author"/> <!-- generally blank -->
+    <term name="script-writer">
+      <single>người biên soạn</single>
+      <multiple>người biên soạn</multiple>
+    </term>
+    <term name="series-creator">
+      <single>người biên soạn xê-ri</single>
+      <multiple>người biên soạn xê-ri</multiple>
+    </term>
+    <term name="translator">
+      <single>biên dịch viên</single>
+      <multiple>biên dịch viên</multiple>
+    </term>
+
+    <!-- SHORT ROLE FORMS -->
+    <term name="compiler" form="short">
+      <single>n.t.h.</single>
+      <multiple>n.t.h.</multiple>
+    </term>
+    <term name="contributor" form="short">
+      <single>c.t.v.</single>
+      <multiple>c.t.v.</multiple>
+    </term>
+    <term name="curator" form="short">
+      <single>g.t.v.</single>
+      <multiple>g.t.v.</multiple>
+    </term>
+    <term name="director" form="short">
+      <single>đ.d.</single>
+      <multiple>đ.d.</multiple>
+    </term>
+    <term name="editor" form="short">
+      <single>b.t.v.</single>
+      <multiple>b.t.v.</multiple>
+    </term>
+    <term name="editor-translator" form="short">
+      <single>b.t.v. &amp; b.d.v.</single>
+      <multiple>b.t.v. &amp; b.d.v.</multiple>
+    </term>
+    <term name="editortranslator" form="short">
+      <single>b.t.v. &amp; b.d.v.</single>
+      <multiple>b.t.v. &amp; b.d.v.</multiple>
+    </term>
+    <term name="editorial-director" form="short">
+      <single>b.t.v.</single>
+      <multiple>b.t.v.</multiple>
+    </term>
+    <term name="executive-producer" form="short">
+      <single>s.x.&amp;đ.h.</single>
+      <multiple>s.x.&amp;đ.h.</multiple>
+    </term>
+    <term name="illustrator" form="short">
+      <single>h.s.</single>
+      <multiple>h.s.</multiple>
+    </term>
+    <term name="narrator" form="short">
+      <single>t.t.v.</single>
+      <multiple>t.t.v.</multiple>
+    </term>
+    <term name="organizer" form="short">
+      <single>n.t.c.</single>
+      <multiple>n.t.c.</multiple>
+    </term>
+    <term name="performer" form="short">
+      <single>n.s.</single>
+      <multiple>n.s.</multiple>
+    </term>
+    <term name="producer" form="short">
+      <single>n.s.x.</single>
+      <multiple>n.s.x.</multiple>
+    </term>
+    <term name="script-writer" form="short">
+      <single>n.b.s.</single>
+      <multiple>n.b.s.</multiple>
+    </term>
+    <term name="series-creator" form="short">
+      <single>n.b.s. xê-ri</single>
+      <multiple>n.b.s. xê-ri</multiple>
+    </term>
+    <term name="translator" form="short">
+      <single>b.d.v.</single>
+      <multiple>b.d.v.</multiple>
+    </term>
+
+    <!-- VERB ROLE FORMS -->
+    <term name="chair" form="verb">chủ trì bởi</term>
+    <term name="collection-editor" form="verb">biên tập</term>
+    <term name="compiler" form="verb">tổng hợp bởi</term>
+    <term name="container-author" form="verb">bởi</term>
+    <term name="contributor" form="verb">với</term>
+    <term name="curator" form="verb">giám tuyển bởi</term>
+    <term name="director" form="verb">đạo diễn bởi</term>
+    <term name="editor" form="verb">biên tập bởi</term>
+    <term name="editor-translator" form="verb">biên tập &amp; biên dịch bởi</term>
+    <term name="editortranslator" form="verb">biên tập &amp; biên dịch bởi</term>
+    <term name="editorial-director" form="verb">biên tập bởi</term>
+    <term name="executive-producer" form="verb">sản xuất-điều hành bởi</term>
+    <term name="guest" form="verb">với khách mời</term>
+    <term name="host" form="verb">dẫn bởi</term>
+    <term name="illustrator" form="verb">minh họa bởi</term>
+    <term name="interviewer" form="verb">phỏng vấn bởi</term>
+    <term name="narrator" form="verb">thuật lại bởi</term>
+    <term name="organizer" form="verb">tổ chức bởi</term>
+    <term name="performer" form="verb">biểu diễn bởi</term>
+    <term name="producer" form="verb">sản xuất bởi</term>
+    <term name="recipient" form="verb">đến</term>
+    <term name="reviewed-author" form="verb">bởi</term>
+    <term name="script-writer" form="verb">viết bởi</term>
+    <term name="series-creator" form="verb">viết bởi</term>
+    <term name="translator" form="verb">biên dịch bởi</term>
+
+    <!-- SHORT VERB ROLE FORMS -->
+    <term name="collection-editor" form="verb-short">b.t. bởi</term>
+    <term name="compiler" form="verb-short">t.h. bởi</term>
+    <term name="contributor" form="verb-short">với</term>
+    <term name="curator" form="verb-short">g.t. bởi</term>
+    <term name="director" form="verb-short">đ.d.</term>
+    <term name="editor" form="verb-short">b.t.</term>
+    <term name="editor-translator" form="verb-short">b.t. &amp; b.d. bởi</term>
+    <term name="editortranslator" form="verb-short">b.t. &amp; b.d. bởi</term>
+    <term name="editorial-director" form="verb-short">b.t.</term>
+    <term name="executive-producer" form="verb-short">s.x.; đ.h. bởi</term>
+    <term name="guest" form="verb-short">với khách mời</term>
+    <term name="host" form="verb-short">dẫn bởi</term>
+    <term name="illustrator" form="verb-short">h.s.</term>
+    <term name="narrator" form="verb-short">thuật lại bởi</term>
+    <term name="organizer" form="verb-short">tổ chức bởi</term>
+    <term name="performer" form="verb-short">biểu diễn bởi</term>
+    <term name="producer" form="verb-short">s.x. bởi</term>
+    <term name="script-writer" form="verb-short">viết bởi</term>
+    <term name="series-creator" form="verb-short">viết bởi</term>
+    <term name="translator" form="verb-short">b.d.</term>
+
+    <!-- LONG MONTH FORMS -->
+    <term name="month-01">Tháng Giêng</term>
+    <term name="month-02">Tháng Hai</term>
+    <term name="month-03">Tháng Ba</term>
+    <term name="month-04">Tháng Tư</term>
+    <term name="month-05">Tháng Năm</term>
+    <term name="month-06">Tháng Sáu</term>
+    <term name="month-07">Tháng Bảy</term>
+    <term name="month-08">Tháng Tám</term>
+    <term name="month-09">Tháng Chín</term>
+    <term name="month-10">Tháng Mười</term>
+    <term name="month-11">Tháng Mười Một</term>
+    <term name="month-12">Tháng Mười Hai</term>
+
+    <!-- SHORT MONTH FORMS -->
+    <term name="month-01" form="short">thg. 1</term>
+    <term name="month-02" form="short">thg. 2</term>
+    <term name="month-03" form="short">thg. 3</term>
+    <term name="month-04" form="short">thg. 4</term>
+    <term name="month-05" form="short">thg. 5</term>
+    <term name="month-06" form="short">thg. 6</term>
+    <term name="month-07" form="short">thg. 7</term>
+    <term name="month-08" form="short">thg. 8</term>
+    <term name="month-09" form="short">thg. 9</term>
+    <term name="month-10" form="short">thg. 10</term>
+    <term name="month-11" form="short">thg. 11</term>
+    <term name="month-12" form="short">thg. 12</term>
+
+    <!-- SEASONS -->
+    <term name="season-01">Mùa Xuân</term>
+    <term name="season-02">Mùa Hè</term>
+    <term name="season-03">Mùa Thu</term>
+    <term name="season-04">Mùa Đông</term>
+  </terms>
+</locale>
