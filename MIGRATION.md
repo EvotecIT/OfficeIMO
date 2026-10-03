@@ -24,7 +24,8 @@ Use the case-sensitive dictionary in `EmailDocument.Properties["Emlx:Metadata"]`
 Apple metadata. Flat `Emlx:Metadata:<key>` values are read aliases and participate in writing only
 when no exact catalog is supplied. Ambiguous case-colliding aliases are not created. Opaque trailer rewrites require explicit `Warn` or `Allow`.
 The default `Block` loss policy also rejects omitted EMLX, OLM and MAPI/TNEF metadata, and partial
-content whose completeness cannot be established. Use `new EmailWriterOptions(EmailConversionLossPolicy.Warn)`
+content whose completeness cannot be established, including regenerated embedded messages.
+Use `new EmailWriterOptions(EmailConversionLossPolicy.Warn)`
 when intentionally exporting the common message content, and inspect the returned diagnostics.
 Strict PST creation rejects omitted EMLX/OLM metadata.
 

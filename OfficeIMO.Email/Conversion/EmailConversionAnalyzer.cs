@@ -39,15 +39,48 @@ internal static class EmailConversionAnalyzer {
                 "source-metadata/tnef"));
         }
 
-        if (targetFormat == EmailFileFormat.Eml && !reusesSource && HasSourceSpecificMetadata(document)) {
-            diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy, "EMAIL_SOURCE_METADATA_NOT_REPRESENTED_IN_EML",
-                "The common message content is representable, but opaque MAPI, TNEF, compound-storage, conversation, reaction, or editor metadata has no portable EML equivalent.",
-                "source-metadata"));
-        }
-
-        diagnostics.AddRange(AnalyzeArchiveMetadata(document, preservesAppleMailMetadata, options.ConversionLossPolicy));
+        AnalyzeSourceMetadataTree(document, targetFormat, options, preservesAppleMailMetadata, reusesSource, diagnostics);
 
         return new EmailConversionReport(document.Format, targetFormat, diagnostics.AsReadOnly());
+    }
+
+    private static void AnalyzeSourceMetadataTree(EmailDocument root, EmailFileFormat targetFormat,
+        EmailWriterOptions options, bool preservesAppleMailMetadata, bool reusesRootSource,
+        IList<EmailDiagnostic> diagnostics) {
+        var pending = new Stack<(EmailDocument Document, string Path, int Depth)>();
+        var visited = new HashSet<EmailDocument>();
+        pending.Push((root, string.Empty, 0));
+        while (pending.Count > 0) {
+            var item = pending.Pop();
+            if (!visited.Add(item.Document)) continue;
+            if (item.Depth > options.MaxNestedMessageDepth)
+                throw new EmailLimitExceededException(nameof(options.MaxNestedMessageDepth), item.Depth, options.MaxNestedMessageDepth);
+            if (targetFormat == EmailFileFormat.Eml && !(item.Depth == 0 && reusesRootSource) &&
+                HasSourceSpecificMetadata(item.Document)) {
+                Add(CreateLossDiagnostic(options.ConversionLossPolicy, "EMAIL_SOURCE_METADATA_NOT_REPRESENTED_IN_EML",
+                    "The common message content is representable, but opaque MAPI, TNEF, compound-storage, conversation, reaction, or editor metadata has no portable EML equivalent.",
+                    "source-metadata"));
+            }
+            // Only the outer RFC message has an EMLX envelope for its Apple metadata.
+            foreach (EmailDiagnostic diagnostic in AnalyzeArchiveMetadata(item.Document,
+                         preservesAppleMailMetadata && item.Depth == 0, options.ConversionLossPolicy)) Add(diagnostic);
+            if (item.Depth == 0 && reusesRootSource) continue;
+            for (int index = 0; index < item.Document.Attachments.Count; index++) {
+                EmailAttachment attachment = item.Document.Attachments[index];
+                if (targetFormat == EmailFileFormat.Eml && MimeWriter.CanPreservePartHeaders(attachment)) continue;
+                if (attachment.EmbeddedDocument != null) pending.Push((attachment.EmbeddedDocument,
+                    item.Path + "attachment/" + index.ToString(CultureInfo.InvariantCulture) + "/", item.Depth + 1));
+            }
+
+            void Add(EmailDiagnostic diagnostic) {
+                if (item.Path.Length == 0) { diagnostics.Add(diagnostic); return; }
+                diagnostics.Add(new EmailDiagnostic(diagnostic.Code, diagnostic.Message, diagnostic.Severity,
+                    item.Path + diagnostic.Location, diagnostic.Operation, diagnostic.ByteOffset,
+                    diagnostic.LimitName, diagnostic.ActualValue, diagnostic.MaximumValue,
+                    diagnostic.Disposition, diagnostic.DataLossRisk, diagnostic.SuggestedAction,
+                    diagnostic.IsRetryable, diagnostic.LossKind));
+            }
+        }
     }
 
     internal static IReadOnlyList<EmailDiagnostic> AnalyzeArchiveMetadata(EmailDocument document, bool preservesAppleMailMetadata = false,

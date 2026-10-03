@@ -597,7 +597,8 @@ writing EMLX preserves unknown supported values and unknown flag bits while upda
 message flags. Unsupported or malformed trailers remain in `Emlx:RawMetadata`: `Block` rejects
 opaque metadata rewrites, while `Warn` and `Allow` copy the trailer unchanged and report that edits
 could not be reconciled. The default `Block` policy rejects exports that omit retained EMLX, OLM
-or MAPI/TNEF metadata. Select `new EmailWriterOptions(EmailConversionLossPolicy.Warn)` to export
+or MAPI/TNEF metadata, including regenerated embedded messages.
+Select `new EmailWriterOptions(EmailConversionLossPolicy.Warn)` to export
 the common message content with diagnostics for the omitted fields.
 
 Standalone EMLX sessions reject same-length source changes by checking a bounded SHA-256 before
