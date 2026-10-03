@@ -7,11 +7,12 @@ public sealed partial class PdfReadPage {
 
     internal sealed class VisualGeometryBudget {
         private const int MaximumOperations = 250000;
-        private const int MaximumFlattenedPoints = 32768;
+        internal const int MaximumFlattenedPoints = 32768;
         private int _operations;
         private int _flattenedPoints;
 
         public bool Exceeded { get; private set; }
+        public long TotalWork => (long)_operations + _flattenedPoints;
 
         public bool TryUseOperation() {
             if (Exceeded || _operations >= MaximumOperations) {
@@ -20,6 +21,15 @@ public sealed partial class PdfReadPage {
             }
 
             _operations++;
+            return true;
+        }
+
+        public bool TryUseOperations(int count) {
+            if (count < 0 || Exceeded || count > MaximumOperations - _operations) {
+                Exceeded = true;
+                return false;
+            }
+            _operations += count;
             return true;
         }
 
