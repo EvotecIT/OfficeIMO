@@ -114,9 +114,9 @@ public sealed partial class RtfDocument {
     public bool IsHtmlEncapsulationCurrent => _htmlEncapsulation != null &&
         string.Equals(_htmlSemanticBaseline, GetSemanticHtmlBaseline(), StringComparison.Ordinal);
 
-    private string GetSemanticHtmlBaseline() => ToRtf(new RtfWriteOptions {
+    private string GetSemanticHtmlBaseline() => RtfDocumentWriter.Write(this, new RtfWriteOptions {
         IncludeGenerator = false, IncludeHtmlEncapsulation = false
-    });
+    }, semanticBaseline: true);
 
     /// <summary>Creates an empty RTF document.</summary>
     public static RtfDocument Create() {

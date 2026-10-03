@@ -5,6 +5,18 @@ using Xunit;
 namespace OfficeIMO.Tests.Rtf;
 
 public class RtfHtmlEncapsulationTests {
+    [Fact]
+    public void UntrustedFromHtmlWithHugeUnicodeFallbackReadsWithoutExpandingIt() {
+        const string input = @"{\rtf1\ansi\fromhtml1\uc2147483647{\uc0\u233}}";
+
+        RtfDocument document = RtfDocument.Read(input, RtfReadOptions.CreateUntrustedProfile()).Document;
+
+        Assert.Equal(int.MaxValue, document.Settings.UnicodeSkipCount);
+        Assert.NotNull(document.HtmlEncapsulation);
+        Assert.True(document.IsHtmlEncapsulationCurrent);
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.ToRtf());
+    }
+
     [Theory]
     [InlineData("replace")]
     [InlineData("run")]
