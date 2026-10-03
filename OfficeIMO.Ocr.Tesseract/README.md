@@ -91,6 +91,8 @@ Console.WriteLine($"Review recommended: {recognition.ReviewRecommended}");
 
 `adaptive` can also serve as the engine in Reader and PDF OCR. Retries do not deskew, crop, resize, or silently approve text. Provider confidence and a retained word count do not establish recognition accuracy. Use the [shared review policy](../OfficeIMO.Ocr/README.md#retry-weak-recognition-evidence) and the [hash-bound native scorecard](../OfficeIMO.TestAssets/OcrQuality/README.md) to choose and evaluate a policy for your documents.
 
+Tesseract's complete `Estimating resolution as <dpi>` message is retained as informational diagnostic evidence and does not itself trigger a review-policy retry. Unknown stderr messages, real warnings and truncated logs remain warnings for both recognition and orientation detection.
+
 ## Detect page orientation
 
 The engine advertises `SupportsOrientationDetection`. Set `OcrRequest.Operation` to `OcrOperation.DetectOrientation` and run it through `OcrEngineRunner` to share the same timeout and concurrency rules as text recognition. The provider uses Tesseract's page segmentation mode 0 with `osd` trained data and returns `OcrResult.Orientation`.

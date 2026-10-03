@@ -289,6 +289,10 @@ they no longer use OLE Automation's negative-fraction convention.
 
 ## OCR outcomes and AI evaluation
 
+Multi-batch `Ask` and `Explain` combine validated observations when multiple batches contribute facts. Budget for combination requests through `MaxRequests` and inspect `SynthesisStatus`: unfinished combination returns `Partial` with `answer-synthesis-incomplete`, replacing `cross-batch-reasoning-not-supported`. Original citations and quote offsets are preserved. This change can increase model request counts; it does not certify answer correctness.
+
+Process OCR retains the version-2 text-recognition request shape. Orientation bridges must explicitly advertise `SupportsOrientationDetection`, handle the `DetectOrientation` operation and return orientation evidence. Tesseract's complete resolution-estimation stderr is informational; unknown or truncated stderr still triggers review warnings.
+
 Calls through `OcrEngineRunner` now throw `OcrEngineExecutionException` for provider exceptions, null results, and nonrecoverable error diagnostics. Catch this type and inspect `Kind` instead of parsing provider exception messages. Provider exception text and inner exceptions are omitted; caller cancellation and shared timeouts remain distinct. Reader's continue-on-error mode records a failed candidate rather than enriching from a nonrecoverable result.
 
 Invalid Reader OCR confidence values now become `null` instead of being clamped to zero or one. Treat them as unavailable quality evidence. PDF workflows reject recognition with no eligible words and no native text; deliberate empty review selections still create an unchanged source copy. Image workflows reject empty recognition before review and publication.

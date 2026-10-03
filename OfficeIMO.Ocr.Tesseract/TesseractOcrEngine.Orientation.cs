@@ -32,10 +32,8 @@ public sealed partial class TesseractOcrEngine {
                 Message = "Orientation could not be established. Retain the original orientation; verify osd trained data and sufficient text.",
                 Source = Id, IsRecoverable = true
             });
-            if (!string.IsNullOrWhiteSpace(process.StandardError)) diagnostics.Add(new OcrDiagnostic {
-                Code = "tesseract-orientation-stderr", Severity = OcrDiagnosticSeverity.Warning,
-                Message = process.StandardError, Source = Id, IsRecoverable = true
-            });
+            OcrDiagnostic? standardError = CreateStandardErrorDiagnostic(process, "tesseract-orientation-stderr");
+            if (standardError != null) diagnostics.Add(standardError);
             return new OcrResult { Provider = Id, Orientation = orientation, Diagnostics = diagnostics.AsReadOnly() };
         } finally {
             if (!_options.KeepTemporaryFiles) TryDeleteDirectory(directory);
