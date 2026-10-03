@@ -3,6 +3,36 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public class DrawingPngWriterTests {
+        [Theory]
+        [InlineData(15)]
+        [InlineData(16)]
+        [InlineData(17)]
+        [InlineData(1023)]
+        [InlineData(1024)]
+        [InlineData(1025)]
+        public void AdaptiveFilteringPreservesRgbaAcrossArithmeticAndBlockTails(int width) {
+            var image = new OfficeRasterImage(width, 3);
+            for (int y = 0; y < image.Height; y++) {
+                for (int x = 0; x < width; x++) {
+                    image.SetPixel(x, y, OfficeColor.FromRgba(
+                        unchecked((byte)(x * 127 + y * 128)),
+                        unchecked((byte)(x * 31 - y * 128)),
+                        unchecked((byte)(x * 255 + y)),
+                        unchecked((byte)(x * 17 + y * 128))));
+                }
+            }
+
+            byte[] png = OfficePngWriter.Encode(image);
+            using var stream = new MemoryStream();
+            OfficePngWriter.EncodeTo(image, stream);
+
+            foreach (byte[] encoded in new[] { png, stream.ToArray() }) {
+                Assert.True(OfficePngReader.TryDecode(encoded, out OfficeRasterImage? decoded));
+                Assert.NotNull(decoded);
+                Assert.Equal(image.GetPixels(), decoded!.GetPixels());
+            }
+        }
+
         [Fact]
         public void OfficePngWriter_EncodesSharedPngScanlineContainers() {
             byte[] scanlines = { 0, 255, 0, 0, 128 };
