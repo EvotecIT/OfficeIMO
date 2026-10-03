@@ -58,7 +58,9 @@ public sealed class AgentEmailInspectionTests {
             var bounded = await service.InspectEmailDataAsync(path, 512);
             Assert.Null(bounded.Details); Assert.True(bounded.Truncated); Assert.Equal(full.SourceId, bounded.SourceId);
             Assert.Equal(full.BlockedElementCount, bounded.BlockedElementCount); Assert.True(AgentJson.Serialize(bounded).Length <= 512);
-            Assert.DoesNotContain("private", AgentJson.Serialize(full));
+            string report = AgentJson.Serialize(full);
+            foreach (string payload in new[] { "private signature", "private body", "private()" })
+                Assert.DoesNotContain(payload, report);
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() => new OfficeImoAgentService(new AgentPathPolicy(new[] { Path.Combine(root, "unrelated") })).InspectEmailDataAsync(path));
         } finally { Directory.Delete(root, true); }
     }

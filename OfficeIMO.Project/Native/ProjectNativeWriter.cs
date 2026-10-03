@@ -77,8 +77,12 @@ internal sealed partial class ProjectNativeWriter {
         }
         var report = new ProjectReport(document.Revision, writer._diagnostics);
         if (report.HasErrors) return (report, null);
-        byte[] bytes;
-        try { bytes = OfficeCompoundFileWriter.Rewrite(writer._file, writer._replacements, maxOutputBytes: options.MaxOutputBytes, cancellationToken: token); }
+        byte[]? bytes = null;
+        try {
+            if (serialize && !(report.HasLoss && options.LossPolicy == OfficeConversionLossPolicy.Block))
+                bytes = OfficeCompoundFileWriter.Rewrite(writer._file, writer._replacements, maxOutputBytes: options.MaxOutputBytes, cancellationToken: token);
+            else _ = OfficeCompoundFileWriter.GetRewriteLength(writer._file, writer._replacements, maxOutputBytes: options.MaxOutputBytes, cancellationToken: token);
+        }
         catch (InvalidDataException exception) when (OfficeOutputLimit.Is(exception)) {
             writer.AddOutputLimitDiagnostic();
             return (new ProjectReport(document.Revision, writer._diagnostics), null);
@@ -193,11 +197,11 @@ internal sealed partial class ProjectNativeWriter {
                 case Kind.Guid: editor.Set(uid, id, ((Guid)value).ToByteArray()); break;
                 case Kind.Number: editor.Set(uid, id, Number((decimal)value * scale)); break;
                 case Kind.ScaledInteger: editor.Integer(uid, id, Exact((decimal)value * scale)); break;
-                case Kind.Work: editor.Set(uid, id, Number(((ProjectWork)value).Minutes * 1000)); break;
+                case Kind.Work: editor.Set(uid, id, Number(((ProjectWork)value).ScaledMinutes(1000))); break;
                 case Kind.Units: editor.Set(uid, id, Number(((ProjectUnits)value).Value * 10000)); break;
                 case Kind.Duration:
                     var duration = (ProjectDuration)value;
-                    editor.Integer(uid, id, Exact(Minutes(duration) * 10));
+                    editor.Integer(uid, id, Exact(ScaledMinutes(duration, 10)));
                     if (format != 0) editor.Integer(uid, format, DurationFormat(duration)); break;
             }
         } catch (Exception ex) when (ex is OverflowException || ex is ArgumentException || ex is NotSupportedException) {
@@ -216,8 +220,8 @@ internal sealed partial class ProjectNativeWriter {
         if ((decimal)encoded != value) throw new ArgumentException("Native floating-point precision would change this value.");
         return BitConverter.GetBytes(encoded);
     }
-    private decimal Minutes(ProjectDuration duration) => checked(duration.Value *
-        ProjectTimeUnits.MinutesPerUnit(duration.Unit, duration.IsElapsed, _document.Settings));
+    private decimal Minutes(ProjectDuration duration) => ProjectTimeUnits.Minutes(duration, _document.Settings);
+    private decimal ScaledMinutes(ProjectDuration duration, decimal scale) => ProjectTimeUnits.ScaledMinutes(duration, _document.Settings, scale);
     private static int DurationFormat(ProjectDuration duration) => 3 + (int)duration.Unit * 2 + (duration.IsElapsed ? 1 : 0) + (duration.IsEstimated ? 32 : 0);
     private Guid EntityGuid(ProjectEntity entity, byte kind) {
         if (entity.Guid.HasValue) return entity.Guid.Value;

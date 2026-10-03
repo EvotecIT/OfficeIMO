@@ -208,7 +208,7 @@ namespace OfficeIMO.Word {
             DocumentProtection? protection = settings.Elements<DocumentProtection>().FirstOrDefault();
             if (protection == null) {
                 protection = new DocumentProtection();
-                settings.Append(protection);
+                settings.AddChild(protection, true);
             }
 
             protection.Edit = DocumentProtectionValues.TrackedChanges;

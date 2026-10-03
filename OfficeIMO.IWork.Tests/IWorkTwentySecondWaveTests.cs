@@ -165,7 +165,7 @@ public sealed partial class IWorkBoundaryTests {
             Message(VarintField(1, 0), ReferenceField(2, paragraphStyleId))));
         var listFields = new List<byte[]>();
         for (int index = 0; index <= level; index++) {
-            listFields.Add(VarintField(11, 1));
+            listFields.Add(VarintField(11, 2));
             listFields.Add(FloatField(13, index * 18f));
         }
         byte[] records = Message(

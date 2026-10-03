@@ -29,6 +29,95 @@ OLM sessions project selected items on demand. Request `PreferStreamingAttachmen
 `EmailStoreItemReadOptions` for file-backed payloads and keep the owning session alive until the
 content has been copied or written. Session disposal expires both new and outstanding readers.
 
+## iWork list-marker interpretation
+
+Use `IWorkTextParagraph.ListMarkerKind` when interpreting `ListLabel`; do not infer ordered numbering from a numeric-looking string. Literal markers such as `1.` or `iv.` remain literal DOCX bullets and unordered Reader lists. PPTX uses destination fallback for multi-character text markers. Reconvert earlier imports when those labels were incorrectly turned into counters.
+
+Selected image markers retain incomplete-formatting diagnostics and source-declaration evidence at list-style field `11`. Automatic conversion uses preview fallback unless partial reconstruction is explicitly accepted. Missing native number-format metadata no longer borrows a dormant string label. Initial numbered formats remain available, but native counter and restart behavior still requires qualification.
+
+## iWork selected cell features and row storage acceptance
+
+Tables with decoded conditional-style, applied-rule or unresolved/unsupported comment selectors now require `AllowPartialEditableReconstruction = true` to retain editable values; automatic conversion otherwise uses its preview fallback. Inspect `IWORK_TABLE_CELL_FEATURES_UNASSESSED` and `IWorkTableCell.UnsupportedFeatures` before accepting partial output. Feature-only empty cells now count against `MaximumMaterializedCells`. Handle the additive `IWorkSourceDeclarationIssueKind.UnsupportedField` enum member when interpreting declaration evidence.
+
+Selected date/time and duration formats now require the partial policy because their display settings remain unassessed. The same applies to unresolved or non-default text and Boolean formats; qualified default text (`260`) and Boolean (`1`) formats stay editable. Inspect the additive `DateFormat`, `DurationFormat`, `TextFormat` and `BooleanFormat` flags in `IWorkTableCell.UnsupportedFeatures`, and handle them in exhaustive enum switches. Reconvert earlier imports when source display formats matter. Partial conversion retains typed values and existing destination defaults rather than claiming custom-format preservation.
+
+Malformed or inconsistent row cell counts and non-empty modern buffers without selected offsets also require the partial policy. Inspect `IWORK_TABLE_ROW_STORAGE_UNASSESSED`; its evidence identifies native paths without estimating missing-cell counts.
+
+Reconvert imports whose truncated cells may have consumed bytes from a following out-of-table record. Those cells now retain decode errors and unassessed formula caches rather than borrowed values. Populated out-of-table offsets and oversized offset envelopes retain declaration evidence at `5[n]/7`; oversized envelopes contribute no identified cells or formulas. `MaximumTableDimensionEntries` now includes every inspected modern row offset slot, including empty trailing slots. Increase an intentionally narrow limit when legitimate source tables need more slots; the default remains 1,100,000 combined entries across the source.
+
+Positive hidden/filtered row or column counts and malformed visibility counts now require the same partial policy. Inspect `IWORK_TABLE_VISIBILITY_UNASSESSED` before accepting editable output or Reader content: these routes can include content hidden in the source. Reconvert previously accepted tables when source visibility matters. Visibility counts alone do not identify hidden positions; qualified base user-hidden states use UUID position maps.
+
+The same policy applies to unresolved base hidden-state selections, summary states, filtering/pivot hiding, collapsed groups, other unqualified extents and unreadable visibility envelopes, including sources with zero hidden counts. Inspect `IWORK_TABLE_HIDDEN_STATES_UNASSESSED`. Empty extents and disabled filters retain the editable path. `MaximumTableDimensionEntries` includes hidden-state declarations, selected UUID position maps and filter references; increase a deliberately narrow custom limit when those records are expected, without bypassing the partial-output decision.
+
+Qualified base user-hidden rows and columns are available through `IWorkTable.HiddenRows` and `HiddenColumns` and remain hidden in XLSX without removing their cells. Reconvert older imports when source visibility matters. Reader still includes their content and reports `IWORK_READER_HIDDEN_TABLE_CONTENT_INCLUDED`. DOCX/PPTX editable tables require `AllowPartialEditableReconstruction = true` and report `IWORK_PAGES_TABLE_VISIBILITY_OMITTED` or `IWORK_KEYNOTE_TABLE_VISIBILITY_OMITTED`, because those positions remain visible. Independent native proof currently covers hidden columns with empty cells; see the [support matrix](Docs/officeimo.iwork-support-matrix.md) for remaining limits.
+
+Qualified root cell comments are exposed through `IWorkTableCell.Comment` and no longer set `UnsupportedFeatures.Comment`. Numbers-to-XLSX retains their text, display author, timestamp and cell address as threaded comments. Pages-to-DOCX retains roots with cell-scoped paragraph anchors, text, display author and creation time. Reconvert Pages imports to recover comments previously omitted by partial reconstruction. Replies and unsupported comments still require partial reconstruction. Keynote table conversions require partial reconstruction to omit qualified comments. Reader emits separate comment blocks/chunks and `table.comment` metadata with source table/cell anchors; do not treat those blocks as cell values. Its omission diagnostic now reports only comments excluded by Reader table limits, with `omittedCommentCount`. Reconvert imports to recover native root comments previously left unassessed or omitted from Reader output.
+
+Coordinate-backed node-36 single-cell cross-table formulas and same-target endpoint ranges retain editable expressions when their native table identities resolve. Reconvert imports that previously retained only these formula caches. `FormulaIsComplete` and `Report.FormulaCells` identify assessed expressions; unresolved or incompatible endpoint identities retain caches without an editable formula. This does not change date-range safety or qualify other native reference families.
+
+## iWork table text formatting and acceptance
+
+Keynote table text defaults are preserved, including source font sizes and horizontal alignment. Strict conversion can now use visual fallback when newly assessed table paragraph pagination flags cannot be represented in PPTX. Set `AllowPartialEditableReconstruction = true` to retain the supported editable table text and inspect `IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED`. Numbers default-style expansion can require fallback when it exceeds the bounded styled-cell budget; typed values and formula caches remain available on the source projection.
+
+## Pages body attachment placement
+
+Pages conversion inserts qualified zero-offset body images inline and standalone tables between their surrounding paragraphs. Reconvert sources whose earlier DOCX output appended these objects after the body. `IWorkTextRun.InlineObject` identifies marker-only source runs and retains the original UTF-16 offset and native record identities. Do not infer that an empty run has no content when this property is set.
+
+Reader retains attachment order and emits image-anchor blocks even when alternative text is absent. Their assets reference the block anchors. Mixed text/object paragraphs become multiple ordered blocks with `IWORK_READER_INLINE_PARAGRAPH_SPLIT`; callers that require paragraph layout must use the source model or Word conversion. Unsupported attachment containers, placement modes and destination combinations still require the existing partial/fallback policy.
+
+## Numbers MINA and typed Excel aggregates
+
+Numbers `MINA` uses its independently qualified native identifier and supports one-to-255 arguments. It retains an editable XLSX formula and its valid numeric cache. Native Apple export and recalculation evidence for this addition remain open.
+
+The shared Excel evaluator preserves referenced cell types when calculating aggregates. `MINA`, `MAXA` and `AVERAGEA` include Boolean values as one or zero and referenced text as zero; blank cells are skipped and genuine errors remain typed errors. Empty `MINA` and `MAXA` ranges return zero; empty `AVERAGEA` ranges return `#DIV/0!`. Ordinary numeric aggregates skip referenced Boolean and text values, including numeric-looking text. Boolean formula results and selected text results retain their types through references and saved caches. `SUMSQ`, `LARGE` and `SMALL` filter referenced data values; the rank argument keeps scalar coercion. Positional statistical helpers retain their numeric-only range boundary, so mixed-type ranges remain unevaluated. Recalculate workbooks whose caches depend on these cases.
+
+## Excel and iWork TEXTJOIN formulas
+
+Numbers `TEXTJOIN` expressions with qualified operands now retain editable XLSX formulas and typed caches. The shared Excel writer stores authored `TEXTJOIN` calls as `_xlfn.TEXTJOIN`, including nested calls. Code comparing exact formula strings from `GetFormulaText` must account for this prefix. Existing prefixes, string literals, quoted worksheet names and structured references retain their text. Formula-prefix expansion that exceeds the 8,192-character storage limit raises an argument error for direct Excel authoring; iWork conversion uses its destination fallback policy instead of truncating the expression.
+
+The shared evaluator handles punctuation in quoted worksheet names, propagates typed errors through `TEXTJOIN`, `CONCAT` and `CONCATENATE`, preserves ordinary text such as `#N/A`, and returns `#VALUE!` when joined text exceeds 32,767 characters. Rejected prefix expansion preserves existing cells and in-cell images. Recalculate outputs whose cached results depend on these cases; the source cache retained during conversion is not a freshness guarantee.
+
+## iWork formula function identities
+
+Reconvert Numbers inputs that use `MINUTE`, `OR`, `PI`, `ROUND`, `SECOND`, or `SUMIF`; their native identifiers now resolve to the correct function names. Previous output could omit these expressions or contain an incorrectly named editable formula. Native `OFFSET`, `PROB`, `RANDBETWEEN`, and unrecognized identifiers remain incomplete and retain valid caches. Inspect `FormulaIsComplete` and `IWORK_TABLE_FORMULA_PARTIAL` before relying on editable formulas. `POWER` expressions are reconstructed with their typed caches.
+
+## iWork cross-table ranges
+
+Finite rectangular cross-table references now resolve unique native identities among selected tables. `IWorkTableCell.Formula` contains source sheet/table labels; use the Excel adapter to render references with the actual worksheet names, including normalized names and collision suffixes. `FormulaIsComplete` assesses reconstructed source semantics, not a formula string ready to paste into an arbitrary workbook. Source and destination binding both count toward `MaximumFormulaRenderingOperations`. Table-local and cross-table whole-row/column references, including coordinate-backed header-name aliases, now map to the current target body instead of remaining cache-only. Inspect `IWORK_NUMBERS_TABLE_BODY_RANGE_APPROXIMATED`: the destination excludes header columns or header/footer rows, but fixed ranges do not preserve native labels or automatic expansion. `RequireNoLoss()` rejects this approximation. Missing, inactive, malformed or ambiguous targets, ambiguous body metadata and unsupported reference families retain valid caches with incomplete expressions. Empty destination bodies require fallback. Whole-axis forms from other, unqualified reference node families remain incomplete and keep valid caches. Merge declarations that reference another table remain rejected and reported through `SourceDeclarationIssues`.
+
+## iWork high-precision numeric recovery
+
+Finite Decimal128 values above fifteen significant digits now retain numeric recovery instead of forcing visual fallback. Inspect `IWorkTableCell.NumericValueIsApproximate` before consuming values that must retain exact source precision; `SourceNumberText` holds the exact normalized coefficient/exponent value. Conversion reports use `IWORK_TABLE_NUMERIC_VALUE_APPROXIMATED` with `Approximation` fidelity, and formula cache assessments use `Approximate`. `RequireNoLoss()` rejects this approximation. Overflow, nonzero underflow and unsupported special encodings remain decode failures.
+
+## Stored Excel numeric precision
+
+Range, streaming, typed-object, and PDF reads use correctly rounded conversion of stored numeric text. Values immediately beside a rounding boundary retain their stored double value; for example, `0.6249999999999999` remains below `0.625` and displays as `2/4` under a fixed-quarter fraction format. Numeric formula caches use the same conversion. Explicit decimal conversion and numeric-looking text retain their existing contracts.
+
+## iWork selected cell styling
+
+`IWorkTable.Cells` and `GetCell` can now return empty cells that carry a supported selected native fill, padding or vertical alignment. Check `Kind == IWorkCellKind.Empty` when distinguishing values from formatting; their display text is empty. `Fill == null` means absent or unresolved, while `Fill.IsNone` represents an explicit no-fill override. Styled empty cells count toward `MaximumMaterializedCells`.
+
+Reconvert iWork tables to retain supported selected, region and alternating body-row fills in DOCX, XLSX and PPTX. Use `IWorkTable.GetFill(row, column)` for effective fills at one-based positions; `IWorkTableCell.Fill` retains only the selected fill. Footer fills now take precedence over header-column fills at their intersection. `IWorkTable.FillStyles.BandedBody` exposes the active band fill. Unsupported or unresolved banding suppresses defaults and reports `IWORK_TABLE_FILL_DEFAULTS_UNSUPPORTED`. Unsupported selected fills can require the existing partial-reconstruction policy; inspect `IWORK_TABLE_CELL_FILL_UNSUPPORTED`.
+
+## iWork fraction reconstruction
+
+`IWorkNumberFormatKind.Fraction` and `IWorkFractionAccuracy` add denominator precision to the shared numeric model. `IWorkNumberFormat.DecimalPlaces == null` can now identify a fraction; inspect `Kind` before treating null as automatic decimal mode. The Excel adapter retains editable numeric values and applies mixed-fraction codes with explicit minus and zero sections. `IWORK_NUMBERS_FRACTION_DISPLAY_APPROXIMATED` reports rounding, normalization, and spacing differences; `RequireNoLoss()` rejects this approximation. Nondefault fraction negative styles, grouping, and other controls still require the partial-reconstruction policy. DOCX and PPTX table conversion retains raw cached text and reports numeric-format omission.
+
+## iWork scientific reconstruction
+
+`IWorkNumberFormatKind.Scientific` is an additive enum member. Supported scientific selections retain typed values and formula caches and convert to editable XLSX with zero-to-thirty mantissa decimal places and an `E+00` exponent. Automatic precision reports `IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED`; `RequireNoLoss()` rejects that approximation. Nondefault scientific negative styles and grouping still require the partial-reconstruction policy. DOCX and PPTX table conversion retains raw cached text and reports numeric-format omission.
+
+## iWork currency reconstruction
+
+Supported currency selections retain editable numeric values and currency metadata instead of requiring partial reconstruction for the format alone. The Excel adapter displays the source identifier as a prefix and reports `IWORK_NUMBERS_CURRENCY_DISPLAY_APPROXIMATED`; `RequireNoLoss()` rejects this display approximation. Inspect `IWorkTableCell.NumberFormat.CurrencyCode` and `UseAccountingStyle` when the source format matters. Currency symbols, locale placement, and accounting alignment are not reconstructed. Unsupported currency metadata still requires the partial-reconstruction policy.
+
+## Reader capability schema version 6
+
+Reader capability manifests use schema version 6 and add `SupportsDirectoryBundle`.
+Applications that validate capability schema versions must accept version 6.
+Directory-package handlers register `ReadDirectoryBundle`; ordinary path handlers
+continue to accept files. Document results use schema version 9 as described below.
+
 ## OpenDocument independent saves and formula results
 
 `SaveCopy` and `SaveCopyAsync` leave the attached source and its pending edits unchanged. `Serialize`, `ToBytes`, and `ToStream` also preserve the source version, signatures, and encryption state. Stream saves behave this way when the document has a source path. Use a path-based `Save` or `SaveAsync` when the output should become the document's accepted state. Removing encryption from a copy does not authorize overwriting the encrypted source without a password or explicit removal option.
@@ -413,6 +502,28 @@ these methods.
 `OfficeVisioVisualOptions.LayoutMode` defaults to `Auto`. A topology envelope with complete viewport, node, and included-group bounds now keeps those bounds instead of being laid out again. `PixelsPerInch` controls their physical size. Set `LayoutMode = OfficeVisioVisualLayoutMode.Reflow` to retain the previous native-layout behavior. Flow, sequence, and incomplete topology envelopes continue to use native layout in `Auto` mode. Native graph styling now uses source theme colors with portable Arial text; set `NativeTheme = VisioStyleTheme.Technical()` to retain the previous native palette and typography.
 
 ## OfficeIMO 3.4: one document and conversion grammar
+
+### iWork cell decoding evidence
+
+Use `IWorkTableCell.HasDecodeError` to distinguish storage/value decoding failures from recovered native error markers, instead of comparing `Error` to `"#ERROR"`. Inspect `IWorkConversionReport.SourceCellIssues` for table identities and coordinates. `IWORK_TABLE_CELL_DECODE` now has fidelity category `Unassessed`, rather than `Omission`; unreadable cell content does not establish what was omitted. Workflow evidence retains the count as `sourceCellIssueCount`.
+
+### iWork catalog ambiguity and declaration evidence
+
+String, formula and rich-text catalogs reject duplicate keys even when a duplicate value is malformed. An unreadable entry or key leaves key uniqueness unassessed, so catalog values remain unresolved; valid numeric formula caches remain recoverable through `AllowPartialEditableReconstruction`. Inspect `SourceDeclarationIssues` for the physical catalog paths. Handle the new `IWorkSourceDeclarationIssueKind.InvalidValue` member in exhaustive switches; it identifies invalid plain-string catalog values and unsupported dimension-size or visibility values.
+
+Table catalogs now require a registered `TST.TableDataList` record type (`6005` or `6201`) and an explicit kind matching the selected store field. Structurally plausible string, formula or rich-text payloads with another record type, a missing kind or a conflicting kind remain unresolved. Inspect `SourceReferenceIssues` for wrong target types and `SourceDeclarationIssues` at catalog path `1` for invalid kinds. Partial reconstruction retains valid formula caches and raw numeric values; it does not trust values from a rejected catalog. Synthetic native-format producers must declare the required kind rather than relying on a protobuf scalar default.
+
+### iWork ambiguous table sizing
+
+An unreadable row or column index or unresolved sizing bucket prevents trusting overrides on that axis, including those in other selected buckets. A repeated readable row-bucket reference retires that bucket's indexes while retaining unrelated overrides. `SourceDeclarationIssues` retains physical header paths and invalid size or visibility values; unresolved bucket references remain in `SourceReferenceIssues`. Use `AllowPartialEditableReconstruction` to retain the other axis and healthy sizes at unambiguous indexes. The destination owner applies its existing default-size and geometry rules.
+
+### iWork partial merged-range recovery
+
+Conflicting iWork merge rectangles are removed from the source projection while valid disjoint merges remain available. With `AllowPartialEditableReconstruction`, the destination can retain those merges and recovered cell values. An unreadable range leaves every merge untrusted; a decoded out-of-bounds rectangle disqualifies intersecting merges without exporting a clipped rectangle. Inspect `SourceDeclarationIssues` for the owning model and physical merge paths. Destination checks for populated covered cells remain in effect.
+
+### iWork formula assessment counts
+
+`IWorkConversionReport.FormulaCells` includes materialized error cells whose supported version-5 headers declare formulas. Check `ExpressionIsAssessed` before interpreting `ExpressionIsComplete`; an undecoded cell has cache status `IWorkFormulaCacheStatus.Unassessed`. Include `UnassessedExpressionCount` and `UnassessedCacheCount` when summing the expression and cache categories in `FormulaSummary`. The corresponding workflow facts are `sourceUnassessedFormulaExpressionCount` and `sourceUnassessedFormulaCacheCount`. Handle the new enum member in exhaustive cache-status switches.
 
 ### iWork image inspection budget
 
@@ -1119,6 +1230,10 @@ Before restoring 3.3, remove any `PackageReference` or `ProjectReference` to `Of
 | Keynote | `OfficeIMO.PowerPoint.IWork` | `IWorkSourceDocument.Open(...).ToPowerPointPresentation[Result](...)` |
 
 Reading and conversion now have separate options. Keep package and projection limits in `IWorkReadOptions`; move `IWorkReadOptions.ImportMode` to `IWorkConversionOptions.Mode`, whose enum is `IWorkConversionMode`. The destination result types are `PagesToWordResult`, `NumbersToExcelResult`, and `KeynoteToPowerPointResult`, and the shared report is `IWorkConversionReport`. They use the common conversion vocabulary: `Value`, `Report`, `HasLoss`, `RequireValue()`, and `RequireNoLoss()`. Static path and stream conveniences remain available as `ConvertPagesToWord*`, `ConvertNumbersToExcel*`, and `ConvertKeynoteToPowerPoint*`.
+
+Source-record accounting now uses `IWorkConversionReport.PreservedRecords`, `PreservedRecordCount`, and `IWorkReadOptions.PreserveSourceRecords` in place of the former `UnsupportedRecords`, `UnsupportedRecordCount`, and `PreserveUnsupportedRecords` names. The list includes consumed and auxiliary records; it does not count omitted content. Replace checks for `IWORK_UNPROJECTED_RECORDS` with `IWORK_RECORD_FIDELITY_UNASSESSED`, whose category is `OfficeConversionLossKind.Unassessed`. Strict no-loss policies still reject unassessed fidelity. Add this category to exhaustive diagnostic displays or policy switches.
+
+Partial editable reconstruction and worksheet-name normalization require explicit options. Applications that cannot accept a first-page or composite visual fallback should set `RequireCompleteVisualCoverage = true`; this setting rejects fallback unless full-document coverage is known.
 
 Applications that only use Word, Excel, or PowerPoint need no iWork package and no code change.
 

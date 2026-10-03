@@ -341,7 +341,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeColor ResolveTableCellFillColor(PowerPointTable table, PowerPointTableCell cell, int row, int column, A.TableStyleEntry? tableStyle, A.ColorScheme? colorScheme) =>
-            OfficeOpenXmlThemeColorResolver.ResolveColor(cell.Cell.TableCellProperties?.GetFirstChild<A.SolidFill>(), colorScheme)
+            cell.NoFill ? OfficeColor.Transparent
+                : OfficeOpenXmlThemeColorResolver.ResolveColor(cell.Cell.TableCellProperties?.GetFirstChild<A.SolidFill>(), colorScheme)
                 ?? ResolveTableStyleFillColor(table, row, column, tableStyle, colorScheme)
                 ?? OfficeColor.White;
 

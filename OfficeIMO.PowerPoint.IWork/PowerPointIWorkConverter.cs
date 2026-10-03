@@ -1,5 +1,7 @@
+using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.IWork;
+using OfficeIMO.IWork.Internal;
 using OfficeIMO.PowerPoint.IWork;
 
 namespace OfficeIMO.PowerPoint.IWork;
@@ -8,7 +10,10 @@ namespace OfficeIMO.PowerPoint.IWork;
 public static partial class PowerPointIWorkConverter {
     private static KeynoteToPowerPointResult ProjectKeynote(
         IWorkSourceDocument source, IWorkConversionOptions? options = null) {
-        IWorkConversionMode mode = (options ?? new IWorkConversionOptions()).Clone().Mode;
+        CancellationToken cancellationToken = source.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
+        IWorkConversionOptions settings = (options ?? new IWorkConversionOptions()).Clone();
+        IWorkConversionMode mode = settings.Mode;
         IWorkPreviewAsset? preview = mode == IWorkConversionMode.VisualOnly
             ? source.PreferredRasterPreview
             : null;
@@ -19,18 +24,30 @@ public static partial class PowerPointIWorkConverter {
         IWorkKeynoteProjection projection = source.ReadKeynote();
         string? destinationLimitation = mode == IWorkConversionMode.VisualOnly
             ? null
-            : FindPowerPointProjectionLimitation(projection);
-        bool editable = mode != IWorkConversionMode.VisualOnly && projection.HasEditableContent
+            : FindPowerPointProjectionLimitation(projection, settings.AllowPartialEditableReconstruction);
+        bool hasEditableContent = projection.HasEditableContent
+            || settings.AllowPartialEditableReconstruction && projection.HasRecoverableContent;
+        bool editable = mode != IWorkConversionMode.VisualOnly && hasEditableContent
             && destinationLimitation == null;
         IReadOnlyList<IWorkDiagnostic> destinationDiagnostics =
-            (!projection.HasEditableContent || destinationLimitation == null
+            (!hasEditableContent || destinationLimitation == null
                 ? Array.Empty<IWorkDiagnostic>()
                 : new[] { new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_KEYNOTE_POWERPOINT_DESTINATION_UNSUPPORTED", destinationLimitation) })
             .Concat(editable
-                ? FindPowerPointProjectionDiagnostics(projection)
+                ? FindPowerPointProjectionDiagnostics(projection, cancellationToken)
                 : Array.Empty<IWorkDiagnostic>())
             .ToArray();
+        if (editable && settings.AllowPartialEditableReconstruction &&
+            (!projection.HasEditableContent || projection.Diagnostics.Any(diagnostic =>
+                diagnostic.Severity != IWorkDiagnosticSeverity.Information)
+                || destinationDiagnostics.Any(diagnostic => diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission))) {
+            destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                    "IWORK_PARTIAL_EDITABLE_RECONSTRUCTION",
+                    "Recovered editable content was retained under the explicit partial-reconstruction policy; source diagnostics describe incomplete details.")
+            }).ToArray();
+        }
         if (!editable && mode == IWorkConversionMode.EditableOnly) {
             throw new InvalidDataException(destinationLimitation
                 ?? "The Keynote source has no supported editable slides.");
@@ -40,6 +57,8 @@ public static partial class PowerPointIWorkConverter {
         if (!editable && preview == null) {
             throw new NotSupportedException("The Keynote source has no supported editable slides or embedded raster preview.");
         }
+
+        if (!editable) settings.ValidateVisualPreview(preview);
 
         PowerPointPresentation presentation = PowerPointPresentation.Create();
         try {
@@ -59,28 +78,35 @@ public static partial class PowerPointIWorkConverter {
                 var slidePairs = new List<(IWorkKeynoteSlide Source, PowerPointSlide Target)>(
                     projection.Slides.Count);
                 foreach (IWorkKeynoteSlide sourceSlide in projection.Slides) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     PowerPointSlide slide = presentation.AddSlide();
                     if (sourceSlide.Name.Length > 0) slide.Name = sourceSlide.Name;
                     slide.Hidden = sourceSlide.IsSkipped;
+                    if (sourceSlide.HasBackgroundFill) {
+                        if (sourceSlide.BackgroundColor != null) slide.BackgroundColor = sourceSlide.BackgroundColor.RgbHex;
+                        else slide.SetBackgroundNoFill();
+                    }
                     slidePairs.Add((sourceSlide, slide));
                 }
                 foreach ((IWorkKeynoteSlide sourceSlide, PowerPointSlide slide) in slidePairs) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     foreach (IWorkKeynoteDrawable drawable in sourceSlide.Drawables) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         switch (drawable.Kind) {
                             case IWorkKeynoteDrawableKind.TextBox:
                                 IWorkTextBox textBox = drawable.TextBox!;
                                 if (drawable.IsTitlePlaceholder) {
                                     AddRichTextBox(slide, textBox,
                                         canvasWidth * 0.04875d, canvasHeight * 0.06d,
-                                        canvasWidth * 0.9d, canvasHeight / 7.5d);
+                                        canvasWidth * 0.9d, canvasHeight / 7.5d, cancellationToken);
                                 } else {
                                     AddRichTextBox(slide, textBox,
                                         canvasWidth * 0.06375d, canvasHeight * 0.22d,
-                                        canvasWidth * 0.87d, canvasHeight * 0.6533333333333333d);
+                                        canvasWidth * 0.87d, canvasHeight * 0.6533333333333333d, cancellationToken);
                                 }
                                 break;
                             case IWorkKeynoteDrawableKind.Table:
-                                AddEditableTable(slide, drawable.Table!);
+                                AddEditableTable(slide, drawable.Table!, cancellationToken);
                                 break;
                             case IWorkKeynoteDrawableKind.Image:
                                 AddEditableImage(slide, drawable.Image!, canvasWidth, canvasHeight);
@@ -88,7 +114,7 @@ public static partial class PowerPointIWorkConverter {
                         }
                     }
                     if (sourceSlide.PresenterNoteContent.Paragraphs.Count > 0) {
-                        SetRichPresenterNotes(slide.Notes, sourceSlide.PresenterNoteContent);
+                        SetRichPresenterNotes(slide.Notes, sourceSlide.PresenterNoteContent, cancellationToken);
                     }
                 }
             } else {
@@ -106,8 +132,10 @@ public static partial class PowerPointIWorkConverter {
             IWorkProjectionKind kind = editable
                 ? IWorkProjectionKind.EditableReconstruction
                 : IWorkProjectionKind.VisualFallback;
+            cancellationToken.ThrowIfCancellationRequested();
             return new KeynoteToPowerPointResult(presentation, source, projection,
-                projection.CreateConversionReport(kind, preview, destinationDiagnostics));
+                projection.CreateConversionReport(kind, preview, destinationDiagnostics,
+                    settings.AllowPartialEditableReconstruction));
         } catch {
             presentation.Dispose();
             throw;
@@ -122,76 +150,6 @@ public static partial class PowerPointIWorkConverter {
         double width = pixelWidth * scale;
         double height = pixelHeight * scale;
         return ((slideWidth - width) / 2d, (slideHeight - height) / 2d, width, height);
-    }
-
-    private static void AddEditableTable(PowerPointSlide slide, IWorkTable source) {
-        if (source.RowCount == 0 || source.ColumnCount == 0) return;
-        double left = source.Geometry?.LeftPoints ?? 72d;
-        double top = source.Geometry?.TopPoints ?? 72d;
-        double? columnWidth = source.DefaultColumnWidth is > 0
-            ? QuantizePositiveEmuPoints(source.DefaultColumnWidth.Value)
-            : null;
-        double? rowHeight = source.DefaultRowHeight is > 0
-            ? QuantizePositiveEmuPoints(source.DefaultRowHeight.Value)
-            : null;
-        double width = QuantizePositiveEmuPoints(source.Geometry is { WidthPoints: > 0 }
-            ? source.Geometry.WidthPoints
-            : columnWidth.HasValue
-                ? columnWidth.Value * source.ColumnCount
-                : Math.Max(144d, 72d * source.ColumnCount));
-        double height = QuantizePositiveEmuPoints(source.Geometry is { HeightPoints: > 0 }
-            ? source.Geometry.HeightPoints
-            : rowHeight.HasValue
-                ? rowHeight.Value * source.RowCount
-                : Math.Max(36d, 24d * source.RowCount));
-        PowerPointTable table = slide.AddTablePoints(source.RowCount, source.ColumnCount,
-            left, top, width, height);
-        table.AltText = source.AccessibilityDescription;
-        table.Rotation = source.Geometry?.RotationDegrees ?? 0d;
-        table.FirstRow = source.HeaderRowCount > 0;
-        table.FirstColumn = source.HeaderColumnCount > 0;
-        table.LastRow = source.FooterRowCount > 0;
-        foreach (IWorkTableCell sourceCell in source.Cells) {
-            PowerPointTableCell target = table.GetCell(sourceCell.Row - 1, sourceCell.Column - 1);
-            if (sourceCell.RichText is { Paragraphs.Count: > 0 } richText) {
-                IReadOnlyList<PowerPointParagraph> paragraphs = target.SetParagraphs(
-                    richText.Paragraphs.Select(_ => string.Empty));
-                var listState = new IWorkPowerPointListState();
-                for (int index = 0; index < paragraphs.Count; index++) {
-                    IWorkTextParagraph sourceParagraph = richText.Paragraphs[index];
-                    ApplyParagraphStyle(paragraphs[index], sourceParagraph,
-                        listState.StartsAtSourceLabel(sourceParagraph));
-                    WriteParagraphContent(paragraphs[index], sourceParagraph);
-                }
-                if (sourceCell.Row <= source.HeaderRowCount
-                    || sourceCell.Column <= source.HeaderColumnCount
-                    || sourceCell.Row > source.RowCount - source.FooterRowCount) {
-                    foreach (PowerPointParagraph paragraph in paragraphs) {
-                        foreach (PowerPointTextRun run in paragraph.Runs) run.Bold = true;
-                    }
-                }
-            } else {
-                target.Text = sourceCell.Kind == IWorkCellKind.Formula && sourceCell.Value != null
-                    ? sourceCell.CachedDisplayText
-                    : sourceCell.DisplayText;
-            }
-            if (sourceCell.Row <= source.HeaderRowCount || sourceCell.Column <= source.HeaderColumnCount
-                || sourceCell.Row > source.RowCount - source.FooterRowCount) target.Bold = true;
-        }
-        foreach (IWorkTableMergeRange merge in source.MergedRanges) {
-            table.MergeCells(merge.FirstRow - 1, merge.FirstColumn - 1,
-                merge.LastRow - 1, merge.LastColumn - 1);
-        }
-        if (columnWidth.HasValue && source.Geometry is not { WidthPoints: > 0 }) {
-            for (int column = 0; column < source.ColumnCount; column++) {
-                table.SetColumnWidthPoints(column, columnWidth.Value);
-            }
-        }
-        if (rowHeight.HasValue && source.Geometry is not { HeightPoints: > 0 }) {
-            for (int row = 0; row < source.RowCount; row++) {
-                table.SetRowHeightPoints(row, rowHeight.Value);
-            }
-        }
     }
 
     private static void AddEditableImage(PowerPointSlide slide, IWorkImageAsset source,
@@ -226,7 +184,8 @@ public static partial class PowerPointIWorkConverter {
         }
     }
 
-    private static string? FindPowerPointProjectionLimitation(IWorkKeynoteProjection projection) {
+    private static string? FindPowerPointProjectionLimitation(IWorkKeynoteProjection projection,
+        bool allowPartialEditableReconstruction) {
         const double MaximumPointMeasurement = int.MaxValue / 12700d;
         const long MaximumDestinationTableCells = 1_000_000;
         long destinationTableCells = 0;
@@ -291,13 +250,13 @@ public static partial class PowerPointIWorkConverter {
                         return $"Keynote slide {slide.Index} contains a list nesting level outside the PPTX range.";
                     }
                     if (paragraph.ListLevel >= 0 && paragraph.ListLabel is { Length: > 0 } label
-                        && (label.Length > 1 || label[0] is >= 'A' and <= 'Z' or >= 'a' and <= 'z')
-                        && !TryParseNumbering(label, out _, out _)) {
+                        && (paragraph.ListMarkerKind == IWorkListMarkerKind.Number
+                            ? !TryParseNumbering(label, out _, out _) : label.Length > 1)) {
                         return $"Keynote slide {slide.Index} contains a list marker that cannot be represented by native PPTX numbering.";
                     }
                     IWorkParagraphStyle style = paragraph.Style;
-                    if (style.PageBreakBefore == true || style.KeepWithNext == true
-                        || style.KeepLinesTogether == true) {
+                    if (!allowPartialEditableReconstruction && (style.PageBreakBefore == true
+                        || style.KeepWithNext == true || style.KeepLinesTogether == true)) {
                         return $"Keynote slide {slide.Index} contains paragraph pagination formatting that the PPTX owner cannot preserve.";
                     }
                     if (!FitsTextCoordinate(style.FirstLineIndentPoints)
@@ -305,22 +264,30 @@ public static partial class PowerPointIWorkConverter {
                         || !FitsTextCoordinate(style.RightIndentPoints)
                         || Math.Abs(style.RightIndentPoints.GetValueOrDefault()) > 0.000001d
                         || !FitsSpacing(style.SpaceBeforePoints)
-                        || !FitsSpacing(style.SpaceAfterPoints)) {
+                        || !FitsSpacing(style.SpaceAfterPoints) || !FitsLineSpacing(style.LineSpacingMultiplier)
+                        || style.TabStops != null && style.TabStops.Any(tab => !FitsTextCoordinate(tab.PositionPoints))) {
                         return $"Keynote slide {slide.Index} contains paragraph formatting outside the PPTX range.";
                     }
-                    if (paragraph.Runs.Any(run => run.Style.FontSizePoints is double fontSize
+                    IEnumerable<IWorkTextStyle> textStyles = paragraph.Runs.Select(run => run.Style).Concat(new[] { style.TextStyle });
+                    if (textStyles.Any(textStyle => textStyle.FontSizePoints is double fontSize
                             && (!IsFinite(fontSize) || fontSize < 1d || fontSize > 4000d
                                 || fontSize * 100d != Math.Round(fontSize * 100d,
                                     MidpointRounding.AwayFromZero)))) {
                         return $"Keynote slide {slide.Index} contains a font size outside the PPTX range or hundredth-point precision.";
                     }
-                    if (paragraph.Runs.Any(run => run.Style.Color is { Alpha: < byte.MaxValue }
-                            || run.Style.BackgroundColor is { Alpha: < byte.MaxValue })) {
+                    if (textStyles.Any(textStyle => textStyle.Color is { Alpha: < byte.MaxValue }
+                            || textStyle.BackgroundColor is { Alpha: < byte.MaxValue })) {
                         return $"Keynote slide {slide.Index} contains transparent text colors that cannot be represented by the PPTX owner.";
                     }
                 }
             }
             foreach (IWorkTable table in slide.Tables) {
+                if (!allowPartialEditableReconstruction && table.Cells.Any(cell => cell.Comment != null))
+                    return $"Keynote table '{table.Name}' contains cell comments that this PPTX projection cannot preserve.";
+                if (!allowPartialEditableReconstruction && (table.HiddenRows.Count > 0 || table.HiddenColumns.Count > 0))
+                    return $"Keynote table '{table.Name}' has hidden rows or columns that the PPTX table owner cannot preserve.";
+                string? textStyleLimitation = FindTableTextStyleLimitation(table, allowPartialEditableReconstruction);
+                if (textStyleLimitation != null) return textStyleLimitation;
                 long tableCells = (long)table.RowCount * table.ColumnCount;
                 if (table.RowCount == 0 || table.ColumnCount == 0) {
                     return $"Keynote table '{table.Name}' has no rows or columns and cannot be represented by the PPTX table owner.";
@@ -340,20 +307,27 @@ public static partial class PowerPointIWorkConverter {
                     && cell.RichText is { IsComplete: false })) {
                     return $"Keynote table '{table.Name}' contains formula cached text with incomplete formatting that the PPTX owner cannot preserve.";
                 }
-                if (projection.HasEditableContent && table.HasPopulatedCoveredMergeCells()) {
+                if (table.Cells.Any(cell => cell.Padding != null && PaddingPoints(cell.Padding)
+                    .Any(points => Math.Round(points * 12700d) > int.MaxValue
+                        || !allowPartialEditableReconstruction && !IsExactEmu(points)))) {
+                    return $"Keynote table '{table.Name}' has cell padding outside the PPTX margin range or EMU precision.";
+                }
+                if (table.HasPopulatedCoveredMergeCells()) {
                     return $"Keynote table '{table.Name}' contains content in a covered merged cell that the PPTX owner cannot preserve.";
                 }
                 destinationTableCells += tableCells;
-                double fallbackWidth = table.DefaultColumnWidth is > 0
-                    ? table.DefaultColumnWidth.Value * table.ColumnCount
-                    : Math.Max(144d, 72d * table.ColumnCount);
-                double fallbackHeight = table.DefaultRowHeight is > 0
-                    ? table.DefaultRowHeight.Value * table.RowCount
-                    : Math.Max(36d, 24d * table.RowCount);
+                double fallbackWidth = TableAxisExtent(table.ColumnCount, table.ColumnWidths,
+                    table.DefaultColumnWidth, null, Math.Max(144d, 72d * table.ColumnCount));
+                double fallbackHeight = TableAxisExtent(table.RowCount, table.RowHeights,
+                    table.DefaultRowHeight, null, Math.Max(36d, 24d * table.RowCount));
                 double projectedWidth = table.Geometry?.WidthPoints ?? fallbackWidth;
                 double projectedHeight = table.Geometry?.HeightPoints ?? fallbackHeight;
                 if (!FitsPositiveMeasurement(projectedWidth, MaximumPointMeasurement)
-                    || !FitsPositiveMeasurement(projectedHeight, MaximumPointMeasurement)) {
+                    || !FitsPositiveMeasurement(projectedHeight, MaximumPointMeasurement)
+                    || table.ColumnWidths.Count > 0 && !FitsPositiveMeasurement(
+                        AxisSourceTotal(table.ColumnCount, table.ColumnWidths, table.DefaultColumnWidth, projectedWidth), double.MaxValue)
+                    || table.RowHeights.Count > 0 && !FitsPositiveMeasurement(
+                        AxisSourceTotal(table.RowCount, table.RowHeights, table.DefaultRowHeight, projectedHeight), double.MaxValue)) {
                     return $"Keynote table '{table.Name}' has sizing outside the PPTX measurement range.";
                 }
                 if (table.Geometry is { } geometry
@@ -375,7 +349,7 @@ public static partial class PowerPointIWorkConverter {
         && value <= 51206400d / 12700d;
 
     private static IReadOnlyList<IWorkDiagnostic> FindPowerPointProjectionDiagnostics(
-        IWorkKeynoteProjection projection) {
+        IWorkKeynoteProjection projection, CancellationToken cancellationToken) {
         bool requiresEmuRounding = projection.SlideSize is { } slideSize
                 && (!IsExactEmu(slideSize.WidthPoints) || !IsExactEmu(slideSize.HeightPoints))
             || projection.Slides.SelectMany(slide => slide.TextBoxes
@@ -392,21 +366,52 @@ public static partial class PowerPointIWorkConverter {
                     || !IsExactEmu(geometry.WidthPoints)
                     || !IsExactEmu(geometry.HeightPoints))
             || projection.Slides.SelectMany(slide => slide.Tables)
-                .Any(table => TableSizingRequiresEmuRounding(table));
-        if (!requiresEmuRounding) return Array.Empty<IWorkDiagnostic>();
-        return new[] {
+                .Any(table => TableSizingRequiresEmuRounding(table))
+            || projection.Slides.SelectMany(slide => slide.Tables).SelectMany(table => table.Cells)
+                .Any(cell => cell.Padding != null && PaddingPoints(cell.Padding).Any(points => !IsExactEmu(points)));
+        var diagnostics = new List<IWorkDiagnostic>();
+        if (projection.Slides.SelectMany(slide => slide.Tables).Any(table => table.Cells.Any(cell => cell.Comment != null))) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_TABLE_COMMENTS_OMITTED",
+                "PPTX table reconstruction omits native cell comments; qualified comments remain on the iWork projection.",
+                lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission));
+        }
+        if (projection.Slides.SelectMany(slide => slide.Tables).Any(table => table.HiddenRows.Count > 0 || table.HiddenColumns.Count > 0)) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_TABLE_VISIBILITY_OMITTED",
+                "PPTX tables retain source-hidden rows and columns as visible content; their visibility is retained on the iWork projection.",
+                lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission));
+        }
+        if (projection.Slides.SelectMany(slide => slide.Tables).SelectMany(TableParagraphStyles)
+            .Any(style => style.PageBreakBefore == true || style.KeepWithNext == true || style.KeepLinesTogether == true)) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED",
+                "PPTX retains supported text formatting but cannot represent source paragraph pagination flags; the iWork projection retains them.",
+                lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission));
+        }
+        diagnostics.AddRange(IWorkNumericDisplayDiagnostics.ForTextTables(
+            projection.Slides.SelectMany(slide => slide.Tables).SelectMany(table => table.Cells), "KEYNOTE", "PPTX", cancellationToken));
+        if (projection.Slides.SelectMany(slide => slide.Tables).Any(table =>
+            AxisSizingIsScaled(table.ColumnCount, table.ColumnWidths, table.DefaultColumnWidth, table.Geometry?.WidthPoints)
+            || AxisSizingIsScaled(table.RowCount, table.RowHeights, table.DefaultRowHeight, table.Geometry?.HeightPoints))) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_KEYNOTE_TABLE_SIZING_SCALED",
+                "Individual Keynote table sizes were scaled proportionally to preserve the drawable extent.",
+                lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation));
+        }
+        if (requiresEmuRounding) diagnostics.AddRange(new[] {
             new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_KEYNOTE_PPTX_PRECISION",
                 "Keynote point measurements were quantized to the nearest PPTX EMU; the bounded source geometry remains available on the load result.")
-        };
+        });
+        return diagnostics;
     }
 
     private static bool TableSizingRequiresEmuRounding(IWorkTable table) {
         if (table.RowCount <= 0 || table.ColumnCount <= 0) return false;
-        return table.Geometry is not { WidthPoints: > 0 }
-                && table.DefaultColumnWidth is > 0 && !IsExactEmu(table.DefaultColumnWidth.Value)
-            || table.Geometry is not { HeightPoints: > 0 }
-                && table.DefaultRowHeight is > 0 && !IsExactEmu(table.DefaultRowHeight.Value);
+        return AxisSizingRequiresEmuRounding(table.ColumnCount, table.ColumnWidths,
+                table.DefaultColumnWidth, table.Geometry?.WidthPoints,
+                Math.Max(144d, 72d * table.ColumnCount))
+            || AxisSizingRequiresEmuRounding(table.RowCount, table.RowHeights,
+                table.DefaultRowHeight, table.Geometry?.HeightPoints,
+                Math.Max(36d, 24d * table.RowCount));
     }
 
     private static bool IsExactEmu(double points) {
@@ -441,6 +446,12 @@ public static partial class PowerPointIWorkConverter {
         && Math.Abs(points.Value - Math.Round(points.Value * 100d,
             MidpointRounding.AwayFromZero) / 100d) <= 0.00001d;
 
+    private static bool FitsLineSpacing(double? multiplier) => !multiplier.HasValue
+        || IsFinite(multiplier.Value) && multiplier.Value * 100000d >= 1d
+        && multiplier.Value <= 132d
+        && Math.Abs(multiplier.Value * 100000d - Math.Round(multiplier.Value * 100000d))
+            <= Math.Max(1e-6d, multiplier.Value * 0.01d);
+
     private static bool FitsRotation(double degrees) {
         double scaled = degrees * 60000d;
         return IsFinite(degrees) && Math.Abs(degrees) <= int.MaxValue / 60000d
@@ -457,252 +468,4 @@ public static partial class PowerPointIWorkConverter {
                 || slideNumber > slideCount);
     }
 
-    private static void AddRichTextBox(PowerPointSlide slide, IWorkTextBox source,
-        double fallbackLeft, double fallbackTop, double fallbackWidth, double fallbackHeight) {
-        double left = source.Geometry?.LeftPoints ?? fallbackLeft;
-        double top = source.Geometry?.TopPoints ?? fallbackTop;
-        double width = source.Geometry?.WidthPoints ?? fallbackWidth;
-        double height = source.Geometry?.HeightPoints ?? fallbackHeight;
-        PowerPointTextBox textBox = slide.AddTextBoxPoints(string.Empty, left, top, width, height);
-        textBox.Rotation = source.Geometry?.RotationDegrees;
-        textBox.AltText = source.AccessibilityDescription;
-        if (source.Hyperlink != null
-            && Uri.TryCreate(source.Hyperlink, UriKind.RelativeOrAbsolute, out Uri? shapeLink)) {
-            textBox.SetHyperlink(shapeLink);
-        }
-        textBox.Clear();
-        bool first = true;
-        var listState = new IWorkPowerPointListState();
-        foreach (IWorkTextParagraph sourceParagraph in source.Content.Paragraphs) {
-            PowerPointParagraph paragraph;
-            if (first) {
-                paragraph = textBox.Paragraphs[0];
-                paragraph.Text = string.Empty;
-                first = false;
-            } else {
-                paragraph = textBox.AddParagraph();
-            }
-            ApplyParagraphStyle(paragraph, sourceParagraph,
-                listState.StartsAtSourceLabel(sourceParagraph));
-            WriteParagraphContent(paragraph, sourceParagraph);
-        }
-    }
-
-    private static void SetRichPresenterNotes(PowerPointNotes notes, IWorkTextContent source) {
-        IReadOnlyList<PowerPointParagraph> paragraphs = notes.SetParagraphs(
-            source.Paragraphs.Select(_ => string.Empty));
-        var listState = new IWorkPowerPointListState();
-        for (int paragraphIndex = 0; paragraphIndex < source.Paragraphs.Count; paragraphIndex++) {
-            IWorkTextParagraph sourceParagraph = source.Paragraphs[paragraphIndex];
-            PowerPointParagraph paragraph = paragraphs[paragraphIndex];
-            ApplyParagraphStyle(paragraph, sourceParagraph,
-                listState.StartsAtSourceLabel(sourceParagraph));
-            WriteParagraphContent(paragraph, sourceParagraph);
-        }
-        notes.Save();
-    }
-
-    private static void ApplyParagraphStyle(PowerPointParagraph paragraph,
-        IWorkTextParagraph source, bool startsAtSourceLabel) {
-        IWorkParagraphStyle style = source.Style;
-        bool rightToLeft = OfficeTextElements.ResolveBaseDirection(source.Text)
-            == OfficeTextDirection.RightToLeft;
-        paragraph.RightToLeft = rightToLeft;
-        if (style.Alignment.HasValue) {
-            paragraph.Alignment = style.Alignment.Value switch {
-                IWorkTextAlignment.Natural => rightToLeft
-                    ? PowerPointTextAlignment.Right
-                    : PowerPointTextAlignment.Left,
-                IWorkTextAlignment.Center => PowerPointTextAlignment.Center,
-                IWorkTextAlignment.Right => PowerPointTextAlignment.Right,
-                IWorkTextAlignment.Justified => PowerPointTextAlignment.Justified,
-                _ => PowerPointTextAlignment.Left
-            };
-        }
-        paragraph.IndentPoints = style.FirstLineIndentPoints;
-        paragraph.LeftMarginPoints = style.LeftIndentPoints;
-        paragraph.SpaceBeforePoints = style.SpaceBeforePoints;
-        paragraph.SpaceAfterPoints = style.SpaceAfterPoints;
-        if (source.ListLevel >= 0) {
-            paragraph.Level = Math.Min(8, source.ListLevel);
-            if (string.IsNullOrEmpty(source.ListLabel)) paragraph.SetBullet('\u2022');
-            else if (TryParseNumbering(source.ListLabel!, out PowerPointNumberingScheme scheme,
-                         out int start)) {
-                if (startsAtSourceLabel) paragraph.SetNumbered(scheme, start);
-                else paragraph.SetNumbered(scheme);
-            } else if (source.ListLabel!.Length == 1) paragraph.SetBullet(source.ListLabel[0]);
-        }
-    }
-
-    private sealed class IWorkPowerPointListState {
-        private readonly HashSet<int> _observedLevels = new();
-        private bool _inList;
-        private ulong? _listIdentifier;
-
-        internal bool StartsAtSourceLabel(IWorkTextParagraph paragraph) {
-            if (paragraph.ListLevel < 0) {
-                _inList = false;
-                _listIdentifier = null;
-                _observedLevels.Clear();
-                return false;
-            }
-            if (!_inList || paragraph.ListIdentifier != _listIdentifier) {
-                _inList = true;
-                _listIdentifier = paragraph.ListIdentifier;
-                _observedLevels.Clear();
-            }
-            return _observedLevels.Add(paragraph.ListLevel);
-        }
-    }
-
-    private static void WriteParagraphContent(PowerPointParagraph paragraph,
-        IWorkTextParagraph source) {
-        paragraph.Text = string.Empty;
-        bool canReuseInitialRun = true;
-        foreach (IWorkTextRun sourceRun in source.Runs) {
-            string[] lines = sourceRun.Text.Split(new[] { '\n' });
-            for (int lineIndex = 0; lineIndex < lines.Length; lineIndex++) {
-                if (lineIndex > 0) {
-                    paragraph.AddLineBreak();
-                    canReuseInitialRun = false;
-                }
-                if (lines[lineIndex].Length > 0) {
-                    AppendStyledText(paragraph, lines[lineIndex], sourceRun.Style,
-                        sourceRun.Hyperlink, ref canReuseInitialRun);
-                }
-            }
-        }
-    }
-
-    private static bool TryParseNumbering(string label,
-        out PowerPointNumberingScheme scheme, out int start) {
-        const int MaximumStart = 32_767;
-        scheme = PowerPointNumberingScheme.ArabicPeriod;
-        start = 1;
-        string marker = label.Trim();
-        bool parenthesized = marker.Length > 2
-            && marker[0] == '(' && marker[marker.Length - 1] == ')';
-        bool rightParenthesis = !parenthesized && marker.EndsWith(")", StringComparison.Ordinal);
-        bool period = !parenthesized && marker.EndsWith(".", StringComparison.Ordinal);
-        string token = parenthesized
-            ? marker.Substring(1, marker.Length - 2)
-            : rightParenthesis || period ? marker.Substring(0, marker.Length - 1) : marker;
-        if (token.Length == 0) return false;
-
-        if (token.All(character => character is >= '0' and <= '9')) {
-            if (!int.TryParse(token, System.Globalization.NumberStyles.None,
-                    System.Globalization.CultureInfo.InvariantCulture, out start)
-                || start is < 1 or > MaximumStart) return false;
-            scheme = parenthesized ? PowerPointNumberingScheme.ArabicParenBoth
-                : rightParenthesis ? PowerPointNumberingScheme.ArabicParenR
-                : period ? PowerPointNumberingScheme.ArabicPeriod
-                : PowerPointNumberingScheme.ArabicPlain;
-            return true;
-        }
-
-        bool roman = token.All(character => "ivxlcdmIVXLCDM".IndexOf(character) >= 0)
-            && (token.Length > 1 || "ivxIVX".IndexOf(token[0]) >= 0);
-        if (roman) {
-            if (!TryParseRoman(token, out start) || start > MaximumStart) return false;
-            bool upper = token.All(character => character is >= 'A' and <= 'Z');
-            if (!parenthesized && !rightParenthesis && !period) return false;
-            scheme = upper
-                ? parenthesized ? PowerPointNumberingScheme.RomanUpperCharacterParenBoth
-                    : rightParenthesis ? PowerPointNumberingScheme.RomanUpperCharacterParenR
-                    : PowerPointNumberingScheme.RomanUpperCharacterPeriod
-                : parenthesized ? PowerPointNumberingScheme.RomanLowerCharacterParenBoth
-                    : rightParenthesis ? PowerPointNumberingScheme.RomanLowerCharacterParenR
-                    : PowerPointNumberingScheme.RomanLowerCharacterPeriod;
-            return true;
-        }
-
-        bool uppercase = token.All(character => character is >= 'A' and <= 'Z');
-        bool lowercase = token.All(character => character is >= 'a' and <= 'z');
-        if (!uppercase && !lowercase
-            || !TryParseAlphabetic(token, out start) || start > MaximumStart
-            || !parenthesized && !rightParenthesis && !period) return false;
-        scheme = uppercase
-            ? parenthesized ? PowerPointNumberingScheme.AlphaUpperCharacterParenBoth
-                : rightParenthesis ? PowerPointNumberingScheme.AlphaUpperCharacterParenR
-                : PowerPointNumberingScheme.AlphaUpperCharacterPeriod
-            : parenthesized ? PowerPointNumberingScheme.AlphaLowerCharacterParenBoth
-                : rightParenthesis ? PowerPointNumberingScheme.AlphaLowerCharacterParenR
-                : PowerPointNumberingScheme.AlphaLowerCharacterPeriod;
-        return true;
-    }
-
-    private static bool TryParseAlphabetic(string token, out int value) {
-        value = 0;
-        foreach (char character in token) {
-            int digit = char.ToUpperInvariant(character) - 'A' + 1;
-            if (digit < 1 || digit > 26 || value > (int.MaxValue - digit) / 26) return false;
-            value = value * 26 + digit;
-        }
-        return value > 0;
-    }
-
-    private static bool TryParseRoman(string token, out int value) {
-        value = 0;
-        int previous = 0;
-        for (int index = token.Length - 1; index >= 0; index--) {
-            int current = char.ToUpperInvariant(token[index]) switch {
-                'I' => 1, 'V' => 5, 'X' => 10, 'L' => 50,
-                'C' => 100, 'D' => 500, 'M' => 1000, _ => 0
-            };
-            if (current == 0) return false;
-            int delta = current < previous ? -current : current;
-            if (delta > 0 && value > int.MaxValue - delta
-                || delta < 0 && value < int.MinValue - delta) return false;
-            value += delta;
-            if (current > previous) previous = current;
-        }
-        if (value <= 0) return false;
-        bool upper = token.All(character => character is >= 'A' and <= 'Z');
-        string canonical = FormatRoman(value);
-        return string.Equals(token, upper ? canonical : canonical.ToLowerInvariant(),
-            StringComparison.Ordinal);
-    }
-
-    private static string FormatRoman(int value) {
-        var builder = new System.Text.StringBuilder();
-        foreach ((int Number, string Token) part in new[] {
-                     (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"),
-                     (100, "C"), (90, "XC"), (50, "L"), (40, "XL"),
-                     (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")
-                 }) {
-            while (value >= part.Number) {
-                builder.Append(part.Token);
-                value -= part.Number;
-            }
-        }
-        return builder.ToString();
-    }
-
-    private static void AppendStyledText(PowerPointParagraph paragraph, string text,
-        IWorkTextStyle style, string? hyperlink, ref bool canReuseInitialRun) {
-        PowerPointTextRun run;
-        if (canReuseInitialRun) {
-            run = paragraph.Runs[0];
-            run.Text = text;
-            canReuseInitialRun = false;
-        } else {
-            run = paragraph.AddRun(text);
-        }
-        ApplyTextStyle(run, style);
-        if (hyperlink != null
-            && Uri.TryCreate(hyperlink, UriKind.RelativeOrAbsolute, out Uri? runLink)) {
-            run.Hyperlink = runLink;
-        }
-    }
-
-    private static void ApplyTextStyle(PowerPointTextRun run, IWorkTextStyle style) {
-        if (style.Bold.HasValue) run.Bold = style.Bold.Value;
-        if (style.Italic.HasValue) run.Italic = style.Italic.Value;
-        if (style.Underline.HasValue) run.Underline = style.Underline.Value;
-        if (style.Strikethrough.HasValue) run.Strikethrough = style.Strikethrough.Value;
-        if (style.FontSizePoints.HasValue) run.FontSizePoints = style.FontSizePoints.Value;
-        if (!string.IsNullOrWhiteSpace(style.FontName)) run.FontName = style.FontName;
-        if (style.Color != null) run.Color = style.Color.RgbHex;
-        if (style.BackgroundColor != null) run.HighlightColor = style.BackgroundColor.RgbHex;
-    }
 }

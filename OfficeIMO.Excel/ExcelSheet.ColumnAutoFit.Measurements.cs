@@ -159,13 +159,10 @@ namespace OfficeIMO.Excel {
 
             uint numberFormatId = GetCellNumberFormatId(cell, textContext);
             string? formatCode = GetNumberFormatCode(numberFormatId, textContext);
-            if (!ExcelNumberFormatDisplay.IsDateNumberFormat(numberFormatId, formatCode)
-                || !ExcelNumberFormatDisplay.TryGetDateSample(numberFormatId, formatCode, out string sample)) {
-                return false;
-            }
-
             string raw = cell.CellValue?.InnerText ?? string.Empty;
-            if (!double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out _)) {
+            if (!double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+                || !ExcelNumberFormatDisplay.IsDateNumberFormat(numberFormatId, formatCode)
+                || !ExcelNumberFormatDisplay.TryGetDateSample(numberFormatId, formatCode, out string sample, value)) {
                 return false;
             }
 

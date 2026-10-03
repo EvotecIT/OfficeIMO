@@ -1,0 +1,581 @@
+{
+  "provider": "numbers-parser",
+  "providerVersion": "4.19.0",
+  "schema": {
+    "repository": "https://github.com/orcastor/iwork-converter",
+    "revision": "be4828260466c9c022ec12f9dc9dbfeb15ab1dea",
+    "path": "proto/KN/KNArchives.pb.go",
+    "fieldPath": "SlideArchive.4 / TransitionArchive.2 / TransitionAttributesArchive.8 / AnimationAttributesArchive"
+  },
+  "sources": [
+    {
+      "path": "iwork-converter/a.key",
+      "sha256": "929347827a7478c123dd3e3828e9751b5cf2ae977d2edd2a5f0774014fc4fefc",
+      "slidesIncludingTemplates": [
+        {
+          "identifier": 7698,
+          "entry": "Index/MasterSlide-7698.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 7716,
+          "entry": "Index/MasterSlide-7716.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 7732,
+          "entry": "Index/MasterSlide-7732.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 7744,
+          "entry": "Index/MasterSlide-7744.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 7758,
+          "entry": "Index/MasterSlide-7758.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 7772,
+          "entry": "Index/MasterSlide-7772.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 7785,
+          "entry": "Index/MasterSlide-7785.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 7801,
+          "entry": "Index/MasterSlide-7801.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 7813,
+          "entry": "Index/MasterSlide-7813.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 7831,
+          "entry": "Index/MasterSlide-7831.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 7855,
+          "entry": "Index/MasterSlide-7855.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 7869,
+          "entry": "Index/MasterSlide-7869.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 7881,
+          "entry": "Index/Slide-7881.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.5
+        }
+      ]
+    },
+    {
+      "path": "nim-iwork/simple.key",
+      "sha256": "ba95755df82ceb0ca834e1e03e2777c34fad906320d8336b4f3fefc6b48607eb",
+      "slidesIncludingTemplates": [
+        {
+          "identifier": 1221395,
+          "entry": "Index/TemplateSlide-1221395.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 1221423,
+          "entry": "Index/TemplateSlide-1221423.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 1221455,
+          "entry": "Index/TemplateSlide-1221455.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 1221482,
+          "entry": "Index/TemplateSlide-1221482.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 1221505,
+          "entry": "Index/TemplateSlide-1221505.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 1221524,
+          "entry": "Index/TemplateSlide-1221524.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 1221555,
+          "entry": "Index/TemplateSlide-1221555.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 1221586,
+          "entry": "Index/TemplateSlide-1221586.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 1221616,
+          "entry": "Index/TemplateSlide-1221616.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 1221634,
+          "entry": "Index/TemplateSlide-1221634.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 1221656,
+          "entry": "Index/TemplateSlide-1221656.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 1221678,
+          "entry": "Index/TemplateSlide-1221678.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 1221696,
+          "entry": "Index/TemplateSlide-1221696.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 1221719,
+          "entry": "Index/TemplateSlide-1221719.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 1221741,
+          "entry": "Index/TemplateSlide-1221741.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 1221786,
+          "entry": "Index/TemplateSlide-1221786.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 1221813,
+          "entry": "Index/TemplateSlide-1221813.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 1221831,
+          "entry": "Index/Slide-1221831.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.5
+        },
+        {
+          "identifier": 1225067,
+          "entry": "Index/Slide.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.5
+        }
+      ]
+    },
+    {
+      "path": "keynotekit/tabledeck-v15.2.1.key",
+      "sha256": "384962b1fff18abc5a901b59dc5f8820c2a959977f18f90dc9cd10095bdd0a56",
+      "slidesIncludingTemplates": [
+        {
+          "identifier": 2651742,
+          "entry": "Index/TemplateSlide-2651742.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2651770,
+          "entry": "Index/TemplateSlide-2651770.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2651801,
+          "entry": "Index/TemplateSlide-2651801.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2651828,
+          "entry": "Index/TemplateSlide-2651828.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2651851,
+          "entry": "Index/TemplateSlide-2651851.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2651870,
+          "entry": "Index/TemplateSlide-2651870.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2651901,
+          "entry": "Index/TemplateSlide-2651901.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2651932,
+          "entry": "Index/TemplateSlide-2651932.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2651962,
+          "entry": "Index/TemplateSlide-2651962.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2651980,
+          "entry": "Index/TemplateSlide-2651980.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2652002,
+          "entry": "Index/TemplateSlide-2652002.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2652024,
+          "entry": "Index/TemplateSlide-2652024.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2652042,
+          "entry": "Index/TemplateSlide-2652042.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2652064,
+          "entry": "Index/TemplateSlide-2652064.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2652086,
+          "entry": "Index/TemplateSlide-2652086.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2652131,
+          "entry": "Index/TemplateSlide-2652131.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2652158,
+          "entry": "Index/TemplateSlide-2652158.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2652176,
+          "entry": "Index/Slide-2652176.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.5
+        }
+      ]
+    },
+    {
+      "path": "keynotekit/imagedeck-v15.2.1.key",
+      "sha256": "a9af589197588e04ee52388b0aa6c2dad1110e5d6db814b58afe543831cf2128",
+      "slidesIncludingTemplates": [
+        {
+          "identifier": 2651742,
+          "entry": "Index/TemplateSlide-2651742.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2651770,
+          "entry": "Index/TemplateSlide-2651770.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2651801,
+          "entry": "Index/TemplateSlide-2651801.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2651828,
+          "entry": "Index/TemplateSlide-2651828.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2651851,
+          "entry": "Index/TemplateSlide-2651851.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2651870,
+          "entry": "Index/TemplateSlide-2651870.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2651901,
+          "entry": "Index/TemplateSlide-2651901.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2651932,
+          "entry": "Index/TemplateSlide-2651932.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2651962,
+          "entry": "Index/TemplateSlide-2651962.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2651980,
+          "entry": "Index/TemplateSlide-2651980.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2652002,
+          "entry": "Index/TemplateSlide-2652002.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2652024,
+          "entry": "Index/TemplateSlide-2652024.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2652042,
+          "entry": "Index/TemplateSlide-2652042.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2652064,
+          "entry": "Index/TemplateSlide-2652064.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2652086,
+          "entry": "Index/TemplateSlide-2652086.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2652131,
+          "entry": "Index/TemplateSlide-2652131.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2652158,
+          "entry": "Index/TemplateSlide-2652158.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.0
+        },
+        {
+          "identifier": 2652176,
+          "entry": "Index/Slide-2652176.iwa",
+          "effect": "none",
+          "automatic": false,
+          "duration": 1.0,
+          "delay": 0.5
+        }
+      ]
+    }
+  ],
+  "limits": "All observed effects are none with automatic advance disabled. Includes inactive templates. Nonzero dormant delay is not automatic advance. Active effects, timing, Apple exports and rendered transitions remain unqualified."
+}

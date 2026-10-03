@@ -1171,7 +1171,8 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         internal bool Replaced { get; private set; }
 
         public OfficeProvenanceSignalResult Detect(string filePath) {
-            // A hostile same-user provider can undo directory sealing; exercise the identity/hash check after that.
+            // A hostile in-process provider can change permissions on its owner-owned directory.
+            // Exercise the identity/content guard after that bypass, not merely the read-only seal.
             if (!OperatingSystem.IsWindows())
                 File.SetUnixFileMode(Path.GetDirectoryName(filePath)!, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
             string replacementPath = filePath + ".replacement";

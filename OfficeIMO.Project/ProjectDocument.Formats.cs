@@ -68,7 +68,7 @@ public sealed partial class ProjectDocument {
     private bool CanRetainNative(ProjectSaveOptions options, ProjectFileFormat format) => NativeSource != null && NativeSource.ModelRevision == Revision && !_batchChanged
         && options.PreserveUnchangedBytes && format != ProjectFileFormat.Xml && format == NativeInfo!.Profile.Format(NativeInfo.IsTemplate);
 
-    private ProjectReport AssessFormat(ProjectSaveOptions options, ProjectFileFormat format, CancellationToken token, bool includeNativePlan = true) {
+    private ProjectReport AssessFormat(ProjectSaveOptions options, ProjectFileFormat format, CancellationToken token, bool includeWriterPlan = true) {
         token.ThrowIfCancellationRequested();
         if (CanRetainNative(options, format)) {
             var retained = NativeSource!.UnrepresentedValues.ToList();
@@ -86,19 +86,18 @@ public sealed partial class ProjectDocument {
                         "XML task duration, actual duration, and remaining duration share one format. Use the same unit and flags.", "/Task[UID=" + task.Uid + "]"));
             }
         }
-        if (format == ProjectFileFormat.Xml && !diagnostics.Any(d => d.Severity == ProjectDiagnosticSeverity.Error)
+        if (includeWriterPlan && format == ProjectFileFormat.Xml && !diagnostics.Any(d => d.Severity == ProjectDiagnosticSeverity.Error)
             && !ProjectXmlCodec.IsWithinOutputLimit(this, WithFormat(options, format,
                 NativeSource != null || MpxSource != null ? false : (bool?)null), token))
-            diagnostics.Add(new ProjectDiagnostic("PROJECT_OUTPUT_LIMIT", ProjectDiagnosticSeverity.Error,
-                "Project XML output exceeds MaxOutputBytes.", "/"));
+            diagnostics.Add(XmlOutputLimitDiagnostic());
         if (format == ProjectFileFormat.Mpx4) {
             diagnostics.RemoveAll(d => d.Code == "PROJECT_OPAQUE_REFERENCES");
-            if (includeNativePlan && !diagnostics.Any(d => d.Severity == ProjectDiagnosticSeverity.Error))
+            if (includeWriterPlan && !diagnostics.Any(d => d.Severity == ProjectDiagnosticSeverity.Error))
                 diagnostics.AddRange(ProjectMpxWriter.Plan(this, WithFormat(options, format), false, token).Report.Diagnostics);
         } else if (IsNativeFormat(format)) {
             diagnostics.RemoveAll(d => d.Code == "PROJECT_OPAQUE_REFERENCES");
             if (MpxSource != null) diagnostics.AddRange(MpxSource.Unmodeled.Select(d => new ProjectDiagnostic("PROJECT_MPX_CONVERSION_LOSS", ProjectDiagnosticSeverity.Warning, d.Message + " This source content is omitted during conversion.", d.Location, OfficeConversionLossKind.Omission)));
-            if (includeNativePlan && !diagnostics.Any(d => d.Severity == ProjectDiagnosticSeverity.Error))
+            if (includeWriterPlan && !diagnostics.Any(d => d.Severity == ProjectDiagnosticSeverity.Error))
                 diagnostics.AddRange(ProjectNativeWriter.Plan(this, WithFormat(options, format), false, token).Report.Diagnostics);
         } else if (NativeSource != null) {
             if (Settings.CurrencyCode == null) diagnostics.Add(new ProjectDiagnostic("PROJECT_CURRENCY_CODE", ProjectDiagnosticSeverity.Error,
@@ -133,8 +132,8 @@ public sealed partial class ProjectDocument {
         void CheckWork(ProjectWork? value, string location) {
             if (!value.HasValue) return;
             try {
-                decimal ticks = checked(value.Value.Minutes * TimeSpan.TicksPerMinute);
-                _ = ProjectXmlValue.MinutesToSpan(value.Value.Minutes);
+                decimal ticks = value.Value.Ticks;
+                _ = checked((long)decimal.Round(ticks, 0, MidpointRounding.AwayFromZero));
                 if (ticks != decimal.Truncate(ticks))
                     diagnostics.Add(new ProjectDiagnostic("PROJECT_XML_WORK_PRECISION", ProjectDiagnosticSeverity.Error,
                         "Project XML work requires a value that converts to whole TimeSpan ticks.", location));
@@ -147,8 +146,7 @@ public sealed partial class ProjectDocument {
         void CheckDuration(ProjectDuration? value, string location) {
             if (!value.HasValue) return;
             try {
-                decimal minutes = checked(value.Value.Value * ProjectXmlValue.MinutesPerUnit(value.Value.Unit, value.Value.IsElapsed, this));
-                decimal ticks = checked(minutes * TimeSpan.TicksPerMinute);
+                decimal ticks = ProjectTimeUnits.Ticks(value.Value, Settings);
                 _ = ProjectXmlValue.Duration(value, this);
                 if (ticks != decimal.Truncate(ticks))
                     diagnostics.Add(new ProjectDiagnostic("PROJECT_XML_DURATION_PRECISION", ProjectDiagnosticSeverity.Error,

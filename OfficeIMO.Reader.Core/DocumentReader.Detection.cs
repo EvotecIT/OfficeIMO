@@ -13,6 +13,8 @@ internal static partial class DocumentReaderEngine {
     /// Detects a file kind from extension and bounded content evidence.
     /// </summary>
     public static ReaderDetectionResult Detect(string path, ReaderDetectionOptions? options = null) {
+        if (path == null) throw new ArgumentNullException(nameof(path));
+        if (Directory.Exists(path)) return DetectDirectoryBundle(path);
         ValidateFilePath(path);
         ReaderDetectionOptions effectiveOptions = NormalizeDetectionOptions(options);
         ReaderDetectionResult extensionResult = BuildExtensionDetection(path);
@@ -62,6 +64,9 @@ internal static partial class DocumentReaderEngine {
         string path,
         ReaderDetectionOptions? options = null,
         CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (path == null) throw new ArgumentNullException(nameof(path));
+        if (Directory.Exists(path)) return DetectDirectoryBundle(path);
         ValidateFilePath(path);
         ReaderDetectionOptions effectiveOptions = NormalizeDetectionOptions(options);
         ReaderDetectionResult extensionResult = BuildExtensionDetection(path);

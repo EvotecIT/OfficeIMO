@@ -168,7 +168,7 @@ namespace OfficeIMO.Word {
             documentProtection.Salt = Convert.ToBase64String(arrSalt);
             var settingsPart = wordDocument.MainDocumentPart?.DocumentSettingsPart;
             if (settingsPart?.Settings == null) return;
-            settingsPart.Settings.AppendChild(documentProtection);
+            settingsPart.Settings.AddChild(documentProtection, true);
             settingsPart.Settings.Save();
         }
 

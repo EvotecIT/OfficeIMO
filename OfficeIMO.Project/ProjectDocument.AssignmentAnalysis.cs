@@ -12,7 +12,7 @@ public sealed partial class ProjectDocument {
             cancellationToken.ThrowIfCancellationRequested();
             var task = assignment.Task; var resource = assignment.Resource;
             string location = "/Assignment[UID=" + assignment.Uid + "]";
-            if (assignment.Work is ProjectWork work && assignment.ActualWork is ProjectWork actual && assignment.RemainingWork is ProjectWork remaining && work.Minutes != actual.Minutes + remaining.Minutes)
+            if (assignment.Work is ProjectWork work && assignment.ActualWork is ProjectWork actual && assignment.RemainingWork is ProjectWork remaining && !work.Equals(ProjectWork.Add(actual, remaining)))
                 Warn("PROJECT_WORK_BALANCE", "Stored work differs from actual plus remaining work.", location);
             if (assignment.Cost.HasValue && assignment.ActualCost.HasValue && assignment.RemainingCost.HasValue && assignment.Cost != assignment.ActualCost + assignment.RemainingCost)
                 Warn("PROJECT_COST_BALANCE", "Stored cost differs from actual plus remaining cost.", location);
@@ -24,7 +24,7 @@ public sealed partial class ProjectDocument {
             else if (hasVariableRates || table != ProjectCostRateTable.A) Warn("PROJECT_RATE_ESTIMATE_UNSUPPORTED", "Dated rates or a non-default rate table require interval-specific cost calculation.", location);
             else if (resource?.Type == ProjectResourceType.Work) {
                 if (!minutes.HasValue && task?.Duration is ProjectDuration duration && !duration.IsElapsed && assignment.Units.HasValue)
-                    minutes = ProjectWorkEquation.Work(duration.Value * ProjectXmlValue.MinutesPerUnit(duration.Unit, false, this), assignment.Units.Value).Minutes;
+                    minutes = ProjectWorkEquation.Work(duration.Minutes(ProjectXmlValue.MinutesPerUnit(duration.Unit, false, this)), assignment.Units.Value).Minutes;
                 decimal overtime = assignment.OvertimeWork?.Minutes ?? 0m;
                 if (minutes.HasValue && overtime > minutes.Value) Warn("PROJECT_OVERTIME_BALANCE", "Stored overtime exceeds total work.", location);
                 else if (minutes.HasValue && resource.StandardRate.HasValue && (overtime == 0 || resource.OvertimeRate.HasValue))

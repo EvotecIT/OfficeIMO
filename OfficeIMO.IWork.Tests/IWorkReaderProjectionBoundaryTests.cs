@@ -103,6 +103,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal("synthetic.key!/Index/Document.iwa", mapped.Location!.Path);
         Assert.Equal("Index/Document.iwa", mapped.Attributes["entryPath"]);
         Assert.Equal("42", mapped.Attributes["recordIdentifier"]);
+        Assert.Equal("Omission", mapped.Attributes["lossKind"]);
     }
 
     [Fact]

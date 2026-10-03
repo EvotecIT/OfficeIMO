@@ -171,6 +171,11 @@ public sealed class SpreadsheetFormulaSyntaxTests {
             unbounded.FormatBaseCell(SpreadsheetAddressDialect.ExcelA1));
         Assert.Equal("XFE1048577:XFF1048578",
             unbounded.Format(SpreadsheetAddressDialect.UnboundedA1));
+        SpreadsheetRangeReference cell = SpreadsheetRangeReference.FromCell(column: 16385, row: 1048577);
+        Assert.Equal("XFE1048577", cell.Format(SpreadsheetAddressDialect.UnboundedA1));
+        Assert.False(cell.TryFormat(SpreadsheetAddressDialect.ExcelA1, out _));
+        Assert.Throws<ArgumentOutOfRangeException>(() => SpreadsheetRangeReference.FromCell(column: 0, row: 1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => SpreadsheetRangeReference.FromCell(column: 1, row: 0));
     }
 
     [Fact]

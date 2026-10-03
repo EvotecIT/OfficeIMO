@@ -144,7 +144,7 @@ internal static class SheetNameLookup
             return null;
         }
 
-        return cleaned.Length > 31 ? cleaned.Substring(0, 31) : cleaned;
+        return cleaned.Length > 31 ? ExcelSheetNameText.Truncate(cleaned, 31) : cleaned;
     }
 
     private static string UnquoteSheetName(string sheetToken)

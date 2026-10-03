@@ -9,7 +9,7 @@ public sealed partial class OfficeWorkflowRunner {
         ArgumentNullException.ThrowIfNull(requests);
         if (cancellationToken.IsCancellationRequested) return Array.Empty<OfficeWorkflowResult>();
         var batch = new List<PreparedRequest>();
-        var selectedSources = new List<(string Location, OfficeWorkflowStreamInput? Stream)>();
+        var selectedSources = new List<(string Location, OfficeWorkflowStreamInput? Stream, OfficeWorkflowDirectoryPackageInput? Package)>();
         using (IEnumerator<OfficeWorkflowRequest> enumerator = requests.GetEnumerator()) {
             while (true) {
                 if (cancellationToken.IsCancellationRequested) return Array.Empty<OfficeWorkflowResult>();
@@ -21,13 +21,17 @@ public sealed partial class OfficeWorkflowRunner {
                 }
                 OfficeWorkflowRequest request = enumerator.Current
                     ?? throw new ArgumentException("Batch requests cannot contain null entries.", nameof(requests));
-                batch.Add(PrepareRequest(request));
-                AddSource(request.InputPath, request.InputStream);
-                AddSource(request.ComparisonPath, request.ComparisonStream);
+                PreparedRequest prepared = PrepareRequest(request);
+                batch.Add(prepared);
+                OfficeWorkflowStreamInput? packageStream = prepared.Validated?.InputStream is { SnapshotKind: OfficeWorkflowSourceSnapshotKind.DirectoryPackage } captured ? captured : null;
+                AddSource(request.InputPath, request.InputStream ?? packageStream, request.InputDirectoryPackage);
+                AddSource(request.ComparisonPath, request.ComparisonStream, null);
             }
         }
 
-        var sources = selectedSources.GroupBy(item => item.Location, StringComparer.Ordinal)
+        var packages = selectedSources.Where(item => item.Package is not null)
+            .GroupBy(item => item.Location, StringComparer.Ordinal).Select(group => group.First()).ToArray();
+        var sources = selectedSources.Where(item => !packages.Any(package => package.Location == item.Location)).GroupBy(item => item.Location, StringComparer.Ordinal)
             .Select(group => group.FirstOrDefault(item => item.Stream is not null) is { Stream: not null } scoped ? scoped : group.First()).ToArray();
         string[] protectedSources = sources.Select(item => item.Location!).Distinct(StringComparer.Ordinal).ToArray();
         WorkflowSourceAccess[] accesses = sources.Where(item => item.Stream is not null)
@@ -38,9 +42,26 @@ public sealed partial class OfficeWorkflowRunner {
             PreparedRequest request = batch[i];
             if (request.Validated is { } validated) {
                 try {
+                    // Package roots must be inspected by their permission-aware owner, never as raw local paths.
+                    // Reject another selected package as a destination before creating output staging inside it.
+                    foreach (var package in packages) {
+                        if (validated.OutputPath is not null && !await new ProviderPackagePublicationGuard(
+                            package.Package!.SourcePublicationGuard, null, package.Location)
+                            .CanPublishAsync(validated.OutputPath, false, cancellationToken).ConfigureAwait(false))
+                            throw new IOException("The batch output is not separate from a selected directory package.");
+                    }
+                    foreach (var access in accesses.Where(access => access.IsDirectoryPackage)) {
+                        if (validated.OutputPath is null) continue;
+                        await using var scope = await access.OpenReadAsync(cancellationToken).ConfigureAwait(false);
+                        if (access.SourceGuard is { } owner && !await owner.CanPublishAsync(validated.OutputPath, false, cancellationToken).ConfigureAwait(false))
+                            throw new IOException("The batch output is not separate from a selected directory package.");
+                    }
+                    IOfficeWorkflowPublicationGuard? guard = validated.PublicationGuard;
+                    foreach (var package in packages) guard = new ProviderPackagePublicationGuard(
+                        package.Package!.SourcePublicationGuard, guard, package.Location);
                     request = request with { Validated = validated with {
-                        PublicationGuard = new WorkflowScopedSourcePublicationGuard(validated.PublicationGuard, protectedSources, accesses, validated.OutputStream,
-                            allowMissingLocalSources: true)
+                        PublicationGuard = new WorkflowScopedSourcePublicationGuard(guard, protectedSources, accesses,
+                            validated.OutputStream, allowMissingLocalSources: true)
                     } };
                 } catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) {
                     request = request with { ValidationException = error };
@@ -59,9 +80,9 @@ public sealed partial class OfficeWorkflowRunner {
         }
         return results;
 
-        void AddSource(string? location, OfficeWorkflowStreamInput? stream) {
+        void AddSource(string? location, OfficeWorkflowStreamInput? stream, OfficeWorkflowDirectoryPackageInput? package) {
             if (string.IsNullOrWhiteSpace(location)) return;
-            try { selectedSources.Add((OfficeIMO.Internal.OfficeStorageIdentity.Normalize(location), stream)); }
+            try { selectedSources.Add((OfficeIMO.Internal.OfficeStorageIdentity.Normalize(location), stream, package)); }
             catch (Exception error) when (error is ArgumentException or NotSupportedException or PathTooLongException) {
                 // An invalid location cannot identify a destination; its own request retains the validation failure.
             }

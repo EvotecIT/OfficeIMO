@@ -100,7 +100,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 flags = readWrite | nonBlocking | noFollow | closeOnExec;
                 if (createNew) flags |= create | exclusive;
             }
-            return OpenUnix(path, flags, 384); // 0600 for a newly created destination.
+            return OfficeIMO.Core.Internal.OfficeUnixFile.OpenWithMode(path, flags, 384); // 0600 for a newly created destination.
         }
 
         private static string GetWindowsFinalPath(SafeFileHandle handle) {
@@ -120,9 +120,6 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern uint GetFinalPathNameByHandle(SafeFileHandle file,
             StringBuilder filePath, uint filePathLength, uint flags);
-
-        [DllImport("libc", EntryPoint = "open", SetLastError = true, CharSet = CharSet.Ansi)]
-        private static extern int OpenUnix(string path, int flags, int mode);
 
         [DllImport("libc", EntryPoint = "close", SetLastError = true)]
         private static extern int CloseUnix(int descriptor);

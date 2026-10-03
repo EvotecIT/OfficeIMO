@@ -72,6 +72,8 @@ internal sealed partial class ProjectScheduler {
             }
             CheckFinalBounds();
             return Result(BuildResults(horizon));
+        } catch (ProjectIntervalLimitException exception) {
+            Error("PROJECT_CALCULATION_INTERVAL_LIMIT", exception.Message); return Result();
         } catch (Exception exception) when (exception is InvalidDataException || exception is IOException || exception is InvalidOperationException ||
             exception is NotSupportedException || exception is ArgumentException || exception is OverflowException) {
             Error("PROJECT_CALCULATION_UNSUPPORTED", exception.Message); return Result();
@@ -84,8 +86,6 @@ internal sealed partial class ProjectScheduler {
         if (!_options.CalculateAssignments) CheckStoredAssignmentDates(calculated);
         var assignments = _order.Where(n => n.Plan != null).SelectMany(n => n.Plan!.Assignments).ToArray();
         if (_options.CalculateAssignments) _document.CheckCalculatedCostReplacement(calculated, assignments, _diagnostics.Add, _token);
-        if (!_externalContext.WithinIntervalLimit(_document, assignments.Sum(a => (long)a.Intervals.Count + a.Costs.Count)))
-            Error("PROJECT_CALCULATION_INTERVAL_LIMIT", "The calculated local and external assignment and cost intervals exceed MaxIntervals.");
         foreach (var source in _externalSources.Values) source.ValidateCurrent();
         return new ProjectScheduleResult(_document, _revision, calculated, _diagnostics, assignments, _options.CalculateAssignments, _externalSources.Values, _options.RecalculateActualCosts);
     }
@@ -127,10 +127,10 @@ internal sealed partial class ProjectScheduler {
                 else duration = ProjectDuration.WorkingMinutes(task.Work.Value.Minutes / units);
             }
             var node = new Node { Task = task, Calendar = math, Elapsed = duration.IsElapsed,
-                Minutes = checked(duration.Value * ProjectXmlValue.MinutesPerUnit(duration.Unit, duration.IsElapsed, _document)) };
+                Minutes = checked(duration.Minutes(ProjectXmlValue.MinutesPerUnit(duration.Unit, duration.IsElapsed, _document))) };
             if (_options.CalculateAssignments) {
                 node.Allocation = new ProjectTaskAllocation(task, allAssignments.TryGetValue(task, out var current) ? current : Array.Empty<ProjectAssignment>(),
-                    _options, CalendarMath, d => _diagnostics.Add(d), _token,
+                    _options, CalendarMath, d => _diagnostics.Add(d), _token, _externalContext.IntervalBudget,
                     _splits != null && _splits.TryGetValue(task.Uid, out var taskSplits) ? taskSplits : null);
                 if (node.Allocation.HasActuals && _document.Settings.ScheduleFromStart == false)
                     Error("PROJECT_PROGRESS_BACKWARD", "Recorded progress requires forward remaining-work scheduling.", task);
@@ -180,10 +180,10 @@ internal sealed partial class ProjectScheduler {
         decimal predecessorMinutes;
         if (_externalDependencies.TryGetValue(link, out var external)) {
             var duration = external.Task.Duration;
-            predecessorMinutes = duration.Value * ProjectXmlValue.MinutesPerUnit(duration.Unit, duration.IsElapsed, external.Document);
+            predecessorMinutes = duration.Minutes(ProjectXmlValue.MinutesPerUnit(duration.Unit, duration.IsElapsed, external.Document));
         } else { var predecessor = _nodes[link.Predecessor!]; predecessorMinutes = predecessor.Minutes; }
         decimal minutes = link.LagPercent.HasValue ? predecessorMinutes * link.LagPercent.Value / 100m : link.Lag.HasValue
-            ? link.Lag.Value.Value * ProjectXmlValue.MinutesPerUnit(link.Lag.Value.Unit, link.Lag.Value.IsElapsed, _document) : 0m;
+            ? link.Lag.Value.Minutes(ProjectXmlValue.MinutesPerUnit(link.Lag.Value.Unit, link.Lag.Value.IsElapsed, _document)) : 0m;
         if (reverse) minutes = -minutes;
         bool elapsed = link.Lag?.IsElapsed == true || (link.LagPercent.HasValue && link.LagPercentIsElapsed);
         return elapsed ? date.AddTicks(checked((long)decimal.Round(minutes * TimeSpan.TicksPerMinute, 0, MidpointRounding.AwayFromZero))) : successor.Calendar.Add(date, minutes);

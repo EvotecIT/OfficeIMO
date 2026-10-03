@@ -50,6 +50,8 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - name: Test Studio
         shell: pwsh
+        env:
+          OFFICEIMO_STUDIO_VISUAL_OUTPUT: ${{ github.workspace }}/TestResults/Studio/Visual
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
@@ -1665,6 +1667,8 @@ jobs:
           dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.CSV.Tests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "(FullyQualifiedName~Emlx|FullyQualifiedName~MailboxDirectory|FullyQualifiedName~AppleMailboxPackage|FullyQualifiedName~Store.Tests.Olm|FullyQualifiedName~AppleSourceLossTests|FullyQualifiedName~IcsDocumentTests|FullyQualifiedName~VCardDocumentTests|FullyQualifiedName~EmailStoreNativeDirectoryExport|FullyQualifiedName~EmailSmimeTests)&Category!=Performance" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.Security.Tests/OfficeIMO.Security.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~CmsPlatformKeyTests|FullyQualifiedName~CmsSecurityTests.Envelope" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+
+          dotnet test OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.VerifyTests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
 
       - name: Summarize failing tests

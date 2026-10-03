@@ -36,7 +36,7 @@ internal sealed partial class ProjectScheduler {
             }
             node.BeforeLevelingAnchor = start;
             if (task.LevelingDelay is ProjectDuration leveling && leveling.Value > 0) {
-                decimal delay = leveling.Value * ProjectXmlValue.MinutesPerUnit(leveling.Unit, leveling.IsElapsed, _document);
+                decimal delay = leveling.Minutes(ProjectXmlValue.MinutesPerUnit(leveling.Unit, leveling.IsElapsed, _document));
                 start = leveling.IsElapsed ? start.Add(ProjectXmlValue.MinutesToSpan(delay)) : node.Calendar.Add(start, delay);
             }
             if (_notBefore != null && _notBefore.TryGetValue(task.Uid, out var minimum)) start = Max(start, minimum);
@@ -169,11 +169,12 @@ internal sealed partial class ProjectScheduler {
     }
     private ProjectTaskWorkSchedule SummaryTotals(ProjectTask task, ProjectTaskSchedule[] children, decimal duration) {
         var totals = children.Select(c => c.Calculation!).ToArray();
-        decimal work = totals.Sum(c => c.Work.Minutes), actual = totals.Sum(c => c.ActualWork.Minutes);
-        decimal childDuration = totals.Sum(c => c.ActualDuration.Value + c.RemainingDuration.Value);
+        var work = ProjectWork.Sum(totals.Select(c => c.Work)); var actual = ProjectWork.Sum(totals.Select(c => c.ActualWork));
+        var actualDuration = ProjectWork.Sum(totals.Select(c => ProjectWork.FromMinutes(c.ActualDuration.Value)));
+        var childDuration = ProjectWork.Add(actualDuration, ProjectWork.Sum(totals.Select(c => ProjectWork.FromMinutes(c.RemainingDuration.Value))));
         bool completed = totals.All(c => c.PercentComplete == 100);
         bool hasActuals = task.ActualStart.HasValue || task.ActualFinish.HasValue || task.ActualDuration?.Value > 0 || totals.Any(c => c.HasActuals);
-        decimal fraction = childDuration == 0 ? completed ? 1m : 0m : totals.Sum(c => c.ActualDuration.Value) / childDuration;
+        decimal fraction = childDuration.Minutes == 0 ? completed ? 1m : 0m : ProjectWorkEquation.Units(actualDuration, childDuration.Minutes).Value;
         decimal fixedCost = task.FixedCost ?? 0m;
         decimal actualFixed = (task.FixedCostAccrual ?? ProjectCostAccrual.Prorated) switch {
             ProjectCostAccrual.Start => hasActuals ? fixedCost : 0m,
@@ -186,13 +187,15 @@ internal sealed partial class ProjectScheduler {
             if (cost.HasValue && actualCost.HasValue) cost += task.ActualCost.Value - actualCost.Value;
             actualCost = task.ActualCost;
         }
-        return new ProjectTaskWorkSchedule(new ProjectWork(work), new ProjectWork(actual), new ProjectWork(work - actual), duration * fraction, duration * (1m - fraction),
+        decimal summaryActual = childDuration.Minutes == 0 ? completed ? duration : 0m :
+            ProjectTimeUnits.ScaleMinutesByRatio(duration, actualDuration.Minutes, childDuration.Minutes);
+        return new ProjectTaskWorkSchedule(work, actual, ProjectWork.Subtract(work, actual), summaryActual, ProjectTimeUnits.SubtractMinutes(duration, summaryActual),
             cost, actualCost, task.PhysicalPercentComplete, completed: completed, hasActuals: hasActuals);
     }
     private static decimal MinutesBetween(Node node, DateTime start, DateTime finish) => node.Elapsed
         ? (finish.Ticks - start.Ticks) / (decimal)TimeSpan.TicksPerMinute : node.Calendar.Between(start, finish);
     private ProjectDuration ResultDuration(ProjectTask task, decimal minutes, bool elapsed) {
         var unit = task.Duration?.Unit ?? ProjectDurationUnit.Day;
-        return new ProjectDuration(minutes / ProjectXmlValue.MinutesPerUnit(unit, elapsed, _document), unit, elapsed, task.Duration?.IsEstimated ?? false);
+        return ProjectDuration.FromMinutes(minutes, unit, elapsed, task.Duration?.IsEstimated ?? false, ProjectXmlValue.MinutesPerUnit(unit, elapsed, _document));
     }
 }

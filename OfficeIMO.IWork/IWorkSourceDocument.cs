@@ -16,6 +16,7 @@ public sealed partial class IWorkSourceDocument {
         CancellationToken cancellationToken) {
         Kind = kind;
         ContainerKind = package.ContainerKind;
+        ContainerLengthBytes = package.ContainerLengthBytes;
         Entries = Array.AsReadOnly(package.Entries.ToArray());
         Records = Array.AsReadOnly(records.ToArray());
         _options = options;
@@ -34,6 +35,8 @@ public sealed partial class IWorkSourceDocument {
     public IWorkDocumentKind Kind { get; }
     /// <summary>Gets the physical source layout.</summary>
     public IWorkContainerKind ContainerKind { get; }
+    /// <summary>Gets the ZIP byte length, or aggregate physical file bytes captured from a directory bundle before nested expansion.</summary>
+    public long ContainerLengthBytes { get; }
     /// <summary>Gets preserved package entries, including resources and metadata.</summary>
     public IReadOnlyList<IWorkPackageEntry> Entries { get; }
     /// <summary>Gets every preserved IWA payload record, including auxiliary payloads.</summary>
@@ -68,17 +71,23 @@ public sealed partial class IWorkSourceDocument {
         return Create(package, hint: expectedKind, options: resolved, expectedKind: expectedKind);
     }
 
-    internal static IWorkSourceDocument Open(string path, IWorkDocumentKind expectedKind,
+    /// <summary>Opens a file or directory bundle with cancellation and verifies its application kind.</summary>
+    /// <remarks>The token also governs subsequent semantic projections and destination conversion from this source.</remarks>
+    public static IWorkSourceDocument Open(string path, IWorkDocumentKind expectedKind,
         IWorkReadOptions? options, CancellationToken cancellationToken) {
         ValidateDocumentKind(expectedKind, nameof(expectedKind));
         return OpenPath(path, expectedKind, options, cancellationToken);
     }
 
-    internal static IWorkSourceDocument Open(string path, IWorkReadOptions? options,
+    /// <summary>Opens a file or directory bundle with cancellation and detects its application kind.</summary>
+    /// <remarks>The token also governs subsequent semantic projections and destination conversion from this source.</remarks>
+    public static IWorkSourceDocument Open(string path, IWorkReadOptions? options,
         CancellationToken cancellationToken) => OpenPath(path, expectedKind: null,
             options, cancellationToken);
 
-    internal static IWorkSourceDocument Open(Stream stream, IWorkDocumentKind expectedKind,
+    /// <summary>Opens a caller-owned ZIP stream with cancellation and verifies its application kind.</summary>
+    /// <remarks>The stream remains open. The token also governs subsequent projections and destination conversion.</remarks>
+    public static IWorkSourceDocument Open(Stream stream, IWorkDocumentKind expectedKind,
         IWorkReadOptions? options, CancellationToken cancellationToken) {
         ValidateDocumentKind(expectedKind, nameof(expectedKind));
         IWorkReadOptions resolved = (options ?? new IWorkReadOptions()).Snapshot();
@@ -86,7 +95,9 @@ public sealed partial class IWorkSourceDocument {
         return Create(package, expectedKind, resolved, expectedKind, cancellationToken);
     }
 
-    internal static IWorkSourceDocument Open(Stream stream, IWorkReadOptions? options,
+    /// <summary>Opens a caller-owned ZIP stream with cancellation and detects its application kind.</summary>
+    /// <remarks>The stream remains open. The token also governs subsequent projections and destination conversion.</remarks>
+    public static IWorkSourceDocument Open(Stream stream, IWorkReadOptions? options,
         CancellationToken cancellationToken) {
         IWorkReadOptions resolved = (options ?? new IWorkReadOptions()).Snapshot();
         IWorkPackageData package = IWorkContainerReader.Read(stream, resolved, cancellationToken);
@@ -115,32 +126,58 @@ public sealed partial class IWorkSourceDocument {
         return Open(stream, expectedKind, options);
     }
 
+    /// <summary>Opens package bytes with cancellation and detects the application kind.</summary>
+    /// <remarks>The token also governs subsequent projections and destination conversion.</remarks>
+    public static IWorkSourceDocument Open(byte[] data, IWorkReadOptions? options,
+        CancellationToken cancellationToken) {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        using var stream = new MemoryStream(data, writable: false);
+        return Open(stream, options, cancellationToken);
+    }
+
+    /// <summary>Opens package bytes with cancellation and verifies the application kind.</summary>
+    /// <remarks>The token also governs subsequent projections and destination conversion.</remarks>
+    public static IWorkSourceDocument Open(byte[] data, IWorkDocumentKind expectedKind,
+        IWorkReadOptions? options, CancellationToken cancellationToken) {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        using var stream = new MemoryStream(data, writable: false);
+        return Open(stream, expectedKind, options, cancellationToken);
+    }
+
     internal IWorkObjectIndex Index => _index;
     internal IWorkReadOptions Options => _options;
     internal CancellationToken CancellationToken => _cancellationToken;
 
     internal IWorkConversionReport CreateReport(IWorkProjectionKind projectionKind,
         IReadOnlyList<IWorkDiagnostic> projectionDiagnostics,
-        IWorkPreviewAsset? preview, int reconstructedItemCount) {
+        IWorkPreviewAsset? preview, int reconstructedItemCount,
+        IEnumerable<IWorkObjectIdentity?>? reconstructedUnits = null,
+        IEnumerable<IWorkObjectIdentity?>? omittedUnits = null,
+        IEnumerable<IWorkTable>? tables = null,
+        IReadOnlyList<IWorkSourceReferenceIssue>? sourceReferenceIssues = null,
+        IReadOnlyList<IWorkSourceDeclarationIssue>? sourceDeclarationIssues = null) {
         if (projectionKind is not (IWorkProjectionKind.EditableReconstruction
                 or IWorkProjectionKind.VisualFallback)) {
             throw new ArgumentOutOfRangeException(nameof(projectionKind),
                 "The projection kind is not defined.");
         }
-        IWorkArchiveRecord[] allUnsupported = Records.ToArray();
-        IReadOnlyList<IWorkArchiveRecord> unsupported = _options.PreserveUnsupportedRecords
-            ? allUnsupported
+        IWorkArchiveRecord[] allPreserved = Records.ToArray();
+        IReadOnlyList<IWorkArchiveRecord> preserved = _options.PreserveSourceRecords
+            ? allPreserved
             : Array.Empty<IWorkArchiveRecord>();
+        var cells = new IWorkCellInventory(this, tables);
         return new IWorkConversionReport(
             Kind,
             projectionKind,
             BuildVersions,
-            unsupported,
+            preserved,
             Diagnostics.Concat(projectionDiagnostics).ToArray(),
             preview,
             Records.Count,
-            allUnsupported.Length,
-            reconstructedItemCount);
+            allPreserved.Length,
+            reconstructedItemCount,
+            IWorkSourceUnitInventory.Create(this, projectionKind, reconstructedUnits, omittedUnits),
+            cells.FormulaCells, sourceReferenceIssues, sourceDeclarationIssues, cells.SourceCellIssues);
     }
 
     private static IWorkSourceDocument OpenPath(string path, IWorkDocumentKind? expectedKind,
@@ -208,7 +245,7 @@ public sealed partial class IWorkSourceDocument {
             try {
                 declaredSheetCount = IWorkProtobuf.CountFields(document.Payload, 1,
                     options.MaximumProtobufFieldCount);
-            } catch (InvalidDataException) {
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                 continue;
             }
             if (declaredSheetCount > options.MaximumProjectedSheets) {
@@ -218,7 +255,7 @@ public sealed partial class IWorkSourceDocument {
             IWorkWireMessage message;
             try {
                 message = index.Message(document);
-            } catch (InvalidDataException) {
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                 continue;
             }
             if (message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)) continue;
@@ -237,7 +274,7 @@ public sealed partial class IWorkSourceDocument {
             IWorkWireMessage documentMessage;
             try {
                 documentMessage = index.Message(document);
-            } catch (InvalidDataException) {
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                 continue;
             }
             if (documentMessage.FieldCount(2) != 1
@@ -248,7 +285,7 @@ public sealed partial class IWorkSourceDocument {
                 IWorkWireMessage showMessage = index.Message(show);
                 if (showMessage.HasBytes(3)
                     && !showMessage.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)) return true;
-            } catch (InvalidDataException) {
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                 // A malformed show is not an authoritative Keynote root.
             }
         }

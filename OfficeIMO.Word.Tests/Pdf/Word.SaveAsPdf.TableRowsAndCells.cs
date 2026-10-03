@@ -348,8 +348,8 @@ public partial class Word {
             WordTable table = document.AddTable(2, 1);
             table.WidthType = WordTableWidthUnit.Dxa;
             table.Width = 2200;
-            table.Rows[0].Height = 360;
-            table.Rows[0]._tableRow.TableRowProperties!.GetFirstChild<TableRowHeight>()!.HeightType = heightRule;
+            if (heightRule == HeightRuleValues.AtLeast) table.Rows[0].MinimumHeight = 360;
+            else table.Rows[0].Height = 360;
             table.Rows[0].Cells[0].Width = 2200;
             table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Alpha Beta Gamma Delta Epsilon Zeta Eta Theta";

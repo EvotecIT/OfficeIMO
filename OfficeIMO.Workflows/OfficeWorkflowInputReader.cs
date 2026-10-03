@@ -1,3 +1,5 @@
+using OfficeIMO.Internal;
+
 namespace OfficeIMO.Workflows;
 
 internal static class OfficeWorkflowInputReader {
@@ -7,8 +9,14 @@ internal static class OfficeWorkflowInputReader {
         string path,
         long maximumInputBytes,
         CancellationToken cancellationToken) {
-        using var source = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize, FileOptions.SequentialScan);
+        using var source = OpenLocalRead(path);
         return ReadAllBytes(source, Path.GetFileName(path), maximumInputBytes, cancellationToken);
+    }
+
+    /// <summary>Opens a resolved local regular file without blocking on Unix special files.</summary>
+    internal static FileStream OpenLocalRead(string path) {
+        string physicalPath = OfficePathIdentity.ResolvePhysicalPath(path);
+        return OfficePathIdentity.OpenRegularFileForRead(physicalPath, Path.GetDirectoryName(physicalPath)!, BufferSize);
     }
 
     internal static byte[] ReadAllBytes(

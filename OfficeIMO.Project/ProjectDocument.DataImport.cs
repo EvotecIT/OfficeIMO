@@ -54,9 +54,9 @@ public sealed partial class ProjectDocument {
                 Calendar = ImportCalendar(row), Start = row.Date(ProjectDataField.Start), Finish = row.Date(ProjectDataField.Finish),
                 Cost = row.Decimal(ProjectDataField.Cost, nonnegative: false), PercentComplete = row.Integer(ProjectDataField.PercentComplete) };
             if (row.Decimal(ProjectDataField.DurationMinutes) is decimal duration)
-                task.Duration = new ProjectDuration(duration, ProjectDurationUnit.Minute, row.Flag(ProjectDataField.DurationElapsed) ?? false);
+                task.Duration = ProjectDuration.FromDecodedValue(duration, ProjectDurationUnit.Minute, row.Flag(ProjectDataField.DurationElapsed) ?? false, false, 1);
             else if (row.Get(ProjectDataField.DurationElapsed) != null) throw row.Error(ProjectDataField.DurationElapsed, "requires DurationMinutes");
-            if (row.Decimal(ProjectDataField.WorkMinutes) is decimal work) task.Work = new ProjectWork(work);
+            if (row.Decimal(ProjectDataField.WorkMinutes) is decimal work) task.Work = ProjectWork.FromMinutes(work);
             parents.Add(uid, row.Integer(ProjectDataField.ParentUid)); TaskIndex.Add(uid, task);
         }
         foreach (var row in rows) {
@@ -98,7 +98,7 @@ public sealed partial class ProjectDocument {
             var assignment = new ProjectAssignment(this, uid) { Task = task, Resource = resource, SourceTaskUid = taskUid, SourceResourceUid = resourceUid,
                 Start = row.Date(ProjectDataField.Start), Finish = row.Date(ProjectDataField.Finish), Cost = row.Decimal(ProjectDataField.Cost, nonnegative: false) };
             if (row.Decimal(ProjectDataField.Units) is decimal units) assignment.Units = ProjectUnits.Fraction(units);
-            if (row.Decimal(ProjectDataField.WorkMinutes) is decimal work) assignment.Work = new ProjectWork(work);
+            if (row.Decimal(ProjectDataField.WorkMinutes) is decimal work) assignment.Work = ProjectWork.FromMinutes(work);
             Assignments.Items.Add(assignment); AssignmentIndex.Add(uid, assignment);
         }
     }

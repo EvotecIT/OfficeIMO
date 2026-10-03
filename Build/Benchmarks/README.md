@@ -11,3 +11,5 @@ The PowerForge suite compares reading a PDF again with inspecting an already pre
 Run from an unchanged checkout. PowerForge records source provenance and rejects runs if source changes during measurement. Keep other builds and benchmarks idle. On machines with multiple CPU or cache domains, use an explicitly recorded affinity and repeat on each relevant group.
 
 Outputs include samples, summaries, comparison tables and environment metadata under the selected output folder. `OperationAllocatedBytes` measures managed allocations across the operation; it is not peak or retained memory. Elapsed time includes harness overhead, which matters for very short reuse operations. These measurements cover local evidence preparation and readiness only. They do not measure inference latency, model accuracy, OCR, or end-to-end UI responsiveness.
+
+The separate [iWork runtime lane](../../OfficeIMO.IWork.Benchmarks/README.md) measures Pages, Numbers and Keynote load/projection and conversion/save workloads with saved-package semantic validation.

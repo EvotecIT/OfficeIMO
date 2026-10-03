@@ -1,0 +1,55 @@
+{
+  "provider": "numbers-parser",
+  "providerVersion": "4.19.0",
+  "offsetUnit": "UTF-16 code units before marker removal",
+  "sources": [
+    {
+      "path": "iwork-converter/a.pages",
+      "sha256": "8481e3071c8ea1cc9543354bcd1ff66f79e6c2c8686096fa3ae60ab96fd49ebf",
+      "anchors": [
+        {
+          "storageIdentifier": 1686599,
+          "characterOffset": 117,
+          "attachmentIdentifier": 1686917,
+          "drawableIdentifier": 1686804,
+          "drawableType": 6000
+        }
+      ]
+    },
+    {
+      "path": "picodocs/sample-v14.4.pages",
+      "sha256": "4714477138d0a4090fc2ee2ba2ebb6adcd0fb6ce20a28897a6247a8e17d1ddce",
+      "anchors": [
+        {
+          "storageIdentifier": 1732640,
+          "characterOffset": 968,
+          "attachmentIdentifier": 1733024,
+          "drawableIdentifier": 1732842,
+          "drawableType": 6000
+        },
+        {
+          "storageIdentifier": 1732640,
+          "characterOffset": 1071,
+          "attachmentIdentifier": 1733025,
+          "drawableIdentifier": 1732880,
+          "drawableType": 3005
+        },
+        {
+          "storageIdentifier": 1732640,
+          "characterOffset": 1275,
+          "attachmentIdentifier": 1733026,
+          "drawableIdentifier": 1732934,
+          "drawableType": 6000
+        },
+        {
+          "storageIdentifier": 1732640,
+          "characterOffset": 1333,
+          "attachmentIdentifier": 1737238,
+          "drawableIdentifier": 1737292,
+          "drawableType": 6000
+        }
+      ]
+    }
+  ],
+  "limits": "Native source identities and zero-offset placements only; Apple export, pagination and rendered appearance are not qualified."
+}

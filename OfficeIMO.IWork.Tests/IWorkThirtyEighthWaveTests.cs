@@ -20,6 +20,12 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(result.IsVisualFallback);
         Assert.True(projectedCell.FormulaIsComplete);
         Assert.Null(projectedCell.Value);
+        IWorkFormulaCellStatus assessment = Assert.Single(result.Report.FormulaCells);
+        Assert.True(assessment.ExpressionIsComplete);
+        Assert.Equal(IWorkFormulaCacheStatus.Missing, assessment.CacheStatus);
+        Assert.Null(assessment.CachedValueKind);
+        Assert.Equal(1, result.Report.FormulaSummary.MissingCacheCount);
+        Assert.Equal(0, result.Report.FormulaSummary.CompleteCacheCount);
         Assert.Equal(ExcelCellDataKind.Formula, ownerCell.Kind);
         Assert.NotNull(ownerCell.Formula);
         Assert.Null(ownerCell.Value);

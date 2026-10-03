@@ -9,6 +9,9 @@ internal sealed partial class ProjectTaskAllocation {
     private readonly ProjectCalendarMath _taskCalendar;
     private readonly Entry[] _entries;
     private readonly Action<ProjectDiagnostic> _diagnostic;
+    private readonly ProjectIntervalBudget _intervalBudget;
+    private ProjectIntervalBudget.Scope? _intervalScope;
+    private readonly long _preparedActualIntervals;
     private readonly decimal _requestedDuration;
     private readonly decimal _actualTaskDuration, _remainingTaskDuration;
     private sealed class Entry {
@@ -35,19 +38,21 @@ internal sealed partial class ProjectTaskAllocation {
     }
     internal ProjectTaskAllocation(ProjectTask task, ProjectAssignment[] assignments, ProjectScheduleOptions options,
         Func<IEnumerable<ProjectCalendar>, ProjectCalendarMath> calendar, Action<ProjectDiagnostic> diagnostic, CancellationToken token,
-        IReadOnlyList<ProjectWorkingRange>? splits = null) {
+        ProjectIntervalBudget intervalBudget, IReadOnlyList<ProjectWorkingRange>? splits = null) {
         _task = task; _document = task.Document; _options = options; _token = token; _diagnostic = diagnostic;
+        _intervalBudget = intervalBudget;
+        using var preparation = _intervalBudget.Open(); _intervalScope = preparation;
         var projectCalendar = _document.Calendar ?? task.Calendar ?? throw new InvalidOperationException("Assignment calculation requires a project or task calendar.");
         _taskCalendar = calendar(new[] { task.Calendar ?? projectCalendar });
-        _requestedDuration = task.Duration is ProjectDuration duration ? duration.Value * ProjectXmlValue.MinutesPerUnit(duration.Unit, duration.IsElapsed, _document)
+        _requestedDuration = task.Duration is ProjectDuration duration ? duration.Minutes(ProjectXmlValue.MinutesPerUnit(duration.Unit, duration.IsElapsed, _document))
             : task.IsManual == true && task.Start.HasValue && task.Finish.HasValue ? _taskCalendar.Between(task.Start.Value, task.Finish.Value) : 0m;
         if (task.Duration?.IsElapsed == true && assignments.Any(a => a.Resource?.Type != ProjectResourceType.Cost))
             throw new NotSupportedException("Elapsed tasks with work or material resources require an explicit working-time projection.");
         var work = assignments.Where(a => a.Resource?.Type == ProjectResourceType.Work).ToArray();
         bool redistribute = options.RedistributeEffortDrivenWork && (task.EffortDriven == true || task.Type == ProjectTaskType.FixedWork);
         decimal totalUnits = work.Sum(a => a.Units?.Value ?? a.Resource!.MaxUnits?.Value ?? 1m);
-        decimal actual = work.Sum(a => a.ActualWork?.Minutes ?? 0m);
-        decimal? remaining = task.RemainingWork?.Minutes ?? (task.Work?.Minutes - actual);
+        decimal actual = ProjectWork.Sum(work.Select(a => a.ActualWork ?? default)).Minutes;
+        decimal? remaining = task.RemainingWork?.Minutes ?? (task.Work.HasValue ? ProjectTimeUnits.SubtractMinutes(task.Work.Value.Minutes, actual) : (decimal?)null);
         if (redistribute && (!remaining.HasValue || remaining < 0 || totalUnits <= 0))
             throw new InvalidOperationException("Effort-driven redistribution requires nonnegative stored task work and positive assignment units.");
         _entries = assignments.Select(a => {
@@ -61,19 +66,21 @@ internal sealed partial class ProjectTaskAllocation {
             }
             var entry = new Entry { Assignment = a, Calendar = calendar(selected), Resource = new ProjectResourceTimeline(a.Resource),
                 Units = a.Units?.Value ?? a.Resource.MaxUnits?.Value ?? 1m };
-            Prepare(entry, redistribute && a.Resource.Type == ProjectResourceType.Work ? remaining!.Value * entry.Units / totalUnits : (decimal?)null);
+            Prepare(entry, redistribute && a.Resource.Type == ProjectResourceType.Work ? ProjectTimeUnits.MultiplyDivideMinutes(remaining!.Value, entry.Units, totalUnits) : (decimal?)null);
             entry.RemainingCalendar = splits == null || splits.Count == 0 ? entry.Calendar : entry.Calendar.Excluding(splits);
             return entry;
         }).ToArray();
         _actualTaskDuration = task.ActualDuration is ProjectDuration recorded
-            ? recorded.Value * ProjectXmlValue.MinutesPerUnit(recorded.Unit, recorded.IsElapsed, _document)
+            ? recorded.Minutes(ProjectXmlValue.MinutesPerUnit(recorded.Unit, recorded.IsElapsed, _document))
             : UnionMinutes(_entries.Where(e => e.Assignment.Resource!.Type == ProjectResourceType.Work).SelectMany(e => e.ActualIntervals));
         _remainingTaskDuration = task.RemainingDuration is ProjectDuration remainingDuration
-            ? remainingDuration.Value * ProjectXmlValue.MinutesPerUnit(remainingDuration.Unit, remainingDuration.IsElapsed, _document)
-            : _requestedDuration - _actualTaskDuration;
+            ? remainingDuration.Minutes(ProjectXmlValue.MinutesPerUnit(remainingDuration.Unit, remainingDuration.IsElapsed, _document))
+            : _requestedDuration >= _actualTaskDuration ? ProjectTimeUnits.SubtractMinutes(_requestedDuration, _actualTaskDuration) : _requestedDuration - _actualTaskDuration;
         if (_remainingTaskDuration < 0 || Math.Abs(_requestedDuration - _actualTaskDuration - _remainingTaskDuration) > .001m)
             throw new InvalidDataException("Declared task duration must equal actual plus remaining duration; supply compatible progress inputs.");
         foreach (var entry in _entries) PrepareCurves(entry, redistribute && entry.Assignment.Resource!.Type == ProjectResourceType.Work);
+        _preparedActualIntervals = _entries.Sum(e => (long)e.ActualIntervals.Length);
+        preparation.Keep(_preparedActualIntervals); _intervalScope = null;
     }
     private void Warn(string code, string message, ProjectAssignment assignment) => _diagnostic(new ProjectDiagnostic(code,
         ProjectDiagnosticSeverity.Warning, message, "/Assignment[UID=" + assignment.Uid + "]"));
@@ -83,7 +90,7 @@ internal sealed partial class ProjectTaskAllocation {
         if (assignment.PercentWorkComplete > 0 && entry.Actual <= 0)
             throw new InvalidDataException("Recorded assignment completion requires explicit actual work before calculation.");
         entry.ActualOvertime = assignment.ActualOvertimeWork?.Minutes ?? 0m;
-        entry.RemainingOvertime = (assignment.OvertimeWork?.Minutes ?? entry.ActualOvertime) - entry.ActualOvertime;
+        entry.RemainingOvertime = ProjectTimeUnits.SubtractMinutes(assignment.OvertimeWork?.Minutes ?? entry.ActualOvertime, entry.ActualOvertime);
         if (entry.ActualOvertime > entry.Actual || entry.RemainingOvertime < 0) throw new InvalidDataException("Overtime must be part of total work and actual overtime must be part of actual work.");
         if (resource.Type == ProjectResourceType.Cost) {
             if (assignment.Work?.Minutes > 0 || assignment.ActualWork?.Minutes > 0 || assignment.RemainingWork?.Minutes > 0
@@ -94,13 +101,13 @@ internal sealed partial class ProjectTaskAllocation {
         if (assignment.Work.HasValue && assignment.RemainingWork.HasValue
             && Math.Abs(assignment.Work.Value.Minutes - entry.Actual - assignment.RemainingWork.Value.Minutes) > .001m)
             throw new InvalidDataException("Assignment total work must equal actual plus remaining work.");
-        decimal? stored = assignment.RemainingWork?.Minutes ?? (assignment.Work?.Minutes - entry.Actual);
+        decimal? stored = assignment.RemainingWork?.Minutes ?? (assignment.Work.HasValue ? ProjectTimeUnits.SubtractMinutes(assignment.Work.Value.Minutes, entry.Actual) : (decimal?)null);
         if (resource.Type == ProjectResourceType.Material) {
             decimal quantity = assignment.HasFixedRateUnits == false ? VariableQuantity(assignment, entry.Units, _requestedDuration) : entry.Units;
-            entry.Remaining = stored ?? (quantity * 60m - entry.Actual);
+            entry.Remaining = stored ?? ProjectTimeUnits.SubtractMinutes(quantity * 60m, entry.Actual);
             if (Math.Abs(entry.Actual + entry.Remaining - quantity * 60m) > .001m)
                 throw new InvalidDataException("Material actual plus remaining consumption must equal the quantity declared by assignment units and rate scale.");
-        } else entry.Remaining = redistributed ?? stored ?? (_requestedDuration * entry.Units - entry.Actual);
+        } else entry.Remaining = redistributed ?? stored ?? ProjectTimeUnits.SubtractMinutes(ProjectTimeUnits.MultiplyDivideMinutes(_requestedDuration, entry.Units), entry.Actual);
         if (entry.Remaining < 0 || entry.RemainingOvertime > entry.Remaining) throw new InvalidDataException("Remaining work and overtime are inconsistent.");
         if (assignment.ActualFinish.HasValue && entry.Remaining > 0) throw new InvalidDataException("A completed assignment cannot have remaining work.");
         if (resource.Type == ProjectResourceType.Work && entry.Units <= 0 && entry.Remaining > entry.RemainingOvertime)
@@ -120,15 +127,15 @@ internal sealed partial class ProjectTaskAllocation {
                 curves.Add(new Curve(entry.Calendar.Between(entry.RemainingOrigin.Value, item.Start!.Value),
                     entry.Calendar.Between(entry.RemainingOrigin.Value, item.Finish!.Value), WorkValue(item)));
             }
-            decimal regular = entry.Remaining - entry.RemainingOvertime;
+            decimal regular = ProjectTimeUnits.SubtractMinutes(entry.Remaining, entry.RemainingOvertime);
             if (Math.Abs(curves.Sum(c => c.Work) - regular) > 0.001m) throw new InvalidDataException("Timephased remaining regular work differs from the stored remaining work minus overtime.");
             entry.Curves = curves.ToArray();
         } else {
-            decimal regular = entry.Remaining - entry.RemainingOvertime;
+            decimal regular = ProjectTimeUnits.SubtractMinutes(entry.Remaining, entry.RemainingOvertime);
             decimal duration = resource.Type == ProjectResourceType.Material ? _requestedDuration :
-                _task.Type == ProjectTaskType.FixedDuration ? RemainingTaskDuration() : entry.Units > 0 ? regular / entry.Units : 0;
+                _task.Type == ProjectTaskType.FixedDuration ? RemainingTaskDuration() : entry.Units > 0 ? ProjectTimeUnits.MultiplyDivideMinutes(regular, 1, entry.Units) : 0;
             if (_task.Type == ProjectTaskType.FixedDuration && resource.Type == ProjectResourceType.Work && duration > 0 && redistributed)
-                entry.Units = regular / duration;
+                entry.Units = ProjectWorkEquation.Units(ProjectWork.FromMinutes(regular), duration).Value;
             entry.Curves = entry.Remaining == 0 ? Array.Empty<Curve>() : entry.IsFixedMaterial && duration == 0
                 ? new[] { new Curve(0, 0, regular) }
                 : NamedCurves(assignment.WorkContour ?? ProjectWorkContour.Flat, duration, regular);

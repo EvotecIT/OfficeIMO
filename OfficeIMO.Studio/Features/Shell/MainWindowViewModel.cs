@@ -172,11 +172,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         ConversionWorkbench = new ConversionWorkbenchViewModel(
             pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
             _pickOutputFolder,
-            runner: null,
+            runner: _services.ConversionRunner,
             localizer: _localizer,
             publicationGuard: publicationGuard,
             jobHistory: _services.Jobs, storage: _services.Storage, recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite,
-            openOutput: openWorkflowOutput);
+            openOutput: openWorkflowOutput,
+            pickPackage: token => FileDialogs.PickFolderAsync(_localizer.GetOrDefault("Conversion.Package.Picker", "Choose an Apple document package"), token));
         InvoiceWorkbench = new InvoiceWorkbenchViewModel(
             token => FileDialogs.PickOpenFileAsync(_localizer.GetOrDefault("Invoice.ChooseInput", "Choose invoice XML"),
                 new StudioFileType("Invoice XML", ["xml"], "application/xml"), token),

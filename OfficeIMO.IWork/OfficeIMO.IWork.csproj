@@ -35,6 +35,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.IWork" />
     <InternalsVisibleTo Include="OfficeIMO.PowerPoint.IWork" />
     <InternalsVisibleTo Include="OfficeIMO.Word.IWork" />
+    <InternalsVisibleTo Include="OfficeIMO.Workflows.IWork" />
   </ItemGroup>
 
   <ItemGroup>

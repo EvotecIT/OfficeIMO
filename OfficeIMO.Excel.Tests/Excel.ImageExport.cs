@@ -333,7 +333,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("01/05/26", ExcelNumberFormatDisplay.FormatNumericText(new DateTime(2026, 1, 5).ToOADate(), 1U, "mm/dd/yy", "46027"));
             Assert.Equal("January 5, 2026", ExcelNumberFormatDisplay.FormatNumericText(new DateTime(2026, 1, 5).ToOADate(), 1U, "mmmm d, yyyy", "46027"));
             Assert.Equal("Monday, January 5", ExcelNumberFormatDisplay.FormatNumericText(new DateTime(2026, 1, 5).ToOADate(), 1U, "dddd, mmmm d", "46027"));
-            Assert.Equal("46027", ExcelNumberFormatDisplay.FormatNumericText(46027D, 1U, "mmmm d \"%\"", "46027"));
+            Assert.Equal("January 5 %", ExcelNumberFormatDisplay.FormatNumericText(46027D, 1U, "mmmm d \"%\"", "46027"));
             Assert.Equal("5%", ExcelNumberFormatDisplay.FormatNumericText(5D, 1U, "0\"%\"", "5"));
             Assert.Equal("500%", ExcelNumberFormatDisplay.FormatNumericText(5D, 1U, "0%", "5"));
             Assert.Equal("1234%%", ExcelNumberFormatDisplay.FormatNumericText(0.1234D, 1U, "0%%", "0.1234"));

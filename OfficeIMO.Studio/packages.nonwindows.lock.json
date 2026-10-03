@@ -309,6 +309,14 @@
           "OfficeIMO.Core": "[3.4.4, )"
         }
       },
+      "officeimo.excel.iwork": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Excel": "[3.4.4, )",
+          "OfficeIMO.IWork": "[3.4.4, )"
+        }
+      },
       "officeimo.excel.pdf": {
         "type": "Project",
         "dependencies": {
@@ -370,6 +378,12 @@
           "OfficeIMO.Invoicing": "[3.4.4, )"
         }
       },
+      "officeimo.iwork": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
       "officeimo.markdown": {
         "type": "Project",
         "dependencies": {
@@ -425,6 +439,14 @@
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
           "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.powerpoint.iwork": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.IWork": "[3.4.4, )",
+          "OfficeIMO.PowerPoint": "[3.4.4, )"
         }
       },
       "officeimo.powerpoint.pdf": {
@@ -503,6 +525,14 @@
           "OfficeIMO.Core": "[3.4.4, )"
         }
       },
+      "officeimo.word.iwork": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.IWork": "[3.4.4, )",
+          "OfficeIMO.Word": "[3.4.4, )"
+        }
+      },
       "officeimo.word.pdf": {
         "type": "Project",
         "dependencies": {
@@ -540,6 +570,15 @@
           "OfficeIMO.Visio": "[3.4.4, )",
           "OfficeIMO.Word": "[3.4.4, )",
           "OfficeIMO.Word.Pdf": "[3.4.4, )"
+        }
+      },
+      "officeimo.workflows.iwork": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Excel.IWork": "[3.4.4, )",
+          "OfficeIMO.PowerPoint.IWork": "[3.4.4, )",
+          "OfficeIMO.Word.IWork": "[3.4.4, )",
+          "OfficeIMO.Workflows": "[3.4.4, )"
         }
       }
     },

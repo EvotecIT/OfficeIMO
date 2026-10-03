@@ -46,36 +46,46 @@ namespace OfficeIMO.Word {
         public int CellsCount => Cells.Count;
 
         /// <summary>
-        /// Gets or sets height of a row
+        /// Gets the declared row height in twips, or sets an exact height. Null removes the height constraint.
         /// </summary>
         public int? Height {
             get {
-                if (_tableRow.TableRowProperties != null) {
-                    var rowHeight = _tableRow.TableRowProperties.OfType<TableRowHeight>().FirstOrDefault();
-                    if (rowHeight?.Val != null) {
-                        return (int)rowHeight.Val.Value;
-                    }
-                }
-                return null;
+                var height = _tableRow.TableRowProperties?.OfType<TableRowHeight>().FirstOrDefault();
+                return height?.Val != null ? (int)height.Val.Value : null;
+            }
+            set => SetRowHeight(value, HeightRuleValues.Exact);
+        }
+
+        /// <summary>
+        /// Gets or sets the minimum row height in twips, allowing the row to grow to fit content.
+        /// Setting a value replaces an exact height. Null removes a minimum constraint and preserves an exact height.
+        /// </summary>
+        public int? MinimumHeight {
+            get {
+                var height = _tableRow.TableRowProperties?.OfType<TableRowHeight>().FirstOrDefault();
+                return height?.Val != null && height.HeightType?.Value == HeightRuleValues.AtLeast
+                    ? (int)height.Val.Value : null;
             }
             set {
-                if (value != null) {
-                    AddTableRowProperties();
-                    var tableRowProperties = _tableRow.TableRowProperties!;
-                    var tableRowHeight = tableRowProperties.OfType<TableRowHeight>().FirstOrDefault();
-                    if (tableRowHeight == null) {
-                        tableRowHeight = new TableRowHeight();
-                        tableRowProperties.InsertAt(tableRowHeight, 0);
-                    }
-                    tableRowHeight.Val = (uint)value;
-                    tableRowHeight.HeightType = HeightRuleValues.Exact;
-                } else {
-                    var tableRowHeight = _tableRow.TableRowProperties?.OfType<TableRowHeight>().FirstOrDefault();
-                    if (tableRowHeight != null) {
-                        tableRowHeight.Remove();
-                    }
-                }
+                if (value == null && MinimumHeight == null) return;
+                SetRowHeight(value, HeightRuleValues.AtLeast);
             }
+        }
+
+        private void SetRowHeight(int? value, HeightRuleValues rule) {
+            if (value < 0) throw new ArgumentOutOfRangeException(nameof(value), "Row height cannot be negative.");
+            var height = _tableRow.TableRowProperties?.OfType<TableRowHeight>().FirstOrDefault();
+            if (value == null) {
+                height?.Remove();
+                return;
+            }
+            AddTableRowProperties();
+            if (height == null) {
+                height = new TableRowHeight();
+                _tableRow.TableRowProperties!.InsertAt(height, 0);
+            }
+            height.Val = (uint)value.Value;
+            height.HeightType = rule;
         }
 
         /// <summary>

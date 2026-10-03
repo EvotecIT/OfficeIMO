@@ -3,61 +3,111 @@ using System.Globalization;
 namespace OfficeIMO.IWork.Internal;
 
 internal sealed class IWorkFormulaResult {
-    internal IWorkFormulaResult(string text, bool isComplete) {
+    internal IWorkFormulaResult(string text, bool isComplete, bool requiresTableBinding = false, bool hasBoundedBodyRanges = false) {
         Text = text;
         IsComplete = isComplete;
+        RequiresTableBinding = requiresTableBinding;
+        HasBoundedBodyRanges = hasBoundedBodyRanges;
     }
 
     internal string Text { get; }
     internal bool IsComplete { get; }
+    internal bool RequiresTableBinding { get; }
+    internal bool HasBoundedBodyRanges { get; }
 }
 
-internal static class IWorkFormulaReader {
+internal static partial class IWorkFormulaReader {
     private const int PrimaryPrecedence = 10;
     private const int SumFunctionIndex = 168;
     private const int UnaryPrecedence = 6;
+    // Native iWork function IDs, qualified against the pinned independent function-identity manifest.
+    // These are not Excel/BIFF IDs; unqualified IDs must remain incomplete to protect editable output.
     private static readonly IReadOnlyDictionary<int, FunctionDefinition> Functions =
         new Dictionary<int, FunctionDefinition> {
         [1] = new("ABS", 1, 1),
         [7] = new("AND", 1, 255),
         [15] = new("AVERAGE", 1, 255),
+        [16] = new("AVERAGEA", 1, 255),
+        [17] = new("CEILING", 2, 2),
         [22] = new("COLUMN", 0, 1),
+        [23] = new("COLUMNS", 1, 1),
+        [25] = new("CONCATENATE", 1, 255),
         [30] = new("COUNT", 1, 255),
         [31] = new("COUNTA", 1, 255),
         [32] = new("COUNTBLANK", 1, 1),
         [33] = new("COUNTIF", 2, 2),
         [39] = new("DATE", 3, 3),
         [41] = new("DAY", 1, 1),
+        [44] = new("DEGREES", 1, 1),
+        [48] = new("EVEN", 1, 1),
+        [49] = new("EXACT", 2, 2),
+        [50] = new("EXP", 1, 1),
+        [24] = new("COMBIN", 2, 2),
+        [51] = new("FACT", 1, 1),
         [52] = new("FALSE", 0, 0),
         [53] = new("FIND", 2, 3),
+        [55] = new("FLOOR", 2, 2),
         [60] = new("HOUR", 1, 1),
         [61] = new("HYPERLINK", 1, 2),
         [62] = new("IF", 2, 3),
         [63] = new("INDEX", 2, 4),
+        [65] = new("INT", 1, 1),
+        [69] = new("ISBLANK", 1, 1),
+        [70] = new("ISERROR", 1, 1),
         [76] = new("LEFT", 1, 2),
         [77] = new("LEN", 1, 1),
+        [78] = new("LN", 1, 1),
+        [79] = new("LOG", 1, 2),
+        [80] = new("LOG10", 1, 1),
+        [82] = new("LOWER", 1, 1),
         [84] = new("MAX", 1, 255),
+        [85] = new("MAXA", 1, 255),
         [86] = new("MEDIAN", 1, 255),
         [87] = new("MID", 3, 3),
         [88] = new("MIN", 1, 255),
-        [89] = new("MINUTE", 1, 1),
+        [89] = new("MINA", 1, 255),
+        [90] = new("MINUTE", 1, 1),
+        [92] = new("MOD", 2, 2),
+        [96] = new("NOT", 1, 1),
         [97] = new("NOW", 0, 0),
-        [101] = new("OR", 1, 255),
-        [102] = new("PI", 0, 0),
-        [112] = new("ROUND", 2, 2),
-        [119] = new("SECOND", 1, 1),
+        [100] = new("ODD", 1, 1),
+        [101] = new("OFFSET", 3, 5),
+        [102] = new("OR", 1, 255),
+        [104] = new("PI", 0, 0),
+        [107] = new("POWER", 2, 2),
+        [112] = new("PROB", 3, 4),
+        [113] = new("PRODUCT", 1, 255),
+        [117] = new("RADIANS", 1, 1),
+        [119] = new("RANDBETWEEN", 2, 2),
         [124] = new("RIGHT", 1, 2),
+        [126] = new("ROUND", 2, 2),
+        [127] = new("ROUNDDOWN", 2, 2),
+        [128] = new("ROUNDUP", 2, 2),
+        [129] = new("ROW", 0, 1),
+        [130] = new("ROWS", 1, 1),
+        [132] = new("SECOND", 1, 1),
+        [133] = new("SIGN", 1, 1),
+        [139] = new("SQRT", 1, 1),
+        [145] = new("SUMIF", 2, 3),
+        [147] = new("SUMSQ", 1, 255),
+        [155] = new("TRIM", 1, 1),
+        [156] = new("TRUE", 0, 0),
+        [157] = new("TRUNC", 1, 2),
+        [158] = new("UPPER", 1, 1),
         [SumFunctionIndex] = new("SUM", 1, 255),
-        [169] = new("SUMIF", 2, 3)
+        [235] = new("IFERROR", 2, 2),
+        [304] = new("ISNUMBER", 1, 1),
+        [305] = new("ISTEXT", 1, 1),
+        [328] = new("TEXTJOIN", 3, 254)
     };
 
     internal static IWorkFormulaResult Render(IWorkWireMessage formula, int zeroBasedRow, int zeroBasedColumn,
-        int maximumNodes, int maximumCharacters) {
+        int maximumNodes, int maximumCharacters, IReadOnlyDictionary<Guid, IWorkFormulaTableBinding>? tableQualifiers = null, IWorkFormulaTableBinding? owningTable = null) {
         if (!TryReadNodes(formula, maximumNodes, out IReadOnlyList<IWorkWireMessage> nodes))
             return new IWorkFormulaResult(string.Empty, false);
 
         var stack = new List<Operand>();
-        bool complete = true;
+        bool complete = true, boundedBodyRanges = false, needsLocalBodyBinding = false;
         foreach (IWorkWireMessage node in nodes) {
             if (node.FieldCount(1) != 1
                 || node.HasUnexpectedWireKind(1, IWorkWireKind.Varint)) complete = false;
@@ -151,14 +201,32 @@ internal static class IWorkFormulaReader {
                 case 36:
                 case 63:
                 case 64:
-                case 65:
-                    stack.Add(new Operand(RenderReference(node, zeroBasedRow, zeroBasedColumn, ref complete),
-                        PrimaryPrecedence));
+                case 65: {
+                    string reference = RenderReference(node, zeroBasedRow, zeroBasedColumn, maximumCharacters, tableQualifiers,
+                        owningTable, type == 36, ref complete, ref boundedBodyRanges, ref needsLocalBodyBinding);
+                    Guid? identifier = type == 36 && node.HasField(26) && node.HasField(27)
+                        ? ReadReferencedTableIdentifier(node) : null;
+                    string? qualifier = identifier.HasValue && tableQualifiers != null
+                        && tableQualifiers.TryGetValue(identifier.Value, out IWorkFormulaTableBinding? target)
+                        && reference.StartsWith(target.Qualifier, StringComparison.Ordinal) ? target.Qualifier : null;
+                    stack.Add(new Operand(reference, PrimaryPrecedence, identifier, qualifier,
+                        qualifier == null ? null : reference.Substring(qualifier.Length)));
                     break;
+                }
                 case 29:
                 case 45: {
                     Operand[] range = Pop(stack, 2, ref complete);
-                    stack.Add(new Operand(Bound(range[0].Text + ":" + range[1].Text,
+                    string last = range[1].Text;
+                    if (range[0].ReferenceQualifier != null || range[1].ReferenceQualifier != null) {
+                        // Independently qualified endpoint pairs use the same target identity.
+                        // A local or differently qualified endpoint must not become a guessed cross-table range.
+                        if (range[0].ReferenceIdentifier == range[1].ReferenceIdentifier
+                            && range[0].ReferenceQualifier != null
+                            && range[0].ReferenceQualifier == range[1].ReferenceQualifier)
+                            last = range[1].ReferenceAddress!;
+                        else complete = false;
+                    }
+                    stack.Add(new Operand(Bound(range[0].Text + ":" + last,
                         maximumCharacters, ref complete), PrimaryPrecedence));
                     break;
                 }
@@ -188,14 +256,16 @@ internal static class IWorkFormulaReader {
                         complete = false;
                     }
                     stack.Add(new Operand(Bound(type == 32 ? operand.Text + whitespace : whitespace + operand.Text,
-                        maximumCharacters, ref complete), operand.Precedence));
+                        maximumCharacters, ref complete), operand.Precedence, operand.ReferenceIdentifier, operand.ReferenceQualifier,
+                        operand.ReferenceAddress == null ? null : type == 32
+                            ? operand.ReferenceAddress + whitespace : whitespace + operand.ReferenceAddress));
                     break;
                 }
                 case 34:
                 case 35:
                     break;
                 case 67:
-                    stack.Add(new Operand(RenderColonTract(node, zeroBasedRow, zeroBasedColumn, ref complete),
+                    stack.Add(new Operand(RenderColonTract(node, zeroBasedRow, zeroBasedColumn, maximumCharacters, tableQualifiers, owningTable, ref complete, ref boundedBodyRanges, ref needsLocalBodyBinding),
                         PrimaryPrecedence));
                     break;
                 case 69: {
@@ -211,9 +281,10 @@ internal static class IWorkFormulaReader {
             }
         }
 
-        if (stack.Count != 1) return new IWorkFormulaResult(string.Empty, false);
+        bool requiresTableBinding = needsLocalBodyBinding || nodes.Any(node => node.HasField(28));
+        if (stack.Count != 1) return new IWorkFormulaResult(string.Empty, false, requiresTableBinding, boundedBodyRanges);
         string text = stack[0].Text;
-        return new IWorkFormulaResult(text.Length == 0 ? string.Empty : "=" + text, complete && text.Length > 0);
+        return new IWorkFormulaResult(text.Length == 0 ? string.Empty : "=" + text, complete && text.Length > 0, requiresTableBinding, boundedBodyRanges);
     }
 
     internal static long MeasureRenderingOperations(IWorkWireMessage formula, int maximumNodes) {
@@ -223,7 +294,7 @@ internal static class IWorkFormulaReader {
         int totalFieldCount;
         try {
             formula.CountNestedFields(nodeArrayBytes, 1, out totalFieldCount);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             return 1;
         }
         if (totalFieldCount > maximumNodes) {
@@ -247,11 +318,13 @@ internal static class IWorkFormulaReader {
     }
 
     internal static bool TryReadAbsoluteRange(IWorkWireMessage formula, int maximumNodes,
-        out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) {
+        out int firstRow, out int firstColumn, out int lastRow, out int lastColumn,
+        IWorkWireMessage? owningTable = null) {
         firstRow = firstColumn = lastRow = lastColumn = 0;
         if (!TryReadNodes(formula, maximumNodes, out IReadOnlyList<IWorkWireMessage> nodes)) return false;
         if (nodes.Any(node => node.FieldCount(1) != 1
-                || node.HasUnexpectedWireKind(1, IWorkWireKind.Varint))) return false;
+                || node.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
+                || node.HasField(28) && !ReferencesOwningTable(node, owningTable))) return false;
         if (nodes[0].GetUnsigned(1) == 67) {
             if (nodes.Count != 1) return false;
             IWorkWireMessage? tract = IWorkObjectIndex.TryGetMessage(nodes[0], 40);
@@ -289,7 +362,7 @@ internal static class IWorkFormulaReader {
         try {
             nodeCount = formula.CountNestedFields(nodeArrayBytes, 1,
                 out totalFieldCount);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             return false;
         }
         if (totalFieldCount > maximumNodes) {
@@ -299,7 +372,7 @@ internal static class IWorkFormulaReader {
         IWorkWireMessage nodeArray;
         try {
             nodeArray = formula.ParseNestedMessage(nodeArrayBytes);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             return false;
         }
         IReadOnlyList<IWorkWireMessage> parsed = IWorkObjectIndex.TryGetMessages(
@@ -318,7 +391,9 @@ internal static class IWorkFormulaReader {
         return symbol != null;
     }
 
-    private static string RenderReference(IWorkWireMessage node, int row, int column, ref bool complete) {
+    private static string RenderReference(IWorkWireMessage node, int row, int column, int maximumCharacters,
+        IReadOnlyDictionary<Guid, IWorkFormulaTableBinding>? tableQualifiers, IWorkFormulaTableBinding? owningTable, bool supportsCoordinateBinding,
+        ref bool complete, ref bool boundedBodyRanges, ref bool needsLocalBodyBinding) {
         IWorkWireMessage? columnMessage = IWorkObjectIndex.TryGetMessage(node, 26, out bool malformedColumn);
         IWorkWireMessage? rowMessage = IWorkObjectIndex.TryGetMessage(node, 27, out bool malformedRow);
         if (malformedColumn || malformedRow
@@ -345,11 +420,23 @@ internal static class IWorkFormulaReader {
         }
         string address = CellAddress(resolvedColumn, resolvedRow, absoluteColumn, absoluteRow);
         if (resolvedColumn == null || resolvedRow == null) address += ":" + address;
-        if (node.HasField(28)) {
-            complete = false;
-            return node.HasBytes(28) ? "OTHER_TABLE::" + address : "#REF!";
+        if (!supportsCoordinateBinding) {
+            if (resolvedColumn == null || resolvedRow == null) complete = false;
+            return PreserveUnresolvedTableReference(node, address, ref complete);
         }
-        return address;
+        if (resolvedColumn == null || resolvedRow == null) needsLocalBodyBinding = true;
+        return BindTableReference(node, resolvedColumn, resolvedColumn, resolvedRow, resolvedRow,
+            absoluteColumn, absoluteColumn, absoluteRow, absoluteRow, maximumCharacters,
+            tableQualifiers, owningTable, ref complete, ref boundedBodyRanges);
+    }
+
+    // Dropping a declared table identity would turn an external reference into a
+    // complete local formula or merge. Keep unsupported or unresolved identities incomplete.
+    private static string PreserveUnresolvedTableReference(IWorkWireMessage node, string address,
+        ref bool complete) {
+        if (!node.HasField(28)) return address;
+        complete = false;
+        return node.HasBytes(28) ? "OTHER_TABLE::" + address : "#REF!";
     }
 
     private static int? ResolveCoordinate(IWorkWireMessage? message, int origin, out bool absolute,
@@ -398,58 +485,6 @@ internal static class IWorkFormulaReader {
         column = resolvedColumn.Value;
         row = resolvedRow.Value;
         return true;
-    }
-
-    private static string RenderColonTract(IWorkWireMessage node, int row, int column, ref bool complete) {
-        IWorkWireMessage? tract = IWorkObjectIndex.TryGetMessage(node, 40, out bool malformedTract);
-        if (malformedTract || tract == null) {
-            complete = false;
-            return "#REF!";
-        }
-        if (!TryRange(tract, 3, 1, column, out int firstColumn, out int lastColumn, out bool absoluteColumn)
-            || !TryRange(tract, 4, 2, row, out int firstRow, out int lastRow, out bool absoluteRow)) {
-            complete = false;
-            return "#REF!";
-        }
-        string first = CellAddress(firstColumn, firstRow, absoluteColumn, absoluteRow);
-        string last = CellAddress(lastColumn, lastRow, absoluteColumn, absoluteRow);
-        if (first == "#REF!" || last == "#REF!") complete = false;
-        return first == last ? first : first + ":" + last;
-    }
-
-    private static bool TryRange(IWorkWireMessage tract, int absoluteField, int relativeField, int origin,
-        out int first, out int last, out bool absolute) {
-        if (TryAbsoluteRange(tract, absoluteField, out first, out last)) {
-            absolute = true;
-            return true;
-        }
-        absolute = false;
-        IReadOnlyList<IWorkWireMessage> ranges = IWorkObjectIndex.TryGetMessages(tract, relativeField, out bool malformed);
-        if (malformed || ranges.Count != 1
-            || ranges[0].FieldCount(1) != 1 || ranges[0].FieldCount(2) > 1
-            || ranges[0].HasUnexpectedWireKind(1, IWorkWireKind.Varint)
-            || ranges[0].HasUnexpectedWireKind(2, IWorkWireKind.Varint)) {
-            first = last = 0;
-            return false;
-        }
-        ulong rawBegin = ranges[0].GetUnsigned(1) ?? 0;
-        ulong rawEnd = ranges[0].GetUnsigned(2) ?? rawBegin;
-        if (rawBegin > uint.MaxValue || rawEnd > uint.MaxValue) {
-            first = last = 0;
-            return false;
-        }
-        int begin = unchecked((int)(uint)rawBegin);
-        int end = unchecked((int)(uint)rawEnd);
-        long resolvedFirst = (long)origin + begin;
-        long resolvedLast = (long)origin + end;
-        if (resolvedFirst < 0 || resolvedFirst > int.MaxValue
-            || resolvedLast < resolvedFirst || resolvedLast > int.MaxValue) {
-            first = last = 0;
-            return false;
-        }
-        first = (int)resolvedFirst;
-        last = (int)resolvedLast;
-        return first >= 0 && last >= first;
     }
 
     private static bool TryAbsoluteRange(IWorkWireMessage tract, int field, out int first, out int last) {
@@ -569,12 +604,19 @@ internal static class IWorkFormulaReader {
         operand.Precedence < minimumPrecedence ? "(" + operand.Text + ")" : operand.Text;
 
     private readonly struct Operand {
-        internal Operand(string text, int precedence) {
+        internal Operand(string text, int precedence, Guid? referenceIdentifier = null, string? referenceQualifier = null,
+            string? referenceAddress = null) {
             Text = text;
             Precedence = precedence;
+            ReferenceIdentifier = referenceIdentifier;
+            ReferenceQualifier = referenceQualifier;
+            ReferenceAddress = referenceAddress;
         }
 
         internal string Text { get; }
         internal int Precedence { get; }
+        internal Guid? ReferenceIdentifier { get; }
+        internal string? ReferenceQualifier { get; }
+        internal string? ReferenceAddress { get; }
     }
 }

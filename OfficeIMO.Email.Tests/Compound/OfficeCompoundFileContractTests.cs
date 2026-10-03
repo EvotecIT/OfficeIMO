@@ -64,6 +64,32 @@ public sealed class OfficeCompoundFileContractTests {
         Assert.Equal(compound.LongLength, expectedLength);
     }
 
+    [Theory]
+    [InlineData(17)]
+    [InlineData(4096)]
+    [InlineData(70000)]
+    public void RewriteLengthPreflightMatchesExactOutputAndItsLimit(int size) {
+        byte[] original = OfficeCompoundFileWriter.Write(new[] {
+            new OfficeCompoundStream("Keep/Value", new byte[5000]),
+            new OfficeCompoundStream("Remove/Value", new byte[100])
+        });
+        Assert.True(OfficeCompoundFileReader.TryRead(original, out OfficeCompoundFile? source, out var error), error);
+        var replacements = new Dictionary<string, byte[]> { ["Keep/Value"] = new byte[size], ["Added"] = new byte[3] };
+        var removals = new[] { "Remove" };
+        long length = OfficeCompoundFileWriter.GetRewriteLength(source!, replacements, removals);
+        byte[] output = OfficeCompoundFileWriter.Rewrite(source!, replacements, removals, length);
+        Assert.Equal(output.LongLength, length);
+        Assert.Equal(length, OfficeCompoundFileWriter.GetRewriteLength(source!, replacements, removals, length));
+        Assert.Throws<InvalidDataException>(() => OfficeCompoundFileWriter.GetRewriteLength(source!, replacements, removals, length - 1));
+        Assert.Throws<InvalidDataException>(() => OfficeCompoundFileWriter.Rewrite(source!, replacements, removals, length - 1));
+        using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
+        Assert.Throws<OperationCanceledException>(() => OfficeCompoundFileWriter.GetRewriteLength(source!, replacements, removals, cancellationToken: cancellation.Token));
+        using var input = new MemoryStream(output);
+        using var oracle = RootStorage.Open(input, StorageModeFlags.LeaveOpen);
+        using var value = oracle.OpenStorage("Keep").OpenStream("Value");
+        Assert.Equal(size, value.Length);
+    }
+
     [Fact]
     public void VersionThreeWriterRejectsAStreamLargerThanItsDirectoryCanRepresent() {
         var streams = new[] {

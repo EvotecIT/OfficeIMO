@@ -12,6 +12,174 @@ These package fixtures prove the bounded Pages, Numbers, and Keynote reader agai
 
 The complete upstream license notices are reproduced in `OfficeIMO.IWork/THIRD-PARTY-NOTICES.md`. Fixture provenance and expected semantic assertions live beside the executable corpus tests in `OfficeIMO.IWork.Tests`.
 
+The parameterized independent-corpus output check converts all 12 fixtures listed by `IWorkCorpusTests.Corpus` to editable DOCX, XLSX or PPTX, saves and reopens the result, and validates the destination Open XML schema. It explicitly accepts partial reconstruction and normalizes worksheet names. This gate catches invalid destination packages; separate semantic tests establish supported content. Passing it does not qualify native application rendering, pagination or complete document fidelity.
+
+## Native blank-format export
+
+`native-exports/numbers-blank-selectors-v14.5.xlsx` is an Apple Numbers 14.5 export of the unchanged `numbers-parser/cross-table-formulas.numbers` fixture. The adjacent JSON records source/export hashes, export options and ten blank cells in `Main Sheet - Extra Headers`. Reproduce it by opening a copy of the source in Numbers 14.5, choosing File > Export To > Excel, one worksheet per table, and leaving the summary worksheet and password options off. The native export includes a table-title row, so source A8:A17 maps to destination A9:A18. Existing numbers-parser MIT attribution applies.
+
+The nine numeric/text-selector blanks export with built-in Text format 49 (`@`); the isolated percentage-selector blank exports as General. All ten remain blank. This is evidence of this producer's export behavior, not a general selector-precedence rule: the percentage case shows that native export does not retain every authored blank format. OfficeIMO uses the explicit blank selection to assess only the active scalar family; retained inactive catalog entries do not compete with that selection. Native populated-value behavior and rendered appearance remain unqualified.
+
+Native Numbers' Cell Format panel shows source A8 as Automatic and A9 as Text. `numbers-blank-explicit-percentage-v14.5.numbers` is a disposable copy saved after selecting Percentage for A8. The adjacent manifest records the exact before/after storage: selection adds value-storage bit 12 with value `1`, while numeric format key `6` stays unchanged. This demonstrates that a numeric catalog selector alone does not establish active blank formatting. The reader uses this explicit selection for the qualified numeric blank case; the original Automatic blank retains no numeric format. The native Currency → Date and Time → Duration → Automatic sequence and hashed snapshots in `native-exports/numbers-blank-selectors-v14.5.json` qualify blank selection values 2, 3 and 4 alongside numeric 1 and text 5. Switching families retains earlier catalog entries; Automatic clears the selections. These snapshots qualify selection, not broader currency, locale or duration display support.
+
+## Keynote multi-slide editable output
+
+The unchanged `nim-iwork/simple.key` fixture exercises a two-slide Keynote 14.5 deck through editable PPTX save and reopen. The corpus test checks slide count and order through each slide's expected title, first-slide bullet content, the second-slide presenter note, and Open XML validation. Conversion explicitly accepts partial editable reconstruction. This extends source-reader evidence to saved destination content; native Apple PPTX export, theme/layout equivalence and rendered appearance remain unqualified.
+
+## Pages editable body output
+
+The unchanged Pages 14.1 `iwork-converter/a.pages` fixture exercises a 45-paragraph source body through explicitly accepted partial DOCX conversion, save and reopen. The corpus test compares non-empty body paragraphs in order and checks the title's centered alignment, bold styling, 26-point size and declared `SimSun` font family. It validates the saved Open XML document. The fixture declares the font name; this test does not distribute or render that font. Inline objects remain incomplete, and native Apple DOCX export, page count and rendered equivalence remain unqualified.
+
+`pages-section-selection.json` records the two native sections' header/footer selection flags and template references. Both store first/even/default templates while selecting the default for all pages. Field names come from the pinned independent TP schema recorded in the manifest. Reproduce the declarations with `python Build/IWork/extract-pages-section-selection.py OfficeIMO.TestAssets/Documents/IWorkCorpus output.json` in the opt-in numbers-parser 4.19.0 environment. Enabled alternate templates and first-page suppression have synthetic saved-DOCX coverage; native export qualification for those settings remains open.
+
+`pages-word-rendering.json` records a bounded manual inspection of this conversion and `picodocs/sample-v14.4.pages` in Microsoft Word for Mac 16.112.4. Both DOCX files opened without repair prompts; representative titles, body text, a table and the embedded chart rendered visibly. The recorded baseline first-page comparison shows ordered items rendered as bullets, omitted header/footer content and different pagination. The numbering-remediation entry confirms the regenerated decimal list visibly renders as 1., 2., 3. in the same Word version. The header/footer-remediation entry confirms that the default header and footer visibly render on the first page and the header remains visible on page two. This qualifies destination opening and the inspected content only; native Apple export and rendered equivalence remain unqualified.
+
+## Pages paragraph layout declarations
+
+`pages-paragraph-layout.json` records line-spacing and custom-tab messages in selected body paragraph styles and their parent chain in the unchanged `picodocs/sample-v14.4.pages`. The pinned independent parser identifies twelve declarations across seven styles, including empty messages whose effective defaults remain unqualified. The manifest also exposes independently decoded relative multipliers and tab positions/alignments without leaders. The reader retains those explicit values and source paths for remaining unqualified layout. DOCX/PPTX spacing properties are checked separately from rendered appearance. This evidence does not qualify Apple exports or rendered equivalence.
+
+```sh
+python Build/IWork/extract-pages-paragraph-layout.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/pages-paragraph-layout.json
+```
+
+## Pages list-style declarations
+
+`pages-list-styles.json` records the selected body list styles and paragraph-data boundaries in the unchanged `picodocs/sample-v14.4.pages` fixture. The ordered span selects native number labels and decimal numbering (`number_types = 0`), with no string labels and tiered numbering disabled. The preceding bullet span selects string labels and the `Symbol` marker font. The reader retains inherited marker fonts and explicit font clearing; DOCX numbering and PPTX bullets preserve explicit fonts independently of run fonts. Saved DOCX coverage checks the native bullet font, and saved PPTX coverage checks a distinct explicit font. Font installation and rendered glyph equivalence remain separate qualification requirements. The independent schema enum names identify native marker kinds separately: none (`0`), image (`1`), string (`2`) and number (`3`). Literal string markers never imply a numbering format. Image markers retain incomplete-formatting and source-declaration diagnostics instead of using dormant string labels. The reader projects initial markers for decimal, upper/lower Roman and upper/lower alphabetic numbering, each with a dot, paired parentheses or a closing parenthesis. Selected native numbering kinds take precedence over dormant string labels. Paragraph-data field `6/1/2` supplies explicit list levels, as identified by the pinned independent parser source in the manifest. Explicit levels take precedence over indentation and remain distinct in the style cache; absent or rejected values use the bounded indentation fallback with rejected metadata reported. Nonzero values in the neighboring unqualified field `6/1/3` retain source-declaration evidence and incomplete-formatting diagnostics. Saved DOCX regression coverage checks the fixture’s three decimal items share one numbering instance; saved DOCX/PPTX cases check all fifteen qualified initial numbering formats. Native paragraph counters, restarts, continuation and tiered numbering remain unqualified, so these source lists retain incomplete-formatting diagnostics and require partial editable reconstruction. Other numbering scripts remain unassessed.
+
+Reproduce with the pinned opt-in numbers-parser 4.19.0 provider:
+
+```bash
+python Build/IWork/extract-pages-list-styles.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/pages-list-styles.json
+```
+
+## Pages inline attachment positions
+
+`pages-inline-anchors.json` records five image/table attachment positions from the unmodified `iwork-converter/a.pages` and `picodocs/sample-v14.4.pages` fixtures. The existing provenance, hashes and license notices above apply. Positions are UTF-16 offsets in native text storage, before object-marker removal. The manifest is extracted through the independent numbers-parser 4.19.0 schemas:
+
+```bash
+python Build/IWork/extract-pages-inline-anchors.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/pages-inline-anchors.json
+```
+
+OfficeIMO compares native attachment/drawable identities and offsets with this evidence. Saved/reopened DOCX and Reader tests check the representative fixture's object order. This qualifies source attachment decoding and destination placement; native Apple export, pagination, wrapping and rendered equivalence remain unqualified.
+
+## Pages automatic row sizing
+
+`pages-table-sizing.json` records the native automatic-resize setting and individual row heights of all three tables in the unchanged `picodocs/sample-v14.4.pages` fixture. It uses the same pinned source, hash and MIT provenance above. Reproduce the manifest with independent numbers-parser 4.19.0 schemas:
+
+```bash
+python Build/IWork/extract-pages-table-sizing.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/pages-table-sizing.json
+```
+
+Saved/reopened DOCX retains the declared 16.5-point heights as minimum constraints, so wrapped cell content can increase row height. The embedded package preview provides a bounded visual counterexample to treating these rows as fixed. This qualifies the source setting and destination constraint; native Apple export, complete styling and pagination remain unqualified.
+
+## Pages selected cell fills and layout
+
+`pages-cell-fills.json` records 64 selected modern cell-style keys, parent chains, solid/no-fill declarations, four-sided padding and vertical alignment across the same three native Pages tables. It includes four empty cells whose explicit fills must survive sparse projection. Reproduce it with the pinned independent numbers-parser 4.19.0 schemas:
+
+```bash
+python Build/IWork/extract-pages-cell-fills.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/pages-cell-fills.json
+```
+
+Saved/reopened DOCX compares each selected fill, padding side and vertical alignment with this manifest. All 64 selected cells have middle alignment and four-point padding. Empty fill declarations clear parent colors; table-role defaults and banding are outside this evidence. Native Apple export and complete appearance remain unqualified.
+
+## Cross-table rectangular formulas
+
+`numbers-parser/cross-table-formulas.numbers` is the unmodified upstream `tests/data/create-formulas.numbers` at revision `1c6c5c3d2e29a9abb601596678089f0a6c85d64c`, covered by the existing numbers-parser MIT notice. Its adjacent JSON manifest records sixteen `COUNTA` formulas with cross-table rectangular references, all combinations of absolute and relative endpoint coordinates, native target UUIDs and cached numeric values. `Build/IWork/extract-cross-table-formula-fixture.py` reads the pinned package through numbers-parser 4.19.0 to reproduce the manifest without rewriting the source:
+
+```bash
+python Build/IWork/extract-cross-table-formula-fixture.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/cross-table-formulas.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/cross-table-formulas.json --whole-axis-output OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/whole-axis-formulas.json
+```
+
+OfficeIMO tests compare all sixteen reconstructed source ranges and saved/reopened XLSX expressions with the manifest, preserving mixed endpoint flags and numeric caches. Separate boundary tests cover forward targets, normalized colliding names, and missing, inactive or ambiguous identities; unresolved targets never become complete local formulas. This qualifies the finite rectangular subset through independent reference and cache evidence.
+
+`whole-axis-formulas.json` uses the same hashed native package for 59 row/column references, including coordinate-backed header-name aliases. The extractor resolves axes and target header/footer metadata through numbers-parser, computes `SUM`, `COUNT` or `COUNTA` over the selected current body, and verifies every result against the native cache. Saved-output tests compare exact fixed body bounds, endpoint flags, caches and the typed approximation diagnostic. Synthetic cases cover footers, normalized colliding names, ambiguous metadata and empty bodies. Native labels and automatic expansion are not preserved in fixed XLSX ranges. Native Apple export, appearance, recalculation and cache freshness remain unqualified.
+
+## Formula function identities
+
+`numbers-parser/function-identities.json` records 75 native function identifiers from the pinned numbers-parser 4.19.0 function map, plus the expressions, function nodes and typed caches of three cases in the unmodified `cross-table-formulas.numbers` fixture. OfficeIMO checks every selected identity, rejects unknown identifiers and invalid argument counts, and saves/reopens the native nested `OR`, `POWER`, and cross-table `TEXTJOIN` cases. The `TEXTJOIN` descriptor records independently resolved coordinates and a join of current referenced values that agrees with its cache. Its saved-output test checks the XLSX compatibility prefix, typed string cache, and recalculation after changing a referenced value and testing both empty-cell policies. The additional `MINA`, `MAXA` and `AVERAGEA` identities use the independent map; synthetic native-format cases check saved output separately from the three unmodified document cases. Sample argument counts exercise reconstruction; they do not qualify evaluation for arbitrary argument types. Reproduce the evidence without rewriting the package:
+
+```bash
+python Build/IWork/extract-function-identities.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/cross-table-formulas.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/function-identities.json
+```
+
+The existing numbers-parser MIT notice covers the provider and fixture. The manifest does not qualify Apple export, appearance, recalculation or cache freshness.
+
+## Empty hidden-state extents and disabled filters
+
+`empty-hidden-states.json` describes five table models in the unchanged `nim-iwork/simple.numbers`, `picodocs/sample-v14.4.pages` and `keynotekit/tabledeck-v15.2.1.key` packages. Their pinned provenance and license notices above apply. Independent numbers-parser 4.19.0 schemas verify empty base/summary hidden states, correct axis directions, zero hidden counts and ten disabled filter sets without rules. Reproduce the manifest without rewriting the packages:
+
+```bash
+python Build/IWork/extract-empty-hidden-states.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/empty-hidden-states.json
+```
+
+OfficeIMO checks the source hashes, selected model identities and absence of new visibility warnings or declaration failures. This qualifies the empty/disabled path. The base user-hidden column qualification below supplies independent positive selection evidence; active filtering, collapsed groups and Apple export equivalence remain unqualified.
+
+## Individual table dimensions
+
+`numbers-parser/individual-dimensions.numbers` is produced by numbers-parser 4.19.0 using `Build/IWork/create-dimension-fixture.py`. It declares three row heights (20, 10, and 30 points) and two column widths (40 and 20 points), with source labels in the first column. The generator reopens the package through the independent producer; OfficeIMO tests read the declared dimensions and save/reopen the XLSX result. This fixture also exercises the valid seven-field tile envelope with the wide-row flag. It qualifies declared dimensions, not Apple automatic row sizing or visual equivalence.
+
+To recreate the semantic fixture in an isolated Python 3.10+ environment, install `numbers-parser==4.19.0`, then run:
+
+```bash
+python Build/IWork/create-dimension-fixture.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/individual-dimensions.numbers
+```
+
+The producer creates new package identifiers and timestamps, so regenerated bytes can differ. The committed fixture has the checksum recorded below. The existing numbers-parser MIT notice covers its bundled template and implementation.
+
+## Numeric formats
+
+`numbers-parser/number-formats.numbers` is produced by numbers-parser 4.19.0 using `Build/IWork/create-number-format-fixture.py`. Its adjacent generated JSON manifest records the package hash, thirteen numeric values, exact source coefficient/exponent text, selected format metadata and independent producer display strings. Cases cover decimal precision, automatic formatting, grouping, all four negative styles, percentage scaling and zero. The generator reopens the package through the producer before writing the oracle.
+
+```bash
+python Build/IWork/create-number-format-fixture.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/number-formats.numbers
+```
+
+OfficeIMO tests compare metadata, save/reopen XLSX numeric values and compare image-snapshot text with the producer. The fixture also exposes finite Decimal128 values above fifteen significant digits; their exact source text and explicit approximation survive reconstruction. This evidence does not qualify Apple native rendering or full style fidelity. Regenerated package identifiers and timestamps can change the bytes; compare the semantic manifest cases when reproducing the fixture.
+
+## Currency formats
+
+`numbers-parser/currency-formats.numbers` is produced by numbers-parser 4.19.0 using `Build/IWork/create-currency-format-fixture.py`. The adjacent generated manifest records eleven currency cases across six identifiers, precision, grouping, negative styles, accounting settings, and independent source display strings. Destination display strings specify the portable identifier-prefix contract, including its explicit approximation report; they are not Apple appearance oracles.
+
+```bash
+python Build/IWork/create-currency-format-fixture.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/currency-formats.numbers
+```
+
+The generator saves and reopens the package before recording metadata and source display text. OfficeIMO checks source semantics and saved/reopened XLSX numeric values, image text, and red styles. The existing numbers-parser MIT notice covers the template and implementation. Regenerated package identifiers and timestamps can change bytes; compare the semantic manifest cases.
+
+## Scientific formats
+
+`numbers-parser/scientific-formats.numbers` is produced by numbers-parser 4.19.0 using `Build/IWork/create-scientific-format-fixture.py`. Its generated manifest records fourteen scientific selections, exact source numeric text, producer-decoded values, correctly rounded portable values, and selected mantissa precision. Twelve explicit-precision display strings come from the reopened producer. Its automatic sentinel is rendered as 253 fractional places, so the two automatic cases qualify metadata only; destination expectations describe OfficeIMO's approximate display contract.
+
+```bash
+python Build/IWork/create-scientific-format-fixture.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/scientific-formats.numbers
+```
+
+The scientific and numeric-format generators share `fixture_number_values.py` to derive portable numeric values and precision evidence from the stored finite Decimal128 coefficient and exponent. OfficeIMO tests compare source metadata and exact numeric values, then save/reopen XLSX and check display text. This is independent-producer evidence, without an Apple native export or appearance claim. Regenerated identifiers and timestamps can change package bytes; compare semantic manifest cases. The existing numbers-parser MIT notice covers the template and implementation.
+
+## Fraction formats
+
+`numbers-parser/fraction-formats.numbers` is produced by numbers-parser 4.19.0 using `Build/IWork/create-fraction-format-fixture.py`. Its generated manifest records twenty-six cases across all nine denominator modes, stored numeric precision, source metadata, and reopened producer display strings. Eighteen display examples qualify the independent oracle. Eight destination alternatives cover negative whole parts, rollover, and midpoint ties where the producer's output loses information, remains unnormalized, or differs in rounding policy. Those alternatives qualify OfficeIMO's reported display approximation, without claiming producer or Apple appearance equivalence.
+
+```bash
+python Build/IWork/create-fraction-format-fixture.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/fraction-formats.numbers
+```
+
+The generator reuses `fixture_number_values.py` for exact Decimal128 text and portable numeric values. The near-quarter-midpoint example retains the value actually stored by the writer, which lies below the midpoint. Tests compare saved/reopened XLSX numeric types, values, format codes, and image-snapshot text. Regenerated identifiers and timestamps can change bytes; compare semantic manifest cases. The existing numbers-parser MIT notice covers the template and implementation.
+
+## Independent Apple exports
+
+`native-exports/numbers-formulas-v14.5.json` records exports of `numbers-parser/test-10-formulas.numbers` made with Apple Numbers 14.5 (build 7045.0.17). The unmodified XLSX and PDF references include artifact hashes, export settings, source licensing, font provenance, and qualification limits. Numbers exports one worksheet per table and inserts a title row; the manifest accounts for that row when comparing source coordinates and formulas.
+
+`IWorkAppleExportQualificationTests` saves and reopens OfficeIMO's XLSX, compares all 28 formula expressions with the independent export, and compares 24 stable typed cached values. Two volatile `NOW` caches are excluded because Apple recalculates them; two error formulas have no native cached value. Generic source error text is retained with an approximation diagnostic and is not qualified as a native Excel error value. The PDF supplies a two-page visual reference; rendered equivalence is not yet qualified. Its axis-aligned table grids have 98-point columns and 20.07-point rows. A separate saved-output check compares declared column widths and bounds the difference between declared row heights, Apple XLSX heights and the measured PDF grid; it does not implement Apple automatic row sizing.
+
+The `pdf.tableGeometry` manifest field is generated from the hashed PDF by the opt-in `pdfplumber` tool (version 0.11.9 for this evidence):
+
+```bash
+python Build/IWork/update-numbers-export-geometry.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-formulas-v14.5.json
+```
+
+The extractor accepts this pinned two-table fixture only, verifies the PDF hash and checks grid line counts against its source coordinate mapping before updating the manifest. It is not part of normal restore or runtime dependencies.
+
 ## Fixture checksums
 
 | Fixture | SHA-256 |
@@ -24,7 +192,170 @@ The complete upstream license notices are reproduced in `OfficeIMO.IWork/THIRD-P
 | `nim-iwork/simple.key` | `ba95755df82ceb0ca834e1e03e2777c34fad906320d8336b4f3fefc6b48607eb` |
 | `nim-iwork/simple.numbers` | `d0b00d9cae5985cccaa3b2fb251fae92eb0e38360fb4b5df8b4350eb658f752b` |
 | `nim-iwork/simple.pages` | `5aee6d03277d2db2104f593e64afe081dec539f0117b97124b6f99158124c93e` |
+| `numbers-parser/individual-dimensions.numbers` | `ccecc5494a71b9943e9a37641f843d0e8ce4e7c3531d72a50031dd7c23b38762` |
+| `numbers-parser/currency-formats.numbers` | `6f45fa942ab26b2e9a3c2487fec491d5c43e85cfe1c191520134d5b64ac61475` |
+| `numbers-parser/number-formats.numbers` | `1fb277a6897c0fc4387cd50a51c57de0a08323b694b98a5926b9bc5190717b1f` |
+| `numbers-parser/scientific-formats.numbers` | `23bfaa5cf394c46ec5192e9612aca75c29f00e84331f11ffc338ef338aa5847d` |
+| `numbers-parser/fraction-formats.numbers` | `da140e7eeac3122505690af655a5896aa056573dd15826a2f84d035388fbff55` |
 | `numbers-parser/issue-102-v15.1.numbers` | `88a9fa7be095d03004478393a87a4a97602d7468f839d067ec9118c524c55176` |
+| `numbers-parser/cross-table-formulas.numbers` | `9371c5b1d6ee4dfa17569097f064eba9c67f804d88b48638efbbeeb459d07dd4` |
 | `numbers-parser/test-10-formulas.numbers` | `dd85bad68898ce5b065f277c0b9be1f3c32d696e3baa6b09d3614bbd35a5249f` |
 | `numbers-parser/test-9-merges.numbers` | `d640c0012d629834161827cb2f564d0966d24e159586f82426a69c12a8f334cf` |
 | `picodocs/sample-v14.4.pages` | `4714477138d0a4090fc2ee2ba2ebb6adcd0fb6ce20a28897a6247a8e17d1ddce` |
+
+## Keynote unbanded table-fill defaults
+
+`keynote-table-fill-defaults.json` records the unchanged Keynote 15.2.1 table fixture's disabled banding and explicit no-fill role declarations through pinned independent numbers-parser 4.19.0 schemas. Reproduce it with:
+
+```sh
+python Build/IWork/extract-keynote-table-fill-defaults.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/keynote-table-fill-defaults.json
+```
+
+All nine saved/reopened PPTX cells preserve explicit no-fill and suppress destination theme backgrounds. This qualifies source declarations and saved properties; role intersections, banded appearance, Apple exports and complete styling remain unqualified.
+
+## Native Numbers table banding
+
+`native-exports/numbers-banding-v14.5.numbers` is an OfficeIMO-authored fixture saved by Numbers 14.5, covered by the repository MIT license. Three eight-row tables vary the header-row count from zero to two and retain one header column and one footer row. Row seven's “Footer” label is body content; the actual footer is the empty eighth row. No selected cell-fill overrides are stored.
+
+The matching Apple XLSX and three-page PDF exports qualify the alternating body-row pattern and region intersections. The XLSX inserts a table-title row. The manifest records all 72 native position fills, source and export hashes, producer version, export settings and limits. Reproduce the source/schema and XLSX oracle extraction with pinned opt-in numbers-parser 4.19.0:
+
+```sh
+python Build/IWork/extract-numbers-banding.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-banding-v14.5.json
+```
+
+This evidence covers opaque sRGB region and band fills in this fixture. It does not establish complete appearance, selected override behavior in Apple exports, other producer versions, or Pages and Keynote banded exports.
+
+## Native Numbers function exports
+
+`native-exports/numbers-functions-v14.5.json` records two OfficeIMO-authored Numbers 14.5 fixtures and their Apple XLSX exports. The matching intake workbooks contain cache-free OOXML formulas built with Python standard-library ZIP/XML, independently of OfficeIMO. Numbers imports, evaluates and writes the native files and exports. All assets are covered by the repository MIT license.
+
+The manifest records 26 expressions, native function IDs and argument counts, numeric cache comparisons, producer version and artifact hashes. It exercises `OFFSET` as a scalar and as a `SUM` range argument, `PROB` exact and interval bounds, zero probabilities and invalid distributions, and fixed and variable `RANDBETWEEN` bounds. Reproduce the manifest with pinned opt-in numbers-parser 4.19.0:
+
+```sh
+python Build/IWork/extract-numbers-functions.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-functions-v14.5.json
+```
+
+The fractional random cases returned zero in this native import and remain outside local evaluation qualification. Random caches are snapshots. Native error cells have no XLSX error cache, so this evidence does not qualify error-code equivalence. Saved/reopened conversions retain the expressions and diagnosed caches; fresh shared-owner evaluation and edits to referenced inputs are tested separately. The PDF is a native reference, not a qualification of complete layout, implicit intersection, dynamic spills or other producer versions.
+
+## Base user-hidden columns
+
+`numbers-parser/user-hidden-columns.json` describes six hidden columns across three tables in the unchanged `numbers-parser/cross-table-formulas.numbers` package. Its pinned upstream revision and MIT notice above apply. Build metadata records Numbers `M14.3-7042.0.76-4` and the Blank 11.2 template. Independent numbers-parser 4.19.0 schemas resolve selected UUIDs through nonidentity column permutations and verify their inverse vectors, zero legacy hidden counts and empty hidden cells. Reproduce the manifest:
+
+```bash
+python Build/IWork/extract-user-hidden-columns.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/cross-table-formulas.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/user-hidden-columns.json
+```
+
+OfficeIMO checks the source checksum, recovered positions and every column’s saved XLSX hidden attribute. Synthetic format-boundary cases cover positive rows, populated hidden cells, Reader inclusion and DOCX/PPTX partial policy. This qualifies base user-hidden column decoding and XLSX metadata; Apple export/render equivalence, active filters, pivot hiding, summary states and collapsed groups remain open.
+
+## Single-cell and endpoint formulas
+
+`numbers-parser/single-cell-formulas.numbers` and `endpoint-formulas.numbers` are unchanged upstream `tests/data/test-all-formulas.numbers` and `test-extra-formulas.numbers` at revision `d3836ebda1110b5c13b8722642ca61111fe8e865`. The existing numbers-parser MIT notice applies. The first package records an XLSX import followed by Numbers 11.1 through 13.1 saves; the second records CSV import and Numbers 11.1/12.2 saves. Their adjacent manifests retain source checksums and build metadata. Reproduce each with independent numbers-parser 4.19.0:
+
+The `single-cell-formulas.json` reference evidence also covers `ROW`, `ROWS`, and `COLUMNS`: five coordinate-backed expressions and five current-cell/scalar expressions in the unchanged Numbers source. The extractor computes row positions and rectangular dimensions independently; native array operands are outside this subset. The manifest records exact source coordinates and cached values. Destination recalculation is tested separately with synthetic native-format input because the original workbook retains its diagnosed pre-1900-date conversion fallback.
+
+
+```bash
+python Build/IWork/extract-single-cell-formulas.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/single-cell-formulas.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/single-cell-formulas.json
+python Build/IWork/extract-single-cell-formulas.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/endpoint-formulas.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/endpoint-formulas.json
+```
+
+The native `COMBIN(8,2)` case retains the producer result of 28 and agrees with independent integer-combination computation. Saved/reopened conversion and recalculation are qualified separately with synthetic native-format input; the original workbook keeps its diagnosed pre-1900-date fallback.
+
+Six `FACT` expressions cover zero, one, fractional truncation, five, 150 and an addition to the large result. Independent integer-factorial computations agree with the retained producer caches within the recorded relative tolerance of 1e−14. The separate native negative-input error case records its error classification without asserting a specific XLSX error code. Destination negative-input and overflow behavior is qualified separately through the shared Excel evaluator.
+
+Ten additional native numeric cases cover `EVEN` and `ODD`, including signed fractions, zero and inputs already at the requested parity. The extractor uses independent integer arithmetic to verify their cached values. Synthetic native-format conversions test the destination evaluator separately, preserving the original workbook's pre-1900-date safety boundary.
+
+The endpoint manifest also records `DEGREES(PI()÷2)` and `IFERROR(1÷0,"DIV ZERO")`, with explicit XLSX formula spellings that retain their original native text. Independent computations agree with the numeric/text caches. Both unchanged native expressions are checked through editable conversion, saved/reopened XLSX and local recalculation.
+
+The first manifest also records ten `ISBLANK`, `ISERROR`, `ISNUMBER`, `ISTEXT` and `CONCATENATE` cases. Independent computations distinguish blank references from empty text and numeric literals from text, identify division by zero, and join ASCII literals. Their native caches are Boolean or text. The manifest gives the division expression an explicit XLSX spelling (`1/0`) while retaining its native formula (`1÷0`). Saved/reopened synthetic conversions separately test stale-cache preservation and local recalculation after cross-table type edits.
+
+The manifests resolve node-36 identities, signed relative offsets and mixed absolute flags through independent native schemas. Independent computations agree with the qualified reference caches. The same extractor records scalar expressions and native function nodes: `EXACT` (matching and case-different strings), `LOWER` and `TRIM` in the first package, and `NOT` plus `UPPER` in the second. Independent numeric/ASCII computations agree with their Boolean/text caches. OfficeIMO checks the first package’s reconstructed reference and scalar expressions with their typed caches. Its pre-1900 dates still require whole-workbook XLSX fallback; the fixture is not edited to bypass that safety rule. The first manifest also records 67 numeric expressions: nine `INT`, `MOD` and `SQRT` cases plus sixteen `SIGN`, `TRUNC`, `ROUNDUP` and `ROUNDDOWN` cases with negative literals and nested `ABS`; independent numeric computations agree with their reconstructed source formulas and numeric caches. Independent decimal computations cover signed digit arguments, omitted `TRUNC` digits and positive/negative/zero signs. Equivalent exponent and decimal literal spellings are normalized when comparing reconstructed formulas. Eleven additional `EXP`, `LN`, `LOG` and `LOG10` expressions cover nesting, exponentiation and omitted/explicit bases. Their exact producer caches agree with independent transcendental computations within the manifest’s recorded relative tolerance of 1e−14 and absolute tolerance of 1e−15; this does not replace the source cache with a freshly calculated value. Synthetic native-format inputs separately qualify editable XLSX caches and local recalculation for these thirteen functions, including explicit `TRUNC` digits. Ten `CEILING`/`FLOOR` expressions also qualify signed and decimal factors, zero significance and the native omitted node-22 operand in `FLOOR(0,)`. Independent decimal computations agree exactly with stored Decimal128 values; raw bytes and provider floats remain separate evidence. The stored `0.24` is reported as `0.24000000000000002` by the independent provider’s binary scaling. The second package qualifies saved/reopened `COUNTBLANK`, `MAX`, single-cell `OFFSET`, `NOT` and `UPPER` expressions with numeric/Boolean/text caches. Recalculation follows edited references and logical/text literals. Synthetic packages cover all absolute/relative combinations, forward and normalized names, unresolved identities, malformed coordinates, endpoint whitespace and incompatible endpoint targets. Apple export, rendering and broader native recalculation remain unqualified.
+
+## Native root cell comments
+
+`cell-comments/native-roots.numbers` is the unchanged MIT-licensed `fixtures/olekristensen-v26.3-demo06-formulas-round8.numbers` from [cupertino-files](https://github.com/den-frie-vilje/cupertino-files) at revision `6879e6ed49e0eed7e7f393ff4ee558dc2dbec561`. The upstream attribution records a macOS Numbers save. The adjacent MIT notice retains copyright 2026 Ole Kristensen. The fixture contains the author's published test notes, display name and native author identifiers; it is retained deliberately as native comment evidence.
+
+With independent numbers-parser 4.19.0 installed, reproduce its hash-pinned manifest:
+
+```sh
+python Build/IWork/extract-cell-comments.py OfficeIMO.TestAssets/Documents/IWorkCorpus/cell-comments/native-roots.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/cell-comments/native-roots.json
+```
+
+The three selected roots qualify exact text, display author, timestamps, source record identities and saved/reopened XLSX cell anchors. Synthetic packages cover empty commented cells in all three formats, unresolved references, duplicate keys/text, unsupported replies and text/catalog limits. The fixture contains no replies and is not an Apple export or rendered-appearance oracle.
+
+## Table catalog type and kind evidence
+
+`table-catalog-contract.json` records independent registry aliases, source hashes and declared catalog links across the checked-in native-format corpus. Reproduce it with opt-in numbers-parser 4.19.0:
+
+```sh
+python Build/IWork/extract-table-catalog-contract.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/table-catalog-contract.json
+```
+
+The 312 links across 24 packages all use type `6005` and explicitly declare the kind expected by the owning store field. The independent registry also maps `6201` to `TST.TableDataList`; synthetic selected-value cases exercise that alias for strings, formulas, rich text, styles, comments and number formats. There is no native `6201` sample in this corpus. Model records may be inactive, and the inventory does not qualify selection, Apple exports or rendered appearance.
+
+## Selected scalar format declarations
+
+`numbers-parser/cell-format-selectors.json` records default text/Boolean and selected date/time/duration format metadata from the unchanged `cross-table-formulas.numbers`, `endpoint-formulas.numbers`, `single-cell-formulas.numbers` and `issue-102-v15.1.numbers` packages. Their source hashes and existing provenance/licensing above apply. The extractor retains 15 distinct representative declarations across the packages, their exact serialized format messages and counts of selected format flags. Default text type `260` and Boolean type `1` have no additional fields; date/time type `261` retains patterns and duration type `268` retains unit/style settings. OfficeIMO checks all date/duration selector counts and the representative feature classifications. This qualifies source metadata and default-format acceptance, without Apple export or appearance claims.
+
+Reproduce with opt-in numbers-parser 4.19.0:
+
+```sh
+python Build/IWork/extract-cell-format-selectors.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/cell-format-selectors.json
+```
+
+
+`numbers-parser/blank-number-formats.json` records 35 blank cells with numeric selectors in the same unchanged corpus, including the explicit format-selection field. Twenty-five cells select numeric formatting with value `1`: four integer-format cells in `single-cell-formulas.numbers` and 21 grouped-number cells in `issue-102-v15.1.numbers`. Tests compare their projected formats with the independent metadata and verify the 21 Numbers 15.1 cells remain blank with their formats after XLSX save/reopen. Conversion explicitly accepts other partial reconstruction in that workbook; this is not whole-document fidelity qualification. The remaining isolated percentage catalog entry has no explicit selection and stays inactive, as confirmed by the [native Automatic/Percentage control](#native-blank-format-export). Nine cells explicitly select the default text format with value `5`; tests preserve `IWorkNumberFormatKind.Text` without activating their dormant numeric entries and compare saved/reopened XLSX Text formats (`@`) with the native export. The bounded native export records Text for those nine cells.
+
+```sh
+python Build/IWork/extract-blank-number-formats.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/blank-number-formats.json
+```
+
+
+`numbers-parser/duration-format.json` qualifies the fixed abbreviated hour/minute selection in source Table 1 C5 of unchanged `test-10-formulas.numbers`. Its source settings, seconds and independent display text agree with the paired Numbers 14.5 XLSX C6 cache and `[h]"h" m"m"` format after the native title-row offset. Other units, styles, automatic selection, negative rounding and locale or appearance equivalence remain unqualified. Existing source/export hashes, licensing and producer provenance apply. Regenerate with the pinned opt-in provider:
+
+```sh
+python Build/IWork/extract-duration-format.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/duration-format.json
+```
+
+`numbers-parser/date-formats.json` is generated by `Build/IWork/extract-date-formats.py` with opt-in numbers-parser 4.19.0 under the C time locale. The manifest records the extraction platform and a calendar-year display probe because the provider uses platform `strftime` behavior for early years. It verifies pinned source and native-export hashes, retains all 89 selected cells and their independent display values, and records localized native format codes and volatile cache differences separately. This evidence does not qualify native appearance, locale, calendars or time zones.
+
+```sh
+python Build/IWork/extract-date-formats.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/date-formats.json
+```
+
+`numbers-parser/duration-ranges.json` retains 20 selected duration declarations and saved caches from the existing hash-pinned corpus: 18 day-only cells and two week/day/hour cells. Whole-day values, including negative values, have independent parser display evidence. Fractional-day rounding and native export/appearance equivalence remain unqualified; week/day/hour declarations remain unassessed by the destination adapters. Regenerate with the pinned opt-in provider:
+
+```sh
+python Build/IWork/extract-duration-ranges.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/duration-ranges.json
+```
+## Keynote slide background evidence
+
+`keynote-backgrounds.json` records slide-style chains and background declarations from the four pinned native Keynote packages. It includes inactive templates; conversion tests compare only selected slides. Older opaque sRGB colors are qualified, while Display P3 and the newer fixtures' additional color field 13 remain unsupported. Existing fixture licenses and provenance above apply. Reproduce the manifest with numbers-parser 4.19.0:
+
+```sh
+python Build/IWork/extract-keynote-backgrounds.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/keynote-backgrounds.json
+```
+
+Saved/reopened PPTX verifies supported selected colors. Synthetic inputs cover explicit no-fill overrides, inheritance, malformed styles and fallback. This is source and package evidence, not Apple-export or rendered-background equivalence.
+
+### Integer-function compatibility boundaries
+
+`numbers-parser/integer-function-boundaries.json` records two unchanged formulas in
+`single-cell-formulas.numbers`: `GCD(128,80,44,2^53)` and
+`LCM(128,80,44,2^53)`. Independent integer arithmetic agrees with their retained
+producer caches within relative tolerance 1e-14. The existing source checksum,
+provenance and MIT notice apply.
+
+[Excel GCD](https://support.microsoft.com/en-us/excel/functions/gcd-function)
+documents `#NUM!` for an operand at or above 2^53;
+[Excel LCM](https://support.microsoft.com/en-us/excel/functions/lcm-function)
+documents that error for a result at or above 2^53. These are documented destination
+contracts, not live Excel execution evidence. The source reader retains the numeric
+caches without claiming complete editable reconstruction of these expressions.
+Native recalculation, export and broader coercion behavior remain unqualified.
+
+Reproduce with the pinned numbers-parser 4.19.0 environment:
+
+```sh
+python Build/IWork/extract-integer-function-boundaries.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/single-cell-formulas.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/integer-function-boundaries.json
+```

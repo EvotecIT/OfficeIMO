@@ -165,7 +165,7 @@ public sealed partial class ProjectDocument {
         EnsureNotDisposed(); options.Validate();
         if (_batchDepth != 0) throw new InvalidOperationException("Complete the update scope before saving.");
         long revision = Revision; var format = ResolveFormat(options);
-        var assessment = AssessFormat(options, format, token, includeNativePlan: false); assessment.ThrowIfErrors();
+        var assessment = AssessFormat(options, format, token, includeWriterPlan: false); assessment.ThrowIfErrors();
         if (options.LossPolicy == OfficeConversionLossPolicy.Block) assessment.RequireNoLoss();
         byte[] bytes; ProjectNativeSource? native = null; ProjectMpxSource? mpx = null;
         if (format == ProjectFileFormat.Mpx4) {
@@ -199,7 +199,12 @@ public sealed partial class ProjectDocument {
                     UnrepresentedValues = RetainedLosses(assessment, plan.Report)
                 };
             }
-        } else bytes = ProjectXmlCodec.Write(this, WithFormat(options, format, NativeSource != null || MpxSource != null ? false : (bool?)null), token);
+        } else {
+            try { bytes = ProjectXmlCodec.Write(this, WithFormat(options, format, NativeSource != null || MpxSource != null ? false : (bool?)null), token); }
+            catch (InvalidDataException exception) when (OfficeOutputLimit.Is(exception)) {
+                new ProjectReport(revision, new[] { XmlOutputLimitDiagnostic() }).ThrowIfErrors(); throw;
+            }
+        }
         token.ThrowIfCancellationRequested();
         if (Revision != revision) throw new InvalidOperationException("The project changed while serialization was in progress.");
         return new ProjectSerialization(bytes, format, revision, native, mpx);
@@ -207,6 +212,8 @@ public sealed partial class ProjectDocument {
     private static IReadOnlyList<ProjectDiagnostic> RetainedLosses(params ProjectReport[] reports) =>
         reports.SelectMany(report => report.Diagnostics).Where(d => d.RepresentsLoss)
             .GroupBy(d => new { d.Code, d.Severity, d.Message, d.Location, d.RepresentsLoss }).Select(group => group.First()).ToArray();
+    private static ProjectDiagnostic XmlOutputLimitDiagnostic() => new ProjectDiagnostic("PROJECT_OUTPUT_LIMIT", ProjectDiagnosticSeverity.Error,
+        "Project XML output exceeds MaxOutputBytes.", "/");
     private void AcceptSaved(ProjectSerialization prepared) {
         LastSavedBytes = prepared.Format == ProjectFileFormat.Xml ? prepared.Bytes : null;
         _savedRevision = prepared.Revision; _associatedFormat = prepared.Format;

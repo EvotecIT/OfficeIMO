@@ -653,7 +653,8 @@ public partial class Excel {
         Assert.Contains("ManySections", text);
         Assert.Contains("1,234", text);
         Assert.Contains("QuotedSectionSeparator", text);
-        Assert.Contains("minus;literal-12", text);
+        // A separate negative section formats the magnitude; the literal supplies any sign.
+        Assert.Contains("minus;literal12", text);
     }
 
     [Fact]

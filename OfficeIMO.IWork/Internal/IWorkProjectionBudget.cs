@@ -6,6 +6,7 @@ internal sealed class IWorkProjectionBudget {
     private int _imageCount;
     private int _drawableReferenceCount;
     private int _tableCatalogEntryCount;
+    private int _tableDimensionEntryCount;
     private int _textItemCount;
     private int _textBoundaryCount;
     private long _textCharacterCount;
@@ -28,6 +29,16 @@ internal sealed class IWorkProjectionBudget {
                 $"iWork table catalog entries exceed the configured source-wide limit of {_options.MaximumTableCatalogEntries}.");
         }
         _tableCatalogEntryCount += count;
+    }
+
+    internal int RemainingTableDimensionEntries =>
+        _options.MaximumTableDimensionEntries - _tableDimensionEntryCount;
+
+    internal void AddTableDimensionEntries(int count) {
+        if (count < 0 || _tableDimensionEntryCount > _options.MaximumTableDimensionEntries - count)
+            throw new InvalidDataException(
+                $"iWork table dimension entries exceed the configured source-wide limit of {_options.MaximumTableDimensionEntries}.");
+        _tableDimensionEntryCount += count;
     }
 
     internal void AddTable() {
@@ -116,6 +127,7 @@ internal sealed class IWorkProjectionBudget {
         long count = content.Paragraphs.Count;
         long characterCount = 0;
         foreach (IWorkTextParagraph paragraph in content.Paragraphs) {
+            count += paragraph.Style.TabStops?.Count ?? 0;
             foreach (IWorkTextRun run in paragraph.Runs) {
                 count++;
                 if (includeCharacters) {
@@ -127,7 +139,10 @@ internal sealed class IWorkProjectionBudget {
                     if (character == '\n') count++;
                 }
             }
-            if (includeCharacters) characterCount += paragraph.ListLabel?.Length ?? 0;
+            if (includeCharacters) {
+                characterCount += paragraph.ListLabel?.Length ?? 0;
+                characterCount += paragraph.ListFontName?.Length ?? 0;
+            }
         }
         if (count > int.MaxValue) {
             throw new InvalidDataException(

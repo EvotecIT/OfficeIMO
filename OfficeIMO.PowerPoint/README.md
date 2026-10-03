@@ -218,6 +218,17 @@ var agenda = slide.AddTextBox("Topics",
 agenda.AddBullets(new[] { "Intro", "KPIs", "Next steps" });
 ```
 
+### Custom paragraph tab stops
+
+`SetTabStops` replaces the paragraph's explicit stops and `TabStops` reads them back. Positions use points; alignment can be left, center, right, or decimal. Passing an empty sequence removes local stops while leaving inherited defaults unchanged.
+
+```csharp
+var paragraph = slide.AddTextBox("Label\t12.50").Paragraphs[0];
+paragraph.SetTabStops(new[] {
+    new PowerPointTabStop(72, PowerPointTabAlignment.Decimal)
+});
+```
+
 ### Images and SVGs
 
 ```csharp
@@ -277,6 +288,10 @@ slide.AddTable(rows, columns,
 
 record SalesRow(string Product, int Q1, int Q2);
 ```
+
+Use `slide.BackgroundColor` for a solid slide background or `slide.SetBackgroundNoFill()` for an explicit no-fill override that suppresses inherited layout or master fills. No-fill survives save/reopen and is returned as `PowerPointSlideBackgroundKind.None` by `GetBackground()`.
+
+Set `table.GetCell(row, column).FillColor` to an RGB hex color to replace the cell's local fill. Set `NoFill = true` to show the slide background through that cell and suppress table-theme shading. Setting `NoFill = false` removes that override; setting `FillColor = null` removes only a local solid fill. Cell indexes are zero-based. Explicit no-fill survives PPTX save/reopen, image export and native PPT conversion.
 
 ### Charts from data
 
@@ -517,7 +532,7 @@ Saving a signed package is blocked by default because mutation invalidates exist
 
 ### Review threads, custom shows, and VBA projects
 
-Classic comments round-trip through supported PPTX and binary PPT workflows. Modern comments remain an Open XML feature and support replies, status changes, reassignment, and removal:
+Classic comments round-trip through supported PPTX and binary PPT workflows. Modern comments remain an Open XML feature and support replies, status changes, reassignment, and removal. Adding a modern comment writes its explicit slide reference; removing the last comment removes that reference while preserving other slide extensions:
 
 ```csharp
 var reviewer = new PowerPointCommentAuthor("A. Reviewer", "AR", "reviewer@example.test");

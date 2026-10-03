@@ -48,7 +48,8 @@ namespace OfficeIMO.Excel.Pdf {
                         availableWidth,
                         availableHeight,
                         headingHeight,
-                        firstPageForSheet));
+                        firstPageForSheet,
+                        document.DateSystem));
                 }
             });
         }
@@ -165,7 +166,8 @@ namespace OfficeIMO.Excel.Pdf {
             double availableWidth,
             double availableHeight,
             double headingHeight,
-            bool firstPageForSheet) {
+            bool firstPageForSheet,
+            ExcelDateSystem dateSystem) {
             double sceneX = margins.Left;
             double sceneY = margins.Top + headingHeight;
             if (firstPageForSheet) {
@@ -219,7 +221,8 @@ namespace OfficeIMO.Excel.Pdf {
                             plan.SheetName,
                             defaultFontFamily,
                             scale,
-                            preserveWorksheetNoWrap: true),
+                            preserveWorksheetNoWrap: true,
+                            dateSystem: dateSystem),
                         sceneX,
                         sceneY,
                         tableWidth * scale,
