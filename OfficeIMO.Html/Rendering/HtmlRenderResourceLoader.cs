@@ -558,12 +558,8 @@ internal static class HtmlRenderResourceLoader {
         int concurrency = markAttemptedBeforeResolve ? result.MaxConcurrentLoads : 1;
         while (pending.Count > 0 && !stop) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (result.AcceptedResourceCount >= result.MaxResourceCount) {
-                diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceCountLimitExceeded, "Resolved resources exceeded the configured operation-wide count limit.", HtmlDiagnosticSeverity.Error, detail: "limit=" + result.MaxResourceCount, lossKind: OfficeConversionLossKind.Omission);
-                break;
-            }
-
-            int batchCapacity = Math.Min(concurrency, result.MaxResourceCount - result.AcceptedResourceCount);
+            // At capacity, drain duplicates and non-loadable references before rejecting a new dependency.
+            int batchCapacity = Math.Max(1, Math.Min(concurrency, result.MaxResourceCount - result.AcceptedResourceCount));
             var tasks = new List<Task<CompletedResolution>>(batchCapacity);
             while (tasks.Count < batchCapacity && pending.Count > 0) {
                 PendingResource pendingResource = pending.Dequeue();
@@ -571,6 +567,11 @@ internal static class HtmlRenderResourceLoader {
                 if (!reference.IsAllowed || !(IsLoadableKind(reference.Kind) || archiveResources && reference.Kind == HtmlResourceKind.Media) || reference.ResolvedSource.Length == 0) continue;
                 if (!archiveResources && reference.ResolvedSource.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) continue;
                 if (!seen.Add(GetSeenKey(reference.Kind, reference.ResolvedSource))) continue;
+                if (result.AcceptedResourceCount >= result.MaxResourceCount) {
+                    diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceCountLimitExceeded, "Resolved resources exceeded the configured operation-wide count limit.", HtmlDiagnosticSeverity.Error, reference.Source, "limit=" + result.MaxResourceCount, OfficeConversionLossKind.Omission);
+                    stop = true;
+                    break;
+                }
                 if (!result.TryReserveRequest(reference)) {
                     stop = true;
                     break;

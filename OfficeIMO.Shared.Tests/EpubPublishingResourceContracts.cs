@@ -7,6 +7,60 @@ namespace OfficeIMO.Shared.Tests;
 
 public sealed class EpubPublishingResourceContracts {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task RecursiveResourceDuplicatesRespectCapacityAndRejectGenuineExcess(bool svg, bool excess) {
+        var requested = new List<string>();
+        const string png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+        string parent = svg ? "parent.svg" : "parent.css";
+        string content = svg
+            ? "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'><image width='1' height='1' href='dot.png'/><image width='1' height='1' href='dot.png'/>" + (excess ? "<image width='1' height='1' href='extra.png'/>" : "") + "</svg>"
+            : "@import 'parent.css';p{background:url('dot.png')}h1{background:url('dot.png')}" + (excess ? "h2{background:url('extra.png')}" : "");
+        var source = HtmlConversionDocument.Parse("<title>Resources</title>" +
+            (svg ? "<img alt='Diagram' src='parent.svg'>" : "<link rel='stylesheet' href='parent.css'>") + "<h1>Resources</h1>",
+            new HtmlConversionDocumentOptions { BaseUri = new Uri("https://example.test/book.html") });
+        var result = await EpubManuscript.ImportHtmlAsync(source, new EpubManuscriptOptions {
+            MaxResourceCount = 2,
+            ResourceResolver = (request, _) => {
+                requested.Add(request.Uri.AbsolutePath);
+                return Task.FromResult<HtmlResolvedResource?>(request.Uri.AbsolutePath == "/" + parent
+                    ? new HtmlResolvedResource(System.Text.Encoding.UTF8.GetBytes(content), svg ? "image/svg+xml" : "text/css")
+                    : new HtmlResolvedResource(Convert.FromBase64String(png), "image/png"));
+            }
+        });
+        Assert.Equal(new[] { "/" + parent, "/dot.png" }, requested);
+        if (excess) {
+            Assert.Contains(result.Report.FidelityDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ResourceCountLimitExceeded && item.LossKind == OfficeConversionLossKind.Failure);
+            Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        } else {
+            result.Report.RequireNoLoss();
+            result.Publication.Write().Report.RequireNoLoss();
+        }
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(256)]
+    public async Task RepeatedImageCarriersDoNotConsumeDistinctResourceCapacity(int count) {
+        var requested = new HashSet<string>();
+        var source = HtmlConversionDocument.Parse("<title>Images</title><h1>Images</h1>" +
+            string.Concat(Enumerable.Range(0, count).Select(index => "<img alt='A dot' src='image-" + index + ".png'>")),
+            new HtmlConversionDocumentOptions { BaseUri = new Uri("https://example.test/book.html") });
+        var result = await EpubManuscript.ImportHtmlAsync(source, new EpubManuscriptOptions {
+            MaxResourceCount = count,
+            ResourceResolver = (request, _) => {
+                requested.Add(request.Uri.AbsolutePath);
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="), "image/png"));
+            }
+        });
+        result.Report.RequireNoLoss();
+        Assert.Equal(count, requested.Count);
+        Assert.Equal(count, result.Publication.GetContentXml("chapter-1").Descendants(System.Xml.Linq.XName.Get("img", "http://www.w3.org/1999/xhtml")).Count());
+        result.Publication.Write().Report.RequireNoLoss();
+    }
+    [Theory]
     [InlineData("<map id='sites' name='sites'><area href='#two' alt='Next' shape='rect' coords='0,0,1,1'/></map>")]
     [InlineData("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><a href='#two'><text x='0' y='1'>Next</text></a></svg>")]
     [InlineData("<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 10 10'><a xlink:href='#two'><text x='0' y='1'>Next</text></a></svg>")]

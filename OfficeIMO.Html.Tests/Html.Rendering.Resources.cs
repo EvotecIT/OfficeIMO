@@ -51,8 +51,10 @@ public sealed partial class HtmlRenderingTests {
             && diagnostic.Detail == "https://blocked.example.test/site.css");
     }
 
-    [Fact]
-    public async Task HtmlResourceSession_OwnsDedupMimeBudgetsCacheAndDigestEvidence() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task HtmlResourceSession_OwnsDedupMimeBudgetsCacheAndDigestEvidence(bool asynchronous) {
         byte[] png = PdfPngTestImages.CreateRgbPng(2, 2);
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<img src='https://assets.example.test/chart.png'><img src='https://assets.example.test/chart.png'>");
@@ -64,15 +66,23 @@ public sealed partial class HtmlRenderingTests {
             },
             MaxResourceBytes = 1024,
             MaxTotalResourceBytes = 2048,
-            MaxResourceCount = 2,
+            MaxResourceCount = 1,
             MaxResourceRequests = 2
         };
 
-        HtmlResourceSession session = await HtmlResourceSession.ResolveAsync(source.ResourceManifest, options);
+        options.SynchronousResourceResolver = (HtmlRenderResourceRequest request, CancellationToken cancellationToken, out HtmlResolvedResource? resource) => {
+            requests++;
+            resource = new HtmlResolvedResource(png, "image/png");
+            return true;
+        };
+        HtmlResourceSession session = asynchronous
+            ? await HtmlResourceSession.ResolveAsync(source.ResourceManifest, options)
+            : HtmlResourceSession.Resolve(source.ResourceManifest, options);
 
         Assert.Equal(1, requests);
         Assert.Equal(1, session.ResolverRequestCount);
         Assert.Equal(1, session.AcceptedResourceCount);
+        Assert.Empty(session.Diagnostics);
         Assert.Equal(png.Length, session.AcceptedResourceBytes);
         HtmlResourceSessionEntry entry = Assert.Single(session.Resources);
         Assert.Equal("https://assets.example.test/chart.png", entry.CanonicalSource);
