@@ -144,6 +144,37 @@ public sealed class ProjectRetainedReferenceCostTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void RepeatedRetainedCostRecordsPreserveMultiplicityAndIntervalBudget(bool material) {
+        const int records = 128;
+        using var source = ProjectDocument.Create(); source.Calendar = source.Calendars.AddStandardWorkingWeek(); source.Settings.StartDate = Monday;
+        var task = source.Tasks.Add("Work"); task.Duration = ProjectDuration.WorkingMinutes(60); task.RemainingDuration = task.Duration;
+        var resource = material ? source.Resources.AddMaterial("Parts") : source.Resources.AddWork("Engineer"); resource.StandardRate = 100;
+        var assignment = source.Assignments.Add(task, resource); assignment.ActualStart = Monday; assignment.ActualCost = 0;
+        for (int index = 0; index < records; index++) {
+            var value = assignment.TimephasedData.Add(); value.Uid = assignment.Uid; value.Type = 6;
+            value.Start = Monday; value.Finish = Monday; value.Value = "0";
+        }
+        using var document = ProjectDocument.Parse(source.ToXml());
+        long revision = document.Revision;
+        var schedule = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true, MaxIntervals = records + 2 });
+        schedule.Report.ThrowIfErrors();
+        var plan = Assert.Single(schedule.Assignments);
+        Assert.Equal(records + 2, plan.Intervals.Count + plan.Costs.Count);
+        Assert.Equal(records, plan.Costs.Count(c => c.IsActual)); Assert.Equal(0m, plan.ActualCost);
+        Assert.All(plan.Costs.Where(c => c.IsActual), c => { Assert.Equal(Monday, c.Start); Assert.Equal(Monday, c.Finish); Assert.Equal(0m, c.Cost); });
+        Assert.Equal(revision, document.Revision);
+        var limited = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true, MaxIntervals = records + 1 });
+        Assert.Contains(limited.Report.Diagnostics, d => d.Code == "PROJECT_CALCULATION_INTERVAL_LIMIT");
+        Assert.Throws<InvalidDataException>(() => document.ApplySchedule(limited)); Assert.Equal(revision, document.Revision);
+        document.ApplySchedule(schedule);
+        using var copy = document.Clone();
+        Assert.Equal(records, copy.Assignments.Single().TimephasedData.Count(v => v.Type == 6));
+        Assert.Equal(0m, copy.Assignments.Single().ActualCost);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void BackwardAlapDeadlineMatchesApplicationScheduling(bool assignments) {
         using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek();
         document.Settings.ScheduleFromStart = false; document.Settings.FinishDate = Monday.AddDays(4).AddHours(9);
