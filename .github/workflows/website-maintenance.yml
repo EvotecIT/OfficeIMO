@@ -39,5 +39,5 @@ jobs:
       runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
       dotnet_version: "10.0.112"
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: cea973b506881ba41d7d80accbee556ae581d8bb
+      powerforge_ref: 7d84a252faa620ff9621655ad51f50d8d56cdcc3
       report_artifact_name: powerforge-website-maintenance-reports
