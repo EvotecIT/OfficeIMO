@@ -88,8 +88,21 @@ internal static partial class IcsCalendarCodec {
         return selected;
     }
 
+    private static DateTimeOffset ResolveExplicitIcalendarDate(OutlookTimeZoneDefinition zone, DateTime local) {
+        OutlookLocalTimeResolution resolution = zone.GetLocalTimeResolution(local);
+        if (resolution.Status != OutlookLocalTimeStatus.Invalid) return resolution.Resolve();
+        // RFC 5545 3.3.5: an explicit DATE-TIME in a forward gap uses the offset
+        // before the transition. A forward change's preceding offset is the
+        // smaller one, including southern and negative daylight-saving rules.
+        // Generated recurrence instances retain their separate invalid-time policy.
+        OutlookTimeZoneRule rule = zone.GetRule(local.Year);
+        TimeSpan before = rule.StandardUtcOffset < rule.DaylightUtcOffset
+            ? rule.StandardUtcOffset : rule.DaylightUtcOffset;
+        return new DateTimeOffset(resolution.LocalTime, before);
+    }
+
     private static DateTimeOffset? ParseDate(IcsProperty? property, IList<EmailDiagnostic> diagnostics,
-        string location, out bool isDateOnly) {
+        string location, out bool isDateOnly, OutlookTimeZoneDefinition? embeddedTimeZone = null) {
         isDateOnly = property != null && property.Parameters.TryGetValue("VALUE", out string? valueType) &&
             string.Equals(valueType, "DATE", StringComparison.OrdinalIgnoreCase);
         if (property == null || string.IsNullOrWhiteSpace(property.Value)) return null;
@@ -102,6 +115,15 @@ internal static partial class IcsCalendarCodec {
         if (DateTime.TryParseExact(value, new[] { "yyyyMMdd'T'HHmmss", "yyyyMMdd'T'HHmm" },
             CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime local)) {
             if (property.Parameters.TryGetValue("TZID", out string? timeZoneId)) {
+                if (embeddedTimeZone != null && string.Equals(embeddedTimeZone.KeyName, timeZoneId,
+                        StringComparison.OrdinalIgnoreCase)) {
+                    try { return ResolveExplicitIcalendarDate(embeddedTimeZone, local); }
+                    catch (InvalidOperationException exception) {
+                        diagnostics.Add(new EmailDiagnostic("EMAIL_ICALENDAR_DATE_INVALID", exception.Message,
+                            EmailDiagnosticSeverity.Warning, location));
+                        return null;
+                    }
+                }
                 try {
                     TimeZoneInfo zone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
                     return new DateTimeOffset(local, zone.GetUtcOffset(local));

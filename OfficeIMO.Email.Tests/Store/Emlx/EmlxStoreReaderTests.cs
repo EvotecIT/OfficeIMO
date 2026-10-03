@@ -99,7 +99,7 @@ public sealed class EmlxStoreReaderTests {
         EmailStoreReadResult result = Read(emlx, "binary.emlx");
 
         Assert.Equal("Binary metadata", Assert.Single(Assert.Single(result.Store.Folders).Items).Document.Subject);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_STORE_EMLX_METADATA_UNSUPPORTED");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_STORE_EMLX_METADATA_INVALID");
     }
 
     [Fact]

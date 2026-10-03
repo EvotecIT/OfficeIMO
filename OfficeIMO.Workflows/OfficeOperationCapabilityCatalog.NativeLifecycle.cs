@@ -196,7 +196,7 @@ public static partial class OfficeOperationCapabilityCatalog {
             Array.Empty<OfficeOperationKind>(),
             limitedSupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Read, OfficeOperationKind.Edit, OfficeOperationKind.Inspect, OfficeOperationKind.Validate, OfficeOperationKind.Export },
             partial: new[] { OfficeOperationKind.Preserve },
-            limitation: "EMLX writes regenerate the RFC message and supported Apple property-list metadata. Unsupported binary or unrecognized metadata remains diagnostic evidence rather than a complete byte-preserving round trip.");
+            limitation: "EMLX reads XML and binary property-list metadata. Writes regenerate the RFC message and supported metadata while retaining unknown values and flag bits. Opaque trailers require accepted loss. Directory sessions recover identified empty MIME parts from bounded Apple Mail sibling storage as normalized Base64; unsupported or ambiguous parts and remote completeness remain explicit gaps.");
         AddNativeLifecycle(rows, "email-address-book-oab", "OfficeIMO.Email", "Email.AddressBook.Oab",
             "OfflineAddressBookSession.Open / Search / Validate / OfflineAddressBookInspector.Inspect",
             "OfficeIMO.Email.Tests bounded OAB session, search, inspection, validation, identity-index, and malformed-input contracts",

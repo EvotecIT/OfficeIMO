@@ -362,9 +362,9 @@ public sealed class EmailMimeReaderTests {
         EmailDocument source = new EmailDocumentReader().Read(eml).Document;
 
         EmailDocument stored = new EmailDocumentReader().Read(
-            new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg)).Document;
+            new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(source, EmailFileFormat.OutlookMsg)).Document;
         string regenerated = Encoding.UTF8.GetString(
-            new EmailDocumentWriter().ToBytes(stored, EmailFileFormat.Eml));
+            new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(stored, EmailFileFormat.Eml));
 
         Assert.Empty(stored.Recipients);
         Assert.Contains(stored.Headers, header => header.Name == "To" &&

@@ -443,16 +443,8 @@ public sealed class OfficeVbaSignatureCrossHostTests {
         request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, true));
         request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(
             new OidCollection { new Oid("1.3.6.1.5.5.7.3.3") }, false));
-        using X509Certificate2 created = request.CreateSelfSigned(
+        return request.CreateSelfSigned(
             DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(1));
-        byte[] pfx = created.Export(X509ContentType.Pfx);
-        const X509KeyStorageFlags flags = X509KeyStorageFlags.Exportable |
-                                          X509KeyStorageFlags.EphemeralKeySet;
-#if NET9_0_OR_GREATER
-        return X509CertificateLoader.LoadPkcs12(pfx, null, flags);
-#else
-        return new X509Certificate2(pfx, (string?)null, flags);
-#endif
     }
 
     private static void ReplaceVbaProject(string path, string hostRoot, byte[] replacement) {

@@ -19,7 +19,9 @@ internal static class EmailOutputPreflight {
             EmailDocumentStateFingerprint.Matches(document, document.MimeSemanticSourceModelFingerprint);
         if (document.Body.Text != null) total = Add(total, document.Body.Text.Length, maxOutputBytes);
         if (document.Body.Html != null) total = Add(total, document.Body.Html.Length, maxOutputBytes);
-        foreach (EmailAttachment attachment in document.Attachments) {
+        IEnumerable<EmailAttachment> attachments = format == EmailFileFormat.Eml ? document.Attachments :
+            OutlookTaskCommunicationAttachmentProjection.GetAttachmentsForPreflight(document);
+        foreach (EmailAttachment attachment in attachments) {
             if (attachment.IsProjectedSemanticContent && !retainProjectedMimeSources) continue;
             if (attachment.EmbeddedDocument != null) {
                 total = Add(total, CountRetainedPayloadBytes(attachment.EmbeddedDocument, format, visited, maxOutputBytes),

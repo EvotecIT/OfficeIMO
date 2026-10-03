@@ -13,7 +13,7 @@ public sealed class EmailConversionMatrixTests {
     [InlineData(OutlookItemKind.Task)]
     public void ConvertsSupportedItemsAcrossEmlMsgTnefAndBack(OutlookItemKind kind) {
         EmailDocument source = CreateDocument(kind);
-        var writer = new EmailDocumentWriter();
+        var writer = new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn));
         var reader = new EmailDocumentReader();
         EmailDocument current = source;
 
