@@ -89,6 +89,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends fonts-noto-cjk fonts-noto-core fonts-ipafont-gothic
+      - name: Install independent PDF text extractor on Linux
+        if: runner.os == 'Linux'
+        run: sudo apt-get install --yes --no-install-recommends poppler-utils
+      - name: Install independent PDF text extractor on macOS
+        if: runner.os == 'macOS'
+        run: brew install poppler
       - name: Validate static conversion correctness
         if: inputs.suite == 'html-static'
         shell: pwsh
@@ -118,11 +124,11 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $false
           $probeOnly = '${{ inputs.suite }}' -eq 'html-static-pdf-probe'
           $env:OFFICEIMO_PDF_ENGINE_PROOF_OUTPUT = "$env:RUNNER_TEMP/html-static-pdf-proof"
-          if ($probeOnly) { $env:OFFICEIMO_REQUIRE_PDF_TEXT_VALIDATOR = '1' }
+          $env:OFFICEIMO_REQUIRE_PDF_TEXT_VALIDATOR = '1'
           [System.IO.Directory]::CreateDirectory("$env:RUNNER_TEMP/html-static-tests") | Out-Null
           $textValidator = Get-Command pdftotext -ErrorAction SilentlyContinue
-          $validatorPath = if ($textValidator) { $textValidator.Source } else { $null }
-          $validatorVersion = if ($textValidator) { (& $textValidator.Source -v 2>&1 | Out-String).Trim() } else { $null }
+          $validatorPath = if (-not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_PDFTOTEXT)) { $env:OFFICEIMO_PDFTOTEXT } elseif ($textValidator) { $textValidator.Source } else { $null }
+          $validatorVersion = if ($validatorPath) { (& $validatorPath -v 2>&1 | Out-String).Trim() } else { $null }
           [ordered]@{ executable = $validatorPath; version = $validatorVersion } |
             ConvertTo-Json | Set-Content "$env:RUNNER_TEMP/html-static-tests/text-validator-identity.json"
           $failures = @()
