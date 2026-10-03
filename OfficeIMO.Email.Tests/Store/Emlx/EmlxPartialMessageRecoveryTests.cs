@@ -45,7 +45,7 @@ public sealed class EmlxPartialMessageRecoveryTests {
                 outstanding = source.OpenRead();
                 Assert.Equal(first, Read(item.Document.Attachments[0]));
                 Assert.Equal(second, Read(item.Document.Attachments[1]));
-                byte[] portable = new EmailDocumentWriter().ToBytes(item.Document, EmailFileFormat.Eml);
+                byte[] portable = new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(item.Document, EmailFileFormat.Eml);
                 using EmailReadResult exported = new EmailDocumentReader().Read(portable);
                 Assert.Equal(first, exported.Document.Attachments[0].Content);
                 Assert.Equal(second, exported.Document.Attachments[1].Content);

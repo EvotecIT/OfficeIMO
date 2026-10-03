@@ -66,10 +66,7 @@ internal sealed partial class StudioStorageAccess : IDisposable {
     internal async Task<string> ReadIdentityAsync(string location, CancellationToken token) {
         await using Stream stream = await OpenReadAsync(location, token).ConfigureAwait(false);
         token.ThrowIfCancellationRequested();
-        string? path = OfficeStorageIdentity.GetLocalPath(location);
-        return path is null ? OfficeStorageIdentity.Normalize(location)
-            : stream is FileStream file ? OfficePathIdentity.GetPhysicalIdentityKey(path, file.SafeFileHandle)
-            : OfficePathIdentity.GetPhysicalIdentityKey(path);
+        return OpenedIdentity(location, stream);
     }
 
     internal async Task<string> RegisterAsync(IStorageFile file, CancellationToken token) {
@@ -142,9 +139,7 @@ internal sealed partial class StudioStorageAccess : IDisposable {
         await using Stream stream = await OpenReadAsync(location, token).ConfigureAwait(false);
         token.ThrowIfCancellationRequested();
         string? localPath = OfficeStorageIdentity.GetLocalPath(location);
-        string identity = localPath is null ? OfficeStorageIdentity.Normalize(location)
-            : stream is FileStream file ? OfficePathIdentity.GetPhysicalIdentityKey(localPath, file.SafeFileHandle)
-            : OfficePathIdentity.GetPhysicalIdentityKey(localPath);
+        string identity = OpenedIdentity(location, stream);
         byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, token, maximumBytes).ConfigureAwait(false);
         token.ThrowIfCancellationRequested();
         if (localPath is not null && OfficePathIdentity.GetPhysicalIdentityKey(localPath) != identity) {
@@ -181,10 +176,7 @@ internal sealed partial class StudioStorageAccess : IDisposable {
         string fingerprint = await OfficeStreamPublication.WriteVerifiedAsync(async ct => {
             Stream stream = await OpenReadAsync(location, ct).ConfigureAwait(false);
             try {
-                string? localPath = OfficeStorageIdentity.GetLocalPath(location);
-                identity = localPath is null ? OfficeStorageIdentity.Normalize(location)
-                    : stream is FileStream file ? OfficePathIdentity.GetPhysicalIdentityKey(localPath, file.SafeFileHandle)
-                    : OfficePathIdentity.GetPhysicalIdentityKey(localPath);
+                identity = OpenedIdentity(location, stream);
                 return stream;
             } catch { stream.Dispose(); throw; }
         }, async ct => {

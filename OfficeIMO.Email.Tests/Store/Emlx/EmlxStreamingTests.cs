@@ -4,6 +4,46 @@ namespace OfficeIMO.Email.Store.Tests.Emlx;
 
 public sealed class EmlxStreamingTests {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void SelectedReadsRejectSameLengthChangesUnlessSessionOwnsASnapshot(bool snapshot, bool duringRead) {
+        byte[] bytes = Encoding.UTF8.GetBytes("Subject: Original\r\n\r\nBody\r\n");
+        using var input = new MutatingInput();
+        byte[] prefix = Encoding.ASCII.GetBytes(bytes.Length + "\n");
+        input.Write(prefix, 0, prefix.Length);
+        input.Write(bytes, 0, bytes.Length);
+        input.Position = 2;
+        using (EmailStoreSession session = snapshot ? EmailStoreSession.OpenSnapshot(input, "mutable.emlx") :
+            EmailStoreSession.Open(input, "mutable.emlx")) {
+            EmailStoreItemReference reference = Assert.Single(session.EnumerateItems());
+            Assert.Equal("Original", session.ReadSummary(reference).Subject);
+            Assert.Equal("Original", session.ReadItem(reference).Document.Subject);
+            void Mutate() {
+                long position = input.Position;
+                input.Position = prefix.Length + "Subject: ".Length;
+                input.Write(Encoding.ASCII.GetBytes("Modified"), 0, 8);
+                input.Position = position;
+            }
+            if (duringRead) input.AfterEndOfRead = Mutate;
+            else Mutate();
+            if (snapshot) Assert.Equal("Original", session.ReadItem(reference).Document.Subject);
+            else Assert.Throws<InvalidDataException>(() => session.ReadItem(reference));
+        }
+        Assert.True(input.CanRead);
+        Assert.Equal(2, input.Position);
+    }
+
+    private sealed class MutatingInput : MemoryStream {
+        internal Action? AfterEndOfRead { get; set; }
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = base.Read(buffer, offset, count);
+            if (read == 0 && AfterEndOfRead is { } change) { AfterEndOfRead = null; change(); }
+            return read;
+        }
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void StreamingAttachmentsSurviveTheReadAndExpireWithTheSession(bool directory) {

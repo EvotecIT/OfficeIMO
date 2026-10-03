@@ -596,7 +596,14 @@ an ordinal, case-sensitive metadata dictionary. This is the authoritative editab
 writing EMLX preserves unknown supported values and unknown flag bits while updating projected
 message flags. Unsupported or malformed trailers remain in `Emlx:RawMetadata`: `Block` rejects
 opaque metadata rewrites, while `Warn` and `Allow` copy the trailer unchanged and report that edits
-could not be reconciled. Omitting metadata or exporting it to another format also reports loss.
+could not be reconciled. The default `Block` policy rejects exports that omit retained EMLX, OLM
+or MAPI/TNEF metadata. Select `new EmailWriterOptions(EmailConversionLossPolicy.Warn)` to export
+the common message content with diagnostics for the omitted fields.
+
+Standalone EMLX sessions reject same-length source changes by checking a bounded SHA-256 before
+and after each selected read. The buffer size stays fixed, but these checks read the complete source.
+Use `EmailStoreSession.OpenSnapshot` when repeated reads need a private stable copy without repeated
+source hashing. The initial snapshot copy and hash perform source I/O.
 Directory sessions recover empty MIME parts in `Messages/<numeric-id>.partial.emlx`
 from `Attachments/<numeric-id>/<one-based-MIME-part-path>/<file>`. For example, nested part
 `2.1` is the first child of the second root part. Each part directory must contain exactly
@@ -613,7 +620,8 @@ conversion. Apple’s `X-Apple-Content-Length` is retained as provenance; it is 
 decoded sibling length. Metadata reads also use a bounded temporary reconstruction to
 derive actual payload lengths. Selected streaming reads return session-owned content sources.
 Offline recovery cannot establish whether further content exists remotely, so partial
-sources retain the completeness warning. The [qualification runner](../Build/Email/README.md)
+sources retain a completeness diagnostic; `Block` rejects the conversion, while `Warn` and `Allow`
+accept it with that diagnostic. The [qualification runner](../Build/Email/README.md)
 distinguishes the pinned independent storage fixture from native Apple Mail acceptance.
 
 OLM sessions retain summaries and one bounded XML entry, then project selected records. They

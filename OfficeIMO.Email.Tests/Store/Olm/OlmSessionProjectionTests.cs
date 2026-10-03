@@ -47,7 +47,7 @@ public sealed class OlmSessionProjectionTests {
         Assert.Equal(new[] { "vendor", "Vendor", "repeat", "repeat" }, preserved.Select(element => element.Name.LocalName));
         Assert.Equal(new[] { "first", "second" }, preserved.Where(element => element.Name.LocalName == "repeat").Select(element => element.Value));
         using var destination = new MemoryStream();
-        EmailWriteResult conversion = new EmailDocumentWriter().Write(document, destination, EmailFileFormat.Eml);
+        EmailWriteResult conversion = new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).Write(document, destination, EmailFileFormat.Eml);
         Assert.Contains(conversion.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_OLM_METADATA_NOT_REPRESENTED");
         Assert.Equal("Żółć 日本語", new EmailDocumentReader().Read(new MemoryStream(destination.ToArray())).Document.Subject);
     }

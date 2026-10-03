@@ -22,8 +22,15 @@ the current catalog schema.
 
 Use the case-sensitive dictionary in `EmailDocument.Properties["Emlx:Metadata"]` when editing
 Apple metadata. Flat `Emlx:Metadata:<key>` values are read aliases and participate in writing only
-when no exact catalog is supplied. Ambiguous case-colliding aliases are not created. Opaque trailer rewrites require explicit `Warn` or `Allow`; omitted metadata and partial
-content produce conversion diagnostics. Strict PST creation rejects omitted EMLX/OLM metadata.
+when no exact catalog is supplied. Ambiguous case-colliding aliases are not created. Opaque trailer rewrites require explicit `Warn` or `Allow`.
+The default `Block` loss policy also rejects omitted EMLX, OLM and MAPI/TNEF metadata, and partial
+content whose completeness cannot be established. Use `new EmailWriterOptions(EmailConversionLossPolicy.Warn)`
+when intentionally exporting the common message content, and inspect the returned diagnostics.
+Strict PST creation rejects omitted EMLX/OLM metadata.
+
+Standalone EMLX sessions verify the complete source before and after selected reads, including
+same-length edits. Reopen a changed source, or use `EmailStoreSession.OpenSnapshot` for a private,
+stable copy whose repeated reads avoid additional source-fingerprint scans.
 
 OLM sessions project selected items on demand. Request `PreferStreamingAttachmentContent` on
 `EmailStoreItemReadOptions` for file-backed payloads and keep the owning session alive until the

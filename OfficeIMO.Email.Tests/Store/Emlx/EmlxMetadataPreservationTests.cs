@@ -20,7 +20,8 @@ public sealed class EmlxMetadataPreservationTests {
         original.MessageMetadata.IsRead = false;
         original.Subject = "Edited subject";
         using var portable = new MemoryStream();
-        EmailWriteResult portableResult = new EmailDocumentWriter().Write(original, portable);
+        EmailWriteResult portableResult = new EmailDocumentWriter(new EmailWriterOptions(
+            conversionLossPolicy: EmailConversionLossPolicy.Warn)).Write(original, portable);
         Assert.Equal(EmailConversionLossDisposition.Accepted, portableResult.LossDisposition);
         Assert.Contains(portableResult.Diagnostics, item => item.Code == "EMAIL_EMLX_METADATA_NOT_REPRESENTED");
         Assert.Throws<InvalidDataException>(() => portableResult.RequireNoLoss());
@@ -70,8 +71,8 @@ public sealed class EmlxMetadataPreservationTests {
     [InlineData(EmailConversionLossPolicy.Block)]
     [InlineData(EmailConversionLossPolicy.Warn)]
     [InlineData(EmailConversionLossPolicy.Allow)]
-    public void OpaqueMetadataRequiresExplicitLossPolicyAndRetainsItsExactBytes(EmailConversionLossPolicy policy) {
-        byte[] raw = Encoding.UTF8.GetBytes("bplist00invalid-trailer");
+    public async Task OpaqueMetadataRequiresExplicitLossPolicyAndRetainsItsExactBytes(EmailConversionLossPolicy policy) {
+        byte[] raw = Encoding.UTF8.GetBytes("\r\nbplist00invalid-trailer");
         EmailDocument document = Read(raw, out _);
         var writer = new EmailStoreEmlxWriter(new EmailStoreEmlxWriterOptions(
             messageOptions: new EmailWriterOptions(conversionLossPolicy: policy)));
@@ -87,7 +88,27 @@ public sealed class EmlxMetadataPreservationTests {
         } else {
             Assert.Equal(EmailConversionLossDisposition.Accepted, result.LossDisposition);
             EmailDocument loaded = new EmailStoreReader().Read(output, "opaque.emlx").Store.Folders.Single().Items.Single().Document;
-            Assert.EndsWith(Encoding.UTF8.GetString(raw), Encoding.UTF8.GetString(Assert.IsType<byte[]>(loaded.Properties["Emlx:RawMetadata"])));
+            Assert.Equal(raw, Assert.IsType<byte[]>(loaded.Properties["Emlx:RawMetadata"]));
+            using var second = new MemoryStream();
+            await writer.WriteAsync(loaded, second);
+            EmailDocument reloaded = new EmailStoreReader().Read(second, "opaque-again.emlx").Store.Folders.Single().Items.Single().Document;
+            Assert.Equal(raw, Assert.IsType<byte[]>(reloaded.Properties["Emlx:RawMetadata"]));
+        }
+    }
+
+    [Fact]
+    public void NativeCompactIntegerHighBitsRemainUnsignedAndEightByteNegativesRemainSigned() {
+        // plistlib-generated; macOS plutil independently reads these exact values.
+        byte[] binary = Convert.FromBase64String("YnBsaXN0MDDYAQIDBAUGBwgJCgsMDQ4PEFMxMjhTMjU1VTMyNzY4VTY1NTM1WjIxNDc0ODM2NDhaNDI5NDk2NzI5NVItMVItMhCAEP8RgAAR//8SgAAAABL/////E///////////E//////////+CBkdISctOENGSUtNUFNYXWYAAAAAAAABAQAAAAAAAAARAAAAAAAAAAAAAAAAAAAAbw==");
+        EmailDocument original = Read(binary, out EmailStoreReadResult result);
+        Assert.Empty(result.Diagnostics);
+        using var output = new MemoryStream();
+        new EmailStoreEmlxWriter().Write(original, output).RequireNoLoss();
+        EmailDocument rewritten = new EmailStoreReader().Read(output, "integers.emlx").Store.Folders.Single().Items.Single().Document;
+        foreach (long value in new[] { 128L, 255L, 32768L, 65535L, 2147483648L, 4294967295L, -1L, -2L }) {
+            string key = value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            Assert.Equal(value, Metadata(original)[key]);
+            Assert.Equal(value, Metadata(rewritten)[key]);
         }
     }
 

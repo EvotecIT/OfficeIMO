@@ -237,7 +237,7 @@ public sealed partial class EmailStoreSession : IDisposable {
 
     private static EmailStoreSession OpenCore(Stream stream, string? sourceName,
         EmailStoreReaderOptions options, bool leaveOpen, long originalPosition,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, bool isSnapshot = false) {
         if (stream.Length > options.MaxInputBytes) {
             throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxInputBytes),
                 stream.Length, options.MaxInputBytes);
@@ -255,7 +255,7 @@ public sealed partial class EmailStoreSession : IDisposable {
                     backend = new OlmStoreSessionBackend(stream, sourceName, options, cancellationToken);
                     break;
                 case EmailStoreFormat.Emlx:
-                    backend = new EmlxStoreSessionBackend(stream, sourceName, options, cancellationToken);
+                    backend = new EmlxStoreSessionBackend(stream, sourceName, options, cancellationToken, isSnapshot);
                     break;
                 case EmailStoreFormat.Mbox:
                     backend = new MboxStoreSessionBackend(
