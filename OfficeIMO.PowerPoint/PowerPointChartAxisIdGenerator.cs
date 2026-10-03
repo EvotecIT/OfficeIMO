@@ -26,7 +26,9 @@ namespace OfficeIMO.PowerPoint {
                     }
 
                     foreach (AxisId axisId in chart.Descendants<AxisId>()) {
-                        if (axisId.Val?.Value is uint value && value > max) {
+                        // Imported IDs near UInt32.MaxValue cannot become the shared
+                        // process seed: one generated chart would exhaust the allocator.
+                        if (axisId.Val?.Value is uint value && value <= int.MaxValue && value > max) {
                             max = value;
                         }
                     }
