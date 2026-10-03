@@ -95,8 +95,10 @@ public sealed partial class HtmlRenderingTests {
             + "style='font-family:math'>NESTED</div></foreignObject></svg>";
         string image = "<img src='data:image/svg+xml;base64,"
             + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)) + "'>";
+        long resourceBudget = fontBudget + System.Text.Encoding.UTF8.GetByteCount(svg) * 2L + 1L;
         var options = new HtmlToPdfOptions {
-            MaxTotalResourceBytes = fontBudget + System.Text.Encoding.UTF8.GetByteCount(svg) * 2L + 1L
+            MaxResourceBytes = resourceBudget,
+            MaxTotalResourceBytes = resourceBudget
         };
         HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(
             HtmlConversionDocument.Parse("<math><mtext>PARENT</mtext></math>" + image + image), options);

@@ -11,7 +11,7 @@ on:
           - comparisons
           - html-static
       source_ref:
-        description: Source commit or branch (empty uses the selected workflow revision)
+        description: Full 40-character source commit or branch (empty uses the selected workflow revision)
         type: string
         default: ''
 
@@ -87,7 +87,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install --yes --no-install-recommends fonts-noto-cjk fonts-noto-core
+          sudo apt-get install --yes --no-install-recommends fonts-noto-cjk fonts-noto-core fonts-ipafont-gothic
       - name: Validate static conversion correctness
         shell: pwsh
         run: |
