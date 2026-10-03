@@ -17,7 +17,7 @@ internal static partial class PdfReviewSemanticComparer {
         int pairedCount = Math.Min(before.Count, after.Count);
         for (int index = 0; index < pairedCount; index++) {
             cancellationToken.ThrowIfCancellationRequested();
-            ChargeVectorWork(ref work, 1L + before[index].PathCommands.Count + after[index].PathCommands.Count);
+            ChargeVectorWork(ref work, VectorComparisonWork(before[index], after[index]));
             if (!SameSimpleVectorPaint(before[index], after[index])) continue;
             matchedAfter[index] = index;
             usedAfter[index] = true;
@@ -38,7 +38,8 @@ internal static partial class PdfReviewSemanticComparer {
             if (matchedAfter[index] >= 0 || !IsSimpleVectorPaint(before[index]) ||
                 !unmatchedAfter.TryGetValue(VectorBucket(before[index]), out LinkedList<int>? bucket)) continue;
             for (LinkedListNode<int>? node = bucket.First; node != null; node = node.Next) {
-                ChargeVectorWork(ref work, 1L + before[index].PathCommands.Count + after[node.Value].PathCommands.Count);
+                cancellationToken.ThrowIfCancellationRequested();
+                ChargeVectorWork(ref work, VectorComparisonWork(before[index], after[node.Value]));
                 if (!SameSimpleVectorPaint(before[index], after[node.Value])) continue;
                 matchedAfter[index] = node.Value;
                 usedAfter[node.Value] = true;
@@ -99,6 +100,11 @@ internal static partial class PdfReviewSemanticComparer {
         work = checked(work + amount);
         if (work > maxWork) throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, maxWork, work);
     }
+
+    private static long VectorComparisonWork(PdfPageVisualPrimitive before, PdfPageVisualPrimitive after) =>
+        1L + before.PathCommands.Count + after.PathCommands.Count +
+        (before.ClipPath?.Commands.Count ?? 0) + (after.ClipPath?.Commands.Count ?? 0) +
+        (before.StrokeDashPattern?.Array.Count ?? 0) + (after.StrokeDashPattern?.Array.Count ?? 0);
 
     private static bool VectorBoundsOverlap(PdfPageVisualPrimitive first, PdfPageVisualPrimitive second) {
         double firstStroke = Math.Max(0D, first.StrokeWidth / 2D);

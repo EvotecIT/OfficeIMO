@@ -193,13 +193,35 @@ internal static class PdfPageImposer {
         if (!PdfSyntax.TryGetTrailerReference(source.TrailerRaw, "Info", source.ReadOptions.Limits, out PdfReference reference) ||
             !PdfObjectLookup.TryGet(source.Objects, reference, out PdfIndirectObject info) ||
             info.Value is not PdfDictionary dictionary) return false;
+        var resolvedReferences = new Dictionary<(int ObjectNumber, int Generation), PdfObject?>();
         foreach (KeyValuePair<string, PdfObject> entry in dictionary.Items) {
-            PdfObject? value = PdfObjectLookup.ResolveChain(source.Objects, entry.Value);
+            PdfObject? value = ResolveMetadataValue(source.Objects, entry.Value, resolvedReferences);
             if (value is PdfNull) continue;
             if (entry.Key == "Producer" && value is PdfStringObj { Value: "OfficeIMO.Pdf" }) continue;
             return true;
         }
         return false;
+    }
+
+    private static PdfObject? ResolveMetadataValue(Dictionary<int, PdfIndirectObject> objects,
+        PdfObject? value, Dictionary<(int ObjectNumber, int Generation), PdfObject?> resolvedReferences) {
+        var visited = new HashSet<(int ObjectNumber, int Generation)>();
+        var path = new List<(int ObjectNumber, int Generation)>();
+        while (value is PdfReference reference) {
+            var key = (reference.ObjectNumber, reference.Generation);
+            if (resolvedReferences.TryGetValue(key, out PdfObject? cached)) {
+                value = cached;
+                break;
+            }
+            if (!visited.Add(key) || !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject indirect)) {
+                value = null;
+                break;
+            }
+            path.Add(key);
+            value = indirect.Value;
+        }
+        foreach (var key in path) resolvedReferences[key] = value;
+        return value;
     }
 
     private static bool HasRawCatalogXmpMetadata(PdfReadDocument source) =>
