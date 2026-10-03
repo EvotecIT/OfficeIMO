@@ -75,10 +75,12 @@ internal sealed class PdfGlyphRun {
         sb.Append(HexChars[glyphId & 0xF]);
     }
 
-    public string ToGlyphHex() {
-        var sb = RentHexBuilder(Glyphs.Count * 4);
-        for (int i = 0; i < Glyphs.Count; i++) {
-            AppendGlyphHex(sb, Glyphs[i].GlyphId);
+    public string ToGlyphHex() => ToGlyphHex(Glyphs);
+
+    internal static string ToGlyphHex(IReadOnlyList<PdfGlyphInfo> glyphs) {
+        var sb = RentHexBuilder(glyphs.Count * 4);
+        for (int i = 0; i < glyphs.Count; i++) {
+            AppendGlyphHex(sb, glyphs[i].GlyphId);
         }
 
         return ReturnHexBuilder(sb);
@@ -88,16 +90,28 @@ internal sealed class PdfGlyphRun {
         if (Direction == OfficeTextDirection.TopToBottom) {
             throw new InvalidOperationException("PDF horizontal text operators cannot publish a top-to-bottom shaped glyph run. Use the diagnosed vertical drawing route.");
         }
-        return new PdfTextShowCommand(ToGlyphHex(), HasPositioning ? Glyphs : null, ActualText,
-            PreserveGlyphUnicode ? Glyphs : null, TotalAdvanceWidth1000, visualGlyphs: Glyphs);
+        return new PdfTextShowCommand(this);
     }
 }
 
 internal sealed class PdfTextShowCommand {
+    private string? _glyphHex;
+
+    internal PdfTextShowCommand(PdfGlyphRun run) {
+        PositionedGlyphs = run.HasPositioning ? run.Glyphs : null;
+        ActualText = run.ActualText;
+        LogicalGlyphs = run.PreserveGlyphUnicode ? run.Glyphs : null;
+        AdvanceWidth1000 = run.TotalAdvanceWidth1000;
+        VisualGlyphs = run.Glyphs;
+        // Isolated logical glyphs are emitted directly. Materialize hex only if
+        // a caller requests the ordinary show-string (including suppressed ActualText).
+        _glyphHex = run.PreserveGlyphUnicode ? null : run.ToGlyphHex();
+    }
+
     internal PdfTextShowCommand(string glyphHex, IReadOnlyList<PdfGlyphInfo>? positionedGlyphs = null, string? actualText = null, IReadOnlyList<PdfGlyphInfo>? logicalGlyphs = null, double? advanceWidth1000 = null, int wordSpaceCount = 0, IReadOnlyList<PdfGlyphInfo>? visualGlyphs = null) {
         LogicalGlyphs = logicalGlyphs; AdvanceWidth1000 = advanceWidth1000; WordSpaceCount = wordSpaceCount;
         VisualGlyphs = visualGlyphs;
-        GlyphHex = glyphHex ?? throw new ArgumentNullException(nameof(glyphHex));
+        _glyphHex = glyphHex ?? throw new ArgumentNullException(nameof(glyphHex));
         PositionedGlyphs = positionedGlyphs;
         ActualText = string.IsNullOrEmpty(actualText) ? null : actualText;
     }
@@ -106,7 +120,7 @@ internal sealed class PdfTextShowCommand {
     internal IReadOnlyList<PdfGlyphInfo>? VisualGlyphs { get; }
     internal double? AdvanceWidth1000 { get; }
     internal int WordSpaceCount { get; }
-    internal string GlyphHex { get; }
+    internal string GlyphHex => _glyphHex ??= PdfGlyphRun.ToGlyphHex(VisualGlyphs!);
     internal IReadOnlyList<PdfGlyphInfo>? PositionedGlyphs { get; }
     internal string? ActualText { get; }
     internal bool HasPositioning => PositionedGlyphs != null && PositionedGlyphs.Count > 0;
