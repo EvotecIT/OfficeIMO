@@ -65,6 +65,24 @@ document.AsFluent()
 document.Save();
 ```
 
+## Paragraph formatting and inheritance
+
+Paragraph pagination controls support explicit on, off, and inherited values. Use the nullable `*Override` properties to disable a setting enabled by a paragraph style, or set them to `null` to remove direct formatting:
+
+```csharp
+var paragraph = document.AddParagraph("Continue on this page");
+paragraph.PageBreakBeforeOverride = false;
+paragraph.KeepWithNextOverride = true;
+paragraph.KeepLinesTogetherOverride = null;
+paragraph.AvoidWidowAndOrphanOverride = true;
+paragraph.ContextualSpacing = true;
+paragraph.OutlineLevel = 9; // Body text; heading levels 1-9 use values 0-8.
+```
+
+`WordParagraphStyleDefinition` exposes the same controls without the `Override` suffix. `ContextualSpacing`, `SuppressLineNumbers`, `SuppressAutoHyphens`, and `MirrorIndents` are nullable on both paragraphs and style definitions. These values survive DOCX and supported native DOC saves, including explicit false values. Existing Boolean pagination properties keep their previous behavior; use the nullable properties when style inheritance matters.
+
+PDF conversion honors an explicit `PageBreakBeforeOverride = false` even when the paragraph's style starts paragraphs on a new page. Storing line-number suppression, hyphenation suppression, mirrored indentation, or outline levels does not establish PDF rendering support for those features; see the [Word PDF conversion contract](../OfficeIMO.Word.Pdf/README.md) and [native DOC limits](../Docs/officeimo.word.legacy-doc-compatibility.md).
+
 ## Paragraph tab stops
 
 Use `AddTabStop` to configure a paragraph's explicit tab positions in twentieths of a point. `ClearTabStops()` removes those local stops without changing paragraph spacing, alignment, or inherited defaults.
