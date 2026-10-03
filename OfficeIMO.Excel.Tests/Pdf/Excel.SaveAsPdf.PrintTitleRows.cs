@@ -8,6 +8,27 @@ namespace OfficeIMO.Tests;
 
 public partial class Excel {
     [Theory]
+    [InlineData(ExcelPageOrder.DownThenOver)]
+    [InlineData(ExcelPageOrder.OverThenDown)]
+    public void SaveAsPdf_TitleOnlyManualPageKeepsItsSourceOrder(ExcelPageOrder pageOrder) {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Report");
+        for (int row = 1; row <= 8; row++) sheet.Cell(row, 1, "Row" + row.ToString("D3"));
+        document.SetPrintArea(sheet, "A1:A8");
+        document.SetPrintTitles(sheet, firstRow: 3, lastRow: 4, firstCol: null, lastCol: null);
+        sheet.SetPageSetup(pageOrder: pageOrder);
+        sheet.AddManualRowPageBreak(2); sheet.AddManualRowPageBreak(4);
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new ExcelToPdfOptions {
+            IncludeSheetHeadings = false,
+            PageSize = new PdfCore.PageSize(700, 500), Margins = PdfCore.PageMargins.Uniform(20)
+        }));
+        Assert.Equal(3, pdf.NumberOfPages);
+        Assert.Equal("Row001Row002", pdf.GetPage(1).Text);
+        Assert.Equal("Row001Row003Row004", pdf.GetPage(2).Text);
+        Assert.Equal("Row001Row003Row004Row005Row006Row007Row008", pdf.GetPage(3).Text);
+    }
+
+    [Theory]
     [InlineData(ExcelPdfWorksheetLayoutMode.WorksheetCanvas, 2)]
     [InlineData(ExcelPdfWorksheetLayoutMode.WorksheetCanvas, 3)]
     [InlineData(ExcelPdfWorksheetLayoutMode.FlowTable, 2)]

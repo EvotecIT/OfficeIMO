@@ -260,10 +260,14 @@ namespace OfficeIMO.Excel.Pdf {
         private sealed class MergeLayoutData {
             private readonly MergeSpan?[,] _spans;
             private readonly bool[,] _continuations;
+            private readonly bool[] _rowMergeBoundaries;
+            private readonly bool[] _columnMergeBoundaries;
 
             public MergeLayoutData(int rowCount, int columnCount) {
                 _spans = new MergeSpan?[rowCount, columnCount];
                 _continuations = new bool[rowCount, columnCount];
+                _rowMergeBoundaries = new bool[rowCount];
+                _columnMergeBoundaries = new bool[columnCount];
             }
 
             public bool HasAny { get; private set; }
@@ -280,6 +284,8 @@ namespace OfficeIMO.Excel.Pdf {
                 }
 
                 _spans[row, column] = new MergeSpan(rowSpan, columnSpan);
+                for (int r = row + 1; r < row + rowSpan; r++) _rowMergeBoundaries[r] = true;
+                for (int c = column + 1; c < column + columnSpan; c++) _columnMergeBoundaries[c] = true;
                 for (int r = row; r < row + rowSpan; r++) {
                     for (int c = column; c < column + columnSpan; c++) {
                         if (r != row || c != column) {
@@ -298,6 +304,10 @@ namespace OfficeIMO.Excel.Pdf {
 
             public bool IsContinuation(int row, int column) =>
                 row >= 0 && column >= 0 && row < _continuations.GetLength(0) && column < _continuations.GetLength(1) && _continuations[row, column];
+
+            public bool CrossesRowBoundary(int row) => row >= 0 && row < _rowMergeBoundaries.Length && _rowMergeBoundaries[row];
+
+            public bool CrossesColumnBoundary(int column) => column >= 0 && column < _columnMergeBoundaries.Length && _columnMergeBoundaries[column];
 
             public void CopyTo(MergeLayoutData target, int rowOffset, int columnOffset = 0) {
                 for (int row = 0; row < _spans.GetLength(0); row++) {

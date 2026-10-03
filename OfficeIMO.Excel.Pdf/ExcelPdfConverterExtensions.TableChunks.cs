@@ -187,7 +187,7 @@ namespace OfficeIMO.Excel.Pdf {
                 for (int row = 0; row < rows; row++) {
                     int originalRow = GetOriginalRowNumber(references, row);
                     if (originalRow > breakRow) {
-                        if (!IsMergedCellContinuationRow(plan.ExportData.MergedCells, row, references.GetLength(1))) {
+                        if (plan.ExportData.MergedCells?.CrossesRowBoundary(row) != true) {
                             offsets.Add(row);
                         }
 
@@ -212,7 +212,7 @@ namespace OfficeIMO.Excel.Pdf {
                 for (int column = 0; column < columns; column++) {
                     int originalColumn = GetOriginalColumnNumber(references, column, rows);
                     if (originalColumn > breakColumn) {
-                        if (!IsMergedCellContinuationColumn(plan.ExportData.MergedCells, column, rows)) {
+                        if (plan.ExportData.MergedCells?.CrossesColumnBoundary(column) != true) {
                             offsets.Add(column);
                         }
 
@@ -255,34 +255,6 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             return 0;
-        }
-
-        private static bool IsMergedCellContinuationRow(MergeLayoutData? mergedCells, int row, int columns) {
-            if (mergedCells == null) {
-                return false;
-            }
-
-            for (int column = 0; column < columns; column++) {
-                if (mergedCells.IsContinuation(row, column)) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool IsMergedCellContinuationColumn(MergeLayoutData? mergedCells, int column, int rows) {
-            if (mergedCells == null) {
-                return false;
-            }
-
-            for (int row = 0; row < rows; row++) {
-                if (mergedCells.IsContinuation(row, column)) {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         private static IEnumerable<PdfCore.PdfTableCell[]> CreatePdfRows(object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, MergeLayoutData? mergedCells, IReadOnlyDictionary<string, IReadOnlyList<WorksheetImageExportData>>? imagesByCellReference, IReadOnlyList<int> rowIndexes, int startColumn, int columnCount, string emptyCellText, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, string sheetName, PdfCore.PdfStandardFont defaultFontFamily, double fontScale = 1D, bool preserveWorksheetNoWrap = false, ExcelDateSystem dateSystem = ExcelDateSystem.NineteenHundred) {

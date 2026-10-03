@@ -152,6 +152,8 @@ Worksheet print areas are exported separately, in their stored order, with each 
 
 Print-title rows can start inside the print area. Canvas automatic pages and both layouts' manual row chunks repeat only title rows reached before the current body segment, including a break within a title block. Flow-table automatic continuation still repeats leading header rows; title rows starting later in a single flowing table are not repeated automatically.
 
+Manual row breaks are retained beside horizontal merges, and manual column breaks are retained beside vertical merges. A break that crosses a merged cell is currently suppressed; splitting and clipping that merged content across pages is not supported.
+
 ## Current limits
 
 - Workbook content is read through `OfficeIMO.Excel`; layout and PDF writing use `OfficeIMO.Pdf`.

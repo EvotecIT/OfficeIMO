@@ -19,7 +19,11 @@ namespace OfficeIMO.Excel.Pdf {
                     }
                 }
             }
-            int BodyRow(TableChunk chunk) => chunk.RowIndexes.Skip(chunk.HeaderRowCount).FirstOrDefault();
+            // An all-header chunk still has a source position. A zero fallback would
+            // move a middle title-only page ahead of earlier body pages.
+            int BodyRow(TableChunk chunk) => chunk.HeaderRowCount < chunk.RowIndexes.Count
+                ? chunk.RowIndexes[chunk.HeaderRowCount]
+                : chunk.RowIndexes.LastOrDefault();
             return plan.PageSetup?.PageOrder == ExcelPageOrder.OverThenDown
                 ? chunks.OrderBy(BodyRow).ThenBy(chunk => chunk.StartColumn).ToArray()
                 : chunks.OrderBy(chunk => chunk.StartColumn).ThenBy(BodyRow).ToArray();
