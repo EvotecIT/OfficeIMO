@@ -1330,6 +1330,124 @@
       "Settle the current-source matrix and retain failures.",
       "Close whole-workload time, allocation and peak-memory gates; do not infer them from the single-call reduction.",
       "Do not integrate the unqualified source into the two long-lived HTML branches."
+    ],
+    "standaloneExtraction": {
+      "head": "3e2eecc82480e1ba5ae1e2218721d3ef9daa1a0b",
+      "sourceCommit": "634f22c73519f89eb4288f375934d3d5c33a0cfe",
+      "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2742",
+      "status": "Open; current-head CI and delayed review pending",
+      "boundary": "Existing Core/PDF installed TrueType collection selection; no public API or runtime dependency changes. No full HTML/runtime source included.",
+      "sourceSha256": "518fba822fae0c3dc498933c15f1d79396a83798b4069405b2795feabd90c704",
+      "focused": {
+        "net8Passed": 17,
+        "net10Passed": 17
+      },
+      "fullPdf": {
+        "net10Passed": 8624,
+        "excludes": "Category=Performance"
+      },
+      "packages": {
+        "head": "3e2eecc82480e1ba5ae1e2218721d3ef9daa1a0b",
+        "corePack": {
+          "exitCode": 0,
+          "frameworks": [
+            "netstandard2.0",
+            "net8.0",
+            "net10.0"
+          ]
+        },
+        "pdfPack": {
+          "exitCode": 0,
+          "frameworks": [
+            "netstandard2.0",
+            "net8.0",
+            "net10.0"
+          ],
+          "limitation": "Normal package validation reported four unresolved net472 references in the previous 3.3.0 baseline on macOS; native Windows target remains CI proof."
+        },
+        "packedConsumers": [
+          {
+            "framework": ".NET 8.0.23",
+            "pages": 1,
+            "text": "Packed installed font selection proof",
+            "installedArial": true,
+            "core": "3.4.4+3e2eecc82480e1ba5ae1e2218721d3ef9daa1a0b",
+            "pdf": "3.4.4+3e2eecc82480e1ba5ae1e2218721d3ef9daa1a0b"
+          },
+          {
+            "framework": ".NET 10.0.12",
+            "pages": 1,
+            "text": "Packed installed font selection proof",
+            "installedArial": true,
+            "core": "3.4.4+3e2eecc82480e1ba5ae1e2218721d3ef9daa1a0b",
+            "pdf": "3.4.4+3e2eecc82480e1ba5ae1e2218721d3ef9daa1a0b"
+          }
+        ]
+      },
+      "independentTargetedConfirmation": {
+        "reviewer": "font_collection_selection_review",
+        "used": true,
+        "findings": [],
+        "boundary": "Moved existing master PDF copier into Core with the reviewed outline filter; preserved limits and caller semantics. Font source remained identical after the unrelated EPUB master merge."
+      },
+      "initialSnapshot": {
+        "head": "3e2eecc82480e1ba5ae1e2218721d3ef9daa1a0b",
+        "unresolvedThreads": 0,
+        "hasNextPage": false,
+        "ci": "Queued; no merge qualification yet"
+      },
+      "retainedEvidence": "Ignore/FontCollectionQualification in OfficeIMO-pdf-font-collection-selection worktree"
+    }
+  },
+  "workbenchExplicitRequestQualification": {
+    "baseHead": "891df396752bbae3c49c809bec5ff55a9ee0cc98",
+    "serviceSha256": "e7cc133f145af89b6d7c056d61bc0cf0bbd2fed36a857d6824880397aeb3ab33",
+    "contract": "Pasted managed HTML/CSS uses the shared PrintPaged/PDF request and its retained result. Evidence records the resolved profile ID, existing settings, diagnostics, source/output hashes and loss. Serialization receives caller cancellation.",
+    "correctness": {
+      "framework": "net8.0",
+      "passed": 19,
+      "failed": 0,
+      "excludes": [
+        "Category=Live",
+        "Category=Performance"
+      ],
+      "trx": "Ignore/StaticDeliveryQualification/workbench-explicit-intent-qualified/workbench-explicit-intent-qualified.trx",
+      "initialTestCorrection": "The first new test expected policy rejection; the actual no-resolver contract emits HtmlRenderExternalImagePending. Corrected that assertion; retained the original 18-pass/1-fail report."
+    },
+    "operatorProof": {
+      "url": "http://127.0.0.1:5183/",
+      "engine": "Managed",
+      "template": "Invoice",
+      "pageCount": 1,
+      "pdfBytes": 14486,
+      "profile": "print-paged-v1",
+      "outputHashMatchesEvidence": true,
+      "independentTextChecks": 5,
+      "uiViewports": [
+        [
+          1280,
+          720
+        ],
+        [
+          390,
+          844
+        ]
+      ],
+      "consoleErrors": 0,
+      "visual": "Inspected corrected labels at wide/compact widths and the generated invoice via Poppler. The in-app browser iframe remained blank, so it is not proof of embedded PDF preview support.",
+      "artifact": "Ignore/StaticDeliveryQualification/workbench-explicit-intent-invoice.pdf",
+      "render": "Ignore/StaticDeliveryQualification/workbench-explicit-intent-invoice.png",
+      "evidence": "Ignore/StaticDeliveryQualification/workbench-explicit-intent-invoice.json",
+      "cleanup": "Owned browser tab closed, viewport reset and loopback server stopped; listener absence verified."
+    },
+    "localReview": {
+      "decision": "Skip a new pass for the narrow caller migration. Shared request/PDF owners already reviewed; changed caller contracts directly exercised by the service tests and actual rendered artifact. No new owner, API engine or dependency."
+    },
+    "remaining": [
+      "Workbench archived/file inputs",
+      "Browser workspace adoption",
+      "Full shared facade/input matrix",
+      "Broader static/H10 performance and content qualification"
     ]
   }
 }

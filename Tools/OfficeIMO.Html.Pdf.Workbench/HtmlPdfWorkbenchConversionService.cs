@@ -47,7 +47,8 @@ public sealed class HtmlPdfWorkbenchConversionService {
             payload.HasLoss,
             request.Settings.Clone(),
             payload.Diagnostics,
-            payload.BrowserEvidence);
+            payload.BrowserEvidence,
+            payload.RenderProfileId);
         byte[] evidenceBytes = JsonSerializer.SerializeToUtf8Bytes(evidence, WorkbenchJsonContext.Default.HtmlPdfWorkbenchEvidence);
         cancellationToken.ThrowIfCancellationRequested();
         return new HtmlPdfWorkbenchResult(payload.PdfBytes, evidenceBytes, evidence);
@@ -59,11 +60,14 @@ public sealed class HtmlPdfWorkbenchConversionService {
         HtmlConversionDocument document = HtmlConversionDocument.Parse(request.Html);
         HtmlToPdfOptions options = CreateManagedOptions(request.Settings);
         if (!string.IsNullOrWhiteSpace(request.Css)) options.AdditionalStylesheets.Add(request.Css);
-        PdfDocumentConversionResult conversion = await document
-            .ToPdfDocumentResultAsync(options, cancellationToken)
+        HtmlRenderRequest renderRequest = HtmlRenderRequest.Create(
+            HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, options);
+        HtmlPdfRenderRequestResult rendered = await document
+            .RenderToPdfResultAsync(renderRequest, cancellationToken)
             .ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        byte[] pdfBytes = conversion.ToBytes();
+        PdfDocumentConversionResult conversion = rendered.Output;
+        byte[] pdfBytes = rendered.ToBytes(cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         if (pdfBytes.Length > MaximumPdfBytes) {
             throw new InvalidOperationException($"Generated PDF exceeds the {MaximumPdfBytes / 1024 / 1024} MiB workbench limit.");
@@ -80,7 +84,8 @@ public sealed class HtmlPdfWorkbenchConversionService {
             GetVersion(typeof(HtmlPdfConverterExtensions).Assembly),
             conversion.HasLoss,
             diagnostics,
-            null);
+            null,
+            rendered.RenderResult.Request.ProfileId);
     }
 
     private async Task<ConversionPayload> ConvertChromiumAsync(
@@ -134,7 +139,8 @@ public sealed class HtmlPdfWorkbenchConversionService {
             GetVersion(typeof(HtmlBrowserPdfRenderer).Assembly),
             report.HasLoss,
             diagnostics.AsReadOnly(),
-            browserEvidence);
+            browserEvidence,
+            null);
     }
 
     private static HtmlToPdfOptions CreateManagedOptions(HtmlPdfWorkbenchSettings settings) {
@@ -215,5 +221,6 @@ public sealed class HtmlPdfWorkbenchConversionService {
         string RendererVersion,
         bool HasLoss,
         IReadOnlyList<HtmlPdfWorkbenchDiagnostic> Diagnostics,
-        BrowserCaptureEvidence? BrowserEvidence);
+        BrowserCaptureEvidence? BrowserEvidence,
+        string? RenderProfileId);
 }

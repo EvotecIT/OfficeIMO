@@ -2,7 +2,7 @@
 
 A focused loopback-only operator surface for exercising the two OfficeIMO HTML-to-PDF lanes:
 
-- **Managed** uses `OfficeIMO.Html.Pdf` for dependency-free parsing, layout, pagination, tagging, forms, diagnostics, and PDF writing.
+- **Managed** uses `OfficeIMO.Html.Pdf` for OfficeIMO layout, pagination, tagging, forms, diagnostics, and PDF writing, with AngleSharp and AngleSharp.Css supplying parsing and CSS support. It executes the shared `PrintPaged` render request.
 - **Chromium** uses the pooled `HtmlTinkerX` renderer through `OfficeIMO.Html.Pdf.Browser` for browser layout, readiness, lifecycle, security policy, and capture diagnostics.
 
 The public OfficeIMO converter remains a static WebAssembly application. This tool is intentionally server-hosted because a browser tab cannot start or pool Chromium locally.
@@ -24,6 +24,7 @@ If Chromium is not installed for the HtmlTinkerX Playwright build, build once an
 Each successful render exposes a PDF and a companion JSON document containing:
 
 - schema version, engine, and renderer version;
+- the resolved render profile ID for managed renders;
 - source and artifact SHA-256 fingerprints;
 - elapsed time, byte count, and page count;
 - the exact settings snapshot;

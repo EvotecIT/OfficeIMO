@@ -140,6 +140,25 @@ public sealed class HtmlPdfWorkbenchContractTests {
         using JsonDocument evidence = JsonDocument.Parse(result.EvidenceBytes);
         Assert.Equal("officeimo.html-pdf-workbench/v1", evidence.RootElement.GetProperty("schema").GetString());
         Assert.Equal(result.Evidence.OutputSha256, evidence.RootElement.GetProperty("outputSha256").GetString());
+        Assert.Equal("print-paged-v1", evidence.RootElement.GetProperty("renderProfileId").GetString());
+    }
+
+    [Fact]
+    public async Task ManagedConversion_PreservesPrintMediaAndResourceLoss() {
+        await using var renderer = new HtmlBrowserPdfRenderer(new HtmlBrowserPdfRendererOptions(networkPolicy: HtmlBrowserNetworkPolicy.Offline));
+        var service = new HtmlPdfWorkbenchConversionService(renderer);
+        HtmlPdfWorkbenchResult result = await service.ConvertAsync(new HtmlPdfWorkbenchRequest(
+            "<p class='print'>Printed report</p><p class='screen'>Screen report</p><img src='https://example.invalid/photo.png' alt='Unavailable photograph'>",
+            "@media print {.screen{display:none}} @media screen {.print{display:none}}",
+            HtmlPdfWorkbenchEngine.Managed,
+            new HtmlPdfWorkbenchSettings()));
+
+        string text = PdfDocument.Load(result.PdfBytes).Read().Text;
+        Assert.Contains("Printed report", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Screen report", text, StringComparison.Ordinal);
+        Assert.Equal("print-paged-v1", result.Evidence.RenderProfileId);
+        Assert.True(result.Evidence.HasLoss);
+        Assert.Contains(result.Evidence.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
     }
 
     [Fact]

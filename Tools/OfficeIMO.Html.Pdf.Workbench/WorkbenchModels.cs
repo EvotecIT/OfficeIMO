@@ -47,7 +47,8 @@ public sealed record HtmlPdfWorkbenchEvidence(
     bool HasLoss,
     HtmlPdfWorkbenchSettings Options,
     IReadOnlyList<HtmlPdfWorkbenchDiagnostic> Diagnostics,
-    BrowserCaptureEvidence? Browser);
+    BrowserCaptureEvidence? Browser,
+    string? RenderProfileId = null);
 
 public sealed record BrowserCaptureEvidence(
     string BrowserVersion,
