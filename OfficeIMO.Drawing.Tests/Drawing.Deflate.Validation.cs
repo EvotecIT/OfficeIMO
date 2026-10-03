@@ -14,6 +14,7 @@ public sealed class DeflateStreamValidationTests {
         using var deflate = new DeflateStream(input, CompressionMode.Decompress);
         Assert.Equal(255, deflate.ReadByte());
         Assert.Equal(-1, deflate.ReadByte());
+        Assert.Equal(new byte[] { 255 }, DecodeZlib(payload, new byte[] { 255 }));
 
         Assert.True(OfficeDeflateStreamValidator.TryValidateExact(payload, 0, payload.Length, 1));
         Assert.False(OfficeDeflateStreamValidator.TryValidateExact(payload, 0, payload.Length, 0, out bool limitExceeded));
@@ -34,6 +35,7 @@ public sealed class DeflateStreamValidationTests {
         using var decoded = new MemoryStream();
         deflate.CopyTo(decoded);
         Assert.Equal(new byte[] { 65, 66, 67 }, decoded.ToArray());
+        Assert.Equal(new byte[] { 65, 66, 67 }, DecodeZlib(payload, new byte[] { 65, 66, 67 }));
 
         byte[] surrounded = new byte[payload.Length + 4];
         payload.CopyTo(surrounded, 2);
@@ -62,10 +64,64 @@ public sealed class DeflateStreamValidationTests {
         }
         byte[] payload = output.ToArray();
 
+        Assert.Equal(pixels, DecodeZlib(payload, pixels));
+
         Assert.True(OfficeDeflateStreamValidator.TryValidateExact(payload, 0, payload.Length, pixels.Length));
         Assert.False(OfficeDeflateStreamValidator.TryValidateExact(payload, 0, payload.Length, pixels.Length - 1, out bool limitExceeded));
         Assert.True(limitExceeded);
         Array.Resize(ref payload, payload.Length + 1);
         Assert.False(OfficeDeflateStreamValidator.TryValidateExact(payload, 0, payload.Length, pixels.Length));
+    }
+
+    [Theory]
+    [InlineData("eJwFwAEIAAAAACAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEQBCAEI=")]
+    [InlineData("eJwFwAEEAAAAQAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgBAAQgBC")]
+    public void ExactZlibDecodeRejectsIncompleteCodeLengthAndLiteralTrees(string encoded) {
+        // Independently constructed payloads with an unused canonical code.
+        // The advertised output and checksum are valid for the encoded A.
+        byte[] zlib = Convert.FromBase64String(encoded);
+        Assert.Throws<InvalidDataException>(() =>
+            OfficeZlibCodec.Decompress(zlib, maximumOutputBytes: 1, expectedOutputBytes: 1));
+    }
+
+    [Fact]
+    public void ExactZlibDecodeRequiresTheDeclaredLengthAndChecksum() {
+        byte[] zlib = OfficeZlibCodec.Compress(new byte[] { 65, 66, 67 });
+        Assert.Throws<InvalidDataException>(() =>
+            OfficeZlibCodec.Decompress(zlib, maximumOutputBytes: 4, expectedOutputBytes: 4));
+        zlib[zlib.Length - 1] ^= 1;
+        Assert.Throws<InvalidDataException>(() =>
+            OfficeZlibCodec.Decompress(zlib, maximumOutputBytes: 3, expectedOutputBytes: 3));
+    }
+
+    [Theory]
+    [InlineData("eJwF3gEEAAAAABAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAEAAAABAEIAQg==")]
+    [InlineData("eJwF3wEEAAAAABAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAEAAAACAEIAQg==")]
+    public void ExactZlibDecodePreservesRejectionOfReservedDistanceAlphabetSizes(string encoded) {
+        // Native-qualified complete trees: 31/32 declared distance symbols,
+        // including unused reserved symbols, encode A with a matching checksum.
+        byte[] zlib = Convert.FromBase64String(encoded);
+        Assert.Throws<InvalidDataException>(() => OfficeZlibCodec.Decompress(zlib, 1, 1));
+        Assert.False(OfficeZlibCodec.TryValidateExact(zlib, 0, zlib.Length, 1));
+    }
+
+    [Fact]
+    public void ExactZlibDecodeAllowsThirtyDeclaredDistanceSymbolsWhenReservedSymbolsAreAbsent() {
+        byte[] zlib = Convert.FromBase64String(
+            "eJwF3QEEAAAAABAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAEAAIAAQgBC");
+        Assert.Equal(new byte[] { 65 }, OfficeZlibCodec.Decompress(zlib, 1, 1));
+        Assert.True(OfficeZlibCodec.TryValidateExact(zlib, 0, zlib.Length, 1));
+    }
+
+    private static byte[] DecodeZlib(byte[] rawDeflate, byte[] expected) {
+        var zlib = new byte[rawDeflate.Length + 6];
+        zlib[0] = 0x78;
+        zlib[1] = 0x9C;
+        Buffer.BlockCopy(rawDeflate, 0, zlib, 2, rawDeflate.Length);
+        uint checksum = OfficeZlibCodec.Adler32(expected);
+        for (int index = 0; index < 4; index++) {
+            zlib[zlib.Length - 4 + index] = (byte)(checksum >> (24 - index * 8));
+        }
+        return OfficeZlibCodec.Decompress(zlib, expected.Length, expected.Length);
     }
 }
