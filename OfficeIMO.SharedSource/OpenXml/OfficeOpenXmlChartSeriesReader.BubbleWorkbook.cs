@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -25,28 +26,61 @@ namespace OfficeIMO.OpenXml.Internal {
                     sheet.Worksheet?.Descendants<S.Row>().Any(row => row.Hidden?.Value == true) == true ||
                     sheet.Worksheet?.Descendants<S.Column>().Any(column => column.Hidden?.Value == true) == true);
                 if (!anyHidden) return false;
+                var sheets = new Dictionary<string, WorksheetPart>(StringComparer.OrdinalIgnoreCase);
+                foreach (S.Sheet sheet in workbook.WorkbookPart.Workbook?.Sheets?.Elements<S.Sheet>() ?? Enumerable.Empty<S.Sheet>()) {
+                    if (sheet.Name?.Value == null || sheet.Id?.Value == null ||
+                        workbook.WorkbookPart.GetPartById(sheet.Id.Value) is not WorksheetPart worksheetPart ||
+                        worksheetPart.Worksheet == null || sheets.ContainsKey(sheet.Name.Value)) return true;
+                    sheets.Add(sheet.Name.Value, worksheetPart);
+                }
+                var hiddenBySheet = new Dictionary<WorksheetPart, HiddenWorksheet>();
                 C.Formula[] formulas = chart.PlotArea!.Descendants<C.Formula>().Take(10001).ToArray();
                 if (formulas.Length > 10000) return true;
                 foreach (C.Formula formula in formulas) {
                     if (string.IsNullOrWhiteSpace(formula.Text)) continue;
                     if (!TryParseChartRange(formula.Text, out string sheetName,
                         out uint firstRow, out uint lastRow, out uint firstColumn, out uint lastColumn)) return true;
-                    S.Sheet? sheet = workbook.WorkbookPart.Workbook?.Sheets?.Elements<S.Sheet>()
-                        .FirstOrDefault(item => string.Equals(item.Name?.Value, sheetName, StringComparison.OrdinalIgnoreCase));
-                    if (sheet?.Id?.Value == null ||
-                        workbook.WorkbookPart.GetPartById(sheet.Id.Value) is not WorksheetPart worksheetPart ||
-                        worksheetPart.Worksheet == null) return true;
-                    if (worksheetPart.Worksheet.Descendants<S.Row>().Any(row =>
-                            row.Hidden?.Value == true && row.RowIndex?.Value is uint index &&
-                            index >= firstRow && index <= lastRow) ||
-                        worksheetPart.Worksheet.Descendants<S.Column>().Any(column =>
-                            column.Hidden?.Value == true && column.Min?.Value is uint minimum &&
-                            column.Max?.Value is uint maximum && minimum <= lastColumn && maximum >= firstColumn))
+                    if (!sheets.TryGetValue(sheetName, out WorksheetPart? worksheetPart)) return true;
+                    if (!hiddenBySheet.TryGetValue(worksheetPart, out HiddenWorksheet? hidden)) {
+                        hidden = new HiddenWorksheet(worksheetPart.Worksheet!);
+                        hiddenBySheet.Add(worksheetPart, hidden);
+                    }
+                    if (hidden.Intersects(firstRow, lastRow, firstColumn, lastColumn))
                         return true;
                 }
                 return false;
             } catch {
                 return true;
+            }
+        }
+
+        private sealed class HiddenWorksheet {
+            private readonly uint[] _rows;
+            private readonly int[] _columnPrefix = new int[16385];
+
+            internal HiddenWorksheet(S.Worksheet worksheet) {
+                _rows = worksheet.Descendants<S.Row>()
+                    .Where(row => row.Hidden?.Value == true && row.RowIndex?.Value is uint)
+                    .Select(row => row.RowIndex!.Value).OrderBy(index => index).ToArray();
+                var columnDelta = new int[16386];
+                foreach (S.Column column in worksheet.Descendants<S.Column>().Where(column => column.Hidden?.Value == true)) {
+                    if (column.Min?.Value is not uint minimum || column.Max?.Value is not uint maximum ||
+                        minimum < 1 || maximum > 16384 || minimum > maximum) continue;
+                    columnDelta[minimum]++;
+                    columnDelta[maximum + 1]--;
+                }
+                int depth = 0;
+                for (int column = 1; column < _columnPrefix.Length; column++) {
+                    depth += columnDelta[column];
+                    _columnPrefix[column] = _columnPrefix[column - 1] + (depth > 0 ? 1 : 0);
+                }
+            }
+
+            internal bool Intersects(uint firstRow, uint lastRow, uint firstColumn, uint lastColumn) {
+                int rowIndex = Array.BinarySearch(_rows, firstRow);
+                if (rowIndex < 0) rowIndex = ~rowIndex;
+                return rowIndex < _rows.Length && _rows[rowIndex] <= lastRow ||
+                    _columnPrefix[lastColumn] > _columnPrefix[firstColumn - 1];
             }
         }
 
