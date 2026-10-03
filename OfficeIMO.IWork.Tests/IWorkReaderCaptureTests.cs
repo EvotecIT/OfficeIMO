@@ -6,6 +6,25 @@ using OfficeIMO.Reader.IWork;
 namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkBoundaryTests {
+    [Fact]
+    public void Reader_capture_restores_caller_stream_when_cancelled_after_reading_starts() {
+        using var package = CreatePagesPackage(includeBody: true, textBox: null, includePreview: false,
+            bodyText: "Content must not be published after cancellation");
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        using var stream = new CancelCaptureReadStream(package.ToArray(), cancellation);
+        stream.Position = 5;
+
+        Assert.False(cancellation.IsCancellationRequested);
+        Assert.Throws<OperationCanceledException>(() => IWorkReaderAdapter.ReadDocument(stream,
+            "cancelled.pages", new ReaderOptions(), new ReaderIWorkOptions(), cancellation.Token));
+
+        Assert.True(stream.ReadStarted);
+        Assert.True(cancellation.IsCancellationRequested);
+        Assert.Equal(5, stream.Position);
+        Assert.True(stream.CanRead);
+        Assert.Equal(package.ToArray()[5], stream.ReadByte());
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -84,6 +103,20 @@ public sealed partial class IWorkBoundaryTests {
             Assert.DoesNotContain(result.Chunks, chunk => chunk.Text.Contains(otherText));
         } finally {
             Directory.Delete(root, recursive: true);
+        }
+    }
+
+    private sealed class CancelCaptureReadStream(byte[] bytes, System.Threading.CancellationTokenSource cancellation)
+        : MemoryStream(bytes, writable: false) {
+        public bool ReadStarted { get; private set; }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = base.Read(buffer, offset, count);
+            if (read > 0) {
+                ReadStarted = true;
+                cancellation.Cancel();
+            }
+            return read;
         }
     }
 }
