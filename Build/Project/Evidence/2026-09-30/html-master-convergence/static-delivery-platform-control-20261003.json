@@ -1,0 +1,255 @@
+{
+  "$schema": "officeimo.html.static-delivery-qualification",
+  "recordedAtUtc": "2026-10-03T14:18:14Z",
+  "control": {
+    "sourceCommit": "0aea7880f94a317c12d1367485d0617af1647f91",
+    "workflowCommit": "7c1226b65ff39ccf517ef6eab39f63b9d869e3ac",
+    "runId": 37126815533,
+    "url": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37126815533",
+    "status": "failed",
+    "results": {
+      "macos": {
+        "htmlNet8": {
+          "passed": 4186,
+          "failed": 0
+        },
+        "htmlNet10": {
+          "passed": 4186,
+          "failed": 0
+        },
+        "packedConsumersNet8AndNet10": "passed; nineteen packages built; script failed during temporary-tree cleanup",
+        "budget": "not executed after cleanup failure"
+      },
+      "windows": {
+        "htmlNet8": {
+          "passed": 4185,
+          "failed": 1
+        },
+        "failure": "installed mathematical-font operation budget; packaging and measurement not executed"
+      },
+      "linux": {
+        "htmlNet8": {
+          "passed": 4179,
+          "failed": 7
+        },
+        "failures": [
+          "six unavailable-private-use-glyph assumptions depend on installed fonts",
+          "typography fixture lacks installed Japanese coverage"
+        ],
+        "packagingAndMeasurement": "not executed"
+      }
+    }
+  },
+  "fixedProviderControl": {
+    "sourceCommit": "1de3427843094d51f490091dbf268f8b036b6ba0",
+    "runId": 37128159839,
+    "url": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37128159839",
+    "stateAtDispatch": "queued",
+    "providers": {
+      "AngleSharp": "1.7.1",
+      "AngleSharp.Css": "1.0.1"
+    },
+    "packageCleanupFix": "not present; separate package and budget steps retain their own results"
+  },
+  "releasedProviderCandidate": {
+    "sourceCommit": "c9413dd5b5b4d26de2713ad43d5e813034000364",
+    "runId": 37129126234,
+    "url": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37129126234",
+    "stateAtDispatch": "queued",
+    "packages": [
+      {
+        "id": "AngleSharp",
+        "version": "1.8.3",
+        "license": "MIT",
+        "projectUrl": "https://anglesharp.github.io/",
+        "dependencies": [
+          {
+            "group": {
+              "targetFramework": "net10.0"
+            }
+          },
+          {
+            "group": {
+              "targetFramework": ".NETFramework4.6.2"
+            }
+          },
+          {
+            "dependency": {
+              "id": "System.Text.Encoding.CodePages",
+              "version": "8.0.0",
+              "exclude": "Build,Analyzers"
+            }
+          },
+          {
+            "group": {
+              "targetFramework": ".NETFramework4.7.2"
+            }
+          },
+          {
+            "dependency": {
+              "id": "System.Text.Encoding.CodePages",
+              "version": "8.0.0",
+              "exclude": "Build,Analyzers"
+            }
+          },
+          {
+            "group": {
+              "targetFramework": "net8.0"
+            }
+          },
+          {
+            "group": {
+              "targetFramework": ".NETStandard2.0"
+            }
+          },
+          {
+            "dependency": {
+              "id": "System.Text.Encoding.CodePages",
+              "version": "8.0.0",
+              "exclude": "Build,Analyzers"
+            }
+          }
+        ],
+        "sha256": "93cc6fd76ae6e450aa35f4f38b1a75f201b544ed8e336e02035b69cb25d81ebd",
+        "source": "https://api.nuget.org/v3-flatcontainer/anglesharp/1.8.3/anglesharp.1.8.3.nupkg",
+        "bytes": 2691954
+      },
+      {
+        "id": "AngleSharp.Css",
+        "version": "1.1.2",
+        "license": "MIT",
+        "projectUrl": "https://anglesharp.github.io/",
+        "dependencies": [
+          {
+            "group": {
+              "targetFramework": "net10.0"
+            }
+          },
+          {
+            "dependency": {
+              "id": "AngleSharp",
+              "version": "[1.5.0, 2.0.0)",
+              "exclude": "Build,Analyzers"
+            }
+          },
+          {
+            "group": {
+              "targetFramework": ".NETFramework4.6.2"
+            }
+          },
+          {
+            "dependency": {
+              "id": "AngleSharp",
+              "version": "[1.5.0, 2.0.0)",
+              "exclude": "Build,Analyzers"
+            }
+          },
+          {
+            "dependency": {
+              "id": "System.Memory",
+              "version": "4.5.5",
+              "exclude": "Build,Analyzers"
+            }
+          },
+          {
+            "group": {
+              "targetFramework": ".NETFramework4.7.2"
+            }
+          },
+          {
+            "dependency": {
+              "id": "AngleSharp",
+              "version": "[1.5.0, 2.0.0)",
+              "exclude": "Build,Analyzers"
+            }
+          },
+          {
+            "dependency": {
+              "id": "System.Memory",
+              "version": "4.5.5",
+              "exclude": "Build,Analyzers"
+            }
+          },
+          {
+            "group": {
+              "targetFramework": "net8.0"
+            }
+          },
+          {
+            "dependency": {
+              "id": "AngleSharp",
+              "version": "[1.5.0, 2.0.0)",
+              "exclude": "Build,Analyzers"
+            }
+          },
+          {
+            "group": {
+              "targetFramework": ".NETStandard2.0"
+            }
+          },
+          {
+            "dependency": {
+              "id": "AngleSharp",
+              "version": "[1.5.0, 2.0.0)",
+              "exclude": "Build,Analyzers"
+            }
+          },
+          {
+            "dependency": {
+              "id": "System.Memory",
+              "version": "4.5.5",
+              "exclude": "Build,Analyzers"
+            }
+          }
+        ],
+        "sha256": "59bb0ce62968a00249d1a383e86dc34b8d636c21123263c01012ad36f9e0bdb6",
+        "source": "https://api.nuget.org/v3-flatcontainer/anglesharp.css/1.1.2/anglesharp.css.1.1.2.nupkg",
+        "bytes": 1536684
+      }
+    ],
+    "assessment": "Routine updates in the retained static HTML/DOM and CSS roles. Both packages are MIT and retain the existing legacy CodePages/System.Memory dependency families. Final restored and packed graphs still require inspection."
+  },
+  "remediation": [
+    {
+      "owner": "OfficeIMO.Core",
+      "behavior": "Read the four-byte CFF signature before allocating or applying CFF snapshot limits; TrueType and collection candidates continue through their own bounded loader.",
+      "proof": "Windows original failure retained; extended installed-math resource regression and hosted platform validation pending"
+    },
+    {
+      "owner": "OfficeIMO.Html.Tests",
+      "behavior": "Unavailable-glyph regressions explicitly disable host-font fallback; mathematical SVG child-budget probe uses the PDF path and allows the original collection source bytes.",
+      "proof": "hosted net8/net10 correctness pending"
+    },
+    {
+      "owner": "manual qualification workflow",
+      "behavior": "Install multilingual Linux fixture fonts, retain both framework results and execute independent package/budget contracts after correctness failures.",
+      "proof": "workflow YAML parsed; workflow_dispatch accepted"
+    },
+    {
+      "owner": "Build/Test-HtmlPackages.ps1",
+      "behavior": "Delete only the invocation-created temporary package tree using the .NET directory API.",
+      "proof": "Native PowerShell hidden-file failure reproduced locally; scoped .NET removal and script parsing passed; full hosted smoke pending"
+    }
+  ],
+  "acceptanceBeforeAdoption": [
+    "full static HTML suites and installed-math resource contract on each platform",
+    "nineteen-package normal framework graph and public packed consumers; native net472 on Windows",
+    "inspect restored/packed provider dependency identities",
+    "compare H4 outputs and unchanged platform ceilings against the fixed-provider control",
+    "replay the eighteen frozen static cases and inspect consequential differences before adopting provider changes",
+    "risk-appropriate read-only confirmation of the bounded font-loader change"
+  ],
+  "remainingBoundaries": [
+    "Committed Studio release locks still identify the old provider graph; regenerate and qualify the selected graph before release readiness.",
+    "The optional runtime Worker retains its existing provider pins and fork references. Its CSS dependency closure requires deliberate alignment after static qualification; this run does not qualify Runtime/Worker.",
+    "The shared HTML/MHTML/site-bundle job and H10 named page/resource acceptance remain open in Docs/ROADMAP.md.",
+    "No public static delivery PR, full HTML/runtime merge or package publication is represented by these branch checkpoints."
+  ],
+  "localValidationEnvironment": {
+    "host": "EvoMini",
+    "cpuIdlePercent": 0.1,
+    "loadAverage1Minute": 1020.97,
+    "decision": "Do not run local builds or timing measurements under this contention; use the hosted matrix."
+  },
+  "retainedEvidenceRoot": "Ignore/StaticDeliveryQualification"
+}

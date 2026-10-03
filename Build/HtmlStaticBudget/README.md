@@ -26,3 +26,21 @@ legacy-encoding work remains part of the measured path.
 Use `--measure-only` to collect a new calibration result without enforcing the
 checked-in platform ceiling. Evidence runs should use clean, commit-addressable source
 and a new output directory.
+
+The manual **Verify optional qualification suites** workflow provides the same
+budget command on GitHub-hosted Windows, Linux and macOS runners. Select the
+`html-static` suite and a workflow revision containing that lane. `source_ref`
+selects the source to check out; an empty value uses the workflow revision.
+Use a commit SHA when comparing a control with a candidate.
+
+This suite also runs static HTML correctness on .NET 8 and .NET 10, the installed
+mathematical-font resource contract, and the canonical packed-consumer smoke script.
+The Windows package lane executes the .NET Framework 4.7.2 consumers. Independent
+package and measurement steps still run after a correctness failure, while the
+failed job remains failed. Reports are retained as workflow artifacts for seven days.
+
+The Linux lane installs Noto CJK and Arabic-capable fonts for the multilingual
+fixture. These are validation-host assets. Output fingerprints from different
+platforms or font environments need separate interpretation; compare candidate
+and control within the same declared environment. Timing and memory budgets remain
+opt-in evidence, outside ordinary pull-request correctness gates.
