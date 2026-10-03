@@ -32,11 +32,12 @@ internal sealed class IWorkWireMessage {
     private readonly int _depth;
     private readonly int _totalFieldCount;
 
-    internal IWorkWireMessage(Dictionary<int, List<IWorkWireValue>> fields, IWorkReadOptions options, int depth) {
+    internal IWorkWireMessage(Dictionary<int, List<IWorkWireValue>> fields, IWorkReadOptions options, int depth,
+        int totalFieldCount) {
         _fields = fields;
         _options = options;
         _depth = depth;
-        foreach (var field in fields) _totalFieldCount += field.Value.Count;
+        _totalFieldCount = totalFieldCount;
     }
 
     internal ulong? GetUnsigned(int field) {
@@ -113,7 +114,7 @@ internal sealed class IWorkWireMessage {
     internal IEnumerable<IWorkWireValue> EnumerateValues(int field) => Values(field);
 
     internal bool HasUnexpectedWireKind(int field, IWorkWireKind expectedKind) {
-        IReadOnlyList<IWorkWireValue> values = Values(field);
+        if (!_fields.TryGetValue(field, out List<IWorkWireValue>? values)) return false;
         for (int index = 0; index < values.Count; index++) {
             if (values[index].Kind != expectedKind) return true;
         }
@@ -121,7 +122,7 @@ internal sealed class IWorkWireMessage {
     }
 
     internal bool HasUnexpectedWireKind(int field, params IWorkWireKind[] expectedKinds) {
-        IReadOnlyList<IWorkWireValue> values = Values(field);
+        if (!_fields.TryGetValue(field, out List<IWorkWireValue>? values)) return false;
         for (int index = 0; index < values.Count; index++) {
             bool expected = false;
             for (int kind = 0; kind < expectedKinds.Length; kind++) {
@@ -388,7 +389,7 @@ internal static class IWorkProtobuf {
             }
             values.Add(value);
         }
-        return new IWorkWireMessage(fields, options, depth);
+        return new IWorkWireMessage(fields, options, depth, fieldCount);
     }
 
     internal static ulong ReadVarint(byte[] data, ref int offset) {
