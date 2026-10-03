@@ -45,6 +45,7 @@ internal static partial class PdfStaticFormRecognizer {
         var diagnostics = new List<PdfStaticFormRecognitionDiagnostic>();
         var pageDirections = new Dictionary<int, PdfReadingDirection>();
         long candidateScanWork = 0;
+        var geometryBudget = new PdfReadPage.VisualGeometryBudget();
         foreach (int pageNumber in pageNumbers) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfLogicalPage page = logical.PagesBySourcePageNumber[pageNumber][0];
@@ -80,7 +81,8 @@ internal static partial class PdfStaticFormRecognizer {
             }
             List<VisualRect> tableBounds = GetTableBounds(page, ref candidateScanWork, effective.MaxCandidateScanWork, cancellationToken);
             List<Label> labels = GetLabels(page, suppliedText, pageWidth, pageHeight, filledAreas, effects, tableBounds, primitives,
-                out List<VisualRect> nativeTextBounds, ref candidateScanWork, effective.MaxCandidateScanWork, cancellationToken);
+                out List<VisualRect> nativeTextBounds, ref candidateScanWork, effective.MaxCandidateScanWork,
+                geometryBudget, cancellationToken);
             pageDirections[pageNumber] = PdfTextDirectionAnalysis.Resolve(PdfReadingDirection.Auto,
                 labels.Select(static label => label.Text));
             long fillCount = filledAreas.Count;
@@ -135,11 +137,13 @@ internal static partial class PdfStaticFormRecognizer {
                 }
                 if (HasInteriorMark(primitives, filledAreas, effects, candidateIndex, visual, evidence,
                     ref candidateScanWork, effective.MaxCandidateScanWork, cancellationToken) ||
-                    HasImageInterior(page, filledAreas, visual, cancellationToken)) {
+                    HasImageInterior(page, filledAreas, visual, ref candidateScanWork,
+                        effective.MaxCandidateScanWork, geometryBudget, cancellationToken)) {
                     AddDiagnostic("occupied-field", pageNumber, "A visual field candidate contains a painted mark.");
                     continue;
                 }
-                if (HasLaterOutlinePaint(filledAreas, primitives, page, primitive, visual, cancellationToken)) {
+                if (HasLaterOutlinePaint(filledAreas, primitives, page, primitive, visual,
+                    ref candidateScanWork, effective.MaxCandidateScanWork, geometryBudget, cancellationToken)) {
                     AddDiagnostic("occluded-outline", pageNumber,
                         "Later paint prevents proving a continuous visible field outline.");
                     continue;
@@ -187,7 +191,10 @@ internal static partial class PdfStaticFormRecognizer {
             if (string.IsNullOrWhiteSpace(field.Name)) continue;
             string name = field.Name!;
             usedNames.Add(name);
-            for (int separator = name.IndexOf('.'); separator >= 0; separator = name.IndexOf('.', separator + 1)) {
+            // Generated proposal names never contain dots. Only the first component
+            // of an existing hierarchical name can therefore collide with one.
+            int separator = name.IndexOf('.');
+            if (separator >= 0) {
                 usedNames.Add(name.Substring(0, separator));
             }
         }
@@ -426,7 +433,8 @@ internal static partial class PdfStaticFormRecognizer {
 
     private static bool HasImageInterior(PdfLogicalPage page,
         IReadOnlyList<PaintArea> filledAreas,
-        VisualRect candidate, CancellationToken cancellationToken) {
+        VisualRect candidate, ref long candidateScanWork, int maxCandidateScanWork,
+        PdfReadPage.VisualGeometryBudget geometryBudget, CancellationToken cancellationToken) {
         var interior = new VisualRect(candidate.Left + 0.2D, candidate.Top + 0.2D,
             candidate.Right - 0.2D, candidate.Bottom - 0.2D);
         foreach (PdfLogicalImage image in page.Images) {
@@ -446,13 +454,13 @@ internal static partial class PdfStaticFormRecognizer {
                 var inside = new VisualRect(Math.Max(visible.Left, interior.Left), Math.Max(visible.Top, interior.Top),
                     Math.Min(visible.Right, interior.Right), Math.Min(visible.Bottom, interior.Bottom));
                 if (inside.Area <= 0.5D) continue;
-                if (placement.Clip is { IsRectangle: false, IsExact: true, ContainsTextClipping: false } clipPath &&
-                    PdfPageClipPath.TryCreatePath(clipPath.Commands, clipPath.FillRule, out PdfPageClipPath exactClip)) {
+                if (placement.Clip is { IsRectangle: false, IsExact: true, ContainsTextClipping: false } clipPath) {
                     PdfPageRectangle user = page.MapVisualRectangleToUserSpace(
                         inside.Left, inside.Top, inside.Right, inside.Bottom);
                     PdfPageClipPath fieldClip = PdfPageClipPath.Rectangle(user.Left,
                         page.Height - user.Top, user.Width, user.Height);
-                    if (exactClip.CanProveNoPositiveAreaIntersection(fieldClip)) continue;
+                    if (ClipProvesSeparate(clipPath.OriginalPath, fieldClip, ref candidateScanWork,
+                        maxCandidateScanWork, geometryBudget)) continue;
                 }
                 if (!IsCoveredByLaterOpaqueFill(filledAreas, inside, placement.PaintOrder,
                     placement.ContentOrderKey)) return true;
