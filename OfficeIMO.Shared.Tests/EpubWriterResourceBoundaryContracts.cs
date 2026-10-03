@@ -16,6 +16,8 @@ public sealed class EpubWriterResourceBoundaryContracts {
     [InlineData("<img src='extra.png' alt='Extra'/>")]
     [InlineData("<style>p { background-image: url(extra.png); }</style>")]
     [InlineData("<style media='print'>p { background-image: url(extra.png); }</style>")]
+    [InlineData("<style>@media print { p { background-image: url(extra.png); } }</style>")]
+    [InlineData("<style media='print'>p { background-image: image-set(\"extra.png\" 1x); }</style>")]
     public async Task RewrittenContent_RequiresManifestDeclarationsForRetainedPayloads(string markup) {
         byte[] original = AddEntry(EpubWritingContracts.CreateBook().Write().Bytes, "EPUB/extra.png", new byte[] { 1 });
         EpubPublication book = EpubPublication.Load(new MemoryStream(original));
@@ -31,6 +33,8 @@ public sealed class EpubWriterResourceBoundaryContracts {
     [InlineData("<link rel='stylesheet' href='https://example.test/remote.css'/>", "text/css")]
     [InlineData("<style>p { background-image: url(https://example.test/remote.png); }</style>", "image/png")]
     [InlineData("<style media='print'>p { background-image: url(https://example.test/remote.png); }</style>", "image/png")]
+    [InlineData("<style>@media print { p { background-image: url(https://example.test/remote.png); } }</style>", "image/png")]
+    [InlineData("<style media='print'>p { background-image: image-set(\"https://example.test/remote.png\" 1x); }</style>", "image/png")]
     public async Task RewrittenContent_RejectsProhibitedRemoteResourceKindsEvenWhenManifested(string markup, string mediaType) {
         EpubPublication book = LoadWithRemoteDeclaration("https://example.test/" + (mediaType == "text/css" ? "remote.css" :
             mediaType == "image/png" ? "remote.png" : "remote.xhtml"), mediaType);
@@ -45,6 +49,8 @@ public sealed class EpubWriterResourceBoundaryContracts {
     [InlineData("<iframe src='data:image/png;base64,AQ=='/>")]
     [InlineData("<img src='data:image/svg+xml,%3Csvg%20onload=%22alert(1)%22/%3E' alt='Active'/>")]
     [InlineData("<style>p { background: url(data:image/svg+xml;base64,PHN2ZyBvbmxvYWQ9ImFsZXJ0KDEpIi8+); }</style>")]
+    [InlineData("<style>@media print { p { background: url(data:image/svg+xml;base64,PHN2ZyBvbmxvYWQ9ImFsZXJ0KDEpIi8+); } }</style>")]
+    [InlineData("<style media='print'>p { background: image-set(\"data:image/svg+xml;base64,PHN2ZyBvbmxvYWQ9ImFsZXJ0KDEpIi8+\" 1x); }</style>")]
     [InlineData("<a href='data:text/html,%3Cscript%3Ealert(1)%3C/script%3E'>Open</a>")]
     public async Task RawContent_CannotBypassTheNonScriptedBoundaryWithDataUrls(string markup) {
         EpubPublication book = EpubWritingContracts.CreateBook();
@@ -96,6 +102,33 @@ public sealed class EpubWriterResourceBoundaryContracts {
         Assert.Throws<InvalidDataException>(() => book.Write());
     }
 
+    [Theory]
+    [InlineData("images/")]
+    [InlineData("./")]
+    public void RelativeContentBase_IsAppliedToDirectAndSharedResourceDiscovery(string baseHref) {
+        EpubPublication book = EpubWritingContracts.CreateBook();
+        string path = baseHref == "images/" ? "EPUB/images/cover.png" : "EPUB/cover.png";
+        book.AddResource("image", path, "image/png", new byte[] { 1 });
+        XDocument content = BodyDocument(book, "<img src='cover.png' alt='Cover'/><p style='background-image: url(cover.png)'>Image</p>");
+        content.Root!.Element(Html + "head")!.Elements(Html + "link").Remove();
+        content.Root.Element(Html + "head")!.AddFirst(new XElement(Html + "base", new XAttribute("href", baseHref)));
+        book.SetContentXml("first", content);
+        Assert.NotEmpty(book.Write().Bytes);
+    }
+
+    [Theory]
+    [InlineData("@media print")]
+    [InlineData("@supports (unknown-property: value)")]
+    public void ConditionalRemoteFonts_AreValidatedAndDeclaredAcrossContexts(string condition) {
+        string css = condition + " { @font-face { font-family: test; src: url(https://example.test/font.otf); } }";
+        EpubPublication book = EpubWritingContracts.CreateBook();
+        SetBody(book, "<style>" + css + "</style>");
+        Assert.Throws<InvalidDataException>(() => book.Write());
+        book = LoadWithRemoteDeclaration("https://example.test/font.otf", "font/otf");
+        SetBody(book, "<style>" + css + "</style>");
+        Assert.Contains("remote-resources", EpubPublication.Load(new MemoryStream(book.Write().Bytes)).Manifest.Single(item => item.Id == "first").Properties!);
+    }
+
     [Fact]
     public async Task SvgDataDocuments_AndNewEmbedsOfRetainedScriptedContentAreRejected() {
         EpubPublication book = EpubWritingContracts.CreateBook();
@@ -108,6 +141,20 @@ public sealed class EpubWriterResourceBoundaryContracts {
         book = EpubPublication.Load(new MemoryStream(input));
         SetBody(book, "<iframe src='second.xhtml'/>");
         await AssertRejectedSave<NotSupportedException>(book);
+    }
+
+    [Theory]
+    [InlineData(false, "javascript:alert(1)")]
+    [InlineData(true, "javascript:alert(1)")]
+    [InlineData(false, "file:///private.txt")]
+    [InlineData(true, "vbscript:alert(1)")]
+    public async Task SvgXlinkHyperlinks_UseTheSharedHyperlinkPolicy(bool standalone, string url) {
+        EpubPublication book = EpubWritingContracts.CreateBook();
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'><a xlink:href='" + url + "'><text>Open</text></a></svg>";
+        if (standalone) book.AddResource("vector", "EPUB/vector.svg", "image/svg+xml", Encoding.UTF8.GetBytes(svg));
+        else SetBody(book, svg);
+        if (url.StartsWith("file:", StringComparison.Ordinal)) await AssertRejectedSave<InvalidDataException>(book);
+        else await AssertRejectedSave<NotSupportedException>(book);
     }
 
     [Theory]

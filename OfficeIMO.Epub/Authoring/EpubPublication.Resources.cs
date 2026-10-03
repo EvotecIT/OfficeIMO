@@ -23,22 +23,22 @@ public sealed partial class EpubPublication {
         var scripted = new HashSet<string>(manifest.Where(item => item.Reference.Kind == EpubReferenceKind.Container &&
             (HasToken(item.Properties, "scripted") || IsScriptMediaType(item.MediaType))).Select(item => item.Reference.ContainerPath!), StringComparer.Ordinal);
         bool hasRemoteResources = false;
+        string? baseHref = content.Root?.Name == Html + "html" ? content.Root.Element(Html + "head")?.Elements(Html + "base")
+            .Select(element => (string?)element.Attribute("href")).FirstOrDefault(value => value != null) : null;
         // Rendering selects alternatives; publication validation must also inspect inactive direct carriers.
         foreach (var resource in DirectContentResources(content, owner, token)) Validate(resource.Reference, resource.Kind);
         // The shared owner additionally discovers inline CSS and its font/image dependencies.
         foreach (HtmlResourceReference resource in resources.Resources) {
             token.ThrowIfCancellationRequested();
-            Validate(EpubReference.Resolve(owner, resource.ResolvedSource.Length == 0 ? resource.Source : resource.ResolvedSource), resource.Kind);
+            Validate(EpubReference.Resolve(owner, baseHref, resource.ResolvedSource.Length == 0 ? resource.Source : resource.ResolvedSource), resource.Kind);
         }
-        string? baseHref = content.Root?.Name == Html + "html" ? content.Root.Element(Html + "head")?.Elements(Html + "base")
-            .Select(element => (string?)element.Attribute("href")).FirstOrDefault(value => value != null) : null;
         // Inspect retained inline CSS independently of the renderer's current media selection.
         foreach (string css in content.Descendants().Where(element => element.Name.LocalName == "style" &&
             (element.Name.Namespace == Html || element.Name.NamespaceName == "http://www.w3.org/2000/svg")).Select(element => element.Value)
             .Concat(content.Descendants().Attributes("style").Select(attribute => attribute.Value))) {
             token.ThrowIfCancellationRequested();
             HtmlExternalStylesheetAnalysis analysis = HtmlResourcePipeline.AnalyzeExternalStylesheet(css,
-                new Uri("epub://package/" + EncodePath(owner)), new HtmlResourcePipelineOptions());
+                new Uri("epub://package/" + EncodePath(owner)), new HtmlResourcePipelineOptions(), includeInactiveResources: true);
             foreach (HtmlResourceReference resource in analysis.Imports.Select(import => import.Reference).Concat(analysis.FontResources).Concat(analysis.ImageResources))
                 Validate(EpubReference.Resolve(owner, baseHref, resource.Source), resource.Kind);
         }
