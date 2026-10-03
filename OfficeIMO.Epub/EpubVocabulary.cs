@@ -2,6 +2,27 @@ namespace OfficeIMO.Epub;
 
 /// <summary>Shared package vocabulary expansion for extraction and authoring.</summary>
 internal static class EpubVocabulary {
+    private const string PackageVocabulary = "http://idpf.org/epub/vocab/package/#";
+
+    // Prefix declarations cannot alias vocabularies that EPUB assigns without prefixes.
+    internal static void ValidateDeclaration(string prefix, string vocabularyUri) {
+        XmlConvert.VerifyNCName(prefix);
+        if (prefix == "_") throw new ArgumentException("EPUB reserves the underscore prefix.", nameof(prefix));
+        if (!Uri.TryCreate(vocabularyUri, UriKind.Absolute, out Uri? uri) || !uri.IsWellFormedOriginalString() || vocabularyUri.Any(char.IsWhiteSpace))
+            throw new ArgumentException("Vocabulary must have a well-formed absolute URI without whitespace.", nameof(vocabularyUri));
+        if (new[] { PackageVocabulary, "http://idpf.org/epub/vocab/package/item/#", "http://idpf.org/epub/vocab/package/itemref/#",
+            "http://idpf.org/epub/vocab/package/link/#", "http://idpf.org/epub/vocab/structure/#", "http://purl.org/dc/elements/1.1/" }
+            .Contains(uri.AbsoluteUri, StringComparer.Ordinal))
+            throw new ArgumentException("Default EPUB vocabularies and Dublin Core elements cannot be assigned a prefix.", nameof(vocabularyUri));
+    }
+
+    internal static void ValidatePropertyName(XElement package, string property) {
+        int colon = property.IndexOf(':');
+        if (property.Any(char.IsWhiteSpace) || colon == 0 || colon == property.Length - 1 ||
+            (colon > 0 && !ReadPrefixes((string?)package.Attribute("prefix") ?? string.Empty).ContainsKey(property.Substring(0, colon))))
+            throw new ArgumentException("Metadata properties require a nonempty reference and a declared or reserved prefix.", nameof(property));
+    }
+
     internal static Dictionary<string, string> ReadPrefixes(string declaration, Action? invalid = null) {
         var prefixes = new Dictionary<string, string>(StringComparer.Ordinal) {
             ["rendition"] = "http://www.idpf.org/vocab/rendition/#", ["dcterms"] = "http://purl.org/dc/terms/",
@@ -19,7 +40,7 @@ internal static class EpubVocabulary {
     }
     internal static string Expand(XElement package, string property) {
         int colon = property.IndexOf(':');
-        if (colon < 0) return "http://idpf.org/epub/vocab/package/#" + property;
+        if (colon < 0) return PackageVocabulary + property;
         var prefixes = ReadPrefixes((string?)package.Attribute("prefix") ?? string.Empty);
         return prefixes.TryGetValue(property.Substring(0, colon), out string? vocabulary) ? vocabulary + property.Substring(colon + 1) : property;
     }

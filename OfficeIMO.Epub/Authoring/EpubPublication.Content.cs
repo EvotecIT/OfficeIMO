@@ -112,7 +112,7 @@ public sealed partial class EpubPublication {
     /// <summary>Selects a manifest image as the cover, preserving other item properties.</summary>
     public void SetCoverImage(string manifestId) {
         EpubManifestItem selected = RequireManifestItem(manifestId);
-        if (!selected.MediaType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("Cover must be an image resource.");
+        if (!IsImageMediaType(selected.MediaType)) throw new ArgumentException("Cover must be an image resource.");
         if (PackageVersion == "3.0") {
             EditPackageElement(RequireSection("manifest"), proposed => {
                 foreach (XElement item in proposed.Elements(Opf + "item")) {

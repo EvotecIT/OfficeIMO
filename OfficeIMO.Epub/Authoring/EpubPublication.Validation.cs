@@ -42,6 +42,7 @@ public sealed partial class EpubPublication {
                 if (!chain.Add(current.Id)) throw new InvalidDataException("Cyclic manifest fallback chain.");
             }
         }
+        ValidateManifestDeclarations(manifest, byId, metadata);
         foreach (XAttribute refinement in root.Descendants().Where(element => element.Name == Opf + "meta" || element.Name == Opf + "link").Attributes("refines")) {
             EpubReference reference = EpubReference.Resolve(PackagePath, refinement.Value);
             if (reference.Kind != EpubReferenceKind.Container || reference.ContainerPath == null)
@@ -64,8 +65,8 @@ public sealed partial class EpubPublication {
         foreach (XElement position in spine) {
             string id = (string?)position.Attribute("idref") ?? string.Empty;
             if (!byId.TryGetValue(id, out EpubManifestItem? item)) throw new InvalidDataException("Spine manifest id missing: " + id);
-            while (!HasMediaType(item.MediaType, "application/xhtml+xml") && !HasMediaType(item.MediaType, "image/svg+xml") && item.FallbackId != null) item = byId[item.FallbackId];
-            if (!HasMediaType(item.MediaType, "application/xhtml+xml") && !HasMediaType(item.MediaType, "image/svg+xml")) throw new NotSupportedException("Spine item has no XHTML/SVG fallback: " + id);
+            while (!IsSupportedContentDocument(item.MediaType) && item.FallbackId != null) item = byId[item.FallbackId];
+            if (!IsSupportedContentDocument(item.MediaType)) throw new NotSupportedException("Spine item has no supported EPUB " + PackageVersion + " content-document fallback: " + id);
         }
         string navPath = NavigationPath();
         XDocument navigation = ParseXml(entries[navPath], _maximumEntryBytes);

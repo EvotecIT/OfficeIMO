@@ -60,6 +60,7 @@ public sealed partial class EpubPublication {
     private void ValidateMetadataProperty(string property, string value, string? refines) {
         if (PackageVersion != "3.0") throw new NotSupportedException("EPUB 3 property metadata is unavailable in OPF 2.");
         RequireText(property, nameof(property)); RequireText(value, nameof(value));
+        EpubVocabulary.ValidatePropertyName(Root, property);
         if (refines != null && (!refines.StartsWith("#", StringComparison.Ordinal) ||
             !Root.DescendantsAndSelf().Any(element => (string?)element.Attribute("id") == refines.Substring(1))))
             throw new ArgumentException("A refinement must target an existing package id.", nameof(refines));
@@ -67,8 +68,7 @@ public sealed partial class EpubPublication {
     /// <summary>Declares a custom vocabulary prefix without replacing other declarations.</summary>
     public void DeclareVocabularyPrefix(string prefix, string vocabularyUri) {
         if (PackageVersion != "3.0") throw new NotSupportedException("Vocabulary declarations require EPUB 3.");
-        XmlConvert.VerifyNCName(prefix);
-        if (!Uri.TryCreate(vocabularyUri, UriKind.Absolute, out _)) throw new ArgumentException("Vocabulary must have an absolute URI.", nameof(vocabularyUri));
+        EpubVocabulary.ValidateDeclaration(prefix, vocabularyUri);
         string current = (string?)Root.Attribute("prefix") ?? string.Empty;
         string[] parts = current.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
         if (parts.Where((_, index) => index % 2 == 0).Contains(prefix + ":")) throw new ArgumentException("Vocabulary prefix already declared.", nameof(prefix));
