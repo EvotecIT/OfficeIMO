@@ -52,6 +52,7 @@ public sealed partial class InvoiceWorkbenchViewModel {
     }
     private InvoiceValidator? CaptureValidator() {
         if (!RequireStandards) return null;
+        if (!IsStandardsAvailable) throw new NotSupportedException(StandardsHint);
         if (string.IsNullOrWhiteSpace(RuleBundlePath) || string.IsNullOrWhiteSpace(SaxonJarPath))
             throw new ArgumentException(T("RulesRequired", "Select the pinned rule bundle and Saxon JAR before requesting standards checks."));
         return new(InvoiceRuleBundle.Load(RuleBundlePath, Nonempty(PeppolRulesPath), Nonempty(FacturXRulesPath)),

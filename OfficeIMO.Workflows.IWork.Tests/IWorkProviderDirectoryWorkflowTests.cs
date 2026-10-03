@@ -119,8 +119,11 @@ public sealed class IWorkProviderDirectoryWorkflowTests {
     }
 
     private sealed class PathGuard(string root) : IOfficeWorkflowPublicationGuard {
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) =>
-            ValueTask.FromResult(path != root && !path.StartsWith(root + "/", StringComparison.Ordinal));
+        private readonly string _root = new Uri(root).AbsoluteUri.TrimEnd('/');
+        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
+            string destination = new Uri(path).AbsoluteUri.TrimEnd('/');
+            return ValueTask.FromResult(destination != _root && !destination.StartsWith(_root + "/", StringComparison.Ordinal));
+        }
     }
 
     private sealed class Guard(Func<bool> check) : IOfficeWorkflowPublicationGuard {

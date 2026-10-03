@@ -10,7 +10,8 @@ internal static partial class OfficeConversionBatchExecutor {
     public static async Task<OfficeConversionBatchResult> RunAsync(IOfficeWorkflowRunner runner, OfficeConversionBatchRequest request,
         IProgress<OfficeConversionBatchItemResult>? progress = null, CancellationToken cancellationToken = default,
         IOfficeWorkflowPublicationGuard? publicationGuard = null) {
-        OfficeConversionBatchRequest settings = Snapshot(request);
+        OfficeWorkflowRoute[] routes = runner.ConversionRoutes.Where(route => route.CanExecute).ToArray();
+        OfficeConversionBatchRequest settings = Snapshot(request, routes);
         cancellationToken.ThrowIfCancellationRequested();
         if (publicationGuard != null &&
             (!await publicationGuard.CanPublishAsync(settings.OutputDirectory, true, cancellationToken).ConfigureAwait(false) ||
@@ -32,7 +33,7 @@ internal static partial class OfficeConversionBatchExecutor {
             await Parallel.ForEachAsync(SelectInputs(settings, cancellationToken),
                 new ParallelOptions { MaxDegreeOfParallelism = settings.MaximumConcurrency, CancellationToken = cancellationToken }, async (input, token) => {
                     if (Interlocked.Increment(ref discovered) > settings.MaximumFiles) throw new InvalidDataException("Conversion selection exceeds its file limit.");
-                    OfficeWorkflowRoute? route = SelectRoute(settings, input);
+                    OfficeWorkflowRoute? route = SelectRoute(settings, input, routes);
                     if (route == null) {
                         Interlocked.Increment(ref skipped);
                         progress?.Report(new(input, null, null, false, "No selected executable conversion route.",
@@ -46,7 +47,7 @@ internal static partial class OfficeConversionBatchExecutor {
                     if (settings.CheckpointDirectory == null) {
                         OfficeWorkflowResult result = await runner.RunAsync(new OfficeWorkflowRequest {
                             InputPath = input, OutputPath = output, Operation = OfficeWorkflowOperation.Convert,
-                            ConversionRouteId = route.Id, ConversionOptions = settings.ConversionOptions.ForRoute(route.Id),
+                            ConversionRouteId = route.Id, ConversionOptions = settings.ConversionOptions.ForRoute(route),
                             OutputProfile = settings.OutputProfile, ConflictPolicy = settings.ConflictPolicy, PublicationGuard = publicationGuard, PdfPassword = settings.PdfPassword,
                             Limits = new OfficeWorkflowLimits { MaximumInputBytes = settings.MaximumInputBytes, MaximumOutputBytes = settings.MaximumOutputBytes }
                         }, cancellationToken: token).ConfigureAwait(false);
@@ -73,6 +74,8 @@ internal static partial class OfficeConversionBatchExecutor {
         string? stagingPath = null;
         bool pendingRecorded = false;
         try {
+            if (OfficeWorkflowCatalog.FindExecutable(routeId) is null)
+                throw new NotSupportedException("Registered conversion routes require an ordinary batch without checkpoints; their runtime configuration cannot be fingerprinted.");
             EnsureNoLinks(input); EnsureNoLinks(output);
             string sourceRoot = settings.InputDirectory ?? Path.GetDirectoryName(input)!;
             inputHash = await HashFileAsync(input, sourceRoot, settings.MaximumInputBytes, token).ConfigureAwait(false);

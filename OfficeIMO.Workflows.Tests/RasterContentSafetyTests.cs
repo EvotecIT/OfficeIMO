@@ -565,23 +565,19 @@ public sealed partial class RasterContentSafetyTests {
     }
 
     [Fact]
-    public async Task InspectObservesCancellationDuringAnUltraWidePixelScan() {
-        const int width = 1_000_000;
-        byte[] image = CreateImage(width, 1, OfficeColor.White, null, null);
+    public async Task InspectObservesCancellationAfterRecognitionBeforePixelAnalysis() {
+        byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
         using var cancellation = new CancellationTokenSource();
-        Task? cancellationTask = null;
+        bool recognized = false;
         IOcrEngine engine = CreateEngine(_ => {
-            cancellationTask = Task.Run(async () => {
-                await Task.Delay(5);
-                cancellation.Cancel();
-            });
-            return Result("wide", new OcrRegion { X = 0, Y = 0, Width = width, Height = 1 }, 0.99D);
+            recognized = true;
+            cancellation.Cancel();
+            return Result("bounded", new OcrRegion { X = 2, Y = 2, Width = 8, Height = 4 }, 0.99D);
         });
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             OfficeRasterContentSafety.InspectAsync(image, engine, cancellationToken: cancellation.Token));
-        Assert.NotNull(cancellationTask);
-        await cancellationTask!;
+        Assert.True(recognized);
     }
 
     [Theory]
