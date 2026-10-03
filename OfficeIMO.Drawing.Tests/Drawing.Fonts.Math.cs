@@ -28,12 +28,25 @@ public sealed partial class DrawingTests {
                 CancellationToken.None, out int bytes, out _, 16 * 1024 * 1024)) return;
         Assert.True(bytes > 0);
         Assert.True(fonts.TryResolveFaceForText("x2", "math", OfficeFontStyle.Regular, out OfficeFontFace? firstFace));
+        // Allow the original collection as well as the retained standalone face, but
+        // do not charge a speculative CFF copy before reaching the TrueType route.
+        int exactBudget = bytes;
+        if (!firstFace!.Program.IsOpenTypeCff
+            && OfficeTrueTypeFont.TryLoadFontFamily("math", out string? sourcePath) != null
+            && sourcePath != null) {
+            exactBudget = Math.Max(bytes, checked((int)new System.IO.FileInfo(sourcePath).Length));
+        }
+        var exact = new OfficeFontFaceCollection();
+        Assert.True(exact.TryAddInstalledFamily("math", OfficeFontFaceDescriptor.Regular,
+            exactBudget, CancellationToken.None, out int exactBytes, out string? exactError,
+            16 * 1024 * 1024), exactError);
+        Assert.Equal(bytes, exactBytes);
         // A second request for another style must not charge the same retained static
         // program again; this also protects the following fonts' operation-wide budget.
         Assert.True(fonts.TryAddInstalledFamily("math", new OfficeFontFaceDescriptor(700, 100D, OfficeFontSlant.Italic),
             1, CancellationToken.None, out int repeatedBytes, out _, 1));
         Assert.Equal(0, repeatedBytes);
-        if (firstFace!.Program.IsOpenTypeCff) {
+        if (firstFace.Program.IsOpenTypeCff) {
             var configured = new OfficeFontFaceCollection();
             int resolverCalls = 0;
             configured.FontVariationResolver = _ => { resolverCalls++; return null; };

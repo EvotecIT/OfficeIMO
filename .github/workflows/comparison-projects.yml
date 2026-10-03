@@ -83,18 +83,37 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Install multilingual fixture fonts
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends fonts-noto-cjk fonts-noto-core
       - name: Validate static conversion correctness
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $false
+          $failedFrameworks = @()
+          foreach ($framework in @('net8.0', 'net10.0')) {
+            dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj --configuration Release --framework $framework --filter 'Category!=Performance' --logger "trx;LogFileName=html-$framework.trx" --results-directory "$env:RUNNER_TEMP/html-static-tests"
+            if ($LASTEXITCODE -ne 0) { $failedFrameworks += $framework }
+          }
+          if ($failedFrameworks.Count -gt 0) { throw "Static correctness failed: $($failedFrameworks -join ', ')" }
+      - name: Validate installed math font resource accounting
+        if: ${{ !cancelled() }}
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
           foreach ($framework in @('net8.0', 'net10.0')) {
-            dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj --configuration Release --framework $framework --filter 'Category!=Performance' --logger "trx;LogFileName=html-$framework.trx" --results-directory "$env:RUNNER_TEMP/html-static-tests"
+            dotnet test OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration Release --framework $framework --filter 'FullyQualifiedName~InstalledMathFontRetainsOperationBoundsAndCancellationWhenAvailable' --logger "trx;LogFileName=drawing-math-$framework.trx" --results-directory "$env:RUNNER_TEMP/html-static-tests"
           }
       - name: Validate packed public consumers
+        if: ${{ !cancelled() }}
         shell: pwsh
         run: ./Build/Test-HtmlPackages.ps1
       - name: Enforce opt-in static resource budgets
+        if: ${{ !cancelled() }}
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'

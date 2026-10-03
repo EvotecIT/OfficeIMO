@@ -110,6 +110,12 @@ public sealed partial class OfficeFontFaceCollection {
         try {
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
             long length = stream.Length;
+            // TrueType and collection candidates belong to the named-face loader below.
+            // Do not spend a CFF snapshot budget on a file this route cannot accept.
+            if (length < 4 || stream.ReadByte() != 'O' || stream.ReadByte() != 'T'
+                || stream.ReadByte() != 'T' || stream.ReadByte() != 'O') return null;
+            cancellationToken.ThrowIfCancellationRequested();
+            stream.Position = 0;
             if (length > maximumSourceBytes) {
                 error = "Installed font source exceeds the per-resource byte limit.";
                 return null;

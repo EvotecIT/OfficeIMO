@@ -78,18 +78,25 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlMathMlPdf_SvgForeignObjectsShareTheParentInstalledFontBudget() {
-        HtmlRenderDocument probe = HtmlRenderEngine.Render(HtmlConversionDocument.Parse("<math><mtext>x</mtext></math>"));
-        if (!probe.Fonts.TryResolveFaceForText("x", "math", OfficeFontStyle.Regular, out _)) return;
+        HtmlRenderDocument probe = HtmlPdfRenderedConverter.Convert(
+            HtmlConversionDocument.Parse("<math><mtext>PARENT</mtext></math>"), new HtmlToPdfOptions())
+            .RenderResult!.Document;
+        if (!probe.Fonts.TryResolveFaceForText("x", "math", OfficeFontStyle.Regular, out OfficeFontFace? face)) return;
         HtmlDiagnostic loaded = Assert.Single(probe.Diagnostics, item => item.Code == "InstalledFontResolved");
         long decodedBytes = long.Parse(loaded.Detail!.Split('=')[2], System.Globalization.CultureInfo.InvariantCulture);
+        long fontBudget = decodedBytes;
+        if (!face!.Program.IsOpenTypeCff
+            && OfficeTrueTypeFont.TryLoadFontFamily("math", out string? sourcePath) != null
+            && sourcePath != null) {
+            fontBudget = Math.Max(fontBudget, new FileInfo(sourcePath).Length);
+        }
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='200' height='40'>"
             + "<foreignObject width='200' height='40'><div xmlns='http://www.w3.org/1999/xhtml' "
             + "style='font-family:math'>NESTED</div></foreignObject></svg>";
         string image = "<img src='data:image/svg+xml;base64,"
             + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)) + "'>";
         var options = new HtmlToPdfOptions {
-            MaxResourceBytes = decodedBytes,
-            MaxTotalResourceBytes = decodedBytes + System.Text.Encoding.UTF8.GetByteCount(svg) * 2L + 1L
+            MaxTotalResourceBytes = fontBudget + System.Text.Encoding.UTF8.GetByteCount(svg) * 2L + 1L
         };
         HtmlPdfRenderResult result = HtmlPdfRenderedConverter.Convert(
             HtmlConversionDocument.Parse("<math><mtext>PARENT</mtext></math>" + image + image), options);

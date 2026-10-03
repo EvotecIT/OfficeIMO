@@ -13,7 +13,10 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlStacking_PdfLogicalOwnerAccountsForAllRenderableLayers(string first, string firstStyle, string second, string expected) {
         string html = "<p style='margin:0'><span style='position:relative;z-index:2;font-family:MissingIcon;" + firstStyle + "'>" + first
             + "</span><span style='position:relative;z-index:1;font-family:MissingIcon'>" + second + "</span></p>";
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions { AutoFitWidePrintContent = false });
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+            AutoFitWidePrintContent = false,
+            ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
+        });
         string text = OfficeIMO.Pdf.PdfReadDocument.Open(pdf).ExtractText();
         Assert.Contains(expected, text);
         Assert.DoesNotContain("\uF42B", text);

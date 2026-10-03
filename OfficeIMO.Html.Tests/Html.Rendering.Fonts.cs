@@ -14,7 +14,10 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<style>.icon::before{font-family:MissingIcon;content:'\\F42B'}</style>"
             + "<p class='icon'>Voyager Overview</p>";
 
-        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult();
+        var options = new HtmlToPdfOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        };
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
         string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
 
         Assert.Contains("Voyager Overview", extracted, StringComparison.Ordinal);
@@ -27,7 +30,8 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlConversionException strictFailure = Assert.Throws<HtmlConversionException>(() =>
             HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
-                FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+                FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+                ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
             }));
         Assert.Contains(strictFailure.Diagnostics,
             diagnostic => diagnostic.Code == HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted);
@@ -40,7 +44,9 @@ public sealed partial class HtmlRenderingTests {
             + Convert.ToBase64String(iconFont)
             + "')}.icon::before{font-family:Icon;content:'\\F42B'}</style><p class='icon'>Voyager Overview</p>";
 
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlToPdfOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        };
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
         PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
         Assert.Contains(result.Report.Warnings,
@@ -79,7 +85,9 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_MixedFontVerticalPrivateUseTextExtractsOnlyPaintedGlyph() {
         const string glyph = "\uF50E";
         string fontPath = Path.Combine(AppContext.BaseDirectory, "Fonts", "RobotoFlex.ttf");
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlToPdfOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        };
         options.PdfOptions.RegisterNamedFontFamily(
             new PdfCore.PdfEmbeddedFontFamily("CallerIcon", File.ReadAllBytes(fontPath)));
         string html = "<p style='writing-mode:vertical-rl;text-orientation:upright'>"
@@ -107,7 +115,10 @@ public sealed partial class HtmlRenderingTests {
         string html = "<p style='writing-mode:vertical-rl;text-orientation:upright;font-family:MissingIcon'>"
             + sourceText + "</p>";
 
-        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult();
+        var options = new HtmlToPdfOptions {
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
+        };
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
         string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
 
         Assert.DoesNotContain("\uF42B", extracted, StringComparison.Ordinal);
