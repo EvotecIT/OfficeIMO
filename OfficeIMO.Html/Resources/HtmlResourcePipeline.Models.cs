@@ -4,17 +4,21 @@ namespace OfficeIMO.Html;
 
 public static partial class HtmlResourcePipeline {
     private sealed class CssImportReference {
-        internal CssImportReference(int start, int end, string source, string conditionText) {
+        internal CssImportReference(int start, int end, string source, string conditionText, int sourceStart, int sourceEnd) {
             Start = start;
             End = end;
             Source = source;
             ConditionText = conditionText;
+            SourceStart = sourceStart;
+            SourceEnd = sourceEnd;
         }
 
         internal int Start { get; }
         internal int End { get; }
         internal string Source { get; }
         internal string ConditionText { get; }
+        internal int SourceStart { get; }
+        internal int SourceEnd { get; }
     }
 
     private sealed class SourceRange {

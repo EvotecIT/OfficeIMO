@@ -388,6 +388,7 @@ public sealed partial class MainWindowViewModel {
         if (ConversionWorkbench.CanCancel) ConversionWorkbench.CancelCommand.Execute(null);
         if (ConversionWorkbench.BatchExport.IsBusy) ConversionWorkbench.BatchExport.CancelCommand.Execute(null);
         if (InvoiceWorkbench.CanCancel) InvoiceWorkbench.CancelCommand.Execute(null);
+        if (BookWorkbench.IsBusy) BookWorkbench.CancelCommand.Execute(null);
         if (OutputWorkbench.CanCancel) OutputWorkbench.CancelCommand.Execute(null);
         if (ProvenanceWorkbench.CanCancel) ProvenanceWorkbench.CancelCommand.Execute(null);
         if (DocumentHealth.CanCancel) DocumentHealth.CancelCommand.Execute(null);
