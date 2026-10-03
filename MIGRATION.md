@@ -23,6 +23,10 @@ Normalized RTF writing accepts `UnicodeSkipCount` values from 0 through 8. Set a
 
 ## LaTeX editing and conversion contracts
 
+Known required arguments now accept an unbraced character or control sequence as one token. Code that treated `LATEX007` as a rejection of every unbraced argument should instead inspect `LatexArgument.IsSingleToken` and the actual missing-argument diagnostics. For example, `\textbf ABC` binds only `A`; an edited replacement is written in braces. Handle the additive `LatexSyntaxKind.SingleTokenArgument` enum member in exhaustive syntax switches.
+
+LaTeX footnotes now produce typed Markdown references and definitions. Reader block mode includes `SourceBlockKind = "footnote"` at the note's source location and heading path. Consumers that switch on block kinds should handle it; definition text is separate from the surrounding paragraph.
+
 LaTeX conversion projects the current edited source. Reader locations and conversion diagnostic spans refer to that rebound source; native syntax spans continue to describe the original parse. Conflicting edits to the same span now throw instead of silently selecting one replacement. Edit one representation, or use identical replacements when two views describe the same region.
 
 Parse options, including opaque environment names and macro budgets, are snapshotted. Reparse with new options to change an existing document's interpretation or expansion limits.

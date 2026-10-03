@@ -26,6 +26,10 @@ OfficeIMO.TestAssets/ScanQuality/sources.json text eol=lf
 # producer line endings, because corpus SHA-256 checks must match on every OS.
 OfficeIMO.Rtf.Tests/Documents/RtfCorpus/**/*.rtf -text -diff
 
+# Independent LaTeX input hashes identify the upstream bytes on every platform.
+OfficeIMO.Latex.Tests/Fixtures/latex2e/*.tex -text
+OfficeIMO.Latex.Tests/Fixtures/latex2e/*.txt -text
+
 # Public showcase downloads are generated binary evidence. Preserve exact bytes
 # so the committed manifest hashes remain stable across platforms and checkouts.
 Website/static/downloads/showcase/** -text -diff

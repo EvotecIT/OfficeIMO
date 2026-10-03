@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Latex\OfficeIMO.Latex.csproj" />
+    <None Update="Fixtures\latex2e\*.tex" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
