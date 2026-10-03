@@ -14,6 +14,7 @@
         <Setter Property="Padding" Value="0" />
         <Setter Property="Margin" Value="0,0,2,0" />
         <Setter Property="MinHeight" Value="0" />
+        <Setter Property="FocusAdorner" Value="{x:Null}" />
         <Setter Property="AutomationProperties.Name" Value="{Binding Title}" />
         <Setter Property="Template">
           <ControlTemplate>
@@ -48,4 +49,13 @@
   <Style Selector="TabItem:pointerover Button.tabClose.dirty, TabItem:focus-within Button.tabClose.dirty"><Setter Property="Opacity" Value="1" /></Style>
   <Style Selector="TabItem:pointerover Ellipse.dirtyDot, TabItem:focus-within Ellipse.dirtyDot"><Setter Property="Opacity" Value="0" /></Style>
   <Style Selector="Button.tabClose:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" /></Style>
+  <Style Selector="TabControl#DocumentTabs.reordering"><Setter Property="Cursor" Value="SizeWestEast" /></Style>
+  <Style Selector="TabItem.dropBefore Border.documentTab">
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+    <Setter Property="BorderThickness" Value="3,0,0,0" />
+  </Style>
+  <Style Selector="TabItem.dropAfter Border.documentTab">
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,3,0" />
+  </Style>
 </Styles>

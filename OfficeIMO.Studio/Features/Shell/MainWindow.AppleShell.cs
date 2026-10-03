@@ -53,7 +53,8 @@ public sealed partial class MainWindow {
         Grid.SetColumnSpan(TitleBar, sidebar > 0 ? 1 : 2);
         TitleBar.Margin = new Thickness(apple && _sidebarHidden && !narrow ? 52 : 0, 0, apple ? 10 : 0, 0);
         TitleBar.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
-        TitleBar.ColumnDefinitions[1].Width = new GridLength(0);
+        TitleBar.ColumnDefinitions[1].Width = narrow && TabHost.HasTabs ? GridLength.Auto : new GridLength(0);
+        CompactCloseDocumentButton.IsVisible = narrow && TabHost.HasTabs;
         TitleDocuments.IsVisible = !narrow;
         CompactDocumentPicker.IsVisible = narrow && TabHost.HasTabs;
         CompactTitle.IsVisible = narrow && !TabHost.HasTabs;

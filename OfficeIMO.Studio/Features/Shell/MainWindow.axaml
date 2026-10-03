@@ -74,7 +74,7 @@
                  ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab, Mode=TwoWay}"
                  IsVisible="{Binding HasTabs}" VerticalAlignment="Center"
                  AutomationProperties.Name="{loc:Loc Apple.OpenDocuments}"
-                 SelectionChanged="OnDocumentTabSelectionChanged" KeyDown="OnDocumentTabsKeyDown"
+                 SelectionChanged="OnDocumentTabSelectionChanged"
                  Background="Transparent" BorderThickness="0" MaxWidth="900"
                  chrome:WindowDecorationProperties.ElementRole="User"
                  ScrollViewer.HorizontalScrollBarVisibility="Hidden" ScrollViewer.VerticalScrollBarVisibility="Disabled">
@@ -109,10 +109,11 @@
           <PathIcon Data="{StaticResource IconPlus}" Width="14" Height="14" />
         </Button>
         <Button x:Name="DocumentListButton" Grid.Column="2" Classes="icon" Width="30" Height="30"
-                VerticalAlignment="Center" Click="OnDocumentListClick"
+                VerticalAlignment="Center"
                 chrome:WindowDecorationProperties.ElementRole="User"
                 AutomationProperties.Name="{loc:Loc Apple.OpenDocuments}" ToolTip.Tip="{loc:Loc Apple.OpenDocuments}">
           <PathIcon Data="{StaticResource IconChevronDown}" Width="12" Height="12" />
+          <Button.Flyout><MenuFlyout Opening="OnDocumentListOpening" Placement="BottomEdgeAlignedRight" /></Button.Flyout>
         </Button>
       </Grid>
 
@@ -149,6 +150,12 @@
                 SelectedItem="{Binding SelectedTab, Mode=TwoWay}" AutomationProperties.Name="{loc:Loc Apple.OpenDocuments}">
         <ComboBox.ItemTemplate><DataTemplate x:DataType="shell:StudioDocumentTabViewModel"><TextBlock Text="{Binding DisplayTitle}" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
       </ComboBox>
+      <Button x:Name="CompactCloseDocumentButton" Grid.Column="1" Classes="icon" IsVisible="False"
+              Width="44" Height="44" VerticalAlignment="Center" Click="OnCloseDocumentClick"
+              chrome:WindowDecorationProperties.ElementRole="User"
+              AutomationProperties.Name="{loc:Loc Apple.CloseDocument}" ToolTip.Tip="{loc:Loc Apple.CloseDocument}">
+        <PathIcon Data="{StaticResource IconClose}" Width="14" Height="14" />
+      </Button>
       <Border x:Name="CaptionButtonsSpacer" Grid.Column="4" Width="0" />
     </Grid>
 

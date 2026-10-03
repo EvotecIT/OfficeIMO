@@ -67,6 +67,15 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
         SelectedTab = Tabs[(current + offset + Tabs.Count) % Tabs.Count];
     }
 
+    /// <summary>Changes strip order without replacing the live document or its selected workspace.</summary>
+    internal void MoveTab(StudioDocumentTabViewModel tab, int index) {
+        int current = Tabs.IndexOf(tab);
+        if (current < 0 || index < 0 || index >= Tabs.Count || current == index) return;
+        var selected = SelectedTab;
+        Tabs.Move(current, index);
+        SelectedTab = selected;
+    }
+
     internal bool CanPublishPath(string path) => CanDocumentOwnPath(null, path);
 
     internal bool CanPublishDirectory(string path) {

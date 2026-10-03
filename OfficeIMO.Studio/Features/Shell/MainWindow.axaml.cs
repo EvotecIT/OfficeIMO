@@ -52,6 +52,7 @@ public sealed partial class MainWindow : Window {
         CommandSearchShortcut.Text = OperatingSystem.IsMacOS() ? "⌘K" : "Ctrl K";
         InitializeChrome();
         InitializeAppleShell();
+        InitializeDocumentTabInteractions();
         AttachOperationToast(ViewModel);
 
         SizeChanged += OnWindowSizeChanged;
