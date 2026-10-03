@@ -15,7 +15,7 @@ public sealed partial class EpubPublication {
         if (PackageVersion == "2.0" && (pages?.Any(node => node.Children.Count != 0) == true || guide?.Any(node => node.Children.Count != 0) == true))
             throw new NotSupportedException("EPUB 2 page-list and guide entries must be flat; nested entries cannot be retained in these sections.");
         string path = NavigationPath();
-        XDocument navigation = ParseXml(_entries[path], 64L * 1024 * 1024);
+        XDocument navigation = ParseXml(_entries[path], _maximumEntryBytes);
         ValidateNavigationRoot(navigation);
         XElement? newGuide = null;
         if (PackageVersion == "3.0") {
@@ -66,7 +66,7 @@ public sealed partial class EpubPublication {
                 }
             }
         }
-        byte[] payload = SerializeXml(navigation);
+        byte[] payload = SerializeXml(navigation, _maximumEntryBytes);
         if (_encryption.Any(encryption => encryption.Path == path)) throw new NotSupportedException("Encrypted navigation cannot be edited.");
         if (payload.LongLength > _maximumEntryBytes) throw new InvalidDataException("Navigation exceeds the retained entry-byte limit.");
         long delta = payload.LongLength - _entries[path].LongLength;
@@ -90,7 +90,7 @@ public sealed partial class EpubPublication {
                 new XElement(Html + "head", new XElement(Html + "title", "Contents")),
                 new XElement(Html + "body", new XElement(Html + "nav", new XAttribute(Ops + "type", "toc"),
                     new XElement(Html + "h1", "Contents"), new XElement(Html + "ol")))));
-            AddResource("navigation", "EPUB/nav.xhtml", "application/xhtml+xml", SerializeXml(navigation), "nav");
+            AddResource("navigation", "EPUB/nav.xhtml", "application/xhtml+xml", SerializeXml(navigation, _maximumEntryBytes), "nav");
         } else {
             var navigation = new XDocument(new XElement(Ncx + "ncx", new XAttribute("version", "2005-1"),
                 new XElement(Ncx + "head", new XElement(Ncx + "meta", new XAttribute("name", "dtb:uid"), new XAttribute("content", Identifier)),
@@ -98,7 +98,7 @@ public sealed partial class EpubPublication {
                     new XElement(Ncx + "meta", new XAttribute("name", "dtb:totalPageCount"), new XAttribute("content", "0")),
                     new XElement(Ncx + "meta", new XAttribute("name", "dtb:maxPageNumber"), new XAttribute("content", "0"))),
                 new XElement(Ncx + "docTitle", new XElement(Ncx + "text", Title)), new XElement(Ncx + "navMap")));
-            AddResource("navigation", "EPUB/toc.ncx", "application/x-dtbncx+xml", SerializeXml(navigation));
+            AddResource("navigation", "EPUB/toc.ncx", "application/x-dtbncx+xml", SerializeXml(navigation, _maximumEntryBytes));
             EditPackageElement(RequireSection("spine"), proposed => proposed.SetAttributeValue("toc", "navigation"));
         }
     }
@@ -114,7 +114,7 @@ public sealed partial class EpubPublication {
     }
     private byte[] PrepareAppendedNavigation(EpubNavigationEntry entry, string pendingPath) {
         string path = NavigationPath();
-        XDocument navigation = ParseXml(_entries[path], 64L * 1024 * 1024);
+        XDocument navigation = ParseXml(_entries[path], _maximumEntryBytes);
         ValidateNavigationRoot(navigation);
         if (PackageVersion == "3.0") {
             XElement nav = navigation.Descendants(Html + "nav").Single(element => HasToken((string?)element.Attribute(Ops + "type"), "toc"));
@@ -126,7 +126,7 @@ public sealed partial class EpubPublication {
             map.Add(BuildNcxNodes(new[] { entry }, path, 0, ref order, NavigationIds(navigation), pendingPath));
             NormalizeNcxPlayOrder(navigation, path);
         }
-        return SerializeXml(navigation);
+        return SerializeXml(navigation, _maximumEntryBytes);
     }
     private void ValidateNavigationRoot(XDocument navigation) {
         if (navigation.Root?.Name != (PackageVersion == "3.0" ? Html + "html" : Ncx + "ncx"))

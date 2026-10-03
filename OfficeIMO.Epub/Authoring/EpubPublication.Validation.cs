@@ -68,7 +68,7 @@ public sealed partial class EpubPublication {
             if (!HasMediaType(item.MediaType, "application/xhtml+xml") && !HasMediaType(item.MediaType, "image/svg+xml")) throw new NotSupportedException("Spine item has no XHTML/SVG fallback: " + id);
         }
         string navPath = NavigationPath();
-        XDocument navigation = ParseXml(entries[navPath], 64L * 1024 * 1024);
+        XDocument navigation = ParseXml(entries[navPath], _maximumEntryBytes);
         ValidateNavigationRoot(navigation);
         ValidateNavigationDocument(navigation, navPath, manifest, spine.Select(item => (string?)item.Attribute("idref") ?? string.Empty));
         var anchors = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
@@ -78,7 +78,7 @@ public sealed partial class EpubPublication {
             token.ThrowIfCancellationRequested();
             string path = RequireLocalPath(item);
             if (_encryption.Any(encryption => encryption.Path == path && encryption.RequiresDecryption)) continue;
-            XDocument content = path == navPath ? navigation : ParseXml(entries[path], 64L * 1024 * 1024);
+            XDocument content = path == navPath ? navigation : ParseXml(entries[path], _maximumEntryBytes);
             anchors[path] = new HashSet<string>(content.Descendants().Attributes().Where(attribute => attribute.Name == "id" ||
                 attribute.Name == XNamespace.Xml + "id").Select(attribute => attribute.Value), StringComparer.Ordinal);
             bool rewritten = !_originalEntries.TryGetValue(path, out byte[]? original) || !original.SequenceEqual(entries[path]) ||
@@ -106,6 +106,13 @@ public sealed partial class EpubPublication {
 
     private static void ValidateContentReferences(XDocument content, string owner, IReadOnlyDictionary<string, byte[]> entries,
         List<(string Owner, EpubReference Reference)> fragmented, CancellationToken token) {
+        foreach (EpubReference reference in ContentResourceReferences(content, owner, token)) {
+            token.ThrowIfCancellationRequested();
+            ValidateTarget(reference, owner, entries, fragmented);
+        }
+    }
+
+    private static IEnumerable<EpubReference> ContentResourceReferences(XDocument content, string owner, CancellationToken token = default) {
         string? baseHref = content.Root?.Name == Html + "html" ? content.Root.Element(Html + "head")?.Elements(Html + "base")
             .Select(element => (string?)element.Attribute("href")).FirstOrDefault(value => value != null) : null;
         foreach (XElement element in content.Descendants()) {
@@ -115,11 +122,10 @@ public sealed partial class EpubPublication {
                 attribute.Name == "poster" || (element.Name == Html + "object" && attribute.Name == "data") ||
                 attribute.Name == XName.Get("href", "http://www.w3.org/1999/xlink"))) {
                 if (element.Name == Html + "base" || string.IsNullOrWhiteSpace(attribute.Value)) continue;
-                EpubReference reference = EpubReference.Resolve(owner, baseHref, attribute.Value);
-                ValidateTarget(reference, owner, entries, fragmented);
+                yield return EpubReference.Resolve(owner, baseHref, attribute.Value);
             }
             if (element.Name.Namespace == Html) foreach (var candidate in OfficeIMO.Html.HtmlSrcSetParser.Enumerate((string?)element.Attribute("srcset")))
-                ValidateTarget(EpubReference.Resolve(owner, baseHref, candidate.Url), owner, entries, fragmented);
+                yield return EpubReference.Resolve(owner, baseHref, candidate.Url);
         }
     }
 

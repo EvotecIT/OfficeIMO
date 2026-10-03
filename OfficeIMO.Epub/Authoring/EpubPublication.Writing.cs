@@ -36,7 +36,7 @@ public sealed partial class EpubPublication {
         if (_encryption.Count != 0 && Identifier != _originalIdentifier) throw new NotSupportedException("Encrypted/obfuscated package identity must remain unchanged.");
         if (changed && PackageVersion == "2.0" && Identifier != _originalIdentifier) {
             string path = NavigationPath();
-            XDocument ncx = ParseXml(entries[path], 64L * 1024 * 1024);
+            XDocument ncx = ParseXml(entries[path], _maximumEntryBytes);
             XElement head = ncx.Root?.Element(Ncx + "head") ?? throw new InvalidDataException("NCX has no metadata head.");
             XElement? uid = head.Elements(Ncx + "meta").FirstOrDefault(meta => (string?)meta.Attribute("name") == "dtb:uid");
             if (uid == null) head.Add(new XElement(Ncx + "meta", new XAttribute("name", "dtb:uid"), new XAttribute("content", Identifier)));
@@ -55,14 +55,15 @@ public sealed partial class EpubPublication {
             if (stamps.Length == 0) metadata.Add(new XElement(Opf + "meta", new XAttribute("property", "dcterms:modified"), value));
             else stamps[0].Value = value;
         }
-        if (changed || !entries.ContainsKey(PackagePath)) entries[PackagePath] = SerializeXml(package);
+        if (changed || !entries.ContainsKey(PackagePath)) entries[PackagePath] = SerializeXml(package, Math.Min(_maximumMetadataBytes, _maximumEntryBytes));
         if (!entries.TryGetValue("mimetype", out byte[]? mimetype) || !mimetype.SequenceEqual(Encoding.ASCII.GetBytes("application/epub+zip")))
             throw new InvalidDataException("Package mimetype must contain exactly application/epub+zip.");
-        if (entries.Count > Math.Min(maxEntries, _maximumEntries)) throw new InvalidDataException("Output exceeds MaxEntries or the retained entry-count limit.");
+        int outputEntryCount = !rewriteArchive && _originalBytes != null ? _originalEntryCount : entries.Count;
+        if (outputEntryCount > Math.Min(maxEntries, _maximumEntries)) throw new InvalidDataException("Output exceeds MaxEntries or the retained entry-count limit.");
         ValidatePublication(package, entries, diagnostics, cancellationToken);
         if (changed) {
             EnsurePackageBudget(package, entries.Where(entry => entry.Key != PackagePath).Sum(entry => entry.Value.LongLength) - RetainedPayloadBytes);
-            entries[PackagePath] = SerializeXml(package);
+            entries[PackagePath] = SerializeXml(package, Math.Min(_maximumMetadataBytes, _maximumEntryBytes));
         }
         long expanded = 0;
         foreach (var entry in entries) {
@@ -72,6 +73,7 @@ public sealed partial class EpubPublication {
             expanded += entry.Value.LongLength;
         }
         if (!rewriteArchive && _originalBytes != null) {
+            if (_originalExpandedBytes > maxExpanded) throw new InvalidDataException("Output exceeds MaxExpandedBytes.");
             if (_originalBytes.LongLength > maxOutput) throw new InvalidDataException("Output exceeds MaxOutputBytes.");
             return new EpubWriteResult((byte[])_originalBytes.Clone(), new EpubWriteReport(true,
                 entries.Keys.OrderBy(path => path, StringComparer.Ordinal), Array.Empty<string>(), Array.Empty<string>(), diagnostics));

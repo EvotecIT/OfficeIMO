@@ -322,8 +322,10 @@ editing. Instances are mutable and are not thread-safe.
 
 `EpubWriteReport` identifies preserved, regenerated, and removed entries. Explicit
 resource or signature removal produces omission diagnostics; `RequireNoLoss` rejects
-them. `RemoveResource` blocks structural and cover references. Update content and
-navigation links before removing their targets.
+them. `RemoveResource` blocks structural and cover references, declared rootfiles,
+and payloads referenced by retained alternate packages or their XHTML/SVG/NCX content.
+Removal fails before mutation if an alternate package or its XML content cannot be
+inspected safely. Update content and navigation links before removing their targets.
 
 Imported duplicate spine references retain their reading positions and produce
 `EPUB_WRITE_RETAINED_DUPLICATE_SPINE`. This preserves the source's semantics but retains
@@ -364,6 +366,9 @@ such as [EPUBCheck](https://github.com/w3c/epubcheck).
 Use `EpubPublicationLoadOptions` for retained input and creation resource limits;
 use `EpubWriteOptions` for output limits, modification time, and compression.
 Retained entry limits include mandatory package entries and apply when adding resources.
+Unedited writes count every physical ZIP record, including directories, against output
+limits. XHTML/SVG/NCX inspection, editing, and write preflight use the configured
+retained entry-byte bound; package XML uses the configured metadata bound.
 Ordinary entries are deflated by default; `mimetype` is always stored first without
 extra fields. Repeated writes of unchanged model state use stable modification metadata
 and deterministic ZIP ordering. Supply `ModifiedAt` for a reproducible timestamp

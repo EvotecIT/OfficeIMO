@@ -20,6 +20,9 @@ public sealed partial class EpubPublication {
     private readonly Dictionary<string, byte[]> _originalEntries;
     private readonly byte[]? _originalBytes;
     private readonly bool _originalHasZipSignature;
+    private readonly int _originalEntryCount;
+    private readonly long _originalExpandedBytes;
+    private readonly string[] _rootfilePaths;
     private readonly IReadOnlyList<EpubEncryptionInfo> _encryption;
     private readonly string? _originalIdentifier;
     private bool _changed;
@@ -31,7 +34,8 @@ public sealed partial class EpubPublication {
     private long _retainedBytes;
 
     private EpubPublication(string path, XDocument package, Dictionary<string, byte[]> entries,
-        byte[]? originalBytes = null, IReadOnlyList<EpubEncryptionInfo>? encryption = null, EpubPublicationLoadOptions? limits = null) {
+        byte[]? originalBytes = null, IReadOnlyList<EpubEncryptionInfo>? encryption = null, EpubPublicationLoadOptions? limits = null,
+        IReadOnlyList<EpubRootfile>? rootfiles = null, int originalEntryCount = 0, long originalExpandedBytes = 0) {
         PackagePath = path;
         _package = package;
         _originalManifest = package.Root!.Element(Opf + "manifest")?.Elements(Opf + "item")
@@ -41,6 +45,9 @@ public sealed partial class EpubPublication {
         _entries = entries;
         _originalEntries = new Dictionary<string, byte[]>(entries, StringComparer.Ordinal);
         _originalBytes = originalBytes;
+        _originalEntryCount = originalEntryCount;
+        _originalExpandedBytes = originalExpandedBytes;
+        _rootfilePaths = rootfiles?.Select(rootfile => rootfile.FullPath).ToArray() ?? new[] { path };
         _encryption = encryption ?? Array.Empty<EpubEncryptionInfo>();
         limits ??= new EpubPublicationLoadOptions();
         _originalHasZipSignature = originalBytes != null && OfficeIMO.Provenance.OfficeProvenanceZip.HasCentralDirectorySignature(originalBytes, limits.MaxEntries);
@@ -121,7 +128,7 @@ public sealed partial class EpubPublication {
     private static EpubPublication LoadBytes(byte[] bytes, EpubPublicationLoadOptions options, CancellationToken token) {
         var source = EpubReader.ReadEditablePackage(bytes, options, token);
         return new EpubPublication(source.OpfPath, ParseXml(source.Entries[source.OpfPath], options.MaxMetadataBytes),
-            source.Entries, bytes, source.Encryption, options);
+            source.Entries, bytes, source.Encryption, options, source.Rootfiles, source.EntryCount, source.ExpandedBytes);
     }
 
     /// <summary>Selected package document path. Other rootfiles and their payloads are preserved.</summary>
@@ -174,7 +181,7 @@ public sealed partial class EpubPublication {
         return XDocument.Load(reader, LoadOptions.PreserveWhitespace);
     }
     internal static byte[] SerializeXml(XDocument document, long maximumBytes = 128L * 1024 * 1024) {
-        using var output = new OfficeBoundedMemoryStream(Math.Min(maximumBytes, 128L * 1024 * 1024));
+        using var output = new OfficeBoundedMemoryStream(maximumBytes);
         using (XmlWriter writer = XmlWriter.Create(output, new XmlWriterSettings {
             Encoding = new UTF8Encoding(false, true), Indent = false, NewLineHandling = NewLineHandling.Entitize
         })) document.Save(writer);

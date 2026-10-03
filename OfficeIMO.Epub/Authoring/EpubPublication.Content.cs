@@ -55,13 +55,13 @@ public sealed partial class EpubPublication {
     }
 
     /// <summary>Returns an independent XML content document for targeted editing.</summary>
-    public XDocument GetContentXml(string manifestId) => ParseXml(GetResourceBytes(manifestId), 64L * 1024 * 1024);
+    public XDocument GetContentXml(string manifestId) => ParseXml(GetResourceBytes(manifestId), _maximumEntryBytes);
 
     /// <summary>Replaces content XML after validating a supported non-scripted XHTML or SVG root.</summary>
     public void SetContentXml(string manifestId, XDocument content) {
         if (content == null) throw new ArgumentNullException(nameof(content));
         ValidateContent(content, RequireManifestItem(manifestId).MediaType);
-        UpdateResource(manifestId, SerializeXml(content));
+        UpdateResource(manifestId, SerializeXml(content, _maximumEntryBytes));
     }
 
     /// <summary>Adds a well-formed XHTML body fragment as a chapter, with a linear spine position and a TOC entry.</summary>
@@ -72,7 +72,7 @@ public sealed partial class EpubPublication {
         if (xhtmlBody == null) throw new ArgumentNullException(nameof(xhtmlBody));
         XElement body;
         using (var reader = XmlReader.Create(new StringReader("<body xmlns='" + Html.NamespaceName + "' xmlns:epub='" + Ops.NamespaceName + "'>" + xhtmlBody + "</body>"),
-            new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 64L * 1024 * 1024 })) {
+            new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = _maximumEntryBytes })) {
             body = XElement.Load(reader, LoadOptions.PreserveWhitespace);
         }
         var head = new XElement(Html + "head", new XElement(Html + "title", title));
@@ -85,7 +85,7 @@ public sealed partial class EpubPublication {
         }
         var document = new XDocument(new XElement(Html + "html", new XAttribute(XNamespace.Xml + "lang", Language), head, body));
         ValidateContent(document, "application/xhtml+xml");
-        byte[] chapterBytes = SerializeXml(document);
+        byte[] chapterBytes = SerializeXml(document, _maximumEntryBytes);
         string navPath = NavigationPath();
         byte[] navBytes = PrepareAppendedNavigation(new EpubNavigationEntry(title, EncodePath(containerPath)), containerPath);
         if (_encryption.Any(encryption => encryption.Path == navPath)) throw new NotSupportedException("Encrypted navigation cannot be edited.");
@@ -169,6 +169,8 @@ public sealed partial class EpubPublication {
             RequireSection("metadata").Elements(Opf + "meta").Any(meta => (string?)meta.Attribute("name") == "cover" && (string?)meta.Attribute("content") == manifestId) ||
             HasMediaType(item.MediaType, "application/x-dtbncx+xml") || _encryption.Any(encryption => encryption.Path == path))
             throw new InvalidOperationException("Resource is referenced by package structure or protection metadata.");
+        if (!Manifest.Any(resource => resource.Id != manifestId && resource.Reference.ContainerPath == path))
+            EnsureRemovalPreservesRootfiles(path);
         EditPackageElement(RequireSection("manifest"), proposed => proposed.Elements(Opf + "item").Single(element => (string?)element.Attribute("id") == manifestId).Remove());
         if (!Manifest.Any(resource => resource.Reference.ContainerPath == path) && _entries.TryGetValue(path, out byte[]? removed)) {
             _entries.Remove(path); _retainedBytes -= removed.LongLength;

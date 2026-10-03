@@ -6,7 +6,8 @@ namespace OfficeIMO.Epub;
 
 internal static partial class EpubReader {
     /// <summary>Reuses package discovery and archive identity checks for loss-aware editing.</summary>
-    internal static (string OpfPath, Dictionary<string, byte[]> Entries, IReadOnlyList<EpubEncryptionInfo> Encryption)
+    internal static (string OpfPath, Dictionary<string, byte[]> Entries, IReadOnlyList<EpubEncryptionInfo> Encryption,
+        IReadOnlyList<EpubRootfile> Rootfiles, int EntryCount, long ExpandedBytes)
         ReadEditablePackage(byte[] bytes, EpubPublicationLoadOptions options, CancellationToken token) {
         token.ThrowIfCancellationRequested();
         OfficeProvenanceZip.ValidateMimetypeEntry(bytes, "application/epub+zip", options.MaxEntries);
@@ -21,6 +22,9 @@ internal static partial class EpubReader {
         var diagnostics = new EpubDiagnosticCollector();
         Dictionary<string, ZipArchiveEntry> index = BuildEntryIndex(archive, readOptions, diagnostics, token);
         if (diagnostics.Items.Count != 0) throw new InvalidDataException("Editing requires unique, safe archive entry paths.");
+        foreach (ZipArchiveEntry entry in archive.Entries) {
+            if (entry.Length > options.MaxEntryBytes) throw new InvalidDataException("Entry exceeds MaxEntryBytes: " + entry.FullName);
+        }
         foreach (var pair in index) {
             if (pair.Value.FullName != pair.Key) throw new InvalidDataException("Editing requires canonical archive paths.");
         }
@@ -39,7 +43,8 @@ internal static partial class EpubReader {
             retained += payload.LongLength;
             entries.Add(pair.Key, payload);
         }
-        return (package.OpfPath, entries, ReadEditableEncryption(index, readOptions, token));
+        return (package.OpfPath, entries, ReadEditableEncryption(index, readOptions, token), rootfiles,
+            archive.Entries.Count, archive.Entries.Sum(entry => entry.Length));
     }
 
     // Inspection may skip unreadable declarations. Editing must identify every protected payload.
