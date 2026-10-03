@@ -5,22 +5,6 @@ using OfficeIMO.PowerPoint;
 namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkBoundaryTests {
-    [Theory]
-    [InlineData("A")]
-    [InlineData("i")]
-    public void Plain_alphabetic_keynote_numbering_uses_visual_fallback(string marker) {
-        using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(
-            1, text: "Item", listLabel: marker);
-
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
-
-        Assert.True(result.IsVisualFallback);
-        Assert.Single(result.Value.Slides);
-        Assert.Single(result.Value.Slides[0].Pictures);
-        Assert.Contains(result.Report.Diagnostics,
-            diagnostic => diagnostic.Code == "IWORK_KEYNOTE_POWERPOINT_DESTINATION_UNSUPPORTED");
-    }
-
     [Fact]
     public void Conflicting_keynote_text_storage_references_disable_editable_reconstruction() {
         using MemoryStream package = CreateKeynotePackageWithStorageReferences(

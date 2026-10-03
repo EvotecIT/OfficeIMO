@@ -31,6 +31,8 @@ namespace OfficeIMO.PowerPoint {
                     : PowerPointSlideBackground.None();
             }
 
+            if (properties.GetFirstChild<A.NoFill>() != null) return PowerPointSlideBackground.None();
+
             A.SolidFill? solidFill = properties.GetFirstChild<A.SolidFill>();
             string? solidColor = null;
             if (solidFill != null) {

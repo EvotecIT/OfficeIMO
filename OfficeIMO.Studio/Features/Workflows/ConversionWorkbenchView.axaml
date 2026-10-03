@@ -91,6 +91,7 @@
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="7">
           <Button Classes="primary" AutomationProperties.Name="{loc:Loc ConversionWorkbench.AddFiles}" Content="{loc:Loc ConversionWorkbench.AddFiles}" Command="{Binding ConversionWorkbench.AddFilesCommand}" />
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc ConversionWorkbench.AddPackage}" Content="{loc:Loc ConversionWorkbench.AddPackage}" Command="{Binding ConversionWorkbench.AddPackageCommand}" />
           <Button Classes="tool" AutomationProperties.Name="{loc:Loc ConversionWorkbench.Remove}" Content="{loc:Loc ConversionWorkbench.Remove}" Command="{Binding ConversionWorkbench.RemoveSelectedCommand}" />
           <Button Classes="tool" AutomationProperties.Name="{loc:Loc ConversionWorkbench.Clear}" Content="{loc:Loc ConversionWorkbench.Clear}" Command="{Binding ConversionWorkbench.ClearQueueCommand}" />
         </StackPanel>
@@ -178,6 +179,11 @@
             <Button Classes="tool" Content="{loc:Loc Conversion.Preview.Action}" Command="{Binding ConversionWorkbench.PreviewOutputCommand}" Margin="0,0,6,6" />
             <Button Classes="tool" Content="{loc:Loc Conversion.Output.Open}" Command="{Binding ConversionWorkbench.OpenOutputCommand}" Margin="0,0,0,6" />
           </WrapPanel>
+          <StackPanel x:Name="ConversionEvidencePanel" IsVisible="{Binding ConversionWorkbench.SelectedJob.HasConversionEvidence}" Spacing="4">
+            <TextBlock Text="{loc:Loc Conversion.IWork.SourceEvidence}" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.ConversionEvidenceSummary}" TextWrapping="Wrap" FontSize="12" />
+            <Expander Header="{loc:Loc Conversion.IWork.SourceFingerprint}"><TextBox x:Name="SourceFingerprintText" Text="{Binding ConversionWorkbench.SelectedJob.SourceFingerprint}" IsReadOnly="True" TextWrapping="Wrap" FontSize="11" /></Expander>
+          </StackPanel>
           <TextBlock Text="{Binding ConversionWorkbench.OutputPreviewStatus}" TextWrapping="Wrap" FontSize="12" />
           <ItemsControl ItemsSource="{Binding ConversionWorkbench.OutputPreviewPages}">
             <ItemsControl.ItemTemplate>
@@ -189,6 +195,16 @@
                      Foreground="{DynamicResource StudioAccentBrush}" FontWeight="SemiBold" TextWrapping="Wrap" />
           <StackPanel Spacing="8" IsEnabled="{Binding ConversionWorkbench.CanEditQueue}">
             <StackPanel Spacing="8" IsEnabled="{Binding ConversionWorkbench.SelectedJob.CanEditOptions}">
+              <StackPanel x:Name="IWorkAcceptancePanel" IsVisible="{Binding ConversionWorkbench.SelectedJob.SupportsIWorkOptions}" Spacing="6">
+                <TextBlock Text="{loc:Loc Conversion.IWork.Representation}" FontWeight="SemiBold" />
+                <ComboBox x:Name="IWorkModeChoice" ItemsSource="{Binding ConversionWorkbench.SelectedJob.IWorkModes}" SelectedItem="{Binding ConversionWorkbench.SelectedJob.IWorkMode, Mode=TwoWay}">
+                  <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Converter={StaticResource ConversionModeLabel}}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBlock Classes="muted" Text="{loc:Loc Conversion.IWork.AcceptanceHint}" TextWrapping="Wrap" FontSize="12" />
+                <CheckBox x:Name="IWorkPartialChoice" IsChecked="{Binding ConversionWorkbench.SelectedJob.AllowPartialEditableReconstruction, Mode=TwoWay}"><TextBlock Text="{loc:Loc Conversion.IWork.AllowPartial}" TextWrapping="Wrap" /></CheckBox>
+                <CheckBox x:Name="IWorkPreviewChoice" IsChecked="{Binding ConversionWorkbench.SelectedJob.AllowIncompleteVisualPreview, Mode=TwoWay}"><TextBlock Text="{loc:Loc Conversion.IWork.AllowIncompletePreview}" TextWrapping="Wrap" /></CheckBox>
+                <CheckBox IsVisible="{Binding ConversionWorkbench.SelectedJob.IsNumbersImport}" IsChecked="{Binding ConversionWorkbench.SelectedJob.NormalizeWorksheetNames, Mode=TwoWay}"><TextBlock Text="{loc:Loc Conversion.IWork.NormalizeNames}" TextWrapping="Wrap" /></CheckBox>
+              </StackPanel>
               <CheckBox IsVisible="{Binding ConversionWorkbench.SelectedJob.IsLegacyWordExport}" Content="{loc:Loc Conversion.BatchExport.AcceptLoss}" IsChecked="{Binding ConversionWorkbench.SelectedJob.AllowLegacyImportLoss, Mode=TwoWay}" />
               <StackPanel IsVisible="{Binding ConversionWorkbench.SelectedJob.IsPlainTextExport}" Spacing="4">
                 <TextBlock Text="{loc:Loc Conversion.Text.Encoding}" />

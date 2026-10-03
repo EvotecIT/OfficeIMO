@@ -84,7 +84,8 @@ public sealed partial class TesseractOcrEngine : IOcrEngine {
                 MaxStandardErrorCharacters = _options.MaxProcessOutputCharacters
             }, cancellationToken).ConfigureAwait(false);
             if (processResult.ExitCode != 0) {
-                throw new InvalidOperationException("Tesseract exited with code " + processResult.ExitCode + ": " + processResult.StandardError);
+                throw new InvalidOperationException("Tesseract executable '" + Path.GetFileName(_options.ExecutablePath)
+                    + "' exited with code " + processResult.ExitCode + ": " + processResult.StandardError);
             }
             if (!File.Exists(outputPath)) throw new FileNotFoundException("Tesseract did not create the expected TSV output.", outputPath);
             OcrTemporaryStorage.EnsurePrivateFile(outputPath);

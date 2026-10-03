@@ -197,7 +197,7 @@ public sealed partial class IWorkBoundaryTests {
             new[] { modelId }));
         records.Add(ArchiveRecord(modelId, 6001, model, new[] { tileId, formulaListId }));
         records.Add(ArchiveRecord(tileId, 6002, Message(BytesField(5, row))));
-        records.Add(ArchiveRecord(formulaListId, 6201, Message(BytesField(3, formulaEntry))));
+        records.Add(ArchiveRecord(formulaListId, 6201, Message(VarintField(1, 3), BytesField(3, formulaEntry))));
         return CreatePackage(
             (kind == IWorkDocumentKind.Pages ? "Index/Document.iwa" : "Index/Slide.iwa",
                 FrameIwa(Message(records.ToArray()))),

@@ -1,4 +1,5 @@
 using OfficeIMO.IWork;
+using OfficeIMO.IWork.Internal;
 
 namespace OfficeIMO.Reader.IWork;
 
@@ -9,6 +10,7 @@ internal sealed partial class IWorkReadProjection {
     private readonly ReaderOptions _readerOptions;
     private readonly ReaderIWorkOptions _options;
     private readonly CancellationToken _cancellationToken;
+    private readonly IWorkProjectionBudget _projectionBudget;
     private readonly List<ReaderChunk> _chunks = new();
     private readonly List<OfficeDocumentBlock> _blocks = new();
     private readonly List<ReaderTable> _tables = new();
@@ -16,7 +18,7 @@ internal sealed partial class IWorkReadProjection {
     private readonly List<OfficeDocumentLink> _links = new();
     private readonly List<OfficeDocumentPage> _pages = new();
     private readonly List<OfficeDocumentDiagnostic> _diagnostics = new();
-    private readonly List<OfficeDocumentMetadataEntry> _slideMetadata = new();
+    private readonly List<OfficeDocumentMetadataEntry> _projectionMetadata = new();
     private bool _reportedMarkdownListDepthLimit;
     private bool _reportedUnsupportedTextStyles;
     private bool _reportedUnsupportedLayoutBreaks;
@@ -35,34 +37,7 @@ internal sealed partial class IWorkReadProjection {
         _readerOptions = readerOptions;
         _options = options;
         _cancellationToken = cancellationToken;
-    }
-
-    internal void AddPages(IWorkPagesProjection source) {
-        var page = NewPage(null, "Pages document", null);
-        foreach (IWorkTextParagraph paragraph in source.Body.Paragraphs) {
-            AddParagraph(page, paragraph, "body");
-        }
-        foreach (IWorkPagesDrawable drawable in source.Drawables) {
-            _cancellationToken.ThrowIfCancellationRequested();
-            switch (drawable.Kind) {
-                case IWorkPagesDrawableKind.TextBox:
-                    AddTextBox(page, drawable.TextBox!, "text-box");
-                    break;
-                case IWorkPagesDrawableKind.Image:
-                    AddImage(page, drawable.Image!);
-                    break;
-                case IWorkPagesDrawableKind.Table:
-                    AddTable(page, drawable.Table!);
-                    break;
-            }
-        }
-        foreach (IWorkTextContent header in source.HeaderContents) AddRichContent(page, header, "header");
-        foreach (IWorkTextContent footer in source.FooterContents) AddRichContent(page, footer, "footer");
-        if (source.PageLayout is { } layout) {
-            page.Width = layout.WidthPoints;
-            page.Height = layout.HeightPoints;
-        }
-        AddDiagnostics(source.Diagnostics);
+        _projectionBudget = new IWorkProjectionBudget((options.ReadOptions ?? new IWorkReadOptions()).Clone());
     }
 
     internal void AddNumbers(IWorkNumbersProjection source) {
@@ -89,7 +64,7 @@ internal sealed partial class IWorkReadProjection {
         foreach (IWorkKeynoteSlide slide in source.Slides) {
             _cancellationToken.ThrowIfCancellationRequested();
             var page = NewPage(slide.Index, slide.Name, null, slide.Index);
-            _slideMetadata.Add(new OfficeDocumentMetadataEntry {
+            _projectionMetadata.Add(new OfficeDocumentMetadataEntry {
                 Id = "iwork-slide-" + slide.Index.ToString("D4", CultureInfo.InvariantCulture)
                     + "-skipped",
                 Category = "presentation.slide",
@@ -98,6 +73,16 @@ internal sealed partial class IWorkReadProjection {
                 ValueType = "boolean",
                 Location = Location(page)
             });
+            if (slide.HasBackgroundFill) {
+                _diagnostics.Add(new OfficeDocumentDiagnostic {
+                    Severity = OfficeDocumentDiagnosticSeverity.Warning,
+                    Category = OfficeDocumentDiagnosticCategory.Content,
+                    Source = "OfficeIMO.Reader.IWork",
+                    Code = "IWORK_READER_SLIDE_BACKGROUND_OMITTED",
+                    Message = "The plain Reader projection does not retain the Keynote slide background fill.",
+                    Location = Location(page)
+                });
+            }
             page.Width = source.SlideSize?.WidthPoints;
             page.Height = source.SlideSize?.HeightPoints;
             foreach (IWorkKeynoteDrawable drawable in slide.Drawables) {
@@ -169,7 +154,7 @@ internal sealed partial class IWorkReadProjection {
                 Category = "producer",
                 Name = "BuildVersion",
                 Value = version
-            }).Concat(_slideMetadata).ToArray();
+            }).Concat(_projectionMetadata).ToArray();
     }
 
     private OfficeDocumentPage NewPage(int? number, string name, string? sheet,
@@ -229,41 +214,7 @@ internal sealed partial class IWorkReadProjection {
     private void AddParagraph(OfficeDocumentPage page, IWorkTextParagraph paragraph,
         string sourceKind, OfficeDocumentRegion? region = null) {
         string text = ParagraphText(paragraph, _cancellationToken);
-        if (!_reportedUnsupportedLayoutBreaks && paragraph.BreakKind is
-            IWorkParagraphBreakKind.Page or IWorkParagraphBreakKind.Section
-                or IWorkParagraphBreakKind.Layout) {
-            _reportedUnsupportedLayoutBreaks = true;
-            _diagnostics.Add(new OfficeDocumentDiagnostic {
-                Category = OfficeDocumentDiagnosticCategory.Content,
-                Code = "IWORK_READER_LAYOUT_BREAK_UNSUPPORTED",
-                Message = "Reader text and Markdown do not represent explicit page, section, or layout breaks; the iWork source model retains them.",
-                Source = "OfficeIMO.Reader.IWork",
-                Location = Location(page)
-            });
-        }
-        if (!_reportedUnsupportedTextStyles
-            && (HasUnrepresentedParagraphStyle(paragraph.Style)
-                || HasUnrepresentedRunStyle(paragraph.Style.TextStyle)
-                || paragraph.Runs.Any(run => HasUnrepresentedRunStyle(run.Style)))) {
-            _reportedUnsupportedTextStyles = true;
-            _diagnostics.Add(new OfficeDocumentDiagnostic {
-                Category = OfficeDocumentDiagnosticCategory.Content,
-                Code = "IWORK_READER_TEXT_STYLE_PARTIAL",
-                Message = "Reader Markdown cannot represent all source paragraph, underline, font, or color formatting; the iWork source model retains those styles.",
-                Source = "OfficeIMO.Reader.IWork",
-                Location = Location(page)
-            });
-        }
-        if (paragraph.ListLevel > MaximumMarkdownListLevel && !_reportedMarkdownListDepthLimit) {
-            _reportedMarkdownListDepthLimit = true;
-            _diagnostics.Add(new OfficeDocumentDiagnostic {
-                Category = OfficeDocumentDiagnosticCategory.Limit,
-                Code = "IWORK_READER_LIST_DEPTH_TRUNCATED",
-                Message = "Markdown indentation is capped at 128 list levels; source list levels remain on the blocks.",
-                Source = "OfficeIMO.Reader.IWork",
-                Location = Location(page)
-            });
-        }
+        ReportParagraphDetails(page, paragraph);
         if (text.Length == 0) {
             AddBlock(page, paragraph.ListLevel >= 0 ? "list-item" : "paragraph",
                 string.Empty, paragraph.ListLevel >= 0 ? RichTextMarkdown(paragraph, _cancellationToken) : "\n",
@@ -285,6 +236,44 @@ internal sealed partial class IWorkReadProjection {
         AddRunLinks(page, paragraph.Runs, blockLocation);
     }
 
+    private void ReportParagraphDetails(OfficeDocumentPage page, IWorkTextParagraph paragraph) {
+        if (!_reportedUnsupportedLayoutBreaks && paragraph.BreakKind is
+            IWorkParagraphBreakKind.Page or IWorkParagraphBreakKind.Section
+                or IWorkParagraphBreakKind.Layout) {
+            _reportedUnsupportedLayoutBreaks = true;
+            _diagnostics.Add(new OfficeDocumentDiagnostic {
+                Category = OfficeDocumentDiagnosticCategory.Content,
+                Code = "IWORK_READER_LAYOUT_BREAK_UNSUPPORTED",
+                Message = "Reader text and Markdown do not represent explicit page, section, or layout breaks; the iWork source model retains them.",
+                Source = "OfficeIMO.Reader.IWork",
+                Location = Location(page)
+            });
+        }
+        if (!_reportedUnsupportedTextStyles
+            && (paragraph.ListFontName != null || HasUnrepresentedParagraphStyle(paragraph.Style)
+                || HasUnrepresentedRunStyle(paragraph.Style.TextStyle)
+                || paragraph.Runs.Any(run => HasUnrepresentedRunStyle(run.Style)))) {
+            _reportedUnsupportedTextStyles = true;
+            _diagnostics.Add(new OfficeDocumentDiagnostic {
+                Category = OfficeDocumentDiagnosticCategory.Content,
+                Code = "IWORK_READER_TEXT_STYLE_PARTIAL",
+                Message = "Reader Markdown cannot represent all source paragraph, underline, font, or color formatting; the iWork source model retains those styles.",
+                Source = "OfficeIMO.Reader.IWork",
+                Location = Location(page)
+            });
+        }
+        if (paragraph.ListLevel > MaximumMarkdownListLevel && !_reportedMarkdownListDepthLimit) {
+            _reportedMarkdownListDepthLimit = true;
+            _diagnostics.Add(new OfficeDocumentDiagnostic {
+                Category = OfficeDocumentDiagnosticCategory.Limit,
+                Code = "IWORK_READER_LIST_DEPTH_TRUNCATED",
+                Message = "Markdown indentation is capped at 128 list levels; source list levels remain on the blocks.",
+                Source = "OfficeIMO.Reader.IWork",
+                Location = Location(page)
+            });
+        }
+    }
+
     private void AddPlainText(OfficeDocumentPage page, string text, string sourceKind) {
         if (string.IsNullOrEmpty(text)) return;
         AddBlock(page, sourceKind, text, EscapeMarkdown(text, _cancellationToken), null, null,
@@ -296,11 +285,12 @@ internal sealed partial class IWorkReadProjection {
         ReaderTable? table = null,
         Func<int, int, string>? markdownPart = null,
         string? sourceKind = null, OfficeDocumentRegion? region = null,
-        bool splitMarkdownIndependently = false, int? tableIndex = null) {
+        bool splitMarkdownIndependently = false, int? tableIndex = null, string? a1Range = null) {
         _cancellationToken.ThrowIfCancellationRequested();
         string id = "iwork-b" + (_blocks.Count + 1).ToString("D6", CultureInfo.InvariantCulture);
         ReaderLocation location = Location(page, sourceKind: sourceKind ?? kind, anchor: id);
         location.TableIndex = tableIndex;
+        location.A1Range = a1Range;
         var block = new OfficeDocumentBlock {
             Id = id,
             Kind = kind,
@@ -329,6 +319,7 @@ internal sealed partial class IWorkReadProjection {
                 ? ScalarSafeChunkLength(markdown, markdownOffset, maxChars) : 0;
             ReaderLocation chunkLocation = Location(page, _chunks.Count, sourceKind ?? kind, id);
             chunkLocation.TableIndex = tableIndex;
+            chunkLocation.A1Range = a1Range;
             _chunks.Add(new ReaderChunk {
                 Id = id + "-" + partIndex.ToString("D3", CultureInfo.InvariantCulture),
                 Kind = ReaderInputKind.IWork,
@@ -381,6 +372,8 @@ internal sealed partial class IWorkReadProjection {
         || style.RightIndentPoints is not null and not 0d
         || style.SpaceBeforePoints is not null and not 0d
         || style.SpaceAfterPoints is not null and not 0d
+        || style.LineSpacingMultiplier.HasValue
+        || style.TabStops?.Count > 0
         || style.PageBreakBefore == true || style.KeepWithNext == true
         || style.KeepLinesTogether == true;
 
@@ -426,7 +419,9 @@ internal sealed partial class IWorkReadProjection {
 
     private static IReadOnlyDictionary<string, string> DiagnosticAttributes(
         IWorkDiagnostic diagnostic) {
-        var attributes = new Dictionary<string, string>(StringComparer.Ordinal);
+        var attributes = new Dictionary<string, string>(StringComparer.Ordinal) {
+            ["lossKind"] = diagnostic.LossKind.ToString()
+        };
         if (diagnostic.EntryPath != null) attributes.Add("entryPath", diagnostic.EntryPath);
         if (diagnostic.RecordIdentifier.HasValue) {
             attributes.Add("recordIdentifier", diagnostic.RecordIdentifier.Value.ToString(

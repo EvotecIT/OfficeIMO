@@ -77,7 +77,7 @@ public sealed class IWorkImageAsset {
 
     internal IWorkImageAsset(string fileName, string packagePath, string mediaType,
         byte[] bytes, int? pixelWidth, int? pixelHeight, IWorkGeometry? geometry,
-        bool hasMask, string? hyperlink, string? accessibilityDescription) {
+        bool hasMask, string? hyperlink, string? accessibilityDescription, IWorkObjectIdentity? sourceIdentity = null) {
         FileName = fileName;
         PackagePath = packagePath;
         MediaType = mediaType;
@@ -88,12 +88,15 @@ public sealed class IWorkImageAsset {
         HasMask = hasMask;
         Hyperlink = hyperlink;
         AccessibilityDescription = accessibilityDescription;
+        SourceIdentity = sourceIdentity;
     }
 
     /// <summary>Gets the source-preferred file name.</summary>
     public string FileName { get; }
     /// <summary>Gets the normalized package entry path.</summary>
     public string PackagePath { get; }
+    /// <summary>Gets the native image drawable identity.</summary>
+    public IWorkObjectIdentity? SourceIdentity { get; }
     /// <summary>Gets the detected media type.</summary>
     public string MediaType { get; }
     /// <summary>Gets the embedded byte count.</summary>
@@ -117,15 +120,18 @@ public sealed class IWorkImageAsset {
 /// <summary>A positioned rich-text box recovered from an iWork canvas.</summary>
 public sealed class IWorkTextBox {
     internal IWorkTextBox(IWorkTextContent content, IWorkGeometry? geometry,
-        string? hyperlink, string? accessibilityDescription) {
+        string? hyperlink, string? accessibilityDescription, IWorkObjectIdentity? sourceIdentity = null) {
         Content = content;
         Geometry = geometry;
         Hyperlink = hyperlink;
         AccessibilityDescription = accessibilityDescription;
+        SourceIdentity = sourceIdentity;
     }
 
     /// <summary>Gets the rich text content.</summary>
     public IWorkTextContent Content { get; }
+    /// <summary>Gets the native text-shape identity, separately from its content storage.</summary>
+    public IWorkObjectIdentity? SourceIdentity { get; }
     /// <summary>Gets source drawable geometry.</summary>
     public IWorkGeometry? Geometry { get; }
     /// <summary>Gets a drawable hyperlink target.</summary>

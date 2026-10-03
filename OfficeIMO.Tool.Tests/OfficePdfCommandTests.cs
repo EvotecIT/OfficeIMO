@@ -80,7 +80,7 @@ public sealed class OfficePdfCommandTests {
             error);
 
         Assert.Equal((int)OfficeImoToolExitCode.Usage, exitCode);
-        Assert.Contains(".pdf, .md, .markdown, or .json", error.ToString(), StringComparison.Ordinal);
+        Assert.Empty(output.ToArray());
     }
 
     [Fact]

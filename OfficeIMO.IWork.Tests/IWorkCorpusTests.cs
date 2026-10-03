@@ -21,6 +21,62 @@ public sealed class IWorkCorpusTests {
         yield return new object[] { "keynotekit/imagedeck-v15.2.1.key", IWorkDocumentKind.Keynote };
     }
 
+    [Fact]
+    public void Pages_native_decimal_lists_survive_saved_docx_as_numbering() {
+        string path = Fixture("picodocs/sample-v14.4.pages");
+        IWorkSourceDocument source = IWorkSourceDocument.Open(path);
+        string[] items = { "First ordered item", "Second ordered item",
+            "Third ordered item with nested-looking text: 1.1 not actually nested" };
+        foreach (string item in items) {
+            IWorkTextParagraph paragraph = Assert.Single(source.ReadPages().Body.Paragraphs,
+                paragraph => paragraph.Text == item);
+            Assert.Equal(1732816ul, paragraph.ListIdentifier);
+            Assert.Equal("1.", paragraph.ListLabel);
+        }
+        using var result = source.ToWordDocumentResult(new IWorkConversionOptions {
+            Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        Assert.True(result.Report.IsPartialEditableReconstruction);
+        using var saved = new MemoryStream();
+        result.Value.Save(saved); saved.Position = 0;
+        using var document = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(saved, false);
+        var main = document.MainDocumentPart!;
+        var numbering = main.NumberingDefinitionsPart!.Numbering!;
+        int? sharedNumberId = null;
+        foreach (string item in items) {
+            var paragraph = Assert.Single(main.Document!.Body!.Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>(),
+                paragraph => paragraph.InnerText == item);
+            var properties = paragraph.ParagraphProperties!.NumberingProperties!;
+            int numberId = properties.NumberingId!.Val!.Value;
+            if (sharedNumberId.HasValue) Assert.Equal(sharedNumberId.Value, numberId);
+            sharedNumberId = numberId;
+            var instance = Assert.Single(numbering.Elements<DocumentFormat.OpenXml.Wordprocessing.NumberingInstance>(),
+                instance => instance.NumberID!.Value == numberId);
+            var definition = Assert.Single(numbering.Elements<DocumentFormat.OpenXml.Wordprocessing.AbstractNum>(),
+                definition => definition.AbstractNumberId!.Value == instance.AbstractNumId!.Val!.Value);
+            var level = Assert.Single(definition.Elements<DocumentFormat.OpenXml.Wordprocessing.Level>(),
+                level => level.LevelIndex!.Value == properties.NumberingLevelReference!.Val!.Value);
+            Assert.Equal(DocumentFormat.OpenXml.Wordprocessing.NumberFormatValues.Decimal, level.NumberingFormat!.Val!.Value);
+            Assert.Equal("%1.", level.LevelText!.Val!.Value);
+        }
+        IWorkTextParagraph[] bullets = source.ReadPages().Body.Paragraphs
+            .Where(paragraph => paragraph.ListIdentifier == 1732814ul).ToArray();
+        Assert.NotEmpty(bullets);
+        foreach (IWorkTextParagraph bullet in bullets) {
+            Assert.Equal("Symbol", bullet.ListFontName);
+            var paragraph = Assert.Single(main.Document!.Body!.Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>(),
+                paragraph => paragraph.InnerText == bullet.Text);
+            var properties = paragraph.ParagraphProperties!.NumberingProperties!;
+            var instance = Assert.Single(numbering.Elements<DocumentFormat.OpenXml.Wordprocessing.NumberingInstance>(),
+                instance => instance.NumberID!.Value == properties.NumberingId!.Val!.Value);
+            var definition = Assert.Single(numbering.Elements<DocumentFormat.OpenXml.Wordprocessing.AbstractNum>(),
+                definition => definition.AbstractNumberId!.Value == instance.AbstractNumId!.Val!.Value);
+            var level = Assert.Single(definition.Elements<DocumentFormat.OpenXml.Wordprocessing.Level>(),
+                level => level.LevelIndex!.Value == properties.NumberingLevelReference!.Val!.Value);
+            Assert.Equal("Symbol", level.NumberingSymbolRunProperties!.RunFonts!.Ascii!.Value);
+        }
+        Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(document));
+    }
+
     [Theory]
     [MemberData(nameof(Corpus))]
     public void Reads_independently_produced_versions_with_path_stream_parity(string relativePath,
@@ -39,21 +95,54 @@ public sealed class IWorkCorpusTests {
         Assert.NotEmpty(fromPath.BuildVersions);
     }
 
+    [Theory]
+    [MemberData(nameof(Corpus))]
+    public void Independent_corpus_editable_outputs_remain_valid_after_save_and_reopen(string relativePath,
+        IWorkDocumentKind kind) {
+        string path = Fixture(relativePath);
+        var options = new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
+            AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true };
+        using var saved = new MemoryStream();
+        if (kind == IWorkDocumentKind.Pages) {
+            using var result = WordIWorkConverter.ConvertPagesToWordResult(path, conversionOptions: options);
+            Assert.False(result.IsVisualFallback);
+            result.Value.Save(saved); saved.Position = 0;
+            using var reopened = WordDocument.Load(saved);
+            var errors = reopened.ValidateDocument();
+            Assert.True(errors.Count == 0, string.Join("\n", errors.Select(error => error.PartUri + ": " + error.Description)));
+        } else if (kind == IWorkDocumentKind.Numbers) {
+            using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path, conversionOptions: options);
+            Assert.False(result.IsVisualFallback);
+            result.Value.Save(saved); saved.Position = 0;
+            using var reopened = ExcelDocument.Load(saved);
+            Assert.NotEmpty(reopened.Sheets);
+            Assert.Empty(reopened.ValidateOpenXml());
+        } else {
+            using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(path, conversionOptions: options);
+            Assert.False(result.IsVisualFallback);
+            result.Value.Save(saved); saved.Position = 0;
+            using var reopened = PowerPointPresentation.Load(saved);
+            Assert.Equal(result.Projection.Slides.Count, reopened.Slides.Count);
+            Assert.Empty(reopened.ValidateDocument());
+        }
+    }
+
     [Fact]
     public void Reads_current_pages_text_and_preserves_unrecognized_records() {
         IWorkSourceDocument source = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.pages"));
         IWorkPagesProjection pages = source.ReadPages();
-        IWorkConversionReport report = pages.CreateConversionReport(IWorkProjectionKind.EditableReconstruction);
+        using var converted = source.ToWordDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        IWorkConversionReport report = converted.Report;
 
         Assert.Equal("hello pages", pages.Paragraphs[0]);
         Assert.Contains(pages.Paragraphs, paragraph => paragraph.Contains(
             "second paragraph with some words", StringComparison.Ordinal));
-        Assert.True(report.TotalRecordCount >= report.UnsupportedRecords.Count);
-        Assert.NotEmpty(report.UnsupportedRecords);
+        Assert.True(report.TotalRecordCount >= report.PreservedRecords.Count);
+        Assert.NotEmpty(report.PreservedRecords);
         Assert.True(report.HasLoss);
         Assert.Contains(report.FidelityDiagnostics, diagnostic =>
-            diagnostic.Code == "IWORK_UNPROJECTED_RECORDS"
-            && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            diagnostic.Code == "IWORK_RECORD_FIDELITY_UNASSESSED"
+            && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
     }
 
     [Fact]
@@ -76,7 +165,12 @@ public sealed class IWorkCorpusTests {
             Fixture("numbers-parser/test-10-formulas.numbers")).ReadNumbers();
         IWorkTable table = numbers.Sheets[0].Tables[0];
 
-        Assert.True(numbers.HasEditableContent);
+        Assert.False(numbers.HasEditableContent);
+        Assert.True(numbers.HasRecoverableContent);
+        Assert.DoesNotContain(numbers.Diagnostics, d => d.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED");
+        Assert.Equal(IWorkCellUnsupportedFeatures.None, table.GetCell(3, 3)!.UnsupportedFeatures);
+        Assert.Equal("dd/MM/y HH:mm", table.GetCell(3, 3)!.NumberFormat!.DateTimeFormat!.SourcePattern);
+        Assert.Equal(IWorkCellUnsupportedFeatures.None, table.GetCell(5, 3)!.UnsupportedFeatures);
         Assert.InRange(table.DefaultRowHeight!.Value, 19.92d, 19.94d);
         Assert.Equal(98d, table.DefaultColumnWidth);
         IWorkTableCell arithmetic = table.GetCell(2, 2)!;
@@ -95,14 +189,15 @@ public sealed class IWorkCorpusTests {
         IWorkNumbersProjection numbers = IWorkSourceDocument.Open(Fixture(RelativePath)).ReadNumbers();
         IWorkTable first = numbers.Sheets[0].Tables[0];
 
-        Assert.True(numbers.HasEditableContent);
+        Assert.False(numbers.HasEditableContent);
+        Assert.True(numbers.HasRecoverableContent);
         Assert.Equal(5, first.MergedRanges.Count);
         Assert.Contains(first.MergedRanges, merge => merge.FirstRow == 2 && merge.FirstColumn == 1
             && merge.LastRow == 2 && merge.LastColumn == 2);
         Assert.Contains(first.MergedRanges, merge => merge.FirstRow == 7 && merge.FirstColumn == 4
             && merge.LastRow == 8 && merge.LastColumn == 5);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture(RelativePath));
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture(RelativePath), conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.Equal(5, result.Value.Sheets[0].GetMergedRanges().Count);
         Assert.Contains(result.Value.Sheets[0].GetMergedRanges(), merge => merge.A1Range == "A2:B2");
@@ -120,9 +215,11 @@ public sealed class IWorkCorpusTests {
     [Fact]
     public void Numbers_owner_projects_source_formulas_with_cached_values() {
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(
-            Fixture("numbers-parser/test-10-formulas.numbers"));
+            Fixture("numbers-parser/test-10-formulas.numbers"),
+            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
 
         Assert.False(result.IsVisualFallback);
+        Assert.True(result.Report.IsPartialEditableReconstruction);
         ExcelSheet first = result.Value.Sheets[0];
         Assert.Equal("A1+A2", first.GetFormulaText(2, 2));
         Assert.Equal("SUM(A1:A2)", first.GetFormulaText(6, 2));
@@ -153,6 +250,26 @@ public sealed class IWorkCorpusTests {
         Assert.Contains("first bullet", keynote.Slides[0].Body);
         Assert.Equal("second slide", keynote.Slides[1].Title);
         Assert.Contains("note text here", keynote.Slides[1].PresenterNotes, StringComparison.Ordinal);
+
+        // Exercise the real two-slide package through publication and reopen, not
+        // just the source projection or a synthetic presenter-note record.
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(
+            Fixture("nim-iwork/simple.key"), conversionOptions: new IWorkConversionOptions {
+                Mode = IWorkConversionMode.EditableOnly,
+                AllowPartialEditableReconstruction = true
+            });
+        Assert.False(result.IsVisualFallback);
+        using var saved = new MemoryStream();
+        result.Value.Save(saved);
+        saved.Position = 0;
+        using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+        Assert.Equal(2, reopened.Slides.Count);
+        Assert.Empty(reopened.ValidateDocument());
+        Assert.Contains(reopened.Slides[0].TextBoxes, box => box.Text.Contains("hello keynote", StringComparison.Ordinal));
+        Assert.Contains(reopened.Slides[0].TextBoxes, box => box.Text.Contains("first bullet", StringComparison.Ordinal));
+        Assert.Contains(reopened.Slides[1].TextBoxes, box => box.Text.Contains("second slide", StringComparison.Ordinal));
+        Assert.Contains(reopened.Slides[1].Notes.Paragraphs,
+            paragraph => paragraph.Text.Contains("note text here", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -190,6 +307,30 @@ public sealed class IWorkCorpusTests {
         Assert.Equal("SimSun", titleRun.Style.FontName);
         Assert.Equal("000000", titleRun.Style.Color!.RgbHex);
         Assert.Empty(pages.Body.Paragraphs[1].Runs);
+
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(Fixture("iwork-converter/a.pages"),
+            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
+                AllowPartialEditableReconstruction = true });
+        Assert.False(result.IsVisualFallback);
+        Assert.True(result.Report.IsPartialEditableReconstruction);
+        using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
+        using var reopened = WordDocument.Load(saved);
+        saved.Position = 0;
+        using var zip = new System.IO.Compression.ZipArchive(saved, System.IO.Compression.ZipArchiveMode.Read, leaveOpen: true);
+        using var documentXml = zip.GetEntry("word/document.xml")!.Open();
+        System.Xml.Linq.XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+        var body = System.Xml.Linq.XDocument.Load(documentXml).Root!.Element(w + "body")!;
+        var persistedText = body.Elements(w + "p")
+            .Select(p => string.Concat(p.Descendants(w + "t").Select(t => t.Value)))
+            .Where(text => !string.IsNullOrEmpty(text));
+        Assert.Equal(pages.Body.Paragraphs.Select(p => p.Text).Where(text => !string.IsNullOrEmpty(text)), persistedText);
+        var savedTitle = reopened.Paragraphs.First(p => p.Text == "购 销 合 同");
+        Assert.True(savedTitle.Bold);
+        Assert.Equal(WordParagraphAlignment.Center, savedTitle.ParagraphAlignment);
+        Assert.Equal(26d, savedTitle.FontSizePoints);
+        Assert.Equal("SimSun", savedTitle.FontFamily);
+        var validation = reopened.ValidateDocument();
+        Assert.True(validation.Count == 0, string.Join("\n", validation.Select(error => error.PartUri + ": " + error.Description)));
     }
 
     [Fact]
@@ -202,6 +343,35 @@ public sealed class IWorkCorpusTests {
     }
 
     [Fact]
+    public void Pages_native_default_headers_remain_selected_when_alternate_templates_are_stored() {
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(
+            Fixture("picodocs/sample-v14.4.pages"), conversionOptions: new IWorkConversionOptions {
+                Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true
+            });
+        Assert.Equal(2, result.Projection.Sections.Count);
+        Assert.All(result.Projection.Sections, source => {
+            Assert.True(source.HasFirstPageTemplate);
+            Assert.True(source.HasEvenPageTemplate);
+            Assert.False(source.DifferentFirstPage);
+            Assert.False(source.DifferentOddAndEvenPages);
+            Assert.False(source.HideFirstPageHeadersAndFooters);
+        });
+        using var saved = new MemoryStream();
+        result.Value.Save(saved);
+        saved.Position = 0;
+        using WordDocument reopened = WordDocument.Load(saved);
+        Assert.All(reopened.Sections, section => {
+            Assert.False(section.DifferentFirstPage);
+            Assert.False(section.DifferentOddAndEvenPages);
+        });
+        Assert.Contains(reopened.Sections[0].Header.Default!.Paragraphs,
+            p => p.Text.Contains("Apple Pages Import Fixture"));
+        Assert.Contains(reopened.Sections[0].Footer.Default!.Paragraphs,
+            p => p.Text.Contains("Fixture coverage:"));
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
+    [Fact]
     public void Pages_recovers_embedded_image_and_shared_editable_tables() {
         IWorkPagesProjection pages = IWorkSourceDocument.Open(Fixture("picodocs/sample-v14.4.pages")).ReadPages();
 
@@ -210,7 +380,7 @@ public sealed class IWorkCorpusTests {
             diagnostic => diagnostic.Code == "IWORK_PAGES_TEXT_UNSUPPORTED");
         Assert.Equal(3, pages.Tables.Count);
         Assert.Equal((5, 4), (pages.Tables[0].RowCount, pages.Tables[0].ColumnCount));
-        Assert.Equal(18, pages.Tables[0].Cells.Count);
+        Assert.Equal(18, pages.Tables[0].Cells.Count(cell => cell.Kind != IWorkCellKind.Empty));
         Assert.Equal(4, pages.Tables[2].Cells.Count(cell => cell.Kind == IWorkCellKind.Formula));
         IWorkImageAsset image = Assert.Single(pages.Images);
         Assert.Equal("image/png", image.MediaType);
@@ -229,7 +399,7 @@ public sealed class IWorkCorpusTests {
             new[] { "Paragraph", "Text + style", "Heading 1", "Preserve reading order" },
             new[] { "Image", "Binary asset", "PNG 1000×520", "Alt text may or may not survive conversion" },
             new[] { "Hyperlink", "URL target", "https://developer.apple.com", "External link relationship" },
-            new[] { "Empty cell", null, null, "Importer should not crash" }
+            new[] { "Empty cell", string.Empty, string.Empty, "Importer should not crash" }
         };
         for (int row = 1; row <= expected.Length; row++) {
             for (int column = 1; column <= expected[row - 1].Length; column++) {
@@ -303,7 +473,8 @@ public sealed class IWorkCorpusTests {
             Fixture("keynotekit/tabledeck-v15.2.1.key")).ReadKeynote();
         IWorkTable table = Assert.Single(Assert.Single(tableDeck.Slides).Tables);
 
-        Assert.True(tableDeck.HasEditableContent);
+        Assert.False(tableDeck.HasEditableContent);
+        Assert.True(tableDeck.HasRecoverableContent);
         Assert.Equal((3, 3), (table.RowCount, table.ColumnCount));
         Assert.Equal("Product", table.GetCell(1, 1)!.Value);
         Assert.Equal(24_000d, Assert.IsType<double>(table.GetCell(2, 3)!.Value), 10);
@@ -325,7 +496,8 @@ public sealed class IWorkCorpusTests {
     [Fact]
     public void Keynote_owner_projects_table_and_image_as_editable_powerpoint_shapes() {
         using var tableResult = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(
-            Fixture("keynotekit/tabledeck-v15.2.1.key"));
+            Fixture("keynotekit/tabledeck-v15.2.1.key"),
+            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         PowerPointTable table = Assert.Single(Assert.Single(tableResult.Value.Slides).Tables);
         IWorkTable sourceTable = Assert.Single(Assert.Single(
             tableResult.Projection.Slides).Tables);
@@ -340,8 +512,17 @@ public sealed class IWorkCorpusTests {
         Assert.InRange(table.WidthPoints, expectedWidth - 0.001d, expectedWidth + 0.001d);
         Assert.InRange(table.HeightPoints, expectedHeight - 0.001d, expectedHeight + 0.001d);
 
-        using var imageResult = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(
+        using var imageFallback = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(
             Fixture("keynotekit/imagedeck-v15.2.1.key"));
+        Assert.True(imageFallback.IsVisualFallback);
+        Assert.Contains(imageFallback.Report.SourceDeclarationIssues, issue => issue.FieldPath == "11/27"
+            && issue.Owner.EntryPath == "Index/DocumentStylesheet.iwa"
+            && issue.Kind == IWorkSourceDeclarationIssueKind.UnsupportedField);
+        using var imageResult = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(
+            Fixture("keynotekit/imagedeck-v15.2.1.key"),
+            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        Assert.False(imageResult.IsVisualFallback);
+        Assert.True(imageResult.Report.IsPartialEditableReconstruction);
         PowerPointPicture picture = Assert.Single(Assert.Single(imageResult.Value.Slides).Pictures);
         Assert.Equal("image/png", picture.ContentType);
         Assert.True(picture.GetImageBytes().Length > 100);
@@ -349,8 +530,8 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Owner_adapters_save_and_reopen_semantic_or_visual_outputs() {
-        using var pages = WordIWorkConverter.ConvertPagesToWordResult(Fixture("nim-iwork/simple.pages"));
-        using var numbers = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture("nim-iwork/simple.numbers"));
+        using var pages = WordIWorkConverter.ConvertPagesToWordResult(Fixture("nim-iwork/simple.pages"), conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var numbers = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture("nim-iwork/simple.numbers"), conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         using var keynote = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(Fixture("nim-iwork/simple.key"));
 
         Assert.False(pages.IsVisualFallback);
@@ -427,12 +608,13 @@ public sealed class IWorkCorpusTests {
     [Fact]
     public void Can_disable_unsupported_record_reporting_without_discarding_the_source_records() {
         IWorkSourceDocument source = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.pages"),
-            new IWorkReadOptions { PreserveUnsupportedRecords = false });
-        IWorkConversionReport report = source.ReadPages().CreateConversionReport(IWorkProjectionKind.EditableReconstruction);
+            new IWorkReadOptions { PreserveSourceRecords = false });
+        using var converted = source.ToWordDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        IWorkConversionReport report = converted.Report;
 
         Assert.NotEmpty(source.Records);
-        Assert.Empty(report.UnsupportedRecords);
-        Assert.True(report.UnsupportedRecordCount > 0);
+        Assert.Empty(report.PreservedRecords);
+        Assert.True(report.PreservedRecordCount > 0);
         Assert.True(report.HasLoss);
         IWorkArchiveRecord populated = source.Records.First(record => record.PayloadLength > 0);
         byte original = populated.GetPayload()[0];

@@ -128,7 +128,7 @@ namespace OfficeIMO.Word {
                     .FirstOrDefault();
                 if (characterSpacingControl == null) {
                     characterSpacingControl = new CharacterSpacingControl();
-                    settings.Append(characterSpacingControl);
+                    settings.AddChild(characterSpacingControl, true);
                 }
                 characterSpacingControl.Val = value?.ToOpenXml();
             }
@@ -162,7 +162,7 @@ namespace OfficeIMO.Word {
                     .FirstOrDefault();
                 if (defaultStop == null) {
                     defaultStop = new DefaultTabStop();
-                    settings.Append(defaultStop);
+                    settings.AddChild(defaultStop, true);
                 }
                 defaultStop.Val = (Int16Value)value;
             }
@@ -599,7 +599,7 @@ namespace OfficeIMO.Word {
                 var gutterAtTop = settings.GetFirstChild<GutterAtTop>();
                 if (gutterAtTop == null) {
                     gutterAtTop = new GutterAtTop();
-                    settings.Append(gutterAtTop);
+                    settings.AddChild(gutterAtTop, true);
                 }
                 gutterAtTop.Val = value;
             }
@@ -630,7 +630,7 @@ namespace OfficeIMO.Word {
                 if (value) {
                     if (mirrorMargins == null) {
                         mirrorMargins = new MirrorMargins();
-                        settings.Append(mirrorMargins);
+                        settings.AddChild(mirrorMargins, true);
                     }
 
                     mirrorMargins.Val = true;
@@ -658,7 +658,7 @@ namespace OfficeIMO.Word {
                 var track = settings.GetFirstChild<TrackRevisions>();
                 if (value) {
                     if (track == null) {
-                        settings.Append(new TrackRevisions());
+                        settings.AddChild(new TrackRevisions(), true);
                     }
                 } else {
                     track?.Remove();
@@ -685,7 +685,7 @@ namespace OfficeIMO.Word {
                 if (value) {
                     formatting?.Remove();
                 } else if (formatting == null) {
-                    settings.Append(new DoNotTrackFormatting());
+                    settings.AddChild(new DoNotTrackFormatting(), true);
                 }
             }
         }
@@ -709,7 +709,7 @@ namespace OfficeIMO.Word {
                 if (value) {
                     moves?.Remove();
                 } else if (moves == null) {
-                    settings.Append(new DoNotTrackMoves());
+                    settings.AddChild(new DoNotTrackMoves(), true);
                 }
             }
         }

@@ -17,7 +17,7 @@ namespace OfficeIMO.Word {
                     _paragraph._paragraph.ParagraphProperties = paragraphProperties;
                 }
                 if (paragraphProperties.Tabs == null) {
-                    paragraphProperties.Append(new Tabs());
+                    paragraphProperties.Tabs = new Tabs();
                 }
                 return paragraphProperties.Tabs!;
             }

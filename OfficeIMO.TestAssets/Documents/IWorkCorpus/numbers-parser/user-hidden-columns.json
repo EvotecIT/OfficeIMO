@@ -1,0 +1,81 @@
+{
+  "provider": "numbers-parser",
+  "providerVersion": "4.19.0",
+  "source": {
+    "path": "numbers-parser/cross-table-formulas.numbers",
+    "sha256": "9371c5b1d6ee4dfa17569097f064eba9c67f804d88b48638efbbeeb459d07dd4",
+    "buildVersionHistory": [
+      "Template: Blank (11.2)",
+      "M14.3-7042.0.76-4"
+    ]
+  },
+  "tables": [
+    {
+      "modelIdentifier": 963748,
+      "mapIdentifier": 963751,
+      "sheet": "Main Sheet",
+      "table": "Animal Table 3",
+      "rowCount": 6,
+      "columnCount": 7,
+      "hiddenColumns": [
+        6,
+        7
+      ],
+      "selectedUuids": [
+        {
+          "lower": "7345687245204684493",
+          "upper": "8198130247140094305"
+        },
+        {
+          "lower": "3579983974665101249",
+          "upper": "9666522530273614047"
+        }
+      ]
+    },
+    {
+      "modelIdentifier": 951260,
+      "mapIdentifier": 951269,
+      "sheet": "Main Sheet",
+      "table": "Animal Table 2",
+      "rowCount": 5,
+      "columnCount": 6,
+      "hiddenColumns": [
+        5,
+        6
+      ],
+      "selectedUuids": [
+        {
+          "lower": "7345687245204684493",
+          "upper": "8198130247140094305"
+        },
+        {
+          "lower": "3579983974665101249",
+          "upper": "9666522530273614047"
+        }
+      ]
+    },
+    {
+      "modelIdentifier": 920405,
+      "mapIdentifier": 920680,
+      "sheet": "Main Sheet",
+      "table": "Animal Table",
+      "rowCount": 5,
+      "columnCount": 6,
+      "hiddenColumns": [
+        5,
+        6
+      ],
+      "selectedUuids": [
+        {
+          "lower": "7345687245204684493",
+          "upper": "8198130247140094305"
+        },
+        {
+          "lower": "3579983974665101249",
+          "upper": "9666522530273614047"
+        }
+      ]
+    }
+  ],
+  "limits": "Base user-hidden columns and zero legacy counts in an unchanged producer fixture. Hidden cells are empty. Positive rows use synthetic proof; filtering, groups and Apple export/render equivalence remain unqualified."
+}

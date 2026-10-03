@@ -1,0 +1,1706 @@
+{
+  "provider": "numbers-parser",
+  "providerVersion": "4.19.0",
+  "schema": {
+    "repository": "https://github.com/orcastor/iwork-converter",
+    "revision": "be4828260466c9c022ec12f9dc9dbfeb15ab1dea",
+    "path": "proto/KN/KNArchives.pb.go",
+    "fieldPath": "SlideArchive.1 -> SlideStyleArchive.11 / SlideStylePropertiesArchive.1 / FillArchive.1"
+  },
+  "sources": [
+    {
+      "path": "iwork-converter/a.key",
+      "sha256": "929347827a7478c123dd3e3828e9751b5cf2ae977d2edd2a5f0774014fc4fefc",
+      "slidesIncludingTemplates": [
+        {
+          "identifier": 7698,
+          "entry": "Index/MasterSlide-7698.iwa",
+          "styleChain": [
+            7700
+          ],
+          "backgroundKind": "solid",
+          "rgb": "000000",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "identifier": 7716,
+          "entry": "Index/MasterSlide-7716.iwa",
+          "styleChain": [
+            7718
+          ],
+          "backgroundKind": "solid",
+          "rgb": "000000",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "identifier": 7732,
+          "entry": "Index/MasterSlide-7732.iwa",
+          "styleChain": [
+            7734
+          ],
+          "backgroundKind": "solid",
+          "rgb": "000000",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "identifier": 7744,
+          "entry": "Index/MasterSlide-7744.iwa",
+          "styleChain": [
+            7746
+          ],
+          "backgroundKind": "solid",
+          "rgb": "000000",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "identifier": 7758,
+          "entry": "Index/MasterSlide-7758.iwa",
+          "styleChain": [
+            7760
+          ],
+          "backgroundKind": "solid",
+          "rgb": "000000",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "identifier": 7772,
+          "entry": "Index/MasterSlide-7772.iwa",
+          "styleChain": [
+            7774
+          ],
+          "backgroundKind": "solid",
+          "rgb": "000000",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "identifier": 7785,
+          "entry": "Index/MasterSlide-7785.iwa",
+          "styleChain": [
+            7787
+          ],
+          "backgroundKind": "solid",
+          "rgb": "000000",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "identifier": 7801,
+          "entry": "Index/MasterSlide-7801.iwa",
+          "styleChain": [
+            7803
+          ],
+          "backgroundKind": "solid",
+          "rgb": "000000",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "identifier": 7813,
+          "entry": "Index/MasterSlide-7813.iwa",
+          "styleChain": [
+            7815
+          ],
+          "backgroundKind": "solid",
+          "rgb": "000000",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "identifier": 7831,
+          "entry": "Index/MasterSlide-7831.iwa",
+          "styleChain": [
+            7833
+          ],
+          "backgroundKind": "solid",
+          "rgb": "000000",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "identifier": 7855,
+          "entry": "Index/MasterSlide-7855.iwa",
+          "styleChain": [
+            7857
+          ],
+          "backgroundKind": "solid",
+          "rgb": "000000",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "identifier": 7869,
+          "entry": "Index/MasterSlide-7869.iwa",
+          "styleChain": [
+            7871
+          ],
+          "backgroundKind": "solid",
+          "rgb": "000000",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "identifier": 7881,
+          "entry": "Index/Slide-7881.iwa",
+          "styleChain": [
+            8041,
+            7700
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 2,
+          "rgba": [
+            0.9376012086868286,
+            0.9376012086868286,
+            0.9376012086868286,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "path": "nim-iwork/simple.key",
+      "sha256": "ba95755df82ceb0ca834e1e03e2777c34fad906320d8336b4f3fefc6b48607eb",
+      "slidesIncludingTemplates": [
+        {
+          "identifier": 1221395,
+          "entry": "Index/TemplateSlide-1221395.iwa",
+          "styleChain": [
+            1221397
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221423,
+          "entry": "Index/TemplateSlide-1221423.iwa",
+          "styleChain": [
+            1221425
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221455,
+          "entry": "Index/TemplateSlide-1221455.iwa",
+          "styleChain": [
+            1221457
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221482,
+          "entry": "Index/TemplateSlide-1221482.iwa",
+          "styleChain": [
+            1221484
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221505,
+          "entry": "Index/TemplateSlide-1221505.iwa",
+          "styleChain": [
+            1221507
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221524,
+          "entry": "Index/TemplateSlide-1221524.iwa",
+          "styleChain": [
+            1221526
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221555,
+          "entry": "Index/TemplateSlide-1221555.iwa",
+          "styleChain": [
+            1221557
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221586,
+          "entry": "Index/TemplateSlide-1221586.iwa",
+          "styleChain": [
+            1221588
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221616,
+          "entry": "Index/TemplateSlide-1221616.iwa",
+          "styleChain": [
+            1221618
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221634,
+          "entry": "Index/TemplateSlide-1221634.iwa",
+          "styleChain": [
+            1221636
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221656,
+          "entry": "Index/TemplateSlide-1221656.iwa",
+          "styleChain": [
+            1221658
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221678,
+          "entry": "Index/TemplateSlide-1221678.iwa",
+          "styleChain": [
+            1221680
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221696,
+          "entry": "Index/TemplateSlide-1221696.iwa",
+          "styleChain": [
+            1221698
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221719,
+          "entry": "Index/TemplateSlide-1221719.iwa",
+          "styleChain": [
+            1221721
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221741,
+          "entry": "Index/TemplateSlide-1221741.iwa",
+          "styleChain": [
+            1221743
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221786,
+          "entry": "Index/TemplateSlide-1221786.iwa",
+          "styleChain": [
+            1221788
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221813,
+          "entry": "Index/TemplateSlide-1221813.iwa",
+          "styleChain": [
+            1221815
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1221831,
+          "entry": "Index/Slide-1221831.iwa",
+          "styleChain": [
+            1221397
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 1225067,
+          "entry": "Index/Slide.iwa",
+          "styleChain": [
+            1221815
+          ],
+          "backgroundKind": "solid",
+          "rgb": "FFFFFF",
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "path": "keynotekit/tabledeck-v15.2.1.key",
+      "sha256": "384962b1fff18abc5a901b59dc5f8820c2a959977f18f90dc9cd10095bdd0a56",
+      "slidesIncludingTemplates": [
+        {
+          "identifier": 2651742,
+          "entry": "Index/TemplateSlide-2651742.iwa",
+          "styleChain": [
+            2651744
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2651770,
+          "entry": "Index/TemplateSlide-2651770.iwa",
+          "styleChain": [
+            2651772
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2651801,
+          "entry": "Index/TemplateSlide-2651801.iwa",
+          "styleChain": [
+            2651803
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2651828,
+          "entry": "Index/TemplateSlide-2651828.iwa",
+          "styleChain": [
+            2651830
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2651851,
+          "entry": "Index/TemplateSlide-2651851.iwa",
+          "styleChain": [
+            2651853
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2651870,
+          "entry": "Index/TemplateSlide-2651870.iwa",
+          "styleChain": [
+            2651872
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2651901,
+          "entry": "Index/TemplateSlide-2651901.iwa",
+          "styleChain": [
+            2651903
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2651932,
+          "entry": "Index/TemplateSlide-2651932.iwa",
+          "styleChain": [
+            2651934
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2651962,
+          "entry": "Index/TemplateSlide-2651962.iwa",
+          "styleChain": [
+            2651964
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2651980,
+          "entry": "Index/TemplateSlide-2651980.iwa",
+          "styleChain": [
+            2651982
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2652002,
+          "entry": "Index/TemplateSlide-2652002.iwa",
+          "styleChain": [
+            2652004
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2652024,
+          "entry": "Index/TemplateSlide-2652024.iwa",
+          "styleChain": [
+            2652026
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2652042,
+          "entry": "Index/TemplateSlide-2652042.iwa",
+          "styleChain": [
+            2652044
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2652064,
+          "entry": "Index/TemplateSlide-2652064.iwa",
+          "styleChain": [
+            2652066
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2652086,
+          "entry": "Index/TemplateSlide-2652086.iwa",
+          "styleChain": [
+            2652088
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2652131,
+          "entry": "Index/TemplateSlide-2652131.iwa",
+          "styleChain": [
+            2652133
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2652158,
+          "entry": "Index/TemplateSlide-2652158.iwa",
+          "styleChain": [
+            2652160
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2652176,
+          "entry": "Index/Slide-2652176.iwa",
+          "styleChain": [
+            2651744
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        }
+      ]
+    },
+    {
+      "path": "keynotekit/imagedeck-v15.2.1.key",
+      "sha256": "a9af589197588e04ee52388b0aa6c2dad1110e5d6db814b58afe543831cf2128",
+      "slidesIncludingTemplates": [
+        {
+          "identifier": 2651742,
+          "entry": "Index/TemplateSlide-2651742.iwa",
+          "styleChain": [
+            2651744
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2651770,
+          "entry": "Index/TemplateSlide-2651770.iwa",
+          "styleChain": [
+            2651772
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2651801,
+          "entry": "Index/TemplateSlide-2651801.iwa",
+          "styleChain": [
+            2651803
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2651828,
+          "entry": "Index/TemplateSlide-2651828.iwa",
+          "styleChain": [
+            2651830
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2651851,
+          "entry": "Index/TemplateSlide-2651851.iwa",
+          "styleChain": [
+            2651853
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2651870,
+          "entry": "Index/TemplateSlide-2651870.iwa",
+          "styleChain": [
+            2651872
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2651901,
+          "entry": "Index/TemplateSlide-2651901.iwa",
+          "styleChain": [
+            2651903
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2651932,
+          "entry": "Index/TemplateSlide-2651932.iwa",
+          "styleChain": [
+            2651934
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2651962,
+          "entry": "Index/TemplateSlide-2651962.iwa",
+          "styleChain": [
+            2651964
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2651980,
+          "entry": "Index/TemplateSlide-2651980.iwa",
+          "styleChain": [
+            2651982
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2652002,
+          "entry": "Index/TemplateSlide-2652002.iwa",
+          "styleChain": [
+            2652004
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2652024,
+          "entry": "Index/TemplateSlide-2652024.iwa",
+          "styleChain": [
+            2652026
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2652042,
+          "entry": "Index/TemplateSlide-2652042.iwa",
+          "styleChain": [
+            2652044
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2652064,
+          "entry": "Index/TemplateSlide-2652064.iwa",
+          "styleChain": [
+            2652066
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2652086,
+          "entry": "Index/TemplateSlide-2652086.iwa",
+          "styleChain": [
+            2652088
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2652131,
+          "entry": "Index/TemplateSlide-2652131.iwa",
+          "styleChain": [
+            2652133
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2652158,
+          "entry": "Index/TemplateSlide-2652158.iwa",
+          "styleChain": [
+            2652160
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        },
+        {
+          "identifier": 2652176,
+          "entry": "Index/Slide-2652176.iwa",
+          "styleChain": [
+            2651744
+          ],
+          "backgroundKind": "unsupported",
+          "rgb": null,
+          "colorFields": [
+            1,
+            3,
+            4,
+            5,
+            6,
+            12,
+            13
+          ],
+          "colorSpace": 1,
+          "rgba": [
+            0.9999966025352478,
+            0.9999999403953552,
+            0.9999999403953552,
+            1.0
+          ]
+        }
+      ]
+    }
+  ],
+  "limits": "Opaque sRGB fills in older fixtures; Display P3 and additional color field 13 in newer fixtures remains unqualified. Includes inactive templates. No Apple PPTX export, rendered background or master-layout qualification."
+}

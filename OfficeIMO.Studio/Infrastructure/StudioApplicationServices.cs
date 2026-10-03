@@ -25,6 +25,7 @@ internal sealed class StudioApplicationServices {
         DocumentHistory = new StudioDocumentHistory(paths, preferences);
         Recovery = new PdfWorkspaceRecoveryStore(paths.RecoveryRoot, preferences.Current.CreateRecoverySnapshots);
         WorkflowRecovery = new OfficeIMO.Workflows.OfficeWorkflowOutputRecoveryStore(paths.WorkflowRecoveryRoot);
+        ConversionRunner = OfficeIMO.Workflows.IWork.IWorkWorkflow.CreateRunner();
         Jobs = new StudioJobHistory(localizer, WorkflowRecovery);
         Signatures = new StudioSignatureStore(paths.SignaturesRoot);
     }
@@ -45,6 +46,8 @@ internal sealed class StudioApplicationServices {
     internal StudioDocumentViewStore DocumentViews => DocumentHistory.ReadingPositions;
 
     internal PdfWorkspaceRecoveryStore Recovery { get; }
+
+    internal OfficeIMO.Workflows.IOfficeWorkflowRunner ConversionRunner { get; }
 
     internal StudioJobHistory Jobs { get; }
 

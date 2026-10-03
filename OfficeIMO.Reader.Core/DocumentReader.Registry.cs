@@ -48,11 +48,11 @@ internal static partial class DocumentReaderEngine {
     internal static long? ResolveInitialMaxInputBytes(string? sourceName, ReaderOptions options) {
         if (options == null) throw new ArgumentNullException(nameof(options));
         if (options.DetectionMode == ReaderDetectionMode.PreferContent)
-            return ResolvePreferContentInputLimit(sourceName, options, requireStreamInput: false);
+            return CombineMaxInputBytes(ResolvePreferContentInputLimit(sourceName, options, requireStreamInput: false), options.InputByteBudget);
         if (!TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler) ||
-            !handler.SupportsPathInput) return options.MaxInputBytes;
+            !handler.SupportsPathInput) return CombineMaxInputBytes(options.MaxInputBytes, options.InputByteBudget);
         long? configured = options.MaxInputBytes ?? handler.ResolveDefaultMaxInputBytes(sourceName);
-        return CombineMaxInputBytes(configured, handler.MaxInputBytesCeiling);
+        return CombineMaxInputBytes(CombineMaxInputBytes(configured, handler.MaxInputBytesCeiling), options.InputByteBudget);
     }
 
     internal static long? ResolveStreamMaxInputBytes(string? sourceName, ReaderOptions options, bool streamCanSeek) {
@@ -106,13 +106,19 @@ internal static partial class DocumentReaderEngine {
         string? sourceName,
         ReaderOptions options) {
         long? configured = options.MaxInputBytes ?? handler.ResolveDefaultMaxInputBytes(sourceName);
-        return CombineMaxInputBytes(configured, handler.MaxInputBytesCeiling);
+        return CombineMaxInputBytes(CombineMaxInputBytes(configured, handler.MaxInputBytesCeiling), options.InputByteBudget);
     }
 
     private static long? CombineMaxInputBytes(long? configured, long? ceiling) =>
         configured.HasValue && ceiling.HasValue
             ? Math.Min(configured.Value, ceiling.Value)
             : configured ?? ceiling;
+
+    private static ReaderOptions ApplyFolderInputBudget(ReaderOptions? options, long maximumBytes) {
+        ReaderOptions effective = NormalizeOptions(options);
+        effective.InputByteBudget = CombineMaxInputBytes(effective.InputByteBudget, maximumBytes);
+        return effective;
+    }
 
     internal static long? ResolveHandlerDefaultMaxInputBytes(string? sourceName) {
         return TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler)
@@ -124,6 +130,7 @@ internal static partial class DocumentReaderEngine {
         ReaderOptions? source = options;
         var clone = new ReaderOptions {
             MaxInputBytes = source?.MaxInputBytes,
+            InputByteBudget = source?.InputByteBudget,
             ResourceLimits = source?.ResourceLimits?.CloneValidated(),
             TextEncoding = source?.TextEncoding == null ? null : (Encoding)source.TextEncoding.Clone(),
             ThrowOnInvalidTextBytes = source?.ThrowOnInvalidTextBytes ?? false,

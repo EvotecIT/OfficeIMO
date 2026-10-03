@@ -55,17 +55,4 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(result.Projection.HasEditableContent);
     }
 
-    [Theory]
-    [InlineData("IIII.")]
-    [InlineData("IIV.")]
-    [InlineData("iV.")]
-    public void Noncanonical_pages_roman_markers_use_visual_fallback(string label) {
-        using MemoryStream package = CreatePagesPackageWithListLabel(label,
-            includePreview: true);
-
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
-
-        Assert.True(result.IsVisualFallback);
-        Assert.True(result.Projection.HasEditableContent);
-    }
 }

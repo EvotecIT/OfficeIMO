@@ -11,6 +11,30 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.Tests {
     public partial class PowerPointImageExportTests {
         [Fact]
+        public void PowerPointSlide_ExplicitNoFillCellShowsSlideBackgroundInsteadOfTableTheme() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.SlideSize.SetSizePoints(180, 100);
+            var slide = presentation.AddSlide();
+            slide.BackgroundColor = "FFFF00";
+            const string styleId = "{6A0E6B20-52C9-4C93-9DA8-000000000103}";
+            AddImageExportTableStyle(slide, styleId);
+            var table = slide.AddTablePoints(1, 2, 20, 20, 120, 48);
+            table.StyleId = styleId;
+            table.FirstRow = false; table.FirstColumn = false;
+            table.BandedRows = false; table.BandedColumns = true;
+            var cell = table.GetCell(0, 0);
+            cell.NoFill = true;
+            using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
+            using var reopened = PowerPointPresentation.Load(saved);
+            slide = reopened.Slides[0];
+            Assert.True(Assert.Single(slide.Tables).GetCell(0, 0).NoFill);
+            Assert.Empty(reopened.ValidateDocument());
+            Assert.True(OfficePngReader.TryDecode(slide.ExportImage(OfficeImageExportFormat.Png).Bytes, out var image));
+            Assert.Equal(OfficeColor.Yellow, image!.GetPixel(32, 32));
+            Assert.Equal(OfficeColor.FromRgb(254, 215, 170), image.GetPixel(92, 32));
+        }
+
+        [Fact]
         public void PowerPointSlide_ProjectsTableStyleColumnsAndCornersThroughSharedDrawingBorderBox() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -194,14 +218,14 @@ namespace OfficeIMO.Tests {
                 StyleName = "Image Export Table Style"
             };
 
-            style.Append(
+            foreach (var region in new DocumentFormat.OpenXml.OpenXmlElement[] {
                 new A.WholeTable(CreateTableCellStyle("E2E8F0")),
                 new A.LastColumn(CreateTableCellStyle("FEF3C7")),
                 new A.FirstColumn(CreateTableCellStyle("DCFCE7")),
                 new A.FirstRow(CreateTableCellStyle("DBEAFE")),
                 new A.NorthwestCell(CreateTableCellStyle("FCE7F3")),
                 new A.Band1Vertical(CreateTableCellStyle("C7D2FE")),
-                new A.Band2Vertical(CreateTableCellStyle("FED7AA")));
+                new A.Band2Vertical(CreateTableCellStyle("FED7AA")) }) style.AddChild(region, true);
             return style;
         }
 

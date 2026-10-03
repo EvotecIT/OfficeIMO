@@ -1,0 +1,144 @@
+{
+  "producer": "Apple Numbers 14.5",
+  "captureDate": "2026-10-02",
+  "source": "numbers-parser/cross-table-formulas.numbers",
+  "sourceSha256": "9371c5b1d6ee4dfa17569097f064eba9c67f804d88b48638efbbeeb459d07dd4",
+  "export": "numbers-blank-selectors-v14.5.xlsx",
+  "exportSha256": "44efebb00cd51bfe61913fea7d3de2565225b5aa0fb26b15fd4e4c3772ed4da7",
+  "sourceUnchangedAfterExport": true,
+  "exportOptions": {
+    "worksheetPerTable": true,
+    "summaryWorksheet": false,
+    "password": false,
+    "tableTitleRowOffset": 1
+  },
+  "worksheet": "Main Sheet - Extra Headers",
+  "worksheetPart": "xl/worksheets/sheet7.xml",
+  "cases": [
+    {
+      "sourceCell": "A8",
+      "exportCell": "A9",
+      "exportNumberFormatId": 0,
+      "exportNumberFormat": "General",
+      "hasValue": false
+    },
+    {
+      "sourceCell": "A9",
+      "exportCell": "A10",
+      "exportNumberFormatId": 49,
+      "exportNumberFormat": "@",
+      "hasValue": false
+    },
+    {
+      "sourceCell": "A10",
+      "exportCell": "A11",
+      "exportNumberFormatId": 49,
+      "exportNumberFormat": "@",
+      "hasValue": false
+    },
+    {
+      "sourceCell": "A11",
+      "exportCell": "A12",
+      "exportNumberFormatId": 49,
+      "exportNumberFormat": "@",
+      "hasValue": false
+    },
+    {
+      "sourceCell": "A12",
+      "exportCell": "A13",
+      "exportNumberFormatId": 49,
+      "exportNumberFormat": "@",
+      "hasValue": false
+    },
+    {
+      "sourceCell": "A13",
+      "exportCell": "A14",
+      "exportNumberFormatId": 49,
+      "exportNumberFormat": "@",
+      "hasValue": false
+    },
+    {
+      "sourceCell": "A14",
+      "exportCell": "A15",
+      "exportNumberFormatId": 49,
+      "exportNumberFormat": "@",
+      "hasValue": false
+    },
+    {
+      "sourceCell": "A15",
+      "exportCell": "A16",
+      "exportNumberFormatId": 49,
+      "exportNumberFormat": "@",
+      "hasValue": false
+    },
+    {
+      "sourceCell": "A16",
+      "exportCell": "A17",
+      "exportNumberFormatId": 49,
+      "exportNumberFormat": "@",
+      "hasValue": false
+    },
+    {
+      "sourceCell": "A17",
+      "exportCell": "A18",
+      "exportNumberFormatId": 49,
+      "exportNumberFormat": "@",
+      "hasValue": false
+    }
+  ],
+  "license": "Derived from existing MIT-licensed numbers-parser corpus fixture; existing attribution applies.",
+  "limits": [
+    "One producer version and ten blank cells only.",
+    "Text selection export does not establish general native selector precedence.",
+    "The isolated percentage blank exports as General, so native export does not preserve every source blank format.",
+    "No rendered appearance or populated-value behavior is qualified."
+  ],
+  "nativeUiEvidence": {
+    "producer": "Apple Numbers 14.5",
+    "sourceTable": "Main Sheet / Extra Headers",
+    "observedBeforeEdit": {
+      "A8": "Automatic",
+      "A9": "Text"
+    },
+    "controlledEdit": {
+      "cell": "A8",
+      "action": "Select Percentage in Cell Format panel and save a disposable copy",
+      "output": "numbers-blank-explicit-percentage-v14.5.numbers",
+      "sha256": "2c309aba907f3987375868489650b5637e9dba3c48c6f48f14e83df6afdff690",
+      "beforeStorageHex": "0500000000000100402000000100000006000000",
+      "afterStorageHex": "050000000000010040300000010000000100000006000000",
+      "difference": "Value-storage bit 12 is added with value 1; numeric format key remains 6."
+    },
+    "conclusion": "Field 12 identifies the active blank scalar family: 1 numeric, 2 currency, 3 date/time, 4 duration, 5 text. Retained catalog entries alone do not select a format.",
+    "scalarSequence": {
+      "cell": "Main Sheet / Extra Headers / A8",
+      "action": "Starting from an unchanged disposable source copy, select Currency, Date and Time, Duration, then Automatic in the Cell Format panel, saving after each change without entering a value.",
+      "snapshots": [
+        {
+          "format": "currency",
+          "selection": 2,
+          "source": "numbers-blank-explicit-currency-v14.5.numbers",
+          "sha256": "04b95f517a89288c4fe11a70f6557bcd07ec277173953c683176366bf3cd574d"
+        },
+        {
+          "format": "date",
+          "selection": 3,
+          "source": "numbers-blank-explicit-date-v14.5.numbers",
+          "sha256": "62758ae4a439bb0b011e738160dba8d114de916041a3f355b0fd4f7e373dad8b"
+        },
+        {
+          "format": "duration",
+          "selection": 4,
+          "source": "numbers-blank-explicit-duration-v14.5.numbers",
+          "sha256": "05126a46f9a6d03b765511bfdb70c248de243cc70df6151b25ffb0c585c29b4e"
+        },
+        {
+          "format": "automatic",
+          "selection": null,
+          "source": "numbers-blank-explicit-automatic-v14.5.numbers",
+          "sha256": "d1f095a7abb55e15dc8f02daa96029a7acb935a37a3aebb718100e1ce339bb2a"
+        }
+      ]
+    }
+  }
+}

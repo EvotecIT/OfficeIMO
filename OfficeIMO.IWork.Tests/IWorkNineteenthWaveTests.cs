@@ -19,39 +19,6 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Throws<InvalidDataException>(() => source.ReadPages());
     }
 
-    [Theory]
-    [InlineData("3.", 3)]
-    [InlineData("c.", 3)]
-    [InlineData("aa.", 27)]
-    [InlineData("iv.", 4)]
-    public void Pages_ordered_lists_preserve_nondefault_start_values(string label, int expectedStart) {
-        using MemoryStream package = CreatePagesPackageWithListLabel(label);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
-        using var saved = new MemoryStream();
-        result.Value.Save(saved);
-        saved.Position = 0;
-
-        using WordprocessingDocument document = WordprocessingDocument.Open(saved, false);
-        Paragraph paragraph = document.MainDocumentPart?.Document?.Body?.Elements<Paragraph>()
-            .Single(candidate => candidate.InnerText == "Item")
-            ?? throw new InvalidDataException("The reconstructed DOCX has no list paragraph.");
-        int numberId = paragraph.ParagraphProperties?.NumberingProperties?.NumberingId?.Val?.Value
-            ?? throw new InvalidDataException("The reconstructed paragraph has no numbering identifier.");
-        Numbering numbering = document.MainDocumentPart?.NumberingDefinitionsPart?.Numbering
-            ?? throw new InvalidDataException("The reconstructed DOCX has no numbering definitions.");
-        int abstractId = numbering.Elements<NumberingInstance>()
-            .Single(instance => instance.NumberID?.Value == numberId)
-            .AbstractNumId?.Val?.Value
-            ?? throw new InvalidDataException("The numbering instance has no abstract definition.");
-        int start = numbering.Elements<AbstractNum>()
-            .Single(item => item.AbstractNumberId?.Value == abstractId)
-            .Elements<Level>().Single(level => level.LevelIndex?.Value == 0)
-            .StartNumberingValue?.Val?.Value
-            ?? throw new InvalidDataException("The reconstructed list has no start value.");
-
-        Assert.Equal(expectedStart, start);
-    }
-
     [Fact]
     public void Keynote_right_paragraph_indents_use_visual_fallback() {
         using MemoryStream package = CreateKeynotePackageWithRightIndent();

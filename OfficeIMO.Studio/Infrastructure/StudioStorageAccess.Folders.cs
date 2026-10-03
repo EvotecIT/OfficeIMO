@@ -41,17 +41,59 @@ internal sealed partial class StudioStorageAccess {
         }
     }
 
-    /// <summary>Keeps enumerated provider references alive only for one assembly, including publication verification.</summary>
+    /// <summary>Keeps enumerated provider references alive for one operation, including publication verification.</summary>
     internal sealed class DirectoryInputSession : IDisposable {
         private readonly HashSet<IStorageItem> _items = new(ReferenceEqualityComparer.Instance);
         private readonly HashSet<IStorageItem> _roots;
         private bool _disposed;
         internal IReadOnlyDictionary<string, OfficeWorkflowDirectoryInput> Inputs { get; }
+        private readonly IReadOnlyDictionary<string, IStorageFolder> _folders;
 
         internal DirectoryInputSession(IReadOnlyDictionary<string, IStorageFolder> folders) {
+            _folders = folders;
             _roots = new(folders.Values, ReferenceEqualityComparer.Instance);
             Inputs = folders.ToDictionary(pair => pair.Key,
                 pair => new OfficeWorkflowDirectoryInput((options, token) => Enumerate(pair.Value, options, token)), StringComparer.Ordinal);
+        }
+
+        internal OfficeWorkflowDirectoryPackageInput? CreatePackageInput(string location) =>
+            _folders.TryGetValue(location, out var folder)
+                ? new(folder.Name, Inputs[location], new PackageRootGuard(this, folder)) : null;
+
+        private sealed class PackageRootGuard(DirectoryInputSession session, IStorageFolder folder) : IOfficeWorkflowPublicationGuard {
+            private string? _identity;
+            public async ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
+                ObjectDisposedException.ThrowIf(session._disposed, session);
+                // Avalonia keeps the folder's native permission scope open while its iterator is alive.
+                // A reference to IStorageFolder alone does not grant filesystem access.
+                await using var scope = folder.GetItemsAsync().GetAsyncEnumerator(token);
+                if (!await scope.MoveNextAsync().ConfigureAwait(false))
+                    throw new IOException("The selected package has no members.");
+                if (!session._roots.Contains(scope.Current)) session._items.Add(scope.Current);
+                token.ThrowIfCancellationRequested();
+                string local = folder.TryGetLocalPath()
+                    ?? throw new IOException("This provider cannot verify a directory package root. Select a local package.");
+                if ((File.GetAttributes(local) & FileAttributes.ReparsePoint) != 0)
+                    throw new IOException("Linked directory packages cannot be included safely.");
+                string identity = OfficePathIdentity.GetPhysicalIdentityKey(local);
+                if (_identity is not null && _identity != identity)
+                    throw new IOException("The source directory package was replaced during execution.");
+                _identity ??= identity;
+                if (OfficeStorageIdentity.AreEquivalent(Location(folder), path)) return false;
+                string? output = OfficeStorageIdentity.GetLocalPath(path);
+                if (output is null) return true;
+                if (OfficePathIdentity.IsSameOrDescendant(output, local) ||
+                    isDirectory && OfficePathIdentity.IsSameOrDescendant(local, output)) return false;
+                // Batch protection also covers packages whose members have not yet been captured.
+                if (!isDirectory && File.Exists(output)) {
+                    await foreach (var entry in session.Enumerate(folder, new(true, 10_000), token).ConfigureAwait(false)) {
+                        if (entry.Input is not null && OfficeStorageIdentity.AreEquivalent(entry.Location, path)) return false;
+                    }
+                }
+                if (OfficePathIdentity.GetPhysicalIdentityKey(local) != _identity)
+                    throw new IOException("The source directory package was replaced during execution.");
+                return true;
+            }
         }
 
         private async IAsyncEnumerable<OfficeWorkflowDirectoryEntry> Enumerate(IStorageFolder root,

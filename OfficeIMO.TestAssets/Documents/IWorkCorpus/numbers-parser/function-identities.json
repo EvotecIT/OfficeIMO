@@ -1,0 +1,453 @@
+{
+  "upstream": "https://github.com/masaccio/numbers-parser",
+  "revision": "1c6c5c3d2e29a9abb601596678089f0a6c85d64c",
+  "upstreamPath": "tests/data/create-formulas.numbers",
+  "sourceSha256": "9371c5b1d6ee4dfa17569097f064eba9c67f804d88b48638efbbeeb459d07dd4",
+  "extractorVersion": "numbers-parser 4.19.0",
+  "license": "MIT, copyright Jon Connell",
+  "qualification": "Independent function identities plus three unmodified native expressions and caches; synthetic argument samples do not qualify evaluation. No Apple export, recalculation or appearance oracle.",
+  "identities": [
+    {
+      "index": 1,
+      "name": "ABS",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 7,
+      "name": "AND",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 15,
+      "name": "AVERAGE",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 16,
+      "name": "AVERAGEA",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 17,
+      "name": "CEILING",
+      "sampleArgumentCount": 2
+    },
+    {
+      "index": 22,
+      "name": "COLUMN",
+      "sampleArgumentCount": 0
+    },
+    {
+      "index": 23,
+      "name": "COLUMNS",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 24,
+      "name": "COMBIN",
+      "sampleArgumentCount": 2
+    },
+    {
+      "index": 25,
+      "name": "CONCATENATE",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 30,
+      "name": "COUNT",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 31,
+      "name": "COUNTA",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 32,
+      "name": "COUNTBLANK",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 33,
+      "name": "COUNTIF",
+      "sampleArgumentCount": 2
+    },
+    {
+      "index": 39,
+      "name": "DATE",
+      "sampleArgumentCount": 3
+    },
+    {
+      "index": 41,
+      "name": "DAY",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 44,
+      "name": "DEGREES",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 48,
+      "name": "EVEN",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 49,
+      "name": "EXACT",
+      "sampleArgumentCount": 2
+    },
+    {
+      "index": 50,
+      "name": "EXP",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 51,
+      "name": "FACT",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 52,
+      "name": "FALSE",
+      "sampleArgumentCount": 0
+    },
+    {
+      "index": 53,
+      "name": "FIND",
+      "sampleArgumentCount": 2
+    },
+    {
+      "index": 55,
+      "name": "FLOOR",
+      "sampleArgumentCount": 2
+    },
+    {
+      "index": 60,
+      "name": "HOUR",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 61,
+      "name": "HYPERLINK",
+      "sampleArgumentCount": 2
+    },
+    {
+      "index": 62,
+      "name": "IF",
+      "sampleArgumentCount": 3
+    },
+    {
+      "index": 63,
+      "name": "INDEX",
+      "sampleArgumentCount": 2
+    },
+    {
+      "index": 65,
+      "name": "INT",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 69,
+      "name": "ISBLANK",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 70,
+      "name": "ISERROR",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 76,
+      "name": "LEFT",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 77,
+      "name": "LEN",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 78,
+      "name": "LN",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 79,
+      "name": "LOG",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 80,
+      "name": "LOG10",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 82,
+      "name": "LOWER",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 84,
+      "name": "MAX",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 85,
+      "name": "MAXA",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 86,
+      "name": "MEDIAN",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 87,
+      "name": "MID",
+      "sampleArgumentCount": 3
+    },
+    {
+      "index": 88,
+      "name": "MIN",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 89,
+      "name": "MINA",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 90,
+      "name": "MINUTE",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 92,
+      "name": "MOD",
+      "sampleArgumentCount": 2
+    },
+    {
+      "index": 96,
+      "name": "NOT",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 97,
+      "name": "NOW",
+      "sampleArgumentCount": 0
+    },
+    {
+      "index": 100,
+      "name": "ODD",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 101,
+      "name": "OFFSET",
+      "sampleArgumentCount": 3
+    },
+    {
+      "index": 102,
+      "name": "OR",
+      "sampleArgumentCount": 2
+    },
+    {
+      "index": 104,
+      "name": "PI",
+      "sampleArgumentCount": 0
+    },
+    {
+      "index": 107,
+      "name": "POWER",
+      "sampleArgumentCount": 2
+    },
+    {
+      "index": 112,
+      "name": "PROB",
+      "sampleArgumentCount": 3
+    },
+    {
+      "index": 113,
+      "name": "PRODUCT",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 117,
+      "name": "RADIANS",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 119,
+      "name": "RANDBETWEEN",
+      "sampleArgumentCount": 2
+    },
+    {
+      "index": 124,
+      "name": "RIGHT",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 126,
+      "name": "ROUND",
+      "sampleArgumentCount": 2
+    },
+    {
+      "index": 127,
+      "name": "ROUNDDOWN",
+      "sampleArgumentCount": 2
+    },
+    {
+      "index": 128,
+      "name": "ROUNDUP",
+      "sampleArgumentCount": 2
+    },
+    {
+      "index": 129,
+      "name": "ROW",
+      "sampleArgumentCount": 0
+    },
+    {
+      "index": 130,
+      "name": "ROWS",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 132,
+      "name": "SECOND",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 133,
+      "name": "SIGN",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 139,
+      "name": "SQRT",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 145,
+      "name": "SUMIF",
+      "sampleArgumentCount": 2
+    },
+    {
+      "index": 147,
+      "name": "SUMSQ",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 155,
+      "name": "TRIM",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 156,
+      "name": "TRUE",
+      "sampleArgumentCount": 0
+    },
+    {
+      "index": 157,
+      "name": "TRUNC",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 158,
+      "name": "UPPER",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 168,
+      "name": "SUM",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 235,
+      "name": "IFERROR",
+      "sampleArgumentCount": 2
+    },
+    {
+      "index": 304,
+      "name": "ISNUMBER",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 305,
+      "name": "ISTEXT",
+      "sampleArgumentCount": 1
+    },
+    {
+      "index": 328,
+      "name": "TEXTJOIN",
+      "sampleArgumentCount": 3
+    }
+  ],
+  "nativeCases": [
+    {
+      "sourceSheet": "Main Sheet",
+      "sourceTable": "Formula Tests",
+      "row": 17,
+      "column": 1,
+      "formula": "IF(OR(SUM(A14:B14)>1,SUM(A2:B2)>1),\"yay\",\"nay\")",
+      "cachedValue": "yay",
+      "functions": [
+        {
+          "index": 168,
+          "name": "SUM",
+          "argumentCount": 1
+        },
+        {
+          "index": 168,
+          "name": "SUM",
+          "argumentCount": 1
+        },
+        {
+          "index": 102,
+          "name": "OR",
+          "argumentCount": 2
+        },
+        {
+          "index": 62,
+          "name": "IF",
+          "argumentCount": 3
+        }
+      ]
+    },
+    {
+      "sourceSheet": "Powers Sheet",
+      "sourceTable": "Powers of Two",
+      "row": 1,
+      "column": 1,
+      "formula": "POWER(2,5)",
+      "cachedValue": 32.0,
+      "functions": [
+        {
+          "index": 107,
+          "name": "POWER",
+          "argumentCount": 2
+        }
+      ]
+    }
+  ],
+  "textJoinCase": {
+    "sourceSheet": "Main Sheet",
+    "sourceTable": "Formula Tests",
+    "row": 16,
+    "column": 1,
+    "sourceFormula": "TEXTJOIN(\",\",FALSE,Animal Table::B1:D1)",
+    "functionIndex": 328,
+    "argumentCount": 3,
+    "targetSheet": "Main Sheet",
+    "targetTable": "Animal Table",
+    "address": "B1:D1",
+    "cachedValue": "cat,dog,hamster",
+    "computedCurrentRangeValue": "cat,dog,hamster"
+  },
+  "unqualifiedIdentities": [
+    {
+      "index": 169,
+      "name": null
+    }
+  ]
+}

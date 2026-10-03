@@ -21,16 +21,23 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void High_precision_decimal128_values_use_visual_fallback_instead_of_rounding() {
+    public void High_precision_decimal128_values_retain_exact_source_text_and_report_approximation() {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("Decimal128", 1, 1, 0d, decimal128HighBit: true)
         }, includePreview: true);
 
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
-        Assert.True(result.IsVisualFallback);
+        Assert.False(result.IsVisualFallback);
+        IWorkTableCell cell = Assert.Single(Assert.Single(Assert.Single(result.Projection.Sheets).Tables).Cells);
+        Assert.Equal("5192296858534827628530496329220096E0", cell.SourceNumberText);
+        Assert.True(cell.NumericValueIsApproximate);
+        Assert.IsType<double>(cell.Value);
+        Assert.False(cell.HasDecodeError);
         Assert.Contains(result.Projection.Diagnostics,
-            diagnostic => diagnostic.Code == "IWORK_TABLE_CELL_DECODE");
+            diagnostic => diagnostic.Code == "IWORK_TABLE_NUMERIC_VALUE_APPROXIMATED"
+            && diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Approximation);
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
     }
 
     [Fact]
@@ -334,7 +341,7 @@ public sealed partial class IWorkBoundaryTests {
             byte[] listEntry = Message(VarintField(1, 0), ReferenceField(2, listStyleId));
             storageFields.Add(BytesField(7, Message(BytesField(1, listEntry))));
             extraRecords.Add(ArchiveRecord(listStyleId, 2023,
-                Message(VarintField(11, 1), StringField(16, listLabel))));
+                Message(VarintField(11, 2), StringField(16, listLabel))));
         }
         if (fontSize.HasValue) {
             const ulong characterStyleId = 7;

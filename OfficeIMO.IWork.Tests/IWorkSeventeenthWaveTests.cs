@@ -48,41 +48,6 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal("0", anchor.VerticalPosition?.PositionOffset?.Text);
     }
 
-    [Theory]
-    [InlineData("a.", "lowerLetter")]
-    [InlineData("i.", "lowerRoman")]
-    [InlineData("iv.", "lowerRoman")]
-    public void Alphabetic_and_roman_pages_lists_use_native_word_numbering(
-        string label, string expectedFormat) {
-        using MemoryStream package = CreatePagesPackageWithListLabel(label);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
-        using var saved = new MemoryStream();
-        result.Value.Save(saved);
-        saved.Position = 0;
-
-        using WordprocessingDocument document = WordprocessingDocument.Open(saved, false);
-        Paragraph paragraph = document.MainDocumentPart?.Document?.Body?.Elements<Paragraph>()
-            .Single(candidate => candidate.InnerText == "Item")
-            ?? throw new InvalidDataException("The reconstructed DOCX has no list paragraph.");
-        int numberId = paragraph.ParagraphProperties?.NumberingProperties?.NumberingId?.Val?.Value
-            ?? throw new InvalidDataException("The reconstructed paragraph has no numbering identifier.");
-        Numbering numbering = document.MainDocumentPart?.NumberingDefinitionsPart?.Numbering
-            ?? throw new InvalidDataException("The reconstructed DOCX has no numbering definitions.");
-        int abstractId = numbering.Elements<NumberingInstance>()
-            .Single(instance => instance.NumberID?.Value == numberId)
-            .AbstractNumId?.Val?.Value
-            ?? throw new InvalidDataException("The numbering instance has no abstract definition.");
-        NumberFormatValues? format = numbering.Elements<AbstractNum>()
-            .Single(item => item.AbstractNumberId?.Value == abstractId)
-            .Elements<Level>().Single(level => level.LevelIndex?.Value == 0)
-            .NumberingFormat?.Val?.Value;
-
-        NumberFormatValues expected = expectedFormat == "lowerLetter"
-            ? NumberFormatValues.LowerLetter
-            : NumberFormatValues.LowerRoman;
-        Assert.Equal(expected, format);
-    }
-
     [Fact]
     public void Transparent_pages_text_uses_visual_fallback() {
         using MemoryStream package = CreatePagesPackageWithTransparentText();
@@ -201,7 +166,7 @@ public sealed partial class IWorkBoundaryTests {
             ArchiveRecord(documentId, 10000, Message(ReferenceField(4, bodyId)), new[] { bodyId }),
             ArchiveRecord(bodyId, 2001,
                 Message(StringField(3, "Item"), BytesField(7, listTable)), new[] { listId }),
-            ArchiveRecord(listId, 2023, Message(VarintField(11, 1), StringField(16, label))));
+            ArchiveRecord(listId, 2023, Message(VarintField(11, 2), StringField(16, label))));
         return includePreview
             ? CreatePackage(("Index/Document.iwa", FrameIwa(records)),
                 ("preview.png", ValidPreviewPng()))

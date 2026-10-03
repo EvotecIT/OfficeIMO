@@ -71,62 +71,80 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Threaded comment options.</param>
         public ExcelThreadedCommentResult AddThreadedComment(ExcelThreadedCommentOptions options) {
             if (options == null) throw new ArgumentNullException(nameof(options));
-            if (string.IsNullOrWhiteSpace(options.Address)) throw new ArgumentException("Threaded comment address is required.", nameof(options));
-            if (string.IsNullOrWhiteSpace(options.Text)) throw new ArgumentException("Threaded comment text is required.", nameof(options));
+            return AddThreadedComments(new[] { options })[0];
+        }
 
-            string cellReference = NormalizeThreadedCommentAddress(options.Address, nameof(options));
-            string author = string.IsNullOrWhiteSpace(options.Author) ? "OfficeIMO" : options.Author.Trim();
-            string id = NormalizeThreadedId(options.Id, nameof(options.Id), generateIfMissing: true);
-            string? parentId = string.IsNullOrWhiteSpace(options.ParentId)
-                ? null
-                : NormalizeThreadedId(options.ParentId, nameof(options.ParentId), generateIfMissing: false);
-            DateTime timestamp = NormalizeThreadedTimestamp(options.Date);
-            string personId = string.Empty;
-
+        /// <summary>
+        /// Adds comments and replies as one prevalidated batch, indexing workbook identities and saving each part once.
+        /// Replies must refer to an existing root or an earlier root in the batch, on this worksheet and cell.
+        /// </summary>
+        /// <param name="options">Comment options, captured before package mutation.</param>
+        /// <returns>Results in input order.</returns>
+        public IReadOnlyList<ExcelThreadedCommentResult> AddThreadedComments(IEnumerable<ExcelThreadedCommentOptions> options) {
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            var prepared = new List<(string Address, string Text, string Author, string Id, string? ParentId, DateTime Date, bool Done)>();
+            foreach (ExcelThreadedCommentOptions item in options) {
+                if (item == null) throw new ArgumentException("Comment options cannot contain null.", nameof(options));
+                if (string.IsNullOrWhiteSpace(item.Address)) throw new ArgumentException("Threaded comment address is required.", nameof(options));
+                if (string.IsNullOrWhiteSpace(item.Text)) throw new ArgumentException("Threaded comment text is required.", nameof(options));
+                prepared.Add((NormalizeThreadedCommentAddress(item.Address, nameof(options)), item.Text,
+                    string.IsNullOrWhiteSpace(item.Author) ? "OfficeIMO" : item.Author.Trim(),
+                    NormalizeThreadedId(item.Id, nameof(item.Id), generateIfMissing: true),
+                    string.IsNullOrWhiteSpace(item.ParentId) ? null : NormalizeThreadedId(item.ParentId, nameof(item.ParentId), generateIfMissing: false),
+                    NormalizeThreadedTimestamp(item.Date), item.Done));
+            }
+            if (prepared.Count == 0) return Array.Empty<ExcelThreadedCommentResult>();
+            var results = new List<ExcelThreadedCommentResult>(prepared.Count);
             WriteLock(() => {
-                if (TryFindWorkbookThreadedComment(id, out _, out _, out _)) {
-                    throw new InvalidOperationException($"A threaded comment with id '{id}' already exists in the workbook.");
-                }
-
-                if (parentId != null) {
-                    if (!TryFindWorkbookThreadedComment(parentId, out WorksheetPart? parentWorksheet, out _, out Threaded.ThreadedComment? parent)) {
-                        throw new ArgumentException($"Parent threaded comment '{parentId}' does not exist.", nameof(options));
-                    }
-
-                    if (!ReferenceEquals(parentWorksheet, _worksheetPart)
-                        || !string.Equals(parent!.Ref?.Value, cellReference, StringComparison.OrdinalIgnoreCase)) {
-                        throw new ArgumentException("A threaded reply must use the same worksheet and cell as its parent comment.", nameof(options));
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(parent.ParentId?.Value)) {
-                        throw new ArgumentException("A threaded reply must reference the root comment rather than another reply.", nameof(options));
+                WorkbookPart workbook = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("Workbook part is missing.");
+                var identities = new Dictionary<string, (WorksheetPart Worksheet, string? Address, bool IsReply)>(StringComparer.OrdinalIgnoreCase);
+                foreach (WorksheetPart worksheet in workbook.WorksheetParts) {
+                    foreach (WorksheetThreadedCommentsPart part in worksheet.WorksheetThreadedCommentsParts) {
+                        if (part.ThreadedComments == null) continue;
+                        foreach (Threaded.ThreadedComment existing in part.ThreadedComments.Elements<Threaded.ThreadedComment>()) {
+                            string? id = existing.Id?.Value;
+                            if (!string.IsNullOrWhiteSpace(id) && !identities.ContainsKey(id!))
+                                identities.Add(id!, (worksheet, existing.Ref?.Value, !string.IsNullOrWhiteSpace(existing.ParentId?.Value)));
+                        }
                     }
                 }
-
-                personId = EnsureWorkbookPerson(author);
+                // Validate the complete ID/parent plan before creating parts, people or comments.
+                foreach (var item in prepared) {
+                    if (identities.ContainsKey(item.Id)) throw new InvalidOperationException($"A threaded comment with id '{item.Id}' already exists in the workbook.");
+                    if (item.ParentId != null) {
+                        if (!identities.TryGetValue(item.ParentId, out var parent))
+                            throw new ArgumentException($"Parent threaded comment '{item.ParentId}' does not exist.", nameof(options));
+                        if (!ReferenceEquals(parent.Worksheet, _worksheetPart)
+                            || !string.Equals(parent.Address, item.Address, StringComparison.OrdinalIgnoreCase))
+                            throw new ArgumentException("A threaded reply must use the same worksheet and cell as its parent comment.", nameof(options));
+                        if (parent.IsReply) throw new ArgumentException("A threaded reply must reference the root comment rather than another reply.", nameof(options));
+                    }
+                    identities.Add(item.Id, (_worksheetPart, item.Address, item.ParentId != null));
+                }
+                var people = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                foreach (WorkbookPersonPart part in workbook.WorkbookPersonParts) {
+                    if (part.PersonList == null) continue;
+                    foreach (Threaded.Person person in part.PersonList.Elements<Threaded.Person>()) {
+                        string? name = person.DisplayName?.Value, id = person.Id?.Value;
+                        if (name != null && !string.IsNullOrWhiteSpace(id) && !people.ContainsKey(name)) people.Add(name, id!);
+                    }
+                }
                 WorksheetThreadedCommentsPart commentsPart = GetOrCreateThreadedCommentsPart();
                 commentsPart.ThreadedComments ??= new Threaded.ThreadedComments();
-
-                var comment = new Threaded.ThreadedComment {
-                    Ref = cellReference,
-                    PersonId = personId,
-                    Id = id,
-                    DT = timestamp
-                };
-                if (parentId != null) {
-                    comment.ParentId = parentId;
+                foreach (var item in prepared) {
+                    string personId = EnsureWorkbookPerson(item.Author, people);
+                    var comment = new Threaded.ThreadedComment { Ref = item.Address, PersonId = personId, Id = item.Id, DT = item.Date };
+                    if (item.ParentId != null) comment.ParentId = item.ParentId;
+                    if (item.Done) comment.Done = true;
+                    comment.Append(new Threaded.ThreadedCommentText(item.Text));
+                    commentsPart.ThreadedComments.Append(comment);
+                    results.Add(new ExcelThreadedCommentResult(Name, item.Address, item.Id, personId, item.Author, item.ParentId != null, item.Done));
                 }
-                if (options.Done) {
-                    comment.Done = true;
-                }
-
-                comment.Append(new Threaded.ThreadedCommentText(options.Text));
-                commentsPart.ThreadedComments.Append(comment);
                 commentsPart.ThreadedComments.Save();
+                foreach (WorkbookPersonPart part in workbook.WorkbookPersonParts) part.PersonList?.Save();
                 _excelDocument.MarkPackageDirty();
             });
-
-            return new ExcelThreadedCommentResult(Name, cellReference, id, personId, author, parentId != null, options.Done);
+            return results.AsReadOnly();
         }
 
         /// <summary>
@@ -147,9 +165,10 @@ namespace OfficeIMO.Excel {
                 ?? _worksheetPart.AddNewPart<WorksheetThreadedCommentsPart>();
         }
 
-        private string EnsureWorkbookPerson(string author) {
+        private string EnsureWorkbookPerson(string author, IDictionary<string, string>? indexedPeople = null) {
+            if (indexedPeople != null && indexedPeople.TryGetValue(author, out string? known)) return known;
             WorkbookPart workbookPart = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("Workbook part is missing.");
-            foreach (WorkbookPersonPart part in workbookPart.WorkbookPersonParts) {
+            if (indexedPeople == null) foreach (WorkbookPersonPart part in workbookPart.WorkbookPersonParts) {
                 if (part.PersonList == null) {
                     continue;
                 }
@@ -170,7 +189,8 @@ namespace OfficeIMO.Excel {
                 Id = personId,
                 DisplayName = author
             });
-            personPart.PersonList.Save();
+            if (indexedPeople == null) personPart.PersonList.Save();
+            else indexedPeople.Add(author, personId);
             return personId;
         }
 

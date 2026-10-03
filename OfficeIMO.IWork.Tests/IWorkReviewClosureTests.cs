@@ -339,8 +339,8 @@ public sealed partial class IWorkBoundaryTests {
                 Message(StringField(3, "Item"), BytesField(7, listTable)),
                 new[] { listStyleId }),
             ArchiveRecord(listStyleId, 2023, nested
-                ? Message(VarintField(11, 1), VarintField(11, 1))
-                : Message(VarintField(11, 1))));
+                ? Message(VarintField(11, 2), VarintField(11, 2))
+                : Message(VarintField(11, 2))));
         return includePreview
             ? CreatePackage(("Index/Document.iwa", FrameIwa(records)),
                 ("preview.png", ValidPreviewPng()))

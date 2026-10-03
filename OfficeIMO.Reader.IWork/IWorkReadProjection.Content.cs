@@ -1,13 +1,14 @@
 using OfficeIMO.IWork;
+using OfficeIMO.IWork.Internal;
 
 namespace OfficeIMO.Reader.IWork;
 
 internal sealed partial class IWorkReadProjection {
-    private void AddTable(OfficeDocumentPage page, IWorkTable source) {
+    private ReaderLocation? AddTable(OfficeDocumentPage page, IWorkTable source) {
         _cancellationToken.ThrowIfCancellationRequested();
         ReportUnsupportedRotation(page, source.Geometry, "table");
         int tableIndex = _pageTables[page].Count;
-        if (source.RowCount == 0 || source.ColumnCount == 0) return;
+        if (source.RowCount == 0 || source.ColumnCount == 0) return null;
         int remainingCells = _options.MaximumProjectedTableCells - _projectedTableCells;
         if (remainingCells == 0) {
             if (!_reportedTableBudgetExhausted) {
@@ -20,7 +21,8 @@ internal sealed partial class IWorkReadProjection {
                     Location = Location(page)
                 });
             }
-            return;
+            AddTableComments(page, source, null, 0, 0, 0, 0);
+            return null;
         }
         int columnCount = Math.Min(Math.Min(source.ColumnCount, _options.MaximumTableColumns),
             remainingCells);
@@ -47,6 +49,10 @@ internal sealed partial class IWorkReadProjection {
             rows.Add(Enumerable.Range(1, columnCount)
                 .Select(column => CellText(source.GetCell(row, column))).ToArray());
         }
+        AddDiagnostics(IWorkNumericDisplayDiagnostics.ForTextTables(source.Cells.Where(cell =>
+                cell.NumberFormat?.Kind is IWorkNumberFormatKind.Duration or IWorkNumberFormatKind.DateTime && cell.Column <= columnCount
+                && (cell.Row <= materializedHeaderRows || cell.Row > headerRows && cell.Row <= headerRows + dataRows)),
+            "READER", "Reader", _cancellationToken));
         bool truncated = headerRows > materializedHeaderRows
             || totalDataRows > dataRows || source.ColumnCount > columnCount;
         _cancellationToken.ThrowIfCancellationRequested();
@@ -91,6 +97,16 @@ internal sealed partial class IWorkReadProjection {
                 Location = location
             });
         }
+        AddTableComments(page, source, tableIndex, columnCount, materializedHeaderRows, headerRows, dataRows);
+        if (source.HiddenRows.Count > 0 || source.HiddenColumns.Count > 0) {
+            _diagnostics.Add(new OfficeDocumentDiagnostic {
+                Category = OfficeDocumentDiagnosticCategory.Content,
+                Code = "IWORK_READER_HIDDEN_TABLE_CONTENT_INCLUDED",
+                Message = $"Table '{source.Name}' includes source-hidden rows or columns in the Reader grid; visibility remains on the iWork source model.",
+                Source = "OfficeIMO.Reader.IWork",
+                Location = location
+            });
+        }
         if (source.HeaderColumnCount > 0 || source.FooterRowCount > 0) {
             _diagnostics.Add(new OfficeDocumentDiagnostic {
                 Category = OfficeDocumentDiagnosticCategory.Content,
@@ -118,17 +134,20 @@ internal sealed partial class IWorkReadProjection {
             });
         }
         bool hasFormula = false;
-        bool hasUnrepresentedStyle = false;
+        bool hasUnrepresentedStyle = source.FillStyles.Body != null || source.FillStyles.HeaderRow != null
+            || source.FillStyles.HeaderColumn != null || source.FillStyles.FooterRow != null || source.FillStyles.BandedBody != null || new[] { source.TextStyles.Body, source.TextStyles.HeaderRow,
+            source.TextStyles.HeaderColumn, source.TextStyles.FooterRow }.Any(style => style != null);
         foreach (IWorkTableCell cell in source.Cells) {
             _cancellationToken.ThrowIfCancellationRequested();
             hasFormula |= cell.Kind == IWorkCellKind.Formula;
+            hasUnrepresentedStyle |= cell.Fill != null || cell.Padding != null || cell.VerticalAlignment != null || cell.ParagraphStyle != null;
             if (cell.RichText is not { } richText) continue;
             hasUnrepresentedStyle |= !richText.IsComplete;
             bool isProjected = cell.Row <= headerRows + dataRows && cell.Column <= columnCount
                 && (cell.Row <= materializedHeaderRows || cell.Row > headerRows);
             foreach (IWorkTextParagraph paragraph in richText.Paragraphs) {
                 _cancellationToken.ThrowIfCancellationRequested();
-                hasUnrepresentedStyle |= HasUnrepresentedParagraphStyle(paragraph.Style)
+                hasUnrepresentedStyle |= paragraph.ListFontName != null || HasUnrepresentedParagraphStyle(paragraph.Style)
                     || HasUnrepresentedRunStyle(paragraph.Style.TextStyle);
                 foreach (IWorkTextRun run in paragraph.Runs) {
                     _cancellationToken.ThrowIfCancellationRequested();
@@ -155,18 +174,19 @@ internal sealed partial class IWorkReadProjection {
             _diagnostics.Add(new OfficeDocumentDiagnostic {
                 Category = OfficeDocumentDiagnosticCategory.Content,
                 Code = "IWORK_READER_TABLE_STYLE_PARTIAL",
-                Message = $"Table '{source.Name}' is projected as plain Reader table text; source rich-text cell formatting is unresolved or cannot be represented in Reader output.",
+                Message = $"Table '{source.Name}' is projected as plain Reader table text; source cell fills, padding, alignment, fonts or rich-text formatting are unresolved or cannot be represented in Reader output.",
                 Source = "OfficeIMO.Reader.IWork",
                 Location = location
             });
         }
+        return tableBlockLocation;
     }
 
     private static ReaderTableDiagnostics? TableDiagnostics(IWorkTable source) {
         if (source.Geometry is not { } geometry) return null;
         long sourceArea = (long)source.RowCount * source.ColumnCount;
         int expectedCells = (int)Math.Min(sourceArea, int.MaxValue);
-        int filledCells = source.Cells.Count;
+        int filledCells = source.Cells.Count(cell => cell.Kind != IWorkCellKind.Empty);
         int missingCells = (int)Math.Min(Math.Max(0, sourceArea - filledCells), int.MaxValue);
         return new ReaderTableDiagnostics {
             Confidence = 1,
@@ -187,14 +207,17 @@ internal sealed partial class IWorkReadProjection {
         };
     }
 
-    private static string CellText(IWorkTableCell? cell) => cell == null
-        ? string.Empty
-        : cell.Kind == IWorkCellKind.Formula
-            ? cell.CachedDisplayText
-            : cell.DisplayText;
+    private static string CellText(IWorkTableCell? cell) {
+        if (cell == null) return string.Empty;
+        if (cell.NumberFormat?.Kind is IWorkNumberFormatKind.Duration or IWorkNumberFormatKind.DateTime
+            && cell.TryGetFormattedNumber(out string temporal, out _)) return temporal;
+        return cell.Kind == IWorkCellKind.Formula ? cell.CachedDisplayText : cell.DisplayText;
+    }
 
-    private void AddImage(OfficeDocumentPage page, IWorkImageAsset source) {
+    private ReaderLocation AddImage(OfficeDocumentPage page, IWorkImageAsset source, bool includeAnchorBlock = false) {
         _cancellationToken.ThrowIfCancellationRequested();
+        _projectionBudget.AddImage();
+        if (_options.IncludeImagePayloads) _projectionBudget.AddProjectedImageBytes(source.Length);
         ReportUnsupportedRotation(page, source.Geometry, "image");
         string id = "iwork-a" + (_assets.Count + 1).ToString("D6", CultureInfo.InvariantCulture);
         var asset = new OfficeDocumentAsset {
@@ -215,11 +238,12 @@ internal sealed partial class IWorkReadProjection {
         };
         _assets.Add(asset);
         _pageAssets[page].Add(asset);
-        if (!string.IsNullOrWhiteSpace(source.AccessibilityDescription)) {
-            string description = source.AccessibilityDescription!;
-            AddBlock(page, "image", description, EscapeMarkdown(description, _cancellationToken), null, null,
+        if (includeAnchorBlock || !string.IsNullOrWhiteSpace(source.AccessibilityDescription)) {
+            string description = source.AccessibilityDescription ?? string.Empty;
+            ReaderLocation blockLocation = AddBlock(page, "image", description, EscapeMarkdown(description, _cancellationToken), null, null,
                 markdownPart: (offset, length) => EscapeMarkdown(description.Substring(offset, length), _cancellationToken),
                 region: asset.Region);
+            if (includeAnchorBlock) asset.Location.BlockAnchor = blockLocation.BlockAnchor;
         }
         if (source.Hyperlink != null) AddLink(page, source.Hyperlink, asset.Location,
             region: asset.Region);
@@ -232,6 +256,7 @@ internal sealed partial class IWorkReadProjection {
                 Location = asset.Location
             });
         }
+        return asset.Location;
     }
 
     private void AddRunLinks(OfficeDocumentPage page,
@@ -316,7 +341,8 @@ internal sealed partial class IWorkReadProjection {
             builder.Append(value);
         }
         if (offset == 0 && paragraph.ListLevel >= 0) {
-            string marker = MarkdownListMarker(paragraph.ListLabel);
+            string marker = paragraph.ListMarkerKind == IWorkListMarkerKind.Number
+                ? MarkdownListMarker(paragraph.ListLabel) : "-";
             return new string(' ', Math.Min(paragraph.ListLevel, MaximumMarkdownListLevel) * 2)
                 + marker + " " + builder;
         }
@@ -339,7 +365,7 @@ internal sealed partial class IWorkReadProjection {
         for (int index = 0; index < value.Length; index++) {
             if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             char character = value[index];
-            if ("\\`*_{}[]()#+-.!>|~".IndexOf(character) >= 0) builder.Append('\\');
+            if ("\\`*_{}[]()#+-.!><|~&".IndexOf(character) >= 0) builder.Append('\\');
             builder.Append(character);
         }
         cancellationToken.ThrowIfCancellationRequested();

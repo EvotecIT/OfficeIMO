@@ -3,7 +3,7 @@ namespace OfficeIMO.PowerPoint {
     /// Describes the kind of background fill currently assigned to a PowerPoint slide.
     /// </summary>
     public enum PowerPointSlideBackgroundKind {
-        /// <summary>No explicit slide background fill is present.</summary>
+        /// <summary>No visible background fill is resolved, including an explicit no-fill override.</summary>
         None,
 
         /// <summary>The slide background uses a solid RGB or RGBA color.</summary>

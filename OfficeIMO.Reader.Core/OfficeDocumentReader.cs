@@ -339,7 +339,7 @@ public sealed partial class OfficeDocumentReader {
         Action<ReaderProgress>? onProgress = null,
         CancellationToken cancellationToken = default) {
         options = DocumentReaderEngine.NormalizeOptions(options);
-        return Scope(DocumentReaderEngine.ReadFolder(folderPath, folderOptions, options, onProgress, cancellationToken, Read), options);
+        return Scope(DocumentReaderEngine.ReadFolder(folderPath, folderOptions, options, onProgress, cancellationToken, ReadDocument), options);
     }
 
     /// <summary>
@@ -352,7 +352,7 @@ public sealed partial class OfficeDocumentReader {
         Action<ReaderProgress>? onProgress = null,
         CancellationToken cancellationToken = default) {
         options = DocumentReaderEngine.NormalizeOptions(options);
-        return Scope(DocumentReaderEngine.ReadFolderDocuments(folderPath, folderOptions, options, onProgress, cancellationToken, Read), options);
+        return Scope(DocumentReaderEngine.ReadFolderDocuments(folderPath, folderOptions, options, onProgress, cancellationToken, ReadDocument), options);
     }
 
     /// <summary>
@@ -368,7 +368,7 @@ public sealed partial class OfficeDocumentReader {
         options = DocumentReaderEngine.NormalizeOptions(options);
         using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
             using var readScope = ReaderReadScope.Enter(options);
-            return DocumentReaderEngine.ReadFolderDetailed(folderPath, folderOptions, options, includeChunks, onProgress, cancellationToken, Read);
+            return DocumentReaderEngine.ReadFolderDetailed(folderPath, folderOptions, options, includeChunks, onProgress, cancellationToken, ReadDocument);
         }
     }
 
@@ -394,7 +394,7 @@ public sealed partial class OfficeDocumentReader {
                 maxReturnedChunks,
                 onProgress,
                 cancellationToken,
-                Read);
+                ReadDocument);
         }
     }
 

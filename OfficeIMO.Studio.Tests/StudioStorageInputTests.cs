@@ -4,6 +4,16 @@ using OfficeIMO.Studio.Infrastructure;
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioStorageInputTests {
+    [Fact]
+    public void Remembered_local_paths_require_provider_publication_only_with_a_permission_reference() {
+        using var storage = new OfficeIMO.Studio.Infrastructure.StudioStorageAccess();
+        string path = Path.Combine(Path.GetTempPath(), "remembered-source.pdf");
+        storage.Remember(new(path, "remembered-source.pdf"));
+        Assert.False(storage.UsesProviderPublication(path));
+        storage.Remember(new(path, "remembered-source.pdf", "permission-bookmark"));
+        Assert.Equal(OperatingSystem.IsMacOS(), storage.UsesProviderPublication(path));
+    }
+
     internal static IStorageFile CreateImageFile(byte[] bytes) =>
         new StorageFile(() => Task.FromResult<Stream>(new InputStream(bytes, false))).Item;
 

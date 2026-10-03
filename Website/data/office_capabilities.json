@@ -16,7 +16,7 @@
     "formatCount": 28,
     "capabilityCount": 137,
     "packageCount": 66,
-    "operationCount": 1368
+    "operationCount": 1370
   },
   "fidelityStates": [
     {
@@ -4117,11 +4117,12 @@
     {
       "id": "OfficeIMO.Pdf",
       "slug": "pdf",
-      "capabilityCount": 20,
+      "capabilityCount": 21,
       "formats": [
         "JPEG",
         "PDF",
         "Pdf.Native",
+        "Plain text",
         "PNG",
         "SVG",
         "TIFF",
@@ -4134,6 +4135,17 @@
         "OfficeIMO.Provenance"
       ],
       "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        },
         {
           "id": "Create",
           "states": [
@@ -5354,8 +5366,9 @@
     {
       "id": "OfficeIMO.Word.Pdf",
       "slug": "word-pdf",
-      "capabilityCount": 2,
+      "capabilityCount": 3,
       "formats": [
+        "DOC",
         "DOCX",
         "PDF"
       ],
@@ -5376,7 +5389,7 @@
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 1
+              "count": 2
             }
           ]
         }

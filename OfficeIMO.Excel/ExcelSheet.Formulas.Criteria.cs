@@ -17,11 +17,12 @@ namespace OfficeIMO.Excel {
             numbers = new List<double>();
             if (TryResolveFormulaRange(token, out var values, ref remainingCellBudget)) {
                 foreach (var value in values) {
-                    if (!value.Number.HasValue) {
+                    // Keep positional series numeric-only; dropping entries here would misalign paired ranges.
+                    if (!value.IsNumericAggregateValue) {
                         return false;
                     }
 
-                    numbers.Add(value.Number.Value);
+                    numbers.Add(value.Number!.Value);
                 }
 
                 return true;
@@ -91,7 +92,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            var numbers = matched.Where(value => value.Number.HasValue).Select(value => value.Number!.Value).ToList();
+            var numbers = matched.Where(value => value.IsNumericAggregateValue).Select(value => value.Number!.Value).ToList();
             if (function == "SUMIFS") {
                 result = numbers.Sum();
                 return true;

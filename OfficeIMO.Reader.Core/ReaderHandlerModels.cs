@@ -75,6 +75,12 @@ public sealed class ReaderHandlerRegistration {
     /// </summary>
     public Func<string, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? ReadDocumentPath { get; set; }
 
+    /// <summary>Optional reader for directory packages identified by this handler's exact registered extensions.</summary>
+    /// <remarks>The handler owns bounded traversal, physical-root and link validation, cancellation, and snapshot hashing.
+    /// It must report the aggregate physical file bytes in Source.LengthBytes and enforce ReaderOptions.MaxInputBytes.
+    /// A registered package is ingested as one document, without traversing its contents as a folder.</remarks>
+    public Func<string, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? ReadDirectoryBundle { get; set; }
+
     /// <summary>
     /// Optional stream-based rich document reader delegate. The delegate must not close the caller-owned stream.
     /// When present, <see cref="OfficeDocumentReader.ReadDocument(Stream, string?, ReaderOptions?, CancellationToken)"/>
@@ -214,6 +220,9 @@ public sealed class ReaderHandlerCapability {
     /// True when the handler supplies a native path-based <see cref="OfficeDocumentReadResult"/> projection.
     /// </summary>
     public bool SupportsDocumentPath { get; set; }
+
+    /// <summary>True when the handler explicitly reads directory packages as individual documents.</summary>
+    public bool SupportsDirectoryBundle { get; set; }
 
     /// <summary>
     /// True when the handler supplies a native stream-based <see cref="OfficeDocumentReadResult"/> projection.

@@ -19,27 +19,25 @@ namespace OfficeIMO.Excel {
             }
 
             if (function == "CONCAT" || function == "CONCATENATE") {
-                if (tokens.Count == 0 || !TryResolveTextArgumentValues(tokens, out var parts)) {
-                    return false;
-                }
-
-                result = new FormulaArgumentValue(null, string.Concat(parts));
+                if (tokens.Count == 0 || !TryResolveTextArgumentValues(tokens, out var parts, out string? error)) return false;
+                result = error != null ? FormulaArgumentValue.Error(error) : CombineFormulaText(parts, string.Empty);
                 return true;
             }
 
             if (function == "TEXTJOIN") {
-                if (tokens.Count < 3
-                    || !TryResolveTextArgument(tokens[0], out string delimiter)
-                    || !TryResolveBooleanArgument(tokens[1], out bool ignoreEmpty)
-                    || !TryResolveTextArgumentValues(tokens.Skip(2), out var parts)) {
-                    return false;
+                if (tokens.Count < 3 || tokens.Count > 254
+                    || !TryResolveFormulaArgument(tokens[0], out FormulaArgumentValue delimiterValue)
+                    || delimiterValue.IsUnresolvedFormula) return false;
+                if (delimiterValue.IsError) { result = delimiterValue; return true; }
+                if (TryResolveFormulaArgument(tokens[1], out FormulaArgumentValue emptyPolicy) && emptyPolicy.IsError) {
+                    result = emptyPolicy;
+                    return true;
                 }
-
-                if (ignoreEmpty) {
-                    parts = parts.Where(part => part.Length > 0).ToList();
-                }
-
-                result = new FormulaArgumentValue(null, string.Join(delimiter, parts));
+                if (!TryResolveBooleanArgument(tokens[1], out bool ignoreEmpty)
+                    || !TryResolveTextArgumentValues(tokens.Skip(2), out var parts, out string? error)) return false;
+                if (error != null) { result = FormulaArgumentValue.Error(error); return true; }
+                if (ignoreEmpty) parts = parts.Where(part => part.Length > 0).ToList();
+                result = CombineFormulaText(parts, FormulaValueToText(delimiterValue));
                 return true;
             }
 
@@ -234,6 +232,15 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
+        private static FormulaArgumentValue CombineFormulaText(IReadOnlyList<string> parts, string delimiter) {
+            long length = (long)delimiter.Length * Math.Max(0, parts.Count - 1);
+            foreach (string part in parts) {
+                length += part.Length;
+                if (length > 32767) return FormulaArgumentValue.Error("#VALUE!");
+            }
+            return new FormulaArgumentValue(null, string.Join(delimiter, parts));
+        }
+
         private bool TryEvaluateTextBeforeAfterFunction(bool before, IReadOnlyList<string> tokens, out FormulaArgumentValue result) {
             result = default;
             if (tokens.Count < 2
@@ -424,8 +431,8 @@ namespace OfficeIMO.Excel {
             return result.HasValue;
         }
 
-        private bool TryEvaluateMatchFunction(string function, string args, out double result) {
-            result = 0;
+        private bool TryEvaluateMatchValue(string function, string args, out FormulaArgumentValue result) {
+            result = default;
             var tokens = SplitFormulaArguments(args);
             int maxTokens = function == "XMATCH" ? 4 : 3;
             if (tokens.Count < 2
@@ -462,17 +469,24 @@ namespace OfficeIMO.Excel {
             }
 
             int lookupMode = function == "MATCH" ? -matchMode : matchMode;
-            if (!TryResolveFormulaRange(tokens[1], out var lookupValues)
-                || !TryFindLookupPosition(lookupValue, lookupValues, lookupMode, searchMode, out int position)) {
-                return false;
+            if (!TryResolveFormulaRange(tokens[1], out var lookupValues) || lookupValue.IsUnresolvedFormula) return false;
+            if (lookupValue.IsError) { result = lookupValue; return true; }
+            if (!TryFindLookupPosition(lookupValue, lookupValues, lookupMode, searchMode, out int position, out FormulaArgumentValue searchFailure)) {
+                if (searchFailure.IsUnresolvedFormula) return false;
+                if (searchFailure.IsError) { result = searchFailure; return true; }
+                // Approximate text ordering is outside this numeric lookup subset.
+                if (lookupMode != 0 && !lookupValue.Number.HasValue) return false;
+                result = FormulaArgumentValue.Error("#N/A");
+                return true;
             }
 
-            result = position;
+            result = new FormulaArgumentValue(position, InvariantNumberText.Get(position));
             return true;
         }
 
-        private static bool TryFindLookupPosition(FormulaArgumentValue lookupValue, IReadOnlyList<FormulaArgumentValue> lookupValues, int matchMode, int searchMode, out int position) {
+        private static bool TryFindLookupPosition(FormulaArgumentValue lookupValue, IReadOnlyList<FormulaArgumentValue> lookupValues, int matchMode, int searchMode, out int position, out FormulaArgumentValue failure) {
             position = 0;
+            failure = default;
             if (lookupValues.Count == 0) {
                 return false;
             }
@@ -482,7 +496,11 @@ namespace OfficeIMO.Excel {
             int step = searchMode == -1 ? -1 : 1;
 
             for (int index = start; index != end; index += step) {
-                if (!FormulaValuesEqual(lookupValues[index], lookupValue)) {
+                // Stop at the first exact match in the requested search order.
+                // Later entries cannot invalidate a selected result.
+                FormulaArgumentValue candidate = lookupValues[index];
+                if (candidate.IsError || candidate.IsUnresolvedFormula) { failure = candidate; return false; }
+                if (!FormulaValuesEqual(candidate, lookupValue)) {
                     continue;
                 }
 
