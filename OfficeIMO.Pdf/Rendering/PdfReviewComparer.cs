@@ -27,6 +27,10 @@ internal static class PdfReviewComparer {
         if (changedPairCount > maximumVisualPairs) throw PdfReadLimitException.Create(PdfReadLimitKind.RenderPages, maximumVisualPairs, changedPairCount);
         if (pairs.Length == 0) return new PdfReviewComparisonReport(alignment, Array.Empty<PdfReviewPageComparison>());
 
+        IReadOnlyDictionary<int, IReadOnlyList<PdfLogicalFormWidget>> expectedWidgets =
+            PdfDocumentReadResult.IndexFormWidgetsByPageNumber(expected.FormFields);
+        IReadOnlyDictionary<int, IReadOnlyList<PdfLogicalFormWidget>> actualWidgets =
+            PdfDocumentReadResult.IndexFormWidgetsByPageNumber(actual.FormFields);
         long totalPixels = 0;
         long totalOutputBytes = 0;
         var pages = new List<PdfReviewPageComparison>(pairs.Length);
@@ -39,8 +43,10 @@ internal static class PdfReviewComparer {
                 : null;
             // Reconstruct one aligned pair at a time. A shared image resource can otherwise
             // become a separate retained payload for every selected page on both sides.
-            PdfLogicalPage expectedPage = ReadLogicalPage(expected, expectedNumber, cancellationToken);
-            PdfLogicalPage actualPage = ReadLogicalPage(actual, actualNumber, cancellationToken);
+            PdfLogicalPage expectedPage = PdfDocumentReadEngine.ReadLogicalPage(expected, expectedNumber,
+                expectedWidgets, cancellationToken);
+            PdfLogicalPage actualPage = PdfDocumentReadEngine.ReadLogicalPage(actual, actualNumber,
+                actualWidgets, cancellationToken);
             IReadOnlyList<PdfReviewChange> changes = PdfReviewSemanticComparer.Compare(
                 expectedPage, actualPage, expected.Pages[expectedNumber - 1], actual.Pages[actualNumber - 1],
                 visual, pair.UsesIgnoredRegions, effective, cancellationToken);
@@ -61,13 +67,4 @@ internal static class PdfReviewComparer {
         return new PdfReviewComparisonReport(alignment, pages);
     }
 
-    private static PdfLogicalPage ReadLogicalPage(PdfReadDocument document, int pageNumber,
-        CancellationToken cancellationToken) {
-        PdfDocumentReadResult result = PdfDocumentReadEngine.Read(document, new PdfReadOptions {
-            Profile = PdfReadProfile.Fast,
-            PageSelection = PdfPageSelection.From(pageNumber),
-            Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 1 }
-        }, cancellationToken);
-        return result.PagesBySourcePageNumber[pageNumber][0];
-    }
 }
