@@ -65,6 +65,18 @@ public sealed class DrawingRasterCodecRobustnessTests {
     }
 
     [Fact]
+    public void BoundedPngIdentificationRejectsAnAlreadyCanceledRequest() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        OperationCanceledException exception = Assert.Throws<OperationCanceledException>(() =>
+            OfficeImageReader.TryIdentifyByContent(png, null, cancellation.Token, out _));
+        Assert.Equal(cancellation.Token, exception.CancellationToken);
+    }
+
+    [Fact]
+    [Trait("Category", "Performance")]
     public void BoundedPngIdentificationObservesCancellationDuringChunkValidation() {
         byte[] png = CreatePngWithLargeAncillaryPayload();
         using var cancellation = new CancellationTokenSource();
