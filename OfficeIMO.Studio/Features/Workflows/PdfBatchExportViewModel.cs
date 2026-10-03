@@ -13,10 +13,15 @@ public sealed partial class PdfBatchExportViewModel : ObservableObject, IDisposa
     private readonly IOfficeWorkflowPublicationGuard? _guard;
     private readonly Func<bool> _otherWorkBusy;
     private readonly IStudioLocalizer _localizer;
+    private readonly IOfficeWorkflowRunner _runner;
+    private readonly StudioJobHistory? _jobs;
     private CancellationTokenSource? _cancellation;
-    internal PdfBatchExportViewModel(Func<CancellationToken, Task<string?>> pickFolder, IOfficeWorkflowPublicationGuard? guard, Func<bool> otherWorkBusy, IStudioLocalizer localizer) {
+    private bool _disposed;
+    internal PdfBatchExportViewModel(Func<CancellationToken, Task<string?>> pickFolder, IOfficeWorkflowPublicationGuard? guard,
+        Func<bool> otherWorkBusy, IStudioLocalizer localizer, IOfficeWorkflowRunner runner, StudioJobHistory? jobs) {
         _pickFolder = pickFolder; _guard = guard; _otherWorkBusy = otherWorkBusy;
         _localizer = localizer;
+        _runner = runner; _jobs = jobs;
         Status = _localizer.GetOrDefault("Conversion.BatchExport.Ready", "Choose source and PDF output folders. Add optional checkpoints to resume mixed-format document export.");
     }
     [ObservableProperty] private string _inputDirectory = string.Empty;
@@ -28,7 +33,7 @@ public sealed partial class PdfBatchExportViewModel : ObservableObject, IDisposa
     [ObservableProperty] private decimal _tabSize = 8;
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private string _status = string.Empty;
-    public bool CanEdit => !IsBusy && !_otherWorkBusy();
+    public bool CanEdit => !_disposed && !IsBusy && !_otherWorkBusy();
     internal void RefreshHostState() {
         OnPropertyChanged(nameof(CanEdit)); ChooseFolderCommand.NotifyCanExecuteChanged(); RunCommand.NotifyCanExecuteChanged();
     }
@@ -58,33 +63,54 @@ public sealed partial class PdfBatchExportViewModel : ObservableObject, IDisposa
         _cancellation = cancellation;
         IsBusy = true;
         var progress = new BatchProgress();
+        StudioJobRecord? job = null;
         var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
-        timer.Tick += (_, _) => Status = _localizer.FormatOrDefault("Conversion.BatchExport.Progress", "Completed {0}; failed {1}. Completed files survive cancellation.", progress.Completed, progress.Failed);
-        Status = _localizer.GetOrDefault("Conversion.BatchExport.Running", "Exporting documents. Checkpointed jobs retain completed files individually.");
-        timer.Start();
+        timer.Tick += (_, _) => {
+            Status = _localizer.FormatOrDefault("Conversion.BatchExport.Progress", "Completed {0}; failed {1}. Completed files survive cancellation.", progress.Completed, progress.Failed);
+            job?.Report(new("folder-export", "execute", Status, 0, 0));
+        };
         try {
-            OfficeConversionBatchResult result = await new OfficeWorkflowRunner().RunBatchAsync(request, progress, cancellation.Token, _guard).ConfigureAwait(true);
+            job = _jobs?.Start(_localizer.GetOrDefault("Conversion.BatchExport.Title", "Folder PDF export"),
+                request.InputDirectory!, request.OutputDirectory, cancellation.Cancel, batch: true);
+            Status = _localizer.GetOrDefault("Jobs.Queued", "Queued");
+            using IDisposable? permit = _jobs is null ? null : await _jobs.EnterAsync(cancellation.Token).ConfigureAwait(true);
+            Status = _localizer.GetOrDefault("Conversion.BatchExport.Running", "Exporting documents. Checkpointed jobs retain completed files individually.");
+            job?.Report(new("folder-export", "execute", Status, 0, 0));
+            timer.Start();
+            OfficeConversionBatchResult result = await _runner.RunBatchAsync(request, progress, cancellation.Token, _guard).ConfigureAwait(true);
             Status = _localizer.FormatOrDefault(result.Cancelled ? "Conversion.BatchExport.CancelledResult" : "Conversion.BatchExport.FinishedResult",
                 result.Cancelled ? "Cancelled: {0} completed, {1} reused, {2} failed, {3} skipped." : "Finished: {0} completed, {1} reused, {2} failed, {3} skipped.",
                 result.Completed, result.Reused, result.Failed, result.Skipped);
             if (progress.FirstFailure is { } failure) Status += " " + failure;
-        } catch (OperationCanceledException) { Status = _localizer.GetOrDefault("Conversion.BatchExport.Cancelled", "Batch cancelled. Completed files remain available."); }
-        catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) { Status = error.Message; }
+            OfficeWorkflowStatus outcome = progress.HasUnconfirmed ? OfficeWorkflowStatus.Unconfirmed
+                : result.Cancelled ? OfficeWorkflowStatus.Cancelled : result.Failed > 0 ? OfficeWorkflowStatus.Failed : OfficeWorkflowStatus.Completed;
+            job?.CompleteBatch(outcome, result.Completed > 0 ? request.OutputDirectory : null, Status, [], result.Completed > 0, isDirectoryOutput: true);
+        } catch (OperationCanceledException) when (cancellation.IsCancellationRequested) {
+            Status = _localizer.GetOrDefault("Conversion.BatchExport.Cancelled", "Batch cancelled. Completed files remain available.");
+            job?.CompleteBatch(OfficeWorkflowStatus.Cancelled, progress.Completed > 0 ? request.OutputDirectory : null, Status, [], progress.Completed > 0, isDirectoryOutput: true);
+        }
+        catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) {
+            Status = error.Message;
+            job?.CompleteBatch(OfficeWorkflowStatus.Failed, progress.Completed > 0 ? request.OutputDirectory : null, Status, [], progress.Completed > 0, isDirectoryOutput: true);
+        }
         finally { timer.Stop(); _cancellation = null; IsBusy = false; }
     }
     [RelayCommand(CanExecute = nameof(IsBusy))]
     private void Cancel() => _cancellation?.Cancel();
     /// <inheritdoc />
-    public void Dispose() => _cancellation?.Cancel();
+    public void Dispose() { if (_disposed) return; _disposed = true; _cancellation?.Cancel(); RefreshHostState(); }
     private sealed class BatchProgress : IProgress<OfficeConversionBatchItemResult> {
         private long _completed, _failed;
         private string? _firstFailure;
+        private int _unconfirmed;
         public string? FirstFailure => Volatile.Read(ref _firstFailure);
         public long Completed => Interlocked.Read(ref _completed);
         public long Failed => Interlocked.Read(ref _failed);
+        public bool HasUnconfirmed => Volatile.Read(ref _unconfirmed) != 0;
         public void Report(OfficeConversionBatchItemResult item) {
             if (item.Status == OfficeWorkflowStatus.Completed) Interlocked.Increment(ref _completed);
-            else if (item.Status == OfficeWorkflowStatus.Failed) {
+            else if (item.Status is OfficeWorkflowStatus.Failed or OfficeWorkflowStatus.Unconfirmed) {
+                if (item.Status == OfficeWorkflowStatus.Unconfirmed) Interlocked.Exchange(ref _unconfirmed, 1);
                 Interlocked.Increment(ref _failed);
                 string message = Path.GetFileName(item.InputPath) + ": " + item.Summary;
                 Interlocked.CompareExchange(ref _firstFailure, message.Length > 1024 ? message[..1024] : message, null);

@@ -13,14 +13,21 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
     private readonly Func<CancellationToken, Task<string?>> _pickFolder;
     private readonly IOfficeProvenanceWorkflowRunner _runner;
     private readonly IOfficeWorkflowPublicationGuard? _publicationGuard;
+    private readonly StudioJobHistory? _jobs;
     private OfficeProvenanceWorkflowResult? _review, _lastResult;
     private CancellationTokenSource? _cancellation;
     private int _revision;
     private bool _disposed;
 
     public ProvenanceWorkbenchViewModel(Func<CancellationToken, Task<string?>> pickInput,
-        Func<CancellationToken, Task<string?>> pickFolder, IOfficeProvenanceWorkflowRunner? runner = null, IOfficeWorkflowPublicationGuard? publicationGuard = null) {
+        Func<CancellationToken, Task<string?>> pickFolder, IOfficeProvenanceWorkflowRunner? runner = null, IOfficeWorkflowPublicationGuard? publicationGuard = null)
+        : this(pickInput, pickFolder, runner, publicationGuard, null) { }
+
+    internal ProvenanceWorkbenchViewModel(Func<CancellationToken, Task<string?>> pickInput,
+        Func<CancellationToken, Task<string?>> pickFolder, IOfficeProvenanceWorkflowRunner? runner,
+        IOfficeWorkflowPublicationGuard? publicationGuard, StudioJobHistory? jobHistory) {
         _pickInput = pickInput; _pickFolder = pickFolder; _runner = runner ?? new OfficeWorkflowRunner(); _publicationGuard = publicationGuard;
+        _jobs = jobHistory;
     }
     [ObservableProperty, NotifyPropertyChangedFor(nameof(CanAssess)), NotifyPropertyChangedFor(nameof(CanCreateCopy))]
     private string _inputPath = "";
@@ -83,8 +90,15 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
         request.Removal.SignatureMutationPolicy = OfficeSignatureMutationPolicy.BlockSave;
         IsBusy = true; Status = remove ? "Creating and re-inspecting a separate copy…" : "Assessing local file…";
         using var cancellation = new CancellationTokenSource(); _cancellation = cancellation;
+        StudioJobRecord? job = null;
+        bool ownerStarted = false;
         try {
+            job = _jobs?.Start(remove ? "Provenance copy" : "Provenance assessment", request.InputPath, request.OutputPath, cancellation.Cancel);
+            using IDisposable? permit = _jobs is null ? null : await _jobs.EnterAsync(cancellation.Token);
+            job?.Report(new("provenance", "execute", Status, 0, 0));
+            ownerStarted = true;
             OfficeProvenanceWorkflowResult result = await _runner.RunProvenanceAsync(request, cancellationToken: cancellation.Token);
+            job?.Complete(result.Status, result.OutputPath, result.Summary);
             if (_disposed || revision != _revision) return;
             _lastResult = result;
             if (!remove) _review = result.Succeeded ? result : null;
@@ -103,8 +117,16 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
             foreach (OfficeProvenanceChange change in result.Changes) Changes.Add($"{change.Carrier} · {change.Location} · {change.RemovedBytes} bytes removed");
             foreach (OfficeWorkflowDiagnostic diagnostic in result.Diagnostics) Diagnostics.Add($"{diagnostic.Severity}: {diagnostic.Message}");
             foreach (string diagnostic in report?.Diagnostics ?? Array.Empty<string>()) Diagnostics.Add(diagnostic);
-        } catch (OperationCanceledException) { if (!_disposed) Status = "Cancelled."; }
-        catch (Exception error) when (error is not OutOfMemoryException) { if (!_disposed) Status = "Provenance workflow failed: " + error.Message; }
+        } catch (OperationCanceledException) when (cancellation.IsCancellationRequested) {
+            string message = remove && ownerStarted ? "Cancelled. Check the output folder before retrying." : "Cancelled.";
+            job?.Complete(remove && ownerStarted ? OfficeWorkflowStatus.Unconfirmed : OfficeWorkflowStatus.Cancelled, null, message);
+            if (!_disposed) Status = message;
+        }
+        catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) {
+            string message = "Provenance workflow failed: " + error.Message;
+            job?.Complete(remove && ownerStarted ? OfficeWorkflowStatus.Unconfirmed : OfficeWorkflowStatus.Failed, null, message);
+            if (!_disposed) Status = message;
+        }
         finally { _cancellation = null; IsBusy = false; OnPropertyChanged(nameof(CanCreateCopy)); OnPropertyChanged(nameof(CanExportReport)); }
     }
     [RelayCommand] private async Task ExportReportAsync() {

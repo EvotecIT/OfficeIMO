@@ -8,6 +8,55 @@ namespace OfficeIMO.Workflows.IWork.Tests;
 
 public sealed class IWorkWorkflowTests {
     [Theory]
+    [InlineData("pages", "pages-docx", "docx", false)]
+    [InlineData("numbers", "numbers-xlsx", "xlsx", false)]
+    [InlineData("key", "keynote-pptx", "pptx", false)]
+    [InlineData("numbers", "numbers-xlsx", "xlsx", true)]
+    public async Task Ordinary_batches_use_registered_routes_and_the_runners_captured_acceptance(string source, string route, string target, bool explicitRoute) {
+        using var files = new Files(source, target);
+        var runner = IWorkWorkflow.CreateRunner(conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        var outcomes = new List<OfficeConversionBatchItemResult>();
+        var request = new OfficeConversionBatchRequest {
+            InputPaths = [files.Input], OutputDirectory = Path.Combine(files.Root, "batch"), TargetExtension = "." + target,
+            ConversionRouteId = explicitRoute ? route.ToUpperInvariant() : null,
+            ConversionOptions = new() { PlainText = new OfficeIMO.Pdf.PdfPlainTextOptions { TabSize = 4 } }
+        };
+        var result = await runner.RunBatchAsync(request, new BatchProgress(outcomes));
+        Assert.Equal(1, result.Completed);
+        Assert.Equal(0, result.Skipped); Assert.Equal(0, result.Failed);
+        var item = Assert.Single(outcomes);
+        Assert.True(File.Exists(item.OutputPath), item.Summary);
+        Assert.Contains(item.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Registered_batches_cannot_reuse_unfingerprinted_checkpoint_configuration(bool explicitRoute) {
+        using var files = new Files("numbers", "xlsx");
+        var runner = IWorkWorkflow.CreateRunner(conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        var request = new OfficeConversionBatchRequest {
+            InputPaths = [files.Input], OutputDirectory = Path.Combine(files.Root, "batch"), TargetExtension = ".xlsx",
+            CheckpointDirectory = Path.Combine(files.Root, "state"), ConversionRouteId = explicitRoute ? "numbers-xlsx" : null
+        };
+        if (explicitRoute) {
+            var error = await Assert.ThrowsAsync<NotSupportedException>(() => runner.RunBatchAsync(request));
+            Assert.Contains("without checkpoints", error.Message);
+            Assert.False(Directory.Exists(request.OutputDirectory));
+        } else {
+            var outcomes = new List<OfficeConversionBatchItemResult>();
+            var result = await runner.RunBatchAsync(request, new BatchProgress(outcomes));
+            Assert.Equal(1, result.Failed); Assert.Equal(0, result.Completed); Assert.Equal(0, result.Skipped);
+            Assert.Contains("without checkpoints", Assert.Single(outcomes).Summary);
+            Assert.Empty(Directory.GetFiles(request.OutputDirectory));
+        }
+    }
+
+    private sealed class BatchProgress(List<OfficeConversionBatchItemResult> items) : IProgress<OfficeConversionBatchItemResult> {
+        public void Report(OfficeConversionBatchItemResult value) { lock (items) items.Add(value); }
+    }
+
+    [Theory]
     [InlineData("pages", "pages-docx", "docx")]
     [InlineData("numbers", "numbers-xlsx", "xlsx")]
     [InlineData("key", "keynote-pptx", "pptx")]
