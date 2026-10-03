@@ -257,7 +257,7 @@ public static partial class OfficeWebpCodec {
             int a = (int)(first >> shift) & 255;
             int b = (int)(second >> shift) & 255;
             int c = (int)(subtract >> shift) & 255;
-            int value = half == 0 ? a + b - c : a + ((a - c) >> 1);
+            int value = half == 0 ? a + b - c : a + (a - c) / 2;
             value = Math.Max(0, Math.Min(255, value));
             result |= (uint)value << shift;
         }

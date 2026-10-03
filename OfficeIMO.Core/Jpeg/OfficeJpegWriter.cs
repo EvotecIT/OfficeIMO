@@ -817,27 +817,28 @@ internal static partial class OfficeJpegWriter {
             frequencies[0] = 1;
         }
 
-        var lengths = BuildCodeLengths(frequencies);
-        var bits = new int[33];
+        // JPEG reserves the all-one code for padding. Include a least-weight
+        // pseudo-symbol while planning, then remove the deepest terminal code.
+        var planningFrequencies = new int[frequencies.Length + 1];
+        Array.Copy(frequencies, planningFrequencies, frequencies.Length);
+        planningFrequencies[frequencies.Length] = 1;
+        var lengths = OfficeHuffmanCodeLengths.BuildDepths(planningFrequencies);
+        var bits = new int[Math.Max(33, lengths.Length + 1)];
         for (var i = 0; i < lengths.Length; i++) {
             var len = lengths[i];
             if (len > 0) bits[len]++;
         }
 
-        LimitCodeLengths(bits, 16);
+        OfficeHuffmanCodeLengths.LimitDepthCounts(bits, 16);
+        for (int length = 16; length > 0; length--) {
+            if (bits[length] == 0) continue;
+            bits[length]--;
+            break;
+        }
 
         var total = 0;
         for (var i = 1; i <= 16; i++) total += bits[i];
-        if (total < counts) {
-            bits[16] += counts - total;
-        } else if (total > counts) {
-            var extra = total - counts;
-            for (var i = 16; i >= 1 && extra > 0; i--) {
-                var take = Math.Min(extra, bits[i]);
-                bits[i] -= take;
-                extra -= take;
-            }
-        }
+        if (total != counts) throw new InvalidOperationException("The optimized JPEG Huffman plan has an inconsistent symbol count.");
 
         var ordered = new int[counts];
         Array.Copy(symbols, ordered, counts);
@@ -866,88 +867,6 @@ internal static partial class OfficeJpegWriter {
 
         var table = BuildHuffmanTable(bitsOut, values);
         return new HuffmanSpec(bitsOut, values, table);
-    }
-
-    private static int[] BuildCodeLengths(int[] frequencies) {
-        var maxNodes = frequencies.Length * 2;
-        var freq = new int[maxNodes];
-        var parent = new int[maxNodes];
-        var symbol = new int[maxNodes];
-        var nodeCount = 0;
-        var symbolNodes = new int[frequencies.Length];
-        for (var i = 0; i < symbolNodes.Length; i++) {
-            symbolNodes[i] = -1;
-        }
-
-        for (var i = 0; i < frequencies.Length; i++) {
-            if (frequencies[i] <= 0) continue;
-            freq[nodeCount] = frequencies[i];
-            parent[nodeCount] = -1;
-            symbol[nodeCount] = i;
-            symbolNodes[i] = nodeCount;
-            nodeCount++;
-        }
-
-        var lengthsOut = new int[frequencies.Length];
-        if (nodeCount == 1) {
-            lengthsOut[symbol[0]] = 1;
-            return lengthsOut;
-        }
-
-        var nodesTotal = nodeCount;
-        while (true) {
-            var least1 = -1;
-            var least2 = -1;
-            for (var i = 0; i < nodesTotal; i++) {
-                if (parent[i] != -1) continue;
-                if (least1 < 0 || freq[i] < freq[least1]) {
-                    least2 = least1;
-                    least1 = i;
-                } else if (least2 < 0 || freq[i] < freq[least2]) {
-                    least2 = i;
-                }
-            }
-
-            if (least2 < 0) break;
-
-            freq[nodesTotal] = freq[least1] + freq[least2];
-            parent[least1] = nodesTotal;
-            parent[least2] = nodesTotal;
-            parent[nodesTotal] = -1;
-            symbol[nodesTotal] = -1;
-            nodesTotal++;
-        }
-
-        for (var i = 0; i < frequencies.Length; i++) {
-            var node = symbolNodes[i];
-            if (node < 0) continue;
-            var depth = 0;
-            while (parent[node] != -1) {
-                depth++;
-                node = parent[node];
-            }
-            lengthsOut[i] = depth == 0 ? 1 : depth;
-        }
-
-        return lengthsOut;
-    }
-
-    private static void LimitCodeLengths(int[] bits, int maxLen) {
-        for (var i = bits.Length - 1; i > maxLen; i--) {
-            while (bits[i] > 0) {
-                var j = i - 1;
-                while (j > 0 && bits[j] == 0) j--;
-                if (j == 0) break;
-                if (bits[i] < 2) {
-                    bits[i] = 0;
-                    break;
-                }
-                bits[i] -= 2;
-                bits[i - 1] += 1;
-                bits[j] -= 1;
-                bits[j + 1] += 2;
-            }
-        }
     }
 
     private static HuffmanTable BuildHuffmanTable(byte[] bits, byte[] values) {

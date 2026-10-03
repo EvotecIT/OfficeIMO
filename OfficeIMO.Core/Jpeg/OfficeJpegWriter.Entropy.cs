@@ -153,7 +153,8 @@ internal static partial class OfficeJpegWriter {
 
         public void Flush() {
             if (_bits > 0) {
-                var b = (byte)((_buffer << (8 - _bits)) & 0xFF);
+                int padding = 8 - _bits;
+                var b = (byte)((_buffer << padding) | ((1U << padding) - 1U));
                 WriteByte(b);
                 _bits = 0;
             }
