@@ -1,6 +1,39 @@
 namespace OfficeIMO.Latex.Tests;
 
 public sealed class LatexSingleTokenArgumentTests {
+    [Fact]
+    public void Starred_macro_definition_after_control_word_trivia_keeps_name_and_body() {
+        const string source = "\\newcommand % comment\n*\\x{Body}";
+        LatexDocument document = LatexDocument.Parse(source);
+        LatexMacroDefinition definition = Assert.Single(document.MacroDefinitions);
+        Assert.True(definition.Command.IsStarred);
+        Assert.Equal("x", definition.Name);
+        Assert.Equal("Body", definition.Body);
+        Assert.DoesNotContain(document.Diagnostics, diagnostic => diagnostic.Code == "LATEX007");
+        Assert.Equal(source, document.ToLatex());
+        Assert.True(document.SyntaxTree.IsLossless);
+    }
+
+    [Theory]
+    [InlineData(@"\section*XYZ", "section", "X")]
+    [InlineData(@"\part*😀tail", "part", "😀")]
+    [InlineData(@"\includegraphics*XYZ", "includegraphics", "X")]
+    [InlineData("\\section % comment\n*XYZ", "section", "X")]
+    public void Star_modifier_precedes_single_token_argument_and_is_preserved_when_editing(string source, string name, string value) {
+        LatexDocument document = LatexDocument.Parse(source);
+        LatexCommand command = Assert.Single(document.Commands, item => item.Name == name);
+        Assert.True(command.IsStarred);
+        LatexArgument argument = command.GetRequiredArgument(0)!;
+        Assert.Equal(value, argument.Content);
+        Assert.Equal(source, document.ToLatex());
+        Assert.True(document.SyntaxTree.IsLossless);
+        Assert.Equal(source, string.Concat(document.Tokens.Select(token => token.Text)));
+        argument.Content = "New title";
+        string expected = source.Substring(0, argument.ContentSpan.Start.Offset) + "{New title}" + source.Substring(argument.ContentSpan.End.Offset);
+        Assert.Equal(expected, document.ToLatex());
+        Assert.True(Assert.Single(LatexDocument.Parse(expected).Commands, item => item.Name == name).IsStarred);
+    }
+
     [Theory]
     [InlineData(@"\textbf XYZ", "X")]
     [InlineData(@"\textbf 😀tail", "😀")]

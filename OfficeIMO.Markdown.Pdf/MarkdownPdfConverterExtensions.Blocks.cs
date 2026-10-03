@@ -40,7 +40,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 RenderDetailsBlock(pdf, details, document, options, visualTheme);
                 break;
             case DefinitionListBlock definitionList:
-                RenderDefinitionList(pdf, definitionList, options, visualTheme);
+                RenderDefinitionList(pdf, definitionList, document, options, visualTheme);
                 break;
             case FootnoteDefinitionBlock footnote:
                 RenderFootnoteDefinition(pdf, footnote, document, options, visualTheme);
@@ -131,28 +131,37 @@ public static partial class MarkdownPdfConverterExtensions {
 
     private static void RenderOrderedList(PdfCore.PdfDocument pdf, OrderedListBlock list, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
         var items = new List<PdfCore.PdfListItem>();
+        int batchStart = list.Start;
         for (int i = 0; i < list.Items.Count; i++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             ListItem item = list.Items[i];
             IReadOnlyList<PdfTextRun> runs = CreateListItemRuns(item, includeTaskMarker: true, CreateInlineStyle(visualTheme, options.Anchors));
             items.Add(PdfCore.PdfListItem.Rich(runs.Count == 0 ? new[] { PdfTextRun.Normal(string.Empty) } : runs));
+            if (HasListChildren(item)) {
+                pdf.RichNumbered(items, startNumber: batchStart);
+                items.Clear();
+                RenderListItemChildren(pdf, item, document, options, visualTheme);
+                batchStart = list.Start + i + 1;
+            }
         }
 
         if (items.Count > 0) {
-            pdf.RichNumbered(items, startNumber: list.Start);
+            pdf.RichNumbered(items, startNumber: batchStart);
         }
-
-        RenderListChildren(pdf, list.Items, document, options, visualTheme);
     }
 
     private static void RenderUnorderedList(PdfCore.PdfDocument pdf, UnorderedListBlock list, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
-        if (list.Items.Any(item => item.IsTask)) {
-            RenderMixedUnorderedTaskList(pdf, list.Items, options, visualTheme);
-            RenderListChildren(pdf, list.Items, document, options, visualTheme);
-            return;
+        var batch = new List<ListItem>();
+        foreach (ListItem item in list.Items) {
+            options.CancellationToken.ThrowIfCancellationRequested();
+            batch.Add(item);
+            if (HasListChildren(item)) {
+                RenderMixedUnorderedTaskList(pdf, batch, options, visualTheme);
+                batch.Clear();
+                RenderListItemChildren(pdf, item, document, options, visualTheme);
+            }
         }
-
-        RenderUnorderedListItems(pdf, list.Items, options, visualTheme);
-        RenderListChildren(pdf, list.Items, document, options, visualTheme);
+        if (batch.Count > 0) RenderMixedUnorderedTaskList(pdf, batch, options, visualTheme);
     }
 
     private static void RenderMixedUnorderedTaskList(PdfCore.PdfDocument pdf, IReadOnlyList<ListItem> sourceItems, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
@@ -254,16 +263,15 @@ public static partial class MarkdownPdfConverterExtensions {
         return runs;
     }
 
-    private static void RenderListChildren(PdfCore.PdfDocument pdf, IReadOnlyList<ListItem> items, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
-        for (int i = 0; i < items.Count; i++) {
-            ListItem item = items[i];
-            for (int paragraphIndex = 0; paragraphIndex < item.AdditionalParagraphs.Count; paragraphIndex++) {
-                RenderParagraph(pdf, item.AdditionalParagraphs[paragraphIndex], options, visualTheme);
-            }
+    private static bool HasListChildren(ListItem item) => item.AdditionalParagraphs.Count > 0 || item.NestedBlocks.Count > 0;
 
-            for (int childIndex = 0; childIndex < item.NestedBlocks.Count; childIndex++) {
-                RenderBlock(pdf, item.NestedBlocks[childIndex], document, options, visualTheme);
-            }
+    private static void RenderListItemChildren(PdfCore.PdfDocument pdf, ListItem item, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+        for (int paragraphIndex = 0; paragraphIndex < item.AdditionalParagraphs.Count; paragraphIndex++) {
+            RenderParagraph(pdf, item.AdditionalParagraphs[paragraphIndex], options, visualTheme);
+        }
+
+        for (int childIndex = 0; childIndex < item.NestedBlocks.Count; childIndex++) {
+            RenderBlock(pdf, item.NestedBlocks[childIndex], document, options, visualTheme);
         }
     }
 }

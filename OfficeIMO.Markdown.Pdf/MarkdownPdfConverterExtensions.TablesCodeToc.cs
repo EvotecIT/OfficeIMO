@@ -526,38 +526,18 @@ public static partial class MarkdownPdfConverterExtensions {
             return;
         }
 
-        bool renderedInsidePanel = false;
-        pdf.PanelParagraph(builder => {
-            if (IsEmpty(callout.TitleInlines)) {
-                builder.Bold(title);
-            } else {
-                AppendInlines(builder, callout.TitleInlines, CreateInlineStyle(visualTheme, options.Anchors).With(bold: true));
-            }
-
-            if (canRenderChildrenInsidePanel) {
-                renderedInsidePanel = TryAppendBlocksInsidePanel(builder, children, CreateInlineStyle(visualTheme, options.Anchors), visualTheme, lineBreakBeforeFirst: true);
-            } else if (children.Count == 0 && !string.IsNullOrWhiteSpace(callout.Body)) {
-                builder.LineBreak();
-                AppendTextWithLineBreaks(builder, callout.Body);
-                renderedInsidePanel = true;
-            }
-        }, panelStyle);
-
-        if (children.Count > 0 && !renderedInsidePanel) {
+        if (children.Count > 0) {
             RenderBlocksWithPanelRuns(
-                pdf,
-                children,
-                document,
-                options,
-                visualTheme,
-                panelStyle,
+                pdf, children, document, options, visualTheme, panelStyle,
                 panel => panel.Paragraph(builder => {
-                    if (IsEmpty(callout.TitleInlines)) {
-                        builder.Bold(title);
-                    } else {
-                        AppendInlines(builder, callout.TitleInlines, CreateInlineStyle(visualTheme, options.Anchors).With(bold: true));
-                    }
+                    if (IsEmpty(callout.TitleInlines)) builder.Bold(title);
+                    else AppendInlines(builder, callout.TitleInlines, CreateInlineStyle(visualTheme, options.Anchors).With(bold: true));
                 }));
+        } else {
+            pdf.PanelParagraph(builder => {
+                if (IsEmpty(callout.TitleInlines)) builder.Bold(title);
+                else AppendInlines(builder, callout.TitleInlines, CreateInlineStyle(visualTheme, options.Anchors).With(bold: true));
+            }, panelStyle);
         }
     }
 
@@ -572,7 +552,21 @@ public static partial class MarkdownPdfConverterExtensions {
         RenderBlocks(pdf, details.ChildBlocks, document, options, visualTheme);
     }
 
-    private static void RenderDefinitionList(PdfCore.PdfDocument pdf, DefinitionListBlock definitionList, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+    private static bool HasStructuredDefinitions(DefinitionListBlock definitionList) => definitionList.Groups.Any(group =>
+        group.Definitions.Any(definition => definition.ChildBlocks.Count > 1 ||
+            definition.ChildBlocks.Count == 1 && definition.ChildBlocks[0] is not ParagraphBlock));
+
+    private static void RenderDefinitionList(PdfCore.PdfDocument pdf, DefinitionListBlock definitionList, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
+        if (HasStructuredDefinitions(definitionList)) {
+            foreach (DefinitionListGroup group in definitionList.Groups) {
+                options.CancellationToken.ThrowIfCancellationRequested();
+                foreach (InlineSequence term in group.Terms)
+                    pdf.Paragraph(builder => AppendInlines(builder, term, CreateInlineStyle(visualTheme, options.Anchors).With(bold: true)));
+                foreach (DefinitionListDefinition definition in group.Definitions)
+                    RenderBlocks(pdf, definition.ChildBlocks, document, options, visualTheme);
+            }
+            return;
+        }
         IReadOnlyList<DefinitionListInlineItem> items = definitionList.InlineItems;
         if (items.Count == 0) {
             return;
