@@ -12,9 +12,10 @@ namespace OfficeIMO.Excel {
         internal List<string> BuildPivotHeaders(int headerRow, int startColumn, int endColumn) {
             var headers = new List<string>();
             var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            SharedStringCache sharedStrings = BuildCellTextSharedStringSnapshot();
             for (int col = startColumn; col <= endColumn; col++) {
                 string header = string.Empty;
-                if (TryGetCellText(headerRow, col, out var text)) {
+                if (TryGetCellText(headerRow, col, sharedStrings, out var text)) {
                     header = text?.Trim() ?? string.Empty;
                 }
                 if (string.IsNullOrWhiteSpace(header)) {

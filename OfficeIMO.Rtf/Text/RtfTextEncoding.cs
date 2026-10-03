@@ -1,12 +1,19 @@
 namespace OfficeIMO.Rtf;
 
 internal static class RtfTextEncoding {
+    // RTF fallbacks are bytes for readers that cannot decode \u. Large widths
+    // have no practical interoperability value and amplify one model character
+    // into attacker-controlled amounts of output.
+    internal const int MaxUnicodeFallbackCharacterCount = 8;
+
     public static string EncodeText(string text) {
         return EncodeText(text, unicodeFallbackCharacterCount: 1);
     }
 
     public static string EncodeText(string text, int unicodeFallbackCharacterCount, bool useNamedCharacters = true) {
-        if (unicodeFallbackCharacterCount < 0) throw new ArgumentOutOfRangeException(nameof(unicodeFallbackCharacterCount), "Unicode fallback character count cannot be negative.");
+        if (unicodeFallbackCharacterCount < 0 || unicodeFallbackCharacterCount > MaxUnicodeFallbackCharacterCount)
+            throw new ArgumentOutOfRangeException(nameof(unicodeFallbackCharacterCount),
+                $"Unicode fallback character count must be between 0 and {MaxUnicodeFallbackCharacterCount}.");
         if (string.IsNullOrEmpty(text)) return string.Empty;
 
         var builder = new StringBuilder(text.Length);

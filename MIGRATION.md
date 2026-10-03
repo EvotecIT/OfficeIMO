@@ -9,6 +9,10 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## RTF Unicode fallback width
+
+Normalized RTF writing accepts `UnicodeSkipCount` values from 0 through 8. Set a larger authored value to a supported width before calling `ToRtf`; larger values now raise `ArgumentOutOfRangeException` instead of generating disproportionate fallback output. Reading and lossless source export still preserve an incoming `\uc` value, including one that cannot be used for normalized writing.
+
 ## LaTeX editing and conversion contracts
 
 LaTeX conversion projects the current edited source. Reader locations and conversion diagnostic spans refer to that rebound source; native syntax spans continue to describe the original parse. Conflicting edits to the same span now throw instead of silently selecting one replacement. Edit one representation, or use identical replacements when two views describe the same region.

@@ -32,7 +32,7 @@ public sealed class OdtTrackedChange {
     }
     /// <summary>Plain deleted content for a deletion change, or empty text for an insertion declaration.</summary>
     public string DeletedText => Kind == OdtTrackedChangeKind.Deletion
-        ? string.Join("\n", ChangeElement.Elements().Where(IsTextBlock).Select(OdfTextCodec.Read)) : string.Empty;
+        ? OdfTextCodec.ReadJoined(ChangeElement.Elements().Where(IsTextBlock)) : string.Empty;
     /// <summary>Accepts this change in the owning document.</summary>
     public void Accept() => _document.AcceptTrackedChange(Id);
     /// <summary>Rejects this change in the owning document.</summary>

@@ -90,7 +90,7 @@ public sealed class OdsChart {
             XElement[] titleParagraphs = titleElement?
                 .Elements(OdfNamespaces.Text + "p").ToArray() ?? Array.Empty<XElement>();
             string? title = titleCellRangeAddress != null || titleParagraphs.Length == 0 ? null :
-                string.Join("\n", titleParagraphs.Select(OdfTextCodec.Read));
+                OdfTextCodec.ReadJoined(titleParagraphs);
             string[] categoryAddresses = plot.Elements(chart + "axis")
                 .Select(axis => (string?)axis.Element(chart + "categories")?.Attribute(OdfNamespaces.Table + "cell-range-address"))
                 .Where(value => !string.IsNullOrWhiteSpace(value)).Select(value => value!).ToArray();

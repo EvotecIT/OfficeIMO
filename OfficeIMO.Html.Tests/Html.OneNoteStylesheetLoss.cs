@@ -7,6 +7,24 @@ namespace OfficeIMO.Tests;
 
 public partial class HtmlOfficeAdapters {
     [Fact]
+    public void OneNoteClassifiesManyStylesheetLinksAgainstOnePreferredSet() {
+        string links = string.Concat(Enumerable.Range(0, 64).Select(index =>
+            $"<link rel='stylesheet' href='https://example.test/plain-{index}.css'>"))
+            + string.Concat(Enumerable.Range(0, 64).Select(index =>
+                $"<link rel='stylesheet' title='default' href='https://example.test/titled-{index}.css'>"))
+            + "<link rel='alternate stylesheet' title='other' href='https://example.test/other.css'>"
+            + "<link rel='stylesheet' disabled href='https://example.test/disabled.css'>";
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(
+            "<html><head>" + links + "</head><body><p>Text</p></body></html>").ToOneNoteSectionResult();
+
+        HtmlDiagnostic[] skipped = result.Report.Diagnostics
+            .Where(item => item.Code == "HtmlStylesheetLinkSkipped").ToArray();
+        Assert.Equal(128, skipped.Length);
+        Assert.Equal("https://example.test/plain-0.css", skipped[0].Source);
+        Assert.Equal("https://example.test/titled-63.css", skipped[skipped.Length - 1].Source);
+    }
+
+    [Fact]
     public void OneNote_ReportsOnlyApplicableUnloadedStylesheetLinks() {
         const string html = "<html><head>"
             + "<link rel='stylesheet' href='https://example.test/active.css'>"

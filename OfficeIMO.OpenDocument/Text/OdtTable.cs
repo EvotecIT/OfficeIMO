@@ -217,9 +217,8 @@ public sealed class OdtTableCell {
 
     /// <summary>Cell text joined across paragraphs.</summary>
     public string Text {
-        get => string.Join("\n", _element.Elements()
-            .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
-            .Select(element => new OdtParagraph(_document, element).Text));
+        get => OdfTextCodec.ReadJoined(_element.Elements()
+            .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h"));
         set {
             if (IsCovered) throw new InvalidOperationException("Covered table cells cannot contain text.");
             EnsureMaterialized();
