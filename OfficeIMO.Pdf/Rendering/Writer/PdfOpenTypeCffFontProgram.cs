@@ -185,7 +185,11 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
             return 0D;
         }
 
-        return ShapeText(text!, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, language: language, featureSettings: featureSettings)).TotalAdvanceWidth1000 * fontSize / 1000D;
+        PdfTextShapingOptions options = PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, language: language, featureSettings: featureSettings);
+        int advance = shapingProvider == null && options.FeatureSettings.IsDefault && shapingMode == PdfTextShapingMode.OpenTypeLigatures
+            ? PdfExternalTextShaper.MeasureDefaultLatinAdvanceWidth1000(text!, this, options)
+            : ShapeText(text!, options).TotalAdvanceWidth1000;
+        return advance * fontSize / 1000D;
     }
 
     public string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null) {

@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
-internal static class PdfExternalTextShaper {
+internal static partial class PdfExternalTextShaper {
     internal static bool TryShapeText(string text, PdfTrueTypeFontProgram font, PdfTextShapingOptions options, out PdfGlyphRun glyphRun) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));

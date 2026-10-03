@@ -70,6 +70,8 @@ internal sealed partial class OfficeOpenTypeSubstitution {
     }
 
     private bool ApplyLatinDefaultsCore(List<GlyphToken> glyphs, OfficeTextFeatureSettings settings, CancellationToken cancellationToken, string? sourceText) {
+        bool? asciiResult = TryApplyAsciiLatinDefaults(glyphs, settings, cancellationToken, sourceText);
+        if (asciiResult.HasValue) return asciiResult.Value;
         var scalars = new int[glyphs.Count];
         var breakBefore = new bool[glyphs.Count];
         for (int index = 0; index < glyphs.Count; index++) {
@@ -100,6 +102,40 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         }
         glyphs.Clear(); glyphs.AddRange(shaped);
         return true;
+    }
+
+    private bool? TryApplyAsciiLatinDefaults(List<GlyphToken> glyphs, OfficeTextFeatureSettings settings,
+        CancellationToken cancellationToken, string? sourceText) {
+        if (glyphs.Count == 0 || sourceText == null || sourceText.Length != glyphs.Count) return null;
+        bool hasLatin = false;
+        for (int index = 0; index < glyphs.Count; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            GlyphToken glyph = glyphs[index];
+            if ((uint)(glyph.Scalar - 32) > 94U || glyph.TextIndex != index || glyph.UnicodeText.Length != 1) return null;
+            hasLatin |= glyph.Scalar >= 'A' && glyph.Scalar <= 'Z' || glyph.Scalar >= 'a' && glyph.Scalar <= 'z';
+        }
+        if (!hasLatin) return true;
+        KeyValuePair<int, int>[]? lookups = settings.IsDefault ? _latinDefaultLookups.Value : BuildLatinDefaultLookups(settings, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (lookups == null) return false;
+        if (lookups.Length == 0) return true;
+        // A single uninterrupted ASCII segment has the same eligibility as the general
+        // script resolver. Keep its working copy so a rejected operation leaves input intact.
+        var segment = new List<GlyphToken>(glyphs);
+        int operations = 0;
+        foreach (var lookup in lookups) ApplyLookup(segment, lookup.Key, lookup.Value, cancellationToken, ref operations);
+        glyphs.Clear(); glyphs.AddRange(segment);
+        return true;
+    }
+
+    internal bool CanApplyLatinDefaults(OfficeTextFeatureSettings settings, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        try {
+            bool supported = (settings.IsDefault ? _latinDefaultLookups.Value : BuildLatinDefaultLookups(settings, cancellationToken)) != null;
+            cancellationToken.ThrowIfCancellationRequested();
+            return supported;
+        } catch (Exception exception) when (exception is InvalidDataException || exception is OverflowException ||
+            exception is ArgumentOutOfRangeException || exception is IndexOutOfRangeException) { return false; }
     }
 
     private KeyValuePair<int, int>[]? BuildLatinDefaultLookups(OfficeTextFeatureSettings settings, CancellationToken cancellationToken) {
