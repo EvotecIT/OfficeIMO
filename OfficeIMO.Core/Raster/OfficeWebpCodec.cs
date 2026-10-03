@@ -585,6 +585,15 @@ public static partial class OfficeWebpCodec {
             return (uint)(_buffer & mask);
         }
 
+        // Only a successful prefix lookup consumes pre-buffered bits. Keep
+        // this separate from checked reads so the hot path does not peek twice.
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        internal void ConsumeBufferedBits(int count) {
+            _buffer >>= count;
+            _bitCount -= count;
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         internal bool HasBits(long count) =>
             count >= 0L &&
             count <= _bitCount + ((long)_end - _offset) * 8L;

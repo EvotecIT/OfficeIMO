@@ -151,6 +151,7 @@ public static partial class OfficeWebpCodec {
             return true;
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         internal int ReadSymbol(LsbBitReader reader) {
             if (_singleSymbol >= 0) return _singleSymbol;
             if (_symbols.Length == 0) return -1;
@@ -160,10 +161,15 @@ public static partial class OfficeWebpCodec {
                 int packed = _lookup[reader.PeekBits(LookupBits)];
                 int length = packed & 15;
                 if (length != 0) {
-                    reader.ReadBits(length);
+                    // PeekBits has already buffered the full lookup prefix.
+                    reader.ConsumeBufferedBits(length);
                     return packed >> 4;
                 }
             }
+            return ReadCanonicalSymbol(reader);
+        }
+
+        private int ReadCanonicalSymbol(LsbBitReader reader) {
             int code = 0;
             int firstCode = 0;
             int firstIndex = 0;
