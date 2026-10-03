@@ -19,7 +19,7 @@ Console.WriteLine(result.HasLoss);
 result.Value.Save("converted.docx");
 ```
 
-`IWorkSourceDocument.Open` reads and bounds the source independently of destination policy. `ToWordDocument` returns the converted document directly; `ToWordDocumentResult` also exposes the typed Pages projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result. `WordIWorkConverter.ConvertPagesToWord*` provides equivalent path and stream convenience entry points.
+`IWorkSourceDocument.Open` reads and bounds the source independently of destination policy. `ToWordDocument` returns a complete editable document and rejects partial reconstruction or preview output; `ToWordDocumentResult` also exposes the typed Pages projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result. `WordIWorkConverter.ConvertPagesToWord*` provides equivalent path and stream convenience entry points.
 
 Qualified body image attachments retain their inline run positions. A qualified table attachment occupies its own paragraph and becomes a Word table between the surrounding body paragraphs. Nonzero placement modes, tables mixed with other paragraph content, repeated attachment positions for one drawable, and attachment-run hyperlinks remain unsupported. Other source or destination limits can still require the explicit partial policy.
 
@@ -45,7 +45,7 @@ var options = new IWorkConversionOptions {
 };
 ```
 
-This retains bounded recoverable editable content and reports incomplete details. If editable output cannot be produced, it rejects a first-page or composite preview. Both settings default to `false`. Inspect `Report.IsPartialEditableReconstruction` before accepting the output; `Report.RequireCompleteEditableReconstruction()` rejects explicitly partial reconstruction. `Report.RequireNoLoss()` also rejects unassessed record fidelity. These policies do not bypass source limits or destination safety checks.
+This retains bounded recoverable editable content and reports incomplete details. If editable output cannot be produced, it rejects a first-page or composite preview. `AllowPartialEditableReconstruction` defaults to `false`; `RequireCompleteVisualCoverage` defaults to `true`. To accept an incomplete preview, use the result API with `RequireCompleteVisualCoverage = false` and inspect its coverage and fidelity report. Value-only APIs reject partial and preview output even when these options permit it. `result.RequireCompleteEditableReconstruction()` returns the destination after checking assessed content completeness and disposes rejected output; it does not establish identical appearance or field-level fidelity. `Report.RequireNoLoss()` also rejects unassessed record fidelity. These policies do not bypass source limits or destination safety checks.
 
 Under the partial policy, positioned tables become flowing editable Word tables and finite measurements are rounded to DOCX units. `IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED` and `IWORK_PAGES_DOCX_PRECISION` identify those approximations; original geometry remains on the source projection.
 
@@ -58,7 +58,7 @@ using PagesToWordResult cancellable = WordIWorkConverter.ConvertPagesToWordResul
     cancellationToken: cancellation.Token);
 ```
 
-This token governs loading, projection, and destination construction. It also governs later projections from `cancellable.Source`; reopen the source with a new token after cancellation. Saving is a separate destination-owner operation.
+This token governs loading, projection, and destination construction. It also governs later projections from `cancellable.Source`; use `cancellable.Source.WithCancellation(newToken)` to reuse the loaded package with a new operation token. This replaces the previous token while sharing source bytes and parsed messages. Saving is a separate destination-owner operation.
 
 The adapter directly depends on `OfficeIMO.Core`, `OfficeIMO.IWork`, and `OfficeIMO.Word`. It does not add iWork support to the default Word package graph.
 

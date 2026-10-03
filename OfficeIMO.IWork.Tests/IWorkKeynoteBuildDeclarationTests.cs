@@ -12,7 +12,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(43)]
     public void Keynote_selected_build_declarations_require_explicit_partial_conversion(int field) {
         using MemoryStream package = KeynoteWithBuildDeclarations(BytesField(field, Message()));
-        using var fallback = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var fallback = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(fallback.IsVisualFallback);
         Assert.False(fallback.Projection.HasEditableContent);
         IWorkSourceDeclarationIssue issue = Assert.Single(fallback.Report.SourceDeclarationIssues);
@@ -35,7 +35,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_malformed_build_envelope_retains_physical_field_evidence() {
         using MemoryStream package = KeynoteWithBuildDeclarations(
             Message(VarintField(43, 1), BytesField(43, Message())));
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         IWorkSourceDeclarationIssue issue = Assert.Single(result.Report.SourceDeclarationIssues);
         Assert.Equal("43", issue.FieldPath);

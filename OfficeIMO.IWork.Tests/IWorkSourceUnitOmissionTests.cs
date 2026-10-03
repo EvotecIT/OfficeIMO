@@ -172,7 +172,8 @@ public sealed partial class IWorkBoundaryTests {
         IWorkReadOptions? readOptions = null) {
         var options = new IWorkConversionOptions {
             Mode = visual ? IWorkConversionMode.VisualOnly : IWorkConversionMode.Auto,
-            AllowPartialEditableReconstruction = !visual
+            AllowPartialEditableReconstruction = !visual,
+            RequireCompleteVisualCoverage = false
         };
         if (kind == IWorkDocumentKind.Pages) {
             using var result = WordIWorkConverter.ConvertPagesToWordResult(package, readOptions: readOptions, conversionOptions: options);

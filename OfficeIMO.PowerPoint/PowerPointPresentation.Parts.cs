@@ -36,11 +36,18 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private string GetNextSlideRelationshipId() {
+            HashSet<string> existingRelationships = GetPresentationRelationships();
+            long nextId = 1;
+            return ReserveSlideRelationshipId(existingRelationships, ref nextId);
+        }
+
+        private HashSet<string> GetPresentationRelationships() {
             var existingRelationships = new HashSet<string>(
                 _presentationPart.Parts
                     .Select(p => p.RelationshipId)
                     .Union(_presentationPart.ExternalRelationships.Select(r => r.Id))
                     .Union(_presentationPart.HyperlinkRelationships.Select(r => r.Id))
+                    .Union(_presentationPart.DataPartReferenceRelationships.Select(r => r.Id))
                     .Where(id => !string.IsNullOrEmpty(id))
                     .Select(id => id!)
             );
@@ -54,12 +61,15 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            int nextId = 1;
+            return existingRelationships;
+        }
+
+        private static string ReserveSlideRelationshipId(HashSet<string> existingRelationships, ref long nextId) {
             string slideRelId;
             do {
-                slideRelId = "rId" + nextId;
-                nextId++;
-            } while (existingRelationships.Contains(slideRelId));
+                slideRelId = "rId" + nextId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                nextId = checked(nextId + 1);
+            } while (!existingRelationships.Add(slideRelId));
 
             return slideRelId;
         }
@@ -71,6 +81,9 @@ namespace OfficeIMO.PowerPoint {
                 maxId = slideIdList.Elements<SlideId>().Max(s => s.Id?.Value ?? 255);
             }
 
+            if (maxId >= 2147483647U) {
+                throw new InvalidOperationException("The presentation has exhausted the supported slide ID range.");
+            }
             return maxId >= 255 ? maxId + 1 : 256;
         }
 

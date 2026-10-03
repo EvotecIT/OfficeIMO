@@ -120,7 +120,7 @@ public sealed class IWorkParagraphStyle {
     public double? SpaceBeforePoints { get; }
     /// <summary>Gets spacing after the paragraph in points.</summary>
     public double? SpaceAfterPoints { get; }
-    /// <summary>Gets explicit positive relative line spacing; null when absent, cleared or unqualified.</summary>
+    /// <summary>Gets positive relative line spacing, including the qualified single-line default of an empty source declaration; null when absent, cleared or unqualified.</summary>
     public double? LineSpacingMultiplier { get; }
     /// <summary>Gets qualified custom tabs; null means unspecified and an empty list clears inherited source tabs.</summary>
     public IReadOnlyList<IWorkTabStop>? TabStops { get; }

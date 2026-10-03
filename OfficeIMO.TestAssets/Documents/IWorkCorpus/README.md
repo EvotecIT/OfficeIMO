@@ -14,6 +14,10 @@ The complete upstream license notices are reproduced in `OfficeIMO.IWork/THIRD-P
 
 The parameterized independent-corpus output check converts all 12 fixtures listed by `IWorkCorpusTests.Corpus` to editable DOCX, XLSX or PPTX, saves and reopens the result, and validates the destination Open XML schema. It explicitly accepts partial reconstruction and normalizes worksheet names. This gate catches invalid destination packages; separate semantic tests establish supported content. Passing it does not qualify native application rendering, pagination or complete document fidelity.
 
+## Native default paragraph layout
+
+`native-exports/numbers-simple-v14.5.json` pins the unchanged `nim-iwork/simple.numbers` source and its Numbers 14.5 XLSX/PDF exports. Native body-cell controls show a single line, no custom tab stops, natural horizontal alignment, Helvetica Neue 10-point text, and wrapping. Independent numbers-parser 4.19.0 schemas identify empty `12/13` line-spacing and `12/25` tab declarations in the selected body/header styles. The XLSX oracle adds one table-title row; comparisons offset that row and check all nine types, values, font sizes, header emphasis and General alignment. Empty shared declarations reset inherited relative spacing/custom tabs; explicit zero spacing and unsupported ancestor fields remain rejected. This qualifies the declared defaults and saved XLSX properties, without complete appearance or native Pages/Keynote export claims.
+
 ## Native blank-format export
 
 `native-exports/numbers-blank-selectors-v14.5.xlsx` is an Apple Numbers 14.5 export of the unchanged `numbers-parser/cross-table-formulas.numbers` fixture. The adjacent JSON records source/export hashes, export options and ten blank cells in `Main Sheet - Extra Headers`. Reproduce it by opening a copy of the source in Numbers 14.5, choosing File > Export To > Excel, one worksheet per table, and leaving the summary worksheet and password options off. The native export includes a table-title row, so source A8:A17 maps to destination A9:A18. Existing numbers-parser MIT attribution applies.
@@ -36,7 +40,7 @@ The unchanged Pages 14.1 `iwork-converter/a.pages` fixture exercises a 45-paragr
 
 ## Pages paragraph layout declarations
 
-`pages-paragraph-layout.json` records line-spacing and custom-tab messages in selected body paragraph styles and their parent chain in the unchanged `picodocs/sample-v14.4.pages`. The pinned independent parser identifies twelve declarations across seven styles, including empty messages whose effective defaults remain unqualified. The manifest also exposes independently decoded relative multipliers and tab positions/alignments without leaders. The reader retains those explicit values and source paths for remaining unqualified layout. DOCX/PPTX spacing properties are checked separately from rendered appearance. This evidence does not qualify Apple exports or rendered equivalence.
+`pages-paragraph-layout.json` records line-spacing and custom-tab messages in selected body paragraph styles and their parent chain in the unchanged `picodocs/sample-v14.4.pages`. The pinned independent parser identifies twelve declarations across seven styles, including empty messages whose single-line/empty-custom-tab defaults are qualified by the paired Numbers 14.5 evidence below. The manifest also exposes independently decoded relative multipliers and tab positions/alignments without leaders. The reader retains those explicit values and source paths for remaining unqualified layout. DOCX/PPTX spacing properties are checked separately from rendered appearance. This evidence does not qualify Apple exports or rendered equivalence.
 
 ```sh
 python Build/IWork/extract-pages-paragraph-layout.py OfficeIMO.TestAssets/Documents/IWorkCorpus OfficeIMO.TestAssets/Documents/IWorkCorpus/pages-paragraph-layout.json

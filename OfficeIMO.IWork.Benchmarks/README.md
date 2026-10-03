@@ -41,9 +41,9 @@ and `nim-iwork/simple.numbers` fixtures in the [licensed corpus](../OfficeIMO.Te
 Their SHA-256 hashes are checked before execution. Pages validates all three body
 paragraphs, including the empty paragraph; Numbers validates the complete 3×3 grid,
 coordinates, value types and contents. Both operations use the same reader and
-editable-conversion owners as the synthetic cases, with explicit partial reconstruction
-for unassessed paragraph layout. They still reject preview fallback and verify all
-listed content. The conversion policy is recorded in case variables so these runs
+editable-conversion owners as the synthetic cases, requiring complete editable
+reconstruction for their qualified paragraph defaults. They reject preview fallback
+and verify all listed content. The conversion policy is recorded in case variables so these runs
 are not compared with earlier strict-policy samples. Saved packages are reopened
 before a sample succeeds. These small native inputs complement the scale matrix;
 they do not establish large native-package budgets. Native Keynote runtime cases

@@ -19,7 +19,7 @@ Console.WriteLine(result.HasLoss);
 result.Value.Save("converted.xlsx");
 ```
 
-`IWorkSourceDocument.Open` reads and bounds the source independently of destination policy. `ToExcelDocument` returns the converted workbook directly; `ToExcelDocumentResult` also exposes the typed Numbers projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result. `ExcelIWorkConverter.ConvertNumbersToExcel*` provides equivalent path and stream convenience entry points.
+`IWorkSourceDocument.Open` reads and bounds the source independently of destination policy. `ToExcelDocument` returns a complete editable workbook and rejects partial reconstruction or preview output; `ToExcelDocumentResult` also exposes the typed Numbers projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result. `ExcelIWorkConverter.ConvertNumbersToExcel*` provides equivalent path and stream convenience entry points.
 
 Supported formula functions use qualified native identifiers and argument counts; see the [function subset](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md#formula-functions). Nested `OR`, `POWER`, qualified `TEXTJOIN`, `MINA`, `MAXA`, `AVERAGEA`, `OFFSET`, `PROB` and `RANDBETWEEN` retain editable expressions and typed caches. Native Numbers 14.5 exports qualify `OFFSET`, `PROB` and `RANDBETWEEN`. Local recalculation supports bounded rectangular `OFFSET` range arguments and single-cell results, finite numeric `PROB` vectors, and inclusive integer `RANDBETWEEN` bounds through ±(2^53−1); see the shared [Excel calculation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Excel/README.md#formula-inspection-and-calculation-policy) for limits. `MINA`, `MAXA` and `AVERAGEA` identities and argument counts are independently checked. Their saved/reopened formulas, numeric caches and local recalculation use synthetic native-format inputs; Apple-produced document, export and argument-type equivalence qualification remain open. Apple disallows direct text arguments to `MAXA`, while local Excel recalculation treats them as zero. `TEXTJOIN` uses `_xlfn.TEXTJOIN` in XLSX; source expressions retain the native function name and semantic table labels. Unsupported or ambiguous expressions retain valid caches without an editable formula; inspect `FormulaIsComplete` and `IWORK_TABLE_FORMULA_PARTIAL`. Cached values do not establish recalculation or cache freshness.
 
@@ -49,7 +49,7 @@ var options = new IWorkConversionOptions {
 };
 ```
 
-This retains bounded recoverable editable content and reports incomplete details. If editable output cannot be produced, it rejects a first-page or composite preview. Both settings default to `false`. Inspect `Report.IsPartialEditableReconstruction` before accepting the output; `Report.RequireCompleteEditableReconstruction()` rejects explicitly partial reconstruction. `Report.RequireNoLoss()` also rejects unassessed record fidelity. These policies do not bypass source limits or destination safety checks.
+This retains bounded recoverable editable content and reports incomplete details. If editable output cannot be produced, it rejects a first-page or composite preview. `AllowPartialEditableReconstruction` defaults to `false`; `RequireCompleteVisualCoverage` defaults to `true`. To accept an incomplete preview, use the result API with `RequireCompleteVisualCoverage = false` and inspect its coverage and fidelity report. Value-only APIs reject partial and preview output even when these options permit it. `result.RequireCompleteEditableReconstruction()` returns the destination after checking assessed content completeness and disposes rejected output; it does not establish identical appearance or field-level fidelity. `Report.RequireNoLoss()` also rejects unassessed record fidelity. These policies do not bypass source limits or destination safety checks.
 
 Table-region defaults and selected text styles preserve fonts, emphasis, foreground colors and horizontal alignment in XLSX without changing numeric values or formula caches. Unsupported paragraph layout, highlights and transparency produce `IWORK_NUMBERS_TABLE_TEXT_STYLE_PARTIAL`. Applying defaults to empty cells is bounded to 100,000 cells per table and 1,000,000 per conversion; source tables remain sparse.
 
@@ -74,7 +74,7 @@ using NumbersToExcelResult cancellable = ExcelIWorkConverter.ConvertNumbersToExc
     cancellationToken: cancellation.Token);
 ```
 
-This token governs loading, projection, and destination construction. It also governs later projections from `cancellable.Source`; reopen the source with a new token after cancellation. Saving is a separate destination-owner operation.
+This token governs loading, projection, and destination construction. It also governs later projections from `cancellable.Source`; use `cancellable.Source.WithCancellation(newToken)` to reuse the loaded package with a new operation token. This replaces the previous token while sharing source bytes and parsed messages. Saving is a separate destination-owner operation.
 
 The adapter directly depends on `OfficeIMO.Core`, `OfficeIMO.IWork`, and `OfficeIMO.Excel`. It does not add iWork support to the default Excel package graph.
 

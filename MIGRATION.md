@@ -493,6 +493,14 @@ these methods.
 
 ## OfficeIMO 3.4: one document and conversion grammar
 
+### iWork conversion acceptance and source reuse
+
+`RequireCompleteVisualCoverage` defaults to `true`. Incomplete raster previews and embedded PDFs with unknown source coverage are rejected. Applications intentionally accepting a preview must use `ToWordDocumentResult`, `ToExcelDocumentResult` or `ToPowerPointPresentationResult` (or the static result equivalent), set `RequireCompleteVisualCoverage = false`, and inspect the retained report before saving.
+
+Value-only conversion APIs require complete editable reconstruction even when `AllowPartialEditableReconstruction` or preview acceptance is enabled. Use a result API to handle reported partial output. `result.RequireCompleteEditableReconstruction()` checks assessed completeness, returns the destination on success and disposes rejected output. Record-level fidelity and identical appearance remain separate checks.
+
+Use `source.WithCancellation(newToken)` for another independently cancellable operation on an already loaded source. It replaces the old token while sharing source bytes and parsed messages. Empty shared line-spacing/tab-stop declarations now resolve to single spacing and no custom tabs; sources previously incomplete solely for these defaults can convert strictly. Numbers Natural alignment maps to General rather than forcing numeric cells left. Apple epoch timestamps use tick arithmetic consistently across runtimes, retaining submillisecond root-comment times on legacy consumers.
+
 ### iWork cell decoding evidence
 
 Use `IWorkTableCell.HasDecodeError` to distinguish storage/value decoding failures from recovered native error markers, instead of comparing `Error` to `"#ERROR"`. Inspect `IWorkConversionReport.SourceCellIssues` for table identities and coordinates. `IWORK_TABLE_CELL_DECODE` now has fidelity category `Unassessed`, rather than `Omission`; unreadable cell content does not establish what was omitted. Workflow evidence retains the count as `sourceCellIssueCount`.

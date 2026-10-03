@@ -81,9 +81,12 @@ public static partial class PowerPointIWorkConverter {
             if (editable) {
                 var slidePairs = new List<(IWorkKeynoteSlide Source, PowerPointSlide Target)>(
                     projection.Slides.Count);
-                foreach (IWorkKeynoteSlide sourceSlide in projection.Slides) {
+                IReadOnlyList<PowerPointSlide> targetSlides = presentation.AddSlides(projection.Slides.Count,
+                    cancellationToken: cancellationToken);
+                for (int slideIndex = 0; slideIndex < projection.Slides.Count; slideIndex++) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    PowerPointSlide slide = presentation.AddSlide();
+                    IWorkKeynoteSlide sourceSlide = projection.Slides[slideIndex];
+                    PowerPointSlide slide = targetSlides[slideIndex];
                     if (sourceSlide.Name.Length > 0) slide.Name = sourceSlide.Name;
                     slide.Hidden = sourceSlide.IsSkipped;
                     if (sourceSlide.HasBackgroundFill) {

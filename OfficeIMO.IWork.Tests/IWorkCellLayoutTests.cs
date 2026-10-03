@@ -57,7 +57,7 @@ public sealed partial class IWorkBoundaryTests {
             _ => BytesField(9, CellPadding(float.PositiveInfinity))
         };
         using var package = CellFillPackage(new[] { CellLayoutStyle(30, Message(BytesField(1, FillColor(1, 0, 0)), properties)) });
-        using var result = IWorkSourceDocument.Open(package).ToWordDocumentResult();
+        using var result = IWorkSourceDocument.Open(package).ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         var cell = Assert.Single(result.Projection.Tables).GetCell(1, 1)!;
         Assert.Equal(42d, cell.Value);
@@ -149,7 +149,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Contains("padding", Assert.Throws<InvalidDataException>(() => source.ToExcelDocumentResult(policy)).Message,
                 StringComparison.OrdinalIgnoreCase);
         } else {
-            using var result = source.ToExcelDocumentResult(policy);
+            using var result = source.ToExcelDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.True(result.IsVisualFallback);
             Assert.Throws<InvalidOperationException>(() => result.Report.RequireCompleteEditableReconstruction());
         }
@@ -163,11 +163,11 @@ public sealed partial class IWorkBoundaryTests {
         var source = IWorkSourceDocument.Open(package);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(policy);
+            using var result = source.ToWordDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.True(result.IsVisualFallback);
             Assert.Equal(padding, result.Projection.Tables[0].GetCell(1, 1)!.Padding!.LeftPoints);
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy);
+            using var result = source.ToPowerPointPresentationResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.True(result.IsVisualFallback);
             Assert.Equal(padding, result.Projection.Slides[0].Tables[0].GetCell(1, 1)!.Padding!.LeftPoints);
         }
@@ -184,7 +184,7 @@ public sealed partial class IWorkBoundaryTests {
         var source = IWorkSourceDocument.Open(package);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = partial };
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = source.ToWordDocumentResult(policy);
+            using var result = source.ToWordDocumentResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.Equal(!partial, result.IsVisualFallback);
             Assert.Equal(native, result.Projection.Tables[0].GetCell(1, 1)!.Padding!.LeftPoints);
             if (partial) {
@@ -192,7 +192,7 @@ public sealed partial class IWorkBoundaryTests {
                 Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_PAGES_DOCX_PRECISION");
             }
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy);
+            using var result = source.ToPowerPointPresentationResult(IWorkTestPolicy.ForIncompletePreview(policy));
             Assert.Equal(!partial, result.IsVisualFallback);
             Assert.Equal(native, result.Projection.Slides[0].Tables[0].GetCell(1, 1)!.Padding!.LeftPoints);
             if (partial) {

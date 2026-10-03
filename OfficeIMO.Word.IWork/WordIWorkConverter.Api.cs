@@ -6,12 +6,12 @@ public static partial class WordIWorkConverter {
     /// <summary>Opens and converts a Pages file into the normal editable Word model.</summary>
     public static WordDocument ConvertPagesToWord(string path,
         IWorkReadOptions? readOptions = null, IWorkConversionOptions? conversionOptions = null) =>
-        ConvertPagesToWordResult(path, readOptions, conversionOptions).Value;
+        ConvertPagesToWordResult(path, readOptions, conversionOptions).RequireCompleteEditableReconstruction();
 
     /// <summary>Opens and converts a Pages stream into the normal editable Word model.</summary>
     public static WordDocument ConvertPagesToWord(Stream stream,
         IWorkReadOptions? readOptions = null, IWorkConversionOptions? conversionOptions = null) =>
-        ConvertPagesToWordResult(stream, readOptions, conversionOptions).Value;
+        ConvertPagesToWordResult(stream, readOptions, conversionOptions).RequireCompleteEditableReconstruction();
 
     /// <summary>Opens and converts a Pages file, returning the Word document with source evidence.</summary>
     public static PagesToWordResult ConvertPagesToWordResult(string path,
@@ -32,7 +32,7 @@ public static partial class WordIWorkConverter {
     /// <summary>Converts an opened Pages source into the normal editable Word model.</summary>
     public static WordDocument ToWordDocument(this IWorkSourceDocument source,
         IWorkConversionOptions? options = null) =>
-        ToWordDocumentResult(source, options).Value;
+        ToWordDocumentResult(source, options).RequireCompleteEditableReconstruction();
 
     /// <summary>Converts an opened Pages source and returns the Word document with its projection and loss report.</summary>
     public static PagesToWordResult ToWordDocumentResult(this IWorkSourceDocument source,

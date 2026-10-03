@@ -106,7 +106,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         IWorkConversionReport report;
         if (kind == IWorkDocumentKind.Pages) {
-            using var automatic = source.ToWordDocumentResult();
+            using var automatic = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
             using var partial = source.ToWordDocumentResult(options);
             Assert.False(partial.IsVisualFallback);
@@ -116,7 +116,7 @@ public sealed partial class IWorkBoundaryTests {
             using WordDocument reopened = WordDocument.Load(saved);
             Assert.Equal("42", reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var automatic = source.ToExcelDocumentResult();
+            using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
             using var partial = source.ToExcelDocumentResult(options);
             Assert.False(partial.IsVisualFallback);
@@ -126,7 +126,7 @@ public sealed partial class IWorkBoundaryTests {
             using ExcelDocument reopened = ExcelDocument.Load(saved);
             Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue().Value);
         } else {
-            using var automatic = source.ToPowerPointPresentationResult();
+            using var automatic = source.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
             using var partial = source.ToPowerPointPresentationResult(options);
             Assert.False(partial.IsVisualFallback);

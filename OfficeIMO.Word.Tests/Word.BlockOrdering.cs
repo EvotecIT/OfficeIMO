@@ -192,6 +192,33 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_BodyAppendUsesCurrentLinksAfterRawBoundaryEditsAndSaveReload() {
+            using var document = WordDocument.Create();
+            document.AddParagraph("First");
+            var tail = document.AddParagraph("Removed tail");
+            Body body = document._document.Body!;
+            SectionProperties boundary = body.Elements<SectionProperties>().Single();
+            tail._paragraph.Remove();
+            body.InsertBefore(new Paragraph(new Run(new Text("Raw replacement"))), boundary);
+            document.AddParagraph("Second");
+            // Moving the final properties away from the end must also invalidate the append hint.
+            boundary.Remove();
+            body.PrependChild(boundary);
+            document.AddParagraph("Third");
+            Assert.Equal(new[] { "Paragraph:First", "Paragraph:Raw replacement", "Paragraph:Second", "Paragraph:Third" },
+                GetTopLevelContentOrder(document));
+            AssertFinalSectionPropertiesRemainLast(document);
+            using var saved = new MemoryStream();
+            document.Save(saved); saved.Position = 0;
+            using var reopened = WordDocument.Load(saved);
+            reopened.AddParagraph("Fourth");
+            Assert.Equal(new[] { "Paragraph:First", "Paragraph:Raw replacement", "Paragraph:Second", "Paragraph:Third", "Paragraph:Fourth" },
+                GetTopLevelContentOrder(reopened));
+            AssertFinalSectionPropertiesRemainLast(reopened);
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
         private static IReadOnlyList<string> GetTopLevelContentOrder(WordDocument document) {
             Body body = document._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
             return body.ChildElements
