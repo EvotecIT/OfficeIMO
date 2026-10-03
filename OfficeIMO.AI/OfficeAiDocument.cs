@@ -115,26 +115,38 @@ public sealed class OfficeAiDocument {
             .ToDictionary(group => group.Key, group => group.Count());
         var documentTableCounts = tableScopes.GroupBy(location => location?.Path ?? "")
             .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+        // OCR may normalize pre-existing fallback chunks into blocks to preserve their text.
+        // Their original chunk still owns adapter-specific notice and table-only semantics.
+        bool hasChunkBlocks = content.Any(item => item.Block?.Kind == "chunk");
+        var chunkProjections = (hasChunkBlocks ? document.Chunks : Array.Empty<ReaderChunk>()).ToLookup(chunk =>
+            (chunk.Id, chunk.Text, chunk.Location?.Path, chunk.Location?.Page, chunk.Location?.Slide,
+                chunk.Location?.Sheet, chunk.Location?.BlockAnchor, chunk.Location?.SourceBlockIndex));
+        void AddChunk(ReaderChunk chunk, ReaderLocation? sourceLocation) {
+            // The PDF adapter reserves these kinds for generated notices/placeholders.
+            // Other adapters use the same words for real semantic source content.
+            if (chunk.Kind == ReaderInputKind.Pdf && chunk.Location?.SourceBlockKind is "warning" or "visual") return;
+            // Retain table-only fallback text when the structured source scope is incomplete.
+            if (chunk.Kind == ReaderInputKind.Pdf && chunk.Location is { SourceBlockKind: "table" } location
+                && chunk.Diagnostics is { TableCount: > 0 } diagnostics) {
+                int captured = location.Page.HasValue
+                    ? pageTableCounts.GetValueOrDefault((location.Path ?? "", location.Page, location.SourceBlockIndex))
+                    : documentTableCounts.GetValueOrDefault(location.Path ?? "");
+                if (captured == diagnostics.TableCount) return;
+            }
+            Add("chunk", chunk.Text, sourceLocation?.Page, chunk.Id, sourceAnchor: sourceLocation?.BlockAnchor, location: sourceLocation);
+        }
         int tableIndex = 0;
         foreach (OfficeDocumentContentItem item in content) {
             if (item.Block is { } block) {
-                Add(block.Kind, block.Text, item.Location?.Page, block.Id, block.Region, item.Location?.BlockAnchor, item.Location);
+                ReaderChunk? projection = block.Kind == "chunk" ? chunkProjections[
+                    (block.Id, block.Text, item.Location?.Path, item.Location?.Page, item.Location?.Slide,
+                        item.Location?.Sheet, item.Location?.BlockAnchor, item.Location?.SourceBlockIndex)].FirstOrDefault() : null;
+                if (projection is not null) AddChunk(projection, item.Location);
+                else Add(block.Kind, block.Text, item.Location?.Page, block.Id, block.Region, item.Location?.BlockAnchor, item.Location);
                 continue;
             }
             if (item.Chunk is { } chunk) {
-                // The PDF adapter reserves these kinds for generated notices/placeholders.
-                // Other adapters use the same words for real semantic source content.
-                if (chunk.Kind == ReaderInputKind.Pdf && chunk.Location?.SourceBlockKind is "warning" or "visual") continue;
-                // Only the source adapter can establish that a chunk contains table text alone.
-                // Retain its fallback if the matching structured table scope is incomplete.
-                if (chunk.Kind == ReaderInputKind.Pdf && chunk.Location is { SourceBlockKind: "table" } location
-                    && chunk.Diagnostics is { TableCount: > 0 } diagnostics) {
-                    int captured = location.Page.HasValue
-                        ? pageTableCounts.GetValueOrDefault((location.Path ?? "", location.Page, location.SourceBlockIndex))
-                        : documentTableCounts.GetValueOrDefault(location.Path ?? "");
-                    if (captured == diagnostics.TableCount) continue;
-                }
-                Add("chunk", chunk.Text, item.Location?.Page, chunk.Id, sourceAnchor: item.Location?.BlockAnchor, location: item.Location);
+                AddChunk(chunk, item.Location);
                 continue;
             }
             ReaderTable table = item.Table!;

@@ -73,4 +73,41 @@ public sealed partial class EngineContractTests {
             Assert.Equal(sameSource ? (int?)1 : null, location.Page);
         });
     }
+
+    [Theory]
+    [InlineData("sheet", false)]
+    [InlineData("page", false)]
+    [InlineData("slide", false)]
+    [InlineData("table", false)]
+    [InlineData("same", true)]
+    public async Task ParseCoordinatesDoNotOutliveTheirContainer(string differingCoordinate, bool sameContainer) {
+        ReaderLocation Location(bool second) => new() {
+            Path = "source", Sheet = differingCoordinate == "sheet" ? (second ? "B" : "A") : null,
+            Page = differingCoordinate == "page" ? (second ? 2 : 1) : null,
+            Slide = differingCoordinate == "slide" ? (second ? 2 : 1) : null,
+            A1Range = "A2:B3", TableIndex = differingCoordinate == "table" && second ? 1 : 0
+        };
+        var source = new OfficeDocumentReadResult { Blocks = [
+            new() { Id = "a", Text = "Amount 42", Location = Location(false) },
+            new() { Id = "b", Text = "Amount 7", Location = Location(true) }
+        ] };
+        var evidence = new[] { new { id = "e1", quote = "42" }, new { id = "e2", quote = "7" } };
+        string response = JsonSerializer.Serialize(new {
+            claims = Array.Empty<object>(), fields = Array.Empty<object>(),
+            blocks = new[] { new { kind = "paragraph", text = "Amounts 42 and 7", evidence } },
+            tables = new[] { new { title = "Amounts", columns = new[] { "Amount" }, rows = new[] { new[] { "42" }, new[] { "7" } }, evidence } }
+        });
+        var result = await new OfficeAiEngine(new Executor(response)).RunAsync(OfficeAiDocument.FromReadResult([1], source),
+            Request() with { Operation = OfficeAiOperation.Parse });
+
+        Assert.Equal(OfficeAiResultStatus.Completed, result.Status);
+        ReaderLocation[] locations = [Assert.Single(result.Blocks).Block.Location, Assert.Single(result.Tables).Table.Location!];
+        Assert.All(locations, location => {
+            Assert.Equal("source", location.Path);
+            Assert.Equal(sameContainer ? "A2:B3" : null, location.A1Range);
+            Assert.Equal(sameContainer ? (int?)0 : null, location.TableIndex);
+        });
+        Assert.Equal(new[] { Location(false).Sheet, Location(true).Sheet }, Assert.Single(result.Blocks).Citations.Select(citation => citation.SourceLocation!.Sheet));
+        Assert.Equal(new[] { Location(false).TableIndex, Location(true).TableIndex }, Assert.Single(result.Tables).Citations.Select(citation => citation.SourceLocation!.TableIndex));
+    }
 }

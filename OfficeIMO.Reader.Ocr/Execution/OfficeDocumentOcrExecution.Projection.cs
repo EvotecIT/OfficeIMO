@@ -6,7 +6,10 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         CancellationToken cancellationToken) {
         var blocks = new List<OfficeDocumentBlock>();
         var chunks = new List<ReaderChunk>();
-        foreach (OfficeDocumentBlock block in after.Blocks.Skip(before.Blocks?.Count ?? 0)) {
+        // Enrichment can promote the child's pre-existing fallback chunks to blocks. Those
+        // were already projected by its Reader; only the following OCR blocks are new text.
+        int originalBlocks = (before.Blocks?.Count ?? 0) + OfficeDocumentOcrEnrichmentExtensions.FallbackChunks(before).Count();
+        foreach (OfficeDocumentBlock block in after.Blocks.Skip(originalBlocks)) {
             cancellationToken.ThrowIfCancellationRequested();
             string id = ProjectId(documentId, block.Id);
             blocks.Add(new OfficeDocumentBlock {
@@ -24,7 +27,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
             projected.ChunkHash = null; // A new container identity invalidates any chunk hash.
             chunks.Add(projected);
         }
-        parent.Blocks = parent.Blocks.Concat(blocks).ToArray();
+        if (blocks.Count > 0) parent.Blocks = OfficeDocumentOcrEnrichmentExtensions.PreserveFallbackBlocks(parent).Concat(blocks).ToArray();
         parent.Chunks = parent.Chunks.Concat(chunks).ToArray();
         if (appendMarkdown && blocks.Count > 0) {
             string text = string.Join("\n\n", blocks.Select(block => block.Text));

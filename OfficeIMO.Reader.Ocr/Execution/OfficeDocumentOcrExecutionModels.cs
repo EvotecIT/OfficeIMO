@@ -39,7 +39,7 @@ public sealed class OfficeDocumentOcrExecutionOptions {
     /// <summary>Maximum duration allowed for one engine call. Defaults to two minutes.</summary>
     public TimeSpan CandidateTimeout { get; set; } = TimeSpan.FromMinutes(2);
 
-    /// <summary>Maximum combined execution duration, including all nested documents. Defaults to five minutes.</summary>
+    /// <summary>Shared deadline for admitting and waiting for engine calls, including nested documents. Defaults to five minutes. Local normalization and projection can finish after this deadline.</summary>
     public TimeSpan TotalTimeout { get; set; } = TimeSpan.FromMinutes(5);
 
     /// <summary>Maximum documents visited by ApplyOcrTreeAsync, including the root. Defaults to 100.</summary>

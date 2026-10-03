@@ -145,13 +145,18 @@ public sealed partial class OfficeAiEngine {
         string? path = first.SourceLocation?.Path;
         if (citations.Any(citation => citation.SourceLocation?.Path != path)) return new();
         OfficeAiSourceLocation? location = first.SourceLocation;
+        bool samePage = citations.All(citation => citation.Page == first.Page);
+        bool sameSlide = citations.All(citation => citation.SourceLocation?.Slide == location?.Slide);
+        bool sameSheet = citations.All(citation => citation.SourceLocation?.Sheet == location?.Sheet);
+        bool sameTable = samePage && sameSlide && sameSheet
+            && citations.All(citation => citation.SourceLocation?.TableIndex == location?.TableIndex);
         return new() {
             Path = path,
-            Page = citations.All(citation => citation.Page == first.Page) ? first.Page : null,
-            Slide = citations.All(citation => citation.SourceLocation?.Slide == location?.Slide) ? location?.Slide : null,
-            Sheet = citations.All(citation => citation.SourceLocation?.Sheet == location?.Sheet) ? location?.Sheet : null,
-            A1Range = citations.All(citation => citation.SourceLocation?.A1Range == location?.A1Range) ? location?.A1Range : null,
-            TableIndex = citations.All(citation => citation.SourceLocation?.TableIndex == location?.TableIndex) ? location?.TableIndex : null
+            Page = samePage ? first.Page : null,
+            Slide = sameSlide ? location?.Slide : null,
+            Sheet = sameSheet ? location?.Sheet : null,
+            A1Range = sameTable && citations.All(citation => citation.SourceLocation?.A1Range == location?.A1Range) ? location?.A1Range : null,
+            TableIndex = sameTable ? location?.TableIndex : null
         };
     }
 

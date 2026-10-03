@@ -82,7 +82,9 @@ foreach (var recognition in result.Recognitions)
 
 Add other format handlers when those attachments are supported. Tree execution preserves rich child results and adds newly recognized text to each containing result's blocks, chunks and Markdown without repeating its native text. `DocumentId` identifies the structural node; `DocumentPath` retains its source or virtual container path. Candidate and asset identifiers remain local to that node.
 
-Candidate selection, materialized input bytes, newly accepted text, spans and span characters share their limits across all visited documents. The total deadline also spans the tree; concurrent raw responses are retained only within the in-flight window and normalized in source order. Limit diagnostics and unresolved candidates remain visible. Document/depth limits preserve skipped subtrees and report them through `SkippedDocumentCount`. These bounds do not replace Reader's decoding limits or a provider's own process-memory limits.
+When native text is available only as chunks, enrichment captures it in `chunk` blocks before adding OCR blocks. The original chunks and their structured evidence remain available.
+
+Candidate selection, materialized input bytes, newly accepted text, spans and span characters share their limits across all visited documents. The total engine-call deadline also spans the tree; local normalization and projection can finish after that deadline. Concurrent raw responses are retained only within the in-flight window and normalized in source order. Limit diagnostics and unresolved candidates remain visible. Document/depth limits preserve skipped subtrees and report them through `SkippedDocumentCount`. These bounds do not replace Reader's decoding limits or a provider's own process-memory limits.
 
 `OfficeDocumentOcrProcessor` remains a per-document Reader processor. Use `ApplyOcrTreeAsync` after reading a container when the whole operation needs a shared budget and refreshed parent text. Reader JSON excludes binary payloads: materialize asset bytes again before executing OCR on a transported result.
 
