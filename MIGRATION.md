@@ -9,7 +9,12 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## ODT-to-Word image copies
+
+ODT-to-Word conversion now copies at most 64 MiB of embedded image bytes by default across the resulting document. Set `WordOpenDocumentConversionOptions.MaxConvertedImageBytes` to a larger value for trusted documents that need every image, and inspect the conversion report or use `LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss` when skipped images must fail conversion.
+
 ## RTF Unicode fallback width
+
 
 Normalized RTF writing accepts `UnicodeSkipCount` values from 0 through 8. Set a larger authored value to a supported width before calling `ToRtf`; larger values now raise `ArgumentOutOfRangeException` instead of generating disproportionate fallback output. Reading and lossless source export still preserve an incoming `\uc` value, including one that cannot be used for normalized writing.
 
