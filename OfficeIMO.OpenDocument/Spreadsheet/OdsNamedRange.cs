@@ -187,7 +187,7 @@ public sealed class OdsValidation {
     private string? ReadMessageText(XName name) {
         XElement? message = _element.Element(name);
         if (message == null) return null;
-        return string.Join("\n", message.Elements(OdfNamespaces.Text + "p").Select(OdfTextCodec.Read));
+        return OdfTextCodec.ReadJoined(message.Elements(OdfNamespaces.Text + "p"));
     }
 
     private bool ReadDisplay(XName name) => OdfBoolean.ReadCompatible(

@@ -507,7 +507,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         }
         if (paragraphs.Any(paragraph => ContainsUnsupportedNoteBodyInline(paragraph.InlineNodes)))
             notes.UnsupportedBodyContent++;
-        string text = string.Join("\n", paragraphs.Select(paragraph => paragraph.Text));
+        string text = OdfTextCodec.ReadJoined(paragraphs.Select(paragraph => paragraph.Element));
         if (source.Kind == OdtNoteKind.Footnote) {
             target.AddFootNote(text);
             notes.ConvertedFootnotes++;
