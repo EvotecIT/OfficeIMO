@@ -18,9 +18,14 @@ internal static class EpubVocabulary {
 
     internal static void ValidatePropertyName(XElement package, string property) {
         int colon = property.IndexOf(':');
-        if (property.Any(char.IsWhiteSpace) || colon == 0 || colon == property.Length - 1 ||
-            (colon > 0 && !ReadPrefixes((string?)package.Attribute("prefix") ?? string.Empty).ContainsKey(property.Substring(0, colon))))
-            throw new ArgumentException("Metadata properties require a nonempty reference and a declared or reserved prefix.", nameof(property));
+        if (property.Length == 0 || property.Any(char.IsWhiteSpace) || colon == 0 || colon == property.Length - 1)
+            throw new ArgumentException("Properties require a nonempty reference and a declared or reserved prefix.", nameof(property));
+        if (colon < 0) return;
+        string prefix = property.Substring(0, colon);
+        if (!ReadPrefixes((string?)package.Attribute("prefix") ?? string.Empty).TryGetValue(prefix, out string? vocabulary))
+            throw new ArgumentException("Property prefix is not declared or reserved.", nameof(property));
+        // Tolerant extraction may retain invalid source mappings, but they cannot authorize new properties.
+        ValidateDeclaration(prefix, vocabulary);
     }
 
     internal static Dictionary<string, string> ReadPrefixes(string declaration, Action? invalid = null) {

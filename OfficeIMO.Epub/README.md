@@ -354,11 +354,17 @@ relationships, acyclic fallbacks, linear spine positions, navigation, direct con
 URLs, responsive image targets, and XHTML/SVG fragment ids. Imported packages need
 canonical, unique ZIP paths and a physically leading stored `mimetype` entry.
 Cover declarations are checked against the final manifest, including their image
-type and the EPUB 3 single-cover property. Media-overlay associations require an
+type and the EPUB 3 single-cover property. `SetCoverImage` also updates retained
+legacy cover metadata, so replacing a cover keeps both declarations consistent.
+Media-overlay associations require an
 EPUB 3 content document and a SMIL target; SMIL timing is outside this validation.
 Spine items resolve to XHTML in EPUB 2, or XHTML/SVG in EPUB 3, through any fallback
-chain. Custom vocabulary declarations reject EPUB-prohibited mappings; authored
-metadata uses declared or reserved prefixes with nonempty references.
+chain. EPUB 2 image and stylesheet resources belong inside content documents;
+direct spine references to them are rejected, including SVG with a fallback.
+Custom vocabulary declarations reject EPUB-prohibited mappings. Declare custom
+prefixes before assigning metadata, manifest, or spine properties. Newly assigned
+property tokens require valid declared or reserved prefixes and nonempty references;
+unrelated imported extension declarations remain intact.
 External content is never downloaded or executed. CSS resource closure, full schema
 validation, accessibility certification, and EPUB conformance need independent validation,
 such as [EPUBCheck](https://github.com/w3c/epubcheck).

@@ -113,20 +113,20 @@ public sealed partial class EpubPublication {
     public void SetCoverImage(string manifestId) {
         EpubManifestItem selected = RequireManifestItem(manifestId);
         if (!IsImageMediaType(selected.MediaType)) throw new ArgumentException("Cover must be an image resource.");
-        if (PackageVersion == "3.0") {
-            EditPackageElement(RequireSection("manifest"), proposed => {
-                foreach (XElement item in proposed.Elements(Opf + "item")) {
+        EditPackageElement(Root, proposed => {
+            if (PackageVersion == "3.0") {
+                foreach (XElement item in proposed.Element(Opf + "manifest")!.Elements(Opf + "item")) {
                     IEnumerable<string> tokens = Tokens((string?)item.Attribute("properties")).Where(token => token != "cover-image");
                     if ((string?)item.Attribute("id") == manifestId) tokens = tokens.Concat(new[] { "cover-image" });
                     item.SetAttributeValue("properties", NormalizeProperties(string.Join(" ", tokens)));
                 }
-            });
-        } else {
-            XElement metadata = RequireSection("metadata");
-            XElement? cover = metadata.Elements(Opf + "meta").FirstOrDefault(element => (string?)element.Attribute("name") == "cover");
-            if (cover == null) EditPackageElement(metadata, proposed => proposed.Add(new XElement(Opf + "meta", new XAttribute("name", "cover"), new XAttribute("content", manifestId))));
-            else EditPackageElement(cover, proposed => proposed.SetAttributeValue("content", manifestId));
-        }
+            }
+            XElement metadata = proposed.Element(Opf + "metadata")!;
+            XElement[] covers = metadata.Elements(Opf + "meta").Where(element => (string?)element.Attribute("name") == "cover").ToArray();
+            foreach (XElement cover in covers) cover.SetAttributeValue("content", manifestId);
+            if (PackageVersion == "2.0" && covers.Length == 0)
+                metadata.Add(new XElement(Opf + "meta", new XAttribute("name", "cover"), new XAttribute("content", manifestId)));
+        });
     }
 
     /// <summary>Adds a distinct reading position for an existing manifest resource.</summary>

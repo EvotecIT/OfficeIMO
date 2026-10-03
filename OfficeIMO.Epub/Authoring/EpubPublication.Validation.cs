@@ -65,6 +65,8 @@ public sealed partial class EpubPublication {
         foreach (XElement position in spine) {
             string id = (string?)position.Attribute("idref") ?? string.Empty;
             if (!byId.TryGetValue(id, out EpubManifestItem? item)) throw new InvalidDataException("Spine manifest id missing: " + id);
+            if (PackageVersion == "2.0" && (IsImageMediaType(item.MediaType) || HasMediaType(item.MediaType, "text/css")))
+                throw new NotSupportedException("EPUB 2 image and stylesheet resources must be embedded in content documents, rather than referenced directly in the spine.");
             while (!IsSupportedContentDocument(item.MediaType) && item.FallbackId != null) item = byId[item.FallbackId];
             if (!IsSupportedContentDocument(item.MediaType)) throw new NotSupportedException("Spine item has no supported EPUB " + PackageVersion + " content-document fallback: " + id);
         }

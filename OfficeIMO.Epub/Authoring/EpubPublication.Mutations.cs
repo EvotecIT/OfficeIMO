@@ -23,7 +23,10 @@ public sealed partial class EpubPublication {
     }
 
     internal void SetDeclarationAttribute(XElement element, XName name, string? value) {
-        if (name == "properties") value = NormalizeProperties(value);
+        if (name == "properties") {
+            VerifyPropertiesVersion(value);
+            value = NormalizeProperties(value);
+        }
         if (PackageVersion == "2.0" && value != null && (name == "properties" || name == "media-overlay"))
             throw new NotSupportedException("Properties and media-overlay declarations require EPUB 3.");
         EditPackageElement(element, proposed => proposed.SetAttributeValue(name, value));
@@ -35,5 +38,6 @@ public sealed partial class EpubPublication {
     private void VerifyPropertiesVersion(string? properties) {
         if (PackageVersion == "2.0" && NormalizeProperties(properties) != null)
             throw new NotSupportedException("Properties declarations require EPUB 3.");
+        foreach (string property in Tokens(properties)) EpubVocabulary.ValidatePropertyName(Root, property);
     }
 }
