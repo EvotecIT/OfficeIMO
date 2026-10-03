@@ -325,7 +325,7 @@ namespace OfficeIMO.Word {
             }
 
             bool added = AddParagraphContent(document, paragraph, context, diagnostics, listMarkers);
-            SectionProperties? sectionProperties = paragraph.ParagraphProperties?.SectionProperties;
+            SectionProperties? sectionProperties = GetSectionBoundaryProperties(document, paragraph);
             if (IsNextColumnSectionBreak(sectionProperties)) {
                 context.AdvanceColumnOrPage();
                 return true;

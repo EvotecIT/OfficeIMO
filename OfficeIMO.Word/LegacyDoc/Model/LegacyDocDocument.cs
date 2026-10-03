@@ -800,7 +800,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
-                char? normalized = NormalizeBodyCharacter(textCharacter.Character);
+                // 0x0C is also a section mark when the next section starts immediately
+                // after it. Project that boundary as a paragraph, not an inline page break.
+                bool isSectionMark = textCharacter.Character == LegacyDocSpecialCharacters.PageBreak &&
+                    nextSectionIndex < sections.Count &&
+                    sections[nextSectionIndex].StartCharacter == textCharacter.CharacterPosition + 1;
+                char? normalized = isSectionMark ? '\r' : NormalizeBodyCharacter(textCharacter.Character);
                 if (normalized == null) {
                     continue;
                 }
@@ -816,7 +821,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         AddCurrentTextAsTableCellParagraph(paragraphFormat);
                     } else if (inTable) {
                         FlushTable(GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset), textCharacter.CharacterPosition + 1);
-                    } else {
+                    } else if (!isSectionMark || currentRuns.Count > 0 || runText.Length > 0 ||
+                        Bookmarks.Any(bookmark =>
+                            bookmark.StartCharacter >= currentParagraphStartCharacter && bookmark.StartCharacter <= textCharacter.CharacterPosition + 1 ||
+                            bookmark.EndCharacter >= currentParagraphStartCharacter && bookmark.EndCharacter <= textCharacter.CharacterPosition + 1)) {
                         AddCurrentTextAsParagraph(paragraphFormat);
                     }
 

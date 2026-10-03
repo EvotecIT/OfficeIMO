@@ -131,9 +131,11 @@ internal static partial class PdfWriter {
             if (currentPage == null) StartPage(currentPageBaseOptions);
         }
 
-        private void PadSectionStart(PdfPageParity? parity) {
+        private void PadSectionStart(PdfOptions sectionOptions) {
+            PdfPageParity? parity = sectionOptions.PageStartParity;
             if (!parity.HasValue || pages.Count == 0) return;
-            bool nextPageIsEven = (pages.Count + 1) % 2 == 0;
+            int nextNumber = sectionOptions.UseContinuingPageNumberForStartParity ? previousVisiblePageNumber + 1 : pages.Count + 1;
+            bool nextPageIsEven = nextNumber % 2 == 0;
             if (nextPageIsEven == (parity == PdfPageParity.Even)) return;
             PdfOptions previous = pages[pages.Count - 1].Options;
             StartPage(new PdfOptions {
@@ -189,10 +191,10 @@ internal static partial class PdfWriter {
             pageDirty = false;
         }
 
-        private void NewPage() {
+        private void NewPage(bool preserveEmptyPage = false) {
             cancellationToken.ThrowIfCancellationRequested();
             PrepareActiveContainerScopesForPageBreak();
-            FlushPage(pageDirty || HasCurrentPageNonContentObjects());
+            FlushPage(preserveEmptyPage || pageDirty || HasCurrentPageNonContentObjects());
             StartPage(currentPageBaseOptions);
             ResumeActiveContainerScopesOnNewPage();
         }

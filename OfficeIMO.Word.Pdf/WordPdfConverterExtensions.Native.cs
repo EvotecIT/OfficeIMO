@@ -58,7 +58,7 @@ namespace OfficeIMO.Word.Pdf {
         private interface INativePdfFlow {
             bool SupportsPositionedTables { get; }
             PdfCore.PageSize PageSize { get; }
-            void PageBreak();
+            void PageBreak(bool preserveEmptyPage = false);
             void Spacer(double height);
             void Bookmark(string name);
             void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null);
@@ -89,7 +89,7 @@ namespace OfficeIMO.Word.Pdf {
 
             public PdfCore.PageSize PageSize { get; }
 
-            public void PageBreak() => _pdf.PageBreak();
+            public void PageBreak(bool preserveEmptyPage = false) => _pdf.PageBreak(preserveEmptyPage);
             public void Spacer(double height) => _pdf.Spacer(height);
             public void Bookmark(string name) => _pdf.Bookmark(name);
             public void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null) => _pdf.HR(thickness, color, spacingBefore, spacingAfter, style);
@@ -127,7 +127,7 @@ namespace OfficeIMO.Word.Pdf {
 
             public PdfCore.PageSize PageSize { get; }
 
-            public void PageBreak() => _column.PageBreak();
+            public void PageBreak(bool preserveEmptyPage = false) => _column.PageBreak(preserveEmptyPage);
             public void Spacer(double height) => _column.Spacer(height);
             public void Bookmark(string name) => _column.Bookmark(name);
             public void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null) => _column.HR(thickness, color, spacingBefore, spacingAfter, style);
@@ -208,6 +208,7 @@ namespace OfficeIMO.Word.Pdf {
                     page.Size(sectionPageSize);
                     page.Margin(sectionMargins);
                     page.MirrorMargins(ShouldMirrorNativeMargins(firstSection, options));
+                    page.StartOnPageParity(GetNativeSectionStartParity(firstSection), useContinuingPageNumber: true);
                     ConfigureNativePageNumbering(page, firstSection);
                     ConfigureNativeHeaderFooter(page, firstSection, options, headerFooterMarginExpansion.Header, headerFooterMarginExpansion.Footer, nativeFontMap, listMarkers);
                     INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfDocumentFlow(pdf, sectionPageSize));
@@ -335,7 +336,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool CanMergeNativeContinuousSection(WordSection previous, WordSection current, WordToPdfOptions? options, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
-            if (GetNativeSectionBreakAfter(previous) != W.SectionMarkValues.Continuous) {
+            if (current.BreakType != WordSectionBreakType.Continuous) {
                 return false;
             }
 
@@ -361,8 +362,15 @@ namespace OfficeIMO.Word.Pdf {
                 NativeSectionPageNumberingEquivalent(previous, current);
         }
 
-        private static W.SectionMarkValues? GetNativeSectionBreakAfter(WordSection section) =>
-            section._sectionProperties?.GetFirstChild<W.SectionType>()?.Val?.Value;
+        private static PdfCore.PdfPageParity? GetNativeSectionStartParity(WordSection section) {
+            if (section.BreakType == WordSectionBreakType.OddPage) return PdfCore.PdfPageParity.Odd;
+            if (section.BreakType == WordSectionBreakType.EvenPage) return PdfCore.PdfPageParity.Even;
+            if (section.BreakType == WordSectionBreakType.NextPage &&
+                section._sectionProperties.GetFirstChild<W.PageNumberType>()?.Start?.Value is int start && start > 0) {
+                return start % 2 == 0 ? PdfCore.PdfPageParity.Even : PdfCore.PdfPageParity.Odd;
+            }
+            return null;
+        }
 
         private static bool HasNativeSectionColumns(WordSection section) =>
             (section.ColumnCount ?? 1) > 1 || section.HasColumnSeparator;

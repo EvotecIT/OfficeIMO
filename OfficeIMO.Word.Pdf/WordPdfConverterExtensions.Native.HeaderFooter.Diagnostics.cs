@@ -13,7 +13,7 @@ namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private static void ConfigureNativePageNumbering(PdfCore.PdfPageBuilder page, WordSection section) {
             W.PageNumberType? pageNumberType = section._sectionProperties.GetFirstChild<W.PageNumberType>();
-            if (pageNumberType?.Start?.Value is int start && start > 0) {
+            if (section.GetEffectivePageNumberStart() is int start) {
                 page.PageNumberStart(start);
             }
 

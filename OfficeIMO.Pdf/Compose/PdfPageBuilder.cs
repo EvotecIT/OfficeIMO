@@ -11,6 +11,13 @@ public sealed class PdfPageBuilder {
     internal PdfOptions Options => _options;
     internal PdfPageBuilder(PdfDocument doc, PdfOptions options) { _doc = doc; _options = options; }
 
+    /// <summary>Sets or clears the parity required at the start of a later page group. Optionally uses the continuing page number before this group's numbering restart.</summary>
+    public PdfPageBuilder StartOnPageParity(PdfPageParity? parity, bool useContinuingPageNumber = false) {
+        Options.PageStartParity = parity;
+        Options.UseContinuingPageNumberForStartParity = useContinuingPageNumber;
+        return this;
+    }
+
     /// <summary>Sets page size using a predefined <see cref="PageSize"/>.</summary>
     public PdfPageBuilder Size(PageSize size) {
         Guard.Positive(size.Width, nameof(size));

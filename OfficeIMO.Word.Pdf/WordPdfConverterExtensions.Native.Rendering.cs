@@ -69,7 +69,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void RenderNativeBreak(INativePdfFlow pdf, WordBreak wordBreak) {
             if (wordBreak.BreakType == WordBreakType.Page) {
-                pdf.PageBreak();
+                pdf.PageBreak(preserveEmptyPage: true);
             }
         }
 
@@ -78,17 +78,15 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
+            if (TryRenderNativeParagraphPageBreaks(pdf, paragraph, marker, getMarker, footnoteNumbersById,
+                options, headingDestinations, nativeDefaults, nativeFontMap, renderSpacingOnlyEmptyParagraphLineBox, nextParagraph)) return;
+
             if (HasNativePageBreakBefore(paragraph)) {
                 pdf.PageBreak();
             }
 
             List<WordParagraph> runs = GetNativeRuns(paragraph);
             WordParagraph? currentRun = runs.FirstOrDefault(run => ReferenceEquals(run._run, paragraph._run));
-            if (currentRun?.IsPageBreak == true) {
-                pdf.PageBreak();
-                return;
-            }
-
             RecordNativeBodyParagraphDiagnostics(paragraph, options, "body paragraph", mapsCheckBoxes: true, mapsFormFields: true, mapsPictureControls: true, mapsRepeatingSections: true);
             IReadOnlyList<W.SdtRun> checkboxControls = GetNativeCheckBoxControls(paragraph);
             IReadOnlyList<W.SdtRun> formFieldControls = GetNativeFormFieldControls(paragraph);

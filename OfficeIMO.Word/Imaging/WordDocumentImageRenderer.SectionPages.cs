@@ -22,7 +22,7 @@ namespace OfficeIMO.Word {
             int[] pageCounts = new int[sectionCount];
             int sectionGroupStart = 0;
             int sectionIndex = 0;
-            int firstPageInSection = 0;
+            int sectionPageNumberStart = document.Sections[0].GetEffectivePageNumberStart() ?? 1;
             var sectionElements = new List<OpenXmlElement>();
 
             foreach (OpenXmlElement element in document.BodyRoot.ChildElements) {
@@ -35,7 +35,7 @@ namespace OfficeIMO.Word {
                 if (HasSectionBoundary(element) && sectionIndex < sectionCount - 1) {
                     WordSection currentSection = document.Sections[sectionIndex];
                     WordSection nextSection = document.Sections[sectionIndex + 1];
-                    SectionProperties? boundaryProperties = GetSectionBoundaryProperties(element);
+                    SectionProperties? boundaryProperties = GetSectionBoundaryProperties(document, element);
                     if (CanMergeImageSectionOnSamePage(boundaryProperties, currentSection, nextSection)) {
                         sectionIndex++;
                         continue;
@@ -48,9 +48,9 @@ namespace OfficeIMO.Word {
                         sectionElements,
                         cancellationToken,
                         cancellationCheckpoint);
-                    int breakPages = CountSectionBreakPageAdvance(firstPageInSection + contentPages - 1, boundaryProperties);
+                    int breakPages = CountSectionBreakPageAdvance(sectionPageNumberStart + contentPages - 2, boundaryProperties);
                     pageCounts[sectionGroupStart] = Math.Max(1, contentPages - 1 + breakPages);
-                    firstPageInSection += pageCounts[sectionGroupStart];
+                    sectionPageNumberStart = nextSection.GetEffectivePageNumberStart() ?? sectionPageNumberStart + pageCounts[sectionGroupStart];
                     sectionElements.Clear();
                     sectionIndex++;
                     sectionGroupStart = sectionIndex;
@@ -93,7 +93,7 @@ namespace OfficeIMO.Word {
                 sectionElements.Add(new WordSectionBodyElement(element, sectionIndex));
                 if (HasSectionBoundary(element) && sectionIndex < sectionCount - 1) {
                     if (sectionIndex >= normalizedTarget &&
-                        CanMergeImageSectionOnSamePage(GetSectionBoundaryProperties(element), document.Sections[sectionIndex], document.Sections[sectionIndex + 1])) {
+                        CanMergeImageSectionOnSamePage(GetSectionBoundaryProperties(document, element), document.Sections[sectionIndex], document.Sections[sectionIndex + 1])) {
                         sectionIndex++;
                         continue;
                     }
@@ -180,7 +180,7 @@ namespace OfficeIMO.Word {
                 }
 
                 bool added = AddParagraphContent(document, paragraph, context, diagnostics, listMarkers);
-                if (IsNextColumnSectionBreak(paragraph.ParagraphProperties?.SectionProperties)) {
+                if (IsNextColumnSectionBreak(GetSectionBoundaryProperties(document, paragraph))) {
                     context.AdvanceColumnOrPage();
                     return true;
                 }
@@ -191,8 +191,14 @@ namespace OfficeIMO.Word {
             return AddBodyElementContent(document, element, context, diagnostics, listMarkers);
         }
 
-        private static SectionProperties? GetSectionBoundaryProperties(OpenXmlElement element) =>
-            element is Paragraph paragraph ? paragraph.ParagraphProperties?.SectionProperties : null;
+        private static SectionProperties? GetSectionBoundaryProperties(WordDocument document, OpenXmlElement element) {
+            SectionProperties? precedingProperties = element is Paragraph paragraph ? paragraph.ParagraphProperties?.SectionProperties : null;
+            if (precedingProperties == null) return null;
+            for (int index = 0; index < document.Sections.Count - 1; index++) {
+                if (ReferenceEquals(document.Sections[index]._sectionProperties, precedingProperties)) return document.Sections[index + 1]._sectionProperties;
+            }
+            return null;
+        }
 
         private static bool CanMergeImageSectionOnSamePage(SectionProperties? boundaryProperties, WordSection previous, WordSection current) {
             SectionMarkValues? sectionMark = ResolveSectionMark(boundaryProperties);

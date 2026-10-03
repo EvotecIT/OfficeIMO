@@ -11,9 +11,9 @@ internal static partial class PdfWriter {
             var pendingBlocks = columns.Blocks.ToList();
             int blockIndex = 0;
             while (blockIndex < pendingBlocks.Count) {
-                if (pendingBlocks[blockIndex] is PageBreakBlock) {
+                if (pendingBlocks[blockIndex] is PageBreakBlock pageBreak) {
                     pendingFloatingBookmarks.Clear();
-                    NewPage();
+                    NewPage(pageBreak.PreserveEmptyPage);
                     blockIndex++;
                     continue;
                 }

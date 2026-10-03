@@ -61,6 +61,8 @@ public sealed class PdfContentBuilder {
     public PdfContentBuilder Canvas(System.Action<PdfPageCanvas> build) { _doc.Canvas(build); return this; }
     /// <summary>Starts a new page.</summary>
     public PdfContentBuilder PageBreak() { _doc.PageBreak(); return this; }
+    /// <summary>Starts a new page, optionally preserving an empty current page for consecutive explicit breaks.</summary>
+    public PdfContentBuilder PageBreak(bool preserveEmptyPage) { _doc.PageBreak(preserveEmptyPage); return this; }
     /// <summary>Adds invisible vertical space to the current flow.</summary>
     public PdfContentBuilder Spacer(double height) { _doc.Spacer(height); return this; }
     /// <summary>Adds an H1 heading.</summary>

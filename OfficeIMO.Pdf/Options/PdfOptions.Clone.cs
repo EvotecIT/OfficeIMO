@@ -94,6 +94,7 @@ public sealed partial class PdfOptions {
             Portfolio = _portfolio?.Clone(),
             ShowHeader = ShowHeader,
             PageStartParity = PageStartParity,
+            UseContinuingPageNumberForStartParity = UseContinuingPageNumberForStartParity,
             HeaderFormat = HeaderFormat,
             DifferentFirstPageHeaderFooter = DifferentFirstPageHeaderFooter,
             FirstPageHeaderFormat = FirstPageHeaderFormat,
