@@ -118,9 +118,9 @@ public sealed class OfficeAiDocument {
         // OCR may normalize pre-existing fallback chunks into blocks to preserve their text.
         // Their original chunk still owns adapter-specific notice and table-only semantics.
         bool hasChunkBlocks = content.Any(item => item.Block?.Kind == "chunk");
-        var chunkProjections = (hasChunkBlocks ? document.Chunks : Array.Empty<ReaderChunk>()).ToLookup(chunk =>
-            (chunk.Id, chunk.Text, chunk.Location?.Path, chunk.Location?.Page, chunk.Location?.Slide,
-                chunk.Location?.Sheet, chunk.Location?.BlockAnchor, chunk.Location?.SourceBlockIndex));
+        var chunkProjections = (hasChunkBlocks ? document.Chunks : Array.Empty<ReaderChunk>())
+            .Select((chunk, index) => (Id: OfficeDocumentModelTraversal.BuildFallbackChunkBlockId(chunk, index), Chunk: chunk))
+            .ToLookup(projection => projection.Id, StringComparer.Ordinal);
         void AddChunk(ReaderChunk chunk, ReaderLocation? sourceLocation) {
             // The PDF adapter reserves these kinds for generated notices/placeholders.
             // Other adapters use the same words for real semantic source content.
@@ -138,9 +138,9 @@ public sealed class OfficeAiDocument {
         int tableIndex = 0;
         foreach (OfficeDocumentContentItem item in content) {
             if (item.Block is { } block) {
-                ReaderChunk? projection = block.Kind == "chunk" ? chunkProjections[
-                    (block.Id, block.Text, item.Location?.Path, item.Location?.Page, item.Location?.Slide,
-                        item.Location?.Sheet, item.Location?.BlockAnchor, item.Location?.SourceBlockIndex)].FirstOrDefault() : null;
+                ReaderChunk? projection = block.Kind == "chunk" ? chunkProjections[block.Id].Select(pair => pair.Chunk)
+                    .FirstOrDefault(chunk => chunk.Text == block.Text && OfficeDocumentModelTraversal.SameContainerWhenKnown(
+                        chunk.Location ?? new ReaderLocation(), item.Location ?? new ReaderLocation())) : null;
                 if (projection is not null) AddChunk(projection, item.Location);
                 else Add(block.Kind, block.Text, item.Location?.Page, block.Id, block.Region, item.Location?.BlockAnchor, item.Location);
                 continue;

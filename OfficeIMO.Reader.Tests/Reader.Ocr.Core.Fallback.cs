@@ -15,7 +15,7 @@ public sealed partial class ReaderOcrCoreTests {
         var source = CreateDocument(route == "tree" ? 0 : 1);
         var nativeLocation = new ReaderLocation { Path = "scan.pdf", Page = 1, BlockAnchor = "native", SourceBlockKind = "paragraph", HeadingPath = "A > B" };
         ReaderHeadingPath.SetHierarchyPath(nativeLocation, ReaderHeadingPath.Combine(new[] { "A > B" }));
-        source.Blocks = new[] { new OfficeDocumentBlock { Id = "placeholder", Text = "", Location = new ReaderLocation { Path = "scan.pdf", Page = 1 } } };
+        source.Blocks = new[] { new OfficeDocumentBlock { Id = "native", Text = "", Location = new ReaderLocation { Path = "scan.pdf", Page = 1 } } };
         source.Chunks = new[] { new ReaderChunk { Id = "native", Text = "Native body", Markdown = "Native body", Location = nativeLocation,
             Warnings = new[] { "Original warning" }, Tables = new[] { new ReaderTable { Columns = new[] { "Code" }, Rows = new[] { (IReadOnlyList<string>)new[] { "A-100" } } } } } };
         source.Markdown = "Native body";
