@@ -1,0 +1,93 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
+             xmlns:reader="using:OfficeIMO.Studio.Features.Reader"
+             x:Class="OfficeIMO.Studio.Features.Mobile.MobileWorkspaceView"
+             x:DataType="shell:MainWindowViewModel">
+  <UserControl.Styles>
+    <Style Selector="Button"><Setter Property="MinHeight" Value="44"/><Setter Property="MinWidth" Value="44"/></Style>
+    <Style Selector="TextBox"><Setter Property="MinHeight" Value="44"/></Style>
+    <Style Selector="ListBoxItem"><Setter Property="MinHeight" Value="48"/></Style>
+  </UserControl.Styles>
+  <Grid RowDefinitions="Auto,*,Auto" Background="{DynamicResource StudioCanvasBrush}">
+    <Border x:Name="HeaderBar" Background="{DynamicResource StudioPanelBrush}" Padding="12,8">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+        <Button Content="Open" Command="{Binding OpenCommand}" AutomationProperties.Name="Open PDF from Files"/>
+        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+          <TextBlock Text="{Binding DocumentName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+          <TextBlock Text="{Binding PageStatusText}" FontSize="12" Foreground="{DynamicResource StudioMutedTextBrush}"/>
+        </StackPanel>
+        <Button x:Name="ShareButton" Grid.Column="2" Content="Share" Click="OnShareClick" IsVisible="False" IsEnabled="{Binding HasDocument}"/>
+      </Grid>
+    </Border>
+    <Grid Grid.Row="1" x:Name="WorkspaceGrid" ColumnDefinitions="0,*">
+      <Border x:Name="PageSidebar" IsVisible="False" Background="{DynamicResource StudioPanelBrush}" Padding="12">
+        <Grid RowDefinitions="Auto,*" RowSpacing="12">
+          <TextBlock Text="Pages" FontSize="22" FontWeight="SemiBold"/>
+          <ListBox Grid.Row="1" ItemsSource="{Binding Pages}" SelectedItem="{Binding SelectedPage, Mode=TwoWay}">
+            <ListBox.ItemTemplate><DataTemplate x:DataType="reader:PdfPageViewModel"><TextBlock Text="{Binding PageNumber, StringFormat='Page {0}'}"/></DataTemplate></ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </Border>
+      <ScrollViewer x:Name="PageScroll" Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+        <ContentControl Content="{Binding SelectedPage}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="16">
+          <ContentControl.ContentTemplate><DataTemplate x:DataType="reader:PdfPageViewModel"><reader:PdfPageView/></DataTemplate></ContentControl.ContentTemplate>
+        </ContentControl>
+      </ScrollViewer>
+      <Border Grid.Column="1" IsVisible="{Binding HasDocument}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="12"
+              Background="{DynamicResource StudioPanelBrush}" CornerRadius="12" Padding="4">
+        <StackPanel Orientation="Horizontal" Spacing="4">
+          <Button Content="−" Command="{Binding ZoomOutCommand}" AutomationProperties.Name="Zoom out"/>
+          <TextBlock Text="{Binding ZoomLabel}" MinWidth="44" TextAlignment="Center" VerticalAlignment="Center"/>
+          <Button Content="+" Command="{Binding ZoomInCommand}" AutomationProperties.Name="Zoom in"/>
+        </StackPanel>
+      </Border>
+      <StackPanel Grid.Column="1" IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16" MaxWidth="320" Margin="24">
+        <TextBlock Text="Your documents,&#10;within reach." FontSize="30" FontWeight="SemiBold" TextWrapping="Wrap"/>
+        <TextBlock Text="Open a PDF to read, search, and add notes. Your original stays in Files; share a copy when you’re ready." TextWrapping="Wrap"/>
+        <Button Content="Open a PDF" Command="{Binding OpenCommand}" HorizontalAlignment="Left"/>
+      </StackPanel>
+    </Grid>
+    <Border x:Name="FooterBar" Grid.Row="2" Background="{DynamicResource StudioPanelBrush}" Padding="8">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}" TextWrapping="Wrap" Foreground="{DynamicResource StudioTextBrush}" MaxHeight="72"/>
+        <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsWorkspaceBusy}" Height="3"/>
+        <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsOpening}" Height="3"/>
+        <Grid ColumnDefinitions="*,*,*,*,*" IsEnabled="{Binding HasDocument}">
+          <Button Content="Pages" Click="OnPagesClick"/>
+          <Button Grid.Column="1" Content="Search" Click="OnSearchClick"/>
+          <Button Grid.Column="2" Content="Note" Click="OnNoteClick"/>
+          <Button Grid.Column="3" Content="Undo" Command="{Binding UndoCommand}"/>
+          <Button Grid.Column="4" Content="Fit" Command="{Binding FitPageCommand}"/>
+        </Grid>
+      </StackPanel>
+    </Border>
+    <Border x:Name="SheetScrim" Grid.RowSpan="3" IsVisible="False" Background="#66000000">
+      <Border Background="{DynamicResource StudioPanelBrush}" CornerRadius="20,20,0,0" Padding="20" VerticalAlignment="Bottom" MaxWidth="560" MaxHeight="560" KeyboardNavigation.TabNavigation="Cycle">
+        <Grid RowDefinitions="Auto,*" RowSpacing="16">
+          <Grid ColumnDefinitions="*,Auto"><TextBlock x:Name="SheetTitle" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center"/><Button x:Name="SheetDone" Grid.Column="1" Content="Done" Click="OnDismissClick"/></Grid>
+          <ScrollViewer Grid.Row="1">
+            <StackPanel Spacing="12">
+              <TextBlock x:Name="SheetError" Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}" TextWrapping="Wrap"/>
+              <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsWorkspaceBusy}" Height="3"/>
+              <ListBox x:Name="SheetPages" IsVisible="False" ItemsSource="{Binding Pages}" SelectedItem="{Binding SelectedPage, Mode=TwoWay}" SelectionChanged="OnSheetPageSelected">
+                <ListBox.ItemTemplate><DataTemplate x:DataType="reader:PdfPageViewModel"><TextBlock Text="{Binding PageNumber, StringFormat='Page {0}'}"/></DataTemplate></ListBox.ItemTemplate>
+              </ListBox>
+              <StackPanel x:Name="SearchPanel" IsVisible="False" Spacing="12">
+                <TextBox x:Name="MobileSearchBox" Text="{Binding SearchQuery, Mode=TwoWay}" PlaceholderText="Find in document" AutomationProperties.Name="Find in document"/>
+                <Button Content="Find" Command="{Binding SearchCommand}"/>
+                <TextBlock Text="{Binding SearchPosition}" TextWrapping="Wrap"/>
+                <StackPanel Orientation="Horizontal" Spacing="8"><Button Content="Previous match" Command="{Binding PreviousSearchResultCommand}"/><Button Content="Next match" Command="{Binding NextSearchResultCommand}"/></StackPanel>
+              </StackPanel>
+              <StackPanel x:Name="NotePanel" IsVisible="False" Spacing="12">
+                <TextBlock Text="Add a note to the current page" TextWrapping="Wrap"/>
+                <TextBox x:Name="NoteText" PlaceholderText="Your note" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="100" MaxLength="4000" AutomationProperties.Name="Note text"/>
+                <Button Content="Add note" Click="OnAddNoteClick"/>
+              </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
+        </Grid>
+      </Border>
+    </Border>
+  </Grid>
+</UserControl>

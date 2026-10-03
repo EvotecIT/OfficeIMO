@@ -278,7 +278,11 @@ public sealed partial class MainWindowViewModel {
 
     // Selection quick actions and the page context menu create markup directly: switch to annotating,
     // choose the matching tool, and run the same gesture path a drawn markup uses.
-    private void OnPageMarkupRequested(PdfEditorTool tool, PdfEditorGesture gesture) {
+    private async void OnPageMarkupRequested(PdfEditorTool tool, PdfEditorGesture gesture) =>
+        await ApplyPageMarkupAsync(tool, gesture);
+
+    /// <summary>Applies a requested mark through the shared mutation and recovery pipeline.</summary>
+    internal async Task ApplyPageMarkupAsync(PdfEditorTool tool, PdfEditorGesture gesture) {
         if (_workspace is null || IsWorkspaceBusy) return;
         if (!CanEditAnnotations) {
             OperationStatus = UiText("Capability.AnnotationsUnavailable");
@@ -288,10 +292,13 @@ public sealed partial class MainWindowViewModel {
         if (DocumentMode != StudioDocumentMode.Annotate) return;
         SelectEditorTool(tool.ToString());
         if (ActiveEditorTool != tool) return;
-        OnPageEditorGestureCompleted(gesture);
+        await ApplyPageEditorGestureAsync(gesture);
     }
 
-    private async void OnPageEditorGestureCompleted(PdfEditorGesture gesture) {
+    private async void OnPageEditorGestureCompleted(PdfEditorGesture gesture) =>
+        await ApplyPageEditorGestureAsync(gesture);
+
+    private async Task ApplyPageEditorGestureAsync(PdfEditorGesture gesture) {
         using var notifications = BeginNotificationScope();
         bool acceptsEditorGesture = DocumentMode is StudioDocumentMode.Annotate or StudioDocumentMode.Edit ||
                                     DocumentMode == StudioDocumentMode.Protect && ActiveEditorTool == PdfEditorTool.Redact ||
