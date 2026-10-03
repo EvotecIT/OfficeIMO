@@ -7,7 +7,7 @@ using OfficeIMO.Latex;
 using OfficeIMO.Latex.Pdf;
 using OfficeIMO.Pdf;
 
-LatexDocument document = LatexDocument.Load("article.tex").Document;
+LatexDocument document = LatexDocument.Load("article.tex");
 PdfSaveResult result = document.SaveAsPdf("article.pdf");
 
 result.Report.RequireNoLoss(); // optional strict conversion gate
@@ -17,6 +17,10 @@ result.Pipeline.RequireSuccess(); // exact output pipeline gate
 `PdfSaveResult` combines native parser, bounded-profile projection, PDF layout/resource/font diagnostics, and exact output-pipeline evidence. Use `ToPdfDocumentResult(...)` when conversion and post-processing should happen before save. TeX macros and package behavior are not executed; unsupported or simplified constructs are preserved visibly when configured and remain explicit warnings.
 
 The zero-options resource policy is inherited from `MarkdownToPdfOptions`: system fonts and bounded in-source resources are allowed, while arbitrary local and remote reads require explicit trust configuration.
+
+Display metadata, figure and table captions, and theorem titles retain their decoded visible text. Table captions remain visible even when the table has no cell content. TeX numbering, placement, and nested formatting that a scalar caption cannot express remain diagnosed projection limits.
+
+References to heading, theorem, table, figure and paragraph labels use PDF destinations registered by the shared Markdown renderer. A missing destination retains the visible reference text and produces an `UnresolvedInternalLink` warning.
 
 ## Dependency footprint
 

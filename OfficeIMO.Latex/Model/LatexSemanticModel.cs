@@ -8,17 +8,18 @@ internal interface ILatexSourceEdit {
 
 /// <summary>Required or optional command argument.</summary>
 public sealed class LatexArgument : ILatexSourceEdit {
-    private string _content;
+    private string? _content;
+    private readonly LatexSourceText _source;
     private bool _isModified;
 
     internal LatexArgument(LatexSyntaxNode syntax, LatexSourceText source) {
+        _source = source;
         Syntax = syntax;
         IsOptional = syntax.Kind == LatexSyntaxKind.OptionalGroup;
         bool closed = syntax.Children.Count >= 2 && syntax.Children[syntax.Children.Count - 1].Kind == LatexSyntaxKind.GroupDelimiter;
         int start = syntax.Children.Count == 0 ? syntax.StartOffset : syntax.Children[0].EndOffset;
         int end = closed ? syntax.Children[syntax.Children.Count - 1].StartOffset : syntax.EndOffset;
         ContentSpan = source.CreateSpan(start, end);
-        _content = source.Text.Substring(start, end - start);
         IsTerminated = closed;
     }
 
@@ -32,10 +33,10 @@ public sealed class LatexArgument : ILatexSourceEdit {
     public LatexSourceSpan ContentSpan { get; }
     /// <summary>Argument content excluding delimiters.</summary>
     public string Content {
-        get => _content;
+        get => _content ??= ContentSpan.Slice(_source.Text);
         set {
             string normalized = value ?? string.Empty;
-            if (string.Equals(_content, normalized, StringComparison.Ordinal)) return;
+            if (string.Equals(Content, normalized, StringComparison.Ordinal)) return;
             _content = normalized;
             _isModified = true;
         }
@@ -95,7 +96,8 @@ public sealed class LatexCommand {
 
 /// <summary>Source-backed begin/end LaTeX environment.</summary>
 public sealed class LatexEnvironment : ILatexSourceEdit {
-    private string _content;
+    private string? _content;
+    private readonly LatexSourceText _source;
     private bool _isModified;
 
     internal LatexEnvironment(
@@ -103,6 +105,7 @@ public sealed class LatexEnvironment : ILatexSourceEdit {
         LatexCommand beginCommand,
         LatexCommand? endCommand,
         LatexSourceText source) {
+        _source = source;
         Syntax = syntax;
         Name = syntax.Value ?? string.Empty;
         BeginCommand = beginCommand;
@@ -110,7 +113,6 @@ public sealed class LatexEnvironment : ILatexSourceEdit {
         int start = beginCommand.Syntax.EndOffset;
         int end = endCommand?.Syntax.StartOffset ?? syntax.EndOffset;
         ContentSpan = source.CreateSpan(start, end);
-        _content = source.Text.Substring(start, end - start);
     }
 
     /// <summary>Lossless environment syntax.</summary>
@@ -127,10 +129,10 @@ public sealed class LatexEnvironment : ILatexSourceEdit {
     public LatexSourceSpan ContentSpan { get; }
     /// <summary>Exact environment body until edited.</summary>
     public string Content {
-        get => _content;
+        get => _content ??= ContentSpan.Slice(_source.Text);
         set {
             string normalized = value ?? string.Empty;
-            if (string.Equals(_content, normalized, StringComparison.Ordinal)) return;
+            if (string.Equals(Content, normalized, StringComparison.Ordinal)) return;
             _content = normalized;
             _isModified = true;
         }
@@ -161,10 +163,12 @@ public enum LatexMathKind {
 
 /// <summary>Source-backed LaTeX math region; expressions are transported, not typeset.</summary>
 public sealed class LatexMath : ILatexSourceEdit {
-    private string _content;
+    private string? _content;
+    private readonly LatexSourceText _source;
     private bool _isModified;
 
     internal LatexMath(LatexSyntaxNode syntax, LatexSourceText source) {
+        _source = source;
         Syntax = syntax;
         Delimiter = syntax.Value ?? string.Empty;
         Kind = Delimiter == "$" ? LatexMathKind.InlineDollar
@@ -175,17 +179,17 @@ public sealed class LatexMath : ILatexSourceEdit {
         bool closed = syntax.Children.Count >= 2 && syntax.Children[syntax.Children.Count - 1].Kind == LatexSyntaxKind.MathDelimiter;
         int end = closed ? syntax.Children[syntax.Children.Count - 1].StartOffset : syntax.EndOffset;
         ContentSpan = source.CreateSpan(start, end);
-        _content = source.Text.Substring(start, end - start);
         IsTerminated = closed;
     }
 
     internal LatexMath(LatexEnvironment environment) {
+        _source = environment.Syntax.Source;
         Environment = environment;
         Syntax = environment.Syntax;
         Delimiter = environment.Name;
         Kind = LatexMathKind.Environment;
         ContentSpan = environment.ContentSpan;
-        _content = environment.Content;
+
         IsTerminated = environment.IsTerminated;
     }
 
@@ -201,11 +205,11 @@ public sealed class LatexMath : ILatexSourceEdit {
     public LatexSourceSpan ContentSpan { get; }
     /// <summary>Original LaTeX expression source until edited.</summary>
     public string Content {
-        get => Environment?.Content ?? _content;
+        get => Environment?.Content ?? (_content ??= ContentSpan.Slice(_source.Text));
         set {
             if (Environment != null) { Environment.Content = value; return; }
             string normalized = value ?? string.Empty;
-            if (string.Equals(_content, normalized, StringComparison.Ordinal)) return;
+            if (string.Equals(Content, normalized, StringComparison.Ordinal)) return;
             _content = normalized;
             _isModified = true;
         }
@@ -282,8 +286,8 @@ internal static class LatexProfileCatalog {
     private static readonly HashSet<string> Commands = new HashSet<string>(StringComparer.Ordinal) {
         "documentclass", "usepackage", "title", "author", "date", "maketitle",
         "part", "chapter", "section", "subsection", "subsubsection", "paragraph", "subparagraph",
-        "textbf", "textit", "emph", "texttt", "underline", "textsuperscript", "sout", "label", "ref", "pageref", "cite", "citep", "citet",
-        "includegraphics", "caption", "item", "footnote", "url", "href", "begin", "end",
+        "textbf", "textit", "emph", "texttt", "underline", "textsuperscript", "textsubscript", "newline", "linebreak", "textbackslash", "textasciitilde", "textasciicircum", "sout", "label", "ref", "pageref", "cite", "citep", "citet",
+        "includegraphics", "caption", "item", "footnote", "url", "href", "hyperref", "begin", "end",
         "newcommand", "renewcommand", "providecommand", "newtheorem", "autoref", "eqref", "nocite",
         "bibliography", "bibliographystyle", "multicolumn", "multirow", "hline", "toprule", "midrule", "bottomrule"
     };
