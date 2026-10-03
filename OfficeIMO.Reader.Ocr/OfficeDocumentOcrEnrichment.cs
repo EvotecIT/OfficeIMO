@@ -172,6 +172,7 @@ public static class OfficeDocumentOcrEnrichmentExtensions {
             Assets = result.Assets ?? Array.Empty<OfficeDocumentAsset>(),
             Links = result.Links ?? Array.Empty<OfficeDocumentLink>(),
             Forms = result.Forms ?? Array.Empty<OfficeDocumentFormField>(),
+            NestedDocuments = result.NestedDocuments ?? Array.Empty<OfficeDocumentNestedResult>(),
             OcrCandidates = effectiveOptions.RemoveResolvedCandidates ? unresolved.ToArray() : candidates,
             Visuals = result.Visuals ?? Array.Empty<ReaderVisual>(),
             Diagnostics = BuildDiagnostics(result.Diagnostics, unresolved, effectiveOptions)
@@ -453,6 +454,8 @@ public static class OfficeDocumentOcrEnrichmentExtensions {
             NormalizedStartLine = location.NormalizedStartLine,
             NormalizedEndLine = location.NormalizedEndLine,
             HeadingPath = location.HeadingPath,
+            HierarchyHeadingPath = location.HierarchyHeadingPath,
+            HierarchyHeadingDisplayPath = location.HierarchyHeadingDisplayPath,
             HeadingSlug = location.HeadingSlug,
             SourceBlockKind = location.SourceBlockKind,
             BlockAnchor = location.BlockAnchor,

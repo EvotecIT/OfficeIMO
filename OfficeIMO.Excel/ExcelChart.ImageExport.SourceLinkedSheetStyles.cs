@@ -10,10 +10,11 @@ public sealed partial class ExcelChart {
     private sealed class SourceLinkedSheetStyles {
         internal readonly Dictionary<string, uint?> Cells = new(StringComparer.OrdinalIgnoreCase);
         internal readonly Dictionary<int, uint> Rows = new();
-        internal readonly uint?[] Columns = new uint?[16385];
+        internal readonly Dictionary<int, uint> Columns = new();
         internal uint Resolve(int row, int column, string reference) =>
             Cells.TryGetValue(reference, out uint? cellStyle) && cellStyle.HasValue ? cellStyle.Value :
-            Rows.TryGetValue(row, out uint rowStyle) ? rowStyle : Columns[column] ?? 0;
+            Rows.TryGetValue(row, out uint rowStyle) ? rowStyle :
+            Columns.TryGetValue(column, out uint columnStyle) ? columnStyle : 0;
     }
 
     private static SourceLinkedSheetStyles? ReadSourceLinkedSheetStyles(ExcelSheet sheet, ref int remainingRecords) {
@@ -31,8 +32,8 @@ public sealed partial class ExcelChart {
                     first == 0 || first > last || last > 16384 || last - first + 1 > remainingRecords) return null;
                 remainingRecords -= (int)(last - first + 1);
                 for (uint index = first; index <= last; index++) {
-                    if (result.Columns[index].HasValue) return null;
-                    result.Columns[index] = style;
+                    if (result.Columns.ContainsKey((int)index)) return null;
+                    result.Columns.Add((int)index, style);
                 }
             }
         }

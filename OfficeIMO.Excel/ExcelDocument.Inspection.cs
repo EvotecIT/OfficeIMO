@@ -80,7 +80,7 @@ namespace OfficeIMO.Excel {
                         .FirstOrDefault();
                     var worksheetSnapshot = new ExcelWorksheetSnapshot {
                         Name = sheetName,
-                        ConditionalFormattingRuleCount = sourceSheet.GetConditionalFormattingRules().Count,
+                        ConditionalFormattingRuleCount = sourceSheet.CountConditionalFormattingRules(),
                         Index = sheetIndex,
                         Hidden = sheet.State?.Value == SheetStateValues.Hidden || sheet.State?.Value == SheetStateValues.VeryHidden,
                         IsActive = activeWorksheetIndex == sheetIndex,

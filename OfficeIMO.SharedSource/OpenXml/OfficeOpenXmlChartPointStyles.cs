@@ -64,13 +64,18 @@ internal static class OfficeOpenXmlChartPointStyles {
         outline.CompoundLineType != null && outline.CompoundLineType.Value != A.CompoundLineValues.Single;
 
     internal static bool HasUnsupportedPointContent(C.DataPoint point) {
+        C.ChartShapeProperties? direct = point.ChartShapeProperties;
+        bool sawMarker = false;
         foreach (OpenXmlElement child in point.ChildElements) {
             if (child is C.Index or C.ChartShapeProperties) continue;
             if (child is C.Explosion && point.Parent is C.PieChartSeries) continue;
-            if (child is C.Marker marker && !marker.HasAttributes &&
+            if (child is C.Marker marker && !sawMarker && !marker.HasAttributes &&
                 marker.ChildElements.All(markerChild => markerChild is C.ChartShapeProperties) &&
-                (marker.ChartShapeProperties == null || point.ChartShapeProperties is not C.ChartShapeProperties direct ||
-                    !direct.HasChildren && !direct.HasAttributes)) continue;
+                (marker.ChartShapeProperties == null || direct == null ||
+                    !direct.HasChildren && !direct.HasAttributes)) {
+                sawMarker = true;
+                continue;
+            }
             if (child is C.InvertIfNegative invert && invert.Val?.Value == false) continue;
             if (child is C.Bubble3D bubble && bubble.Val?.Value == false) continue;
             if (child is C.ExtensionList extensions && HasOnlyUniqueIdMetadata(extensions)) continue;

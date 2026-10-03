@@ -19,6 +19,15 @@ IReadOnlyList<OfficeImageExportResult> pages = await book
 
 When raw HTML or resource bytes were not retained, export remains available through a diagnosed plain-text or missing-resource fallback.
 
+Package resources use case-sensitive container paths. Chapter count, text-budget,
+invalid-encoding, and unsupported-spine omissions propagate into image diagnostics
+and the `RequireNoOmissions` policy.
+
+An HTML `base` element resolves relative URLs from the chapter's container path.
+External URLs never select retained package bytes. Use asynchronous export with
+`ResourceResolver` to supply policy-approved external resources; synchronous
+export reports external images that still need resolution.
+
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary
 

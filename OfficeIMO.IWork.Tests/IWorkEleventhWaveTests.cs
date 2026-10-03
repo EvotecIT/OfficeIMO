@@ -77,7 +77,7 @@ public sealed partial class IWorkBoundaryTests {
         PowerPointParagraph paragraph = Assert.Single(Assert.Single(slide.TextBoxes).Paragraphs);
 
         Assert.Equal("Named slide", slide.Name);
-        Assert.Equal("First\nSecond", paragraph.Text);
+        Assert.Equal("First" + Environment.NewLine + "Second", paragraph.Text);
         Assert.False(paragraph.IsNumbered);
         Assert.Equal("•", paragraph.BulletCharacter);
         Assert.Contains(paragraph.InlineNodes,

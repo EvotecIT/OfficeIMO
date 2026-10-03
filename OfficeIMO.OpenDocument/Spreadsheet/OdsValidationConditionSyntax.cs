@@ -49,6 +49,7 @@ public enum OdsValidationComparison {
 /// expressions fail closed instead of being guessed from substrings.
 /// </summary>
 public sealed class OdsValidationConditionSyntax {
+    private const int MaximumPortableFormulaLength = 4096;
     private readonly IReadOnlyList<string> _listValues;
 
     private OdsValidationConditionSyntax(
@@ -104,6 +105,8 @@ public sealed class OdsValidationConditionSyntax {
     /// <summary>Creates a portable OpenFormula local-cell comparison or supported Boolean combination whose expression must evaluate to true.</summary>
     public static OdsValidationConditionSyntax CreateFormula(string expression) {
         if (string.IsNullOrWhiteSpace(expression)) throw new ArgumentException("A formula expression is required.", nameof(expression));
+        if (expression.Length > MaximumPortableFormulaLength)
+            throw new ArgumentOutOfRangeException(nameof(expression), "Portable validation formulas are limited to 4096 characters.");
         string value = expression.Trim();
         if (!OdsPortableValidationFormula.IsSupported(
                 SpreadsheetFormulaSyntaxTree.Parse("of:=" + value, SpreadsheetFormulaDialect.OpenFormula))) {
@@ -137,11 +140,13 @@ public sealed class OdsValidationConditionSyntax {
 
         const string formulaPrefix = "is-true-formula(";
         if (StartsWith(value, formulaPrefix) && value.EndsWith(")", StringComparison.Ordinal)) {
+            if (value.Length - formulaPrefix.Length - 1 > MaximumPortableFormulaLength) return false;
             string expression = value.Substring(formulaPrefix.Length, value.Length - formulaPrefix.Length - 1);
             if (string.IsNullOrWhiteSpace(expression)
                 || !OdsPortableValidationFormula.IsSupported(
                     SpreadsheetFormulaSyntaxTree.Parse("of:=" + expression, SpreadsheetFormulaDialect.OpenFormula))) return false;
-            condition = CreateFormula(expression);
+            condition = new OdsValidationConditionSyntax(OdsValidationValueKind.CustomFormula,
+                null, expression.Trim(), null, null);
             return true;
         }
 

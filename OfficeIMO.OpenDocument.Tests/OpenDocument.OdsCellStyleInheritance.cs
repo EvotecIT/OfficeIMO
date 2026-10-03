@@ -6,6 +6,24 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OdsCellStyleInheritanceTests {
+    [Fact]
+    public void UnstyledColumnDefinitionsDoNotSplitRepeatedCellRun() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Column(2);
+        sheet.Column(0);
+        sheet.Column(1);
+        sheet.Cell(0, 0).SetString("Same");
+        XElement cell = document.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Table + "table-cell").Single();
+        cell.SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 3);
+        document.MarkPartDirty("content.xml");
+
+        OdsCellRun run = Assert.Single(sheet.RowRuns.Single().CellRuns);
+        Assert.Equal(3, run.RepeatCount);
+        Assert.Null(run.EffectiveStyleName);
+    }
+
     [Theory]
     [InlineData("table-column-group")]
     [InlineData("table-header-columns")]

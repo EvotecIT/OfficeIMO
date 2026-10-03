@@ -95,13 +95,13 @@ internal static partial class EpubReader {
 
         string? baseHref = navDocument
             .Descendants()
-            .Where(static element => IsName(element, "base"))
-            .Select(element => NullIfWhiteSpace(GetAttribute(element, "href")))
+            .Where(static element => IsXhtmlName(element, "base"))
+            .Select(element => NullIfWhiteSpace(GetUnqualifiedAttribute(element, "href")))
             .FirstOrDefault(static value => value != null);
 
-        foreach (XElement nav in navDocument.Descendants().Where(element => IsName(element, "nav"))) {
+        foreach (XElement nav in navDocument.Descendants().Where(element => IsXhtmlName(element, "nav"))) {
             cancellationToken.ThrowIfCancellationRequested();
-            string type = GetAttribute(nav, "type");
+            string type = GetEpubType(nav);
             List<EpubNavigationItem>? destination = ContainsSpaceSeparatedToken(type, "toc")
                 ? result.TableOfContents
                 : ContainsSpaceSeparatedToken(type, "page-list")
@@ -111,8 +111,8 @@ internal static partial class EpubReader {
                         : null;
             if (destination == null) continue;
 
-            XElement? list = nav.Elements().FirstOrDefault(element => IsName(element, "ol"))
-                ?? nav.Descendants().FirstOrDefault(element => IsName(element, "ol"));
+            XElement? list = nav.Elements().FirstOrDefault(element => IsXhtmlName(element, "ol"))
+                ?? nav.Descendants().FirstOrDefault(element => IsXhtmlName(element, "ol"));
             if (list == null) continue;
             destination.AddRange(ParseHtmlNavigationList(list, navPath, baseHref, 1, options, limits, diagnostics, cancellationToken));
         }
@@ -128,16 +128,16 @@ internal static partial class EpubReader {
         EpubDiagnosticCollector diagnostics,
         CancellationToken cancellationToken) {
         var items = new List<EpubNavigationItem>();
-        foreach (XElement listItem in list.Elements().Where(element => IsName(element, "li"))) {
+        foreach (XElement listItem in list.Elements().Where(element => IsXhtmlName(element, "li"))) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!TryReserveNavigationItem(depth, navPath, options, limits, diagnostics)) break;
 
-            XElement? anchor = listItem.Elements().FirstOrDefault(element => IsName(element, "a"));
-            XElement? labelElement = anchor ?? listItem.Elements().FirstOrDefault(element => IsName(element, "span"));
+            XElement? anchor = listItem.Elements().FirstOrDefault(element => IsXhtmlName(element, "a"));
+            XElement? labelElement = anchor ?? listItem.Elements().FirstOrDefault(element => IsXhtmlName(element, "span"));
             string label = labelElement == null
                 ? NormalizeWhitespace(string.Concat(listItem.Nodes().OfType<XText>().Select(static text => text.Value)))
                 : NormalizeWhitespace(labelElement.Value);
-            string? href = anchor == null ? null : NullIfWhiteSpace(GetAttribute(anchor, "href"));
+            string? href = anchor == null ? null : NullIfWhiteSpace(GetUnqualifiedAttribute(anchor, "href"));
             string? target = null;
             string? fragment = null;
             bool isRemote = false;
@@ -148,7 +148,7 @@ internal static partial class EpubReader {
                     navPath);
             }
 
-            XElement? childList = listItem.Elements().FirstOrDefault(element => IsName(element, "ol"));
+            XElement? childList = listItem.Elements().FirstOrDefault(element => IsXhtmlName(element, "ol"));
             IReadOnlyList<EpubNavigationItem> children = childList == null
                 ? Array.Empty<EpubNavigationItem>()
                 : ParseHtmlNavigationList(childList, navPath, baseHref, depth + 1, options, limits, diagnostics, cancellationToken);
@@ -159,7 +159,7 @@ internal static partial class EpubReader {
                 Href = href,
                 Target = target,
                 Fragment = fragment,
-                SemanticType = NullIfWhiteSpace(GetAttribute(anchor ?? listItem, "type")),
+                SemanticType = NullIfWhiteSpace(GetEpubType(anchor ?? listItem)),
                 IsRemote = isRemote,
                 Children = children
             });
@@ -210,11 +210,11 @@ internal static partial class EpubReader {
         cancellationToken.ThrowIfCancellationRequested();
 
         if (includeTableOfContents || includeTitleFallback) {
-            XElement? navMap = ncxDocument.Descendants().FirstOrDefault(element => IsName(element, "navMap"));
+            XElement? navMap = ncxDocument.Descendants().FirstOrDefault(element => IsNcxName(element, "navMap"));
             if (navMap != null) {
                 NavigationLimitState ncxLimits = includeTableOfContents ? limits : new NavigationLimitState();
                 IReadOnlyList<EpubNavigationItem> ncxItems = ParseNcxItems(
-                    navMap.Elements().Where(element => IsName(element, "navPoint")),
+                    navMap.Elements().Where(element => IsNcxName(element, "navPoint")),
                     ncxPath,
                     1,
                     options,
@@ -230,10 +230,10 @@ internal static partial class EpubReader {
         }
 
         if (includePageList) {
-            XElement? pageList = ncxDocument.Descendants().FirstOrDefault(element => IsName(element, "pageList"));
+            XElement? pageList = ncxDocument.Descendants().FirstOrDefault(element => IsNcxName(element, "pageList"));
             if (pageList != null) {
                 result.PageList.AddRange(ParseNcxItems(
-                    pageList.Elements().Where(element => IsName(element, "pageTarget")),
+                    pageList.Elements().Where(element => IsNcxName(element, "pageTarget")),
                     ncxPath,
                     1,
                     options,
@@ -258,12 +258,12 @@ internal static partial class EpubReader {
             if (!TryReserveNavigationItem(depth, ncxPath, options, limits, diagnostics)) break;
 
             XElement? textElement = element.Elements()
-                .FirstOrDefault(child => IsName(child, "navLabel"))?
+                .FirstOrDefault(child => IsNcxName(child, "navLabel"))?
                 .Descendants()
-                .FirstOrDefault(child => IsName(child, "text"));
+                .FirstOrDefault(child => IsNcxName(child, "text"));
             string label = textElement == null ? string.Empty : NormalizeWhitespace(textElement.Value);
-            XElement? content = element.Elements().FirstOrDefault(child => IsName(child, "content"));
-            string? href = content == null ? null : NullIfWhiteSpace(GetAttribute(content, "src"));
+            XElement? content = element.Elements().FirstOrDefault(child => IsNcxName(child, "content"));
+            string? href = content == null ? null : NullIfWhiteSpace(GetUnqualifiedAttribute(content, "src"));
             string? target = null;
             string? fragment = null;
             bool isRemote = false;
@@ -275,25 +275,25 @@ internal static partial class EpubReader {
             }
 
             int? playOrder = null;
-            if (int.TryParse(GetAttribute(element, "playOrder"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedOrder)) {
+            if (int.TryParse(GetUnqualifiedAttribute(element, "playOrder"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedOrder)) {
                 playOrder = parsedOrder;
             }
             IReadOnlyList<EpubNavigationItem> children = ParseNcxItems(
-                element.Elements().Where(child => IsName(child, "navPoint")),
+                element.Elements().Where(child => IsNcxName(child, "navPoint")),
                 ncxPath,
                 depth + 1,
                 options,
                 limits,
                 diagnostics,
                 cancellationToken);
-            if (label.Length == 0) label = NullIfWhiteSpace(GetAttribute(element, "value")) ?? target ?? string.Empty;
+            if (label.Length == 0) label = NullIfWhiteSpace(GetUnqualifiedAttribute(element, "value")) ?? target ?? string.Empty;
             items.Add(new EpubNavigationItem {
                 Source = EpubNavigationSource.Ncx,
                 Label = label,
                 Href = href,
                 Target = target,
                 Fragment = fragment,
-                SemanticType = NullIfWhiteSpace(GetAttribute(element, "type")),
+                SemanticType = NullIfWhiteSpace(GetUnqualifiedAttribute(element, "type")),
                 PlayOrder = playOrder,
                 IsRemote = isRemote,
                 Children = children

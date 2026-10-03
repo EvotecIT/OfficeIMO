@@ -58,17 +58,17 @@ public sealed class LongDocumentTests {
     [InlineData(OfficeAiOperation.Ask, true)]
     [InlineData(OfficeAiOperation.Explain, false)]
     [InlineData(OfficeAiOperation.Explain, true)]
-    public async Task MultiBatchQuestionsReportTheCrossBatchReasoningLimit(OfficeAiOperation operation, bool empty) {
+    public async Task MultiBatchQuestionsCombineObservationsOrReportInsufficientEvidence(OfficeAiOperation operation, bool empty) {
         var executor = new Executor { EmptyClaims = empty };
         var request = Request() with { Operation = operation };
         var result = await new OfficeAiEngine(executor).RunAsync(Document(new string('a', 110000)), request);
         Assert.True(result.RequestCount > 1);
-        Assert.Equal(OfficeAiResultStatus.Partial, result.Status);
-        Assert.Contains("cross-batch-reasoning-not-supported", result.Diagnostics);
+        Assert.Equal(empty ? OfficeAiResultStatus.InsufficientEvidence : OfficeAiResultStatus.Completed, result.Status);
+        Assert.Equal(empty ? OfficeAiSynthesisStatus.NotRequired : OfficeAiSynthesisStatus.Completed, result.SynthesisStatus);
         Assert.Empty(result.OmittedEvidenceIds);
         var single = await new OfficeAiEngine(new Executor { EmptyClaims = empty }).RunAsync(Document("one batch"), request);
         Assert.Equal(empty ? OfficeAiResultStatus.InsufficientEvidence : OfficeAiResultStatus.Completed, single.Status);
-        Assert.DoesNotContain("cross-batch-reasoning-not-supported", single.Diagnostics);
+        Assert.Equal(OfficeAiSynthesisStatus.NotRequired, single.SynthesisStatus);
     }
 
     [Fact]
@@ -76,15 +76,16 @@ public sealed class LongDocumentTests {
         string source = string.Concat(Enumerable.Repeat("Line \"quoted\" 😀 with tab\tand newline\n", 2000));
         var executor = new Executor();
         OfficeAiResult result = await new OfficeAiEngine(executor).RunAsync(Document(source), Request());
-        Assert.Equal(OfficeAiResultStatus.Partial, result.Status);
-        Assert.Contains("cross-batch-reasoning-not-supported", result.Diagnostics);
+        Assert.Equal(OfficeAiResultStatus.Completed, result.Status);
+        Assert.Equal(OfficeAiSynthesisStatus.Completed, result.SynthesisStatus);
         Assert.Equal(new[] { "e1" }, result.ProcessedEvidenceIds);
         Assert.Empty(result.OmittedEvidenceIds);
         Assert.True(result.RequestCount > 1);
         Assert.Equal(executor.Requests.Count, result.RequestCount);
         var fragments = executor.Requests.SelectMany(request => {
             using var json = JsonDocument.Parse(request.InputJson);
-            return json.RootElement.GetProperty("evidence").EnumerateArray().Select(item => item.GetProperty("text").GetString()!).ToArray();
+            if (!json.RootElement.TryGetProperty("evidence", out var evidence)) return Array.Empty<string>();
+            return evidence.EnumerateArray().Select(item => item.GetProperty("text").GetString()!).ToArray();
         }).ToArray();
         Assert.Equal(source, string.Concat(fragments));
         Assert.All(fragments, fragment => {
@@ -103,15 +104,20 @@ public sealed class LongDocumentTests {
     }
 
     [Theory]
-    [InlineData("valid", OfficeAiSynthesisStatus.Completed)]
-    [InlineData("unknown-id", OfficeAiSynthesisStatus.Incomplete)]
-    [InlineData("missing-source", OfficeAiSynthesisStatus.Incomplete)]
-    [InlineData("truncated", OfficeAiSynthesisStatus.Incomplete)]
-    public async Task WholeSummaryPreservesCitationsAndRejectsInventedOrDroppedSourceClaims(string mode, OfficeAiSynthesisStatus expected) {
-        var executor = new Executor { SynthesisMode = mode };
+    [InlineData(OfficeAiOperation.Summarize, "valid", OfficeAiSynthesisStatus.Completed)]
+    [InlineData(OfficeAiOperation.Summarize, "unknown-id", OfficeAiSynthesisStatus.Incomplete)]
+    [InlineData(OfficeAiOperation.Summarize, "missing-source", OfficeAiSynthesisStatus.Incomplete)]
+    [InlineData(OfficeAiOperation.Summarize, "truncated", OfficeAiSynthesisStatus.Incomplete)]
+    [InlineData(OfficeAiOperation.Ask, "valid", OfficeAiSynthesisStatus.Completed)]
+    [InlineData(OfficeAiOperation.Ask, "unknown-id", OfficeAiSynthesisStatus.Incomplete)]
+    [InlineData(OfficeAiOperation.Ask, "missing-source", OfficeAiSynthesisStatus.Incomplete)]
+    [InlineData(OfficeAiOperation.Ask, "truncated", OfficeAiSynthesisStatus.Incomplete)]
+    [InlineData(OfficeAiOperation.Explain, "valid", OfficeAiSynthesisStatus.Completed)]
+    public async Task WholeDocumentReasoningPreservesCitationsAndRejectsInventedOrDroppedSourceClaims(OfficeAiOperation operation, string mode, OfficeAiSynthesisStatus expected) {
+        var executor = new Executor { SynthesisMode = mode, ExpectedOperation = operation };
         OfficeAiResult result = await new OfficeAiEngine(executor).RunAsync(
             Document("North total 42. " + new string('x', 30000), "South total 57. " + new string('y', 30000)),
-            Request() with { Operation = OfficeAiOperation.Summarize });
+            Request() with { Operation = operation });
         Assert.Equal(expected, result.SynthesisStatus);
         Assert.Equal(3, result.RequestCount);
         Assert.Equal(3, result.InputTokens);
@@ -125,16 +131,18 @@ public sealed class LongDocumentTests {
         } else {
             Assert.Equal(OfficeAiResultStatus.Partial, result.Status);
             Assert.Equal(2, result.Claims.Count);
-            Assert.Contains("summary-synthesis-incomplete", result.Diagnostics);
+            Assert.Contains(operation == OfficeAiOperation.Summarize ? "summary-synthesis-incomplete" : "answer-synthesis-incomplete", result.Diagnostics);
         }
     }
 
-    [Fact]
-    public async Task SynthesisSharesRequestBudgetAndKeepsDraftsWhenNoCallsRemain() {
+    [Theory]
+    [InlineData(OfficeAiOperation.Summarize)]
+    [InlineData(OfficeAiOperation.Ask)]
+    public async Task SynthesisSharesRequestBudgetAndKeepsDraftsWhenNoCallsRemain(OfficeAiOperation operation) {
         var executor = new Executor();
         OfficeAiResult result = await new OfficeAiEngine(executor).RunAsync(
             Document(new string('a', 30000), new string('b', 30000)),
-            Request() with { Operation = OfficeAiOperation.Summarize, Limits = new() { MaxRequests = 2 } });
+            Request() with { Operation = operation, Limits = new() { MaxRequests = 2 } });
         Assert.Equal(OfficeAiSynthesisStatus.Incomplete, result.SynthesisStatus);
         Assert.Equal(2, result.RequestCount);
         Assert.Equal(2, result.Claims.Count);
@@ -192,6 +200,7 @@ public sealed class LongDocumentTests {
         public bool EmptyAfterFirstBatch { get; init; }
         public int FailCall { get; init; }
         public int FatalOnCall { get; init; }
+        public OfficeAiOperation? ExpectedOperation { get; init; }
         public OfficeAiExecutionProfile Profile { get; } = new() { Id = "bounded", Provider = "fixture", Model = "fixture", IsLocal = true };
         public List<OfficeAiExecutionRequest> Requests { get; } = new();
         public Task<OfficeAiExecutionResponse> ExecuteAsync(OfficeAiExecutionRequest request, CancellationToken cancellationToken = default) {
@@ -202,6 +211,7 @@ public sealed class LongDocumentTests {
             using var json = JsonDocument.Parse(request.InputJson);
             string output;
             if (json.RootElement.TryGetProperty("drafts", out var drafts)) {
+                if (ExpectedOperation.HasValue) Assert.Equal(ExpectedOperation.Value.ToString(), json.RootElement.GetProperty("operation").GetString());
                 if (SynthesisMode == "negative-usage") return Task.FromResult(new OfficeAiExecutionResponse("{}", InputTokens: 1, OutputTokens: -1));
                 if (SynthesisMode == "invalid-executor") throw new InvalidDataException("Invalid executor payload");
                 if (SynthesisMode == "shrink-then-stall") {
@@ -223,7 +233,7 @@ public sealed class LongDocumentTests {
                 }).ToArray();
                 output = JsonSerializer.Serialize(new { claims, fields = Array.Empty<object>(), blocks = Array.Empty<object>(), tables = Array.Empty<object>() });
             }
-            return Task.FromResult(new OfficeAiExecutionResponse(output, IsComplete: !(request.RequestId.Contains("summary") && SynthesisMode == "truncated"), InputTokens: 1, OutputTokens: 2));
+            return Task.FromResult(new OfficeAiExecutionResponse(output, IsComplete: !(json.RootElement.TryGetProperty("drafts", out _) && SynthesisMode == "truncated"), InputTokens: 1, OutputTokens: 2));
         }
     }
 }

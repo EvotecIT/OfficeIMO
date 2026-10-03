@@ -46,12 +46,12 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal static ExcelChartDataRange? TryExtractDataRange(ChartPart chartPart) {
+        internal static ExcelChartDataRange? TryExtractDataRange(ChartPart chartPart, int maximumSeries = int.MaxValue) {
             var chart = chartPart.ChartSpace?.GetFirstChild<Chart>();
             var plotArea = chart?.GetFirstChild<PlotArea>();
             if (plotArea == null) return null;
 
-            IReadOnlyList<OpenXmlCompositeElement> seriesList = GetChartSeries(plotArea);
+            IReadOnlyList<OpenXmlCompositeElement> seriesList = GetChartSeries(plotArea, maximumSeries);
 
             if (seriesList.Count == 0) return null;
 
@@ -127,7 +127,7 @@ namespace OfficeIMO.Excel {
         internal static bool HasCanonicalWorksheetReferences(ChartPart chartPart, ExcelChartDataRange range) {
             PlotArea? plot = chartPart.ChartSpace?.GetFirstChild<Chart>()?.GetFirstChild<PlotArea>();
             if (plot == null) return false;
-            IReadOnlyList<OpenXmlCompositeElement> series = GetChartSeries(plot);
+            IReadOnlyList<OpenXmlCompositeElement> series = GetChartSeries(plot, range.SeriesCount);
             if (series.Count != range.SeriesCount) return false;
             for (int index = 0; index < series.Count; index++) {
                 OpenXmlCompositeElement item = series[index];
@@ -283,55 +283,31 @@ namespace OfficeIMO.Excel {
             return seriesElement.GetFirstChild<Values>()?.GetFirstChild<NumberReference>();
         }
 
-        private static IReadOnlyList<OpenXmlCompositeElement> GetChartSeries(PlotArea plotArea) {
+        private static IReadOnlyList<OpenXmlCompositeElement> GetChartSeries(PlotArea plotArea, int maximumSeries = int.MaxValue) {
             var series = new List<OpenXmlCompositeElement>();
             foreach (OpenXmlElement chartElement in plotArea.ChildElements) {
-                switch (chartElement) {
-                    case BarChart bar:
-                        series.AddRange(bar.Elements<BarChartSeries>().Cast<OpenXmlCompositeElement>());
-                        break;
-                    case Bar3DChart bar3D:
-                        series.AddRange(bar3D.Elements<BarChartSeries>().Cast<OpenXmlCompositeElement>());
-                        break;
-                    case LineChart line:
-                        series.AddRange(line.Elements<LineChartSeries>().Cast<OpenXmlCompositeElement>());
-                        break;
-                    case Line3DChart line3D:
-                        series.AddRange(line3D.Elements<LineChartSeries>().Cast<OpenXmlCompositeElement>());
-                        break;
-                    case AreaChart area:
-                        series.AddRange(area.Elements<AreaChartSeries>().Cast<OpenXmlCompositeElement>());
-                        break;
-                    case Area3DChart area3D:
-                        series.AddRange(area3D.Elements<AreaChartSeries>().Cast<OpenXmlCompositeElement>());
-                        break;
-                    case PieChart pie:
-                        series.AddRange(pie.Elements<PieChartSeries>().Cast<OpenXmlCompositeElement>());
-                        break;
-                    case Pie3DChart pie3D:
-                        series.AddRange(pie3D.Elements<PieChartSeries>().Cast<OpenXmlCompositeElement>());
-                        break;
-                    case OfPieChart ofPie:
-                        series.AddRange(ofPie.Elements<PieChartSeries>().Cast<OpenXmlCompositeElement>());
-                        break;
-                    case DoughnutChart doughnut:
-                        series.AddRange(doughnut.Elements<PieChartSeries>().Cast<OpenXmlCompositeElement>());
-                        break;
-                    case RadarChart radar:
-                        series.AddRange(radar.Elements<RadarChartSeries>().Cast<OpenXmlCompositeElement>());
-                        break;
-                    case StockChart stock:
-                        series.AddRange(stock.Elements<LineChartSeries>().Cast<OpenXmlCompositeElement>());
-                        break;
-                    case Surface3DChart surface3D:
-                        series.AddRange(surface3D.Elements<SurfaceChartSeries>().Cast<OpenXmlCompositeElement>());
-                        break;
-                    case SurfaceChart surface:
-                        series.AddRange(surface.Elements<SurfaceChartSeries>().Cast<OpenXmlCompositeElement>());
-                        break;
-                    case ScatterChart scatter:
-                        series.AddRange(scatter.Elements<ScatterChartSeries>().Cast<OpenXmlCompositeElement>());
-                        break;
+                IEnumerable<OpenXmlCompositeElement>? chartSeries = chartElement switch {
+                    BarChart bar => bar.Elements<BarChartSeries>(),
+                    Bar3DChart bar3D => bar3D.Elements<BarChartSeries>(),
+                    LineChart line => line.Elements<LineChartSeries>(),
+                    Line3DChart line3D => line3D.Elements<LineChartSeries>(),
+                    AreaChart area => area.Elements<AreaChartSeries>(),
+                    Area3DChart area3D => area3D.Elements<AreaChartSeries>(),
+                    PieChart pie => pie.Elements<PieChartSeries>(),
+                    Pie3DChart pie3D => pie3D.Elements<PieChartSeries>(),
+                    OfPieChart ofPie => ofPie.Elements<PieChartSeries>(),
+                    DoughnutChart doughnut => doughnut.Elements<PieChartSeries>(),
+                    RadarChart radar => radar.Elements<RadarChartSeries>(),
+                    StockChart stock => stock.Elements<LineChartSeries>(),
+                    Surface3DChart surface3D => surface3D.Elements<SurfaceChartSeries>(),
+                    SurfaceChart surface => surface.Elements<SurfaceChartSeries>(),
+                    ScatterChart scatter => scatter.Elements<ScatterChartSeries>(),
+                    _ => null
+                };
+                if (chartSeries == null) continue;
+                foreach (OpenXmlCompositeElement item in chartSeries) {
+                    if (series.Count >= maximumSeries) return Array.Empty<OpenXmlCompositeElement>();
+                    series.Add(item);
                 }
             }
 

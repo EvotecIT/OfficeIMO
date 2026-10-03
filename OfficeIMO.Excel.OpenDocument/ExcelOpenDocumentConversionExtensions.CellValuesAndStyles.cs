@@ -198,6 +198,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         ExcelCell target,
         OdsCellRun style,
         IReadOnlyDictionary<string, OdsDataStyle> dataStyles,
+        Dictionary<(uint BaseStyle, ExcelHorizontalAlignment? Horizontal,
+            ExcelVerticalAlignment? Vertical, bool? Wrap), uint> layoutStyleIndexes,
         out bool unsupportedDataStyleFormat,
         ref int approximatedFontFamilyLists,
         ref int unsupportedFontFamilies,
@@ -253,30 +255,34 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (style.BackgroundColor.HasValue) target.SetFillColor(style.BackgroundColor.Value.ToString().TrimStart('#'));
         string? textAlign = style.TextAlign;
         string? textAlignSource = style.TextAlignSource;
+        ExcelHorizontalAlignment? horizontal = null;
         if (textAlignSource == "fix" && textAlign == null ||
             textAlign != null && textAlignSource != "fix" ||
             textAlignSource != null && textAlignSource != "fix" && textAlignSource != "value-type") {
             unsupportedCellLayout++;
         } else {
             switch (textAlign) {
-                case "left": target.Sheet.CellAlign(target.Row, target.Column, ExcelHorizontalAlignment.Left); break;
-                case "center": target.Sheet.CellAlign(target.Row, target.Column, ExcelHorizontalAlignment.Center); break;
-                case "right": target.Sheet.CellAlign(target.Row, target.Column, ExcelHorizontalAlignment.Right); break;
-                case "justify": target.Sheet.CellAlign(target.Row, target.Column, ExcelHorizontalAlignment.Justify); break;
+                case "left": horizontal = ExcelHorizontalAlignment.Left; break;
+                case "center": horizontal = ExcelHorizontalAlignment.Center; break;
+                case "right": horizontal = ExcelHorizontalAlignment.Right; break;
+                case "justify": horizontal = ExcelHorizontalAlignment.Justify; break;
                 case not null: unsupportedCellLayout++; break;
             }
         }
+        ExcelVerticalAlignment? vertical = null;
         switch (style.VerticalAlign) {
-            case "top": target.Sheet.CellVerticalAlign(target.Row, target.Column, ExcelVerticalAlignment.Top); break;
-            case "middle": target.Sheet.CellVerticalAlign(target.Row, target.Column, ExcelVerticalAlignment.Center); break;
-            case "bottom": target.Sheet.CellVerticalAlign(target.Row, target.Column, ExcelVerticalAlignment.Bottom); break;
+            case "top": vertical = ExcelVerticalAlignment.Top; break;
+            case "middle": vertical = ExcelVerticalAlignment.Center; break;
+            case "bottom": vertical = ExcelVerticalAlignment.Bottom; break;
             case not null: unsupportedCellLayout++; break;
         }
+        bool? wrap = null;
         switch (style.WrapOption) {
-            case "wrap": target.Sheet.CellWrapText(target.Row, target.Column); break;
-            case "no-wrap": target.Sheet.CellWrapText(target.Row, target.Column, false); break;
+            case "wrap": wrap = true; break;
+            case "no-wrap": wrap = false; break;
             case not null: unsupportedCellLayout++; break;
         }
+        target.Sheet.CellLayout(target.Row, target.Column, horizontal, vertical, wrap, layoutStyleIndexes);
         if (style.NumberFormatName != null && dataStyles.TryGetValue(style.NumberFormatName, out OdsDataStyle? dataStyle)) {
             if (dataStyle.TryGetExcelNumberFormatCode(out string formatCode)) target.SetNumberFormat(formatCode);
             else unsupportedDataStyleFormat = true;

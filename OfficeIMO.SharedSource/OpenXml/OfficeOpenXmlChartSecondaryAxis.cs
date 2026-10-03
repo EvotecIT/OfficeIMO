@@ -84,8 +84,12 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
         var primaryLayer = plot!.ChildElements.OfType<OpenXmlCompositeElement>().FirstOrDefault(layer =>
             layer.LocalName.EndsWith("Chart", StringComparison.Ordinal) &&
             groups.Read(layer) == OfficeChartAxisGroup.Primary);
-        var primaryValueAxis = primaryLayer?.Elements<C.AxisId>()
-            .Select(reference => groups.Resolve(reference.Val?.Value)).OfType<C.ValueAxis>().SingleOrDefault();
+        C.ValueAxis[] primaryValueAxes = primaryLayer?.Elements<C.AxisId>()
+            .Select(reference => groups.Resolve(reference.Val?.Value)).OfType<C.ValueAxis>()
+            .Distinct().Take(2).ToArray() ?? Array.Empty<C.ValueAxis>();
+        if (primaryValueAxes.Length > 1)
+            throw new NotSupportedException("Multiple independent primary value axes cannot be projected.");
+        C.ValueAxis? primaryValueAxis = primaryValueAxes.SingleOrDefault();
         if ((primaryValueAxis?.GetFirstChild<C.Delete>() is C.Delete deletion && deletion.Val?.Value != false) ||
             primaryValueAxis?.GetFirstChild<C.TickLabelPosition>()?.Val?.Value == C.TickLabelPositionValues.None)
             throw new NotSupportedException("The primary and secondary value-axis visibility cannot be projected independently.");

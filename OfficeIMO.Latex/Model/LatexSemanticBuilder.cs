@@ -47,7 +47,7 @@ internal sealed class LatexSemanticModel {
     internal IReadOnlyList<LatexMacroDefinition> MacroDefinitions { get; }
 }
 
-internal static class LatexSemanticBuilder {
+internal static partial class LatexSemanticBuilder {
     internal static LatexSemanticModel Build(
         LatexSourceText source,
         LatexSyntaxTree syntaxTree,
@@ -58,6 +58,7 @@ internal static class LatexSemanticBuilder {
         var environmentSyntax = new List<LatexSyntaxNode>();
         var mathSyntax = new List<LatexSyntaxNode>();
         foreach (LatexSyntaxNode node in syntaxTree.Root.DescendantsAndSelf()) {
+            cancellationToken.ThrowIfCancellationRequested();
             switch (node.Kind) {
                 case LatexSyntaxKind.Command: commandSyntax.Add(node); break;
                 case LatexSyntaxKind.Environment: environmentSyntax.Add(node); break;
@@ -76,7 +77,8 @@ internal static class LatexSemanticBuilder {
             LatexSyntaxNode syntax = environmentSyntax[index];
             LatexSyntaxNode beginSyntax = syntax.Children.First(static child => child.Kind == LatexSyntaxKind.Command);
             LatexSyntaxNode? endSyntax = syntax.Children.LastOrDefault(child =>
-                child.Kind == LatexSyntaxKind.Command && string.Equals(child.Value, "end", StringComparison.Ordinal));
+                child.Kind == LatexSyntaxKind.Command && string.Equals(child.Value, "end", StringComparison.Ordinal) &&
+                string.Equals(commandMap[child].GetRequiredArgument(0)?.Content, syntax.Value, StringComparison.Ordinal));
             environments.Add(new LatexEnvironment(
                 syntax,
                 commandMap[beginSyntax],
@@ -108,31 +110,35 @@ internal static class LatexSemanticBuilder {
                 Array.Empty<LatexMacroDefinition>());
         }
 
+        LatexCommand[] activeCommands = commands.Where(static command => IsActiveSyntax(command.Syntax)).ToArray();
+        orderedEnvironments = orderedEnvironments.Where(static environment => IsActiveSyntax(environment.Syntax)).ToArray();
+        orderedMath = orderedMath.Where(static item => IsActiveSyntax(item.Syntax)).ToArray();
         var headings = new List<LatexHeading>();
-        foreach (LatexCommand command in commands) {
+        foreach (LatexCommand command in activeCommands) {
             cancellationToken.ThrowIfCancellationRequested();
             if (TryGetHeadingLevel(command.Name, out int level) && command.GetRequiredArgument(0) != null) {
                 headings.Add(new LatexHeading(command, level));
             }
         }
 
-        LatexEnvironment? body = environments.FirstOrDefault(static environment => string.Equals(environment.Name, "document", StringComparison.Ordinal));
+        LatexEnvironment? body = orderedEnvironments.FirstOrDefault(static environment => string.Equals(environment.Name, "document", StringComparison.Ordinal));
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<LatexParagraph> paragraphs = body == null
             ? Array.Empty<LatexParagraph>()
-            : BuildParagraphs(source, body, headings, orderedEnvironments, orderedMath, commands);
+            : BuildParagraphs(source, body, headings, orderedEnvironments, orderedMath, activeCommands, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        IReadOnlyList<LatexList> lists = BuildLists(source, orderedEnvironments, commands);
+        var directCommands = IndexDirectEnvironmentCommands(activeCommands, cancellationToken);
+        IReadOnlyList<LatexList> lists = BuildLists(source, orderedEnvironments, directCommands, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        IReadOnlyList<LatexFigure> figures = BuildFigures(orderedEnvironments, commands);
+        IReadOnlyList<LatexFigure> figures = BuildFigures(orderedEnvironments, directCommands, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        IReadOnlyList<LatexTable> tables = BuildTables(source, orderedEnvironments);
+        IReadOnlyList<LatexTable> tables = BuildTables(source, orderedEnvironments, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        IReadOnlyList<LatexCitation> citations = BuildCitations(commands);
-        IReadOnlyList<LatexReference> references = BuildReferences(commands);
-        IReadOnlyList<LatexLabel> labels = BuildLabels(commands);
-        IReadOnlyList<LatexTheorem> theorems = BuildTheorems(orderedEnvironments, commands);
-        IReadOnlyList<LatexMacroDefinition> macros = BuildMacroDefinitions(commands);
+        IReadOnlyList<LatexCitation> citations = BuildCitations(activeCommands);
+        IReadOnlyList<LatexReference> references = BuildReferences(activeCommands);
+        IReadOnlyList<LatexLabel> labels = BuildLabels(activeCommands);
+        IReadOnlyList<LatexTheorem> theorems = BuildTheorems(orderedEnvironments, directCommands, cancellationToken);
+        IReadOnlyList<LatexMacroDefinition> macros = BuildMacroDefinitions(activeCommands, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return new LatexSemanticModel(
             commands,
@@ -153,23 +159,10 @@ internal static class LatexSemanticBuilder {
     private static IReadOnlyList<LatexList> BuildLists(
         LatexSourceText source,
         IReadOnlyList<LatexEnvironment> environments,
-        IReadOnlyList<LatexCommand> commands) {
-        var itemsByEnvironment = new Dictionary<LatexSyntaxNode, List<LatexCommand>>();
-        for (int commandIndex = 0; commandIndex < commands.Count; commandIndex++) {
-            LatexCommand command = commands[commandIndex];
-            if (!string.Equals(command.Name, "item", StringComparison.Ordinal)) continue;
-            LatexSyntaxNode? parent = command.Syntax.Parent;
-            while (parent != null && parent.Kind != LatexSyntaxKind.Environment) parent = parent.Parent;
-            if (parent == null) continue;
-            if (!itemsByEnvironment.TryGetValue(parent, out List<LatexCommand>? items)) {
-                items = new List<LatexCommand>();
-                itemsByEnvironment[parent] = items;
-            }
-            items.Add(command);
-        }
-
+        IReadOnlyDictionary<LatexSyntaxNode, List<LatexCommand>> commands, CancellationToken cancellationToken) {
         var lists = new List<LatexList>();
         for (int environmentIndex = 0; environmentIndex < environments.Count; environmentIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             LatexEnvironment environment = environments[environmentIndex];
             LatexListKind kind;
             if (string.Equals(environment.Name, "itemize", StringComparison.Ordinal)) kind = LatexListKind.Unordered;
@@ -177,13 +170,14 @@ internal static class LatexSemanticBuilder {
             else if (string.Equals(environment.Name, "description", StringComparison.Ordinal)) kind = LatexListKind.Description;
             else continue;
 
-            IReadOnlyList<LatexCommand> itemCommands = itemsByEnvironment.TryGetValue(
+            IReadOnlyList<LatexCommand> itemCommands = commands.TryGetValue(
                 environment.Syntax,
                 out List<LatexCommand>? itemCommandsForEnvironment)
-                ? itemCommandsForEnvironment
+                ? itemCommandsForEnvironment.Where(static command => string.Equals(command.Name, "item", StringComparison.Ordinal)).ToArray()
                 : Array.Empty<LatexCommand>();
             var listItems = new List<LatexListItem>();
             for (int index = 0; index < itemCommands.Count; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int start = itemCommands[index].Syntax.EndOffset;
                 int end = index + 1 < itemCommands.Count
                     ? itemCommands[index + 1].Syntax.StartOffset
@@ -199,50 +193,76 @@ internal static class LatexSemanticBuilder {
         return lists;
     }
 
+    /// <summary>Groups active commands by their nearest environment for bounded semantic binding.</summary>
+    private static Dictionary<LatexSyntaxNode, List<LatexCommand>> IndexDirectEnvironmentCommands(
+        IReadOnlyList<LatexCommand> commands, CancellationToken cancellationToken) {
+        var result = new Dictionary<LatexSyntaxNode, List<LatexCommand>>();
+        foreach (LatexCommand command in commands) {
+            cancellationToken.ThrowIfCancellationRequested();
+            LatexSyntaxNode? parent = command.Syntax.Parent;
+            while (parent != null && parent.Kind != LatexSyntaxKind.Environment) parent = parent.Parent;
+            if (parent == null) continue;
+            if (!result.TryGetValue(parent, out List<LatexCommand>? nested)) {
+                nested = new List<LatexCommand>();
+                result.Add(parent, nested);
+            }
+            nested.Add(command);
+        }
+        return result;
+    }
+
     private static IReadOnlyList<LatexFigure> BuildFigures(
         IReadOnlyList<LatexEnvironment> environments,
-        IReadOnlyList<LatexCommand> commands) {
+        IReadOnlyDictionary<LatexSyntaxNode, List<LatexCommand>> commands,
+        CancellationToken cancellationToken) {
         var figures = new List<LatexFigure>();
-        foreach (LatexEnvironment environment in environments.Where(static environment => string.Equals(environment.Name, "figure", StringComparison.Ordinal))) {
-            LatexCommand[] nested = commands.Where(command => IsDirectlyInside(command.Syntax, environment.Syntax)).ToArray();
-            LatexImage[] images = nested.Where(static command => string.Equals(command.Name, "includegraphics", StringComparison.Ordinal) && command.GetRequiredArgument(0) != null)
-                .Select(static command => new LatexImage(command)).ToArray();
-            figures.Add(new LatexFigure(
-                environment,
-                images,
-                nested.FirstOrDefault(static command => string.Equals(command.Name, "caption", StringComparison.Ordinal)),
-                nested.FirstOrDefault(static command => string.Equals(command.Name, "label", StringComparison.Ordinal))));
+        foreach (LatexEnvironment environment in environments.Where(static environment => environment.Name == "figure")) {
+            cancellationToken.ThrowIfCancellationRequested();
+            IReadOnlyList<LatexCommand> nested = commands.TryGetValue(environment.Syntax, out List<LatexCommand>? items)
+                ? items : Array.Empty<LatexCommand>();
+            var images = new List<LatexImage>();
+            LatexCommand? caption = null;
+            LatexCommand? label = null;
+            foreach (LatexCommand command in nested) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (command.Name == "includegraphics" && command.GetRequiredArgument(0) != null) images.Add(new LatexImage(command));
+                if (command.Name == "caption" && caption == null) caption = command;
+                if (command.Name == "label" && label == null) label = command;
+            }
+            figures.Add(new LatexFigure(environment, images.ToArray(), caption, label));
         }
         return figures;
     }
 
-    private static IReadOnlyList<LatexTable> BuildTables(LatexSourceText source, IReadOnlyList<LatexEnvironment> environments) {
+    private static IReadOnlyList<LatexTable> BuildTables(LatexSourceText source, IReadOnlyList<LatexEnvironment> environments, CancellationToken cancellationToken) {
         var tables = new List<LatexTable>();
         foreach (LatexEnvironment environment in environments.Where(static environment => string.Equals(environment.Name, "tabular", StringComparison.Ordinal))) {
+            cancellationToken.ThrowIfCancellationRequested();
             string columnSpecification = environment.BeginCommand.GetRequiredArgument(1)?.Content ?? string.Empty;
-            tables.Add(new LatexTable(environment, columnSpecification, ParseTableRows(source, environment)));
+            tables.Add(new LatexTable(environment, columnSpecification, ParseTableRows(source, environment, cancellationToken)));
         }
         return tables;
     }
 
-    private static IReadOnlyList<LatexTableRow> ParseTableRows(LatexSourceText source, LatexEnvironment environment) {
+    private static IReadOnlyList<LatexTableRow> ParseTableRows(LatexSourceText source, LatexEnvironment environment, CancellationToken cancellationToken) {
         var rows = new List<LatexTableRow>();
         var currentCells = new List<LatexTableCell>();
         int cellStart = environment.ContentSpan.Start.Offset;
         int ignoreUntil = cellStart;
         foreach (LatexSyntaxNode node in environment.Syntax.Children) {
+            cancellationToken.ThrowIfCancellationRequested();
             int nodeStart = node.StartOffset;
             if (nodeStart < environment.ContentSpan.Start.Offset || nodeStart >= environment.ContentSpan.End.Offset ||
                 nodeStart < ignoreUntil) continue;
 
             if (node.Kind == LatexSyntaxKind.Text && string.Equals(node.OriginalText, "&", StringComparison.Ordinal)) {
-                AddTableCell(source, cellStart, nodeStart, rows.Count, currentCells.Count, currentCells);
+                AddTableCell(source, cellStart, nodeStart, rows.Count, currentCells.Count, currentCells, true);
                 cellStart = node.EndOffset;
                 continue;
             }
 
             if (node.Kind == LatexSyntaxKind.Command && string.Equals(node.Value, "\\", StringComparison.Ordinal)) {
-                AddTableCell(source, cellStart, nodeStart, rows.Count, currentCells.Count, currentCells);
+                AddTableCell(source, cellStart, nodeStart, rows.Count, currentCells.Count, currentCells, true);
                 if (currentCells.Count > 0 && !IsRuleOnlyRow(currentCells)) {
                     rows.Add(new LatexTableRow(rows.Count, currentCells.ToArray()));
                 }
@@ -250,7 +270,7 @@ internal static class LatexSemanticBuilder {
                 int rowContentStart = node.EndOffset;
                 while (rowContentStart < environment.ContentSpan.End.Offset && source.Text[rowContentStart] == '*') rowContentStart++;
                 if (rowContentStart < environment.ContentSpan.End.Offset && source.Text[rowContentStart] == '[') {
-                    SkipBalanced(source.Text, ref rowContentStart, '[', ']', environment.ContentSpan.End.Offset);
+                    SkipBalanced(source.Text, ref rowContentStart, '[', ']', environment.ContentSpan.End.Offset, cancellationToken);
                 }
                 cellStart = rowContentStart;
                 ignoreUntil = rowContentStart;
@@ -267,9 +287,10 @@ internal static class LatexSemanticBuilder {
         int end,
         int row,
         int column,
-        List<LatexTableCell> cells) {
+        List<LatexTableCell> cells,
+        bool separator = false) {
         TrimWhitespace(source.Text, ref start, ref end);
-        if (end <= start && cells.Count == 0) return;
+        if (end <= start && cells.Count == 0 && !separator) return;
         cells.Add(new LatexTableCell(source.CreateSpan(start, end), source.Text.Substring(start, end - start), row, column));
     }
 
@@ -293,74 +314,34 @@ internal static class LatexSemanticBuilder {
 
     private static IReadOnlyList<LatexTheorem> BuildTheorems(
         IReadOnlyList<LatexEnvironment> environments,
-        IReadOnlyList<LatexCommand> commands) {
-        return environments.Where(static environment => IsTheoremEnvironment(environment.Name))
-            .Select(environment => new LatexTheorem(
-                environment,
-                commands.FirstOrDefault(command => string.Equals(command.Name, "label", StringComparison.Ordinal) && IsDirectlyInside(command.Syntax, environment.Syntax))))
-            .ToArray();
+        IReadOnlyDictionary<LatexSyntaxNode, List<LatexCommand>> commands,
+        CancellationToken cancellationToken) {
+        var theorems = new List<LatexTheorem>();
+        foreach (LatexEnvironment environment in environments.Where(static environment => IsTheoremEnvironment(environment.Name))) {
+            cancellationToken.ThrowIfCancellationRequested();
+            LatexCommand? label = null;
+            if (commands.TryGetValue(environment.Syntax, out List<LatexCommand>? nested)) {
+                foreach (LatexCommand command in nested) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (command.Name == "label") { label = command; break; }
+                }
+            }
+            theorems.Add(new LatexTheorem(environment, label));
+        }
+        return theorems;
     }
 
-    private static IReadOnlyList<LatexMacroDefinition> BuildMacroDefinitions(IReadOnlyList<LatexCommand> commands) {
-        var candidates = new List<MacroCandidate>();
-        foreach (LatexCommand command in commands.Where(static command =>
-                     string.Equals(command.Name, "newcommand", StringComparison.Ordinal) ||
-                     string.Equals(command.Name, "renewcommand", StringComparison.Ordinal) ||
-                     string.Equals(command.Name, "providecommand", StringComparison.Ordinal))) {
-            LatexArgument? nameArgument = command.GetRequiredArgument(0);
-            LatexArgument? bodyArgument = command.GetRequiredArgument(1);
-            if (nameArgument == null || bodyArgument == null) continue;
-            string name = nameArgument.Content.Trim();
-            if (name.StartsWith("\\", StringComparison.Ordinal)) name = name.Substring(1);
-            if (!IsSimpleControlWord(name)) continue;
-            int parameterCount = 0;
-            string? defaultValue = null;
-            LatexArgument[] optional = command.Arguments.Where(static argument => argument.IsOptional).ToArray();
-            bool isWellFormed = optional.Length == 0 || int.TryParse(optional[0].Content.Trim(), out parameterCount);
-            if (optional.Length > 1) defaultValue = optional[1].Content;
-            if (defaultValue != null && parameterCount < 1) isWellFormed = false;
-            candidates.Add(new MacroCandidate(command, name, parameterCount, defaultValue, bodyArgument.Content, isWellFormed));
+    internal static bool IsActiveSyntax(LatexSyntaxNode node) {
+        for (LatexSyntaxNode? parent = node.Parent; parent != null; parent = parent.Parent) {
+            if (parent.Kind == LatexSyntaxKind.Command &&
+                (parent.Value == "newcommand" || parent.Value == "renewcommand" || parent.Value == "providecommand" || parent.Value == "newtheorem")) return false;
         }
-
-        var allowedLocalNames = new HashSet<string>(candidates.Select(static candidate => candidate.Name), StringComparer.Ordinal);
-        var safeCandidates = new bool[candidates.Count];
-        while (true) {
-            for (int index = 0; index < candidates.Count; index++) {
-                MacroCandidate candidate = candidates[index];
-                safeCandidates[index] = candidate.IsWellFormed && candidate.ParameterCount >= 0 && candidate.ParameterCount <= 9 &&
-                    IsSafeMacroBody(candidate.Body, candidate.ParameterCount, allowedLocalNames) &&
-                    (candidate.DefaultValue == null || IsSafeMacroBody(candidate.DefaultValue, 0, allowedLocalNames));
-            }
-
-            var nextAllowedNames = new HashSet<string>(StringComparer.Ordinal);
-            foreach (IGrouping<string, int> group in candidates
-                         .Select(static (candidate, index) => new { candidate.Name, Index = index })
-                         .GroupBy(static item => item.Name, static item => item.Index, StringComparer.Ordinal)) {
-                if (group.All(index => safeCandidates[index])) nextAllowedNames.Add(group.Key);
-            }
-            if (allowedLocalNames.SetEquals(nextAllowedNames)) break;
-            allowedLocalNames = nextAllowedNames;
-        }
-
-        var definitions = new List<LatexMacroDefinition>(candidates.Count);
-        for (int index = 0; index < candidates.Count; index++) {
-            MacroCandidate candidate = candidates[index];
-            definitions.Add(new LatexMacroDefinition(
-                candidate.Command,
-                candidate.Name,
-                candidate.ParameterCount,
-                candidate.DefaultValue,
-                candidate.Body,
-                safeCandidates[index]));
-        }
-        return definitions;
+        return true;
     }
 
-    private static bool IsDirectlyInside(LatexSyntaxNode node, LatexSyntaxNode environment) {
-        LatexSyntaxNode? current = node.Parent;
-        while (current != null) {
-            if (current.Kind == LatexSyntaxKind.Environment) return ReferenceEquals(current, environment);
-            current = current.Parent;
+    internal static bool IsInsideCommandArgument(LatexSyntaxNode node) {
+        for (LatexSyntaxNode? parent = node.Parent; parent != null; parent = parent.Parent) {
+            if (parent.Kind == LatexSyntaxKind.Command) return true;
         }
         return false;
     }
@@ -370,11 +351,12 @@ internal static class LatexSemanticBuilder {
         while (end > start && char.IsWhiteSpace(source[end - 1])) end--;
     }
 
-    private static void SkipBalanced(string source, ref int index, char open, char close, int end) {
+    private static void SkipBalanced(string source, ref int index, char open, char close, int end, CancellationToken cancellationToken) {
         if (index >= end || source[index] != open) return;
         int depth = 1;
         index++;
         while (index < end && depth > 0) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (source[index] == '\\') { index += Math.Min(2, end - index); continue; }
             if (source[index] == open) depth++;
             else if (source[index] == close) depth--;
@@ -395,111 +377,19 @@ internal static class LatexSemanticBuilder {
         name == "theorem" || name == "lemma" || name == "proposition" || name == "corollary" ||
         name == "definition" || name == "remark" || name == "proof";
 
-    private static bool IsSimpleControlWord(string value) {
-        if (value.Length == 0) return false;
-        for (int index = 0; index < value.Length; index++) {
-            char current = value[index];
-            if (!((current >= 'a' && current <= 'z') || (current >= 'A' && current <= 'Z') || current == '@')) return false;
-        }
-        return true;
-    }
-
-    private static bool IsSafeMacroBody(string body, int parameterCount, IReadOnlyCollection<string> localNames) {
-        for (int index = 0; index < body.Length; index++) {
-            if (body[index] != '\\' || index + 1 >= body.Length) continue;
-            if (!IsControlWordCharacter(body[index + 1])) {
-                index++;
-                continue;
-            }
-            int nameStart = ++index;
-            while (index + 1 < body.Length && IsControlWordCharacter(body[index + 1])) index++;
-            string name = body.Substring(nameStart, index - nameStart + 1);
-            if (!localNames.Contains(name) && !IsSafeReplacementCommand(name)) return false;
-        }
-        for (int index = 0; index + 1 < body.Length; index++) {
-            if (body[index] != '#') continue;
-            if (body[index + 1] == '#') { index++; continue; }
-            if (body[index + 1] < '1' || body[index + 1] > '9' || body[index + 1] - '0' > parameterCount) return false;
-        }
-        return true;
-    }
-
-    private static bool IsSafeReplacementCommand(string name) {
-        switch (name) {
-            case "textbf":
-            case "textit":
-            case "emph":
-            case "texttt":
-            case "underline":
-            case "textsuperscript":
-            case "textsubscript":
-            case "mathrm":
-            case "mathbf":
-            case "mathit":
-            case "mathsf":
-            case "mathtt":
-            case "operatorname":
-            case "frac":
-            case "sqrt":
-            case "ensuremath":
-            case "protect":
-            case "ref":
-            case "pageref":
-            case "autoref":
-            case "eqref":
-            case "cite":
-            case "citep":
-            case "citet":
-            case "url":
-            case "href":
-            case "footnote":
-            case "newline":
-            case "linebreak":
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    private static bool IsControlWordCharacter(char value) =>
-        (value >= 'a' && value <= 'z') || (value >= 'A' && value <= 'Z') || value == '@';
-
-    private sealed class MacroCandidate {
-        internal MacroCandidate(
-            LatexCommand command,
-            string name,
-            int parameterCount,
-            string? defaultValue,
-            string body,
-            bool isWellFormed) {
-            Command = command;
-            Name = name;
-            ParameterCount = parameterCount;
-            DefaultValue = defaultValue;
-            Body = body;
-            IsWellFormed = isWellFormed;
-        }
-
-        internal LatexCommand Command { get; }
-        internal string Name { get; }
-        internal int ParameterCount { get; }
-        internal string? DefaultValue { get; }
-        internal string Body { get; }
-        internal bool IsWellFormed { get; }
-    }
-
     private static IReadOnlyList<LatexParagraph> BuildParagraphs(
         LatexSourceText source,
         LatexEnvironment body,
         IReadOnlyList<LatexHeading> headings,
         IReadOnlyList<LatexEnvironment> environments,
         IReadOnlyList<LatexMath> math,
-        IReadOnlyList<LatexCommand> commands) {
+        IReadOnlyList<LatexCommand> commands, CancellationToken cancellationToken) {
         var blocked = new List<LatexSourceSpan>();
         blocked.AddRange(headings.Select(static heading => heading.Command.Syntax.Span));
         LatexCommand[] labels = commands.Where(static command => string.Equals(command.Name, "label", StringComparison.Ordinal)).ToArray();
         int labelIndex = 0;
         for (int index = 0; index < headings.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             LatexSourceSpan headingSpan = headings[index].Command.Syntax.Span;
             while (labelIndex < labels.Length && labels[labelIndex].Syntax.StartOffset < headingSpan.End.Offset) labelIndex++;
             LatexCommand? label = labelIndex < labels.Length
@@ -510,10 +400,10 @@ internal static class LatexSemanticBuilder {
             if (label != null) blocked.Add(label.Syntax.Span);
         }
         blocked.AddRange(body.Syntax.DescendantsAndSelf()
-            .Where(static node => node.Kind == LatexSyntaxKind.Command && string.Equals(node.Value, "maketitle", StringComparison.Ordinal))
+            .Where(static node => node.Kind == LatexSyntaxKind.Command && IsActiveSyntax(node) && string.Equals(node.Value, "maketitle", StringComparison.Ordinal))
             .Select(static node => node.Span));
         blocked.AddRange(body.Syntax.DescendantsAndSelf()
-            .Where(static node => node.Kind == LatexSyntaxKind.Verbatim &&
+            .Where(static node => node.Kind == LatexSyntaxKind.Verbatim && IsActiveSyntax(node) && !IsInsideCommandArgument(node) &&
                 !string.Equals(node.Value, "verb", StringComparison.Ordinal))
             .Select(static node => node.Span));
         blocked.AddRange(environments.Where(environment => !ReferenceEquals(environment, body) &&
@@ -521,16 +411,21 @@ internal static class LatexSemanticBuilder {
             environment.Syntax.EndOffset <= body.ContentSpan.End.Offset).Select(static environment => environment.Syntax.Span));
         blocked.AddRange(math.Where(static item => item.Kind != LatexMathKind.InlineDollar && item.Kind != LatexMathKind.InlineParentheses && item.Kind != LatexMathKind.Environment)
             .Select(static item => item.Syntax.Span));
-        blocked = Merge(blocked.OrderBy(static span => span.Start.Offset).ToList());
+        blocked = Merge(blocked
+            .Where(span => span.End.Offset > body.ContentSpan.Start.Offset && span.Start.Offset < body.ContentSpan.End.Offset)
+            .Select(span => source.CreateSpan(Math.Max(span.Start.Offset, body.ContentSpan.Start.Offset),
+                Math.Min(span.End.Offset, body.ContentSpan.End.Offset)))
+            .OrderBy(static span => span.Start.Offset).ToList());
 
         var paragraphs = new List<LatexParagraph>();
         int cursor = body.ContentSpan.Start.Offset;
         for (int index = 0; index < blocked.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             LatexSourceSpan span = blocked[index];
-            if (span.Start.Offset > cursor) AddParagraphSegments(source, cursor, span.Start.Offset, paragraphs);
+            if (span.Start.Offset > cursor) AddParagraphSegments(source, cursor, span.Start.Offset, paragraphs, cancellationToken);
             cursor = Math.Max(cursor, span.End.Offset);
         }
-        if (cursor < body.ContentSpan.End.Offset) AddParagraphSegments(source, cursor, body.ContentSpan.End.Offset, paragraphs);
+        if (cursor < body.ContentSpan.End.Offset) AddParagraphSegments(source, cursor, body.ContentSpan.End.Offset, paragraphs, cancellationToken);
         return paragraphs;
     }
 
@@ -541,10 +436,30 @@ internal static class LatexSemanticBuilder {
         return true;
     }
 
-    private static void AddParagraphSegments(LatexSourceText source, int start, int end, List<LatexParagraph> paragraphs) {
+    private static void AddParagraphSegments(LatexSourceText source, int start, int end, List<LatexParagraph> paragraphs, CancellationToken cancellationToken) {
         int segmentStart = start;
         int index = start;
         while (index < end) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (source.Text[index] == '\\') { index += Math.Min(2, end - index); continue; }
+            if (source.Text[index] == '%') {
+                while (index < end && source.Text[index] != '\r' && source.Text[index] != '\n') {
+                    if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+                    index++;
+                }
+                if (TryReadLineEnding(source.Text, index, end, out int commentEnding)) {
+                    int nextLine = index + commentEnding;
+                    while (nextLine < end && (source.Text[nextLine] == ' ' || source.Text[nextLine] == '\t')) nextLine++;
+                    if (TryReadLineEnding(source.Text, nextLine, end, out int blankEnding)) {
+                        AddTrimmedParagraph(source, segmentStart, index, paragraphs);
+                        segmentStart = nextLine + blankEnding;
+                        index = segmentStart;
+                    } else {
+                        index += commentEnding;
+                    }
+                }
+                continue;
+            }
             if (!TryReadLineEnding(source.Text, index, end, out int firstLength)) { index++; continue; }
             int lookahead = index + firstLength;
             while (lookahead < end && (source.Text[lookahead] == ' ' || source.Text[lookahead] == '\t')) lookahead++;

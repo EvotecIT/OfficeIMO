@@ -82,7 +82,7 @@ public static partial class HtmlResourcePipeline {
         return manifest;
     }
 
-    internal static HtmlExternalStylesheetAnalysis AnalyzeExternalStylesheet(string css, Uri baseUri, HtmlResourcePipelineOptions options) {
+    internal static HtmlExternalStylesheetAnalysis AnalyzeExternalStylesheet(string css, Uri baseUri, HtmlResourcePipelineOptions options, bool includeInactiveResources = false) {
         string normalized = StripCssCommentsOutsideStrings(css ?? string.Empty);
         var imports = new List<HtmlExternalStylesheetImport>();
         var fontResources = new List<HtmlResourceReference>();
@@ -115,7 +115,7 @@ public static partial class HtmlResourcePipeline {
                 hasUnknownMediaCondition));
         }
 
-        foreach (HtmlCssFontFaceDefinition definition in ExtractFontFaces(normalized, options)) {
+        foreach (HtmlCssFontFaceDefinition definition in ExtractFontFaces(normalized, options, includeInactiveResources)) {
             foreach (string source in ExtractFontFaceUrls(definition.Source)) {
                 string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, resourcePolicy);
                 bool allowed = !string.IsNullOrWhiteSpace(resolved) && IsResourceKindSchemeAllowed(HtmlResourceKind.Font, resolved);
@@ -130,7 +130,7 @@ public static partial class HtmlResourcePipeline {
             }
         }
 
-        List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(normalized, options);
+        List<SourceRange> inactiveRanges = includeInactiveResources ? new List<SourceRange>() : GetInactiveCssRuleRanges(normalized, options);
         List<SourceRange> importRanges = imports.Select(import => new SourceRange(import.Start, import.End)).ToList();
         foreach (System.Text.RegularExpressions.Match match in CssUrlExpression.Matches(normalized)) {
             if (!IsValidCssUrlMatch(normalized, match)
@@ -147,19 +147,23 @@ public static partial class HtmlResourcePipeline {
                 continue;
             }
 
-            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, resourcePolicy);
-            bool allowed = !string.IsNullOrWhiteSpace(resolved) && IsResourceKindSchemeAllowed(HtmlResourceKind.Image, resolved);
-            imageResources.Add(new HtmlResourceReference(
-                HtmlResourceKind.Image,
-                "style",
-                "css-url",
-                source,
-                resolved,
-                allowed,
-                allowed ? string.Empty : GetDiagnosticCode(HtmlResourceKind.Image)));
+            AddImage(source, "css-url");
+        }
+        foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(normalized)) {
+            if (IsInRanges(reference.Start, inactiveRanges) || IsInRanges(reference.Start, importRanges) ||
+                ClassifyCssUrl(normalized, reference.Start) != HtmlResourceKind.Image) continue;
+            string source = DecodeCssEscapes(reference.Source);
+            if (!string.IsNullOrWhiteSpace(source) && !IsFragmentOnlyReference(source)) AddImage(source, "css-image-set");
         }
 
         return new HtmlExternalStylesheetAnalysis(normalized, imports.AsReadOnly(), fontResources.AsReadOnly(), imageResources.AsReadOnly());
+
+        void AddImage(string source, string attribute) {
+            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(source, baseUri, resourcePolicy);
+            bool allowed = !string.IsNullOrWhiteSpace(resolved) && IsResourceKindSchemeAllowed(HtmlResourceKind.Image, resolved);
+            imageResources.Add(new HtmlResourceReference(HtmlResourceKind.Image, "style", attribute, source, resolved, allowed,
+                allowed ? string.Empty : GetDiagnosticCode(HtmlResourceKind.Image)));
+        }
     }
 
     private static bool HasCssImportLayerCondition(string conditionText) {

@@ -204,6 +204,74 @@ public sealed class OfficeConversionBatchExecutorTests {
         }));
     }
 
+    [Fact]
+    public async Task OrdinaryBatchRejectsLinkedOutputSubdirectoryBeforeConversion() {
+        using var scope = new BatchDirectory();
+        string nestedInput = Path.Combine(scope.Input, "nested");
+        Directory.CreateDirectory(nestedInput);
+        File.WriteAllText(Path.Combine(nestedInput, "one.txt"), "batch source");
+        string outside = Path.Combine(Path.GetDirectoryName(scope.Output)!, "outside");
+        Directory.CreateDirectory(outside);
+        string displacedOutput = Path.Combine(outside, "one.txt.pdf");
+        File.WriteAllText(displacedOutput, "keep existing file");
+        Directory.CreateDirectory(scope.Output);
+        Directory.CreateSymbolicLink(Path.Combine(scope.Output, "nested"), outside);
+
+        OfficeConversionBatchResult result = await new OfficeWorkflowRunner().RunBatchAsync(scope.Request with {
+            CheckpointDirectory = null, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+        });
+
+        Assert.Equal(1, result.Failed);
+        Assert.Equal("keep existing file", File.ReadAllText(displacedOutput));
+    }
+
+    [Fact]
+    public async Task OrdinaryBatchRejectsOutputLinkSwappedDuringConversionBeforeStaging() {
+        using var scope = new BatchDirectory();
+        string nestedInput = Path.Combine(scope.Input, "nested");
+        Directory.CreateDirectory(nestedInput);
+        File.WriteAllText(Path.Combine(nestedInput, "one.txt"), "batch source");
+        string outside = Path.Combine(Path.GetDirectoryName(scope.Output)!, "outside");
+        Directory.CreateDirectory(outside);
+        string displacedOutput = Path.Combine(outside, "one.txt.pdf");
+        File.WriteAllText(displacedOutput, "keep existing file");
+
+        var runner = new SwapOutputBeforeConversion(scope.Output, outside);
+        OfficeConversionBatchResult result = await ((IOfficeWorkflowRunner)runner)
+            .RunBatchAsync(scope.Request with { CheckpointDirectory = null, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace });
+
+        Assert.Equal(1, result.Failed);
+        Assert.False(runner.SawOutsideStage);
+        Assert.Equal("keep existing file", File.ReadAllText(displacedOutput));
+        Assert.Empty(Directory.GetFiles(outside, "*.tmp"));
+    }
+
+    private sealed class SwapOutputBeforeConversion(string outputRoot, string outside) : IOfficeWorkflowRunner {
+        private readonly OfficeWorkflowRunner _inner = new();
+        private readonly string _outside = outside;
+        public bool SawOutsideStage { get; private set; }
+
+        public Task<OfficeWorkflowResult> RunAsync(OfficeWorkflowRequest request,
+            IProgress<OfficeWorkflowProgress>? progress = null, CancellationToken cancellationToken = default) {
+            string nested = Path.Combine(outputRoot, "nested");
+            Directory.CreateSymbolicLink(nested, _outside);
+            return _inner.RunAsync(request, new CaptureStaging(this, progress), cancellationToken);
+        }
+
+        private sealed class CaptureStaging(SwapOutputBeforeConversion owner, IProgress<OfficeWorkflowProgress>? next)
+            : IProgress<OfficeWorkflowProgress> {
+            public void Report(OfficeWorkflowProgress value) {
+                if (value.Stage == "validate-output" && Directory.GetFiles(owner._outside, "*.tmp").Length != 0)
+                    owner.SawOutsideStage = true;
+                next?.Report(value);
+            }
+        }
+
+        public Task<IReadOnlyList<OfficeWorkflowResult>> RunBatchAsync(IEnumerable<OfficeWorkflowRequest> requests,
+            IProgress<OfficeWorkflowProgress>? progress = null, CancellationToken cancellationToken = default) =>
+            _inner.RunBatchAsync(requests, progress, cancellationToken);
+    }
+
     [Theory]
     [InlineData(".html", false, false)]
     [InlineData(".html", true, false)]

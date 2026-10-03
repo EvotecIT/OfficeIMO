@@ -49,8 +49,8 @@ public sealed partial class LatexDocument {
         _labels = model.Labels;
         _theorems = model.Theorems;
         _macroDefinitions = model.MacroDefinitions;
-        DocumentClassCommand = Commands.FirstOrDefault(static command => string.Equals(command.Name, "documentclass", StringComparison.Ordinal));
-        Body = Environments.FirstOrDefault(static environment => string.Equals(environment.Name, "document", StringComparison.Ordinal));
+        DocumentClassCommand = Commands.FirstOrDefault(static command => string.Equals(command.Name, "documentclass", StringComparison.Ordinal) && LatexSemanticBuilder.IsActiveSyntax(command.Syntax));
+        Body = Environments.FirstOrDefault(static environment => string.Equals(environment.Name, "document", StringComparison.Ordinal) && LatexSemanticBuilder.IsActiveSyntax(environment.Syntax));
     }
 
     /// <summary>Original decoded source.</summary>
@@ -103,6 +103,10 @@ public sealed partial class LatexDocument {
     /// <summary>True when an editable semantic region changed.</summary>
     public bool IsModified => GetSourceEdits().Any(static edit => edit.IsModified);
 
+    // Rebind semantics once at the conversion boundary after validated source edits.
+    internal LatexDocument GetCurrentView(CancellationToken cancellationToken = default) =>
+        IsModified ? Parse(ToLatex(), _options, cancellationToken) : this;
+
     /// <summary>Parses LaTeX source into the typed document model without executing it.</summary>
     public static LatexDocument Parse(string source, LatexParseOptions? options = null) =>
         ParseResult(source, options).Document;
@@ -143,7 +147,7 @@ public sealed partial class LatexDocument {
         if (_options.MacroExpansion != LatexMacroExpansion.SafeSimpleDefinitions) {
             throw new InvalidOperationException("Safe simple macro expansion was not enabled in LatexParseOptions.");
         }
-        return LatexSimpleMacroExpander.Expand(value, MacroDefinitions, _options.MaximumExpansionDepth,
+        return LatexSimpleMacroExpander.Expand(value, GetCurrentView().MacroDefinitions, _options.MaximumExpansionDepth,
             _options.MaximumExpansionLength, _options.MaximumExpansionInputLength,
             _options.MaximumExpansionTokenCount, _options.VerbatimEnvironmentNames);
     }
