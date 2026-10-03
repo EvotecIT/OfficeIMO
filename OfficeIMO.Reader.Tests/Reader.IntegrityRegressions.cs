@@ -13,10 +13,19 @@ namespace OfficeIMO.Reader.Tests;
 
 public sealed class ReaderIntegrityRegressionsTests {
     [Theory]
-    [InlineData(256)]
-    [InlineData(8000)]
-    public void TextMarkdownPreservesContentAcrossChunkSizes(int maximum) {
-        string text = new string('a', 300) + "\n\n" + new string('b', 300);
+    [InlineData(256, "paragraphs")]
+    [InlineData(8000, "paragraphs")]
+    [InlineData(256, "leading-spaces")]
+    [InlineData(8000, "leading-spaces")]
+    [InlineData(256, "leading-newlines")]
+    [InlineData(8000, "leading-newlines")]
+    [InlineData(256, "whitespace")]
+    [InlineData(8000, "whitespace")]
+    public void TextMarkdownPreservesContentAcrossChunkSizes(int maximum, string shape) {
+        string text = shape == "leading-spaces" ? new string(' ', 300) + "body"
+            : shape == "leading-newlines" ? new string('\n', 300) + "body"
+            : shape == "whitespace" ? new string(' ', 300)
+            : new string('a', 300) + "\n\n" + new string('b', 300);
         var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().Build();
         OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(text), "sample.txt",
             new ReaderOptions { ComputeHashes = false, MaxChars = maximum });
@@ -45,6 +54,28 @@ public sealed class ReaderIntegrityRegressionsTests {
         Assert.True(markdown.IndexOf("Before", StringComparison.Ordinal) < markdown.IndexOf("alpha", StringComparison.Ordinal));
         Assert.True(markdown.IndexOf("alpha", StringComparison.Ordinal) < markdown.IndexOf("After", StringComparison.Ordinal));
         Assert.Equal("alpha", table.Rows[0][0]);
+    }
+
+    [Theory]
+    [InlineData("path")]
+    [InlineData("page")]
+    [InlineData("slide")]
+    [InlineData("sheet")]
+    public void PageMarkdownKeepsTablePreviewsFromOtherSourceContainers(string container) {
+        var previewLocation = new ReaderLocation { BlockAnchor = "table-1", Path = "a.doc", Page = 1, Slide = 1, Sheet = "A" };
+        var tableLocation = new ReaderLocation { BlockAnchor = "table-1", Path = "a.doc", Page = 1, Slide = 1, Sheet = "A" };
+        if (container == "path") tableLocation.Path = "b.doc";
+        else if (container == "page") tableLocation.Page = 2;
+        else if (container == "slide") tableLocation.Slide = 2;
+        else tableLocation.Sheet = "B";
+        var page = new OfficeDocumentPage {
+            Blocks = new[] { new OfficeDocumentBlock { Kind = "table", Text = "Other source preview", Location = previewLocation } },
+            Tables = new[] { new ReaderTable { Columns = new[] { "Value" },
+                Rows = new[] { (IReadOnlyList<string>)new[] { "Structured cell" } }, Location = tableLocation } }
+        };
+        string markdown = new OfficeDocumentReadResult { Pages = new[] { page } }.GetPageMarkdown()[0].Markdown;
+        Assert.Contains("Other source preview", markdown);
+        Assert.Contains("| Structured cell |", markdown);
     }
 
     [Fact]
@@ -100,6 +131,23 @@ public sealed class ReaderIntegrityRegressionsTests {
         ReaderResourceLimitException error = Assert.Throws<ReaderResourceLimitException>(() =>
             reader.ReadDocument(Encoding.UTF8.GetBytes(xml), "bounded.xml", new ReaderOptions { ComputeHashes = false }));
         Assert.Equal(limit == "depth" ? "MaxDepth" : limit == "nodes" ? "MaxNodes" : "MaxScalarLength", error.LimitName);
+    }
+
+    [Theory]
+    [InlineData("<root xmlns='urn:x' xmlns:p='urn:y' p:attr='v'><p:child/></root>",
+        "{urn:x}root[1]|{urn:x}root[1]/@xmlns|{urn:x}root[1]/@xmlns:p|{urn:x}root[1]/@p:attr|{urn:x}root[1]/p:child[1]")]
+    [InlineData("<root xmlns:p='urn:x' xmlns:q='urn:x'><q:child q:value='v'/></root>",
+        "root[1]|root[1]/@xmlns:p|root[1]/@xmlns:q|root[1]/p:child[1]|root[1]/p:child[1]/@p:value")]
+    [InlineData("<root xmlns='urn:x' xmlns:p='urn:x'><p:child/></root>",
+        "p:root[1]|p:root[1]/@xmlns|p:root[1]/@xmlns:p|p:root[1]/p:child[1]")]
+    [InlineData("<root xmlns:p='urn:x'><child xmlns:p='urn:y' xmlns:q='urn:x'><q:leaf/></child></root>",
+        "root[1]|root[1]/@xmlns:p|root[1]/child[1]|root[1]/child[1]/@xmlns:p|root[1]/child[1]/@xmlns:q|root[1]/child[1]/q:leaf[1]")]
+    public void XmlPathsPreserveNamespaceDeclarationAndAliasConventions(string xml, string expected) {
+        var reader = new OfficeDocumentReaderBuilder().AddXmlHandler().Build();
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(xml), "namespaces.xml",
+            new ReaderOptions { ComputeHashes = false });
+        Assert.Equal(expected.Split('|'), result.Tables.SelectMany(table => table.Rows).Select(row => row[0]));
+        Assert.Empty(result.Diagnostics);
     }
 
     [Fact]

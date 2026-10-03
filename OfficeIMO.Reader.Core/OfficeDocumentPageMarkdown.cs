@@ -68,14 +68,14 @@ public static partial class OfficeDocumentReadResultExtensions {
 
             var pageDocument = new OfficeDocumentReadResult { Pages = new[] { page } };
             OfficeDocumentContentItem[] content = pageDocument.EnumerateContent().ToArray();
-            var tableAnchors = new HashSet<string>(content.Where(item => item.Table?.Location?.BlockAnchor != null)
-                .Select(item => item.Table!.Location!.BlockAnchor!), StringComparer.Ordinal);
+            var tableLocations = content.Where(item => item.Table != null && !string.IsNullOrWhiteSpace(item.Location?.BlockAnchor))
+                .GroupBy(item => item.Location!.BlockAnchor!, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.Select(item => item.Location!).ToArray(), StringComparer.Ordinal);
             foreach (OfficeDocumentContentItem item in content) {
                 if (item.Table != null) {
                     markdown.AppendLine(item.Table.ToMarkdownTable());
                     markdown.AppendLine();
-                } else if (item.Block != null && !(item.Block.Kind == "table"
-                    && item.Block.Location?.BlockAnchor != null && tableAnchors.Contains(item.Block.Location.BlockAnchor))) {
+                } else if (item.Block != null && !HasMatchingStructuredTable(item, tableLocations)) {
                     AppendBlockMarkdown(markdown, item.Block);
                 }
             }
@@ -88,6 +88,12 @@ public static partial class OfficeDocumentReadResultExtensions {
         }
 
         return pages.AsReadOnly();
+    }
+
+    private static bool HasMatchingStructuredTable(OfficeDocumentContentItem item, IReadOnlyDictionary<string, ReaderLocation[]> tables) {
+        if (item.Block?.Kind != "table" || string.IsNullOrWhiteSpace(item.Location?.BlockAnchor)
+            || !tables.TryGetValue(item.Location!.BlockAnchor!, out ReaderLocation[]? locations)) return false;
+        return locations.Count(location => OfficeDocumentModelTraversal.SameContainerWhenKnown(item.Location, location)) == 1;
     }
 
     /// <summary>

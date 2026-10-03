@@ -276,7 +276,8 @@ internal static partial class DocumentReaderEngine {
             ReaderChunk chunk = chunks[index];
             string? value = valueSelector(chunk, index);
             if (string.IsNullOrEmpty(value) ||
-                (string.IsNullOrWhiteSpace(value) && !chunk.ContinuesPreviousChunk)) continue;
+                (string.IsNullOrWhiteSpace(value) && !chunk.ContinuesPreviousChunk
+                    && chunk.Kind != ReaderInputKind.Text && chunk.Kind != ReaderInputKind.Unknown)) continue;
 
             if (markdown == null) {
                 markdown = new StringBuilder(value!.Length);

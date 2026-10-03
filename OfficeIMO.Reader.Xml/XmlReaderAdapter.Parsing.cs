@@ -27,19 +27,32 @@ internal static partial class XmlReaderAdapter {
                 XName name = XName.Get(reader.LocalName, reader.NamespaceURI);
                 ElementFrame? parent = stack.Count == 0 ? null : stack.Peek();
                 int sibling = parent == null ? 1 : parent.Siblings.Next(name);
-                string path = (parent == null ? string.Empty : parent.Path + "/") + QualifiedName(reader)
-                    + "[" + sibling.ToString(CultureInfo.InvariantCulture) + "]";
-                var frame = new ElementFrame(path, rows.Count);
-                rows.Add(new StructuredRow(path, "element", string.Empty));
+                var attributes = new List<(XName Name, string Value)>();
+                List<(string Prefix, string Namespace)>? declarations = null;
                 if (reader.MoveToFirstAttribute()) {
                     do {
                         CountNode();
-                        string attributePath = path + "/@" + QualifiedName(reader);
                         string value = ReadScalar(reader, buffer, options.MaxScalarLength, options.MaxScalarLength, token);
-                        rows.Add(new StructuredRow(attributePath, "attribute", NormalizeText(value)));
+                        // LINQ to XML represents the default declaration as the unqualified name "xmlns".
+                        XName attributeName = reader.Name == "xmlns" ? XName.Get("xmlns")
+                            : XName.Get(reader.LocalName, reader.NamespaceURI);
+                        attributes.Add((attributeName, value));
+                        if (reader.Prefix == "xmlns") {
+                            declarations ??= new List<(string Prefix, string Namespace)>();
+                            declarations.Add((reader.LocalName, value));
+                        }
                     } while (reader.MoveToNextAttribute());
                     reader.MoveToElement();
                 }
+                NamespaceScope? namespaces = declarations == null ? parent?.Namespaces
+                    : new NamespaceScope(parent?.Namespaces, declarations);
+                string path = (parent == null ? string.Empty : parent.Path + "/") + QualifiedName(reader, name, namespaces)
+                    + "[" + sibling.ToString(CultureInfo.InvariantCulture) + "]";
+                var frame = new ElementFrame(path, rows.Count, namespaces);
+                rows.Add(new StructuredRow(path, "element", string.Empty));
+                foreach (var attribute in attributes)
+                    rows.Add(new StructuredRow(path + "/@" + QualifiedName(reader, attribute.Name, namespaces),
+                        "attribute", NormalizeText(attribute.Value)));
                 if (!empty) stack.Push(frame);
             } else if (reader.NodeType == XmlNodeType.EndElement) {
                 ElementFrame frame = stack.Pop();
@@ -72,14 +85,38 @@ internal static partial class XmlReaderAdapter {
         return value.ToString();
     }
 
-    private static string QualifiedName(XmlReader reader) => reader.Prefix.Length > 0 || reader.NamespaceURI.Length == 0
-        ? reader.Name : "{" + reader.NamespaceURI + "}" + reader.LocalName;
+    private static string QualifiedName(XmlReader reader, XName name, NamespaceScope? namespaces) {
+        if (name.Namespace == XNamespace.None) return name.LocalName;
+        if (name.Namespace == XNamespace.Xml) return "xml:" + name.LocalName;
+        if (name.Namespace == XNamespace.Xmlns) return "xmlns:" + name.LocalName;
+        // Retain the prior path convention: prefer the nearest first-declared non-default
+        // prefix for the namespace, excluding declarations shadowed by the current element.
+        for (NamespaceScope? scope = namespaces; scope != null; scope = scope.Parent)
+            foreach (var declaration in scope.Declarations)
+                if (declaration.Namespace == name.NamespaceName && reader.LookupNamespace(declaration.Prefix) == name.NamespaceName)
+                    return declaration.Prefix + ":" + name.LocalName;
+        return "{" + name.NamespaceName + "}" + name.LocalName;
+    }
+
+    private sealed class NamespaceScope {
+        internal readonly NamespaceScope? Parent;
+        internal readonly List<(string Prefix, string Namespace)> Declarations;
+        internal NamespaceScope(NamespaceScope? parent, List<(string Prefix, string Namespace)> declarations) {
+            Parent = parent;
+            Declarations = declarations;
+        }
+    }
 
     private sealed class ElementFrame {
         internal readonly string Path;
         internal readonly int RowIndex;
         internal readonly StringBuilder Text = new StringBuilder();
+        internal readonly NamespaceScope? Namespaces;
         internal SiblingNameCounter Siblings;
-        internal ElementFrame(string path, int rowIndex) { Path = path; RowIndex = rowIndex; }
+        internal ElementFrame(string path, int rowIndex, NamespaceScope? namespaces) {
+            Path = path;
+            RowIndex = rowIndex;
+            Namespaces = namespaces;
+        }
     }
 }
