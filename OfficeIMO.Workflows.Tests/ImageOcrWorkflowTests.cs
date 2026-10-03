@@ -5,6 +5,35 @@ namespace OfficeIMO.Workflows.Tests;
 
 public sealed class ImageOcrWorkflowTests {
     [Theory]
+    [InlineData(OcrDiagnosticSeverity.Info, OfficeWorkflowDiagnosticSeverity.Information)]
+    [InlineData(OcrDiagnosticSeverity.Warning, OfficeWorkflowDiagnosticSeverity.Warning)]
+    [InlineData(OcrDiagnosticSeverity.Error, OfficeWorkflowDiagnosticSeverity.Error)]
+    public async Task RecognizedImageRetainsProviderDiagnosticSeverity(OcrDiagnosticSeverity providerSeverity,
+        OfficeWorkflowDiagnosticSeverity expectedSeverity) {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-image-ocr-diagnostics-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            byte[] image = OcrSessionWorkflowTests.Png();
+            string output = Path.Combine(root, "recognized.txt");
+            var request = new ImageOcrWorkflowRequest {
+                InputPath = "content://scans/input", InputStream = new("scan.png", _ => Task.FromResult<Stream>(new MemoryStream(image))),
+                OutputPath = output
+            };
+            var engine = new DelegateOcrEngine("diagnostics", (_, _) => Task.FromResult(new OcrResult {
+                Text = "Recognized", Diagnostics = new[] { new OcrDiagnostic {
+                    Code = "provider-notice", Message = "Provider notice", Severity = providerSeverity, IsRecoverable = true
+                } }
+            }));
+
+            var result = await new OfficeWorkflowRunner().RecognizeImageAsync(request, engine);
+
+            Assert.Equal(OfficeWorkflowStatus.Completed, result.Status);
+            Assert.Equal("Recognized", File.ReadAllText(output));
+            Assert.Equal(expectedSeverity, Assert.Single(result.Diagnostics, diagnostic => diagnostic.Code == "provider-notice").Severity);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task ProviderTextIsVerifiedOrRetainedForRecovery(bool failWrite) {
