@@ -17,9 +17,15 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(0, stream.Position);
 
         stream.Position = 5;
-        Assert.ThrowsAny<Exception>(() => IWorkReaderAdapter.ReadDocument(stream,
-            "sample.pages", readerOptions, iWorkOptions, CancellationToken.None));
+        Assert.Equal(ReaderInputKind.IWork, IWorkReaderAdapter.ReadDocument(stream,
+            "sample.pages", readerOptions, iWorkOptions, CancellationToken.None).Kind);
         Assert.Equal(5, stream.Position);
+
+        using var invalid = new MemoryStream(new byte[] { 1, 2, 3 });
+        invalid.Position = 1;
+        Assert.ThrowsAny<Exception>(() => IWorkReaderAdapter.ReadDocument(invalid,
+            "sample.pages", readerOptions, iWorkOptions, CancellationToken.None));
+        Assert.Equal(1, invalid.Position);
     }
 
     [Fact]
