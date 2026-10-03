@@ -1,0 +1,649 @@
+{
+  "schemaVersion": 1,
+  "measuredUtc": "2026-10-03T09:05:24.120567+00:00",
+  "scope": "Static MATH constants and vertical geometry for fractions, right/left scripts, limits and bars",
+  "status": "Qualified bounded static-font milestone; broader MATH geometry remains in Docs/ROADMAP.md",
+  "source": {
+    "implementationCommit": "cdb8a9bd64e09c1cc4b83c23f462978ba836d528",
+    "baseCommit": "f61808d6b3abccc57552241e4cab341a97d2df93",
+    "implementationPatchFingerprint": "2833e516a69b750a47ed74d5dd6b8310cf5b36f3",
+    "sdk": "10.0.112",
+    "host": "macOS Arm64",
+    "runtime": ".NET 8.0.23 and .NET 10.0.12"
+  },
+  "productApiAssessment": {
+    "recommendation": "Accept the scoped shape on the dedicated HTML branches",
+    "outcome": "Supplied static math fonts drive equation placement and rules through the existing shared font/math owner. HTML remains a thin consumer.",
+    "publicSurface": [
+      "IOfficeMathFontProgram optional font-program contract",
+      "OfficeMathFontConstants detached immutable values",
+      "OfficeMathConstant standard field names",
+      "OfficeMathRenderOptions.UseFontMathMetrics default true with explicit caller opt-out"
+    ],
+    "compatibility": "Existing font providers remain usable; missing, malformed and variable math metrics use the prior caller-controlled fallback. No AST, Word or OneNote codec redesign.",
+    "dependencyBoundary": "No new production dependency, executable, vendored engine or font asset. fontTools, HtmlTinkerX/Chromium, Poppler and veraPDF are isolated validation tools. Core nupkg declares zero external runtime dependencies."
+  },
+  "qualifiedBehavior": [
+    "Bounded MATH 1.0 constants from selected static TrueType and CFF programs",
+    "Font axis, numerator/denominator shifts, gaps and thickness for display/compact fractions",
+    "Right/left script vertical placement, minimum separation, outer spacing, 70/55 percent then 0.71 depth scaling for the fixed fixture",
+    "Upper/lower limit spacing and over/underbar gaps, rules and outside extent",
+    "DPI scaling, caller opt-out, missing/malformed-table fallback and cancellation before font resolution",
+    "Logical text, Formula descriptions and MathML attachment/profile policy preserved"
+  ],
+  "standards": [
+    {
+      "name": "OpenType MATH",
+      "url": "https://learn.microsoft.com/en-us/typography/opentype/spec/math"
+    },
+    {
+      "name": "MathML Core math-depth",
+      "url": "https://www.w3.org/TR/mathml-core/#the-math-depth"
+    }
+  ],
+  "fontOracle": {
+    "name": "STIX Two Math installed CFF",
+    "sha256": "3a5f3f26f40d5698b3c62dd085d48d6663696a3f80825aab8b553d5097518e8c",
+    "bytes": 838652,
+    "unitsPerEm": 1000,
+    "fontTools": "4.46.0",
+    "all56ConstantsMatchCffAndPortableSyntheticTrueType": true,
+    "constants": {
+      "ScriptPercentScaleDown": 70,
+      "ScriptScriptPercentScaleDown": 55,
+      "DelimitedSubFormulaMinHeight": 1325,
+      "DisplayOperatorMinHeight": 1800,
+      "MathLeading": 150,
+      "AxisHeight": 258,
+      "AccentBaseHeight": 480,
+      "FlattenedAccentBaseHeight": 656,
+      "SubscriptShiftDown": 210,
+      "SubscriptTopMax": 368,
+      "SubscriptBaselineDropMin": 160,
+      "SuperscriptShiftUp": 360,
+      "SuperscriptShiftUpCramped": 252,
+      "SuperscriptBottomMin": 120,
+      "SuperscriptBaselineDropMax": 230,
+      "SubSuperscriptGapMin": 150,
+      "SuperscriptBottomMaxWithSubscript": 380,
+      "SpaceAfterScript": 40,
+      "UpperLimitGapMin": 135,
+      "UpperLimitBaselineRiseMin": 300,
+      "LowerLimitGapMin": 135,
+      "LowerLimitBaselineDropMin": 670,
+      "StackTopShiftUp": 470,
+      "StackTopDisplayStyleShiftUp": 780,
+      "StackBottomShiftDown": 385,
+      "StackBottomDisplayStyleShiftDown": 690,
+      "StackGapMin": 150,
+      "StackDisplayStyleGapMin": 300,
+      "StretchStackTopShiftUp": 800,
+      "StretchStackBottomShiftDown": 590,
+      "StretchStackGapAboveMin": 68,
+      "StretchStackGapBelowMin": 68,
+      "FractionNumeratorShiftUp": 585,
+      "FractionNumeratorDisplayStyleShiftUp": 640,
+      "FractionDenominatorShiftDown": 585,
+      "FractionDenominatorDisplayStyleShiftDown": 640,
+      "FractionNumeratorGapMin": 68,
+      "FractionNumDisplayStyleGapMin": 150,
+      "FractionRuleThickness": 68,
+      "FractionDenominatorGapMin": 68,
+      "FractionDenomDisplayStyleGapMin": 150,
+      "SkewedFractionHorizontalGap": 350,
+      "SkewedFractionVerticalGap": 68,
+      "OverbarVerticalGap": 175,
+      "OverbarRuleThickness": 68,
+      "OverbarExtraAscender": 68,
+      "UnderbarVerticalGap": 175,
+      "UnderbarRuleThickness": 68,
+      "UnderbarExtraDescender": 68,
+      "RadicalVerticalGap": 85,
+      "RadicalDisplayStyleVerticalGap": 170,
+      "RadicalRuleThickness": 68,
+      "RadicalExtraAscender": 78,
+      "RadicalKernBeforeDegree": 65,
+      "RadicalKernAfterDegree": -335,
+      "RadicalDegreeBottomRaisePercent": 55
+    },
+    "noFontOutlinesCopiedIntoProduct": "The portable test font uses locally constructed rectangular glyphs; the recorded design metrics are not font outlines."
+  },
+  "browserProof": {
+    "cases": 13,
+    "engine": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+    "targetedSizes": [
+      {
+        "case": 1,
+        "officeimoSizes": {
+          "x": 40,
+          "2": 28,
+          "i": 28
+        },
+        "chromiumSizes": {
+          "x": 40.0,
+          "i": 28.0,
+          "2": 28.0
+        },
+        "sameSizes": true
+      },
+      {
+        "case": 2,
+        "officeimoSizes": {
+          "x": 40,
+          "y": 28
+        },
+        "chromiumSizes": {
+          "x": 40.0,
+          "y": 28.0
+        },
+        "sameSizes": true
+      },
+      {
+        "case": 3,
+        "officeimoSizes": {
+          "x": 40,
+          "y": 28
+        },
+        "chromiumSizes": {
+          "x": 40.0,
+          "y": 28.0
+        },
+        "sameSizes": true
+      },
+      {
+        "case": 4,
+        "officeimoSizes": {
+          "x": 40,
+          "y": 28,
+          "2": 21.999999999999996,
+          "3": 15.619999999999997
+        },
+        "chromiumSizes": {
+          "x": 40.0,
+          "y": 28.0,
+          "2": 22.0,
+          "3": 15.62
+        },
+        "sameSizes": true
+      },
+      {
+        "case": 5,
+        "officeimoSizes": {
+          "x": 40,
+          "y": 28,
+          "2": 21.999999999999996,
+          "3": 15.619999999999997,
+          "4": 11.0902
+        },
+        "chromiumSizes": {
+          "x": 40.0,
+          "y": 28.0,
+          "2": 22.0,
+          "3": 15.62,
+          "4": 11.0902
+        },
+        "sameSizes": true
+      }
+    ],
+    "visualInspection": "Inspected fraction, script, prescript, limit and nested-denominator PDF/raster output. Earlier eight-case fixture and the five-case review fixture are retained. Existing outer paragraph placement and accent attachment differ; no pixel or full-browser parity claim.",
+    "artifacts": [
+      {
+        "path": "Ignore/MathGeometryQualification/browser-review-final/officeimo.pdf",
+        "sha256": "96a441b49f6ffbf5cda206d38d7ea0291f9592da3d053bb3061b7de189d7a86d"
+      },
+      {
+        "path": "Ignore/MathGeometryQualification/browser-review-final/chromium.pdf",
+        "sha256": "65b6e61301106f94c5ca36a5d23c3444968278ba55fb5e84fe2ed25b885a1c2b"
+      },
+      {
+        "path": "Ignore/MathGeometryQualification/browser-review-final/officeimo.png",
+        "sha256": "182e80ccb16dca171489626723e454e9de67bf3def0518f344245dec7476d2f9"
+      },
+      {
+        "path": "Ignore/MathGeometryQualification/browser-review-final/chromium.png",
+        "sha256": "0cb0de159d7761a4e88d894ca800ca8df969c56beec95fd6c944369db89e3878"
+      },
+      {
+        "path": "Ignore/MathGeometryQualification/browser-review-final/comparison.json",
+        "sha256": "0576f6345e6f59b87b5fd92862affc93f7fe82618516ab2f4d14458479b99c1e"
+      }
+    ]
+  },
+  "tests": {
+    "drawingNet8Release": {
+      "total": 3332,
+      "passed": 3332,
+      "failed": 0,
+      "sha256": "50bd3d7db575b7f4673746e94c60de99731d75da3a0cdc34608581c02400a027"
+    },
+    "drawingNet10Release": {
+      "total": 3332,
+      "passed": 3332,
+      "failed": 0,
+      "sha256": "e82f64f9716b0fae7bce12c95c364f0bb20a8d978b522cbf7297509ca4bc3cfb"
+    },
+    "htmlNet8Debug": {
+      "total": 4185,
+      "passed": 4185,
+      "failed": 0,
+      "sha256": "e5ed953dbf42bce5c0ac29673534cb003105c1d27a5ad3e39e4357b66f1f99ab"
+    },
+    "htmlNet10Release": {
+      "total": 4185,
+      "passed": 4185,
+      "failed": 0,
+      "sha256": "6598bc3229ad28b2e8330e648454a4ff1fbbe99663c7066eecbc45f66305dc8c"
+    },
+    "mathFocusedNet8": {
+      "total": 66,
+      "passed": 66,
+      "failed": 0,
+      "sha256": "fdd0e2d14ec909bf4012bcd200825f434d31bf472e62850aaeabecb196e69b1c"
+    },
+    "mathFocusedNet10": {
+      "total": 66,
+      "passed": 66,
+      "failed": 0,
+      "sha256": "f78fa1307b3f01c390b6e9486d30092fcad38a519776f3614450c9dcbbc4c097"
+    },
+    "pdfFontsAttachmentsProfilesNet10": {
+      "total": 53,
+      "passed": 53,
+      "failed": 0,
+      "sha256": "670e7f3aa35446d4fd9b400e36dca7769d148b6ad3cd7e4dad4650a1042547a8"
+    },
+    "regressionReproductionBeforeFix": {
+      "total": 5,
+      "passed": 0,
+      "failed": 5,
+      "sha256": "2ff16d926f3ca9997b4d27a678f5a8cd41be35a66c77e6f974678628cf976018"
+    },
+    "correctnessFilter": "Category!=Performance",
+    "supportMatrix": "Generated through Build/Export-HtmlSupportMatrix.ps1; executable contract check passed."
+  },
+  "review": {
+    "fullPass": {
+      "candidateFingerprint": "cbb1248032df098a1d8dd2a8b4215eec34e84873",
+      "findings": [
+        {
+          "contract": "Cancellation before math-font resolution",
+          "priority": "P2",
+          "classification": "introduced",
+          "reproduced": true,
+          "fixed": true
+        },
+        {
+          "contract": "Prescript outer spacing",
+          "priority": "P2",
+          "classification": "introduced",
+          "reproduced": true,
+          "fixed": true
+        }
+      ],
+      "additionalCorrection": "MathML 0.71 scaling after the second MATH percentage depth"
+    },
+    "targetedConfirmation": {
+      "fourFileFingerprint": "180cb236b06d0ea0f34c85783ee89940a1fbfa9a",
+      "result": "No actionable findings",
+      "readOnly": true
+    },
+    "allowance": "One full independent pass and one targeted confirmation complete; no repeated full pass required for unchanged contracts."
+  },
+  "packages": {
+    "count": 19,
+    "frameworks": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ],
+    "command": "pwsh -NoProfile -File Build/Test-HtmlPackages.ps1 -ArtifactsPath <new task output>",
+    "standardConsumerProof": "Document-only and full HTML packed consumers pass on net8/net10. New public math snapshot, metrics and opt-out API compiled and ran from the packed Core package on both frameworks.",
+    "localTestPackageVersion": "3.3.0",
+    "coreRuntimeDependencies": [],
+    "noComparisonToolsOrFontAssets": true,
+    "inspectionSha256": "b40359224a8db646ec1cd67dd0a0f4d431bf856e8a0ba7ae894ea99734664dd3",
+    "nativePlatformLimits": "net472 was cross-compiled on macOS; this is not native Windows or Linux execution.",
+    "packages": [
+      {
+        "package": "OfficeIMO.Core.3.3.0.nupkg",
+        "sha256": "772a18d0b795255cdeb92284b3c7d40a8c9b3bec65ff9f8b568b527f46b82703",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ]
+      },
+      {
+        "package": "OfficeIMO.Email.3.3.0.nupkg",
+        "sha256": "c5c577096ff1ceb38fbc81ac7d280d00bfea8d732400e152b2c475f3c25fe98a",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ]
+      },
+      {
+        "package": "OfficeIMO.Excel.3.3.0.nupkg",
+        "sha256": "9a8698d8a0eb07c89ecb3ea6f7c006b03a7f83cd008bec125e6f57d598c93cde",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ]
+      },
+      {
+        "package": "OfficeIMO.Excel.Html.3.3.0.nupkg",
+        "sha256": "a9fc1cb0e507a4ca46fe79a56071a8386255aaa4556ceb0f96d7a4cea35d81fc",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ]
+      },
+      {
+        "package": "OfficeIMO.Html.3.3.0.nupkg",
+        "sha256": "fc0f9ddca39020ebbe7c3fe9f497e9a04c1f1cd3b9376f74d75368d4bd2d828a",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ]
+      },
+      {
+        "package": "OfficeIMO.Html.AngleSharp.3.3.0.nupkg",
+        "sha256": "097d2bba02a00c3a250ecaa7249d2053cffd5c49dad524d40725fee0582e340f",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ]
+      },
+      {
+        "package": "OfficeIMO.Html.Core.3.3.0.nupkg",
+        "sha256": "d177749c32b932a24ed0444f7bef8907560c9bbd6f02952cf3b8235b99c50e01",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ]
+      },
+      {
+        "package": "OfficeIMO.Html.Pdf.3.3.0.nupkg",
+        "sha256": "afc169ff1c5990a19d0d4f81af78dcc4e8cc3748bc32c82db1691c8456a5e5ea",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ]
+      },
+      {
+        "package": "OfficeIMO.Html.Rtf.3.3.0.nupkg",
+        "sha256": "9afc4a65e495703f79decfc274ca5abc868d8bd12065af29162e8b59e0d68227",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ]
+      },
+      {
+        "package": "OfficeIMO.Markdown.3.3.0.nupkg",
+        "sha256": "ab98b894a1640431aa6d03fa1422a163cf0596ee54902f38622a859dc8ff6aa9",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ]
+      },
+      {
+        "package": "OfficeIMO.Markdown.Html.3.3.0.nupkg",
+        "sha256": "a0cc00f5069e4b3cf5a589c274ede86f4295e62270b8bf0534165edb6a420b00",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ]
+      },
+      {
+        "package": "OfficeIMO.Mhtml.3.3.0.nupkg",
+        "sha256": "99787ed5e0acde3b34b01bc2f9317b7cf234d35607a14163e5ac35d13672342c",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ]
+      },
+      {
+        "package": "OfficeIMO.Mhtml.Pdf.3.3.0.nupkg",
+        "sha256": "429e5596393207d52d265baf4f9ae131a2396a5eb3198d3607701974668adbc9",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ]
+      },
+      {
+        "package": "OfficeIMO.Pdf.3.3.0.nupkg",
+        "sha256": "c4aeb4b290e9556b9f887a0402fcb33709410b0663e14b1ec41deeb89e3346bf",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ]
+      },
+      {
+        "package": "OfficeIMO.PowerPoint.3.3.0.nupkg",
+        "sha256": "6a3f3d93ad8711404a1f3deb5a7992204e6f631a171f9cb93171ba38e936894b",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ]
+      },
+      {
+        "package": "OfficeIMO.PowerPoint.Html.3.3.0.nupkg",
+        "sha256": "667fd3672c153d9ccfb92f4495333ae1e25cd95c50a0a8e874b98c11108238f9",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ]
+      },
+      {
+        "package": "OfficeIMO.Rtf.3.3.0.nupkg",
+        "sha256": "d99dfb8806072545d36b031f1304fb14462373548dc3a72e1e68449b1e135899",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ]
+      },
+      {
+        "package": "OfficeIMO.Word.3.3.0.nupkg",
+        "sha256": "f7b891291ecdb992252c65f35dbd9ce5578b6c81a824f245f1e04e8b19435f68",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ]
+      },
+      {
+        "package": "OfficeIMO.Word.Html.3.3.0.nupkg",
+        "sha256": "84f05660904c61c7310a6a4b1e7d816e9e4a33c6071ea88b9deeaf85432cc84b",
+        "frameworks": [
+          "net10.0",
+          "net472",
+          "net8.0",
+          "netstandard2.0"
+        ]
+      }
+    ]
+  },
+  "corpus": {
+    "h4": {
+      "caseCount": 8,
+      "acceptance": "Passed",
+      "requireCleanSource": true,
+      "sourceCommit": "cdb8a9bd64e09c1cc4b83c23f462978ba836d528",
+      "reportSha256": "bfc6af6ded9fb49c09f68421b1a13399cd4ffdb8e1f7a4b899d4b77dba845a30"
+    },
+    "static": {
+      "caseCount": 18,
+      "failures": 0,
+      "uniqueOfficeImoArtifacts": 150,
+      "byteIdenticalArtifacts": 136,
+      "changedCases": [
+        {
+          "id": "mathml-semantics",
+          "artifacts": 7,
+          "changed": [
+            "officeimo-print.pdf",
+            "officeimo-print-1.png",
+            "officeimo-screen.png",
+            "officeimo-screen-to-pdf.pdf",
+            "officeimo-screen-to-pdf-1.png",
+            "officeimo-print-scene-page-1.png",
+            "officeimo-print-scene-page-1.svg"
+          ],
+          "sameScreenSceneText": true,
+          "pdfSemantics": [
+            {
+              "output": "printPdf",
+              "samePageCount": true,
+              "sameExtractedTextTokens": true,
+              "sameFormulaActualTextAndAlt": true,
+              "sameDecodedAttachments": true
+            },
+            {
+              "output": "screenToPdf",
+              "samePageCount": true,
+              "sameExtractedTextTokens": true,
+              "sameFormulaActualTextAndAlt": true,
+              "sameDecodedAttachments": true
+            }
+          ],
+          "classification": "Expected font-constant fraction/script geometry. Poppler physical text line ordering changes; logical Formula descriptions, ActualText, extracted-token multiset and MathML attachments remain identical."
+        },
+        {
+          "id": "pdf-conformance",
+          "artifacts": 7,
+          "changed": [
+            "officeimo-print.pdf",
+            "officeimo-print-1.png",
+            "officeimo-screen.png",
+            "officeimo-screen-to-pdf.pdf",
+            "officeimo-screen-to-pdf-1.png",
+            "officeimo-print-scene-page-1.png",
+            "officeimo-print-scene-page-1.svg"
+          ],
+          "sameScreenSceneText": true,
+          "pdfSemantics": [
+            {
+              "output": "printPdf",
+              "samePageCount": true,
+              "sameExtractedTextTokens": true,
+              "sameFormulaActualTextAndAlt": true,
+              "sameDecodedAttachments": true
+            },
+            {
+              "output": "screenToPdf",
+              "samePageCount": true,
+              "sameExtractedTextTokens": true,
+              "sameFormulaActualTextAndAlt": true,
+              "sameDecodedAttachments": true
+            }
+          ],
+          "classification": "Expected font-constant fraction/script geometry. Poppler physical text line ordering changes; logical Formula descriptions, ActualText, extracted-token multiset and MathML attachments remain identical."
+        }
+      ],
+      "allPageCountsPreserved": true,
+      "allExtractedPdfTokenMultisetsFormulaActualTextAndDecodedAttachmentsPreserved": true,
+      "allScreenSceneTextPreserved": true,
+      "physicalExtractionLimit": "Poppler may place the formula ActualText on a different physical line after geometry changes; logical formula text and token coverage remain intact.",
+      "reportSha256": "ab6fbd60f9296261c8b627bc380c64ae8bad79b1c44179047887f1bdd5576910",
+      "comparisonSha256": "4d12d9c8469f424b35e3baaa9fe96996cf32f03c1a890b290c78fba6313e0b31"
+    }
+  },
+  "pdfCompliance": {
+    "formulaAttachmentPolicy": "Standalone PDF/UA-1 with MathML-associated files rejects without changing profile or data. Explicit PDF/A-3b and combined PDF/A-3b/PDF/UA-1 retain supplements.",
+    "machineValidation": [
+      {
+        "profile": "PDF/A-3b validation profile",
+        "compliant": true,
+        "passedChecks": 1529,
+        "failedChecks": 0,
+        "reportSha256": "d4d9bee42b7c105edb6f823489a2b64146319d1418f2d7f69b7916e54873ebf7"
+      },
+      {
+        "profile": "PDF/A-3b validation profile",
+        "compliant": true,
+        "passedChecks": 1543,
+        "failedChecks": 0,
+        "reportSha256": "507b0d54099cd718be54c5a3b8b78720de167be03ed1dfcb173ad69f9ba06b10"
+      },
+      {
+        "profile": "PDF/UA-1 validation profile",
+        "compliant": true,
+        "passedChecks": 524,
+        "failedChecks": 0,
+        "reportSha256": "eccc0a4f2909247d907b5923467b8055c0266fbea925b81b429498e6faf7f072"
+      }
+    ],
+    "manualAssistiveTechnology": "Not qualified by machine validation; remains outside this bounded milestone."
+  },
+  "macosStaticBudget": {
+    "requireCleanSource": true,
+    "ceilingChanged": false,
+    "coldMilliseconds": 5597.7248,
+    "warmMaximumMilliseconds": 2006.7822,
+    "peakWorkingSetBytes": 548667392,
+    "deterministic": true,
+    "outputFingerprint": "df37e54aafd262a230744c629f1c0e8f72561c42318e694a987e0ed542f24df4",
+    "sameAsBaseline": true,
+    "status": "Passed",
+    "reportSha256": "3269649273838cbc610fcd964c4dbeb9b5f391846d9e384cd9409f5843980b94",
+    "earlierFailureRetained": "Initial run exceeded timing and peak memory during unrelated Xcode runner compilation. Same-host baseline also exceeded one warm timing ceiling. After compilation ended, the unchanged candidate passed.",
+    "baselineBuildLimit": "Baseline f61808d6b used DeterministicSourcePaths=false for the pre-existing aliased SourceRoot build issue; this control is measurement evidence, not package qualification. Candidate package and budget builds used the normal settings."
+  },
+  "remaining": [
+    "MATH glyph variants and assemblies",
+    "Per-glyph italic correction, accent attachment and math kerning",
+    "Variable math constants",
+    "Full radical, fence, matrix and stack geometry",
+    "Full MathML attribute/CSS grammar",
+    "Manual assistive-technology validation",
+    "Full browser parity"
+  ],
+  "nextBoundedDeliverable": "MATH glyph variants and assemblies for radicals, fences and large operators, with bounded independent font/browser geometry proof before per-glyph corrections.",
+  "releaseBoundary": "Branch checkpoints only. No full HTML/runtime PR, merge into master or package release.",
+  "retainedArtifactRoot": "Ignore/MathGeometryQualification/",
+  "localIntegrationBuildLimit": {
+    "preExisting": "The integration checkout with nested External provider repositories still reports a deterministic SourceRoot.ContainingRoot error on this host.",
+    "qualificationBoundary": "Normal nineteen-package and packed-consumer qualification passed in the dedicated math worktree. The same-source control budget used DeterministicSourcePaths=false only to establish a baseline; this is not qualification of the larger external-provider build.",
+    "metadataMaintenance": "Git-native worktree repair canonicalized the two long-lived HTML registrations to the mounted Samsung paths without moving directories or rewriting history; it did not resolve the build error.",
+    "largerRuntime": "External-provider and larger JavaScript build qualification remains a separate program requirement."
+  },
+  "cleanup": {
+    "removed": "Superseded probe output, task-only fontTools environment, private expanded NuGet cache, probe binaries, review patch copies and completed Drawing/HTML/PDF test binaries.",
+    "retained": "Compact records, decisive source/font/browser/PDF artifacts, test result files, corpus outputs and nineteen packed packages under Ignore/MathGeometryQualification.",
+    "unrelatedWorktrees": "Preserved."
+  }
+}
