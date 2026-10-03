@@ -37,4 +37,15 @@ public sealed class AdfMediaShapeTests {
     private static AdfNode Child(string type) => type == "media"
         ? new AdfNode("media").SetAttribute("type", "external").SetAttribute("url", "https://example.com/a.png")
         : new AdfNode(type);
+
+    [Fact]
+    public void CaptionRejectsInlineExtensionsThatAreValidInParagraphs() {
+        var extension = new AdfNode("inlineExtension").SetAttribute("extensionType", "com.example").SetAttribute("extensionKey", "widget");
+        var caption = new AdfNode("caption") { Content = { extension } };
+        var document = new AdfDocument(new[] { new AdfNode("mediaSingle") { Content = { Child("media"), caption } } });
+        var result = document.Validate();
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Issues, issue => issue.Code == "ADF_NODE_CHILD" && issue.Path == "$.content[0].content[1].content[0]");
+        Assert.Empty(new AdfDocument(new[] { new AdfNode("paragraph") { Content = { extension } } }).Validate().Issues);
+    }
 }

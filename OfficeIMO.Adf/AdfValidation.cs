@@ -84,7 +84,7 @@ internal static class AdfValidator {
                 "paragraph", "panel", "blockquote", "orderedList", "bulletList", "rule", "heading",
                 "codeBlock", "mediaSingle", "mediaGroup", "taskList", "blockCard", "extension"),
             ["mediaSingle"] = Nodes("media", "caption"),
-            ["caption"] = InlineNodes,
+            ["caption"] = Nodes("text", "hardBreak", "mention", "emoji", "inlineCard"),
             ["mediaGroup"] = Nodes("media"),
             ["panel"] = Nodes(
                 "paragraph", "heading", "bulletList", "orderedList", "blockCard", "mediaGroup",

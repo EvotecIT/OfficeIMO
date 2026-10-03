@@ -30,6 +30,9 @@ AdfCase("native-media-caption", new AdfDocument(new[] { new AdfNode("mediaSingle
 AdfCase("invalid-media-duplicate", new AdfDocument(new[] { new AdfNode("mediaSingle") { Content = { media, media } } }), false);
 AdfCase("invalid-media-caption-order", new AdfDocument(new[] { new AdfNode("mediaSingle") { Content = { caption, media } } }), false);
 AdfCase("invalid-caption-block", new AdfDocument(new[] { new AdfNode("mediaSingle") { Content = { media, new AdfNode("caption") { Content = { new AdfNode("paragraph") } } } } }), false);
+var inlineExtension = new AdfNode("inlineExtension").SetAttribute("extensionType", "com.example").SetAttribute("extensionKey", "widget");
+AdfCase("invalid-caption-inline-extension", new AdfDocument(new[] { new AdfNode("mediaSingle") { Content = { media, new AdfNode("caption") { Content = { inlineExtension } } } } }), false);
+AdfCase("native-paragraph-inline-extension", new AdfDocument(new[] { new AdfNode("paragraph") { Content = { inlineExtension } } }), true);
 NativeAdf("invalid-empty-list", "[{\"type\":\"bulletList\",\"content\":[]}]", false);
 NativeAdf("invalid-empty-table", "[{\"type\":\"table\",\"content\":[]}]", false);
 NativeAdf("invalid-empty-cell", "[{\"type\":\"table\",\"content\":[{\"type\":\"tableRow\",\"content\":[{\"type\":\"tableCell\",\"content\":[]}]}]}]", false);

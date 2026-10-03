@@ -42,6 +42,9 @@ public class Markdown_Reader_LinkLabelInlines_Tests {
     [Theory]
     [InlineData("[<https://inner.example>](https://outer.example)", 1)]
     [InlineData("[<https://inner.example>][ref]\n\n[ref]: https://outer.example", 2)]
+    [InlineData("[<u><https://inner.example></u>](https://outer.example)", 1)]
+    [InlineData("[<sup><u><https://inner.example></u></sup>](https://outer.example)", 1)]
+    [InlineData("[<ins><https://inner.example></ins>][ref]\n\n[ref]: https://outer.example", 2)]
     public void AngleAutolinkDeactivatesTheContainingLink(string source, int expectedLinks) {
         var document = MarkdownReader.Parse(source, MarkdownReaderOptions.CreateCommonMarkProfile());
         var html = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
@@ -52,6 +55,20 @@ public class Markdown_Reader_LinkLabelInlines_Tests {
         var link = links[0];
         Assert.Equal("https://inner.example", (string?)link.Attribute("href"));
         Assert.Equal("https://inner.example", link.Value);
+    }
+
+    [Theory]
+    [InlineData("`<https://inner.example>`", false, true)]
+    [InlineData("\\<https://inner.example>", false, true)]
+    [InlineData("![<https://inner.example>](image.png)", true, true)]
+    [InlineData("shown ![<https://inner.example>](image.png)", true, false)]
+    public void CodeEscapesAndImageAltDoNotDeactivateTheOuterLink(string content, bool image, bool wrapper) {
+        string label = wrapper ? "<u>" + content + "</u>" : content;
+        var document = MarkdownReader.Parse("[" + label + "](https://outer.example)", MarkdownReaderOptions.CreateCommonMarkProfile());
+        var paragraph = System.Xml.Linq.XElement.Parse(document.ToHtmlFragment().Trim());
+        var link = Assert.Single(paragraph.Descendants("a"));
+        Assert.Equal("https://outer.example", (string?)link.Attribute("href"));
+        Assert.Equal(image ? 1 : 0, link.Descendants("img").Count());
     }
 
     [Fact]
