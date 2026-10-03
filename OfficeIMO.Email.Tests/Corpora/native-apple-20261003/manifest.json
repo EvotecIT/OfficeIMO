@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "license": "MIT",
+  "platform": "macOS 27.0.1 (26A434), arm64",
+  "producers": {
+    "mail": "Apple Mail 16.0 (3901.100.1.1.12)",
+    "calendar": "Calendar 27.0 (3073)",
+    "contacts": "Contacts 14.0 (2765.100.1.1.1)",
+    "outlook": "Microsoft Outlook for Mac 16.112.4 (16.112.26090911), Legacy mode"
+  },
+  "source": "OfficeIMO-created synthetic fixtures, imported and exported through the native applications",
+  "nativeObservations": {
+    "mail": [
+      "Unicode subject and HTML rendered",
+      "Both attachments retained by SHA-256",
+      "Child imported beneath an extra mbox level",
+      "Zero-byte empty child omitted by Mail importer"
+    ],
+    "calendar": [
+      "Four weekly occurrences stayed at 09:00 Europe/Warsaw across DST",
+      "Ten-minute display alarm retained",
+      "Native all-series title edit retained",
+      "Custom property retained"
+    ],
+    "contacts": [
+      "Photo bytes retained",
+      "Native structured-name Unicode edit retained",
+      "FN regenerated from N",
+      "Custom property and UID omitted",
+      "vCard 4.0 KIND=group imported as an ordinary card; membership omitted"
+    ],
+    "outlook": [
+      "Category-filtered archive contains only three synthetic records: imported mail, directly created local contact and appointment",
+      "Exact mail attachment bytes and CID retained",
+      "Weekly Sunday COUNT=4 series at09:00 in Central European Standard Time across DST",
+      "Reminder delta600 represents600seconds, or10minutes",
+      "Photo visibly rendered before export; archive retains image flag but no photo payload",
+      "PST-imported calendar/contact folders omitted by native exporter; direct local records exported"
+    ]
+  },
+  "files": [
+    {
+      "path": "mail/Root/mbox.mbox/mbox",
+      "sha256": "fb5eeb47f7eca7a319a6e36bcce9cd448317e0dda5263f37a026ec82e17a67fb"
+    },
+    {
+      "path": "mail/Root/Child/mbox.mbox/mbox",
+      "sha256": "fed3a41ddc73f9b8e5c67b90347bf94fa4584bf5362b1c6a72f4457e293e7371"
+    },
+    {
+      "path": "calendar/native-calendar.ics",
+      "sha256": "77093a93743f96cac7052d6b1d0424af7e4ebe4b548449d3582589e0b8670976"
+    },
+    {
+      "path": "contacts/native-contact.vcf",
+      "sha256": "2dd4af822b1b9b50f50d3a0d6010a8e282439069f123efc04d963de805b66403"
+    },
+    {
+      "path": "contacts/native-contact-edited.vcf",
+      "sha256": "3970957d0c8c474da824cf471211f25d12935a699fdeaf6b0724bb6b74f4b2a2"
+    },
+    {
+      "path": "contacts/native-group.vcf",
+      "sha256": "83fd5698243ced6136a86b30a4fc17cbe050508b64c90b2516c967d3e076dcaf"
+    },
+    {
+      "path": "outlook/native-outlook.olm",
+      "sha256": "a179b91e5b1aa823c4d40560855085d1514d3fb8e9e358df66ccf0d269bde602"
+    }
+  ],
+  "attachmentHashes": [
+    "a31bc9e0d54f843f4a3c088c88f7542e3ca553a0d9f2ec5956bb1e3ae23621d5",
+    "3d5b3a5d3cbfe3b002f15d1b73331b9ab4f528831c9631cc09e41e032d8ceb2f"
+  ],
+  "contactPhotoSha256": "81a3243cc7e9270f8d3c197fe7573ac999ac4de9a24e87ce32f7ec2f13b020f6"
+}

@@ -1,0 +1,43 @@
+From synthetic@example.test Sat Oct 03 06:58:48 2026
+Subject: =?utf-8?B?T2ZmaWNlSU1PIHZhbGlkYXRpb24g4oCUIFphxbzDs8WCxIcg5pel5pys6Kqe?=
+From: synthetic@example.test
+To: recipient@example.test
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="=_OfficeIMO_mixed_b421689758f85188"
+
+--=_OfficeIMO_mixed_b421689758f85188
+Content-Type: multipart/related; boundary="=_OfficeIMO_related_89f49ea044523088"; type="multipart/alternative"
+
+--=_OfficeIMO_related_89f49ea044523088
+Content-Type: multipart/alternative; boundary="=_OfficeIMO_alternative_b6a6285befc86e38"
+
+--=_OfficeIMO_alternative_b6a6285befc86e38
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: base64
+
+U3ludGhldGljIGJvZHk=
+--=_OfficeIMO_alternative_b6a6285befc86e38
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: base64
+
+PGh0bWw+PGJvZHk+PGgyPk9mZmljZUlNTyBtYWNPUzwvaDI+PHA+WmHFvMOzxYLEhyDml6XmnKzo
+qp48L3A+PGltZyBzcmM9ImNpZDpzeW50aGV0aWMtcGl4ZWwiLz48cD5PZmZsaW5lIHN5bnRoZXRp
+YyBtZXNzYWdlLjwvcD48L2JvZHk+PC9odG1sPg==
+--=_OfficeIMO_alternative_b6a6285befc86e38--
+--=_OfficeIMO_related_89f49ea044523088
+Content-Type: image/png; name="pixel.png"
+Content-Disposition: inline; filename="pixel.png"
+Content-ID: <synthetic-pixel>
+Content-Transfer-Encoding: base64
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j/1sA
+AAAASUVORK5CYII=
+--=_OfficeIMO_related_89f49ea044523088--
+--=_OfficeIMO_mixed_b421689758f85188
+Content-Type: text/plain; name*=utf-8''za%C5%BC%C3%B3%C5%82%C4%87.txt
+Content-Disposition: attachment; filename*=utf-8''za%C5%BC%C3%B3%C5%82%C4%87.txt
+Content-Transfer-Encoding: base64
+
+U3ludGhldGljIGF0dGFjaG1lbnQ6IFphxbzDs8WCxIcg5pel5pys6Kqe
+--=_OfficeIMO_mixed_b421689758f85188--
+

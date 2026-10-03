@@ -28,7 +28,7 @@ internal sealed partial class OlmStoreReader {
                 ProjectAppointment(document, item, location);
                 break;
             case OutlookItemKind.Contact:
-                ProjectContact(document, item);
+                ProjectContact(document, item, location);
                 break;
             case OutlookItemKind.Task:
                 ProjectTask(document, item);
@@ -93,7 +93,6 @@ internal sealed partial class OlmStoreReader {
             ResponseStatus = IntegerValue(item, "OPFCalendarEventGetAcceptStatus"),
             IsRecurring = BooleanValue(item, "OPFCalendarEventIsRecurring"),
             ReminderIsSet = BooleanValue(item, "OPFCalendarEventGetHasReminder"),
-            ReminderDeltaMinutes = IntegerValue(item, "OPFCalendarEventCopyReminderDelta"),
             ReminderTime = DateValue(item, "OPFCalendarEventCopyReminderTime"),
             TimeZoneDescription = Value(item, "OPFCalendarEventCopyStartTimeZone")
         };
@@ -101,6 +100,7 @@ internal sealed partial class OlmStoreReader {
             double minutes = (document.Appointment.End.Value - document.Appointment.Start.Value).TotalMinutes;
             if (minutes >= 0 && minutes <= int.MaxValue) document.Appointment.DurationMinutes = (int)minutes;
         }
+        ProjectAppointmentCalendar(document, item, location);
 
         AddAppointmentRecipients(document, item);
         string? organizer = Value(item, "OPFCalendarEventCopyOrganizer");
@@ -112,7 +112,7 @@ internal sealed partial class OlmStoreReader {
         AddAttachments(document, item, "OPFCalendarEventCopyAttachmentList", location);
     }
 
-    private static void ProjectContact(EmailDocument document, XElement item) {
+    private void ProjectContact(EmailDocument document, XElement item, string location) {
         var contact = new OutlookContact {
             DisplayName = Value(item, "OPFContactCopyDisplayName"),
             Prefix = Value(item, "OPFContactCopyTitle"),
@@ -138,6 +138,10 @@ internal sealed partial class OlmStoreReader {
         document.Body.Text = Value(item, "OPFContactCopyNotesPlain");
         document.Body.Html = Value(item, "OPFContactCopyNotes");
         document.MessageMetadata.ModifiedDate = DateValue(item, "OPFContactCopyModDate");
+        if (contact.HasPicture == true) {
+            RecordProjectionIssue(document, "EMAIL_STORE_OLM_CONTACT_PICTURE_UNAVAILABLE",
+                "The OLM contact declares a picture, but no picture payload is available through the supported source mapping.", location);
+        }
 
         contact.BusinessAddress.Street = Value(item, "OPFContactCopyBusinessStreetAddress");
         contact.BusinessAddress.City = Value(item, "OPFContactCopyBusinessCity");
@@ -461,8 +465,8 @@ internal sealed partial class OlmStoreReader {
     private static int? ParseInteger(string? value) {
         if (value == null) return null;
         if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int result)) return result;
-        if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double floating) &&
-            floating >= int.MinValue && floating <= int.MaxValue) return (int)floating;
+        if (decimal.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out decimal floating) &&
+            floating >= int.MinValue && floating <= int.MaxValue && decimal.Truncate(floating) == floating) return (int)floating;
         return null;
     }
 

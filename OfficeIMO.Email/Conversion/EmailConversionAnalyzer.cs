@@ -45,13 +45,18 @@ internal static class EmailConversionAnalyzer {
                 EmailDiagnosticSeverity.Warning, "source-metadata", OfficeConversionLossKind.Omission));
         }
 
-        diagnostics.AddRange(AnalyzeArchiveMetadata(document, preservesAppleMailMetadata));
+        diagnostics.AddRange(AnalyzeArchiveMetadata(document, preservesAppleMailMetadata, options.ConversionLossPolicy));
 
         return new EmailConversionReport(document.Format, targetFormat, diagnostics.AsReadOnly());
     }
 
-    internal static IReadOnlyList<EmailDiagnostic> AnalyzeArchiveMetadata(EmailDocument document, bool preservesAppleMailMetadata = false) {
+    internal static IReadOnlyList<EmailDiagnostic> AnalyzeArchiveMetadata(EmailDocument document, bool preservesAppleMailMetadata = false,
+        EmailConversionLossPolicy lossPolicy = EmailConversionLossPolicy.Warn) {
         var diagnostics = new List<EmailDiagnostic>();
+        if (document.Properties.TryGetValue("Olm:ProjectionIssues", out object? projection) && projection is string[] issues && issues.Length > 0) {
+            diagnostics.Add(CreateLossDiagnostic(lossPolicy, "EMAIL_OLM_PROJECTION_INCOMPLETE",
+                string.Join(" ", issues), "source-content/olm"));
+        }
         if (!preservesAppleMailMetadata && document.Properties.Keys.Any(key =>
                 key.Equals("Emlx:Metadata", StringComparison.OrdinalIgnoreCase) ||
                 key.Equals("Emlx:RawMetadata", StringComparison.OrdinalIgnoreCase) ||
