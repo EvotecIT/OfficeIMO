@@ -34,7 +34,7 @@ public sealed class ReaderMaterializedCancellationTests {
         Assert.True(input.CanRead);
     }
 
-    private static ReaderChunk[] CreateChunks(string name) => new[] {
+    private static ReaderChunk[] CreateChunks(string? name) => new[] {
         new ReaderChunk { Id = "one", Kind = ReaderInputKind.Text, Text = "one", Location = new ReaderLocation { Path = name } },
         new ReaderChunk { Id = "two", Kind = ReaderInputKind.Text, Text = "two", Location = new ReaderLocation { Path = name } }
     };

@@ -94,15 +94,20 @@ public sealed class ReaderSourceProvenanceTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Processors_keep_member_provenance_on_retained_or_copied_chunks(bool copyChunks) {
-        byte[] bytes = BuildZip(false);
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    [InlineData(2, true)]
+    [InlineData(3, false)]
+    public async Task Processors_keep_member_provenance_when_local_ids_repeat(int copyMode, bool duplicateNames) {
+        byte[] bytes = BuildZip(false, duplicateNames);
         OfficeDocumentReadResult original = CreateZipReader().ReadDocument(bytes, "members.zip");
         var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler()
             .AddProcessor(new DelegateOfficeDocumentProcessor("transform", (document, _) => {
-                if (copyChunks) document.Chunks = document.Chunks.Select(chunk => new ReaderChunk {
-                    Id = chunk.Id, Kind = chunk.Kind, Location = chunk.Location, Text = chunk.Text
+                if (copyMode != 0) document.Chunks = document.Chunks.Select(chunk => new ReaderChunk {
+                    Id = chunk.Id, Kind = chunk.Kind, Text = chunk.Text,
+                    Location = copyMode == 1 ? chunk.Location : new ReaderLocation { Path = chunk.Location.Path },
+                    SourceId = copyMode == 2 ? chunk.SourceId : null
                 }).ToArray();
                 foreach (ReaderChunk chunk in document.Chunks) chunk.Text += " processed";
                 return document;
@@ -168,10 +173,11 @@ public sealed class ReaderSourceProvenanceTests {
     private static string RelativePath(string path) => Uri.UnescapeDataString(
         new Uri(Environment.CurrentDirectory + Path.DirectorySeparatorChar).MakeRelativeUri(new Uri(path)).ToString());
 
-    private static byte[] BuildZip(bool empty) {
+    private static byte[] BuildZip(bool empty, bool duplicateNames = false) {
         using var bytes = new MemoryStream();
         using (var zip = new ZipArchive(bytes, ZipArchiveMode.Create, true)) {
-            if (!empty) foreach (string name in new[] { "a.txt", "b.txt" }) {
+            if (!empty) foreach (string name in duplicateNames
+                         ? new[] { "same.txt", "same.txt" } : new[] { "a/note.txt", "b/note.txt" }) {
                 using var writer = new StreamWriter(zip.CreateEntry(name).Open());
                 writer.Write(name);
             }
