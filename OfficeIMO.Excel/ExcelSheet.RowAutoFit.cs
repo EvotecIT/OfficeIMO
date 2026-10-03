@@ -261,24 +261,19 @@ namespace OfficeIMO.Excel {
             return Math.Min(height, 409D);
         }
 
-        private void SetRowHeightCore(int rowIndex, double height, bool normalizeForExcelVisibleHeight = false,
-            bool roundToHundredths = true) {
+        private void SetRowHeightCore(int rowIndex, double height, bool roundToHundredths = true) {
             var worksheet = WorksheetRoot;
             SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
             if (sheetData == null) return;
             Row? row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex != null && r.RowIndex.Value == (uint)rowIndex);
             if (row == null) return;
-            SetRowHeightCore(row, height, normalizeForExcelVisibleHeight, roundToHundredths);
+            SetRowHeightCore(row, height, roundToHundredths);
         }
 
-        private static void SetRowHeightCore(Row row, double height, bool normalizeForExcelVisibleHeight = false,
-            bool roundToHundredths = true) {
+        private static void SetRowHeightCore(Row row, double height, bool roundToHundredths = true) {
             height = NormalizeRowHeight(height);
             if (height > 0) {
-                double storedHeight = normalizeForExcelVisibleHeight
-                    ? height * 1.5
-                    : height;
-                row.Height = roundToHundredths ? Math.Round(storedHeight, 2) : storedHeight;
+                row.Height = roundToHundredths ? Math.Round(height, 2) : height;
                 row.CustomHeight = true;
             } else {
                 row.Height = null;
@@ -288,6 +283,7 @@ namespace OfficeIMO.Excel {
 
         private void UpdateSheetFormat() {
             var worksheet = WorksheetRoot;
+            EnsureDefaultSheetView(worksheet);
             SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
             var sheetFormat = worksheet.GetFirstChild<SheetFormatProperties>();
 
@@ -296,7 +292,8 @@ namespace OfficeIMO.Excel {
 
             if (anyCustom) {
                 if (sheetFormat == null) {
-                    sheetFormat = worksheet.InsertAt(new SheetFormatProperties(), 0);
+                    sheetFormat = new SheetFormatProperties();
+                    worksheet.AddChild(sheetFormat, true);
                 }
                 if (sheetFormat.DefaultRowHeight == null || sheetFormat.DefaultRowHeight.Value <= 0) {
                     sheetFormat.DefaultRowHeight = 15D;
@@ -326,7 +323,7 @@ namespace OfficeIMO.Excel {
                 foreach (Row row in rows) {
                     ct.ThrowIfCancellationRequested();
                     double height = CalculateRowHeight(row, textContext);
-                    SetRowHeightCore(row, height, normalizeForExcelVisibleHeight: true);
+                    SetRowHeightCore(row, height);
                 }
 
                 UpdateSheetFormat();
@@ -365,9 +362,7 @@ namespace OfficeIMO.Excel {
         public void AutoFitRow(int rowIndex) {
             WriteLockConditional(() => {
                 var height = CalculateRowHeight(rowIndex);
-                // Excel normalizes OfficeIMO-authored auto-fit row heights down on open/save; serialize a
-                // pixel-equivalent height so the visible Excel row height matches the measured value.
-                SetRowHeightCore(rowIndex, height, normalizeForExcelVisibleHeight: true);
+                SetRowHeightCore(rowIndex, height);
                 UpdateSheetFormat();
                 if (EffectiveExecution.SaveWorksheetAfterAutoFit) {
                     WorksheetRoot.Save();

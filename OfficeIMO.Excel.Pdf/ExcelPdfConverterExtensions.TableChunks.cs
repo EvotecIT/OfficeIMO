@@ -115,26 +115,26 @@ namespace OfficeIMO.Excel.Pdf {
             return cellReference.Replace("$", string.Empty).ToUpperInvariant();
         }
 
-        private static IReadOnlyList<TableChunk> CreateTableChunks(WorksheetPdfExportPlan plan, ExcelToPdfOptions options, int exportedColumns) {
+        private static IReadOnlyList<TableChunk> CreateTableChunks(WorksheetPdfExportPlan plan, ExcelToPdfOptions options, int exportedColumns, bool honorRowBreaks = true, bool honorColumnBreaks = true) {
             IReadOnlyList<TableAxisChunk> rowChunks = CreateTableAxisChunks(
                 plan.ExportedRows,
-                options.UseWorksheetPageBreaks ? GetManualRowBreakOffsets(plan) : new List<int>());
+                options.UseWorksheetPageBreaks && honorRowBreaks ? GetManualRowBreakOffsets(plan) : new List<int>());
             IReadOnlyList<TableAxisChunk> columnChunks = CreateTableAxisChunks(
                 exportedColumns,
-                options.UseWorksheetPageBreaks ? GetManualColumnBreakOffsets(plan) : new List<int>());
+                options.UseWorksheetPageBreaks && honorColumnBreaks ? GetManualColumnBreakOffsets(plan) : new List<int>());
             int headerRowCount = Math.Min(plan.ExportData.HeaderRowCount, plan.ExportedRows);
 
             var chunks = new List<TableChunk>(rowChunks.Count * columnChunks.Count);
             if (plan.PageSetup?.PageOrder == ExcelPageOrder.OverThenDown) {
                 foreach (TableAxisChunk rowChunk in rowChunks) {
-                    AddChunksForRow(rowChunk, columnChunks, headerRowCount, chunks);
+                    AddChunksForRow(plan, rowChunk, columnChunks, headerRowCount, chunks);
                 }
             } else {
                 foreach (TableAxisChunk columnChunk in columnChunks) {
                     foreach (TableAxisChunk rowChunk in rowChunks) {
                         IReadOnlyList<int> rowIndexes = CreateChunkRowIndexes(rowChunk, headerRowCount);
                         int chunkHeaderRows = Math.Min(headerRowCount, rowIndexes.Count);
-                        chunks.Add(new TableChunk(rowIndexes, chunkHeaderRows, columnChunk.Start, columnChunk.Count));
+                        chunks.Add(new TableChunk(rowIndexes, chunkHeaderRows, columnChunk.Start, columnChunk.Count, CreateChunkColumnIndexes(plan, columnChunk.Start, columnChunk.Count)));
                     }
                 }
             }
@@ -142,11 +142,11 @@ namespace OfficeIMO.Excel.Pdf {
             return chunks;
         }
 
-        private static void AddChunksForRow(TableAxisChunk rowChunk, IReadOnlyList<TableAxisChunk> columnChunks, int headerRowCount, List<TableChunk> chunks) {
+        private static void AddChunksForRow(WorksheetPdfExportPlan plan, TableAxisChunk rowChunk, IReadOnlyList<TableAxisChunk> columnChunks, int headerRowCount, List<TableChunk> chunks) {
             IReadOnlyList<int> rowIndexes = CreateChunkRowIndexes(rowChunk, headerRowCount);
             int chunkHeaderRows = Math.Min(headerRowCount, rowIndexes.Count);
             foreach (TableAxisChunk columnChunk in columnChunks) {
-                chunks.Add(new TableChunk(rowIndexes, chunkHeaderRows, columnChunk.Start, columnChunk.Count));
+                chunks.Add(new TableChunk(rowIndexes, chunkHeaderRows, columnChunk.Start, columnChunk.Count, CreateChunkColumnIndexes(plan, columnChunk.Start, columnChunk.Count)));
             }
         }
 

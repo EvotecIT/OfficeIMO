@@ -81,13 +81,18 @@ namespace OfficeIMO.Excel.Pdf {
                                 for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) {
                                     cancellationToken.ThrowIfCancellationRequested();
                                     TableChunk chunk = chunks[chunkIndex];
+                                    SheetExportData data = SelectPageColumns(plan.ExportData, chunk.ColumnIndexes);
+                                    PdfCore.PdfTableStyle tableStyle = CreateTableStyle(options, plan.PageSetup, chunk.RowIndexes, chunk.HeaderRowCount, data.Styles, data.ConditionalFills, data.CellReferences, data.StructuredTables, data.ColumnWidths, data.RowHeights, 0, chunk.ColumnIndexes.Count);
+                                    ApplyGeneralCellAlignments(tableStyle, data.Values, chunk.RowIndexes);
+                                    double originalFontSize = CreateBaseTableStyle(options).FontSize ?? GetDefaultTableFontSize(options);
+                                    double cellFontScale = (tableStyle.FontSize ?? originalFontSize) / originalFontSize;
                                     if (chunkIndex > 0) {
                                         item.PageBreak();
                                     }
 
                                     item.Table(
-                                        CreatePdfRows(values, plan.ExportData.Styles, plan.ExportData.Hyperlinks, plan.ExportData.CellReferences, plan.ExportData.StructuredTables, plan.ExportData.MergedCells, imagesByCellReference, chunk.RowIndexes, chunk.StartColumn, chunk.ColumnCount, options.EmptyCellText, sheetDestinations, cellDestinations, plan.SheetName, defaultFontFamily, dateSystem: document.DateSystem),
-                                        style: CreateTableStyle(options, plan.PageSetup, chunk.RowIndexes, chunk.HeaderRowCount, plan.ExportData.Styles, plan.ExportData.ConditionalFills, plan.ExportData.CellReferences, plan.ExportData.StructuredTables, plan.ExportData.ColumnWidths, plan.ExportData.RowHeights, chunk.StartColumn, chunk.ColumnCount));
+                                        CreatePdfRows(data.Values, data.Styles, data.Hyperlinks, data.CellReferences, data.StructuredTables, data.MergedCells, imagesByCellReference, chunk.RowIndexes, 0, chunk.ColumnIndexes.Count, options.EmptyCellText, sheetDestinations, cellDestinations, plan.SheetName, defaultFontFamily, fontScale: cellFontScale, dateSystem: document.DateSystem),
+                                        style: tableStyle);
                                 }
                             }
                         }

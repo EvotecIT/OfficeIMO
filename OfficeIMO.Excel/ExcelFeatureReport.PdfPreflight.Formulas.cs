@@ -11,6 +11,10 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
+            return IsDefaultPdfSelectedCell(sheet, row, column);
+        }
+
+        private static bool IsDefaultPdfSelectedCell(ExcelSheet sheet, int row, int column) {
             if (IsPdfHiddenRow(sheet, row) || IsPdfHiddenColumn(sheet, column)) {
                 return false;
             }
@@ -21,11 +25,15 @@ namespace OfficeIMO.Excel {
             foreach (string area in areas) {
                 // Invalid metadata is reported separately; remain conservative about cached formula results.
                 if (!sheet.TryParsePrintAreaReference(area, out ExcelReference? reference) || reference == null) return true;
-                if (reference.Contains(row, column)) return true;
+                int firstRow = reference.Kind == ExcelReferenceKind.WholeColumn ? 1 : Math.Min(reference.Start.Row, reference.End.Row);
+                int lastRow = reference.Kind == ExcelReferenceKind.WholeColumn ? A1.MaxRows : Math.Max(reference.Start.Row, reference.End.Row);
                 int firstColumn = reference.Kind == ExcelReferenceKind.WholeRow ? 1 : Math.Min(reference.Start.Column, reference.End.Column);
                 int lastColumn = reference.Kind == ExcelReferenceKind.WholeRow ? A1.MaxColumns : Math.Max(reference.Start.Column, reference.End.Column);
-                if (titles.HasRows && row >= titles.FirstRow!.Value && row <= titles.LastRow!.Value
-                    && column >= firstColumn && column <= lastColumn) return true;
+                bool selectedRow = row >= firstRow && row <= lastRow
+                    || titles.HasRows && row >= titles.FirstRow!.Value && row <= Math.Min(titles.LastRow!.Value, lastRow);
+                bool selectedColumn = column >= firstColumn && column <= lastColumn
+                    || titles.HasColumns && column >= titles.FirstColumn!.Value && column <= Math.Min(titles.LastColumn!.Value, lastColumn);
+                if (selectedRow && selectedColumn) return true;
             }
             return false;
         }

@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private sealed class SheetExportData {
-            public SheetExportData(object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, MergeLayoutData? mergedCells, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int headerRowCount, int firstBodyRowNumber, IReadOnlyList<StructuredTableVisualData> structuredTables, ConditionalFillData? conditionalFills = null) {
+            public SheetExportData(object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, MergeLayoutData? mergedCells, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int headerRowCount, int firstBodyRowNumber, IReadOnlyList<StructuredTableVisualData> structuredTables, ConditionalFillData? conditionalFills = null, IReadOnlyList<int>? printTitleColumnIndexes = null) {
                 Values = values;
                 Styles = styles;
                 Hyperlinks = hyperlinks;
@@ -48,6 +48,7 @@ namespace OfficeIMO.Excel.Pdf {
                 FirstBodyRowNumber = firstBodyRowNumber;
                 StructuredTables = structuredTables;
                 ConditionalFills = conditionalFills;
+                PrintTitleColumnIndexes = printTitleColumnIndexes ?? Array.Empty<int>();
             }
 
             public object?[,] Values { get; }
@@ -61,6 +62,7 @@ namespace OfficeIMO.Excel.Pdf {
             public int FirstBodyRowNumber { get; }
             public IReadOnlyList<StructuredTableVisualData> StructuredTables { get; }
             public ConditionalFillData? ConditionalFills { get; }
+            public IReadOnlyList<int> PrintTitleColumnIndexes { get; }
         }
 
         private sealed class ConditionalFillData {
@@ -237,17 +239,19 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private sealed class TableChunk {
-            public TableChunk(IReadOnlyList<int> rowIndexes, int headerRowCount, int startColumn, int columnCount) {
+            public TableChunk(IReadOnlyList<int> rowIndexes, int headerRowCount, int startColumn, int columnCount, IReadOnlyList<int>? columnIndexes = null) {
                 RowIndexes = rowIndexes;
                 HeaderRowCount = headerRowCount;
                 StartColumn = startColumn;
                 ColumnCount = columnCount;
+                ColumnIndexes = columnIndexes ?? Enumerable.Range(startColumn, columnCount).ToArray();
             }
 
             public IReadOnlyList<int> RowIndexes { get; }
             public int HeaderRowCount { get; }
             public int StartColumn { get; }
             public int ColumnCount { get; }
+            public IReadOnlyList<int> ColumnIndexes { get; }
         }
 
         private sealed class MergeLayoutData {
@@ -292,12 +296,12 @@ namespace OfficeIMO.Excel.Pdf {
             public bool IsContinuation(int row, int column) =>
                 row >= 0 && column >= 0 && row < _continuations.GetLength(0) && column < _continuations.GetLength(1) && _continuations[row, column];
 
-            public void CopyTo(MergeLayoutData target, int rowOffset) {
+            public void CopyTo(MergeLayoutData target, int rowOffset, int columnOffset = 0) {
                 for (int row = 0; row < _spans.GetLength(0); row++) {
                     for (int column = 0; column < _spans.GetLength(1); column++) {
                         MergeSpan? span = _spans[row, column];
                         if (span != null) {
-                            target.SetSpan(row + rowOffset, column, span.RowSpan, span.ColumnSpan);
+                            target.SetSpan(row + rowOffset, column + columnOffset, span.RowSpan, span.ColumnSpan);
                         }
                     }
                 }

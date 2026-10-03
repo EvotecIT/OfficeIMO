@@ -349,7 +349,6 @@ namespace OfficeIMO.Excel {
             int pdfUnsupportedHyperlinkCount = 0;
             int pdfUnrenderedDrawingShapeCount = 0;
             int pdfUnsupportedPrintAreaCount = 0;
-            int pdfUnsupportedPrintTitleCount = 0;
             int pdfUnsupportedHeaderFooterFormattingCount = 0;
             var threadedCommentDetails = new List<string>();
             var oleObjectDetails = new List<string>();
@@ -360,7 +359,6 @@ namespace OfficeIMO.Excel {
             var pdfUnsupportedImageDetails = new List<string>();
             var pdfUnsupportedHyperlinkDetails = new List<string>();
             var pdfUnsupportedPrintAreaDetails = new List<string>();
-            var pdfUnsupportedPrintTitleDetails = new List<string>();
             var pdfUnsupportedHeaderFooterFormattingDetails = new List<string>();
             var pivotDetails = new List<string>();
             var pdfUnrenderedPivotDetails = new List<string>();
@@ -472,7 +470,6 @@ namespace OfficeIMO.Excel {
                     AddUnsupportedHeaderFooterImages(headerFooter, sheetName, ref pdfUnsupportedImageCount, pdfUnsupportedImageDetails);
                     AddUnsupportedHeaderFooterFormatting(headerFooter, sheetName, ref pdfUnsupportedHeaderFooterFormattingCount, pdfUnsupportedHeaderFooterFormattingDetails);
                     AddUnsupportedPrintArea(excelSheet, sheetName, ref pdfUnsupportedPrintAreaCount, pdfUnsupportedPrintAreaDetails);
-                    AddUnsupportedPrintTitles(excelSheet, sheetName, ref pdfUnsupportedPrintTitleCount, pdfUnsupportedPrintTitleDetails);
                     AddUnrenderedDrawingShapes(worksheetPart, sheetName, ref pdfUnrenderedDrawingShapeCount, pdfUnrenderedDrawingShapeDetails);
                     AddUnsupportedWorksheetHyperlinks(workbookPart, sheetElements, worksheetPart, sheetName, ref pdfUnsupportedHyperlinkCount, pdfUnsupportedHyperlinkDetails);
                     AddUnsupportedDrawingHyperlinks(worksheetPart, sheetName, ref pdfUnsupportedHyperlinkCount, pdfUnsupportedHyperlinkDetails);
@@ -533,9 +530,6 @@ namespace OfficeIMO.Excel {
             Add(features, "Layout", "PDF-unsupported print areas", OfficeFeatureSupportLevel.PartiallyEditable, pdfUnsupportedPrintAreaCount, null,
                 "Worksheet print-area references cannot be exported as valid local A1 areas. Multiple valid areas are exported separately.",
                 pdfUnsupportedPrintAreaDetails);
-            Add(features, "Layout", "PDF-unsupported print titles", OfficeFeatureSupportLevel.PartiallyEditable, pdfUnsupportedPrintTitleCount, null,
-                "Worksheet print-title columns are configured but the first-party Excel-to-PDF path currently repeats print-title rows only.",
-                pdfUnsupportedPrintTitleDetails);
             Add(features, "Layout", "PDF-unsupported header/footer formatting", OfficeFeatureSupportLevel.PartiallyEditable, pdfUnsupportedHeaderFooterFormattingCount, null,
                 "Header or footer text uses formatting that is simplified by the first-party Excel-to-PDF path.",
                 pdfUnsupportedHeaderFooterFormattingDetails);

@@ -53,16 +53,6 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void AddUnsupportedPrintTitles(ExcelSheet sheet, string sheetName, ref int count, List<string> details) {
-            ExcelPrintTitles titles = sheet.GetPrintTitles();
-            if (!titles.HasColumns) {
-                return;
-            }
-
-            count++;
-            details.Add($"{sheetName}: print-title columns {A1.ColumnIndexToLetters(titles.FirstColumn!.Value)}:{A1.ColumnIndexToLetters(titles.LastColumn!.Value)} are configured, but first-party PDF export repeats print-title rows only.");
-        }
-
         private static void AddUnrenderedDrawingShapes(WorksheetPart worksheetPart, string sheetName, ref int count, List<string> details) {
             IReadOnlyList<ExcelWorksheetDrawingObjectInfo> drawings = ExcelWorksheetDrawingObjectResolver.FindDrawingObjects(worksheetPart);
             if (drawings.Count == 0) {
@@ -76,7 +66,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void AddUnsupportedWorksheetHyperlinks(
+        private void AddUnsupportedWorksheetHyperlinks(
             WorkbookPart workbookPart,
             IReadOnlyList<DocumentFormat.OpenXml.Spreadsheet.Sheet> sheets,
             WorksheetPart worksheetPart,
@@ -142,7 +132,7 @@ namespace OfficeIMO.Excel {
             return TryGetTopLeftCellReference(targetReference, out cellReference);
         }
 
-        private static bool IsDefaultPdfExportedCell(
+        private bool IsDefaultPdfExportedCell(
             WorkbookPart workbookPart,
             IReadOnlyList<DocumentFormat.OpenXml.Spreadsheet.Sheet> sheets,
             string sheetName,
@@ -168,6 +158,16 @@ namespace OfficeIMO.Excel {
                 || !A1.TryParseCellReferenceFast(normalizedCellReference, out int targetRow, out int targetColumn)) {
                 reason = $"target cell '{cellReference}' is not a supported A1 reference.";
                 return false;
+            }
+
+            ExcelSheet? targetSheet = Sheets.FirstOrDefault(candidate => string.Equals(candidate.Name, sheetName, StringComparison.OrdinalIgnoreCase));
+            if (targetSheet == null || !IsDefaultPdfSelectedCell(targetSheet, targetRow, targetColumn)) {
+                reason = $"target cell '{sheetName}!{normalizedCellReference}' is hidden or outside the selected print areas and titles.";
+                return false;
+            }
+            if (targetSheet.GetPrintAreas().Count > 0) {
+                reason = string.Empty;
+                return true;
             }
 
             if (!TryGetWorksheetUsedRange(worksheetPart, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {

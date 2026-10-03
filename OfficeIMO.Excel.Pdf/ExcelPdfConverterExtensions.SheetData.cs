@@ -59,7 +59,7 @@ namespace OfficeIMO.Excel.Pdf {
             bool boundedRead = IsBoundedWorksheetRead(options);
             ExcelSheet? metadataSheet = boundedRead ? null : workbookSheet;
             IReadOnlyList<StructuredTableVisualData> structuredTables = ReadStructuredTableVisuals(document, sheet.Name, options);
-            RangeExportData bodyRange = ReadRangeExportData(sheet, metadataSheet, workbookSheet, normalizedRange, options, defaultFontFamily, boundedRead);
+            RangeExportData bodyRange = ReadRangeWithPrintTitleColumns(sheet, metadataSheet, workbookSheet, normalizedRange, options, defaultFontFamily, boundedRead);
             object?[,] values = bodyRange.Values;
             ExcelCellStyleSnapshot?[,]? styles = bodyRange.Styles;
             ExcelHyperlinkSnapshot?[,]? hyperlinks = bodyRange.Hyperlinks;
@@ -82,7 +82,7 @@ namespace OfficeIMO.Excel.Pdf {
             if (firstTitleRow < rangeFirstRow) {
                 int prependedLastTitleRow = Math.Min(lastTitleRow, rangeFirstRow - 1);
                 string titleRange = ToA1Range(firstTitleRow, rangeFirstColumn, prependedLastTitleRow, rangeLastColumn);
-                RangeExportData titleRangeData = ReadRangeExportData(sheet, metadataSheet, workbookSheet, titleRange, options, defaultFontFamily, boundedRead);
+                RangeExportData titleRangeData = ReadRangeWithPrintTitleColumns(sheet, metadataSheet, workbookSheet, titleRange, options, defaultFontFamily, boundedRead);
                 int prependedRowCount = titleRangeData.Values.GetLength(0);
                 int bodyRowCount = values.GetLength(0);
                 int columnCount = values.GetLength(1);
@@ -125,7 +125,8 @@ namespace OfficeIMO.Excel.Pdf {
                 cellReferences,
                 options.UseWorksheetCellStyles);
 
-            return new SheetExportData(values, styles, hyperlinks, cellReferences, mergedCells, columnWidths, rowHeights, headerRows, firstBodyRowNumber, structuredTables, conditionalFills);
+            IReadOnlyList<int> titleColumns = GetPrintTitleColumnIndexes(workbookSheet, cellReferences, options);
+            return new SheetExportData(values, styles, hyperlinks, cellReferences, mergedCells, columnWidths, rowHeights, headerRows, firstBodyRowNumber, structuredTables, conditionalFills, titleColumns);
         }
 
         private static RangeExportData ReadRangeExportData(ExcelSheetReader sheet, ExcelSheet? metadataSheet, ExcelSheet? styleSheet, string normalizedRange, ExcelToPdfOptions options, PdfCore.PdfStandardFont defaultFontFamily, bool boundedRead) {

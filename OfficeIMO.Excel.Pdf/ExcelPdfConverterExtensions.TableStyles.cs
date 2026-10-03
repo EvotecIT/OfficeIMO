@@ -115,7 +115,9 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             double scale = Math.Max(0.05D, targetHeight / currentHeight);
-            tableStyle.FixedRowHeights = currentHeights
+            // Flow tables must retain enough height for their laid-out text. A fixed
+            // worksheet height can be smaller than a line box plus table padding.
+            tableStyle.RowMinHeights = currentHeights
                 .Select(height => (double?)Math.Max(1D, height * scale))
                 .ToList();
 
@@ -127,11 +129,6 @@ namespace OfficeIMO.Excel.Pdf {
             tableStyle.HeaderFontSize = ScaleFontSize(tableStyle.HeaderFontSize, bodyFontSize, scale);
             tableStyle.FooterFontSize = ScaleFontSize(tableStyle.FooterFontSize, bodyFontSize, scale);
             tableStyle.MinRowHeight *= scale;
-            if (tableStyle.RowMinHeights != null) {
-                tableStyle.RowMinHeights = tableStyle.RowMinHeights
-                    .Select(height => height.HasValue ? (double?)Math.Max(1D, height.Value * scale) : null)
-                    .ToList();
-            }
         }
 
         private static bool IsFitToHeight(ExcelSheetPageSetup? pageSetup) {
