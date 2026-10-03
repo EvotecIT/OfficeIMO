@@ -24,6 +24,12 @@ AdfCase("markdown-nested-tasks", AdfConverter.FromMarkdown("- [x] outer\n  - [ ]
 NativeAdf("native-empty-row", "[{\"type\":\"table\",\"content\":[{\"type\":\"tableRow\",\"content\":[]}]}]", true);
 NativeAdf("native-alignment", "[{\"type\":\"paragraph\",\"marks\":[{\"type\":\"alignment\",\"attrs\":{\"align\":\"center\"}}],\"content\":[{\"type\":\"text\",\"text\":\"Visible\"}]}]", true);
 NativeAdf("native-media-link", "[{\"type\":\"mediaSingle\",\"marks\":[{\"type\":\"link\",\"attrs\":{\"href\":\"https://example.com\"}}],\"content\":[{\"type\":\"media\",\"attrs\":{\"type\":\"external\",\"url\":\"https://example.com/a.png\"}}]}]", true);
+var media = new AdfNode("media").SetAttribute("type", "external").SetAttribute("url", "https://example.com/a.png");
+var caption = new AdfNode("caption") { Content = { AdfNode.TextNode("Caption", new[] { new AdfMark("strong") }) } };
+AdfCase("native-media-caption", new AdfDocument(new[] { new AdfNode("mediaSingle") { Content = { media, caption } } }), true);
+AdfCase("invalid-media-duplicate", new AdfDocument(new[] { new AdfNode("mediaSingle") { Content = { media, media } } }), false);
+AdfCase("invalid-media-caption-order", new AdfDocument(new[] { new AdfNode("mediaSingle") { Content = { caption, media } } }), false);
+AdfCase("invalid-caption-block", new AdfDocument(new[] { new AdfNode("mediaSingle") { Content = { media, new AdfNode("caption") { Content = { new AdfNode("paragraph") } } } } }), false);
 NativeAdf("invalid-empty-list", "[{\"type\":\"bulletList\",\"content\":[]}]", false);
 NativeAdf("invalid-empty-table", "[{\"type\":\"table\",\"content\":[]}]", false);
 NativeAdf("invalid-empty-cell", "[{\"type\":\"table\",\"content\":[{\"type\":\"tableRow\",\"content\":[{\"type\":\"tableCell\",\"content\":[]}]}]}]", false);

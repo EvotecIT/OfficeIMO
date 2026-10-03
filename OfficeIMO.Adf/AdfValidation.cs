@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Adf;
 
 /// <summary>Severity of an ADF validation issue.</summary>
@@ -48,7 +50,7 @@ internal static class AdfValidator {
         "doc", "paragraph", "heading", "text", "hardBreak", "rule", "blockquote", "codeBlock",
         "bulletList", "orderedList", "listItem", "taskList", "taskItem", "table", "tableRow",
         "tableHeader", "tableCell", "media", "mediaSingle", "mediaGroup", "mention", "emoji",
-        "inlineCard", "blockCard", "extension", "inlineExtension", "bodiedExtension", "panel",
+        "inlineCard", "blockCard", "extension", "inlineExtension", "bodiedExtension", "panel", "caption",
     };
 
     private static readonly HashSet<string> RootBlockNodes = new HashSet<string>(StringComparer.Ordinal) {
@@ -81,7 +83,8 @@ internal static class AdfValidator {
             ["tableHeader"] = Nodes(
                 "paragraph", "panel", "blockquote", "orderedList", "bulletList", "rule", "heading",
                 "codeBlock", "mediaSingle", "mediaGroup", "taskList", "blockCard", "extension"),
-            ["mediaSingle"] = Nodes("media"),
+            ["mediaSingle"] = Nodes("media", "caption"),
+            ["caption"] = InlineNodes,
             ["mediaGroup"] = Nodes("media"),
             ["panel"] = Nodes(
                 "paragraph", "heading", "bulletList", "orderedList", "blockCard", "mediaGroup",
@@ -98,22 +101,28 @@ internal static class AdfValidator {
 
     internal static AdfValidationResult Validate(AdfDocument document, AdfProcessingOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        AdfGraphGuard.Check(document, options ?? new AdfProcessingOptions());
+        options ??= new AdfProcessingOptions();
+        AdfGraphGuard.Check(document, options);
+        CancellationToken cancellationToken = options.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
         var issues = new List<AdfValidationIssue>();
         if (document.Version != 1) issues.Add(Error("ADF_VERSION", "$.version", "Only ADF version 1 is supported."));
         if (!string.Equals(document.Type, "doc", StringComparison.Ordinal)) issues.Add(Error("ADF_ROOT_TYPE", "$.type", "ADF root type must be 'doc'."));
         for (int i = 0; i < document.ContentItems.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             AdfNode node = document.ContentItems[i];
             string path = "$.content[" + i + "]";
             if (node != null && KnownNodes.Contains(node.Type) && !RootBlockNodes.Contains(node.Type)) {
                 issues.Add(Error("ADF_ROOT_CHILD", path, "ADF document content may contain only block nodes."));
             }
-            ValidateNode(node, path, null, issues);
+            ValidateNode(node, path, null, issues, cancellationToken);
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return new AdfValidationResult(issues);
     }
 
-    private static void ValidateNode(AdfNode? node, string path, string? parentType, List<AdfValidationIssue> issues) {
+    private static void ValidateNode(AdfNode? node, string path, string? parentType, List<AdfValidationIssue> issues, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (node == null) {
             issues.Add(Error("ADF_NULL_NODE", path, "ADF content cannot contain null nodes."));
             return;
@@ -126,9 +135,6 @@ internal static class AdfValidator {
             issues.Add(Error("ADF_TEXT_REQUIRED", path + ".text", "ADF text nodes require a non-empty text value."));
         } else if (isKnownNode && !isTextNode && node.Text != null) {
             issues.Add(Error("ADF_TEXT_NOT_ALLOWED", path + ".text", "ADF text payloads are allowed only on text nodes."));
-        }
-        if (isKnownNode && node.MarkItems.Any(mark => mark != null && KnownMarks.Contains(mark.Type) && !AdfNodeShape.AllowsMark(node.Type, mark.Type))) {
-            issues.Add(Error("ADF_MARKS_NOT_ALLOWED", path + ".marks", "The known ADF mark is not allowed on node '" + node.Type + "'."));
         }
         if (node.ContentItems.Count < AdfNodeShape.MinimumChildren(node.Type)) {
             issues.Add(Error("ADF_CONTENT_REQUIRED", path + ".content", "ADF node '" + node.Type + "' requires non-empty content."));
@@ -176,8 +182,11 @@ internal static class AdfValidator {
         if (string.Equals(node.Type, "inlineCard", StringComparison.Ordinal)) {
             ValidateInlineCardAttributes(node, path, issues);
         }
+        bool marksNotAllowed = false;
         for (int i = 0; i < node.MarkItems.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             AdfMark mark = node.MarkItems[i];
+            marksNotAllowed |= isKnownNode && mark != null && KnownMarks.Contains(mark.Type) && !AdfNodeShape.AllowsMark(node.Type, mark.Type);
             if (mark == null || string.IsNullOrWhiteSpace(mark.Type)) issues.Add(Error("ADF_MARK_TYPE", path + ".marks[" + i + "]", "ADF mark type is required."));
             else if (!KnownMarks.Contains(mark.Type)) issues.Add(Warning("ADF_UNKNOWN_MARK", path + ".marks[" + i + "]", "Unknown ADF mark '" + mark.Type + "' is retained but may be projected with reduced fidelity."));
             if (mark != null && string.Equals(mark.Type, "link", StringComparison.Ordinal) && string.IsNullOrWhiteSpace(mark.GetStringAttribute("href"))) {
@@ -187,11 +196,20 @@ internal static class AdfValidator {
                 issues.Add(Error("ADF_ALIGNMENT", path + ".marks[" + i + "].attrs.align", "ADF alignment requires 'center' or 'end'."));
             }
         }
+        if (marksNotAllowed) {
+            issues.Add(Error("ADF_MARKS_NOT_ALLOWED", path + ".marks", "The known ADF mark is not allowed on node '" + node.Type + "'."));
+        }
         for (int i = 0; i < node.ContentItems.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             AdfNode? child = node.ContentItems[i];
             string childPath = path + ".content[" + i + "]";
-            if (child != null) ValidateKnownChild(node, child, childPath, issues);
-            ValidateNode(child, childPath, node.Type, issues);
+            if (child != null) {
+                ValidateKnownChild(node, child, childPath, issues);
+                if (node.Type == "mediaSingle" && KnownNodes.Contains(child.Type) && child.Type != (i == 0 ? "media" : "caption")) {
+                    issues.Add(Error("ADF_MEDIA_SINGLE_CONTENT", childPath, "ADF mediaSingle requires media first and an optional caption second."));
+                }
+            }
+            ValidateNode(child, childPath, node.Type, issues, cancellationToken);
         }
     }
 

@@ -60,4 +60,26 @@ public sealed class ReaderDocBookIntegrityContractsTests {
         Assert.Equal(" italic ", string.Concat(chunks.Select(chunk => chunk.Text)));
         Assert.Equal("<em> italic </em>", string.Concat(chunks.Select(chunk => chunk.Markdown)));
     }
+
+    [Theory]
+    [InlineData("before <link xlink:href='https://example.com'>middle</link>", false, 500)]
+    [InlineData("<link xlink:href='https://example.com'>middle</link> after", false, 500)]
+    [InlineData("before <link xlink:href='https://example.com'>middle</link> after", true, 500)]
+    [InlineData("<emphasis role='bold'>before <link xlink:href='https://example.com'>middle</link></emphasis>", false, 500)]
+    [InlineData("before <link xlink:href='https://example.com'>middle</link>", false, 1)]
+    public void EmphasisAroundLinksPreservesEveryFragmentAndItsVisibleText(string content, bool bold, int maxChars) {
+        string xml = "<article xmlns='http://docbook.org/ns/docbook' xmlns:xlink='http://www.w3.org/1999/xlink' version='5.2'><para><emphasis" +
+            (bold ? " role='bold'" : "") + ">" + content + "</emphasis></para></article>";
+        var chunks = DocBookReaderAdapter.Read(DocBookDocument.Parse(xml), readerOptions: new ReaderOptions { MaxChars = maxChars }).ToArray();
+        var markdown = MarkdownReader.Parse(string.Concat(chunks.Select(chunk => chunk.Markdown)));
+        string html = markdown.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        var paragraph = System.Xml.Linq.XElement.Parse(html.Trim());
+
+        Assert.Equal(string.Concat(chunks.Select(chunk => chunk.Text)), paragraph.Value);
+        Assert.All(paragraph.DescendantNodes().OfType<System.Xml.Linq.XText>(), text =>
+            Assert.Contains(text.Ancestors(), element => element.Name.LocalName == (bold ? "strong" : "em")));
+        var link = Assert.Single(paragraph.Descendants("a"));
+        Assert.Equal("https://example.com", (string?)link.Attribute("href"));
+        Assert.Equal("middle", link.Value);
+    }
 }

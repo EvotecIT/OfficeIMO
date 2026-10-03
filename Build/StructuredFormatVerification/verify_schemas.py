@@ -31,7 +31,8 @@ def main():
         validators[name] = jsonschema.Draft4Validator(json.loads(data)) if name == "adf" else etree.RelaxNG(etree.fromstring(data))
 
     project = Path(__file__).with_name("StructuredFormatVerification.csproj")
-    subprocess.run(["dotnet", "run", "--configuration", "Release", "--project", str(project), "--", str(output)], cwd=project.parents[2], check=True)
+    subprocess.run(["dotnet", "build", str(project), "--configuration", "Release", "-m:1"], cwd=project.parents[2], check=True)
+    subprocess.run(["dotnet", "run", "--no-build", "--configuration", "Release", "--project", str(project), "--", str(output)], cwd=project.parents[2], check=True)
     results = []
     for case in json.loads((output / "manifest.json").read_text()):
         path = output / case["file"]

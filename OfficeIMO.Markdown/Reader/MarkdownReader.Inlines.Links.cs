@@ -215,7 +215,12 @@ public static partial class MarkdownReader {
         var inlineHtmlWrapperMatches = BuildInlineHtmlWrapperMatchIndex(label);
 
         for (int i = 0; i < label.Length; i++) {
+            if (label[i] == '\\' && i + 1 < label.Length && IsBackslashEscapable(label[i + 1])) {
+                i++;
+                continue;
+            }
             if (TrySkipLinkLabelInlineSpan(label, i, options, out int spanConsumed, inlineHtmlWrapperMatches)) {
+                if (label[i] == '<' && TryParseAngleAutolink(label, i, out _, out _, out _)) return true;
                 i += spanConsumed - 1;
                 continue;
             }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using OfficeIMO;
 
 namespace OfficeIMO.Reader.DocBook;
@@ -50,8 +51,12 @@ internal static partial class DocBookReaderAdapter {
                 bool strong = child.Attributes.TryGetValue("role", out string? role) && (role == "bold" || role == "strong");
                 string text = GetInlinePlainText(child);
                 bool boundaryWhitespace = text.Length > 0 && (char.IsWhiteSpace(text[0]) || char.IsWhiteSpace(text[text.Length - 1]));
-                string opening = boundaryWhitespace ? (strong ? "<strong>" : "<em>") : (strong ? "**" : "*");
-                string closing = boundaryWhitespace ? (strong ? "</strong>" : "</em>") : opening;
+                // Links and nested styles split this element into independently wrapped fragments.
+                // Markdown delimiters around those fragments may touch whitespace even when the
+                // complete emphasis element does not, so use HTML wrappers for structured content.
+                bool useInlineHtml = boundaryWhitespace || child.Children.Any(item => !string.Equals(item.Kind, "text", StringComparison.OrdinalIgnoreCase));
+                string opening = useInlineHtml ? (strong ? "<strong>" : "<em>") : (strong ? "**" : "*");
+                string closing = useInlineHtml ? (strong ? "</strong>" : "</em>") : opening;
                 prefix += opening;
                 suffix = closing + suffix;
                 hasTarget = true;
