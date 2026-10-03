@@ -262,7 +262,7 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
     // glyph/diagnostic list allocation, so widths and font subsetting are unchanged. Used by the
     // line-break measurement path, which only needs the width. ForRendering never reports control
     // characters, so that (list-producing) branch is not part of the measurement contract.
-    public static int MeasureAdvanceWidth1000(string text, PdfTrueTypeFontProgram font, PdfTextShapingOptions options) {
+    public static int MeasureAdvanceWidth1000(string text, PdfTrueTypeFontProgram font, PdfTextShapingOptions options, Action<int, string>? observeUsage = null) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
 
@@ -278,6 +278,7 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
                 }
 
                 totalWidth = checked(totalWidth + font.GetGlyphWidth1000(ligatureGlyphId));
+                observeUsage?.Invoke(ligatureGlyphId, text.Substring(scalarStart, ligatureLength));
                 index += ligatureLength;
                 continue;
             }
@@ -300,6 +301,7 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
             }
 
             totalWidth = checked(totalWidth + font.GetGlyphWidth1000(glyphId));
+            observeUsage?.Invoke(glyphId, char.ConvertFromUtf32(scalar));
         }
 
         return totalWidth;

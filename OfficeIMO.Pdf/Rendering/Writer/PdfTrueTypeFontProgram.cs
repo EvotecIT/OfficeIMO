@@ -13,6 +13,8 @@ internal sealed partial class PdfTrueTypeFontProgram {
     private readonly SortedSet<int> _usedGlyphIds = new();
     private readonly Dictionary<int, string> _usedGlyphToUnicode = new();
     private readonly object _usageLock = new();
+    private readonly PdfShortTextCache<PdfGlyphRun> _shortGlyphRuns = new();
+    private readonly PdfShortTextCache<PdfMeasuredText> _shortMeasurements = new();
 
     private PdfTrueTypeFontProgram(byte[] data, Dictionary<string, TableRecord> tables, string fontName, int unitsPerEm, int xMin, int yMin, int xMax, int yMax, int ascent, int descent, int capHeight, double italicAngle, int flags, int stemV, ushort[] advanceWidths, Dictionary<int, int> cmap) {
         _data = data.ToArray();
@@ -84,7 +86,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         int advanceWidth1000;
         if (shapingProvider == null && options.FeatureSettings.IsDefault) {
             advanceWidth1000 = shapingMode == PdfTextShapingMode.OpenTypeLigatures
-                ? PdfExternalTextShaper.MeasureDefaultLatinAdvanceWidth1000(text!, this, options)
+                ? MeasureDefaultLatinAdvanceWidth1000(text!, options)
                 : PdfUnicodeScalarTextShaper.MeasureAdvanceWidth1000(text!, this, options);
         } else {
             advanceWidth1000 = ShapeText(text!, options).TotalAdvanceWidth1000;
@@ -135,6 +137,18 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
     internal PdfGlyphRun ShapeText(string text, PdfTextShapingOptions options) {
         Guard.NotNull(text, nameof(text));
+        bool cacheable = PdfShortTextCache<PdfGlyphRun>.IsEligible(text, options);
+        if (cacheable && _shortGlyphRuns.TryGet(text, options, out PdfGlyphRun cached)) {
+            foreach (PdfGlyphInfo glyph in cached.Glyphs) RecordGlyphUsage(glyph.GlyphId, glyph.UnicodeText);
+            if (cached.SourceShapingResult != null) options.ProviderShapedTextRecorder?.Invoke(text, FontName, false, true);
+            return cached;
+        }
+        PdfGlyphRun result = ShapeUncachedText(text, options);
+        if (cacheable && !result.HasMissingGlyphs) _shortGlyphRuns.Add(text, options, result, result.Glyphs.Count);
+        return result;
+    }
+
+    private PdfGlyphRun ShapeUncachedText(string text, PdfTextShapingOptions options) {
         if (PdfExternalTextShaper.TryShapeText(text, this, options, out PdfGlyphRun glyphRun)) {
             return glyphRun;
         }
