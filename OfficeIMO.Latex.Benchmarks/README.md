@@ -39,6 +39,13 @@ routes continue to select `Parse` and `ParseWrite`. Each isolated measurement re
 the SHA-256 hashes of the loaded native and benchmark assemblies. BenchmarkDotNet
 setup reports the same hashes and validates the complete inspection path.
 
+The corpus uses fixed CRLF line endings on every OS; input hashes identify the
+exact source measured. Retained memory is live heap size minus fragmentation after
+forced full blocking collection. The report keeps the older `GC.GetTotalMemory`
+retained estimate separately and labels sampled peaks as estimates. Process peak
+is `null` when the platform API does not report it; budget verification then fails
+with an unavailable-metric diagnostic. A missing value is never interpreted as zero.
+
 Start with a dry run, then use the short or default job for measurements:
 
 ```powershell
