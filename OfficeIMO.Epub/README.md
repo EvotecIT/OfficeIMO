@@ -326,6 +326,9 @@ them. `RemoveResource` blocks structural and cover references, declared rootfile
 and payloads referenced by retained alternate packages or their XHTML/SVG/NCX content.
 Removal fails before mutation if an alternate package or its XML content cannot be
 inspected safely. Update content and navigation links before removing their targets.
+Raw resource APIs reject replacement or removal of `mimetype`, declared rootfiles,
+and `META-INF` controls. A manifested signature may be removed from the model, but
+writing still requires the explicit signature-removal policy described below.
 
 Imported duplicate spine references retain their reading positions and produce
 `EPUB_WRITE_RETAINED_DUPLICATE_SPINE`. This preserves the source's semantics but retains
@@ -369,6 +372,8 @@ Retained entry limits include mandatory package entries and apply when adding re
 Unedited writes count every physical ZIP record, including directories, against output
 limits. XHTML/SVG/NCX inspection, editing, and write preflight use the configured
 retained entry-byte bound; package XML uses the configured metadata bound.
+Rewritten XHTML/SVG uses that bound for shared HTML input length while retaining
+the shared DOM, stylesheet, and responsive-resource complexity safeguards.
 Ordinary entries are deflated by default; `mimetype` is always stored first without
 extra fields. Repeated writes of unchanged model state use stable modification metadata
 and deterministic ZIP ordering. Supply `ModifiedAt` for a reproducible timestamp

@@ -38,6 +38,7 @@ public sealed partial class EpubPublication {
     }
 
     private void ReplaceResourcePayload(string path, byte[] data) {
+        EnsureResourceMutationAllowed(path);
         if (_encryption.Any(encryption => encryption.Path == path)) throw new NotSupportedException("Encrypted/obfuscated resource replacement is unsupported.");
         EnsureEntryBudget(_entries.ContainsKey(path) ? 0 : 1);
         long previousLength = _entries.TryGetValue(path, out byte[]? previous) ? previous.LongLength : 0;
@@ -160,6 +161,7 @@ public sealed partial class EpubPublication {
     public void RemoveResource(string manifestId) {
         EpubManifestItem item = RequireManifestItem(manifestId);
         string path = RequireLocalPath(item);
+        EnsureResourceMutationAllowed(path, removing: true);
         if (Spine.Any(position => position.ManifestId == manifestId) || Manifest.Any(resource => resource.FallbackId == manifestId || resource.FallbackStyleId == manifestId || resource.MediaOverlayId == manifestId) ||
             Root.Descendants().Where(element => element.Name == Opf + "meta" || element.Name == Opf + "link")
                 .Attributes("refines").Any(attribute => ReferencesPackageId(attribute.Value, manifestId)) ||
@@ -169,11 +171,13 @@ public sealed partial class EpubPublication {
             RequireSection("metadata").Elements(Opf + "meta").Any(meta => (string?)meta.Attribute("name") == "cover" && (string?)meta.Attribute("content") == manifestId) ||
             HasMediaType(item.MediaType, "application/x-dtbncx+xml") || _encryption.Any(encryption => encryption.Path == path))
             throw new InvalidOperationException("Resource is referenced by package structure or protection metadata.");
-        if (!Manifest.Any(resource => resource.Id != manifestId && resource.Reference.ContainerPath == path))
+        bool removePayload = !Manifest.Any(resource => resource.Id != manifestId && resource.Reference.ContainerPath == path);
+        if (removePayload)
             EnsureRemovalPreservesRootfiles(path);
-        EditPackageElement(RequireSection("manifest"), proposed => proposed.Elements(Opf + "item").Single(element => (string?)element.Attribute("id") == manifestId).Remove());
-        if (!Manifest.Any(resource => resource.Reference.ContainerPath == path) && _entries.TryGetValue(path, out byte[]? removed)) {
-            _entries.Remove(path); _retainedBytes -= removed.LongLength;
+        long releasedBytes = removePayload && _entries.TryGetValue(path, out byte[]? removed) ? removed.LongLength : 0;
+        EditPackageElement(RequireSection("manifest"), proposed => proposed.Elements(Opf + "item").Single(element => (string?)element.Attribute("id") == manifestId).Remove(), -releasedBytes);
+        if (removePayload) {
+            _entries.Remove(path); _retainedBytes -= releasedBytes;
         }
     }
 

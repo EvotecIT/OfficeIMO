@@ -26,7 +26,7 @@ public sealed partial class EpubPublication {
             diagnostics.Add(new OfficeConversionFidelityDiagnostic("EPUB_WRITE_ZIP_SIGNATURE_REMOVED",
                 "Invalidated ZIP central-directory signature was removed by explicit policy.", OfficeConversionLossKind.Omission, "OfficeIMO.Epub"));
         }
-        if (changed && entries.ContainsKey("META-INF/signatures.xml")) {
+        if (changed && _originalEntries.ContainsKey("META-INF/signatures.xml")) {
             if (!removeSignatures) throw new InvalidOperationException("Edits invalidate package signatures. Explicit signature removal is required.");
             entries.Remove("META-INF/signatures.xml");
             diagnostics.Add(new OfficeConversionFidelityDiagnostic("EPUB_WRITE_SIGNATURE_REMOVED",

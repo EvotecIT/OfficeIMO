@@ -1,6 +1,14 @@
 namespace OfficeIMO.Epub;
 
 public sealed partial class EpubPublication {
+    private void EnsureResourceMutationAllowed(string path, bool removing = false) {
+        // Signature removal is finalized only by the explicit policy at Write/Save.
+        if (removing && path == "META-INF/signatures.xml") return;
+        if (path == "mimetype" || _rootfilePaths.Contains(path, StringComparer.Ordinal) ||
+            path.StartsWith("META-INF/", StringComparison.Ordinal))
+            throw new InvalidOperationException("Container controls and declared rootfiles cannot be changed through raw resource APIs.");
+    }
+
     // A selected-package removal must also leave retained renditions usable.
     private void EnsureRemovalPreservesRootfiles(string removedPath) {
         if (_rootfilePaths.Contains(removedPath, StringComparer.Ordinal))

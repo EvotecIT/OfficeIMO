@@ -85,7 +85,10 @@ public sealed partial class EpubPublication {
                 !HasMediaType(OriginalManifestItem(item.Id)?.MediaType, item.MediaType);
             if (rewritten && !HasMediaType(item.MediaType, "application/x-dtbncx+xml")) {
                 ValidateContent(content, item.MediaType);
-                var resources = OfficeIMO.Html.HtmlResourcePipeline.BuildManifest(content.ToString(SaveOptions.DisableFormatting));
+                var limits = OfficeIMO.Html.HtmlConversionLimits.CreateUntrustedProfile();
+                limits.MaxInputCharacters = (int)Math.Min(_maximumEntryBytes, int.MaxValue);
+                var resources = OfficeIMO.Html.HtmlResourcePipeline.BuildManifest(content.ToString(SaveOptions.DisableFormatting),
+                    new OfficeIMO.Html.HtmlResourcePipelineOptions { Limits = limits });
                 if (resources.Resources.Any(resource => !resource.IsAllowed)) throw new NotSupportedException("Authored content contains a URL blocked by the shared HTML policy.");
                 if (PackageVersion == "3.0") UpdateContentProperties(item, content, path, resources);
             }
