@@ -460,18 +460,25 @@ internal static partial class PdfWriter {
                 double padRight = GetTableCellPaddingRight(style, rowIndex, column);
                 double padTop = GetTableCellPaddingTop(style, rowIndex, column);
                 double padBottom = GetTableCellPaddingBottom(style, rowIndex, column);
+                TableCellContentFrame frame = GetTableCellContentFrame(cell, cellX, cellBottom + cellHeight, cellWidth, cellHeight);
                 OfficeDataBarGeometry bar = OfficeDataBarRenderer.Resolve(
-                    cellX + padLeft,
-                    cellBottom + padBottom,
-                    System.Math.Max(0D, cellWidth - padLeft - padRight),
-                    System.Math.Max(0D, cellHeight - padTop - padBottom),
+                    frame.Left + padLeft,
+                    frame.Top - frame.Height + padBottom,
+                    System.Math.Max(0D, frame.Width - padLeft - padRight),
+                    System.Math.Max(0D, frame.Height - padTop - padBottom),
                     dataBar.StartRatio,
                     dataBar.Ratio,
                     verticalInset: 0D,
                     minimumHeight: 0D);
                 if (bar.Width > 0.001D && bar.Height > 0.001D) {
-                    DrawRowFill(sb, dataBar.Color, bar.X, bar.Y, bar.Width, bar.Height, artifact);
-                    drawn = true;
+                    double left = cell.Viewport == null ? bar.X : Math.Max(cellX, bar.X);
+                    double bottom = cell.Viewport == null ? bar.Y : Math.Max(cellBottom, bar.Y);
+                    double right = cell.Viewport == null ? bar.X + bar.Width : Math.Min(cellX + cellWidth, bar.X + bar.Width);
+                    double top = cell.Viewport == null ? bar.Y + bar.Height : Math.Min(cellBottom + cellHeight, bar.Y + bar.Height);
+                    if (right > left && top > bottom) {
+                        DrawRowFill(sb, dataBar.Color, left, bottom, right - left, top - bottom, artifact);
+                        drawn = true;
+                    }
                 }
             }
 
@@ -501,19 +508,20 @@ internal static partial class PdfWriter {
                     cellBottom = yTop - cellHeight;
                 }
 
-                double iconSize = Math.Min(icon.Size, Math.Max(1D, Math.Min(cellWidth, cellHeight) - 2D));
+                TableCellContentFrame frame = GetTableCellContentFrame(cell, cellX, cellBottom + cellHeight, cellWidth, cellHeight);
+                double iconSize = Math.Min(icon.Size, Math.Max(1D, Math.Min(frame.Width, frame.Height) - 2D));
                 if (iconSize > 0.001D) {
                     double padLeft = GetTableCellPaddingLeft(style, rowIndex, column);
                     double padRight = GetTableCellPaddingRight(style, rowIndex, column);
                     double padTop = GetTableCellPaddingTop(style, rowIndex, column);
                     double padBottom = GetTableCellPaddingBottom(style, rowIndex, column);
-                    double contentLeft = cellX + padLeft;
-                    double contentRight = cellX + cellWidth - padRight;
-                    double contentBottom = cellBottom + padBottom;
-                    double contentTop = cellBottom + cellHeight - padTop;
+                    double contentLeft = frame.Left + padLeft;
+                    double contentRight = frame.Left + frame.Width - padRight;
+                    double contentBottom = frame.Top - frame.Height + padBottom;
+                    double contentTop = frame.Top - padTop;
                     double contentWidth = Math.Max(0D, contentRight - contentLeft);
                     double contentHeight = Math.Max(0D, contentTop - contentBottom);
-                    PdfColumnAlign horizontalAlign = GetTableCellAlignment(style, rowIndex, column, cell.Text);
+                    PdfColumnAlign horizontalAlign = icon.HorizontalAlignment ?? GetTableCellAlignment(style, rowIndex, column, cell.Text);
                     PdfCellVerticalAlign verticalAlign = GetTableCellVerticalAlignment(style, rowIndex, column);
                     double iconX = horizontalAlign switch {
                         PdfColumnAlign.Center => contentLeft + Math.Max(0D, (contentWidth - iconSize) / 2D),
@@ -528,8 +536,12 @@ internal static partial class PdfWriter {
 
                     iconX += icon.OffsetX;
                     iconY += icon.OffsetY;
-                    DrawTableCellIcon(sb, icon, iconX, iconY, iconSize, artifact);
-                    drawn = true;
+                    if (cell.Viewport == null || iconX + iconSize > cellX && iconX < cellX + cellWidth && iconY + iconSize > cellBottom && iconY < cellBottom + cellHeight) {
+                        if (cell.Viewport != null) new ContentStreamBuilder(sb).SaveState().Rectangle(cellX, cellBottom, cellWidth, cellHeight).ClipPath().EndPath();
+                        DrawTableCellIcon(sb, icon, iconX, iconY, iconSize, artifact);
+                        if (cell.Viewport != null) new ContentStreamBuilder(sb).RestoreState();
+                        drawn = true;
+                    }
                 }
             }
 

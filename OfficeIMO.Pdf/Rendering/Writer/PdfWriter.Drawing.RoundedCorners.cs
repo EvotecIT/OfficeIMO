@@ -80,9 +80,9 @@ internal static partial class PdfWriter {
         if (bl) content.CubicTo(x, y + r - control, x + r - control, y, x + r, y);
     }
 
-    private static void DrawRoundedCellBorder(StringBuilder sb, PdfCellBorder border, double x, double y, double w, double h, double radius, double outerBorderWidth, bool tl, bool tr, bool br, bool bl, bool artifact = false) {
+    private static void DrawRoundedCellBorder(StringBuilder sb, PdfCellBorder border, double x, double y, double w, double h, double radius, double outerBorderWidth, bool tl, bool tr, bool br, bool bl, bool artifact = false, TableCellContentFrame? diagonalFrame = null) {
         if (!(tl || tr || br || bl)) {
-            DrawCellBorder(sb, border, x, y, w, h, artifact);
+            DrawCellBorder(sb, border, x, y, w, h, artifact, diagonalFrame: diagonalFrame);
             return;
         }
 
@@ -113,8 +113,7 @@ internal static partial class PdfWriter {
         if (border.DiagonalUp || border.DiagonalDown) {
             AppendArtifactBegin(sb, artifact);
             BeginRoundedClip(sb, x, y, w, h, radius, tl, tr, br, bl);
-            if (border.DiagonalUp) DrawCellDiagonalBorder(sb, ResolveCellBorderSide(border.DiagonalUpBorderSnapshot, border), x, y, x2, y2, diagonalUp: true);
-            if (border.DiagonalDown) DrawCellDiagonalBorder(sb, ResolveCellBorderSide(border.DiagonalDownBorderSnapshot, border), x, y, x2, y2, diagonalUp: false);
+            DrawTableCellDiagonals(sb, border, x, y, w, h, diagonalFrame, artifact: false);
             EndRoundedClip(sb);
             AppendArtifactEnd(sb, artifact);
         }

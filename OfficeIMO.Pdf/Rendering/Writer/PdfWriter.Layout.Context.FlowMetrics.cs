@@ -666,10 +666,10 @@ internal static partial class PdfWriter {
                     TableCellLayout cell = cells[cellIndex];
                     PdfStandardFont cellFont = GetTableRowFont(currentOpts, rowUsesBold);
                     double cellWidth = GetTableCellWidth(columnLayout.Widths, cell.Column, cell.ColumnSpan, columnGap);
-                    double innerWidth = Math.Max(1D, cellWidth - GetTableCellPaddingLeft(style, rowIndex, cell.Column) - GetTableCellPaddingRight(style, rowIndex, cell.Column));
+                    double innerWidth = Math.Max(1D, GetTableCellContentWidth(cell, cellWidth) - GetTableCellPaddingLeft(style, rowIndex, cell.Column) - GetTableCellPaddingRight(style, rowIndex, cell.Column));
                     TableCellTextLayout lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, rowSize, rowLeading, currentOpts, runFontSizeScale, style.MinimumShrinkFontSize ?? 6D);
                     rowLines[rowIndex][cell.Column] = lines;
-                    if (cell.RowSpan <= 1) {
+                    if (cell.RowSpan <= 1 && cell.Viewport == null) {
                         maxRequiredHeight = Math.Max(maxRequiredHeight, MeasureTableCellContentHeight(cell, lines, 0, lines.LineCount, rowLeading, innerWidth) + GetTableCellPaddingTop(style, rowIndex, cell.Column) + GetTableCellPaddingBottom(style, rowIndex, cell.Column));
                     }
                 }

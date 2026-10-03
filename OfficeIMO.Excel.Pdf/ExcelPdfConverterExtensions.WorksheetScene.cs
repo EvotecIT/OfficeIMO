@@ -32,7 +32,6 @@ namespace OfficeIMO.Excel.Pdf {
                         : new[] { new TableChunk(Array.Empty<int>(), 0, 0, 0) };
                     // Vertical pages share the same column projection. Keep one per horizontal
                     // segment for this print area instead of copying all source rows on every page.
-                    var columnProjections = new Dictionary<(int Start, int Count), SheetExportData>();
                     if (areaIndex > 0) page.Content(content => content.Item(item => item.PageBreak()));
                     page.Content(content => content.Item(item => item.Bookmark(plan.BookmarkName)));
                     for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) {
@@ -56,8 +55,7 @@ namespace OfficeIMO.Excel.Pdf {
                             worksheetScale,
                             headingHeight,
                             firstPageForSheet,
-                            document.DateSystem,
-                            columnProjections));
+                            document.DateSystem));
                     }
                 }
             });
@@ -77,8 +75,7 @@ namespace OfficeIMO.Excel.Pdf {
             double worksheetScale,
             double headingHeight,
             bool firstPageForSheet,
-            ExcelDateSystem dateSystem,
-            IDictionary<(int Start, int Count), SheetExportData> columnProjections) {
+            ExcelDateSystem dateSystem) {
             double sceneX = margins.Left;
             double sceneY = margins.Top + headingHeight;
             if (firstPageForSheet) {
@@ -113,11 +110,8 @@ namespace OfficeIMO.Excel.Pdf {
 
             canvas.Clip(sceneX, sceneY, Math.Max(1D, clipWidth), Math.Max(1D, clipHeight), clipped => {
                 if (plan.HasTable && chunk.RowIndexes.Count > 0 && chunk.ColumnCount > 0) {
-                    var projectionKey = (chunk.StartColumn, chunk.ColumnCount);
-                    if (!columnProjections.TryGetValue(projectionKey, out SheetExportData? data)) {
-                        data = SelectPageColumns(plan.ExportData, chunk.ColumnIndexes);
-                        columnProjections.Add(projectionKey, data);
-                    }
+                    SheetExportData data = SelectPageCells(plan, chunk, options);
+                    int[] pageRows = Enumerable.Range(0, chunk.RowIndexes.Count).ToArray();
                     PdfCore.PdfTableStyle tableStyle = CreateWorksheetSceneTableStyle(plan, data, chunk, options, columnWidths, rowHeights, scale);
                     clipped.Table(
                         CreatePdfRows(
@@ -128,7 +122,7 @@ namespace OfficeIMO.Excel.Pdf {
                             data.StructuredTables,
                             data.MergedCells,
                             imagesByCellReference: null,
-                            chunk.RowIndexes,
+                            pageRows,
                             0,
                             chunk.ColumnIndexes.Count,
                             options.EmptyCellText,
@@ -162,7 +156,7 @@ namespace OfficeIMO.Excel.Pdf {
             PdfCore.PdfTableStyle style = CreateTableStyle(
                 options,
                 plan.PageSetup,
-                chunk.RowIndexes,
+                Enumerable.Range(0, chunk.RowIndexes.Count).ToArray(),
                 chunk.HeaderRowCount,
                 data.Styles,
                 data.ConditionalFills,
@@ -173,7 +167,7 @@ namespace OfficeIMO.Excel.Pdf {
                 0,
                 chunk.ColumnIndexes.Count);
             style.HeaderFill = null;
-            ApplyGeneralCellAlignments(style, data.Values, chunk.RowIndexes);
+            ApplyGeneralCellAlignments(style, data.Values, Enumerable.Range(0, chunk.RowIndexes.Count).ToArray());
             style.RightAlignNumeric = false;
             style.HeaderBold = false;
             style.HeaderTextColor = null;

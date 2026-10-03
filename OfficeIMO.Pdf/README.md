@@ -624,6 +624,28 @@ These recipes compose normal flow, table, and panel primitives. `IPdfContextComp
 uses the existing deferred replay path when content must react to the live page number;
 it does not introduce another layout engine.
 
+### Clipped table-cell fragments
+
+Use `PdfTableCell.WithViewport` when a cell is represented by a fragment of a larger cell. The viewport describes the full box, the visible fragment and its offset in one coordinate system. Text wraps and aligns in the full box; the renderer clips it to the fragment. Diagonal borders use the full box too, while ordinary edge borders follow the fragment's configured border style.
+
+```csharp
+var lowerHalf = PdfTableCell.TextCell("Bottom aligned")
+    .WithViewport(new PdfTableCellViewport(
+        contentWidth: 100, contentHeight: 48,
+        width: 100, height: 24, offsetY: 24));
+
+var fragmentStyle = TableStyles.Minimal();
+fragmentStyle.HeaderRowCount = 0;
+fragmentStyle.ColumnWidthPoints = new List<double?> { 100 };
+fragmentStyle.FixedRowHeights = new List<double?> { 24 };
+fragmentStyle.VerticalAlignments = new List<PdfCellVerticalAlign> { PdfCellVerticalAlign.Bottom };
+
+PdfDocument.Create().Table(new[] { new[] { lowerHalf } }, style: fragmentStyle)
+    .Save("cell-fragment.pdf");
+```
+
+The viewport scales with the rendered cell dimensions and preserves cell links and named destinations. Data bars and icons retain their full-cell geometry too. It works in normal flow, column flow and canvas tables. A row containing a viewport must fit on one page; split larger cells into explicit fragments before rendering. A cell with images, check boxes or form fields rejects a viewport; place those objects separately. Pass `null` to `WithViewport` to return a copy with ordinary cell layout. `PdfCellIcon.HorizontalAlignment` can position an icon independently of the cell text.
+
 ### Floating tables
 
 Set `PdfTableStyle.Position` to a `PdfTablePosition` to place a table relative to the current text flow, page margins, or page edges. Offsets and text clearances are measured in points; positive vertical offsets move down the page. Paragraphs wrap beside the table and regain their full width below it. Wide inline objects move below the table when the side interval is too narrow. Headings, lists, images, and other structured blocks use space below intersecting floating tables.

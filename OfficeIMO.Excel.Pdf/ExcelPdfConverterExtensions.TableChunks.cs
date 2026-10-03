@@ -187,9 +187,7 @@ namespace OfficeIMO.Excel.Pdf {
                 for (int row = 0; row < rows; row++) {
                     int originalRow = GetOriginalRowNumber(references, row);
                     if (originalRow > breakRow) {
-                        if (plan.ExportData.MergedCells?.CrossesRowBoundary(row) != true) {
-                            offsets.Add(row);
-                        }
+                        offsets.Add(row);
 
                         break;
                     }
@@ -212,9 +210,7 @@ namespace OfficeIMO.Excel.Pdf {
                 for (int column = 0; column < columns; column++) {
                     int originalColumn = GetOriginalColumnNumber(references, column, rows);
                     if (originalColumn > breakColumn) {
-                        if (plan.ExportData.MergedCells?.CrossesColumnBoundary(column) != true) {
-                            offsets.Add(column);
-                        }
+                        offsets.Add(column);
 
                         break;
                     }
@@ -275,7 +271,7 @@ namespace OfficeIMO.Excel.Pdf {
                     StructuredTableCellVisual? tableVisual = GetStructuredTableCellVisual(structuredTables, cellReferences, row, column);
                     ExcelHyperlinkSnapshot? hyperlink = GetHyperlink(hyperlinks, row, column);
                     string text = FormatCellValue(values[row, column], style, emptyCellText, dateSystem);
-                    MergeSpan? span = ClipMergeSpanToChunk(mergedCells?.GetSpan(row, column), row, rowIndexes, localRow, column, endColumn);
+                    MergeSpan? span = mergedCells?.GetSpan(row, column);
                     string? cellDestinationName = TryGetCellDestinationName(cellReferences, row, column, sheetName, cellDestinations, out string? destinationName)
                         ? destinationName
                         : null;
@@ -288,29 +284,6 @@ namespace OfficeIMO.Excel.Pdf {
 
                 yield return cells.ToArray();
             }
-        }
-
-        private static MergeSpan? ClipMergeSpanToChunk(MergeSpan? span, int row, IReadOnlyList<int> rowIndexes, int localRow, int column, int endColumn) {
-            if (span == null) {
-                return span;
-            }
-
-            int clippedColumnSpan = Math.Min(span.ColumnSpan, Math.Max(1, endColumn - column));
-            int contiguousRows = 1;
-            for (int offset = 1; offset < span.RowSpan && localRow + offset < rowIndexes.Count; offset++) {
-                if (rowIndexes[localRow + offset] != row + offset) {
-                    break;
-                }
-
-                contiguousRows++;
-            }
-
-            int clippedRowSpan = Math.Min(span.RowSpan, contiguousRows);
-            if (clippedRowSpan == span.RowSpan && clippedColumnSpan == span.ColumnSpan) {
-                return span;
-            }
-
-            return new MergeSpan(clippedRowSpan, clippedColumnSpan);
         }
 
         private static IReadOnlyList<WorksheetImageExportData>? GetCellImages(IReadOnlyDictionary<string, IReadOnlyList<WorksheetImageExportData>>? imagesByCellReference, string?[,]? cellReferences, int row, int column) {
@@ -369,6 +342,7 @@ namespace OfficeIMO.Excel.Pdf {
                 images: pdfImages,
                 linkDestinationName: linkDestinationName,
                 namedDestinationName: cellDestinationName);
+            if (span?.Viewport != null) cell = cell.WithViewport(span.Viewport);
             return preserveWorksheetNoWrap ? cell.WithNoWrap(style?.WrapText != true) : cell;
         }
 

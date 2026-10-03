@@ -174,6 +174,7 @@ internal static partial class PdfWriter {
 
         bool CanSplitColumnTableRowIntoRemainingSpace(int rowIndex) =>
             rowIndex >= table.HeaderRowCount &&
+            !TableRowHasViewport(tbColumn, rowIndex, table.Columns) &&
             GetTableRowAllowBreakAcrossPages(tableStyle, rowIndex) &&
             table.RowLineCounts[rowIndex] > 1 &&
             MeasureColumnTableRowSegmentHeight(rowIndex, 0, Math.Min(2, table.RowLineCounts[rowIndex]), suppressCellObjects: false) <= state.Remaining + 0.001;
@@ -302,16 +303,17 @@ internal static partial class PdfWriter {
                 double cellPadRight = GetTableCellPaddingRight(tableStyle, rowIndex, c);
                 double cellPadTop = GetTableCellPaddingTop(tableStyle, rowIndex, c);
                 double cellPadBottom = GetTableCellPaddingBottom(tableStyle, rowIndex, c);
-                double innerW = cellWidth - cellPadLeft - cellPadRight;
                 double cellHeight = wholeRowSegment && cell.RowSpan > 1 ? GetTableCellHeight(table.RowHeights, rowIndex, cell.RowSpan, columnTableRowGap) : rowHeight;
+                TableCellContentFrame contentFrame = GetTableCellContentFrame(cell, xi, state.Y, cellWidth, cellHeight);
+                double innerW = contentFrame.Width - cellPadLeft - cellPadRight;
                 double cellBottom = state.Y - cellHeight;
                 PdfColumnAlign align = GetTableCellAlignment(tableStyle, rowIndex, c, cell.Text);
                 PdfCellVerticalAlign verticalAlign = GetTableCellVerticalAlignment(tableStyle, rowIndex, c);
                 var cellFont = GetTableRowFont(currentOpts, rowUsesBold);
                 TableCellTextLayout lines = table.RowLines[rowIndex][c];
-                int sourceStartLine = wholeRowSegment && cell.RowSpan > 1 ? 0 : startLine;
-                int requestedLineCount = wholeRowSegment && cell.RowSpan > 1 ? lines.LineCount : lineCount;
-                double availableTextHeight = Math.Max(0, cellHeight - cellPadTop - cellPadBottom);
+                int sourceStartLine = cell.Viewport != null || wholeRowSegment && cell.RowSpan > 1 ? 0 : startLine;
+                int requestedLineCount = cell.Viewport != null || wholeRowSegment && cell.RowSpan > 1 ? lines.LineCount : lineCount;
+                double availableTextHeight = Math.Max(0, contentFrame.Height - cellPadTop - cellPadBottom);
                 int visibleLineCount = LimitTableCellLineCountToHeight(lines, sourceStartLine, requestedLineCount, rowLeading, availableTextHeight);
                 double verticalOffset = 0;
                 double visibleTextHeight = 0D;
@@ -323,7 +325,7 @@ internal static partial class PdfWriter {
                     else if (verticalAlign == PdfCellVerticalAlign.Bottom) verticalOffset = unusedTextHeight;
                 }
 
-                double firstBaseline = state.Y - cellPadTop - verticalOffset - (sourceStartLine == 0 ? lines.TopSpacing : 0D) - GetAscenderForOptions(cellFont, rowSize, currentOpts) + tableStyle.RowBaselineOffset;
+                double firstBaseline = contentFrame.Top - cellPadTop - verticalOffset - (sourceStartLine == 0 ? lines.TopSpacing : 0D) - GetAscenderForOptions(cellFont, rowSize, currentOpts) + tableStyle.RowBaselineOffset;
 
                 pageDirty = true;
                 MarkRichFonts(cell.Runs, forceBold: rowUsesBold);
@@ -350,7 +352,7 @@ internal static partial class PdfWriter {
                     var visibleWidths = SliceTableCellLineWidths(lines, sourceStartLine, visibleLineCount, innerW);
                     double textClipX = xi - TableCellClipBleed;
                     double textClipWidth = cellWidth + (TableCellClipBleed * 2D);
-                    ExpandTableCellTextClip(xi + cellPadLeft, visibleXOffsets, visibleWidths, ref textClipX, ref textClipWidth);
+                    if (cell.Viewport == null) ExpandTableCellTextClip(xi + cellPadLeft, visibleXOffsets, visibleWidths, ref textClipX, ref textClipWidth);
                     var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
                     string structureType = renderAsHeader ? "TH" : "TD";
                     int tableColumnSpan = cell.ColumnSpan > 1 ? cell.ColumnSpan : 1;
@@ -367,7 +369,11 @@ internal static partial class PdfWriter {
                         markedContentId = RegisterTextStructureElement(structureType, rowStructureElementIndex, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan);
                     }
 
-                    WriteClippedRichParagraph(sb, paragraph, visibleLines, visibleHeights, currentOpts, firstBaseline, rowSize, rowLeading, currentPage!.Annotations, textClipX, cellBottom - TableCellClipBleed, textClipWidth, cellHeight + (TableCellClipBleed * 2D), xi + cellPadLeft, innerW, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, lineAlignments: visibleAlignments, lineXOffsets: visibleXOffsets, lineWidths: visibleWidths);
+                    if (cell.Viewport != null)
+                        OmitInvisibleTableCellViewportLines(visibleLines, visibleHeights, visibleAlignments, visibleXOffsets, visibleWidths,
+                            paragraph.Align, firstBaseline, contentFrame.Left + cellPadLeft, innerW,
+                            xi, cellBottom, cellWidth, cellHeight, rowLeading, rowSize, currentOpts);
+                    WriteClippedRichParagraph(sb, paragraph, visibleLines, visibleHeights, currentOpts, firstBaseline, rowSize, rowLeading, currentPage!.Annotations, textClipX, cellBottom - TableCellClipBleed, textClipWidth, cellHeight + (TableCellClipBleed * 2D), contentFrame.Left + cellPadLeft, innerW, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, lineAlignments: visibleAlignments, lineXOffsets: visibleXOffsets, lineWidths: visibleWidths);
                 }
                 if (!suppressCellObjects && (cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) && sourceStartLine == 0) {
                     if (CanRenderTableCellCheckBoxInline(cell, lines, sourceStartLine, visibleLineCount)) {
@@ -473,11 +479,13 @@ internal static partial class PdfWriter {
                         bool bottomRight = cellTouchesBottom && cellTouchesRight;
                         bool bottomLeft = cellTouchesBottom && cellTouchesLeft;
                         if (!cellBorder.HasHiddenSegments && (topLeft || topRight || bottomRight || bottomLeft)) {
-                            DrawRoundedCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight, cornerRadius, roundedOuterBorder, topLeft, topRight, bottomRight, bottomLeft, emitGeneratedStructure);
+                            DrawRoundedCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight, cornerRadius, roundedOuterBorder, topLeft, topRight, bottomRight, bottomLeft, emitGeneratedStructure,
+                                GetTableCellDiagonalFrame(borderCell, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight));
                         } else {
                             DrawCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight, emitGeneratedStructure,
                                 GetCellBorderSegmentLengths(table.RowHeights, rowIndex, borderCell.RowSpan, columnTableRowGap),
-                                GetCellBorderSegmentLengths(table.ColumnWidths, borderColumn, span, columnGap));
+                                GetCellBorderSegmentLengths(table.ColumnWidths, borderColumn, span, columnGap),
+                                GetTableCellDiagonalFrame(borderCell, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight));
                         }
                     }
                     borderX += table.ColumnWidths[borderColumn] + columnGap;
@@ -501,6 +509,8 @@ internal static partial class PdfWriter {
             if (requiredRowHeight > maxContentHeight + 0.001D)
                 throw new ArgumentException("Table row height requirement exceeds the available page content height.");
             if (rowHeight > maxContentHeight + 0.001 || rowStartLine > 0) {
+                if (TableRowHasViewport(tbColumn, rowIndex, table.Columns))
+                    throw new ArgumentException("A row containing a cell viewport must fit within one page; divide it into explicit fragments before rendering.");
                 if (!GetTableRowAllowBreakAcrossPages(tableStyle, rowIndex)) {
                     throw new ArgumentException("Table row height exceeds the available page content height and row splitting is disabled.");
                 }

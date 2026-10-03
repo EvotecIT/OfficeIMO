@@ -164,6 +164,7 @@ internal static partial class PdfWriter {
                             RenderCanvasTableCellText(item, style, cell, rowIndex, cell.Column, rowIsHeader, rowIsFooter, rowUsesBold, cellX, rowTop, cellBottom, cellWidth, cellHeight, rowFontSizes[rowIndex], rowLeadings[rowIndex], rowFontSizeScales[rowIndex], item.Y + GetTableRowsHeight(rowHeights, 0, rowIndex, rowGap));
                             DrawCanvasTableCellBorder(
                                 style,
+                                cell,
                                 rowIndex,
                                 cell.Column,
                                 cellX,
@@ -329,13 +330,14 @@ internal static partial class PdfWriter {
         }
 
         private void RenderCanvasTableCellText(PdfCanvasTableItem item, PdfTableStyle style, TableCellLayout cell, int rowIndex, int columnIndex, bool rowIsHeader, bool rowIsFooter, bool rowUsesBold, double cellX, double cellTop, double cellBottom, double cellWidth, double cellHeight, double fontSize, double leading, double runFontSizeScale, double cellYFromTop) {
+            TableCellContentFrame contentFrame = GetTableCellContentFrame(cell, cellX, cellTop, cellWidth, cellHeight);
             PdfStandardFont cellFont = GetTableRowFont(currentOpts, rowUsesBold);
             double padLeft = GetTableCellPaddingLeft(style, rowIndex, columnIndex);
             double padRight = GetTableCellPaddingRight(style, rowIndex, columnIndex);
             double padTop = GetTableCellPaddingTop(style, rowIndex, columnIndex);
             double padBottom = GetTableCellPaddingBottom(style, rowIndex, columnIndex);
-            double innerWidth = Math.Max(1D, cellWidth - padLeft - padRight);
-            double availableHeight = Math.Max(0D, cellHeight - padTop - padBottom);
+            double innerWidth = Math.Max(1D, contentFrame.Width - padLeft - padRight);
+            double availableHeight = Math.Max(0D, contentFrame.Height - padTop - padBottom);
             var lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, fontSize, leading, currentOpts, runFontSizeScale, style.MinimumShrinkFontSize ?? 6D);
             int lineCount = Math.Max(1, lines.LineCount);
             double contentHeight = MeasureTableCellContentHeight(cell, lines, 0, lineCount, leading, innerWidth);
@@ -360,7 +362,7 @@ internal static partial class PdfWriter {
                 }
             }
 
-            double firstBaseline = cellTop - padTop - verticalOffset - lines.TopSpacing - GetAscenderForOptions(cellFont, fontSize, currentOpts) + style.RowBaselineOffset;
+            double firstBaseline = contentFrame.Top - padTop - verticalOffset - lines.TopSpacing - GetAscenderForOptions(cellFont, fontSize, currentOpts) + style.RowBaselineOffset;
             var visibleLines = SliceTableCellLines(lines, 0, lineCount);
             var visibleHeights = SliceTableCellLineHeights(lines, 0, lineCount, leading);
             var visibleAlignments = SliceTableCellLineAlignments(lines, 0, lineCount);
@@ -376,6 +378,10 @@ internal static partial class PdfWriter {
             PdfColumnAlign align = GetTableCellAlignment(style, rowIndex, columnIndex, cell.Text);
             PdfColor? textColor = rowIsHeader ? style.HeaderTextColor : rowIsFooter ? style.FooterTextColor : style.TextColor;
             var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
+            if (cell.Viewport != null)
+                OmitInvisibleTableCellViewportLines(visibleLines, visibleHeights, visibleAlignments, visibleXOffsets, visibleWidths,
+                    paragraph.Align, firstBaseline, contentFrame.Left + padLeft, innerWidth,
+                    cellX, cellBottom, cellWidth, cellHeight, leading, fontSize, currentOpts);
             int? markedContentId = RegisterTextStructureElement(
                 rowIsHeader ? "TH" : "TD",
                 _canvasStructureParentElement,
@@ -396,7 +402,7 @@ internal static partial class PdfWriter {
                 cellBottom - TableCellClipBleed,
                 cellWidth + (TableCellClipBleed * 2D),
                 cellHeight + (TableCellClipBleed * 2D),
-                cellX + padLeft,
+                contentFrame.Left + padLeft,
                 innerWidth,
                 structureType: rowIsHeader ? "TH" : "TD",
                 markedContentId: markedContentId,
@@ -439,15 +445,15 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void DrawCanvasTableCellBorder(PdfTableStyle style, int rowIndex, int columnIndex, double x, double y, double width, double height, double cornerRadius, bool topLeft, bool topRight, bool bottomRight, bool bottomLeft, double[]? rowSegmentHeights, double[]? columnSegmentWidths) {
+        private void DrawCanvasTableCellBorder(PdfTableStyle style, TableCellLayout cell, int rowIndex, int columnIndex, double x, double y, double width, double height, double cornerRadius, bool topLeft, bool topRight, bool bottomRight, bool bottomLeft, double[]? rowSegmentHeights, double[]? columnSegmentWidths) {
             if (style.CellBorders != null &&
                 style.CellBorders.TryGetValue((rowIndex, columnIndex), out PdfCellBorder? border) &&
                 HasRenderableCellBorder(border)) {
                 if (!border.HasHiddenSegments && cornerRadius > 0D && (topLeft || topRight || bottomRight || bottomLeft)) {
                     double outerBorderWidth = style.BorderColor is not null && style.BorderWidth > 0D ? style.BorderWidth : 0D;
-                    DrawRoundedCellBorder(sb, border, x, y, width, height, cornerRadius, outerBorderWidth, topLeft, topRight, bottomRight, bottomLeft, true);
+                    DrawRoundedCellBorder(sb, border, x, y, width, height, cornerRadius, outerBorderWidth, topLeft, topRight, bottomRight, bottomLeft, true, GetTableCellDiagonalFrame(cell, x, y, width, height));
                 } else {
-                    DrawCellBorder(sb, border, x, y, width, height, true, rowSegmentHeights, columnSegmentWidths);
+                    DrawCellBorder(sb, border, x, y, width, height, true, rowSegmentHeights, columnSegmentWidths, GetTableCellDiagonalFrame(cell, x, y, width, height));
                 }
             }
         }
