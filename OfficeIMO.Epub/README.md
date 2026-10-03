@@ -361,6 +361,11 @@ EPUB 3 content document and a SMIL target; SMIL timing is outside this validatio
 Spine items resolve to XHTML in EPUB 2, or XHTML/SVG in EPUB 3, through any fallback
 chain. EPUB 2 image and stylesheet resources belong inside content documents;
 direct spine references to them are rejected, including SVG with a fallback.
+Navigation may target any resource in a spine item's fallback chain. Remote-resource
+declarations and URL-policy checks include retained media/source alternatives and
+stylesheet links, even when the renderer selects a different alternative.
+Newly authored or rewritten forms are rejected under the scripted-content restriction;
+unchanged imported scripted content remains eligible for preservation.
 Custom vocabulary declarations reject EPUB-prohibited mappings. Declare custom
 prefixes before assigning metadata, manifest, or spine properties. Newly assigned
 property tokens require valid declared or reserved prefixes and nonempty references;

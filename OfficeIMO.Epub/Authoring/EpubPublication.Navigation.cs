@@ -209,9 +209,16 @@ public sealed partial class EpubPublication {
             if (requireContainer) throw new InvalidDataException("Navigation must target container content: " + target.Original);
             return;
         }
-        var ids = new HashSet<string>(spineIds, StringComparer.Ordinal);
-        if (!manifest.Any(item => item.Reference.ContainerPath == target.ContainerPath && ids.Contains(item.Id)))
-            throw new InvalidDataException("Navigation content target must be declared in the manifest and spine: " + target.Original);
+        var byId = manifest.ToDictionary(item => item.Id, StringComparer.Ordinal);
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        foreach (string spineId in spineIds) {
+            string? id = spineId;
+            while (id != null && visited.Add(id) && byId.TryGetValue(id, out EpubManifestItem? item)) {
+                if (item.Reference.ContainerPath == target.ContainerPath) return;
+                id = item.FallbackId;
+            }
+        }
+        throw new InvalidDataException("Navigation content target must be declared in the spine or its manifest fallback chains: " + target.Original);
     }
     private static int NavigationDepth(IEnumerable<EpubNavigationEntry> nodes) =>
         nodes.Any() ? 1 + nodes.Max(node => NavigationDepth(node.Children)) : 0;

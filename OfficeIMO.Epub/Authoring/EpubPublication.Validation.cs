@@ -95,6 +95,13 @@ public sealed partial class EpubPublication {
                 var resources = OfficeIMO.Html.HtmlResourcePipeline.BuildManifest(analysisContent,
                     new OfficeIMO.Html.HtmlResourcePipelineOptions { Limits = limits });
                 if (resources.Resources.Any(resource => !resource.IsAllowed)) throw new NotSupportedException("Authored content contains a URL blocked by the shared HTML policy.");
+                // A renderer may select one media alternative; every retained direct
+                // resource reference must still pass the same URL policy.
+                var resourcePolicy = OfficeIMO.Html.HtmlResourceUrlPolicy.Create(null);
+                foreach (EpubReference reference in ContentResourceReferences(content, path, token, includeHyperlinks: false))
+                    if ((reference.Kind == EpubReferenceKind.External || reference.Kind == EpubReferenceKind.Data) &&
+                        !OfficeIMO.Html.HtmlUrlPolicyEvaluator.IsAllowed(reference.ResolvedValue, resourcePolicy))
+                        throw new NotSupportedException("Authored content contains a URL blocked by the shared HTML policy.");
                 if (PackageVersion == "3.0") UpdateContentProperties(item, content, path, resources);
             }
             ValidateContentReferences(content, path, entries, fragmented, token);
@@ -120,12 +127,15 @@ public sealed partial class EpubPublication {
         }
     }
 
-    private static IEnumerable<EpubReference> ContentResourceReferences(XDocument content, string owner, CancellationToken token = default) {
+    private static IEnumerable<EpubReference> ContentResourceReferences(XDocument content, string owner, CancellationToken token = default, bool includeHyperlinks = true) {
         string? baseHref = content.Root?.Name == Html + "html" ? content.Root.Element(Html + "head")?.Elements(Html + "base")
             .Select(element => (string?)element.Attribute("href")).FirstOrDefault(value => value != null) : null;
         foreach (XElement element in content.Descendants()) {
             token.ThrowIfCancellationRequested();
             if (element.Name.Namespace != Html && element.Name.NamespaceName != "http://www.w3.org/2000/svg" && element.Name != Ncx + "content") continue;
+            if (!includeHyperlinks && (element.Name.LocalName == "a" || element.Name == Html + "area")) continue;
+            if (!includeHyperlinks && element.Name == Html + "link" &&
+                OfficeIMO.Html.HtmlResourcePipeline.GetLinkResourceKind((string?)element.Attribute("rel"), (string?)element.Attribute("as")) == OfficeIMO.Html.HtmlResourceKind.Hyperlink) continue;
             foreach (XAttribute attribute in element.Attributes().Where(attribute => attribute.Name == "href" || attribute.Name == "src" ||
                 attribute.Name == "poster" || (element.Name == Html + "object" && attribute.Name == "data") ||
                 attribute.Name == XName.Get("href", "http://www.w3.org/1999/xlink"))) {
@@ -153,7 +163,8 @@ public sealed partial class EpubPublication {
         if (content.Descendants().Any(element => element.Name.NamespaceName == "http://www.w3.org/1998/Math/MathML")) properties.Add("mathml");
         // Shared HTML discovery also covers inline CSS, srcset, and non-hyperlink resource URLs.
         if (resources.Resources.Any(resource => resource.Kind != OfficeIMO.Html.HtmlResourceKind.Hyperlink &&
-            EpubReference.Resolve(owner, resource.ResolvedSource.Length == 0 ? resource.Source : resource.ResolvedSource).Kind == EpubReferenceKind.External)) properties.Add("remote-resources");
+            EpubReference.Resolve(owner, resource.ResolvedSource.Length == 0 ? resource.Source : resource.ResolvedSource).Kind == EpubReferenceKind.External) ||
+            ContentResourceReferences(content, owner, includeHyperlinks: false).Any(reference => reference.Kind == EpubReferenceKind.External)) properties.Add("remote-resources");
         item.Properties = properties.Count == 0 ? null : string.Join(" ", properties.Distinct(StringComparer.Ordinal));
     }
 

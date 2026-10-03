@@ -217,7 +217,7 @@ public sealed partial class EpubPublication {
         XName expected = HasMediaType(mediaType, "application/xhtml+xml") ? Html + "html" :
             HasMediaType(mediaType, "image/svg+xml") ? XName.Get("svg", "http://www.w3.org/2000/svg") : throw new NotSupportedException("Expected XHTML or SVG content.");
         if (document.Root?.Name != expected) throw new InvalidDataException("Content document root does not match its declared media type.");
-        if (document.Descendants().Any(element => element.Name.LocalName == "script" ||
+        if (document.Descendants().Any(element => element.Name.LocalName == "script" || element.Name == Html + "form" ||
             element.Attributes().Any(attribute => attribute.Name.NamespaceName.Length == 0 &&
                 (attribute.Name.LocalName.StartsWith("on", StringComparison.OrdinalIgnoreCase) || attribute.Name.LocalName == "srcdoc"))))
             throw new NotSupportedException("Script authoring is outside the EPUB writer contract.");
