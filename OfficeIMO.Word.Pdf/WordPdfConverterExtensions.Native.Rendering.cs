@@ -143,12 +143,13 @@ namespace OfficeIMO.Word.Pdf {
                     spacingAfter: chartOnly && runChartDrawings.Count == 0 ? style.SpacingAfter ?? 0D : 0D);
             }
 
-            RenderNativeParagraphShapeGroups(pdf, paragraph, runs, objectAlign, options, style);
+            int groupedImageCount = 0;
+            RenderNativeParagraphShapeGroups(pdf, paragraph, runs, objectAlign, options, style, ref groupedImageCount);
             if (currentShape != null) {
                 RenderNativeShape(pdf, currentShape);
             }
 
-            RenderNativeParagraphImages(pdf, paragraph, runs, objectAlign, options, style);
+            RenderNativeParagraphImages(pdf, paragraph, runs, objectAlign, options, style, groupedImageCount);
             needsAnchorLine = style.AnchoredCanvas != null &&
                 !runs.Any(run => IsNativeRenderableTextRun(run, paragraph) && !string.IsNullOrWhiteSpace(run.Text)) &&
                 string.IsNullOrWhiteSpace(renderContent) && marker == null && paragraphFootnoteNumbers.Count == 0;
@@ -463,11 +464,17 @@ namespace OfficeIMO.Word.Pdf {
                 if (run == null) continue;
                 if (run.Ancestors<W.DeletedRun>().Any() || run.Ancestors<W.MoveFromRun>().Any()) continue;
                 if (run.Ancestors<W.SdtRun>().Any(IsNativePictureControl)) continue;
-                foreach (WordImage image in imageRun.EnumerateImages()) yield return image;
+                W.TextBoxContent? currentTextBox = paragraph._paragraph.Ancestors<W.TextBoxContent>().FirstOrDefault();
+                foreach (WordImage image in imageRun.EnumerateImages()) {
+                    DocumentFormat.OpenXml.OpenXmlElement imageElement = image._vmlShape ?? (DocumentFormat.OpenXml.OpenXmlElement)image._Image;
+                    if (ReferenceEquals(imageElement.Ancestors<W.TextBoxContent>().FirstOrDefault(), currentTextBox))
+                        yield return image;
+                }
                 if (textBoxDepth >= 8) continue;
                 IEnumerable<DocumentFormat.OpenXml.OpenXmlElement> visibleChildren = imageRun._visibleRunSourceChildren ??
                     (IEnumerable<DocumentFormat.OpenXml.OpenXmlElement>)run.ChildElements;
-                foreach (W.TextBoxContent content in visibleChildren.SelectMany(child => child.Descendants<W.TextBoxContent>())) {
+                foreach (W.TextBoxContent content in visibleChildren.SelectMany(child => child.Descendants<W.TextBoxContent>())
+                    .Where(content => ReferenceEquals(content.Ancestors<W.TextBoxContent>().FirstOrDefault(), currentTextBox))) {
                     foreach (W.Paragraph inner in content.Descendants<W.Paragraph>()
                         .Where(inner => ReferenceEquals(inner.Ancestors<W.TextBoxContent>().FirstOrDefault(), content))) {
                         var innerParagraph = new WordParagraph(paragraph._document, inner);
@@ -660,7 +667,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RenderNativeParagraphImages(INativePdfFlow pdf, WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, PdfCore.PdfParagraphStyle anchorStyle) {
+        private static void RenderNativeParagraphImages(INativePdfFlow pdf, WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, PdfCore.PdfParagraphStyle anchorStyle, int groupedImageCount) {
             int imageLimit = options?.MaxImagesPerParagraph ?? 1_000;
             if (imageLimit <= 0) throw new ArgumentOutOfRangeException(nameof(WordToPdfOptions.MaxImagesPerParagraph));
             var positions = paragraph._paragraph!.Descendants().Select((element, index) => (element, index))
@@ -670,7 +677,7 @@ namespace OfficeIMO.Word.Pdf {
                 if (image == null) return;
                 // Group rendering owns its child images and their local coordinates.
                 if (image._vmlShape?.Ancestors<DocumentFormat.OpenXml.Vml.Group>().Any() == true) return;
-                if (images.Count >= imageLimit)
+                if (groupedImageCount + images.Count >= imageLimit)
                     throw new InvalidDataException("Word paragraph image count exceeds the PDF export limit.");
                 // DrawingML images retain their exact position; VML wrappers use their containing run.
                 int position = image._Image != null && positions.TryGetValue(image._Image, out int drawingPosition) ? drawingPosition

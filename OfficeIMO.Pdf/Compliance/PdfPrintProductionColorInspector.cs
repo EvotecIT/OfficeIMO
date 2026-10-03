@@ -9,13 +9,20 @@ internal static partial class PdfPrintProductionColorInspector {
     internal static PdfPrintProductionColorEvidence Inspect(
         PdfReadDocument document,
         int? selectedPageNumber,
-        System.Threading.CancellationToken cancellationToken = default) {
+        System.Threading.CancellationToken cancellationToken = default) =>
+        Inspect(document, selectedPageNumber, null, cancellationToken);
+
+    internal static PdfPrintProductionColorEvidence Inspect(
+        PdfReadDocument document,
+        int? selectedPageNumber,
+        InspectionWorkBudget? sharedBudget,
+        System.Threading.CancellationToken cancellationToken) {
         Guard.NotNull(document, nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
         Dictionary<int, PdfIndirectObject> objects = document.Objects;
         int maximumObjectDepth = document.ReadOptions.Limits.MaxObjectNestingDepth;
         int maximumDecodedStreamBytes = document.ReadOptions.Limits.MaxDecodedStreamBytes;
-        var contentStreams = new ContentStreamContexts(document.ReadOptions.Limits);
+        var contentStreams = new ContentStreamContexts(document.ReadOptions.Limits, sharedBudget);
         var imageDictionaries = new HashSet<PdfDictionary>();
         var imageContexts = new ImageContexts();
         var shadingContexts = new ShadingContexts();
@@ -774,6 +781,37 @@ internal static partial class PdfPrintProductionColorInspector {
         Dictionary<int, PdfIndirectObject> objects, int maximumObjectDepth, int maximumDecodedStreamBytes) =>
         ClassifyColorSpace(value, objects, maximumObjectDepth, maximumDecodedStreamBytes).UsesDeviceIndependent;
 
+    internal sealed class ResourceColorSpaceClassifier {
+        private readonly Dictionary<int, PdfIndirectObject> _objects;
+        private readonly int _maximumObjectDepth;
+        private readonly int _maximumDecodedStreamBytes;
+        private readonly Dictionary<PdfDictionary, ColorSpaceAliases> _aliasesByResources = new();
+
+        internal ResourceColorSpaceClassifier(Dictionary<int, PdfIndirectObject> objects,
+            int maximumObjectDepth, int maximumDecodedStreamBytes) {
+            _objects = objects;
+            _maximumObjectDepth = maximumObjectDepth;
+            _maximumDecodedStreamBytes = maximumDecodedStreamBytes;
+        }
+
+        internal (bool UsesDeviceRgb, bool UsesDeviceIndependent) ClassifySelected(string name,
+            PdfDictionary? resources) => Classify(new PdfName(name), resources);
+
+        internal (bool UsesDeviceRgb, bool UsesDeviceIndependent) Classify(PdfObject? value,
+            PdfDictionary? resources) {
+            ColorSpaceAliases? aliases = null;
+            if (resources != null && !_aliasesByResources.TryGetValue(resources, out aliases)) {
+                aliases = CreateColorSpaceAliases(resources, _objects,
+                    _maximumObjectDepth, _maximumDecodedStreamBytes);
+                _aliasesByResources.Add(resources, aliases);
+            }
+            ColorSpaceUsage usage = ClassifyColorSpace(value, _objects,
+                _maximumObjectDepth, _maximumDecodedStreamBytes, aliases);
+            return (usage.IsKnown && usage.UsesDeviceRgb,
+                usage.IsKnown && usage.UsesDeviceIndependent);
+        }
+    }
+
     internal static (bool UsesDeviceRgb, bool UsesDeviceIndependent) ClassifySelectedColorSpace(
         string? name, PdfDictionary? resources, Dictionary<int, PdfIndirectObject> objects,
         int maximumObjectDepth, int maximumDecodedStreamBytes) {
@@ -1442,16 +1480,35 @@ internal static partial class PdfPrintProductionColorInspector {
             new(IsKnown, UsesDeviceRgb, UsesDeviceCmyk, UsesDeviceGray, true, UsesDeviceIndependent, ComponentCount);
     }
 
+    internal sealed class InspectionWorkBudget {
+        private readonly int _maximumContexts;
+        private readonly int _maximumOperations;
+        private long _contexts;
+        private long _operations;
+
+        internal InspectionWorkBudget(PdfReadLimits limits) {
+            _maximumContexts = limits.MaxPrintProductionContexts;
+            _maximumOperations = limits.MaxPrintProductionOperations;
+        }
+
+        internal void ChargeContext() {
+            if (++_contexts > _maximumContexts)
+                throw PdfReadLimitException.Create(PdfReadLimitKind.PrintProductionContexts, _maximumContexts, _contexts);
+        }
+
+        internal void ChargeOperation() {
+            if (++_operations > _maximumOperations)
+                throw PdfReadLimitException.Create(PdfReadLimitKind.PrintProductionOperations, _maximumOperations, _operations);
+        }
+    }
+
     private sealed class ContentStreamContexts : List<ContentStreamContext> {
         private readonly HashSet<ContentStreamContext> _seen = new(new ContextIdentityComparer());
         private readonly Dictionary<PdfDictionary, ColorSpaceAliases> _aliasesByResources = new();
-        private readonly int _maximumContexts;
-        private readonly int _maximumOperations;
-        private long _operations;
+        private readonly InspectionWorkBudget _budget;
 
-        internal ContentStreamContexts(PdfReadLimits limits) {
-            _maximumContexts = limits.MaxPrintProductionContexts;
-            _maximumOperations = limits.MaxPrintProductionOperations;
+        internal ContentStreamContexts(PdfReadLimits limits, InspectionWorkBudget? sharedBudget) {
+            _budget = sharedBudget ?? new InspectionWorkBudget(limits);
         }
 
         internal ColorSpaceAliases GetOrCreateAliases(
@@ -1469,17 +1526,12 @@ internal static partial class PdfPrintProductionColorInspector {
             // Page content streams retain sequence order. Nested streams can be
             // deduplicated by their immutable resource and inherited-state identity.
             if (context.PageSequenceId == null && !_seen.Add(context)) return false;
-            if (Count >= _maximumContexts)
-                throw PdfReadLimitException.Create(PdfReadLimitKind.PrintProductionContexts, _maximumContexts, (long)Count + 1L);
+            _budget.ChargeContext();
             Add(context);
             return true;
         }
 
-        internal void ChargeOperation() {
-            _operations++;
-            if (_operations > _maximumOperations)
-                throw PdfReadLimitException.Create(PdfReadLimitKind.PrintProductionOperations, _maximumOperations, _operations);
-        }
+        internal void ChargeOperation() => _budget.ChargeOperation();
 
         private sealed class ContextIdentityComparer : IEqualityComparer<ContentStreamContext> {
             public bool Equals(ContentStreamContext? left, ContentStreamContext? right) =>

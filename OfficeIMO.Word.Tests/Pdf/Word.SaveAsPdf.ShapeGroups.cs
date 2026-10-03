@@ -265,6 +265,33 @@ public sealed class PdfShapeGroupTests {
     }
 
     [Fact]
+    public void LegacyGroupImagesShareTheParagraphPdfImageLimit() {
+        string imagePath = Path.Combine(Path.GetTempPath(), "officeimo-group-limit-" + Guid.NewGuid().ToString("N") + ".png");
+        try {
+            File.WriteAllBytes(imagePath, OfficeRasterImageEncoder.Encode(new OfficeRasterImage(4, 4, OfficeColor.Red), OfficeImageExportFormat.Png));
+            using WordDocument word = WordDocument.Create();
+            var paragraph = word.AddParagraph().AddImageVml(imagePath, 20, 20);
+            var picture = paragraph._run!.GetFirstChild<W.Picture>()!;
+            var shape = picture.Descendants<V.Shape>().Single();
+            shape.Remove();
+            shape.Style = "position:absolute;left:0;top:0;width:20;height:20";
+            var second = (V.Shape)shape.CloneNode(true);
+            second.Style = "position:absolute;left:20;top:0;width:20;height:20";
+            var group = new V.Group {
+                Style = "position:absolute;margin-left:72pt;margin-top:0pt;width:40pt;height:20pt;z-index:-1;mso-position-horizontal-relative:page",
+                CoordinateSize = "40,20"
+            };
+            group.Append(shape, second);
+            picture.Append(group);
+
+            Assert.Throws<InvalidDataException>(() => word.ToPdfDocumentResult(new WordToPdfOptions { MaxImagesPerParagraph = 1 }));
+            var allowed = word.ToPdfDocumentResult(new WordToPdfOptions { MaxImagesPerParagraph = 2 });
+            var pdf = PdfCore.PdfDocument.Load(allowed.Value.ToBytes());
+            Assert.Equal(2, pdf.Images.Placements().Count());
+        } finally { File.Delete(imagePath); }
+    }
+
+    [Fact]
     public void GroupLabelStaysInsideItsShapeAndDoesNotReplaceOrDuplicateBodyText() {
         using WordDocument word = WordDocument.Create();
         var paragraph = word.AddParagraph("Body text");

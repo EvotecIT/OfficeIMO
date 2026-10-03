@@ -206,21 +206,31 @@ public abstract partial class OdfDocument {
     }
 
     private static IEnumerable<OdfTextSegment> EnumerateOdfTextSegments(XElement root) {
-        var pending = new List<XNode>();
-        foreach (XNode node in root.Nodes()) {
-            if (IsOdfTextPrimitive(node)) {
-                pending.Add(node);
-                continue;
+        var stack = new Stack<(XElement Owner, IEnumerator<XNode> Nodes, List<XNode> Pending)>();
+        stack.Push((root, root.Nodes().GetEnumerator(), new List<XNode>()));
+        try {
+            while (stack.Count > 0) {
+                var frame = stack.Peek();
+                if (!frame.Nodes.MoveNext()) {
+                    if (frame.Pending.Count > 0) yield return new OdfTextSegment(frame.Owner, frame.Pending.ToArray());
+                    frame.Nodes.Dispose();
+                    stack.Pop();
+                    continue;
+                }
+                XNode node = frame.Nodes.Current;
+                if (IsOdfTextPrimitive(node)) {
+                    frame.Pending.Add(node);
+                    continue;
+                }
+                if (frame.Pending.Count > 0) {
+                    yield return new OdfTextSegment(frame.Owner, frame.Pending.ToArray());
+                    frame.Pending.Clear();
+                }
+                if (node is XElement child) stack.Push((child, child.Nodes().GetEnumerator(), new List<XNode>()));
             }
-            if (pending.Count > 0) {
-                yield return new OdfTextSegment(root, pending.ToArray());
-                pending.Clear();
-            }
-            if (node is XElement child) {
-                foreach (OdfTextSegment nested in EnumerateOdfTextSegments(child)) yield return nested;
-            }
+        } finally {
+            while (stack.Count > 0) stack.Pop().Nodes.Dispose();
         }
-        if (pending.Count > 0) yield return new OdfTextSegment(root, pending.ToArray());
     }
 
     private static bool IsOdfTextPrimitive(XNode node) =>
@@ -346,6 +356,7 @@ public abstract partial class OdfDocument {
 
     private static void ApplyOdfStyleState(OdfStyle style, OdfContentSafetyState state) {
         XElement? text = style.Element.Element(OdfNamespaces.Style + "text-properties");
+        string? explicitTextBackground = (string?)text?.Attribute(OdfNamespaces.Fo + "background-color");
         if (text != null) {
             if (string.Equals((string?)text.Attribute(OdfNamespaces.Text + "display"), "none", StringComparison.OrdinalIgnoreCase)) {
                 state.HiddenEvidence = "The resolved OpenDocument text style has text:display='none'.";
@@ -357,9 +368,8 @@ public abstract partial class OdfDocument {
             }
             string? foreground = (string?)text.Attribute(OdfNamespaces.Fo + "color");
             if (!string.IsNullOrWhiteSpace(foreground)) state.Foreground = foreground;
-            string? background = (string?)text.Attribute(OdfNamespaces.Fo + "background-color");
-            if (!string.IsNullOrWhiteSpace(background)) state.TextBackground = string.Equals(background, "transparent", StringComparison.OrdinalIgnoreCase)
-                ? null : background;
+            if (!string.IsNullOrWhiteSpace(explicitTextBackground)) state.TextBackground = string.Equals(explicitTextBackground, "transparent", StringComparison.OrdinalIgnoreCase)
+                ? null : explicitTextBackground;
         }
         XElement? graphic = style.Element.Element(OdfNamespaces.Style + "graphic-properties");
         if (graphic != null) {
@@ -367,7 +377,11 @@ public abstract partial class OdfDocument {
             if (TryParseOdfPercent(opacity, out double parsedOpacity)) state.Opacity = parsedOpacity;
             if (string.Equals((string?)graphic.Attribute(OdfNamespaces.Draw + "fill"), "solid", StringComparison.OrdinalIgnoreCase)) {
                 string? fill = (string?)graphic.Attribute(OdfNamespaces.Draw + "fill-color");
-                if (!string.IsNullOrWhiteSpace(fill)) state.Background = fill;
+                if (!string.IsNullOrWhiteSpace(fill)) {
+                    state.Background = fill;
+                    state.ParagraphBackground = null;
+                    if (string.IsNullOrWhiteSpace(explicitTextBackground)) state.TextBackground = null;
+                }
             }
         }
         foreach ((string propertiesName, string lengthName) in new[] {
@@ -404,18 +418,35 @@ public abstract partial class OdfDocument {
     }
 
     private static IEnumerable<XElement> OdsColumnDefinitions(XElement container) {
-        foreach (XElement child in container.Elements()) {
-            if (child.Name == OdfNamespaces.Table + "table-row" ||
-                child.Name == OdfNamespaces.Table + "table-row-group" ||
-                child.Name == OdfNamespaces.Table + "table-header-rows" ||
-                child.Name == OdfNamespaces.Table + "table-rows") yield break;
-            if (child.Name == OdfNamespaces.Table + "table-column") {
-                yield return child;
-            } else if (child.Name == OdfNamespaces.Table + "table-column-group" ||
-                       child.Name == OdfNamespaces.Table + "table-header-columns" ||
-                       child.Name == OdfNamespaces.Table + "table-columns") {
-                foreach (XElement column in OdsColumnDefinitions(child)) yield return column;
+        var stack = new Stack<IEnumerator<XElement>>();
+        stack.Push(container.Elements().GetEnumerator());
+        try {
+            while (stack.Count > 0) {
+                IEnumerator<XElement> children = stack.Peek();
+                if (!children.MoveNext()) {
+                    children.Dispose();
+                    stack.Pop();
+                    continue;
+                }
+                XElement child = children.Current;
+                if (child.Name == OdfNamespaces.Table + "table-row" ||
+                    child.Name == OdfNamespaces.Table + "table-row-group" ||
+                    child.Name == OdfNamespaces.Table + "table-header-rows" ||
+                    child.Name == OdfNamespaces.Table + "table-rows") {
+                    children.Dispose();
+                    stack.Pop();
+                    continue;
+                }
+                if (child.Name == OdfNamespaces.Table + "table-column") {
+                    yield return child;
+                } else if (child.Name == OdfNamespaces.Table + "table-column-group" ||
+                           child.Name == OdfNamespaces.Table + "table-header-columns" ||
+                           child.Name == OdfNamespaces.Table + "table-columns") {
+                    stack.Push(child.Elements().GetEnumerator());
+                }
             }
+        } finally {
+            while (stack.Count > 0) stack.Pop().Dispose();
         }
     }
 

@@ -130,6 +130,18 @@ public class PdfTextCaseTests {
     }
 
     [Fact]
+    public void HeaderNewlinesStopAtTheLayoutLineLimit() {
+        PdfDocument document = PdfDocument.Create(new PdfOptions {
+                ShowHeader = true,
+                HeaderFormat = new string('\n', 100_001)
+            })
+            .Paragraph(paragraph => paragraph.Text("Body"));
+
+        var error = Assert.Throws<System.IO.InvalidDataException>(() => document.ToBytes());
+        Assert.Contains("100,000", error.Message);
+    }
+
+    [Fact]
     public void PreTypographyTabAlignedConstructorRemainsBinaryDiscoverable() {
         ConstructorInfo? constructor = typeof(PdfTextRun).GetConstructor(new[] {
             typeof(string), typeof(bool), typeof(bool), typeof(PdfColor?), typeof(bool), typeof(bool),
