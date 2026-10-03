@@ -172,6 +172,7 @@ if (tracedStyle.GetValue("color") != "rgba(51, 102, 153, 0.75)" || tracedStyle.G
     throw new InvalidOperationException("The packed owned selector, typed computed-value or cascade-trace contract failed.");
 
 PackedMhtmlContract.Verify(foundationPng);
+PackedSiteBundleContract.Verify(foundationPng);
 
 Console.WriteLine("OfficeIMO HTML packed API smoke passed on " +
     System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription + ".");

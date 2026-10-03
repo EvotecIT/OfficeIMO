@@ -129,6 +129,29 @@ report.SaveAsPdf("service-review.pdf").RequireSuccess();
 
 The [multi-format report example](../OfficeIMO.Examples/Converters/Html/HtmlMultiFormatReport.cs) also exports editable Word and Excel artifacts from the same prepared source.
 
+## ZIP site bundles
+
+Load a ZIP website through `OfficeIMO.Html.HtmlSiteBundle` and render it with the
+same explicit PDF intent used for an HTML document:
+
+```csharp
+using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf;
+
+using Stream source = File.OpenRead("saved-site.zip");
+HtmlSiteBundle bundle = await HtmlSiteBundle.LoadAsync(source);
+HtmlPdfRenderRequestResult result = await bundle.RenderToPdfResultAsync(
+    HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf));
+File.WriteAllBytes("saved-site.pdf", result.ToBytes());
+```
+
+The result retains the selected HTML surfaces and combined conversion report.
+Archive images, CSS and fonts require `ResourcePolicy.AllowEmbeddedPackageResources`.
+Local files and remote resources remain governed by their separate PDF permissions
+and an explicitly supplied resolver; loading a ZIP does not enable either permission.
+The [bundle loader](../OfficeIMO.Html/README.md#load-a-zip-site-bundle) owns entry
+selection, input limits, integrity checks and archive resource identities.
+
 ## Review every rendered page
 
 The capability gallery saves the input HTML, PDF, and image previews from one resolved

@@ -538,17 +538,24 @@ internal static class OfficeProvenanceZip {
         return GetEntryMetadata(data, archive, out _);
     }
 
+    /// <summary>Validates ZIP structure and decodes names for an input owner that applies its
+    /// own path normalization and safety policy. Provenance output keeps its stricter name policy.</summary>
+    internal static Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> GetInputEntryMetadata(byte[] data, ZipArchive archive) =>
+        GetEntryMetadata(data, archive, out _, validateOutputNames: false);
+
     internal static Dictionary<ZipArchiveEntry, string> GetValidatedEntryNames(byte[] data, ZipArchive archive) =>
         GetEntryMetadata(data, archive).ToDictionary(pair => pair.Key, pair => pair.Value.Name);
 
     private static Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> GetEntryMetadata(
         byte[] data,
         ZipArchive archive,
-        out bool hasCentralDirectorySignature) {
+        out bool hasCentralDirectorySignature,
+        bool validateOutputNames = true) {
         List<OfficeProvenanceZipEntryMetadata> metadata = ReadCentralDirectoryMetadata(
             data,
             archive.Entries.Count,
-            out hasCentralDirectorySignature);
+            out hasCentralDirectorySignature,
+            validateOutputNames);
         var result = new Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata>(archive.Entries.Count);
         for (int index = 0; index < archive.Entries.Count; index++) result.Add(archive.Entries[index], metadata[index]);
         return result;
@@ -576,7 +583,8 @@ internal static class OfficeProvenanceZip {
     private static List<OfficeProvenanceZipEntryMetadata> ReadCentralDirectoryMetadata(
         byte[] data,
         int expectedEntries,
-        out bool hasDigitalSignature) {
+        out bool hasDigitalSignature,
+        bool validateOutputNames) {
         const uint zip64LocatorSignature = 0x07064B50;
         const uint zip64EndSignature = 0x06064B50;
         const uint centralHeaderSignature = 0x02014B50;
@@ -620,7 +628,7 @@ internal static class OfficeProvenanceZip {
             byte[] rawName = new byte[nameLength];
             if (nameLength != 0) Buffer.BlockCopy(data, cursor + 46, rawName, 0, nameLength);
             string decodedName = DecodeZipEntryName(rawName, flags, centralExtraField);
-            if (!IsSafeOutputEntryName(decodedName)) {
+            if (validateOutputNames && !IsSafeOutputEntryName(decodedName)) {
                 throw new InvalidDataException("A ZIP entry name is unsafe for package output.");
             }
             string rawNameKey = Convert.ToBase64String(rawName);
@@ -654,7 +662,14 @@ internal static class OfficeProvenanceZip {
             }
             byte[] localExtraField = new byte[localExtraLength];
             if (localExtraLength != 0) Buffer.BlockCopy(data, localOffset + 30 + localNameLength, localExtraField, 0, localExtraLength);
-            metadata.Add(new OfficeProvenanceZipEntryMetadata(decodedName, localOffset, localExtraField, centralExtraField, comment, internalAttributes));
+            metadata.Add(new OfficeProvenanceZipEntryMetadata(decodedName, localOffset, localExtraField, centralExtraField, comment, internalAttributes) {
+                PayloadOffset = checked((int)localHeaderEnd),
+                PayloadUpperBound = checked((int)centralOffset),
+                GeneralPurposeFlags = flags,
+                CompressionMethod = OfficeProvenanceBinary.ReadUInt16(data, cursor + 10, littleEndian: true),
+                ExternalAttributes = OfficeProvenanceBinary.ReadUInt32(data, cursor + 38, littleEndian: true),
+                Checksum = OfficeProvenanceBinary.ReadUInt32(data, cursor + 16, littleEndian: true)
+            });
             cursor = (int)recordEnd;
         }
         hasDigitalSignature = false;
@@ -1167,7 +1182,7 @@ internal static class OfficeProvenanceZip {
         totalBytes += bytes;
     }
 
-    private sealed class OfficeProvenanceZipEntryMetadata {
+    internal sealed class OfficeProvenanceZipEntryMetadata {
         internal OfficeProvenanceZipEntryMetadata(string name, int localHeaderOffset, byte[] localExtraField, byte[] centralExtraField, byte[] comment, ushort internalAttributes) {
             Name = name;
             LocalHeaderOffset = localHeaderOffset;
@@ -1183,5 +1198,11 @@ internal static class OfficeProvenanceZip {
         internal byte[] CentralExtraField { get; }
         internal byte[] Comment { get; }
         internal ushort InternalAttributes { get; }
+        internal int PayloadOffset { get; set; }
+        internal int PayloadUpperBound { get; set; }
+        internal ushort GeneralPurposeFlags { get; set; }
+        internal ushort CompressionMethod { get; set; }
+        internal uint ExternalAttributes { get; set; }
+        internal uint Checksum { get; set; }
     }
 }

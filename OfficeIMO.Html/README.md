@@ -33,6 +33,46 @@ File.WriteAllText("exports/service-review.html", report.ExportSourceHtml());
 
 `ExportSourceHtml()` records the original effective base URI in the document. It preserves source markup; referenced files remain at their original locations. Use `SourceHtml` for the exact original text or `HtmlForConversion` for policy-normalized conversion HTML.
 
+## Load a ZIP site bundle
+
+`HtmlSiteBundle` loads an HTML page and its archived stylesheets, fonts and images
+without extracting files or granting network access. Root `index.html` takes
+precedence over `index.htm`; otherwise a single HTML entry is selected. Specify
+`EntryPath` when the archive contains several possible pages.
+
+```csharp
+using OfficeIMO.Html;
+
+using Stream source = File.OpenRead("saved-site.zip");
+HtmlSiteBundle bundle = await HtmlSiteBundle.LoadAsync(source,
+    new HtmlSiteBundleOptions { EntryPath = "articles/report.html" });
+
+HtmlRenderRequest request = bundle.CreateRenderRequest(HtmlRenderRequest.Create(
+    HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg));
+HtmlRenderResult rendered = await HtmlRenderEngine.ExecuteAsync(bundle.HtmlDocument, request);
+rendered.RequireNoLoss();
+int pageNumber = 1;
+foreach (var page in rendered.ExportImages()) {
+    File.WriteAllBytes($"report-{pageNumber++:D3}.svg", page.Bytes);
+}
+```
+
+The loader supports stored and Deflate ZIP entries. It checks encoded size, entry count,
+actual decoded entry and total sizes, compression ratios and ZIP checksums. It normalizes
+leading `./` and backslashes, and rejects traversal, duplicate normalized names and
+non-regular entries. Caller streams remain open; seekable streams retain
+their original position. HTML parser limits and cancellation also apply.
+
+`ArchiveBaseUri` assigns a virtual HTTP(S) directory to the archive. It changes
+relative URL resolution, not resource permissions. Archived resources are served
+from snapshots. An explicitly supplied render resolver remains the fallback;
+missing resources produce the existing conversion diagnostics. Resource requests
+still use the renderer's URL, byte, count and timeout limits.
+
+For PDF output use the [site-bundle adapter in OfficeIMO.Html.Pdf](../OfficeIMO.Html.Pdf/README.md#zip-site-bundles),
+which also enforces the PDF embedded-package resource policy. MHTML uses the
+separate [OfficeIMO.Mhtml](../OfficeIMO.Mhtml/README.md) MIME reader and CID resolver.
+
 ## Inspect and edit owned HTML
 
 ```csharp

@@ -1,6 +1,6 @@
 {
   "$schema": "officeimo.html.static-delivery-qualification",
-  "recordedAtUtc": "2026-10-03T14:18:14Z",
+  "recordedAtUtc": "2026-10-03T15:45:29.877824+00:00",
   "control": {
     "sourceCommit": "0aea7880f94a317c12d1367485d0617af1647f91",
     "workflowCommit": "7c1226b65ff39ccf517ef6eab39f63b9d869e3ac",
@@ -41,7 +41,6 @@
     }
   },
   "fixedProviderControl": {
-    "sourceCommit": "1de3427843094d51f490091dbf268f8b036b6ba0",
     "runId": 37128159839,
     "url": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37128159839",
     "stateAtDispatch": "queued",
@@ -49,7 +48,11 @@
       "AngleSharp": "1.7.1",
       "AngleSharp.Css": "1.0.1"
     },
-    "packageCleanupFix": "not present; separate package and budget steps retain their own results"
+    "packageCleanupFix": "not present; separate package and budget steps retain their own results",
+    "workflowCommit": "1de3427843094d51f490091dbf268f8b036b6ba0",
+    "requestedSourceRef": "1de342784",
+    "actualCompiledSource": null,
+    "settledResult": "All three platforms failed checkout: abbreviated SHA was treated as a branch/tag. No comparison or qualification proof."
   },
   "releasedProviderCandidate": {
     "sourceCommit": "c9413dd5b5b4d26de2713ad43d5e813034000364",
@@ -207,7 +210,236 @@
         "bytes": 1536684
       }
     ],
-    "assessment": "Routine updates in the retained static HTML/DOM and CSS roles. Both packages are MIT and retain the existing legacy CodePages/System.Memory dependency families. Final restored and packed graphs still require inspection."
+    "assessment": "Routine updates in the retained static HTML/DOM and CSS roles. Both packages are MIT and retain the existing legacy CodePages/System.Memory dependency families. Final restored and packed graphs still require inspection.",
+    "settledResults": {
+      "macos": {
+        "htmlNet8": {
+          "passed": 4185,
+          "failed": 1
+        },
+        "htmlNet10": {
+          "passed": 4185,
+          "failed": 1
+        },
+        "failure": "font budget fixture total below default per-resource limit",
+        "budget": {
+          "environment": {
+            "osFamily": "macOS",
+            "osDescription": "macOS 26.6.2",
+            "osArchitecture": "Arm64",
+            "processArchitecture": "Arm64",
+            "frameworkDescription": ".NET 10.0.12",
+            "machineName": "sjc22-be108-03b5d5e2-7408-4d54-94aa-b8da69401ffb-0EA64B6515A8",
+            "processorCount": 3
+          },
+          "source": {
+            "commit": "c9413dd5b5b4d26de2713ad43d5e813034000364",
+            "worktreeClean": true,
+            "corpusId": "officeimo-html-h4-advanced-held-out",
+            "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+            "caseCount": 8,
+            "outputsPerIteration": 76
+          },
+          "ceiling": {
+            "osFamily": "macOS",
+            "coldProcessElapsedMilliseconds": 8000,
+            "warmIterationElapsedMilliseconds": 3000,
+            "coldManagedAllocatedBytes": 1250000000,
+            "warmManagedAllocatedBytes": 1100000000,
+            "peakWorkingSetBytes": 700000000,
+            "outputBytesPerIteration": 3000000,
+            "cancellationElapsedMilliseconds": 250
+          },
+          "cold": {
+            "mode": "cold",
+            "processElapsedMilliseconds": 9780.9099,
+            "peakWorkingSetBytes": 345735168,
+            "memorySampleCount": 132,
+            "iterations": [
+              {
+                "number": 1,
+                "elapsedMilliseconds": 9660.0967,
+                "managedAllocatedBytes": 1073353080,
+                "outputBytes": 2145356,
+                "caseCount": 8,
+                "outputCount": 76,
+                "fingerprintSha256": "df37e54aafd262a230744c629f1c0e8f72561c42318e694a987e0ed542f24df4"
+              }
+            ],
+            "deterministic": true
+          },
+          "warm": {
+            "mode": "warm",
+            "processElapsedMilliseconds": 19908.1507,
+            "peakWorkingSetBytes": 549683200,
+            "memorySampleCount": 256,
+            "iterations": [
+              {
+                "number": 1,
+                "elapsedMilliseconds": 4278.908,
+                "managedAllocatedBytes": 883266768,
+                "outputBytes": 2145356,
+                "caseCount": 8,
+                "outputCount": 76,
+                "fingerprintSha256": "df37e54aafd262a230744c629f1c0e8f72561c42318e694a987e0ed542f24df4"
+              },
+              {
+                "number": 2,
+                "elapsedMilliseconds": 3230.9498,
+                "managedAllocatedBytes": 884721864,
+                "outputBytes": 2145356,
+                "caseCount": 8,
+                "outputCount": 76,
+                "fingerprintSha256": "df37e54aafd262a230744c629f1c0e8f72561c42318e694a987e0ed542f24df4"
+              },
+              {
+                "number": 3,
+                "elapsedMilliseconds": 3280.4587,
+                "managedAllocatedBytes": 884684912,
+                "outputBytes": 2145356,
+                "caseCount": 8,
+                "outputCount": 76,
+                "fingerprintSha256": "df37e54aafd262a230744c629f1c0e8f72561c42318e694a987e0ed542f24df4"
+              }
+            ],
+            "deterministic": true
+          },
+          "cancellation": {
+            "status": "Passed",
+            "elapsedMilliseconds": 2.6237,
+            "detail": "Cancellation propagated through the asynchronous resource boundary."
+          },
+          "failures": [
+            "cold process elapsed milliseconds 9780.9 exceeded ceiling 8000.0.",
+            "warm iteration 1 elapsed milliseconds 4278.9 exceeded ceiling 3000.0.",
+            "warm iteration 2 elapsed milliseconds 3230.9 exceeded ceiling 3000.0.",
+            "warm iteration 3 elapsed milliseconds 3280.5 exceeded ceiling 3000.0."
+          ],
+          "reportSha256": "0759beac58a306d2d210986b6cc23c3b052c5cb95a702a885ce89999ef6d1e95"
+        }
+      },
+      "windows": {
+        "htmlNet8": {
+          "passed": 4185,
+          "failed": 1
+        },
+        "htmlNet10": {
+          "passed": 4185,
+          "failed": 1
+        },
+        "failure": "same invalid font budget fixture",
+        "budget": {
+          "environment": {
+            "osFamily": "Windows",
+            "osDescription": "Microsoft Windows 10.0.26100",
+            "osArchitecture": "X64",
+            "processArchitecture": "X64",
+            "frameworkDescription": ".NET 10.0.12",
+            "machineName": "runnervmfi6oq",
+            "processorCount": 4
+          },
+          "source": {
+            "commit": "c9413dd5b5b4d26de2713ad43d5e813034000364",
+            "worktreeClean": true,
+            "corpusId": "officeimo-html-h4-advanced-held-out",
+            "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+            "caseCount": 8,
+            "outputsPerIteration": 76
+          },
+          "ceiling": {
+            "osFamily": "Windows",
+            "coldProcessElapsedMilliseconds": 12000,
+            "warmIterationElapsedMilliseconds": 4000,
+            "coldManagedAllocatedBytes": 2500000000,
+            "warmManagedAllocatedBytes": 1200000000,
+            "peakWorkingSetBytes": 1500000000,
+            "outputBytesPerIteration": 3000000,
+            "cancellationElapsedMilliseconds": 250
+          },
+          "cold": {
+            "mode": "cold",
+            "processElapsedMilliseconds": 12096.1577,
+            "peakWorkingSetBytes": 1137262592,
+            "memorySampleCount": 738,
+            "iterations": [
+              {
+                "number": 1,
+                "elapsedMilliseconds": 11860.9629,
+                "managedAllocatedBytes": 2386828696,
+                "outputBytes": 2474517,
+                "caseCount": 8,
+                "outputCount": 76,
+                "fingerprintSha256": "10b8f4e51e16010338fb7a36ced61397f2655ba13b11c321f066c4c1851f3c3b"
+              }
+            ],
+            "deterministic": true
+          },
+          "warm": {
+            "mode": "warm",
+            "processElapsedMilliseconds": 24413.2119,
+            "peakWorkingSetBytes": 1453428736,
+            "memorySampleCount": 1523,
+            "iterations": [
+              {
+                "number": 1,
+                "elapsedMilliseconds": 4601.1148,
+                "managedAllocatedBytes": 988142096,
+                "outputBytes": 2474517,
+                "caseCount": 8,
+                "outputCount": 76,
+                "fingerprintSha256": "10b8f4e51e16010338fb7a36ced61397f2655ba13b11c321f066c4c1851f3c3b"
+              },
+              {
+                "number": 2,
+                "elapsedMilliseconds": 3967.9861,
+                "managedAllocatedBytes": 988095048,
+                "outputBytes": 2474517,
+                "caseCount": 8,
+                "outputCount": 76,
+                "fingerprintSha256": "10b8f4e51e16010338fb7a36ced61397f2655ba13b11c321f066c4c1851f3c3b"
+              },
+              {
+                "number": 3,
+                "elapsedMilliseconds": 3940.3984,
+                "managedAllocatedBytes": 988025232,
+                "outputBytes": 2474517,
+                "caseCount": 8,
+                "outputCount": 76,
+                "fingerprintSha256": "10b8f4e51e16010338fb7a36ced61397f2655ba13b11c321f066c4c1851f3c3b"
+              }
+            ],
+            "deterministic": true
+          },
+          "cancellation": {
+            "status": "Passed",
+            "elapsedMilliseconds": 5.7709,
+            "detail": "Cancellation propagated through the asynchronous resource boundary."
+          },
+          "failures": [
+            "cold process elapsed milliseconds 12096.2 exceeded ceiling 12000.0.",
+            "warm iteration 1 elapsed milliseconds 4601.1 exceeded ceiling 4000.0."
+          ],
+          "reportSha256": "37018d749e286f268be8a2924bc331cdb87529a9e2f397cbfed10099f902bff4"
+        }
+      },
+      "linux": {
+        "htmlNet8": {
+          "passed": 4184,
+          "failed": 2
+        },
+        "htmlNet10": {
+          "passed": 4184,
+          "failed": 2
+        },
+        "failures": [
+          "same invalid font budget fixture",
+          "Japanese glyph fallback requires an installed supported TrueType face"
+        ]
+      },
+      "packages": "Nineteen normal packages and both packed consumers passed net8/net10 on all three platforms. Windows net472-targeted consumers executed on .NET Framework 4.8.9345.0.",
+      "installedMathFontAccounting": "passed on net8/net10 on all three platforms",
+      "linuxBudget": "worker failed on Japanese U+7E26 coverage before producing a report"
+    }
   },
   "remediation": [
     {
@@ -251,5 +483,22 @@
     "loadAverage1Minute": 1020.97,
     "decision": "Do not run local builds or timing measurements under this contention; use the hosted matrix."
   },
-  "retainedEvidenceRoot": "Ignore/StaticDeliveryQualification"
+  "retainedEvidenceRoot": "Ignore/StaticDeliveryQualification",
+  "replacementControl": {
+    "sourceCommit": "897707b2e0015dd9e0533503e691091aa80081a3",
+    "workflowCommit": "897707b2e0015dd9e0533503e691091aa80081a3",
+    "runId": 37133865552,
+    "url": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37133865552",
+    "providers": {
+      "AngleSharp": "1.7.1",
+      "AngleSharp.Css": "1.0.1"
+    },
+    "stateAtDispatch": "queued",
+    "changes": "same bounded font fix, valid per-resource/total fixture limits, package cleanup and Linux IPA font environment; no site-bundle implementation or provider upgrade"
+  },
+  "currentRemediation": {
+    "testBudget": "b61f4d45db82745dd20975b9c01fb58433242d95 sets both per-resource and total byte limits to the derived font/SVG budget; focused tests pass net8/net10",
+    "linuxFonts": "IPA Gothic added only to the manual validation host; verify restored Japanese coverage in the next run",
+    "timing": "No ceiling changes. A comparable old-provider control is required before assigning timing failures to the update."
+  }
 }
