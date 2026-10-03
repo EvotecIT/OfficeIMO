@@ -221,18 +221,23 @@ public sealed class DrawingRasterStreamingEncodingTests {
         Assert.True(destination.WriteCount > 0);
     }
 
-    [Fact]
-    public void JpegCancellationCanStopCoefficientWorkBeforeTheFirstWrite() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void JpegCancellationCanStopCoefficientWorkBeforeTheFirstWrite(bool retainCoefficients) {
         OfficeRasterImage image = new OfficeRasterImage(64, 64, OfficeColor.CornflowerBlue);
         using var cancellation = new CancellationTokenSource();
         using var destination = new CountingWriteStream();
+        OfficeRasterEncodingOptions options = CreateOptions();
+        options.Jpeg.Progressive = retainCoefficients;
+        options.Jpeg.OptimizeHuffman = retainCoefficients;
 
         Assert.Throws<OperationCanceledException>(() =>
             OfficeRasterImageEncoder.EncodeTo(
                 image,
                 OfficeImageExportFormat.Jpeg,
                 destination,
-                CreateOptions(),
+                options,
                 maximumEncodedBytes: long.MaxValue,
                 cancellationToken: cancellation.Token,
                 checkpointObserver: checkpoint => {

@@ -228,19 +228,14 @@ public static partial class OfficeWebpCodec {
     }
 
     private static uint AddArgb(uint first, uint second) {
-        uint result = 0;
-        for (int shift = 0; shift <= 24; shift += 8) {
-            result |= (uint)((((first >> shift) & 255U) + ((second >> shift) & 255U)) & 255U) << shift;
-        }
-        return result;
+        // Independent 16-bit lanes keep carries out of the neighboring color channel.
+        uint redBlue = ((first & 0x00FF00FFU) + (second & 0x00FF00FFU)) & 0x00FF00FFU;
+        uint alphaGreen = (((first >> 8) & 0x00FF00FFU) + ((second >> 8) & 0x00FF00FFU)) & 0x00FF00FFU;
+        return redBlue | (alphaGreen << 8);
     }
 
     private static uint AverageArgb(uint first, uint second) {
-        uint result = 0;
-        for (int shift = 0; shift <= 24; shift += 8) {
-            result |= ((((first >> shift) & 255U) + ((second >> shift) & 255U)) >> 1) << shift;
-        }
-        return result;
+        return (first & second) + (((first ^ second) & 0xFEFEFEFEU) >> 1);
     }
 
     private static uint SelectArgb(uint left, uint top, uint topLeft) {

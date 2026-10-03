@@ -78,14 +78,17 @@ public static partial class OfficeWebpCodec {
     }
 
     private sealed class Vp8lHuffmanTree {
-        internal static readonly Vp8lHuffmanTree Invalid = new Vp8lHuffmanTree(Array.Empty<int>(), Array.Empty<byte>(), -1);
+        private const int LookupBits = 8;
+        internal static readonly Vp8lHuffmanTree Invalid = new Vp8lHuffmanTree(Array.Empty<int>(), Array.Empty<int>(), Array.Empty<int>(), -1);
         private readonly int[] _symbols;
-        private readonly byte[] _lengths;
+        private readonly int[] _counts;
+        private readonly int[] _lookup;
         private readonly int _singleSymbol;
 
-        private Vp8lHuffmanTree(int[] symbols, byte[] lengths, int singleSymbol) {
+        private Vp8lHuffmanTree(int[] symbols, int[] counts, int[] lookup, int singleSymbol) {
             _symbols = symbols;
-            _lengths = lengths;
+            _counts = counts;
+            _lookup = lookup;
             _singleSymbol = singleSymbol;
         }
 
@@ -109,8 +112,8 @@ public static partial class OfficeWebpCodec {
             if (used == 0) return false;
             if (used == 1) {
                 if (lengths[single] != 1) return false;
-                if (!allocationBudget.TryReserveBytes(32L)) return false;
-                tree = new Vp8lHuffmanTree(Array.Empty<int>(), Array.Empty<byte>(), single);
+                if (!allocationBudget.TryReserveBytes(64L)) return false;
+                tree = new Vp8lHuffmanTree(Array.Empty<int>(), Array.Empty<int>(), Array.Empty<int>(), single);
                 return true;
             }
 
@@ -122,31 +125,51 @@ public static partial class OfficeWebpCodec {
             if (remaining != 0) return false;
 
             if (!allocationBudget.TryReserveArray(used, sizeof(int)) ||
-                !allocationBudget.TryReserveArray(used, sizeof(byte)) ||
-                !allocationBudget.TryReserveBytes(32L)) return false;
+                !allocationBudget.TryReserveArray(1 << LookupBits, sizeof(int)) ||
+                !allocationBudget.TryReserveBytes(64L)) return false;
             var symbols = new int[used];
-            var orderedLengths = new byte[used];
+            var lookup = new int[1 << LookupBits];
             int position = 0;
+            int firstCode = 0;
             for (int length = 1; length <= 15; length++) {
+                int code = firstCode;
                 for (int symbol = 0; symbol < lengths.Length; symbol++) {
                     if (lengths[symbol] != length) continue;
-                    symbols[position] = symbol;
-                    orderedLengths[position++] = (byte)length;
+                    symbols[position++] = symbol;
+                    if (length <= LookupBits) {
+                        int reversed = (int)ReverseBits((uint)code, length);
+                        int packed = (symbol << 4) | length;
+                        for (int index = reversed; index < lookup.Length; index += 1 << length) {
+                            lookup[index] = packed;
+                        }
+                    }
+                    code++;
                 }
+                firstCode = code << 1;
             }
-            tree = new Vp8lHuffmanTree(symbols, orderedLengths, -1);
+            tree = new Vp8lHuffmanTree(symbols, counts, lookup, -1);
             return true;
         }
 
         internal int ReadSymbol(LsbBitReader reader) {
             if (_singleSymbol >= 0) return _singleSymbol;
+            if (_symbols.Length == 0) return -1;
+            // Do not require eight bits at the end of a valid stream: short
+            // final codes still use the canonical decoder below.
+            if (reader.HasBits(LookupBits)) {
+                int packed = _lookup[reader.PeekBits(LookupBits)];
+                int length = packed & 15;
+                if (length != 0) {
+                    reader.ReadBits(length);
+                    return packed >> 4;
+                }
+            }
             int code = 0;
             int firstCode = 0;
             int firstIndex = 0;
             for (int length = 1; length <= 15; length++) {
                 code = (code << 1) | (int)reader.ReadBits(1);
-                int count = 0;
-                while (firstIndex + count < _lengths.Length && _lengths[firstIndex + count] == length) count++;
+                int count = _counts[length];
                 int relative = code - firstCode;
                 if (relative >= 0 && relative < count) return _symbols[firstIndex + relative];
                 firstCode = (firstCode + count) << 1;

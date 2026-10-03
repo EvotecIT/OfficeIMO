@@ -30,6 +30,27 @@ internal sealed partial class ContentStreamBuilder {
     private void WriteIsolatedLogicalGlyphs(IReadOnlyList<PdfGlyphInfo> glyphs, double fontSize, double textRise) {
         double lineE = _lineE, lineF = _lineF;
         for (int index = 0; index < glyphs.Count;) {
+            PdfGlyphInfo single = glyphs[index];
+            if (!single.HasPositioning &&
+                (index + 1 == glyphs.Count || glyphs[index + 1].LogicalClusterStart != single.LogicalClusterStart)) {
+                // Keep the same isolated text object and ActualText boundary, but
+                // avoid allocating a list, builders and formatted strings per scalar.
+                _sb.Append("ET\nBT\n");
+                TextMatrixApplied(_textA, _textB, _textC, _textD, _textE, _textF);
+                bool singleMarked = single.UnicodeText.Length != 0;
+                if (singleMarked) {
+                    _sb.Append("/Span << /ActualText ");
+                    PdfSyntaxEscaper.AppendTextStringCancellable(_sb, single.UnicodeText, default);
+                    _sb.Append(" >> BDC\n");
+                }
+                _sb.Append('<');
+                PdfGlyphRun.AppendGlyphHex(_sb, single.GlyphId);
+                _sb.Append("> Tj\n");
+                if (singleMarked) _sb.Append("EMC\n");
+                AdvanceTrackedText(single.AdvanceWidth1000 * fontSize / 1000D);
+                index++;
+                continue;
+            }
             var cluster = new List<PdfGlyphInfo>();
             var logical = new System.Text.StringBuilder();
             int logicalEnd = glyphs[index].LogicalClusterStart;

@@ -132,7 +132,7 @@ namespace OfficeIMO.Core.Internal {
                 ((b << 16) | a) == ReadBigEndianUInt32(bytes, offset + count - 4);
         }
 
-        private static uint Adler32(byte[] data, CancellationToken cancellationToken = default) {
+        internal static uint Adler32(byte[] data, CancellationToken cancellationToken = default) {
             const uint Modulus = 65521;
             const int MaximumChunk = 5552;
             uint a = 1;

@@ -75,7 +75,6 @@ internal static partial class OfficeJpegWriter {
         0xF9, 0xFA,
     };
 
-    private static readonly double[,] CosTable = BuildCosTable();
     private static readonly HuffmanTable DcLumaTable = BuildHuffmanTable(DcLumaBits, DcValues);
     private static readonly HuffmanTable AcLumaTable = BuildHuffmanTable(AcLumaBits, AcLumaValues);
     private static readonly HuffmanTable DcChromaTable = BuildHuffmanTable(DcChromaBits, DcValues);
@@ -160,12 +159,13 @@ internal static partial class OfficeJpegWriter {
         var sampling = grayscale ? OfficeJpegSubsampling.Y444 : options.Subsampling;
 
         BuildComponents(sampling, grayscale, out var components, out var maxH, out var maxV);
-        long coefficientBytes = GetCoefficientStorageBytes(width, height, components, maxH, maxV);
+        bool retainCoefficients = options.Progressive || options.OptimizeHuffman;
+        long coefficientBytes = retainCoefficients ? GetCoefficientStorageBytes(width, height, components, maxH, maxV) : 0;
         long metadataBytes = GetMetadataManagedBytes(options.Metadata);
         long fixedManagedBytes = GetFixedEncodingManagedBytes(
             rgba.LongLength, coefficientBytes, metadataBytes, options.RetainedManagedBytes);
         EnsureEncodingWorkingSet(fixedManagedBytes, GetMemoryStreamBackingBytes(stream));
-        var coeffs = BuildCoefficients(
+        var coeffs = retainCoefficients ? BuildCoefficients(
             rgba,
             width,
             height,
@@ -178,7 +178,13 @@ internal static partial class OfficeJpegWriter {
             qY,
             qC,
             cancellationToken,
-            checkpointObserver);
+            checkpointObserver) : Array.Empty<ComponentCoefficients>();
+
+        if (!retainCoefficients) {
+            // Honor cancellation at the first coefficient checkpoint before writing headers.
+            checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.JpegCoefficientRow);
+            cancellationToken.ThrowIfCancellationRequested();
+        }
 
         var tables = BuildHuffmanTables(coeffs, components, options.OptimizeHuffman, cancellationToken);
         Stream output = OfficeRasterOutput.TryGetMemoryStream(stream, out MemoryStream? memoryStream)
@@ -206,8 +212,11 @@ internal static partial class OfficeJpegWriter {
 
         if (options.Progressive) {
             EncodeProgressive(output, width, height, maxH, maxV, components, coeffs, tables, cancellationToken);
-        } else {
+        } else if (retainCoefficients) {
             EncodeBaseline(output, components, coeffs, tables, cancellationToken);
+        } else {
+            EncodeBaselinePixels(output, width, height, rgba, stride, rowOffset, rowStride,
+                components, maxH, maxV, qY, qC, tables, cancellationToken, checkpointObserver);
         }
 
         WriteMarker(output, 0xFFD9);
@@ -361,6 +370,7 @@ internal static partial class OfficeJpegWriter {
         var temp = new int[64];
 
         ComponentCoefficients? yCoeffs = null;
+        var dctScratch = new double[64];
         ComponentCoefficients? cbCoeffs = null;
         ComponentCoefficients? crCoeffs = null;
 
@@ -386,7 +396,7 @@ internal static partial class OfficeJpegWriter {
                             var x0 = blockX * 8;
                             var y0 = blockY * 8;
                             LoadBlockLuma(rgba, stride, rowOffset, rowStride, width, height, x0, y0, yBlock);
-                            ForwardDctQuantize(yBlock, qY, temp);
+                            OfficeJpegForwardTransform.Quantize(yBlock, qY, temp, dctScratch);
                             var offset = (blockY * yc.BlocksPerRow + blockX) * 64;
                             CopyCoefficients(temp, yc.Data, offset);
                         }
@@ -405,11 +415,11 @@ internal static partial class OfficeJpegWriter {
 
                     LoadBlockChroma(rgba, stride, rowOffset, rowStride, width, height, x0, y0, sampleW, sampleH, cbBlock, crBlock);
 
-                    ForwardDctQuantize(cbBlock, qC, temp);
+                    OfficeJpegForwardTransform.Quantize(cbBlock, qC, temp, dctScratch);
                     var offsetCb = (blockY * cb.BlocksPerRow + blockX) * 64;
                     CopyCoefficients(temp, cb.Data, offsetCb);
 
-                    ForwardDctQuantize(crBlock, qC, temp);
+                    OfficeJpegForwardTransform.Quantize(crBlock, qC, temp, dctScratch);
                     var offsetCr = (blockY * cr.BlocksPerRow + blockX) * 64;
                     CopyCoefficients(temp, cr.Data, offsetCr);
                 }
@@ -448,339 +458,6 @@ internal static partial class OfficeJpegWriter {
         var acC = BuildOptimizedHuffman(freqAcChroma);
 
         return new HuffmanTableSet(dcL, acL, dcC, acC);
-    }
-
-    private static void EncodeImage(
-        BitWriter bw,
-        int width,
-        int height,
-        byte[] rgba,
-        int stride,
-        int rowOffset,
-        int rowStride,
-        int[] qY,
-        int[] qC,
-        HuffmanTable dcY,
-        HuffmanTable acY,
-        HuffmanTable dcC,
-        HuffmanTable acC) {
-        var blockY = new int[64];
-        var blockCb = new int[64];
-        var blockCr = new int[64];
-        var temp = new int[64];
-
-        var prevY = 0;
-        var prevCb = 0;
-        var prevCr = 0;
-
-        for (var by = 0; by < height; by += 8) {
-            for (var bx = 0; bx < width; bx += 8) {
-                LoadBlock(rgba, stride, rowOffset, rowStride, width, height, bx, by, blockY, blockCb, blockCr);
-
-                EncodeBlock(bw, blockY, qY, dcY, acY, ref prevY, temp);
-                EncodeBlock(bw, blockCb, qC, dcC, acC, ref prevCb, temp);
-                EncodeBlock(bw, blockCr, qC, dcC, acC, ref prevCr, temp);
-            }
-        }
-    }
-
-    private static void EncodeImageGray(
-        BitWriter bw,
-        int width,
-        int height,
-        byte[] rgba,
-        int stride,
-        int rowOffset,
-        int rowStride,
-        int[] qY,
-        HuffmanTable dcY,
-        HuffmanTable acY) {
-        var blockY = new int[64];
-        var temp = new int[64];
-        var prevY = 0;
-
-        for (var by = 0; by < height; by += 8) {
-            for (var bx = 0; bx < width; bx += 8) {
-                LoadBlockLuma(rgba, stride, rowOffset, rowStride, width, height, bx, by, blockY);
-                EncodeBlock(bw, blockY, qY, dcY, acY, ref prevY, temp);
-            }
-        }
-    }
-
-    private static void LoadBlock(
-        byte[] rgba,
-        int stride,
-        int rowOffset,
-        int rowStride,
-        int width,
-        int height,
-        int bx,
-        int by,
-        int[] yBlock,
-        int[] cbBlock,
-        int[] crBlock) {
-        var i = 0;
-        for (var y = 0; y < 8; y++) {
-            var py = by + y;
-            if (py >= height) py = height - 1;
-            var row = py * rowStride + rowOffset;
-            for (var x = 0; x < 8; x++) {
-                var px = bx + x;
-                if (px >= width) px = width - 1;
-                var p = row + px * 4;
-                var r = rgba[p + 0];
-                var g = rgba[p + 1];
-                var b = rgba[p + 2];
-                var a = rgba[p + 3];
-                if (a != 255) {
-                    var inv = 255 - a;
-                    r = (byte)((r * a + 255 * inv + 127) / 255);
-                    g = (byte)((g * a + 255 * inv + 127) / 255);
-                    b = (byte)((b * a + 255 * inv + 127) / 255);
-                }
-
-                var yv = (77 * r + 150 * g + 29 * b + 128) >> 8;
-                var cb = ((-43 * r - 85 * g + 128 * b + 128) >> 8) + 128;
-                var cr = ((128 * r - 107 * g - 21 * b + 128) >> 8) + 128;
-
-                yBlock[i] = yv - 128;
-                cbBlock[i] = cb - 128;
-                crBlock[i] = cr - 128;
-                i++;
-            }
-        }
-    }
-
-    private static void LoadBlockLuma(
-        byte[] rgba,
-        int stride,
-        int rowOffset,
-        int rowStride,
-        int width,
-        int height,
-        int bx,
-        int by,
-        int[] yBlock) {
-        var i = 0;
-        for (var y = 0; y < 8; y++) {
-            var py = by + y;
-            if (py >= height) py = height - 1;
-            var row = py * rowStride + rowOffset;
-            for (var x = 0; x < 8; x++) {
-                var px = bx + x;
-                if (px >= width) px = width - 1;
-                var p = row + px * 4;
-                var r = rgba[p + 0];
-                var g = rgba[p + 1];
-                var b = rgba[p + 2];
-                var a = rgba[p + 3];
-                if (a != 255) {
-                    var inv = 255 - a;
-                    r = (byte)((r * a + 255 * inv + 127) / 255);
-                    g = (byte)((g * a + 255 * inv + 127) / 255);
-                    b = (byte)((b * a + 255 * inv + 127) / 255);
-                }
-
-                var yv = (77 * r + 150 * g + 29 * b + 128) >> 8;
-                yBlock[i] = yv - 128;
-                i++;
-            }
-        }
-    }
-
-    private static void LoadBlockChroma(
-        byte[] rgba,
-        int stride,
-        int rowOffset,
-        int rowStride,
-        int width,
-        int height,
-        int bx,
-        int by,
-        int sampleW,
-        int sampleH,
-        int[] cbBlock,
-        int[] crBlock) {
-        var i = 0;
-        var count = sampleW * sampleH;
-        for (var y = 0; y < 8; y++) {
-            var baseY = by + y * sampleH;
-            for (var x = 0; x < 8; x++) {
-                var baseX = bx + x * sampleW;
-                var sumR = 0;
-                var sumG = 0;
-                var sumB = 0;
-
-                for (var sy = 0; sy < sampleH; sy++) {
-                    var py = baseY + sy;
-                    if (py >= height) py = height - 1;
-                    var row = py * rowStride + rowOffset;
-                    for (var sx = 0; sx < sampleW; sx++) {
-                        var px = baseX + sx;
-                        if (px >= width) px = width - 1;
-                        var p = row + px * 4;
-                        var r = rgba[p + 0];
-                        var g = rgba[p + 1];
-                        var b = rgba[p + 2];
-                        var a = rgba[p + 3];
-                        if (a != 255) {
-                            var inv = 255 - a;
-                            r = (byte)((r * a + 255 * inv + 127) / 255);
-                            g = (byte)((g * a + 255 * inv + 127) / 255);
-                            b = (byte)((b * a + 255 * inv + 127) / 255);
-                        }
-                        sumR += r;
-                        sumG += g;
-                        sumB += b;
-                    }
-                }
-
-                var rAvg = (sumR + count / 2) / count;
-                var gAvg = (sumG + count / 2) / count;
-                var bAvg = (sumB + count / 2) / count;
-
-                var cb = ((-43 * rAvg - 85 * gAvg + 128 * bAvg + 128) >> 8) + 128;
-                var cr = ((128 * rAvg - 107 * gAvg - 21 * bAvg + 128) >> 8) + 128;
-
-                cbBlock[i] = cb - 128;
-                crBlock[i] = cr - 128;
-                i++;
-            }
-        }
-    }
-
-    private static void EncodeBlock(
-        BitWriter bw,
-        int[] input,
-        int[] quant,
-        HuffmanTable dcTable,
-        HuffmanTable acTable,
-        ref int prevDc,
-        int[] temp) {
-        ForwardDctQuantize(input, quant, temp);
-
-        var dc = temp[0];
-        var diff = dc - prevDc;
-        prevDc = dc;
-        var dcCat = BitCount(diff);
-        bw.WriteBits(dcTable.Codes[dcCat], dcTable.Sizes[dcCat]);
-        if (dcCat > 0) {
-            bw.WriteBits(EncodeValue(diff, dcCat), dcCat);
-        }
-
-        var zeroRun = 0;
-        for (var i = 1; i < 64; i++) {
-            var v = temp[ZigZag[i]];
-            if (v == 0) {
-                zeroRun++;
-                continue;
-            }
-
-            while (zeroRun >= 16) {
-                bw.WriteBits(acTable.Codes[0xF0], acTable.Sizes[0xF0]);
-                zeroRun -= 16;
-            }
-
-            var cat = BitCount(v);
-            var symbol = (zeroRun << 4) | cat;
-            bw.WriteBits(acTable.Codes[symbol], acTable.Sizes[symbol]);
-            bw.WriteBits(EncodeValue(v, cat), cat);
-            zeroRun = 0;
-        }
-
-        if (zeroRun > 0) {
-            bw.WriteBits(acTable.Codes[0x00], acTable.Sizes[0x00]);
-        }
-    }
-
-    private static void EncodeBlockFromQuantized(
-        BitWriter bw,
-        short[] coeffs,
-        int offset,
-        HuffmanTable dcTable,
-        HuffmanTable acTable,
-        ref int prevDc) {
-        var dc = coeffs[offset];
-        var diff = dc - prevDc;
-        prevDc = dc;
-        var dcCat = BitCount(diff);
-        bw.WriteBits(dcTable.Codes[dcCat], dcTable.Sizes[dcCat]);
-        if (dcCat > 0) {
-            bw.WriteBits(EncodeValue(diff, dcCat), dcCat);
-        }
-
-        EncodeAcFromQuantized(bw, coeffs, offset, acTable, 1, 63);
-    }
-
-    private static void EncodeDcFromQuantized(BitWriter bw, short[] coeffs, int offset, HuffmanTable dcTable, ref int prevDc) {
-        var dc = coeffs[offset];
-        var diff = dc - prevDc;
-        prevDc = dc;
-        var dcCat = BitCount(diff);
-        bw.WriteBits(dcTable.Codes[dcCat], dcTable.Sizes[dcCat]);
-        if (dcCat > 0) {
-            bw.WriteBits(EncodeValue(diff, dcCat), dcCat);
-        }
-    }
-
-    private static void EncodeAcFromQuantized(BitWriter bw, short[] coeffs, int offset, HuffmanTable acTable, int ss, int se) {
-        var zeroRun = 0;
-        for (var i = ss; i <= se; i++) {
-            var v = coeffs[offset + ZigZag[i]];
-            if (v == 0) {
-                zeroRun++;
-                continue;
-            }
-
-            while (zeroRun >= 16) {
-                bw.WriteBits(acTable.Codes[0xF0], acTable.Sizes[0xF0]);
-                zeroRun -= 16;
-            }
-
-            var cat = BitCount(v);
-            var symbol = (zeroRun << 4) | cat;
-            bw.WriteBits(acTable.Codes[symbol], acTable.Sizes[symbol]);
-            bw.WriteBits(EncodeValue(v, cat), cat);
-            zeroRun = 0;
-        }
-
-        if (zeroRun > 0) {
-            bw.WriteBits(acTable.Codes[0x00], acTable.Sizes[0x00]);
-        }
-    }
-
-    private static void ForwardDctQuantize(int[] input, int[] quant, int[] output) {
-        const double invSqrt2 = 0.7071067811865476;
-        for (var u = 0; u < 8; u++) {
-            var cu = u == 0 ? invSqrt2 : 1.0;
-            for (var v = 0; v < 8; v++) {
-                var cv = v == 0 ? invSqrt2 : 1.0;
-                double sum = 0;
-                for (var x = 0; x < 8; x++) {
-                    for (var y = 0; y < 8; y++) {
-                        sum += input[y * 8 + x] * CosTable[u, x] * CosTable[v, y];
-                    }
-                }
-                var coeff = 0.25 * cu * cv * sum;
-                var idx = v * 8 + u;
-                output[idx] = (int)Math.Round(coeff / quant[idx]);
-            }
-        }
-    }
-
-    private static int BitCount(int value) {
-        var v = value < 0 ? -value : value;
-        var bits = 0;
-        while (v != 0) {
-            bits++;
-            v >>= 1;
-        }
-        return bits;
-    }
-
-    private static uint EncodeValue(int value, int bits) {
-        if (value >= 0) return (uint)value;
-        return (uint)(value + (1 << bits) - 1);
     }
 
     private static int[] ScaleQuantTable(byte[] table, int quality) {
@@ -960,28 +637,6 @@ internal static partial class OfficeJpegWriter {
         s.WriteByte(ss);
         s.WriteByte(se);
         s.WriteByte((byte)((ah << 4) | al));
-    }
-
-    private static bool IsGrayscale(byte[] rgba, int width, int height, int stride, int rowOffset, int rowStride, CancellationToken cancellationToken) {
-        for (var y = 0; y < height; y++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            var row = y * rowStride + rowOffset;
-            for (var x = 0; x < width; x++) {
-                var p = row + x * 4;
-                var r = rgba[p + 0];
-                var g = rgba[p + 1];
-                var b = rgba[p + 2];
-                var a = rgba[p + 3];
-                if (a != 255) {
-                    var inv = 255 - a;
-                    r = (byte)((r * a + 255 * inv + 127) / 255);
-                    g = (byte)((g * a + 255 * inv + 127) / 255);
-                    b = (byte)((b * a + 255 * inv + 127) / 255);
-                }
-                if (r != g || r != b) return false;
-            }
-        }
-        return true;
     }
 
     private static void EncodeBaseline(
@@ -1313,16 +968,6 @@ internal static partial class OfficeJpegWriter {
         return new HuffmanTable(codes, sizes);
     }
 
-    private static double[,] BuildCosTable() {
-        var table = new double[8, 8];
-        for (var u = 0; u < 8; u++) {
-            for (var x = 0; x < 8; x++) {
-                table[u, x] = Math.Cos(((2 * x + 1) * u * Math.PI) / 16.0);
-            }
-        }
-        return table;
-    }
-
     private static void WriteMarker(Stream s, int marker) {
         s.WriteByte(0xFF);
         s.WriteByte((byte)(marker & 0xFF));
@@ -1333,44 +978,4 @@ internal static partial class OfficeJpegWriter {
         s.WriteByte((byte)(value & 0xFF));
     }
 
-    private readonly struct HuffmanTable {
-        public readonly ushort[] Codes;
-        public readonly byte[] Sizes;
-        public HuffmanTable(ushort[] codes, byte[] sizes) {
-            Codes = codes;
-            Sizes = sizes;
-        }
-    }
-
-    private sealed class BitWriter {
-        private readonly Stream _stream;
-        private uint _buffer;
-        private int _bits;
-
-        public BitWriter(Stream stream) {
-            _stream = stream;
-        }
-
-        public void WriteBits(uint bits, int count) {
-            _buffer = (_buffer << count) | (bits & ((1u << count) - 1));
-            _bits += count;
-            while (_bits >= 8) {
-                var b = (byte)((_buffer >> (_bits - 8)) & 0xFF);
-                WriteByte(b);
-                _bits -= 8;
-            }
-        }
-
-        public void Flush() {
-            if (_bits <= 0) return;
-            var b = (byte)((_buffer << (8 - _bits)) & 0xFF);
-            WriteByte(b);
-            _bits = 0;
-        }
-
-        private void WriteByte(byte b) {
-            _stream.WriteByte(b);
-            if (b == 0xFF) _stream.WriteByte(0x00);
-        }
-    }
 }

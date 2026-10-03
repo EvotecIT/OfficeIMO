@@ -565,7 +565,16 @@ public static partial class OfficeWebpCodec {
             }
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         internal uint ReadBits(int count) {
+            uint value = PeekBits(count);
+            _buffer >>= count;
+            _bitCount -= count;
+            return value;
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        internal uint PeekBits(int count) {
             if (count < 0 || count > 32) throw new FormatException("WebP bit count is invalid.");
             while (_bitCount < count) {
                 if (_offset >= _end) throw new FormatException("WebP bitstream is truncated.");
@@ -573,10 +582,7 @@ public static partial class OfficeWebpCodec {
                 _bitCount += 8;
             }
             ulong mask = count == 32 ? uint.MaxValue : (1UL << count) - 1UL;
-            uint value = (uint)(_buffer & mask);
-            _buffer >>= count;
-            _bitCount -= count;
-            return value;
+            return (uint)(_buffer & mask);
         }
 
         internal bool HasBits(long count) =>

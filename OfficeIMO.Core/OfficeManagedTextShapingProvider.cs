@@ -13,7 +13,7 @@ namespace OfficeIMO.Drawing;
 /// bounded managed core. Callers then retain their normal scalar fallback and diagnostics. This
 /// keeps <see cref="IOfficeTextShapingProvider"/> as the single shaping contract used by Drawing and PDF.
 /// </remarks>
-public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvider, IOfficeTextShapingProviderMetadata {
+public sealed partial class OfficeManagedTextShapingProvider : IOfficeTextShapingProvider, IOfficeTextShapingProviderMetadata {
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<byte[], LatinFont> LatinFonts = new();
     /// <summary>Shared stateless provider instance.</summary>
     public static OfficeManagedTextShapingProvider Instance { get; } = new OfficeManagedTextShapingProvider();
@@ -48,19 +48,30 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
 
         OfficeTextDirection resolvedDirection = request.Direction == OfficeTextDirection.Auto
             ? OfficeTextElements.ResolveBaseDirection(request.Text) : request.Direction;
-        string contextual = request.ApplyDefaultLatinLigatures ? request.Text : OfficeArabicTextShaper.Shape(request.Text);
-        IReadOnlyList<VisualTextElement> visualElements = MapVisualElements(
-            request.Text,
-            contextual,
-            resolvedDirection,
-            request.CancellationToken, reorder: !request.ApplyDefaultLatinLigatures || request.Direction != OfficeTextDirection.Auto);
-        if (visualElements.Count == 0) return null;
-        string visual = string.Concat(visualElements.Select(static element => element.VisualText));
-        if (!font.HasGlyphs(visual)) return null;
-        var tokens = new List<OfficeOpenTypeSubstitution.GlyphToken>();
-        foreach (VisualTextElement element in visualElements) {
-            request.CancellationToken.ThrowIfCancellationRequested();
-            if (!TryAddElementGlyphs(font, element, tokens)) return null;
+        List<OfficeOpenTypeSubstitution.GlyphToken> tokens;
+        if (request.ApplyDefaultLatinLigatures && resolvedDirection == OfficeTextDirection.LeftToRight && IsPrintableAscii(request.Text, request.CancellationToken)) {
+            tokens = new List<OfficeOpenTypeSubstitution.GlyphToken>(request.Text.Length);
+            for (int index = 0; index < request.Text.Length; index++) {
+                request.CancellationToken.ThrowIfCancellationRequested();
+                char character = request.Text[index];
+                if (!font.TryGetGlyphMetrics(character, out int glyphId, out _)) return null;
+                tokens.Add(new OfficeOpenTypeSubstitution.GlyphToken(glyphId, AsciiCharacters[character - 32], index, character));
+            }
+        } else {
+            string contextual = request.ApplyDefaultLatinLigatures ? request.Text : OfficeArabicTextShaper.Shape(request.Text);
+            IReadOnlyList<VisualTextElement> visualElements = MapVisualElements(
+                request.Text,
+                contextual,
+                resolvedDirection,
+                request.CancellationToken, reorder: !request.ApplyDefaultLatinLigatures || request.Direction != OfficeTextDirection.Auto);
+            if (visualElements.Count == 0) return null;
+            string visual = string.Concat(visualElements.Select(static element => element.VisualText));
+            if (!font.HasGlyphs(visual)) return null;
+            tokens = new List<OfficeOpenTypeSubstitution.GlyphToken>(visualElements.Count);
+            foreach (VisualTextElement element in visualElements) {
+                request.CancellationToken.ThrowIfCancellationRequested();
+                if (!TryAddElementGlyphs(font, element, tokens)) return null;
+            }
         }
 
         OfficeOpenTypeSubstitution? substitution = latinFont?.Substitution ?? OfficeOpenTypeSubstitution.TryCreate(request.FontDataForShaping);
@@ -83,7 +94,8 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
             : new OfficeOpenTypeGlyphPositioning[tokens.Count];
         var glyphs = new List<OfficeShapedGlyph>(tokens.Count);
         var advanceAdjustments = new List<int>(tokens.Count);
-        foreach ((OfficeOpenTypeSubstitution.GlyphToken token, int index) in tokens.Select((token, index) => (token, index))) {
+        for (int index = 0; index < tokens.Count; index++) {
+            OfficeOpenTypeSubstitution.GlyphToken token = tokens[index];
             request.CancellationToken.ThrowIfCancellationRequested();
             glyphs.Add(token.IsUnicodeContinuation
                 ? OfficeShapedGlyph.CreateUnicodeContinuation(

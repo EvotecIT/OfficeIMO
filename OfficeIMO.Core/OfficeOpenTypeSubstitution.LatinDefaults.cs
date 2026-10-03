@@ -16,6 +16,14 @@ internal sealed partial class OfficeOpenTypeSubstitution {
     }
 
     private int[]? GetLatinDefaultFeatureIndexes(out int requiredFeature) {
+        // The selected default Script/LangSys belongs to immutable font data.
+        // Resolve it once per cached font, including malformed-table failures.
+        var features = _latinDefaultFeatures.Value;
+        requiredFeature = features.Required;
+        return features.Indexes;
+    }
+
+    private int[]? ReadLatinDefaultFeatureIndexes(out int requiredFeature) {
         requiredFeature = -1;
         try {
             int scriptList = Relative(_table, _reader.ReadUInt16(_table + 4), 2);
@@ -75,27 +83,10 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         bool[] eligible = GetLatinDefaultEligibility(scalars, breakBefore, trailingBoundary);
         // Empty input is also used to preflight the font's selected lookups.
         if (glyphs.Count > 0 && !Array.Exists(eligible, value => value)) return true;
-        int[]? features = GetLatinDefaultFeatureIndexes(out int requiredFeature);
-        if (features == null) return false;
-        var lookups = new SortedDictionary<int, int>();
-        int inspections = 0;
-        foreach (int index in features) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int record = _featureList + 2 + index * 6;
-            string tag = ReadTag(record);
-            int setting = index == requiredFeature ? 1 : settings.TryGetValue(tag, out int explicitValue) ? explicitValue
-                : tag == "liga" || tag == "clig" || tag == "rlig" ? 1 : 0;
-            if (setting <= 0) continue;
-            int feature = Relative(_featureList, _reader.ReadUInt16(record + 4), 4);
-            int count = _reader.ReadUInt16(feature + 2);
-            if (count > MaximumLookupRecords) return false;
-            Ensure(feature + 4, checked(count * 2));
-            for (int lookup = 0; lookup < count; lookup++) {
-                int lookupIndex = _reader.ReadUInt16(feature + 4 + lookup * 2);
-                if (!CanApplyLookup(lookupIndex, 0, ref inspections)) return false;
-                lookups[lookupIndex] = setting;
-            }
-        }
+        KeyValuePair<int, int>[]? lookups = settings.IsDefault ? _latinDefaultLookups.Value : BuildLatinDefaultLookups(settings, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (lookups == null) return false;
+        if (lookups.Length == 0) return true;
         int operations = 0;
         // Script-specific lookups must not consume neighboring non-Latin or presentation glyphs.
         var shaped = new List<GlyphToken>(glyphs.Count);
@@ -109,5 +100,33 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         }
         glyphs.Clear(); glyphs.AddRange(shaped);
         return true;
+    }
+
+    private KeyValuePair<int, int>[]? BuildLatinDefaultLookups(OfficeTextFeatureSettings settings, CancellationToken cancellationToken) {
+        int[]? features = GetLatinDefaultFeatureIndexes(out int requiredFeature);
+        if (features == null) return null;
+        var lookups = new SortedDictionary<int, int>();
+        int inspections = 0;
+        foreach (int index in features) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int record = _featureList + 2 + index * 6;
+            string tag = ReadTag(record);
+            int setting = index == requiredFeature ? 1 : settings.TryGetValue(tag, out int explicitValue) ? explicitValue
+                : tag == "liga" || tag == "clig" || tag == "rlig" ? 1 : 0;
+            if (setting <= 0) continue;
+            int feature = Relative(_featureList, _reader.ReadUInt16(record + 4), 4);
+            int count = _reader.ReadUInt16(feature + 2);
+            if (count > MaximumLookupRecords) return null;
+            Ensure(feature + 4, checked(count * 2));
+            for (int lookup = 0; lookup < count; lookup++) {
+                int lookupIndex = _reader.ReadUInt16(feature + 4 + lookup * 2);
+                if (!CanApplyLookup(lookupIndex, 0, ref inspections)) return null;
+                lookups[lookupIndex] = setting;
+            }
+        }
+        var result = new KeyValuePair<int, int>[lookups.Count];
+        int destination = 0;
+        foreach (var lookup in lookups) result[destination++] = lookup;
+        return result;
     }
 }
