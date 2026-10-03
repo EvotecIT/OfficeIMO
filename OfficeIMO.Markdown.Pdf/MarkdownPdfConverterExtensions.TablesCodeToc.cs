@@ -597,15 +597,16 @@ public static partial class MarkdownPdfConverterExtensions {
         pdf.Paragraph(builder => {
             builder.Superscript(footnote.Label);
             builder.Text(" ");
-            if (footnote.ChildBlocks.Count == 1 && footnote.ChildBlocks[0] is ParagraphBlock paragraph) {
+            if (footnote.ChildBlocks.Count > 0 && footnote.ChildBlocks[0] is ParagraphBlock paragraph) {
                 AppendInlines(builder, paragraph.Inlines, CreateInlineStyle(visualTheme, options.Anchors));
-            } else {
+            } else if (footnote.ChildBlocks.Count == 0) {
                 AppendTextWithLineBreaks(builder, footnote.Text);
             }
         }, style: new PdfCore.PdfParagraphStyle { SpacingBefore = 4, SpacingAfter = 4 });
 
-        if (footnote.ChildBlocks.Count > 1) {
-            for (int i = 1; i < footnote.ChildBlocks.Count; i++) {
+        if (footnote.ChildBlocks.Count > 0) {
+            int firstChild = footnote.ChildBlocks[0] is ParagraphBlock ? 1 : 0;
+            for (int i = firstChild; i < footnote.ChildBlocks.Count; i++) {
                 RenderBlock(pdf, footnote.ChildBlocks[i], document, options, visualTheme);
             }
         }

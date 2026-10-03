@@ -28,7 +28,8 @@ public class LatexFootnoteConversionTests {
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Feature.StartsWith("command:footnote", StringComparison.Ordinal));
         string pdfText = PdfReadDocument.Open(source.ToPdfDocumentResult().Value.ToBytes()).ExtractText();
         foreach (string text in new[] { "Before", "after.", "First", "Second.", "One", "Two", "Quoted" })
-            Assert.Contains(text, pdfText, StringComparison.Ordinal);
+            Assert.Single(System.Text.RegularExpressions.Regex.Matches(pdfText,
+                System.Text.RegularExpressions.Regex.Escape(text)).Cast<System.Text.RegularExpressions.Match>());
     }
 
     [Fact]
