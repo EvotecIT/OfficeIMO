@@ -604,13 +604,15 @@ Exact preserved MIME attachment payloads are copied without regenerating their p
 Select `new EmailWriterOptions(EmailConversionLossPolicy.Warn)` to export
 the common message content with diagnostics for the omitted fields.
 
-Live EMLX, mbox and OLM sessions reject same-length source changes by checking a bounded SHA-256
-before and after each selected read. Directory sessions pin each message and recovered attachment
+Live EMLX, mbox and OLM sessions validate their source with a bounded SHA-256 before and after each
+selected read, rejecting detected changes including same-length edits. Directory sessions pin each message and recovered attachment
 file when it is first projected, and reject subsequent content changes. A detected change expires
 retained attachment streams; reopen the session to read the changed source.
 The buffer size stays fixed, but each check reads the complete artifact or selected directory file.
 Use `EmailStoreSession.OpenSnapshot` for repeated reads of a standalone archive when a private stable
 copy can avoid repeated source hashing. The initial snapshot copy and hash perform source I/O.
+Use an exported or otherwise quiescent archive when the source is actively written; these reads do
+not take an atomic filesystem snapshot.
 Directory sessions recover empty MIME parts in `Messages/<numeric-id>.partial.emlx`
 from `Attachments/<numeric-id>/<one-based-MIME-part-path>/<file>`. For example, nested part
 `2.1` is the first child of the second root part. Each part directory must contain exactly

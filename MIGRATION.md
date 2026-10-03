@@ -24,14 +24,19 @@ Use the case-sensitive dictionary in `EmailDocument.Properties["Emlx:Metadata"]`
 Apple metadata. Flat `Emlx:Metadata:<key>` values are read aliases and participate in writing only
 when no exact catalog is supplied. Ambiguous case-colliding aliases are not created. Opaque trailer rewrites require explicit `Warn` or `Allow`.
 The default `Block` loss policy also rejects omitted EMLX, OLM and MAPI/TNEF metadata, and partial
-content whose completeness cannot be established, including regenerated embedded messages.
+content whose completeness cannot be established, including regenerated embedded messages and
+synthesized Outlook task payloads. Embedded calendar, contact and protected-content losses use the
+same policy. Transport signatures retain the separate `SignatureMutationPolicy` contract.
 Use `new EmailWriterOptions(EmailConversionLossPolicy.Warn)`
 when intentionally exporting the common message content, and inspect the returned diagnostics.
 Strict PST creation rejects omitted EMLX/OLM metadata.
 
-Standalone EMLX sessions verify the complete source before and after selected reads, including
-same-length edits. Reopen a changed source, or use `EmailStoreSession.OpenSnapshot` for a private,
-stable copy whose repeated reads avoid additional source-fingerprint scans.
+Live EMLX, mbox and OLM sessions verify the complete source before and after selected reads,
+including same-length edits. Directory sessions pin message and recovered attachment files at
+first projection. Detected changes invalidate retained attachment readers. Reopen a changed source,
+or use `EmailStoreSession.OpenSnapshot` for a private, stable copy of a standalone archive whose
+repeated reads avoid additional source-fingerprint scans. Keep actively written archives quiescent
+while opening; source validation does not take an atomic filesystem snapshot.
 
 OLM sessions project selected items on demand. Request `PreferStreamingAttachmentContent` on
 `EmailStoreItemReadOptions` for file-backed payloads and keep the owning session alive until the
