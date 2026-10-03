@@ -62,6 +62,28 @@ public sealed class LatexForwardOwnerTests {
     }
 
     [Theory]
+    [InlineData(ColumnAlignment.Center, ColumnAlignment.None, "c")]
+    [InlineData(ColumnAlignment.Right, ColumnAlignment.None, "r")]
+    [InlineData(ColumnAlignment.Right, ColumnAlignment.Left, "l")]
+    [InlineData(ColumnAlignment.Left, ColumnAlignment.Right, "r")]
+    public void SpannedCellsInheritLogicalColumnAlignmentAndRespectCellOverrides(ColumnAlignment column, ColumnAlignment cellOverride, string expected) {
+        TableBlock table = Assert.Single(MarkdownReader.Parse("| H1 | H2 | H3 | H4 |\n| --- | --- | --- | --- |\n| First | Second | Third | Last |\n").Blocks.OfType<TableBlock>());
+        table.Alignments[0] = ColumnAlignment.Left;
+        table.Alignments[1] = ColumnAlignment.Left;
+        table.Alignments[2] = column;
+        TableCell first = table.GetCell(0, 0)!;
+        first.ColumnSpan = 2;
+        TableCell second = table.GetCell(0, 1)!;
+        second.ColumnSpan = 2;
+        second.Alignment = cellOverride;
+        table.GetCell(0, 2)!.Alignment = ColumnAlignment.Center;
+        MarkdownToLatexResult result = MarkdownDoc.Create().Add(table).ToLatexDocumentResult();
+        Assert.Contains("\\multicolumn{2}{" + expected + "}{Second}", result.Source, StringComparison.Ordinal);
+        Assert.Contains("\\multicolumn{1}{c}{Third}", result.Source, StringComparison.Ordinal);
+        Assert.False(result.Report.HasLoss);
+    }
+
+    [Theory]
     [InlineData("|c|r|", true)]
     [InlineData("p{3cm}r", false)]
     [InlineData("*{2}{c}", false)]

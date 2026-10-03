@@ -201,13 +201,20 @@ internal static class MarkdownToLatexConverter {
         }
         output.Append('}').Append(options.LineEnding);
         for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++) {
+            int logicalColumn = 0;
             for (int cellIndex = 0; cellIndex < rows[rowIndex].Cells.Count; cellIndex++) {
                 if (cellIndex > 0) output.Append(" & ");
                 TableCell cell = rows[rowIndex].Cells[cellIndex];
                 string content = ConvertCell(cell, options, state, diagnostics);
                 if (cell.RowSpan > 1) { state.Packages.Add("multirow"); content = "\\multirow{" + cell.RowSpan + "}{*}{" + content + "}"; }
-                if (cell.ColumnSpan > 1) content = "\\multicolumn{" + cell.ColumnSpan + "}{l}{" + content + "}";
+                if (cell.ColumnSpan > 1 || cell.Alignment != ColumnAlignment.None) {
+                    ColumnAlignment alignment = cell.Alignment != ColumnAlignment.None ? cell.Alignment
+                        : logicalColumn < source.Alignments.Count ? source.Alignments[logicalColumn] : ColumnAlignment.None;
+                    char specifier = alignment == ColumnAlignment.Center ? 'c' : alignment == ColumnAlignment.Right ? 'r' : 'l';
+                    content = "\\multicolumn{" + cell.ColumnSpan + "}{" + specifier + "}{" + content + "}";
+                }
                 output.Append(content);
+                logicalColumn += cell.ColumnSpan;
             }
             output.Append(" \\\\").Append(options.LineEnding);
             if (rows[rowIndex].IsHeader) output.Append("\\hline").Append(options.LineEnding);
