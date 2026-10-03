@@ -69,7 +69,9 @@ public static partial class Fa3InvoiceWriter {
         if (party.Contact != null) {
             optional(path + ".Contact.Name", party.Contact.Name);
             text(path + ".Contact.Email", party.Contact.Email, 255, false); text(path + ".Contact.Telephone", party.Contact.Telephone, 16, false);
-            if (party.Contact.Email != null && !System.Text.RegularExpressions.Regex.IsMatch(party.Contact.Email, "^.+@.+$")) error(path + ".Contact.Email", "Email must match the pinned schema pattern.");
+            if (party.Contact.Email is { Length: <= 255 } email &&
+                !System.Text.RegularExpressions.Regex.IsMatch(email, "^.+@.+$"))
+                error(path + ".Contact.Email", "Email must match the pinned schema pattern.");
         }
     }
 
