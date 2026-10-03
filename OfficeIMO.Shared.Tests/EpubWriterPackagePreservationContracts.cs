@@ -84,6 +84,25 @@ public sealed class EpubWriterPackagePreservationContracts {
     }
 
     [Theory]
+    [InlineData("xhtml")]
+    [InlineData("svg")]
+    public void RawXmlReplacement_AllowsCanonicalEscapingWithinTheRetainedByteBound(string kind) {
+        EpubPublication book = EpubPublication.Create("Bounded raw XML");
+        book.AddChapter("first", "EPUB/first.xhtml", "First", "<p>First</p>");
+        if (kind == "svg") book.AddResource("image", "EPUB/image.svg", "image/svg+xml",
+            Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg'><text>Original</text></svg>"));
+        book = EpubPublication.Load(new MemoryStream(book.Write().Bytes), new EpubPublicationLoadOptions { MaxEntryBytes = 2048 });
+        string content = kind == "xhtml" ? "<html xmlns='http://www.w3.org/1999/xhtml'><head><title>First</title></head><body><p>" + new string('>', 1000) + "</p></body></html>" :
+            "<svg xmlns='http://www.w3.org/2000/svg'><text>" + new string('>', 1000) + "</text></svg>";
+        byte[] payload = Encoding.UTF8.GetBytes(content);
+        string id = kind == "xhtml" ? "first" : "image";
+        book.UpdateResource(id, payload);
+        EpubPublication output = EpubPublication.Load(new MemoryStream(book.Write().Bytes), new EpubPublicationLoadOptions { MaxEntryBytes = 2048 });
+        Assert.Equal(payload, output.GetResourceBytes(id));
+        Assert.Equal(new string('>', 1000), output.GetContentXml(id).Descendants().Last().Value);
+    }
+
+    [Theory]
     [InlineData("mimetype")]
     [InlineData("META-INF/container.xml")]
     [InlineData("META-INF/encryption.xml")]

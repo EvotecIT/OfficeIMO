@@ -372,8 +372,9 @@ Retained entry limits include mandatory package entries and apply when adding re
 Unedited writes count every physical ZIP record, including directories, against output
 limits. XHTML/SVG/NCX inspection, editing, and write preflight use the configured
 retained entry-byte bound; package XML uses the configured metadata bound.
-Rewritten XHTML/SVG uses that bound for shared HTML input length while retaining
-the shared DOM, stylesheet, and responsive-resource complexity safeguards.
+Rewritten XHTML/SVG checks XML against that bound before shared HTML analysis,
+allowing for canonical XML escaping while retaining the shared DOM, stylesheet,
+and responsive-resource complexity safeguards.
 Ordinary entries are deflated by default; `mimetype` is always stored first without
 extra fields. Repeated writes of unchanged model state use stable modification metadata
 and deterministic ZIP ordering. Supply `ModifiedAt` for a reproducible timestamp
