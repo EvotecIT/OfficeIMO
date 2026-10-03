@@ -31,7 +31,7 @@ namespace OfficeIMO.Excel.Pdf {
                 SelectColumns(source.Values, columns)!, SelectColumns(source.Styles, columns),
                 SelectColumns(source.Hyperlinks, columns), SelectColumns(source.CellReferences, columns),
                 merged, widths, source.RowHeights, source.HeaderRowCount, source.FirstBodyRowNumber,
-                source.StructuredTables, conditional);
+                source.StructuredTables, conditional, printTitleRowIndexes: source.RepeatingRowIndexes);
         }
 
         private static T[,]? SelectColumns<T>(T[,]? source, IReadOnlyList<int> columns) {

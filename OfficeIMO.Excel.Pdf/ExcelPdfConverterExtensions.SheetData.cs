@@ -126,7 +126,8 @@ namespace OfficeIMO.Excel.Pdf {
                 options.UseWorksheetCellStyles);
 
             IReadOnlyList<int> titleColumns = GetPrintTitleColumnIndexes(workbookSheet, cellReferences, options);
-            return new SheetExportData(values, styles, hyperlinks, cellReferences, mergedCells, columnWidths, rowHeights, headerRows, firstBodyRowNumber, structuredTables, conditionalFills, titleColumns);
+            IReadOnlyList<int> titleRows = GetPrintTitleRowIndexes(workbookSheet, cellReferences, options);
+            return new SheetExportData(values, styles, hyperlinks, cellReferences, mergedCells, columnWidths, rowHeights, headerRows, firstBodyRowNumber, structuredTables, conditionalFills, titleColumns, titleRows);
         }
 
         private static RangeExportData ReadRangeExportData(ExcelSheetReader sheet, ExcelSheet? metadataSheet, ExcelSheet? styleSheet, string normalizedRange, ExcelToPdfOptions options, PdfCore.PdfStandardFont defaultFontFamily, bool boundedRead) {

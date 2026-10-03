@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel.Pdf {
                     requestedChunk.HeaderRowCount, availableHeight / scale);
                 foreach ((int startColumn, int columnCount) in columnSegments) {
                     foreach (IReadOnlyList<int> rowIndexes in rowSegments) {
-                        chunks.Add(new TableChunk(rowIndexes, Math.Min(requestedChunk.HeaderRowCount, rowIndexes.Count),
+                        chunks.Add(new TableChunk(rowIndexes, GetChunkHeaderRowCount(plan, rowIndexes),
                             startColumn, columnCount, CreateChunkColumnIndexes(plan, startColumn, columnCount)));
                     }
                 }
@@ -79,11 +79,12 @@ namespace OfficeIMO.Excel.Pdf {
             WorksheetPdfExportPlan plan, IReadOnlyList<int> rowIndexes, int headerRowCount, double maximumHeight) {
             if (rowIndexes.Count == 0) return new[] { rowIndexes };
             int headerRows = Math.Min(headerRowCount, rowIndexes.Count);
-            var headerIndexes = rowIndexes.Take(headerRows).ToList();
-            double headerHeight = headerIndexes.Sum(row => GetExportedRowHeightPoints(plan, row));
-            double bodyCapacity = Math.Max(1D, maximumHeight - headerHeight);
+            var initialHeaderIndexes = rowIndexes.Take(headerRows).ToArray();
+            if (headerRows == rowIndexes.Count) return new[] { rowIndexes };
             var result = new List<IReadOnlyList<int>>();
             var currentBody = new List<int>();
+            IReadOnlyList<int> headerIndexes = Array.Empty<int>();
+            double bodyCapacity = maximumHeight;
             double currentHeight = 0D;
             for (int index = headerRows; index < rowIndexes.Count; index++) {
                 int row = rowIndexes[index];
@@ -92,6 +93,13 @@ namespace OfficeIMO.Excel.Pdf {
                     result.Add(headerIndexes.Concat(currentBody).ToList());
                     currentBody.Clear();
                     currentHeight = 0D;
+                }
+                if (currentBody.Count == 0) {
+                    // Automatic page breaks can newly reach part or all of a middle title
+                    // block, so repeat its visited rows and reserve their height on this page.
+                    headerIndexes = initialHeaderIndexes.Concat(plan.ExportData.RepeatingRowIndexes.Where(title => title < row))
+                        .Distinct().OrderBy(title => title).ToArray();
+                    bodyCapacity = Math.Max(1D, maximumHeight - headerIndexes.Sum(title => GetExportedRowHeightPoints(plan, title)));
                 }
                 currentBody.Add(row);
                 currentHeight += height;

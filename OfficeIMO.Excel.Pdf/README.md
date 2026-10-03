@@ -150,6 +150,8 @@ Worksheet print areas are exported separately, in their stored order, with each 
 
 `FlowTable` reflows cells into PDF tables and repeats title columns across requested horizontal chunks. Fit-to-height scales cell fonts, padding, and minimum row heights together. Rows can grow to retain their laid-out text, so this mode does not promise worksheet page counts.
 
+Print-title rows can start inside the print area. Canvas automatic pages and both layouts' manual row chunks repeat only title rows reached before the current body segment, including a break within a title block. Flow-table automatic continuation still repeats leading header rows; title rows starting later in a single flowing table are not repeated automatically.
+
 ## Current limits
 
 - Workbook content is read through `OfficeIMO.Excel`; layout and PDF writing use `OfficeIMO.Pdf`.

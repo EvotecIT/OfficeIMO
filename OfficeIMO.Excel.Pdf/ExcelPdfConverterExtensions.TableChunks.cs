@@ -122,18 +122,16 @@ namespace OfficeIMO.Excel.Pdf {
             IReadOnlyList<TableAxisChunk> columnChunks = CreateTableAxisChunks(
                 exportedColumns,
                 options.UseWorksheetPageBreaks && honorColumnBreaks ? GetManualColumnBreakOffsets(plan) : new List<int>());
-            int headerRowCount = Math.Min(plan.ExportData.HeaderRowCount, plan.ExportedRows);
-
             var chunks = new List<TableChunk>(rowChunks.Count * columnChunks.Count);
             if (plan.PageSetup?.PageOrder == ExcelPageOrder.OverThenDown) {
                 foreach (TableAxisChunk rowChunk in rowChunks) {
-                    AddChunksForRow(plan, rowChunk, columnChunks, headerRowCount, chunks);
+                    AddChunksForRow(plan, rowChunk, columnChunks, chunks);
                 }
             } else {
                 foreach (TableAxisChunk columnChunk in columnChunks) {
                     foreach (TableAxisChunk rowChunk in rowChunks) {
-                        IReadOnlyList<int> rowIndexes = CreateChunkRowIndexes(rowChunk, headerRowCount);
-                        int chunkHeaderRows = Math.Min(headerRowCount, rowIndexes.Count);
+                        IReadOnlyList<int> rowIndexes = CreateChunkRowIndexes(plan, rowChunk);
+                        int chunkHeaderRows = GetChunkHeaderRowCount(plan, rowIndexes);
                         chunks.Add(new TableChunk(rowIndexes, chunkHeaderRows, columnChunk.Start, columnChunk.Count, CreateChunkColumnIndexes(plan, columnChunk.Start, columnChunk.Count)));
                     }
                 }
@@ -142,32 +140,12 @@ namespace OfficeIMO.Excel.Pdf {
             return chunks;
         }
 
-        private static void AddChunksForRow(WorksheetPdfExportPlan plan, TableAxisChunk rowChunk, IReadOnlyList<TableAxisChunk> columnChunks, int headerRowCount, List<TableChunk> chunks) {
-            IReadOnlyList<int> rowIndexes = CreateChunkRowIndexes(rowChunk, headerRowCount);
-            int chunkHeaderRows = Math.Min(headerRowCount, rowIndexes.Count);
+        private static void AddChunksForRow(WorksheetPdfExportPlan plan, TableAxisChunk rowChunk, IReadOnlyList<TableAxisChunk> columnChunks, List<TableChunk> chunks) {
+            IReadOnlyList<int> rowIndexes = CreateChunkRowIndexes(plan, rowChunk);
+            int chunkHeaderRows = GetChunkHeaderRowCount(plan, rowIndexes);
             foreach (TableAxisChunk columnChunk in columnChunks) {
                 chunks.Add(new TableChunk(rowIndexes, chunkHeaderRows, columnChunk.Start, columnChunk.Count, CreateChunkColumnIndexes(plan, columnChunk.Start, columnChunk.Count)));
             }
-        }
-
-        private static IReadOnlyList<int> CreateChunkRowIndexes(TableAxisChunk rowChunk, int headerRowCount) {
-            var indexes = new List<int>(rowChunk.Count + headerRowCount);
-            if (rowChunk.Start > 0 && headerRowCount > 0) {
-                for (int row = 0; row < headerRowCount; row++) {
-                    indexes.Add(row);
-                }
-            }
-
-            int end = rowChunk.Start + rowChunk.Count;
-            for (int row = rowChunk.Start; row < end; row++) {
-                if (row < headerRowCount && indexes.Contains(row)) {
-                    continue;
-                }
-
-                indexes.Add(row);
-            }
-
-            return indexes;
         }
 
         private static IReadOnlyList<TableAxisChunk> CreateTableAxisChunks(int itemCount, IReadOnlyList<int> breakOffsets) {

@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private sealed class SheetExportData {
-            public SheetExportData(object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, MergeLayoutData? mergedCells, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int headerRowCount, int firstBodyRowNumber, IReadOnlyList<StructuredTableVisualData> structuredTables, ConditionalFillData? conditionalFills = null, IReadOnlyList<int>? printTitleColumnIndexes = null) {
+            public SheetExportData(object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, MergeLayoutData? mergedCells, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int headerRowCount, int firstBodyRowNumber, IReadOnlyList<StructuredTableVisualData> structuredTables, ConditionalFillData? conditionalFills = null, IReadOnlyList<int>? printTitleColumnIndexes = null, IReadOnlyList<int>? printTitleRowIndexes = null) {
                 Values = values;
                 Styles = styles;
                 Hyperlinks = hyperlinks;
@@ -49,6 +49,8 @@ namespace OfficeIMO.Excel.Pdf {
                 StructuredTables = structuredTables;
                 ConditionalFills = conditionalFills;
                 PrintTitleColumnIndexes = printTitleColumnIndexes ?? Array.Empty<int>();
+                RepeatingRowIndexes = Enumerable.Range(0, Math.Min(Math.Max(0, headerRowCount), values.GetLength(0)))
+                    .Concat(printTitleRowIndexes ?? Array.Empty<int>()).Distinct().OrderBy(row => row).ToArray();
             }
 
             public object?[,] Values { get; }
@@ -63,6 +65,7 @@ namespace OfficeIMO.Excel.Pdf {
             public IReadOnlyList<StructuredTableVisualData> StructuredTables { get; }
             public ConditionalFillData? ConditionalFills { get; }
             public IReadOnlyList<int> PrintTitleColumnIndexes { get; }
+            public IReadOnlyList<int> RepeatingRowIndexes { get; }
         }
 
         private sealed class ConditionalFillData {
