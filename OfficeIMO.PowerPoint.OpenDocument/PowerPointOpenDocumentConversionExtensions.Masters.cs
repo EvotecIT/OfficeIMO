@@ -41,17 +41,35 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
 
     private static byte[]? ReadPowerPointThumbnail(ThumbnailPart? part) {
         if (part == null) return null;
+        const int maximumThumbnailBytes = 1024 * 1024;
         using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
         using MemoryStream copy = new();
-        stream.CopyTo(copy);
+        byte[] buffer = new byte[8192];
+        int read;
+        while ((read = stream.Read(buffer, 0, buffer.Length)) > 0) {
+            if (copy.Length + read > maximumThumbnailBytes) return null;
+            copy.Write(buffer, 0, read);
+        }
         return copy.ToArray();
     }
 
     private static int CountUnmappedPowerPointThumbnail(PowerPointPresentation source) {
-        byte[]? authored = ReadPowerPointThumbnail(source.OpenXmlDocument.ThumbnailPart);
-        if (authored == null) return 0;
+        ThumbnailPart? part = source.OpenXmlDocument.ThumbnailPart;
+        if (part == null) return 0;
         byte[]? baseline = DefaultPowerPointThumbnail.Value;
-        return baseline != null && authored.SequenceEqual(baseline) ? 0 : 1;
+        if (baseline == null) return 1;
+        using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
+        byte[] buffer = new byte[8192];
+        int offset = 0;
+        while (offset < baseline.Length) {
+            int read = stream.Read(buffer, 0, Math.Min(buffer.Length, baseline.Length - offset));
+            if (read == 0) return 1;
+            for (int index = 0; index < read; index++) {
+                if (buffer[index] != baseline[offset + index]) return 1;
+            }
+            offset += read;
+        }
+        return stream.ReadByte() == -1 ? 0 : 1;
     }
 
     private static readonly Lazy<string?> DefaultPowerPointHandoutMasterXml = new(() => {
@@ -377,6 +395,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     attribute.Name != style + "name"));
         XNamespace fo = "urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0";
         XElement[] pageLayouts = styles.Descendants(style + "page-layout").ToArray();
+        var pageLayoutNames = new HashSet<string>(pageLayouts
+            .Select(layout => (string?)layout.Attribute(style + "name"))
+            .Where(name => name != null).Select(name => name!), StringComparer.Ordinal);
         bool hasUnsupportedPageLayout = pageLayouts.Length > 1 || pageLayouts.Any(layout => {
             XElement? properties = layout.Element(style + "page-layout-properties");
             return layout.Attributes().Any(attribute => !attribute.IsNamespaceDeclaration &&
@@ -389,8 +410,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         });
         bool hasUnknownPageLayoutReference = styles.Descendants(style + "master-page").Any(master => {
             string? name = (string?)master.Attribute(style + "page-layout-name");
-            return !string.IsNullOrWhiteSpace(name) && !pageLayouts.Any(layout =>
-                string.Equals((string?)layout.Attribute(style + "name"), name, StringComparison.Ordinal));
+            return !string.IsNullOrWhiteSpace(name) && !pageLayoutNames.Contains(name!);
         });
         bool hasUnsupportedBackground = styles.Descendants(style + "master-page").Any(master => {
             string? styleName = (string?)master.Attribute(draw + "style-name");
