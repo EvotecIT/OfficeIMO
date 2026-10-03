@@ -19,8 +19,9 @@ public sealed partial class EpubPublication {
         cancellationToken.ThrowIfCancellationRequested();
         var entries = new Dictionary<string, byte[]>(_entries, StringComparer.Ordinal);
         bool changed = _changed || modifiedAt.HasValue;
+        bool rewriteArchive = changed || !compress;
         var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
-        if (changed && _originalHasZipSignature) {
+        if (rewriteArchive && _originalHasZipSignature) {
             if (!removeSignatures) throw new InvalidOperationException("Edits invalidate the ZIP directory signature. Explicit signature removal is required.");
             diagnostics.Add(new OfficeConversionFidelityDiagnostic("EPUB_WRITE_ZIP_SIGNATURE_REMOVED",
                 "Invalidated ZIP central-directory signature was removed by explicit policy.", OfficeConversionLossKind.Omission, "OfficeIMO.Epub"));
@@ -49,14 +50,15 @@ public sealed partial class EpubPublication {
                 throw new InvalidDataException("The dcterms prefix cannot be reassigned when writing modification metadata.");
             XElement[] stamps = metadata.Elements(Opf + "meta").Where(element =>
                 EpubVocabulary.Expand(package.Root, (string?)element.Attribute("property") ?? string.Empty) == "http://purl.org/dc/terms/modified" && element.Attribute("refines") == null).ToArray();
-            foreach (XElement stamp in stamps) stamp.Remove();
-            metadata.Add(new XElement(Opf + "meta", new XAttribute("property", "dcterms:modified"),
-                (modifiedAt ?? _modifiedAt).UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture)));
+            if (stamps.Length > 1) throw new InvalidDataException("Package contains multiple unrefined modification stamps.");
+            string value = (modifiedAt ?? _modifiedAt).UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
+            if (stamps.Length == 0) metadata.Add(new XElement(Opf + "meta", new XAttribute("property", "dcterms:modified"), value));
+            else stamps[0].Value = value;
         }
         if (changed || !entries.ContainsKey(PackagePath)) entries[PackagePath] = SerializeXml(package);
         if (!entries.TryGetValue("mimetype", out byte[]? mimetype) || !mimetype.SequenceEqual(Encoding.ASCII.GetBytes("application/epub+zip")))
             throw new InvalidDataException("Package mimetype must contain exactly application/epub+zip.");
-        if (entries.Count > maxEntries) throw new InvalidDataException("Output exceeds MaxEntries.");
+        if (entries.Count > Math.Min(maxEntries, _maximumEntries)) throw new InvalidDataException("Output exceeds MaxEntries or the retained entry-count limit.");
         ValidatePublication(package, entries, diagnostics, cancellationToken);
         if (changed) {
             EnsurePackageBudget(package, entries.Where(entry => entry.Key != PackagePath).Sum(entry => entry.Value.LongLength) - RetainedPayloadBytes);
@@ -68,7 +70,7 @@ public sealed partial class EpubPublication {
             if (entry.Value.LongLength > maxExpanded - expanded) throw new InvalidDataException("Output exceeds MaxExpandedBytes.");
             expanded += entry.Value.LongLength;
         }
-        if (!changed && _originalBytes != null) {
+        if (!rewriteArchive && _originalBytes != null) {
             if (_originalBytes.LongLength > maxOutput) throw new InvalidDataException("Output exceeds MaxOutputBytes.");
             return new EpubWriteResult((byte[])_originalBytes.Clone(), new EpubWriteReport(true,
                 entries.Keys.OrderBy(path => path, StringComparer.Ordinal), Array.Empty<string>(), Array.Empty<string>(), diagnostics));

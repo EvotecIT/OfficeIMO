@@ -274,7 +274,10 @@ linear reading position. To create EPUB 2.0.1 with NCX navigation, pass
 `SetCoverImage` selects an existing image. Spine APIs edit positions without deduplicating
 repeated imported references. New positions require distinct manifest ids; repeated
 content needs a separate chapter resource. `SetNavigation` accepts hierarchical TOC entries, page-list entries,
-and landmarks (EPUB 2 uses NCX and guide references). `SetMetadataProperty` updates a
+and landmarks (EPUB 2 uses NCX and guide references, with flat page-list and guide
+entries). Generated XHTML navigation links respect retained local HTML base URLs;
+navigation authoring rejects an external base that cannot address container content.
+`SetMetadataProperty` updates a
 property; `AddMetadataProperty` adds repeatable values. `AddDublinCoreMetadata` adds
 contributors, languages, or other Dublin Core values with optional ids and language.
 EPUB 3 vocabulary prefixes, page progression, and rendition-layout declarations are
@@ -306,7 +309,9 @@ publication.Save("revised.epub");
 
 Loaded publications retain all bounded file entries, including unmanifested extension
 payloads, other rootfiles, unknown OPF nodes, and declaration attributes. An unedited
-write returns the exact original compressed package. Edited output rewrites the selected
+write with default options returns the exact original compressed package. Selecting
+`CompressEntries = false` rebuilds the archive with stored entries while retaining
+unchanged payloads. Edited output rewrites the selected
 OPF and changed content; unchanged entry payloads retain their bytes. ZIP order,
 timestamps, compression, XML formatting, and lexical prefixes may differ after editing.
 `GetPackageXml` returns an inspection copy; typed metadata, manifest, and spine APIs
@@ -352,6 +357,7 @@ such as [EPUBCheck](https://github.com/w3c/epubcheck).
 
 Use `EpubPublicationLoadOptions` for retained input and creation resource limits;
 use `EpubWriteOptions` for output limits, modification time, and compression.
+Retained entry limits include mandatory package entries and apply when adding resources.
 Ordinary entries are deflated by default; `mimetype` is always stored first without
 extra fields. Repeated writes of unchanged model state use stable modification metadata
 and deterministic ZIP ordering. Supply `ModifiedAt` for a reproducible timestamp

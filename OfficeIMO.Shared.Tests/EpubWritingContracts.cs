@@ -356,8 +356,10 @@ public sealed class EpubWritingContracts {
         } finally { Directory.Delete(directory, true); }
     }
 
-    [Fact]
-    public void ZipDirectorySignature_RequiresExplicitRemovalAndReportsOmission() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ZipDirectorySignature_RequiresExplicitRemovalAndReportsOmission(bool compressionOnly) {
         byte[] source = CreateBook().Write().Bytes;
         int end = source.Length - 22; // This fixture has no ZIP comment.
         Assert.Equal(0x06054b50u, BitConverter.ToUInt32(source, end));
@@ -369,9 +371,9 @@ public sealed class EpubWritingContracts {
         BitConverter.GetBytes(BitConverter.ToUInt32(source, end + 12) + (uint)signature.Length).CopyTo(signed, end + signature.Length + 12);
         EpubPublication book = EpubPublication.Load(new MemoryStream(signed));
         Assert.Equal(signed, book.Write().Bytes);
-        book.Title = "Edited";
-        Assert.Throws<InvalidOperationException>(() => book.Write());
-        EpubWriteResult result = book.Write(new EpubWriteOptions { RemoveInvalidatedSignatures = true });
+        if (!compressionOnly) book.Title = "Edited";
+        Assert.Throws<InvalidOperationException>(() => book.Write(new EpubWriteOptions { CompressEntries = !compressionOnly }));
+        EpubWriteResult result = book.Write(new EpubWriteOptions { RemoveInvalidatedSignatures = true, CompressEntries = !compressionOnly });
         Assert.False(OfficeProvenanceZip.HasCentralDirectorySignature(result.Bytes, 100));
         Assert.True(result.HasLoss);
         Assert.Contains(result.Report.FidelityDiagnostics, item => item.Code == "EPUB_WRITE_ZIP_SIGNATURE_REMOVED");

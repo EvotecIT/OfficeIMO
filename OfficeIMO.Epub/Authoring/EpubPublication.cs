@@ -27,6 +27,7 @@ public sealed partial class EpubPublication {
     private readonly long _maximumRetainedBytes;
     private readonly long _maximumEntryBytes;
     private readonly long _maximumMetadataBytes;
+    private readonly int _maximumEntries;
     private long _retainedBytes;
 
     private EpubPublication(string path, XDocument package, Dictionary<string, byte[]> entries,
@@ -46,6 +47,8 @@ public sealed partial class EpubPublication {
         _maximumRetainedBytes = limits.MaxExpandedBytes;
         _maximumEntryBytes = limits.MaxEntryBytes;
         _maximumMetadataBytes = limits.MaxMetadataBytes;
+        _maximumEntries = limits.MaxEntries;
+        EnsureEntryBudget();
         _retainedBytes = entries.Values.Sum(data => data.LongLength);
         if (Root.Name != Opf + "package" || (PackageVersion != "3.0" && PackageVersion != "2.0")) {
             throw new NotSupportedException("Writing supports OPF package versions 2.0 and 3.0.");
@@ -141,6 +144,11 @@ public sealed partial class EpubPublication {
 
     private XElement Root => _package.Root ?? throw new InvalidDataException("Package XML has no root.");
     private XElement RequireSection(string name) => Root.Element(Opf + name) ?? throw new InvalidDataException("Package section missing: " + name);
+    private void EnsureEntryBudget(int additionalEntries = 0) {
+        int current = _entries.Count + (_entries.ContainsKey(PackagePath) ? 0 : 1);
+        if (additionalEntries > _maximumEntries - current)
+            throw new InvalidDataException("Publication exceeds the retained entry-count limit.");
+    }
     private void MarkChanged() {
         if (!_changed) _modifiedAt = DateTimeOffset.UtcNow;
         _changed = true;

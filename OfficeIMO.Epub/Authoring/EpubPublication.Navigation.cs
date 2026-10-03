@@ -12,14 +12,17 @@ public sealed partial class EpubPublication {
         EpubNavigationEntry[]? pages = pageList?.ToArray();
         EpubNavigationEntry[]? guide = landmarks?.ToArray();
         if (PackageVersion == "3.0" && guide != null) ValidateLandmarkTypes(guide, 0);
+        if (PackageVersion == "2.0" && (pages?.Any(node => node.Children.Count != 0) == true || guide?.Any(node => node.Children.Count != 0) == true))
+            throw new NotSupportedException("EPUB 2 page-list and guide entries must be flat; nested entries cannot be retained in these sections.");
         string path = NavigationPath();
         XDocument navigation = ParseXml(_entries[path], 64L * 1024 * 1024);
         XElement? newGuide = null;
         if (PackageVersion == "3.0") {
             XElement body = navigation.Root?.Element(Html + "body") ?? throw new InvalidDataException("Navigation has no XHTML body.");
-            SetHtmlNavigation(body, "toc", "Contents", toc, path);
-            if (pages != null) SetHtmlNavigation(body, "page-list", "Pages", pages, path);
-            if (guide != null) SetHtmlNavigation(body, "landmarks", "Landmarks", guide, path);
+            string linkOwner = HtmlNavigationLinkOwner(navigation, path);
+            SetHtmlNavigation(body, "toc", "Contents", toc, linkOwner);
+            if (pages != null) SetHtmlNavigation(body, "page-list", "Pages", pages, linkOwner);
+            if (guide != null) SetHtmlNavigation(body, "landmarks", "Landmarks", guide, linkOwner);
         } else {
             XElement root = navigation.Root ?? throw new InvalidDataException("NCX has no root.");
             if (root.Name != Ncx + "ncx") throw new InvalidDataException("Expected an NCX document.");
@@ -107,7 +110,7 @@ public sealed partial class EpubPublication {
         if (PackageVersion == "3.0") {
             XElement nav = navigation.Descendants(Html + "nav").Single(element => HasToken((string?)element.Attribute(Ops + "type"), "toc"));
             XElement list = nav.Element(Html + "ol") ?? throw new InvalidDataException("TOC list is missing.");
-            list.Add(BuildHtmlNodes(new[] { entry }, path, 0, pendingPath));
+            list.Add(BuildHtmlNodes(new[] { entry }, HtmlNavigationLinkOwner(navigation, path), 0, pendingPath));
         } else {
             XElement map = navigation.Root?.Element(Ncx + "navMap") ?? throw new InvalidDataException("NCX navMap is missing.");
             int order = map.Descendants(Ncx + "navPoint").Count();
@@ -115,6 +118,19 @@ public sealed partial class EpubPublication {
             NormalizeNcxPlayOrder(navigation, path);
         }
         return SerializeXml(navigation);
+    }
+    private static string HtmlNavigationLinkOwner(XDocument navigation, string path) {
+        string? baseHref = navigation.Root?.Element(Html + "head")?.Elements(Html + "base")
+            .Select(element => (string?)element.Attribute("href")).FirstOrDefault(value => value != null);
+        if (string.IsNullOrWhiteSpace(baseHref)) return path;
+        EpubReference directory = EpubReference.Resolve(path, baseHref, ".");
+        if (directory.Kind == EpubReferenceKind.External)
+            throw new NotSupportedException("Container navigation cannot be generated under an external HTML base URL.");
+        if (directory.Kind != EpubReferenceKind.Container || directory.ContainerPath == null)
+            throw new InvalidDataException("Navigation has an invalid HTML base URL.");
+        // Use the shared resolver to determine the effective directory, including
+        // directory/file bases and encoded paths, before computing relative links.
+        return (directory.ContainerPath.Length == 0 ? string.Empty : directory.ContainerPath + "/") + "__officeimo_navigation_base__";
     }
     private void SetHtmlNavigation(XElement body, string type, string heading, EpubNavigationEntry[] nodes, string path) {
         XElement? nav = body.Descendants(Html + "nav").FirstOrDefault(element => HasToken((string?)element.Attribute(Ops + "type"), type));

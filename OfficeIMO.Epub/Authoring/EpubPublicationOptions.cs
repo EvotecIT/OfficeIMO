@@ -20,7 +20,7 @@ public sealed class EpubPublicationLoadOptions {
     public long MaxEntryBytes { get; set; } = 64L * 1024 * 1024;
     /// <summary>Maximum package/container XML bytes, also enforced on edits to the selected package.</summary>
     public long MaxMetadataBytes { get; set; } = 4L * 1024 * 1024;
-    /// <summary>Maximum ZIP entries, including directory entries.</summary>
+    /// <summary>Maximum ZIP entries, including directories and the selected package XML; also enforced when adding resources.</summary>
     public int MaxEntries { get; set; } = 10_000;
 }
 
