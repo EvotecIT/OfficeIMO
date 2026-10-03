@@ -192,6 +192,8 @@ public sealed class IWorkTextParagraph {
 
 /// <summary>Immutable rich text recovered from one iWork text storage.</summary>
 public sealed class IWorkTextContent {
+    private string? _plainText;
+
     internal IWorkTextContent(IReadOnlyList<IWorkTextParagraph> paragraphs,
         bool isComplete, bool isTextComplete, bool hasInvalidSourceText = false,
         bool hasUnresolvedInlineObjects = false, bool? isFormattingComplete = null,
@@ -220,7 +222,7 @@ public sealed class IWorkTextContent {
     /// <summary>Gets whether the referenced paragraph, list, run, and hyperlink formatting was decoded.</summary>
     public bool IsFormattingComplete { get; }
     /// <summary>Gets normalized plain text while preserving paragraph boundaries.</summary>
-    public string PlainText => string.Join("\n", Paragraphs.Select(paragraph => paragraph.Text));
+    public string PlainText => _plainText ??= string.Join("\n", Paragraphs.Select(paragraph => paragraph.Text));
 }
 
 /// <summary>Headers and footers associated with one Pages section in source order.</summary>

@@ -7,7 +7,8 @@ internal static partial class IWorkKeynoteReader {
         int position, bool skipped, IWorkProjectionBudget projectionBudget,
         ref int materializedCellCount,
         List<IWorkDiagnostic> diagnostics,
-        ref bool supportsEditableReconstruction, List<IWorkObjectIdentity> omittedUnits,
+        ref bool supportsEditableReconstruction, IWorkOmittedSourceUnits omittedUnits,
+        HashSet<ulong> incompleteTextStorages,
         IWorkSourceReferenceIssueCollector references) {
         IWorkWireMessage message;
         try {
@@ -159,14 +160,14 @@ internal static partial class IWorkKeynoteReader {
                     index.Message(storage);
                 } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                     references.Declarations.Record(storage, "$", null);
-                    MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
+                    MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction, incompleteTextStorages);
                     omittedUnits.Add(new IWorkObjectIdentity(storage));
                     continue;
                 }
                 text = IWorkTextReader.Read(index, storage, projectionBudget, references);
                 textCache.Add(storage.Identifier, text);
             }
-            if (!text.IsComplete) MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction, text);
+            if (!text.IsComplete) MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction, incompleteTextStorages, text);
             if (!text.IsTextComplete && text.Paragraphs.Count == 0)
                 omittedUnits.Add(new IWorkObjectIdentity(storage));
             IWorkWireMessage? drawableMessage = IWorkDrawingReader.DrawableMessage(index, drawable,
@@ -283,14 +284,14 @@ internal static partial class IWorkKeynoteReader {
                     index.Message(storage);
                 } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                     references.Declarations.Record(storage, "$", null);
-                    MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
+                    MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction, incompleteTextStorages);
                     storageMalformed = true;
                     omittedUnits.Add(new IWorkObjectIdentity(storage));
                 }
                 if (!storageMalformed) {
                     notes = IWorkTextReader.Read(index, storage, projectionBudget, references);
                     if (!notes.IsComplete) {
-                        MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction, notes);
+                        MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction, incompleteTextStorages, notes);
                     }
                 }
             } else {
