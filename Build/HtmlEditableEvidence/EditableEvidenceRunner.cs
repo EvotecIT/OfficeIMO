@@ -132,7 +132,7 @@ internal static class EditableEvidenceRunner {
                     visible.AppliedStylesheetCount, visible.OmittedElementCount, export.MarkdownTableRows,
                     export.MarkdownTableColumns, export.PictureCount, export.LinkedPictureCount,
                     timer.Elapsed.TotalMilliseconds, GC.GetTotalAllocatedBytes(precise: true) - allocationStart,
-                    diagnostics, null);
+                    diagnostics, null, export.NativeTables);
             } catch (Exception exception) {
                 evidence = new TargetEvidence(target, false, false, true, null, null, null, null,
                     null, null, null, null, null, null, null, null, timer.Elapsed.TotalMilliseconds,
@@ -204,4 +204,4 @@ internal sealed record TargetEvidence(
     int? EmbeddedResourceCount, long? EmbeddedResourceBytes, int? AppliedStylesheetCount,
     int? OmittedElementCount, int? MarkdownTableRows, int? MarkdownTableColumns,
     int? PictureCount, int? LinkedPictureCount, double ElapsedMs, long AllocatedBytes,
-    object? Diagnostics, string? Error);
+    object? Diagnostics, string? Error, IReadOnlyList<NativeTableEvidence>? NativeTables = null);

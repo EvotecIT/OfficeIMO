@@ -171,6 +171,10 @@ officeimo html render report.mhtml --profile print-paged --encoder svg --pages 2
 officeimo html convert saved-site.zip --entry-path articles/report.html --output report.pdf
 officeimo html render saved-site.zip --entry-path articles/report.html --encoder svg --output report-pages.zip
 
+# Choose print reflow, screen reflow, or fixed screen slices for PDF output
+officeimo html convert report.mhtml --profile screen-media-paged --output report-screen.pdf
+officeimo html convert report.mhtml --profile screen-snapshot-paged --viewport-width 816 --pages 2-4 --output report-slices.pdf
+
 # Inspect or assess provenance with versioned JSON output
 officeimo provenance inspect report.docx
 officeimo provenance assess page.html

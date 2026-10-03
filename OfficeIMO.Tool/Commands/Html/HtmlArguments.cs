@@ -62,6 +62,7 @@ internal sealed class HtmlArguments {
                 _ => throw new HtmlUsageException("Unknown command '" + args[0] + "'.")
             }
         };
+        if (parsed.Command == HtmlCommandKind.Convert) parsed.RenderProfile = HtmlRenderIntentProfile.PrintPaged;
 
         for (int index = 1; index < args.Length; index++) {
             string token = args[index];
@@ -186,6 +187,11 @@ internal sealed class HtmlArguments {
     private void Validate() {
         if (Command == HtmlCommandKind.Capabilities) {
             return;
+        }
+
+        if (Command == HtmlCommandKind.Convert
+            && !HtmlRenderProfileContracts.Get(RenderProfile).Encoders.Contains(HtmlRenderEncoder.Pdf)) {
+            throw new HtmlUsageException("The convert command requires a PDF-capable profile: print-paged, screen-media-paged or screen-snapshot-paged.");
         }
 
         if (string.IsNullOrWhiteSpace(InputPath)) throw new HtmlUsageException("The " + Command.ToString().ToLowerInvariant() + " command requires <input.html|input.mhtml|input.zip|->.");
@@ -323,8 +329,7 @@ internal sealed class HtmlArguments {
     private static bool IsHelp(string value) => value is "help" or "--help" or "-h";
 
     private static bool IsRenderOnlyOption(string value) => value is
-        "--profile" or "--encoder" or "--pages" or "--viewport-width" or "--viewport-height" or
-        "--scale" or "--max-archive-bytes" or "--max-manifest-bytes";
+        "--encoder" or "--max-archive-bytes" or "--max-manifest-bytes";
 }
 
 internal sealed class HtmlUsageException : Exception {

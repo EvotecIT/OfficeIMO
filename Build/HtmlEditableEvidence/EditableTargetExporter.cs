@@ -21,7 +21,8 @@ internal sealed record EditableExport(
     int? MarkdownTableRows = null,
     int? MarkdownTableColumns = null,
     int? PictureCount = null,
-    int? LinkedPictureCount = null);
+    int? LinkedPictureCount = null,
+    IReadOnlyList<NativeTableEvidence>? NativeTables = null);
 
 internal static class EditableTargetExporter {
     internal static EditableExport SaveAndReopen(HtmlConversionDocument source, string target, string output, string documentName) {
@@ -31,7 +32,8 @@ internal static class EditableTargetExporter {
                 string artifact = Path.Combine(output, documentName + ".docx");
                 using (WordDocument document = result.RequireValue()) document.Save(artifact);
                 using WordDocument loaded = WordDocument.Load(artifact);
-                return new EditableExport(result.Report, artifact, loaded.ToHtmlResult().RequireValue());
+                return new EditableExport(result.Report, artifact, loaded.ToHtmlResult().RequireValue(),
+                    NativeTables: EditableNativeTableEvidence.FromWord(loaded));
             }
             case "excel": {
                 HtmlToExcelResult result = source.ToExcelDocumentResult(new HtmlToExcelOptions {
@@ -41,7 +43,8 @@ internal static class EditableTargetExporter {
                 string artifact = Path.Combine(output, documentName + ".xlsx");
                 using (ExcelDocument workbook = result.RequireValue()) workbook.Save(artifact);
                 using ExcelDocument loaded = ExcelDocument.Load(artifact);
-                return new EditableExport(result.Report, artifact, loaded.ToHtml());
+                return new EditableExport(result.Report, artifact, loaded.ToHtml(),
+                    NativeTables: EditableNativeTableEvidence.FromExcel(loaded));
             }
             case "powerpoint": {
                 HtmlToPowerPointResult result = source.ToPowerPointPresentationResult(new HtmlToPowerPointOptions {
@@ -53,7 +56,8 @@ internal static class EditableTargetExporter {
                 using PowerPointPresentation loaded = PowerPointPresentation.Load(artifact);
                 return new EditableExport(result.Report, artifact, loaded.ToHtml(),
                     PictureCount: loaded.Slides.Sum(slide => slide.Pictures.Count()),
-                    LinkedPictureCount: loaded.Slides.Sum(slide => slide.Pictures.Count(picture => picture.Hyperlink != null)));
+                    LinkedPictureCount: loaded.Slides.Sum(slide => slide.Pictures.Count(picture => picture.Hyperlink != null)),
+                    NativeTables: EditableNativeTableEvidence.FromPowerPoint(loaded));
             }
             case "onenote": {
                 HtmlToOneNoteSectionResult result = source.ToOneNoteSectionResult();
@@ -79,7 +83,7 @@ internal static class EditableTargetExporter {
                         File.WriteAllBytes(Path.Combine(directory, fileName), bytes);
                         return "assets/" + fileName;
                     }
-                }));
+                }), NativeTables: EditableNativeTableEvidence.FromOneNote(loaded));
             }
             case "rtf": {
                 HtmlToRtfResult result = source.ToRtfDocumentResult();
@@ -89,7 +93,7 @@ internal static class EditableTargetExporter {
                 return new EditableExport(result.Report, artifact, loaded.ToHtml(new RtfToHtmlOptions {
                     EmbedImagesAsDataUri = true,
                     MaxEmbeddedImageBytes = 16 * 1024 * 1024
-                }));
+                }), NativeTables: EditableNativeTableEvidence.FromRtf(loaded));
             }
             case "markdown": {
                 HtmlToMarkdownResult result = source.ToMarkdownDocumentResult();
@@ -99,7 +103,8 @@ internal static class EditableTargetExporter {
                 TableBlock? table = loaded.Blocks.OfType<TableBlock>().FirstOrDefault();
                 return new EditableExport(result.Report, artifact, loaded.ToMarkdown(),
                     MarkdownTableRows: table?.Rows.Count,
-                    MarkdownTableColumns: table?.Headers.Count);
+                    MarkdownTableColumns: table?.Headers.Count,
+                    NativeTables: EditableNativeTableEvidence.FromMarkdown(loaded));
             }
             default:
                 throw new ArgumentOutOfRangeException(nameof(target), target, "The selected editable target is not supported.");

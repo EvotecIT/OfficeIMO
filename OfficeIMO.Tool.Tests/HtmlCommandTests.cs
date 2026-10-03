@@ -298,6 +298,7 @@ public sealed class HtmlCommandTests {
     [InlineData("capabilities", "--input-format", "html")]
     [InlineData("render", "input.html", "--pdf-ua-language", "en-US")]
     [InlineData("convert", "input.html", "--encoder", "svg")]
+    [InlineData("convert", "input.html", "--profile", "continuous-vector")]
     public async Task HtmlTool_RejectsOptionsOwnedByAnotherSubcommand(params string[] arguments) {
         await using var input = new MemoryStream();
         await using var output = new MemoryStream();

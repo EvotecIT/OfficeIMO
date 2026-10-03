@@ -20,6 +20,9 @@ Usage:
                          [--font-bold <file.ttf>] [--font-italic <file.ttf>]
                          [--font-bold-italic <file.ttf>]
                          [--max-input-bytes <bytes>] [--max-pages <count>]
+                         [--profile print-paged|screen-media-paged|screen-snapshot-paged]
+                         [--pages all|<page>|<first-last>|stitched]
+                         [--viewport-width <css-px>] [--viewport-height <css-px>] [--scale <factor>]
                          [--entry-path <archive-path>] [--max-bundle-entry-bytes <bytes>]
                          [--max-bundle-decoded-bytes <bytes>] [--max-bundle-entries <count>]
                          [--pdf-ua-language <tag>] [--force]
@@ -92,8 +95,11 @@ claim conformance without passing external validator evidence.
         byte[] input = await ReadInputAsync(arguments.InputPath!, standardInput, arguments.MaxInputBytes, cancellationToken).ConfigureAwait(false);
         var options = new HtmlToPdfOptions {
             MaxPageCount = arguments.MaxPages,
+            Scale = arguments.Scale,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         };
+        if (arguments.ViewportWidth.HasValue) options.ViewportWidth = arguments.ViewportWidth.Value;
+        if (arguments.ViewportHeight.HasValue) options.ViewportHeight = arguments.ViewportHeight.Value;
         if (arguments.BaseUri != null) options.BaseUri = new Uri(arguments.BaseUri, UriKind.Absolute);
         foreach (string stylesheetPath in arguments.StylesheetPaths) {
             byte[] stylesheet = await ReadFileBoundedAsync(stylesheetPath, HtmlArguments.MaxStylesheetBytes, cancellationToken).ConfigureAwait(false);
@@ -119,16 +125,18 @@ claim conformance without passing external validator evidence.
         }
 
         PdfDocumentConversionResult conversion;
+        HtmlRenderRequest request = HtmlRenderRequest.Create(arguments.RenderProfile, HtmlRenderEncoder.Pdf, options)
+            .WithPageSet(arguments.RenderPageSet);
         using var inputStream = new MemoryStream(input, writable: false);
         if (arguments.ResolveInputFormat() == HtmlInputFormat.SiteBundle) {
             HtmlSiteBundle bundle = await LoadBundleInputAsync(inputStream, arguments, cancellationToken).ConfigureAwait(false);
             options.BaseUri = bundle.BaseUri;
-            conversion = (await bundle.RenderToPdfResultAsync(HtmlRenderRequest.Create(
-                HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, options), cancellationToken)
+            request = request.WithOptions(options);
+            conversion = (await bundle.RenderToPdfResultAsync(request, cancellationToken)
                 .ConfigureAwait(false)).Output;
         } else if (arguments.ResolveInputFormat() == HtmlInputFormat.Mhtml) {
             MhtmlDocument document = await MhtmlDocument.LoadAsync(inputStream, cancellationToken: cancellationToken).ConfigureAwait(false);
-            conversion = await document.ToPdfDocumentResultAsync(options, cancellationToken).ConfigureAwait(false);
+            conversion = await document.RenderToPdfDocumentResultAsync(request, cancellationToken).ConfigureAwait(false);
         } else {
             var documentOptions = new HtmlConversionDocumentOptions {
                 BaseUri = options.BaseUri,
@@ -140,7 +148,7 @@ claim conformance without passing external validator evidence.
                 inputStream,
                 documentOptions,
                 cancellationToken: cancellationToken).ConfigureAwait(false);
-            conversion = await document.ToPdfDocumentResultAsync(options, cancellationToken).ConfigureAwait(false);
+            conversion = await document.RenderToPdfDocumentResultAsync(request, cancellationToken).ConfigureAwait(false);
         }
 
         PdfComplianceArtifact? complianceArtifact = complianceProfile.HasValue
