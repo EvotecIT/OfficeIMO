@@ -1,6 +1,35 @@
 namespace OfficeIMO.Invoicing.Tests;
 
 public class Fa3InvoiceWriterTests {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Oversized_contact_email_is_rejected_before_schema_pattern_matching(bool seller) {
+        Invoice invoice = Fa3InvoiceFixture.Create();
+        (seller ? invoice.Seller : invoice.Buyer).Contact = new InvoiceContact {
+            Email = new string('@', 8192) + "\n"
+        };
+        string location = (seller ? "Seller" : "Buyer") + ".Contact.Email";
+
+        IReadOnlyList<InvoiceDiagnostic> diagnostics = Fa3InvoiceWriter.Inspect(invoice, Fa3InvoiceFixture.Options());
+        InvoiceDiagnostic diagnostic = Assert.Single(diagnostics, item => item.Location == location);
+        Assert.Contains("255 characters", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Throws<InvalidDataException>(() => Fa3InvoiceWriter.Write(invoice, Fa3InvoiceFixture.Options()));
+    }
+
+    [Fact]
+    public void Contact_email_schema_pattern_still_checks_bounded_values() {
+        Invoice invoice = Fa3InvoiceFixture.Create();
+        invoice.Seller.Contact = new InvoiceContact { Email = "missing-at.example.test" };
+        Assert.Contains(Fa3InvoiceWriter.Inspect(invoice, Fa3InvoiceFixture.Options()), diagnostic =>
+            diagnostic.Location == "Seller.Contact.Email" &&
+            diagnostic.Message.Contains("schema pattern", StringComparison.Ordinal));
+
+        invoice.Seller.Contact.Email = "seller@example.test";
+        Assert.Empty(Fa3InvoiceWriter.Inspect(invoice, Fa3InvoiceFixture.Options()));
+        Assert.NotEmpty(Fa3InvoiceWriter.Write(invoice, Fa3InvoiceFixture.Options()));
+    }
+
     [Fact]
     public void AdvanceCorrectionOrderDoesNotInferSignedNationalVatFromEnRounding() {
         Invoice invoice = Fa3InvoiceFixture.Create(); invoice.TypeCode = "384";
