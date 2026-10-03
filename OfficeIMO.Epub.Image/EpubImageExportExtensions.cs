@@ -10,7 +10,10 @@ public static class EpubImageExportExtensions {
             "epub.archive.duplicate-path",
             "epub.archive.unsafe-path",
             "epub.chapter.encrypted",
+            "epub.chapter.count-limit",
+            "epub.chapter.invalid-encoding",
             "epub.chapter.invalid-xhtml",
+            "epub.chapter.text-total-limit",
             "epub.chapter.raw-html-total-limit",
             "epub.chapter.size-limit",
             "epub.encryption.resource-missing",
@@ -23,8 +26,11 @@ public static class EpubImageExportExtensions {
             "epub.resource.size-limit",
             "epub.resource.total-size-limit",
             "epub.spine.manifest-id-missing",
+            "epub.spine.fallback-missing",
+            "epub.spine.fallback-cycle",
             "epub.spine.remote-resource",
-            "epub.spine.resource-missing"
+            "epub.spine.resource-missing",
+            "epub.spine.unsupported-media-type"
         };
 
     /// <summary>Exports selected EPUB chapters through the shared image result contract.</summary>
@@ -54,6 +60,7 @@ public static class EpubImageExportExtensions {
         EpubImageExportOptions effective =
             options?.CloneEpub() ?? new EpubImageExportOptions();
         IReadOnlyList<EpubChapter> chapters = SelectChapters(source, effective);
+        IReadOnlyDictionary<string, EpubResource> resourcesByPath = BuildResourceIndex(source, cancellationToken);
         OfficeImageExportBatchProcessor.Run(
             effective,
             (accept, operationCancellationToken) => {
@@ -61,7 +68,7 @@ public static class EpubImageExportExtensions {
                     operationCancellationToken.ThrowIfCancellationRequested();
                     EpubChapter chapter = chapters[index];
                     EpubChapterRenderPreparation preparation =
-                        PrepareChapter(source, chapter, effective);
+                        PrepareChapter(chapter, effective, resourcesByPath);
                     preparation.Document.ExportImages(
                         format,
                         result => accept(CompleteResult(
@@ -109,13 +116,14 @@ public static class EpubImageExportExtensions {
         EpubImageExportOptions effective =
             options?.CloneEpub() ?? new EpubImageExportOptions();
         IReadOnlyList<EpubChapter> chapters = SelectChapters(source, effective);
+        IReadOnlyDictionary<string, EpubResource> resourcesByPath = BuildResourceIndex(source, cancellationToken);
         await OfficeImageExportBatchProcessor.RunAsync(
             effective,
             async (accept, operationCancellationToken) => {
                 foreach (EpubChapter chapter in chapters) {
                     operationCancellationToken.ThrowIfCancellationRequested();
                     EpubChapterRenderPreparation preparation =
-                        PrepareChapter(source, chapter, effective);
+                        PrepareChapter(chapter, effective, resourcesByPath);
                     await preparation.Document.ExportImagesAsync(
                         format,
                         async (result, token) => await accept(
@@ -172,14 +180,14 @@ public static class EpubImageExportExtensions {
     }
 
     private static EpubChapterRenderPreparation PrepareChapter(
-        EpubDocument source,
         EpubChapter chapter,
-        EpubImageExportOptions options) {
+        EpubImageExportOptions options,
+        IReadOnlyDictionary<string, EpubResource> resourcesByPath) {
         EpubImageExportOptions effective = options.CloneEpub();
         effective.Policy = new OfficeImageExportPolicy();
         Uri baseUri = CreateChapterUri(chapter);
         effective.BaseUri = baseUri;
-        ConfigureResources(source, effective, baseUri);
+        ConfigureResources(resourcesByPath, effective);
         var diagnostics = new List<OfficeImageExportDiagnostic>();
         string html;
         if (!string.IsNullOrWhiteSpace(chapter.Html)) {
@@ -215,10 +223,23 @@ public static class EpubImageExportExtensions {
             diagnostics.AsReadOnly());
     }
 
-    private static void ConfigureResources(
+    private static IReadOnlyDictionary<string, EpubResource> BuildResourceIndex(
         EpubDocument source,
-        EpubImageExportOptions options,
-        Uri baseUri) {
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var resourcesByPath = new Dictionary<string, EpubResource>(StringComparer.Ordinal);
+        foreach (EpubResource resource in source.Resources) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!resource.IsRemote && !resourcesByPath.ContainsKey(resource.Path)) {
+                resourcesByPath.Add(resource.Path, resource);
+            }
+        }
+        return resourcesByPath;
+    }
+
+    private static void ConfigureResources(
+        IReadOnlyDictionary<string, EpubResource> resourcesByPath,
+        EpubImageExportOptions options) {
         HtmlUrlPolicy fallbackResourceUrlPolicy =
             (options.ResourceUrlPolicy ??
              options.UrlPolicy ??
@@ -236,9 +257,8 @@ public static class EpubImageExportExtensions {
             out HtmlResolvedResource? resolved) => {
             cancellationToken.ThrowIfCancellationRequested();
             EpubResource? resource = FindResource(
-                source,
-                request,
-                baseUri);
+                resourcesByPath,
+                request);
             byte[]? data = resource?.Data;
             if (data is { Length: > 0 }) {
                 if (data.LongLength > options.MaxResourceBytes) {
@@ -273,9 +293,8 @@ public static class EpubImageExportExtensions {
         options.ResourceResolver = async (request, cancellationToken) => {
             cancellationToken.ThrowIfCancellationRequested();
             EpubResource? resource = FindResource(
-                source,
-                request,
-                baseUri);
+                resourcesByPath,
+                request);
             byte[]? data = resource?.Data;
             if (data is { Length: > 0 }) {
                 if (data.LongLength > options.MaxResourceBytes) {
@@ -302,29 +321,16 @@ public static class EpubImageExportExtensions {
     }
 
     private static EpubResource? FindResource(
-        EpubDocument source,
-        HtmlRenderResourceRequest request,
-        Uri baseUri) {
-        string requestPath = NormalizePath(
-            Uri.UnescapeDataString(request.Uri.AbsolutePath));
-        foreach (EpubResource resource in source.Resources) {
-            if (resource.IsRemote) continue;
-            if (string.Equals(
-                NormalizePath(resource.Path),
-                requestPath,
-                StringComparison.OrdinalIgnoreCase)) {
-                return resource;
-            }
-            if (!string.IsNullOrWhiteSpace(resource.Href) &&
-                Uri.TryCreate(baseUri, resource.Href, out Uri? resolved) &&
-                string.Equals(
-                    resolved.AbsoluteUri,
-                    request.Uri.AbsoluteUri,
-                    StringComparison.OrdinalIgnoreCase)) {
-                return resource;
-            }
-        }
-        return null;
+        IReadOnlyDictionary<string, EpubResource> resourcesByPath,
+        HtmlRenderResourceRequest request) {
+        // Only the package's virtual origin may select retained bytes. An HTML base
+        // can change the request origin, but cannot change the package identity.
+        if (!request.Uri.Scheme.Equals("epub", StringComparison.OrdinalIgnoreCase) ||
+            !request.Uri.Host.Equals("document", StringComparison.OrdinalIgnoreCase) ||
+            request.Uri.Port != -1 || request.Uri.UserInfo.Length != 0) return null;
+        EpubReference reference = EpubReference.Resolve("package.opf", request.Uri.AbsolutePath);
+        return reference.Kind == EpubReferenceKind.Container && reference.ContainerPath != null &&
+            resourcesByPath.TryGetValue(reference.ContainerPath, out EpubResource? resource) ? resource : null;
     }
 
     private static OfficeImageExportResult CompleteResult(
@@ -398,13 +404,8 @@ public static class EpubImageExportExtensions {
 
     private static Uri CreateChapterUri(EpubChapter chapter) {
         string path = NormalizePath(chapter.Path);
-        Uri chapterUri = new Uri(
-            "epub://document/" + EscapePath(path));
-        if (!string.IsNullOrWhiteSpace(chapter.BaseHref) &&
-            Uri.TryCreate(chapterUri, chapter.BaseHref, out Uri? resolved)) {
-            return resolved;
-        }
-        return chapterUri;
+        // The HTML parser applies the retained markup's base element once.
+        return new Uri("epub://document/" + EscapePath(path));
     }
 
     private static string EscapePath(string path) =>

@@ -263,9 +263,13 @@ public sealed class EpubReference {
 
         string effectiveBase = resolvedBase.ContainerPath ?? documentPath;
         SplitReference(baseHref!.Trim(), out string basePathPart, out _, out _);
+        string normalizedBasePathPart = basePathPart.Replace('\\', '/');
+        string lastBaseSegment = normalizedBasePathPart.Substring(normalizedBasePathPart.LastIndexOf('/') + 1);
+        bool directoryBase = normalizedBasePathPart.EndsWith("/", StringComparison.Ordinal) ||
+            IsSingleDotSegment(lastBaseSegment) || IsDoubleDotSegment(lastBaseSegment);
         SplitReference(original, out string referencePathPart, out string? query, out string? encodedFragment);
         if (referencePathPart.Length == 0) {
-            string containerPath = basePathPart.EndsWith("/", StringComparison.Ordinal)
+            string containerPath = directoryBase
                 ? effectiveBase.TrimEnd('/') + "/"
                 : effectiveBase;
             return Valid(
@@ -279,7 +283,7 @@ public sealed class EpubReference {
                 false,
                 resolvedBase.IsConforming);
         }
-        if (basePathPart.EndsWith("/", StringComparison.Ordinal)) {
+        if (directoryBase) {
             effectiveBase = effectiveBase.Length == 0
                 ? "__officeimo_epub_base__"
                 : effectiveBase.TrimEnd('/') + "/__officeimo_epub_base__";

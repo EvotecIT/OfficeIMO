@@ -11,6 +11,9 @@ internal static partial class EpubReader {
         public string? Language { get; set; }
         public string? Creator { get; set; }
         public EpubRenditionLayout? RenditionLayout { get; set; }
+        public Dictionary<string, string> VocabularyPrefixes { get; } = new Dictionary<string, string>(StringComparer.Ordinal) {
+            ["rendition"] = "http://www.idpf.org/vocab/rendition/#"
+        };
         public List<EpubMetadataEntry> Metadata { get; } = new List<EpubMetadataEntry>();
         public Dictionary<string, ManifestItem> Manifest { get; } = new Dictionary<string, ManifestItem>(StringComparer.Ordinal);
         public List<SpineItem> Spine { get; } = new List<SpineItem>();
@@ -25,6 +28,7 @@ internal static partial class EpubReader {
         public string FullPath { get; set; } = string.Empty;
         public string MediaType { get; set; } = string.Empty;
         public string Properties { get; set; } = string.Empty;
+        public string? FallbackId { get; set; }
         public bool IsRemote { get; set; }
         public string? RemoteUri { get; set; }
     }
@@ -40,6 +44,7 @@ internal static partial class EpubReader {
     private sealed class ChapterCandidate {
         public ZipArchiveEntry Entry { get; set; } = null!;
         public string Path { get; set; } = string.Empty;
+        public string? PrimaryResourcePath { get; set; }
         public string? ManifestId { get; set; }
         public string? MediaType { get; set; }
         public int? SpineIndex { get; set; }
