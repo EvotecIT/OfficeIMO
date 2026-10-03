@@ -131,7 +131,7 @@ internal static partial class TextContentParser {
         }
     }
 
-    internal sealed class MarkedContentState {
+    internal sealed partial class MarkedContentState {
         private readonly ActualTextValue? _actualText;
         public bool HasActualText { get; }
         public bool IsArtifact { get; }
@@ -1036,6 +1036,7 @@ internal static partial class TextContentParser {
                 usedWholeDecodedText = true;
             }
             var actualTextState = useLogicalTextFilters ? GetActiveActualTextState() : null;
+            bool replaceInvisibleAnchor = false;
             bool hasActiveArtifact = initialArtifactContent || HasActiveArtifact();
             bool isArtifact = useLogicalTextFilters && !includeArtifactText && hasActiveArtifact;
             bool isHidden = HasActiveHiddenContent();
@@ -1101,6 +1102,12 @@ internal static partial class TextContentParser {
                 if (textOut.Length > 0) {
                     AddTextSpan(textOut);
                 }
+            } else if (actualTextState is not null && isVisibleText && sbOut.Length > 0 &&
+                actualTextState.TryGetInvisibleAnchorText(spans, out string? anchorText)) {
+                // A semantic carrier may precede paint. Retain its replacement once,
+                // but use the real glyph's visibility and bounds for interaction/OCR.
+                replaceInvisibleAnchor = true;
+                AddTextSpan(anchorText!);
             } else if (actualTextState is null && textOut.Length > 0) {
                 AddTextSpan(textOut);
             }
@@ -1118,7 +1125,7 @@ internal static partial class TextContentParser {
                 if (normalizedText.Length == 0) {
                     return;
                 }
-                onTextSpan?.Invoke(normalizedText.Length);
+                if (!replaceInvisibleAnchor) onTextSpan?.Invoke(normalizedText.Length);
                 string paintedText = sbOut.ToString();
                 bool visibleGlyphsMatchLogicalText = string.Equals(
                     NormalizeShatteredSpan(paintedText),
@@ -1268,8 +1275,14 @@ internal static partial class TextContentParser {
                             span.SetLogicalGlyphTexts(spanLogicalGlyphTexts);
                     }
                 }
-                spans.Add(span);
-                sbOutGlobal.Append(normalizedText);
+                if (replaceInvisibleAnchor) {
+                    actualTextState!.ReplaceInvisibleAnchor(spans, span);
+                } else {
+                    spans.Add(span);
+                    sbOutGlobal.Append(normalizedText);
+                    if (actualTextState is not null && textRenderingMode == 3 && string.IsNullOrWhiteSpace(paintedText))
+                        actualTextState.RememberInvisibleAnchor(spans, spans.Count - 1);
+                }
                 emittedTextInTextObject = true;
                 pendingLineBreaks = 0;
             }
