@@ -73,6 +73,7 @@ internal static class LatexProfileSyntaxCatalog {
             ["footnote"] = OptionalRequired,
             ["url"] = OneRequired,
             ["href"] = new LatexCommandSyntaxSignature(false, LatexArgumentGroupKind.Required, LatexArgumentGroupKind.Required),
+            ["hyperref"] = OptionalRequired,
             ["begin"] = Begin,
             ["end"] = End,
             ["newcommand"] = new LatexCommandSyntaxSignature(true,

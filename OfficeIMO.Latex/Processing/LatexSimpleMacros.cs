@@ -258,8 +258,14 @@ public static class LatexSimpleMacroExpander {
         int start = tokens[cursor].EndOffset;
         cursor++;
         int depth = 1;
+        int braceDepth = 0;
         while (cursor < tokens.Count) {
             LatexToken token = tokens[cursor];
+            if (open == LatexTokenKind.OpenBracket) {
+                if (token.Kind == LatexTokenKind.OpenBrace) braceDepth++;
+                else if (token.Kind == LatexTokenKind.CloseBrace && braceDepth > 0) braceDepth--;
+                if (braceDepth > 0 || token.Kind == LatexTokenKind.CloseBrace) { cursor++; continue; }
+            }
             if (token.Kind == open) depth++;
             else if (token.Kind == close && --depth == 0) {
                 content = value.Substring(start, token.StartOffset - start);

@@ -19,6 +19,8 @@ LaTeX conversion projects the current edited source. Reader locations and conver
 
 Parse options, including opaque environment names and macro budgets, are snapshotted. Reparse with new options to change an existing document's interpretation or expansion limits.
 
+Document-level macro expansion honors edited definitions and defaults. Reverse fragment links now use explicit `\hyperref[label]{visible text}` navigation links instead of replacing their text with `\ref{label}`. Custom list numbering, task markers, callout layout and omitted image metadata produce conversion diagnostics. Missing PDF reference targets retain visible text with an `UnresolvedInternalLink` warning instead of failing the entire export.
+
 Generated TeX labels reserve `_XXXX_` escape sequences and encode every literal underscore as `_005F_`, preventing collisions between literal text and encoded Unicode identifiers. Existing generated labels containing underscores therefore change. Regenerate declarations and references together when persisting generated label names outside the document.
 
 Missing or unbraced required arguments, graphics options, counter-based references, custom list markers, nested formatting flattened into scalar code or underline nodes, unsupported containers, and source-only conversion produce fidelity diagnostics. Strict conversion callers must inspect these reports and accept the relevant approximations explicitly. Use braced arguments for supported commands.

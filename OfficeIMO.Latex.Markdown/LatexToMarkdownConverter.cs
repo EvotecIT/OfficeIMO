@@ -66,7 +66,10 @@ internal static class LatexToMarkdownConverter {
             context.CheckCancellation();
             yield return new BlockCandidate(heading.Command.Syntax.Span, heading);
         }
-        foreach (LatexParagraph paragraph in context.Document.Paragraphs) { context.CheckCancellation(); yield return new BlockCandidate(paragraph.Span, paragraph); }
+        foreach (LatexParagraph paragraph in context.Document.Paragraphs.Where(paragraph => IsInside(paragraph.Span, start, end))) {
+            context.CheckCancellation();
+            yield return new BlockCandidate(paragraph.Span, paragraph);
+        }
         foreach (LatexList list in context.Document.Lists.Where(list => IsInside(list.Environment.Syntax.Span, start, end))) {
             context.CheckCancellation();
             yield return new BlockCandidate(list.Environment.Syntax.Span, list);

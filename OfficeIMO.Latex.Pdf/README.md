@@ -20,6 +20,8 @@ The zero-options resource policy is inherited from `MarkdownToPdfOptions`: syste
 
 Display metadata, figure and table captions, and theorem titles retain their decoded visible text. Table captions remain visible even when the table has no cell content. TeX numbering, placement, and nested formatting that a scalar caption cannot express remain diagnosed projection limits.
 
+References to heading, theorem, table, figure and paragraph labels use PDF destinations registered by the shared Markdown renderer. A missing destination retains the visible reference text and produces an `UnresolvedInternalLink` warning.
+
 ## Dependency footprint
 
 - **External:** None.

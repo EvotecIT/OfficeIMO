@@ -8,8 +8,8 @@ namespace OfficeIMO.Markdown.Pdf;
 /// First-party Markdown to PDF conversion helpers.
 /// </summary>
 public static partial class MarkdownPdfConverterExtensions {
-    private static InlineStyle CreateInlineStyle(MarkdownPdfStyle visualTheme) =>
-        InlineStyle.Default.With(linkColor: visualTheme.LinkColorSnapshot, underlineLinks: visualTheme.UnderlineLinksSnapshot);
+    private static InlineStyle CreateInlineStyle(MarkdownPdfStyle visualTheme, AnchorContext? anchors = null) =>
+        InlineStyle.Default.With(linkColor: visualTheme.LinkColorSnapshot, underlineLinks: visualTheme.UnderlineLinksSnapshot, anchors: anchors);
 
     private static void AppendInlines(PdfCore.PdfParagraphBuilder builder, InlineSequence sequence, InlineStyle style) {
         foreach (IMarkdownInline inline in sequence.Nodes) {
@@ -110,6 +110,7 @@ public static partial class MarkdownPdfConverterExtensions {
         bool underline = style.UnderlineLinks ?? true;
         InlineStyle linkStyle = style.With(underline: underline, color: style.LinkColor ?? PdfCore.PdfColor.FromRgb(37, 99, 235));
         if (TryGetBookmarkTarget(link.Url, out string? bookmark)) {
+            if (style.Anchors != null && !style.Anchors.CanLink(bookmark!)) { ApplyStyle(builder, style).Text(label); return; }
             ApplyStyle(builder, linkStyle).LinkToBookmark(label, bookmark!, color: linkStyle.Color, underline: underline, contents: link.Title ?? label);
             return;
         }
@@ -263,6 +264,7 @@ public static partial class MarkdownPdfConverterExtensions {
         PdfCore.PdfColor linkColor = style.LinkColor ?? PdfCore.PdfColor.FromRgb(37, 99, 235);
         bool underline = style.UnderlineLinks ?? true;
         if (TryGetBookmarkTarget(link.Url, out string? bookmark)) {
+            if (style.Anchors != null && !style.Anchors.CanLink(bookmark!)) { runs.Add(CreateRun(label, style)); return; }
             runs.Add(CreateLinkRun(label, style, linkColor, underline, link.Title ?? label, uri: null, bookmark: bookmark));
             return;
         }
@@ -379,7 +381,7 @@ public static partial class MarkdownPdfConverterExtensions {
             double? fontSize,
             PdfCore.PdfStandardFont? font,
             PdfCore.PdfColor? linkColor,
-            bool? underlineLinks) {
+            bool? underlineLinks, AnchorContext? anchors = null) {
             Bold = bold;
             Italic = italic;
             Underline = underline;
@@ -391,6 +393,7 @@ public static partial class MarkdownPdfConverterExtensions {
             Font = font;
             LinkColor = linkColor;
             UnderlineLinks = underlineLinks;
+            Anchors = anchors;
         }
 
         public static InlineStyle Default { get; } = new InlineStyle(false, false, false, false, PdfCore.PdfTextBaseline.Normal, null, null, null, null, null, null);
@@ -417,6 +420,8 @@ public static partial class MarkdownPdfConverterExtensions {
 
         public bool? UnderlineLinks { get; }
 
+        public AnchorContext? Anchors { get; }
+
         public InlineStyle With(
             bool? bold = null,
             bool? italic = null,
@@ -428,7 +433,7 @@ public static partial class MarkdownPdfConverterExtensions {
             double? fontSize = null,
             PdfCore.PdfStandardFont? font = null,
             PdfCore.PdfColor? linkColor = null,
-            bool? underlineLinks = null) =>
+            bool? underlineLinks = null, AnchorContext? anchors = null) =>
             new InlineStyle(
                 bold ?? Bold,
                 italic ?? Italic,
@@ -440,6 +445,6 @@ public static partial class MarkdownPdfConverterExtensions {
                 fontSize ?? FontSize,
                 font ?? Font,
                 linkColor ?? LinkColor,
-                underlineLinks ?? UnderlineLinks);
+                underlineLinks ?? UnderlineLinks, anchors ?? Anchors);
     }
 }

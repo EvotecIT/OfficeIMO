@@ -52,6 +52,8 @@ This is deliberately not general TeX expansion. Replacement control words must b
 
 Macro expansion has independent input and output budgets. Configure `MaximumExpansionInputLength` for the invocation source and `MaximumExpansionLength` for the produced text; a long invocation that contracts to a short value is not rejected merely because the output limit is small.
 
+Document-level expansion uses the current edited definitions, including optional defaults and transitive safety checks. Brace-protected brackets remain inside optional invocation arguments. Native parsing classifies local macro dependencies once and propagates unsafe definitions without repeated document rescans; semantic binding cooperates with cancellation.
+
 See the [LaTeX support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.latex-support-matrix.md) for the exact boundary.
 
 Targets: `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows.

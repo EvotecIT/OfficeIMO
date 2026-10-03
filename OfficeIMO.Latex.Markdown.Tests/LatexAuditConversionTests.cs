@@ -125,7 +125,7 @@ public sealed class LatexAuditConversionTests {
         string[] names = result.Value.Labels.Select(static label => label.Name).ToArray();
         Assert.Equal(2, names.Length);
         Assert.NotEqual(names[0], names[1]);
-        Assert.Equal(names, result.Value.References.Select(static reference => reference.Target));
+        Assert.Equal(names.Select(static name => "#" + name), result.Value.ToMarkdownDocument().Descendants().OfType<LinkInline>().Select(static link => link.Url));
     }
 
     [Theory]

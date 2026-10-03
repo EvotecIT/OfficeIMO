@@ -27,7 +27,11 @@ internal static class MarkdownInlineToLatexConverter {
                     state.Packages.Add("ulem");
                     output.Append("\\sout{").Append(Convert(strike.Inlines, state, diagnostics, owner)).Append('}');
                     break;
-                case HighlightInline highlight: output.Append("\\textbf{").Append(EscapeText(highlight.Text)).Append('}'); break;
+                case HighlightInline highlight:
+                    output.Append("\\textbf{").Append(EscapeText(highlight.Text)).Append('}');
+                    diagnostics.Add(new LatexMarkdownConversionDiagnostic("MDLATEX028", LatexMarkdownConversionOutcome.Simplified,
+                        "highlight", "Highlighted text was retained with bold emphasis.", null, owner.SourceSpan));
+                    break;
                 case SuperscriptInline superscript: output.Append("\\textsuperscript{").Append(EscapeText(superscript.Text)).Append('}'); break;
                 case SuperscriptSequenceInline superscript:
                     output.Append("\\textsuperscript{").Append(Convert(superscript.Inlines, state, diagnostics, owner)).Append('}');
@@ -38,8 +42,12 @@ internal static class MarkdownInlineToLatexConverter {
                     break;
                 case LinkInline link:
                     state.Packages.Add("hyperref");
+                    if (!string.IsNullOrEmpty(link.Title) || !string.IsNullOrEmpty(link.LinkTarget) || !string.IsNullOrEmpty(link.LinkRel))
+                        diagnostics.Add(new LatexMarkdownConversionDiagnostic("MDLATEX027", LatexMarkdownConversionOutcome.Omitted,
+                            "link-metadata", "The link title, HTML target and relationship metadata have no bounded LaTeX representation and were omitted.", null, owner.SourceSpan));
                     if (link.Url.StartsWith("#", StringComparison.Ordinal)) {
-                        output.Append("\\ref{").Append(NormalizeLabel(link.Url.Substring(1), diagnostics, owner)).Append('}');
+                        output.Append("\\hyperref[").Append(NormalizeLabel(link.Url.Substring(1), diagnostics, owner)).Append("]{")
+                            .Append(link.LabelInlines == null ? EscapeText(link.Text) : Convert(link.LabelInlines, state, diagnostics, owner)).Append('}');
                     } else {
                         output.Append("\\href{").Append(EscapeArgument(link.Url)).Append("}{")
                             .Append(link.LabelInlines == null ? EscapeText(link.Text) : Convert(link.LabelInlines, state, diagnostics, owner)).Append('}');
@@ -48,6 +56,9 @@ internal static class MarkdownInlineToLatexConverter {
                 case ImageInline image:
                     state.Packages.Add("graphicx");
                     output.Append("\\includegraphics{").Append(EscapeArgument(image.Src)).Append('}');
+                    if (!string.IsNullOrEmpty(image.PlainAlt) || !string.IsNullOrEmpty(image.Title)) diagnostics.Add(new LatexMarkdownConversionDiagnostic(
+                        "MDLATEX025", LatexMarkdownConversionOutcome.Omitted, "image-metadata",
+                        "Inline image alternate text and title have no bounded LaTeX representation and were omitted.", null, owner.SourceSpan));
                     break;
                 case FootnoteRefInline footnote:
                     output.Append("\\footnote{")

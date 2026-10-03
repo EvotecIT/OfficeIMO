@@ -39,7 +39,7 @@
 | Package declarations | Source-backed commands | Preserved/diagnosed | A declaration never loads or activates package code. |
 | Title, author, and date | Semantic | Converted | Common front-matter commands are typed. `\maketitle` is structural and not emitted as visible paragraph text. |
 | Parts, chapters, sections, and subsections | Semantic | Converted | Common starred/unstarred headings map to the closest target level. |
-| Paragraphs | Semantic | Converted | Source-backed paragraph spans outside structural environments. |
+| Paragraphs | Semantic | Converted | Source-backed paragraph spans within the active document body and outside structural environments; inert source after `\end{document}` remains native source. |
 | Common inline formatting | Semantic command binding | Converted | Common bold, emphasis, monospace, underline, URL/link, and line-break commands map through the inline adapter. Unknown commands remain visible or diagnosed. |
 | `itemize`, `enumerate`, `description` | Semantic | Converted | Items and optional labels are typed and editable. Custom unordered or ordered labels remain visible in item text and report the target marker simplification; description labels become definition terms. |
 | Figures and `includegraphics` | Semantic | Converted | Native target, option text, caption, and label are retained. Conversion decodes literal paths and reports unevaluated graphics options. No resource is loaded by the native engine. |
@@ -68,7 +68,7 @@ Macro expansion is opt-in through `LatexMacroExpansion.SafeSimpleDefinitions`. T
 | Feature | Status | Current contract |
 |---|---|---|
 | `newcommand`, `renewcommand`, `providecommand` metadata | Semantic | Simple command name, parameter count, and replacement body are retained. Commands and environments inside definition bodies do not contribute active document semantics. |
-| Argument-only expansion | Semantic, opt-in | A deliberately small subset substitutes `#1`-`#9` with depth, cycle, and output limits. |
+| Argument-only expansion | Semantic, opt-in | A deliberately small subset substitutes `#1`-`#9` with depth, cycle, and output limits. Current edits and optional defaults are rebound before document expansion; braces shield brackets inside optional arguments. |
 | Replacement commands | Allow-listed | A replacement may contain parameters, plain source, another transitively safe document-local simple macro, or an explicitly allowed formatting/reference command. Every other control word—including definition, package, file, graphics, dynamic-control-sequence, and category-code primitives—is rejected for expansion. |
 | `def`, `edef`, package macros, conditionals, counters | Source-preserved | No general TeX expansion or execution. |
 | Document-controlled code/process execution | Unsupported | There is no shell escape, process invocation, package download, or assembly loading. |
@@ -85,6 +85,8 @@ The expander only performs bounded string substitution. Its allow-list does not 
 | Word, HTML, and PDF | Available through Markdown | Semantic OfficeIMO output, not TeX or package-renderer parity. |
 
 Conversion uses the current edited document source. Native source spans retain the original parse offsets; conversion and Reader spans refer to the rebound source after edits. The `PreserveOnly` profile produces a diagnosed source fallback during conversion.
+
+Reverse conversion preserves rich title content and labels, visible fragment-link text through `\hyperref[label]{text}`, and ordered loose-list child content. Custom numbering, task markers and ordinary callout layout report simplifications. Unrepresented image metadata reports omissions. Code closing-delimiter variants are escaped with a diagnostic. PDF destinations cover heading, theorem, table, figure and paragraph labels; unresolved links retain visible text and produce a warning.
 
 ## Deliberate limits
 

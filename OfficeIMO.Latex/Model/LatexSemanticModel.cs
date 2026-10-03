@@ -287,7 +287,7 @@ internal static class LatexProfileCatalog {
         "documentclass", "usepackage", "title", "author", "date", "maketitle",
         "part", "chapter", "section", "subsection", "subsubsection", "paragraph", "subparagraph",
         "textbf", "textit", "emph", "texttt", "underline", "textsuperscript", "textsubscript", "newline", "linebreak", "textbackslash", "textasciitilde", "textasciicircum", "sout", "label", "ref", "pageref", "cite", "citep", "citet",
-        "includegraphics", "caption", "item", "footnote", "url", "href", "begin", "end",
+        "includegraphics", "caption", "item", "footnote", "url", "href", "hyperref", "begin", "end",
         "newcommand", "renewcommand", "providecommand", "newtheorem", "autoref", "eqref", "nocite",
         "bibliography", "bibliographystyle", "multicolumn", "multirow", "hline", "toprule", "midrule", "bottomrule"
     };

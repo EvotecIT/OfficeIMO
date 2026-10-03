@@ -80,6 +80,17 @@ internal static class LatexInlineToMarkdownConverter {
                 target.AddRaw(new LinkInline(ConvertArgument(context, label ?? first, diagnostics), LatexLiteralText.Decode(ReadArgumentSource(context, first, diagnostics), context.CancellationToken), null));
                 break;
             }
+            case "hyperref": {
+                LatexArgument? destination = command.Arguments.FirstOrDefault(static argument => argument.IsOptional);
+                if (destination == null) {
+                    target.AddRaw(new CodeSpanInline(LatexToMarkdownConverter.ExtractVisibleSource(context, command.Syntax.Span, diagnostics)));
+                    Report(diagnostics, "LATEXMD112", LatexMarkdownConversionOutcome.SourceFallback, "command-arguments:hyperref",
+                        "The bounded hyperlink form requires an optional label and a braced visible label.", command.Syntax.Span);
+                } else {
+                    target.AddRaw(new LinkInline(ConvertArgument(context, first, diagnostics), "#" + ReadArgumentSource(context, destination, diagnostics), null));
+                }
+                break;
+            }
             case "url":
                 string url = LatexLiteralText.Decode(ReadArgumentSource(context, first, diagnostics), context.CancellationToken);
                 target.AddRaw(new LinkInline(url, url, null));

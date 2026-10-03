@@ -147,7 +147,7 @@ public sealed partial class LatexDocument {
         if (_options.MacroExpansion != LatexMacroExpansion.SafeSimpleDefinitions) {
             throw new InvalidOperationException("Safe simple macro expansion was not enabled in LatexParseOptions.");
         }
-        return LatexSimpleMacroExpander.Expand(value, MacroDefinitions, _options.MaximumExpansionDepth,
+        return LatexSimpleMacroExpander.Expand(value, GetCurrentView().MacroDefinitions, _options.MaximumExpansionDepth,
             _options.MaximumExpansionLength, _options.MaximumExpansionInputLength,
             _options.MaximumExpansionTokenCount, _options.VerbatimEnvironmentNames);
     }

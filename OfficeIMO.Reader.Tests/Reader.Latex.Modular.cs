@@ -12,6 +12,17 @@ public sealed class ReaderLatexModularTests {
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    public void SourceAfterDocumentEndDoesNotLeakIntoReaderChunks(bool blocks) {
+        const string source = @"\documentclass{article}\begin{document}Public\end{document}TRAILING\section{Inactive}";
+        var chunks = LatexReaderAdapter.Read(LatexDocument.Parse(source), readerOptions: new ReaderOptions { MaxChars = 4 },
+            latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks, IncludeDiagnostics = false }).ToArray();
+        Assert.Equal("Public", string.Concat(chunks.Select(chunk => chunk.Text)));
+        Assert.DoesNotContain(chunks, chunk => chunk.Markdown!.Contains("TRAILING"));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void SplitOpaqueContentRetainsItsCodeCarrierAndExactPayload(bool blocks) {
         const string payload = "  # Heading\n*value* [link](url) <a id=\"fake\"></a>\n```\n";
         string content = string.Concat(Enumerable.Repeat(payload, 6));

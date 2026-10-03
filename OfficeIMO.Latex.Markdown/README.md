@@ -29,6 +29,8 @@ The bridge maps front matter, headings, inline formatting and links, lists and d
 
 Display metadata, figure and table captions, and optional theorem titles decode escaped characters and retain visible text. Nested formatting that a scalar target cannot represent produces a simplification diagnostic. Moving a theorem label onto its callout preserves enclosing inline formatting and math source.
 
+Reverse conversion retains formatting and identifiers when promoting a heading to the title, preserves loose-list paragraphs, and writes fragment links as explicit `\hyperref[label]{visible text}` navigation links. Strikethrough uses `ulem` with `normalem` so ordinary emphasis remains italic. Custom list numbering, task markers and highlighted text report their simplifications. Ordinary callouts retain their kind, title and body in a quote. Image alternate text, titles, links and layout hints, and link tooltip/HTML metadata that the bounded target cannot represent report omissions. Recognized verbatim closing-delimiter variants inside code are escaped and diagnosed so literal code remains opaque.
+
 ## Dependency footprint
 
 - **External:** None.
