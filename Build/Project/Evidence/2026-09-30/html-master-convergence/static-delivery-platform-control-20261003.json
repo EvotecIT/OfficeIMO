@@ -1,6 +1,6 @@
 {
   "$schema": "officeimo.html.static-delivery-qualification",
-  "recordedAtUtc": "2026-10-03T17:38:04.872208+00:00",
+  "recordedAtUtc": "2026-10-03T18:25:35.862035+00:00",
   "control": {
     "sourceCommit": "0aea7880f94a317c12d1367485d0617af1647f91",
     "workflowCommit": "7c1226b65ff39ccf517ef6eab39f63b9d869e3ac",
@@ -1238,5 +1238,98 @@
     },
     "reference": "PeachPDF 0.9.20 now completes 14 pages. The retained master baseline also completed; the earlier bookmark failure is not current. Text/image differences between engines and named browser/fidelity gaps remain unqualified.",
     "comparisonSha256": "cd7474fa7b1dec12c145eeb94a932acef0df86ef50c17e944bd757595608b87b"
+  },
+  "fontCollectionAllocationFix": {
+    "sourceCommit": "e240206d0871f101f32b04233b5735023e987070",
+    "contract": "Installed TrueType family resolution validates but does not copy unsupported CFF faces. Mixed collection TrueType selection and the separate format-neutral single-face extractor remain available.",
+    "independentFixture": {
+      "source": {
+        "download_url": "https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTC/NotoSansCJK-Regular.ttc",
+        "html_url": "https://github.com/notofonts/noto-cjk/blob/main/Sans/OTC/NotoSansCJK-Regular.ttc",
+        "name": "NotoSansCJK-Regular.ttc",
+        "sha": "a2033d0e4e53f568c3f418a7d5d8c951af3f76c1",
+        "size": 19484784
+      },
+      "sha256": "b76b0433203017ca80401b2ee0dd69350349871c4b19d504c34dbdd80541690a",
+      "encodedBytes": 19484784,
+      "faces": 10,
+      "scaler": "OTTO",
+      "outlineTable": "CFF ",
+      "license": "SIL Open Font License; validation-only input, not shipped"
+    },
+    "singleCallAllocation": {
+      "baseline": {
+        "operation": "Installed TrueType family candidate resolution with independent CFF collection",
+        "source": "3.4.4+498bc38ef59064d82a9840c2502f04eb0b42362a",
+        "file": "NotoSansCJK-Regular.ttc",
+        "encodedBytes": 19484784,
+        "accepted": false,
+        "fontReturned": false,
+        "allocatedBytes": 167365400,
+        "scope": "Single-call diagnostic; no timing or full-corpus qualification claim"
+      },
+      "candidate": {
+        "operation": "Installed TrueType family candidate resolution with independent CFF collection",
+        "source": "3.4.4+498bc38ef59064d82a9840c2502f04eb0b42362a",
+        "file": "NotoSansCJK-Regular.ttc",
+        "encodedBytes": 19484784,
+        "accepted": false,
+        "fontReturned": false,
+        "allocatedBytes": 19550032,
+        "scope": "Single-call diagnostic; no timing or full-corpus qualification claim",
+        "binding": {
+          "builtCandidateCoreSha256": "77ff4f227942c6bd338ff66eddfd7eaa39f1d25c3d9c72a7b4e5592178c8518c",
+          "probeCoreSha256": "77ff4f227942c6bd338ff66eddfd7eaa39f1d25c3d9c72a7b4e5592178c8518c",
+          "candidateBaseCommit": "498bc38ef59064d82a9840c2502f04eb0b42362a",
+          "reviewedTrackedDiff": "656d9096fee360397fe7eab4784ceae217f30fee",
+          "testSha256": "8320cda11abef03d390dd7ac00a0ddf359cf339b4fb4413430f672736c5a83b6",
+          "method": "Existing private diagnostic executable; copied only the current net10 Core artifact from the passing focused test build. This is allocation diagnosis, not package qualification."
+        }
+      },
+      "savedBytes": 147815368,
+      "savedPercent": 88.32,
+      "limitation": "A single failed family lookup, not overall performance, package or platform qualification."
+    },
+    "focusedTests": {
+      "framework": "net10.0",
+      "passed": 28,
+      "failed": 0,
+      "trx": "Ignore/StaticDeliveryQualification/font-collection-tests/font-collections-final-net10.trx"
+    },
+    "independentReview": {
+      "reviewer": "font_collection_selection_review",
+      "boundary": "current",
+      "headAtReview": "498bc38ef59064d82a9840c2502f04eb0b42362a",
+      "trackedDiffFingerprint": "656d9096fee360397fe7eab4784ceae217f30fee",
+      "newTestSha256": "8320cda11abef03d390dd7ac00a0ddf359cf339b4fb4413430f672736c5a83b6",
+      "findings": [],
+      "targetedConfirmationUsed": false
+    },
+    "allocationTrace": {
+      "sourceCommit": "498bc38ef59064d82a9840c2502f04eb0b42362a",
+      "worker": "Existing H4 cold worker; gc-verbose trace",
+      "managedAllocatedBytes": 1070934496,
+      "sampledAllocationBytes": 1072676944,
+      "fingerprint": "df37e54aafd262a230744c629f1c0e8f72561c42318e694a987e0ed542f24df4",
+      "timingQualification": false,
+      "summary": "Ignore/StaticDeliveryQualification/static-cold-allocation-groups-498bc38ef.json"
+    },
+    "localHostConstraint": {
+      "subsequentProbeBuildExitCode": 137,
+      "buildLog": "Ignore/StaticDeliveryQualification/font-probe-build-fixed.log",
+      "observation": "Extreme shared host load and memory pressure. The single-call diagnostic used the existing executable with the matching newly built Core DLL instead; binary binding is recorded. Broad builds and timing were not repeated under contention."
+    },
+    "hostedQualification": {
+      "runId": 37143807875,
+      "url": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37143807875",
+      "workflowAndRequestedSourceCommit": "e240206d0871f101f32b04233b5735023e987070",
+      "stateAtDispatch": "queued",
+      "required": "All three platforms: HTML net8/net10; installed font and collection checks net8/net10; full PDF net10; nineteen normal packages and consumers; unchanged opt-in H4 resource budget."
+    },
+    "remaining": [
+      "Settle the current-source matrix and retain failures.",
+      "Close whole-workload time, allocation and peak-memory gates; do not infer them from the single-call reduction.",
+      "Do not integrate the unqualified source into the two long-lived HTML branches."
+    ]
   }
 }
