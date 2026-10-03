@@ -28,6 +28,7 @@ internal static partial class EpubReader {
         public string FullPath { get; set; } = string.Empty;
         public string MediaType { get; set; } = string.Empty;
         public string Properties { get; set; } = string.Empty;
+        public string? FallbackId { get; set; }
         public bool IsRemote { get; set; }
         public string? RemoteUri { get; set; }
     }

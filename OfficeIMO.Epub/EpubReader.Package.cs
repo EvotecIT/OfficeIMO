@@ -333,6 +333,7 @@ internal static partial class EpubReader {
                 FullPath = fullPath,
                 MediaType = GetUnqualifiedAttribute(item, "media-type"),
                 Properties = GetUnqualifiedAttribute(item, "properties"),
+                FallbackId = NullIfWhiteSpace(GetUnqualifiedAttribute(item, "fallback")),
                 IsRemote = isRemote,
                 RemoteUri = remoteUri
             };

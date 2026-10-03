@@ -64,6 +64,10 @@ the read summary still counts every skipped position.
 
 Spine selection is independent of ordering: repeated references remain distinct
 chapters, and `PreferSpineOrder = false` does not bypass non-linear exclusion.
+Unsupported spine media types follow their manifest fallback chains to the first
+supported XHTML or SVG resource. Chapters identify that extracted resource while
+retaining the original spine position and selection policy. Missing or cyclic
+fallback chains produce diagnostics; fallback chapters use the normal extraction budgets.
 Archive recovery scanning applies only when no usable spine is declared, excludes
 declared navigation documents, and sets `UsedFallbackScan`; completeness remains unknown.
 

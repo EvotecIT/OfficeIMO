@@ -14,6 +14,7 @@ internal static partial class EpubReader {
         CancellationToken cancellationToken,
         out EpubReadSummary readSummary) {
         var candidates = new List<ChapterCandidate>();
+        var fallbackSelections = new Dictionary<string, ManifestItem?>(StringComparer.Ordinal);
         readSummary = new EpubReadSummary { IsSpineBased = package != null && package.Spine.Count > 0 };
 
         if (package != null && readSummary.IsSpineBased) {
@@ -32,12 +33,9 @@ internal static partial class EpubReader {
                     continue;
                 }
 
-                if (!IsChapterManifestItem(manifestItem)) {
-                    diagnostics.Warning("epub.spine.unsupported-media-type",
-                        $"Skipped spine resource '{manifestItem.FullPath}' with unsupported media type '{manifestItem.MediaType}'.",
-                        manifestItem.FullPath, manifestItem.MediaType);
-                    continue;
-                }
+                ManifestItem? selected = ResolveChapterResource(package, manifestItem, fallbackSelections, diagnostics, cancellationToken);
+                if (selected == null) continue;
+                manifestItem = selected;
 
                 if (manifestItem.IsRemote) {
                     diagnostics.Warning(
