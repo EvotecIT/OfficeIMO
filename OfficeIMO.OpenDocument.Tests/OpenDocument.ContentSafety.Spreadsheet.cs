@@ -7,6 +7,33 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OdsContentSafetyInheritanceTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DeepRowAndColumnGroupsRemainInspectableWhenXmlDepthIsRaised(bool columnGroups) {
+        OdsDocument document = OdsDocument.Create();
+        document.AddSheet("Data").Cell(0, 0).SetString("deep grouping payload");
+        XElement table = document.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Table + "table").Single();
+        XElement original = columnGroups
+            ? table.Elements(OdfNamespaces.Table + "table-column").Single()
+            : table.Elements(OdfNamespaces.Table + "table-row").Single();
+        original.Remove();
+        XElement nested = original;
+        XName group = OdfNamespaces.Table + (columnGroups ? "table-column-group" : "table-row-group");
+        for (int depth = 0; depth < 2048; depth++) nested = new XElement(group, nested);
+        nested.SetAttributeValue(OdfNamespaces.Table + "display", "false");
+        if (columnGroups) table.AddFirst(nested);
+        else table.Add(nested);
+        document.MarkPartDirty("content.xml");
+
+        OfficeContentSafetyReport report = OdfDocument.InspectContentSafety(
+            document.ToBytes(), loadOptions: new OdfLoadOptions { MaxXmlDepth = 2100 });
+        Assert.Contains(report.Findings, finding =>
+            finding.Kind == OfficeContentConcealmentKind.HiddenContainer &&
+            finding.TextPreview.IndexOf("deep grouping payload", StringComparison.Ordinal) >= 0);
+    }
+
     [Fact]
     public void NestedHiddenColumnGroupConcealsCellText() {
         OdsDocument document = OdsDocument.Create();

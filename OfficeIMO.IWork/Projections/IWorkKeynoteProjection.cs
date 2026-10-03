@@ -184,8 +184,9 @@ internal static partial class IWorkKeynoteReader {
     internal static IWorkKeynoteProjection Read(IWorkSourceDocument source) {
         var references = new IWorkSourceReferenceIssueCollector(source);
         var diagnostics = new List<IWorkDiagnostic>();
+        var incompleteTextStorages = new HashSet<ulong>();
         var slides = new List<IWorkKeynoteSlide>();
-        var omittedUnits = new List<IWorkObjectIdentity>();
+        var omittedUnits = new IWorkOmittedSourceUnits();
         IWorkObjectIndex index = source.Index;
         IWorkArchiveRecord? document = index.UniqueOfType(DocumentArchive, out bool duplicateDocument);
         if (document == null) {
@@ -349,12 +350,12 @@ internal static partial class IWorkKeynoteReader {
             }
             IWorkKeynoteSlide? projectedSlide = ReadSlide(source, index, slide, position, skipped,
                 projectionBudget, ref materializedCellCount, diagnostics,
-                ref supportsEditableReconstruction, omittedUnits, references);
+                ref supportsEditableReconstruction, omittedUnits, incompleteTextStorages, references);
             if (projectedSlide != null) slides.Add(projectedSlide);
             else omittedUnits.Add(new IWorkObjectIdentity(slide));
         }
         return new IWorkKeynoteProjection(source, slides, slideSize, diagnostics, supportsEditableReconstruction,
-            new IWorkObjectIdentity(document), omittedUnits, references.Issues, references.Declarations.Issues);
+            new IWorkObjectIdentity(document), omittedUnits.Items, references.Issues, references.Declarations.Issues);
     }
 
     private static void MarkDrawableIncomplete(IWorkArchiveRecord drawable,
@@ -426,10 +427,10 @@ internal static partial class IWorkKeynoteReader {
 
     private static void MarkTextIncomplete(IWorkArchiveRecord storage,
         List<IWorkDiagnostic> diagnostics, ref bool supportsEditableReconstruction,
+        HashSet<ulong> incompleteTextStorages,
         IWorkTextContent? content = null) {
         supportsEditableReconstruction = false;
-        if (diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_KEYNOTE_TEXT_STORAGE_UNSUPPORTED"
-            && diagnostic.RecordIdentifier == storage.Identifier)) return;
+        if (!incompleteTextStorages.Add(storage.Identifier)) return;
         diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
             "IWORK_KEYNOTE_TEXT_STORAGE_UNSUPPORTED",
             IWorkTextDiagnostics.Describe(content) + " Complete editable reconstruction is unavailable.",
