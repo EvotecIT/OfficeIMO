@@ -38,9 +38,9 @@ public sealed class OdfDrawingContentSafetyTests {
         OfficeContentSafetyReport report = OdfDocument.InspectContentSafety(document.ToBytes());
         Assert.Contains(report.Findings, finding =>
             finding.Kind == OfficeContentConcealmentKind.LowContrastText &&
-            finding.TextPreview.Contains("Black on black frame", StringComparison.Ordinal));
+            finding.TextPreview.IndexOf("Black on black frame", StringComparison.Ordinal) >= 0);
         Assert.DoesNotContain(report.Findings, finding =>
             finding.Kind == OfficeContentConcealmentKind.LowContrastText &&
-            finding.TextPreview.Contains("Black on white frame", StringComparison.Ordinal));
+            finding.TextPreview.IndexOf("Black on white frame", StringComparison.Ordinal) >= 0);
     }
 }

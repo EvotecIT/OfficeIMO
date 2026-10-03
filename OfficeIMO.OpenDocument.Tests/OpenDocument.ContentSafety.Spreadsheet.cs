@@ -31,7 +31,7 @@ public sealed class OdsContentSafetyInheritanceTests {
             document.ToBytes(), loadOptions: new OdfLoadOptions { MaxXmlDepth = 2100 });
         Assert.Contains(report.Findings, finding =>
             finding.Kind == OfficeContentConcealmentKind.HiddenContainer &&
-            finding.TextPreview.Contains("deep grouping payload", StringComparison.Ordinal));
+            finding.TextPreview.IndexOf("deep grouping payload", StringComparison.Ordinal) >= 0);
     }
 
     [Fact]
