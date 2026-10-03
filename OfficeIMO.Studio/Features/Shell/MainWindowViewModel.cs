@@ -195,7 +195,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             jobHistory: _services.Jobs, storage: _services.Storage,
             recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite,
             readPrintSnapshot: ReadPrintSnapshotAsync, pickPrintOutput: pickPrintOutput);
-        ProvenanceWorkbench = new ProvenanceWorkbenchViewModel(pickProvenanceFile ?? _pickPdf, _pickOutputFolder, publicationGuard: publicationGuard);
+        ProvenanceWorkbench = new ProvenanceWorkbenchViewModel(pickProvenanceFile ?? _pickPdf, _pickOutputFolder, runner: null,
+            publicationGuard: publicationGuard, jobHistory: _services.Jobs);
         DocumentHealth = new DocumentHealthViewModel(_pickPdf, _pickOutputFolder, runner: null, localizer: _localizer,
             publicationGuard: publicationGuard, jobHistory: _services.Jobs, storage: _services.Storage, recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite);
         OcrWorkbench = new SearchablePdfOcrViewModel(
