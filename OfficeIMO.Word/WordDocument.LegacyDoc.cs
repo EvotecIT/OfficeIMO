@@ -1701,7 +1701,7 @@ namespace OfficeIMO.Word {
             }
 
             if (paragraphFormat.OutlineLevel != null) {
-                EnsureLegacyDocParagraphProperties(paragraph).Append(new OutlineLevel { Val = paragraphFormat.OutlineLevel.Value });
+                paragraph.OutlineLevel = paragraphFormat.OutlineLevel.Value;
             }
 
             if (paragraphFormat.SpacingBeforeTwips != null) {

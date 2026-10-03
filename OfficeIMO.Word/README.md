@@ -81,6 +81,8 @@ paragraph.OutlineLevel = 9; // Body text; heading levels 1-9 use values 0-8.
 
 `WordParagraphStyleDefinition` exposes the same controls without the `Override` suffix. `ContextualSpacing`, `SuppressLineNumbers`, `SuppressAutoHyphens`, and `MirrorIndents` are nullable on both paragraphs and style definitions. These values survive DOCX and supported native DOC saves, including explicit false values. Existing Boolean pagination properties keep their previous behavior; use the nullable properties when style inheritance matters.
 
+`OutlineLevel` returns directly authored formatting. Word fixes the effective outline level of paragraphs using built-in Heading1–Heading9 styles to the corresponding heading level, even if a different direct value is stored.
+
 PDF conversion honors an explicit `PageBreakBeforeOverride = false` even when the paragraph's style starts paragraphs on a new page. Storing line-number suppression, hyphenation suppression, mirrored indentation, or outline levels does not establish PDF rendering support for those features; see the [Word PDF conversion contract](../OfficeIMO.Word.Pdf/README.md) and [native DOC limits](../Docs/officeimo.word.legacy-doc-compatibility.md).
 
 ## Paragraph tab stops

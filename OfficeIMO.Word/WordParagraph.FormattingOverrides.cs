@@ -51,7 +51,7 @@ public partial class WordParagraph {
         set => WriteFormattingOverride<DocumentFormat.OpenXml.Wordprocessing.MirrorIndents>(value);
     }
 
-    /// <summary>Gets or sets the directly authored outline level: 0-8 for heading levels 1-9, 9 for body text, or null to inherit.</summary>
+    /// <summary>Gets or sets the directly authored outline level: 0-8 for heading levels 1-9, 9 for body text, or null to inherit. Word uses the built-in heading level for Heading1-Heading9 styles regardless of this authored value.</summary>
     public int? OutlineLevel {
         get => _paragraph.ParagraphProperties?.OutlineLevel?.Val?.Value;
         set {

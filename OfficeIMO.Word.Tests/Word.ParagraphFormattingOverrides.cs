@@ -167,6 +167,80 @@ public partial class Word {
     }
 
     [Theory]
+    [InlineData("Heading1")]
+    [InlineData("Heading2")]
+    public void NativeDoc_BuiltInStyleClearedControlsInheritInsteadOfRestoringTemplate(string styleId) {
+        string path = Path.Combine(_directoryWithFiles, "ClearedControls-" + styleId + ".doc");
+        using (WordDocument document = WordDocument.Create()) {
+            var styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            Style original = styles.Elements<Style>().Single(s => s.StyleId?.Value == styleId);
+            var definition = new WordParagraphStyleDefinition(original) {
+                PageBreakBefore = null, KeepWithNext = null, KeepLinesTogether = null, AvoidWidowAndOrphan = null,
+                ContextualSpacing = null, SuppressLineNumbers = null, SuppressAutoHyphens = null, MirrorIndents = null
+            };
+            styles.InsertBefore(definition.ToOpenXml(), original);
+            original.Remove();
+            document.AddParagraph("Heading with inherited controls").SetStyleId(styleId);
+            document.Save(path);
+        }
+        using WordDocument reopened = WordDocument.Load(path);
+        Style saved = reopened._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+            .Elements<Style>().Single(s => s.StyleId?.Value == styleId);
+        var controls = new WordParagraphStyleDefinition(saved);
+        Assert.Null(controls.KeepWithNext);
+        Assert.Null(controls.KeepLinesTogether);
+        Assert.Null(controls.PageBreakBefore);
+        Assert.Null(controls.AvoidWidowAndOrphan);
+        Assert.Null(controls.ContextualSpacing);
+        Assert.Null(controls.SuppressLineNumbers);
+        Assert.Null(controls.SuppressAutoHyphens);
+        Assert.Null(controls.MirrorIndents);
+        Assert.Empty(new OpenXmlValidator().Validate(saved.StyleParagraphProperties!));
+    }
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(9)]
+    public void NativeDoc_OutlineAndParagraphMarkRetainValidImportedOrder(int level) {
+        string path = Path.Combine(_directoryWithFiles, "OutlineAndMark-" + level + ".doc");
+        using (WordDocument document = WordDocument.Create()) {
+            WordParagraph paragraph = document.AddParagraph("Outline and paragraph mark");
+            paragraph.OutlineLevel = level;
+            paragraph._paragraph.ParagraphProperties!.ParagraphMarkRunProperties = new ParagraphMarkRunProperties(new Bold());
+            Assert.Empty(new OpenXmlValidator().Validate(paragraph._paragraph.ParagraphProperties));
+            document.Save(path);
+        }
+        using WordDocument reopened = WordDocument.Load(path);
+        WordParagraph saved = Assert.Single(reopened.Paragraphs);
+        Assert.Equal(level, saved.OutlineLevel);
+        Assert.NotNull(saved._paragraph.ParagraphProperties!.ParagraphMarkRunProperties?.GetFirstChild<Bold>());
+        Assert.Empty(new OpenXmlValidator().Validate(saved._paragraph.ParagraphProperties));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NativeDoc_DefaultSectionPointsToAnEmptySepxInsteadOfTheFileHeader(bool heading) {
+        string path = Path.Combine(_directoryWithFiles, "DefaultSection-" + heading + ".doc");
+        using (WordDocument document = WordDocument.Create()) {
+            WordParagraph paragraph = document.AddParagraph("Default section properties");
+            if (heading) paragraph.Style = WordParagraphStyles.Heading1;
+            document.Save(path);
+        }
+        byte[] data = File.ReadAllBytes(path);
+        byte[] wordStream = ReadCompoundStream(data, "WordDocument");
+        byte[] table = ReadCompoundStream(data, "1Table");
+        int sectionTableOffset = BitConverter.ToInt32(wordStream, 202);
+        int sectionTableLength = BitConverter.ToInt32(wordStream, 206);
+        Assert.Equal(20, sectionTableLength); // Two CPs and one 12-byte section descriptor.
+        int sepxOffset = BitConverter.ToInt32(table, sectionTableOffset + 10);
+        Assert.InRange(sepxOffset, 512, wordStream.Length - 2);
+        Assert.Equal(0, BitConverter.ToUInt16(wordStream, sepxOffset));
+        using WordDocument reopened = WordDocument.Load(path);
+        Assert.Equal("Default section properties", Assert.Single(reopened.Paragraphs).Text);
+    }
+
+    [Theory]
     [InlineData(-1)]
     [InlineData(10)]
     public void ParagraphFormattingOverrides_RejectInvalidOutlineLevelBeforeMutation(int level) {

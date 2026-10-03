@@ -905,12 +905,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var records = new List<LegacyDocWritableSectionRecord>(body.Sections.Count);
             int sepxOffset = firstSepxOffset;
             foreach (LegacyDocWritableSection section in body.Sections) {
-                byte[] sepx = section.Format.HasFormatting ? CreateSepx(section.Format) : Array.Empty<byte>();
-                int recordSepxOffset = 0;
-                if (sepx.Length > 0) {
-                    recordSepxOffset = sepxOffset;
-                    sepxOffset = AlignToEven(sepxOffset + sepx.Length);
-                }
+                // Even default sections need a valid record; offset zero points into the FIB, not an empty SEP.
+                byte[] sepx = CreateSepx(section.Format);
+                int recordSepxOffset = sepxOffset;
+                sepxOffset = AlignToEven(sepxOffset + sepx.Length);
 
                 records.Add(new LegacyDocWritableSectionRecord(section.EndCharacter, recordSepxOffset, sepx));
             }
