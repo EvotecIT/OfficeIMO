@@ -1,7 +1,7 @@
 namespace OfficeIMO.OpenDocument;
 
 internal static class OdfTextCodec {
-    private const int MaximumDecodedCharacters = 16 * 1024 * 1024;
+    internal const int MaximumDecodedCharacters = 16 * 1024 * 1024;
 
     internal static string Read(XElement element) {
         if (element == null) throw new ArgumentNullException(nameof(element));
@@ -21,6 +21,59 @@ internal static class OdfTextCodec {
         if (nodes == null) throw new ArgumentNullException(nameof(nodes));
         var builder = new StringBuilder();
         AppendValue(nodes, builder, MaximumDecodedCharacters);
+        return builder.ToString();
+    }
+
+    internal static string Read(XElement element, ref int remainingCharacters) {
+        string value = ReadBounded(element.Nodes(), remainingCharacters);
+        remainingCharacters -= value.Length;
+        return value;
+    }
+
+    internal static string ReadNodes(IEnumerable<XNode> nodes, ref int remainingCharacters) {
+        string value = ReadBounded(nodes, remainingCharacters);
+        remainingCharacters -= value.Length;
+        return value;
+    }
+
+    internal static string ReadJoined(IEnumerable<XElement> elements) {
+        if (elements == null) throw new ArgumentNullException(nameof(elements));
+        var builder = new StringBuilder();
+        bool first = true;
+        foreach (XElement element in elements) {
+            if (element == null) throw new ArgumentException("Text elements cannot contain null entries.", nameof(elements));
+            if (!first) {
+                EnsureCapacity(builder, 1, MaximumDecodedCharacters);
+                builder.Append('\n');
+            }
+            first = false;
+            AppendValue(element.Nodes(), builder, MaximumDecodedCharacters);
+        }
+        return builder.ToString();
+    }
+
+    internal static string JoinBounded(IEnumerable<string> values, string separator = "\n") {
+        if (values == null) throw new ArgumentNullException(nameof(values));
+        if (separator == null) throw new ArgumentNullException(nameof(separator));
+        var builder = new StringBuilder();
+        bool first = true;
+        foreach (string value in values) {
+            if (value == null) throw new ArgumentException("Text values cannot contain null entries.", nameof(values));
+            if (!first) {
+                EnsureCapacity(builder, separator.Length, MaximumDecodedCharacters);
+                builder.Append(separator);
+            }
+            EnsureCapacity(builder, value.Length, MaximumDecodedCharacters);
+            builder.Append(value);
+            first = false;
+        }
+        return builder.ToString();
+    }
+
+    private static string ReadBounded(IEnumerable<XNode> nodes, int maximumCharacters) {
+        if (nodes == null) throw new ArgumentNullException(nameof(nodes));
+        var builder = new StringBuilder();
+        AppendValue(nodes, builder, maximumCharacters);
         return builder.ToString();
     }
 

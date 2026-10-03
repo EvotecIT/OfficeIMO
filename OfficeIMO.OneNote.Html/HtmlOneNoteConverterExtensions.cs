@@ -60,8 +60,9 @@ public static partial class HtmlOneNoteConverterExtensions {
         var stylesheetOptions = new HtmlRenderOptions {
             Mode = mediaContext == HtmlCssMediaContext.Print ? HtmlRenderMode.Paged : HtmlRenderMode.Continuous
         };
+        string? preferredSet = HtmlRenderStylesheetApplier.FindPreferredStylesheetSet(sourceDocument, stylesheetOptions);
         foreach (AngleSharp.Dom.IElement link in sourceDocument.QuerySelectorAll("link[href]")) {
-            if (!HtmlRenderStylesheetApplier.IsApplicableStylesheetLink(link, stylesheetOptions)) continue;
+            if (!HtmlRenderStylesheetApplier.IsApplicableStylesheetLink(link, stylesheetOptions, preferredSet)) continue;
             string href = link.GetAttribute("href") ?? string.Empty;
             if (string.IsNullOrWhiteSpace(href)) continue;
             result.AddImportDiagnostic(new HtmlDiagnostic(

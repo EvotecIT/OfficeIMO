@@ -14,6 +14,19 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class WordOdtNotesConversionTests {
     [Fact]
+    public void NoteConversionRejectsAggregateDecodedTextExpansion() {
+        OdtDocument source = OdtDocument.Create();
+        OdtNote note = source.AddParagraph("Anchor").AddFootnote("Body");
+        const int halfLimit = 8 * 1024 * 1024;
+        note.Paragraphs[0].Element.ReplaceNodes(new XElement(OdfNamespaces.Text + "s",
+            new XAttribute(OdfNamespaces.Text + "c", halfLimit)));
+        note.AddParagraph().Element.Add(new XElement(OdfNamespaces.Text + "s",
+            new XAttribute(OdfNamespaces.Text + "c", halfLimit)));
+
+        Assert.Throws<InvalidDataException>(() => source.ToWordDocumentResult());
+    }
+
+    [Fact]
     public void NumericCustomCitationLabelStillReportsLoss() {
         OdtDocument source = OdtDocument.Create();
         source.AddParagraph("Anchor").AddFootnote("Note");
