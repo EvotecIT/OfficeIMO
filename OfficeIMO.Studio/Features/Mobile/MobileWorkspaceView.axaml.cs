@@ -16,9 +16,16 @@ public sealed partial class MobileWorkspaceView : UserControl {
     private Func<Task>? _shareDocumentAsync;
     private MainWindowViewModel? _observedDocument;
     private bool _submittingNote;
+    private Func<Task>? _openSampleAsync;
+
+    internal Func<Task>? OpenSampleAsync {
+        get => _openSampleAsync;
+        set { _openSampleAsync = value; SampleButton.IsVisible = value is not null; }
+    }
 
     public MobileWorkspaceView() {
         InitializeComponent();
+        InitializeTouchInput();
         SizeChanged += (_, _) => UpdateLayoutMode();
         PageScroll.SizeChanged += (_, e) => Document?.SetViewportSize(e.NewSize.Width, e.NewSize.Height);
         DataContextChanged += (_, _) => ObserveDocument();
@@ -133,5 +140,13 @@ public sealed partial class MobileWorkspaceView : UserControl {
         if (ShareDocumentAsync is null || Document?.IsWorkspaceBusy == true) return;
         try { await ShareDocumentAsync(); }
         catch (Exception error) { if (Document is { } document) document.ErrorMessage = error.Message; }
+    }
+
+    private async void OnSampleClick(object? sender, RoutedEventArgs e) {
+        if (_openSampleAsync is null || !SampleButton.IsEnabled) return;
+        SampleButton.IsEnabled = false;
+        try { await _openSampleAsync(); }
+        catch (Exception error) { if (Document is { } document) document.ErrorMessage = error.Message; }
+        finally { SampleButton.IsEnabled = true; }
     }
 }

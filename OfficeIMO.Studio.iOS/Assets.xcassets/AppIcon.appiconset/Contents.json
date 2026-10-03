@@ -1,0 +1,6 @@
+{
+  "images": [
+    { "filename": "OfficeIMO.Studio.png", "idiom": "universal", "platform": "ios", "size": "1024x1024" }
+  ],
+  "info": { "author": "OfficeIMO", "version": 1 }
+}

@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OfficeIMOStudioAppleTargetFramework Condition="'$(OfficeIMOStudioAppleTargetFramework)' == ''">net10.0-ios26.5</OfficeIMOStudioAppleTargetFramework>
+    <TargetFramework>$(OfficeIMOStudioAppleTargetFramework)</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>OfficeIMO.Studio.iOS</AssemblyName>
+    <RootNamespace>OfficeIMO.Studio.iOS</RootNamespace>
+    <ApplicationId>com.evotec.officeimo.studio</ApplicationId>
+    <ApplicationTitle>OfficeIMO Studio</ApplicationTitle>
+    <AppIcon>AppIcon</AppIcon>
+    <ApplicationDisplayVersion>0.1.9767</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+    <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <CodesignKey Condition="'$(RuntimeIdentifier)' == 'ios-arm64'">Apple Development</CodesignKey>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug' and $(RuntimeIdentifier.StartsWith('iossimulator-'))">
+    <TrimMode>copy</TrimMode>
+    <UseInterpreter>true</UseInterpreter>
+    <Registrar>static</Registrar>
+  </PropertyGroup>
+  <!-- Xcode 27 currently requires the installed .NET Apple preview bindings for local validation. -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-ios27.0'">
+    <NoWarn>$(NoWarn);XCODE_27_0_PREVIEW</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia.iOS" Version="12.1.3" />
+    <ProjectReference Include="../OfficeIMO.Studio/OfficeIMO.Studio.csproj" AdditionalProperties="OfficeIMOStudioMobile=true" />
+    <ImageAsset Include="../OfficeIMO.Studio/Assets/OfficeIMO.Studio.png" Link="Assets.xcassets/AppIcon.appiconset/OfficeIMO.Studio.png" />
+  </ItemGroup>
+  <Import Project="../Build/Studio/Studio.Licenses.props" />
+</Project>

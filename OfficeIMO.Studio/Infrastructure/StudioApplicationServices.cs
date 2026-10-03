@@ -14,7 +14,9 @@ internal sealed class StudioApplicationServices {
         StudioPreferencesService preferences,
         StudioCultureService cultures,
         IStudioLocalizer localizer,
-        IStudioDiagnostics diagnostics) {
+        IStudioDiagnostics diagnostics,
+        StudioLocalDocumentRoot? documents) {
+        LocalDocuments = documents;
         Paths = paths;
         AiConnections = new OfficeIMO.Studio.Features.Assistant.StudioAiConnections(paths.Root, localizer, preferences);
         Storage = new StudioStorageAccess(paths.WorkflowRecoveryRoot);
@@ -23,7 +25,7 @@ internal sealed class StudioApplicationServices {
         Localizer = localizer;
         Diagnostics = diagnostics;
         DocumentHistory = new StudioDocumentHistory(paths, preferences);
-        Recovery = new PdfWorkspaceRecoveryStore(paths.RecoveryRoot, preferences.Current.CreateRecoverySnapshots);
+        Recovery = new PdfWorkspaceRecoveryStore(paths.RecoveryRoot, preferences.Current.CreateRecoverySnapshots, documents);
         WorkflowRecovery = new OfficeIMO.Workflows.OfficeWorkflowOutputRecoveryStore(paths.WorkflowRecoveryRoot);
         ConversionRunner = OfficeIMO.Workflows.IWork.IWorkWorkflow.CreateRunner();
         Jobs = new StudioJobHistory(localizer, WorkflowRecovery);
@@ -31,6 +33,7 @@ internal sealed class StudioApplicationServices {
     }
 
     internal StudioDataPaths Paths { get; }
+    internal StudioLocalDocumentRoot? LocalDocuments { get; }
     internal OfficeIMO.Studio.Features.Assistant.StudioAiConnections AiConnections { get; }
 
     internal StudioPreferencesService Preferences { get; }
@@ -59,13 +62,13 @@ internal sealed class StudioApplicationServices {
 
     internal static StudioApplicationServices CreateDefault() => Create(StudioDataPaths.CreateDefault());
 
-    internal static StudioApplicationServices Create(StudioDataPaths paths) {
+    internal static StudioApplicationServices Create(StudioDataPaths paths, StudioLocalDocumentRoot? documents = null) {
         ArgumentNullException.ThrowIfNull(paths);
         var preferences = new StudioPreferencesService(new JsonStudioPreferencesStore(paths.PreferencesPath));
         var cultures = new StudioCultureService();
         CultureInfo culture = cultures.Apply(preferences.Current.UiCulture);
         var localizer = new StudioLocalizer(culture);
         var diagnostics = new StudioDiagnostics(paths.DiagnosticsRoot);
-        return new StudioApplicationServices(paths, preferences, cultures, localizer, diagnostics);
+        return new StudioApplicationServices(paths, preferences, cultures, localizer, diagnostics, documents);
     }
 }

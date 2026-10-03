@@ -532,6 +532,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         ApplyZoom(Math.Min(3D, Zoom + 0.25D));
     }
 
+    /// <summary>Applies bounded touch zoom through the same page and render-cache policy as toolbar zoom.</summary>
+    internal void SetTouchZoom(double zoom) {
+        if (!double.IsFinite(zoom)) return;
+        _zoomMode = ViewerZoomMode.Custom;
+        ApplyZoom(Math.Clamp(zoom, 0.25D, 3D));
+    }
+
     [RelayCommand]
     private void ZoomOut() {
         _zoomMode = ViewerZoomMode.Custom;

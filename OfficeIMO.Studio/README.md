@@ -13,7 +13,7 @@ OfficeIMO Studio is the cross-platform desktop surface for OfficeIMO's document 
 - Open and compare PDFs through desktop storage-provider streams, including sources without local paths. Available provider bookmarks are retained with recent and restart references. PDF input and serialized provider output are limited to 512 MiB. A provider save checks the opened contents before writing and verifies the result after closing the write stream, but cannot guarantee atomic replacement or rollback. Studio explains this before saving and keeps edits and enabled recovery snapshots when publication fails.
 - Choose comfortable or compact controls in Settings. With document history enabled, Studio remembers page, zoom, reading layout, bounded pane widths, and pane choices for up to 64 documents, using path hashes in the view-preference file.
 - On macOS, Studio uses the system title bar, native File/Edit/View/Window menus, Settings with Command+comma, and a collapsible labelled sidebar. Document tabs sit below the system title bar on macOS and in the title bar on other desktop platforms; an unsaved tab shows a dot, middle-click closes a tab, and Ctrl+Shift+T (Command+Shift+T on macOS) reopens the most recently closed document. One command row holds the document task (View, Annotate, Edit, Pages, Forms, Protect), that task's tools, undo and redo, find, save a copy, save, focus reading, and the pane toggles. Page navigation and zoom float over the page, and a status line shows the position, document facts, unsaved changes, and what the active tool expects.
-- Press F9 for focus reading and Escape or F9 to restore document controls. At narrow widths, bottom navigation replaces the sidebar, a document picker replaces the tab strip, and the task tools move onto their own row. Search and properties open over the page so the document retains its width. These adaptive desktop layouts do not provide an iOS or iPadOS app host.
+- Press F9 for focus reading and Escape or F9 to restore document controls. At narrow widths, bottom navigation replaces the sidebar, a document picker replaces the tab strip, and the task tools move onto their own row. Search and properties open over the page so the document retains its width. The separate iOS host uses a touch workspace over the same document state and PDF engine.
 - Custom zoom stays in place through editing, undo, redo, recovery, and saving. Fit width and Fit page remain explicit choices; on wide windows Fit width stops at a comfortable reading size instead of filling the screen.
 - Home leads with a drop target, quick tasks, and recent documents shown with first-page previews rendered in memory for local PDFs. Continue a previous session from the banner on Home, or review each document first. Unchanged sources reopen with their reading positions; changed or missing sources offer individual choices, including recovering verified pending edits into a new file. Recovering to a local file requires a new path; provider destinations use the explicit direct-write confirmation. Session memory can be disabled in Settings and keeps up to 32 document references locally; entries expire after 30 days of inactivity.
 - If Studio cannot save or clear the restart record, a notice stays visible with a Retry action. A successful retry clears that notice without dismissing unrelated recovery errors.
@@ -155,3 +155,19 @@ Printing sends the managed renderer's reviewed pixels, including its reported re
 ## Next product outcomes
 
 The repository's single open-work plan is [`Docs/ROADMAP.md`](../Docs/ROADMAP.md). Its **Desktop Studio** section tracks distribution, native print and scan intake, reusable workflow recipes, and cross-platform accessibility and usability evidence.
+
+## iPhone and iPad development host
+
+`OfficeIMO.Studio.iOS` hosts the shared Avalonia touch workspace. It opens PDFs through Files into a separate local working copy, renders and searches pages, adds review notes, and saves the working copy before presenting the Apple share sheet. Session and recovery identities remain relative to the app document root so a changed container location does not invalidate them. Internal preferences and recovery files live in Application Support.
+
+Wide layouts keep the page list beside the document; compact layouts use a Pages sheet. The host includes safe-area padding, keyboard-aware sheets, zoom controls, and touch gesture handling. Choose **Try a sample** to open an app-generated PDF. External-process OCR is unavailable on iOS.
+
+Build from `OfficeIMO.Studio.iOS` with its pinned SDK and the .NET iOS workload installed:
+
+```sh
+dotnet build -r iossimulator-arm64 -p:OfficeIMOStudioMobile=true
+```
+
+The default target is `net10.0-ios26.5` and requires a matching Xcode installation. Local Xcode 27 validation uses the explicit `-p:OfficeIMOStudioAppleTargetFramework=net10.0-ios27.0` override and installed preview Apple bindings. Debug simulator builds use the interpreter and retain managed assemblies; this does not qualify Release trimming or device AOT.
+
+The current native evidence covers an ARM64 iPad simulator opening the sample, rendering, adding and saving a note, exporting to Files through the share sheet, importing that PDF into a separate working copy, and restoring after restart, plus compact iPhone rendering and sheets. Physical-device acceptance, third-party/cloud provider journeys, VoiceOver, Pencil and multitouch, Release/AOT, signing, and the shared PowerForge distribution route remain qualification work. See [the mobile roadmap](../Docs/ROADMAP.md#phase-7-ipad-then-iphone).

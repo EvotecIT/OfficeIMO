@@ -43,15 +43,14 @@ public sealed class StudioMobileWorkspaceTests {
                     draft.Text = "Mobile review note";
                     bool? draftEnabledDuringSubmission = null;
                     document.PropertyChanged += (_, e) => {
-                        if (e.PropertyName == nameof(document.IsWorkspaceBusy) && document.IsWorkspaceBusy)
+                        if (draftEnabledDuringSubmission is null && e.PropertyName == nameof(document.IsWorkspaceBusy) && document.IsWorkspaceBusy) {
                             draftEnabledDuringSubmission = draft.IsEffectivelyEnabled;
+                            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.None, null);
+                            Assert.True(view.FindControl<Border>("SheetScrim")!.IsVisible);
+                        }
                     };
                     Click(view, "Add note");
                     Assert.Equal(false, draftEnabledDuringSubmission);
-                    if (!draft.IsEffectivelyEnabled) {
-                        window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.None, null);
-                        Assert.True(view.FindControl<Border>("SheetScrim")!.IsVisible);
-                    }
                     await WaitForSubmissionAsync(view);
                     if (recoveryUnavailable) {
                         Assert.True(document.HasError);
