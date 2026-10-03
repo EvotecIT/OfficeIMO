@@ -7,6 +7,10 @@ namespace OfficeIMO.Reader;
 
 /// <summary>One Reader candidate recognition paired with its engine-neutral OCR output.</summary>
 public sealed class OfficeDocumentOcrRecognition {
+    /// <summary>Structural document identity in a tree execution (root, root/n0, and so on).</summary>
+    public string DocumentId { get; set; } = "root";
+    /// <summary>Source or virtual container path of the recognized document.</summary>
+    public string? DocumentPath { get; set; }
     /// <summary>Candidate identifier.</summary>
     public string CandidateId { get; set; } = string.Empty;
     /// <summary>Resolved asset identifier.</summary>
@@ -34,6 +38,24 @@ public sealed class OfficeDocumentOcrExecutionOptions {
 
     /// <summary>Maximum duration allowed for one engine call. Defaults to two minutes.</summary>
     public TimeSpan CandidateTimeout { get; set; } = TimeSpan.FromMinutes(2);
+
+    /// <summary>Maximum combined execution duration, including all nested documents. Defaults to five minutes.</summary>
+    public TimeSpan TotalTimeout { get; set; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>Maximum documents visited by ApplyOcrTreeAsync, including the root. Defaults to 100.</summary>
+    public int MaxDocuments { get; set; } = 100;
+
+    /// <summary>Maximum nested depth visited by ApplyOcrTreeAsync; the root has depth zero. Defaults to eight.</summary>
+    public int MaxNestedDepth { get; set; } = 8;
+
+    /// <summary>Maximum recognized text characters retained across the entire execution. Defaults to 4 Mi characters.</summary>
+    public int MaxTotalRecognizedCharacters { get; set; } = 4 * 1024 * 1024;
+
+    /// <summary>Maximum detailed spans retained across the entire execution. Defaults to 100,000.</summary>
+    public int MaxTotalSpans { get; set; } = 100_000;
+
+    /// <summary>Maximum span text and metadata characters retained across the entire execution. Defaults to 4 Mi characters.</summary>
+    public int MaxTotalSpanCharacters { get; set; } = 4 * 1024 * 1024;
 
     /// <summary>Maximum recognized text characters accepted from one engine response. Defaults to 1,000,000.</summary>
     public int MaxRecognizedCharactersPerCandidate { get; set; } = 1_000_000;
@@ -81,6 +103,12 @@ public sealed class OfficeDocumentOcrExecutionOptions {
             MaxTotalInputBytes = MaxTotalInputBytes,
             MaxDegreeOfParallelism = MaxDegreeOfParallelism,
             CandidateTimeout = CandidateTimeout,
+            TotalTimeout = TotalTimeout,
+            MaxDocuments = MaxDocuments,
+            MaxNestedDepth = MaxNestedDepth,
+            MaxTotalRecognizedCharacters = MaxTotalRecognizedCharacters,
+            MaxTotalSpans = MaxTotalSpans,
+            MaxTotalSpanCharacters = MaxTotalSpanCharacters,
             MaxRecognizedCharactersPerCandidate = MaxRecognizedCharactersPerCandidate,
             MaxSpansPerCandidate = MaxSpansPerCandidate,
             MaxSpanCharactersPerCandidate = MaxSpanCharactersPerCandidate,
@@ -106,6 +134,10 @@ public sealed class OfficeDocumentOcrExecutionOptions {
 
 /// <summary>Observable counters from one bounded OCR execution.</summary>
 public sealed class OfficeDocumentOcrExecutionReport {
+    /// <summary>Documents visited, including documents without candidates.</summary>
+    public int DocumentCount { get; set; }
+    /// <summary>Nested entry points skipped by document or depth limits; their contents remain pending.</summary>
+    public int SkippedDocumentCount { get; set; }
     /// <summary>Configured engine identifier.</summary>
     public string EngineId { get; set; } = string.Empty;
 

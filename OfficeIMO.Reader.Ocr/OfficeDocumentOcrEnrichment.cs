@@ -135,7 +135,7 @@ public static class OfficeDocumentOcrEnrichmentExtensions {
         Dictionary<string, OfficeDocumentOcrTextResult> suppliedByCandidate = suppliedResults
             .GroupBy(static item => item.CandidateId, StringComparer.Ordinal)
             .ToDictionary(static group => group.Key, static group => group.Last(), StringComparer.Ordinal);
-        IReadOnlyList<OfficeDocumentOcrCandidate> candidates = result.OcrCandidates ?? Array.Empty<OfficeDocumentOcrCandidate>();
+        IReadOnlyList<OfficeDocumentOcrCandidate> candidates = OfficeDocumentOcrCandidates.Collect(result);
         var applied = new List<AppliedOcrText>();
         var unresolved = new List<OfficeDocumentOcrCandidate>();
 
