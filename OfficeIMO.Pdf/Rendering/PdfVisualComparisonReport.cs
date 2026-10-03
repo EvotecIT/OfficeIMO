@@ -210,6 +210,10 @@ public sealed class PdfVisualPageComparison {
         var intervals = new List<PdfPixelRegion>(classified.Count);
         for (int y = bounds.Y; y < bounds.Y + bounds.Height; y++) {
             cancellationToken.ThrowIfCancellationRequested();
+            int firstChangedX = bounds.X;
+            int right = bounds.X + bounds.Width;
+            while (firstChangedX < right && !_changedPixels[checked(y * Width + firstChangedX)]) firstChangedX++;
+            if (firstChangedX == right) continue;
             intervals.Clear();
             for (int index = 0; index < classified.Count; index++) {
                 PdfPixelRegion region = classified[index];
@@ -218,7 +222,7 @@ public sealed class PdfVisualPageComparison {
             intervals.Sort(static (left, right) => left.X.CompareTo(right.X));
             int intervalIndex = 0;
             int coveredRight = 0;
-            for (int x = bounds.X; x < bounds.X + bounds.Width; x++) {
+            for (int x = firstChangedX; x < right; x++) {
                 if (!_changedPixels[checked(y * Width + x)]) continue;
                 while (intervalIndex < intervals.Count && intervals[intervalIndex].X <= x) {
                     PdfPixelRegion region = intervals[intervalIndex++];

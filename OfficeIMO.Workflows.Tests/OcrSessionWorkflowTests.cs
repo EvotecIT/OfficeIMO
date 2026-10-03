@@ -15,7 +15,7 @@ public sealed class OcrSessionWorkflowTests {
             int writes = 0;
             var recovery = new OfficeWorkflowOutputRecoveryStore(Path.Combine(root, "recovery"));
             OfficeOcrSessionRequest Request(int index) => new(index.ToString(), new ImageOcrWorkflowRequest {
-                InputPath = source, OutputPath = "content://folder/planned-" + index, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                InputPath = source, OutputPath = "content://folder/selected", ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
                 OutputStream = new(index + ".txt", _ => Task.FromResult<Stream>(new MemoryStream(stored)), _ => {
                     writes++;
                     return Task.FromResult<Stream>(new Destination(bytes => stored = bytes));

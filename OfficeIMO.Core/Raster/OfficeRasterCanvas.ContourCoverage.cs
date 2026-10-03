@@ -8,6 +8,9 @@ namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeRasterCanvas {
     private const int ContourSubScanlines = 8;
+    private const long MaximumContourCrossingWork = 512_000_000L;
+    private const long MaximumContourRowCrossingWork = 16_000_000L;
+    private const int MaximumRetainedContourCrossings = 1_000_000;
 
     private void FillContours(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeColor color, OfficeFillRule fillRule) {
         if (color.A == 0) return;
@@ -25,9 +28,11 @@ public sealed partial class OfficeRasterCanvas {
         double minX = double.PositiveInfinity, maxX = double.NegativeInfinity;
         var boundsContours = new List<IReadOnlyList<OfficePoint>>(contours);
         if (unionContours != null) boundsContours.AddRange(unionContours);
+        long contourEdges = 0L;
         foreach (IReadOnlyList<OfficePoint> contour in boundsContours) {
             _cancellationToken.ThrowIfCancellationRequested();
             if (contour.Count < 3) continue;
+            contourEdges += contour.Count;
             foreach (OfficePoint point in contour) {
                 if (!IsFinite(point.X) || !IsFinite(point.Y)) return;
                 minX = Math.Min(minX, point.X);
@@ -55,6 +60,7 @@ public sealed partial class OfficeRasterCanvas {
             var crossings = new List<ContourCrossing>();
             var scanlines = new List<(double Weight, List<ContourCrossing> Crossings)>();
             int boundaryIndex = 0;
+            long crossingWork = 0L;
             for (int y = top; y <= bottom; y++) {
                 _cancellationToken.ThrowIfCancellationRequested();
                 rowBoundaries.Clear();
@@ -62,7 +68,14 @@ public sealed partial class OfficeRasterCanvas {
                 while (boundaryIndex < boundaries.Count && boundaries[boundaryIndex] <= y) boundaryIndex++;
                 while (boundaryIndex < boundaries.Count && boundaries[boundaryIndex] < y + 1D) rowBoundaries.Add(boundaries[boundaryIndex++]);
                 rowBoundaries.Sort();
+                long rowWork = contourEdges * (rowBoundaries.Count - 1L);
+                if (rowWork > MaximumContourRowCrossingWork ||
+                    rowWork > MaximumContourCrossingWork - crossingWork) {
+                    throw new InvalidOperationException("Contour coverage work exceeds the rasterization limit.");
+                }
+                crossingWork += rowWork;
                 scanlines.Clear();
+                int retainedCrossings = 0;
                 for (int index = 1; index < rowBoundaries.Count; index++) {
                     double low = rowBoundaries[index - 1], high = rowBoundaries[index];
                     if (high <= low) continue;
@@ -70,7 +83,13 @@ public sealed partial class OfficeRasterCanvas {
                     AddContourCrossings(contours, (low + high) / 2D, crossings);
                     if (unionContours != null) AddContourCrossings(unionContours, (low + high) / 2D, crossings, true);
                     crossings.Sort(ContourCrossingComparer.Instance);
-                    if (crossings.Count >= 2) scanlines.Add((high - low, new List<ContourCrossing>(crossings)));
+                    if (crossings.Count >= 2) {
+                        if (crossings.Count > MaximumRetainedContourCrossings - retainedCrossings) {
+                            throw new InvalidOperationException("Contour coverage intersections exceed the rasterization limit.");
+                        }
+                        retainedCrossings += crossings.Count;
+                        scanlines.Add((high - low, new List<ContourCrossing>(crossings)));
+                    }
                 }
                 for (int tileLeft = left; tileLeft <= right; tileLeft += tileLength) {
                     int tileRight = Math.Min(right, tileLeft + tileLength - 1);

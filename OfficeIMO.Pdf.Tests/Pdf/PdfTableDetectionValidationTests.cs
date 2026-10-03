@@ -324,6 +324,18 @@ public sealed class PdfTableDetectionValidationTests {
     }
 
     [Fact]
+    public void TableDetector_DoesNotAllocateByDistanceBetweenCandidateColumns() {
+        List<List<TextLayoutEngine.TextLine>> bands = new() {
+            new() {
+                CreateLine(520D, ("Code", 50D, 40D, "Helvetica"), ("1", 200D, 20D, "Helvetica")),
+                CreateLine(500D, ("Item", 50D, 40D, "Helvetica"), ("2", 1_000_000_000D, 20D, "Helvetica"))
+            }
+        };
+
+        Assert.NotNull(TableDetector.DetectTablesFromBands(bands));
+    }
+
+    [Fact]
     public void TableDetector_RetainsSparseSignOffFormsWithSeveralBlankColumns() {
         List<List<TextLayoutEngine.TextLine>> bands = new() {
             new() { CreateLine(520D,
