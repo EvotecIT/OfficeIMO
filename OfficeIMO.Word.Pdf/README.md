@@ -100,6 +100,8 @@ Both system-font and document-font embedding must be allowed. This setting retai
 
 Positioned tables in ordinary document flow preserve page, margin, or text anchors, explicit offsets, and text clearances. Following paragraphs use the available space beside the table and return to full width below it. Headings, lists, images, and other structured blocks move below an intersecting table. Positioned tables in multi-column sections retain an approximation warning.
 
+Line spacing follows document defaults, table styles, paragraph styles and direct formatting. Automatic spacing uses the effective paragraph and run fonts after substitution or embedding; exact and minimum spacing retain their point values. An authored line value without a rule uses automatic spacing. Font substitution can still change line advances, and this mapping does not guarantee Word's first-baseline placement or pagination.
+
 ### Export to bytes or streams
 
 ```csharp

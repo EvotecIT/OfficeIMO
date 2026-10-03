@@ -423,35 +423,8 @@ namespace OfficeIMO.Word.Pdf {
                 styleDefaults,
                 tableStyleDefaults.RunStyle,
                 nativeFontMap);
-            if (paragraph.LineSpacing.HasValue && paragraph.LineSpacingRule == WordLineSpacingRule.Auto) {
-                return Math.Max(0.01D, naturalLineHeight * (paragraph.LineSpacing.Value / 240D));
-            }
-
-            if (paragraph.LineSpacingPoints.HasValue && fontSize > 0D) {
-                return ResolveNativeLineSpacingHeight(paragraph.LineSpacingPoints.Value, paragraph.LineSpacingRule, fontSize, naturalLineHeight);
-            }
-
-            if (styleDefaults.LineSpacingPoints.HasValue && fontSize > 0D) {
-                return ResolveNativeLineSpacingHeight(styleDefaults.LineSpacingPoints.Value, styleDefaults.LineSpacingRule, fontSize, naturalLineHeight);
-            }
-
-            if (styleDefaults.LineHeight.HasValue) {
-                return styleDefaults.LineHeight;
-            }
-
-            if (tableStyleDefaults.ParagraphLineSpacingPoints.HasValue && fontSize > 0D) {
-                return ResolveNativeLineSpacingHeight(
-                    tableStyleDefaults.ParagraphLineSpacingPoints.Value,
-                    tableStyleDefaults.ParagraphLineSpacingRule,
-                    fontSize,
-                    ResolveNativeWordSingleLineHeight(
-                        nativeFontMap,
-                        tableStyleDefaults.RunStyle.FontFamily,
-                        styleDefaults.FontFamily,
-                        nativeDefaults.FontFamily));
-            }
-
-            return tableStyleDefaults.ParagraphLineHeight;
+            return ResolveNativeParagraphLineSpacing(paragraph, styleDefaults, nativeDefaults, tableStyleDefaults.LineSpacing)
+                .Resolve(fontSize, naturalLineHeight) ?? tableStyleDefaults.ParagraphLineHeight;
         }
 
         private static double ResolveNativeTableCellParagraphFontSize(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeParagraphStyleDefaults styleDefaults, NativeTableStyleDefaults tableStyleDefaults) =>

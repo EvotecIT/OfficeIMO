@@ -42,6 +42,31 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ? ResolveDefaultThemeFont(scheme, selector) ?? name
                 : ResolveDefaultThemeFont(scheme, inheritedSelector) ?? inheritedName;
 
+        private static void MaterializeDocumentDefaultSpacing(Dictionary<string, Style> paragraphStyles, Styles? styles) {
+            SpacingBetweenLines? defaults = styles?.DocDefaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle?.SpacingBetweenLines;
+            if (defaults == null) return;
+            // DOC has no docDefaults record. Put the defaults on roots of the style
+            // hierarchy; derived styles continue to inherit their base's overrides.
+            foreach (string styleId in paragraphStyles.Keys.ToArray()) {
+                Style original = paragraphStyles[styleId];
+                string? baseId = original.BasedOn?.Val?.Value;
+                if (!string.IsNullOrWhiteSpace(baseId) && paragraphStyles.ContainsKey(baseId!)) continue;
+                Style style = (Style)original.CloneNode(true);
+                StyleParagraphProperties properties = style.StyleParagraphProperties ??= new StyleParagraphProperties();
+                SpacingBetweenLines spacing = properties.SpacingBetweenLines ??= new SpacingBetweenLines();
+                bool authoredLine = spacing.Line != null;
+                foreach (var attribute in defaults.GetAttributes()) {
+                    // An authored line without a rule means automatic spacing,
+                    // even when document defaults specify a fixed-height rule.
+                    if (attribute.LocalName == "lineRule" && authoredLine && spacing.LineRule == null) continue;
+                    if (!spacing.GetAttributes().Any(existing => existing.LocalName == attribute.LocalName && existing.NamespaceUri == attribute.NamespaceUri)) {
+                        spacing.SetAttribute(attribute);
+                    }
+                }
+                paragraphStyles[styleId] = style;
+            }
+        }
+
         private static string? ResolveDefaultThemeFont(A.FontScheme? scheme, ThemeFontValues? selector) {
             if (scheme == null || selector == null) return null;
             string? family = selector.Value switch {
