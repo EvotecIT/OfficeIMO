@@ -128,9 +128,8 @@ public sealed class OdpTableCell {
     }
     /// <summary>Decoded cell text.</summary>
     public string Text {
-        get => string.Join("\n", _element.Elements()
-            .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
-            .Select(OdfTextCodec.Read));
+        get => OdfTextCodec.ReadJoined(_element.Elements()
+            .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h"));
         set {
             if (IsCovered) throw new InvalidOperationException("Covered table cells cannot contain text.");
             EnsureMaterialized();

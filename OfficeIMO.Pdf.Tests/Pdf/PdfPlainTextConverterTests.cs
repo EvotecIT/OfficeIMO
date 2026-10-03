@@ -92,4 +92,33 @@ public sealed class PdfPlainTextConverterTests {
         });
         Assert.Throws<System.IO.InvalidDataException>(() => conversion.ToBytes());
     }
+
+    [Fact]
+    public void DenseSourceNewlinesStopDuringLayoutBeforeBuildingMillionsOfLines() {
+        string text = string.Concat(Enumerable.Repeat("x\n", 100_001));
+        var conversion = PdfPlainTextConverter.ToPdfDocumentResult(text,
+            new PdfPlainTextOptions { MaximumPages = 1 });
+
+        var error = Assert.Throws<System.IO.InvalidDataException>(() => conversion.ToBytes());
+        Assert.Contains("100,000", error.Message);
+    }
+
+    [Fact]
+    public void FormFeedsStopAtThePageLimitBeforeSplittingIntoPageStrings() {
+        var error = Assert.Throws<System.IO.InvalidDataException>(() =>
+            PdfPlainTextConverter.ToPdfDocumentResult(new string('\f', 100_001),
+                new PdfPlainTextOptions { MaximumPages = 2 }));
+        Assert.Contains("explicit page limit", error.Message);
+    }
+
+    [Fact]
+    public void PreservedWhitespaceCannotExpandIntoUnboundedBlankLines() {
+        PdfDocument document = PdfDocument.Create(new PdfOptions { PreserveTextWhitespace = true });
+        document.Paragraph(paragraph => paragraph.Runs(new[] {
+            new PdfTextRun(new string(' ', 100) + "VISIBLE", fontSize: 1_000_000_000D)
+        }));
+
+        var error = Assert.Throws<System.IO.InvalidDataException>(() => document.ToBytes());
+        Assert.Contains("100,000-line limit", error.Message);
+    }
 }

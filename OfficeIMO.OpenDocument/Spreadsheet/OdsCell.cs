@@ -305,19 +305,7 @@ public sealed class OdsCell {
     }
 
     private static string ReadDisplayText(XElement element) {
-        string? firstText = null;
-        StringBuilder? builder = null;
-        for (XNode? node = element.FirstNode; node != null; node = node.NextNode) {
-            if (!(node is XElement paragraph) || paragraph.Name != OdfNamespaces.Text + "p") continue;
-            string text = OdfTextCodec.Read(paragraph);
-            if (firstText == null) {
-                firstText = text;
-                continue;
-            }
-            if (builder == null) builder = new StringBuilder(firstText);
-            builder.Append('\n').Append(text);
-        }
-        return builder?.ToString() ?? firstText ?? string.Empty;
+        return OdfTextCodec.ReadJoined(element.Elements(OdfNamespaces.Text + "p"));
     }
 
     private void SetNumeric(string valueType, string lexical, string display) {

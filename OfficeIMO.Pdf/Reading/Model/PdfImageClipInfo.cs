@@ -5,6 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>Public snapshot of the effective clipping path applied to an image placement.</summary>
 public sealed class PdfImageClipInfo {
     internal PdfImageClipInfo(PdfPageClipPath path) {
+        OriginalPath = path;
         X = path.X;
         Y = path.Y;
         Width = path.Width;
@@ -15,6 +16,8 @@ public sealed class PdfImageClipInfo {
         ContainsTextClipping = path.ContainsTextClipping;
         Commands = Array.AsReadOnly(path.Commands.ToArray());
     }
+
+    internal PdfPageClipPath OriginalPath { get; }
 
     /// <summary>Left edge in transformed PDF user-space coordinates; crop origin, page rotation, and UserUnit are not normalized.</summary>
     public double X { get; }

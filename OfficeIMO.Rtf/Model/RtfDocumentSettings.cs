@@ -140,9 +140,11 @@ public sealed partial class RtfDocumentSettings {
         return this;
     }
 
-    /// <summary>Sets the document default alternate character count after Unicode escapes.</summary>
+    /// <summary>Sets the document default alternate character count after Unicode escapes (0 through 8).</summary>
     public RtfDocumentSettings SetUnicodeSkipCount(int count) {
-        if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), "Unicode skip count cannot be negative.");
+        if (count < 0 || count > RtfTextEncoding.MaxUnicodeFallbackCharacterCount)
+            throw new ArgumentOutOfRangeException(nameof(count),
+                $"Unicode skip count must be between 0 and {RtfTextEncoding.MaxUnicodeFallbackCharacterCount}.");
         UnicodeSkipCount = count;
         return this;
     }

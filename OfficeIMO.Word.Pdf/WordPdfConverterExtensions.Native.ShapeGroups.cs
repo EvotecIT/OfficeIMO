@@ -18,7 +18,7 @@ namespace OfficeIMO.Word.Pdf {
 
         /// <summary>Projects a group as one object, retaining its child coordinate system and paragraph anchor.</summary>
         private static void RenderNativeParagraphShapeGroups(INativePdfFlow pdf, WordParagraph paragraph,
-            IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, PdfCore.PdfParagraphStyle style) {
+            IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, WordToPdfOptions? options, PdfCore.PdfParagraphStyle style, ref int imageCount) {
             foreach (WordParagraph run in runs) {
                 foreach (W.Drawing drawing in run.EnumerateEffectiveRunContent().OfType<W.Drawing>()) {
                     OpenXmlElement? group = drawing.Descendants<A.GraphicData>().FirstOrDefault()?.ChildElements
@@ -56,6 +56,7 @@ namespace OfficeIMO.Word.Pdf {
                             WarnNativeGroup(options, "NativeShapeGroupUnsupported", "The shape group contains unsupported geometry or transforms and has no VML fallback.");
                             continue;
                         }
+                        CountNativeVmlGroupImages(fallback, options, ref imageCount);
                         (double cw, double ch) = GetNativeVmlCoordSize(fallback, scene.Width, scene.Height);
                         (double cx, double cy) = GetNativeVmlCoordOrigin(fallback);
                         var frame = new NativeVmlFrame(0D, 0D, scene.Width, scene.Height, cw, ch, cx, cy);
@@ -73,7 +74,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
                 foreach (V.Group legacy in run.EnumerateEffectiveRunContent().SelectMany(child => child.Descendants().Prepend(child))
                     .OfType<V.Group>().Where(group => !group.Ancestors<V.Group>().Any())) {
-                    RenderNativeLegacyBodyGroup(pdf, paragraph, legacy, options, style);
+                    RenderNativeLegacyBodyGroup(pdf, paragraph, legacy, options, style, ref imageCount);
                 }
             }
         }
@@ -88,7 +89,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void RenderNativeLegacyBodyGroup(INativePdfFlow pdf, WordParagraph paragraph, V.Group group,
-            WordToPdfOptions? options, PdfCore.PdfParagraphStyle style) {
+            WordToPdfOptions? options, PdfCore.PdfParagraphStyle style, ref int imageCount) {
             Dictionary<string, string> vmlStyle = ParseNativeVmlStyle(group.Style?.Value);
             if (IsNativeVmlHidden(group)) return;
             long zIndex = 0;
@@ -100,12 +101,24 @@ namespace OfficeIMO.Word.Pdf {
                 WarnNativeGroup(options, "NativeShapeGroupUnsupported", "The legacy shape group's anchor is outside the non-wrapping behind-text placement contract.");
                 return;
             }
+            CountNativeVmlGroupImages(group, options, ref imageCount);
             var frame = new NativeVmlFrame(0D, 0D, pdf.PageSize.Width, pdf.PageSize.Height,
                 pdf.PageSize.Width, pdf.PageSize.Height, 0D, 0D);
             var canvas = new PdfCore.PdfPageCanvas();
             if (RenderNativeVmlGroup(canvas, paragraph._document, group, frame, pdf.PageSize.Width, pdf.PageSize.Height))
                 AddNativeGroupCanvas(style, canvas, paragraphRelative: !pageY, zOrder: zIndex);
             else WarnNativeGroup(options, "NativeShapeGroupUnsupported", "The legacy shape group produced no visible content.");
+        }
+
+        private static void CountNativeVmlGroupImages(V.Group group, WordToPdfOptions? options, ref int imageCount) {
+            int imageLimit = options?.MaxImagesPerParagraph ?? 1_000;
+            if (imageLimit <= 0) throw new ArgumentOutOfRangeException(nameof(WordToPdfOptions.MaxImagesPerParagraph));
+            foreach (V.ImageData image in group.Descendants<V.ImageData>()) {
+                options?.CancellationToken.ThrowIfCancellationRequested();
+                if (image.Ancestors<V.Shape>().Any(IsNativeVmlHidden) || image.Ancestors<V.Group>().Any(IsNativeVmlHidden)) continue;
+                if (++imageCount > imageLimit)
+                    throw new InvalidDataException("Word paragraph image count exceeds the PDF export limit.");
+            }
         }
 
         private static void WarnNativeGroup(WordToPdfOptions? options, string code, string message) {

@@ -660,7 +660,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                                     && (!string.IsNullOrWhiteSpace(first.Name) || first.Date.HasValue);
                                 string commentText = cellRun.Annotations.Count == 1 && !preserveSingleMetadata
                                     ? first.Text
-                                    : string.Join("\n\n", cellRun.Annotations.Select(FormatAnnotationForExcel));
+                                    : OdfTextCodec.JoinBounded(cellRun.Annotations.Select(FormatAnnotationForExcel), "\n\n");
                                 sheet.SetComment(excelRow, excelColumn, commentText,
                                     string.IsNullOrWhiteSpace(first.Creator) ? "OfficeIMO" : first.Creator!);
                                 comments += cellRun.Annotations.Count;

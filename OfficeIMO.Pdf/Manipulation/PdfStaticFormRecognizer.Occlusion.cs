@@ -17,7 +17,9 @@ internal static partial class PdfStaticFormRecognizer {
     // establish that every required outline segment survives the later paint.
     private static bool HasLaterOutlinePaint(IReadOnlyList<PaintArea> filledAreas,
         IReadOnlyList<PdfPageVisualPrimitive> primitives, PdfLogicalPage page,
-        PdfPageVisualPrimitive outline, VisualRect candidate, CancellationToken cancellationToken) {
+        PdfPageVisualPrimitive outline, VisualRect candidate, ref long candidateScanWork,
+        int maxCandidateScanWork, PdfReadPage.VisualGeometryBudget geometryBudget,
+        CancellationToken cancellationToken) {
         double padding = Math.Max(0.5D, outline.StrokeWidth * Math.Sqrt(2D)) / 2D;
         VisualRect outer = outline.Kind == PdfPageVisualPrimitiveKind.Line
             ? new VisualRect(Math.Min(outline.X1, outline.X2) - padding,
@@ -55,13 +57,14 @@ internal static partial class PdfStaticFormRecognizer {
                     bounds = new VisualRect(Math.Max(bounds.Left, clipped.Left), Math.Max(bounds.Top, clipped.Top),
                         Math.Min(bounds.Right, clipped.Right), Math.Min(bounds.Bottom, clipped.Bottom));
                 }
-                if (placement.Clip is { IsRectangle: false, IsExact: true, ContainsTextClipping: false } path &&
-                    PdfPageClipPath.TryCreatePath(path.Commands, path.FillRule, out PdfPageClipPath exactClip)) {
+                if (!IntersectsOutline(bounds)) continue;
+                if (placement.Clip is { IsRectangle: false, IsExact: true, ContainsTextClipping: false } path) {
                     PdfPageRectangle user = page.MapVisualRectangleToUserSpace(outer.Left, outer.Top, outer.Right, outer.Bottom);
                     PdfPageClipPath outlineClip = PdfPageClipPath.Rectangle(user.Left, page.Height - user.Top, user.Width, user.Height);
-                    if (exactClip.CanProveNoPositiveAreaIntersection(outlineClip)) continue;
+                    if (ClipProvesSeparate(path.OriginalPath, outlineClip, ref candidateScanWork,
+                        maxCandidateScanWork, geometryBudget)) continue;
                 }
-                if (IntersectsOutline(bounds)) return true;
+                return true;
             }
         }
         return false;

@@ -353,31 +353,36 @@ internal sealed partial class OdfPackage {
         rootEntry.SetAttributeValue(OdfNamespaces.Manifest + "version", outputVersion.ToToken());
 
         var actualPaths = new HashSet<string>(_entries.Where(entry => !entry.IsRemoved).Select(entry => entry.Name), StringComparer.Ordinal);
+        var backedDirectories = new HashSet<string>(StringComparer.Ordinal);
+        foreach (string actualPath in actualPaths) {
+            for (int slash = actualPath.IndexOf('/'); slash >= 0; slash = actualPath.IndexOf('/', slash + 1)) {
+                backedDirectories.Add(actualPath.Substring(0, slash + 1));
+            }
+        }
         foreach (XElement fileEntry in fileEntries) {
             string? path = (string?)fileEntry.Attribute(OdfNamespaces.Manifest + "full-path");
             if (string.IsNullOrEmpty(path) || path == "/") continue;
             bool backedDirectory = path!.EndsWith("/", StringComparison.Ordinal) &&
-                actualPaths.Any(actual => actual.StartsWith(path, StringComparison.Ordinal));
+                backedDirectories.Contains(path);
             if (path == "mimetype" || path == "META-INF/manifest.xml" ||
                 !actualPaths.Contains(path) && !backedDirectory) {
                 fileEntry.Remove();
             }
         }
 
-        var listed = new HashSet<string>(root.Elements(OdfNamespaces.Manifest + "file-entry")
-            .Select(element => (string?)element.Attribute(OdfNamespaces.Manifest + "full-path"))
-            .Where(path => !string.IsNullOrEmpty(path))
-            .Select(path => path!), StringComparer.Ordinal);
+        var listed = new Dictionary<string, XElement>(StringComparer.Ordinal);
+        foreach (XElement fileEntry in root.Elements(OdfNamespaces.Manifest + "file-entry")) {
+            string? path = (string?)fileEntry.Attribute(OdfNamespaces.Manifest + "full-path");
+            if (!string.IsNullOrEmpty(path) && !listed.ContainsKey(path!)) listed.Add(path!, fileEntry);
+        }
         foreach (OdfPackageEntry entry in _entries.Where(entry => !entry.IsRemoved && entry.Name != "mimetype" && entry.Name != "META-INF/manifest.xml")) {
             if (entry.Name.StartsWith("META-INF/", StringComparison.Ordinal)) continue;
-            if (listed.Add(entry.Name)) {
-                root.Add(OdfPackageTemplates.FileEntry(entry.Name, entry.MediaType ?? GuessMediaType(entry.Name), null));
-            } else {
-                XElement existing = root.Elements(OdfNamespaces.Manifest + "file-entry")
-                    .First(element => (string?)element.Attribute(OdfNamespaces.Manifest + "full-path") == entry.Name);
-                if (!string.IsNullOrEmpty(entry.MediaType)) {
-                    existing.SetAttributeValue(OdfNamespaces.Manifest + "media-type", entry.MediaType);
-                }
+            if (!listed.TryGetValue(entry.Name, out XElement? existing)) {
+                existing = OdfPackageTemplates.FileEntry(entry.Name, entry.MediaType ?? GuessMediaType(entry.Name), null);
+                root.Add(existing);
+                listed.Add(entry.Name, existing);
+            } else if (!string.IsNullOrEmpty(entry.MediaType)) {
+                existing.SetAttributeValue(OdfNamespaces.Manifest + "media-type", entry.MediaType);
             }
         }
         manifestEntry.MarkDirty();

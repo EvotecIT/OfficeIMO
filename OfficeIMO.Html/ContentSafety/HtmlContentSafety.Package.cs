@@ -242,8 +242,9 @@ public static partial class HtmlContentSafety {
                 "Package content-safety inspection does not support conflicting preferred stylesheet sets: "
                 + string.Join(", ", titledStylesheetSets));
         }
+        string? preferredSet = titledStylesheetSets.FirstOrDefault();
         foreach (IElement style in document.QuerySelectorAll("style")) {
-            if (!HtmlRenderStylesheetApplier.IsApplicableStyleElement(style, renderOptions)) continue;
+            if (!HtmlRenderStylesheetApplier.IsApplicableStyleElement(style, renderOptions, preferredSet)) continue;
             cssBudget.ReserveOrThrow(style.TextContent ?? string.Empty);
         }
         var resourceOptions = new HtmlResourcePipelineOptions {
@@ -368,8 +369,9 @@ public static partial class HtmlContentSafety {
             }
             if (!string.IsNullOrWhiteSpace(media)) hasEnvironmentDependentComputedStyles = true;
         }
+        string? preferredSet = HtmlRenderStylesheetApplier.FindPreferredStylesheetSet(document, renderOptions);
         foreach (IElement style in document.QuerySelectorAll("style")) {
-            if (!HtmlRenderStylesheetApplier.IsApplicableStyleElement(style, renderOptions)) continue;
+            if (!HtmlRenderStylesheetApplier.IsApplicableStyleElement(style, renderOptions, preferredSet)) continue;
             string css = style.TextContent ?? string.Empty;
             ThrowForUnsafeStylesheetConditions(css, documentBaseUri, resourceOptions);
             hasEnvironmentDependentComputedStyles |= HtmlResourcePipeline.HasEnvironmentDependentComputedStyle(css);

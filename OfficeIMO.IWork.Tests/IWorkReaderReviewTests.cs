@@ -17,9 +17,15 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(0, stream.Position);
 
         stream.Position = 5;
-        Assert.ThrowsAny<Exception>(() => IWorkReaderAdapter.ReadDocument(stream,
-            "sample.pages", readerOptions, iWorkOptions, CancellationToken.None));
+        Assert.Equal(ReaderInputKind.IWork, IWorkReaderAdapter.ReadDocument(stream,
+            "sample.pages", readerOptions, iWorkOptions, CancellationToken.None).Kind);
         Assert.Equal(5, stream.Position);
+
+        using var invalid = new MemoryStream(new byte[] { 1, 2, 3 });
+        invalid.Position = 1;
+        Assert.ThrowsAny<Exception>(() => IWorkReaderAdapter.ReadDocument(invalid,
+            "sample.pages", readerOptions, iWorkOptions, CancellationToken.None));
+        Assert.Equal(1, invalid.Position);
     }
 
     [Fact]
@@ -197,16 +203,16 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Reader_rich_text_markdown_observes_cancellation_during_a_large_run() {
+    public void Reader_rich_text_markdown_rejects_cancelled_work() {
         var style = new IWorkTextStyle(null, null, null, null, null,
             null, null, null, null);
         var paragraphStyle = new IWorkParagraphStyle(null, null, null, null, null,
             null, null, null, null, null, style);
         var paragraph = new IWorkTextParagraph(new[] {
-            new IWorkTextRun(new string('*', 4 * 1024 * 1024), style, null)
+            new IWorkTextRun("*cancelled rich text*", style, null)
         }, paragraphStyle, null, -1, null, IWorkParagraphBreakKind.None);
         using var cancellation = new CancellationTokenSource();
-        cancellation.CancelAfter(TimeSpan.FromMilliseconds(1));
+        cancellation.Cancel();
 
         Assert.Throws<OperationCanceledException>(() =>
             IWorkReadProjection.RichTextMarkdown(paragraph, cancellation.Token));

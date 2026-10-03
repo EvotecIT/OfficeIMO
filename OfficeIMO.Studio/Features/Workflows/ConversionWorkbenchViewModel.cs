@@ -44,7 +44,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         _runner = runner ?? OfficeIMO.Workflows.IWork.IWorkWorkflow.CreateRunner();
         _publicationGuard = publicationGuard;
         _localizer = localizer ?? StudioLocalization.Current;
-        BatchExport = new PdfBatchExportViewModel(pickOutputFolder, publicationGuard, () => IsBusy, _localizer);
+        BatchExport = new PdfBatchExportViewModel(pickOutputFolder, publicationGuard, () => IsBusy, _localizer, _runner, jobHistory);
         BatchExport.PropertyChanged += (_, change) => {
             if (change.PropertyName == nameof(PdfBatchExportViewModel.Status)) Status = BatchExport.Status;
             if (change.PropertyName == nameof(PdfBatchExportViewModel.IsBusy)) {

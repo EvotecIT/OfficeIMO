@@ -78,13 +78,17 @@ public static partial class WordIWorkConverter {
                     lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission)
             }).ToArray();
         }
+        if (editable && settings.FindUnacceptedDestinationOmission(destinationDiagnostics) is { } omission) {
+            destinationLimitation = omission;
+            editable = false;
+        }
         if (editable && settings.AllowPartialEditableReconstruction &&
             (!projection.HasEditableContent || destinationDiagnostics.Count > 0 || projection.Diagnostics.Any(diagnostic =>
                 diagnostic.Severity != IWorkDiagnosticSeverity.Information))) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_PARTIAL_EDITABLE_RECONSTRUCTION",
-                    "Recovered editable content was retained under the explicit partial-reconstruction policy; source diagnostics describe incomplete details.")
+                    "Recovered editable content was retained under the explicit partial-reconstruction policy; source and destination diagnostics describe incomplete details.")
             }).ToArray();
         }
         if (!editable && mode == IWorkConversionMode.EditableOnly) {
