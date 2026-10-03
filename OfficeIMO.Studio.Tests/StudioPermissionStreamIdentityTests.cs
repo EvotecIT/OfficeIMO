@@ -27,12 +27,20 @@ public sealed class StudioPermissionStreamIdentityTests {
                 opened = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
                 handle = opened.SafeFileHandle;
                 Stream scoped = WrapActualPermissionStream(opened);
-                if (replace) {
-                    string other = Path.Combine(root.Path, "replacement.pdf");
-                    File.WriteAllBytes(other, replacement);
-                    File.Move(other, path, overwrite: true);
+                try {
+                    if (replace) {
+                        string other = Path.Combine(root.Path, "replacement.pdf");
+                        File.WriteAllBytes(other, replacement);
+                        // Retain the open file under another name so replacing
+                        // its path reaches the identity check on each platform.
+                        File.Move(path, Path.Combine(root.Path, "opened.pdf"));
+                        File.Move(other, path);
+                    }
+                    return Task.FromResult(scoped);
+                } catch {
+                    scoped.Dispose();
+                    throw;
                 }
-                return Task.FromResult(scoped);
             }
         };
         string location = await storage.RegisterAsync(file.Item, default);
