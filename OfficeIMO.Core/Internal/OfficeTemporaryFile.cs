@@ -49,7 +49,7 @@ namespace OfficeIMO.Core.Internal {
         }
 
         internal static FileStream CreateUnixOwnerOnly(string path, int bufferSize, FileOptions options) {
-            int descriptor = OpenFile(path, GetExclusiveCreateFlags(), 0x180U);
+            int descriptor = OfficeUnixFile.Open(path, GetExclusiveCreateFlags(), 0x180U);
             if (descriptor < 0) {
                 throw new IOException(
                     "Unable to create an owner-only temporary file (OS error "
@@ -211,9 +211,6 @@ namespace OfficeIMO.Core.Internal {
         private static void TryDelete(string path) {
             try { File.Delete(path); } catch (IOException) { } catch (UnauthorizedAccessException) { }
         }
-
-        [DllImport("libc", EntryPoint = "open", SetLastError = true)]
-        private static extern int OpenFile(string path, int flags, uint mode);
 
         [DllImport("libc", EntryPoint = "chmod", SetLastError = true)]
         private static extern int ChangeFileMode(string path, uint mode);

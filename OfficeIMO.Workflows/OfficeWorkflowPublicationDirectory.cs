@@ -1,4 +1,5 @@
 using Microsoft.Win32.SafeHandles;
+using OfficeIMO.Core.Internal;
 using System.Runtime.InteropServices;
 
 namespace OfficeIMO.Workflows;
@@ -40,7 +41,7 @@ internal sealed class OfficeWorkflowPublicationDirectory : IDisposable {
             stream.Flush(flushToDisk: true);
             return;
         }
-        int descriptor = UnixOpenAt(UnixFd, name, UnixWriteOnly | UnixCreate | UnixExclusive |
+        int descriptor = OfficeUnixFile.OpenAt(UnixFd, name, UnixWriteOnly | UnixCreate | UnixExclusive |
             UnixNoFollow | UnixCloseOnExec, 384); // 0600
         if (descriptor < 0) throw UnixError("create", name);
         using var handle = new SafeFileHandle(new IntPtr(descriptor), ownsHandle: true);
@@ -128,12 +129,12 @@ internal sealed class OfficeWorkflowPublicationDirectory : IDisposable {
                 foreach (string segment in relative.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)) {
                     ValidateName(segment);
                     int parent = checked((int)current.DangerousGetHandle().ToInt64());
-                    int child = UnixOpenAt(parent, segment, flags, 0);
+                    int child = OfficeUnixFile.OpenAt(parent, segment, flags, 0);
                     if (child < 0 && Marshal.GetLastWin32Error() == ErrorNoEntry) {
                         if (UnixMkdirAt(parent, segment, 493) != 0 &&
                             Marshal.GetLastWin32Error() != ErrorAlreadyExists)
                             throw UnixError("create directory", segment);
-                        child = UnixOpenAt(parent, segment, flags, 0);
+                        child = OfficeUnixFile.OpenAt(parent, segment, flags, 0);
                     }
                     if (child < 0) throw UnixError("open directory", segment);
                     current.Dispose();
@@ -216,8 +217,6 @@ internal sealed class OfficeWorkflowPublicationDirectory : IDisposable {
 
     [DllImport("libc", EntryPoint = "open", SetLastError = true, CharSet = CharSet.Ansi)]
     private static extern int UnixOpen(string path, int flags, uint mode);
-    [DllImport("libc", EntryPoint = "openat", SetLastError = true, CharSet = CharSet.Ansi)]
-    private static extern int UnixOpenAt(int directory, string path, int flags, uint mode);
     [DllImport("libc", EntryPoint = "mkdirat", SetLastError = true, CharSet = CharSet.Ansi)]
     private static extern int UnixMkdirAt(int directory, string path, uint mode);
     [DllImport("libc", EntryPoint = "renameat2", SetLastError = true, CharSet = CharSet.Ansi)]
