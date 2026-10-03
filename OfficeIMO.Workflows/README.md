@@ -45,6 +45,53 @@ var html = await OfficeWorkflow.ConvertFiles("report.pdf", "appendix.pdf")
 
 Ordinary batches support the existing `Fail`, `Rename` and `Replace` conflict policies. Directory discovery is incremental and skips filesystem links. Outputs retain the full relative source filename plus the target extension, so `report.doc` and `report.docx` have distinct PDF names. Explicit files retain relative paths when `InputDirectory` supplies their common root; otherwise they use their filenames, and destination collisions follow the selected policy.
 
+## Book publishing
+
+`BookManuscriptImporter` composes the owning Word, Markdown, HTML and EPUB libraries.
+It imports `.docx`, `.md`, `.markdown`, `.html` and `.htm` manuscripts into reflowable
+books, retaining each conversion stage's fidelity categories. Word uses its static
+final revision view: comments are omitted, fields use their stored visible results,
+and live controls are outside the book contract. Notes and supported semantic content
+remain in the publication. Markdown front matter supplies title, language and author.
+
+```csharp
+using OfficeIMO.Epub;
+using OfficeIMO.Workflows;
+
+var imported = await BookManuscriptImporter.ImportFileAsync("manuscript.md",
+    new EpubManuscriptOptions { ChapterHeadingLevel = 1 });
+BookProject project = BookProject.FromImport(imported);
+imported.Report.RequireNoLoss();
+project.RenameChapter(0, "Opening chapter");
+project.SetStylesheet("body{font-family:serif;line-height:1.6}");
+await File.WriteAllBytesAsync("book.oibook", project.ToProjectBytes());
+BookProject reopened = BookProject.LoadProject(await File.ReadAllBytesAsync("book.oibook"));
+await File.WriteAllBytesAsync("book.epub", reopened.Export().Bytes);
+```
+
+The file route allows at most 64 MiB of manuscript input and resolves assets only
+inside the manuscript's physical parent directory. It rejects executable Word
+package parts. `ImportBytesAsync` consumes a host-owned snapshot and does not read
+files implicitly; a host may supply a permission-aware resource resolver and base URI.
+Typed `ImportWordAsync` and `ImportMarkdownAsync` reuse an already loaded source.
+
+`BookProject` owns validated edits: metadata, chapter insertion/removal/reordering,
+chapter titles and XHTML bodies, a project stylesheet, and cover selection.
+`ApplyEdits` commits a complete editor draft atomically. Invalid or cancelled edits
+retain the previous publication. Deleting a linked chapter requires repairing its
+remaining links first. A blank creator retains the current creator. Package edits
+have one bounded session-only undo/redo step; the history is not saved in the project.
+`PreviewChapter` renders through `OfficeIMO.Epub.Image` using retained package assets.
+
+The `.oibook` container stores `publication.epub` and a versioned review record, with
+physical ZIP validation and byte/count limits. Loading never extracts files.
+Projects may retain non-fatal review findings until the author acknowledges them;
+failure diagnostics cannot be accepted as export-ready. Every EPUB export still runs
+the native writer's validation. Project review records are user-owned state, not an
+authenticity certificate. Project instances are mutable and not thread-safe.
+Hosts own destination permissions, conflict handling and safe publication; Studio
+uses its existing verified storage owner for those operations.
+
 ## Optional checkpoints
 
 Add `.WithCheckpoint("PDF-State")` to the builder, or set `CheckpointDirectory` on `OfficeConversionBatchRequest`, for restartable execution. Source, output and checkpoint trees must be separate local folders. For selected HTML files and Markdown files with local resources enabled, output and checkpoint folders must also be outside each file's resource tree, including an explicit Markdown `BaseDirectory`. Checkpoint jobs require `Fail`: recorded completed artifacts are immutable and verified by source, rendering-settings, local-resource and output hashes before reuse.

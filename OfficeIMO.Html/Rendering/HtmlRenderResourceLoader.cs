@@ -375,6 +375,8 @@ public sealed class HtmlResourceSession {
     private static bool IsAcceptedContentType(HtmlResourceKind kind, string contentType) {
         string normalized = contentType.Split(';')[0].Trim();
         if (kind == HtmlResourceKind.Image) return normalized.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+        if (kind == HtmlResourceKind.Media) return normalized.StartsWith("audio/", StringComparison.OrdinalIgnoreCase) ||
+            normalized.StartsWith("video/", StringComparison.OrdinalIgnoreCase) || string.Equals(normalized, "text/vtt", StringComparison.OrdinalIgnoreCase);
         if (kind == HtmlResourceKind.Font) {
             return normalized.StartsWith("font/", StringComparison.OrdinalIgnoreCase)
                 || normalized.StartsWith("application/font-", StringComparison.OrdinalIgnoreCase)
@@ -509,6 +511,23 @@ internal static class HtmlRenderResourceLoader {
                 await resolver(request, token).ConfigureAwait(false)));
     }
 
+    internal static Task<HtmlResourceSession> LoadArchiveAsync(HtmlResourceManifest manifest, HtmlRenderOptions options,
+        HtmlDiagnosticReport diagnostics, HtmlConversionLimits limits, CancellationToken cancellationToken) {
+        var session = new HtmlResourceSession(options, diagnostics);
+        return LoadCoreAsync(manifest, options, session, limits, cancellationToken, cssBudget: new HtmlCssByteBudget(limits),
+            markAttemptedBeforeResolve: true, archiveResources: true, resolver: async (request, token) => {
+                token.ThrowIfCancellationRequested();
+                if (HtmlDataUri.TryParse(request.Uri.OriginalString, out HtmlDataUri data)) {
+                    if (data.EstimateDecodedByteCount() > session.MaxResourceBytes)
+                        throw new HtmlRenderResourceByteLimitException(data.EstimateDecodedByteCount());
+                    if (data.EstimateDecodedByteCount() > session.MaxTotalResourceBytes - session.AcceptedResourceBytes)
+                        throw new HtmlRenderTotalResourceByteLimitException(data.EstimateDecodedByteCount());
+                    return new ResourceResolution(true, new HtmlResolvedResource(data.DecodeBytes(), data.MediaType));
+                }
+                return new ResourceResolution(true, session.Resolver == null ? null : await session.Resolver(request, token).ConfigureAwait(false));
+            });
+    }
+
     private static async Task<HtmlResourceSession> LoadCoreAsync(
         HtmlResourceManifest manifest,
         HtmlRenderOptions options,
@@ -517,7 +536,8 @@ internal static class HtmlRenderResourceLoader {
         CancellationToken cancellationToken,
         HtmlCssByteBudget? cssBudget,
         bool markAttemptedBeforeResolve,
-        ResourceResolver resolver) {
+        ResourceResolver resolver,
+        bool archiveResources = false) {
         HtmlDiagnosticReport diagnostics = result.Diagnostics;
         var seen = new HashSet<string>(HtmlResourceSeenKeyComparer.Instance);
         var pending = new Queue<PendingResource>();
@@ -548,8 +568,8 @@ internal static class HtmlRenderResourceLoader {
             while (tasks.Count < batchCapacity && pending.Count > 0) {
                 PendingResource pendingResource = pending.Dequeue();
                 HtmlResourceReference reference = pendingResource.Reference;
-                if (!reference.IsAllowed || !IsLoadableKind(reference.Kind) || reference.ResolvedSource.Length == 0) continue;
-                if (reference.ResolvedSource.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) continue;
+                if (!reference.IsAllowed || !(IsLoadableKind(reference.Kind) || archiveResources && reference.Kind == HtmlResourceKind.Media) || reference.ResolvedSource.Length == 0) continue;
+                if (!archiveResources && reference.ResolvedSource.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) continue;
                 if (!seen.Add(GetSeenKey(reference.Kind, reference.ResolvedSource))) continue;
                 if (!result.TryReserveRequest(reference)) {
                     stop = true;
@@ -638,6 +658,16 @@ internal static class HtmlRenderResourceLoader {
                 }
                 seen.Add(GetSeenKey(reference.Kind, resourceUri.AbsoluteUri));
                 if (alreadyAccepted) continue;
+                if (archiveResources && reference.Kind == HtmlResourceKind.Image &&
+                    resource.ContentType.Split(';')[0].Trim().Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
+                    try {
+                        foreach (var dependency in HtmlResourcePipeline.BuildSvgArchiveManifest(resource.EncodedBytes, resourceUri, resourceOptions).Resources)
+                            pending.Enqueue(new PendingResource(dependency, pendingResource.ImportDepth));
+                    } catch (Exception error) when (error is System.Xml.XmlException || error is InvalidDataException || error is ArgumentException) {
+                        diagnostics.Add("OfficeIMO.Html.Archive", "HTML_ARCHIVE_SVG_INVALID", error.Message,
+                            HtmlDiagnosticSeverity.Error, reference.Source, null, OfficeConversionLossKind.Failure);
+                    }
+                }
                 if (reference.Kind == HtmlResourceKind.Stylesheet
                     && HtmlRenderStylesheetText.TryDecode(resource.EncodedBytes, resource.ContentType, out string css)) {
                     if (cssBudget != null
@@ -654,7 +684,8 @@ internal static class HtmlRenderResourceLoader {
                         pendingResource.ImportDepth,
                         resourceOptions,
                         result.MaxStylesheetImportDepth,
-                        diagnostics);
+                        diagnostics,
+                        archiveResources);
                 }
             }
         }
@@ -689,8 +720,9 @@ internal static class HtmlRenderResourceLoader {
         int importDepth,
         HtmlResourcePipelineOptions resourceOptions,
         int maxStylesheetImportDepth,
-        HtmlDiagnosticReport diagnostics) {
-        HtmlExternalStylesheetAnalysis analysis = HtmlResourcePipeline.AnalyzeExternalStylesheet(css, stylesheetUri, resourceOptions);
+        HtmlDiagnosticReport diagnostics,
+        bool archiveResources = false) {
+        HtmlExternalStylesheetAnalysis analysis = HtmlResourcePipeline.AnalyzeExternalStylesheet(css, stylesheetUri, resourceOptions, includeInactiveResources: archiveResources);
         foreach (HtmlResourceReference imageResource in analysis.ImageResources) {
             if (imageResource.IsAllowed) {
                 pending.Enqueue(new PendingResource(imageResource, importDepth));
@@ -720,7 +752,7 @@ internal static class HtmlRenderResourceLoader {
         }
 
         foreach (HtmlExternalStylesheetImport import in analysis.Imports) {
-            if (!import.IsApplicable) {
+            if (!archiveResources && !import.IsApplicable) {
                 continue;
             }
 

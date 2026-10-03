@@ -78,6 +78,16 @@ public sealed partial class EpubPublication {
         ValidateNavigationDocument(navigation, navPath, manifest, spine.Select(item => (string?)item.Attribute("idref") ?? string.Empty));
         var anchors = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
         var fragmented = new List<(string Owner, EpubReference Reference)>();
+        bool resourcesRemoved = _originalEntries.Keys.Any(path => !entries.ContainsKey(path));
+        string[] changedStylesheets = manifest.Where(item => HasMediaType(item.MediaType, "text/css") && item.Reference.Kind == EpubReferenceKind.Container)
+            .Select(item => item.Reference.ContainerPath!).Where(path => resourcesRemoved ||
+                !_originalEntries.TryGetValue(path, out byte[]? prior) || !prior.SequenceEqual(entries[path])).ToArray();
+        var stylesheetResults = new Dictionary<string, bool>(StringComparer.Ordinal);
+        bool CheckStylesheet(string path) {
+            if (!stylesheetResults.TryGetValue(path, out bool remote)) stylesheetResults[path] = remote = ValidateStylesheetClosure(path, entries, manifest, token);
+            return remote;
+        }
+        foreach (string path in changedStylesheets) CheckStylesheet(path);
         foreach (EpubManifestItem item in manifest.Where(item => item.Reference.Kind == EpubReferenceKind.Container &&
             (HasMediaType(item.MediaType, "application/xhtml+xml") || HasMediaType(item.MediaType, "image/svg+xml") || HasMediaType(item.MediaType, "application/x-dtbncx+xml")))) {
             token.ThrowIfCancellationRequested();
@@ -88,7 +98,7 @@ public sealed partial class EpubPublication {
                 attribute.Name == XNamespace.Xml + "id").Select(attribute => attribute.Value), StringComparer.Ordinal);
             bool rewritten = !_originalEntries.TryGetValue(path, out byte[]? original) || !original.SequenceEqual(entries[path]) ||
                 !HasMediaType(OriginalManifestItem(item.Id)?.MediaType, item.MediaType);
-            if (rewritten && !HasMediaType(item.MediaType, "application/x-dtbncx+xml")) {
+            if ((rewritten || changedStylesheets.Length != 0) && !HasMediaType(item.MediaType, "application/x-dtbncx+xml")) {
                 ValidateContent(content, item.MediaType);
                 string analysisContent = content.ToString(SaveOptions.DisableFormatting);
                 var limits = OfficeIMO.Html.HtmlConversionLimits.CreateUntrustedProfile();
@@ -97,7 +107,7 @@ public sealed partial class EpubPublication {
                 var resources = OfficeIMO.Html.HtmlResourcePipeline.BuildManifest(analysisContent,
                     new OfficeIMO.Html.HtmlResourcePipelineOptions { Limits = limits });
                 if (resources.Resources.Any(resource => !resource.IsAllowed)) throw new NotSupportedException("Authored content contains a URL blocked by the shared HTML policy.");
-                bool hasRemoteResources = ValidateAuthoredResources(content, path, resources, manifest, token);
+                bool hasRemoteResources = ValidateAuthoredResources(content, path, resources, manifest, token, CheckStylesheet);
                 if (PackageVersion == "3.0") UpdateContentProperties(item, content, hasRemoteResources);
             }
             ValidateContentReferences(content, path, entries, fragmented, token);
