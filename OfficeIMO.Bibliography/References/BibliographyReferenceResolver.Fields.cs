@@ -127,20 +127,40 @@ internal sealed partial class BibliographyReferenceResolver {
 
     private void MergeNativeFields(Reference reference, bool overwrite, bool containerTitle) {
         BibliographyItem child = _items[reference.Child], parent = _items[reference.Parent];
+        var groups = new List<IGrouping<string, BibliographyNativeField>>();
         foreach (IGrouping<string, BibliographyNativeField> group in parent.NativeFields.GroupBy(NativeKey, StringComparer.Ordinal)) {
             _cancellationToken.ThrowIfCancellationRequested();
             BibliographyNativeField first = group.First();
             if (IsBib(first.Format) && (ControlFields.Contains(first.Name) || containerTitle &&
                 (first.Name.Equals("shorttitle", StringComparison.OrdinalIgnoreCase) || first.Name.Equals("sorttitle", StringComparison.OrdinalIgnoreCase) ||
                  first.Name.Equals("indextitle", StringComparison.OrdinalIgnoreCase) || first.Name.Equals("indexsorttitle", StringComparison.OrdinalIgnoreCase)))) continue;
-            if (!overwrite && child.NativeFields.Any(field => NativeKey(field) == group.Key)) continue;
-            for (int index = child.NativeFields.Count - 1; index >= 0; index--) {
+            groups.Add(group);
+        }
+
+        var childKeys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (BibliographyNativeField field in child.NativeFields) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            childKeys.Add(NativeKey(field));
+        }
+
+        if (overwrite) {
+            var replacedKeys = new HashSet<string>(groups.Select(group => group.Key), StringComparer.Ordinal);
+            int retained = 0;
+            for (int index = 0; index < child.NativeFields.Count; index++) {
                 _cancellationToken.ThrowIfCancellationRequested();
                 BibliographyNativeField field = child.NativeFields[index];
-                if (NativeKey(field) != group.Key) continue;
-                if (ReferenceEquals(child.NbibTypeBinding, field)) child.NbibTypeBinding = null;
-                child.NativeFields.RemoveAt(index);
+                if (replacedKeys.Contains(NativeKey(field))) {
+                    if (ReferenceEquals(child.NbibTypeBinding, field)) child.NbibTypeBinding = null;
+                    continue;
+                }
+                child.NativeFields[retained++] = field;
             }
+            while (child.NativeFields.Count > retained) child.NativeFields.RemoveAt(child.NativeFields.Count - 1);
+        }
+
+        foreach (IGrouping<string, BibliographyNativeField> group in groups) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            if (!overwrite && childKeys.Contains(group.Key)) continue;
             foreach (BibliographyNativeField field in group) child.NativeFields.Add(_copy.Field(field));
             string name = "native." + group.Key;
             Record(reference, name, name);
