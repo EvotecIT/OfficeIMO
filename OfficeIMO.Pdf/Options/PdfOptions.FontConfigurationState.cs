@@ -60,6 +60,7 @@ public sealed partial class PdfOptions {
                     ?? new Dictionary<PdfStandardFont, PdfEmbeddedFont>())
                 .OrderBy(entry => entry.Key)) {
                 AddInt64((int)entry.Key);
+                AddByte(_fallbackOwnedFontFamilies?.Contains(PdfStandardFontMapper.GetFontFamily(entry.Key)) == true ? (byte)1 : (byte)0);
                 AddString(entry.Value.FontName);
                 AddBytes(entry.Value.DataSnapshot);
                 AddByte(entry.Value.SyntheticOblique ? (byte)1 : (byte)0);

@@ -40,6 +40,12 @@ internal static partial class PdfWriter {
             PdfTextRun run = source[index];
             System.Collections.Generic.IReadOnlyList<PdfTextRun>? expansion = ResolveRunFallbackExpansion(run, baseFont, options);
             if (expansion == null) {
+                if (options != null && run.InlineElement == null && !string.IsNullOrEmpty(run.Text)
+                    && !options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out _)) {
+                    // Later runs share the same font resource slots. Protect a
+                    // directly selected face before planning their fallbacks.
+                    options.MarkEmbeddedFallbackFontFamilySlotUsed(ResolveFontForRun(run, baseFont));
+                }
                 normalized?.Add(run);
                 continue;
             }
@@ -336,12 +342,15 @@ internal static partial class PdfWriter {
             return true;
         }
 
+        if (options.HasCallerOwnedEmbeddedFontFamily(family)) return false;
+        if (options.IsEmbeddedFallbackFontFamilySlotUsed(family))
+            return options.IsRegisteredFallbackFontFamily(family, candidate);
+
         foreach (PdfStandardFont variant in EnumerateFontFamilyVariants(family)) {
             if (options.TryGetEmbeddedStandardFont(variant, out PdfEmbeddedFont? embeddedFont) &&
                 embeddedFont != null &&
                 !embeddedFont.DataSnapshot.SequenceEqual(candidate.DataSnapshot) &&
-                (options.IsEmbeddedFallbackFontFamilySlotUsed(family) ||
-                 !EmbeddedFontMatchesUnusedFallbackCandidate(embeddedFont, fallbackSet, plannedCandidateIndexes))) {
+                !EmbeddedFontMatchesUnusedFallbackCandidate(embeddedFont, fallbackSet, plannedCandidateIndexes)) {
                 return false;
             }
         }

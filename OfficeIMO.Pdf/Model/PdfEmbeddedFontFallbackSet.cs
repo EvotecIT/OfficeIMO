@@ -97,14 +97,12 @@ public sealed class PdfEmbeddedFontFallbackSet {
     // Registration may fill vacant compatibility slots, but a caller-selected family
     // retains ownership. The writer chooses an available replacement slot for actual
     // fallback segments; explicit RegisterFonts still installs the supplied mapping.
-    internal void RegisterUnoccupiedFontSlots(PdfOptions options, PdfEmbeddedFontFallbackSet? previous) {
+    internal void RegisterUnoccupiedFontSlots(PdfOptions options) {
         for (int index = 0; index < _candidates.Count; index++) {
             PdfStandardFont family = _fontSlots[index];
             bool occupied = options.EmbeddedFonts.Keys.Any(font =>
                 PdfStandardFontMapper.GetFontFamily(font) == family);
-            bool previousFallbackOwnsFamily = previous != null && !previous.UsesNamedFontFamilies
-                && previous.Candidates.Any(candidate => options.IsRegisteredFallbackFontFamily(family, candidate));
-            if (!occupied || previousFallbackOwnsFamily) {
+            if (!occupied) {
                 PdfEmbeddedFontFallbackCandidate candidate = _candidates[index];
                 options.RegisterFallbackFontFamily(family, candidate.FontName, candidate.DataSnapshot);
             }
