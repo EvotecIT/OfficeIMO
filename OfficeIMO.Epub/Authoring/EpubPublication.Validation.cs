@@ -144,6 +144,10 @@ public sealed partial class EpubPublication {
             }
             if (element.Name.Namespace == Html) foreach (var candidate in OfficeIMO.Html.HtmlSrcSetParser.Enumerate((string?)element.Attribute("srcset")))
                 yield return EpubReference.Resolve(owner, baseHref, candidate.Url);
+            if (element.Name == Html + "link" && Tokens((string?)element.Attribute("rel")).Any(value => string.Equals(value, "preload", StringComparison.OrdinalIgnoreCase)) &&
+                OfficeIMO.Html.HtmlResourcePipeline.GetLinkResourceKind((string?)element.Attribute("rel"), (string?)element.Attribute("as")) == OfficeIMO.Html.HtmlResourceKind.Image)
+                foreach (var candidate in OfficeIMO.Html.HtmlSrcSetParser.Enumerate((string?)element.Attribute("imagesrcset")))
+                    yield return EpubReference.Resolve(owner, baseHref, candidate.Url);
         }
     }
 

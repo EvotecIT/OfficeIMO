@@ -69,6 +69,7 @@ public sealed class EpubWriterContentClassificationContracts {
     [InlineData("print-style")]
     [InlineData("alternate-style")]
     [InlineData("base")]
+    [InlineData("preload")]
     public void RemoteDeclarations_IncludeUnselectedResourceAlternatives(string route) {
         EpubPublication book = EpubWritingContracts.CreateBook();
         XDocument content = book.GetContentXml("first");
@@ -83,6 +84,10 @@ public sealed class EpubWriterContentClassificationContracts {
             body.Add(new XElement(Html + "picture", new XElement(Html + "source", new XAttribute("srcset", "image.bin")),
                 new XElement(Html + "img", new XAttribute("src", "https://example.test/remote.png"), new XAttribute("alt", "Fallback"))));
             book.AddResource("image", "EPUB/image.bin", "image/png", new byte[] { 1 });
+        } else if (route == "preload") {
+            book.AddResource("image", "EPUB/image.bin", "image/png", new byte[] { 1 });
+            head.Add(new XElement(Html + "link", new XAttribute("rel", "preload"), new XAttribute("as", "image"),
+                new XAttribute("media", "print"), new XAttribute("href", "image.bin"), new XAttribute("imagesrcset", "https://example.test/alternative.png 1x")));
         } else if (route == "base") {
             head.Add(new XElement(Html + "base", new XAttribute("href", "https://example.test/")));
             body.Add(new XElement(Html + "audio", new XAttribute("src", "remote.mp3")));
@@ -95,14 +100,20 @@ public sealed class EpubWriterContentClassificationContracts {
     }
 
     [Theory]
-    [InlineData("javascript:alert(1)")]
-    [InlineData("vbscript:alert(1)")]
-    [InlineData("mailto:someone@example.test")]
-    public async Task UnselectedSources_UseTheSharedResourceUrlPolicyBeforeSaving(string url) {
+    [InlineData("javascript:alert(1)", false)]
+    [InlineData("vbscript:alert(1)", false)]
+    [InlineData("mailto:someone@example.test", false)]
+    [InlineData("javascript:alert(1)", true)]
+    [InlineData("vbscript:alert(1)", true)]
+    [InlineData("mailto:someone@example.test", true)]
+    public async Task UnselectedSources_UseTheSharedResourceUrlPolicyBeforeSaving(string url, bool preload) {
         EpubPublication book = EpubWritingContracts.CreateBook();
         book.AddResource("media", "EPUB/local.mp3", "audio/mpeg", new byte[] { 1 });
         XDocument content = book.GetContentXml("first");
-        content.Root!.Element(Html + "body")!.Add(new XElement(Html + "audio",
+        if (preload) content.Root!.Element(Html + "head")!.Add(new XElement(Html + "link",
+            new XAttribute("rel", "preload"), new XAttribute("as", "image"), new XAttribute("href", "local.mp3"),
+            new XAttribute("media", "print"), new XAttribute("imagesrcset", url + " 1x")));
+        else content.Root!.Element(Html + "body")!.Add(new XElement(Html + "audio",
             new XElement(Html + "source", new XAttribute("src", "local.mp3"), new XAttribute("type", "audio/mpeg")),
             new XElement(Html + "source", new XAttribute("src", url), new XAttribute("type", "audio/mpeg"))));
         book.SetContentXml("first", content);
@@ -116,7 +127,8 @@ public sealed class EpubWriterContentClassificationContracts {
     public void Hyperlinks_DoNotAcquireRemoteResourceDeclarations() {
         EpubPublication book = EpubWritingContracts.CreateBook();
         XDocument content = book.GetContentXml("first");
-        content.Root!.Element(Html + "head")!.Add(new XElement(Html + "link", new XAttribute("rel", "canonical"), new XAttribute("href", "https://example.test/book")));
+        content.Root!.Element(Html + "head")!.Add(new XElement(Html + "link", new XAttribute("rel", "canonical"), new XAttribute("href", "https://example.test/book"),
+            new XAttribute("imagesrcset", "missing.png 1x")));
         content.Root.Element(Html + "body")!.Add(new XElement(Html + "a", new XAttribute("href", "mailto:author@example.test"), "Contact"));
         book.SetContentXml("first", content);
         Assert.Null(EpubPublication.Load(new MemoryStream(book.Write().Bytes)).Manifest.Single(item => item.Id == "first").Properties);
