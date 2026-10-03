@@ -54,10 +54,11 @@ public static partial class HtmlRtfConverterExtensions {
         var stylesheetOptions = new HtmlRenderOptions {
             Mode = mediaContext == HtmlCssMediaContext.Print ? HtmlRenderMode.Paged : HtmlRenderMode.Continuous
         };
+        string? preferredSet = HtmlRenderStylesheetApplier.FindPreferredStylesheetSet(document, stylesheetOptions);
         foreach (AngleSharp.Dom.IElement element in document.QuerySelectorAll("link[rel], style")) {
             if (string.Equals(element.LocalName, "style", StringComparison.OrdinalIgnoreCase)) {
                 if (!string.IsNullOrWhiteSpace(element.TextContent)
-                    && HtmlRenderStylesheetApplier.IsApplicableStyleElement(element, stylesheetOptions)) {
+                    && HtmlRenderStylesheetApplier.IsApplicableStyleElement(element, stylesheetOptions, preferredSet)) {
                     options.AddDiagnostic(
                         "HtmlStylesheetElementSkipped",
                         "An active HTML stylesheet was not applied by the semantic RTF importer.",
@@ -67,7 +68,7 @@ public static partial class HtmlRtfConverterExtensions {
                 continue;
             }
 
-            if (!HtmlRenderStylesheetApplier.IsApplicableStylesheetLink(element, stylesheetOptions)) continue;
+            if (!HtmlRenderStylesheetApplier.IsApplicableStylesheetLink(element, stylesheetOptions, preferredSet)) continue;
             string source = element.GetAttribute("href") ?? string.Empty;
             options.AddDiagnostic(
                 "HtmlStylesheetLinkSkipped",

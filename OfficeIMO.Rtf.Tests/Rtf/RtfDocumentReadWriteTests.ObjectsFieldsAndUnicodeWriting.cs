@@ -393,6 +393,16 @@ public partial class RtfDocumentReadWriteTests {
     }
 
     [Fact]
+    public void WriterRejectsUnicodeFallbackWidthsThatAmplifyOutput() {
+        RtfDocument document = RtfDocument.Create();
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.Settings.SetUnicodeSkipCount(int.MaxValue));
+        document.Settings.UnicodeSkipCount = int.MaxValue;
+        document.AddParagraph("é");
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.ToRtf());
+    }
+
+    [Fact]
     public void Read_Honors_Uc0_When_Collecting_Metadata_Text() {
         const string rtf = @"{\rtf1\ansi{\info{\title \uc0\u380? Title}}\pard Body\par}";
 

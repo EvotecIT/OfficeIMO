@@ -18,6 +18,7 @@ internal static partial class RtfHtmlReader {
         private readonly Stack<RtfRevisionScope> _revisions = new Stack<RtfRevisionScope>();
         private readonly Stack<TableReadState> _tableStates = new Stack<TableReadState>();
         private readonly List<RowSpanState> _rowSpans = new List<RowSpanState>();
+        private readonly Dictionary<IElement, bool> _legacyMetadataOnAncestor = new Dictionary<IElement, bool>();
         private RtfParagraph? _paragraph;
         private RtfTable? _table;
         private RtfTableRow? _row;

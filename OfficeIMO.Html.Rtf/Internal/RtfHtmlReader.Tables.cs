@@ -47,19 +47,39 @@ internal static partial class RtfHtmlReader {
             _rowSpans.AddRange(state.RowSpans);
         }
 
-        private static bool IsLegacyRoundTripRow(IElement? token) {
+        private bool IsLegacyRoundTripRow(IElement? token) {
+            var uncached = new List<IElement>();
+            bool hasMetadata = false;
             for (IElement? element = token; element != null; element = element.ParentElement) {
-                if (element.ClassList.Contains("officeimo-rtf-html") ||
-                    element.Attributes.Any(attribute => attribute.Name.StartsWith("data-officeimo-rtf-", StringComparison.OrdinalIgnoreCase)))
-                    return true;
+                if (_legacyMetadataOnAncestor.TryGetValue(element, out hasMetadata)) break;
+                uncached.Add(element);
+                if (HasLegacyRoundTripMetadata(element)) {
+                    hasMetadata = true;
+                    break;
+                }
             }
+            foreach (IElement element in uncached) _legacyMetadataOnAncestor.Add(element, hasMetadata);
+            if (hasMetadata) return true;
             // Older fragment exports may carry only cell or paragraph metadata.
             // A nested table's metadata must not change its containing row.
-            IElement? table = token?.Closest("table");
-            return token != null && token.QuerySelectorAll("*").Any(element =>
-                element.Closest("table") == table && element.Attributes.Any(attribute =>
-                    attribute.Name.StartsWith("data-officeimo-rtf-", StringComparison.OrdinalIgnoreCase)));
+            if (token == null) return false;
+            var descendants = new Stack<IElement>();
+            foreach (IElement child in token.Children) descendants.Push(child);
+            while (descendants.Count > 0) {
+                IElement element = descendants.Pop();
+                if (element.LocalName.Equals("table", StringComparison.OrdinalIgnoreCase)) continue;
+                if (HasLegacyRoundTripData(element)) return true;
+                foreach (IElement child in element.Children) descendants.Push(child);
+            }
+            return false;
         }
+
+        private static bool HasLegacyRoundTripMetadata(IElement element) =>
+            element.ClassList.Contains("officeimo-rtf-html") ||
+            HasLegacyRoundTripData(element);
+
+        private static bool HasLegacyRoundTripData(IElement element) =>
+            element.Attributes.Any(attribute => attribute.Name.StartsWith("data-officeimo-rtf-", StringComparison.OrdinalIgnoreCase));
 
         private void StartRow() {
             StartRow(null, HtmlStyleDeclaration.Empty);

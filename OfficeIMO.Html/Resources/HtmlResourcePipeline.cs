@@ -50,8 +50,9 @@ public static partial class HtmlResourcePipeline {
         HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
         Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         var manifest = new HtmlResourceManifest();
+        var preferredSets = new Dictionary<IDocument, string?>();
         foreach (IElement element in document.QuerySelectorAll(ResourceSelector)) {
-            AddElementResources(manifest, element, baseUri, options, 0);
+            AddElementResources(manifest, element, baseUri, options, 0, preferredSets);
         }
 
         AddCssResources(manifest, document, baseUri, options);
