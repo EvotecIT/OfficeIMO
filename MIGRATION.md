@@ -14,7 +14,8 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 `EmailStoreReaderOptions` adds `maxDirectoryEntryCount` while retaining its original constructor
 signature. The new bound counts all visited directory entries rather than only message files.
 Use `MaxDirectoryFileCount` for candidate message and Apple sibling-storage files, and `MaxItemCount`
-for projected messages. Files inside identified Apple attachment storage are payloads, including
+for cataloged messages. Reader's `MaxItems` independently limits the projected selection.
+Files inside identified Apple attachment storage are payloads, including
 those with `.eml` extensions, and are no longer indexed as independent messages.
 Account directories and empty mailbox folders now participate in directory folder identity. Reopen
 directory sessions and recreate durable checkpoints after upgrading; old fingerprints do not use
@@ -41,6 +42,12 @@ while opening; source validation does not take an atomic filesystem snapshot.
 OLM sessions project selected items on demand. Request `PreferStreamingAttachmentContent` on
 `EmailStoreItemReadOptions` for file-backed payloads and keep the owning session alive until the
 content has been copied or written. Session disposal expires both new and outstanding readers.
+
+Reader's default store handler also streams OLM and EMLX attachments. Supported attachment text
+is projected before the session closes, while returned assets carry metadata without `PayloadBytes`.
+If an application needs retained attachment bytes, register the handler with
+`new ReaderEmailStoreOptions { StreamAttachmentContent = false }` and leave the item's explicit
+streaming preference disabled. Keep `StoreOptions.RetainAttachmentContent` enabled for that workflow.
 
 ## RTF Unicode fallback width
 
