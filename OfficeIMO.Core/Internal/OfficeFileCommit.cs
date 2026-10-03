@@ -21,22 +21,35 @@ namespace OfficeIMO.Core.Internal {
         }
 
         /// <summary>Produces a file in the destination directory and atomically commits it.</summary>
-        public static void Write(string targetPath, Action<Stream> writer, ConflictPolicy conflictPolicy = ConflictPolicy.Replace) {
+        public static void Write(string targetPath, Action<Stream> writer, ConflictPolicy conflictPolicy = ConflictPolicy.Replace) =>
+            Write(targetPath, writer, CancellationToken.None, conflictPolicy);
+
+        /// <summary>Stages a file and observes cancellation before atomically publishing the completed artifact.</summary>
+        public static void Write(string targetPath, Action<Stream> writer, CancellationToken cancellationToken, ConflictPolicy conflictPolicy = ConflictPolicy.Replace) =>
+            WriteCore(targetPath, writer, cancellationToken, conflictPolicy, requireAtomicReplacement: false);
+
+        private static void WriteCore(string targetPath, Action<Stream> writer, CancellationToken cancellationToken,
+            ConflictPolicy conflictPolicy, bool requireAtomicReplacement) {
 #if NET6_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(writer);
 #else
             if (writer == null) throw new ArgumentNullException(nameof(writer));
 #endif
 
+            cancellationToken.ThrowIfCancellationRequested();
             EnsureTargetDirectory(targetPath);
             string temporaryPath = string.Empty;
             try {
                 using (var stream = CreateTemporaryFile(targetPath, FileOptions.None, out temporaryPath)) {
                     writer(stream);
+                    cancellationToken.ThrowIfCancellationRequested();
                     stream.Flush();
                 }
 
-                CommitTemporaryFile(temporaryPath, targetPath, conflictPolicy);
+                cancellationToken.ThrowIfCancellationRequested();
+                CommitTemporaryFileCore(temporaryPath, targetPath, conflictPolicy,
+                    allowNonAtomicReplacementFallback: !requireAtomicReplacement,
+                    allowReadOnlyUnixDestination: false);
                 temporaryPath = string.Empty;
             } finally {
                 DeleteIfExists(temporaryPath);
@@ -170,11 +183,15 @@ namespace OfficeIMO.Core.Internal {
         }
 
         /// <summary>Produces a file asynchronously and atomically commits it.</summary>
-        public static async Task WriteAsync(
+        public static Task WriteAsync(
             string targetPath,
             Func<Stream, CancellationToken, Task> writer,
             ConflictPolicy conflictPolicy = ConflictPolicy.Replace,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default) =>
+            WriteCoreAsync(targetPath, writer, conflictPolicy, cancellationToken, requireAtomicReplacement: false);
+
+        private static async Task WriteCoreAsync(string targetPath, Func<Stream, CancellationToken, Task> writer,
+            ConflictPolicy conflictPolicy, CancellationToken cancellationToken, bool requireAtomicReplacement) {
 #if NET6_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(writer);
 #else
@@ -191,7 +208,9 @@ namespace OfficeIMO.Core.Internal {
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
-                CommitTemporaryFile(temporaryPath, targetPath, conflictPolicy);
+                CommitTemporaryFileCore(temporaryPath, targetPath, conflictPolicy,
+                    allowNonAtomicReplacementFallback: !requireAtomicReplacement,
+                    allowReadOnlyUnixDestination: false);
                 temporaryPath = string.Empty;
             } finally {
                 DeleteIfExists(temporaryPath);

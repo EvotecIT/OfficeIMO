@@ -6,10 +6,10 @@ namespace OfficeIMO.AsciiDoc;
 public sealed class AsciiDocSourceText {
     private readonly int[] _lineStarts;
 
-    internal AsciiDocSourceText(string text) {
+    internal AsciiDocSourceText(string text, System.Threading.CancellationToken cancellationToken = default) {
         Text = text ?? string.Empty;
-        _lineStarts = BuildLineStarts(Text);
-        PreferredLineEnding = DetectPreferredLineEnding(Text);
+        _lineStarts = BuildLineStarts(Text, cancellationToken);
+        PreferredLineEnding = DetectPreferredLineEnding(Text, cancellationToken);
     }
 
     /// <summary>Original source text.</summary>
@@ -49,9 +49,10 @@ public sealed class AsciiDocSourceText {
         return Math.Max(0, low - 1);
     }
 
-    private static int[] BuildLineStarts(string text) {
+    private static int[] BuildLineStarts(string text, System.Threading.CancellationToken token) {
         var starts = new List<int> { 0 };
         for (int index = 0; index < text.Length; index++) {
+            if ((index & 4095) == 0) token.ThrowIfCancellationRequested();
             if (text[index] == '\r') {
                 if (index + 1 < text.Length && text[index + 1] == '\n') index++;
                 if (index + 1 <= text.Length) starts.Add(index + 1);
@@ -63,8 +64,9 @@ public sealed class AsciiDocSourceText {
         return starts.ToArray();
     }
 
-    private static string DetectPreferredLineEnding(string text) {
+    private static string DetectPreferredLineEnding(string text, System.Threading.CancellationToken token) {
         for (int index = 0; index < text.Length; index++) {
+            if ((index & 4095) == 0) token.ThrowIfCancellationRequested();
             if (text[index] == '\r') {
                 return index + 1 < text.Length && text[index + 1] == '\n' ? "\r\n" : "\r";
             }

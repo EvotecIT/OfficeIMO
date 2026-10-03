@@ -8,6 +8,22 @@ public sealed class AsciiDocDocumentAttributes {
         _values = new Dictionary<string, string>(values, StringComparer.OrdinalIgnoreCase);
     }
 
+    /// <summary>Creates an attribute snapshot from caller-supplied values.</summary>
+    public static AsciiDocDocumentAttributes Create(IReadOnlyDictionary<string, string>? values = null) {
+        var copy = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (values != null) foreach (KeyValuePair<string, string> value in values) copy[value.Key] = value.Value;
+        return new AsciiDocDocumentAttributes(copy);
+    }
+
+    /// <summary>Applies an assignment or unset, optionally resolving value references against the preceding snapshot.</summary>
+    public AsciiDocDocumentAttributes Apply(AsciiDocAttributeEntry entry, bool expandReferences = false) {
+        if (entry == null) throw new ArgumentNullException(nameof(entry));
+        Dictionary<string, string> values = ToMutableDictionary();
+        if (entry.IsUnset) values.Remove(entry.Name);
+        else values[entry.Name] = expandReferences ? AsciiDocAttributeSubstitutor.Substitute(entry.Value, this).Value : entry.Value;
+        return new AsciiDocDocumentAttributes(values);
+    }
+
     /// <summary>Number of set attributes.</summary>
     public int Count => _values.Count;
 

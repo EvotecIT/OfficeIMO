@@ -3,17 +3,23 @@ namespace OfficeIMO.AsciiDoc;
 /// <summary>Opt-in, bounded preprocessor for attributes, conditionals, and includes.</summary>
 public static class AsciiDocProcessor {
     /// <summary>Processes a source string without changing the lossless original document.</summary>
-    public static AsciiDocProcessingResult Process(string source, AsciiDocProcessorOptions? options = null) {
+    public static AsciiDocProcessingResult Process(string source, AsciiDocProcessorOptions? options = null) =>
+        Process(source, options, System.Threading.CancellationToken.None);
+
+    /// <summary>Processes source with bounded includes, output, and cooperative cancellation.</summary>
+    public static AsciiDocProcessingResult Process(string source, AsciiDocProcessorOptions? options, System.Threading.CancellationToken cancellationToken) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         options ??= new AsciiDocProcessorOptions();
         ValidateOptions(options);
 
         AsciiDocParseOptions parseOptions = AsciiDocParseOptions.CreateProfile(options.Profile);
-        AsciiDocDocument sourceDocument = AsciiDocDocument.ParseResult(source, parseOptions).Document;
-        var state = new PreprocessorState(options);
-        string processed = state.ProcessSource(source, options.SourceName, 0);
-        AsciiDocDocument document = AsciiDocDocument.ParseResult(processed, parseOptions).Document;
-        return new AsciiDocProcessingResult(sourceDocument, document, processed, state.Attributes, state.Diagnostics);
+        AsciiDocDocument sourceDocument = AsciiDocDocument.ParseResult(source, parseOptions, cancellationToken).Document;
+        cancellationToken.ThrowIfCancellationRequested();
+        var state = new PreprocessorState(options, cancellationToken);
+        AsciiDocProcessedSource processed = state.ProcessSource(source, options.SourceName, 0);
+        AsciiDocDocument document = AsciiDocDocument.ParseResult(processed.Content, parseOptions, cancellationToken).Document;
+        return new AsciiDocProcessingResult(sourceDocument, document, processed.Content, state.Attributes, state.Diagnostics,
+            new AsciiDocProcessingSourceMap(processed.Entries, processed.Content.Length));
     }
 
     private static void ValidateOptions(AsciiDocProcessorOptions options) {
@@ -26,6 +32,7 @@ public static class AsciiDocProcessor {
 
     private sealed class PreprocessorState {
         private readonly AsciiDocProcessorOptions _options;
+        private readonly System.Threading.CancellationToken _cancellationToken;
         private readonly Dictionary<string, string> _attributes;
         private readonly List<AsciiDocProcessingDiagnostic> _diagnostics = new List<AsciiDocProcessingDiagnostic>();
         private readonly HashSet<string> _activeSources;
@@ -33,8 +40,9 @@ public static class AsciiDocProcessor {
         private int _includedCharacters;
         private int _extensionInvocations;
 
-        internal PreprocessorState(AsciiDocProcessorOptions options) {
+        internal PreprocessorState(AsciiDocProcessorOptions options, System.Threading.CancellationToken cancellationToken) {
             _options = options;
+            _cancellationToken = cancellationToken;
             _attributes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             if (options.Attributes != null) {
                 foreach (KeyValuePair<string, string> value in options.Attributes) _attributes[value.Key] = value.Value;
@@ -46,25 +54,29 @@ public static class AsciiDocProcessor {
 
         internal IReadOnlyList<AsciiDocProcessingDiagnostic> Diagnostics => _diagnostics;
 
-        internal string ProcessSource(string source, string? sourceName, int includeDepth) {
+        internal AsciiDocProcessedSource ProcessSource(string source, string? sourceName, int includeDepth, IReadOnlyList<AsciiDocSelectedLine>? selected = null) {
             bool addedSource = sourceName != null && _activeSources.Add(sourceName);
-            var output = new StringBuilder(source.Length);
+            _cancellationToken.ThrowIfCancellationRequested();
+            var output = new AsciiDocProcessingOutput(Math.Min(source.Length, Math.Min(_options.MaximumOutputLength, 4096)));
             var conditions = new Stack<bool>();
             bool active = true;
-            IReadOnlyList<AsciiDocSourceLine> lines = AsciiDocLineReader.Read(source);
+            IReadOnlyList<AsciiDocSelectedLine> lines = selected ?? AsciiDocLineReader.Read(source, _cancellationToken).Select(line => new AsciiDocSelectedLine(line)).ToArray();
 
             for (int index = 0; index < lines.Count; index++) {
-                AsciiDocSourceLine line = lines[index];
+                _cancellationToken.ThrowIfCancellationRequested();
+                AsciiDocSelectedLine line = lines[index];
+                output.SetOrigin(sourceName, line.OriginalSpan, line.IsExact);
+                int lineNumber = line.OriginalSpan.Start.Line;
                 string content = line.Content;
                 if (content.Length > 0 && content[0] != '\\' &&
                     AsciiDocLineClassifier.TryParseBlockMacro(content, out AsciiDocLineClassifier.BlockMacroParts directive)) {
                     if (IsConditional(directive.Name)) {
-                        active = ProcessConditional(directive, conditions, active, output, line, sourceName, index + 1);
+                        active = ProcessConditional(directive, conditions, active, output, line, sourceName, lineNumber);
                         continue;
                     }
                     if (string.Equals(directive.Name, "endif", StringComparison.Ordinal)) {
                         if (conditions.Count == 0) {
-                            Report("ADOCPROC005", AsciiDocDiagnosticSeverity.Error, "Unexpected endif directive.", sourceName, index + 1);
+                            Report("ADOCPROC005", AsciiDocDiagnosticSeverity.Error, "Unexpected endif directive.", sourceName, lineNumber);
                         } else {
                             conditions.Pop();
                             active = conditions.Count == 0 || conditions.All(static condition => condition);
@@ -72,12 +84,12 @@ public static class AsciiDocProcessor {
                         continue;
                     }
                     if (active && string.Equals(directive.Name, "include", StringComparison.Ordinal)) {
-                        ProcessInclude(directive, output, line, sourceName, index + 1, includeDepth);
+                        ProcessInclude(directive, output, line, sourceName, lineNumber, includeDepth);
                         continue;
                     }
                     if (active && _options.Extensions != null &&
                         _options.Extensions.TryGetDirective(directive.Name, out IAsciiDocDirectiveProcessor extension)) {
-                        ProcessExtension(extension, directive, output, line, sourceName, index + 1);
+                        ProcessExtension(extension, directive, output, line, sourceName, lineNumber);
                         continue;
                     }
                 }
@@ -85,25 +97,25 @@ public static class AsciiDocProcessor {
                 if (!active) continue;
                 if (AsciiDocLineClassifier.TryParseAttribute(content, out AsciiDocLineClassifier.AttributeParts attribute)) {
                     if (attribute.IsUnset) _attributes.Remove(attribute.Name);
-                    else _attributes[attribute.Name] = Substitute(attribute.Value, sourceName, index + 1);
+                    else _attributes[attribute.Name] = Substitute(attribute.Value, sourceName, lineNumber);
                 }
-                output.Append(line.FullText);
-                EnforceOutput(output);
+                Append(output, line.Text);
+
             }
 
             if (conditions.Count > 0) {
-                Report("ADOCPROC006", AsciiDocDiagnosticSeverity.Error, "Conditional directive is not terminated by endif.", sourceName, lines.Count);
+                Report("ADOCPROC006", AsciiDocDiagnosticSeverity.Error, "Conditional directive is not terminated by endif.", sourceName, lines.Count == 0 ? 1 : lines[lines.Count - 1].OriginalSpan.Start.Line);
             }
             if (addedSource && sourceName != null) _activeSources.Remove(sourceName);
-            return output.ToString();
+            return output.Build();
         }
 
         private bool ProcessConditional(
             AsciiDocLineClassifier.BlockMacroParts directive,
             Stack<bool> conditions,
             bool currentlyActive,
-            StringBuilder output,
-            AsciiDocSourceLine line,
+            AsciiDocProcessingOutput output,
+            AsciiDocSelectedLine line,
             string? sourceName,
             int lineNumber) {
             bool result;
@@ -120,9 +132,9 @@ public static class AsciiDocProcessor {
                 return conditions.All(static condition => condition);
             }
             if (currentlyActive && result) {
-                output.Append(Substitute(directive.AttributeList, sourceName, lineNumber));
-                output.Append(line.LineEnding);
-                EnforceOutput(output);
+                Append(output, Substitute(directive.AttributeList, sourceName, lineNumber), false);
+                Append(output, line.LineEnding, false);
+
             }
             return currentlyActive;
         }
@@ -160,8 +172,8 @@ public static class AsciiDocProcessor {
 
         private void ProcessInclude(
             AsciiDocLineClassifier.BlockMacroParts directive,
-            StringBuilder output,
-            AsciiDocSourceLine line,
+            AsciiDocProcessingOutput output,
+            AsciiDocSelectedLine line,
             string? sourceName,
             int lineNumber,
             int includeDepth) {
@@ -171,66 +183,70 @@ public static class AsciiDocProcessor {
             string target = Substitute(directive.Target, sourceName, lineNumber);
             if (_options.IncludeResolver == null) {
                 if (!optional) Report("ADOCPROC001", AsciiDocDiagnosticSeverity.Warning, "Include resolution is disabled.", sourceName, lineNumber);
-                output.Append(line.FullText);
+                Append(output, line.Text);
                 return;
             }
             if (includeDepth >= _options.MaximumIncludeDepth || _includeCount >= _options.MaximumIncludeCount) {
                 Report("ADOCPROC002", AsciiDocDiagnosticSeverity.Error, "Include limit exceeded.", sourceName, lineNumber);
-                output.Append(line.FullText);
+                Append(output, line.Text);
                 return;
             }
 
-            var request = new AsciiDocIncludeRequest(target, sourceName, includeDepth + 1, Attributes);
+            var request = new AsciiDocIncludeRequest(target, sourceName, includeDepth + 1, Attributes,
+                _options.MaximumIncludedCharacters - _includedCharacters, _cancellationToken);
             AsciiDocIncludeResult? resolved = _options.IncludeResolver.Resolve(request);
             if (resolved == null) {
                 if (!optional) {
                     Report("ADOCPROC003", AsciiDocDiagnosticSeverity.Warning, "Include target was unavailable or denied: " + target, sourceName, lineNumber);
-                    output.Append(line.FullText);
+                    Append(output, line.Text);
                 }
                 return;
             }
             if (resolved.SourceName != null && _activeSources.Contains(resolved.SourceName)) {
                 Report("ADOCPROC004", AsciiDocDiagnosticSeverity.Error, "Include cycle detected: " + resolved.SourceName, sourceName, lineNumber);
-                output.Append(line.FullText);
+                Append(output, line.Text);
                 return;
             }
 
             _includeCount++;
+            _cancellationToken.ThrowIfCancellationRequested();
+            if ((long)_includedCharacters + resolved.Content.Length > _options.MaximumIncludedCharacters) throw new InvalidDataException("Includes exceed MaximumIncludedCharacters.");
             _includedCharacters += resolved.Content.Length;
-            if (_includedCharacters > _options.MaximumIncludedCharacters) throw new InvalidDataException("Includes exceed MaximumIncludedCharacters.");
-            string selected = AsciiDocIncludeSelector.Apply(resolved.Content, elementAttributes);
-            string expanded = ProcessSource(selected, resolved.SourceName, includeDepth + 1);
-            output.Append(expanded);
-            if (line.LineEnding.Length > 0 && expanded.Length > 0 && !AsciiDocText.EndsWithLineEnding(expanded)) output.Append(line.LineEnding);
-            EnforceOutput(output);
+            IReadOnlyList<AsciiDocSelectedLine> selected = AsciiDocIncludeSelector.Apply(resolved.Content, elementAttributes, _cancellationToken);
+            AsciiDocProcessedSource expanded = ProcessSource(resolved.Content, resolved.SourceName, includeDepth + 1, selected);
+            if ((long)output.Length + expanded.Content.Length > _options.MaximumOutputLength) throw new InvalidDataException("Processed AsciiDoc exceeds MaximumOutputLength.");
+            _cancellationToken.ThrowIfCancellationRequested();
+            output.Append(expanded, _cancellationToken);
+            if (line.LineEnding.Length > 0 && expanded.Content.Length > 0 && !AsciiDocText.EndsWithLineEnding(expanded.Content)) Append(output, line.LineEnding, false);
+
         }
 
         private void ProcessExtension(
             IAsciiDocDirectiveProcessor extension,
             AsciiDocLineClassifier.BlockMacroParts directive,
-            StringBuilder output,
-            AsciiDocSourceLine line,
+            AsciiDocProcessingOutput output,
+            AsciiDocSelectedLine line,
             string? sourceName,
             int lineNumber) {
             _extensionInvocations++;
             if (_extensionInvocations > _options.MaximumExtensionInvocations) {
                 Report("ADOCPROC008", AsciiDocDiagnosticSeverity.Error, "Extension invocation limit exceeded.", sourceName, lineNumber);
-                output.Append(line.FullText);
+                Append(output, line.Text);
                 return;
             }
             var context = new AsciiDocDirectiveContext(
                 directive.Name,
                 directive.Target,
                 directive.AttributeList,
-                line.FullText,
+                line.Text,
                 sourceName,
                 lineNumber,
                 Attributes);
             AsciiDocDirectiveResult result = extension.Process(context)
                 ?? throw new InvalidOperationException("AsciiDoc directive processors must return a result.");
-            if (result.PreserveOriginal) output.Append(line.FullText);
-            else output.Append(result.Replacement);
-            EnforceOutput(output);
+            if (result.PreserveOriginal) Append(output, line.Text);
+            else Append(output, result.Replacement, false);
+
         }
 
         private string Substitute(string value, string? sourceName, int lineNumber) {
@@ -246,8 +262,11 @@ public static class AsciiDocProcessor {
             return result.Value;
         }
 
-        private void EnforceOutput(StringBuilder output) {
-            if (output.Length > _options.MaximumOutputLength) throw new InvalidDataException("Processed AsciiDoc exceeds MaximumOutputLength.");
+        private void Append(AsciiDocProcessingOutput output, string? value, bool exact = true) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            if (value == null) return;
+            if ((long)output.Length + value.Length > _options.MaximumOutputLength) throw new InvalidDataException("Processed AsciiDoc exceeds MaximumOutputLength.");
+            output.Append(value, exact);
         }
 
         private void Report(string code, AsciiDocDiagnosticSeverity severity, string message, string? sourceName, int line) =>

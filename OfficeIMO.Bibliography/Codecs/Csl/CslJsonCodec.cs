@@ -39,16 +39,21 @@ internal static class CslJsonCodec {
                 BibliographyItem item = document.Items[itemIndex];
                 cancellationToken.ThrowIfCancellationRequested();
                 writer.WriteStartObject();
-                if (ShouldWriteTypedId(item, cancellationToken)) WriteString(writer, "id", outputKeys[itemIndex], cancellationToken);
+                if (ShouldWriteTypedId(item, cancellationToken)) {
+                    if (item.CslNumericKeyRaw != null && item.Key == item.CslNumericKey && outputKeys[itemIndex] == item.Key) {
+                        writer.WritePropertyName("id");
+                        writer.WriteRawValue(item.CslNumericKeyRaw);
+                    } else WriteString(writer, "id", outputKeys[itemIndex], cancellationToken);
+                }
                 if (ShouldWriteTypedType(item, cancellationToken)) WriteString(writer, "type", OutputType(document.SourceFormat, item), cancellationToken);
                 WriteString(writer, "title", item.Title, cancellationToken); WriteString(writer, "container-title", item.ContainerTitle, cancellationToken); WriteString(writer, "collection-title", item.CollectionTitle, cancellationToken);
                 WriteString(writer, "publisher", item.Publisher, cancellationToken); WriteString(writer, "publisher-place", item.PublisherPlace, cancellationToken); WriteString(writer, "edition", item.Edition, cancellationToken);
                 WriteString(writer, "volume", item.Volume, cancellationToken); WriteString(writer, "issue", item.Issue, cancellationToken); WriteString(writer, "page", item.Pages, cancellationToken); WriteString(writer, "abstract", item.Abstract, cancellationToken);
                 WriteString(writer, "language", item.Language, cancellationToken); WriteString(writer, "URL", item.Url, cancellationToken);
-                WriteNames(writer, item, BibliographyContributorRole.Author, "author", report, cancellationToken); WriteNames(writer, item, BibliographyContributorRole.Editor, "editor", report, cancellationToken);
-                WriteNames(writer, item, BibliographyContributorRole.Translator, "translator", report, cancellationToken); WriteNames(writer, item, BibliographyContributorRole.Recipient, "recipient", report, cancellationToken);
-                WriteNames(writer, item, BibliographyContributorRole.Interviewer, "interviewer", report, cancellationToken); WriteNames(writer, item, BibliographyContributorRole.Composer, "composer", report, cancellationToken);
-                WriteNames(writer, item, BibliographyContributorRole.CollectionEditor, "collection-editor", report, cancellationToken);
+                var contributorGroups = CslVocabulary.GroupContributors(item, cancellationToken);
+                foreach (var contributor in CslVocabulary.Contributors)
+                    if (contributorGroups.TryGetValue(contributor.Role, out List<BibliographyContributor>? names))
+                        WriteNames(writer, item, names, contributor.Property, report, cancellationToken);
                 foreach (BibliographyDateRole role in GetDistinctDateRoles(item, cancellationToken)) {
                     string? property = DateProperty(role);
                     if (property != null) WriteDate(writer, item, role, property, report, cancellationToken);
@@ -57,7 +62,7 @@ internal static class CslJsonCodec {
                 if (item.Keywords.Count > 0) WriteString(writer, "keyword", JoinValues(item.Keywords, ", ", cancellationToken), cancellationToken);
                 if (item.Notes.Count > 0) WriteString(writer, "note", JoinValues(item.Notes, "; ", cancellationToken), cancellationToken);
 
-                HashSet<string> emitted = GetEmittedProperties(item, cancellationToken);
+                HashSet<string> emitted = GetEmittedProperties(item, contributorGroups, cancellationToken);
                 foreach (BibliographyNativeField field in item.NativeFields) {
                     cancellationToken.ThrowIfCancellationRequested();
                     bool changesOwner = field.Format == BibliographyFormat.CslJson && WouldBindTypedItemProperty(field, cancellationToken);
@@ -82,7 +87,7 @@ internal static class CslJsonCodec {
             cancellationToken.ThrowIfCancellationRequested();
             report.Add("BIBCONV121", BibliographyDiagnosticSeverity.Warning, $"Document-level {entry.Format} entry '{entry.Kind}' cannot be represented in CSL JSON.", BibliographyConversionAction.Omitted, field: entry.Name ?? entry.Kind);
         }
-        return options.LineEnding == "\n" ? text + options.LineEnding : NormalizeLineEndings(text, options.LineEnding) + options.LineEnding;
+        return NormalizeLineEndings(text, options.LineEnding) + options.LineEnding;
     }
 
     private static void ParseItem(JsonElement element, IList<BibliographyItem> items, BibliographyLimitGuard limits, BibliographyDiagnosticGuard diagnostics, CancellationToken cancellationToken) {
@@ -101,7 +106,14 @@ internal static class CslJsonCodec {
                 continue;
             }
             switch (property.Name) {
-                case "id": BindScalar(item, property, assigned => item.Key = assigned, items, limits); break;
+                case "id":
+                    if (property.Value.ValueKind == JsonValueKind.Number) {
+                        string idRaw = GetBoundedRawValue(property.Value, items, limits);
+                        item.Key = property.Value.TryGetDecimal(out decimal number) ? number.ToString("G29", CultureInfo.InvariantCulture) : idRaw;
+                        item.CslNumericKey = item.Key;
+                        item.CslNumericKeyRaw = idRaw;
+                    } else BindScalar(item, property, assigned => item.Key = assigned, items, limits);
+                    break;
                 case "type": if (TryReadScalar(item, property, items, limits, out string type)) { item.NativeType = type; item.Type = CodecMappings.ParseCslType(type); } break;
                 case "title": BindScalar(item, property, assigned => item.Title = assigned, items, limits); break;
                 case "container-title": BindScalar(item, property, assigned => item.ContainerTitle = assigned, items, limits); break;
@@ -115,18 +127,6 @@ internal static class CslJsonCodec {
                 case "abstract": BindScalar(item, property, assigned => item.Abstract = assigned, items, limits); break;
                 case "language": BindScalar(item, property, assigned => item.Language = assigned, items, limits); break;
                 case "URL": BindScalar(item, property, assigned => item.Url = assigned, items, limits); break;
-                case "author": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Author, items, limits, cancellationToken); break;
-                case "editor": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Editor, items, limits, cancellationToken); break;
-                case "translator": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Translator, items, limits, cancellationToken); break;
-                case "recipient": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Recipient, items, limits, cancellationToken); break;
-                case "interviewer": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Interviewer, items, limits, cancellationToken); break;
-                case "composer": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Composer, items, limits, cancellationToken); break;
-                case "collection-editor": PreserveWrongShapedNames(item, property, BibliographyContributorRole.CollectionEditor, items, limits, cancellationToken); break;
-                case "issued": ParseDate(item, property, BibliographyDateRole.Issued, diagnostics, items, limits, cancellationToken); break;
-                case "accessed": ParseDate(item, property, BibliographyDateRole.Accessed, diagnostics, items, limits, cancellationToken); break;
-                case "submitted": ParseDate(item, property, BibliographyDateRole.Submitted, diagnostics, items, limits, cancellationToken); break;
-                case "original-date": ParseDate(item, property, BibliographyDateRole.Original, diagnostics, items, limits, cancellationToken); break;
-                case "event-date": ParseDate(item, property, BibliographyDateRole.Event, diagnostics, items, limits, cancellationToken); break;
                 case "DOI": BindIdentifier(item, property, "DOI", items, limits); break;
                 case "ISBN": BindIdentifier(item, property, "ISBN", items, limits); break;
                 case "ISSN": BindIdentifier(item, property, "ISSN", items, limits); break;
@@ -135,6 +135,14 @@ internal static class CslJsonCodec {
                 case "keyword": if (TryReadScalar(item, property, items, limits, out string keyword)) item.Keywords.Add(keyword); break;
                 case "note": if (TryReadScalar(item, property, items, limits, out string note)) item.Notes.Add(note); break;
                 default:
+                    if (CslVocabulary.TryContributor(property.Name, out BibliographyContributorRole contributorRole)) {
+                        PreserveWrongShapedNames(item, property, contributorRole, items, limits, cancellationToken);
+                        break;
+                    }
+                    if (CslVocabulary.TryDate(property.Name, out BibliographyDateRole dateRole)) {
+                        ParseDate(item, property, dateRole, diagnostics, items, limits, cancellationToken);
+                        break;
+                    }
                     string raw = GetBoundedRawValue(property.Value, items, limits);
                     item.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw));
                     break;
@@ -290,7 +298,7 @@ internal static class CslJsonCodec {
     }
 
     private static void WriteString(Utf8JsonWriter writer, string name, string? value, CancellationToken cancellationToken) { if (value != null) writer.WriteString(name, SanitizeUtf16(value, cancellationToken)); }
-    private static HashSet<string> GetEmittedProperties(BibliographyItem item, CancellationToken cancellationToken) {
+    private static HashSet<string> GetEmittedProperties(BibliographyItem item, Dictionary<BibliographyContributorRole, List<BibliographyContributor>> contributorGroups, CancellationToken cancellationToken) {
         var emitted = new HashSet<string>(StringComparer.Ordinal);
         if (ShouldWriteTypedId(item, cancellationToken)) emitted.Add("id");
         if (ShouldWriteTypedType(item, cancellationToken)) emitted.Add("type");
@@ -298,19 +306,15 @@ internal static class CslJsonCodec {
         AddIfValue("publisher", item.Publisher); AddIfValue("publisher-place", item.PublisherPlace); AddIfValue("edition", item.Edition);
         AddIfValue("volume", item.Volume); AddIfValue("issue", item.Issue); AddIfValue("page", item.Pages); AddIfValue("abstract", item.Abstract);
         AddIfValue("language", item.Language); AddIfValue("URL", item.Url);
-        AddIfContributors(BibliographyContributorRole.Author, "author"); AddIfContributors(BibliographyContributorRole.Editor, "editor");
-        AddIfContributors(BibliographyContributorRole.Translator, "translator"); AddIfContributors(BibliographyContributorRole.Recipient, "recipient");
-        AddIfContributors(BibliographyContributorRole.Interviewer, "interviewer"); AddIfContributors(BibliographyContributorRole.Composer, "composer");
-        AddIfContributors(BibliographyContributorRole.CollectionEditor, "collection-editor");
-        AddIfDate(BibliographyDateRole.Issued, "issued"); AddIfDate(BibliographyDateRole.Accessed, "accessed");
-        AddIfDate(BibliographyDateRole.Submitted, "submitted"); AddIfDate(BibliographyDateRole.Original, "original-date"); AddIfDate(BibliographyDateRole.Event, "event-date");
+        foreach (var contributor in CslVocabulary.Contributors)
+            if (contributorGroups.ContainsKey(contributor.Role)) emitted.Add(contributor.Property);
+        foreach (var date in CslVocabulary.Dates) AddIfDate(date.Role, date.Property);
         foreach (BibliographyIdentifier identifier in item.Identifiers) { cancellationToken.ThrowIfCancellationRequested(); if (CodecMappings.IsCslIdentifierScheme(identifier.Scheme)) emitted.Add(identifier.Scheme.ToUpperInvariant()); }
         if (item.Keywords.Count > 0) emitted.Add("keyword");
         if (item.Notes.Count > 0) emitted.Add("note");
         return emitted;
 
         void AddIfValue(string name, string? value) { if (value != null) emitted.Add(name); }
-        void AddIfContributors(BibliographyContributorRole role, string name) { foreach (BibliographyContributor contributor in item.Contributors) { cancellationToken.ThrowIfCancellationRequested(); if (contributor.Role == role) { emitted.Add(name); break; } } }
         void AddIfDate(BibliographyDateRole role, string name) { if (FindDate(item, role, cancellationToken) != null) emitted.Add(name); }
     }
 
@@ -323,9 +327,7 @@ internal static class CslJsonCodec {
         }
         return false;
     }
-    private static void WriteNames(Utf8JsonWriter writer, BibliographyItem item, BibliographyContributorRole role, string property, BibliographyConversionReport report, CancellationToken cancellationToken) {
-        var contributors = new List<BibliographyContributor>();
-        foreach (BibliographyContributor contributor in item.Contributors) { cancellationToken.ThrowIfCancellationRequested(); if (contributor.Role == role) contributors.Add(contributor); }
+    private static void WriteNames(Utf8JsonWriter writer, BibliographyItem item, IReadOnlyList<BibliographyContributor> contributors, string property, BibliographyConversionReport report, CancellationToken cancellationToken) {
         if (contributors.Count == 0) return;
         writer.WritePropertyName(property); writer.WriteStartArray();
         foreach (BibliographyContributor contributor in contributors) {
@@ -362,16 +364,7 @@ internal static class CslJsonCodec {
         writer.WriteEndObject();
     }
 
-    private static string? DateProperty(BibliographyDateRole role) {
-        switch (role) {
-            case BibliographyDateRole.Issued: return "issued";
-            case BibliographyDateRole.Accessed: return "accessed";
-            case BibliographyDateRole.Submitted: return "submitted";
-            case BibliographyDateRole.Original: return "original-date";
-            case BibliographyDateRole.Event: return "event-date";
-            default: return null;
-        }
-    }
+    private static string? DateProperty(BibliographyDateRole role) => CslVocabulary.DateProperty(role);
 
     private static IEnumerable<BibliographyDateRole> GetDistinctDateRoles(BibliographyItem item, CancellationToken cancellationToken) {
         var emitted = new HashSet<BibliographyDateRole>();
@@ -553,19 +546,9 @@ internal static class CslJsonCodec {
     private static string OutputType(BibliographyFormat sourceFormat, BibliographyItem item) =>
         UsesNativeType(sourceFormat, item) ? item.NativeType! : CodecMappings.ToCslType(item.Type);
 
-    private static bool IsTypedNameProperty(string name) {
-        switch (name) {
-            case "author": case "editor": case "translator": case "recipient": case "interviewer": case "composer": case "collection-editor": return true;
-            default: return false;
-        }
-    }
+    private static bool IsTypedNameProperty(string name) => CslVocabulary.TryContributor(name, out _);
 
-    private static bool IsTypedDateProperty(string name) {
-        switch (name) {
-            case "issued": case "accessed": case "submitted": case "original-date": case "event-date": return true;
-            default: return false;
-        }
-    }
+    private static bool IsTypedDateProperty(string name) => CslVocabulary.TryDate(name, out _);
 
     private static JsonDocument ParseDocument(string source, BibliographyReadOptions options, IList<BibliographyItem> partialItems, CancellationToken cancellationToken) {
         const int ChunkCharacters = 4096;

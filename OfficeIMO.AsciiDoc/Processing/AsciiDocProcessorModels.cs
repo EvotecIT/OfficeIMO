@@ -87,12 +87,14 @@ public sealed class AsciiDocProcessingResult {
         AsciiDocDocument document,
         string processedSource,
         AsciiDocDocumentAttributes attributes,
-        IReadOnlyList<AsciiDocProcessingDiagnostic> diagnostics) {
+        IReadOnlyList<AsciiDocProcessingDiagnostic> diagnostics,
+        AsciiDocProcessingSourceMap sourceMap) {
         SourceDocument = sourceDocument;
         Document = document;
         ProcessedSource = processedSource;
         Attributes = attributes;
-        Diagnostics = diagnostics;
+        Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
+        SourceMap = sourceMap;
     }
 
     /// <summary>Lossless unprocessed source document.</summary>
@@ -103,6 +105,9 @@ public sealed class AsciiDocProcessingResult {
 
     /// <summary>Expanded source passed to <see cref="Document"/>.</summary>
     public string ProcessedSource { get; }
+
+    /// <summary>Maps processed offsets to original root/include lines and producing directives.</summary>
+    public AsciiDocProcessingSourceMap SourceMap { get; }
 
     /// <summary>Effective attributes after preprocessing.</summary>
     public AsciiDocDocumentAttributes Attributes { get; }

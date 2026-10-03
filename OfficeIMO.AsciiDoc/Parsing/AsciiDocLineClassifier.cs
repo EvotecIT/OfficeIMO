@@ -120,6 +120,9 @@ internal static class AsciiDocLineClassifier {
         parts = default;
         for (int index = 1; index < content.Length - 1; index++) {
             if (content[index] != ':' || content[index + 1] != ':') continue;
+            int escapes = 0;
+            for (int before = index - 1; before >= 0 && content[before] == '\\'; before--) escapes++;
+            if ((escapes & 1) != 0) continue;
             int markerLength = 2;
             while (markerLength < 4 && index + markerLength < content.Length && content[index + markerLength] == ':') markerLength++;
             int after = index + markerLength;
@@ -156,6 +159,13 @@ internal static class AsciiDocLineClassifier {
         } else if (marker == '-') {
             kind = AsciiDocListKind.Unordered;
             markerLength = 1;
+        } else if (marker == '<') {
+            int closing = content.IndexOf('>');
+            if (closing < 2 || closing > 11) return false;
+            string number = content.Substring(1, closing - 1);
+            if (number != "." && (!int.TryParse(number, out int value) || value < 1)) return false;
+            kind = AsciiDocListKind.Callout;
+            markerLength = closing + 1;
         } else {
             return false;
         }
