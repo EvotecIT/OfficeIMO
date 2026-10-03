@@ -35,6 +35,8 @@ public sealed partial class EpubPublication {
     /// <summary>Adds an ordered Dublin Core value; existing unknown metadata remains intact.</summary>
     public void AddDublinCoreMetadata(string name, string value, string? id = null, string? language = null) {
         XmlConvert.VerifyNCName(name); RequireText(value, nameof(value));
+        if (name == "language") EpubLanguageTag.Require(value, nameof(value));
+        if (language != null) EpubLanguageTag.Require(language, nameof(language));
         if (id != null) VerifyAvailableId(id);
         var element = new XElement(Dc + name, value);
         element.SetAttributeValue("id", id); element.SetAttributeValue(XNamespace.Xml + "lang", language);
@@ -87,6 +89,7 @@ public sealed partial class EpubPublication {
     private string GetDc(string name) => RequireSection("metadata").Element(Dc + name)?.Value ?? string.Empty;
     private void SetDc(string name, string value) {
         RequireText(value, nameof(value));
+        if (name == "language") EpubLanguageTag.Require(value, nameof(value));
         XElement? element = RequireSection("metadata").Element(Dc + name);
         if (element == null) EditPackageElement(RequireSection("metadata"), proposed => proposed.Add(new XElement(Dc + name, value)));
         else EditPackageElement(element, proposed => proposed.Value = value);

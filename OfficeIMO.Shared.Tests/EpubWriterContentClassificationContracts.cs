@@ -70,8 +70,8 @@ public sealed class EpubWriterContentClassificationContracts {
     [InlineData("alternate-style")]
     [InlineData("base")]
     [InlineData("preload")]
-    public void RemoteDeclarations_IncludeUnselectedResourceAlternatives(string route) {
-        EpubPublication book = EpubWritingContracts.CreateBook();
+    public void RemoteDeclarations_ValidateUnselectedResourceAlternatives(string route) {
+        EpubPublication book = EpubWriterResourceBoundaryContracts.LoadWithRemoteDeclaration("https://example.test/remote.mp3", "audio/mpeg");
         XDocument content = book.GetContentXml("first");
         XElement head = content.Root!.Element(Html + "head")!;
         XElement body = content.Root.Element(Html + "body")!;
@@ -89,12 +89,17 @@ public sealed class EpubWriterContentClassificationContracts {
             head.Add(new XElement(Html + "link", new XAttribute("rel", "preload"), new XAttribute("as", "image"),
                 new XAttribute("media", "print"), new XAttribute("href", "image.bin"), new XAttribute("imagesrcset", "https://example.test/alternative.png 1x")));
         } else if (route == "base") {
+            head.Elements(Html + "link").Remove();
             head.Add(new XElement(Html + "base", new XAttribute("href", "https://example.test/")));
             body.Add(new XElement(Html + "audio", new XAttribute("src", "remote.mp3")));
         } else head.Add(new XElement(Html + "link", new XAttribute("rel", route == "print-style" ? "stylesheet" : "alternate stylesheet"),
             new XAttribute("title", "Alternative"), new XAttribute("media", route == "print-style" ? "print" : "all"),
             new XAttribute("href", "https://example.test/remote.css")));
         book.SetContentXml("first", content);
+        if (route == "picture" || route == "preload" || route == "print-style" || route == "alternate-style") {
+            Assert.Throws<NotSupportedException>(() => book.Write());
+            return;
+        }
         EpubPublication saved = EpubPublication.Load(new MemoryStream(book.Write().Bytes));
         Assert.Contains("remote-resources", saved.Manifest.Single(item => item.Id == "first").Properties!);
     }

@@ -366,8 +366,18 @@ non-linear entry to make it navigable without repeating it in the primary readin
 Remote-resource
 declarations and URL-policy checks include retained media/source alternatives and
 stylesheet links, even when the renderer selects a different alternative.
+New or rewritten XHTML/SVG requires manifest declarations for embedded container
+resources and remote audio, video, or fonts. EPUB 3 remote images, stylesheets, and
+embedded documents are rejected. Inline CSS references are checked across media
+conditions; linked stylesheet dependency closure still requires independent validation.
+Data URLs are limited to inert raster image, audio/video, and font contexts. Embedded
+data documents, SVG data URLs, and data hyperlinks are rejected under the writer's
+non-scripted contract. Referenced imported scripted resources cannot be newly embedded.
 Newly authored or rewritten forms are rejected under the scripted-content restriction;
 unchanged imported scripted content remains eligible for preservation.
+Language authoring requires well-formed BCP 47 syntax, including private-use and
+grandfathered tags. Edited packages validate every Dublin Core language value.
+Unedited imports retain their original language declarations.
 Custom vocabulary declarations reject EPUB-prohibited mappings. Declare custom
 prefixes before assigning metadata, manifest, or spine properties. Newly assigned
 property tokens require valid declared or reserved prefixes and nonempty references;

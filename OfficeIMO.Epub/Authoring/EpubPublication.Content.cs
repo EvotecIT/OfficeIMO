@@ -18,7 +18,7 @@ public sealed partial class EpubPublication {
         string path = VerifyContentPath(containerPath);
         if (_entries.ContainsKey(path) || Manifest.Any(item => item.Reference.ContainerPath == path)) throw new ArgumentException("Entry path already exists: " + path);
         EnsureEntryBudget(1);
-        if (_entries.Keys.Any(existing => string.Equals(existing.Normalize(NormalizationForm.FormC), path.Normalize(NormalizationForm.FormC), StringComparison.OrdinalIgnoreCase)))
+        if (_entries.Keys.Concat(new[] { PackagePath }).Any(existing => string.Equals(existing.Normalize(NormalizationForm.FormC), path.Normalize(NormalizationForm.FormC), StringComparison.OrdinalIgnoreCase)))
             throw new ArgumentException("Resource paths must remain distinct after Unicode normalization and case comparison.", nameof(containerPath));
         if (IsScriptMediaType(mediaType) || HasToken(properties, "scripted"))
             throw new NotSupportedException("Script authoring is outside the EPUB writer contract.");

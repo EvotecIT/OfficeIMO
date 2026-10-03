@@ -205,10 +205,10 @@ public sealed class EpubWritingContracts {
 
     [Fact]
     public void AuthoredContent_DeclaresEmbeddedSvgMathAndRemoteResources() {
-        EpubPublication book = CreateBook();
+        EpubPublication book = EpubWriterResourceBoundaryContracts.LoadWithRemoteDeclaration("https://example.org/audio.mp3", "audio/mpeg");
         book.AddChapter("illustrated", "EPUB/illustrated.xhtml", "Illustrated",
             "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><rect width='10' height='10'/></svg>" +
-            "<math xmlns='http://www.w3.org/1998/Math/MathML'><mi>x</mi></math><img src='https://example.org/image.png' alt='Example'/>" );
+            "<math xmlns='http://www.w3.org/1998/Math/MathML'><mi>x</mi></math><audio src='https://example.org/audio.mp3' controls='controls'/>" );
         using var output = new MemoryStream(book.Write().Bytes);
         EpubPublication loaded = EpubPublication.Load(output);
         string[] properties = loaded.Manifest.Single(item => item.Id == "illustrated").Properties!.Split(' ');
@@ -382,7 +382,7 @@ public sealed class EpubWritingContracts {
 
     [Fact]
     public void ContentEdits_PreserveRemoteDeclarationsForSvgAndExternalStylesheetDependencies() {
-        EpubPublication book = CreateBook();
+        EpubPublication book = EpubWriterResourceBoundaryContracts.LoadWithRemoteDeclaration("https://example.org/font.otf", "font/otf");
         book.AddResource("illustration", "EPUB/illustration.svg", "image/svg+xml", Encoding.UTF8.GetBytes(
             "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><style>@font-face { font-family: remote; src: url(https://example.org/font.otf); }</style><text x='1' y='5'>Original</text></svg>"), "remote-resources");
         book.AddStylesheet("remote-style", "EPUB/remote.css", "@font-face { font-family: remote; src: url(https://example.org/font.otf); }");

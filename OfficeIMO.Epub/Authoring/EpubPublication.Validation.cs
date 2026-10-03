@@ -3,13 +3,15 @@ using System.Threading;
 namespace OfficeIMO.Epub;
 
 public sealed partial class EpubPublication {
-    private void ValidatePublication(XDocument package, IReadOnlyDictionary<string, byte[]> entries, List<OfficeConversionFidelityDiagnostic> diagnostics, CancellationToken token) {
+    private void ValidatePublication(XDocument package, IReadOnlyDictionary<string, byte[]> entries, List<OfficeConversionFidelityDiagnostic> diagnostics, CancellationToken token, bool changed) {
         XElement root = package.Root!;
         XElement metadata = root.Element(Opf + "metadata")!;
         if (!metadata.Elements(Dc + "title").Any(element => !string.IsNullOrWhiteSpace(element.Value)) ||
             !metadata.Elements(Dc + "language").Any(element => !string.IsNullOrWhiteSpace(element.Value)) ||
             !metadata.Elements(Dc + "identifier").Any(element => (string?)element.Attribute("id") == (string?)root.Attribute("unique-identifier") && !string.IsNullOrWhiteSpace(element.Value)))
             throw new InvalidDataException("Title, language and the selected package identifier are required.");
+        if (changed && metadata.Elements(Dc + "language").Any(element => !EpubLanguageTag.IsWellFormed(element.Value)))
+            throw new InvalidDataException("Every package language must be a well-formed BCP 47 tag.");
         var ids = new HashSet<string>(StringComparer.Ordinal);
         foreach (XAttribute attribute in root.DescendantsAndSelf().Attributes("id")) {
             XmlConvert.VerifyNCName(attribute.Value);
@@ -95,14 +97,8 @@ public sealed partial class EpubPublication {
                 var resources = OfficeIMO.Html.HtmlResourcePipeline.BuildManifest(analysisContent,
                     new OfficeIMO.Html.HtmlResourcePipelineOptions { Limits = limits });
                 if (resources.Resources.Any(resource => !resource.IsAllowed)) throw new NotSupportedException("Authored content contains a URL blocked by the shared HTML policy.");
-                // A renderer may select one media alternative; every retained direct
-                // resource reference must still pass the same URL policy.
-                var resourcePolicy = OfficeIMO.Html.HtmlResourceUrlPolicy.Create(null);
-                foreach (EpubReference reference in ContentResourceReferences(content, path, token, includeHyperlinks: false))
-                    if ((reference.Kind == EpubReferenceKind.External || reference.Kind == EpubReferenceKind.Data) &&
-                        !OfficeIMO.Html.HtmlUrlPolicyEvaluator.IsAllowed(reference.ResolvedValue, resourcePolicy))
-                        throw new NotSupportedException("Authored content contains a URL blocked by the shared HTML policy.");
-                if (PackageVersion == "3.0") UpdateContentProperties(item, content, path, resources);
+                bool hasRemoteResources = ValidateAuthoredResources(content, path, resources, manifest, token);
+                if (PackageVersion == "3.0") UpdateContentProperties(item, content, hasRemoteResources);
             }
             ValidateContentReferences(content, path, entries, fragmented, token);
         }
@@ -128,26 +124,28 @@ public sealed partial class EpubPublication {
     }
 
     private static IEnumerable<EpubReference> ContentResourceReferences(XDocument content, string owner, CancellationToken token = default, bool includeHyperlinks = true) {
+        return DirectContentResources(content, owner, token).Where(resource => includeHyperlinks || resource.Kind != OfficeIMO.Html.HtmlResourceKind.Hyperlink)
+            .Select(resource => resource.Reference);
+    }
+
+    private static IEnumerable<(EpubReference Reference, OfficeIMO.Html.HtmlResourceKind Kind)> DirectContentResources(XDocument content, string owner, CancellationToken token) {
         string? baseHref = content.Root?.Name == Html + "html" ? content.Root.Element(Html + "head")?.Elements(Html + "base")
             .Select(element => (string?)element.Attribute("href")).FirstOrDefault(value => value != null) : null;
         foreach (XElement element in content.Descendants()) {
             token.ThrowIfCancellationRequested();
             if (element.Name.Namespace != Html && element.Name.NamespaceName != "http://www.w3.org/2000/svg" && element.Name != Ncx + "content") continue;
-            if (!includeHyperlinks && (element.Name.LocalName == "a" || element.Name == Html + "area")) continue;
-            if (!includeHyperlinks && element.Name == Html + "link" &&
-                OfficeIMO.Html.HtmlResourcePipeline.GetLinkResourceKind((string?)element.Attribute("rel"), (string?)element.Attribute("as")) == OfficeIMO.Html.HtmlResourceKind.Hyperlink) continue;
             foreach (XAttribute attribute in element.Attributes().Where(attribute => attribute.Name == "href" || attribute.Name == "src" ||
                 attribute.Name == "poster" || (element.Name == Html + "object" && attribute.Name == "data") ||
                 attribute.Name == XName.Get("href", "http://www.w3.org/1999/xlink"))) {
                 if (element.Name == Html + "base" || string.IsNullOrWhiteSpace(attribute.Value)) continue;
-                yield return EpubReference.Resolve(owner, baseHref, attribute.Value);
+                yield return (EpubReference.Resolve(owner, baseHref, attribute.Value), DirectResourceKind(element, attribute.Name.LocalName));
             }
             if (element.Name.Namespace == Html) foreach (var candidate in OfficeIMO.Html.HtmlSrcSetParser.Enumerate((string?)element.Attribute("srcset")))
-                yield return EpubReference.Resolve(owner, baseHref, candidate.Url);
+                yield return (EpubReference.Resolve(owner, baseHref, candidate.Url), OfficeIMO.Html.HtmlResourceKind.Image);
             if (element.Name == Html + "link" && Tokens((string?)element.Attribute("rel")).Any(value => string.Equals(value, "preload", StringComparison.OrdinalIgnoreCase)) &&
                 OfficeIMO.Html.HtmlResourcePipeline.GetLinkResourceKind((string?)element.Attribute("rel"), (string?)element.Attribute("as")) == OfficeIMO.Html.HtmlResourceKind.Image)
                 foreach (var candidate in OfficeIMO.Html.HtmlSrcSetParser.Enumerate((string?)element.Attribute("imagesrcset")))
-                    yield return EpubReference.Resolve(owner, baseHref, candidate.Url);
+                    yield return (EpubReference.Resolve(owner, baseHref, candidate.Url), OfficeIMO.Html.HtmlResourceKind.Image);
         }
     }
 
@@ -160,15 +158,12 @@ public sealed partial class EpubPublication {
         if (!string.IsNullOrEmpty(reference.Fragment)) fragmented.Add((owner, reference));
     }
 
-    private static void UpdateContentProperties(EpubManifestItem item, XDocument content, string owner, OfficeIMO.Html.HtmlResourceManifest resources) {
+    private static void UpdateContentProperties(EpubManifestItem item, XDocument content, bool hasRemoteResources) {
         // Linked CSS dependencies are not exhaustively traversed, so retain an explicit remote declaration.
         var properties = new List<string>(Tokens(item.Properties).Where(token => token != "svg" && token != "mathml"));
         if (content.Descendants().Any(element => element.Name.NamespaceName == "http://www.w3.org/2000/svg" && element.Name.LocalName == "svg") && HasMediaType(item.MediaType, "application/xhtml+xml")) properties.Add("svg");
         if (content.Descendants().Any(element => element.Name.NamespaceName == "http://www.w3.org/1998/Math/MathML")) properties.Add("mathml");
-        // Shared HTML discovery also covers inline CSS, srcset, and non-hyperlink resource URLs.
-        if (resources.Resources.Any(resource => resource.Kind != OfficeIMO.Html.HtmlResourceKind.Hyperlink &&
-            EpubReference.Resolve(owner, resource.ResolvedSource.Length == 0 ? resource.Source : resource.ResolvedSource).Kind == EpubReferenceKind.External) ||
-            ContentResourceReferences(content, owner, includeHyperlinks: false).Any(reference => reference.Kind == EpubReferenceKind.External)) properties.Add("remote-resources");
+        if (hasRemoteResources) properties.Add("remote-resources");
         item.Properties = properties.Count == 0 ? null : string.Join(" ", properties.Distinct(StringComparer.Ordinal));
     }
 

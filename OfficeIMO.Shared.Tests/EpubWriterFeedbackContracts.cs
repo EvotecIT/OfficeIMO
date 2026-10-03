@@ -79,10 +79,11 @@ public sealed class EpubWriterFeedbackContracts {
 
     [Fact]
     public void ContentEdit_UsesTheEffectiveHtmlBaseForRemoteResourceDeclarations() {
-        EpubPublication book = EpubWritingContracts.CreateBook();
+        EpubPublication book = EpubWriterResourceBoundaryContracts.LoadWithRemoteDeclaration("https://example.org/audio/remote.mp3", "audio/mpeg");
         XDocument content = book.GetContentXml("first");
-        content.Root!.Element(Html + "head")!.AddFirst(new XElement(Html + "base", new XAttribute("href", "https://example.org/images/")));
-        content.Root.Element(Html + "body")!.Add(new XElement(Html + "img", new XAttribute("src", "image.png"), new XAttribute("alt", "Remote image")));
+        content.Root!.Element(Html + "head")!.Elements(Html + "link").Remove();
+        content.Root.Element(Html + "head")!.AddFirst(new XElement(Html + "base", new XAttribute("href", "https://example.org/audio/")));
+        content.Root.Element(Html + "body")!.Add(new XElement(Html + "audio", new XAttribute("src", "remote.mp3")));
         book.SetContentXml("first", content);
         EpubPublication loaded = EpubPublication.Load(new MemoryStream(book.Write().Bytes));
         Assert.Contains("remote-resources", loaded.Manifest.Single(item => item.Id == "first").Properties!.Split(' '));

@@ -73,6 +73,7 @@ public sealed partial class EpubPublication {
         EpubVersion version = EpubVersion.Epub3, EpubPublicationLoadOptions? retentionLimits = null) {
         EpubPublicationLoadOptions limits = SnapshotLoadOptions(retentionLimits);
         RequireText(title, nameof(title)); RequireText(language, nameof(language));
+        EpubLanguageTag.Require(language, nameof(language));
         if (version != EpubVersion.Epub2 && version != EpubVersion.Epub3) throw new ArgumentOutOfRangeException(nameof(version));
         identifier ??= "urn:uuid:" + Guid.NewGuid().ToString("D");
         RequireText(identifier, nameof(identifier));
