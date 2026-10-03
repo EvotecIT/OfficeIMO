@@ -219,16 +219,17 @@ public static class LatexSimpleMacroExpander {
             LatexTokenView token = tokens[index];
             if (token.Kind == LatexTokenKind.Parameter && index + 1 < tokens.Count) {
                 LatexTokenView next = tokens[index + 1];
-                string? parameterText = next.Kind == LatexTokenKind.Text ? next.Text : null;
-                if (parameterText != null && parameterText.Length > 0 && parameterText[0] >= '1' && parameterText[0] <= '9') {
-                    int parameter = parameterText[0] - '1';
+                int nextLength = next.EndOffset - next.StartOffset;
+                if (next.Kind == LatexTokenKind.Text && nextLength > 0 &&
+                    body[next.StartOffset] >= '1' && body[next.StartOffset] <= '9') {
+                    int parameter = body[next.StartOffset] - '1';
                     if (parameter < arguments.Count) AppendBounded(output, arguments[parameter], maximumOutputLength);
-                    if (parameterText.Length > 1) AppendBounded(output, parameterText.Substring(1), maximumOutputLength);
+                    if (nextLength > 1) AppendBounded(output, body, next.StartOffset + 1, nextLength - 1, maximumOutputLength);
                     index++;
                     continue;
                 }
             }
-            AppendBounded(output, token.Text, maximumOutputLength);
+            AppendBounded(output, body, token.StartOffset, token.EndOffset - token.StartOffset, maximumOutputLength);
         }
         return output.ToString();
     }
@@ -286,6 +287,11 @@ public static class LatexSimpleMacroExpander {
     private static void AppendBounded(StringBuilder output, string value, int maximumOutputLength) {
         if (value.Length > maximumOutputLength - output.Length) throw new InvalidDataException("Simple macro expansion exceeds maximumOutputLength.");
         output.Append(value);
+    }
+
+    private static void AppendBounded(StringBuilder output, string value, int start, int length, int maximumOutputLength) {
+        if (length > maximumOutputLength - output.Length) throw new InvalidDataException("Simple macro expansion exceeds maximumOutputLength.");
+        output.Append(value, start, length);
     }
 
     private static void EnforceLength(StringBuilder output, int maximumOutputLength) {
