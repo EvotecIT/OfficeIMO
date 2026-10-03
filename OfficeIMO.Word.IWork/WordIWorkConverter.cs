@@ -351,11 +351,11 @@ public static partial class WordIWorkConverter {
             WordParagraph paragraph = addParagraph(string.Empty);
             if (defaultStyle != null) {
                 ApplyParagraphStyle(paragraph, defaultStyle, sourceParagraph.Text);
-                ApplyTextStyle(paragraph, defaultStyle.TextStyle);
+                ApplyParagraphTextStyle(paragraph, defaultStyle.TextStyle);
             }
             ApplyParagraphStyle(paragraph, sourceParagraph);
             if (forceBold) paragraph.Bold = true;
-            ApplyTextStyle(paragraph, sourceParagraph.Style.TextStyle);
+            ApplyParagraphTextStyle(paragraph, sourceParagraph.Style.TextStyle);
             if (sourceParagraph.ListLevel >= 0) {
                 bool startsNewList = !hasPreviousListParagraph
                     || sourceParagraph.ListIdentifier != previousListIdentifier;
@@ -439,6 +439,11 @@ public static partial class WordIWorkConverter {
         if (style.PageBreakBefore.HasValue) paragraph.PageBreakBefore = style.PageBreakBefore.Value;
         if (style.KeepWithNext.HasValue) paragraph.KeepWithNext = style.KeepWithNext.Value;
         if (style.KeepLinesTogether.HasValue) paragraph.KeepLinesTogether = style.KeepLinesTogether.Value;
+    }
+
+    private static void ApplyParagraphTextStyle(WordParagraph paragraph, IWorkTextStyle style) {
+        ApplyTextStyle(paragraph, style);
+        paragraph.CopyRunFormattingToParagraphMark();
     }
 
     private static void ApplyTextStyle(WordParagraph run, IWorkTextStyle style) {

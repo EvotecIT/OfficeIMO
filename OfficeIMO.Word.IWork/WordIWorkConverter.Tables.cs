@@ -39,7 +39,7 @@ public static partial class WordIWorkConverter {
                 if (source.GetParagraphStyle(row, column) is { } style) {
                     WordParagraph paragraph = table.Rows[row - 1].Cells[column - 1].Paragraphs[0];
                     ApplyParagraphStyle(paragraph, style, string.Empty);
-                    ApplyTextStyle(paragraph, style.TextStyle);
+                    ApplyParagraphTextStyle(paragraph, style.TextStyle);
                 }
             }
         }
@@ -76,7 +76,7 @@ public static partial class WordIWorkConverter {
                 if (header) paragraph.Bold = true;
                 if (defaultStyle != null) {
                     ApplyParagraphStyle(paragraph, defaultStyle, paragraph.Text);
-                    ApplyTextStyle(paragraph, defaultStyle.TextStyle);
+                    ApplyParagraphTextStyle(paragraph, defaultStyle.TextStyle);
                 }
                 if (numericColor != null) paragraph.ColorHex = numericColor;
             }
