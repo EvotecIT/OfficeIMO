@@ -20,6 +20,7 @@ when Windows and Linux validate the same mounted source checkout.
 | --- | --- | --- |
 | Managed | Ordinary email artifact, store, address-book, Reader and HTML regression tests, including generated independent-producer fixtures; excludes `Category=Performance` | None |
 | ApplePartial | Pinned independent partial EMLX and decoded sibling payload, MIME-part recovery and EML export byte verification | `OFFICEIMO_EMAIL_APPLE_PARTIAL_CORPUS` containing the catalog's `Messages` and `Attachments` paths |
+| NativeKeychain | Caller-selected non-extractable native RSA identity, AES-CBC envelopes, signing, S/MIME processing, reopen and lock/unlock authorization | macOS and .NET 8 or later; `OFFICEIMO_EMAIL_NATIVE_KEYCHAIN=1` and `OFFICEIMO_EMAIL_KEYCHAIN_SCRATCH` naming an existing task scratch directory |
 | MsgReader | MSGReader sample corpus with per-artifact semantic comparison | `OFFICEIMO_EMAIL_CORPUS_ROOT` or `EVOTEC_GITHUB_ROOT` containing `MSGReader` |
 | MimeKit | MIME, TNEF and mbox sample corpus, adversarial scenarios and duplicate-header order | The same corpus root containing `MimeKit` |
 | LibPff | Generated Unicode PST inspection and semantic export through libpff | `OFFICEIMO_EMAIL_STORE_PFFINFO` and the corresponding export tool, or Windows `OFFICEIMO_EMAIL_STORE_LIBPFF_WSL` |
@@ -27,6 +28,12 @@ when Windows and Linux validate the same mounted source checkout.
 | Smime | Caller-provided real Outlook signed/encrypted artifacts | `OFFICEIMO_EMAIL_SMIME_CORPUS`; follow the existing corpus test's certificate/expected-result contract |
 | PrivateStores | Bounded read of caller-owned PST/OST stores | `OFFICEIMO_EMAIL_STORE_CORPUS` |
 | PrivateStoreConversion | Bounded conversion, strict semantic verification and source preservation | The store corpus plus `OFFICEIMO_EMAIL_STORE_CORPUS_CONVERT=1` |
+
+The native Keychain lane creates and removes an isolated synthetic keychain. It trusts
+only the current .NET executable, verifies that private export fails, and checks that
+the user keychain search list is unchanged after cleanup. It does not select personal
+identities or modify the login keychain. Deleting a keychain file does not invalidate
+every cached native handle; the caller must discard revoked identities.
 
 The runner does not download corpora or enable Outlook automation. Select external
 lanes only after their prerequisites are configured. Outlook tests may launch the

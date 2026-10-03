@@ -2,7 +2,7 @@ namespace OfficeIMO.Email;
 
 internal static partial class IcsCalendarCodec {
     private static void TryProjectTypedRecurrence(string text, EmailDocument document, bool isEvent,
-        IList<EmailDiagnostic> diagnostics, string location) {
+        IList<EmailDiagnostic> diagnostics, string location, OutlookTimeZoneDefinition? timeZone) {
         try {
             IcsDocument calendar = IcsDocument.Parse(text.TrimStart('\uFEFF'));
             string componentName = isEvent ? "VEVENT" : "VTODO";
@@ -27,8 +27,6 @@ internal static partial class IcsCalendarCodec {
                 return;
             }
             TimeSpan duration = GetRecurrenceDuration(master, start.Value, isEvent);
-            OutlookTimeZoneDefinition? timeZone = ResolveEmbeddedRecurrenceTimeZone(
-                calendar, start.Value, diagnostics, location, document);
             if (start.Value.Kind == IcsTemporalValueKind.ZonedDateTime && timeZone == null &&
                 RequiresUtcRecurrenceConversion(master, components)) {
                 diagnostics.Add(new EmailDiagnostic("EMAIL_ICALENDAR_RECURRENCE_TIMEZONE_REQUIRED",

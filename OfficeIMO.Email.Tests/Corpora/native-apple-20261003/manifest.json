@@ -20,7 +20,8 @@
       "Four weekly occurrences stayed at 09:00 Europe/Warsaw across DST",
       "Ten-minute display alarm retained",
       "Native all-series title edit retained",
-      "Custom property retained"
+      "Custom property retained",
+      "OLM-to-ICS conversion imported with four Sunday occurrences at09:00 and ten-minute alarm; native re-export retains differently dated1988DAYLIGHT/1996STANDARD rules"
     ],
     "contacts": [
       "Photo bytes retained",
@@ -66,6 +67,10 @@
     {
       "path": "outlook/native-outlook.olm",
       "sha256": "a179b91e5b1aa823c4d40560855085d1514d3fb8e9e358df66ccf0d269bde602"
+    },
+    {
+      "path": "calendar/native-olm-calendar.ics",
+      "sha256": "53fab01e38351f90b399d5978e7ad1784dc4e403b8d87a4077fb88762b1ec8b4"
     }
   ],
   "attachmentHashes": [

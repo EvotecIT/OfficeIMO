@@ -4,7 +4,7 @@ using OfficeIMO.Email.Store;
 
 namespace OfficeIMO.Email.Tests;
 
-public sealed class NativeAppleExportTests {
+public sealed partial class NativeAppleExportTests {
     [Fact]
     public void MailExportPreservesChildIdentityHtmlAndAttachmentBytesThroughEml() {
         VerifyFixtures("mail/");

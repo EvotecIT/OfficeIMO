@@ -1,8 +1,24 @@
 namespace OfficeIMO.Email;
 
 internal static partial class IcsCalendarCodec {
+    private static OutlookTimeZoneDefinition? ResolveEmbeddedComponentTimeZone(string text, bool isEvent,
+        IList<EmailDiagnostic> diagnostics, string location, EmailDocument document) {
+        try {
+            IcsDocument calendar = IcsDocument.Parse(text.TrimStart('\uFEFF'));
+            ContentLineComponent? master = calendar.GetComponents(isEvent ? "VEVENT" : "VTODO").FirstOrDefault();
+            IcsTemporalValue? start = master?.GetTemporalValue("DTSTART");
+            if (master == null || !start.HasValue) return null;
+            return ResolveEmbeddedRecurrenceTimeZone(calendar, master, start.Value, diagnostics, location, document);
+        } catch (Exception exception) when (exception is InvalidDataException || exception is FormatException ||
+            exception is ArgumentException || exception is OverflowException) {
+            ReportTimeZoneProjectionFailure(exception.Message, diagnostics, location, document);
+            return null;
+        }
+    }
+
     private static OutlookTimeZoneDefinition? ResolveEmbeddedRecurrenceTimeZone(IcsDocument calendar,
-        IcsTemporalValue start, IList<EmailDiagnostic> diagnostics, string location, EmailDocument document) {
+        ContentLineComponent master, IcsTemporalValue start, IList<EmailDiagnostic> diagnostics,
+        string location, EmailDocument document) {
         if (start.Kind != IcsTemporalValueKind.ZonedDateTime || string.IsNullOrWhiteSpace(start.TimeZoneId))
             return null;
         ContentLineComponent[] matches = calendar.GetComponents("VTIMEZONE").Where(component =>
@@ -14,7 +30,8 @@ internal static partial class IcsCalendarCodec {
                 diagnostics, location, document);
             return null;
         }
-        if (TryConvertTimeZone(matches[0], out OutlookTimeZoneDefinition? definition, out string? error))
+        if (TryConvertTimeZone(matches[0], out OutlookTimeZoneDefinition? definition, out string? error,
+                minimumReferenceYear: GetEarliestReferenceYear(calendar, master, start)))
             return definition;
         ReportTimeZoneProjectionFailure(error ?? "The embedded VTIMEZONE cannot be represented by Outlook rules.",
             diagnostics, location, document);
@@ -30,7 +47,7 @@ internal static partial class IcsCalendarCodec {
 
     internal static bool TryConvertTimeZone(ContentLineComponent component,
         out OutlookTimeZoneDefinition? definition, out string? error,
-        bool allowMicrosoft1601PlaceholderDates = false) {
+        bool allowMicrosoft1601PlaceholderDates = false, int? minimumReferenceYear = null) {
         definition = null;
         error = null;
         string? timeZoneId = component.GetFirstProperty("TZID")?.Value;
@@ -52,7 +69,20 @@ internal static partial class IcsCalendarCodec {
         if (observances.Length == 0) return Fail("VTIMEZONE does not contain an Outlook-representable observance.", out error);
 
         var result = new OutlookTimeZoneDefinition { KeyName = timeZoneId };
-        IGrouping<int, Observance>[] groups = observances.GroupBy(value => value.Start.Year)
+        int? pairedYear = null;
+        if (observances.Length == 2 && observances.Count(value => value.IsDaylight) == 1 &&
+            observances[0].Start.Year != observances[1].Start.Year) {
+            // Apple retains the independent first dates of the current STANDARD
+            // and DAYLIGHT rules. Project only complete future years of that pair;
+            // the Outlook year-based model cannot describe the partial history.
+            int firstCompleteYear = checked(observances.Max(value => value.Start.Year) + 1);
+            if (observances.Any(value => value.Rule?.GetValue("UNTIL") != null) ||
+                minimumReferenceYear == null || minimumReferenceYear < firstCompleteYear)
+                return Fail("Differently dated observances require references after both rules' first complete year and no UNTIL bounds.",
+                    out error);
+            pairedYear = firstCompleteYear;
+        }
+        IGrouping<int, Observance>[] groups = observances.GroupBy(value => pairedYear ?? value.Start.Year)
             .OrderBy(value => value.Key).ToArray();
         for (int groupIndex = 0; groupIndex < groups.Length; groupIndex++) {
             IGrouping<int, Observance> group = groups[groupIndex];
@@ -98,6 +128,30 @@ internal static partial class IcsCalendarCodec {
             result.Rules[index].Flags = index == result.Rules.Count - 1 ? (ushort)0x0002 : (ushort)0;
         definition = result;
         return true;
+    }
+
+    private static int GetEarliestReferenceYear(IcsDocument calendar, ContentLineComponent master,
+        IcsTemporalValue start) {
+        int year = start.Value.Year;
+        string? uid = master.GetFirstProperty("UID")?.Value;
+        foreach (ContentLineComponent component in calendar.GetComponents(master.Name).Where(component =>
+                     ReferenceEquals(component, master) || !string.IsNullOrWhiteSpace(uid) &&
+                     string.Equals(component.GetFirstProperty("UID")?.Value, uid, StringComparison.Ordinal))) {
+            foreach (string name in new[] { "DTSTART", "DTEND", "DUE", "RECURRENCE-ID", "EXDATE", "RDATE" }) {
+                foreach (ContentLineProperty property in component.GetProperties(name)) {
+                    foreach (string raw in property.Value.Split(',')) {
+                        if (IcsTemporalValue.TryParse(CloneTemporalProperty(property, raw), out IcsTemporalValue value))
+                            year = Math.Min(year, value.Value.Year);
+                    }
+                }
+            }
+            foreach (ContentLineProperty rule in component.GetProperties("RRULE")) {
+                string? until = IcsRecurrenceRule.Parse(rule.Value).GetValue("UNTIL");
+                if (until != null && IcsTemporalValue.TryParse(new ContentLineProperty("UNTIL", until),
+                        out IcsTemporalValue value)) year = Math.Min(year, value.Value.Year);
+            }
+        }
+        return year;
     }
 
     private static Observance ParseObservance(ContentLineComponent component) {

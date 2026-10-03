@@ -1671,6 +1671,12 @@ jobs:
           dotnet test OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.VerifyTests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
 
+      - name: Qualify native macOS Keychain S/MIME
+        env:
+          OFFICEIMO_EMAIL_NATIVE_KEYCHAIN: '1'
+          OFFICEIMO_EMAIL_KEYCHAIN_SCRATCH: ${{ runner.temp }}
+        run: dotnet test OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework ${{ matrix.framework }} --filter "FullyQualifiedName~NativeMacKeychainTests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+
       - name: Summarize failing tests
         if: failure() && env.SUMMARIZE_FAILURES == 'true'
         shell: pwsh
