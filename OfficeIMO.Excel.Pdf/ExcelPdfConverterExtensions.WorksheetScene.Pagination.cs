@@ -60,7 +60,7 @@ namespace OfficeIMO.Excel.Pdf {
             double segmentWidth = 0D;
             for (int column = startColumn; column < startColumn + columnCount; column++) {
                 double width = GetExportedColumnWidthPoints(plan, column);
-                double titleWidth = plan.ExportData.PrintTitleColumnIndexes.Where(title => title < segmentStart || title > column)
+                double titleWidth = plan.ExportData.PrintTitleColumnIndexes.Where(title => title < segmentStart)
                     .Sum(title => GetExportedColumnWidthPoints(plan, title));
                 if (segmentCount > 0 && segmentWidth + width + titleWidth > maximumWidth) {
                     result.Add((segmentStart, segmentCount));

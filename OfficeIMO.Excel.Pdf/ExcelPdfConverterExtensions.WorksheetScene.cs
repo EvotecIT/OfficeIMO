@@ -30,6 +30,9 @@ namespace OfficeIMO.Excel.Pdf {
                     IReadOnlyList<TableChunk> chunks = plan.HasTable
                         ? CreateWorksheetSceneChunks(plan, options, columns, availableWidth, availableHeight, worksheetScale)
                         : new[] { new TableChunk(Array.Empty<int>(), 0, 0, 0) };
+                    // Vertical pages share the same column projection. Keep one per horizontal
+                    // segment for this print area instead of copying all source rows on every page.
+                    var columnProjections = new Dictionary<(int Start, int Count), SheetExportData>();
                     if (areaIndex > 0) page.Content(content => content.Item(item => item.PageBreak()));
                     page.Content(content => content.Item(item => item.Bookmark(plan.BookmarkName)));
                     for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) {
@@ -53,7 +56,8 @@ namespace OfficeIMO.Excel.Pdf {
                             worksheetScale,
                             headingHeight,
                             firstPageForSheet,
-                            document.DateSystem));
+                            document.DateSystem,
+                            columnProjections));
                     }
                 }
             });
@@ -73,7 +77,8 @@ namespace OfficeIMO.Excel.Pdf {
             double worksheetScale,
             double headingHeight,
             bool firstPageForSheet,
-            ExcelDateSystem dateSystem) {
+            ExcelDateSystem dateSystem,
+            IDictionary<(int Start, int Count), SheetExportData> columnProjections) {
             double sceneX = margins.Left;
             double sceneY = margins.Top + headingHeight;
             if (firstPageForSheet) {
@@ -108,7 +113,11 @@ namespace OfficeIMO.Excel.Pdf {
 
             canvas.Clip(sceneX, sceneY, Math.Max(1D, clipWidth), Math.Max(1D, clipHeight), clipped => {
                 if (plan.HasTable && chunk.RowIndexes.Count > 0 && chunk.ColumnCount > 0) {
-                    SheetExportData data = SelectPageColumns(plan.ExportData, chunk.ColumnIndexes);
+                    var projectionKey = (chunk.StartColumn, chunk.ColumnCount);
+                    if (!columnProjections.TryGetValue(projectionKey, out SheetExportData? data)) {
+                        data = SelectPageColumns(plan.ExportData, chunk.ColumnIndexes);
+                        columnProjections.Add(projectionKey, data);
+                    }
                     PdfCore.PdfTableStyle tableStyle = CreateWorksheetSceneTableStyle(plan, data, chunk, options, columnWidths, rowHeights, scale);
                     clipped.Table(
                         CreatePdfRows(
@@ -465,11 +474,6 @@ namespace OfficeIMO.Excel.Pdf {
                 }
             }
 
-            int firstSourceColumn = GetOriginalColumnNumber(references, chunk.ColumnIndexes[0], Math.Min(plan.ExportedRows, references.GetLength(0)));
-            if (firstSourceColumn <= 0 || sourceColumn < firstSourceColumn) {
-                return false;
-            }
-
             int localColumn = -1;
             for (int index = 0; index < chunk.ColumnIndexes.Count; index++) {
                 int exportedColumn = chunk.ColumnIndexes[index];
@@ -498,7 +502,11 @@ namespace OfficeIMO.Excel.Pdf {
                 return false;
             }
 
-            for (int column = firstSourceColumn; column < sourceColumn; column++) {
+            // A final page can display repeated titles followed by a distant body segment.
+            // Omitted source columns do not occupy space on that page; only the genuine
+            // trailing gap beyond the last exported column contributes additional width.
+            x = columnWidths.Sum();
+            for (int column = lastSourceColumn + 1; column < sourceColumn; column++) {
                 x += GetWorksheetColumnWidthPoints(plan.Geometry, column);
             }
 

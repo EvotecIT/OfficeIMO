@@ -63,7 +63,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static IReadOnlyList<int> CreateChunkColumnIndexes(WorksheetPdfExportPlan plan, int start, int count) =>
-            plan.ExportData.PrintTitleColumnIndexes.Where(column => column < start || column >= start + count)
+            plan.ExportData.PrintTitleColumnIndexes.Where(column => column < start)
                 .Concat(Enumerable.Range(start, count)).ToArray();
     }
 }

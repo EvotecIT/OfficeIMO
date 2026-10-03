@@ -7,6 +7,36 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Excel {
+    [Theory]
+    [InlineData(ExcelPdfWorksheetLayoutMode.WorksheetCanvas, 2)]
+    [InlineData(ExcelPdfWorksheetLayoutMode.WorksheetCanvas, 3)]
+    [InlineData(ExcelPdfWorksheetLayoutMode.FlowTable, 2)]
+    [InlineData(ExcelPdfWorksheetLayoutMode.FlowTable, 3)]
+    public void SaveAsPdf_TitleBlockRepeatsOnlyColumnsBeforeTheCurrentBodySegment(ExcelPdfWorksheetLayoutMode layout, int firstBreak) {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Report");
+        for (int column = 1; column <= 8; column++) sheet.Cell(1, column, "Column" + column);
+        document.SetPrintArea(sheet, "A1:H2");
+        document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 3, lastCol: 4);
+        sheet.AddManualColumnPageBreak(firstBreak); sheet.AddManualColumnPageBreak(6);
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new ExcelToPdfOptions {
+            IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,
+            PageSize = new PdfCore.PageSize(700, 500), Margins = PdfCore.PageMargins.Uniform(20)
+        }));
+        Assert.Equal(3, pdf.NumberOfPages);
+        Assert.DoesNotContain("Column4", pdf.GetPage(1).Text);
+        if (firstBreak == 2) Assert.DoesNotContain("Column3", pdf.GetPage(1).Text);
+        else Assert.Contains("Column3", pdf.GetPage(1).Text);
+        foreach (int page in new[] { 2, 3 }) {
+            Assert.Contains("Column3", pdf.GetPage(page).Text);
+            Assert.Contains("Column4", pdf.GetPage(page).Text);
+            Assert.DoesNotContain("Column1", pdf.GetPage(page).Text);
+        }
+        Assert.Contains("Column5", pdf.GetPage(2).Text);
+        Assert.DoesNotContain("Column7", pdf.GetPage(2).Text);
+        Assert.Contains("Column7", pdf.GetPage(3).Text);
+    }
+
     [Fact]
     public void ToPdfDocument_GeneralAlignmentUsesCellTypesAndRetainsExplicitAlignment() {
         using ExcelDocument document = ExcelDocument.Create();
