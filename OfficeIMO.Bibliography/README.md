@@ -1,6 +1,6 @@
 # OfficeIMO.Bibliography
 
-`OfficeIMO.Bibliography` is the citation-data owner for OfficeIMO. It provides one editable model and deterministic codecs for BibTeX, BibLaTeX, CSL JSON, RIS, PubMed NBIB/MEDLINE, and EndNote XML without depending on Word or a citation-style engine.
+`OfficeIMO.Bibliography` is the citation-data owner for OfficeIMO. It provides one editable model and deterministic codecs for BibTeX, BibLaTeX, CSL JSON, RIS, PubMed NBIB/MEDLINE, and EndNote XML.
 
 Install the package from NuGet:
 
@@ -34,6 +34,8 @@ BibliographyReadResult reopened = BibliographyDocument.Load(
 ```
 
 The model includes citation keys, typed item kinds, personal and corporate contributors, partial, literal, and ranged dates, identifiers, titles, publication fields, pagination, URLs, keywords, notes, and ordered native fields. Unknown source fields remain available in item, name, and date `NativeFields`; BibTeX directives and safe document-level EndNote XML elements remain available in `NativeEntries`.
+
+CSL JSON maps all 45 standard item types, all 26 contributor roles, and all six date roles into the typed model. Roles include directors, performers, original and reviewed authors, and container authors; `BibliographyDateRole.Available` represents `available-date`. Unknown and incorrectly shaped values remain native evidence. Other formats retain their own supported vocabulary and report unsupported typed roles, dates, and types through conversion diagnostics.
 
 ## Preserve the source or normalize it
 
@@ -78,9 +80,27 @@ BibliographyWriteResult csl = read.Document.Write(
 
 Path loading recognizes `.bib`, `.json`, `.ris`, `.nbib`, `.medline`, and `.xml`. Unknown extensions use bounded content detection. Parsing observes item, value, input-size, nesting, and cancellation limits through `BibliographyReadOptions`.
 
+Path saves stage output beside the destination and atomically publish it only after writing completes and cancellation is checked. If the filesystem cannot atomically replace an existing file, the save fails and preserves that file. A failed or cancelled save removes its staging file where filesystem permissions allow. Writes to caller-owned streams can be partial when cancelled.
+
+## Resolve local bibliography references
+
+```csharp
+BibliographyReferenceResult resolved = read.Document.ResolveReferences(
+    new BibliographyReferenceOptions { MaximumDepth = 64 }, cancellationToken);
+BibliographyItem child = resolved.Document.Items[0];
+IReadOnlyList<BibliographyFieldProvenance> origins = resolved.Provenance;
+IReadOnlyList<BibliographyDiagnostic> referenceDiagnostics = resolved.Diagnostics;
+```
+
+Resolution is explicit and returns an independently editable snapshot. It does not change the source document or fetch records. Keys are case-sensitive. Duplicate keys, missing parents, invalid xdata targets, repeated reference fields, cycles, and excessive chain depth have stable `BIBREF` diagnostics; inspect `IsComplete` before relying on a fully resolved result.
+
+Crossref fills missing fields and maps common book/proceedings/periodical titles to the child's container title. Existing child dates and contributor roles remain whole groups. Whole-entry xdata is applied in listed order before crossref: later containers replace earlier values and child values. Set `XDataOverridesExistingFields = false` for missing-field fallback instead. The resolver does not interpret granular `xdata=key-field-index` expressions or custom Biber inheritance rules.
+
+`Document` retains source-order records, data containers, and reference fields for native writing. `CitationItems` excludes `@xdata` containers. `Provenance` identifies the ultimate source record/field and the complete reference path for each inherited field or role group; it describes the operation snapshot and does not change after edits. Item, edge, depth, copied-value, expanded-character, diagnostic, and cancellation limits bound the operation.
+
 ## Boundaries
 
-The package parses data only. It does not execute TeX, fetch DOI or PubMed metadata, resolve remote resources, render citations or bibliographies, manage attachments, remove DRM, or decrypt resources. Citation-style rendering is a separate product boundary.
+The package does not execute TeX, fetch DOI or PubMed metadata, resolve remote resources, manage attachments, remove DRM, or decrypt resources.
 
 `OfficeIMO.Word` does not depend on this package.
 
