@@ -41,7 +41,7 @@ public sealed partial class EpubPublication {
             XElement? uid = head.Elements(Ncx + "meta").FirstOrDefault(meta => (string?)meta.Attribute("name") == "dtb:uid");
             if (uid == null) head.Add(new XElement(Ncx + "meta", new XAttribute("name", "dtb:uid"), new XAttribute("content", Identifier)));
             else uid.SetAttributeValue("content", Identifier);
-            entries[path] = SerializeXml(ncx);
+            entries[path] = SerializeXml(ncx, _maximumEntryBytes);
         }
         XDocument package = new XDocument(_package);
         if (changed && PackageVersion == "3.0") {
@@ -67,6 +67,7 @@ public sealed partial class EpubPublication {
         long expanded = 0;
         foreach (var entry in entries) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (entry.Value.LongLength > _maximumEntryBytes) throw new InvalidDataException("Output resource exceeds the retained entry-byte limit.");
             if (entry.Value.LongLength > maxExpanded - expanded) throw new InvalidDataException("Output exceeds MaxExpandedBytes.");
             expanded += entry.Value.LongLength;
         }

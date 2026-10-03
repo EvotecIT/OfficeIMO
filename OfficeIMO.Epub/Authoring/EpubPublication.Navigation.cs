@@ -16,6 +16,7 @@ public sealed partial class EpubPublication {
             throw new NotSupportedException("EPUB 2 page-list and guide entries must be flat; nested entries cannot be retained in these sections.");
         string path = NavigationPath();
         XDocument navigation = ParseXml(_entries[path], 64L * 1024 * 1024);
+        ValidateNavigationRoot(navigation);
         XElement? newGuide = null;
         if (PackageVersion == "3.0") {
             XElement body = navigation.Root?.Element(Html + "body") ?? throw new InvalidDataException("Navigation has no XHTML body.");
@@ -25,7 +26,6 @@ public sealed partial class EpubPublication {
             if (guide != null) SetHtmlNavigation(body, "landmarks", "Landmarks", guide, linkOwner);
         } else {
             XElement root = navigation.Root ?? throw new InvalidDataException("NCX has no root.");
-            if (root.Name != Ncx + "ncx") throw new InvalidDataException("Expected an NCX document.");
             XElement map = root.Element(Ncx + "navMap") ?? throw new InvalidDataException("NCX has no navMap.");
             HashSet<string> ids = NavigationIds(navigation);
             int order = 0;
@@ -34,7 +34,13 @@ public sealed partial class EpubPublication {
             depth?.SetAttributeValue("content", NavigationDepth(toc).ToString(System.Globalization.CultureInfo.InvariantCulture));
             if (pages != null) {
                 XElement? old = root.Element(Ncx + "pageList");
-                if (pages.Length == 0) old?.Remove();
+                if (pages.Length == 0) {
+                    // An NCX pageList requires page targets, so an empty retained
+                    // header/extension shell cannot be represented without loss.
+                    if (old != null && (old.HasAttributes || old.Elements().Any(child => child.Name != Ncx + "pageTarget")))
+                        throw new NotSupportedException("Clearing retained NCX page-list headers or extensions requires explicit content XML editing.");
+                    old?.Remove();
+                }
                 else {
                     XElement list = old ?? new XElement(Ncx + "pageList", new XElement(Ncx + "navLabel", new XElement(Ncx + "text", "Pages")));
                     ReplaceNavigationChildren(list, Ncx + "pageTarget", pages.Select((page, index) => new XElement(Ncx + "pageTarget", new XAttribute("id", AllocateNavigationId(ids, "page-", index + 1)),
@@ -100,6 +106,8 @@ public sealed partial class EpubPublication {
         EpubManifestItem? item = PackageVersion == "3.0" ? Manifest.SingleOrDefault(resource => HasToken(resource.Properties, "nav")) :
             Manifest.SingleOrDefault(resource => resource.Id == (string?)RequireSection("spine").Attribute("toc"));
         if (item == null) throw new InvalidDataException("Package has no declared navigation resource.");
+        string expected = PackageVersion == "3.0" ? "application/xhtml+xml" : "application/x-dtbncx+xml";
+        if (item.MediaType != expected) throw new InvalidDataException("Navigation resource must declare " + expected + ".");
         string path = RequireLocalPath(item);
         if (!_entries.ContainsKey(path)) throw new InvalidDataException("Navigation resource is missing.");
         return path;
@@ -107,6 +115,7 @@ public sealed partial class EpubPublication {
     private byte[] PrepareAppendedNavigation(EpubNavigationEntry entry, string pendingPath) {
         string path = NavigationPath();
         XDocument navigation = ParseXml(_entries[path], 64L * 1024 * 1024);
+        ValidateNavigationRoot(navigation);
         if (PackageVersion == "3.0") {
             XElement nav = navigation.Descendants(Html + "nav").Single(element => HasToken((string?)element.Attribute(Ops + "type"), "toc"));
             XElement list = nav.Element(Html + "ol") ?? throw new InvalidDataException("TOC list is missing.");
@@ -118,6 +127,10 @@ public sealed partial class EpubPublication {
             NormalizeNcxPlayOrder(navigation, path);
         }
         return SerializeXml(navigation);
+    }
+    private void ValidateNavigationRoot(XDocument navigation) {
+        if (navigation.Root?.Name != (PackageVersion == "3.0" ? Html + "html" : Ncx + "ncx"))
+            throw new InvalidDataException("Navigation root does not match the package generation.");
     }
     private static string HtmlNavigationLinkOwner(XDocument navigation, string path) {
         string? baseHref = navigation.Root?.Element(Html + "head")?.Elements(Html + "base")

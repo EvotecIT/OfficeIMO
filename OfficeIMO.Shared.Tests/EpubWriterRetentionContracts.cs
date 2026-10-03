@@ -104,12 +104,18 @@ public sealed class EpubWriterRetentionContracts {
     [InlineData("sections/", true)]
     [InlineData("sections/base.xhtml?language=en", false)]
     [InlineData("../other%20dir/", true)]
+    [InlineData(".", false)]
+    [InlineData(".", true)]
+    [InlineData("sections/..", false)]
+    [InlineData("sections/..", true)]
     public void NavigationEdits_ResolveGeneratedLinksAgainstRetainedHtmlBase(string baseHref, bool append) {
         EpubPublication book = EpubWritingContracts.CreateBook();
         XDocument nav = book.GetContentXml("navigation");
         nav.Root!.Element(Html + "head")!.Add(new XElement(Html + "base", new XAttribute("href", baseHref)));
+        var documentUri = new Uri("epub://package/EPUB/nav.xhtml");
+        var baseUri = new Uri(documentUri, baseHref);
         foreach (XElement anchor in nav.Descendants(Html + "a")) anchor.SetAttributeValue("href",
-            baseHref.StartsWith("../", StringComparison.Ordinal) ? "../EPUB/" + (string?)anchor.Attribute("href") : "../" + (string?)anchor.Attribute("href"));
+            baseUri.MakeRelativeUri(new Uri(documentUri, anchor.Attribute("href")!.Value)).OriginalString);
         book.SetContentXml("navigation", nav);
         if (append) book.AddChapter("third", "EPUB/third.xhtml", "Third", "<p>Third</p>");
         else book.SetNavigation(new[] { new EpubNavigationEntry("First", "EPUB/first.xhtml#root") });
@@ -117,6 +123,7 @@ public sealed class EpubWriterRetentionContracts {
         Assert.Equal(baseHref, nav.Root!.Element(Html + "head")!.Element(Html + "base")!.Attribute("href")!.Value);
         string expected = append ? "EPUB/third.xhtml" : "EPUB/first.xhtml";
         Assert.Equal(expected, EpubReference.Resolve("EPUB/nav.xhtml", baseHref, nav.Descendants(Html + "a").Last().Attribute("href")!.Value).ContainerPath);
+        Assert.Equal(expected, Uri.UnescapeDataString(new Uri(baseUri, nav.Descendants(Html + "a").Last().Attribute("href")!.Value).AbsolutePath.TrimStart('/')));
         if (!append) {
             XDocument content = book.GetContentXml("first"); content.Root!.SetAttributeValue("id", "root"); book.SetContentXml("first", content);
         }
@@ -191,5 +198,55 @@ public sealed class EpubWriterRetentionContracts {
     private static byte[] ReadEntry(byte[] data, string path) {
         using var archive = new ZipArchive(new MemoryStream(data)); using Stream input = archive.GetEntry(path)!.Open();
         using var output = new MemoryStream(); input.CopyTo(output); return output.ToArray();
+    }
+
+    [Fact]
+    public void Epub2_IdentitySynchronizationEnforcesRetainedNcxEntryBytes() {
+        EpubPublication book = EpubWritingContracts.CreateBook(EpubVersion.Epub2);
+        XDocument ncx = book.GetContentXml("navigation");
+        ncx.Root!.AddFirst(new XComment(new string('x', 4096)));
+        book.UpdateResource("navigation", Encoding.UTF8.GetBytes(ncx.ToString()));
+        byte[] source = book.Write().Bytes;
+        using var archive = new ZipArchive(new MemoryStream(source));
+        book = EpubPublication.Load(new MemoryStream(source), new EpubPublicationLoadOptions { MaxEntryBytes = archive.Entries.Max(entry => entry.Length) });
+        book.Identifier = "urn:example:" + new string('a', 1500);
+        using var destination = new MemoryStream(new byte[] { 1, 2, 3 }, true);
+        Assert.Throws<InvalidDataException>(() => book.Save(destination));
+        Assert.Equal(new byte[] { 1, 2, 3 }, destination.ToArray());
+    }
+
+    [Theory]
+    [InlineData(EpubVersion.Epub2)]
+    [InlineData(EpubVersion.Epub3)]
+    public void NavigationDeclarations_RejectWrongMediaTypesOnSaveAndAuthoring(EpubVersion version) {
+        EpubPublication book = EpubWritingContracts.CreateBook(version);
+        book.Manifest.Single(item => item.Id == "navigation").MediaType = "text/plain";
+        Assert.Throws<InvalidDataException>(() => book.Write());
+        int count = book.Manifest.Count;
+        Assert.Throws<InvalidDataException>(() => book.AddChapter("third", "EPUB/third.xhtml", "Third", "<p>Third</p>"));
+        Assert.Equal(count, book.Manifest.Count);
+    }
+
+    [Fact]
+    public void Epub2_RejectsForeignNavigationRootsEvenWhenNcxChildrenRemain() {
+        EpubPublication book = EpubWritingContracts.CreateBook(EpubVersion.Epub2);
+        XDocument ncx = book.GetContentXml("navigation");
+        ncx.Root!.Name = XName.Get("ncx", "urn:foreign");
+        book.UpdateResource("navigation", Encoding.UTF8.GetBytes(ncx.ToString()));
+        Assert.Throws<InvalidDataException>(() => book.Write());
+    }
+
+    [Fact]
+    public void Epub2_PageListClearingRejectsUnavoidableHeaderAndExtensionLoss() {
+        EpubPublication book = EpubWritingContracts.CreateBook(EpubVersion.Epub2);
+        book.SetNavigation(new[] { new EpubNavigationEntry("First", "EPUB/first.xhtml") },
+            pageList: new[] { new EpubNavigationEntry("2", "EPUB/second.xhtml") });
+        XDocument ncx = book.GetContentXml("navigation");
+        XNamespace ns = "http://www.daisy.org/z3986/2005/ncx/";
+        ncx.Root!.Element(ns + "pageList")!.Add(new XElement(XName.Get("retained", "urn:extension"), "Keep me"));
+        book.UpdateResource("navigation", Encoding.UTF8.GetBytes(ncx.ToString()));
+        byte[] before = book.Write().Bytes;
+        Assert.Throws<NotSupportedException>(() => book.SetNavigation(new[] { new EpubNavigationEntry("First", "EPUB/first.xhtml") }, pageList: Array.Empty<EpubNavigationEntry>()));
+        Assert.Equal(before, book.Write().Bytes);
     }
 }

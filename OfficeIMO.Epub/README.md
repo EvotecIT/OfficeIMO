@@ -277,6 +277,8 @@ content needs a separate chapter resource. `SetNavigation` accepts hierarchical 
 and landmarks (EPUB 2 uses NCX and guide references, with flat page-list and guide
 entries). Generated XHTML navigation links respect retained local HTML base URLs;
 navigation authoring rejects an external base that cannot address container content.
+Clearing an EPUB 2 page list with retained headers or extension XML requires explicit
+`GetContentXml` / `SetContentXml` editing because NCX cannot retain an empty page-list shell.
 `SetMetadataProperty` updates a
 property; `AddMetadataProperty` adds repeatable values. `AddDublinCoreMetadata` adds
 contributors, languages, or other Dublin Core values with optional ids and language.

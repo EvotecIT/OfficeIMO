@@ -69,6 +69,7 @@ public sealed partial class EpubPublication {
         }
         string navPath = NavigationPath();
         XDocument navigation = ParseXml(entries[navPath], 64L * 1024 * 1024);
+        ValidateNavigationRoot(navigation);
         ValidateNavigationDocument(navigation, navPath, manifest, spine.Select(item => (string?)item.Attribute("idref") ?? string.Empty));
         var anchors = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
         var fragmented = new List<(string Owner, EpubReference Reference)>();
