@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Source-preserving citation data model and deterministic bibliography codecs for .NET.</Description>
+    <Description>Source-preserving citation data, deterministic bibliography codecs, and local reference resolution for .NET.</Description>
     <AssemblyName>OfficeIMO.Bibliography</AssemblyName>
     <AssemblyTitle>OfficeIMO.Bibliography</AssemblyTitle>
     <VersionPrefix>3.4.4</VersionPrefix>

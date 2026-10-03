@@ -180,7 +180,9 @@ internal static class BibCodec {
         name.Literal == null ? FormatStructuredBibName(name) : "{" + name.Literal + "}";
 
     private static string FormatStructuredBibName(BibliographyName name) {
-        string family = string.Join(" ", new[] { name.NonDroppingParticle, name.Family }.Where(static part => !string.IsNullOrWhiteSpace(part)));
+        string? protectedFamily = name.Family;
+        if (protectedFamily != null && StartsWithLowercaseLetter(protectedFamily)) protectedFamily = "{" + protectedFamily + "}";
+        string family = string.Join(" ", new[] { name.NonDroppingParticle, protectedFamily }.Where(static part => !string.IsNullOrWhiteSpace(part)));
         string given = string.Join(" ", new[] { name.Given, name.DroppingParticle }.Where(static part => !string.IsNullOrWhiteSpace(part)));
         if (!string.IsNullOrWhiteSpace(name.Suffix)) return family + ", " + name.Suffix + ", " + given;
         return family + ", " + given;
@@ -315,7 +317,7 @@ internal static class BibCodec {
         if (!IsLowercaseParticle(name.NonDroppingParticle) || !IsLowercaseParticle(name.DroppingParticle)) return false;
         string family = string.Join(" ", new[] { name.NonDroppingParticle, name.Family }.Where(static part => !string.IsNullOrWhiteSpace(part)));
         string given = string.Join(" ", new[] { name.Given, name.DroppingParticle }.Where(static part => !string.IsNullOrWhiteSpace(part)));
-        return CountLeadingBibParticleWords(family) == CountWords(name.NonDroppingParticle) && CountTrailingLowercaseWords(given) == CountWords(name.DroppingParticle);
+        return CountTrailingLowercaseWords(given) == CountWords(name.DroppingParticle);
     }
 
     private static bool ContainsBibNameSyntaxSeparator(string? value, CancellationToken cancellationToken) {
@@ -365,7 +367,7 @@ internal static class BibCodec {
     private static int CountWords(string? value) => string.IsNullOrWhiteSpace(value) ? 0 : value!.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length;
     private static int CountLeadingBibParticleWords(string value) { string[] words = value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries); int count = 0; while (count < words.Length - 1 && StartsWithLowercaseLetter(words[count])) count++; return count; }
     private static int CountTrailingLowercaseWords(string value) { string[] words = value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries); int start = words.Length; while (start > 0 && StartsWithLowercaseLetter(words[start - 1])) start--; return words.Length - start; }
-    private static bool StartsWithLowercaseLetter(string value) { char first = value.FirstOrDefault(char.IsLetter); return first != default(char) && char.IsLower(first); }
+    private static bool StartsWithLowercaseLetter(string value) => BibNameSyntax.StartsWithLowercaseLetter(value);
 
     private sealed class Parser {
         private readonly string _source;
@@ -592,7 +594,7 @@ internal static class BibCodec {
         private BibliographyName ParseBibName(string value, out bool hasSurplusSegments) {
             string trimmed = value.Trim();
             hasSurplusSegments = false;
-            if (trimmed.Length >= 2 && trimmed[0] == '{' && trimmed[trimmed.Length - 1] == '}') return new BibliographyName { Literal = trimmed.Substring(1, trimmed.Length - 2) };
+            if (BibNameSyntax.IsOuterGroup(trimmed)) return new BibliographyName { Literal = BibNameSyntax.Unprotect(trimmed) };
             string[] parts = SplitTopLevel(trimmed, ',').Take(4).ToArray();
             hasSurplusSegments = parts.Length > 3;
             if (parts.Length == 1) return ParseBibFirstVonLast(trimmed);
@@ -601,35 +603,35 @@ internal static class BibCodec {
             return new BibliographyName { Family = family, NonDroppingParticle = particle, Suffix = parts.Length == 3 ? NullIfEmpty(parts[1]) : null, Given = given, DroppingParticle = droppingParticle };
         }
 
-        private static void SplitBibFamily(string value, out string? particle, out string? family) {
-            string[] words = value.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        private void SplitBibFamily(string value, out string? particle, out string? family) {
+            string[] words = BibNameSyntax.Words(value, _cancellationToken);
             int particleCount = 0;
             while (particleCount < words.Length - 1 && StartsWithLowercaseLetter(words[particleCount])) particleCount++;
-            particle = NullIfEmpty(string.Join(" ", words.Take(particleCount)));
-            family = NullIfEmpty(string.Join(" ", words.Skip(particleCount)));
+            particle = NullIfEmpty(BibNameSyntax.Unprotect(string.Join(" ", words.Take(particleCount))));
+            family = NullIfEmpty(BibNameSyntax.Unprotect(string.Join(" ", words.Skip(particleCount))));
         }
 
-        private static BibliographyName ParseBibFirstVonLast(string value) {
-            string[] words = value.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        private BibliographyName ParseBibFirstVonLast(string value) {
+            string[] words = BibNameSyntax.Words(value, _cancellationToken);
             if (words.Length == 0) return new BibliographyName();
-            if (words.Length == 1) return new BibliographyName { Family = words[0] };
+            if (words.Length == 1) return new BibliographyName { Family = BibNameSyntax.Unprotect(words[0]) };
             int particleStart = Array.FindIndex(words, StartsWithLowercaseLetter);
-            if (particleStart < 0) return new BibliographyName { Given = string.Join(" ", words.Take(words.Length - 1)), Family = words[words.Length - 1] };
+            if (particleStart < 0) return new BibliographyName { Given = BibNameSyntax.Unprotect(string.Join(" ", words.Take(words.Length - 1))), Family = BibNameSyntax.Unprotect(words[words.Length - 1]) };
             int familyStart = particleStart + 1;
             while (familyStart < words.Length - 1 && StartsWithLowercaseLetter(words[familyStart])) familyStart++;
             return new BibliographyName {
-                Given = NullIfEmpty(string.Join(" ", words.Take(particleStart))),
-                NonDroppingParticle = NullIfEmpty(string.Join(" ", words.Skip(particleStart).Take(familyStart - particleStart))),
-                Family = NullIfEmpty(string.Join(" ", words.Skip(familyStart)))
+                Given = NullIfEmpty(BibNameSyntax.Unprotect(string.Join(" ", words.Take(particleStart)))),
+                NonDroppingParticle = NullIfEmpty(BibNameSyntax.Unprotect(string.Join(" ", words.Skip(particleStart).Take(familyStart - particleStart)))),
+                Family = NullIfEmpty(BibNameSyntax.Unprotect(string.Join(" ", words.Skip(familyStart))))
             };
         }
 
-        private static void SplitBibGiven(string value, out string? given, out string? droppingParticle) {
-            string[] words = value.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        private void SplitBibGiven(string value, out string? given, out string? droppingParticle) {
+            string[] words = BibNameSyntax.Words(value, _cancellationToken);
             int particleStart = words.Length;
             while (particleStart > 0 && StartsWithLowercaseLetter(words[particleStart - 1])) particleStart--;
-            given = NullIfEmpty(string.Join(" ", words.Take(particleStart)));
-            droppingParticle = NullIfEmpty(string.Join(" ", words.Skip(particleStart)));
+            given = NullIfEmpty(BibNameSyntax.Unprotect(string.Join(" ", words.Take(particleStart))));
+            droppingParticle = NullIfEmpty(BibNameSyntax.Unprotect(string.Join(" ", words.Skip(particleStart))));
         }
 
         private static bool StartsWithLowercaseLetter(string value) => BibCodec.StartsWithLowercaseLetter(value);
