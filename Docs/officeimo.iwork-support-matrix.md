@@ -29,19 +29,22 @@ Keynote slide titles, body text and presenter notes. The native comment fixture
 checks three Reader root comments against its independent manifest, including
 exact content, author, creation time, native identity and source cell anchors.
 It also checks source and
-Reader path/stream parity, caller-owned streams, source preservation and
+Reader path/stream parity, caller-owned streams, replacement-token source views,
+independent cancellation and source reuse, source preservation and
 unassessed-fidelity diagnostics, Reader JSON transport round-trip, pre-cancellation
 and configured input byte limits. Fixture provenance and licenses remain in the
 [corpus](../OfficeIMO.TestAssets/Documents/IWorkCorpus/README.md).
 
-`OfficeIMO.IWork.AotSmoke` separately exercises partial editable conversion of four
+`OfficeIMO.IWork.AotSmoke` separately exercises editable conversion of four
 hash-pinned fixtures on macOS arm64 under the same two runtimes. It saves and
 reopens DOCX, XLSX and PPTX, checks Pages body text, Numbers typed cells and a
 formula cache, Keynote titles/body text, presenter notes and qualified backgrounds,
 and recalculates the saved Numbers formula after an operand edit. Caller-owned
-streams, unchanged source bytes and retained source records are checked. These
-fixtures deliberately use `AllowPartialEditableReconstruction = true`; passing
-the native gate does not qualify complete visual or semantic fidelity.
+streams, unchanged source bytes and retained source records are checked. The
+Pages and Numbers fixtures use the default policy and require complete editable
+reconstruction. The Keynote fixture uses `AllowPartialEditableReconstruction = true`
+and checks that its partial status remains reported. Passing the native gate does
+not qualify complete appearance or broader source compatibility.
 
 Run the coordinated native gate from PowerShell with the pinned SDK and platform
 compiler installed:

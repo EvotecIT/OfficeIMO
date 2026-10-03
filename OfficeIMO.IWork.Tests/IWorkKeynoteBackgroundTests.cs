@@ -29,7 +29,7 @@ public sealed partial class IWorkBoundaryTests {
             saved.Position = 0;
             using var xml = DocumentFormat.OpenXml.Packaging.PresentationDocument.Open(saved, false);
             Assert.IsType<DocumentFormat.OpenXml.Drawing.NoFill>(Assert.Single(xml.PresentationPart!.SlideParts.Single()
-                .Slide.CommonSlideData!.Background!.BackgroundProperties!.ChildElements));
+                .Slide!.CommonSlideData!.Background!.BackgroundProperties!.ChildElements));
             Assert.Equal(PowerPointSlideBackgroundKind.None, reopened.Slides[0].GetBackground().Kind);
         }
         package.Position = 0;

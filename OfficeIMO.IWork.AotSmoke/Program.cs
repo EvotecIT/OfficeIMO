@@ -24,7 +24,8 @@ foreach (var (name, hash) in fixtures) {
     using var input = new MemoryStream(bytes, writable: false);
     using var saved = new MemoryStream();
     if (name.EndsWith(".pages", StringComparison.Ordinal)) {
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(input, conversionOptions: options);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(input);
+        result.RequireCompleteEditableReconstruction();
         Require(!result.IsVisualFallback, "Pages unexpectedly used visual fallback.");
         result.Value.Save(saved); saved.Position = 0;
         using var reopened = WordDocument.Load(saved);
@@ -48,7 +49,8 @@ foreach (var (name, hash) in fixtures) {
         Require(!reopened.ValidateDocument().Any(), "Saved PPTX failed validation.");
         Require(result.Report.PreservedRecords.Count > 0, "Keynote lost source evidence.");
     } else {
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(input, conversionOptions: options);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(input);
+        result.RequireCompleteEditableReconstruction();
         Require(!result.IsVisualFallback, "Numbers unexpectedly used visual fallback.");
         result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
@@ -68,7 +70,7 @@ foreach (var (name, hash) in fixtures) {
     }
     Require(input.CanRead, "Conversion closed the caller-owned stream.");
     Require(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) == hash, "Conversion changed source bytes.");
-    Console.WriteLine($"PASS | {name} | {hash} | partial editable conversion, save/reopen, source preservation");
+    Console.WriteLine($"PASS | {name} | {hash} | {(name.EndsWith(".key", StringComparison.Ordinal) ? "partial" : "complete")} editable conversion, save/reopen, source preservation");
 }
 Console.WriteLine("PASS | bounded iWork NativeAOT destination conversions | "
     + System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription);

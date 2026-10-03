@@ -65,7 +65,7 @@ public sealed class IWorkEverydayCorpusTests {
         Assert.Empty(document.ValidateDocument());
         saved.Position = 0;
         using var package = WordprocessingDocument.Open(saved, false);
-        Assert.Equal(expected, package.MainDocumentPart!.Document.Body!.Elements<Paragraph>()
+        Assert.Equal(expected, package.MainDocumentPart!.Document!.Body!.Elements<Paragraph>()
             .Select(paragraph => paragraph!.InnerText));
     }
 
