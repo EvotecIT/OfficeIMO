@@ -9,6 +9,7 @@ public sealed class PdfCanvasStructureOptions {
     private List<PdfEmbeddedFile>? _associatedFiles;
 
     internal string? StructureElementKey { get; set; }
+    internal long? LogicalOrder { get; set; }
 
     /// <summary>Alternative text associated with the structure container.</summary>
     public string? AlternativeText {
@@ -71,6 +72,7 @@ public sealed class PdfCanvasStructureOptions {
         ColumnSpan = ColumnSpan,
         RowSpan = RowSpan,
         StructureElementKey = StructureElementKey,
+        LogicalOrder = LogicalOrder,
         _associatedFiles = _associatedFiles == null ? null : new List<PdfEmbeddedFile>(_associatedFiles)
     };
 

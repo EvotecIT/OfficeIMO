@@ -18,7 +18,7 @@ Preserving an unsupported native element does not mean that it can be rendered.
 | Gradient transforms | Affine linear and radial gradients convert through Core, including rotation, shear and reflection; bounded radial Repeat/Reflect expansion retains vector PDF shading | Radial spread requires a point focus strictly inside the end ellipse and at most 256 expanded stops; boundary/exterior focal behavior is not qualified |
 | SVG | Self-contained images and glyph outlines; strict by default; explicit partial result with diagnostics | Unknown markup/attributes are diagnosed; no claim of complete XPS consumer conformance |
 | Drawing/images | Existing managed Core scene and image exporters | Shared viewport, element, geometry, raster, and codec limits still apply; any reported SVG import loss rejects conversion |
-| PDF | Optional thin bridge to the existing PDF engine, retaining page dimensions, bounded vector tile expansion, and native alpha-mask Forms | Searchable native Unicode clusters alongside vector outlines; no print-ticket/accessibility-structure/signature migration; source markup order, not reconstructed logical reading order; clipped/transparent source text remains searchable |
+| PDF | Optional thin bridge retaining vector paint, dimensions, native alpha masks and searchable Unicode clusters; native paragraph/list/table/figure tags, continued cross-page containers, declared story order, list labels and cell spans; header/footer artifacts | Unstructured pages use markup order; unassociated fragments use page order; unknown/unresolved/overlapping semantics reject strict mapping; an explicit paint-only mode retains markup-order text; no inferred figure descriptions, PDF/UA qualification, print-ticket or signature migration; clipped/transparent source text remains searchable |
 | Security | Package-local resource resolution; no external fetch; DTD prohibition; shared backing for repeated page parts; bounded ZIP/XML/page and expanded SVG node/character/resource-binding growth; cooperative cancellation; atomic path saves | Inspection does not authenticate signatures or make arbitrary native documents trusted |
 
 ICC ContextColor uses Core's supported RGB, gray, CMYK and N-channel profiles,
@@ -193,3 +193,13 @@ closed seams and magnified short geometry also differ between consumers. These
 discrepancies remain visible qualification gaps, requiring
 a native Windows consumer or another producer/consumer fixture; they are not treated
 as proof that every native stroke case is independently qualified.
+
+PDF semantic mapping is exercised with generated native structures in both dialects
+and Microsoft's two-page WPF structured sample. pypdf independently resolves every
+marked-content reference and ParentTree entry in these PDFs. The generated stories
+retain the declared page-2-before-page-1 order, labels, empty cells and spans.
+PyMuPDF 1.28.2 renders tagged and untagged exports pixel-identically at 96 DPI on
+all six pages. This proves the representative structure and paint-preservation
+contracts; it does not establish a broader OpenXPS producer corpus or PDF/UA
+conformance. The PDF bridge uses the same native structure limits and rejects
+multiple semantic owners for the same glyph or graphic paint.

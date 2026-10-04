@@ -245,7 +245,7 @@ internal static partial class PdfWriter {
             int anchorCount = CountLogicalAnchorScalars(item.Text);
             PdfTextShowCommand anchor = EncodeBoundedLogicalTextAnchor(font, currentOpts, anchorCount);
             double horizontalScaling = ResolveLogicalAnchorScaling(anchor, textWidth, textHeight);
-            int? markedContentId = RegisterTextStructureElement("Span", _canvasStructureParentElement);
+            int? markedContentId = RegisterTextStructureElement("Span", _canvasStructureParentElement, logicalOrder: item.LogicalOrder);
 
             var content = new ContentStreamBuilder(sb)
                 .SaveState()
@@ -287,14 +287,25 @@ internal static partial class PdfWriter {
                 RenderCanvasBlock(new PdfCanvasBlock(item.Items));
                 return;
             }
-            PdfCanvasStructureOptions options = item.Options;
-            string structureType = MapCanvasStructureType(item.Role);
+            PageStructElement? structureElement = ResolveCanvasStructure(item.Role, item.Options);
+            PageStructElement? previous = _canvasStructureParentElement;
+            _canvasStructureParentElement = structureElement ?? previous;
+            try {
+                RenderCanvasBlock(new PdfCanvasBlock(item.Items));
+            } finally {
+                _canvasStructureParentElement = previous;
+            }
+        }
+
+        private PageStructElement? ResolveCanvasStructure(PdfCanvasStructureRole role, PdfCanvasStructureOptions options) {
+            string structureType = MapCanvasStructureType(role);
             string headerScope = MapCanvasTableHeaderScope(options.HeaderScope);
             string alternativeText = options.AlternativeText ?? string.Empty;
             PageStructElement? structureElement;
             var structureKey = (options.StructureElementKey ?? string.Empty, structureType, _canvasStructureParentElement, headerScope, options.ColumnSpan, options.RowSpan, alternativeText);
             if (options.StructureElementKey != null && canvasStructureElements.TryGetValue(structureKey, out PageStructElement? existingStructureElement)) {
                 structureElement = existingStructureElement;
+                if (!currentPage!.StructElements.Contains(structureElement)) structureElement.SpansPages = true;
             } else {
                 structureElement = RegisterStructureContainer(
                     structureType,
@@ -303,18 +314,15 @@ internal static partial class PdfWriter {
                     options.ColumnSpan,
                     options.RowSpan,
                     options.AlternativeText);
-                if (structureElement != null) structureElement.AssociatedFiles = options.AssociatedFileSnapshots;
+                if (structureElement != null) {
+                    structureElement.AssociatedFiles = options.AssociatedFileSnapshots;
+                    structureElement.LogicalOrder = options.LogicalOrder;
+                }
                 if (options.StructureElementKey != null && structureElement != null) {
                     canvasStructureElements[structureKey] = structureElement;
                 }
             }
-            PageStructElement? previous = _canvasStructureParentElement;
-            _canvasStructureParentElement = structureElement ?? previous;
-            try {
-                RenderCanvasBlock(new PdfCanvasBlock(item.Items));
-            } finally {
-                _canvasStructureParentElement = previous;
-            }
+            return structureElement;
         }
 
         private static string MapCanvasStructureType(PdfCanvasStructureRole role) {
@@ -336,6 +344,8 @@ internal static partial class PdfWriter {
             if (role == PdfCanvasStructureRole.TableHeaderCell) return "TH";
             if (role == PdfCanvasStructureRole.TableCell) return "TD";
             if (role == PdfCanvasStructureRole.Caption) return "Caption";
+            if (role == PdfCanvasStructureRole.Figure) return "Figure";
+            if (role == PdfCanvasStructureRole.TableBody) return "TBody";
             if (role == PdfCanvasStructureRole.Formula) return "Formula";
             return "Note";
         }
@@ -588,13 +598,15 @@ internal static partial class PdfWriter {
                 BeginRotatedCanvasFrame(item.X, bottomY, item.Width, item.Height, item.RotationAngle);
             }
 
-            bool markedContent;
-            int? structElementIndex = AppendDrawingMarkedContentBegin(
+            bool markedContent = false;
+            int? structElementIndex = item.SourceStructure == null ? AppendDrawingMarkedContentBegin(
                 style,
                 out markedContent,
-                recordDrawingEvidence: !ChildImagesOwnDrawingAccessibility(block.Drawing, style));
+                recordDrawingEvidence: !ChildImagesOwnDrawingAccessibility(block.Drawing, style)) : null;
+            var previousSourceStructure = _drawingSourceStructure;
+            _drawingSourceStructure = item.SourceStructure;
             bool previousSuppressAccessibilityWrappers = _suppressCanvasAccessibilityWrappers;
-            if (markedContent || style.Decorative) {
+            if (markedContent || style.Decorative || item.SourceStructure != null) {
                 _suppressCanvasAccessibilityWrappers = true;
             }
             OfficeTransform previousEffectToPage = _canvasEffectToPage;
@@ -613,6 +625,7 @@ internal static partial class PdfWriter {
                 }
             } finally {
                 _canvasEffectToPage = previousEffectToPage;
+                _drawingSourceStructure = previousSourceStructure;
                 _suppressCanvasAccessibilityWrappers = previousSuppressAccessibilityWrappers;
                 AppendDrawingMarkedContentEnd(markedContent);
             }

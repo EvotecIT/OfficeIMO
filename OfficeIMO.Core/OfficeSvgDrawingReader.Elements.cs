@@ -60,6 +60,36 @@ public static partial class OfficeSvgDrawingReader {
         ref bool pathCommandLimitExceeded,
         ref int unsupported,
         bool suppressElementClip = false) {
+        int first = drawing.Elements.Count;
+        try {
+            AddElementPaint(element, drawing, inherited, paintServers, references, inheritedTransform, viewX, viewY,
+                maximumElements, maximumViewportDimension, maximumViewportPixels, depth,
+                ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported, suppressElementClip);
+        } finally {
+            if (references.RetainSourceElementIds && element.Attribute("id")?.Value is string id && id.Length != 0) {
+                for (int i = first; i < drawing.Elements.Count; i++) drawing.Elements[i].RetainSourceElementId(id);
+            }
+        }
+    }
+
+    private static void AddElementPaint(
+        XElement element,
+        OfficeDrawing drawing,
+        SvgPaintContext inherited,
+        SvgPaintServerRegistry paintServers,
+        SvgElementReferenceRegistry references,
+        OfficeTransform inheritedTransform,
+        double viewX,
+        double viewY,
+        int maximumElements,
+        double maximumViewportDimension,
+        double maximumViewportPixels,
+        int depth,
+        ref int visited,
+        ref int pathCommands,
+        ref bool pathCommandLimitExceeded,
+        ref int unsupported,
+        bool suppressElementClip = false) {
         visited++;
         if (visited > maximumElements) return;
         if (!IsNativeSvgElement(element, references.NativeNamespace)) {

@@ -211,30 +211,35 @@ internal static partial class PdfWriter {
             textMetrics ??= CreateDrawingTextMetrics(currentOpts);
             for (int i = 0; i < drawing.Elements.Count; i++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (drawing.Elements[i] is OfficeDrawingShape shape) {
+                OfficeDrawingElement element = drawing.Elements[i];
+                DrawSourceStructuredElement(element, () => DrawDrawingElement(element, originX, originTopY, textMetrics));
+            }
+        }
+
+        private void DrawDrawingElement(OfficeDrawingElement element, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics) {
+                if (element is OfficeDrawingShape shape) {
                     double xShape = originX + shape.X;
                     double bottomY = originTopY - shape.Y - shape.Shape.Height;
                     DrawShapeGeometryAt(shape.Shape, xShape, bottomY);
-                } else if (drawing.Elements[i] is OfficeDrawingLink link) {
+                } else if (element is OfficeDrawingLink link) {
                     DrawDrawingLinkAt(link, originX, originTopY);
-                } else if (drawing.Elements[i] is OfficeDrawingText text) {
+                } else if (element is OfficeDrawingText text) {
                     DrawDrawingTextAt(text, originX, originTopY, textMetrics);
-                } else if (drawing.Elements[i] is OfficeDrawingRichText richText) {
+                } else if (element is OfficeDrawingRichText richText) {
                     DrawDrawingRichTextAt(richText, originX, originTopY, textMetrics);
-                } else if (drawing.Elements[i] is OfficeDrawingImage image) {
+                } else if (element is OfficeDrawingImage image) {
                     DrawDrawingImageAt(image, originX, originTopY);
-                } else if (drawing.Elements[i] is OfficeDrawingGroup group) {
+                } else if (element is OfficeDrawingGroup group) {
                     DrawDrawingGroupAt(group, originX, originTopY, textMetrics);
-                } else if (drawing.Elements[i] is OfficeDrawingEffectGroup effectGroup) {
+                } else if (element is OfficeDrawingEffectGroup effectGroup) {
                     DrawDrawingEffectAt(effectGroup, originX, originTopY, textMetrics);
-                } else if (drawing.Elements[i] is OfficeDrawingTilingPattern pattern) {
+                } else if (element is OfficeDrawingTilingPattern pattern) {
                     DrawDrawingPatternAt(pattern, originX, originTopY, textMetrics);
                 } else {
                     throw new NotSupportedException(
                         "OfficeIMO.Pdf does not yet support drawing elements of type " +
-                        drawing.Elements[i].GetType().Name + ".");
+                        element.GetType().Name + ".");
                 }
-            }
         }
 
         private void DrawDrawingGroupAt(OfficeDrawingGroup group, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics) {

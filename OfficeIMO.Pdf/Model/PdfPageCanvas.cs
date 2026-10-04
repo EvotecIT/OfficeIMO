@@ -118,7 +118,7 @@ public sealed partial class PdfPageCanvas {
 
     /// <summary>Groups absolute canvas content under a typed tagged-PDF structure container.</summary>
     public PdfPageCanvas Structure(PdfCanvasStructureRole role, Action<PdfPageCanvas> build, PdfCanvasStructureOptions? options = null) {
-        if ((int)role < (int)PdfCanvasStructureRole.Section || (int)role > (int)PdfCanvasStructureRole.Formula) {
+        if ((int)role < (int)PdfCanvasStructureRole.Section || (int)role > (int)PdfCanvasStructureRole.TableBody) {
             throw new ArgumentOutOfRangeException(nameof(role));
         }
         Guard.NotNull(build, nameof(build));
@@ -754,6 +754,7 @@ internal sealed class PdfCanvasShapeItem : PdfCanvasItem {
 }
 
 internal sealed class PdfCanvasDrawingItem : PdfCanvasItem {
+    internal IReadOnlyDictionary<string, PdfCanvasSourceContent>? SourceStructure { get; set; }
     public PdfCanvasDrawingItem(DrawingBlock block, double x, double y, double width, double height, double rotationAngle)
         : base(x, y) {
         Block = block;

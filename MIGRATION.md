@@ -9,6 +9,16 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## XPS PDF reading order
+
+`XpsDocument.ToPdf()` maps authored native logical structure by default. Its search
+layer and structure tree follow story-reference order while the physical pages and
+paint keep their original order. Unsupported structure extensions, unresolved names
+and overlapping semantic references reject export. Use
+`ToPdf(preserveLogicalStructure: false)` to retain the previous fixed-canvas and
+markup-order search-text contract. Unstructured input retains that behavior by
+default. PDF/UA conformance and figure descriptions are not inferred.
+
 ## XPS structural metadata edits
 
 Use `XpsPage.ReplaceStoryFragmentsMarkup()` and

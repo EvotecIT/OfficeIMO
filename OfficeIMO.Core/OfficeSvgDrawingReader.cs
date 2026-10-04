@@ -84,7 +84,10 @@ public static partial class OfficeSvgDrawingReader {
             SvgDefinitionRegistry definitions = SvgDefinitionRegistry.Create(root);
             var paintServers = new SvgPaintServerRegistry(definitions);
             var references = new SvgElementReferenceRegistry(definitions, options?.ForeignObjectRenderer,
-                options?.CancellationToken ?? default) { MaximumGeometryCommands = maximumGeometryCommands };
+                options?.CancellationToken ?? default) {
+                MaximumGeometryCommands = maximumGeometryCommands,
+                RetainSourceElementIds = options?.RetainSourceElementIds == true
+            };
             bool fitsRootViewport = Math.Abs(viewportWidth - viewWidth) < 0.000001D &&
                 Math.Abs(viewportHeight - viewHeight) < 0.000001D;
             // Fitting a viewBox retains its full scene as an effect surface alongside
@@ -161,6 +164,9 @@ public static partial class OfficeSvgDrawingReader {
                 var clipped = new OfficeDrawing(viewportWidth, viewportHeight);
                 clipped.Fonts.AddRange(viewport.Fonts);
                 drawing = clipped.AddClippedDrawing(viewport, 0D, 0D, OfficeClipPath.Rectangle(viewportWidth, viewportHeight));
+            }
+            if (references.RetainSourceElementIds && root.Attribute("id")?.Value is string rootId && rootId.Length != 0) {
+                foreach (var element in drawing.Elements) element.RetainSourceElementId(rootId);
             }
             return IsSupportedSvgViewport(viewportWidth, viewportHeight, maximumViewportDimension, maximumViewportPixels);
         } catch (XmlException) {

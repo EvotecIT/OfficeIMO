@@ -97,8 +97,8 @@ public sealed partial class XpsPage {
         return ImportDrawing(ToSvg(false, cancellationToken), cancellationToken);
     }
     internal static OfficeDrawing ImportDrawing(XpsSvgResult svg, CancellationToken cancellationToken) => ImportDrawing(svg.Svg, cancellationToken);
-    internal static OfficeDrawing ImportDrawing(string svg, CancellationToken cancellationToken) {
-        if (!OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), new OfficeSvgDrawingReaderOptions { CancellationToken = cancellationToken, MaximumGeometryCommands = 1000000, MaximumElements = 100000 }, out var drawing, out int unsupported) || drawing == null || unsupported != 0)
+    internal static OfficeDrawing ImportDrawing(string svg, CancellationToken cancellationToken, bool retainSourceElementIds = false) {
+        if (!OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), new OfficeSvgDrawingReaderOptions { CancellationToken = cancellationToken, RetainSourceElementIds = retainSourceElementIds, MaximumGeometryCommands = 1000000, MaximumElements = 100000 }, out var drawing, out int unsupported) || drawing == null || unsupported != 0)
             throw new NotSupportedException("The shared drawing importer cannot represent this XPS page without loss. Use ToSvg for the native vector projection.");
         return drawing;
     }

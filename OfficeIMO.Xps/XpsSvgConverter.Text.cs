@@ -4,9 +4,10 @@ namespace OfficeIMO.Xps;
 
 // Conversion metadata stays in the native owner; adapters do not lay out glyphs again.
 internal sealed class XpsTextSpan {
-    internal XpsTextSpan(string text, OfficePoint topLeft, OfficePoint topRight, OfficePoint bottomRight, OfficePoint bottomLeft) {
-        Text = text; TopLeft = topLeft; TopRight = topRight; BottomRight = bottomRight; BottomLeft = bottomLeft;
+    internal XpsTextSpan(string text, OfficePoint topLeft, OfficePoint topRight, OfficePoint bottomRight, OfficePoint bottomLeft, int glyphOrdinal) {
+        GlyphOrdinal = glyphOrdinal; Text = text; TopLeft = topLeft; TopRight = topRight; BottomRight = bottomRight; BottomLeft = bottomLeft;
     }
+    internal int GlyphOrdinal { get; }
     internal string Text { get; }
     internal OfficePoint TopLeft { get; }
     internal OfficePoint TopRight { get; }
@@ -14,11 +15,12 @@ internal sealed class XpsTextSpan {
     internal OfficePoint BottomLeft { get; }
     internal XpsTextSpan Transform(OfficeTransform transform) => new(Text,
         transform.TransformPoint(TopLeft), transform.TransformPoint(TopRight),
-        transform.TransformPoint(BottomRight), transform.TransformPoint(BottomLeft));
+        transform.TransformPoint(BottomRight), transform.TransformPoint(BottomLeft), GlyphOrdinal);
 }
 
 internal sealed partial class XpsSvgConverter {
     private readonly List<XpsTextSpan> _textSpans = new();
+    private int _nativeGlyphOrdinal;
 
     // Some independent PDF extractors discard standalone whitespace ActualText.
     // Attach it within the same run, before applying any native transforms.
@@ -42,7 +44,7 @@ internal sealed partial class XpsSvgConverter {
             }
             _textSpans[write++] = new XpsTextSpan(text.ToString(),
                 new OfficePoint(rtl ? right : left, top), new OfficePoint(rtl ? left : right, top),
-                new OfficePoint(rtl ? left : right, bottom), new OfficePoint(rtl ? right : left, bottom));
+                new OfficePoint(rtl ? left : right, bottom), new OfficePoint(rtl ? right : left, bottom), span.GlyphOrdinal);
         }
         if (write < _textSpans.Count) _textSpans.RemoveRange(write, _textSpans.Count - write);
     }

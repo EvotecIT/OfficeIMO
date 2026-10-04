@@ -5,6 +5,7 @@ namespace OfficeIMO.Xps;
 internal sealed partial class XpsSvgConverter {
     private long _fontBytes;
     private XElement? Glyphs(XElement e, Dictionary<string, Resource> scope, string part, int depth, BrushRegion region) {
+        int glyphOrdinal = _visualDepth == 0 ? _nativeGlyphOrdinal++ : -1;
         Charge(depth);
         CheckAttributes(e, "FontUri FontRenderingEmSize OriginX OriginY UnicodeString Indices Fill BidiLevel IsSideways StyleSimulations RenderTransform Clip Opacity OpacityMask FixedPage.NavigateUri CaretStops DeviceFontName");
         string sidewaysValue = (string?)e.Attribute("IsSideways") ?? "false";
@@ -128,7 +129,7 @@ internal sealed partial class XpsSvgConverter {
                 bottom = Math.Max(bottom, top + size * 0.001);
                 _textSpans.Add(new XpsTextSpan(text.Substring(textIndex, codeUnits),
                     new OfficePoint(rtl ? right : left, top), new OfficePoint(rtl ? left : right, top),
-                    new OfficePoint(rtl ? left : right, bottom), new OfficePoint(rtl ? right : left, bottom)));
+                    new OfficePoint(rtl ? left : right, bottom), new OfficePoint(rtl ? right : left, bottom), glyphOrdinal));
             }
             textIndex += codeUnits;
             entryIndex += glyphCount;

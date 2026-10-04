@@ -74,6 +74,7 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private sealed class SvgElementReferenceRegistry {
+        internal bool RetainSourceElementIds { get; set; }
         internal int MaximumGeometryCommands { get; set; } = MaximumSvgPathCommands;
 
         private readonly SvgDefinitionRegistry _definitions;

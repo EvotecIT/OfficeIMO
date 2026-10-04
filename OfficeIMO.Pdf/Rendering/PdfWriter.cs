@@ -1607,6 +1607,7 @@ internal static partial class PdfWriter {
 
         int documentStructElementId = ReserveObject(objects);
         var documentChildElementIds = new List<int>();
+        var documentChildElements = new List<PageStructElement>();
         var parentTreeEntries = new List<PdfStructTreeRootDictionaryBuilder.ParentTreeEntry>();
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             LayoutResult.Page page = pages[pageIndex];
@@ -1669,10 +1670,10 @@ internal static partial class PdfWriter {
                             contentStreamObjectId,
                             additionalContentStreamObjectIds);
                 } else {
-                    var elementChildIds = new List<int>();
+                    var elementChildren = new List<PageStructElement>();
                     for (int childIndex = 0; childIndex < page.StructElements.Count; childIndex++) {
                         if (page.StructElements[childIndex].ParentElementIndex == elementIndex) {
-                            elementChildIds.Add(page.StructElements[childIndex].ObjectId);
+                            elementChildren.Add(page.StructElements[childIndex]);
                         }
                     }
 
@@ -1680,7 +1681,7 @@ internal static partial class PdfWriter {
                         LayoutResult.Page childPage = pages[childPageIndex];
                         for (int childIndex = 0; childIndex < childPage.StructElements.Count; childIndex++) {
                             if (ReferenceEquals(childPage.StructElements[childIndex].ParentElement, element)) {
-                                elementChildIds.Add(childPage.StructElements[childIndex].ObjectId);
+                                elementChildren.Add(childPage.StructElements[childIndex]);
                             }
                         }
                     }
@@ -1689,7 +1690,7 @@ internal static partial class PdfWriter {
                         parentObjectId,
                         pageIds[pageIndex],
                         element.StructureType,
-                        elementChildIds,
+                        elementChildren.OrderBy(child => child.LogicalOrder ?? long.MaxValue).Select(child => child.ObjectId).ToList(),
                         element.TableHeaderScope,
                         element.TableColumnSpan,
                         element.TableRowSpan,
@@ -1719,7 +1720,7 @@ internal static partial class PdfWriter {
             for (int elementIndex = 0; elementIndex < page.StructElements.Count; elementIndex++) {
                 PageStructElement element = page.StructElements[elementIndex];
                 if (!element.ParentElementIndex.HasValue && element.ParentElement == null) {
-                    documentChildElementIds.Add(element.ObjectId);
+                    documentChildElements.Add(element);
                 }
             }
 
@@ -1747,6 +1748,7 @@ internal static partial class PdfWriter {
             }
         }
 
+        documentChildElementIds.AddRange(documentChildElements.OrderBy(element => element.LogicalOrder ?? long.MaxValue).Select(element => element.ObjectId));
         if (documentChildElementIds.Count == 0) {
             ReplaceObject(objects, structTreeRootId, PdfStructTreeRootDictionaryBuilder.BuildEmptyStructTreeRootDictionary());
             ReplaceObject(objects, documentStructElementId, PdfStructTreeRootDictionaryBuilder.BuildDocumentStructElement(structTreeRootId, documentChildElementIds, documentLanguage));

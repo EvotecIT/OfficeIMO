@@ -4,6 +4,8 @@ namespace OfficeIMO.Drawing;
 /// Controls bounded SVG import limits for trusted inputs that legitimately contain many elements.
 /// </summary>
 public sealed class OfficeSvgDrawingReaderOptions {
+    /// <summary>Retains source identifiers as paint-neutral metadata for owned format adapters.</summary>
+    internal bool RetainSourceElementIds { get; set; }
     /// <summary>Cancellation observed during SVG import and managed filter processing.</summary>
     public System.Threading.CancellationToken CancellationToken { get; set; }
 
