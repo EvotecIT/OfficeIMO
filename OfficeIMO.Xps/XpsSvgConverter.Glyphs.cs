@@ -135,6 +135,8 @@ internal sealed partial class XpsSvgConverter {
         }
 
         JoinWhitespace(firstSpan, rtl);
+        if (_visualDepth == 0) _nativeBounds[e] = double.IsInfinity(minX) ? new BrushRegion(x, y, 0, 0)
+            : new BrushRegion(minX, minY, maxX - minX, maxY - minY);
         if (data.Length == 0) {
             var empty = Element("g");
             if (text.Length > 0) Set(empty, "aria-label", text);

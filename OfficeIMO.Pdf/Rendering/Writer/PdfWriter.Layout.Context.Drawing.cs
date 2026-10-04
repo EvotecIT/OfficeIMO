@@ -215,6 +215,8 @@ internal static partial class PdfWriter {
                     double xShape = originX + shape.X;
                     double bottomY = originTopY - shape.Y - shape.Shape.Height;
                     DrawShapeGeometryAt(shape.Shape, xShape, bottomY);
+                } else if (drawing.Elements[i] is OfficeDrawingLink link) {
+                    DrawDrawingLinkAt(link, originX, originTopY);
                 } else if (drawing.Elements[i] is OfficeDrawingText text) {
                     DrawDrawingTextAt(text, originX, originTopY, textMetrics);
                 } else if (drawing.Elements[i] is OfficeDrawingRichText richText) {
@@ -237,6 +239,7 @@ internal static partial class PdfWriter {
 
         private void DrawDrawingGroupAt(OfficeDrawingGroup group, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics) {
             void DrawGroupContent() {
+                int linkStart = currentPage!.Annotations.Count;
                 double clipX = originX + group.X;
                 double clipBottomY = originTopY - group.Y - group.ClipPath.Height;
                 new ContentStreamBuilder(sb).SaveState();
@@ -245,6 +248,7 @@ internal static partial class PdfWriter {
                     group.InnerDrawing,
                     clipX + group.ContentOffsetX,
                     originTopY - group.Y - group.ContentOffsetY, textMetrics);
+                ClipCanvasLinkAnnotations(currentPage.Annotations, linkStart, clipX, clipBottomY, group.ClipPath.Width, group.ClipPath.Height, group.ClipPath);
                 new ContentStreamBuilder(sb).RestoreState();
             }
 

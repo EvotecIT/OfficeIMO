@@ -13,11 +13,11 @@ Preserving an unsupported native element does not mean that it can be rendered.
 | Paths | Abbreviated geometry, fill rules, explicit path figures/segments, fills, strokes, dashes, matrix transforms, clipping | Per-segment fill/stroke suppression, asymmetric/triangle or separate dash caps, and over-limit clipped miters (including the native degenerate-segment rule) are diagnosed |
 | Text rendering | Embedded TrueType programs/collections, obfuscation, explicit glyph IDs, cluster mappings, advances/offsets, horizontal bidi, bold/italic style simulation, sideways top-center positioning with vertical metrics or OS/2/hhea fallbacks | Outlined output; unsupported font programs are diagnosed; sideways runs require even BidiLevel |
 | Brushes | Hex/scRGB and ICC ContextColor solids/gradient stops; linear/radial gradients; scoped and external package resource dictionaries; ICC-managed PNG/JPEG/TIFF and visual brushes with absolute viewbox/viewport mapping, matrix transforms, Tile/FlipX/FlipY/FlipXY repetition, non-tiled fills/strokes, and alpha opacity masks | Unsupported image/profile channel combinations, non-ICC colorimetry, unsupported TIFF encodings, and JPEG-XR rendering are diagnosed |
-| Navigation | Safe web/mail links; page/document/sequence named targets with scoped first-occurrence lookup; sequence page numbers projected into SVG filenames | Non-page unresolved and unsafe destinations are diagnosed; known fixed-page destinations follow structural moves; links to removed pages are unresolved; document navigation is not a PDF preservation contract |
+| Navigation | Safe web/mail links; page/document/sequence named targets with scoped first-occurrence lookup; sequence page numbers projected into SVG filenames; PDF links, named destinations and DocumentStructure outlines | Non-page unresolved and unsafe destinations are diagnosed; known fixed-page destinations follow structural moves; links to removed pages are unresolved; PDF link hit areas are rectangles and path destination positions use conservative geometry bounds |
 | Gradient transforms | Affine transforms retained in SVG; affine linear gradients and axis-aligned scaled/translated radial gradients convert through Core | Rotated/sheared radial gradients and non-Pad radial spread reject drawing/image/PDF conversion |
 | SVG | Self-contained images and glyph outlines; strict by default; explicit partial result with diagnostics | Unknown markup/attributes are diagnosed; no claim of complete XPS consumer conformance |
 | Drawing/images | Existing managed Core scene and image exporters | Shared viewport, element, geometry, raster, and codec limits still apply; any reported SVG import loss rejects conversion |
-| PDF | Optional thin bridge to the existing PDF engine, retaining page dimensions, bounded vector tile expansion, and native alpha-mask Forms | Searchable native Unicode clusters alongside vector outlines; no print-ticket/structure/signature migration; source markup order, not reconstructed logical reading order; clipped/transparent source text remains searchable |
+| PDF | Optional thin bridge to the existing PDF engine, retaining page dimensions, bounded vector tile expansion, and native alpha-mask Forms | Searchable native Unicode clusters alongside vector outlines; no print-ticket/accessibility-structure/signature migration; source markup order, not reconstructed logical reading order; clipped/transparent source text remains searchable |
 | Security | Package-local resource resolution; no external fetch; DTD prohibition; shared backing for repeated page parts; bounded ZIP/XML/page and expanded SVG node/character/resource-binding growth; cooperative cancellation; atomic path saves | Inspection does not authenticate signatures or make arbitrary native documents trusted |
 
 ICC ContextColor uses Core's supported RGB, gray, CMYK and N-channel profiles,
@@ -140,3 +140,11 @@ after insertion and retains all 695 outline entries. It has no story references.
 Story-page remapping follows ECMA-388 section 16.1.1.6's payload-global prose;
 the adjacent attribute table describes document-local ordering. Independent
 multi-document story fixtures are needed to resolve that interoperability ambiguity.
+
+PDF navigation has generated coverage in both dialects for forward and same-page
+links, repeated page references, page moves, percent-encoded targets, nested
+transforms, clipping and outline hierarchy. An independent pypdf inspection
+confirms destination pages and coordinates, Unicode outline titles and child URI
+actions in both dialects. Ghostscript renders the navigation fixture successfully.
+This does not qualify interactive navigation in every PDF viewer or reconstruct
+StoryFragments reading order and PDF accessibility tags.

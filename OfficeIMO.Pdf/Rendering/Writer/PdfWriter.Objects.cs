@@ -339,6 +339,8 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageBookmark {
+        public double X { get; set; }
+        public string? Uri { get; set; }
         public int Level { get; set; }
         public string Title { get; set; } = string.Empty;
         public double Y { get; set; }
@@ -347,6 +349,7 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageNamedDestination {
+        public double X { get; set; }
         public string Name { get; set; } = string.Empty;
         public double Y { get; set; }
     }
@@ -450,6 +453,8 @@ internal static partial class PdfWriter {
     }
 
     private sealed class OutlineNode {
+        public double X { get; set; }
+        public string? Uri { get; set; }
         public int Id { get; set; }
         public int Level { get; set; }
         public int PageIndex { get; set; }

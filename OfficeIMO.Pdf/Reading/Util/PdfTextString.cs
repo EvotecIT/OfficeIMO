@@ -40,7 +40,18 @@ internal static class PdfTextString {
             return PdfEncoding.DecodeCancellable(Encoding.UTF8, bytes, 3, bytes.Length - 3, cancellationToken);
         }
 
-        return PdfWinAnsiEncoding.Decode(bytes, int.MaxValue, cancellationToken);
+        return PdfDocEncoding.TryDecode(bytes, out string value, cancellationToken)
+            ? value : PdfWinAnsiEncoding.Decode(bytes, int.MaxValue, cancellationToken);
+    }
+
+    // Restrict the byte fast path to the shared ASCII subset. PDFDocEncoding is
+    // different from the WinAnsi encoding used by simple-font content streams.
+    internal static bool CanEncodeAsAsciiText(string value, System.Threading.CancellationToken token = default) {
+        for (int i = 0; i < value.Length; i++) {
+            if ((i & 1023) == 0) token.ThrowIfCancellationRequested();
+            if (value[i] > 126 || value[i] < 32) return false;
+        }
+        return true;
     }
 
     public static byte[] Encode(string value) {
@@ -48,7 +59,7 @@ internal static class PdfTextString {
             return Array.Empty<byte>();
         }
 
-        if (PdfWinAnsiEncoding.CanEncode(value, out _)) {
+        if (CanEncodeAsAsciiText(value)) {
             return PdfWinAnsiEncoding.Encode(value);
         }
 

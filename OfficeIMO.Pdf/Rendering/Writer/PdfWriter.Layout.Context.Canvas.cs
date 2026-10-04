@@ -124,7 +124,8 @@ internal static partial class PdfWriter {
         }
 
         private void RenderCanvasNamedDestination(PdfCanvasNamedDestinationItem item) {
-            AddNamedDestinationName(item.Name, currentOpts.PageHeight - item.Y);
+            EnsurePage();
+            currentPage!.NamedDestinations.Add(new PageNamedDestination { Name = item.Name, X = item.X, Y = currentOpts.PageHeight - item.Y });
         }
 
         private void RenderCanvasNamedDestinationLink(PdfCanvasNamedDestinationLinkItem item) {
@@ -374,7 +375,7 @@ internal static partial class PdfWriter {
                 Title = item.Title,
                 Y = currentOpts.PageHeight - item.Y,
                 OutlineState = item.State,
-                DocumentOrder = item.DocumentOrder
+                DocumentOrder = item.DocumentOrder, X = item.X, Uri = item.Uri
             });
             pageDirty = true;
         }

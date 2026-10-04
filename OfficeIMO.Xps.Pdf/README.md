@@ -23,7 +23,14 @@ and glyph bounds, rather than inferred words. Source text remains searchable eve
 when native clipping or opacity hides it; clipping is not text redaction. Glyph-only
 runs without UnicodeString have no recoverable logical text.
 
-Export rejects known conversion losses. XPS-native metadata, print tickets,
-structure tags, signatures, and document navigation are not PDF preservation
-contracts. Consult the [XPS support matrix](../OfficeIMO.Xps/SUPPORT.md) and the
+Safe web/mail links and native page, document and sequence targets become PDF
+link annotations. Named elements become destinations with page-space positions;
+DocumentStructure outlines retain their titles, order, depth and safe URI actions.
+Repeated page references keep local fragment links on their own occurrence, while
+absolute page references resolve to the first occurrence. Path target positions use
+conservative geometry bounds; link hit areas are rectangles.
+
+Export rejects known conversion losses and unsafe or unresolved outline targets.
+XPS-native metadata, print tickets, structure tags and signatures are not PDF
+preservation contracts. Consult the [XPS support matrix](../OfficeIMO.Xps/SUPPORT.md) and the
 PDF engine's own rendering limits before choosing an archival workflow.

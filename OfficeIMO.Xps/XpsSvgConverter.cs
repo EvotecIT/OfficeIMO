@@ -4,6 +4,7 @@ internal sealed partial class XpsSvgConverter {
     private static readonly XNamespace Svg = "http://www.w3.org/2000/svg";
     private XNamespace ResourceKeyNamespace => _page.Document.Format == XpsFormat.Xps ? "http://schemas.microsoft.com/winfx/2006/xaml" : "http://schemas.openxps.org/oxps/v1.0/resourcedictionary-key";
     private readonly XpsPage _page;
+    private readonly bool _explicitPageLinks;
     private readonly CancellationToken _token;
     private readonly List<string> _diagnostics = new();
     private readonly XElement _defs;
@@ -17,7 +18,7 @@ internal sealed partial class XpsSvgConverter {
     private int _outputNodes;
     private readonly Dictionary<string, XElement> _resourceDictionaries = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, OfficeIMO.Drawing.OfficeTrueTypeFont> _fonts = new(StringComparer.OrdinalIgnoreCase);
-    internal XpsSvgConverter(XpsPage page, CancellationToken token) { _page = page; _token = token; _defs = Element("defs"); }
+    internal XpsSvgConverter(XpsPage page, CancellationToken token, bool explicitPageLinks = false) { _explicitPageLinks = explicitPageLinks; _page = page; _token = token; _defs = Element("defs"); }
     private sealed class Resource {
         internal Resource(XElement value, string part) { Value = value; Part = part; }
         internal XElement Value { get; }
@@ -28,10 +29,13 @@ internal sealed partial class XpsSvgConverter {
         var root = Element("svg", new XAttribute("width", N(_page.Width)), new XAttribute("height", N(_page.Height)), new XAttribute("viewBox", "0 0 " + N(_page.Width) + " " + N(_page.Height)), _defs);
         XElement page = _page.GetMarkup();
         CheckAttributes(page, "Width Height ContentBox BleedBox Name");
-        if (page.Attribute("Name") is XAttribute pageName) Set(root, "id", "xps-" + pageName.Value);
+        if (page.Attribute("Name") is XAttribute pageName) {
+            Set(root, "id", "xps-" + pageName.Value);
+            _targets.Add(new XpsNavigationTarget(pageName.Value, new[] { new OfficeIMO.Drawing.OfficePoint(0, 0) }));
+        }
         RenderChildren(page, root, new Dictionary<string, Resource>(), _page.PartName, 0, new BrushRegion(0, 0, _page.Width, _page.Height));
         if (_diagnostics.Count != 0 && !allowPartial) throw new NotSupportedException("XPS conversion would lose features: " + string.Join("; ", _diagnostics.Take(12)));
-        return new XpsSvgResult(root.ToString(SaveOptions.DisableFormatting), _diagnostics, _textSpans);
+        return new XpsSvgResult(root.ToString(SaveOptions.DisableFormatting), _diagnostics, _textSpans, _targets);
     }
     private static string N(double value) {
         if (double.IsNaN(value) || double.IsInfinity(value)) throw new InvalidDataException("Non-finite XPS projection coordinate.");
@@ -100,6 +104,7 @@ internal sealed partial class XpsSvgConverter {
             string? transform = Transform(child, scope);
             BrushRegion localRegion = LocalRegion(region, transform);
             int firstText = _textSpans.Count;
+            int firstTarget = _targets.Count;
             XElement? result;
             switch (child.Name.LocalName) {
                 case "Canvas":
@@ -117,7 +122,8 @@ internal sealed partial class XpsSvgConverter {
             string? clip = Geometry(child, "Clip", scope);
             if (clip != null) {
                 string id = "clip" + (++_id);
-                string path = StripFillRule(clip, out string rule);
+                string path = StripFillRule(clip, out string rule, out var clipBounds);
+                if (_nativeBounds.TryGetValue(child, out var contentBounds) && clipBounds.HasValue) _nativeBounds[child] = IntersectRegion(contentBounds, clipBounds.Value);
                 _defs.Add(Element("clipPath", new XAttribute("id", id), new XAttribute("clipPathUnits", "userSpaceOnUse"), Element("path", new XAttribute("d", path), new XAttribute("clip-rule", rule))));
                 Set(result, "clip-path", "url(#" + id + ")");
             }
@@ -128,24 +134,22 @@ internal sealed partial class XpsSvgConverter {
                 if (href != null) result = Element("a", new XAttribute("href", href), result);
             }
             if (_visualDepth == 0 && child.Attribute("Name") is XAttribute name) Set(result, "id", "xps-" + name.Value);
+            RecordNavigationBounds(child, parent, transform, firstTarget);
             target.Add(result);
         }
     }
     private string? Link(string target, string part) {
-        if (target.StartsWith("#", StringComparison.Ordinal)) return "#xps-" + target.Substring(1);
-        if (Uri.TryCreate(target, UriKind.Absolute, out var absolute) && !target.StartsWith("/", StringComparison.Ordinal)) {
-            if (absolute.Scheme == "https" || absolute.Scheme == "http" || absolute.Scheme == "mailto") return target;
-            Loss("Unsafe navigation URI"); return null;
-        }
-        string[] pieces = target.Split('#');
-        string name = XpsPackage.Resolve(part, pieces[0]);
-        string? anchor = pieces.Length == 2 ? pieces[1] : null;
-        int index = _page.Document.LinkTargetPage(name, anchor);
-        if (index < 0) { Loss("Navigation to unresolved page target"); return null; }
-        // Unknown advertised names and numeric page addresses refer to the top of the page.
-        string fragment = anchor != null && _page.Document.Pages[index].HasNamedTarget(anchor) ? "#xps-" + anchor : "";
-        return string.Equals(_page.Document.Pages[index].PartName, _page.PartName, StringComparison.OrdinalIgnoreCase) ? fragment : "page-" + (index + 1).ToString(CultureInfo.InvariantCulture) + ".svg" + fragment;
+        var reference = _page.Document.ResolveNavigation(part, target);
+        if (!reference.HasValue) { Loss("Unsafe or unresolved navigation URI"); return null; }
+        if (reference.Value.Uri != null) return reference.Value.Uri;
+        int index = reference.Value.PageIndex;
+        string fragment = reference.Value.Name != null ? "#xps-" + reference.Value.Name : "";
+        if (_explicitPageLinks) return target.StartsWith("#", StringComparison.Ordinal) ? (fragment.Length == 0 ? "#" : fragment)
+            : "page-" + (index + 1).ToString(CultureInfo.InvariantCulture) + ".svg" + fragment;
+        return fragment.Length > 0 && string.Equals(_page.Document.Pages[index].PartName, _page.PartName, StringComparison.OrdinalIgnoreCase)
+            ? fragment : "page-" + (index + 1).ToString(CultureInfo.InvariantCulture) + ".svg" + fragment;
     }
+
     private static double Unit(string value) {
         double number = XpsPackage.Number(value);
         if (number < 0 || number > 1) throw new InvalidDataException("XPS opacity must be between 0 and 1.");
@@ -165,7 +169,9 @@ internal sealed partial class XpsSvgConverter {
         return "matrix(" + string.Join(" ", numbers.Select(N)) + ")";
     }
     private static double[] Numbers(string value) => value.Split(new[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(v => XpsPackage.Number(v)).ToArray();
-    private string StripFillRule(string path, out string rule) {
+    private string StripFillRule(string path, out string rule) => StripFillRule(path, out rule, out _);
+    private string StripFillRule(string path, out string rule, out BrushRegion? bounds) {
+        bounds = null;
         path = path.Trim(); rule = "evenodd";
         if (path.StartsWith("F", StringComparison.Ordinal)) {
             int index = 1;
@@ -178,6 +184,9 @@ internal sealed partial class XpsSvgConverter {
             if (!OfficeIMO.Drawing.OfficeSvgPathDataParser.TryParse(path, 100000 - _pathCommands, out var commands, out _, allowEmptyGeometry: true))
                 throw new InvalidDataException("Malformed or excessive XPS path geometry.");
             _pathCommands += commands.Count;
+            double minX = double.PositiveInfinity, minY = double.PositiveInfinity, maxX = double.NegativeInfinity, maxY = double.NegativeInfinity;
+            foreach (var command in commands) OfficeIMO.Drawing.OfficeSvgDrawingReader.IncludeCommandBounds(command, ref minX, ref minY, ref maxX, ref maxY);
+            if (!double.IsInfinity(minX)) bounds = new BrushRegion(minX, minY, maxX - minX, maxY - minY);
         }
         return path;
     }
@@ -216,7 +225,8 @@ internal sealed partial class XpsSvgConverter {
     private XElement PathElement(XElement e, Dictionary<string, Resource> scope, string part, int depth, BrushRegion region) {
         Charge(depth);
         CheckAttributes(e, "Data Fill Stroke StrokeThickness StrokeDashArray StrokeDashOffset StrokeStartLineCap StrokeEndLineCap StrokeDashCap StrokeLineJoin StrokeMiterLimit RenderTransform Clip Opacity OpacityMask FixedPage.NavigateUri");
-        string path = StripFillRule(Geometry(e, "Data", scope) ?? "", out string rule);
+        string path = StripFillRule(Geometry(e, "Data", scope) ?? "", out string rule, out var bounds);
+        if (_visualDepth == 0 && bounds.HasValue) _nativeBounds[e] = bounds.Value;
         var result = Element("path", new XAttribute("d", path), new XAttribute("fill-rule", rule));
         Paint(e, "Fill", result, "fill", scope, part, depth);
         Paint(e, "Stroke", result, "stroke", scope, part, depth);

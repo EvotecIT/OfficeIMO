@@ -68,7 +68,7 @@ public sealed class XpsDocumentStructureTests {
     private static string?[] StoryPages(XpsDocument doc) => Structure(doc).Elements(doc.StructureNamespace + "Story")
         .Elements(doc.StructureNamespace + "StoryFragmentReference").Select(e => (string?)e.Attribute("Page")).ToArray();
 
-    private static XpsDocument Fixture(XpsFormat format, string? invalid = null) {
+    internal static XpsDocument Fixture(XpsFormat format, string? invalid = null) {
         var doc = XpsDocument.Create(format); doc.AddPage(); doc.AddPage(); doc.AddPage();
         XNamespace ns = doc.StructureNamespace, ext = "urn:extension";
         var structure = new XElement(ns + (invalid == "Root" ? "Wrong" : "DocumentStructure"), new XAttribute(ext + "custom", "keep"),

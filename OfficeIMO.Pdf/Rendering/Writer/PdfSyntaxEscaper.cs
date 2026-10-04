@@ -104,10 +104,25 @@ internal static class PdfSyntaxEscaper {
         return HexString(bytes, cancellationToken);
     }
 
+    /// <summary>Serializes a URI action as escaped ASCII URI bytes, not a PDF text string.</summary>
+    internal static string UriString(string value) {
+        Guard.UriAction(value, nameof(value));
+        if (Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Host.Length > 0 && uri.Host != uri.IdnHost) {
+            var builder = new UriBuilder(uri) { Host = uri.IdnHost };
+            value = builder.Uri.AbsoluteUri;
+        }
+        var ascii = new StringBuilder(value.Length);
+        foreach (byte b in Encoding.UTF8.GetBytes(value)) {
+            if (b >= 128 || b == 32) ascii.Append('%').Append(b.ToString("X2", CultureInfo.InvariantCulture));
+            else ascii.Append((char)b);
+        }
+        return LiteralString(ascii.ToString());
+    }
+
     internal static string TextString(string value, CancellationToken cancellationToken = default) {
         Guard.NotNull(value, nameof(value));
         cancellationToken.ThrowIfCancellationRequested();
-        if (PdfWinAnsiEncoding.CanEncode(value, out _, cancellationToken)) {
+        if (PdfTextString.CanEncodeAsAsciiText(value, cancellationToken)) {
             return WinAnsiHexString(value, cancellationToken);
         }
 
@@ -129,7 +144,7 @@ internal static class PdfSyntaxEscaper {
         Guard.NotNull(value, nameof(value));
         cancellationToken.ThrowIfCancellationRequested();
         destination.Append('<');
-        if (PdfWinAnsiEncoding.CanEncode(value, out _, cancellationToken)) {
+        if (PdfTextString.CanEncodeAsAsciiText(value, cancellationToken)) {
             byte[] bytes = PdfWinAnsiEncoding.Encode(value, cancellationToken);
             for (int index = 0; index < bytes.Length; index++) {
                 if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();

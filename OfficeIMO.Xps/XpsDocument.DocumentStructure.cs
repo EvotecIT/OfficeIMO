@@ -5,9 +5,9 @@ public sealed partial class XpsDocument {
 
     // Read only relationship-owned structure parts. An unrelated XML resource with
     // a similar element name must not acquire document semantics during an edit.
-    internal IEnumerable<(string Part, XElement Markup)> ReadDocumentStructures(CancellationToken token = default) {
+    internal IEnumerable<(string Part, XElement Markup)> ReadDocumentStructures(CancellationToken token = default, bool activeOnly = false) {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var document in _documentCache.Values) {
+        foreach (var document in activeOnly ? _documents.Distinct() : _documentCache.Values.AsEnumerable()) {
             token.ThrowIfCancellationRequested();
             string source = document.PartName;
             int slash = source.LastIndexOf('/');
@@ -56,13 +56,13 @@ public sealed partial class XpsDocument {
                 if (pieces.Length > 2) continue;
                 string name;
                 try { name = XpsPackage.Resolve(structure.Part, pieces[0]); } catch (InvalidDataException) { continue; }
-                string? anchor = pieces.Length == 2 ? pieces[1] : null;
+                string? anchor = pieces.Length == 2 ? Uri.UnescapeDataString(pieces[1]) : null;
                 int previous = LinkTargetPage(name, anchor);
                 if (previous < 0) continue;
                 var target = _pages[previous];
                 int current = LinkTargetPage(next, name, anchor);
                 if (current >= 0 && next.Pages[current] == target) continue;
-                string fragment = anchor != null && target.HasNamedTarget(anchor) ? "#" + anchor : "";
+                string fragment = anchor != null && target.HasNamedTarget(anchor) ? "#" + Uri.EscapeDataString(anchor) : "";
                 outline.SetAttributeValue("OutlineTarget", "/" + target.PartName + fragment);
                 changed = true;
             }

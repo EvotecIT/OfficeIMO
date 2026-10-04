@@ -2142,7 +2142,7 @@ internal static partial class PdfWriter {
                 Level = level,
                 PageIndex = pageIndex,
                 Title = bookmark.Title,
-                Y = bookmark.Y,
+                Y = bookmark.Y, X = bookmark.X, Uri = bookmark.Uri,
                 OutlineState = bookmark.OutlineState,
                 Parent = parent
             };
@@ -2180,7 +2180,7 @@ internal static partial class PdfWriter {
                 lastChildId,
                 descendantCount,
                 pageId,
-                node.Y));
+                node.Y, node.X, node.Uri));
         }
 
         ReplaceObject(objects, rootId, PdfOutlineDictionaryBuilder.BuildOutlineRoot(
@@ -2192,7 +2192,7 @@ internal static partial class PdfWriter {
     }
 
     private static int BuildNamedDestinations(IList<byte[]> objects, IReadOnlyList<LayoutResult.Page> pages, List<int> pageIds) {
-        var destinations = new List<(string Name, int PageIndex, double Y)>();
+        var destinations = new List<(string Name, int PageIndex, double X, double Y)>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             foreach (var destination in pages[pageIndex].NamedDestinations) {
@@ -2204,7 +2204,7 @@ internal static partial class PdfWriter {
                     throw new ArgumentException("PDF bookmark names must be unique.");
                 }
 
-                destinations.Add((destination.Name, pageIndex, destination.Y));
+                destinations.Add((destination.Name, pageIndex, destination.X, destination.Y));
             }
         }
 
@@ -2221,7 +2221,8 @@ internal static partial class PdfWriter {
             sb.Append(PdfString(destination.Name))
                 .Append(" [")
                 .Append(PdfSyntaxEscaper.IndirectReference(pageId))
-                .Append(" /XYZ 0 ")
+                .Append(" /XYZ ")
+                .Append(destination.X.ToString("0.###", CultureInfo.InvariantCulture)).Append(' ')
                 .Append(destination.Y.ToString("0.###", CultureInfo.InvariantCulture))
                 .Append(" 0]");
             if (i < destinations.Count - 1) {

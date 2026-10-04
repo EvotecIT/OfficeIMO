@@ -1112,7 +1112,7 @@ public static partial class OfficeSvgDrawingReader {
         return new OfficeDrawingShape(shape, minX, minY);
     }
 
-    private static void IncludeCommandBounds(
+    internal static void IncludeCommandBounds(
         OfficePathCommand command,
         ref double minX,
         ref double minY,
