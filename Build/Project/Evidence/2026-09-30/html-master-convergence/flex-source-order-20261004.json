@@ -1,0 +1,277 @@
+{
+  "schema": 1,
+  "recordedAtUtc": "2026-10-04T17:55:27.993368+00:00",
+  "baseCommit": "e8aba931100d1f3393f51f53f60ac218b13d4bec",
+  "implementationCommit": "e282422cfa2f12c7b3c35f1c3342f171db2dc78b",
+  "qualifiedCodeCommit": "d62e30cdef4ebf7cd2c4e7715aefc2cf79e7f1d4",
+  "scope": "Source hierarchy in tagged PDF flex content and semantic ownership of continued/repeated fragments; unchanged paint and public API",
+  "observedDefect": "Reference Systems print/snapshot tag order placed two sidebar captions ahead of two source paragraphs painted on later pages. All 36 article blocks were present. The actual source uses flex columns.",
+  "ownership": {
+    "logicalIndicesInternalOnly": true,
+    "flexContainerScopesPreventCrossRowInterleaving": true,
+    "pdfStableSortOnlyExplicitlyIndexedSiblingSlots": true,
+    "unindexedOwnersKeepTheirSlots": true,
+    "paintGeometryAndMcidAssociationsNotReordered": true,
+    "continuedTableAndListSemanticAncestorsPreserved": true,
+    "publicApiChanges": false,
+    "newRuntimeDependencies": false
+  },
+  "review": {
+    "agent": "flex_logical_source_owner_review",
+    "fullReadOnlyPass": 1,
+    "targetedConfirmation": 1,
+    "boundary": "candidate-reviewed",
+    "validatedFindings": [
+      {
+        "finding": "Flattened semantic owner lost parent-level source index against a reordered sibling",
+        "classification": "candidate-introduced",
+        "priority": "P2",
+        "before": "three independently failing section/nested-section/list cases",
+        "remediation": "retain source index on the actual semantic owner across normal and repeated fragments",
+        "closed": true
+      },
+      {
+        "finding": "Transparent semantic metadata increased continuous workbench surface width",
+        "classification": "candidate-introduced; broad-suite observation",
+        "before": "680 expected versus 685.7568 actual",
+        "remediation": "measure child geometry without counting metadata wrapper bounds",
+        "closed": true
+      }
+    ],
+    "adjacentPreexistingDefect": {
+      "finding": "Repeated table fragments could lose their section/list ancestors and register a second table",
+      "priorRuntimeReproduction": "two Table and two TH owners",
+      "final": "one Table, one TH, nineteen TD; every body row exactly once",
+      "closed": true
+    },
+    "tentativeListRoleConcern": "No demonstrated PDF 1.7 defect; not reported as a validated finding",
+    "remainingActionableFindings": []
+  },
+  "localValidation": {
+    "html": {
+      "net8.0": {
+        "passed": 4278,
+        "failed": 0,
+        "skipped": 0
+      },
+      "net10.0": {
+        "passed": 4278,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    "pdfOwner": {
+      "net8.0": {
+        "passed": 53,
+        "failed": 0,
+        "skipped": 0
+      },
+      "net10.0": {
+        "passed": 53,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    "normalNetstandardBuilds": [
+      "OfficeIMO.Html",
+      "OfficeIMO.Pdf"
+    ],
+    "normalApiAndToolBuilds": true,
+    "newDistinctRegressionCases": 12
+  },
+  "referenceSystems": {
+    "sourceSha256": "22c86b3d422ed40fced42a782cc967d1555175eb90ccc034a3ae72eae3969f1d",
+    "role": "Development regression after guiding this fix",
+    "request": "Explicit 816 x 900 PortableDeterministic print/media/snapshot requests",
+    "owners": {
+      "OfficeIMO.Mhtml": "3.4.4+d62e30cdef4ebf7cd2c4e7715aefc2cf79e7f1d4",
+      "OfficeIMO.Html": "3.4.4+d62e30cdef4ebf7cd2c4e7715aefc2cf79e7f1d4",
+      "OfficeIMO.Html.Pdf": "3.4.4+d62e30cdef4ebf7cd2c4e7715aefc2cf79e7f1d4",
+      "OfficeIMO.Pdf": "3.4.4+d62e30cdef4ebf7cd2c4e7715aefc2cf79e7f1d4"
+    },
+    "routes": [
+      {
+        "profile": "print-paged",
+        "apiToolBytesEqual": true,
+        "sha256": "43d0b0009dbef837f15c9e6c19806a09f59086da154537cfe85a7f8e7c00f545"
+      },
+      {
+        "profile": "screen-media-paged",
+        "apiToolBytesEqual": true,
+        "sha256": "70c0ca563d1ebefdef4886bd144295145a38060abc3494bb0194708731ced8d0"
+      },
+      {
+        "profile": "screen-snapshot-paged",
+        "apiToolBytesEqual": true,
+        "sha256": "59ab4fd41027399213e44d4d43e3319e7fd167019c70580c2c5f46a9e49073f7"
+      }
+    ],
+    "profiles": [
+      {
+        "profile": "print-paged",
+        "articleBlocks": 36,
+        "allBlocksFoundInSourceOrder": true,
+        "markedContentTextItems": 274,
+        "structuralTextItems": 274,
+        "pages": 10,
+        "all72DpiPixelsEqualToPrior": true,
+        "decodedImagesAndLinkTargetsRectsPerPageUnchanged": true
+      },
+      {
+        "profile": "screen-media-paged",
+        "articleBlocks": 36,
+        "allBlocksFoundInSourceOrder": true,
+        "markedContentTextItems": 232,
+        "structuralTextItems": 232,
+        "pages": 12,
+        "all72DpiPixelsEqualToPrior": true,
+        "decodedImagesAndLinkTargetsRectsPerPageUnchanged": true
+      },
+      {
+        "profile": "screen-snapshot-paged",
+        "articleBlocks": 36,
+        "allBlocksFoundInSourceOrder": true,
+        "markedContentTextItems": 261,
+        "structuralTextItems": 261,
+        "pages": 8,
+        "all72DpiPixelsEqualToPrior": true,
+        "decodedImagesAndLinkTargetsRectsPerPageUnchanged": true
+      }
+    ],
+    "visualBaselineArtifact": "reference-acceptance-164c9dc44",
+    "independentObservers": [
+      "pypdf 6.10.0 structure/ActualText and decoded resources",
+      "Poppler 26.09 at 72dpi"
+    ],
+    "manualAccessibilityQualified": false
+  },
+  "staticHeldOutReplay": {
+    "baselineCommit": "e377c6ad60c8db8dd92e5a485ffee674212828c2",
+    "candidateCommit": "d62e30cdef4ebf7cd2c4e7715aefc2cf79e7f1d4",
+    "artifactCount": 76,
+    "byteIdenticalCount": 68,
+    "pdfCount": 16,
+    "allImageAndSvgBytesEqual": true,
+    "allPdfRawTextPixelsResourcesAndLinksEqual": true
+  },
+  "workbench": {
+    "width": 680,
+    "height": 700,
+    "textAndPngBytesPixelIdenticalToPriorRuntime": true,
+    "actualFinalRasterInspected": true
+  },
+  "packedConsumers": {
+    "sourceCommit": "d62e30cdef4ebf7cd2c4e7715aefc2cf79e7f1d4",
+    "packageCount": 19,
+    "frameworks": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ],
+    "normalRepoScript": "Build/Test-HtmlPackages.ps1 -Version 3.4.4",
+    "freshFeedOriginsSha512AndDllHashesVerified": true,
+    "consumers": 2,
+    "executedFrameworks": [
+      "net8.0",
+      "net10.0"
+    ],
+    "published": false,
+    "packages": [
+      {
+        "name": "OfficeIMO.Core.3.4.4.nupkg",
+        "sha256": "131ab1af3d4979c7ad8c2ca3b832e1cd648837a3293c9a675e9f3d6f50d9b854"
+      },
+      {
+        "name": "OfficeIMO.Email.3.4.4.nupkg",
+        "sha256": "52b86040262a28417acd47283fe4a096efb2caeae0019d87d69601e0bc8bfe9b"
+      },
+      {
+        "name": "OfficeIMO.Excel.3.4.4.nupkg",
+        "sha256": "5ac43c7905ace7b945ceb09562335192f00205d7ce587154f2eecc327abce8e4"
+      },
+      {
+        "name": "OfficeIMO.Excel.Html.3.4.4.nupkg",
+        "sha256": "67c869a944db4ac881ce217580314a1f8e1bf5b0e6a0702d95f636969efb0060"
+      },
+      {
+        "name": "OfficeIMO.Html.3.4.4.nupkg",
+        "sha256": "3505436641001627638c44a6e31e8d6053fdeaab2570e99b4cfb3b772df56ede"
+      },
+      {
+        "name": "OfficeIMO.Html.AngleSharp.3.4.4.nupkg",
+        "sha256": "d6979e3b7ecc31ee4ac3eecf4cea9758ce2313731656f738b936777d5f2b338c"
+      },
+      {
+        "name": "OfficeIMO.Html.Core.3.4.4.nupkg",
+        "sha256": "dad574dc41dfa42540d085b9b6b20dc9faf27362029734916177acc15658121c"
+      },
+      {
+        "name": "OfficeIMO.Html.Pdf.3.4.4.nupkg",
+        "sha256": "ff780698c7cba566c4182d391a2eec067e369864856cd0d5b8a6eb17091c5b3b"
+      },
+      {
+        "name": "OfficeIMO.Html.Rtf.3.4.4.nupkg",
+        "sha256": "f56a645dde896ba8511e90b0c10cea763388c19db3eb7eeebf55cf7559f69a77"
+      },
+      {
+        "name": "OfficeIMO.Markdown.3.4.4.nupkg",
+        "sha256": "711b3d754982339c9e9cb008605cb5e205d8a27b343c69ea06ba6edbe8870959"
+      },
+      {
+        "name": "OfficeIMO.Markdown.Html.3.4.4.nupkg",
+        "sha256": "1c1c39f062cb254de12413e6cb2b5e5120f43505a57d08dda3728cd26fc3432d"
+      },
+      {
+        "name": "OfficeIMO.Mhtml.3.4.4.nupkg",
+        "sha256": "cec1461f95a8902b8f5420fbf3c5c538e6667096946125155e33157d960a8a3e"
+      },
+      {
+        "name": "OfficeIMO.Mhtml.Pdf.3.4.4.nupkg",
+        "sha256": "b0eb0e9da7d0a9e3a9ac105dbf007d5aa2afc5fd7ab5e26b347d52b874794010"
+      },
+      {
+        "name": "OfficeIMO.Pdf.3.4.4.nupkg",
+        "sha256": "435f8a09cbec85d347516d6c0cc0cb1446226beeda9b9134300a1c9ddafe81b6"
+      },
+      {
+        "name": "OfficeIMO.PowerPoint.3.4.4.nupkg",
+        "sha256": "b19eccbaf0cf7923ad2c147083aac14215321586d237c4fe4fa7d954ad8b5a36"
+      },
+      {
+        "name": "OfficeIMO.PowerPoint.Html.3.4.4.nupkg",
+        "sha256": "9cd7d2f0357bf77aeebaf400615b370fad8f6b33911f38decaa488b77b04e975"
+      },
+      {
+        "name": "OfficeIMO.Rtf.3.4.4.nupkg",
+        "sha256": "e1f64f6f05cbb560cba7f4beb11b77551d720fdd97f617b86dc2e98bbc449c02"
+      },
+      {
+        "name": "OfficeIMO.Word.3.4.4.nupkg",
+        "sha256": "f3849f6bd33256deedfb67d2544befb90fcc956229f335792ccc480ddc19d409"
+      },
+      {
+        "name": "OfficeIMO.Word.Html.3.4.4.nupkg",
+        "sha256": "9d352552e3c8b2ad1b7aa5baf91245c3a2d6e10107038b4ccf09ca316eb85a06"
+      }
+    ]
+  },
+  "retainedEvidenceRoot": "Ignore/MasterConvergenceQualification/logical-source-order-d62e30cde",
+  "platformFollowThrough": {
+    "existingManualProbeExtended": true,
+    "selectedHtmlCasesExpectedPerFramework": 30,
+    "selectedPdfCasesExpectedPerFramework": 79,
+    "status": "Ready to dispatch after pushed checkpoint; no platform result claimed"
+  },
+  "remainingAcceptance": [
+    "Windows/Linux/macOS current-source focused correctness",
+    "Unchanged combined-source platform resource budgets and qualified long-lived adoption",
+    "Reference responsive width, page-5 flow, footer typography and manual accessibility",
+    "Other named H10 visual/resource/native gaps and corpus/intent acceptance"
+  ],
+  "limits": [
+    "No general browser parity or assistive-technology claim",
+    "The diagnostic static capture is correctness evidence, not a timing-budget pass",
+    "No full HTML/runtime PR, merge to master or release"
+  ]
+}
