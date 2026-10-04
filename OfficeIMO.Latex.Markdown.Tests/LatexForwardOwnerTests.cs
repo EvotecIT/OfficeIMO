@@ -61,6 +61,26 @@ public sealed class LatexForwardOwnerTests {
         Assert.Equal(table.Alignments, roundTrip.Alignments);
     }
 
+    [Fact]
+    public void SparseTableAlignmentCannotExpandPastProjectedCellBudget() {
+        string rows = string.Concat(Enumerable.Repeat("A\\\\", 256));
+        string source = Wrap("\\begin{tabular}{" + new string('l', 1024) + "}" + rows + "\\end{tabular}");
+        Assert.Throws<System.IO.InvalidDataException>(() => LatexDocument.Parse(source).ToMarkdownDocumentResult());
+    }
+
+    [Fact]
+    public void ColumnAlignmentCannotExceedProjectedColumnBudget() {
+        string source = Wrap("\\begin{tabular}{" + new string('l', 4097) + "}A\\\\\\end{tabular}");
+        Assert.Throws<System.IO.InvalidDataException>(() => LatexDocument.Parse(source).ToMarkdownDocumentResult());
+    }
+
+    [Fact]
+    public void MultipleSparseTablesShareProjectionCellBudget() {
+        string table = "\\begin{tabular}{" + new string('l', 128) + "}"
+            + string.Concat(Enumerable.Repeat("A\\\\", 256)) + "\\end{tabular}";
+        Assert.Throws<System.IO.InvalidDataException>(() => LatexDocument.Parse(Wrap(table + table)).ToMarkdownDocumentResult());
+    }
+
     [Theory]
     [InlineData(ColumnAlignment.Center, ColumnAlignment.None, "c")]
     [InlineData(ColumnAlignment.Right, ColumnAlignment.None, "r")]
