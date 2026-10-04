@@ -20,18 +20,14 @@ internal sealed class AgentPathPolicy {
     }
 
     internal static AgentPathPolicy FromMcpEnvironment() =>
-        ForMcp(
-            Environment.GetEnvironmentVariable(AllowedRootsEnvironmentVariable),
-            Directory.GetCurrentDirectory());
+        ForMcp(Environment.GetEnvironmentVariable(AllowedRootsEnvironmentVariable));
 
-    internal static AgentPathPolicy ForMcp(string? configuredRoots, string workingDirectory) {
-        if (!string.IsNullOrWhiteSpace(configuredRoots)) {
-            return FromConfiguredRoots(configuredRoots);
+    internal static AgentPathPolicy ForMcp(string? configuredRoots) {
+        if (string.IsNullOrWhiteSpace(configuredRoots)) {
+            throw new AgentUsageException(
+                AllowedRootsEnvironmentVariable + " must name at least one authorized directory before the MCP server starts.");
         }
-        if (string.IsNullOrWhiteSpace(workingDirectory)) {
-            throw new ArgumentException("An MCP working directory is required.", nameof(workingDirectory));
-        }
-        return new AgentPathPolicy(new[] { workingDirectory });
+        return FromConfiguredRoots(configuredRoots);
     }
 
     internal string ResolveInput(string path) {

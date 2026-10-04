@@ -10,6 +10,23 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class VisioLoadSecurityTests {
         [Fact]
+        public void UntrustedLoadRejectsMacroPartBeforeVisioParsing() {
+            string filePath = CreateBasicVisioDocument();
+            try {
+                using (ZipArchive archive = ZipFile.Open(filePath, ZipArchiveMode.Update)) {
+                    using Stream part = archive.CreateEntry("visio/vbaProject.bin").Open();
+                    part.WriteByte(1);
+                }
+
+                OfficePackageSecurityException exception = Assert.Throws<OfficePackageSecurityException>(() =>
+                    VisioDocument.Load(filePath, VisioLoadOptions.UntrustedDefaults));
+                Assert.Equal(OfficePackageSecurityRule.Macros, exception.Rule);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
         public void LoadRejectsDtdInCoreDocumentPart() {
             string filePath = CreateBasicVisioDocument();
             ReplaceZipEntry(filePath, "visio/document.xml", writer => {
