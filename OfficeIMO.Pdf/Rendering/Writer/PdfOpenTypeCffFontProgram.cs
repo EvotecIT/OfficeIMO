@@ -7,7 +7,8 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
     private const uint OpenTypeCffScalerType = 0x4F54544F;
 
     private readonly byte[] _data;
-    private readonly ushort[] _advanceWidths;
+    // Immutable PDF-unit widths are shared by document forks.
+    private readonly int[] _advanceWidths1000;
     private readonly Dictionary<int, int> _cmap;
     private readonly Dictionary<string, TableRecord> _tables;
     private readonly SortedSet<int> _usedGlyphIds = new();
@@ -30,7 +31,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         double italicAngle,
         int flags,
         int stemV,
-        ushort[] advanceWidths,
+        int[] advanceWidths1000,
         Dictionary<int, int> cmap,
         Dictionary<string, TableRecord> tables,
         int cffTableLength) {
@@ -45,7 +46,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         ItalicAngle = italicAngle;
         Flags = flags;
         StemV = stemV;
-        _advanceWidths = advanceWidths;
+        _advanceWidths1000 = advanceWidths1000;
         _cmap = cmap;
         CffTableLength = cffTableLength;
     }
@@ -62,7 +63,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         ItalicAngle = source.ItalicAngle;
         Flags = source.Flags;
         StemV = source.StemV;
-        _advanceWidths = source._advanceWidths;
+        _advanceWidths1000 = source._advanceWidths1000;
         _cmap = source._cmap;
         CffTableLength = source.CffTableLength;
     }
@@ -78,7 +79,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
     public double ItalicAngle { get; }
     public int Flags { get; }
     public int StemV { get; }
-    public int GlyphCount => _advanceWidths.Length;
+    public int GlyphCount => _advanceWidths1000.Length;
     public int CffTableLength { get; }
     public int FontDataLength => _data.Length;
     internal byte[] FontDataForInspection => _data;
@@ -145,7 +146,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
             fixedPitch = ReadUInt32(data, post.Value.Offset + 12) != 0;
         }
 
-        ushort[] widths = ReadAdvanceWidths(data, hmtx, numberOfHMetrics, info.GlyphCount);
+        int[] widths = ReadAdvanceWidths1000(data, hmtx, numberOfHMetrics, info.GlyphCount, unitsPerEm);
         int flags = 32;
         if (fixedPitch) flags |= 1;
         if ((macStyle & 0x02) != 0 || Math.Abs(italicAngle) > 0.01D) flags |= 64;
@@ -175,11 +176,11 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         _cmap.TryGetValue(unicodeScalar, out glyphId);
 
     public int GetGlyphWidth1000(int glyphId) {
-        if (glyphId < 0 || glyphId >= _advanceWidths.Length) {
-            return _advanceWidths.Length == 0 ? 500 : ScaleMetric(_advanceWidths[_advanceWidths.Length - 1], UnitsPerEm);
+        if (glyphId < 0 || glyphId >= _advanceWidths1000.Length) {
+            return _advanceWidths1000.Length == 0 ? 500 : _advanceWidths1000[_advanceWidths1000.Length - 1];
         }
 
-        return ScaleMetric(_advanceWidths[glyphId], UnitsPerEm);
+        return _advanceWidths1000[glyphId];
     }
 
     public double MeasureTextWidth(string? text, double fontSize, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null, string? language = null, OfficeTextFeatureSettings? featureSettings = null) {
@@ -405,14 +406,14 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         return record;
     }
 
-    private static ushort[] ReadAdvanceWidths(byte[] data, TableRecord hmtx, int numberOfHMetrics, int glyphCount) {
-        var widths = new ushort[glyphCount];
-        ushort lastAdvance = 500;
+    private static int[] ReadAdvanceWidths1000(byte[] data, TableRecord hmtx, int numberOfHMetrics, int glyphCount, int unitsPerEm) {
+        var widths = new int[glyphCount];
+        int lastAdvance = ScaleMetric(500, unitsPerEm);
         for (int glyph = 0; glyph < glyphCount; glyph++) {
             if (glyph < numberOfHMetrics) {
                 int metricOffset = hmtx.Offset + glyph * 4;
                 EnsureRange(data, metricOffset, 4);
-                lastAdvance = ReadUInt16(data, metricOffset);
+                lastAdvance = ScaleMetric(ReadUInt16(data, metricOffset), unitsPerEm);
             }
 
             widths[glyph] = lastAdvance;

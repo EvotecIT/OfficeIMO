@@ -6,7 +6,8 @@ internal sealed partial class PdfTrueTypeFontProgram {
     private const int MaxUnicodeCMapMappings = 131_072;
 
     private readonly byte[] _data;
-    private readonly ushort[] _advanceWidths;
+    // Immutable PDF-unit widths are shared by document forks.
+    private readonly int[] _advanceWidths1000;
     private readonly Dictionary<int, int> _cmap;
     private readonly Dictionary<string, TableRecord> _tables;
     private readonly SubsetFontFingerprint _subsetFontFingerprint;
@@ -16,7 +17,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
     private readonly PdfShortTextCache<PdfGlyphRun> _shortGlyphRuns = new();
     private readonly PdfShortTextCache<PdfMeasuredText> _shortMeasurements = new();
 
-    private PdfTrueTypeFontProgram(byte[] data, Dictionary<string, TableRecord> tables, string fontName, int unitsPerEm, int xMin, int yMin, int xMax, int yMax, int ascent, int descent, int capHeight, double italicAngle, int flags, int stemV, ushort[] advanceWidths, Dictionary<int, int> cmap) {
+    private PdfTrueTypeFontProgram(byte[] data, Dictionary<string, TableRecord> tables, string fontName, int unitsPerEm, int xMin, int yMin, int xMax, int yMax, int ascent, int descent, int capHeight, double italicAngle, int flags, int stemV, int[] advanceWidths1000, Dictionary<int, int> cmap) {
         _data = data.ToArray();
         _tables = new Dictionary<string, TableRecord>(tables, StringComparer.Ordinal);
         FontName = fontName;
@@ -28,7 +29,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         ItalicAngle = italicAngle;
         Flags = flags;
         StemV = stemV;
-        _advanceWidths = advanceWidths;
+        _advanceWidths1000 = advanceWidths1000;
         _cmap = cmap;
         _subsetFontFingerprint = SubsetFontFingerprint.Create(_data);
     }
@@ -45,7 +46,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         ItalicAngle = source.ItalicAngle;
         Flags = source.Flags;
         StemV = source.StemV;
-        _advanceWidths = source._advanceWidths;
+        _advanceWidths1000 = source._advanceWidths1000;
         _cmap = source._cmap;
         _subsetFontFingerprint = source._subsetFontFingerprint;
     }
@@ -100,7 +101,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
     public double GetDescender(double fontSize) =>
         Math.Abs(Descent) * fontSize / 1000D;
 
-    public int GlyphCount => _advanceWidths.Length;
+    public int GlyphCount => _advanceWidths1000.Length;
 
     internal byte[] FontDataForInspection => _data;
 
@@ -108,11 +109,11 @@ internal sealed partial class PdfTrueTypeFontProgram {
         _cmap.TryGetValue(unicodeScalar, out glyphId);
 
     public int GetGlyphWidth1000(int glyphId) {
-        if (glyphId < 0 || glyphId >= _advanceWidths.Length) {
-            return _advanceWidths.Length == 0 ? 500 : ScaleMetric(_advanceWidths[_advanceWidths.Length - 1], UnitsPerEm);
+        if (glyphId < 0 || glyphId >= _advanceWidths1000.Length) {
+            return _advanceWidths1000.Length == 0 ? 500 : _advanceWidths1000[_advanceWidths1000.Length - 1];
         }
 
-        return ScaleMetric(_advanceWidths[glyphId], UnitsPerEm);
+        return _advanceWidths1000[glyphId];
     }
 
     public string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null) {
@@ -330,7 +331,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
             fixedPitch = ReadUInt32(data, post.Value.Offset + 12) != 0;
         }
 
-        ushort[] widths = ReadAdvanceWidths(data, hmtx, numberOfHMetrics, glyphCount);
+        int[] widths = ReadAdvanceWidths1000(data, hmtx, numberOfHMetrics, glyphCount, unitsPerEm);
         Dictionary<int, int> charMap = ReadUnicodeCMap(data, cmap);
         string fontName = SanitizePdfName(string.IsNullOrWhiteSpace(fontNameOverride) ? ReadPostScriptName(data, name) : fontNameOverride!);
         int flags = 32;
@@ -355,8 +356,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
             return 500;
         }
 
-        ushort advance = glyphId >= 0 && glyphId < _advanceWidths.Length ? _advanceWidths[glyphId] : _advanceWidths[_advanceWidths.Length - 1];
-        return ScaleMetric(advance, UnitsPerEm);
+        return glyphId >= 0 && glyphId < _advanceWidths1000.Length ? _advanceWidths1000[glyphId] : _advanceWidths1000[_advanceWidths1000.Length - 1];
     }
 
     private static Dictionary<string, TableRecord> ReadTableDirectory(byte[] data) {
@@ -389,14 +389,14 @@ internal sealed partial class PdfTrueTypeFontProgram {
         return record;
     }
 
-    private static ushort[] ReadAdvanceWidths(byte[] data, TableRecord hmtx, int numberOfHMetrics, int glyphCount) {
-        var widths = new ushort[glyphCount];
-        ushort lastAdvance = 500;
+    private static int[] ReadAdvanceWidths1000(byte[] data, TableRecord hmtx, int numberOfHMetrics, int glyphCount, int unitsPerEm) {
+        var widths = new int[glyphCount];
+        int lastAdvance = ScaleMetric(500, unitsPerEm);
         for (int glyph = 0; glyph < glyphCount; glyph++) {
             if (glyph < numberOfHMetrics) {
                 int metricOffset = hmtx.Offset + glyph * 4;
                 EnsureRange(data, metricOffset, 4);
-                lastAdvance = ReadUInt16(data, metricOffset);
+                lastAdvance = ScaleMetric(ReadUInt16(data, metricOffset), unitsPerEm);
             }
 
             widths[glyph] = lastAdvance;
