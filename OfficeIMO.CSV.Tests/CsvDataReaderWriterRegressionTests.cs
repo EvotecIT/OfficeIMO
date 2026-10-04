@@ -198,6 +198,27 @@ public class CsvDataReaderWriterRegressionTests
             : $"Name{delimiter}Value\nAlpha{delimiter}One\nBeta{delimiter}" + largeValue + "\n", writer.ToString());
     }
 
+    [Fact]
+    public void WriteDataReader_ReusedWriterPreservesExistingTextAndCompletedRowsAfterFailure()
+    {
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        writer.Write("existing text\n");
+        using var csv = new CsvRowWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
+        string[] headers = { "Name", "Value" };
+        using var first = new ThrowingGetValuesDataReader(headers,
+            new[] { new object?[] { "First", "Before" } });
+        using var failed = new ThrowingGetValuesDataReader(headers,
+            new[] { new object?[] { "Alpha", "One" }, new object?[] { "Beta", new ThrowingCsvValue() } });
+        using var last = new ThrowingGetValuesDataReader(headers,
+            new[] { new object?[] { "Last", "After" } });
+
+        csv.WriteDataReader(first);
+        Assert.Throws<InvalidOperationException>(() => csv.WriteDataReader(failed));
+        csv.WriteDataReader(last);
+
+        Assert.Equal("existing text\nName,Value\nFirst,Before\nAlpha,One\nLast,After\n", writer.ToString());
+    }
+
     private sealed class CancelingCsvValue
     {
         private readonly CancellationTokenSource _cancellation;
