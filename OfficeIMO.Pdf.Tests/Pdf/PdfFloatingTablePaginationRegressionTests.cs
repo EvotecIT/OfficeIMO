@@ -125,6 +125,23 @@ public class PdfFloatingTablePaginationRegressionTests {
         Assert.Equal(40, pdf.GetPage(2).GetWords().Single(word => word.Text == "following").BoundingBox.Left, 1);
     }
 
+    [Fact]
+    public void FloatingBookmarksMoveTogetherWithTheirFollowingParagraph() {
+        var document = PdfDocument.Create(Options(240))
+            .Table(new[] { new[] { "floating" } }, style: Floating(320, 150));
+        for (int index = 0; index < 200; index++)
+            document.Bookmark("destination-" + index);
+
+        byte[] bytes = document.Paragraph(paragraph => paragraph.Text("following")).ToBytes();
+        var destinations = PdfInspector.Inspect(bytes).NamedDestinations
+            .Where(destination => destination.Name.StartsWith("destination-"))
+            .ToArray();
+
+        Assert.Equal(200, destinations.Length);
+        Assert.All(destinations, destination => Assert.Equal(2, destination.PageNumber));
+    }
+
+
     private static PdfOptions Options(double height = 500) => new() {
         PageWidth = 400, PageHeight = height, MarginLeft = 40, MarginRight = 40, MarginTop = 40, MarginBottom = 40
     };

@@ -203,6 +203,16 @@ public sealed partial class PdfDocument {
             orientation == OfficeImageOrientation.Normal) {
             return PrepareImageBytes(sourceBytes, cancellationToken);
         }
+        // Orientation normalization decodes the original raster before the
+        // regular preparation path sees its PNG result. Enforce the PDF decode
+        // ceiling against the source dimensions before that allocation.
+        if (!OfficeImageReader.TryIdentify(sourceBytes, null, cancellationToken, out OfficeImageInfo sourceInfo))
+            throw new NotSupportedException(SupportedImageMessage + " The oriented source image dimensions could not be verified.");
+        if (!OfficeImagePdfCompatibility.TryValidateTranscodeDimensions(
+                sourceInfo,
+                OfficeImagePdfCompatibility.DefaultMaximumTranscodePixels,
+                out string? transcodeLimitReason))
+            throw new NotSupportedException(SupportedImageMessage + " " + transcodeLimitReason);
         if (!OfficeImageOrientationNormalizer.TryNormalizeToPng(
                 sourceBytes,
                 applyEmbeddedOrientation: true,
