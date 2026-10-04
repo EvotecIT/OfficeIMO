@@ -638,5 +638,55 @@
       "Equivalent same-host/domain source controls and hosted budgets/packages",
       "Qualified long-lived branch adoption"
     ]
+  },
+  "sameRunnerControlPlan": {
+    "recordedUtc": "2026-10-04T11:03:46.525740+00:00",
+    "candidateSourceBeforeWorkflowChange": "37ea59a896a60598fab77a18da7e923500521ebe",
+    "controlSource": "d257cecc1651abe58c06740ff29b517d3a3821e1",
+    "equivalentMeasurementPaths": [
+      "Build/HtmlStaticBudget",
+      "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out",
+      "OfficeIMO.TestAssets/HtmlRenderingAdvancedHeldOutCorpus.cs",
+      "OfficeIMO.Pdf.Benchmarks.Comparisons/ProcessTreeMemorySampler.cs",
+      "OfficeIMO.Pdf.Benchmarks.Comparisons/SourceProvenanceReader.cs",
+      "OfficeIMO.Pdf.Benchmarks.Comparisons/EvidenceOutputReservation.cs"
+    ],
+    "measurementBlobListingSha256": "f6086c1276a3d854ad1f655f48f5b6b7302a5926dd8be362131124841e4cee2e",
+    "workflow": ".github/workflows/comparison-projects.yml",
+    "suite": "html-static",
+    "order": [
+      "candidate",
+      "prior-source control"
+    ],
+    "iterations": "one cold worker plus three warm iterations for each source",
+    "sameRunner": true,
+    "ceilingsUnchanged": true,
+    "failurePolicy": "Each existing command enforces its ceilings; a failed candidate does not suppress the control or retained reports. No runtime or dependency changes.",
+    "requiredEvidence": [
+      "actual source and clean-state identities",
+      "all correctness/package receipts",
+      "candidate/control budget reports per platform, including failures",
+      "same environment/corpus/count metadata and classified output changes"
+    ],
+    "localReview": {
+      "task": "static_same_runner_control_review",
+      "diffFingerprint": "7391f267dbc569aa87c7455458a1757335ac5682",
+      "boundary": "current",
+      "fullPasses": 1,
+      "targetedConfirmations": 0,
+      "findings": [],
+      "disposition": "accept as shaped",
+      "validationGap": "Actual hosted execution and artifact retention not yet proven"
+    },
+    "validation": {
+      "yamlParse": "Ruby YAML success",
+      "powerShellBlocksParsed": 9,
+      "gitDiffCheck": "pass",
+      "currentMeasurement": "not attempted under heavy host contention"
+    },
+    "hostEvidence": "Ignore/MasterConvergenceQualification/same-runner-control/host-before-dispatch.txt",
+    "limits": [
+      "One ordered pair is diagnostic; it does not establish a portable performance ranking or clear prior hosted failures."
+    ]
   }
 }

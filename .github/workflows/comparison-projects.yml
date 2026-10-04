@@ -15,6 +15,10 @@ on:
         description: Full 40-character source commit or branch (empty uses the selected workflow revision)
         type: string
         default: ''
+      control_source_ref:
+        description: Optional full prior-source commit for a same-runner static budget control
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -84,6 +88,23 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Validate optional control revision
+        if: inputs.control_source_ref != ''
+        shell: pwsh
+        env:
+          CONTROL_SOURCE_REF: ${{ inputs.control_source_ref }}
+          QUALIFICATION_SUITE: ${{ inputs.suite }}
+        run: |
+          if ($env:QUALIFICATION_SUITE -ne 'html-static' -or $env:CONTROL_SOURCE_REF -notmatch '^[0-9a-fA-F]{40}$') {
+            throw 'A control requires html-static and a full 40-character commit.'
+          }
+      - name: Checkout optional static budget control
+        if: inputs.suite == 'html-static' && inputs.control_source_ref != ''
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.control_source_ref }}
+          path: Ignore/StaticQualificationControl
+          persist-credentials: false
       - name: Install multilingual fixture fonts
         if: runner.os == 'Linux'
         run: |
@@ -167,6 +188,14 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
           dotnet run --project Build/HtmlStaticBudget/OfficeIMO.Html.StaticBudget.csproj --configuration Release -- --iterations 3 --require-clean-source --output "$env:RUNNER_TEMP/html-static-budget"
+      - name: Enforce same-runner prior-source budgets
+        if: ${{ !cancelled() && inputs.suite == 'html-static' && inputs.control_source_ref != '' }}
+        working-directory: Ignore/StaticQualificationControl
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet run --project Build/HtmlStaticBudget/OfficeIMO.Html.StaticBudget.csproj --configuration Release -- --iterations 3 --require-clean-source --output "$env:RUNNER_TEMP/html-static-control-budget"
       - name: Retain qualification reports
         if: always()
         uses: actions/upload-artifact@v7
@@ -175,6 +204,7 @@ jobs:
           path: |
             ${{ runner.temp }}/html-static-tests
             ${{ runner.temp }}/html-static-budget
+            ${{ runner.temp }}/html-static-control-budget
             ${{ runner.temp }}/html-static-pdf-proof
           if-no-files-found: warn
           retention-days: 7

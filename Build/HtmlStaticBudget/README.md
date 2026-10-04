@@ -34,6 +34,13 @@ selects the source to check out; an empty value uses the workflow revision.
 Use a full 40-character commit SHA when comparing a control with a candidate.
 The checkout action treats an abbreviated SHA as a branch or tag name.
 
+Set `control_source_ref` to a full prior-source commit to run its unchanged budget
+command after the candidate on the same runner. Both revisions enforce their
+checked-in ceilings and retain separate reports, including failed measurements.
+Use a control with the same corpus, worker and ceilings; compare the reports' source,
+environment and output metadata before attributing a timing difference to code.
+One ordered pair is diagnostic evidence, not a portable performance ranking.
+
 This suite also runs static HTML and font-selection correctness on .NET 8 and .NET 10,
 PDF correctness on .NET 10, the installed mathematical-font resource contract,
 and the canonical packed-consumer smoke script.
