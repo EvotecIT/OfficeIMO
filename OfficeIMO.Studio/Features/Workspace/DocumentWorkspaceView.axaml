@@ -566,7 +566,7 @@
             <!-- Selection actions float over the page grid in Pages mode. -->
             <Border x:Name="OrganizerActionBar" Classes="floating" IsVisible="False"
                     HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="16,0,16,18" Padding="6">
-              <StackPanel Orientation="Horizontal" Spacing="2">
+              <WrapPanel ItemSpacing="2" LineSpacing="4" HorizontalAlignment="Center">
                 <TextBlock Text="{Binding OrganizerSelectionLabel}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,10,0" MaxWidth="200" TextTrimming="CharacterEllipsis" />
                 <Button Classes="cmd" Command="{Binding RotateLeftCommand}" IsEnabled="{Binding CanMutateSelection}"
                         AutomationProperties.Name="{loc:Loc DocumentWorkspace.RotateLeft}" ToolTip.Tip="{loc:Loc DocumentWorkspace.RotateLeft}"><PathIcon Data="{StaticResource IconRotateLeft}" /></Button>
@@ -596,7 +596,7 @@
                 <Button Classes="icon" Command="{Binding ClearPageSelectionCommand}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Clear}" ToolTip.Tip="{loc:Loc DocumentWorkspace.Clear}">
                   <PathIcon Data="{StaticResource IconClose}" Width="11" Height="11" />
                 </Button>
-              </StackPanel>
+              </WrapPanel>
             </Border>
           </Grid>
         </Border>

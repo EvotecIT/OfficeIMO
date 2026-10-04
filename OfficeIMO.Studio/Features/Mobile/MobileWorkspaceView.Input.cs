@@ -8,6 +8,7 @@ namespace OfficeIMO.Studio.Features.Mobile;
 public sealed partial class MobileWorkspaceView {
     private double? _pinchStartZoom;
     private IInputPane? _inputPane;
+    private double _keyboardOverlap;
 
     private void InitializeTouchInput() {
         PageScroll.GestureRecognizers.Add(new PinchGestureRecognizer());
@@ -37,6 +38,13 @@ public sealed partial class MobileWorkspaceView {
                          e.EndRect.Width >= topLevel.Bounds.Width * 0.8
             ? Math.Clamp(point.Y + Bounds.Height - e.EndRect.Top, 0, Bounds.Height)
             : 0;
-        SheetScrim.Margin = new Thickness(0, 0, 0, overlap);
+        _keyboardOverlap = overlap;
+        ApplyKeyboardAvoidance();
+        UpdateDialogLayout();
+    }
+    private void ApplyKeyboardAvoidance() {
+        SheetScrim.Margin = new Thickness(0, 0, 0, _keyboardOverlap);
+        DialogScrim.Margin = new Thickness(0, 0, 0, _keyboardOverlap);
+        AssistantHost.Margin = new Thickness(0, 0, 0, SheetScrim.IsVisible || DialogScrim.IsVisible ? 0 : _keyboardOverlap);
     }
 }

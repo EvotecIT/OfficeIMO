@@ -14,7 +14,7 @@ namespace OfficeIMO.Studio.Features.Sign;
 public sealed record SignatureStyleChoice(string Preview, FontFamily Family, FontStyle Style);
 
 /// <summary>Creates a signature or initials image by typing, drawing, or choosing a picture.</summary>
-public sealed partial class SignatureDialog : Window {
+public sealed partial class SignatureDialogContent : StudioDialogContent {
     // Handwriting-style faces that ship with Windows, macOS and common Linux desktops, with safe fallbacks.
     private static readonly (string Family, FontStyle Style)[] Faces = [
         ("Segoe Script, Snell Roundhand, URW Chancery L, Z003, serif", FontStyle.Normal),
@@ -24,7 +24,7 @@ public sealed partial class SignatureDialog : Window {
     private byte[]? _image;
     private bool _closed;
 
-    public SignatureDialog() {
+    public SignatureDialogContent() {
         InitializeComponent();
         Pad.InkChanged += (_, _) => UpdateState();
         Closed += (_, _) => {
@@ -36,7 +36,7 @@ public sealed partial class SignatureDialog : Window {
         };
     }
 
-    internal SignatureDialog(StudioSignatureKind kind, IStudioLocalizer localizer) : this() {
+    internal SignatureDialogContent(StudioSignatureKind kind, IStudioLocalizer localizer) : this() {
         string heading = localizer.Get(kind == StudioSignatureKind.Initials ? "FillSign.CreateInitials" : "FillSign.CreateSignature");
         Title = heading;
         HeadingText.Text = heading;

@@ -11,17 +11,35 @@ namespace OfficeIMO.Studio.Features.Mobile;
 public sealed partial class MobileWorkspaceView {
     private TaskCompletionSource<UnsavedChangesDecision>? _closeDecision;
 
-    private void UpdateDocumentStatus() => DocumentSubtitle.Text = Document switch {
+    private void UpdateDocumentStatus() {
+        WorkspaceTitle.Text = Document?.WorkspaceMode switch {
+            StudioWorkspaceMode.PdfWorkspace => Document.DocumentName,
+            StudioWorkspaceMode.Home => "Home",
+            StudioWorkspaceMode.Tools => "Tools",
+            StudioWorkspaceMode.Convert => "Convert",
+            StudioWorkspaceMode.Output => "Document output",
+            StudioWorkspaceMode.DocumentHealth => "Document health",
+            StudioWorkspaceMode.Provenance => "Document provenance",
+            StudioWorkspaceMode.Ocr => "Recognize text",
+            StudioWorkspaceMode.Invoices => "Invoices",
+            StudioWorkspaceMode.Publishing => "Books",
+            StudioWorkspaceMode.Jobs => "Jobs",
+            StudioWorkspaceMode.Settings => "Settings",
+            _ => "OfficeIMO Studio"
+        };
+        DocumentSubtitle.IsVisible = Document?.ShowPdfDocumentControls == true;
+        DocumentSubtitle.Text = Document switch {
         { IsOpening: true } => "Opening…",
         { IsWorkspaceBusy: true } => "Working…",
-        { HasDocument: true, IsDirty: true } => "Unsaved changes · Working copy",
-        { HasDocument: true } => "Saved on this device",
+        { HasDocument: true, IsDirty: true } => _controller?.IsWorkingCopy != false ? "Unsaved changes · Working copy" : "Unsaved changes",
+        { HasDocument: true } => _controller?.IsWorkingCopy != false ? "Saved on this device" : "Saved",
         _ => "OfficeIMO Studio"
-    };
+        };
+    }
 
     private Task<UnsavedChangesDecision> ConfirmUnsavedChangesAsync(MainWindowViewModel document) {
         // A close request must never replace another modal decision or an in-progress note.
-        if (SheetScrim.IsVisible || _closeDecision is not null || !this.IsAttachedToVisualTree())
+        if (SheetScrim.IsVisible || DialogScrim.IsVisible || _closeDecision is not null || !this.IsAttachedToVisualTree())
             return Task.FromResult(UnsavedChangesDecision.Cancel);
         _closeDecision = new(TaskCreationOptions.RunContinuationsAsynchronously);
         CloseDescription.Text = StudioLocalization.Current.Format("Dialog.SaveChangesTo", document.DocumentName.TrimEnd(' ', '*'));
@@ -63,6 +81,11 @@ public sealed partial class MobileWorkspaceView {
     }
 
     private void OnWorkspaceKeyDown(object? sender, KeyEventArgs e) {
+        if (DialogScrim.IsVisible) {
+            if (e.Key == Key.Escape) { _dismissDialog?.Invoke(null); e.Handled = true; }
+            return;
+        }
+        if (_initializing) return;
         if (e.Key == Key.Escape && SheetScrim.IsVisible) { DismissSheet(); e.Handled = true; return; }
         if (SheetScrim.IsVisible) return;
         if (e.Key == Key.Escape && SearchPanel.IsVisible) { CloseSearch(); e.Handled = true; return; }
@@ -72,13 +95,15 @@ public sealed partial class MobileWorkspaceView {
         switch (e.Key) {
             case Key.O when !shift: ExecuteIfAvailable(Document?.OpenCommand); break;
             case Key.S when !shift: ExecuteIfAvailable(Document?.SaveCommand); break;
-            case Key.F when !shift: OpenSearch(); break;
+            case Key.F when !shift:
+                if (IsTouchReader) OpenSearch(); else _editingWorkspace?.FocusSearch();
+                break;
             case Key.W when !shift && _controller is not null: _ = _controller.Tabs.CloseSelectedTabAsync(); break;
             case Key.T when shift && _controller is not null: _ = _controller.Tabs.ReopenClosedTabAsync(); break;
             case Key.Tab: _controller?.Tabs.SelectRelativeTab(shift); break;
             case Key.OemOpenBrackets when shift: _controller?.Tabs.SelectRelativeTab(true); break;
             case Key.OemCloseBrackets when shift: _controller?.Tabs.SelectRelativeTab(false); break;
-            case Key.Z when !MobileSearchBox.IsKeyboardFocusWithin:
+            case Key.Z when TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is not TextBox:
                 ExecuteIfAvailable(shift ? Document?.RedoCommand : Document?.UndoCommand);
                 break;
             default: return;

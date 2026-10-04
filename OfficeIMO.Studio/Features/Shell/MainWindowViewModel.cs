@@ -127,7 +127,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<WatermarkPreviewViewModel, Task<bool>>? reviewWatermark = null,
         Func<CancellationToken, Task<string?>>? pickProvenanceFile = null,
         Func<Task<UnsavedChangesDecision>>? confirmBookChanges = null,
-        OfficeIMO.Workflows.IOfficeWorkflowPublicationGuard? bookPublicationGuard = null) {
+        OfficeIMO.Workflows.IOfficeWorkflowPublicationGuard? bookPublicationGuard = null,
+        bool supportsFolderNavigation = true) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
         _services.Signatures.Changed += OnSavedSignaturesChanged;
         _persistDocumentViews = services is not null;
@@ -168,9 +169,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             string.Equals(Path.GetExtension(_services.Storage.Describe(path).Name), ".pdf", StringComparison.OrdinalIgnoreCase) && _openDocumentInTab is not null
                 ? _openDocumentInTab(path, token)
                 : _openUri(new Uri(path));
-        OutputActions = new StudioOutputActions(openWorkflowOutput, folder => _openUri(new Uri(folder)), message => ErrorMessage = message);
+        OutputActions = new StudioOutputActions(openWorkflowOutput, folder => _openUri(new Uri(folder)), message => ErrorMessage = message, supportsFolderNavigation);
         Jobs = new StudioJobsViewModel(_services.Jobs, openWorkflowOutput, _services.Storage.UsesProviderPublication,
-            folder => _openUri(new Uri(folder)));
+            supportsFolderNavigation ? folder => _openUri(new Uri(folder)) : null);
         BookWorkbench = new BookWorkbenchViewModel(() => FileDialogs, _services.Storage,
             bookPublicationGuard == null ? publicationGuard : new StudioProtectedPublicationGuard(_services.Storage, bookPublicationGuard),
             confirmBookChanges ?? _confirmUnsavedChanges, _localizer);
@@ -798,7 +799,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         RecentDocumentViewModel? existing = RecentDocuments.FirstOrDefault(document =>
             OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(document.Path) == OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(fullPath));
         if (existing is not null) RecentDocuments.Remove(existing);
-        RecentDocuments.Insert(0, new RecentDocumentViewModel(fullPath, DateTimeOffset.UtcNow) { StorageReference = _services.Storage.Describe(fullPath) });
+        RecentDocuments.Insert(0, new RecentDocumentViewModel(fullPath, DateTimeOffset.UtcNow) {
+            StorageReference = _services.Storage.Describe(fullPath), LocalDocuments = _services.LocalDocuments
+        });
         while (RecentDocuments.Count > 12) RecentDocuments.RemoveAt(RecentDocuments.Count - 1);
         _recentDocumentStore?.Save(RecentDocuments);
         OnPropertyChanged(nameof(HasRecentDocuments));

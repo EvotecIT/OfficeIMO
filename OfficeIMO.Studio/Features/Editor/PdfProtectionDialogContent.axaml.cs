@@ -1,11 +1,12 @@
+using OfficeIMO.Studio.Infrastructure;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 
 namespace OfficeIMO.Studio.Features.Editor;
 
-public sealed partial class PdfProtectionDialog : Window {
-    public PdfProtectionDialog() { InitializeComponent(); }
-    internal PdfProtectionDialog(PdfProtectionPreviewViewModel model) : this() {
+public sealed partial class PdfProtectionDialogContent : StudioDialogContent {
+    public PdfProtectionDialogContent() { InitializeComponent(); }
+    internal PdfProtectionDialogContent(PdfProtectionPreviewViewModel model) : this() {
         DataContext = model; Opened += (_, _) => ReviewContent.Focus();
     }
     private void OnCancel(object? sender, RoutedEventArgs args) => Close(false);

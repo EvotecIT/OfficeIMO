@@ -15,9 +15,11 @@ public sealed partial class DocumentWorkspaceView : UserControl {
     private MainWindowViewModel? _document;
     private double _navigationWidth = 238D;
     private double _inspectorWidth = 300D;
+    internal bool UseTouchPresentation { get; set; }
 
     public DocumentWorkspaceView() {
         InitializeComponent();
+        InitializeOrganizerInput();
         SizeChanged += (_, e) => ApplyResponsiveLayout(e.NewSize.Width);
         DataContextChanged += (_, _) => {
             if (_document is not null) {
@@ -84,7 +86,7 @@ public sealed partial class DocumentWorkspaceView : UserControl {
         StatusHint.Text = _document.DocumentMode switch {
             StudioDocumentMode.View => _document.ReaderHint,
             StudioDocumentMode.Annotate or StudioDocumentMode.Edit => _document.EditorInstruction,
-            StudioDocumentMode.Pages => StudioLocalization.Current.Get("Shell.OrganizerStatus"),
+            StudioDocumentMode.Pages => StudioLocalization.Current.Get(UseTouchPresentation ? "Shell.OrganizerTouchStatus" : "Shell.OrganizerStatus"),
             _ => null
         };
     }

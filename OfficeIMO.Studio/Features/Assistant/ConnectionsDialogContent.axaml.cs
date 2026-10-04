@@ -1,3 +1,4 @@
+using OfficeIMO.Studio.Infrastructure;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -5,8 +6,8 @@ using Avalonia.Interactivity;
 namespace OfficeIMO.Studio.Features.Assistant;
 
 /// <summary>Owns setup presentation; the application owns the selected connection.</summary>
-internal sealed partial class ConnectionsWindow : Window {
-    public ConnectionsWindow() {
+internal sealed partial class ConnectionsDialogContent : StudioDialogContent {
+    public ConnectionsDialogContent() {
         InitializeComponent();
         Closed += (_, _) => { if (DataContext is StudioAiConnections connections) connections.CancelCommand.Execute(null); };
     }

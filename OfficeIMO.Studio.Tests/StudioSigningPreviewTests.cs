@@ -108,9 +108,10 @@ public sealed class StudioSigningPreviewTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task CapturedSettingsSignUnsavedContentAndRejectStaleApproval(bool stale) {
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    public async Task CapturedSettingsSignUnsavedContentAndRejectStaleApproval(bool stale, bool folderNavigation) {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
             var services = ((App)Application.Current!).Services; Directory.CreateDirectory(services.Paths.Root);
@@ -118,7 +119,7 @@ public sealed class StudioSigningPreviewTests {
             CreatePdf().Save(source); byte[] original = File.ReadAllBytes(source);
             using var certificate = CreateCertificate(); int loads = 0;
             MainWindowViewModel? model = null; PdfSigningPreviewViewModel? result = null;
-            using (model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services,
+            using (model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services, supportsFolderNavigation: folderNavigation,
                 pickSavePdf: _ => { model!.SignatureFieldName = "Later"; model.SignaturePageNumber = 100; return Task.FromResult<string?>(output); },
                 reviewSigning: async preview => { Assert.Equal(0, loads); Assert.NotNull(preview.PreviewImage); if (stale) await model!.RotateRightCommand.ExecuteAsync(null); return true; },
                 showSigningResult: preview => { result = preview; return Task.CompletedTask; },
@@ -130,7 +131,7 @@ public sealed class StudioSigningPreviewTests {
                 Assert.Equal("Later", model.SignatureFieldName);
                 if (stale) { Assert.Equal(0, loads); Assert.Empty(services.Jobs.Entries); Assert.Null(result); Assert.False(File.Exists(output)); }
                 else {
-                    Assert.Null(model.ErrorMessage); Assert.Equal(1, loads); Assert.NotNull(result); Assert.True(result.CanOpenOutput);
+                    Assert.Null(model.ErrorMessage); Assert.Equal(1, loads); Assert.NotNull(result); Assert.True(result.CanOpenOutput); Assert.Equal(folderNavigation, result.CanRevealOutput);
                     var signed = PdfDocument.Load(File.ReadAllBytes(output)); Assert.Equal(3, signed.Inspect().PageCount);
                     var report = signed.Security.ValidateSignatures(new PdfCmsSignatureCryptographyProvider(OfficeSecurityProvider.Default));
                     Assert.Equal("Approval", Assert.Single(report.Signatures).Signature.FieldName); Assert.True(report.MathematicalSignaturesVerified);

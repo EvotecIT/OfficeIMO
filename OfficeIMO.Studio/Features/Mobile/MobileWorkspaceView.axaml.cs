@@ -24,15 +24,17 @@ public sealed partial class MobileWorkspaceView : UserControl {
 
     internal Func<Task>? OpenSampleAsync {
         get => _openSampleAsync;
-        set { _openSampleAsync = value; SampleButton.IsVisible = value is not null; }
+        set { _openSampleAsync = value; SampleButton.IsVisible = value is not null; UpdateApplicationFeature(); }
     }
 
     public MobileWorkspaceView() {
         InitializeComponent();
         InitializeTouchInput();
         InitializeNavigation();
+        MobileAssistant.ManageConnectionsAsync = connections => ShowDialogAsync<bool>(
+            new Features.Assistant.ConnectionsDialogContent { DataContext = connections });
         SizeChanged += (_, _) => UpdateLayoutMode();
-        PageScroll.SizeChanged += (_, e) => Document?.SetViewportSize(e.NewSize.Width, e.NewSize.Height);
+        PageScroll.SizeChanged += (_, _) => UpdateActiveViewport();
         DataContextChanged += (_, _) => ObserveDocument();
         AttachedToVisualTree += (_, _) => ObserveDocument();
         DetachedFromVisualTree += (_, _) => {
@@ -55,7 +57,7 @@ public sealed partial class MobileWorkspaceView : UserControl {
         _pinchStartZoom = null;
         PageScroll.Offset = default;
         RefreshPageList();
-        Document?.SetViewportSize(PageScroll.Bounds.Width, PageScroll.Bounds.Height);
+        UpdateActiveViewport();
         if (_observedDocument is null) return;
         _observedDocument.PropertyChanged += OnDocumentChanged;
         UpdateDocumentStatus();
@@ -63,6 +65,9 @@ public sealed partial class MobileWorkspaceView : UserControl {
     }
 
     private void OnDocumentChanged(object? sender, PropertyChangedEventArgs e) {
+        if (e.PropertyName == nameof(MainWindowViewModel.DocumentMode) && Document is { } active)
+            active.WorkspaceMode = StudioWorkspaceMode.PdfWorkspace;
+        if (e.PropertyName is nameof(MainWindowViewModel.WorkspaceMode) or nameof(MainWindowViewModel.DocumentMode)) UpdateLayoutMode();
         // Opening restores desktop view preferences; the mobile surface always presents one page at a time.
         if (e.PropertyName == nameof(MainWindowViewModel.IsOpening) && Document?.IsOpening == false) {
             FitNewDocument();
@@ -82,16 +87,17 @@ public sealed partial class MobileWorkspaceView : UserControl {
     /// <summary>The host saves a current copy and presents its platform share surface.</summary>
     internal Func<Task>? ShareDocumentAsync {
         get => _shareDocumentAsync;
-        set { _shareDocumentAsync = value; ShareButton.IsVisible = value is not null; }
+        set { _shareDocumentAsync = value; ShareButton.IsVisible = value is not null && Document?.ShowPdfDocumentControls == true; }
     }
 
     private bool HasSidebarRoom => Bounds.Width >= 720 && Bounds.Height >= 500;
 
     private void UpdateLayoutMode() {
+        UpdateApplicationFeature();
         bool wide = Bounds.Width >= 720;
-        bool sidebar = HasSidebarRoom && _showPages && Document?.HasDocument == true;
-        WideTools.IsVisible = wide;
-        CompactTools.IsVisible = !wide && Document?.HasDocument == true;
+        bool sidebar = IsTouchReader && HasSidebarRoom && _showPages && Document?.HasDocument == true;
+        WideTools.IsVisible = wide && IsTouchReader;
+        CompactTools.IsVisible = !wide && IsTouchReader && Document?.HasDocument == true;
         WideFit.IsVisible = wide;
         ShareLabel.IsVisible = wide;
         PageSidebar.IsVisible = sidebar;
@@ -154,7 +160,8 @@ public sealed partial class MobileWorkspaceView : UserControl {
         CloseScroll.IsVisible = ReferenceEquals(content, CloseScroll);
         SheetDone.IsVisible = !CloseScroll.IsVisible;
         SheetScrim.IsVisible = true;
-        HeaderBar.IsEnabled = TabBar.IsEnabled = SearchPanel.IsEnabled = WorkspaceGrid.IsEnabled = FooterBar.IsEnabled = false;
+        ApplyKeyboardAvoidance();
+        ApplicationSidebar.IsEnabled = HeaderBar.IsEnabled = TabBar.IsEnabled = SearchPanel.IsEnabled = WorkspaceGrid.IsEnabled = FooterBar.IsEnabled = false;
         Control focus = CloseScroll.IsVisible ? CloseCancel : NoteScroll.IsVisible ? NoteText : DocumentList.IsVisible ? DocumentList : SheetDone;
         focus.Focus();
         // ScrollViewer content can join the visual tree only after its first visible layout.
@@ -169,7 +176,7 @@ public sealed partial class MobileWorkspaceView : UserControl {
         if (_submittingNote) return;
         if (_closeDecision is not null) { CompleteCloseDecision(UnsavedChangesDecision.Cancel); return; }
         SheetScrim.IsVisible = false;
-        HeaderBar.IsEnabled = TabBar.IsEnabled = SearchPanel.IsEnabled = WorkspaceGrid.IsEnabled = FooterBar.IsEnabled = true;
+        ApplicationSidebar.IsEnabled = HeaderBar.IsEnabled = TabBar.IsEnabled = SearchPanel.IsEnabled = WorkspaceGrid.IsEnabled = FooterBar.IsEnabled = true;
         UpdateLayoutMode();
         _sheetOpener?.Focus();
     }

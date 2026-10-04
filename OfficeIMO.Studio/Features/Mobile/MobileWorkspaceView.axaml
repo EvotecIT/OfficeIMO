@@ -2,20 +2,55 @@
              xmlns:shell="using:OfficeIMO.Studio.Features.Shell" xmlns:reader="using:OfficeIMO.Studio.Features.Reader"
              xmlns:organizer="using:OfficeIMO.Studio.Features.Organizer"
              xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+             xmlns:infra="using:OfficeIMO.Studio.Infrastructure" xmlns:ai="using:OfficeIMO.Studio.Features.Assistant"
              x:Class="OfficeIMO.Studio.Features.Mobile.MobileWorkspaceView" x:DataType="shell:MainWindowViewModel"
              FontFamily="Helvetica Neue" Foreground="{DynamicResource StudioTextBrush}">
   <UserControl.Styles><StyleInclude Source="MobileWorkspaceStyles.axaml"/></UserControl.Styles>
-  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Background="{DynamicResource StudioPanelMutedBrush}">
+  <Grid>
+  <SplitView x:Name="ApplicationNavigation" OpenPaneLength="196" PanePlacement="Left" DisplayMode="Inline"
+             PaneBackground="{DynamicResource StudioPanelMutedBrush}">
+    <SplitView.Pane>
+      <Grid x:Name="ApplicationSidebar" RowDefinitions="Auto,*,Auto" Margin="10,12">
+        <TextBlock Text="OfficeIMO Studio" FontSize="18" FontWeight="SemiBold" Margin="12,10,0,22"/>
+        <StackPanel Grid.Row="1" Spacing="5">
+          <infra:StudioRadioToggle Classes="appNavigation" Command="{Binding Commands[Home]}" IsChecked="{Binding IsHomeMode, Mode=OneWay}" Click="OnApplicationNavigationClick" AutomationProperties.Name="Home">
+            <StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource IconHome}" Width="18" Height="18"/><TextBlock Text="{loc:Loc MainWindow.Home}" VerticalAlignment="Center"/></StackPanel>
+          </infra:StudioRadioToggle>
+          <infra:StudioRadioToggle Classes="appNavigation" Command="{Binding ShowPdfWorkspaceCommand}" IsChecked="{Binding IsPdfWorkspaceMode, Mode=OneWay}" IsEnabled="{Binding HasDocument}" Click="OnApplicationNavigationClick" AutomationProperties.Name="Documents">
+            <StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource IconDocument}" Width="18" Height="18"/><TextBlock Text="Documents" VerticalAlignment="Center"/></StackPanel>
+          </infra:StudioRadioToggle>
+          <infra:StudioRadioToggle Classes="appNavigation" Command="{Binding Commands[Tools]}" IsChecked="{Binding IsToolsMode, Mode=OneWay}" Click="OnApplicationNavigationClick" AutomationProperties.Name="Tools">
+            <StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource IconTools}" Width="18" Height="18"/><TextBlock Text="{loc:Loc MainWindow.Tools}" VerticalAlignment="Center"/></StackPanel>
+          </infra:StudioRadioToggle>
+          <infra:StudioRadioToggle Classes="appNavigation" Command="{Binding Commands[Convert]}" IsChecked="{Binding IsConversionMode, Mode=OneWay}" Click="OnApplicationNavigationClick" AutomationProperties.Name="Convert">
+            <StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource IconConvert}" Width="18" Height="18"/><TextBlock Text="{loc:Loc MainWindow.Convert}" VerticalAlignment="Center"/></StackPanel>
+          </infra:StudioRadioToggle>
+          <infra:StudioRadioToggle Classes="appNavigation" Command="{Binding Commands[Jobs]}" IsChecked="{Binding IsJobsMode, Mode=OneWay}" Click="OnApplicationNavigationClick" AutomationProperties.Name="Jobs">
+            <StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource IconJobs}" Width="18" Height="18"/><TextBlock Text="{loc:Loc Jobs.Title}" VerticalAlignment="Center"/></StackPanel>
+          </infra:StudioRadioToggle>
+        </StackPanel>
+        <infra:StudioRadioToggle Grid.Row="2" Classes="appNavigation" Command="{Binding Commands[Settings]}" IsChecked="{Binding IsSettingsMode, Mode=OneWay}" Click="OnApplicationNavigationClick" AutomationProperties.Name="Settings">
+          <StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource IconSettings}" Width="18" Height="18"/><TextBlock Text="{loc:Loc Settings.Settings}" VerticalAlignment="Center"/></StackPanel>
+        </infra:StudioRadioToggle>
+      </Grid>
+    </SplitView.Pane>
+  <SplitView x:Name="AssistantHost" PanePlacement="Right" OpenPaneLength="380" IsPaneOpen="{Binding IsAssistantVisible, Mode=TwoWay}" DisplayMode="Overlay" PaneBackground="{DynamicResource StudioPanelBrush}">
+    <SplitView.Pane><Grid RowDefinitions="Auto,*">
+      <Button Classes="touch" Content="Close assistant" HorizontalAlignment="Right" Click="OnCloseAssistantClick"/>
+      <ai:AssistantView x:Name="MobileAssistant" Grid.Row="1" DataContext="{Binding Assistant}"/>
+    </Grid></SplitView.Pane>
+  <Grid x:Name="ApplicationSurface" RowDefinitions="Auto,Auto,Auto,*,Auto" Background="{DynamicResource StudioPanelMutedBrush}">
     <Border x:Name="HeaderBar" Padding="12,6" Background="{DynamicResource StudioPanelBrush}">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
         <StackPanel Orientation="Horizontal" Spacing="2">
+          <Button x:Name="ApplicationMenuButton" Classes="touch" Click="OnApplicationMenuClick" AutomationProperties.Name="Show Studio navigation"><PathIcon Data="M3,5 21,5 21,7 3,7ZM3,11 21,11 21,13 3,13ZM3,17 21,17 21,19 3,19Z"/></Button>
           <Button x:Name="PagesButton" Classes="touch" Click="OnPagesClick" IsEnabled="{Binding HasDocument}" AutomationProperties.Name="Pages" ToolTip.Tip="Show pages">
             <PathIcon Data="M3,3 21,3 21,21 3,21ZM5,5 5,19 9,19 9,5ZM11,5 11,19 19,19 19,5Z"/>
           </Button>
           <Button x:Name="OpenButton" Classes="touch" Command="{Binding OpenCommand}" AutomationProperties.Name="Open PDF from Files" ToolTip.Tip="Open a PDF in a new tab"><PathIcon Data="{StaticResource IconOpen}"/></Button>
         </StackPanel>
         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2" Margin="4,0">
-          <TextBlock Text="{Binding DocumentName}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+          <TextBlock x:Name="WorkspaceTitle" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
           <TextBlock x:Name="DocumentSubtitle" IsVisible="{Binding HasDocument}" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" TextTrimming="CharacterEllipsis"/>
         </StackPanel>
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
@@ -25,6 +60,18 @@
             <Button x:Name="SearchButton" Classes="touch" Click="OnSearchClick" AutomationProperties.Name="Search" ToolTip.Tip="Find in document"><PathIcon Data="{StaticResource IconSearch}"/></Button>
             <Button x:Name="NoteButton" Classes="touch" Click="OnNoteClick" IsEnabled="{Binding CanEditAnnotations}" AutomationProperties.Name="Note" ToolTip.Tip="Add a note"><StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource IconNote}"/><TextBlock Text="Note" VerticalAlignment="Center"/></StackPanel></Button>
           </StackPanel>
+          <Button x:Name="DocumentToolsButton" Classes="touch" IsVisible="{Binding HasDocument}" AutomationProperties.Name="Document tools" ToolTip.Tip="Document tools">
+            <PathIcon Data="{StaticResource IconTools}"/>
+            <Button.Flyout><MenuFlyout>
+              <MenuItem Header="Read" Command="{Binding ShowViewModeCommand}"/>
+              <MenuItem Header="Annotate" Command="{Binding ShowAnnotateModeCommand}"/>
+              <MenuItem Header="Edit" Command="{Binding ShowEditModeCommand}"/>
+              <MenuItem Header="Pages" Command="{Binding ShowPagesModeCommand}"/>
+              <MenuItem Header="Forms" Command="{Binding ShowFormsModeCommand}"/>
+              <MenuItem Header="Protect" Command="{Binding ShowProtectModeCommand}"/>
+            </MenuFlyout></Button.Flyout>
+          </Button>
+          <Button x:Name="HomeSampleButton" Classes="touch" Content="Try a sample" Click="OnSampleClick" IsVisible="False"/>
           <Button x:Name="SaveButton" Classes="touch" Command="{Binding SaveCommand}" IsVisible="{Binding HasDocument}" AutomationProperties.Name="{loc:Loc Common.Save}" ToolTip.Tip="Save the working copy on this device">
             <PathIcon Data="{StaticResource IconSave}"/>
           </Button>
@@ -64,23 +111,31 @@
           <ContentControl x:Name="SidebarPages" Grid.Row="1" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
         </Grid>
       </Border>
-      <Border Grid.Column="1" Background="{DynamicResource StudioCanvasBrush}">
+      <Border x:Name="ReaderSurface" Grid.Column="1" Background="{DynamicResource StudioCanvasBrush}">
         <ScrollViewer x:Name="PageScroll" Focusable="True" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
           <ContentControl Content="{Binding SelectedPage}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="8">
             <ContentControl.ContentTemplate><DataTemplate x:DataType="reader:PdfPageViewModel"><reader:PdfPageView/></DataTemplate></ContentControl.ContentTemplate>
           </ContentControl>
         </ScrollViewer>
       </Border>
-      <StackPanel Grid.Column="1" IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="18" MaxWidth="360" Margin="28">
+      <StackPanel x:Name="WelcomeSurface" Grid.Column="1" IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="18" MaxWidth="360" Margin="28">
         <Border Background="{DynamicResource StudioAccentSoftBrush}" CornerRadius="20" Width="72" Height="72" HorizontalAlignment="Left"><PathIcon Data="{StaticResource IconDocument}" Width="32" Height="32" Foreground="{DynamicResource StudioAccentBrush}"/></Border>
         <TextBlock Text="A little room&#10;to think." FontSize="36" FontWeight="SemiBold" TextWrapping="Wrap" LineHeight="42"/>
         <TextBlock Text="Read, review, and keep your documents together. Start with a PDF from Files." FontSize="16" LineHeight="24" Foreground="{DynamicResource StudioMutedTextBrush}" TextWrapping="Wrap"/>
         <StackPanel Orientation="Horizontal" Spacing="8"><Button Classes="touch filled" Content="Open a PDF" Command="{Binding OpenCommand}"/><Button x:Name="SampleButton" Classes="touch" Content="Try a sample" Click="OnSampleClick" IsVisible="False"/></StackPanel>
       </StackPanel>
+      <ContentControl x:Name="FeatureSurface" Grid.ColumnSpan="2" IsVisible="False" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
     </Grid>
     <Border x:Name="FooterBar" Grid.Row="4" Background="{DynamicResource StudioPanelBrush}" BorderBrush="{DynamicResource StudioSubtleBorderBrush}" BorderThickness="0,1,0,0" Padding="12,2">
       <StackPanel>
-        <TextBlock Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}" TextWrapping="Wrap" Foreground="{DynamicResource StudioErrorBrush}" MaxHeight="72" Margin="8"/>
+        <StackPanel IsVisible="{Binding HasVisibleError}" Spacing="4" Margin="8">
+          <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" Foreground="{DynamicResource StudioErrorBrush}" MaxHeight="72"/>
+          <WrapPanel ItemSpacing="8">
+            <Button Classes="touch" Content="{loc:Loc Shell.SaveCopyInstead}" Command="{Binding SaveAsCommand}" IsVisible="{Binding CanRecoverWithSaveAs}"/>
+            <Button Classes="touch" Content="{loc:Loc MainWindow.Dismiss}" Command="{Binding DismissErrorCommand}"/>
+          </WrapPanel>
+        </StackPanel>
+        <TextBlock Text="{Binding SecurityWarning}" IsVisible="{Binding HasSecurityWarning}" TextWrapping="Wrap" Foreground="{DynamicResource StudioWarningBrush}" MaxHeight="72" Margin="8"/>
         <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsWorkspaceBusy}" Height="2"/>
         <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsOpening}" Height="2"/>
         <Grid x:Name="CompactTools" ColumnDefinitions="*,*,*,*,*" IsEnabled="{Binding HasDocument}" IsVisible="False" Margin="0,4">
@@ -90,7 +145,7 @@
           <Button Grid.Column="3" Classes="touch neutral" Command="{Binding RedoCommand}" HorizontalAlignment="Center" AutomationProperties.Name="Redo"><PathIcon Data="{StaticResource IconRedo}"/></Button>
           <Button Grid.Column="4" Classes="touch" Command="{Binding FitPageCommand}" HorizontalAlignment="Center" AutomationProperties.Name="Fit"><PathIcon Data="{StaticResource IconFitPage}"/></Button>
         </Grid>
-        <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasDocument}">
+        <Grid x:Name="ReaderNavigation" ColumnDefinitions="*,Auto" IsVisible="{Binding HasDocument}">
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
             <Button Classes="touch neutral" Command="{Binding PreviousPageCommand}" AutomationProperties.Name="Previous page"><PathIcon Data="{StaticResource IconChevronLeft}" Width="12" Height="12"/></Button>
             <TextBlock Text="{Binding PageStatusText}" FontSize="12" Foreground="{DynamicResource StudioMutedTextBrush}" VerticalAlignment="Center"/>
@@ -144,5 +199,21 @@
         </Grid>
       </Border>
     </Border>
+  </Grid>
+  </SplitView>
+  </SplitView>
+  <Border x:Name="DialogScrim" IsVisible="False" Background="{DynamicResource StudioScrimBrush}">
+    <Border x:Name="DialogCard" CornerRadius="18" ClipToBounds="True" Background="{DynamicResource StudioPanelBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" KeyboardNavigation.TabNavigation="Cycle">
+      <Grid RowDefinitions="Auto,*">
+        <Grid x:Name="DialogHeader" Margin="16,10" ColumnDefinitions="*,Auto">
+          <TextBlock x:Name="DialogTitle" FontSize="17" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+          <Button Grid.Column="1" Classes="touch neutral" Click="OnDismissDialogClick" AutomationProperties.Name="Close dialog"><PathIcon Data="{StaticResource IconClose}" Width="14" Height="14"/></Button>
+        </Grid>
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+          <ContentControl x:Name="DialogContent" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+        </ScrollViewer>
+      </Grid>
+    </Border>
+  </Border>
   </Grid>
 </UserControl>

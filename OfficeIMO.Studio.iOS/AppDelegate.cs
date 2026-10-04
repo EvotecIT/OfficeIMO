@@ -26,11 +26,12 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App> {
 
     private Control CreateWorkspace(App app) {
         _workspace = new MobileWorkspaceView();
-        _documents = new MobileDocumentController(app.Services, PickPdfAsync, ShareAsync);
+        _documents = new MobileDocumentController(app.Services, PickPdfAsync, ShareAsync, new MobileDocumentHost(app.Services, _workspace, ShareAsync, () => TopLevel.GetTopLevel(_workspace)!.StorageProvider));
         _workspace.Connect(_documents);
         _workspace.ShareDocumentAsync = _documents.ShareAsync;
         _workspace.OpenSampleAsync = _documents.OpenSampleAsync;
         TopLevel.SetAutoSafeAreaPadding(_workspace, true);
+        app.Services.Storage.Attach(() => TopLevel.GetTopLevel(_workspace)!.StorageProvider);
         _workspace.Loaded += OnWorkspaceLoaded;
         _observers.Add(NSNotificationCenter.DefaultCenter.AddObserver(UIApplication.DidEnterBackgroundNotification, _ => _documents.Suspend()));
         _observers.Add(NSNotificationCenter.DefaultCenter.AddObserver(UIApplication.WillEnterForegroundNotification, _ => _documents.Resume()));
@@ -43,10 +44,10 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App> {
 
     private async void OnWorkspaceLoaded(object? sender, Avalonia.Interactivity.RoutedEventArgs e) {
         _workspace!.Loaded -= OnWorkspaceLoaded;
-        _workspace.IsEnabled = false;
+        _workspace.SetInitializing(true);
         try { await _documents!.RestoreAsync(); }
         catch (Exception error) { _documents!.Document.ErrorMessage = error.Message; }
-        finally { _workspace.IsEnabled = true; }
+        finally { _workspace.SetInitializing(false); }
     }
 
     private async Task<IStorageFile?> PickPdfAsync(CancellationToken token) {

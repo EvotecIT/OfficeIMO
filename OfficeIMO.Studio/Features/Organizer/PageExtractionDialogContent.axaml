@@ -1,11 +1,11 @@
-<Window xmlns="https://github.com/avaloniaui"
+<infra:StudioDialogContent xmlns:infra="using:OfficeIMO.Studio.Infrastructure" xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="using:OfficeIMO.Studio.Features.Organizer"
         xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
-        x:Class="OfficeIMO.Studio.Features.Organizer.PageExtractionDialog"
+        x:Class="OfficeIMO.Studio.Features.Organizer.PageExtractionDialogContent"
         x:DataType="local:PageExtractionPreviewViewModel"
         Title="{loc:Loc Organizer.ExtractTitle}" Width="580" Height="560" MinWidth="380" MinHeight="460"
-        WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="14">
+        HasContentHeading="True" WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="14">
   <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="10">
     <StackPanel Spacing="4">
       <TextBlock Text="{loc:Loc Organizer.ExtractTitle}" FontSize="19" FontWeight="SemiBold" />
@@ -41,4 +41,4 @@
       <Button Classes="tool" Content="{loc:Loc Common.Close}" IsVisible="{Binding HasResult}" Click="OnCancel" Margin="4" />
     </WrapPanel>
   </Grid>
-</Window>
+</infra:StudioDialogContent>

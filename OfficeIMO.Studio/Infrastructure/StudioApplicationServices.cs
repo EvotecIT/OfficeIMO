@@ -24,7 +24,7 @@ internal sealed class StudioApplicationServices {
         Cultures = cultures;
         Localizer = localizer;
         Diagnostics = diagnostics;
-        DocumentHistory = new StudioDocumentHistory(paths, preferences);
+        DocumentHistory = new StudioDocumentHistory(paths, preferences, documents);
         Recovery = new PdfWorkspaceRecoveryStore(paths.RecoveryRoot, preferences.Current.CreateRecoverySnapshots, documents);
         WorkflowRecovery = new OfficeIMO.Workflows.OfficeWorkflowOutputRecoveryStore(paths.WorkflowRecoveryRoot);
         ConversionRunner = OfficeIMO.Workflows.IWork.IWorkWorkflow.CreateRunner();

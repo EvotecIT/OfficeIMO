@@ -16,14 +16,8 @@ using OfficeIMO.Workflows;
 namespace OfficeIMO.Studio.Features.Shell;
 
 public sealed partial class MainWindow : Window {
-    private static readonly DataFormat<string> OrganizerPageFormat =
-        DataFormat.CreateInProcessFormat<string>("officeimo-studio-organizer-page");
     private bool _allowClose;
     private bool _closePromptOpen;
-    private PointerPressedEventArgs? _organizerDragPress;
-    private PdfOrganizerPageViewModel? _organizerDragPage;
-    private Point _organizerDragStart;
-    private bool _organizerDragStarted;
     private bool _changingActiveDocument;
     private readonly StudioApplicationServices _services;
     private bool _commandPaletteOpen;
@@ -78,12 +72,6 @@ public sealed partial class MainWindow : Window {
                 eventArgs.AddedItems.OfType<PdfOrganizerPageViewModel>(),
                 eventArgs.RemovedItems.OfType<PdfOrganizerPageViewModel>());
         };
-        OrganizerList.AddHandler(KeyDownEvent, OnOrganizerKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);
-        OrganizerList.AddHandler(PointerPressedEvent, OnOrganizerPointerPressed, handledEventsToo: true);
-        OrganizerList.AddHandler(PointerMovedEvent, OnOrganizerPointerMoved, handledEventsToo: true);
-        OrganizerList.AddHandler(PointerReleasedEvent, OnOrganizerPointerReleased, handledEventsToo: true);
-        OrganizerList.AddHandler(DragDrop.DragOverEvent, OnOrganizerDragOver);
-        OrganizerList.AddHandler(DragDrop.DropEvent, OnOrganizerDrop);
         Opened += OnOpened;
         Closing += OnClosing;
         Closed += (_, _) => { _windowClosed = true; _startupCompleted.TrySetResult(); _session.Dispose(); TabHost.Dispose(); _services.Storage.Dispose(); };
@@ -153,7 +141,6 @@ public sealed partial class MainWindow : Window {
             DataContext = document;
             RefreshNativeMenus();
             AttachOperationToast(document);
-            ClearOrganizerDrag();
             document.SetViewportSize(PagesList.Bounds.Width, PagesList.Bounds.Height);
         } finally {
             _changingActiveDocument = false;
@@ -606,88 +593,5 @@ public sealed partial class MainWindow : Window {
         if (!opened) throw new InvalidOperationException(_services.Localizer.Get("Error.CouldNotOpenLink"));
     }
 
-    private void OnOrganizerPointerPressed(object? sender, PointerPressedEventArgs e) {
-        if (!e.GetCurrentPoint(OrganizerList).Properties.IsLeftButtonPressed) return;
-        _organizerDragPage = FindOrganizerPage(e.Source);
-        if (_organizerDragPage is null) return;
-        ViewModel.NavigateToOrganizerPage(_organizerDragPage.PageNumber);
-        _organizerDragPress = e;
-        _organizerDragStart = e.GetPosition(OrganizerList);
-        _organizerDragStarted = false;
-    }
 
-    private async void OnOrganizerPointerMoved(object? sender, PointerEventArgs e) {
-        if (_organizerDragStarted || _organizerDragPress is null || _organizerDragPage is null ||
-            !e.GetCurrentPoint(OrganizerList).Properties.IsLeftButtonPressed) return;
-        Point current = e.GetPosition(OrganizerList);
-        if (Math.Abs(current.X - _organizerDragStart.X) < 6D && Math.Abs(current.Y - _organizerDragStart.Y) < 6D) return;
-
-        _organizerDragStarted = true;
-        var transfer = new DataTransfer();
-        transfer.Add(DataTransferItem.Create(
-            OrganizerPageFormat,
-            _organizerDragPage.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture)));
-        PointerPressedEventArgs press = _organizerDragPress;
-        ClearOrganizerDrag();
-        await DragDrop.DoDragDropAsync(press, transfer, DragDropEffects.Move);
-    }
-
-    private void OnOrganizerPointerReleased(object? sender, PointerReleasedEventArgs e) => ClearOrganizerDrag();
-
-    private async void OnOrganizerKeyDown(object? sender, KeyEventArgs e) {
-        if (ViewModel.IsPagesDocumentMode && e.KeyModifiers == KeyModifiers.Alt && e.Key is Key.Up or Key.Down) {
-            e.Handled = true;
-            if (!ViewModel.CanMutateSelection) return;
-            await (e.Key == Key.Up ? ViewModel.MoveSelectedUpCommand : ViewModel.MoveSelectedDownCommand).ExecuteAsync(null);
-            if (ViewModel.OrganizerPages.FirstOrDefault(page => page.IsSelected) is { } selected) OrganizerList.ScrollIntoView(selected);
-            OrganizerList.Focus();
-            return;
-        }
-        if (e.Key is not (Key.Enter or Key.Space)) return;
-        PdfOrganizerPageViewModel? page = FindOrganizerPage(e.Source)
-            ?? OrganizerList.SelectedItem as PdfOrganizerPageViewModel;
-        if (page is null) return;
-        ViewModel.NavigateToOrganizerPage(page.PageNumber);
-    }
-
-    private void OnOrganizerDragOver(object? sender, DragEventArgs e) {
-        e.DragEffects = TryGetOrganizerPage(e, out _) && FindOrganizerPage(e.Source) is not null
-            ? DragDropEffects.Move
-            : DragDropEffects.None;
-        e.Handled = true;
-    }
-
-    private async void OnOrganizerDrop(object? sender, DragEventArgs e) {
-        e.Handled = true;
-        PdfOrganizerPageViewModel? target = FindOrganizerPage(e.Source);
-        if (target is not null && TryGetOrganizerPage(e, out int draggedPage)) {
-            await ViewModel.ReorderByDropAsync(draggedPage, target.PageNumber);
-        }
-    }
-
-    private static bool TryGetOrganizerPage(DragEventArgs e, out int pageNumber) {
-        foreach (IDataTransferItem item in e.DataTransfer.Items) {
-            string? value = item.TryGetValue(OrganizerPageFormat);
-            if (int.TryParse(value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out pageNumber)) {
-                return true;
-            }
-        }
-        pageNumber = 0;
-        return false;
-    }
-
-    private static PdfOrganizerPageViewModel? FindOrganizerPage(object? source) {
-        Control? control = source as Control;
-        while (control is not null) {
-            if (control.DataContext is PdfOrganizerPageViewModel page) return page;
-            control = control.Parent as Control;
-        }
-        return null;
-    }
-
-    private void ClearOrganizerDrag() {
-        _organizerDragPress = null;
-        _organizerDragPage = null;
-        _organizerDragStarted = false;
-    }
 }

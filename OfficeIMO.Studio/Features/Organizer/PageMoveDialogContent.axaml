@@ -1,11 +1,11 @@
-<Window xmlns="https://github.com/avaloniaui"
+<infra:StudioDialogContent xmlns:infra="using:OfficeIMO.Studio.Infrastructure" xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="using:OfficeIMO.Studio.Features.Organizer"
         xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
-        x:Class="OfficeIMO.Studio.Features.Organizer.PageMoveDialog"
+        x:Class="OfficeIMO.Studio.Features.Organizer.PageMoveDialogContent"
         x:DataType="local:PageMovePreviewViewModel"
         Title="{loc:Loc Organizer.MovePages}" Width="520" Height="520" MinWidth="380" MinHeight="400"
-        WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="14">
+        HasContentHeading="True" WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="14">
   <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowSpacing="10">
     <StackPanel Spacing="4">
       <TextBlock Text="{loc:Loc Organizer.MovePages}" FontSize="19" FontWeight="SemiBold" />
@@ -33,4 +33,4 @@
       <Button Classes="primary" Content="{loc:Loc Organizer.ApplyMove}" IsEnabled="{Binding CanApply}" Click="OnApply" />
     </StackPanel>
   </Grid>
-</Window>
+</infra:StudioDialogContent>

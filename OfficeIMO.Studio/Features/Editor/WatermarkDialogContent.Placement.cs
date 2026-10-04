@@ -1,3 +1,4 @@
+using OfficeIMO.Studio.Infrastructure;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -5,7 +6,7 @@ using Avalonia.Media;
 
 namespace OfficeIMO.Studio.Features.Editor;
 
-public sealed partial class WatermarkDialog {
+public sealed partial class WatermarkDialogContent {
     private Point? _dragStart;
     private Point _placementStart;
     private Point _placementCurrent;

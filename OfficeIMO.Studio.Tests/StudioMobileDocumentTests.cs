@@ -51,6 +51,7 @@ public sealed class StudioMobileDocumentTests {
                         shared = path;
                         return Task.CompletedTask;
                     });
+                Assert.Contains(restored.Document.RecentDocuments, recent => recent.Path == workingCopy);
                 await restored.RestoreAsync();
                 Assert.True(restored.Document.HasDocument, restored.Document.ErrorMessage);
                 Assert.True(restored.Document.IsDirty, restored.Document.ErrorMessage);

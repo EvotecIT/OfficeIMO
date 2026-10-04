@@ -1,10 +1,10 @@
-<Window xmlns="https://github.com/avaloniaui"
+<infra:StudioDialogContent xmlns:infra="using:OfficeIMO.Studio.Infrastructure" xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:sign="using:OfficeIMO.Studio.Features.Sign"
         xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
-        x:Class="OfficeIMO.Studio.Features.Sign.SignatureDialog"
+        x:Class="OfficeIMO.Studio.Features.Sign.SignatureDialogContent"
         Title="{loc:Loc FillSign.CreateSignature}" Width="560" Height="480" MinWidth="440" MinHeight="420" CanResize="False"
-        WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}">
+        HasContentHeading="True" WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}">
   <Grid Margin="22,20" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="12">
     <StackPanel Spacing="4">
       <TextBlock x:Name="HeadingText" Text="{loc:Loc FillSign.CreateSignature}" FontSize="19" FontWeight="SemiBold" />
@@ -73,4 +73,4 @@
       <Button x:Name="UseButton" Classes="primary" Content="{loc:Loc FillSign.Use}" IsDefault="True" IsEnabled="False" Click="OnUseClick" MinWidth="84" />
     </StackPanel>
   </Grid>
-</Window>
+</infra:StudioDialogContent>
