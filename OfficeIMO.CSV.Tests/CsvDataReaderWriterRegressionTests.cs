@@ -113,10 +113,11 @@ public class CsvDataReaderWriterRegressionTests
     }
 
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, true)]
-    [InlineData(true, false)]
-    public void WriteDataReader_CancellationKeepsCompletedRowsFromBatchedPaths(bool textDelimiter, bool formatted)
+    [InlineData(false, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(true, false, false)]
+    [InlineData(false, false, true)]
+    public void WriteDataReader_CancellationKeepsCompletedRowsFromBatchedPaths(bool textDelimiter, bool formatted, bool alwaysQuoted)
     {
         using var cancellation = new CancellationTokenSource();
         using var reader = new ThrowingGetValuesDataReader(
@@ -128,23 +129,26 @@ public class CsvDataReaderWriterRegressionTests
         var options = new CsvSaveOptions {
             NewLine = "\n",
             DelimiterText = textDelimiter ? "||" : ",",
-            DateTimeFormat = formatted ? "O" : null
+            DateTimeFormat = formatted ? "O" : null,
+            QuoteMode = alwaysQuoted ? CsvQuoteMode.Always : CsvQuoteMode.AsNeeded
         };
 
         Assert.Throws<OperationCanceledException>(() =>
             CsvDocument.WriteDataReader(writer, reader, options, cancellation.Token));
 
-        Assert.Equal("Name\nAlpha\n", writer.ToString());
+        Assert.Equal(alwaysQuoted ? "\"Name\"\n\"Alpha\"\n" : "Name\nAlpha\n", writer.ToString());
     }
 
     [Theory]
-    [InlineData(false, false, false)]
-    [InlineData(false, false, true)]
-    [InlineData(true, true, false)]
-    [InlineData(true, true, true)]
-    [InlineData(true, false, false)]
-    [InlineData(true, false, true)]
-    public void WriteDataReader_FormattingFailureDoesNotWritePartialBufferedRow(bool textDelimiter, bool formatted, bool supportGetValues)
+    [InlineData(false, false, false, false)]
+    [InlineData(false, false, true, false)]
+    [InlineData(true, true, false, false)]
+    [InlineData(true, true, true, false)]
+    [InlineData(true, false, false, false)]
+    [InlineData(true, false, true, false)]
+    [InlineData(false, false, false, true)]
+    [InlineData(false, false, true, true)]
+    public void WriteDataReader_FormattingFailureDoesNotWritePartialBufferedRow(bool textDelimiter, bool formatted, bool supportGetValues, bool alwaysQuoted)
     {
         using var reader = new ThrowingGetValuesDataReader(
             new[] { "Name", "Value" },
@@ -158,16 +162,19 @@ public class CsvDataReaderWriterRegressionTests
         string delimiter = textDelimiter ? "||" : ",";
         Assert.Throws<InvalidOperationException>(() => CsvDocument.WriteDataReader(
             writer, reader,
-            new CsvSaveOptions { DelimiterText = delimiter, DateTimeFormat = formatted ? "O" : null, NewLine = "\n" }));
+            new CsvSaveOptions { DelimiterText = delimiter, DateTimeFormat = formatted ? "O" : null, NewLine = "\n",
+                QuoteMode = alwaysQuoted ? CsvQuoteMode.Always : CsvQuoteMode.AsNeeded }));
 
-        Assert.Equal($"Name{delimiter}Value\nAlpha{delimiter}One\n", writer.ToString());
+        Assert.Equal(alwaysQuoted ? "\"Name\",\"Value\"\n\"Alpha\",\"One\"\n"
+            : $"Name{delimiter}Value\nAlpha{delimiter}One\n", writer.ToString());
     }
 
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, true)]
-    [InlineData(true, false)]
-    public void WriteDataReader_CancellationAfterLargeRowKeepsCompletedRow(bool textDelimiter, bool formatted)
+    [InlineData(false, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(true, false, false)]
+    [InlineData(false, false, true)]
+    public void WriteDataReader_CancellationAfterLargeRowKeepsCompletedRow(bool textDelimiter, bool formatted, bool alwaysQuoted)
     {
         using var cancellation = new CancellationTokenSource();
         string largeValue = new string('x', textDelimiter ? 9_000 : 40_000);
@@ -183,10 +190,12 @@ public class CsvDataReaderWriterRegressionTests
         string delimiter = textDelimiter ? "||" : ",";
         Assert.Throws<OperationCanceledException>(() => CsvDocument.WriteDataReader(
             writer, reader,
-            new CsvSaveOptions { DelimiterText = delimiter, DateTimeFormat = formatted ? "O" : null, NewLine = "\n" },
+            new CsvSaveOptions { DelimiterText = delimiter, DateTimeFormat = formatted ? "O" : null, NewLine = "\n",
+                QuoteMode = alwaysQuoted ? CsvQuoteMode.Always : CsvQuoteMode.AsNeeded },
             cancellation.Token));
 
-        Assert.Equal($"Name{delimiter}Value\nAlpha{delimiter}One\nBeta{delimiter}" + largeValue + "\n", writer.ToString());
+        Assert.Equal(alwaysQuoted ? "\"Name\",\"Value\"\n\"Alpha\",\"One\"\n\"Beta\",\"" + largeValue + "\"\n"
+            : $"Name{delimiter}Value\nAlpha{delimiter}One\nBeta{delimiter}" + largeValue + "\n", writer.ToString());
     }
 
     private sealed class CancelingCsvValue
