@@ -152,6 +152,43 @@ includes complete observations, rejected source, binary hashes and case settings
 No rotated, other-runtime, or independent-review qualification is claimed for
 this rejected experiment.
 
+## Rejected direct destination reuse for CSV DataReader writes
+
+An experiment writes default `IDataReader` records directly into an exact
+`StringWriter` destination's existing builder. The initial 12-workload screen
+shows lower quote-heavy medians, but those gains do not hold consistently in the
+broader comparison. The production change is removed.
+
+The full matrix covers 22 workloads: short/long notes, JSON and dense quotes;
+25,000/100,000-row mixed, quoted and multiline typed tables; public parallel
+requests; file output; and unchanged quote-mode and delimiter paths. All 44
+native cases and 2,112 rotated samples pass complete-output validation. The
+100,000-row quoted typed writer is about 17% slower on both processor groups,
+while allocation falls only from 29,395,312 to 29,351,872 bytes. Short-field and
+long-JSON timing changes reverse between groups. Unchanged file and delimiter
+controls also vary, so the experiment does not establish stable gains elsewhere.
+
+The initial screen's pooled-buffer allocation differs from the full native run:
+several baseline cases add 16,390 bytes per operation in the latter. The packet
+retains both observations rather than treating one warmed pool state as a stable
+memory budget. Parallel-request cases can reach the sequential fallback and are
+not unchanged-code controls despite their diagnostic case labels.
+
+Candidate correctness passes 639 CSV tests on Windows .NET 10/.NET 8, 449 on
+.NET Framework 4.7.2, 639 on Linux/WSL .NET 10, and 639 each on macOS ARM64
+.NET 10/.NET 8. The `netstandard2.0` build succeeds and independent review reports
+no actionable findings. Correctness alone does not justify the performance tradeoff.
+The completed-row regression test remains: a reused writer preserves its existing
+text, prior successful calls and completed rows when a later row fails, and remains
+usable afterward. Restored production code passes all 639 Windows .NET 10 tests
+and 449 .NET Framework tests.
+
+The [native screen and full matrix](excel-csv-broad-throughput-2026-10-04/rejected-csv-direct-buffer-native.json),
+[rotated observations](excel-csv-broad-throughput-2026-10-04/rejected-csv-direct-buffer-rotated.json),
+and [source, binary, runtime and reproduction packet](excel-csv-broad-throughput-2026-10-04/rejected-csv-direct-buffer-provenance.json)
+retain the rejected patch and every measured case. Timing remains specific to
+this busy workstation; managed allocation does not measure retained or peak memory.
+
 ## Peer refresh and remaining gaps
 
 The [post-change peer packet](excel-csv-broad-throughput-2026-10-04/peer-refresh-native.json)
