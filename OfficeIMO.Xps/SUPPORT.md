@@ -12,7 +12,7 @@ Preserving an unsupported native element does not mean that it can be rendered.
 | Text extraction | UnicodeString runs in markup order | No inferred reading order, paragraphs, or glyph-ID-to-Unicode reconstruction |
 | Paths | Abbreviated geometry, fill rules, explicit path figures/segments, fills, strokes, dashes, matrix transforms, clipping | Per-segment fill/stroke suppression, asymmetric/triangle or separate dash caps, and over-limit clipped miters (including the native degenerate-segment rule) are diagnosed |
 | Text rendering | Embedded TrueType programs/collections, obfuscation, explicit glyph IDs, cluster mappings, advances/offsets, horizontal bidi, sideways top-center positioning with vertical metrics or OS/2/hhea fallbacks | Outlined output; style simulations and unsupported font programs are diagnosed; sideways runs require even BidiLevel |
-| Brushes | Hex/scRGB and ICC ContextColor solids/gradient stops; linear/radial gradients; scoped and external package resource dictionaries; PNG/JPEG/TIFF and visual brushes with absolute viewbox/viewport mapping, matrix transforms, Tile/FlipX/FlipY/FlipXY repetition, and alpha opacity masks | Non-tiled brush strokes, color-converted images, embedded TIFF color management, unsupported TIFF encodings, and JPEG-XR rendering are diagnosed |
+| Brushes | Hex/scRGB and ICC ContextColor solids/gradient stops; linear/radial gradients; scoped and external package resource dictionaries; PNG/JPEG/TIFF and visual brushes with absolute viewbox/viewport mapping, matrix transforms, Tile/FlipX/FlipY/FlipXY repetition, non-tiled fills/strokes, and alpha opacity masks | Color-converted images, embedded TIFF color management, unsupported TIFF encodings, and JPEG-XR rendering are diagnosed |
 | Navigation | Safe web/mail links; page/document/sequence named targets with scoped first-occurrence lookup; sequence page numbers projected into SVG filenames | Non-page unresolved and unsafe destinations are diagnosed; known fixed-page destinations follow structural moves; links to removed pages are unresolved; document navigation is not a PDF preservation contract |
 | Gradient transforms | Affine transforms retained in SVG; affine linear gradients and axis-aligned scaled/translated radial gradients convert through Core | Rotated/sheared radial gradients and non-Pad radial spread reject drawing/image/PDF conversion |
 | SVG | Self-contained images and glyph outlines; strict by default; explicit partial result with diagnostics | Unknown markup/attributes are diagnosed; no claim of complete XPS consumer conformance |
@@ -90,5 +90,10 @@ renders the same 24 swatches in both dialects within one 8-bit channel value whe
 configured with matching relative intent and black-point compensation disabled.
 TIFF placement and colors are checked in both dialects; upscaled boundaries retain
 interpolation differences between the managed and independent renderers.
+
+Eight additional image/visual stroke cases cover both dialects, non-tiled brush
+coverage, transformed dashes and brush opacity. GhostXPS comparisons have a worst
+mean channel difference of 0.67/255 at 96 DPI; one transformed translucent PDF is
+also independently rendered. Edge antialiasing and image interpolation differ.
 
 The open qualification and rendering work belongs in [the roadmap](../Docs/ROADMAP.md#xpsopenxps).

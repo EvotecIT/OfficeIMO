@@ -8,6 +8,7 @@ internal sealed partial class XpsSvgConverter {
     private readonly List<string> _diagnostics = new();
     private readonly XElement _defs;
     private readonly Dictionary<XElement, XElement> _brushFills = new();
+    private readonly Dictionary<XElement, XElement> _brushStrokes = new();
     private int _id;
     private int _visited;
     private int _points;
@@ -104,7 +105,7 @@ internal sealed partial class XpsSvgConverter {
                     CheckAttributes(child, "RenderTransform Clip Opacity OpacityMask FixedPage.NavigateUri");
                     result = Element("g");
                     RenderChildren(child, result, scope, part, depth + 1, localRegion); break;
-                case "Path": result = PathElement(child, scope, part, depth + 1); break;
+                case "Path": result = PathElement(child, scope, part, depth + 1, localRegion); break;
                 case "Glyphs": result = Glyphs(child, scope, part, depth + 1); break;
                 default: Loss("Element: " + child.Name.LocalName); continue;
             }
@@ -210,7 +211,7 @@ internal sealed partial class XpsSvgConverter {
         }
         return data.ToString();
     }
-    private XElement PathElement(XElement e, Dictionary<string, Resource> scope, string part, int depth) {
+    private XElement PathElement(XElement e, Dictionary<string, Resource> scope, string part, int depth, BrushRegion region) {
         Charge(depth);
         CheckAttributes(e, "Data Fill Stroke StrokeThickness StrokeDashArray StrokeDashOffset StrokeStartLineCap StrokeEndLineCap StrokeDashCap StrokeLineJoin StrokeMiterLimit RenderTransform Clip Opacity OpacityMask FixedPage.NavigateUri");
         string path = StripFillRule(Geometry(e, "Data", scope) ?? "", out string rule);
@@ -219,12 +220,25 @@ internal sealed partial class XpsSvgConverter {
         Paint(e, "Stroke", result, "stroke", scope, part, depth);
         Stroke(e, result, path);
         foreach (var child in e.Elements()) if (!new[] { "Path.Data", "Path.Fill", "Path.Stroke", "Path.Clip", "Path.RenderTransform", "Path.OpacityMask" }.Contains(child.Name.LocalName)) Loss(child.Name.LocalName);
-        return ApplyBrushFill(result);
+        return ApplyBrushFill(result, region);
     }
-    private XElement ApplyBrushFill(XElement path) {
-        if (!_brushFills.TryGetValue(path, out var image)) return path;
-        string id = "pathClip" + (++_id);
-        _defs.Add(Element("clipPath", new XAttribute("id", id), Element("path", new XAttribute("d", (string?)path.Attribute("d") ?? ""), new XAttribute("clip-rule", (string?)path.Attribute("fill-rule") ?? "evenodd"))));
-        return Element("g", Element("g", new XAttribute("clip-path", "url(#" + id + ")"), image), path);
+    private XElement ApplyBrushFill(XElement path, BrushRegion? region = null) {
+        XElement result = path;
+        if (_brushFills.TryGetValue(path, out var image)) {
+            string id = "pathClip" + (++_id);
+            _defs.Add(Element("clipPath", new XAttribute("id", id), Element("path", new XAttribute("d", (string?)path.Attribute("d") ?? ""), new XAttribute("clip-rule", (string?)path.Attribute("fill-rule") ?? "evenodd"))));
+            result = Element("g", Element("g", new XAttribute("clip-path", "url(#" + id + ")"), image), path);
+        }
+        if (_brushStrokes.TryGetValue(path, out var stroke)) {
+            var visible = region ?? throw new InvalidOperationException("A brush stroke requires the local visible region.");
+            string id = "strokeMask" + (++_id);
+            var coverage = CloneProjection(path);
+            Set(coverage, "fill", "none"); Set(coverage, "stroke", "#ffffff");
+            var mask = Element("mask", new XAttribute("id", id), new XAttribute("mask-type", "alpha"), new XAttribute("maskUnits", "userSpaceOnUse"), new XAttribute("maskContentUnits", "userSpaceOnUse"),
+                new XAttribute("x", N(visible.X)), new XAttribute("y", N(visible.Y)), new XAttribute("width", N(visible.Width)), new XAttribute("height", N(visible.Height)), coverage);
+            _defs.Add(mask); Set(path, "stroke", "none");
+            result = Element("g", result, Element("g", new XAttribute("mask", "url(#" + id + ")"), stroke));
+        }
+        return result;
     }
 }

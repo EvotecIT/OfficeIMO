@@ -38,6 +38,38 @@ public sealed class XpsBrushTests {
         Assert.NotEqual(OfficeColor.Red, raster.GetPixel(35, 15));
     }
     [Theory]
+    [InlineData("image-None", XpsFormat.Xps)]
+    [InlineData("visual-None", XpsFormat.Xps)]
+    [InlineData("image-None", XpsFormat.OpenXps)]
+    [InlineData("visual-None", XpsFormat.OpenXps)]
+    public void NonTiledBrushStrokesUseNativeCoverage(string scenario, XpsFormat format) {
+        var doc = XpsBrushFixtures.Create(scenario, format); var page = doc.Pages[0];
+        var xml = page.GetMarkup(); var ns = xml.Name.Namespace; var path = xml.Elements().Single();
+        path.SetAttributeValue("Data", "M15,15H45V45H15Z");
+        path.SetAttributeValue("Fill", "#FFFFFFFF"); path.SetAttributeValue("StrokeThickness", "10");
+        var brushProperty = path.Element(ns + "Path.Fill")!; brushProperty.Name = ns + "Path.Stroke";
+        var brush = brushProperty.Elements().Single(); brush.SetAttributeValue("Viewport", "10,10,40,40");
+        page.ReplaceMarkup(xml);
+        var raster = Raster(XpsDocument.Load(doc.Save()).Pages[0]);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(20, 15));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(40, 15));
+        Assert.Equal(OfficeColor.Green, raster.GetPixel(20, 45));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(30, 30));
+        Assert.NotEqual(OfficeColor.Red, raster.GetPixel(5, 15));
+        Assert.NotEmpty(doc.ToPdf());
+
+        // Brush opacity is applied once at joins, and transforms move both tile
+        // and coverage with the path while retaining its unpainted interior.
+        path.SetAttributeValue("RenderTransform", "1,0,0,1,20,10"); brush.SetAttributeValue("Opacity", "0.5");
+        page.ReplaceMarkup(xml); raster = Raster(page);
+        var corner = raster.GetPixel(32, 22);
+        Assert.True((corner.A >= 126 && corner.A <= 129) || (corner.A == 255 && corner.G >= 126 && corner.G <= 129), $"Corner RGBA: {corner.R},{corner.G},{corner.B},{corner.A}");
+        Assert.Equal(OfficeColor.White, raster.GetPixel(50, 40));
+        path.SetAttributeValue("StrokeDashArray", "2 1"); page.ReplaceMarkup(xml); raster = Raster(page);
+        Assert.InRange(raster.GetPixel(42, 22).G, (byte)126, (byte)129);
+        Assert.Equal(OfficeColor.White, raster.GetPixel(60, 22));
+    }
+    [Theory]
     [InlineData(XpsFormat.Xps)]
     [InlineData(XpsFormat.OpenXps)]
     public void GradientTransformSurvivesPackageAndPdfConversion(XpsFormat format) {

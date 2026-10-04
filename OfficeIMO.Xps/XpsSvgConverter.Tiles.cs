@@ -84,9 +84,14 @@ internal sealed partial class XpsSvgConverter {
         string mode = (string?)brush.Attribute("TileMode") ?? "None";
         string? transform = Transform(brush, scope, "Transform");
         if (mode == "None") {
-            if (attribute != "fill") { Loss("Non-tiled brush stroke"); return; }
-            Set(target, "fill", "none");
-            _brushFills[target] = transform == null ? tile : Element("g", new XAttribute("transform", transform), tile);
+            XElement projected = transform == null ? tile : Element("g", new XAttribute("transform", transform), tile);
+            if (attribute == "stroke") {
+                // Keep a visible placeholder until Stroke has validated and attached
+                // native width/dash/cap properties. ApplyBrushFill turns it into coverage.
+                Set(target, "stroke", "#ffffff"); _brushStrokes[target] = projected;
+            } else {
+                Set(target, "fill", "none"); _brushFills[target] = projected;
+            }
             return;
         }
         if (!new[] { "Tile", "FlipX", "FlipY", "FlipXY" }.Contains(mode)) throw new InvalidDataException("Invalid tile mode.");
