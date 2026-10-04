@@ -127,15 +127,17 @@ public static partial class OfficePngWriter {
             throw new ArgumentOutOfRangeException(nameof(compression));
         }
 
+        bool bilevel = compression == OfficePngCompression.Optimal
+            && IsOpaqueBilevel(rgba, cancellationToken, checkpointObserver);
         destination.Write(PngSignature, 0, PngSignature.Length);
-        WriteChunk(destination, "IHDR", BuildIhdr(width, height, 8, 6));
+        WriteChunk(destination, "IHDR", BuildIhdr(width, height, bilevel ? 1 : 8, bilevel ? 0 : 6));
         if (dpiX.HasValue && dpiY.HasValue) {
             WriteChunk(destination, "pHYs", BuildPhysicalResolution(dpiX.Value, dpiY.Value));
         }
 
         var idat = new PngIdatChunkStream(destination, StreamingIdatChunkSize);
         if (compression == OfficePngCompression.Optimal) {
-            WriteOptimalZlib(idat, width, height, rgba, cancellationToken, checkpointObserver);
+            WriteOptimalZlib(idat, width, height, rgba, bilevel, cancellationToken, checkpointObserver);
         } else {
             WriteStoredZlib(idat, width, height, rgba, cancellationToken, checkpointObserver);
         }
@@ -149,9 +151,10 @@ public static partial class OfficePngWriter {
         int width,
         int height,
         byte[] rgba,
+        bool bilevel,
         System.Threading.CancellationToken cancellationToken,
         Action<OfficeRasterEncodingCheckpoint>? checkpointObserver) {
-        var workspace = new PngFilteringWorkspace(width);
+        var workspace = new PngFilteringWorkspace(width, bilevel);
         using var adaptiveSize = new PngSizeProbeStream();
         using var unfilteredSize = new PngSizeProbeStream();
         WriteRgbaZlib(adaptiveSize, height, rgba, workspace, adaptiveFiltering: true, cancellationToken, checkpointObserver);
@@ -180,7 +183,10 @@ public static partial class OfficePngWriter {
                 checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.PngCompressionRow);
                 cancellationToken.ThrowIfCancellationRequested();
                 int rowOffset = y * stride;
-                if (!adaptiveFiltering) {
+                if (workspace.BilevelRows != null) {
+                    FilterBilevelRow(rgba, y * workspace.RgbaStride, workspace,
+                        y, adaptiveFiltering, cancellationToken, checkpointObserver);
+                } else if (!adaptiveFiltering) {
                     filteredRow[0] = 0;
                     Buffer.BlockCopy(rgba, rowOffset, filteredRow, 1, stride);
                 } else if (y == 0) {

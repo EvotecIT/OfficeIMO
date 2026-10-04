@@ -7,17 +7,21 @@ public static partial class OfficePngWriter {
     // Both size probes and the final stream share the same bounded scanline scratch.
     // No candidate image or compressed payload is retained by the probes.
     private sealed class PngFilteringWorkspace {
-        internal PngFilteringWorkspace(int width) {
-            Stride = checked(width * 4);
+        internal PngFilteringWorkspace(int width, bool bilevel) {
+            RgbaStride = checked(width * 4);
+            Stride = bilevel ? checked((int)((width + 7L) / 8L)) : RgbaStride;
             Row = new byte[checked(Stride + 1)];
             Paeth = new byte[Stride];
             Batch = new byte[Math.Max(Row.Length, 64 * 1024)];
+            BilevelRows = bilevel ? new byte[checked(Stride * 2)] : null;
         }
 
+        internal int RgbaStride { get; }
         internal int Stride { get; }
         internal byte[] Row { get; }
         internal byte[] Paeth { get; }
         internal byte[] Batch { get; }
+        internal byte[]? BilevelRows { get; }
     }
 
     private sealed class PngSizeProbeStream : Stream {

@@ -9,6 +9,15 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## PNG scan sample layout
+
+`OfficePngCompression.Optimal` encodes fully opaque black-and-white raster images as
+one-bit grayscale PNGs. Decoded pixels, dimensions, and density remain unchanged.
+Consumers that inspect samples or add color-dependent PNG chunks must read the
+IHDR bit depth and color type instead of assuming eight-bit RGBA output.
+`EncodeScanlines` retains the explicitly requested sample layout; `Stored` raster
+encoding retains eight-bit RGBA output.
+
 ## ZIP, drawing links, and MCP filesystem access
 
 `OfficeIMO.Zip` now rejects archives above 10,000 physical entries or 512 MiB compressed bytes by default, before opening their entry metadata. `MaxEntries` still limits accepted entries. Set `ZipTraversalOptions.MaxPhysicalEntries` or `MaxArchiveBytes` explicitly for larger trusted archives. The path and stream overloads use a bounded private snapshot. If an application constructs `ZipArchive` itself, use an immutable source and call `ZipTraversal.ValidateSource` before opening it. `OfficeIMO.Reader.Zip` applies the same preflight to top-level and nested archives.

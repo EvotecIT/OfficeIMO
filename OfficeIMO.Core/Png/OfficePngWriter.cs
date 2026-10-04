@@ -10,7 +10,8 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 public enum OfficePngCompression {
     /// <summary>
-    /// Compress scanlines with the platform deflate implementation. RGBA encoding
+    /// Compress scanlines with the platform deflate implementation. Exact opaque
+    /// black-and-white raster images use one-bit grayscale samples. Raster encoding
     /// compares adaptive and unfiltered rows and uses the smaller compressed form.
     /// </summary>
     Optimal,

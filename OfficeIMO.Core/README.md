@@ -116,6 +116,13 @@ OfficePoint sourcePoint = processed.Report.ProcessedToSource.TransformPoint(ocrP
 
 The source image stays unchanged. The report records transformations, skipped decisions, estimated managed buffers, and a blank-page suggestion; pages are never removed. Pixel, buffer, and analysis-work limits throw `OfficeScanProcessingLimitException`, allowing the caller to retain the original. The operation does not detect quarter-turn orientation itself; an OCR provider or the caller supplies that evidence.
 
+PNG encoding with `OfficePngCompression.Optimal` stores fully opaque black-and-white rasters
+as one-bit grayscale images. This reduces the encoded scan payload while preserving every
+pixel, dimensions, and requested resolution metadata. Intermediate gray values, colors,
+and transparency retain RGBA output; the encoder does not threshold or quantize them.
+Byte, stream, and buffer-writer APIs use the same selection. `Stored` compression retains
+eight-bit RGBA samples.
+
 `OfficeScanProcessor.CorrectPerspective(image, options)` creates a rectangular raster from four normalized source corners. `OfficeScanPerspectiveOptions` requires a convex, clockwise quadrilateral inside the source image. The result includes a projective mapping in both directions so consumers can place recognized text back on the original. Perspective correction is separate from the affine transform reported by ordinary scan cleanup. Curved-page dewarping remains unsupported.
 
 ## Quick start
@@ -496,7 +503,7 @@ OfficeRasterImageEncoder.EncodeTo(image, OfficeImageExportFormat.Png, writer, op
 ReadOnlyMemory<byte> png = writer.WrittenMemory;
 ```
 
-The stream overload leaves the destination open. PNG's `Optimal` compression compares adaptive and unfiltered RGBA rows and writes the smaller compressed form. Its size probes reuse scanline scratch without retaining candidate images or compressed payloads; the extra compression passes trade CPU work for smaller output while preserving pixels, density metadata and cancellation. `Stored` writes uncompressed zlib blocks.
+The stream overload leaves the destination open. PNG's `Optimal` compression compares adaptive and unfiltered rows in the selected sample layout and writes the smaller compressed form. Its size probes reuse scanline scratch without retaining candidate images or compressed payloads; the extra compression passes trade CPU work for smaller output while preserving pixels, density metadata and cancellation. `Stored` writes uncompressed zlib blocks with eight-bit RGBA samples.
 
 The byte-array WebP encoder deterministically chooses bounded prediction, subtract-green, LZ77, and Huffman coding when that is smaller than the literal lossless VP8L form; direct streaming keeps the low-copy literal form. TIFF output is a classic RGBA image with uncompressed, LZW, PackBits, or Deflate strips; LZW and Deflate use horizontal prediction by default. Use `OfficeTiffCodec.EncodePages(...)` when the output needs more than one page. JPEG uses the managed quality, subsampling, progressive, metadata, and transparency-flattening settings.
 
