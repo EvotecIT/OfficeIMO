@@ -7,6 +7,11 @@ deterministic native-content and cancellation checks run in a dedicated workflow
 warmups, rotated iteration order, elapsed and memory counters, artifacts and gates.
 The library owns synthetic inputs, pinned native fixtures and semantic validation.
 
+The [2026-10-04 portable run](../Docs/benchmarks/officeimo.iwork-portable-runtime-2026-10-04.md)
+retains 6,390 validated samples on Linux x64, macOS arm64 and Windows x64. It covers
+two scale/native passes, 50 repeated operations per native case, separate managed/resident
+sampling and active I/O cancellation. Its observations do not establish portable ceilings.
+
 The [2026-10-04 macOS comparison](../Docs/benchmarks/officeimo.iwork-runtime-2026-10-04.md)
 retains 360 validated samples from a repeated scale matrix, including slower
 elapsed cases, allocation changes and whole-process memory observations. It does
