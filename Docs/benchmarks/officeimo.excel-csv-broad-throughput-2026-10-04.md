@@ -106,6 +106,39 @@ short- and long-text workloads without reducing allocation. It was removed.
 Its complete 13-workload before/after result is retained with the rejected
 stage label, rather than counted as an improvement.
 
+## Rejected multicharacter CSV writer batching
+
+A second writer experiment batched ordinary `IDataReader` text-delimiter rows
+through the existing formatted-row buffer. It preserves correctness across
+Windows .NET 10 and .NET 8 (634 tests each), .NET Framework 4.7.2 (444 tests),
+and Linux .NET 10 under WSL (634 tests). Independent read-only review reports
+no actionable defects. Those checks do not establish a performance benefit.
+
+The output-validated matrix covers 22 workloads: four file-output text shapes,
+short and long in-memory Notes/JSON/quote-heavy fields, both quote modes, and
+unchanged comma-delimiter controls. It retains 44 native cases and 2,112 rotated
+samples across both processor groups. Native measurements use 12 warmups,
+12 measurements and eight operations per measurement. Rotated runs use
+12 warmups, 24 measurements and four operations per sample, at Normal priority
+with all outliers retained.
+
+Short Unicode file-output medians improve about 6% with `Always` quoting, but
+become 4–6% slower with `AsNeeded`. Short JSON in-memory output allocates another
+6–8 KiB per operation. Other timings are mixed, and unchanged controls vary too.
+The production change is removed because these results do not justify enabling
+it generally. The expanded delimiter benchmarks and completed-row cancellation
+and error contracts remain; the final suite against restored production code
+passes all 634 .NET 10 tests.
+
+The complete [native measurements](excel-csv-broad-throughput-2026-10-04/rejected-csv-batching-native.json),
+[rotated samples](excel-csv-broad-throughput-2026-10-04/rejected-csv-batching-rotated.json),
+and [provenance with the rejected patch](excel-csv-broad-throughput-2026-10-04/rejected-csv-batching-provenance.json)
+record favorable and unfavorable cases. To reproduce the experiment, build the
+recorded coverage commit as the baseline, then apply the embedded production
+patch in a separate candidate checkout. Run the recorded cases through the
+snapshot comparison runner described below, using the same benchmark assembly
+for both snapshots. The rejected candidate is not part of the current product.
+
 ## Million-row memory and output checks
 
 The separate CSV memory lane measures 100,000 and 1,000,000 plain/multiline rows,
