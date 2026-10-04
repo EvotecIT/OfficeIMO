@@ -1,10 +1,65 @@
 using System;
 using OfficeIMO.Adf;
+using OfficeIMO.Markdown;
 using Xunit;
 
 namespace OfficeIMO.Adf.Tests;
 
 public sealed class AdfTaskProjectionTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ConversionDoesNotRenderUnsupportedMarkdownToCreateTaskIds(bool withTask) {
+        MarkdownDoc markdown = MarkdownDoc.Create().Add(new UnrenderableBlock());
+        if (withTask) markdown.Add(new UnorderedListBlock { Items = { ListItem.Task("Ready", done: true) } });
+
+        AdfConversionResult<AdfDocument> result = AdfConverter.FromMarkdown(markdown);
+
+        Assert.Equal(withTask ? 1 : 0, result.Value.Content.Count);
+        if (withTask) Assert.False(string.IsNullOrWhiteSpace(result.Value.Content[0].GetStringAttribute("localId")));
+        Assert.Contains(result.Report.Diagnostics, issue => issue.Code == "MARKDOWN_UNSUPPORTED_BLOCK");
+    }
+
+    [Fact]
+    public void TocPlaceholdersDoNotExpandDuringTaskIdentityGeneration() {
+        string source = string.Concat(System.Linq.Enumerable.Repeat("[TOC]\n\n", 128))
+            + "# " + new string('H', 4096) + "\n\n- [ ] Ready";
+
+        AdfDocument first = AdfConverter.FromMarkdown(source).Value;
+        AdfDocument second = AdfConverter.FromMarkdown(source).Value;
+
+        Assert.Equal(first.ToJson(), second.ToJson());
+        Assert.Single(first.Content, node => node.Type == "taskList");
+        Assert.Single(first.Content, node => node.Type == "heading");
+    }
+
+    [Fact]
+    public void DeepUnrelatedContentDoesNotPreventTaskProjection() {
+        var outer = new UnorderedListBlock();
+        UnorderedListBlock current = outer;
+        for (int depth = 0; depth < 33; depth++) {
+            var item = ListItem.Text("Level");
+            var child = new UnorderedListBlock();
+            item.NestedBlocks.Add(child);
+            current.Items.Add(item);
+            current = child;
+        }
+        current.Items.Add(ListItem.Text("Deep content"));
+        MarkdownDoc markdown = MarkdownDoc.Create().Add(outer)
+            .Add(new UnorderedListBlock { Items = { ListItem.Task("Ready", done: false) } });
+
+        AdfConversionResult<AdfDocument> result = AdfConverter.FromMarkdown(markdown);
+
+        Assert.Equal(2, result.Value.Content.Count);
+        Assert.False(string.IsNullOrWhiteSpace(result.Value.Content[1].GetStringAttribute("localId")));
+        Assert.Throws<System.IO.InvalidDataException>(() => result.Value.ToJson());
+    }
+
+    private sealed class UnrenderableBlock : IMarkdownBlock {
+        public string RenderMarkdown() => throw new InvalidOperationException("Unsupported block was rendered.");
+        public string RenderHtml() => throw new InvalidOperationException("Unsupported block was rendered.");
+    }
+
     [Fact]
     public void TaskProjection_ReportsRegeneratedLocalIds() {
         var item = new AdfNode("taskItem") {
