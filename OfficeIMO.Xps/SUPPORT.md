@@ -7,7 +7,7 @@ Preserving an unsupported native element does not mean that it can be rendered.
 | --- | --- | --- |
 | Read | Microsoft XPS and ECMA-388 OpenXPS; OPC relationships/content types; multiple fixed documents; ordered page references; UTF-8/UTF-16 XML; bounded interleaved OPC piece assembly | Materialized loading, not progressive streaming; protected packages are not supported |
 | Create | Both dialects; pages, vector paths, embedded fonts, Unicode glyph runs, PNG/JPEG/TIFF image placement | Typed creation is a bounded fixed-page profile, not a complete schema object model |
-| Edit | Detached native page XML; loaded document/page insertion, reordering, transfer and reference removal; shared backing for repeated references; encoded resource replacement | Removed parts/resources remain preserved; opaque semantic metadata is not rewritten |
+| Edit | Detached native page XML; loaded document/page insertion, reordering, transfer and reference removal; shared backing for repeated references; encoded resource replacement; relationship-owned DocumentStructure outline and story-page reference rewriting | Removed parts/resources remain preserved; story references to removed pages and resulting empty stories are removed; opaque metadata and StoryFragments content semantics are not rewritten |
 | Save | Original dialect; native page content and opaque parts retained; required-resource relationships emitted, including profiles and transitive dictionary resources; deterministic ZIP output on the same runtime | ZIP metadata/XML bytes may change; interleaved storage is normalized to atomic parts; no dialect conversion; signed packages cannot be rewritten |
 | Text extraction | UnicodeString runs in markup order | No inferred reading order, paragraphs, or glyph-ID-to-Unicode reconstruction |
 | Paths | Abbreviated geometry, fill rules, explicit path figures/segments, fills, strokes, dashes, matrix transforms, clipping | Per-segment fill/stroke suppression, asymmetric/triangle or separate dash caps, and over-limit clipped miters (including the native degenerate-segment rule) are diagnosed |
@@ -132,3 +132,11 @@ with a mean channel difference of 0.71/255 from the managed raster on the text
 fixture. Interactive selection/highlighting in independent viewers remains
 unqualified. Text follows source markup order and retains clipped/transparent
 source content; this is not a redaction or accessibility reconstruction contract.
+
+Native DocumentStructure edits have generated coverage in both dialects for
+insertion, reordering, transfer, removal, repeated pages and atomic rejection of
+malformed known metadata. The independent Ecma document reopens with 495 pages
+after insertion and retains all 695 outline entries. It has no story references.
+Story-page remapping follows ECMA-388 section 16.1.1.6's payload-global prose;
+the adjacent attribute table describes document-local ordering. Independent
+multi-document story fixtures are needed to resolve that interoperability ambiguity.

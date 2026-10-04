@@ -127,7 +127,9 @@ public sealed partial class XpsDocument {
     internal void CommitStructure(XElement sequence, IReadOnlyDictionary<XpsFixedDocument, XElement>? changes = null, XpsPage? pending = null) {
         var index = BuildIndex(sequence, changes, pending);
         var navigation = PreserveNavigationTargets(index);
+        var documentStructures = PreserveDocumentStructure(index);
         var replacements = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase) { [_sequence] = XpsPackage.Serialize(sequence) };
+        foreach (var structure in documentStructures) replacements[structure.Key] = structure.Value;
         if (changes != null) foreach (var change in changes) replacements[change.Key.PartName] = XpsPackage.Serialize(change.Value);
         if (pending != null) replacements[pending.PartName] = pending.Serialize();
         foreach (var page in navigation) replacements[page.Key.PartName] = XpsPackage.Serialize(page.Value);

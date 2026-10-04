@@ -88,7 +88,12 @@ attributes and link targets. Known fixed-page navigation destinations are stabil
 when sequence edits would change their meaning. Removing a reference retains its
 native parts; it does not delete resources. A link to a removed page remains an
 explicit unresolved destination rather than redirecting to another page. Opaque
-extension metadata and external document-structure parts are retained, not rewritten.
+extension metadata is retained. Relationship-owned DocumentStructure parts keep
+outline links and global story-fragment page numbers aligned with page insertion,
+reordering and transfer. Removing the last reference to a page removes its story
+references and any resulting empty story; outline links remain explicitly unresolved.
+StoryFragments content and unknown extension semantics are not reconstructed.
+Malformed known structure rejects the edit before any package state changes.
 
 `AddResource()` adds a new part. `ReplaceResource()` replaces an existing resource's
 encoded bytes while retaining its URI and content type; structural parts use their
