@@ -13,6 +13,7 @@ New-BenchmarkSuite 'officeimo-iwork-runtime' {
     Add-BenchmarkMetadata Contract 'Deterministic synthetic ZIP or pinned native Pages/Numbers/Keynote fixture: load/project or load/convert/save. Cancellation cases request cancellation after actual package-read or native-copy I/O. Input/model preparation and full semantic readback are outside timing. No native Apple appearance qualification.'
     Add-BenchmarkMetadata Measurement 'PowerForge elapsed time and managed allocation including host invocation. Working-set deltas are not peak or retained memory. Saving uses normal owner APIs.'
     Add-BenchmarkMetadata RetainedMemory 'Opt-in collected process-wide managed heap before execution and after validation/result release. Includes host/cache effects; excludes native and peak memory.'
+    Add-BenchmarkMetadata SampledMemory 'Opt-in PowerForge managed-heap/resident observations during operations. Maxima are observed lower bounds, include observer/host effects and do not isolate native allocations. Instrumented timing uses a separate run mode.'
     Add-BenchmarkMetadata AffinityPolicy 'Inherited; macOS processor placement is unqualified. Keep competing work idle and record host power mode.'
     Add-BenchmarkMetadata Runtime ([Runtime.InteropServices.RuntimeInformation]::FrameworkDescription)
     Add-BenchmarkMetadata RunnerSha256 (Get-FileHash ([PowerForge.PowerShellBenchmarkRunner].Assembly.Location) -Algorithm SHA256).Hash
