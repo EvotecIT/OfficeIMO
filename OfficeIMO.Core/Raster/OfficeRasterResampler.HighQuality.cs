@@ -7,6 +7,14 @@ public static partial class OfficeRasterResampler {
     private const double LanczosRadius = 3D;
     private const string ScratchLimitMessage = "High-quality raster resampling scratch space exceeds the managed image limit.";
 
+    // One float occupies the same four bytes as an RGBA pixel. The source buffer
+    // is already charged by its decoder; sampling adds the output and float scratch.
+    internal static long GetAdditionalHighQualityPixelBufferCost(int sourceWidth, int sourceHeight, int width, int height) =>
+        checked((long)width * height + GetSeparableScratchLength(sourceWidth, sourceHeight, width, height));
+
+    private static long GetSeparableScratchLength(int sourceWidth, int sourceHeight, int width, int height) =>
+        Math.Min(checked((long)width * sourceHeight * 4L), checked((long)sourceWidth * height * 4L));
+
     private static OfficeRasterImage ResizeSeparable(
         OfficeRasterImage source,
         int width,
@@ -114,9 +122,7 @@ public static partial class OfficeRasterResampler {
         if (sourceWidth <= 0 || sourceHeight <= 0 || width <= 0 || height <= 0 ||
             retainedManagedBytes < 0L) return false;
         try {
-            long horizontalFirstLength = checked((long)width * sourceHeight * 4L);
-            long verticalFirstLength = checked((long)sourceWidth * height * 4L);
-            long requiredIntermediate = Math.Min(horizontalFirstLength, verticalFirstLength);
+            long requiredIntermediate = GetSeparableScratchLength(sourceWidth, sourceHeight, width, height);
             if (requiredIntermediate <= 0L || requiredIntermediate > int.MaxValue ||
                 !TryMeasureContributions(
                     sourceWidth, width, mode, out horizontalContributionCount, out long horizontalBytes, cancellationToken) ||
