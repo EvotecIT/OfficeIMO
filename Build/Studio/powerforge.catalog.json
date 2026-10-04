@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/Schemas/powerforge.catalog.schema.json",
+  "SchemaVersion": 1,
+  "ReleaseConfigPath": "powerforge.windows-release.json",
+  "StoreConfigPath": "powerforge.store.submit.json",
+  "StoreTargetName": "Studio.Windows",
+  "StoreInstallerUrlTemplate": "https://downloads.officeimo.com/releases/officeimo-studio/{releaseId}/{artifactKey}/download",
+  "StoreArtifactKeys": {
+    "x64": "windows-x64-msi",
+    "arm64": "windows-arm64-msi"
+  }
+}

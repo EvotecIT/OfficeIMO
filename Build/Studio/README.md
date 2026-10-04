@@ -85,17 +85,28 @@ MSI updates install a newer signed artifact over the existing identity. The MSI 
 
 Reuse the signed MSI assets from a published Studio release. Download its two
 Windows MSIs, `windows-release-manifest.json` and `windows-SHA256SUMS.txt` into one
-directory. Prepare submission inputs with PowerForge on Windows:
+directory, then publish those exact MSI bytes as a public immutable delivery
+release. Prepare and submit both catalogs with PowerForge on Windows:
 
 ```powershell
-./Build/Studio/Prepare-StudioCatalog.ps1 -AssetRoot ./downloads -OutputPath ./Artifacts/Studio/Catalog
-winget validate ./Artifacts/Studio/Catalog/Winget/EvotecIT.OfficeIMO.Studio/<version>
-wingetcreate submit ./Artifacts/Studio/Catalog/Winget/EvotecIT.OfficeIMO.Studio/<version>
+./Build/Studio/Invoke-StudioCatalog.ps1 -Action Prepare -AssetRoot ./downloads `
+    -OutputPath ./Artifacts/Studio/Catalog -DeliveryReleaseId '<public delivery release ID>'
+./Build/Studio/Invoke-StudioCatalog.ps1 -Action Submit -OutputPath ./Artifacts/Studio/Catalog
+./Build/Studio/Invoke-StudioCatalog.ps1 -Action Submit -OutputPath ./Artifacts/Studio/Catalog -Execute
+./Build/Studio/Invoke-StudioCatalog.ps1 -Action Status -OutputPath ./Artifacts/Studio/Catalog
 ```
 
 Choose a new output directory for each preparation. The shared engine verifies
 release checksums, MSI Authenticode trust and installer identity, version and
 architecture, then generates the WinGet manifests and Store package JSON.
+The product profile maps the delivery release ID to immutable branded Store
+URLs and verifies their downloaded bytes. Submission preflight runs WinGet
+validation and checks both channels' remote hashes. `Submit` performs preflight;
+`-Execute` sends the selected update. Use `-Channel winget` or `-Channel store`
+to run one channel. `catalog-update.json` records completed submissions so
+repeating the same command skips them; `Status` reads remote state without
+updating packages. An uncertain attempt requires explicit reconciliation with
+the remote service before retrying. Keep the prepared directory and receipt.
 Verify embedded executable signatures and exercise installation, upgrade,
 launch and removal on the claimed architectures before catalog acceptance.
 WinGet submission creates a pull request in Microsoft's package repository;
@@ -104,10 +115,8 @@ catalog availability requires its validation and acceptance.
 The Store reuses the same signed MSI bytes and `/qn /norestart` switches. Its
 package URLs must return those bytes directly over HTTPS without redirection.
 GitHub release download URLs redirect and are rejected by Partner Center.
-Before using the generated `desktop-packages.json` for the Store, set each
-`PackageUrl` to an immutable URL on the product's approved distribution host
-and verify that a request with redirects disabled returns the matching release
-checksum. WinGet may retain its GitHub release URLs.
+`powerforge.catalog.json` supplies the immutable URL template and artifact keys;
+no manual package URL editing is required. WinGet retains its GitHub release URLs.
 Create a company developer account once, then reserve **OfficeIMO Studio** as an
 MSI/EXE product. Complete the first submission in Partner Center: package URLs,
 availability, properties, age ratings, description, screenshots, support and
@@ -116,22 +125,26 @@ screenshots must describe the submitted release, rather than newer source.
 See [Microsoft's MSI requirements](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msi/app-package-requirements)
 and [first-submission API boundary](https://learn.microsoft.com/en-us/windows/apps/publish/store-submission-api).
 
-For later package updates, copy `powerforge.store.submit.example.json` to a local
-submission config and replace its identity placeholders. Set
-`DesktopPackagesPath` to the prepared `desktop-packages.json`, relative to the
-config. Associate an Entra application with the required Partner Center role and
-supply its secret through `PARTNER_CENTER_CLIENT_SECRET`:
+For later package updates, associate an Entra application with the required
+Partner Center role once. Supply `PARTNER_CENTER_TENANT_ID`,
+`PARTNER_CENTER_CLIENT_ID`, `PARTNER_CENTER_CLIENT_SECRET` and
+`WINGET_CREATE_GITHUB_TOKEN` through local environment variables or the
+`studio-catalog` GitHub environment. The checked-in Store config contains only
+Studio's product identity and environment variable names.
 
-```powershell
-powerforge store submit --config ./Build/Studio/powerforge.store.submit.json --target Studio.Windows --plan
-powerforge store submit --config ./Build/Studio/powerforge.store.submit.json --target Studio.Windows --validate
-```
+The **Update Studio catalogs** Actions workflow accepts a published Studio tag,
+the public delivery release ID and a channel. Its default is preflight; select
+the execute input to submit. It downloads the release assets, restores any prior
+receipt, and archives intent before publishing. A canceled or uncertain run
+stops instead of automatically repeating a remote mutation. Retain its receipt
+artifacts; reconcile them using the [shared catalog update commands](https://github.com/EvotecIT/PSPublishModule/blob/main/Docs/PSPublishModule.CatalogUpdates.md).
+Store certification and WinGet moderator acceptance remain separate from
+submission. This package-only update preserves the listing and age ratings;
+update them separately when product behavior or listing claims change.
 
-The example keeps `Commit: false` so the first API run updates draft package
-metadata. Set `Commit: true` when submitting that prepared update. PowerForge
-owns validation, authentication, upload and status reporting; Studio supplies
-product metadata and paths. Other MSI products reuse the same commands with
-their own release config and Store product ID.
+PowerForge owns the commands and reusable workflow. Other MSI products supply
+their own catalog profile, release metadata, Store identity and public artifact
+keys, then call the same workflow.
 
 For everyday macOS development and stable privacy permissions, use [`Build-StudioMacDevelopment.ps1`](Build-StudioMacDevelopment.ps1) and the [development signing instructions](Apple/README.md#local-macos-development).
 
