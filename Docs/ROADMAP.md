@@ -466,9 +466,9 @@ Treat a format as a full OfficeIMO product only when a stable public model can s
 
 Current native lifecycle and rendering boundaries: [OfficeIMO.Xps support matrix](../OfficeIMO.Xps/SUPPORT.md).
 
-- [ ] Qualify OpenXPS with an independent native producer and consumer, widen the Microsoft XPS producer corpus beyond the Ecma document and generated interoperability cases, and check sideways per-glyph bearings and distinct OS/2 origins in a native consumer that honors those metrics.
+- [ ] Qualify independently produced OpenXPS documents and widen the Microsoft XPS producer corpus beyond the Ecma document, Ghostscript output, and generated interoperability cases.
 - [ ] Extend the rendering profile with style simulation, clipped miters and separate dash caps, rotated/sheared radial gradients and radial repeat/reflect spread in drawing/image/PDF conversion, non-tiled brush strokes, and color-managed/TIFF/JPEG-XR resources through the existing Core owners.
-- [ ] Add preservation-aware loaded-sequence/page restructuring and qualify interleaved OPC piece streams before claiming those native package profiles.
+- [ ] Qualify interleaved OPC input with independently produced fixtures and extend structural edits to rewrite document-structure/extension metadata where its semantics are known.
 - [ ] Add searchable PDF text and explicit document-navigation/structure mapping; expose thin Reader/workflow adapters after the owning conversion contracts are qualified.
 
 ### Full create, read, edit, and write products

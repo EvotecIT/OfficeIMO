@@ -24,9 +24,10 @@ public sealed class XpsPage {
         if (markup.Name != _markup.Name) throw new ArgumentException("Expected FixedPage in the document dialect.", nameof(markup));
         ValidatePageDimension(XpsPackage.Number((string?)markup.Attribute("Width"))); ValidatePageDimension(XpsPackage.Number((string?)markup.Attribute("Height")));
         // Reapply XML bounds before taking a caller-owned tree into the document.
-        var copy = XpsPackage.Xml(XpsPackage.Serialize(markup), new XpsReadOptions(), default);
-        _markup.ReplaceAttributes(copy.Attributes()); _markup.ReplaceNodes(copy.Nodes());
+        var copy = Document.ValidatePageMarkup(markup);
+        ApplyMarkup(copy);
     }
+    internal void ApplyMarkup(XElement markup) { _markup.ReplaceAttributes(markup.Attributes()); _markup.ReplaceNodes(markup.Nodes()); }
     /// <summary>Appends native path geometry; paint strings follow the XPS color syntax.</summary>
     public XpsPage AddPath(string data, string? fill = "#FF000000", string? stroke = null, double strokeThickness = 1) {
         if (string.IsNullOrWhiteSpace(data)) throw new ArgumentException("Path geometry is required.", nameof(data));
@@ -73,7 +74,7 @@ public sealed class XpsPage {
     }
     internal bool HasNamedTarget(string name) => _markup.DescendantsAndSelf().Any(e => (string?)e.Attribute("Name") == name && !e.Ancestors().Any(a => a.Name.LocalName == "VisualBrush.Visual"));
     internal byte[] Serialize() => XpsPackage.Serialize(_markup);
-    internal IEnumerable<string> ResourceReferences() => _markup.Descendants().Attributes().Where(a => a.Name.LocalName == "FontUri" || a.Name.LocalName == "ImageSource" || (a.Name.LocalName == "Source" && a.Parent?.Name.LocalName == "ResourceDictionary"))
+    internal IEnumerable<string> ResourceReferences(XElement? markup = null) => (markup ?? _markup).Descendants().Attributes().Where(a => a.Name.LocalName == "FontUri" || a.Name.LocalName == "ImageSource" || (a.Name.LocalName == "Source" && a.Parent?.Name.LocalName == "ResourceDictionary"))
         .Where(a => !a.Value.StartsWith("{", StringComparison.Ordinal)).Select(a => XpsPackage.Resolve(PartName, a.Value.Split('#')[0])).Distinct(StringComparer.OrdinalIgnoreCase);
     /// <summary>Converts the page to self-contained SVG, with explicit diagnostics for unsupported features.</summary>
     public XpsSvgResult ToSvg(bool allowPartial = false, CancellationToken cancellationToken = default) => new XpsSvgConverter(this, cancellationToken).Convert(allowPartial);

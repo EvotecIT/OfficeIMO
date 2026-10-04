@@ -69,9 +69,31 @@ to embed them. PNG/JPEG placement uses the image's declared resolution.
 `GetMarkup()` returns a detached `XElement`. Edit it and call `ReplaceMarkup()`
 to change an existing page, including native features outside the rendering
 profile. This retains the format's XML rather than reconstructing it from a
-rendered approximation. `AddPage()` appends to newly created documents; loaded
-sequences retain their existing structure. `AddResource()` adds a new part and
-`GetPartBytes()` returns a copy; neither exposes mutable internal buffers.
+rendered approximation. `AddPage()` appends to the last fixed document, including loaded packages.
+`Documents` exposes the native document sequence. Each `XpsFixedDocument` supports
+page insertion, removal, reordering, and transfer to another document in the same
+package. Repeated references share their backing document or page.
+
+```csharp
+XpsDocument document = XpsDocument.Load("report.oxps");
+XpsFixedDocument appendix = document.AddDocument();
+document.Documents[0].MovePageTo(0, appendix, 0);
+appendix.AddPage(816, 1056);
+document.MoveDocument(document.Documents.Count - 1, 0);
+document.Save("reordered.oxps");
+```
+
+Moves preserve page-part identities, relative resource bases, and native reference
+attributes and link targets. Known fixed-page navigation destinations are stabilized
+when sequence edits would change their meaning. Removing a reference retains its
+native parts; it does not delete resources. A link to a removed page remains an
+explicit unresolved destination rather than redirecting to another page. Opaque
+extension metadata and external document-structure parts are retained, not rewritten.
+
+`AddResource()` adds a new part. `ReplaceResource()` replaces an existing resource's
+encoded bytes while retaining its URI and content type; structural parts use their
+own editing APIs. `GetPartBytes()` returns a copy, and replacement APIs copy caller
+buffers.
 
 ## Native brush rendering
 
@@ -90,6 +112,9 @@ streams. It reads from the current stream position and leaves caller streams
 open. `XpsReadOptions` bounds compressed input, expanded bytes, part count, page
 count, and XML depth. Cancellation is accepted by loading and conversion APIs.
 External resource URIs and XML DTDs are rejected; resources are never fetched.
+Interleaved OPC pieces are assembled into bounded logical parts before parsing,
+including relationship and content-type streams. Loading is materialized, not a
+progressive streaming API. Saving writes conventional atomic ZIP parts.
 
 Saving keeps the original dialect, opaque package parts, and native page markup.
 It rebuilds ZIP packaging and content types; it does not preserve original ZIP
