@@ -4335,6 +4335,32 @@
     "tradeoff": "Additional PNG compression passes trade CPU work for smaller lossless output. No portable throughput claim; diagnostic elapsed times are not acceptance.",
     "hostedPackageEvidence": "Existing opt-in workflow now retains selected feed packages, installed OfficeIMO package origins/hashes, consumer assets and loaded binaries; next run must verify actual artifacts.",
     "retainedEvidence": "Ignore/MasterConvergenceQualification/static-allocation-diagnostic-c135",
-    "remaining": "Unchanged clean-source/platform timing, allocation, peak-memory, output and cancellation budgets; nineteen current packages/consumers; qualified long-lived adoption. Prior hosted/control failures remain visible."
+    "remaining": "Unchanged clean-source/platform timing, allocation, peak-memory, output and cancellation budgets; nineteen current packages/consumers; qualified long-lived adoption. Prior hosted/control failures remain visible.",
+    "standalonePr": {
+      "number": 2780,
+      "head": "5956518e5b60153a460451e85b674e932434f84a",
+      "status": "Published normal PR; immediate CI and automatic reviews pending; no merge/readiness claim",
+      "localDrawingTestsPerFramework": 3280,
+      "publicPackageConsumerFrameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "packageReceiptBoundary": "Four-target master-based Core package; zero runtime dependencies; fresh private local-feed origin, installed NUPKG SHA and loaded consumer DLL hashes verified. Receipt retained in the standalone worktree."
+    },
+    "freshPlatformRun": {
+      "runId": 37203264110,
+      "source": "864317173d9520b243e2224acbb5e924b5fed781",
+      "control": "c1352693b3f280441c0fbfbdec76a2f040bb149a",
+      "dispatchedUtc": "2026-10-04T12:46:25Z",
+      "initialStatus": "in_progress",
+      "scope": "Same-runner current/control unchanged static budgets, full selected correctness, nineteen packages and retained consumer origins on three platforms",
+      "controlBoundary": "Prior control allocation/output/timing failures are expected evidence. Verify candidate steps/reports independently of the aggregate run conclusion."
+    },
+    "checkpointCleanup": {
+      "verifiedAbsentTargets": 40,
+      "plannedVerifiedBytes": 943191944,
+      "scope": "Completed test/package/route owner bin/obj and superseded diagnostic builds/backups; no tracked source, feeds, evidence or shared caches removed",
+      "actualFilesystemErrorRecovery": "Hidden/read-only residuals recovered after fresh guard preflight through the hygiene helper DotNet route; all targets absent."
+    }
   }
 }

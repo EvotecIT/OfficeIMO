@@ -809,5 +809,61 @@
     "WAI is development, Chesapeake held-out and planetary development; no all-web success rate follows.",
     "Setup/extractor failures and unmatched source windows remain visible; no whitespace normalization is used to declare an exact text pass.",
     "Timing, full native editable acceptance, manual accessibility and browser parity are not established."
-  ]
+  ],
+  "chesapeakeArticleProfileAcceptance20261004": {
+    "recordedAtUtc": "2026-10-04T13:02:47.678149+00:00",
+    "sourceCommit": "864317173d9520b243e2224acbb5e924b5fed781",
+    "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+    "role": "held-out",
+    "viewportCssPixels": [
+      816,
+      900
+    ],
+    "profiles": [
+      {
+        "profile": "print-paged",
+        "pages": 3,
+        "sha256": "caafb1c4f0400c051c69d46920ad4cf6282ac8c6c453cd11b13e3a9621eebc71",
+        "images": 16,
+        "currentPdfByteEqualTo966Control": true
+      },
+      {
+        "profile": "screen-media-paged",
+        "pages": 5,
+        "sha256": "8f7d3cb9ec60d88856a5a967cdb4d548f6c894b11909efca121c86bf0ed95bbd",
+        "images": 19,
+        "currentPdfByteEqualTo966Control": true
+      },
+      {
+        "profile": "screen-snapshot-paged",
+        "pages": 4,
+        "sha256": "94567efcdfab12d31644d37b10c7ddc21819a375cc9b06b763dd568e56fdd504",
+        "images": 22,
+        "currentPdfByteEqualTo966Control": true
+      }
+    ],
+    "routeProof": "All three current API/Tool PDFs byte-identical; raw independent Poppler UTF-8/LF text identical per page; loaded owner informational versions identify the current source.",
+    "articleCoverage": {
+      "sourceBlocks": 12,
+      "distinctBlocks": 10,
+      "printAndSnapshotAllDistinctBlocksOnceAndOrdered": true,
+      "screenMediaDefaultLinearOrder": "Secondary-column text interrupts paragraph 4 between page 2 and 3; source characters remain in layout extraction. This is not evidence of text loss.",
+      "screenMediaTagOrder": {
+        "allTenBlocksPresentInSourceOrder": true,
+        "markedGroups": 140,
+        "observerFontAndFullPageTextPreserved": 5
+      }
+    },
+    "allPageVisualInspection": {
+      "pages": 12,
+      "method": "Poppler 26.09 72-dpi renders, all-page contact sheets and source-derived article/caption observations",
+      "observed": "Article text, two credited photos and captions remain inspectable. Print/media preserve whole figures; snapshot slices the continuous canvas, including the map, across pages. Dark-footer white text remains legible. Authored fixed Top raster control overlaps body on print/media pages."
+    },
+    "sourcePolicy": "Captured #scroll-to-top is an image link with authored position:fixed, z-index:100 and breakpoint-dependent bottom/left offsets. No site-specific control suppression was added.",
+    "machineTagBoundary": "Traversal of StructTreeRoot K order with independently extracted page MCID text; original font operand bytes preserved and observer reserialization reproduces full original text on all five pages. Initial observer font-byte setup failure is retained and is not a renderer finding.",
+    "remaining": "Browser-reference placement/typography and capture/resource omissions, authored fixed-control appearance criterion, manual assistive-technology acceptance, wider corpus and all historical intents. No claim of browser parity or global raw extraction order.",
+    "operationHasLossPreserved": true,
+    "evidenceRoot": "Ignore/MasterConvergenceQualification/chesapeake-appearance-864317173",
+    "predeclaredManifestSha256": "0c179f5d29d8a4acfe88c9a18c9220d2b0bf300eaa0c55d66914910124ec8b16"
+  }
 }
