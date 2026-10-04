@@ -1,6 +1,6 @@
 {
   "schema": "officeimo.html.master-owner-convergence",
-  "recordedAtUtc": "2026-10-04T08:20:38.039929+00:00",
+  "recordedAtUtc": "2026-10-04T08:34:43.666466+00:00",
   "sourceCommit": "966539fd403b36b8af6a946e6f98dc3cf1556f18",
   "masterInputCommit": "2f88a03b487e6dbc2d1fdd1e5d3efa5d9fa718cc",
   "h10InputCommit": "28a9f587556d40651faf2143a609aafc7c33be4a",
@@ -94,7 +94,12 @@
       "command": "Build/Test-HtmlPackages.ps1 -ArtifactsPath <new absolute task directory>",
       "runtimeGraphExcluded": true,
       "net472ExecutionOnMac": false,
-      "manifest": "Ignore/MasterConvergenceQualification/packages-966539fd4/package-manifest.json"
+      "manifest": "Ignore/MasterConvergenceQualification/packages-966539fd4/package-manifest.json",
+      "packedConsumerOriginReceipt": {
+        "path": "Ignore/MasterConvergenceQualification/packages-966539fd4/packed-consumer-origin-receipts.json",
+        "sha256": "d7ecdfc00b6aced119acf5198f9328b3c7875ffe41c03b81e21b894bb133b04f",
+        "contract": "All nineteen installed consumer packages match the retained local feed NUPKG SHA; local-feed origins verified. The private expansion is removed."
+      }
     },
     "profileResults": [
       {
@@ -195,7 +200,13 @@
       "artifactNestingFailedChecksAfter": 0,
       "scope": "Focused before/after rule proof; the general fixture remains noncompliant for four metadata/language rules."
     },
-    "h4": "All eight selected held-out cases included in both4266-test HTML suites; current full artifact replay remains separate.",
+    "h4": {
+      "sourceCommit": "08277c5d42ade8a5f5dd9229d818a3f3564a59e9",
+      "cases": 8,
+      "executionFailures": 0,
+      "acceptancePassed": true,
+      "report": "Ignore/MasterConvergenceQualification/advanced-held-out-08277c5d4/html-corpus-evidence.json"
+    },
     "normalComparisonBuild": {
       "passed": true,
       "warnings": 0,
@@ -203,6 +214,106 @@
       "sourceCommit": "966539fd403b36b8af6a946e6f98dc3cf1556f18",
       "graph": "Existing opt-in comparison project, including Runtime/Conformance contracts but not the provider Worker; no SourceRoot override or local-source bridge.",
       "historicalFailure": "Current normal comparison build passes; this does not establish the historical SourceRoot root cause or Worker/provider package readiness."
+    },
+    "staticArtifacts": {
+      "sourceCommit": "08277c5d42ade8a5f5dd9229d818a3f3564a59e9",
+      "baselineCommit": "395d5ce4874c45e919c0bf91be3c694b692bfd47",
+      "cases": 18,
+      "executionFailures": 0,
+      "artifacts": 150,
+      "byteIdentical": 76,
+      "pdfCount": 36,
+      "allPdfPageCountsTextTokenMultisetsFormulasLinksDecodedAttachmentsPreserved": true,
+      "allScreenTextPreserved": true,
+      "sourceVisibleCharacterMultisetsPreserved": true,
+      "numberedSequencesIndividuallyOrdered": true,
+      "crossSequenceOrderObservation": "The global inline-order probe is false for column-notes. Footnotes paint with the originating columns; all three numbered sequences are individually ordered and the PDF is byte-identical to the accepted baseline. Original result retained.",
+      "independentImagePixelBounds": {
+        "webpRgb": 1,
+        "avifRgb": 2,
+        "alpha": 0
+      },
+      "markerCountsAndRequiredLinks": true,
+      "svgRegionChecks": [
+        {
+          "file": "officeimo-print-1.png",
+          "tileInteriorSamples": 11544,
+          "tileMaximumChannelError": 0,
+          "circleMaximumPixelCenterRadius": 65.59344479443048,
+          "circleAllowedRadius": 66,
+          "filterExpectedLinearRgbMultiply": [
+            119,
+            9,
+            119
+          ],
+          "filterActual": [
+            119,
+            9,
+            119
+          ],
+          "filterMaximumChannelError": 0,
+          "shadowOutsideSource": [
+            146,
+            146,
+            146
+          ],
+          "outsideFilterSupport": [
+            255,
+            255,
+            255
+          ],
+          "passed": true
+        },
+        {
+          "file": "officeimo-print-scene-page-1.png",
+          "tileInteriorSamples": 11544,
+          "tileMaximumChannelError": 0,
+          "circleMaximumPixelCenterRadius": 64.93458246574009,
+          "circleAllowedRadius": 66,
+          "filterExpectedLinearRgbMultiply": [
+            119,
+            9,
+            119
+          ],
+          "filterActual": [
+            119,
+            9,
+            119
+          ],
+          "filterMaximumChannelError": 0,
+          "shadowOutsideSource": [
+            165,
+            165,
+            165
+          ],
+          "outsideFilterSupport": [
+            255,
+            255,
+            255
+          ],
+          "passed": true
+        }
+      ],
+      "visualInspection": "All43 changed PNG pairs inspected on8contact sheets, plus a full-size math crop. Raster/font paint differs from the glyph baseline; no lost content or displaced fixture layout observed. Numerical selected-region checks pass. This does not establish arbitrary page/browser parity.",
+      "retainedReports": [
+        "static-regression-comparison.json",
+        "static-pdf-inspection.json",
+        "full-static-text-inspection.json",
+        "static-marker-sequence-checks.json",
+        "static-svg-region-checks.json",
+        "static-visuals-08277c5d4/"
+      ]
+    },
+    "platformProbe": {
+      "state": "Prepared, not yet executed",
+      "suite": "html-static-pdf-probe",
+      "scope": "Existing opt-in three-platform workflow now selects eight bounded raster/font-face cases and eight bounded PDF logical-carrier cases alongside existing point/font probes, on net8/net10. Full suites, packages and timings are excluded from this probe.",
+      "workflowValidation": "Ruby Psych YAML parse and all six PowerShell scripts parse. An initial optional Python YAML import was unavailable; that setup attempt is not validation."
+    },
+    "timingAccess": {
+      "currentCombinedSourceMeasured": false,
+      "localHost": "Unrelated simulator builds observed; no contended timing run attempted.",
+      "alternateHost": "EvoMini dedicated persisted SSH key is absent on this machine. Strict access helper stopped before connection; no authentication or host-key policy changed."
     }
   },
   "localReview": [
@@ -295,10 +406,13 @@
   "cleanup": {
     "removedTestOutputBytes": 432054815,
     "finalEvidenceRoot": "Ignore/MasterConvergenceQualification",
-    "retained": "Final source-addressed route PDFs, native baseline inputs in H10, profile PDFs/XML, changed-page contact sheets, exact test reports and failure/review receipts; superseded build output removed through guarded helper."
+    "retained": "Final route/static/H4 PDFs and images, profile PDFs/XML, changed-page contact sheets, exact test and failure/review receipts, nineteen NUPKG files and local-feed origin receipts; private package expansion and probe bin/obj removed through guarded helper.",
+    "removedCheckpointOutputBytes": 590089031,
+    "removedCheckpointTargets": 13,
+    "checkpointAllTargetsAbsent": true
   },
   "remaining": [
-    "Current eighteen-case/H4 all-artifact qualification; classify current-master font/paint deltas against frozen independent criteria.",
+    "Current-source normal static and H10 operation budgets, and three-platform focused bounded-owner probe. All local static/H4 artifacts are now replayed; wider unfamiliar-page acceptance remains separate.",
     "Current-source normal static and H10 operation budgets; same-host/domain hosted controls and Windows/Linux/macOS acceptance. Prior hosted timing failures remain visible; no ceiling change.",
     "Isolated current-master standalone raster/PDF fix candidates and ordinary current-head PR gates, when extracted.",
     "Named unfamiliar-page resources/appearance, all eleven historical intents, wider held-out corpus, native editable widths/pagination/appearance and manual accessibility.",

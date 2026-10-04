@@ -116,6 +116,19 @@ jobs:
           foreach ($framework in @('net8.0', 'net10.0')) {
             dotnet test OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration Release --framework $framework --filter 'FullyQualifiedName~InstalledMathFontRetainsOperationBoundsAndCancellationWhenAvailable' --logger "trx;LogFileName=drawing-math-$framework.trx" --results-directory "$env:RUNNER_TEMP/html-static-tests"
           }
+      - name: Validate bounded raster and numeric font-face contracts
+        if: ${{ !cancelled() && inputs.suite == 'html-static-pdf-probe' }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $false
+          $failures = @()
+          $filter = 'FullyQualifiedName~MinificationIncludesOutputAndFloatScratchInTheSharedPixelBudget|FullyQualifiedName~EncodedImageMinificationEnforcesTheCallerLimitButNearestNeighborNeedsNoPrefilter|FullyQualifiedName~ExhaustedSamplingBudgetReportsUnavailableVisualInspectionAndRetainsStructuralFindings|FullyQualifiedName~NumericFaceSelectsTheSameAdvanceAndMathConstantsAsTheOnlyMatchingFace|FullyQualifiedName~NumericFaceUsesItsDesignedOperatorVariantRatherThanRegularFaceFallback'
+          foreach ($framework in @('net8.0', 'net10.0')) {
+            dotnet test OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration Release --framework $framework --filter $filter --logger "trx;LogFileName=drawing-bounded-$framework.trx" --results-directory "$env:RUNNER_TEMP/html-static-tests"
+            if ($LASTEXITCODE -ne 0) { $failures += $framework }
+          }
+          if ($failures.Count -gt 0) { throw "Bounded raster/font correctness failed: $($failures -join ', ')" }
       - name: Validate installed font collection selection and PDF correctness
         if: ${{ !cancelled() }}
         shell: pwsh
@@ -136,9 +149,12 @@ jobs:
             dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration Release --framework $framework --filter 'FullyQualifiedName~PdfSystemFontCollectionTests|FullyQualifiedName~PdfSystemFontNameTests|FullyQualifiedName~PdfSystemFontStyleTests|FullyQualifiedName~TryFromSystemFontFiles' --logger "trx;LogFileName=pdf-fonts-$framework.trx" --results-directory "$env:RUNNER_TEMP/html-static-tests"
             if ($LASTEXITCODE -ne 0) { $failures += "font selection $framework" }
           }
-          $pdfFilter = if ($probeOnly) { 'FullyQualifiedName~LogicalTextReplacesPaintExactlyOnceInIndependentExtraction|FullyQualifiedName~PdfDocument_RegisteredFallback' } else { 'Category!=Performance' }
-          dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration Release --framework net10.0 --no-build --no-restore --filter $pdfFilter --logger 'trx;LogFileName=pdf-net10.0.trx' --results-directory "$env:RUNNER_TEMP/html-static-tests"
-          if ($LASTEXITCODE -ne 0) { $failures += 'PDF correctness net10.0' }
+          $pdfFilter = if ($probeOnly) { 'FullyQualifiedName~LogicalTextReplacesPaintExactlyOnceInIndependentExtraction|FullyQualifiedName~PdfDocument_RegisteredFallback|FullyQualifiedName~BoundedLogicalSpan|FullyQualifiedName~SearchableCarrierKeepsDeclaredWidth' } else { 'Category!=Performance' }
+          $pdfFrameworks = if ($probeOnly) { @('net8.0', 'net10.0') } else { @('net10.0') }
+          foreach ($framework in $pdfFrameworks) {
+            dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration Release --framework $framework --no-build --no-restore --filter $pdfFilter --logger "trx;LogFileName=pdf-$framework.trx" --results-directory "$env:RUNNER_TEMP/html-static-tests"
+            if ($LASTEXITCODE -ne 0) { $failures += "PDF correctness $framework" }
+          }
           if ($failures.Count -gt 0) { throw "PDF correctness failed: $($failures -join ', ')" }
       - name: Validate packed public consumers
         if: ${{ !cancelled() && inputs.suite == 'html-static' }}
