@@ -10,6 +10,8 @@ namespace OfficeIMO.Drawing;
 /// Shared SVG formatting helpers used by OfficeIMO renderers.
 /// </summary>
 public static partial class OfficeSvgFormatting {
+    private static string FormatPreciseNumber(double value) => value.ToString("R", CultureInfo.InvariantCulture);
+
     /// <summary>
     /// Formats a numeric SVG attribute value using invariant culture and compact precision.
     /// </summary>
@@ -316,33 +318,30 @@ public static partial class OfficeSvgFormatting {
         builder.Append("<defs><radialGradient id=\"")
             .Append(Escape(id))
             .Append("\" cx=\"")
-            .Append(FormatNumber(endX * 100D))
+            .Append(FormatPreciseNumber(endX * 100D))
             .Append("%\" cy=\"")
-            .Append(FormatNumber(endY * 100D))
+            .Append(FormatPreciseNumber(endY * 100D))
             .Append("%\" r=\"")
-            .Append(FormatNumber(endRadius * 100D))
+            .Append(FormatPreciseNumber(endRadius * 100D))
             .Append("%\" fx=\"")
-            .Append(FormatNumber(startX * 100D))
+            .Append(FormatPreciseNumber(startX * 100D))
             .Append("%\" fy=\"")
-            .Append(FormatNumber(startY * 100D))
+            .Append(FormatPreciseNumber(startY * 100D))
             .Append('%')
             .Append('"');
 
-        if (elliptical) {
+        var coordinates = (elliptical ? new OfficeTransform(gradient.EndRadiusX, 0D, 0D, gradient.EndRadiusY, gradient.EndX, gradient.EndY)
+            : OfficeTransform.Identity).Then(gradient.CoordinateTransform);
+        if (coordinates != OfficeTransform.Identity) {
             builder.Append(" gradientTransform=\"matrix(")
-                .Append(FormatNumber(gradient.EndRadiusX))
-                .Append(" 0 0 ")
-                .Append(FormatNumber(gradient.EndRadiusY))
-                .Append(' ')
-                .Append(FormatNumber(gradient.EndX))
-                .Append(' ')
-                .Append(FormatNumber(gradient.EndY))
-                .Append(")\"");
+                .Append(FormatPreciseNumber(coordinates.M11)).Append(' ').Append(FormatPreciseNumber(coordinates.M12)).Append(' ')
+                .Append(FormatPreciseNumber(coordinates.M21)).Append(' ').Append(FormatPreciseNumber(coordinates.M22)).Append(' ')
+                .Append(FormatPreciseNumber(coordinates.OffsetX)).Append(' ').Append(FormatPreciseNumber(coordinates.OffsetY)).Append(")\"");
         }
 
         if (startRadius > 0D) {
             builder.Append(" fr=\"")
-                .Append(FormatNumber(startRadius * 100D))
+                .Append(FormatPreciseNumber(startRadius * 100D))
                 .Append("%\"");
         }
 
@@ -351,7 +350,7 @@ public static partial class OfficeSvgFormatting {
         for (int i = 0; i < gradient.Stops.Count; i++) {
             OfficeGradientStop stop = gradient.Stops[i];
             builder.Append("<stop offset=\"")
-                .Append(FormatNumber(stop.Offset * 100D))
+                .Append(FormatPreciseNumber(stop.Offset * 100D))
                 .Append("%\" stop-color=\"")
                 .Append(ToCssColor(stop.Color))
                 .Append('"');

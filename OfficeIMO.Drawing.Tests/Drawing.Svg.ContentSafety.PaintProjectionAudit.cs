@@ -127,10 +127,10 @@ public sealed class SvgContentSafetyPaintProjectionAuditTests {
     [Theory]
     [InlineData("repeat")]
     [InlineData("reflect")]
-    public void RadialSpreadCannotHideEarlierText(string spread) {
+    public void UnsupportedFocalCircleSpreadCannotHideEarlierText(string spread) {
         byte[] svg = Svg(
             "<text x='10' y='35'>radial-covered payload</text>" +
-            "<defs><radialGradient id='paint' spreadMethod='" + spread + "'>" +
+            "<defs><radialGradient id='paint' fr='.1' spreadMethod='" + spread + "'>" +
             "<stop offset='0' stop-color='white'/><stop offset='1' stop-color='white'/>" +
             "</radialGradient></defs>" +
             "<rect x='0' y='0' width='220' height='60' fill='url(#paint)'/>");
@@ -166,7 +166,7 @@ public sealed class SvgContentSafetyPaintProjectionAuditTests {
     [Fact]
     public void IncompletePaintReportsOtherwiseVisibleTextEvenWithoutVisualComparisons() {
         byte[] svg = Svg(
-            "<defs><radialGradient id='paint' spreadMethod='repeat'>" +
+            "<defs><radialGradient id='paint' fr='.1' spreadMethod='repeat'>" +
             "<stop offset='0' stop-color='white'/><stop offset='1' stop-color='white'/>" +
             "</radialGradient></defs>" +
             "<text x='10' y='35'>browser-covered payload</text>" +

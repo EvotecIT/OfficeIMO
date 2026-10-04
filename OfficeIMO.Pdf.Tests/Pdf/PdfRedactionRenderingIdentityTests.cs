@@ -7,6 +7,26 @@ namespace OfficeIMO.Pdf.Tests;
 
 public class PdfRedactionRenderingIdentityTests {
     [Fact]
+    public void AppliedPlanVerificationRejectsChangedAffineRadialField() {
+        AssertPlanIdentityChanged(BuildRadialIdentityPdf("60 10 20 50 20 20"),
+            BuildRadialIdentityPdf("60 20 10 50 20 20"));
+    }
+
+    private static byte[] BuildRadialIdentityPdf(string matrix) {
+        const string content = "q /Pattern cs /P scn 20 20 80 60 re f Q";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Pattern << /P 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", $"<< /Length {content.Length} >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", $"<< /Type /Pattern /PatternType 2 /Matrix [{matrix}] /Shading 6 0 R >>", "endobj",
+            "6 0 obj", "<< /ShadingType 3 /ColorSpace /DeviceRGB /Coords [.5 .5 0 .5 .5 .5] /Extend [true true] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
+        }));
+    }
+
+    [Fact]
     public void AppliedPlanVerificationRejectsChangedFormLocalFontProgramGraph() {
         AssertPlanIdentityChanged(
             BuildFormEmbeddedFontIdentityPdf("source-form-font-program"),

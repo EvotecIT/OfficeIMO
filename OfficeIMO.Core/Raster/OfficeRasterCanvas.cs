@@ -746,45 +746,7 @@ public sealed partial class OfficeRasterCanvas {
         return stops[stops.Count - 1].Color;
     }
 
-    private static double ComputeRadialRatio(OfficeRadialGradient gradient, double x, double y) {
-        double endRadiusX = Math.Max(gradient.EndRadiusX, 0.0000001D);
-        double endRadiusY = Math.Max(gradient.EndRadiusY, 0.0000001D);
-        double normalizedX = (x - gradient.EndX) / endRadiusX;
-        double normalizedY = (y - gradient.EndY) / endRadiusY;
-        double startX = (gradient.StartX - gradient.EndX) / endRadiusX;
-        double startY = (gradient.StartY - gradient.EndY) / endRadiusY;
-        double startRadius = gradient.StartRadiusX / endRadiusX;
-        double vx = normalizedX - startX;
-        double vy = normalizedY - startY;
-        double dx = -startX;
-        double dy = -startY;
-        double dr = 1D - startRadius;
-        double a = (dx * dx) + (dy * dy) - (dr * dr);
-        double b = -2D * ((vx * dx) + (vy * dy) + (startRadius * dr));
-        double c = (vx * vx) + (vy * vy) - (startRadius * startRadius);
-        if (Math.Abs(a) < 0.0000001D) {
-            if (Math.Abs(b) < 0.0000001D) {
-                return 0D;
-            }
-
-            return Clamp(-c / b, 0D, 1D);
-        }
-
-        double discriminant = (b * b) - (4D * a * c);
-        if (discriminant < 0D) {
-            return 0D;
-        }
-
-        double sqrt = Math.Sqrt(discriminant);
-        double t1 = (-b - sqrt) / (2D * a);
-        double t2 = (-b + sqrt) / (2D * a);
-        double ratio = Math.Max(t1, t2);
-        if (ratio < 0D) {
-            ratio = Math.Min(t1, t2);
-        }
-
-        return Clamp(ratio, 0D, 1D);
-    }
+    private static double ComputeRadialRatio(OfficeRadialGradient gradient, double x, double y) => gradient.SampleRatio(x, y);
 
     private static byte InterpolateByte(byte start, byte end, double ratio) =>
         (byte)Math.Max(0, Math.Min(255, (int)Math.Round(start + ((end - start) * ratio))));

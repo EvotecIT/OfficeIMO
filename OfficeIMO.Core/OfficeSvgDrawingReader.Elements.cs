@@ -91,7 +91,7 @@ public static partial class OfficeSvgDrawingReader {
 
         inherited.DashPercentageReference = NormalizedSvgDiagonal(drawing.Width, drawing.Height);
         SvgPaintContext style = ResolvePaintContext(element, inherited, paintServers, ref unsupported);
-        if (!style.Displayed) return;
+        if (!style.Displayed || style.Opacity <= 0D) return;
         if (!style.VisibilityVisible && name is not "g" and not "a" and not "switch" and not "svg" and not "use" and not "text") return;
         OfficeTransform transform = ResolveTransform(element, inheritedTransform, viewX, viewY, ref unsupported);
         if (name == "foreignObject") {

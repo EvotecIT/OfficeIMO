@@ -200,16 +200,6 @@ internal static partial class PdfPageContentVisualParser {
         return true;
     }
 
-    private static bool IsRepresentableRadialShadingTransform(Matrix2D transform) {
-        double firstLengthSquared = (transform.A * transform.A) + (transform.B * transform.B);
-        double secondLengthSquared = (transform.C * transform.C) + (transform.D * transform.D);
-        if (firstLengthSquared <= 0D || secondLengthSquared <= 0D ||
-            double.IsNaN(firstLengthSquared) || double.IsNaN(secondLengthSquared) ||
-            double.IsInfinity(firstLengthSquared) || double.IsInfinity(secondLengthSquared)) return false;
-        double dot = (transform.A * transform.C) + (transform.B * transform.D);
-        if (firstLengthSquared == secondLengthSquared && dot == 0D) return true;
-        return transform.B == 0D && transform.C == 0D;
-    }
 
     private static double ResolveStrokeWidth(double value) {
         if (value < 0D) {

@@ -6,43 +6,44 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>
 /// Dependency-free radial gradient intent in normalized local coordinates.
-/// Coordinates use a top-left origin where 0,0 is the shape's top-left corner and 1,1 is its bottom-right corner.
+/// Coordinates use a top-left origin and are mapped through CoordinateTransform into normalized shape coordinates.
+/// With the identity transform, 0,0 is the shape's top-left corner and 1,1 is its bottom-right corner.
 /// Ellipse centers may sit outside that box to preserve authored gradients whose focal point is off-canvas.
-/// Independent horizontal and vertical radii allow axis-aligned ellipses while the original circle constructors remain source-compatible.
+/// Independent horizontal and vertical radii allow ellipses before the affine coordinate transform while the original circle constructors remain source-compatible.
 /// </summary>
-public sealed class OfficeRadialGradient {
-    /// <summary>Start circle center X coordinate in shape-local units.</summary>
+public sealed partial class OfficeRadialGradient {
+    /// <summary>Start circle center X coordinate in gradient-coordinate units.</summary>
     public double StartX { get; }
 
-    /// <summary>Start circle center Y coordinate in shape-local units.</summary>
+    /// <summary>Start circle center Y coordinate in gradient-coordinate units.</summary>
     public double StartY { get; }
 
-    /// <summary>Normalized start circle radius, or the horizontal radius for an elliptical definition.</summary>
+    /// <summary>Start circle radius, or the horizontal radius for an elliptical definition.</summary>
     public double StartRadius { get; }
 
-    /// <summary>Normalized horizontal start ellipse radius.</summary>
+    /// <summary>Horizontal start ellipse radius.</summary>
     public double StartRadiusX { get; }
 
-    /// <summary>Normalized vertical start ellipse radius.</summary>
+    /// <summary>Vertical start ellipse radius.</summary>
     public double StartRadiusY { get; }
 
-    /// <summary>End circle center X coordinate in shape-local units.</summary>
+    /// <summary>End circle center X coordinate in gradient-coordinate units.</summary>
     public double EndX { get; }
 
-    /// <summary>End circle center Y coordinate in shape-local units.</summary>
+    /// <summary>End circle center Y coordinate in gradient-coordinate units.</summary>
     public double EndY { get; }
 
-    /// <summary>Normalized end circle radius, or the horizontal radius for an elliptical definition.</summary>
+    /// <summary>End circle radius, or the horizontal radius for an elliptical definition.</summary>
     public double EndRadius { get; }
 
-    /// <summary>Normalized horizontal end ellipse radius.</summary>
+    /// <summary>Horizontal end ellipse radius.</summary>
     public double EndRadiusX { get; }
 
-    /// <summary>Normalized vertical end ellipse radius.</summary>
+    /// <summary>Vertical end ellipse radius.</summary>
     public double EndRadiusY { get; }
 
     /// <summary>Gradient stops in offset order.</summary>
-    public IReadOnlyList<OfficeGradientStop> Stops { get; }
+    public IReadOnlyList<OfficeGradientStop> Stops { get; private set; }
 
     /// <summary>Creates a radial gradient between two circles.</summary>
     public OfficeRadialGradient(double startX, double startY, double startRadius, double endX, double endY, double endRadius, OfficeGradientStop start, OfficeGradientStop end) {
@@ -106,7 +107,7 @@ public sealed class OfficeRadialGradient {
         new OfficeRadialGradient(0.5D, 0.5D, 0D, 0.5D, 0.5D, 0.5D, new OfficeGradientStop(0D, startColor), new OfficeGradientStop(1D, endColor));
 
     /// <summary>Creates a detached copy.</summary>
-    public OfficeRadialGradient Clone() => new OfficeRadialGradient(StartX, StartY, StartRadiusX, StartRadiusY, EndX, EndY, EndRadiusX, EndRadiusY, Stops);
+    public OfficeRadialGradient Clone() => (OfficeRadialGradient)MemberwiseClone();
 
     private static void ValidateCoordinates(double startX, double startY, double startRadius, double endX, double endY, double endRadius) {
         ValidateFiniteCoordinate(startX, nameof(startX));

@@ -617,15 +617,16 @@ public partial class DrawingTests {
     }
 
     [Fact]
-    public void RepeatedEmbeddedImagesChargeFullCanvasEffectSurfaces() {
+    public void RepeatedEmbeddedImagesUseTheirLocalSurfaces() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Red));
         string image = "data:image/png;base64," + Convert.ToBase64String(png);
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4096 4096'><defs>" +
             "<image id='i' href='" + image + "' width='1' height='1'/></defs>" +
             string.Concat(Enumerable.Repeat("<use href='#i'/>", 5)) + "</svg>";
 
-        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out _, out int unsupported));
-        Assert.True(unsupported > 0);
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.Equal(5, EnumerateDrawingImages(drawing!).Count());
     }
 
     [Theory]

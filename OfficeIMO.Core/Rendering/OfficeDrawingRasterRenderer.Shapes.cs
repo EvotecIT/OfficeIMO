@@ -264,37 +264,7 @@ public static partial class OfficeDrawingRasterRenderer {
     private static byte InterpolateByte(byte start, byte end, double ratio) =>
         (byte)Math.Round(start + ((end - start) * Clamp(ratio, 0D, 1D)));
 
-    private static double ComputeRadialRatio(OfficeRadialGradient gradient, double x, double y) {
-        double vx = x - gradient.StartX;
-        double vy = y - gradient.StartY;
-        double dx = gradient.EndX - gradient.StartX;
-        double dy = gradient.EndY - gradient.StartY;
-        double dr = gradient.EndRadius - gradient.StartRadius;
-        double a = (dx * dx) + (dy * dy) - (dr * dr);
-        double b = -2D * ((vx * dx) + (vy * dy) + (gradient.StartRadius * dr));
-        double c = (vx * vx) + (vy * vy) - (gradient.StartRadius * gradient.StartRadius);
-        if (Math.Abs(a) < 0.0000001D) {
-            if (Math.Abs(b) < 0.0000001D) {
-                return 0D;
-            }
-
-            return Clamp(-c / b, 0D, 1D);
-        }
-
-        double discriminant = (b * b) - (4D * a * c);
-        if (discriminant < 0D) {
-            return 0D;
-        }
-
-        double root = Math.Sqrt(discriminant);
-        double first = (-b - root) / (2D * a);
-        double second = (-b + root) / (2D * a);
-        if (first >= 0D && first <= 1D) {
-            return first;
-        }
-
-        return Clamp(second, 0D, 1D);
-    }
+    private static double ComputeRadialRatio(OfficeRadialGradient gradient, double x, double y) => gradient.SampleRatio(x, y);
 
     private static double Clamp(double value, double min, double max) =>
         value < min ? min : value > max ? max : value;

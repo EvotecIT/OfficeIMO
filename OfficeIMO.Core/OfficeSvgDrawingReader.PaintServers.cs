@@ -498,33 +498,23 @@ public static partial class OfficeSvgDrawingReader {
                         first.X, first.Y, second.X, second.Y, Stops).TransformCoordinates(coordinates);
                     return TryCreateLinearSpread(field.StartX, field.StartY, field.EndX, field.EndY, out linear);
                 }
-                first = GradientTransform.TransformPoint(first);
-                second = GradientTransform.TransformPoint(second);
-                double x1 = NormalizeAxis(first.X, shapeX, shape.Width, viewX);
-                double y1 = NormalizeAxis(first.Y, shapeY, shape.Height, viewY);
-                double x2 = NormalizeAxis(second.X, shapeX, shape.Width, viewX);
-                double y2 = NormalizeAxis(second.Y, shapeY, shape.Height, viewY);
-                if (SpreadMode != SvgGradientSpreadMode.Pad) return false;
-                if (Math.Abs(GradientTransform.M12) > 0.0000001D || Math.Abs(GradientTransform.M21) > 0.0000001D) return false;
                 double diagonal = Math.Sqrt((viewportWidth * viewportWidth) + (viewportHeight * viewportHeight)) / Math.Sqrt(2D);
                 double radius1 = ResolveRadius(Radius1, diagonal, UserSpaceOnUse);
                 double radius2 = ResolveRadius(Radius2, diagonal, UserSpaceOnUse);
-                double radius1X = radius1 * Math.Abs(GradientTransform.M11);
-                double radius1Y = radius1 * Math.Abs(GradientTransform.M22);
-                double radius2X = radius2 * Math.Abs(GradientTransform.M11);
-                double radius2Y = radius2 * Math.Abs(GradientTransform.M22);
-                if (radius2X <= 0D || radius2Y <= 0D || radius1X < 0D || radius1Y < 0D || radius1X > radius2X || radius1Y > radius2Y) return false;
-                radial = new OfficeRadialGradient(
-                    x1,
-                    y1,
-                    NormalizeRadius(radius1X, shape.Width, UserSpaceOnUse),
-                    NormalizeRadius(radius1Y, shape.Height, UserSpaceOnUse),
-                    x2,
-                    y2,
-                    NormalizeRadius(radius2X, shape.Width, UserSpaceOnUse),
-                    NormalizeRadius(radius2Y, shape.Height, UserSpaceOnUse),
-                    Stops);
-                return true;
+                if (radius2 <= 0D || radius1 < 0D || radius1 > radius2) return false;
+                OfficeTransform radialCoordinates = GradientTransform;
+                if (UserSpaceOnUse) radialCoordinates = radialCoordinates
+                    .Then(OfficeTransform.Translate(-viewX - shapeX, -viewY - shapeY))
+                    .Then(OfficeTransform.Scale(1D / shape.Width, 1D / shape.Height));
+                if (radialCoordinates.M12 == 0D && radialCoordinates.M21 == 0D) {
+                    first = radialCoordinates.TransformPoint(first); second = radialCoordinates.TransformPoint(second);
+                    radial = new OfficeRadialGradient(first.X, first.Y, radius1 * Math.Abs(radialCoordinates.M11), radius1 * Math.Abs(radialCoordinates.M22),
+                        second.X, second.Y, radius2 * Math.Abs(radialCoordinates.M11), radius2 * Math.Abs(radialCoordinates.M22), Stops);
+                } else {
+                    radial = new OfficeRadialGradient(first.X, first.Y, radius1, second.X, second.Y, radius2, Stops)
+                        .TransformCoordinates(radialCoordinates);
+                }
+                return TryCreateRadialSpread(radial, shape, out radial);
             } catch (ArgumentException) {
                 return false;
             }
@@ -543,14 +533,9 @@ public static partial class OfficeSvgDrawingReader {
                 y.IsPercentage ? viewY + (y.Value * viewportHeight) : y.Value);
         }
 
-        private double NormalizeAxis(double value, double shapeOrigin, double shapeSize, double viewOrigin) =>
-            UserSpaceOnUse ? ((value - viewOrigin) - shapeOrigin) / shapeSize : value;
-
         private static double ResolveRadius(SvgGradientCoordinate coordinate, double viewportDiagonal, bool userSpaceOnUse) =>
             userSpaceOnUse && coordinate.IsPercentage ? coordinate.Value * viewportDiagonal : coordinate.Value;
 
-        private static double NormalizeRadius(double radius, double shapeSize, bool userSpaceOnUse) =>
-            userSpaceOnUse ? radius / shapeSize : radius;
 
     }
 

@@ -87,19 +87,17 @@ internal static partial class PdfWriter {
         double x,
         double y,
         bool localCoordinates = false) {
-        OfficeRadialGradient gradient = shape.FillRadialGradient!;
-        if (gradient.EndRadiusX.Equals(gradient.EndRadiusY)) {
-            content.TransformMatrix(shape.Width, 0D, 0D, localCoordinates ? -shape.Height : shape.Height,
-                x, localCoordinates ? shape.Height : y);
-            return;
-        }
+        var transform = RadialShadingTransform(shape, x, y, localCoordinates);
+        content.TransformMatrix(transform.M11, transform.M12, transform.M21, transform.M22, transform.OffsetX, transform.OffsetY);
+    }
 
-        content.TransformMatrix(
-            shape.Width * gradient.EndRadiusX,
-            0D,
-            0D,
-            (localCoordinates ? -shape.Height : shape.Height) * gradient.EndRadiusY,
-            x + (shape.Width * gradient.EndX),
-            localCoordinates ? shape.Height * gradient.EndY : y + (shape.Height * (1D - gradient.EndY)));
+    private static OfficeTransform RadialShadingTransform(OfficeShape shape, double x, double y, bool localCoordinates) {
+        OfficeRadialGradient gradient = shape.FillRadialGradient!;
+        var coordinates = gradient.EndRadiusX.Equals(gradient.EndRadiusY)
+            ? new OfficeTransform(1D, 0D, 0D, -1D, 0D, 1D)
+            : new OfficeTransform(gradient.EndRadiusX, 0D, 0D, -gradient.EndRadiusY, gradient.EndX, gradient.EndY);
+        return coordinates.Then(gradient.CoordinateTransform).Then(new OfficeTransform(
+            shape.Width, 0D, 0D, localCoordinates ? shape.Height : -shape.Height,
+            x, localCoordinates ? 0D : y + shape.Height));
     }
 }

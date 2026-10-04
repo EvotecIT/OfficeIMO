@@ -670,6 +670,10 @@ public sealed class PdfRedactionPlan {
             .Append(',').Append(FormatIdentityNumber(gradient.StartRadiusX)).Append(',').Append(FormatIdentityNumber(gradient.StartRadiusY))
             .Append(',').Append(FormatIdentityNumber(gradient.EndX)).Append(',').Append(FormatIdentityNumber(gradient.EndY))
             .Append(',').Append(FormatIdentityNumber(gradient.EndRadiusX)).Append(',').Append(FormatIdentityNumber(gradient.EndRadiusY));
+        var transform = gradient.CoordinateTransform;
+        identity.Append(',').Append(FormatIdentityNumber(transform.M11)).Append(',').Append(FormatIdentityNumber(transform.M12))
+            .Append(',').Append(FormatIdentityNumber(transform.M21)).Append(',').Append(FormatIdentityNumber(transform.M22))
+            .Append(',').Append(FormatIdentityNumber(transform.OffsetX)).Append(',').Append(FormatIdentityNumber(transform.OffsetY));
         AppendIdentityGradientStops(identity, gradient.Stops);
     }
 

@@ -527,16 +527,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 ApplyOpacity(stop.Color, opacity) ?? stop.Color));
         }
 
-        return new OfficeRadialGradient(
-            gradient.StartX,
-            gradient.StartY,
-            gradient.StartRadiusX,
-            gradient.StartRadiusY,
-            gradient.EndX,
-            gradient.EndY,
-            gradient.EndRadiusX,
-            gradient.EndRadiusY,
-            stops);
+        return gradient.WithStops(stops);
     }
 
     private static IReadOnlyList<OfficeDrawingShape> CreateGlowShapes(OfficeDrawingShape drawingShape) {

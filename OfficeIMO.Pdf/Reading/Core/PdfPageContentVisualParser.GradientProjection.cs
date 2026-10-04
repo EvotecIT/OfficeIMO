@@ -3,6 +3,14 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageContentVisualParser {
+    private static bool IsRepresentableRadialShadingTransform(Matrix2D transform) {
+        if (!IsFiniteNumber(transform.A) || !IsFiniteNumber(transform.B) || !IsFiniteNumber(transform.C)
+            || !IsFiniteNumber(transform.D) || !IsFiniteNumber(transform.E) || !IsFiniteNumber(transform.F)) return false;
+        try {
+            return new OfficeTransform(transform.A, transform.B, transform.C, transform.D, transform.E, transform.F).TryInvert(out _);
+        } catch (ArgumentException) { return false; }
+    }
+
     private sealed partial class Parser {
         internal static void CreateShadingGradients(
             PdfPageShadingResource shading,
@@ -31,6 +39,16 @@ internal static partial class PdfPageContentVisualParser {
                     // than inventing a horizontal gradient for degenerate input.
                     linearGradient = null;
                 }
+                return;
+            }
+
+            if (transform.B != 0D || transform.C != 0D) {
+                var coordinates = new OfficeTransform(transform.A, transform.B, transform.C, transform.D, transform.E, transform.F)
+                    .Then(new OfficeTransform(1D / paintWidth, 0D, 0D, -1D / paintHeight, -x / paintWidth, (pageHeight - y) / paintHeight));
+                try {
+                    radialGradient = new OfficeRadialGradient(shading.X0, shading.Y0, shading.R0, shading.X1, shading.Y1, shading.R1, shading.Stops)
+                        .TransformCoordinates(coordinates);
+                } catch (ArgumentException) { radialGradient = null; }
                 return;
             }
 
