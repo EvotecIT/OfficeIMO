@@ -371,7 +371,7 @@ internal sealed class HtmlRenderFlowBlock {
             collapsesThrough: CollapsesThrough,
             unclampedHeight: adjustedUnclampedHeight,
             runningStringAssignments: RunningStringAssignments.Select(assignment => assignment.Translate(-adjustment)),
-            inlineBreakProgress: InlineBreakProgress.Select(progress => new HtmlInlineBreakProgress(progress.Offset - adjustment, progress.LogicalCharacters, progress.OwnerElement, progress.IsBlockEntry, progress.PageStartDiscardableMargin, progress.IsBlockExit)),
+            inlineBreakProgress: InlineBreakProgress.Select(progress => new HtmlInlineBreakProgress(progress.Offset - adjustment, progress.LogicalCharacters, progress.OwnerElement, progress.IsBlockEntry, progress.PageStartDiscardableMargin, progress.IsBlockExit, progress.IsFlexGap)),
             inlineContinuationStart: InlineContinuationStart,
             supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
             forcedBreaks: ForcedBreaks.Select(item => item.Translate(-adjustment)),
@@ -858,13 +858,14 @@ internal readonly struct HtmlFloatExclusion {
 }
 
 internal readonly struct HtmlInlineBreakProgress {
-    internal HtmlInlineBreakProgress(double offset, int logicalCharacters, IElement? ownerElement = null, bool isBlockEntry = false, double pageStartDiscardableMargin = 0D, bool isBlockExit = false) {
+    internal HtmlInlineBreakProgress(double offset, int logicalCharacters, IElement? ownerElement = null, bool isBlockEntry = false, double pageStartDiscardableMargin = 0D, bool isBlockExit = false, bool isFlexGap = false) {
         Offset = offset;
         LogicalCharacters = logicalCharacters;
         OwnerElement = ownerElement;
         IsBlockEntry = isBlockEntry;
         IsBlockExit = isBlockExit;
         PageStartDiscardableMargin = pageStartDiscardableMargin;
+        IsFlexGap = isFlexGap;
     }
 
     internal double Offset { get; }
@@ -874,4 +875,6 @@ internal readonly struct HtmlInlineBreakProgress {
     // Completed-child margins carry discard metadata, never a resume target.
     internal bool IsBlockExit { get; }
     internal double PageStartDiscardableMargin { get; }
+    // Discard metadata for an authored flex gap; never a content resume target.
+    internal bool IsFlexGap { get; }
 }

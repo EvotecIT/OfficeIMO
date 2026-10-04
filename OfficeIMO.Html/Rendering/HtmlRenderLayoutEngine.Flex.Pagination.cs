@@ -3,6 +3,22 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
+    // Record the space before a wrapped row separately from its content entry.
+    // The paginator can discard an authored gap when the previous row ends a page.
+    private static IEnumerable<HtmlInlineBreakProgress> ResolveWrappedFlexGapProgress(
+        IReadOnlyList<FlexLine> lines, HtmlRenderBoxStyle style, double contentY, double rowGap) {
+        if (style.FlexWrap != "wrap" || rowGap <= 0.0001D) yield break;
+        for (int index = 1; index < lines.Count; index++) {
+            FlexLine line = lines[index];
+            double previousEnd = lines[index - 1].CrossOffset + lines[index - 1].CrossSize;
+            // Distributed align-content space is not the authored row gap.
+            if (Math.Abs(line.CrossOffset - previousEnd - rowGap) > 0.0001D
+                || line.Items.Count == 0 || line.Items[0].Element == null) continue;
+            yield return new HtmlInlineBreakProgress(contentY + previousEnd, 0,
+                pageStartDiscardableMargin: rowGap, isFlexGap: true);
+        }
+    }
+
     private bool CanAlignPagedRowFlex(IElement element, HtmlRenderBoxStyle style, FlexLine line) {
         if (HasBoundedCrossSize(style)) return false;
         for (IElement? parent = element.ParentElement; parent != null; parent = parent.ParentElement) {
@@ -18,6 +34,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static bool HasBoundedCrossSize(HtmlRenderBoxStyle style) =>
         style.ExplicitHeight.HasValue || style.MaxHeight.HasValue || style.AspectRatio.HasValue;
+
+    // A single column has one vertical flow. Wrapped/reversed columns must not
+    // lend one item's discardable gap to an independently positioned neighbor.
+    private static IEnumerable<HtmlInlineBreakProgress> ResolveColumnFlexGapProgress(
+        IReadOnlyList<FlexLine> lines, double contentY, double rowGap) {
+        if (lines.Count != 1 || rowGap <= 0.0001D) yield break;
+        IReadOnlyList<FlexItem> items = lines[0].Items;
+        for (int index = 1; index < items.Count; index++) {
+            FlexItem item = items[index];
+            double previousEnd = items[index - 1].MainOffset + items[index - 1].Block!.Height;
+            if (Math.Abs(item.MainOffset - previousEnd - rowGap) > 0.0001D) continue;
+            yield return new HtmlInlineBreakProgress(contentY + previousEnd, 0,
+                pageStartDiscardableMargin: rowGap, isFlexGap: true);
+        }
+    }
 
     private bool TryRelayoutBlockForFlexPagination(
         HtmlRenderFlowBlock block,
@@ -275,7 +306,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 assignment.Offset >= cut - 0.0001D ? assignment.Translate(gap) : assignment),
             inlineBreakProgress: block.InlineBreakProgress.Select(progress => new HtmlInlineBreakProgress(
                 Shift(progress.Offset), progress.LogicalCharacters, progress.OwnerElement,
-                progress.IsBlockEntry, progress.PageStartDiscardableMargin, progress.IsBlockExit)),
+                progress.IsBlockEntry, progress.PageStartDiscardableMargin, progress.IsBlockExit, progress.IsFlexGap)),
             inlineContinuationStart: block.InlineContinuationStart,
             supportsInlineContinuationReflow: block.SupportsInlineContinuationReflow,
             layoutViewportWidth: block.LayoutViewportWidth,

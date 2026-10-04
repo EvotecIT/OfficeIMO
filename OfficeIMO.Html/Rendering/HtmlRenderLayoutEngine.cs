@@ -712,7 +712,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!block.SupportsInlineContinuationReflow) return null;
         HtmlInlineBreakProgress? selected = null;
         foreach (HtmlInlineBreakProgress item in block.InlineBreakProgress) {
-            if (!item.IsBlockExit && item.OwnerElement != null && Math.Abs(item.Offset - fragmentEnd) <= 0.0001D) selected = item;
+            if (!item.IsBlockExit && !item.IsFlexGap && item.OwnerElement != null && Math.Abs(item.Offset - fragmentEnd) <= 0.0001D) selected = item;
         }
         return selected;
     }

@@ -230,16 +230,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .Select(line => new HtmlInlineBreakProgress(contentY + line.CrossOffset, 0, line.Items[0].Element))
                 .ToList()
             : Array.Empty<HtmlInlineBreakProgress>();
-        IReadOnlyList<HtmlInlineBreakProgress> continuationBreakProgress = wrapLineProgress.Concat(
+        IReadOnlyList<HtmlInlineBreakProgress> continuationBreakProgress = wrapLineProgress.Concat(ResolveWrappedFlexGapProgress(lines, style, contentY, rowGap)).Concat(
             lines.SelectMany(line => line.Items.SelectMany(item => item.Block!.InlineBreakProgress
-                .Where(progress => (progress.IsBlockEntry || progress.IsBlockExit)
+                .Where(progress => (progress.IsBlockEntry || progress.IsBlockExit || progress.IsFlexGap)
                     && progress.PageStartDiscardableMargin > 0.0001D
                     && line.Items.All(other => ReferenceEquals(other, item) || !other.HasExplicitCrossSize
                         || other.CrossOffset + other.Block!.Height <= item.CrossOffset + progress.Offset + 0.0001D))
                 .Select(progress => new HtmlInlineBreakProgress(
                     contentY + line.CrossOffset + item.CrossOffset + progress.Offset,
                     progress.LogicalCharacters, progress.OwnerElement, progress.IsBlockEntry,
-                    progress.PageStartDiscardableMargin, progress.IsBlockExit))))).ToList();
+                    progress.PageStartDiscardableMargin, progress.IsBlockExit, progress.IsFlexGap))))).ToList();
         // Prefer keeping a fitting flex row together when little page space
         // remains. This is a layout preference, not authored break-inside:avoid:
         // legal interior breaks may use substantial space on the current page.

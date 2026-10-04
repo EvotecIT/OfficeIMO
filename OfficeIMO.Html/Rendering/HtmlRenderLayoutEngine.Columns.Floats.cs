@@ -47,7 +47,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             runningStrings.AddRange(child.RunningStringAssignments.Select(item => item.Translate(height)));
             progress.AddRange(child.InlineBreakProgress.Select(item => new HtmlInlineBreakProgress(
                 height + item.Offset, item.LogicalCharacters, item.OwnerElement,
-                item.IsBlockEntry, item.PageStartDiscardableMargin, item.IsBlockExit)));
+                item.IsBlockEntry, item.PageStartDiscardableMargin, item.IsBlockExit, item.IsFlexGap)));
             if (child.BreakBefore != HtmlPageBreakTarget.None) {
                 forcedBreaks.Add(new HtmlRenderForcedBreak(height, child.BreakBefore));
             }

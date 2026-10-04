@@ -563,7 +563,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         progress.OwnerElement,
                         progress.IsBlockEntry,
                         progress.PageStartDiscardableMargin,
-                        progress.IsBlockExit));
+                        progress.IsBlockExit, progress.IsFlexGap));
                 }
 
                 contentBreakOffsets.Add(contentHeight);
@@ -741,7 +741,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .Concat(positionedRunningStringAssignments)
                 .OrderBy(assignment => assignment.OrderOffset),
             inlineBreakProgress: (inlineLayout?.BreakProgress ?? continuationBreakProgress).Select(progress =>
-                new HtmlInlineBreakProgress(contentYForBreaks + progress.Offset, progress.LogicalCharacters, progress.OwnerElement, progress.IsBlockEntry, progress.PageStartDiscardableMargin, progress.IsBlockExit)),
+                new HtmlInlineBreakProgress(contentYForBreaks + progress.Offset, progress.LogicalCharacters, progress.OwnerElement, progress.IsBlockEntry, progress.PageStartDiscardableMargin, progress.IsBlockExit, progress.IsFlexGap)),
             inlineContinuationStart: ReferenceEquals(element, continuationTarget) ? continuationLogicalCharacters : 0,
             supportsInlineContinuationReflow: inlineLayout?.SupportsContinuationReflow == true
                 || continuationBreakProgress.Any(progress => !progress.IsBlockExit && progress.OwnerElement != null),
