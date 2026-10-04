@@ -21,6 +21,11 @@ on:
         required: true
         type: boolean
         default: false
+      verify-authentication:
+        description: Check publishing credentials and Store API readiness without submitting.
+        required: true
+        type: boolean
+        default: false
       confirm-no-prior-submission:
         description: I checked both catalogs; this release has no prior submission (required without retained history).
         type: boolean
@@ -32,7 +37,7 @@ permissions:
 
 jobs:
   catalog:
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-catalog-update.yml@469c2098c0ab57848cd803d401880811e0e64ce4
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-catalog-update.yml@a2bd81c96302a0ed84423bc9dfd4b444dcf14658
     with:
       environment-name: studio-catalog
       profile-path: Build/Studio/powerforge.catalog.json
@@ -42,6 +47,7 @@ jobs:
       checksums-name: windows-SHA256SUMS.txt
       channel: ${{ inputs.channel }}
       execute: ${{ inputs.execute }}
+      verify-authentication: ${{ inputs.verify-authentication }}
       confirm-no-prior-submission: ${{ inputs.confirm-no-prior-submission }}
     secrets:
       WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.WINGET_CREATE_GITHUB_TOKEN }}
