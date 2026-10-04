@@ -5387,5 +5387,54 @@
     ],
     "retainedEvidence": "Ignore/MasterConvergenceQualification/rectangle-clip-cost",
     "broaderH10Complete": false
+  },
+  "rectangleHostedPackageProof": {
+    "sourceCommit": "e377c6ad60c8db8dd92e5a485ffee674212828c2",
+    "runId": 37215418944,
+    "platforms": [
+      {
+        "platform": "linux",
+        "sourceCommit": "e377c6ad60c8db8dd92e5a485ffee674212828c2",
+        "archiveSha256": "50fa41b445fb63185e21bf81c5c68249e24eb126ab7d0cd0ba59c63fb68955ff",
+        "packageCount": 19,
+        "consumerCount": 2,
+        "allFourTargetsVerified": true,
+        "allPackageOriginsAndInstalledSha512Verified": true,
+        "allConsumerDllsMatchNormalPackages": true
+      },
+      {
+        "platform": "windows",
+        "sourceCommit": "e377c6ad60c8db8dd92e5a485ffee674212828c2",
+        "archiveSha256": "a7c9f68e4143aaaf8feddcfb47eec1f6e023d34fe98889a0131bfb51a9bbd0b7",
+        "packageCount": 19,
+        "consumerCount": 2,
+        "allFourTargetsVerified": true,
+        "allPackageOriginsAndInstalledSha512Verified": true,
+        "allConsumerDllsMatchNormalPackages": true
+      },
+      {
+        "platform": "macos",
+        "sourceCommit": "e377c6ad60c8db8dd92e5a485ffee674212828c2",
+        "archiveSha256": "bacdd72f1a8bc747cc6d43be7d3186a1d2ef5c7871b944fe16f9283c7e95db45",
+        "packageCount": 19,
+        "consumerCount": 2,
+        "allFourTargetsVerified": true,
+        "allPackageOriginsAndInstalledSha512Verified": true,
+        "allConsumerDllsMatchNormalPackages": true
+      }
+    ],
+    "packagesPerPlatform": 19,
+    "consumersPerPlatform": 2,
+    "normalFrameworkTargets": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ],
+    "proofRoot": "Ignore/MasterConvergenceQualification/rectangle-package-archives",
+    "linuxFeedRetained": "Ignore/MasterConvergenceQualification/hosted-feed-e377c6ad6",
+    "downloadedArchivesRemovedBytes": 368479827,
+    "allDownloadedArchivesAbsent": true,
+    "laterLogicalOrderSourceNotQualifiedByThisProof": true
   }
 }
