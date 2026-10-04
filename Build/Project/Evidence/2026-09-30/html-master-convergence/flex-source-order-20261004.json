@@ -299,5 +299,70 @@
     "worktreeAbsentAndUnregistered": true,
     "mergedLocalBranchDeleted": true,
     "remoteSourceBranchRetainedForActiveHostedRun": true
+  },
+  "hostedFocusedValidation": {
+    "runId": 37222516895,
+    "sourceCommit": "826ad155e6de0b3d6b1dc73cfddf1c19e9e23fe7",
+    "url": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37222516895",
+    "actualArtifactVerificationUtc": "2026-10-04T19:22:35.824647+00:00",
+    "scope": "Focused three-platform correctness only; no timing, package or full-suite qualification",
+    "selectionCorrection": "The named shared-scene test has 15 cases; with 12 flex regressions the actual declared filter selects 27, not the earlier handoff estimate of 30. All named cases are present on both frameworks/platforms. The separate 18-case static corpus is already local artifact evidence.",
+    "platforms": [
+      {
+        "platform": "html-static-qualification-macos-latest",
+        "counts": {
+          "drawing-bounded-net10.0.trx": 8,
+          "drawing-bounded-net8.0.trx": 8,
+          "html-logical-order-net10.0.trx": 27,
+          "html-logical-order-net8.0.trx": 27,
+          "pdf-fonts-net10.0.trx": 28,
+          "pdf-fonts-net8.0.trx": 28,
+          "pdf-net10.0.trx": 79,
+          "pdf-net8.0.trx": 79
+        },
+        "extractor": {
+          "executable": "/opt/homebrew/bin/pdftotext",
+          "version": "pdftotext version 26.09.0\nCopyright 2005-2026 The Poppler Developers - http://poppler.freedesktop.org\nCopyright 1996-2011, 2022 Glyph & Cog, LLC"
+        },
+        "exactNamedPdfTextProofs": 17
+      },
+      {
+        "platform": "html-static-qualification-ubuntu-latest",
+        "counts": {
+          "drawing-bounded-net10.0.trx": 8,
+          "drawing-bounded-net8.0.trx": 8,
+          "html-logical-order-net10.0.trx": 27,
+          "html-logical-order-net8.0.trx": 27,
+          "pdf-fonts-net10.0.trx": 28,
+          "pdf-fonts-net8.0.trx": 28,
+          "pdf-net10.0.trx": 79,
+          "pdf-net8.0.trx": 79
+        },
+        "extractor": {
+          "executable": "/usr/bin/pdftotext",
+          "version": "pdftotext version 24.02.0\nCopyright 2005-2024 The Poppler Developers - http://poppler.freedesktop.org\nCopyright 1996-2011, 2022 Glyph & Cog, LLC"
+        },
+        "exactNamedPdfTextProofs": 17
+      },
+      {
+        "platform": "html-static-qualification-windows-latest",
+        "counts": {
+          "drawing-bounded-net10.0.trx": 8,
+          "drawing-bounded-net8.0.trx": 8,
+          "html-logical-order-net10.0.trx": 27,
+          "html-logical-order-net8.0.trx": 27,
+          "pdf-fonts-net10.0.trx": 28,
+          "pdf-fonts-net8.0.trx": 28,
+          "pdf-net10.0.trx": 79,
+          "pdf-net8.0.trx": 79
+        },
+        "extractor": {
+          "executable": "C:\\Program Files\\Git\\mingw64\\bin\\pdftotext.exe",
+          "version": "pdftotext version 4.06 [www.xpdfreader.com]\r\nCopyright 1996-2025 Glyph & Cog, LLC"
+        },
+        "exactNamedPdfTextProofs": 17
+      }
+    ],
+    "retainedReceipt": "Ignore/MasterConvergenceQualification/logical-source-order-platform-826ad155e/verified-artifacts.json"
   }
 }
