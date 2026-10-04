@@ -2,6 +2,11 @@ using System;
 using System.IO;
 using System.IO.Compression;
 using System.Threading;
+#if NET8_0_OR_GREATER
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
+#endif
 
 namespace OfficeIMO.Core.Internal {
     /// <summary>Encodes and decodes RFC 1950 zlib streams with checksum validation.</summary>
@@ -116,13 +121,7 @@ namespace OfficeIMO.Core.Internal {
                     if (read > expectedOutputBytes - total) return false;
                     total += read;
                     for (int start = 0; start < read; start += 5552) {
-                        int end = Math.Min(start + 5552, read);
-                        for (int index = start; index < end; index++) {
-                            a += buffer[index];
-                            b += a;
-                        }
-                        a %= 65521;
-                        b %= 65521;
+                        AppendAdler32Block(buffer, start, Math.Min(5552, read - start), ref a, ref b);
                     }
                 }
             } catch (InvalidDataException) {
@@ -133,22 +132,55 @@ namespace OfficeIMO.Core.Internal {
         }
 
         internal static uint Adler32(byte[] data, CancellationToken cancellationToken = default) {
-            const uint Modulus = 65521;
             const int MaximumChunk = 5552;
             uint a = 1;
             uint b = 0;
             int offset = 0;
             while (offset < data.Length) {
                 cancellationToken.ThrowIfCancellationRequested();
-                int end = Math.Min(offset + MaximumChunk, data.Length);
-                while (offset < end) {
-                    a += data[offset++];
-                    b += a;
-                }
-                a %= Modulus;
-                b %= Modulus;
+                int count = Math.Min(MaximumChunk, data.Length - offset);
+                AppendAdler32Block(data, offset, count, ref a, ref b);
+                offset += count;
             }
             return (b << 16) | a;
+        }
+
+        /// <summary>Appends at most 5552 bytes to normalized Adler-32 state and reduces it modulo 65521.</summary>
+        /// <remarks>Callers retain ownership of cancellation and progress between these bounded blocks.</remarks>
+        internal static void AppendAdler32Block(byte[] data, int offset, int count, ref uint a, ref uint b) {
+            if (data == null) throw new ArgumentNullException(nameof(data));
+            if (offset < 0 || count < 0 || count > 5552 || offset > data.Length - count) {
+                throw new ArgumentOutOfRangeException(nameof(count));
+            }
+            if (a >= 65521 || b >= 65521) throw new ArgumentException("Adler-32 state must be normalized.");
+            int end = offset + count;
+#if NET8_0_OR_GREATER
+            if (Avx2.IsSupported && count >= 32) {
+                Vector256<sbyte> weights = Vector256.Create((sbyte)32, 31, 30, 29, 28, 27, 26, 25,
+                    24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9,
+                    8, 7, 6, 5, 4, 3, 2, 1);
+                Vector256<short> ones = Vector256.Create((short)1);
+                ref byte first = ref MemoryMarshal.GetArrayDataReference(data);
+                for (; offset <= end - 32; offset += 32) {
+                    Vector256<byte> bytes = Vector256.LoadUnsafe(ref first, (nuint)offset);
+                    uint sum = (uint)Vector256.Sum(Avx2.SumAbsoluteDifferences(bytes, Vector256<byte>.Zero).AsUInt64());
+                    // Positive weights give adjacent pair sums <= 16065, so the
+                    // signed, saturating first multiply/add cannot lose information.
+                    uint weighted = (uint)Vector256.Sum(Avx2.MultiplyAddAdjacent(
+                        Avx2.MultiplyAddAdjacent(bytes, weights), ones));
+                    b += 32U * a + weighted;
+                    a += sum;
+                }
+            }
+#endif
+            while (offset < end) {
+                a += data[offset++];
+                b += a;
+            }
+            // The 5552-byte bound keeps both unreduced sums within uint even
+            // when every byte is FF and the incoming state is near the modulus.
+            a %= 65521;
+            b %= 65521;
         }
 
         private static byte[] DecompressExact(

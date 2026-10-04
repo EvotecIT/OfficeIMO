@@ -299,20 +299,14 @@ public static partial class OfficePngWriter {
         ref uint b,
         System.Threading.CancellationToken cancellationToken = default,
         Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
-        const uint mod = 65521;
         const int maximumChunk = 5552;
         int remaining = count;
         while (remaining > 0) {
             checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.PngFilteringBlock);
             cancellationToken.ThrowIfCancellationRequested();
             int chunk = Math.Min(maximumChunk, remaining);
-            int end = offset + chunk;
-            while (offset < end) {
-                a += data[offset++];
-                b += a;
-            }
-            a %= mod;
-            b %= mod;
+            OfficeIMO.Core.Internal.OfficeZlibCodec.AppendAdler32Block(data, offset, chunk, ref a, ref b);
+            offset += chunk;
             remaining -= chunk;
         }
     }
