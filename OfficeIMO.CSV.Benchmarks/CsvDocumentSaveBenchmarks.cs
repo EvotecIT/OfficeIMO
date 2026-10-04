@@ -23,6 +23,7 @@ public class CsvDocumentSaveBenchmarks {
     private string? _directory;
     private string _file = null!, _asyncFile = null!, _rowFile = null!;
     private readonly Dictionary<string, long> _expectedOutputLengths = [];
+    private int _rowWriterBufferSize;
 
     /// <summary>Identifies the independently formatted, uncompressed output validated by setup.</summary>
     public string ExpectedCsvSha256 { get; private set; } = "";
@@ -46,6 +47,10 @@ public class CsvDocumentSaveBenchmarks {
         if (!string.IsNullOrEmpty(priority)) BenchmarkProcessorAffinity.ApplyPriority(priority);
         if (Shape is not ("Plain" or "Quoted" or "MixedJson" or "LongUnicode"))
             throw new ArgumentOutOfRangeException(nameof(Shape));
+        // Resolve the loaded build's default during setup so snapshot comparisons
+        // use identical benchmark IL while measuring newly compiled callers.
+        _rowWriterBufferSize = (int)typeof(CsvRowWriter).GetMethod(nameof(CsvRowWriter.CreateFile))!
+            .GetParameters()[3].DefaultValue!;
 
         _options = new CsvSaveOptions {
             NewLine = "\n", Encoding = Utf8, CompressionType = Compression,
@@ -134,7 +139,7 @@ public class CsvDocumentSaveBenchmarks {
 
     [Benchmark]
     public long RowWriterFile() {
-        using (var writer = CsvRowWriter.CreateFile(_rowFile, _options)) {
+        using (var writer = CsvRowWriter.CreateFile(_rowFile, _options, bufferSize: _rowWriterBufferSize)) {
             using var reader = new BenchmarkArrayDataReader(Headers, _rows, FieldTypes);
             writer.WriteDataReader(reader);
         }
