@@ -505,6 +505,24 @@ and [source, binary, review and validation provenance](excel-large-typed-read-20
 Warmed allocation does not measure retained or peak memory, and correctness
 on WSL does not qualify native-Linux timing.
 
+## Rejected larger XML-reader buffers
+
+An experiment enabling the framework XML reader's asynchronous configuration
+while continuing synchronous reads uses its larger internal buffers. It is
+removed after an eight-workload, 16-case native screen. The million-row full scan
+allocates 2,105,480 → 959,464 bytes, but its median is slower; first-row medians
+are slower at both 250,000 and 1,000,000 rows. The 25,000-row full scan allocates
+another 227,538 bytes and also measures slower. Numeric DataTable medians improve
+in this screen but allocate another 165 KiB. The 65K control remains 91,771 bytes.
+
+The candidate passes 760 focused .NET 10 reader tests and complete output
+preflight for all eight workloads. These results do not qualify a general gain;
+the [screen packet](excel-large-typed-read-2026-10-04/rejected-xml-async-buffer.json)
+retains every observation, source patch, binary hash and job setting. The
+integrated baseline at `a97198615` passes 5,376 Excel tests with five skips and
+638 CSV tests on Windows .NET 10. No rotated or other-runtime qualification is
+claimed for the rejected buffer change.
+
 ## Earlier allocation profile and remaining work
 
 A profile after the buffer guard, before scan consolidation, attributes roughly
