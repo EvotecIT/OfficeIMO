@@ -250,14 +250,7 @@ internal static partial class PdfWriter {
                         fontProgram.MergeAsciiCharacterUsageFrom(otherProgram);
                     }
 
-                    byte[] fontData = fontProgram.BuildSubsetFontFile();
-                    string fontFileExtraEntries = "/Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture);
-                    int fontFileId = opts.CompressEmbeddedFonts
-                        ? AddFlateStreamObject(objects, fontData, fontFileExtraEntries)
-                        : AddStreamObject(
-                            objects,
-                            "<< /Length " + fontData.Length.ToString(CultureInfo.InvariantCulture) + " " + fontFileExtraEntries + " >>",
-                            fontData);
+                    int fontFileId = AddTrueTypeFontFileObject(objects, fontProgram, opts.CompressEmbeddedFonts, cancellationToken);
                     int descriptorId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildTrueTypeFontDescriptorObject(fontProgram, fontFileId));
                     byte[]? cidToGlyphMap = fontProgram.BuildCidToGlyphMap();
                     int cidToGlyphMapId = cidToGlyphMap == null ? 0 : opts.CompressEmbeddedFonts
@@ -309,14 +302,7 @@ internal static partial class PdfWriter {
             foreach (var pendingFont in pendingNamedFontObjects) {
                 if (pendingFont.Options.TryGetNamedFontProgramForGeneration(pendingFont.Font, out PdfTrueTypeFontProgram? fontProgram) &&
                     fontProgram != null) {
-                    byte[] fontData = fontProgram.BuildSubsetFontFile();
-                    string fontFileExtraEntries = "/Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture);
-                    int fontFileId = opts.CompressEmbeddedFonts
-                        ? AddFlateStreamObject(objects, fontData, fontFileExtraEntries)
-                        : AddStreamObject(
-                            objects,
-                            "<< /Length " + fontData.Length.ToString(CultureInfo.InvariantCulture) + " " + fontFileExtraEntries + " >>",
-                            fontData);
+                    int fontFileId = AddTrueTypeFontFileObject(objects, fontProgram, opts.CompressEmbeddedFonts, cancellationToken);
                     int descriptorId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildTrueTypeFontDescriptorObject(fontProgram, fontFileId));
                     byte[]? cidToGlyphMap = fontProgram.BuildCidToGlyphMap();
                     int cidToGlyphMapId = cidToGlyphMap == null ? 0 : opts.CompressEmbeddedFonts
