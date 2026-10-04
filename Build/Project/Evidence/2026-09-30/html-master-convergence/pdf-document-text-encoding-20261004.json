@@ -527,5 +527,32 @@
       }
     ],
     "retainedEvidence": "Ignore/MasterConvergenceQualification/pdf-doc-encoding/ci-follow-through-372942daa"
+  },
+  "websiteCiFollowthrough": {
+    "rootFailure": "Strict release-hub data acquisition failed under anonymous public GitHub quota; task-exact anonymous probe HTTP403/remaining0, authenticated probe same task succeeds with138 releases and3358assets. Actual consumer CI remediation remains pending.",
+    "diagnosticOwner": "https://github.com/EvotecIT/PSPublishModule/pull/1027",
+    "diagnosticMerge": "90bb411ce80e0fc105561376f240d88d5842fe49",
+    "credentialOwnerCandidate": "https://github.com/EvotecIT/PSPublishModule/pull/1032",
+    "candidateHead": "0a048883b1ce4b7793d7b860e8f578f971b9c484",
+    "role": "Shared reusable public CI opts into its read-only job token for public GitHub data; default none and private rejection retained, no package/deploy secrets or persisted checkout credentials. CLI bootstrap selects first non-empty configured token.",
+    "selectedValidation": {
+      "tests": 35,
+      "yamlLint": "actionlint1.7.12, existing four workflow normalization only",
+      "guardMatrixCases": 6,
+      "bootstrapBefore": {
+        "passed": 2,
+        "failed": 3
+      },
+      "bootstrapAfter": "All five credential cases pass"
+    },
+    "localReview": {
+      "reviewer": "public_github_ci_credentials_review",
+      "fullPass": 1,
+      "targetedConfirmation": 1,
+      "boundary": "candidate-reviewed",
+      "reproducedP2": "Explicit empty repository/CLI token masked the job token",
+      "remainingFindings": []
+    },
+    "dependentStep": "After owner merge and current-head gates, pin the merged shared workflow and source once in OfficeIMO2781 CI, then qualify the actual website job and complete PR gates. No downstream shim or waiver."
   }
 }

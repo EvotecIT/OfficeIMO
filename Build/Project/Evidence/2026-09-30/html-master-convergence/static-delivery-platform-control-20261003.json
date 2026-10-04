@@ -5436,5 +5436,122 @@
     "downloadedArchivesRemovedBytes": 368479827,
     "allDownloadedArchivesAbsent": true,
     "laterLogicalOrderSourceNotQualifiedByThisProof": true
+  },
+  "contourRowQualification20261004": {
+    "standaloneSource": "faa17d1500dc28b3f07edc997c8ec07844f5e7a8",
+    "standaloneBase": "e66c2e69cb2fadcc1721f49a906f7db2b92afd46",
+    "combinedBehavior": "ec2b557592b1b44fcd7d6b23c51ee5f1a61f5f90",
+    "combinedWorkflowSource": "4bc99baefea8b944c18b1b5798982ec1914ed216",
+    "sameHostControl": "5e530f885da3b01ec07bd2a13995ddf7e7cce2d7",
+    "contract": "Collect possible contour edges once per pixel row, retain half-open crossing, winding/union, vertex splitting, antialias coverage, bounded scratch, cancellation and work limits. No public API or runtime dependency change.",
+    "tests": {
+      "net8CorrectnessFull": 3313,
+      "net10CorrectnessFullBeforeFinalLargeCases": 3311,
+      "net10FinalFocusedIncludingLargeCases": 34,
+      "ordinaryFilter": "Category!=Performance",
+      "netstandard20Warnings": 0
+    },
+    "independentReview": {
+      "reviewer": "contour_row_cache_owner_review",
+      "fullPass": 1,
+      "targetedConfirmationUsed": false,
+      "boundary": "candidate-reviewed",
+      "findings": [],
+      "coreDiffSha256": "eba1ea285a7e14b65dd14f3f612715b5454679f298590f26724b4d29c1d55580"
+    },
+    "diagnosticArtifacts": {
+      "all30PngByteEqual": true,
+      "baselineColdAllocatedBytes": 835473392,
+      "candidateColdAllocatedBytes": 835758480,
+      "delta": 285088,
+      "candidateOwners": {
+        "OfficeIMO.Html": {
+          "version": "3.4.4+d62e30cdef4ebf7cd2c4e7715aefc2cf79e7f1d4",
+          "sha256": "c626307d544d750eddccbcb10165df3582a3540cad75e01a4c923591c164f5ab"
+        },
+        "OfficeIMO.Core": {
+          "version": "3.4.4+5e530f885da3b01ec07bd2a13995ddf7e7cce2d7",
+          "sha256": "12a15dba31c7adb720fdf2df53aa0e9c8c121a7421f619b799700b193476ad38"
+        },
+        "OfficeIMO.Html.Core": {
+          "version": "3.4.4+d62e30cdef4ebf7cd2c4e7715aefc2cf79e7f1d4",
+          "sha256": "40a0f9f0a32e14e91984c0ec7c60de7c2237d996048e7017aa155cff7e73e5d0"
+        },
+        "OfficeIMO.Html.AngleSharp": {
+          "version": "3.4.4+d62e30cdef4ebf7cd2c4e7715aefc2cf79e7f1d4",
+          "sha256": "9208187f46a07b994405338812ecc44faa1ad4ab1865ecb48d6426ad3a8806d8"
+        }
+      },
+      "limits": "Contended local profiling and one cold allocation observation are diagnostic only; no warm timing or absolute hosted budget acceptance."
+    },
+    "sampleProfile": {
+      "baselineAddContourCrossingsExclusivePercent": 15.78,
+      "candidateAddContourRowCrossingsExclusivePercent": 0.79,
+      "limits": "Sampling shares are not absolute elapsed-time speedup."
+    },
+    "package": {
+      "sourceCommit": "faa17d1500dc28b3f07edc997c8ec07844f5e7a8",
+      "nupkgSha256": "b1e2a99462fed410862d8b42c104bcfd9679d5cdf3fd7df82856cd60ee4c13bc",
+      "targetDllSha256": {
+        "lib/net10.0/OfficeIMO.Core.dll": "c323a5d263e9cd2ac5017ac272854f0096cd74d5970e85ea4a0c694a7825849c",
+        "lib/net472/OfficeIMO.Core.dll": "32238bad3858c25ab990de3bae2217c94deaa20911fac2b31399b9eb8338f243",
+        "lib/net8.0/OfficeIMO.Core.dll": "6a9eed4224d9bb43aad663e691b976b99b9810c2036413f4fb1b9f994631e7bf",
+        "lib/netstandard2.0/OfficeIMO.Core.dll": "861c39ec9110cd9998f933c26378cd15fcba68b1a3777dcaf2f05ae9e6bb4202"
+      },
+      "runtimeDependencies": [],
+      "consumers": [
+        {
+          "alpha": 240,
+          "rgbaSha256": "212F5DB1081100E000BF03A1DF86DF64A4CE67518CB35FC2C65749FEC7009C7A",
+          "pngBytes": 121,
+          "pngSha256": "4F8E8981F392ED3E5FA0C0BFE43A4790D45C18E0A666AC188F92425B2DE4EF58",
+          "assembly": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-raster-contour-scanlines/Ignore/ContourScanlineQualification/consumer/bin/Release/net8.0/OfficeIMO.Core.dll",
+          "assemblySha256": "6A9EED4224D9BB43AAD663E691B976B99B9810C2036413F4FB1B9F994631E7BF",
+          "version": "3.4.4+faa17d1500dc28b3f07edc997c8ec07844f5e7a8",
+          "framework": "net8.0",
+          "independentDecodeMatchesRgba": true,
+          "loadedDllMatchesPackage": true
+        },
+        {
+          "alpha": 240,
+          "rgbaSha256": "212F5DB1081100E000BF03A1DF86DF64A4CE67518CB35FC2C65749FEC7009C7A",
+          "pngBytes": 126,
+          "pngSha256": "5FEBC48599F9540E76059AFD85ECD3592F1A70931E66A4F49F9CACDC29F6BB2C",
+          "assembly": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-raster-contour-scanlines/Ignore/ContourScanlineQualification/consumer/bin/Release/net10.0/OfficeIMO.Core.dll",
+          "assemblySha256": "C323A5D263E9CD2AC5017AC272854F0096CD74D5970E85EA4A0C694A7825849C",
+          "version": "3.4.4+faa17d1500dc28b3f07edc997c8ec07844f5e7a8",
+          "framework": "net10.0",
+          "independentDecodeMatchesRgba": true,
+          "loadedDllMatchesPackage": true
+        }
+      ],
+      "packageOrigin": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-raster-contour-scanlines/Ignore/ContourScanlineQualification/feed",
+      "pngEncodingBoundary": "PNG bytes differ across compression runtime versions; decoded RGBA and coverage are exact on both frameworks"
+    },
+    "hostedQualification": {
+      "runId": 37228306262,
+      "sourceCommit": "4bc99baefea8b944c18b1b5798982ec1914ed216",
+      "dispatchedAtUtc": "2026-10-04T19:26:57Z",
+      "initialStatus": "queued",
+      "suite": "html-static",
+      "platforms": [
+        "macos",
+        "linux",
+        "windows"
+      ],
+      "required": "Actual selected test identities, nineteen four-target packages and consumers, unchanged budget output, source/control/environment/artifact identity. Pending at this record."
+    },
+    "retainedEvidence": "OfficeIMO-raster-contour-scanlines/Ignore/ContourScanlineQualification",
+    "remaining": "Hosted elapsed/allocation/peak-memory acceptance, standalone CI and delayed complete feedback; no adoption into long-lived HTML branches yet.",
+    "taskCleanup": {
+      "completedBuildTargets": 34,
+      "buildBytesRemoved": 2062825831,
+      "completedToolExpansionTargets": 5,
+      "toolExpansionBytesRemoved": 260655451,
+      "allTargetsAbsent": true,
+      "retainedContourEvidenceMiB": 77,
+      "preserved": "Normal Core feed, package origin/consumer hashes, source controls, analytical/full-suite TRX, independent PNGs, traces and failure logs",
+      "route": "Guarded native helper; hidden/read-only execution failure recovered through guarded DotNet with fresh preflight"
+    }
   }
 }
