@@ -47,17 +47,19 @@ public static partial class WordOpenDocumentConversionExtensions {
         }
     }
 
-    private static void CopyOdtHeaderFooterFallback(OdtHeaderFooter source, WordHeaderFooter target,
+    private static int CopyOdtHeaderFooterFallback(OdtHeaderFooter source, WordHeaderFooter target,
         WordOpenDocumentConversionOptions options, CultureInfo textCaseCulture,
-        HashSet<XElement> handledFieldElements) {
+        HashSet<XElement> handledFieldElements, NoteMappingStats notes) {
         // The fallback renders the same source story in another page slot; it is not another source item.
         int hyperlinks = 0, externalHyperlinks = 0, images = 0, bookmarks = 0;
         int approximatedRuns = 0, approximatedBookmarkRanges = 0, unsupportedMeasurements = 0;
         int approximatedFontFamilyLists = 0, unsupportedFontFamilies = 0, mappedFields = 0, unsupportedFields = 0;
-        var duplicateNotes = new NoteMappingStats();
+        var duplicateNotes = new NoteMappingStats { Images = notes.Images };
         CopyOdtHeaderFooter(source, target, options, textCaseCulture, ref hyperlinks, ref externalHyperlinks,
             ref images, ref bookmarks, ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
             ref approximatedFontFamilyLists, ref unsupportedFontFamilies, ref mappedFields, ref unsupportedFields,
             handledFieldElements, duplicateNotes);
+        return options.IncludeImages && notes.Images.Exhausted
+            ? Math.Max(0, source.Paragraphs.Sum(paragraph => paragraph.Images.Count) - images) : 0;
     }
 }

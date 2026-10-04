@@ -105,9 +105,22 @@ namespace OfficeIMO.Word.Pdf {
             int headerRowCount,
             Dictionary<(int Row, int Column), PdfCore.PdfCellBorder> borders,
             Dictionary<(int Row, int Column), WordTableCellBorder> directBorders) {
+            bool hasHiddenEdge = false;
+            foreach (PdfCore.PdfCellBorder border in borders.Values) {
+                if (IsNativeHiddenCellBorderSide(border.TopBorder) ||
+                    IsNativeHiddenCellBorderSide(border.RightBorder) ||
+                    IsNativeHiddenCellBorderSide(border.BottomBorder) ||
+                    IsNativeHiddenCellBorderSide(border.LeftBorder)) {
+                    hasHiddenEdge = true;
+                    break;
+                }
+            }
+            if (!hasHiddenEdge) return;
+
+            const long maximumReconciliationCoordinates = 262_144L;
             int columnCount = GetNativeTableColumnCount(layout);
-            var occupied = new Dictionary<(int Row, int Column), (int Row, int Column)>();
             var spans = new Dictionary<(int Row, int Column), (int Rows, int Columns)>();
+            long occupiedCoordinates = 0;
             for (int rowIndex = 0; rowIndex < layout.Rows.Count; rowIndex++) {
                 int logicalColumn = GetNativeTableRowStartColumn(layout, rowIndex);
                 foreach (WordTableCell cell in layout.Rows[rowIndex]) {
@@ -120,13 +133,19 @@ namespace OfficeIMO.Word.Pdf {
                         var key = (rowIndex, logicalColumn);
                         int rowSpan = GetNativeCellRowSpan(cell);
                         spans[key] = (rowSpan, columnSpan);
-                        for (int row = rowIndex; row < rowIndex + rowSpan && row < layout.Rows.Count; row++) {
-                            for (int column = logicalColumn; column < logicalColumn + columnSpan; column++) {
-                                occupied[(row, column)] = key;
-                            }
-                        }
+                        occupiedCoordinates += (long)System.Math.Min(rowSpan, layout.Rows.Count - rowIndex) * columnSpan;
+                        if (occupiedCoordinates > maximumReconciliationCoordinates)
+                            throw new System.IO.InvalidDataException(
+                                "The table's collapsed-border grid exceeds the supported reconciliation limit.");
                     }
                     logicalColumn += columnSpan;
+                }
+            }
+            var occupied = new Dictionary<(int Row, int Column), (int Row, int Column)>();
+            foreach (var entry in spans) {
+                for (int row = entry.Key.Item1; row < entry.Key.Item1 + entry.Value.Rows && row < layout.Rows.Count; row++) {
+                    for (int column = entry.Key.Item2; column < entry.Key.Item2 + entry.Value.Columns; column++)
+                        occupied[(row, column)] = entry.Key;
                 }
             }
 

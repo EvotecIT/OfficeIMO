@@ -2,6 +2,14 @@ namespace OfficeIMO.AsciiDoc.Markdown;
 
 /// <summary>Conversion extensions for native AsciiDoc documents.</summary>
 public static class AsciiDocMarkdownConverterExtensions {
+    /// <summary>Converts one native block using the document attributes in effect at that block.</summary>
+    /// <remarks>Supply a document reference catalog in options when references are defined outside this block. Only used footnote definitions are emitted.</remarks>
+    public static AsciiDocToMarkdownResult ToMarkdownDocumentResult(
+        this AsciiDocBlock block,
+        AsciiDocDocumentAttributes attributes,
+        AsciiDocToMarkdownOptions? options = null) =>
+        AsciiDocToMarkdownConverter.ConvertBlock(block, attributes, options);
+
     /// <summary>Converts a native AsciiDoc document to the OfficeIMO Markdown semantic model.</summary>
     public static AsciiDocToMarkdownResult ToMarkdownDocumentResult(
         this AsciiDocDocument document,

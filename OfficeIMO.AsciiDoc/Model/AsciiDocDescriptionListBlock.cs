@@ -2,10 +2,8 @@ namespace OfficeIMO.AsciiDoc;
 
 /// <summary>One source-backed description list item.</summary>
 public sealed class AsciiDocDescriptionListItem {
-    private string _term;
-    private string _description;
-    private bool _termAssigned;
-    private bool _descriptionAssigned;
+    private readonly AsciiDocEditableInlineContent _term;
+    private readonly AsciiDocEditableInlineContent _description;
 
     internal AsciiDocDescriptionListItem(
         AsciiDocSyntaxNode syntax,
@@ -17,10 +15,8 @@ public sealed class AsciiDocDescriptionListItem {
         string trailingLineEnding) {
         Syntax = syntax;
         Marker = marker;
-        _term = term;
-        _description = description;
-        TermInlines = termInlines;
-        DescriptionInlines = descriptionInlines;
+        _term = new AsciiDocEditableInlineContent(term, termInlines);
+        _description = new AsciiDocEditableInlineContent(description, descriptionInlines);
         TrailingLineEnding = trailingLineEnding;
     }
 
@@ -35,31 +31,31 @@ public sealed class AsciiDocDescriptionListItem {
 
     /// <summary>Term text.</summary>
     public string Term {
-        get => !_termAssigned && TermInlines.IsModified ? TermInlines.ToAsciiDoc() : _term;
-        set { string normalized = value ?? string.Empty; AsciiDocText.EnsureSingleLine(normalized, nameof(value)); if (_term != normalized) { _term = normalized; _termAssigned = true; } }
+        get => _term.Text;
+        set { string normalized = value ?? string.Empty; AsciiDocText.EnsureSingleLine(normalized, nameof(value)); _term.Assign(normalized); }
     }
 
     /// <summary>Definition text on the item line.</summary>
     public string Description {
-        get => !_descriptionAssigned && DescriptionInlines.IsModified ? DescriptionInlines.ToAsciiDoc() : _description;
-        set { string normalized = value ?? string.Empty; AsciiDocText.EnsureSingleLine(normalized, nameof(value)); if (_description != normalized) { _description = normalized; _descriptionAssigned = true; } }
+        get => _description.Text;
+        set { string normalized = value ?? string.Empty; AsciiDocText.EnsureSingleLine(normalized, nameof(value)); _description.Assign(normalized); }
     }
 
     /// <summary>Typed term inlines.</summary>
-    public AsciiDocInlineSequence TermInlines { get; }
+    public AsciiDocInlineSequence TermInlines => _term.Inlines;
 
     /// <summary>Typed definition inlines.</summary>
-    public AsciiDocInlineSequence DescriptionInlines { get; }
+    public AsciiDocInlineSequence DescriptionInlines => _description.Inlines;
 
     /// <summary>True when text or nested inline content changed.</summary>
-    public bool IsModified => _termAssigned || _descriptionAssigned || TermInlines.IsModified || DescriptionInlines.IsModified;
+    public bool IsModified => _term.IsModified || _description.IsModified;
 
     internal string TrailingLineEnding { get; }
 
     internal string Write(AsciiDocWriterContext context) {
         if (context.Mode == AsciiDocWriterMode.Preserve && !IsModified) return Syntax.OriginalText;
-        string term = _termAssigned ? _term : TermInlines.Write(context);
-        string description = _descriptionAssigned ? _description : DescriptionInlines.Write(context);
+        string term = _term.Write(context);
+        string description = _description.Write(context);
         string ending = context.Mode == AsciiDocWriterMode.Preserve ? TrailingLineEnding : (TrailingLineEnding.Length == 0 ? string.Empty : context.LineEnding);
         return term + Marker + (description.Length == 0 ? string.Empty : " " + description) + ending;
     }

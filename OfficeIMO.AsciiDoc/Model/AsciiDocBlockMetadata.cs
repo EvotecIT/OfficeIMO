@@ -6,27 +6,25 @@ internal interface IAsciiDocBlockMetadata {
 
 /// <summary>Source-preserving block title line such as <c>.Example</c>.</summary>
 public sealed class AsciiDocBlockTitle : AsciiDocBlock, IAsciiDocBlockMetadata {
-    private string _title;
-    private bool _titleWasAssigned;
+    private readonly AsciiDocEditableInlineContent _content;
 
     internal AsciiDocBlockTitle(AsciiDocSyntaxNode syntax, string title, AsciiDocInlineSequence inlines, string trailingLineEnding)
         : base(syntax, trailingLineEnding) {
-        _title = title;
-        Inlines = inlines;
+        _content = new AsciiDocEditableInlineContent(title, inlines);
     }
 
     /// <summary>Title without the leading dot.</summary>
     public string Title {
-        get => !_titleWasAssigned && Inlines.IsModified ? Inlines.ToAsciiDoc() : _title;
+        get => _content.Text;
         set {
             string normalized = value ?? string.Empty;
             AsciiDocText.EnsureSingleLine(normalized, nameof(value));
-            if (SetValue(ref _title, normalized)) _titleWasAssigned = true;
+            _content.Assign(normalized);
         }
     }
 
     /// <summary>Typed inline title content.</summary>
-    public AsciiDocInlineSequence Inlines { get; }
+    public AsciiDocInlineSequence Inlines => _content.Inlines;
 
     /// <summary>Block this title describes, or null when detached.</summary>
     public AsciiDocBlock? Target { get; internal set; }
@@ -34,10 +32,10 @@ public sealed class AsciiDocBlockTitle : AsciiDocBlock, IAsciiDocBlockMetadata {
     AsciiDocBlock? IAsciiDocBlockMetadata.Target { get => Target; set => Target = value; }
 
     /// <inheritdoc />
-    public override bool IsModified => base.IsModified || Inlines.IsModified;
+    public override bool IsModified => base.IsModified || _content.IsModified;
 
     internal override string WriteCore(AsciiDocWriterContext context) =>
-        "." + (_titleWasAssigned ? _title : Inlines.Write(context)) + EffectiveTrailingLineEnding(context);
+        "." + _content.Write(context) + EffectiveTrailingLineEnding(context);
 }
 
 /// <summary>Source-preserving block anchor line such as <c>[[id,Reference text]]</c>.</summary>

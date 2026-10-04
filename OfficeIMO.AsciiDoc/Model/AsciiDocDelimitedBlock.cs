@@ -26,6 +26,8 @@ public enum AsciiDocDelimitedBlockKind {
 public class AsciiDocDelimitedBlock : AsciiDocBlock {
     private string _content;
     private bool _contentWasAssigned;
+    private AsciiDocDocument? _body;
+    private AsciiDocParseOptions _bodyOptions = new AsciiDocParseOptions();
 
     internal AsciiDocDelimitedBlock(
         AsciiDocSyntaxNode syntax,
@@ -61,12 +63,32 @@ public class AsciiDocDelimitedBlock : AsciiDocBlock {
     public bool IsTerminated { get; }
 
     /// <summary>Content between delimiters, including its original internal line endings until edited.</summary>
-    public string Content {
-        get => _content;
+    public virtual string Content {
+        get => _body?.IsModified == true ? _body.ToAsciiDoc() : _content;
         set {
-            if (SetValue(ref _content, value ?? string.Empty)) _contentWasAssigned = true;
+            string replacement = value ?? string.Empty;
+            if (string.Equals(Content, replacement, StringComparison.Ordinal)) return;
+            SetValue(ref _content, replacement);
+            _contentWasAssigned = true;
+            _body = null;
         }
     }
+
+    /// <summary>Typed editable child document for an example, sidebar, quote, or open block; null for verbatim blocks.</summary>
+    public AsciiDocDocument? Body => GetBody();
+
+    /// <summary>Loads the typed compound body with cooperative cancellation; verbatim blocks have no child document.</summary>
+    public AsciiDocDocument? GetBody(System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (Kind != AsciiDocDelimitedBlockKind.Example && Kind != AsciiDocDelimitedBlockKind.Sidebar &&
+            Kind != AsciiDocDelimitedBlockKind.Open && Kind != AsciiDocDelimitedBlockKind.Quote) return null;
+        return _body ??= AsciiDocDocument.Parse(_content, _bodyOptions, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public override bool IsModified => base.IsModified || _body?.IsModified == true;
+
+    internal virtual void SetBodyOptions(AsciiDocParseOptions options) => _bodyOptions = options.Copy();
 
     /// <summary>True when <see cref="Content"/> was replaced directly.</summary>
     protected bool IsContentAssigned => _contentWasAssigned;

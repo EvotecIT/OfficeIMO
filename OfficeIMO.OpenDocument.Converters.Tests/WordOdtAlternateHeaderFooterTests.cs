@@ -4,6 +4,7 @@ using System.Linq;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Drawing;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Word;
 using OfficeIMO.Word.OpenDocument;
@@ -12,6 +13,86 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class WordOdtAlternateHeaderFooterTests {
+    [Fact]
+    public void WebpCopyBudgetMeasuresTheEmbeddedPng() {
+        byte[] webp = Convert.FromBase64String(
+            "UklGRgABAABXRUJQVlA4IPQAAADwBwCdASowACAAPm0qk0akIiGhMBqoAIANiWkABDuf7d5Avgz2AP4Z/Mt8Y/U1b3F7oCPeUJ20vuIJxhq77xO2pkuCcZjIRQAA/v9pZT9N517DnvIflMGq11CYlv/lj//PoWZgar6aFjJ7DgZpw31hql/c3+6gxpUqlAFtr559b2gA5slzNshR6BYM1vKemNd4j9aWdwR6r1N2JXD+EJz1XX/EQ6o/5rX+kT+K61+YVqdGKv9KeR/ggDb/8sGFHdID2I2O+vYNBnjG4CBr5684cCmjSLu+8R0WPzEzgXYZ50v2plIKMfg/Bid25Sfqvum8AAAA");
+        Assert.True(OfficeImagePngConverter.TryConvertToPng(webp, out byte[] png));
+        Assert.True(png.Length > webp.Length);
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph().AddImage(webp, "image.webp", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
+
+        OdfConversionResult<WordDocument> omitted = source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { MaxConvertedImageBytes = png.Length - 1 });
+        using (WordDocument word = omitted.Value) {
+            Assert.Empty(word.OpenXmlDocument.MainDocumentPart!.ImageParts);
+        }
+        Assert.Contains(omitted.Report.Mappings, mapping => mapping.Feature == "images" &&
+            mapping.Status == OdfConversionMappingStatus.Skipped);
+
+        OdfConversionResult<WordDocument> included = source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { MaxConvertedImageBytes = png.Length });
+        using WordDocument includedWord = included.Value;
+        Assert.Equal(png.Length, Assert.Single(includedWord.OpenXmlDocument.MainDocumentPart!.ImageParts).GetStream().Length);
+    }
+
+    [Fact]
+    public void FailedImageCopyDoesNotConsumeTheNextImageAllowance() {
+        byte[] png = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph().AddImage(png, "invalid-dimensions.png", OdfLength.Parse("1%"), OdfLength.Centimeters(1));
+        source.AddParagraph().AddImage(png, "valid.png", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { MaxConvertedImageBytes = png.Length });
+        using WordDocument word = conversion.Value;
+        Assert.Single(word.OpenXmlDocument.MainDocumentPart!.ImageParts);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "images" &&
+            mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void AlternateHeaderImagesShareTheDocumentCopyBudget() {
+        byte[] png = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph().AddImage(png, "body.png", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
+        OdtParagraph header = source.PageLayout.EnsureFirstHeader().AddParagraph();
+        OdtImage image = header.AddImage(png, "header.png", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
+        header.Element.Add(new XElement(image.Element));
+        source.Package.MarkXmlDirty("styles.xml");
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { MaxConvertedImageBytes = png.Length });
+        using WordDocument word = conversion.Value;
+        Assert.Single(word.OpenXmlDocument.MainDocumentPart!.ImageParts);
+        Assert.DoesNotContain(word.Sections[0].Header.First!.Paragraphs.SelectMany(paragraph => paragraph.GetRuns()),
+            run => run.IsImage);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "images" &&
+            mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count == 2);
+    }
+
+    [Fact]
+    public void HeaderFallbackReportsImageLossWhenTheCopyBudgetIsFull() {
+        byte[] png = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        OdtDocument source = OdtDocument.Create();
+        source.PageLayout.Header.AddParagraph().AddImage(png, "header.png",
+            OdfLength.Centimeters(1), OdfLength.Centimeters(1));
+        source.PageLayout.EnsureFirstFooter();
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult(
+            new WordOpenDocumentConversionOptions { MaxConvertedImageBytes = png.Length });
+        using WordDocument word = conversion.Value;
+        Assert.Contains(word.Sections[0].Header.Default!.Paragraphs.SelectMany(paragraph => paragraph.GetRuns()),
+            run => run.IsImage);
+        Assert.DoesNotContain(word.Sections[0].Header.First!.Paragraphs.SelectMany(paragraph => paragraph.GetRuns()),
+            run => run.IsImage);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "images" &&
+            mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count == 1);
+    }
+
     [Fact]
     public void WordFirstAndEvenStoriesRoundTripThroughNativeOdt() {
         using WordDocument word = WordDocument.Create();
