@@ -73,6 +73,8 @@ allocation and sampled process memory separate.
 object values, DataReader typed getters, rectangular arrays, and DataTable. It uses 2,500 and 25,000 rows with both
 `NumericAsDecimal` settings. The worksheet uses UTF-16 so the streaming XML
 fallback can be measured independently of the indexed reader's size boundary.
+The `Coordinates` parameter covers explicit references, omitted row indices,
+and omitted row and cell indices using the same numeric values.
 Setup checks every header, value, row count, and numeric result type. Each timed
 operation opens, consumes, and disposes its result, checking the row count and
 aggregate value. Generated fixtures are deleted during cleanup.

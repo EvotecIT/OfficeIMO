@@ -290,6 +290,67 @@ changes are introduced. The sparse implicit-row position defect remains open
 at this checkpoint.
 
 
+## Implicit worksheet coordinates
+
+Commit `15b5f2848` corrects row and column inference across twelve reader APIs,
+including typed and buffered readers, ranges, rows, columns, dictionaries,
+objects, DataTables, and cell enumeration. Missing row indices use the first
+valid cell reference or the next sequential row. DOM readers infer omitted
+cell references while traversing the existing row. Reading an attached live
+worksheet preserves its model. Live dimensions, header lookup, and header-cache
+validation use the same coordinate rules, including out-of-order rows.
+
+The original 36 implicit-row fixtures fail before the change. Subsequent
+fixtures reproduce nine missing-cell failures, an empty live header map, and
+two unsorted-header failures. The final 96 coordinate cases pass on Windows
+.NET 10, .NET 8, .NET Framework 4.7.2, and Ubuntu/WSL .NET 10. The full Windows
+.NET 10 suite passes 5,359 tests with five skips before the final narrow
+unsorted-header correction; 741 focused reader checks pass after that
+correction. The broader pre-correction focused runs pass 739 tests on .NET 8
+and Linux, and 734 on .NET Framework. Product `netstandard2.0` and benchmark
+.NET 8/.NET 10 builds have no warnings or errors.
+
+One independent read-only review and one targeted confirmation identify the
+missing-column and header issues. All findings are reproduced and corrected.
+The final unsorted-header correction has direct regression, cache-refresh, and
+runtime proof; it does not receive an additional independent review.
+
+This is a correctness checkpoint with a measured throughput cost. The XML
+fallback makes a separate scan when it first encounters an omitted row index,
+retaining only departures from sequential numbering. The six-workload
+[case file](excel-large-typed-read-2026-10-04/implicit-coordinate-cases.json)
+compares explicit coordinates, omitted row indices, and omitted row and cell
+indices at 25,000 rows. Both versions validate every numeric value. The
+[native packet](excel-large-typed-read-2026-10-04/implicit-coordinates-native.json)
+contains twelve cases, and the
+[rotated packet](excel-large-typed-read-2026-10-04/implicit-coordinates-rotated.json)
+contains 576 successful samples across both processor groups.
+
+| Coordinate layout and API | Mean ratio, `0xFFFF` | Mean ratio, `0xFFFF0000` |
+| --- | ---: | ---: |
+| Explicit, range | 1.10 | 1.00 |
+| Explicit, typed reader | 1.01 | 1.02 |
+| Omitted rows, range | 1.61 | 1.62 |
+| Omitted rows, typed reader | 1.20 | 1.22 |
+| Omitted rows and cells, range | 1.65 | 1.50 |
+| Omitted rows and cells, typed reader | 1.43 | 1.28 |
+
+Ratios above one are slower. The implicit-coordinate regressions repeat on
+both groups and remain required performance work. Native managed allocation
+increases by about 16–21 KiB in those lanes; explicit-coordinate allocation
+remains effectively unchanged. The comparison uses the preceding typed-reader
+commit `b854ad35b` as baseline. The
+[provenance](excel-large-typed-read-2026-10-04/implicit-coordinates-provenance.json)
+records both binaries, benchmark hash, test reports, and review boundaries.
+
+A fresh five-scan million-row
+[profile](excel-large-typed-read-2026-10-04/typed-values-current-profile.json)
+attributes 488.8 million of 489.9 million sampled allocated bytes to strings.
+Validation and current-value reading account for approximately equal shares.
+These are weighted diagnostic samples, not exact allocation accounting or CPU
+time. They identify XML attribute/value handling as the next allocation
+investigation alongside reuse of existing coordinate scans.
+
 ## Remaining allocation owners
 
 A profile after the buffer guard, before scan consolidation, attributes roughly
