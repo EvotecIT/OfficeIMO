@@ -134,11 +134,7 @@ namespace OfficeIMO.Excel {
 
                 using var reader = OpenWorksheetXmlReader(stream);
 
-                int minRow = int.MaxValue;
-                int minColumn = int.MaxValue;
-                int maxRow = 0;
-                int maxColumn = 0;
-                int nextRowIndex = 1;
+                var bounds = new WorksheetRangeAccumulator();
 
                 while (reader.Read()) {
                     ct.ThrowIfCancellationRequested();
@@ -146,23 +142,12 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
-                    bool hasExplicitRowIndex = rowIndex > 0;
-                    if (!hasExplicitRowIndex) {
-                        rowIndex = nextRowIndex;
-                    }
-
-                    nextRowIndex = rowIndex + 1;
+                    bounds.BeginRow(reader.GetAttribute("r"));
                     if (reader.IsEmptyElement) {
                         continue;
                     }
 
-                    int rowMinRow = hasExplicitRowIndex ? rowIndex : int.MaxValue;
-                    int rowMaxRow = hasExplicitRowIndex ? rowIndex : 0;
-                    int rowMinColumn = int.MaxValue;
-                    int rowMaxColumn = 0;
                     int rowDepth = reader.Depth;
-                    int nextColumnIndex = 1;
                     bool advanceReader = true;
                     while (advanceReader ? reader.Read() : !reader.EOF) {
                         ct.ThrowIfCancellationRequested();
@@ -177,28 +162,7 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
 
-                        int column = 0;
-                        if (hasExplicitRowIndex) {
-                            column = GetXmlCellColumnIndex(reader, ref nextColumnIndex);
-                        } else if (A1.TryParseCellReferenceFast(reader.GetAttribute("r"), out int parsedRow, out int parsedColumn)) {
-                            column = parsedColumn;
-                            if (parsedRow > 0) {
-                                if (parsedRow < rowMinRow) rowMinRow = parsedRow;
-                                if (parsedRow > rowMaxRow) rowMaxRow = parsedRow;
-                            }
-
-                            nextColumnIndex = parsedColumn + 1;
-                        }
-
-                        if (column <= 0) {
-                            column = nextColumnIndex;
-                            nextColumnIndex = column + 1;
-                        }
-
-                        if (column > 0) {
-                            if (column < rowMinColumn) rowMinColumn = column;
-                            if (column > rowMaxColumn) rowMaxColumn = column;
-                        }
+                        bounds.AddCell(reader.GetAttribute("r"));
 
                         if (!reader.IsEmptyElement) {
                             reader.Skip();
@@ -206,30 +170,10 @@ namespace OfficeIMO.Excel {
                         }
                     }
 
-                    if (rowMaxColumn <= 0) {
-                        continue;
-                    }
-
-                    if (rowMaxRow <= 0) {
-                        rowMinRow = rowIndex;
-                        rowMaxRow = rowIndex;
-                    }
-
-                    if (rowMinRow < minRow) minRow = rowMinRow;
-                    if (rowMaxRow > maxRow) maxRow = rowMaxRow;
-                    if (rowMinColumn < minColumn) minColumn = rowMinColumn;
-                    if (rowMaxColumn > maxColumn) maxColumn = rowMaxColumn;
-                    if (!hasExplicitRowIndex) {
-                        nextRowIndex = rowMaxRow + 1;
-                    }
+                    bounds.EndRow();
                 }
 
-                if (maxRow <= 0 || maxColumn <= 0) {
-                    return false;
-                }
-
-                reference = A1.CellReference(minRow, minColumn) + ":" + A1.CellReference(maxRow, maxColumn);
-                return true;
+                return bounds.TryGetReference(out reference);
             } catch (XmlException) {
                 return false;
             } catch (IOException) {

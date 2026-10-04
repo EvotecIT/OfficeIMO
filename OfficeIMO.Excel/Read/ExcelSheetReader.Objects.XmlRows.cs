@@ -168,7 +168,10 @@ namespace OfficeIMO.Excel {
         }
 
         private static int GetXmlCellColumnIndex(XmlReader cellReader, ref int nextColumnIndex) {
-            string? reference = cellReader.GetAttribute("r");
+            return GetXmlCellColumnIndex(cellReader.GetAttribute("r"), ref nextColumnIndex);
+        }
+
+        private static int GetXmlCellColumnIndex(string? reference, ref int nextColumnIndex) {
             int columnIndex = TryGetExpectedSingleLetterColumnIndex(reference, nextColumnIndex, out int expectedColumnIndex)
                 ? expectedColumnIndex
                 : A1.ParseColumnIndexFromCellReferenceWithKnownRowFast(reference);
