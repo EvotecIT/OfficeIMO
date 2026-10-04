@@ -350,7 +350,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static XmlReader OpenWorksheetXmlReader(Stream stream) {
-            return XmlReader.Create(stream, WorksheetXmlReaderSettings);
+            return XmlReader.Create(stream, OpenXmlReadNameTable.WithSchemaNames(WorksheetXmlReaderSettings));
         }
 
         private static XmlReaderSettings CreateWorksheetXmlReaderSettings() {

@@ -26,7 +26,7 @@ public class ExcelNumericXmlReadBenchmarks {
     [Params(false, true)]
     public bool NumericAsDecimal { get; set; }
 
-    [Params("DataReader", "Range", "DataTable")]
+    [Params("DataReader", "TypedDataReader", "Range", "DataTable")]
     public string Api { get; set; } = "DataReader";
 
     [GlobalSetup]
@@ -74,12 +74,26 @@ public class ExcelNumericXmlReadBenchmarks {
         var options = new ExcelReadOptions { NumericAsDecimal = NumericAsDecimal, InferDataTableColumnTypes = false };
         long result = 0;
         int count = 0;
-        if (Api == "DataReader") {
+        if (Api == "DataReader" || Api == "TypedDataReader") {
             using var reader = ExcelDocument.OpenDataReader(_path, options);
             if (reader.FieldCount != 2 || reader.GetName(0) != Headers[0] || reader.GetName(1) != Headers[1]) {
                 throw new InvalidDataException("Reader headers differ.");
             }
-            while (reader.Read()) Add(ref result, reader.GetValue(0), reader.GetValue(1), count++, validate);
+            while (reader.Read()) {
+                if (Api == "TypedDataReader") {
+                    int id = reader.GetInt32(0);
+                    decimal amount = reader.GetDecimal(1);
+                    if (validate) {
+                        if (id != count + 1 || amount != count * 1.25m) throw new InvalidDataException("Typed numeric values differ.");
+                        Add(ref result, reader.GetValue(0), reader.GetValue(1), count, validate: true);
+                    } else {
+                        result = unchecked(result + id + (long)(amount * 100));
+                    }
+                } else {
+                    Add(ref result, reader.GetValue(0), reader.GetValue(1), count, validate);
+                }
+                count++;
+            }
         } else {
             using var owner = ExcelDocumentReader.Open(_path, options);
             var sheet = owner.GetSheet("Data");

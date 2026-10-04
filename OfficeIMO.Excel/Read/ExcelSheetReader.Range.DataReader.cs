@@ -410,6 +410,18 @@ namespace OfficeIMO.Excel {
         }
 
         private object? ConvertRawForDataReader(CellRaw raw) {
+            if (_opt.CellValueConverter == null && _opt.TreatDatesUsingNumberFormat
+                && (raw.TypeHint == null || raw.TypeHint == CellValues.Number)
+                && (!raw.HasFormula || _opt.UseCachedFormulaResult)
+                && string.IsNullOrEmpty(raw.InlineText)
+                && raw.StyleIndex is uint dateStyle && Styles.IsDateLike(dateStyle)
+                && raw.RawText != null
+                && (TryParseInvariantDouble(raw.RawText, out double rawSerial)
+                    || double.TryParse(raw.RawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out rawSerial))) {
+                // Defer date range validation until a date is requested; numeric getters
+                // must work even when a date-formatted serial is outside DateTime's range.
+                return new ExcelDataReaderDateSerial(rawSerial, _dateSystem, Styles.IsDateSystemShiftStyle(dateStyle));
+            }
             raw = ConvertRaw(raw);
             if (!raw.CustomValueHandled && raw.TypedValue is DateTime
                 && raw.TypeHint != CellValues.Date && raw.StyleIndex is uint style

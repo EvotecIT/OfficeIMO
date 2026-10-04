@@ -69,13 +69,17 @@ allocation and sampled process memory separate.
 
 ## Numeric XML result shapes
 
-`ExcelNumericXmlReadBenchmarks` exercises numeric decoding through DataReader,
-rectangular arrays, and DataTable. It uses 2,500 and 25,000 rows with both
+`ExcelNumericXmlReadBenchmarks` exercises numeric decoding through DataReader
+object values, DataReader typed getters, rectangular arrays, and DataTable. It uses 2,500 and 25,000 rows with both
 `NumericAsDecimal` settings. The worksheet uses UTF-16 so the streaming XML
 fallback can be measured independently of the indexed reader's size boundary.
 Setup checks every header, value, row count, and numeric result type. Each timed
 operation opens, consumes, and disposes its result, checking the row count and
 aggregate value. Generated fixtures are deleted during cleanup.
+
+The `TypedDataReader` lane consumes integer IDs and decimal amounts without
+boxing them in the timed loop. Setup also checks object values after typed access
+so allocation improvements preserve the canonical numeric result types.
 
 ```powershell
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter '*ExcelNumericXmlReadBenchmarks*' --priority Normal --warmupCount 24 --iterationCount 12 --invocationCount 4 --unrollFactor 1 --outliers DontRemove --artifacts ./Ignore/Benchmarks/numeric-xml-read
