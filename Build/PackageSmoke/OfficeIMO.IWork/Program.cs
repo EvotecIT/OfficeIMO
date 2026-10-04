@@ -13,6 +13,24 @@ OfficeWorkflowRunner runner = IWorkWorkflow.CreateRunner(conversionOptions: new 
 string outputRoot = Path.Combine(Path.GetTempPath(), "officeimo-iwork-package-smoke-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(outputRoot);
 try {
+    var created = IWorkKeynoteDocument.Create();
+    created.AddSlide("E6F2FF").AddText("Zażółć gęślą jaźń\nA😀B — café", 60, 100, 840, 260,
+        fontName: "Arial", fontSizePoints: 40, color: "003366");
+    created.AddSlide();
+    string createdPath = Path.Combine(outputRoot, "created.key");
+    created.Save(createdPath);
+    if (!created.SaveBytes().SequenceEqual(File.ReadAllBytes(createdPath)))
+        throw new InvalidOperationException("Packed native creation is not deterministic.");
+    var createdSource = IWorkSourceDocument.Open(createdPath).ReadKeynote();
+    if (!createdSource.HasEditableContent || createdSource.Slides.Count != 2
+        || createdSource.Slides[0].TextBoxes[0].Content.Paragraphs[0].Runs[0].Style.Color?.RgbHex != "003366")
+        throw new InvalidOperationException("Packed native Keynote creation lost its text or styles.");
+    OfficeWorkflowResult createdResult = await runner.RunAsync(new OfficeWorkflowRequest {
+        InputPath = createdPath, OutputPath = Path.Combine(outputRoot, "created.pptx"),
+        Operation = OfficeWorkflowOperation.Convert, ConversionRouteId = "keynote-pptx"
+    });
+    if (!createdResult.Succeeded || !createdResult.Diagnostics.Any(d => d.Code == "OutputReopened"))
+        throw new InvalidOperationException("Packed created Keynote conversion failed: " + createdResult.Summary);
     foreach ((string extension, string route, string target, string text) in new[] {
         ("pages", "pages-docx", "docx", "hello pages"),
         ("numbers", "numbers-xlsx", "xlsx", "Z"),

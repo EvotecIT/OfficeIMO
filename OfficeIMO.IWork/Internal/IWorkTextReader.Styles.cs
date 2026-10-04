@@ -129,13 +129,7 @@ internal static partial class IWorkTextReader {
             }
             else data.FontName = fontName;
         }
-        bool? clearColor = ReadBoolean(message, 6, evidence, ref complete);
-        if (clearColor == true) {
-            if (message.HasField(7)) { evidence.Record(message, 7); complete = false; }
-            data.Color = null;
-        }
-        else if ((!message.HasField(6) || clearColor.HasValue)
-            && TryColor(message, 7, out IWorkColor? color, evidence, ref complete)) data.Color = color;
+        OverlayTextColor(message, data, record, references, evidence, ref complete);
         bool? clearBackground = ReadBoolean(message, 25, evidence, ref complete);
         if (clearBackground == true) {
             if (message.HasField(26)) { evidence.Record(message, 26); complete = false; }

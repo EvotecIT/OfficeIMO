@@ -472,7 +472,8 @@ public sealed class IWorkCorpusTests {
             Fixture("keynotekit/tabledeck-v15.2.1.key")).ReadKeynote();
         IWorkTable table = Assert.Single(Assert.Single(tableDeck.Slides).Tables);
 
-        Assert.False(tableDeck.HasEditableContent);
+        Assert.True(tableDeck.HasEditableContent);
+        Assert.Equal("FFFFFF", tableDeck.Slides[0].BackgroundColor?.RgbHex);
         Assert.True(tableDeck.HasRecoverableContent);
         Assert.Equal((3, 3), (table.RowCount, table.ColumnCount));
         Assert.Equal("Product", table.GetCell(1, 1)!.Value);

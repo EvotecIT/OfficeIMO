@@ -49,6 +49,45 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(projection.SourceDeclarationIssues, issue => issue.FieldPath == "1/3");
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Explicit_padding_uses_zero_defaults_for_omitted_sides_instead_of_parent_insets(bool leftOnly) {
+        using var package = NativeTextFramePackage(BytesField(6, leftOnly ? FloatField(1, 8) : Message()));
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        result.Report.RequireCompleteEditableReconstruction();
+        IWorkTextBoxLayout layout = result.Projection.Slides[0].TitleBox!.Layout!;
+        Assert.Equal(leftOnly ? 8 : 0, layout.LeftInsetPoints);
+        Assert.Equal(0, layout.TopInsetPoints);
+        Assert.Equal(0, layout.RightInsetPoints);
+        Assert.Equal(0, layout.BottomInsetPoints);
+        using var saved = new MemoryStream();
+        result.Value.Save(saved); saved.Position = 0;
+        using var reopened = PowerPointPresentation.Load(saved);
+        var box = Assert.Single(reopened.Slides[0].TextBoxes);
+        Assert.Equal(leftOnly ? 8 : 0, box.TextMarginLeftPoints);
+        Assert.Equal(0, box.TextMarginTopPoints);
+    }
+
+    [Theory]
+    [InlineData("wire")]
+    [InlineData("duplicate")]
+    [InlineData("negative")]
+    [InlineData("unknown")]
+    public void Invalid_or_unmapped_explicit_padding_does_not_reuse_parent_layout(string defect) {
+        byte[] padding = defect switch {
+            "wire" => VarintField(1, 0),
+            "duplicate" => Message(FloatField(1, 0), FloatField(1, 0)),
+            "negative" => FloatField(1, -1),
+            _ => FloatField(5, 0)
+        };
+        using var package = NativeTextFramePackage(BytesField(6, padding));
+        var projection = IWorkSourceDocument.Open(package).ReadKeynote();
+        Assert.False(projection.HasEditableContent);
+        Assert.Null(projection.Slides[0].TitleBox!.Layout);
+        Assert.Contains(projection.SourceDeclarationIssues, issue => issue.FieldPath.StartsWith("11/6", StringComparison.Ordinal));
+    }
+
     private static MemoryStream NativeTextFramePackage(byte[] childProperties,
         int paginationField = 9, bool cyclicParent = false, bool connectedFlow = false) {
         byte[] geometry = Message(BytesField(1, Message(FloatField(1, 55), FloatField(2, 146))),
