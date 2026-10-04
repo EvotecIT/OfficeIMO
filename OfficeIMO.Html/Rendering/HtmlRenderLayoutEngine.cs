@@ -610,7 +610,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static double MaximumScrollRight(IEnumerable<HtmlRenderVisual> visuals) {
         double maximum = 0D;
         foreach (HtmlRenderVisual visual in visuals) {
-            bool paintOnlyBounds = visual is HtmlRenderPathClipGroup || visual is HtmlRenderEffectGroup;
+            // Semantic owners do not create a CSS box or painted overflow.
+            bool paintOnlyBounds = visual is HtmlRenderPathClipGroup || visual is HtmlRenderEffectGroup
+                || visual is HtmlRenderSemanticGroup;
             double right = paintOnlyBounds ? 0D : visual.X + visual.Width;
             IEnumerable<HtmlRenderVisual>? children = visual switch {
                 HtmlRenderClipGroup clip when !clip.ClipHorizontal => clip.Visuals,

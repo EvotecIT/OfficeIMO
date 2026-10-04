@@ -241,7 +241,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderFlowBlock ApplyFlattenedSemanticBoundary(
         HtmlRenderFlowBlock block,
         FlattenedSemanticBoundary boundary,
-        bool firstFragment) {
+        bool firstFragment, int? logicalOrder = null) {
         double anchorTop = Math.Max(0D, block.CollapsibleMarginTop);
         if (firstFragment) block = AddTargetPageAnchor(block, boundary.Element, anchorTop);
         string anchorText = boundary.AnchorText.Length > 0
@@ -265,9 +265,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         HtmlRenderFlowBlock semanticBlock = boundary.Style.SemanticArtifact || boundary.Style.SemanticGroupRoleOverride.HasValue
             ? block
-            : ApplyListSemantics(block, boundary.Element, boundary.StructureElementKey);
+            : ApplyListSemantics(block, boundary.Element, boundary.StructureElementKey, logicalOrder);
         if (!boundary.Role.HasValue) return semanticBlock;
-        return WrapSemanticBlock(semanticBlock, boundary.Role.Value, boundary.Source, boundary.StructureElementKey);
+        return WrapSemanticBlock(semanticBlock, boundary.Role.Value, boundary.Source, boundary.StructureElementKey, logicalOrder);
     }
 
     /// <summary>Preserves a semantic ancestor on ordinary, repeated-header and repeated-footer fragments.</summary>
@@ -317,13 +317,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class FlattenedSemanticPlacement {
-        internal FlattenedSemanticPlacement(FlattenedSemanticBoundary boundary, bool firstFragment) {
+        internal FlattenedSemanticPlacement(FlattenedSemanticBoundary boundary, bool firstFragment, int logicalOrder) {
             Boundary = boundary;
             FirstFragment = firstFragment;
+            LogicalOrder = logicalOrder;
         }
 
         internal FlattenedSemanticBoundary Boundary { get; }
         internal bool FirstFragment { get; }
+        internal int LogicalOrder { get; }
     }
 
     private string ResolveBookmarkAnchorText(IElement element, HtmlRenderBoxStyle style) {

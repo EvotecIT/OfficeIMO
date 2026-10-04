@@ -105,6 +105,23 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain("Decoration", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("section", false, "Sect")]
+    [InlineData("section", true, "Sect")]
+    [InlineData("ul", false, "L")]
+    public void HtmlFlexPdf_FlattenedSemanticOwnerPrecedesReorderedSibling(string tag, bool nested, string expectedRole) {
+        string contents = tag == "ul" ? "<li>First</li><li>Second</li>" : "<p>First</p><p>Second</p>";
+        if (nested) contents = "<section style='display:contents'>" + contents + "</section>";
+        string html = "<main style='display:flex'><" + tag + " style='display:contents'>" + contents
+            + "</" + tag + "><div style='order:-1'>Third</div></main>";
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(PdfCore.PdfInspector.Inspect(pdf).TaggedContent);
+        var elements = tagged.StructureElements.ToDictionary(item => item.ObjectNumber);
+        PdfCore.PdfStructureElementInfo document = Assert.Single(tagged.StructureElements, item => item.StructureType == "Document");
+        PdfCore.PdfStructureElementInfo main = Assert.Single(document.ChildElementObjectNumbers.Select(id => elements[id]));
+        Assert.Equal(new[] { expectedRole, "Div" }, main.ChildElementObjectNumbers.Select(id => elements[id].StructureType));
+    }
+
     private static string CreateFlexLogicalOrderFixture(string containerStyle, string primaryStyle, string sidebarStyle) =>
         "<!doctype html><html lang='en'><head><style>@page{size:400px 400px;margin:10px}body,p,figcaption,section{margin:0;font:14px/20px Arial}</style></head><body>"
         + "<section style='display:flex;align-items:flex-start;" + containerStyle + "'><div style='width:240px;flex-shrink:0;" + primaryStyle + "'>"

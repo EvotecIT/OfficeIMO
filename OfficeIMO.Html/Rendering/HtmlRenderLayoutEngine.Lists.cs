@@ -3,21 +3,21 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private static HtmlRenderFlowBlock ApplyListSemantics(HtmlRenderFlowBlock block, IElement element, string? structureElementKey = null) {
+    private static HtmlRenderFlowBlock ApplyListSemantics(HtmlRenderFlowBlock block, IElement element, string? structureElementKey = null, int? logicalOrder = null) {
         string tag = element.TagName.ToLowerInvariant();
         string source = HtmlRenderStyleResolver.DescribeSource(element);
         if (tag == "ul" || tag == "ol") {
             return WrapSemanticBlock(block, HtmlRenderSemanticGroupRole.List, source,
-                structureElementKey == null ? null : structureElementKey + ":list");
+                structureElementKey == null ? null : structureElementKey + ":list", logicalOrder);
         }
 
         if (tag != "li") return block;
         return WrapSemanticFragments(block, (visuals, height) =>
-            CreateListItemSemanticVisuals(visuals, block.Width, height, source, structureElementKey));
+            CreateListItemSemanticVisuals(visuals, block.Width, height, source, structureElementKey, logicalOrder));
     }
 
     private static IReadOnlyList<HtmlRenderVisual> CreateListItemSemanticVisuals(
-        IReadOnlyList<HtmlRenderVisual> visuals, double width, double height, string source, string? structureElementKey) {
+        IReadOnlyList<HtmlRenderVisual> visuals, double width, double height, string source, string? structureElementKey, int? logicalOrder) {
         PartitionListMarkerVisuals(visuals, out List<HtmlRenderVisual> markerVisuals, out List<HtmlRenderVisual> bodyVisuals);
         var itemVisuals = new List<HtmlRenderVisual>(2);
         if (markerVisuals.Count > 0) {
@@ -43,7 +43,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             new HtmlRenderSemanticGroup(
                 HtmlRenderSemanticGroupRole.ListItem, 0D, 0D, Math.Max(0.01D, width), Math.Max(0.01D, height),
                 itemVisuals, 0, source,
-                structureElementKey: structureElementKey == null ? null : structureElementKey + ":item")
+                structureElementKey: structureElementKey == null ? null : structureElementKey + ":item", logicalOrder: logicalOrder)
         };
     }
 
