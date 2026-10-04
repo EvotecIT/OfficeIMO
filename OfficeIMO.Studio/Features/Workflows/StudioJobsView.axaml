@@ -79,8 +79,10 @@
                   </StackPanel>
                   <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                     <Button Classes="tool" IsVisible="{Binding IsActive}" Content="{Binding CancelLabel}" Command="{Binding CancelCommand}" />
-                    <Button Classes="tool" IsVisible="{Binding HasOutput}" Content="{loc:Loc Jobs.ShowInFolder}"
-                            Command="{ReflectionBinding $parent[UserControl].DataContext.RevealOutputCommand}" CommandParameter="{Binding}" />
+                    <Panel IsVisible="{ReflectionBinding $parent[UserControl].DataContext.SupportsFolderNavigation}">
+                      <Button Classes="tool" IsVisible="{Binding HasOutput}" Content="{loc:Loc Jobs.ShowInFolder}"
+                              Command="{ReflectionBinding $parent[UserControl].DataContext.RevealOutputCommand}" CommandParameter="{Binding}" />
+                    </Panel>
                     <Button Classes="primary" IsVisible="{Binding CanOpenOutput}" Content="{loc:Loc Jobs.OpenOutput}"
                             Command="{ReflectionBinding $parent[UserControl].DataContext.OpenOutputCommand}" CommandParameter="{Binding}" />
                   </StackPanel>

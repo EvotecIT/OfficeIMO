@@ -204,7 +204,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         if (change.Property == SelectedObjectProperty || change.Property == SceneProperty || change.Property == SelectionModeProperty) ResetObjectTransform();
         if (change.Property == ActiveSearchHighlightProperty || change.Property == SceneProperty) QueueSearchReveal();
         if (change.Property == CommentAnchorObjectNumberProperty || change.Property == SceneProperty) QueueCommentAnchorReveal();
-        if (change.Property == FormAnchorFieldNameProperty || change.Property == SceneProperty) QueueFormAnchorReveal();
+        if (change.Property == FormAnchorFieldNameProperty || change.Property == FormAnchorObjectNumberProperty || change.Property == SceneProperty) QueueFormAnchorReveal();
         if (change.Property == EditorToolProperty) {
             Cursor = EditorTool == PdfEditorTool.Select ? _textCursor : _crossCursor;
             ResetPointerState();
@@ -233,8 +233,17 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         _editorPath.Clear();
     }
 
+    protected override void OnTapped(TappedEventArgs e) {
+        base.OnTapped(e);
+        if (e.Pointer.Type != PointerType.Touch || EditorTool != PdfEditorTool.Select || Scene is null) return;
+        // Recognized taps still activate links; a scrolling gesture never reaches this path.
+        ActivateLink(e.GetPosition(this));
+    }
+
     protected override void OnPointerPressed(PointerPressedEventArgs e) {
         base.OnPointerPressed(e);
+        // A finger navigates the scroll viewport; pointer/Pencil input retains selection and drawing.
+        if (e.Pointer.Type == PointerType.Touch && EditorTool == PdfEditorTool.Select) return;
         if (Scene is null || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
         Focus();
         if (EditorTool == PdfEditorTool.Select && BeginObjectTransform(e)) return;

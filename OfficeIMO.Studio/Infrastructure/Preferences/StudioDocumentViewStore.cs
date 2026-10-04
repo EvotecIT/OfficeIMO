@@ -10,10 +10,12 @@ internal sealed class StudioDocumentViewStore {
     private const long MaximumFileBytes = 256 * 1024;
     private readonly string _path;
     private readonly Func<bool> _enabled;
+    private readonly StudioLocalDocumentRoot? _documents;
     private List<Entry> _entries;
 
-    internal StudioDocumentViewStore(string path, Func<bool>? enabled = null) {
+    internal StudioDocumentViewStore(string path, Func<bool>? enabled = null, StudioLocalDocumentRoot? documents = null) {
         _path = Path.GetFullPath(path);
+        _documents = documents;
         _enabled = enabled ?? (() => true);
         _entries = Load();
     }
@@ -56,8 +58,8 @@ internal sealed class StudioDocumentViewStore {
         }
     }
 
-    private static string Key(string path) {
-        string normalized = OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(path);
+    private string Key(string path) {
+        string normalized = OfficeIMO.Internal.OfficeStorageIdentity.GetPersistenceKey(_documents?.GetIdentity(path) ?? path);
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(normalized)));
     }
 

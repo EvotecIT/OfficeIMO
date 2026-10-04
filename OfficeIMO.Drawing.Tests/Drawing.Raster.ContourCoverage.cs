@@ -5,6 +5,69 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingRasterTests {
     [Theory]
+    [InlineData(false, 48)]
+    [InlineData(true, 48)]
+    [InlineData(false, 2049)]
+    [InlineData(true, 2049)]
+    public void ManyDisjointContourColumnsRetainCoverageAcrossScratchGrowth(bool nonZero, int columns) {
+        var contours = Enumerable.Range(0, columns).Select(i => (IReadOnlyList<OfficePoint>)new[] {
+            new OfficePoint(2D * i + 0.25D, -0.25D), new OfficePoint(2D * i + 1.5D, -0.25D),
+            new OfficePoint(2D * i + 1.5D, 3.25D), new OfficePoint(2D * i + 0.25D, 3.25D)
+        }).ToArray();
+        var image = new OfficeRasterImage(2 * columns, 3, OfficeColor.Transparent);
+        var canvas = new OfficeRasterCanvas(image);
+        var color = OfficeColor.FromRgba(200, 40, 80, 128);
+        if (nonZero) canvas.FillPolygonsNonZero(contours, color);
+        else canvas.FillPolygonsEvenOdd(contours, color);
+
+        for (int y = 0; y < image.Height; y++) {
+            for (int x = 0; x < image.Width; x++) {
+                double horizontal = x % 2 == 0 ? 0.75D : 0.5D;
+                Assert.Equal((byte)Math.Round(128D * horizontal), image.GetPixel(x, y).A);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(false, 0D)]
+    [InlineData(true, 0D)]
+    [InlineData(false, 0.0625D)]
+    [InlineData(true, 0.0625D)]
+    [InlineData(false, 0.999999999999D)]
+    [InlineData(true, 0.999999999999D)]
+    public void SeparatedContourBandsKeepIndependentHoleAreasAcrossEmptyRows(bool nonZero, double phase) {
+        var contours = new List<IReadOnlyList<OfficePoint>>();
+        var bands = new[] { -0.5D + phase, 3D + phase, 7.25D + phase };
+        foreach (double top in bands) {
+            contours.Add(Rectangle(0.25D, top, 5.75D, top + 1.5D));
+            contours.Add(Enumerable.Reverse(Rectangle(1.25D, top + 0.25D, 4.25D, top + 1.25D)).ToArray());
+        }
+        var image = new OfficeRasterImage(7, 11, OfficeColor.Transparent);
+        var canvas = new OfficeRasterCanvas(image);
+        var color = OfficeColor.FromRgba(200, 40, 80, 128);
+        if (nonZero) canvas.FillPolygonsNonZero(contours, color);
+        else canvas.FillPolygonsEvenOdd(contours, color);
+
+        // Rectangle intersection areas provide an independent oracle for every pixel,
+        // including clipped bands, empty rows and both ends of fractional holes.
+        for (int y = 0; y < image.Height; y++) {
+            for (int x = 0; x < image.Width; x++) {
+                double area = bands.Sum(top => Area(x, y, 0.25D, top, 5.75D, top + 1.5D)
+                    - Area(x, y, 1.25D, top + 0.25D, 4.25D, top + 1.25D));
+                Assert.Equal((byte)Math.Round(128D * area), image.GetPixel(x, y).A);
+            }
+        }
+
+        static OfficePoint[] Rectangle(double left, double top, double right, double bottom) => new[] {
+            new OfficePoint(left, top), new OfficePoint(right, top),
+            new OfficePoint(right, bottom), new OfficePoint(left, bottom)
+        };
+        static double Area(int x, int y, double left, double top, double right, double bottom) =>
+            Math.Max(0D, Math.Min(x + 1D, right) - Math.Max(x, left))
+            * Math.Max(0D, Math.Min(y + 1D, bottom) - Math.Max(y, top));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void FractionalContourRowsRetainHoleCoverageAndCompositeAlphaOnce(bool nonZero) {

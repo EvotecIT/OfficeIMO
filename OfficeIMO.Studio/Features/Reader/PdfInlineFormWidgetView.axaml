@@ -1,0 +1,37 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:reader="using:OfficeIMO.Studio.Features.Reader" xmlns:editor="using:OfficeIMO.Studio.Features.Editor"
+             x:Class="OfficeIMO.Studio.Features.Reader.PdfInlineFormWidgetView" x:DataType="reader:PdfInlineFormWidgetViewModel">
+  <ThemeVariantScope RequestedThemeVariant="Light">
+  <Border Classes="inlineFormField" Width="{Binding Width}" Height="{Binding Height}">
+    <Panel>
+      <TextBox x:Name="InlineFormText" Classes="inlineForm" IsVisible="{Binding Field.IsTextEditor}" Text="{Binding Field.TextValue, Mode=TwoWay}"
+               AcceptsReturn="{Binding Field.IsMultiline}" TextWrapping="{Binding Field.IsMultiline, Converter={x:Static reader:PdfPageView.WrapWhenMultiline}}"
+               PasswordChar="{Binding Field.DraftPasswordChar}" FontSize="{Binding FontSize}"
+               AutomationProperties.Name="{Binding Field.DisplayName}" ToolTip.Tip="{Binding Field.ValidationSummary}" />
+      <CheckBox x:Name="InlineFormCheck" IsVisible="{Binding Field.IsCheckBoxEditor}" IsChecked="{Binding Field.IsChecked, Mode=TwoWay}"
+                HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="0" MinHeight="0" Padding="0"
+                AutomationProperties.Name="{Binding Field.DisplayName}" />
+      <RadioButton x:Name="InlineFormRadio" IsVisible="{Binding Field.IsRadioButtonEditor}" IsChecked="{Binding RadioChoice.IsSelected, Mode=TwoWay}"
+                   GroupName="{Binding RadioGroupName}" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="0" MinHeight="0" Padding="0"
+                   AutomationProperties.Name="{Binding RadioLabel}" />
+      <ComboBox x:Name="InlineFormChoice" IsVisible="{Binding IsDropDown}" ItemsSource="{Binding Field.Choices}" SelectedItem="{Binding Field.SelectedChoice, Mode=OneWay}"
+                SelectionChanged="OnDropDownSelectionChanged"
+                HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MinHeight="0" Padding="6,0" AutomationProperties.Name="{Binding Field.DisplayName}">
+        <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfFormChoiceViewModel"><TextBlock Text="{Binding DisplayText}" /></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+      <ListBox x:Name="InlineFormList" Focusable="True" IsVisible="{Binding Field.IsListBoxEditor}" ItemsSource="{Binding Field.Choices}" SelectionMode="{Binding ChoiceSelectionMode}"
+               Background="Transparent" Foreground="#111827" BorderThickness="0" Padding="0" AutomationProperties.Name="{Binding Field.DisplayName}">
+        <ListBox.Styles>
+          <Style Selector="ListBoxItem">
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="MinHeight" Value="32" /><Setter Property="Padding" Value="6,4" />
+          </Style>
+        </ListBox.Styles>
+        <ListBox.ItemTemplate><DataTemplate x:DataType="editor:PdfFormChoiceViewModel"><TextBlock Text="{Binding DisplayText}" /></DataTemplate></ListBox.ItemTemplate>
+      </ListBox>
+      <TextBox x:Name="InlineFormEditableChoice" Classes="inlineForm" IsVisible="{Binding Field.IsEditableChoice}" Text="{Binding Field.TextValue, Mode=TwoWay}"
+               AutomationProperties.Name="{Binding Field.DisplayName}" ToolTip.Tip="{Binding Field.ValidationSummary}" />
+    </Panel>
+  </Border>
+  </ThemeVariantScope>
+</UserControl>

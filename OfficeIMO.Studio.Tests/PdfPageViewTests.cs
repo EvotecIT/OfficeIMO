@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
+using Avalonia.VisualTree;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Features.Shell;
 using PdfDocument = OfficeIMO.Pdf.PdfDocument;
@@ -27,7 +28,7 @@ public sealed class PdfPageViewTests {
                 PdfPageViewModel page = Assert.Single(model.Pages);
                 page.AttachToViewport();
                 await WaitUntilAsync(() => page.Scene is not null);
-                page.ShowInlineFormField(Assert.Single(model.FormFields), focus: true);
+                page.ShowInlineFormFields(model.FormFields, Assert.Single(model.FormFields), focus: true);
                 Assert.True(page.FocusInlineFormEditorRequested);
 
                 var view = new PdfPageView { DataContext = page };
@@ -35,7 +36,7 @@ public sealed class PdfPageViewTests {
                 try {
                     window.Show();
                     window.UpdateLayout();
-                    TextBox editor = view.FindControl<TextBox>("InlineFormText")!;
+                    TextBox editor = view.GetVisualDescendants().OfType<TextBox>().Single(box => box.Name == "InlineFormText");
                     await WaitUntilAsync(() => editor.IsFocused);
                     Assert.False(page.FocusInlineFormEditorRequested);
                     Assert.Equal("Initial", editor.Text);

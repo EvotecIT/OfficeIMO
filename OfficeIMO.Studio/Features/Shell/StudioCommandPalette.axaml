@@ -21,14 +21,18 @@
       <Setter Property="Foreground" Value="{DynamicResource StudioAccentForegroundBrush}" />
     </Style>
     <Style Selector="Grid.unavailable"><Setter Property="Opacity" Value="0.55" /></Style>
+    <Style Selector=":is(UserControl).touchPalette ListBoxItem"><Setter Property="MinHeight" Value="56" /></Style>
+    <Style Selector=":is(UserControl).touchPalette TextBox"><Setter Property="MinHeight" Value="44" /></Style>
+    <Style Selector=":is(UserControl).touchPalette Button"><Setter Property="MinHeight" Value="44" /><Setter Property="MinWidth" Value="44" /></Style>
+    <Style Selector=":is(UserControl).compactPalette StackPanel.commandMetadata"><Setter Property="IsVisible" Value="False" /></Style>
   </UserControl.Styles>
   <Panel>
     <Border x:Name="Scrim" Background="{DynamicResource StudioScrimBrush}" PointerPressed="OnScrimPressed" />
     <Border x:Name="PalettePanel" Classes="floating" MaxWidth="620" MaxHeight="520" Padding="0" CornerRadius="14"
-            HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="16,36,16,16">
+            HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="16,36,16,16" KeyboardNavigation.TabNavigation="Cycle">
       <Grid RowDefinitions="Auto,*,Auto">
         <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1" Padding="14,6">
-          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
             <PathIcon Data="{StaticResource IconSearch}" Width="17" Height="17" Foreground="{DynamicResource StudioMutedTextBrush}" />
             <TextBox x:Name="QueryBox" Grid.Column="1" Text="{Binding Query, Mode=TwoWay}" FontSize="15"
                      BorderThickness="0" Background="Transparent" MinHeight="38" VerticalContentAlignment="Center"
@@ -41,6 +45,9 @@
                 </Style>
               </TextBox.Styles>
             </TextBox>
+            <Button x:Name="CloseButton" Grid.Column="2" Classes="tool" Click="OnCloseClick" AutomationProperties.Name="{loc:Loc Common.Close}">
+              <PathIcon Data="{StaticResource IconClose}" Width="14" Height="14" />
+            </Button>
           </Grid>
         </Border>
         <Panel Grid.Row="1">
@@ -65,7 +72,7 @@
                     <TextBlock Text="{Binding UnavailableReason}" IsVisible="{Binding HasUnavailableReason}" Classes="caption"
                                Foreground="{DynamicResource StudioMutedTextBrush}" FontStyle="Italic" TextWrapping="Wrap" />
                   </StackPanel>
-                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                  <StackPanel Grid.Column="2" Classes="commandMetadata" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                     <TextBlock Text="{Binding Category}" Classes="caption" VerticalAlignment="Center" />
                     <Border Classes="kbd" IsVisible="{Binding Shortcut, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                       <TextBlock Text="{Binding Shortcut}" />
@@ -81,8 +88,8 @@
         </Panel>
         <Border Grid.Row="2" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="14,8">
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-            <TextBlock Text="{loc:Loc Commands.KeyboardHelp}" Classes="caption" TextWrapping="Wrap" VerticalAlignment="Center" />
-            <Button Grid.Column="1" Classes="primary" MinHeight="30" Padding="12,4" Content="{loc:Loc Commands.Run}" Click="OnRunClick" IsEnabled="{Binding SelectedCommand.IsAvailable}" />
+            <TextBlock x:Name="KeyboardHelp" Text="{loc:Loc Commands.KeyboardHelp}" Classes="caption" TextWrapping="Wrap" VerticalAlignment="Center" />
+            <Button x:Name="RunButton" Grid.Column="1" Classes="primary" MinHeight="30" Padding="12,4" Content="{loc:Loc Commands.Run}" Click="OnRunClick" IsEnabled="{Binding SelectedCommand.IsAvailable, FallbackValue=False, TargetNullValue=False}" />
           </Grid>
         </Border>
       </Grid>
