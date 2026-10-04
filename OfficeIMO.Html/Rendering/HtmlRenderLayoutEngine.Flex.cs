@@ -645,6 +645,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (alignment != "stretch" || item.Style.ExplicitHeight.HasValue || item.Style.MarginTopAuto || item.Style.MarginBottomAuto) continue;
             double targetBoxHeight = Math.Max(0.01D, crossSize - item.Style.MarginTop - item.Style.MarginBottom);
             var stretchedStyle = item.Style.Clone();
+            stretchedStyle.AutoHeightFlexStretch = true;
             stretchedStyle.ExplicitHeight = stretchedStyle.BorderBox
                 ? targetBoxHeight
                 : Math.Max(0.01D, targetBoxHeight - stretchedStyle.VerticalInsets);
@@ -662,6 +663,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 || Math.Abs(item.Block!.Height - crossSize) <= 0.0001D) continue;
             double targetBoxHeight = Math.Max(0.01D, crossSize - item.Style.MarginTop - item.Style.MarginBottom);
             HtmlRenderBoxStyle stretchedStyle = item.Style.Clone();
+            stretchedStyle.AutoHeightFlexStretch = true;
             stretchedStyle.ExplicitHeight = stretchedStyle.BorderBox
                 ? targetBoxHeight
                 : Math.Max(0.01D, targetBoxHeight - stretchedStyle.VerticalInsets);

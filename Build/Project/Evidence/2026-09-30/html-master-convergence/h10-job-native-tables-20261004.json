@@ -1421,20 +1421,98 @@
         "worktreeAndLocalBranchRemoved": true
       }
     ],
-    "pendingAtSnapshot": [
+    "pendingAtSnapshot": [],
+    "completePaginatedReviewThreadsUnresolved": 0,
+    "prTextCurrent": true,
+    "masterIntegration": "Not performed here. Broader master convergence needs deliberate review/replay; merging two narrow owner fixes is not qualification of the remaining incoming master changes.",
+    "finalSnapshotUtc": "2026-10-04T04:45:39Z",
+    "additionalMerged": [
       {
         "pr": 2761,
         "head": "7c3ee6df4d3b68bc8e2a12c24c28c1fdff2092c6",
-        "reason": "current-head CI pending"
+        "mergeCommit": "ba11468d4930d550aa5e17d40a7128f7c5b86148",
+        "mergedAt": "2026-10-04T04:46:53Z",
+        "checks": {
+          "success": 89,
+          "skipped": 3
+        },
+        "unresolvedThreads": 0
       },
       {
         "pr": 2754,
         "head": "27b323809f1a36b1b6dd7c1f240a4a6e9938ea31",
-        "reason": "current-head CI pending"
+        "mergeCommit": "3d92bdc924ac707de7dacc90b179efd808f46513",
+        "mergedAt": "2026-10-04T04:50:45Z",
+        "checks": {
+          "success": 90,
+          "skipped": 3
+        },
+        "unresolvedThreads": 0
       }
     ],
-    "completePaginatedReviewThreadsUnresolved": 0,
-    "prTextCurrent": true,
-    "masterIntegration": "Not performed here. Broader master convergence needs deliberate review/replay; merging two narrow owner fixes is not qualification of the remaining incoming master changes."
+    "additionalCleanup": {
+      "worktreesRemoved": [
+        "OfficeIMO-onenote-webp-media-type",
+        "OfficeIMO-pdf-logical-text-geometry"
+      ],
+      "localBranchesDeleted": [
+        "fix/onenote-webp-media-type",
+        "fix/pdf-logical-text-geometry"
+      ],
+      "absenceAndWorktreeRegistrationVerified": true,
+      "outsideProcessHandlesBeforeRemoval": 0,
+      "logicalTextEvidence": {
+        "location": "OfficeIMO-html-static-delivery/Ignore/StaticDeliveryQualification/merged-logical-text-3d92bdc924",
+        "files": 75,
+        "bytes": 42921880,
+        "manifestSha256": "831de7e848d2e097a44a393244665807aad92cbc3d217bc96183eddc3cd7cb44",
+        "copySha256Verified": true
+      }
+    },
+    "convergenceBoundary": "Focused fixes are merged and owned worktrees removed. H10 source is not converged to the current master; combined master replay remains a separate acceptance gate."
+  },
+  "trailingBoxPaddingQualification20261004": {
+    "baseline": "1c749e5d853144db52d26ea6cc3262334f2d8f24",
+    "state": "Stable source validated; clean-source API/Tool route replay pending.",
+    "diagnosis": "Planetary ScreenMediaPaged page 3 prefix is final paragraph margin 16 CSS px plus primary container bottom padding 40 CSS px, with flex row gap zero. A flex used height must retain its authored auto-height trailing-decoration contract.",
+    "contract": "Keep the last content fragment with auto-height container bottom padding/border. A final child margin is spacing, not a content fragment. Preserve authored fixed-height behavior; do not discard padding, resize the figure or remove painted pages.",
+    "fixture": {
+      "path": "Ignore/H10JobQualification/nested-figure-prefix-1c749e5d8/padding-prefix.html",
+      "independentReference": "Test-only published HtmlTinkerX 3.0.3, Chromium 151, 400 by 400 CSS-pixel @page. Six pages; leading line 38 on page 3, oversized image begins on page 4.",
+      "before": "Six OfficeIMO pages with background alone on page 3.",
+      "after": "Six pages, line 38 on page 3; fitting image controls three pages. All 40 labels appear exactly once."
+    },
+    "validation": {
+      "focusedNet10Passed": 6,
+      "fullHtml": {
+        "net8": 4246,
+        "net10": 4246,
+        "h4HeldOutEachFramework": 8
+      },
+      "netstandardBuildWarnings": 0,
+      "netstandardBuildErrors": 0,
+      "independentReadOnlyReview": {
+        "agent": "block_tail_padding_review",
+        "fullPass": 1,
+        "findings": 0,
+        "targetedConfirmationNeeded": false,
+        "sourceDiffFingerprint": "ac10b525cb4cc4dbad5f53fbbea0f480504b21c4"
+      }
+    },
+    "candidateNasa": {
+      "pages": 22,
+      "decodedImagesAndLinkTargetsPerPageEqual": true,
+      "wholeTextTokenMultisetEqual": true,
+      "changedRawTextPages": [
+        2,
+        3,
+        14,
+        15
+      ],
+      "page15ImageAndLinkTranslationPdfPoints": -51.6,
+      "paintAlignmentObserved": true
+    },
+    "remaining": "NASA page 3 now has the final two prose lines but remains sparse. The independent fixture also defers the oversized image to the next page; no claim that browser/native appearance, wider corpus, all eleven historical PDF intents, all-platform timings or master convergence are complete.",
+    "retainedEvidence": "Ignore/H10JobQualification/nested-figure-prefix-1c749e5d8"
   }
 }

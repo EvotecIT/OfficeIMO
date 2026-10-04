@@ -687,19 +687,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? childPaintLayers.Aggregate(outerHeight, (extent, layer) =>
                 Math.Max(extent, contentYForBreaks + layer.Y + layer.Block.PagedPaintExtent))
             : outerHeight;
-        if (style.ExplicitHeight == null && contentHeight > 0.0001D
-            && style.PaddingBottom + style.BorderBottomWidth > 0.0001D) {
-            double finalContentStart = contentBreakOffsets
-                .Where(offset => offset < contentHeight - 0.0001D)
-                .DefaultIfEmpty(0D)
-                .Max();
-            double trailingBoxEnd = outerHeight - style.MarginBottom - contentYForBreaks;
-            if (trailingBoxEnd > finalContentStart + 0.0001D) {
-                // A page break after the final content fragment but before its
-                // bottom padding or border strands the decoration on an empty page.
-                contentAvoidBreakRanges.Add(new HtmlRenderAvoidBreakRange(finalContentStart, trailingBoxEnd));
-            }
-        }
+        HtmlRenderAvoidBreakRange? trailingBoxKeep = ResolveTrailingBoxKeepRange(style, contentHeight,
+            outerHeight, contentYForBreaks, contentBreakOffsets, continuationBreakProgress);
+        if (trailingBoxKeep.HasValue) contentAvoidBreakRanges.Add(trailingBoxKeep.Value);
         IEnumerable<double> breakOffsets = contentBreakOffsets.Select(offset => contentYForBreaks + offset)
             .Concat(new[] { outerHeight });
         if (pagedPaintExtent > outerHeight + 0.0001D) {
