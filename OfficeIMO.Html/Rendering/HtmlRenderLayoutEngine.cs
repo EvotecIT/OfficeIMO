@@ -309,6 +309,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth,
         HtmlRenderBoxStyle rootStyle) {
         if (rootStyle.Display == "none") return Array.Empty<HtmlRenderFlowBlock>();
+        if (rootStyle.Display == "contents") return BuildChildBlocks(root, contentWidth, rootStyle, 0);
         bool pagedColumnBody = _options.Mode == HtmlRenderMode.Paged
             && (rootStyle.Display == "flex" || rootStyle.Display == "inline-flex")
             && rootStyle.FlexDirection == "column"
@@ -316,14 +317,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && !HasDescendantPageDirective(root)
             && SamePageGeometry(_pageRules.ResolveGeometry(1, null, _options), _pageRules.ResolveGeometry(2, null, _options))
             && SamePageGeometry(_pageRules.ResolveGeometry(2, null, _options), _pageRules.ResolveGeometry(3, null, _options));
-        bool pagedLayeredBody = _options.Mode == HtmlRenderMode.Paged
-            && !ReferenceEquals(_surfaceRootElement, root)
+        // When html owns the canvas, body still paints its own background box.
+        // This also applies to continuous screen layout before snapshot slicing.
+        bool layeredBody = !ReferenceEquals(_surfaceRootElement, root)
             && HasDeclaredCanvasBackground(rootStyle)
             && !rootStyle.ExplicitHeight.HasValue
             && !rootStyle.MaxHeight.HasValue
             && !rootStyle.AspectRatio.HasValue;
         if (string.Equals(root.LocalName, "body", StringComparison.OrdinalIgnoreCase)
-            && (_options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser || pagedColumnBody || pagedLayeredBody
+            && (_options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser || pagedColumnBody || layeredBody
                 || (_options.Mode == HtmlRenderMode.Paged && rootStyle.MaxWidth.HasValue
                     && HasAuthoredRootBoxGeometry(root, rootStyle)))) {
             return new[] { LayoutRootElement(root, contentWidth, rootStyle) };
