@@ -4,14 +4,17 @@ namespace OfficeIMO.Xps;
 
 internal sealed partial class XpsSvgConverter {
     private long _fontBytes;
-    private XElement? Glyphs(XElement e, Dictionary<string, Resource> scope, string part, int depth) {
+    private XElement? Glyphs(XElement e, Dictionary<string, Resource> scope, string part, int depth, BrushRegion region) {
         Charge(depth);
         CheckAttributes(e, "FontUri FontRenderingEmSize OriginX OriginY UnicodeString Indices Fill BidiLevel IsSideways StyleSimulations RenderTransform Clip Opacity OpacityMask FixedPage.NavigateUri CaretStops DeviceFontName");
         string sidewaysValue = (string?)e.Attribute("IsSideways") ?? "false";
         if (sidewaysValue != "true" && sidewaysValue != "false" && sidewaysValue != "1" && sidewaysValue != "0")
             throw new InvalidDataException("Invalid IsSideways value.");
         bool sideways = sidewaysValue == "true" || sidewaysValue == "1";
-        if (((string?)e.Attribute("StyleSimulations") ?? "None") != "None") { Loss("Simulated font style"); return null; }
+        string simulation = (string?)e.Attribute("StyleSimulations") ?? "None";
+        if (!new[] { "None", "BoldSimulation", "ItalicSimulation", "BoldItalicSimulation" }.Contains(simulation)) throw new InvalidDataException("Invalid glyph style simulation.");
+        bool bold = simulation == "BoldSimulation" || simulation == "BoldItalicSimulation";
+        bool italic = simulation == "ItalicSimulation" || simulation == "BoldItalicSimulation";
         foreach (var child in e.Elements()) if (!new[] { "Glyphs.Fill", "Glyphs.Clip", "Glyphs.RenderTransform", "Glyphs.OpacityMask" }.Contains(child.Name.LocalName)) Loss(child.Name.LocalName);
         string uri = (string?)e.Attribute("FontUri") ?? throw new InvalidDataException("Missing glyph font URI.");
         string[] uriParts = uri.Split('#');
@@ -42,6 +45,8 @@ internal sealed partial class XpsSvgConverter {
         string text = XpsPage.Unescape((string?)e.Attribute("UnicodeString") ?? "");
         string indices = (string?)e.Attribute("Indices") ?? "";
         string[] entries = indices.Length == 0 ? Array.Empty<string>() : indices.Split(';');
+        double shear = italic ? Math.Tan(20 * Math.PI / 180) : 0;
+        double minX = double.PositiveInfinity, minY = double.PositiveInfinity, maxX = double.NegativeInfinity, maxY = double.NegativeInfinity;
         var data = new StringBuilder();
         int textIndex = 0, entryIndex = 0;
         while (entryIndex < entries.Length || textIndex < text.Length) {
@@ -72,6 +77,7 @@ internal sealed partial class XpsSvgConverter {
                 double nativeAdvance = sideways
                     ? font.FixedGlyphVerticalMetrics(glyph, size, out topX, out topY)
                     : font.FixedGlyphAdvance(glyph, size);
+                if (bold) nativeAdvance += size * 0.02;
                 double advance = fields.Length > 1 && fields[1].Length > 0 ? XpsPackage.Number(fields[1]) * size / 100 : nativeAdvance;
                 if (advance < 0) throw new InvalidDataException("Negative glyph advance.");
                 double u = fields.Length > 2 && fields[2].Length > 0 ? XpsPackage.Number(fields[2]) * size / 100 : 0;
@@ -85,6 +91,12 @@ internal sealed partial class XpsSvgConverter {
                         // Rotate the outline about its top-center origin; advance and offsets remain in run coordinates.
                         double px = sideways ? gx + contour[i].Y + topY : contour[i].X;
                         double py = sideways ? y - v - contour[i].X + topX : contour[i].Y;
+                        if (italic) {
+                            if (sideways) py += shear * (px - gx - topY);
+                            else px -= shear * (py - (y - v));
+                        }
+                        if (bold) { px += size * 0.01; py -= size * 0.01; }
+                        minX = Math.Min(minX, px); minY = Math.Min(minY, py); maxX = Math.Max(maxX, px); maxY = Math.Max(maxY, py);
                         string point = (i == 0 ? "M" : "L") + N(px) + " " + N(py) + " ";
                         EnsureOutputCapacity((long)data.Length + point.Length + 2);
                         data.Append(point);
@@ -103,9 +115,24 @@ internal sealed partial class XpsSvgConverter {
             return empty;
         }
         var path = Element("path", new XAttribute("d", data.ToString()), new XAttribute("fill-rule", "nonzero"));
-        if (text.Length > 0) Set(path, "aria-label", text);
-        Paint(e, "Fill", path, "fill", scope, part, depth);
-        return ApplyBrushFill(path);
+        XElement result;
+        if (bold) {
+            // An opaque coverage mask unions the original silhouette and its
+            // widening stroke. Paint the native brush once so translucent text
+            // does not darken along the original outline or between glyphs.
+            Set(path, "fill", "#ffffff"); Set(path, "stroke", "#ffffff");
+            Set(path, "stroke-width", N(size * 0.02)); Set(path, "stroke-linejoin", "round");
+            double growth = size * 0.01;
+            region = IntersectRegion(region, new BrushRegion(minX - growth, minY - growth, maxX - minX + growth * 2, maxY - minY + growth * 2));
+            var paint = Element("path", new XAttribute("d", "M" + N(region.X) + "," + N(region.Y) + " h" + N(region.Width) + " v" + N(region.Height) + " h" + N(-region.Width) + " Z"));
+            Paint(e, "Fill", paint, "fill", scope, part, depth);
+            result = Element("g", ApplyCoverageMask(path, ApplyBrushFill(paint), region));
+        } else {
+            Paint(e, "Fill", path, "fill", scope, part, depth);
+            result = ApplyBrushFill(path);
+        }
+        if (text.Length > 0) Set(result, "aria-label", text);
+        return result;
     }
     private static int ParseInt(string text) {
         if (!int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out int value) || value < 0 || value > 65535) throw new InvalidDataException("Invalid XPS integer.");

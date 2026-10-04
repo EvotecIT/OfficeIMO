@@ -8,7 +8,7 @@ internal sealed partial class XpsSvgConverter {
     private readonly List<string> _diagnostics = new();
     private readonly XElement _defs;
     private readonly Dictionary<XElement, XElement> _brushFills = new();
-    private readonly Dictionary<XElement, XElement> _brushStrokes = new();
+    private readonly Dictionary<XElement, (XElement Paint, BrushRegion Bounds)> _brushStrokes = new();
     private int _id;
     private int _visited;
     private int _points;
@@ -106,7 +106,7 @@ internal sealed partial class XpsSvgConverter {
                     result = Element("g");
                     RenderChildren(child, result, scope, part, depth + 1, localRegion); break;
                 case "Path": result = PathElement(child, scope, part, depth + 1, localRegion); break;
-                case "Glyphs": result = Glyphs(child, scope, part, depth + 1); break;
+                case "Glyphs": result = Glyphs(child, scope, part, depth + 1, localRegion); break;
                 default: Loss("Element: " + child.Name.LocalName); continue;
             }
             if (result == null) continue;
@@ -231,13 +231,10 @@ internal sealed partial class XpsSvgConverter {
         }
         if (_brushStrokes.TryGetValue(path, out var stroke)) {
             var visible = region ?? throw new InvalidOperationException("A brush stroke requires the local visible region.");
-            string id = "strokeMask" + (++_id);
             var coverage = CloneProjection(path);
             Set(coverage, "fill", "none"); Set(coverage, "stroke", "#ffffff");
-            var mask = Element("mask", new XAttribute("id", id), new XAttribute("mask-type", "alpha"), new XAttribute("maskUnits", "userSpaceOnUse"), new XAttribute("maskContentUnits", "userSpaceOnUse"),
-                new XAttribute("x", N(visible.X)), new XAttribute("y", N(visible.Y)), new XAttribute("width", N(visible.Width)), new XAttribute("height", N(visible.Height)), coverage);
-            _defs.Add(mask); Set(path, "stroke", "none");
-            result = Element("g", result, Element("g", new XAttribute("mask", "url(#" + id + ")"), stroke));
+            Set(path, "stroke", "none");
+            result = Element("g", result, ApplyCoverageMask(coverage, stroke.Paint, IntersectRegion(visible, stroke.Bounds)));
         }
         return result;
     }

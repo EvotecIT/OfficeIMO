@@ -69,6 +69,15 @@ public sealed class XpsBrushTests {
         Assert.InRange(raster.GetPixel(42, 22).G, (byte)126, (byte)129);
         Assert.Equal(OfficeColor.White, raster.GetPixel(60, 22));
     }
+    [Fact]
+    public void DocumentPageWithManySmallBrushStrokesUsesLocalCoverageSurfaces() {
+        var doc = XpsBrushFixtures.Create("visual-None"); var page = doc.Pages[0]; var xml = page.GetMarkup(); var ns = xml.Name.Namespace;
+        xml.SetAttributeValue("Width", "816"); xml.SetAttributeValue("Height", "1056");
+        var path = xml.Elements().Single(); path.SetAttributeValue("Data", "M10,10H30V30H10Z"); path.SetAttributeValue("StrokeThickness", "5");
+        path.Element(ns + "Path.Fill")!.Name = ns + "Path.Stroke";
+        for (int i = 1; i < 30; i++) { var copy = new XElement(path); copy.SetAttributeValue("RenderTransform", "1,0,0,1,0," + i * 30); xml.Add(copy); }
+        page.ReplaceMarkup(xml); Assert.NotNull(page.ToDrawing()); Assert.NotEmpty(doc.ToPdf());
+    }
     [Theory]
     [InlineData(XpsFormat.Xps)]
     [InlineData(XpsFormat.OpenXps)]

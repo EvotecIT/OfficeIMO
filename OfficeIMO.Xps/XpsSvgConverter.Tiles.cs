@@ -88,7 +88,12 @@ internal sealed partial class XpsSvgConverter {
             if (attribute == "stroke") {
                 // Keep a visible placeholder until Stroke has validated and attached
                 // native width/dash/cap properties. ApplyBrushFill turns it into coverage.
-                Set(target, "stroke", "#ffffff"); _brushStrokes[target] = projected;
+                BrushRegion bounds = viewport;
+                if (transform != null) {
+                    if (!OfficeIMO.Drawing.OfficeSvgTransformParser.TryParse(transform, out var matrix)) throw new InvalidDataException("Invalid brush transform.");
+                    bounds = TransformRegion(viewport, matrix);
+                }
+                Set(target, "stroke", "#ffffff"); _brushStrokes[target] = (projected, bounds);
             } else {
                 Set(target, "fill", "none"); _brushFills[target] = projected;
             }
