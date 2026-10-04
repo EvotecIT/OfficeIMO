@@ -99,10 +99,6 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static string PdfString(string s) {
-        return PdfSyntaxEscaper.LiteralString(s);
-    }
-
     private sealed class LayoutResult : IDisposable {
         private readonly PdfPageContentStore _contentStore;
 

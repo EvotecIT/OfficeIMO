@@ -8,6 +8,26 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfDocumentMetadataTests {
     [Fact]
+    public void MetadataReadersDecodeIndependentlyEncodedPdfDocStrings() {
+        byte[] bytes = BuildMetadataHexPdf("90A092", "93948A", "18191A1B1C1D1E1F");
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        Assert.Equal("’€™", info.Metadata.Title);
+        Assert.Equal("ﬁﬂ−", info.Metadata.Author);
+        Assert.Equal("˘ˇˆ˙˝˛˚˜", PdfTextExtractor.GetMetadata(bytes).Subject);
+    }
+
+    [Fact]
+    public void MetadataWriterUsesPdfDocEncodingAndPreservesUnicodeUpdates() {
+        const string title = "Earth’s € – ™";
+        byte[] bytes = PdfDocument.Create().Meta(title: title).Paragraph(p => p.Text("Body")).ToBytes();
+        Assert.Contains("/Title <4561727468907320A020852092>", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
+        Assert.Equal(title, PdfInspector.Inspect(bytes).Metadata.Title);
+        byte[] edited = PdfDocument.Load(bytes).UpdateMetadata(title: title + "\u00A0").ToBytes();
+        Assert.Equal(title + "\u00A0", PdfInspector.Inspect(edited).Metadata.Title);
+        Assert.Contains("/Title <FEFF", Encoding.ASCII.GetString(edited), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Meta_EncodesTextStringsAndInspectorReadsOriginalValues() {
         const string title = "Quarterly (Q1) \\ Roadmap";
         const string author = "OfficeIMO\nTeam";

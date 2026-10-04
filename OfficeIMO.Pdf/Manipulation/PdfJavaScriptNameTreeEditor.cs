@@ -204,12 +204,7 @@ internal static partial class PdfJavaScriptNameTreeEditor {
             if (ReferenceEquals(x, y)) return 0;
             if (x is null) return -1;
             if (y is null) return 1;
-            int count = Math.Min(x.KeyBytes.Length, y.KeyBytes.Length);
-            for (int i = 0; i < count; i++) {
-                int comparison = x.KeyBytes[i].CompareTo(y.KeyBytes[i]);
-                if (comparison != 0) return comparison;
-            }
-            int lengthComparison = x.KeyBytes.Length.CompareTo(y.KeyBytes.Length);
+            int lengthComparison = PdfNameTreeKeyComparer.Instance.Compare(x.KeyBytes, y.KeyBytes);
             return lengthComparison != 0 ? lengthComparison : x.OriginalPosition.CompareTo(y.OriginalPosition);
         }
     }

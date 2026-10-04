@@ -1,9 +1,12 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>PDFDocEncoding conversion for PDF text strings without a Unicode byte-order marker.</summary>
 internal static class PdfDocEncoding {
     private static readonly char[] Map = BuildMap();
     private static readonly bool[] Defined = BuildDefinedMap();
+    private static readonly Dictionary<char, byte> ReverseMap = BuildReverseMap();
 
     internal static bool TryDecode(byte[] bytes, out string value, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -24,6 +27,43 @@ internal static class PdfDocEncoding {
         }
         value = PdfEncoding.CharArrayToStringCancellable(characters, cancellationToken);
         return true;
+    }
+
+    internal static bool CanEncode(string value, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        // These otherwise representable prefixes would be mistaken for Unicode byte-order marks.
+        if (value.StartsWith("þÿ", StringComparison.Ordinal) ||
+            value.StartsWith("ÿþ", StringComparison.Ordinal) ||
+            value.StartsWith("ï»¿", StringComparison.Ordinal)) return false;
+        for (int index = 0; index < value.Length; index++) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (!ReverseMap.ContainsKey(value[index])) return false;
+        }
+        return true;
+    }
+
+    internal static byte[] Encode(string value, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var bytes = new byte[value.Length];
+        for (int index = 0; index < value.Length; index++) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (!ReverseMap.TryGetValue(value[index], out bytes[index]))
+                throw new ArgumentException("The text cannot be encoded with PDFDocEncoding.", nameof(value));
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return bytes;
+    }
+
+    internal static string Decode(byte[] bytes, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var characters = new char[bytes.Length];
+        for (int index = 0; index < bytes.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            byte encoded = bytes[index];
+            characters[index] = Defined[encoded] ? Map[encoded] : (char)encoded;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return PdfEncoding.CharArrayToStringCancellable(characters, cancellationToken);
     }
 
     private static char[] BuildMap() {
@@ -53,5 +93,14 @@ internal static class PdfDocEncoding {
         for (int value = 161; value <= 172; value++) defined[value] = true;
         for (int value = 174; value <= 255; value++) defined[value] = true;
         return defined;
+    }
+
+    private static Dictionary<char, byte> BuildReverseMap() {
+        var result = new Dictionary<char, byte>();
+        for (int index = 0x18; index < Map.Length; index++) {
+            if (!Defined[index]) continue;
+            result.Add(Map[index], (byte)index);
+        }
+        return result;
     }
 }

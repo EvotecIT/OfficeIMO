@@ -108,7 +108,7 @@ internal static class PdfInfoDictionaryBuilder {
 
     private static void AddInfoString(PdfDictionary dictionary, string key, string? value) {
         if (!string.IsNullOrEmpty(value)) {
-            dictionary.Items[key] = new PdfStringObj(value!);
+            dictionary.Items[key] = new PdfStringObj(value!, useTextStringEncoding: true);
         }
     }
 
