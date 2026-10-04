@@ -842,6 +842,8 @@ embedded.Add("Report Variable", File.ReadAllBytes("ReportVariable.ttf"));
 
 Set `OfficeDrawingRasterRenderOptions.ThrowOnImageDecodeFailure` to `true` when every image must render. An unsupported image, failed optional codec, or decoded raster above `MaximumRasterPixels` then stops rendering with `NotSupportedException`. Successful image decoding happens in the drawing pass, including nested groups and patterns.
 
+High-quality image minification shares the operation's `MaximumRasterPixels` budget with decoded images. The renderer charges its additional output buffer and floating-point sampling scratch before allocation. When that budget prevents an SVG safety comparison, structural findings remain available and the report identifies the unavailable visual inspection.
+
 ## Boundaries
 
 - This package owns shared lifecycle contracts, persistence mechanics, drawing intent, ink/math models and renderers, raster buffers, SVG and raster encoding primitives, image projection, text layout helpers, chart drawing, and document-agnostic visual diagnostics.
