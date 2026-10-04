@@ -9,6 +9,14 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## DocBook, ADF and Data projection contracts
+
+ADF operations enforce resource limits through `AdfProcessingOptions`, inherited by `AdfConversionOptions` and `AdfValidationOptions`. The default graph limit is 100,000 nodes and marks. If an application intentionally processes documents above the defaults, pass explicit limits to parsing, validation, JSON writing and conversion. Validation reports unsafe graphs and graph-limit failures as invalid results; writing and conversion throw `InvalidDataException`. Structural validation also rejects empty required content and missing panel types. Inspect omission diagnostics when `RequireNoLoss()` rejects metadata or semantic projections that previously lost properties silently. Default task IDs derive from bounded generated task-list content; supply `LocalIdFactory` when an integration needs its own stable identity policy.
+
+DocBook Reader Markdown escapes literal syntax. Applications comparing exact Markdown strings must allow escapes; plain chunk text retains its source text. CALS cells use newlines between distinct block paragraphs. Typed component body additions are placed before child sections and indexes; raw XML with the opposite order receives `DB024`.
+
+Arrow decimals must fit both declared scale and precision. Redundant fractional zeros are accepted. Increase `DecimalPrecision` for values outside the declared coefficient range rather than relying on invalid Arrow output. `CollectionColumnMapping.HeaderPrefix` now changes displayed Excel and PowerPoint headers; use `null` for the original collection-path prefix. Column selection, formatting and flattened dictionary keys retain their original paths.
+
 ## OCR and AI extraction
 
 `OfficeDocumentOcrExecutionOptions` bounds a whole operation with a five-minute `TotalTimeout`, 4 Mi recognized characters, 100,000 detailed spans and 4 Mi span characters by default. These totals also apply across attachments in `ApplyOcrTreeAsync`. Set `MaxTotalRecognizedCharacters`, `MaxTotalSpans`, `MaxTotalSpanCharacters` and `TotalTimeout` explicitly for workloads that require larger accepted output or longer execution. Limit diagnostics report truncation or skipped recognition; unresolved candidates remain available.

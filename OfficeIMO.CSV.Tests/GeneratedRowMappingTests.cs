@@ -89,6 +89,23 @@ public sealed class GeneratedRowMappingTests {
             Assert.Equal(7, ((GeneratedHiddenBase)row).Value);
             Assert.Equal(5, row.Included);
         }
+
+        using (var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true })) {
+            GeneratedFieldHiddenRow row = reader
+                .RowsAs<GeneratedFieldHiddenRow>(GeneratedFieldHiddenRowRowMapping.Configure)
+                .Single();
+            Assert.Equal(7, ((GeneratedHiddenBase)row).Value);
+            Assert.Equal("field", row.Value);
+            Assert.Equal(5, row.Included);
+        }
+
+        using (var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true })) {
+            GeneratedMethodHiddenRow row = reader
+                .RowsAs<GeneratedMethodHiddenRow>(GeneratedMethodHiddenRowRowMapping.Configure)
+                .Single();
+            Assert.Equal(7, ((GeneratedHiddenBase)row).Value);
+            Assert.Equal(5, row.Included);
+        }
     }
 
 #if NET8_0_OR_GREATER
@@ -157,4 +174,14 @@ public sealed class GeneratedInitOnlyHiddenRow : GeneratedHiddenBase {
 [GenerateRowMapper]
 public sealed class GeneratedStaticHiddenRow : GeneratedHiddenBase {
     public new static int Value { get; set; } = 42;
+}
+
+[GenerateRowMapper]
+public sealed class GeneratedFieldHiddenRow : GeneratedHiddenBase {
+    public new string Value = "field";
+}
+
+[GenerateRowMapper]
+public sealed class GeneratedMethodHiddenRow : GeneratedHiddenBase {
+    public new int Value() => 42;
 }

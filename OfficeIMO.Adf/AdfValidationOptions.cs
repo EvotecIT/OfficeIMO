@@ -9,7 +9,7 @@ public enum AdfValidationProfile {
 }
 
 /// <summary>Options for structural or pinned-schema validation.</summary>
-public sealed class AdfValidationOptions {
+public sealed class AdfValidationOptions : AdfProcessingOptions {
     /// <summary>Validation profile. Defaults to forward-compatible structural validation.</summary>
     public AdfValidationProfile Profile { get; set; }
 

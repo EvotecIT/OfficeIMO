@@ -45,17 +45,19 @@ internal sealed class DocBookTextProjectionBudget {
     internal string GetElementValue(XElement? element, string? path) {
         if (element == null) return string.Empty;
         if (_elementValues.TryGetValue(element, out string? cached)) return cached;
-        string value = MaterializeExact(() => element.DescendantNodes().OfType<XText>().Where(text =>
+        Func<IEnumerable<XText>> textFactory = () => element.DescendantNodes().OfType<XText>().Where(text =>
             text.Ancestors().TakeWhile(ancestor => !ReferenceEquals(ancestor, element))
-                .All(ancestor => ancestor.Name != _docBookNamespace + "indexterm")), path);
+                .All(ancestor => ancestor.Name != _docBookNamespace + "indexterm"));
+        string value = MaterializeExact(() => element.Name == _docBookNamespace + "entry" || element.Name == _docBookNamespace + "caption"
+            ? FlowTextSegments(element, textFactory()) : textFactory().Select(text => text.Value), path);
         _elementValues.Add(element, value);
         return value;
     }
 
     internal string GetElementValueExcluding(XElement element, XName excludedSubtree, string? path) =>
-        MaterializeExact(() => element.DescendantNodes().OfType<XText>().Where(text =>
+        MaterializeExact(() => FlowTextSegments(element, element.DescendantNodes().OfType<XText>().Where(text =>
             text.Ancestors().TakeWhile(ancestor => !ReferenceEquals(ancestor, element)).All(ancestor =>
-                ancestor.Name != _docBookNamespace + "indexterm" && ancestor.Name != excludedSubtree)), path);
+                ancestor.Name != _docBookNamespace + "indexterm" && ancestor.Name != excludedSubtree))), path);
 
     internal string GetTextValue(XText text, string? path) {
         _cancellationToken.ThrowIfCancellationRequested();
@@ -89,22 +91,37 @@ internal sealed class DocBookTextProjectionBudget {
         return value;
     }
 
-    private string MaterializeExact(Func<IEnumerable<XText>> textFactory, string? path) {
+    private IEnumerable<string> FlowTextSegments(XElement container, IEnumerable<XText> nodes) {
+        XElement? previousBlock = null;
+        bool hasText = false;
+        foreach (XText text in nodes) {
+            if (text.Value.Length == 0) continue;
+            XElement? block = text.Ancestors().TakeWhile(ancestor => !ReferenceEquals(ancestor, container)).FirstOrDefault(ancestor =>
+                ancestor.Name.Namespace == _docBookNamespace && ancestor.Name.LocalName is
+                    "para" or "simpara" or "programlisting" or "screen" or "listitem");
+            if (hasText && !ReferenceEquals(previousBlock, block) && (previousBlock != null || block != null)) yield return "\n";
+            yield return text.Value;
+            hasText = true;
+            previousBlock = block;
+        }
+    }
+
+    private string MaterializeExact(Func<IEnumerable<string>> textFactory, string? path) {
         long length = 0;
-        foreach (XText text in textFactory()) {
+        foreach (string text in textFactory()) {
             _cancellationToken.ThrowIfCancellationRequested();
-            if (text.Value.Length > _remaining - length) {
+            if (text.Length > _remaining - length) {
                 ReportLimit(path);
                 return string.Empty;
             }
-            length += text.Value.Length;
+            length += text.Length;
         }
         _remaining -= length;
         if (length == 0) return string.Empty;
         var value = new System.Text.StringBuilder((int)Math.Min(length, int.MaxValue));
-        foreach (XText text in textFactory()) {
+        foreach (string text in textFactory()) {
             _cancellationToken.ThrowIfCancellationRequested();
-            value.Append(text.Value);
+            value.Append(text);
         }
         return value.ToString();
     }

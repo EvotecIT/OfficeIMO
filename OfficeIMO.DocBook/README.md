@@ -25,6 +25,8 @@ document.Save("guide.docbook");
 
 The typed API is a view over the backing `XDocument`. Unknown elements, attributes, comments, processing instructions, namespace declarations, and document types remain present. An unchanged file or stream is written byte-for-byte; after an edit, preserved XML is serialized around changed values. `AddExtension` and `Xml` provide deliberate access outside the typed common structure.
 
+Typed body additions are inserted before child sections and indexes, including when a section was added first. Bounded validation reports body content placed after subdivisions in native XML. `IsModified` observes direct XML and declaration edits and caches its result between mutations; reverting direct XML edits restores unchanged-source output.
+
 ## Exact profiles and validation scope
 
 `DocBookSchemaProfiles` exposes the exact official identifiers associated with each OfficeIMO profile:
@@ -39,6 +41,8 @@ Reading accepts no-namespace DocBook 4 and namespaced DocBook 5 documents; canon
 `ToOfficeDocumentModel()` and `FromOfficeDocumentModel()` use `OfficeDocumentModel.Structure` and deterministic loss diagnostics. The shared projection also publishes authors, links, and bounded CALS tables. Independent flat blocks, tables, assets, or links are appended to the document's common content container when recursive structure does not already represent them, with a placement-loss diagnostic; books use a chapter container so typed additions remain schema-valid. Shared-model pages, forms, and structured visuals are outside this bounded profile and produce explicit loss diagnostics instead of being silently discarded. Both conversion directions enforce `DocBookConversionOptions.MaxStructureDepth` and `MaxStructureNodes`; reverse conversion also rejects cyclic structures. Projection defaults to an aggregate 32-million-character text budget, at most 1,024 table columns, 100,000 header rows, 100,000 body rows, and 1,000,000 aggregate column-label and rectangular row-cell slots across the document; `DocBookConversionOptions` can lower those limits, and diagnostics report omitted text, truncation, or layout flattening while the native XML remains preserved. Structured author attribution uses the person's name fields rather than folding affiliation or contact metadata into the display name; the recursive structure still retains those additional author children. Validation and conversion retain at most 100 detailed diagnostics per code by default, followed by one occurrence summary; `DocBookValidationOptions.MaxDetailedDiagnosticsPerCode` and `DocBookConversionOptions.MaxDetailedDiagnosticsPerCode` can lower or raise that budget. `OfficeIMO.Reader.DocBook` adds dedicated `.dbk` and `.docbook` ingestion without taking over generic `.xml` routing; Reader chunks retain enclosing admonition kinds and use content-safe Markdown fences for program listings and screens.
 
 Targets: `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows.
+
+The [fixture corpus](../OfficeIMO.DocBook.Tests/Fixtures/README.md) includes independently produced common content. The [opt-in schema runner](../Build/StructuredFormatVerification/README.md) checks selected native outputs against the pinned official 5.2 RELAX NG schema. These tests qualify the recorded profile and cases.
 
 ## Dependency footprint
 
