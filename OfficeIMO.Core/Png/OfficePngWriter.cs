@@ -10,7 +10,8 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 public enum OfficePngCompression {
     /// <summary>
-    /// Compress scanlines with the platform deflate implementation.
+    /// Compress scanlines with the platform deflate implementation. RGBA encoding
+    /// compares adaptive and unfiltered rows and uses the smaller compressed form.
     /// </summary>
     Optimal,
 
@@ -414,50 +415,8 @@ public static partial class OfficePngWriter {
     }
 
     private static byte[] DeflateRgbaScanlines(int width, int height, byte[] rgba) {
-        int stride = checked(width * 4);
-        var filteredRow = new byte[checked(stride + 1)];
-        var paethCandidate = new byte[stride];
-        var compressionBatch = new byte[Math.Max(filteredRow.Length, 64 * 1024)];
-        int batchLength = 0;
-        uint adlerA = 1;
-        uint adlerB = 0;
-        using MemoryStream stream = new MemoryStream();
-        stream.WriteByte(0x78);
-        stream.WriteByte(0x9C);
-        using (var deflate = new DeflateStream(stream, CompressionLevel.Optimal, leaveOpen: true)) {
-            for (int y = 0; y < height; y++) {
-                int rowOffset = y * stride;
-                if (y == 0) {
-                    filteredRow[0] = 1;
-                    FilterFirstRowSub(rgba, rowOffset, stride, filteredRow, 1);
-                } else {
-                    int previousRowOffset = rowOffset - stride;
-                    long upScore = FilterUp(rgba, rowOffset, previousRowOffset, stride, filteredRow, 1);
-                    long paethScore = FilterPaeth(rgba, rowOffset, previousRowOffset, stride, paethCandidate);
-                    if (paethScore < upScore) {
-                        filteredRow[0] = 4;
-                        Buffer.BlockCopy(paethCandidate, 0, filteredRow, 1, stride);
-                    } else {
-                        filteredRow[0] = 2;
-                    }
-                }
-
-                if (filteredRow.Length > compressionBatch.Length - batchLength) {
-                    deflate.Write(compressionBatch, 0, batchLength);
-                    batchLength = 0;
-                }
-                Buffer.BlockCopy(filteredRow, 0, compressionBatch, batchLength, filteredRow.Length);
-                batchLength += filteredRow.Length;
-                UpdateAdler32(filteredRow, 0, filteredRow.Length, ref adlerA, ref adlerB);
-            }
-            if (batchLength > 0) deflate.Write(compressionBatch, 0, batchLength);
-        }
-
-        uint adler = (adlerB << 16) | adlerA;
-        stream.WriteByte((byte)((adler >> 24) & 0xFF));
-        stream.WriteByte((byte)((adler >> 16) & 0xFF));
-        stream.WriteByte((byte)((adler >> 8) & 0xFF));
-        stream.WriteByte((byte)(adler & 0xFF));
+        using var stream = new MemoryStream();
+        WriteOptimalZlib(stream, width, height, rgba, default, checkpointObserver: null);
         return stream.ToArray();
     }
 
