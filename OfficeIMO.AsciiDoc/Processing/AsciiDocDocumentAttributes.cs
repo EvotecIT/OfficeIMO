@@ -2,26 +2,23 @@ namespace OfficeIMO.AsciiDoc;
 
 /// <summary>Effective case-insensitive document attribute values.</summary>
 public sealed class AsciiDocDocumentAttributes {
-    private readonly Dictionary<string, string> _values;
+    private readonly AsciiDocAttributeMap _values;
 
-    internal AsciiDocDocumentAttributes(Dictionary<string, string> values) {
-        _values = new Dictionary<string, string>(values, StringComparer.OrdinalIgnoreCase);
-    }
+    internal AsciiDocDocumentAttributes(Dictionary<string, string> values)
+        : this(new AsciiDocAttributeMap(values)) { }
+
+    private AsciiDocDocumentAttributes(AsciiDocAttributeMap values) => _values = values;
 
     /// <summary>Creates an attribute snapshot from caller-supplied values.</summary>
-    public static AsciiDocDocumentAttributes Create(IReadOnlyDictionary<string, string>? values = null) {
-        var copy = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        if (values != null) foreach (KeyValuePair<string, string> value in values) copy[value.Key] = value.Value;
-        return new AsciiDocDocumentAttributes(copy);
-    }
+    public static AsciiDocDocumentAttributes Create(IReadOnlyDictionary<string, string>? values = null) =>
+        new AsciiDocDocumentAttributes(new AsciiDocAttributeMap(values));
 
     /// <summary>Applies an assignment or unset, optionally resolving value references against the preceding snapshot.</summary>
     public AsciiDocDocumentAttributes Apply(AsciiDocAttributeEntry entry, bool expandReferences = false) {
         if (entry == null) throw new ArgumentNullException(nameof(entry));
-        Dictionary<string, string> values = ToMutableDictionary();
-        if (entry.IsUnset) values.Remove(entry.Name);
-        else values[entry.Name] = expandReferences ? AsciiDocAttributeSubstitutor.Substitute(entry.Value, this).Value : entry.Value;
-        return new AsciiDocDocumentAttributes(values);
+        if (entry.IsUnset) return new AsciiDocDocumentAttributes(_values.Remove(entry.Name));
+        string value = expandReferences ? AsciiDocAttributeSubstitutor.Substitute(entry.Value, this).Value : entry.Value;
+        return new AsciiDocDocumentAttributes(_values.Set(entry.Name, value));
     }
 
     /// <summary>Number of set attributes.</summary>
@@ -45,6 +42,4 @@ public sealed class AsciiDocDocumentAttributes {
     /// <summary>Gets an attribute value or null.</summary>
     public string? GetValueOrDefault(string name) => TryGetValue(name, out string value) ? value : null;
 
-    internal Dictionary<string, string> ToMutableDictionary() =>
-        new Dictionary<string, string>(_values, StringComparer.OrdinalIgnoreCase);
 }

@@ -129,7 +129,7 @@ internal static class AsciiDocReaderChunkBuilder {
                 int remaining = options.MarkdownOptions.MaximumBlockNestingDepth - depth - 1;
                 if (remaining < 1) throw new InvalidDataException("AsciiDoc Reader text exceeds MaximumBlockNestingDepth.");
                 var attached = new HashSet<AsciiDocBlock>(body.BlocksOfType<AsciiDocListBlock>().SelectMany(list => list.Items).SelectMany(item => item.AttachedBlocks));
-                return string.Join("\n\n", body.GetBlockContexts(attributes.Values, true, remaining, token)
+                return string.Join("\n\n", body.GetBlockContextsFromSnapshot(attributes, true, remaining, token)
                     .Where(context => !attached.Contains(context.Block) && ShouldEmit(context.Block, options)).Select(context => GetPlainText(context.Block, context.Attributes, options, token, depth + 1)).Where(value => value.Length > 0));
             case AsciiDocDelimitedBlock delimited: return delimited.Content.TrimEnd('\r', '\n');
             case AsciiDocLineComment comment: return comment.Text;

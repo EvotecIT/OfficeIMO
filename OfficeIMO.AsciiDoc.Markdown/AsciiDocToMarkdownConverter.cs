@@ -342,7 +342,7 @@ internal static class AsciiDocToMarkdownConverter {
         int diagnosticStart = diagnostics.Count;
         int remainingDepth = options.MaximumBlockNestingDepth - depth - 1;
         if (remainingDepth < 1) throw new System.IO.InvalidDataException("AsciiDoc conversion exceeds MaximumBlockNestingDepth.");
-        foreach (AsciiDocBlockContext child in children.GetBlockContexts(attributes.Values, true, remainingDepth))
+        foreach (AsciiDocBlockContext child in children.GetBlockContextsFromSnapshot(attributes, true, remainingDepth))
             if (!attached.Contains(child.Block)) AddBlock(result, child.Block, child.Attributes, options, diagnostics, depth + 1);
         // Child documents retain local syntax spans. Map conversion evidence back
         // to the enclosing original source when its body has not been rewritten.
