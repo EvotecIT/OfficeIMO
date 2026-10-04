@@ -38,6 +38,7 @@ internal static partial class IWorkTextReader {
         var paragraphStyleCache = new Dictionary<ulong, ParagraphStyleCacheEntry>();
         var listStyleCache = new Dictionary<(ulong Identifier, double? LeftIndentPoints, int? ExplicitLevel),
             Cached<(int Level, string? Label, string? FontName, IWorkListMarkerKind Kind)>>();
+        var decodedListStyleCache = new Dictionary<ulong, Cached<ListStyleData>>();
         var textStyleCache = new Dictionary<TextStyleCacheKey, Cached<IWorkTextStyle>>();
         var hyperlinkCache = new Dictionary<ulong, Cached<string?>>();
         var inlineOffsets = new SortedSet<int>(inlineObjects.Keys);
@@ -52,7 +53,7 @@ internal static partial class IWorkTextReader {
             (int listLevel, string? listLabel, string? listFontName, IWorkListMarkerKind listMarkerKind) = ResolveList(index, listStyleId,
                 paragraphStyle.LeftIndentPoints,
                 (int?)ObjectAt(listLevels, paragraph.Start, carryMissing: false),
-                projectionBudget, listStyleCache, tolerateStyleDepth, references, ref complete);
+                projectionBudget, listStyleCache, decodedListStyleCache, tolerateStyleDepth, references, ref complete);
             if (listLabel != null) projectionBudget.AddTextCharacters(listLabel.Length);
             if (listFontName != null) projectionBudget.AddTextCharacters(listFontName.Length);
             var boundaries = new SortedSet<int> { paragraph.Start, paragraph.End };
