@@ -27,7 +27,7 @@ The current level is **extended semantic reconstruction**. Normal document conte
 
 Frames use explicit finite geometry within the canvas, zero padding, left/top alignment and a requested font name and size. No shaping, measurement, automatic fit, embedded fonts, styled runs, links, lists, images, tables, transitions or builds are authored. Font substitution and wrapping belong to the receiving application. Loaded sources remain read-only; native Pages/Numbers writing and iWork save-back are unsupported.
 
-[`keynote-created-v15.4.json`](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-v15.4.json) records a three-slide C# output independently decoded through pinned protobuf schemas. Required fields, declared object references, package metadata, modern text fills and stored ZIP structure are checked independently. Keynote 15.4 opens the package without a repair dialog, exports all three pages to PDF with the recorded opaque backgrounds and `003366` text, and preserves a text edit after native save/close/reopen. The PDF embeds Arial, Times New Roman and Apple Color Emoji. This is fixture-specific acceptance on the recorded macOS font environment; other application versions, fonts, text scripts and layout combinations remain unqualified. Existing source/Reader/conversion NativeAOT evidence does not establish writer NativeAOT qualification.
+[`keynote-created-v15.4.json`](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-v15.4.json) records a three-slide C# output independently decoded through pinned protobuf schemas. Required fields, declared object references, package metadata, modern text fills and stored ZIP structure are checked independently. Keynote 15.4 opens the package without a repair dialog, exports all three pages to PDF with the recorded opaque backgrounds and `003366` text, and preserves a text edit after native save/close/reopen. The PDF embeds Arial, Times New Roman and Apple Color Emoji. This is fixture-specific acceptance on the recorded macOS font environment; other application versions, fonts, text scripts and layout combinations remain unqualified. The byte-identical creator model also has bounded NativeAOT qualification below.
 
 The Apple-saved edit also qualifies the reader's modern solid text-fill precedence and protobuf padding defaults. A declared empty frame-padding message resets all sides to zero; omitted sides in a present message are zero rather than inherited. Strict saved-and-reopened PPTX conversion retains the edited text, font, color and geometry.
 
@@ -57,6 +57,17 @@ Pages, Numbers and Keynote fixtures use the default policy and require complete 
 reconstruction. Passing the native gate does
 not qualify complete appearance or broader source compatibility.
 
+The same `OfficeIMO.IWork.AotSmoke` host qualifies native Keynote creation on
+macOS arm64 under .NET 8.0.31 and .NET 10.0.12. A three-slide Unicode model emits
+7,423 bytes with SHA-256 `8e25c78b8fff278dff256515d6d1a7b171f7c313f82ebcd841457c527f87d6a1`,
+identical to the independently decoded, Apple-opened fixture. Byte, caller-stream
+and atomic path saves agree; repeated encoding is deterministic. Native readback
+checks complete content, canvas, backgrounds, Unicode paragraph boundaries and
+text fill. Existing-path protection and pre-cancelled replacement preserve bytes;
+active stream-copy cancellation stops after the first 64 KiB and leaves the
+caller stream open. This does not qualify native encoding or path-staging
+cancellation latency, every writer limit, other hosts or font rendering.
+
 Run the coordinated native gate from PowerShell with the pinned SDK and platform
 compiler installed:
 
@@ -67,7 +78,7 @@ compiler installed:
 The gate retains executable SHA-256, exit codes and output before deleting isolated
 publish and SDK directories. The scenario is also included in the full gate;
 `-Scenario` selects known scenario IDs and rejects unknown IDs before publishing.
-This evidence covers the invoked source/Reader and destination conversion paths,
+This evidence covers the invoked source/Reader, destination conversion and native creation paths,
 not every public API or all-file compatibility. It does not qualify rendered
 appearance, portable fonts, Windows/Linux execution, iOS/iPad, sandbox permissions
 or signed application distribution.
