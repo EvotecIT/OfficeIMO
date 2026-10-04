@@ -13,7 +13,7 @@ using Xunit;
 
 namespace OfficeIMO.Studio.Tests;
 
-public sealed class StudioMobileWorkspaceTests {
+public sealed partial class StudioMobileWorkspaceTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -166,6 +166,10 @@ public sealed class StudioMobileWorkspaceTests {
                 Assert.Equal(1.25, restored.Document.Zoom);
                 var dirtyTab = restored.Tabs.Tabs[1];
                 Assert.True(dirtyTab.IsDirty, dirtyTab.Document.ErrorMessage);
+                // A missing presenter must keep unsaved work open, never silently save or discard it.
+                await dirtyTab.CloseCommand.ExecuteAsync(null);
+                Assert.Equal(2, restored.Tabs.Tabs.Count);
+                restored.ConfirmUnsavedChangesAsync = _ => Task.FromResult(UnsavedChangesDecision.Save);
                 await dirtyTab.CloseCommand.ExecuteAsync(null);
                 Assert.Single(restored.Tabs.Tabs);
                 await restored.Tabs.CloseSelectedTabAsync();
@@ -237,7 +241,7 @@ public sealed class StudioMobileWorkspaceTests {
         var window = (Window)TopLevel.GetTopLevel(view)!;
         window.UpdateLayout();
         Dispatcher.UIThread.RunJobs();
-        Button button = view.GetVisualDescendants().OfType<Button>().Single(button => (Equals(button.Content, label) || Avalonia.Automation.AutomationProperties.GetName(button) == label) && button.IsEffectivelyVisible);
+        Button button = view.GetVisualDescendants().OfType<Button>().Single(button => (Equals(button.Content, label) || Avalonia.Automation.AutomationProperties.GetName(button) == label) && button.IsEffectivelyVisible && button.IsEffectivelyEnabled);
         Assert.True(button.IsEffectivelyEnabled);
         Point point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
         window.MouseDown(point, MouseButton.Left);

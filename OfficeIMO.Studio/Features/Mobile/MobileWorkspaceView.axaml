@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:shell="using:OfficeIMO.Studio.Features.Shell" xmlns:reader="using:OfficeIMO.Studio.Features.Reader"
              xmlns:organizer="using:OfficeIMO.Studio.Features.Organizer"
+             xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
              x:Class="OfficeIMO.Studio.Features.Mobile.MobileWorkspaceView" x:DataType="shell:MainWindowViewModel"
              FontFamily="Helvetica Neue" Foreground="{DynamicResource StudioTextBrush}">
   <UserControl.Styles><StyleInclude Source="MobileWorkspaceStyles.axaml"/></UserControl.Styles>
@@ -15,7 +16,7 @@
         </StackPanel>
         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2" Margin="4,0">
           <TextBlock Text="{Binding DocumentName}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-          <TextBlock x:Name="DocumentSubtitle" Text="OfficeIMO Studio" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}"/>
+          <TextBlock x:Name="DocumentSubtitle" IsVisible="{Binding HasDocument}" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" TextTrimming="CharacterEllipsis"/>
         </StackPanel>
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
           <StackPanel x:Name="WideTools" Orientation="Horizontal" Spacing="8" IsEnabled="{Binding HasDocument}">
@@ -24,13 +25,16 @@
             <Button x:Name="SearchButton" Classes="touch" Click="OnSearchClick" AutomationProperties.Name="Search" ToolTip.Tip="Find in document"><PathIcon Data="{StaticResource IconSearch}"/></Button>
             <Button x:Name="NoteButton" Classes="touch" Click="OnNoteClick" IsEnabled="{Binding CanEditAnnotations}" AutomationProperties.Name="Note" ToolTip.Tip="Add a note"><StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource IconNote}"/><TextBlock Text="Note" VerticalAlignment="Center"/></StackPanel></Button>
           </StackPanel>
+          <Button x:Name="SaveButton" Classes="touch" Command="{Binding SaveCommand}" IsVisible="{Binding HasDocument}" AutomationProperties.Name="{loc:Loc Common.Save}" ToolTip.Tip="Save the working copy on this device">
+            <PathIcon Data="{StaticResource IconSave}"/>
+          </Button>
           <Button x:Name="ShareButton" Classes="touch" Click="OnShareClick" IsVisible="False" IsEnabled="{Binding HasDocument}" AutomationProperties.Name="Share" ToolTip.Tip="Save and share a copy">
             <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="M11,3 6,8 4.6,6.6 12,0 19.4,6.6 18,8 13,3 13,16 11,16ZM4,10 7,10 7,12 5,12 5,22 19,22 19,12 17,12 17,10 21,10 21,24 3,24 3,10Z"/><TextBlock x:Name="ShareLabel" Text="Share" VerticalAlignment="Center"/></StackPanel>
           </Button>
         </StackPanel>
       </Grid>
     </Border>
-    <Grid x:Name="TabBar" Grid.Row="1" ColumnDefinitions="*,Auto" Margin="12,6,12,0" IsVisible="False">
+    <Grid x:Name="TabBar" Grid.Row="1" ColumnDefinitions="*,Auto,Auto" Margin="12,6,12,0" IsVisible="False">
       <TabControl x:Name="MobileTabs" x:DataType="shell:StudioDocumentTabHost" ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab, Mode=TwoWay}" SelectionChanged="OnTabSelectionChanged" KeyDown="OnTabsKeyDown">
         <TabControl.ItemTemplate><DataTemplate x:DataType="shell:StudioDocumentTabViewModel">
           <Border Classes="mobileTab"><Grid ColumnDefinitions="Auto,*,Auto" MinWidth="180" MaxWidth="260" Height="44" Margin="12,0,0,0">
@@ -40,15 +44,17 @@
           </Grid></Border>
         </DataTemplate></TabControl.ItemTemplate>
       </TabControl>
-      <Button Grid.Column="1" Classes="touch" Command="{Binding OpenCommand}" AutomationProperties.Name="Open another PDF" ToolTip.Tip="Open another PDF"><PathIcon Data="{StaticResource IconPlus}"/></Button>
+      <Button x:Name="DocumentsButton" Grid.Column="1" Classes="touch" Click="OnDocumentsClick" AutomationProperties.Name="Open documents" ToolTip.Tip="Open documents"><PathIcon Data="{StaticResource IconChevronDown}"/></Button>
+      <Button Grid.Column="2" Classes="touch" Command="{Binding OpenCommand}" AutomationProperties.Name="Open another PDF" ToolTip.Tip="Open another PDF"><PathIcon Data="{StaticResource IconPlus}"/></Button>
     </Grid>
     <Border x:Name="SearchPanel" Grid.Row="2" IsVisible="False" Background="{DynamicResource StudioPanelBrush}" Padding="12,8">
       <Grid ColumnDefinitions="*,Auto,Auto,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="4">
         <TextBox x:Name="MobileSearchBox" Text="{Binding SearchQuery, Mode=TwoWay}" PlaceholderText="Find in document" AutomationProperties.Name="Find in document" KeyDown="OnSearchKeyDown"/>
-        <Button Grid.Column="1" Classes="touch" Content="Find" Command="{Binding SearchCommand}"/>
+        <Button Grid.Column="1" Classes="touch" Command="{Binding PreviousSearchResultCommand}" AutomationProperties.Name="Previous match"><PathIcon Data="{StaticResource IconChevronLeft}"/></Button>
         <Button Grid.Column="2" Classes="touch" Command="{Binding NextSearchResultCommand}" AutomationProperties.Name="Next match"><PathIcon Data="{StaticResource IconChevronRight}"/></Button>
         <Button Grid.Column="3" Classes="touch neutral" Click="OnCloseSearchClick" AutomationProperties.Name="Close search"><PathIcon Data="{StaticResource IconClose}"/></Button>
-        <TextBlock Grid.Row="1" Grid.ColumnSpan="4" Text="{Binding SearchPosition}" FontSize="12" Foreground="{DynamicResource StudioMutedTextBrush}" Margin="6,6,0,0"/>
+        <TextBlock Grid.Row="1" Grid.ColumnSpan="3" Text="{Binding SearchPosition}" FontSize="12" Foreground="{DynamicResource StudioMutedTextBrush}" Margin="6,6,0,0" VerticalAlignment="Center" TextWrapping="Wrap"/>
+        <Button Grid.Row="1" Grid.Column="3" Classes="touch" Content="Find" Command="{Binding SearchCommand}"/>
       </Grid>
     </Border>
     <Grid Grid.Row="3" x:Name="WorkspaceGrid" ColumnDefinitions="0,*">
@@ -59,7 +65,7 @@
         </Grid>
       </Border>
       <Border Grid.Column="1" Background="{DynamicResource StudioCanvasBrush}">
-        <ScrollViewer x:Name="PageScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer x:Name="PageScroll" Focusable="True" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
           <ContentControl Content="{Binding SelectedPage}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="8">
             <ContentControl.ContentTemplate><DataTemplate x:DataType="reader:PdfPageViewModel"><reader:PdfPageView/></DataTemplate></ContentControl.ContentTemplate>
           </ContentControl>
@@ -105,6 +111,26 @@
           <Grid ColumnDefinitions="*,Auto"><TextBlock x:Name="SheetTitle" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/><Button x:Name="SheetDone" Classes="touch" Grid.Column="1" Content="Done" Click="OnDismissClick"/></Grid>
           <Grid Grid.Row="1">
             <ContentControl x:Name="SheetPages" IsVisible="False" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+            <ListBox x:Name="DocumentList" Classes="documents" IsVisible="False" x:DataType="shell:StudioDocumentTabHost"
+                     ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab, Mode=TwoWay}" Tapped="OnDocumentTapped" KeyDown="OnDocumentListKeyDown"
+                     AutomationProperties.Name="Open documents" MaxHeight="420">
+              <ListBox.ItemTemplate><DataTemplate x:DataType="shell:StudioDocumentTabViewModel">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" MinHeight="48">
+                  <PathIcon Data="{StaticResource IconDocument}" Width="22" Height="22" Foreground="{DynamicResource StudioAccentBrush}"/>
+                  <TextBlock Grid.Column="1" Text="{Binding DisplayTitle}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                  <Ellipse Grid.Column="2" Width="7" Height="7" Fill="{DynamicResource StudioAccentBrush}" IsVisible="{Binding IsDirty}"/>
+                </Grid>
+              </DataTemplate></ListBox.ItemTemplate>
+            </ListBox>
+            <ScrollViewer x:Name="CloseScroll" IsVisible="False">
+              <StackPanel Spacing="14">
+                <TextBlock x:Name="CloseDescription" TextWrapping="Wrap" FontSize="16"/>
+                <TextBlock Text="Save keeps your edits in the working copy on this device. Use Share to export a copy to Files or another app." TextWrapping="Wrap" Foreground="{DynamicResource StudioMutedTextBrush}"/>
+                <Button Classes="touch filled" Content="{loc:Loc Common.Save}" Click="OnSaveAndCloseClick" HorizontalAlignment="Stretch"/>
+                <Button Classes="touch destructive" Content="{loc:Loc Common.Discard}" Click="OnDiscardAndCloseClick" HorizontalAlignment="Stretch"/>
+                <Button x:Name="CloseCancel" Classes="touch" Content="{loc:Loc Common.Cancel}" Click="OnDismissClick" HorizontalAlignment="Stretch"/>
+              </StackPanel>
+            </ScrollViewer>
             <ScrollViewer x:Name="NoteScroll" IsVisible="False">
               <StackPanel x:Name="NotePanel" Spacing="16">
                 <TextBlock x:Name="SheetError" Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}" TextWrapping="Wrap" Foreground="{DynamicResource StudioErrorBrush}"/>

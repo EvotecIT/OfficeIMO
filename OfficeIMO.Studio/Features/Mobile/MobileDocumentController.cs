@@ -44,11 +44,13 @@ internal sealed class MobileDocumentController : IDisposable {
     internal StudioDocumentTabHost Tabs { get; }
     internal MainWindowViewModel Document => Tabs.ActiveDocument;
     internal event EventHandler? ActiveDocumentChanged;
+    internal Func<MainWindowViewModel, Task<UnsavedChangesDecision>>? ConfirmUnsavedChangesAsync { get; set; }
 
     private MainWindowViewModel CreateDocument(Func<string, CancellationToken, Task> openInTab) {
-        var document = new MainWindowViewModel(PickWorkingCopyAsync, services: _services,
+        MainWindowViewModel? document = null;
+        document = new MainWindowViewModel(PickWorkingCopyAsync, services: _services,
             openDocumentInTab: openInTab,
-            confirmUnsavedChanges: () => Task.FromResult(UnsavedChangesDecision.Save));
+            confirmUnsavedChanges: () => ConfirmUnsavedChangesAsync?.Invoke(document!) ?? Task.FromResult(UnsavedChangesDecision.Cancel));
         document.PropertyChanged += OnDocumentChanged;
         _observed.Add(document);
         return document;

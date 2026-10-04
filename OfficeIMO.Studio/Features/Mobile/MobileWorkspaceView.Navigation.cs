@@ -20,10 +20,15 @@ public sealed partial class MobileWorkspaceView {
     };
 
     internal void Connect(MobileDocumentController controller) {
-        if (_controller is not null) _controller.ActiveDocumentChanged -= OnActiveDocumentChanged;
+        if (_controller is not null) {
+            _controller.ActiveDocumentChanged -= OnActiveDocumentChanged;
+            _controller.ConfirmUnsavedChangesAsync = null;
+        }
         _controller = controller;
         _controller.ActiveDocumentChanged += OnActiveDocumentChanged;
+        _controller.ConfirmUnsavedChangesAsync = ConfirmUnsavedChangesAsync;
         MobileTabs.DataContext = controller.Tabs;
+        DocumentList.DataContext = controller.Tabs;
         TabBar.IsVisible = true;
         DataContext = controller.Document;
     }

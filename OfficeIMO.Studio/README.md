@@ -187,7 +187,9 @@ The repository's single open-work plan is [`Docs/ROADMAP.md`](../Docs/ROADMAP.md
 
 `OfficeIMO.Studio.iOS` hosts the shared Avalonia touch workspace. It opens PDFs through Files into a separate local working copy, renders and searches pages, adds review notes, and saves the working copy before presenting the Apple share sheet. Session and recovery identities remain relative to the app document root so a changed container location does not invalidate them. Internal preferences and recovery files live in Application Support.
 
-Each PDF opens in a document tab with its own reading position, zoom, edits, and undo history. Closing a modified tab saves its working copy; a failed save keeps the document open. Studio restores open tabs and their recoverable edits after restart.
+Each PDF opens in a document tab with its own reading position, zoom, edits, and undo history. **Open documents** lists all open PDFs, including tabs outside the visible strip. **Save** keeps edits in the working copy on the device; **Share** saves and exports a copy through the Apple share sheet. The header distinguishes unsaved changes from a saved working copy. Closing a modified tab offers Save, Discard, or Cancel; a cancelled close or failed save keeps the document open. Studio restores open tabs and their recoverable edits after restart.
+
+Search supports previous and next matches, Enter and Shift+Enter navigation, and Escape to clear highlights and return to the reader. A hardware keyboard also supports Command+O, Command+S, Command+W, Command+F, Command+Z and Command+Shift+Z. Use Control+Tab to switch documents and Command+Shift+T to reopen a closed document.
 
 Wide layouts show page thumbnails beside the document and grouped review tools above it. Compact layouts move review tools to the bottom and open thumbnails in a Pages sheet. Search stays beside the visible document, and notes use a keyboard-aware sheet. The host includes safe-area padding, zoom controls, and touch gesture handling. Choose **Try a sample** to open a three-page introduction. External-process OCR is unavailable on iOS.
 
