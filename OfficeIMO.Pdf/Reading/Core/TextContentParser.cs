@@ -141,13 +141,15 @@ internal static partial class TextContentParser {
         public bool IsOptionalContent { get; }
         public bool ActualTextEmitted { get; set; }
 
-        public MarkedContentState(ActualTextValue? actualText, bool isArtifact, bool isHidden, int? mcid = null, bool isOptionalContent = false) {
+        public MarkedContentState(ActualTextValue? actualText, bool isArtifact, bool isHidden, int? mcid = null, bool isOptionalContent = false,
+            bool preserveAnchorGeometry = false) {
             _actualText = actualText;
             HasActualText = actualText.HasValue;
             IsArtifact = isArtifact;
             IsHidden = isHidden;
             Mcid = mcid;
             IsOptionalContent = isOptionalContent;
+            PreserveAnchorGeometry = preserveAnchorGeometry;
         }
 
         public string DecodeActualText(TextOutputBudget budget) =>
@@ -798,7 +800,8 @@ internal static partial class TextContentParser {
                         operation.HasInvalidOperands ||
                         IsHiddenOptionalContent(args.Count > 1 ? args[args.Count - 2] : null, args.Count > 0 ? args[args.Count - 1] : null),
                         GetMcid(args.Count > 0 ? args[args.Count - 1] : null),
-                        IsOptionalContentTag(args.Count > 1 ? args[args.Count - 2] : null)));
+                        IsOptionalContentTag(args.Count > 1 ? args[args.Count - 2] : null),
+                        HasLogicalBoundsHint(args.Count > 0 ? args[args.Count - 1] : null)));
                     args.Clear();
                     break;
                 case "BMC":

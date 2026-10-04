@@ -334,21 +334,26 @@ internal static partial class HtmlPdfRenderedConverter {
         if (logicalTextOwned) {
             addDrawingAndLink(canvas);
         } else {
+            double logicalHeight = Math.Max(0.01D, Math.Min(visual.Height, visual.Font.Size));
             PdfCore.PdfCanvasTextStructureRole role = asSpan
                 ? PdfCore.PdfCanvasTextStructureRole.Span
                 : MapStructureRole(visual.SemanticRole);
             if (role == PdfCore.PdfCanvasTextStructureRole.Span) {
                 canvas.ActualText(
                     visual.Text,
-                    visual.X * PointsPerCssPixel,
-                    (visual.Y + Math.Min(visual.Height, visual.Font.Size)) * PointsPerCssPixel,
+                    (visual.X + textX) * PointsPerCssPixel,
+                    visual.Y * PointsPerCssPixel,
+                    resolvedAdvance * PointsPerCssPixel,
+                    logicalHeight * PointsPerCssPixel,
                     addDrawingAndLink);
             } else {
                 canvas.Structure(MapOutlinedTextStructureRole(role), nested =>
                     nested.ActualText(
                         visual.Text,
-                        visual.X * PointsPerCssPixel,
-                        (visual.Y + Math.Min(visual.Height, visual.Font.Size)) * PointsPerCssPixel,
+                        (visual.X + textX) * PointsPerCssPixel,
+                        visual.Y * PointsPerCssPixel,
+                        resolvedAdvance * PointsPerCssPixel,
+                        logicalHeight * PointsPerCssPixel,
                         addDrawingAndLink));
             }
         }

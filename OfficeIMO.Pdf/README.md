@@ -651,6 +651,24 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 
 Inline elements participate in normal line wrapping. In tagged output, image and box alternative text is carried into the structure tree.
 
+### Logical text for positioned canvas paint
+
+Use `ActualText` to give positioned paint one logical string. When adjacent
+spans need reliable extraction spacing, provide their extraction rectangles in
+top-left page coordinates:
+
+```csharp
+byte[] logicalText = PdfDocument.Create(pdf => pdf.Content(content => content
+    .Canvas(canvas => canvas.ActualText("Total: 42", 10, 28, 80, 12,
+        paint => paint.Text("Total: 42", 10, 28, 80, 12))))).ToBytes();
+```
+
+The rectangle describes logical text geometry; it does not resize the paint.
+Paint and replacement text share an owner, so editing the replacement alone is
+rejected when it cannot safely preserve the painted content. The existing
+overloads without a rectangle remain available for grouped paint and point
+anchors.
+
 ### Tagged mathematical canvas content
 
 Use the canvas `Formula` role to retain a mathematical expression's description

@@ -242,18 +242,16 @@ internal static partial class PdfWriter {
             }
             // One anchor per Unicode scalar keeps reader spacing heuristics proportional
             // to characters instead of presenting the entire word as one stretched space.
-            int anchorCount = 0;
-            for (int index = 0; index < item.Text.Length; index++, anchorCount++) {
-                if (char.IsHighSurrogate(item.Text[index]) && index + 1 < item.Text.Length &&
-                    char.IsLowSurrogate(item.Text[index + 1])) index++;
-            }
-            double horizontalScaling = textWidth / (SpaceWidthEmFor(font) * textHeight * anchorCount) * 100D;
+            int anchorCount = CountLogicalAnchorScalars(item.Text);
+            PdfTextShowCommand anchor = EncodeBoundedLogicalTextAnchor(font, currentOpts, anchorCount);
+            double horizontalScaling = ResolveLogicalAnchorScaling(anchor, textWidth, textHeight);
             int? markedContentId = RegisterTextStructureElement("Span", _canvasStructureParentElement);
 
             var content = new ContentStreamBuilder(sb)
                 .SaveState()
                 .BeginText()
                 .Font(fontResource, textHeight)
+                .WordSpacing(0D).TextRise(0D)
                 .HorizontalTextScaling(horizontalScaling)
                 .TextRenderingMode(3)
                 .TextMatrix(a, b, c, d, baselineX, baselineY);
@@ -264,7 +262,7 @@ internal static partial class PdfWriter {
                     .Append(markedContentId.Value.ToString(CultureInfo.InvariantCulture));
             }
             sb.Append(" >> BDC\n");
-            content.ShowText(EncodeActualTextAnchor(font, currentOpts, anchorCount), textHeight);
+            content.ShowText(anchor, textHeight);
             sb.Append("EMC\n");
             content.EndText().RestoreState();
 
@@ -279,9 +277,9 @@ internal static partial class PdfWriter {
             }
             EnsurePage();
             double actualTextX = item.HasPosition ? item.X : 0D;
-            double actualTextY = item.HasPosition ? currentOpts.PageHeight - item.Y : 0D;
+            double actualTextY = item.HasPosition ? currentOpts.PageHeight - item.Y - (item.UsesBounds ? item.Height : 0D) : 0D;
             RenderLogicalText(item.Text, actualTextX, actualTextY,
-                () => RenderCanvasBlock(new PdfCanvasBlock(item.Items)));
+                () => RenderCanvasBlock(new PdfCanvasBlock(item.Items)), item.Width, item.Height);
         }
 
         private void RenderCanvasStructure(PdfCanvasStructureItem item) {
