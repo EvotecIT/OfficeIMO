@@ -11,16 +11,18 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioFormsJourneyTests {
     [Fact]
-    public async Task SharedTextFieldWidgetsStayInTheSidePane() {
+    public async Task SharedTextFieldWidgetsUseOneDraftOnThePage() {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.7",
             "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [5 0 R] >> >>", "endobj",
-            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>", "endobj",
             "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Annots [6 0 R 7 0 R] >>", "endobj",
-            "5 0 obj", "<< /FT /Tx /T (Shared) /V (Value) /Kids [6 0 R 7 0 R] >>", "endobj",
+            "4 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Rotate 90 /Annots [8 0 R] >>", "endobj",
+            "5 0 obj", "<< /FT /Tx /T (Shared) /V (Value) /Kids [6 0 R 7 0 R 8 0 R] >>", "endobj",
             "6 0 obj", "<< /Type /Annot /Subtype /Widget /Parent 5 0 R /Rect [20 20 100 40] /P 3 0 R /F 4 >>", "endobj",
             "7 0 obj", "<< /Type /Annot /Subtype /Widget /Parent 5 0 R /Rect [120 20 220 40] /P 3 0 R /F 4 >>", "endobj",
-            "trailer", "<< /Root 1 0 R /Size 8 >>", "%%EOF"
+            "8 0 obj", "<< /Type /Annot /Subtype /Widget /Parent 5 0 R /Rect [20 20 100 40] /P 4 0 R /F 4 >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF"
         }) + "\n";
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
@@ -28,15 +30,47 @@ public sealed class StudioFormsJourneyTests {
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "shared-widgets.pdf");
             File.WriteAllBytes(source, System.Text.Encoding.ASCII.GetBytes(pdf));
-            Assert.Equal(2, Assert.Single(PdfDocument.Load(source).Inspect().FormFields).Widgets.Count);
+            Assert.Equal(3, Assert.Single(PdfDocument.Load(source).Inspect().FormFields).Widgets.Count);
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
             await model.OpenDocumentAsync(source);
             model.ShowFormsModeCommand.Execute(null);
             model.SelectedFormField = Assert.Single(model.FormFields);
-            await model.SelectedPage!.EnsureRenderedAsync();
-
-            Assert.Null(model.SelectedPage.InlineFormField);
-            Assert.False(model.SelectedPage.HasInlineFormEditor);
+            var page = model.SelectedPage!;
+            var window = new Window { Width = 760, Height = 500, Content = new OfficeIMO.Studio.Features.Reader.PdfPageView { DataContext = page } };
+            try {
+                window.Show();
+                await page.EnsureRenderedAsync();
+                model.SelectedFormField = null;
+                await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(window.UpdateLayout, Avalonia.Threading.DispatcherPriority.Background);
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                var canvas = window.GetVisualDescendants().OfType<OfficeIMO.Studio.Features.Reader.PdfPageCanvas>().Single();
+                var target = page.Scene!.Interactions!.Regions.Single(region => region.Kind == PdfInteractionKind.FormWidget && region.ObjectNumber == 7);
+                Point hit = canvas.TranslatePoint(new Point((target.Quad.Left + target.Quad.Width / 2) * canvas.Bounds.Width / page.Scene.Drawing.Width,
+                    (target.Quad.Top + target.Quad.Height / 2) * canvas.Bounds.Height / page.Scene.Drawing.Height), window)!.Value;
+                window.MouseDown(hit, Avalonia.Input.MouseButton.Left);
+                window.MouseUp(hit, Avalonia.Input.MouseButton.Left);
+                await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(window.UpdateLayout, Avalonia.Threading.DispatcherPriority.Background);
+                Assert.Equal(7, page.FormAnchorObjectNumber);
+                var editors = window.GetVisualDescendants().OfType<TextBox>().Where(box => box.Name == "InlineFormText" && box.IsEffectivelyVisible).ToArray();
+                Assert.Equal(2, editors.Length);
+                Assert.True(editors[1].IsFocused);
+                window.KeyTextInput("One shared draft");
+                Assert.Equal("One shared draft", editors[0].Text);
+                Assert.Equal("One shared draft", model.SelectedFormField!.TextValue);
+                model.SelectedPage = model.Pages[1];
+                window.Content = new OfficeIMO.Studio.Features.Reader.PdfPageView { DataContext = model.SelectedPage };
+                await model.SelectedPage.EnsureRenderedAsync();
+                await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(window.UpdateLayout, Avalonia.Threading.DispatcherPriority.Background);
+                var otherPageEditor = window.GetVisualDescendants().OfType<TextBox>().Single(box => box.Name == "InlineFormText" && box.IsEffectivelyVisible);
+                Assert.Equal("One shared draft", otherPageEditor.Text);
+                var rotatedWidget = Assert.Single(model.SelectedPage.InlineFormWidgets);
+                Assert.True(rotatedWidget.Height > rotatedWidget.Width);
+                await model.SaveCommand.ExecuteAsync(null);
+                Assert.Null(model.ErrorMessage);
+                var saved = Assert.Single(PdfDocument.Load(source).Inspect().FormFields);
+                Assert.Equal("One shared draft", saved.Value);
+                Assert.Equal(3, saved.WidgetCount);
+            } finally { window.Close(); }
             return true;
         }, CancellationToken.None);
     }
@@ -171,14 +205,14 @@ public sealed class StudioFormsJourneyTests {
                 model.SelectedFormField = model.FormFields.Single(field => field.Name == "First");
                 Assert.True(page.HasInlineFormEditor);
                 Assert.Same(model.SelectedFormField, page.InlineFormField);
-                Assert.True(page.InlineFormWidth > 0 && page.InlineFormHeight > 0);
+                Assert.True(page.InlineFormWidgets.All(widget => widget.Width > 0 && widget.Height > 0));
 
                 int repeatedFocusRequests = 0;
                 page.PropertyChanged += (_, change) => {
                     if (change.PropertyName == nameof(page.FocusInlineFormEditorRequested)) repeatedFocusRequests++;
                 };
                 page.FocusInlineFormEditorRequested = false; // The page view consumed the first focus request.
-                page.ShowInlineFormField(model.SelectedFormField, focus: true);
+                page.ShowInlineFormFields(model.FormFields, model.SelectedFormField, focus: true);
                 Assert.Equal(1, repeatedFocusRequests);
                 Assert.True(page.FocusInlineFormEditorRequested);
 

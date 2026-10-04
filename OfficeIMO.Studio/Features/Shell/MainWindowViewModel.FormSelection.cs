@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Studio.Features.Editor;
+using OfficeIMO.Studio.Features.Reader;
 
 namespace OfficeIMO.Studio.Features.Shell;
 
@@ -55,18 +56,18 @@ public sealed partial class MainWindowViewModel {
     private bool _focusInlineFormEditor;
 
     private void UpdateFormAnchor() {
+        PdfFormFieldViewModel[] fillable = IsFormsDocumentMode ? FormFields.Where(CanFillInPlace).ToArray() : [];
         foreach (var page in Pages) {
             bool anchored = IsFormsDocumentMode && page == SelectedPage && SelectedFormField?.PageNumbers.Contains(page.PageNumber) == true;
             page.FormAnchorFieldName = anchored ? SelectedFormField!.Name : null;
-            page.ShowInlineFormField(anchored && CanFillInPlace(SelectedFormField!) ? SelectedFormField : null, _focusInlineFormEditor);
+            page.ShowInlineFormFields(fillable, anchored ? SelectedFormField : null, anchored && _focusInlineFormEditor);
         }
         _focusInlineFormEditor = false;
     }
 
-    // Text, check box and drop-down fields with one widget are filled on the page; others stay in the side pane.
     private bool CanFillInPlace(PdfFormFieldViewModel field) => _workspace?.CanFillForms == true && field.CanFill &&
-        field.SingleWidget is not null && !IsFillSignPlacement(ActiveEditorTool) &&
-        (field.IsTextEditor || field.IsCheckBoxEditor || field.IsSingleChoiceEditor);
+        field.Widgets.Any(widget => PdfInlineFormWidgetViewModel.CanShow(field, widget)) && !IsFillSignPlacement(ActiveEditorTool) &&
+        (field.IsTextEditor || field.IsCheckBoxEditor || field.IsChoiceEditor);
 
     // Tab order follows the document's field order, which Studio already keeps in tab order per page.
     private void OnInlineFormNavigationRequested(int direction) {
@@ -78,7 +79,9 @@ public sealed partial class MainWindowViewModel {
         _focusInlineFormEditor = true;
         _refreshingFormFields = true;
         try {
-            if (SelectedPage?.PageNumber is not int page || !field.PageNumbers.Contains(page)) NavigateToPage(field.PageNumbers[0]);
+            int[] widgetPages = field.Widgets.Where(widget => PdfInlineFormWidgetViewModel.CanShow(field, widget))
+                .Select(widget => widget.PageNumber!.Value).Distinct().ToArray();
+            if (SelectedPage?.PageNumber is not int page || !widgetPages.Contains(page)) NavigateToPage(widgetPages[0]);
             SelectedFormField = field;
         } finally { _refreshingFormFields = false; ResetFormDefinition(); UpdateFormAnchor(); }
     }
@@ -101,6 +104,7 @@ public sealed partial class MainWindowViewModel {
         try {
             NavigateToPage(selection.PageNumber);
             SelectedFormField = field;
+            if (SelectedPage is not null) SelectedPage.FormAnchorObjectNumber = selection.ObjectNumber;
         } finally { _refreshingFormFields = false; ResetFormDefinition(); UpdateFormAnchor(); }
     }
 }

@@ -9,6 +9,16 @@
              xmlns:comments="using:OfficeIMO.Studio.Features.Comments"
              x:Class="OfficeIMO.Studio.Features.Workspace.DocumentWorkspaceView"
              x:DataType="shell:MainWindowViewModel">
+  <UserControl.Resources>
+    <!-- Page-container styling must not suppress selection in form lists inside a page. -->
+    <ControlTheme x:Key="ReaderPageContainerTheme" TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="Padding" Value="0" /><Setter Property="Margin" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Style Selector="^:selected /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /></Style>
+      <Style Selector="^:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /></Style>
+    </ControlTheme>
+  </UserControl.Resources>
   <UserControl.Styles>
     <Style Selector="TextBox#PageNumberBox.invalidPage /template/ Border#PART_BorderElement">
       <Setter Property="BorderBrush" Value="{DynamicResource StudioErrorBrush}"/>
@@ -632,6 +642,7 @@
           </Grid>
         </Border>
         <ListBox x:Name="PagesList" Focusable="True" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="{Binding PrimaryReaderColumnSpan}"
+                 ItemContainerTheme="{StaticResource ReaderPageContainerTheme}"
                  ScrollViewer.BringIntoViewOnFocusChange="False"
                  IsVisible="{Binding !IsGridReaderLayout}"
                  ItemsSource="{Binding ReaderPages}" SelectedItem="{Binding SelectedPage, Mode=OneWay}"
@@ -652,14 +663,12 @@
             <Style Selector="ListBox.readerTwoPage">
               <Setter Property="ItemsPanel"><ItemsPanelTemplate><StackPanel Orientation="Horizontal" HorizontalAlignment="Center" /></ItemsPanelTemplate></Setter>
             </Style>
-            <Style Selector="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="Padding" Value="0" /><Setter Property="Margin" Value="0" /><Setter Property="Background" Value="Transparent" /></Style>
-            <Style Selector="ListBoxItem:selected /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /></Style>
-            <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /></Style>
           </ListBox.Styles>
           <ListBox.ItemTemplate><DataTemplate x:DataType="reader:PdfPageViewModel"><reader:PdfPageView HorizontalAlignment="Left" /></DataTemplate></ListBox.ItemTemplate>
         </ListBox>
 
         <ListBox x:Name="GridPagesList" Focusable="True" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="{Binding PrimaryReaderColumnSpan}"
+                 ItemContainerTheme="{StaticResource ReaderPageContainerTheme}"
                  ScrollViewer.BringIntoViewOnFocusChange="False"
                  IsVisible="{Binding IsGridReaderLayout}"
                  ItemsSource="{Binding ReaderGridRows}"
@@ -672,11 +681,6 @@
           <ListBox.ItemsPanel>
             <ItemsPanelTemplate><VirtualizingStackPanel CacheLength="1" /></ItemsPanelTemplate>
           </ListBox.ItemsPanel>
-          <ListBox.Styles>
-            <Style Selector="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="Padding" Value="0" /><Setter Property="Margin" Value="0" /><Setter Property="Background" Value="Transparent" /></Style>
-            <Style Selector="ListBoxItem:selected /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /></Style>
-            <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /></Style>
-          </ListBox.Styles>
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="reader:ReaderGridRowViewModel">
               <ItemsControl ItemsSource="{Binding Pages}">
@@ -718,16 +722,12 @@
             <Image Source="{Binding ComparisonDifferenceImage}" Width="{Binding ComparisonDifferenceWidth}" Height="{Binding ComparisonDifferenceHeight}" Stretch="Uniform" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Top" AutomationProperties.Name="{loc:Loc Comparison.Highlight}" />
           </ScrollViewer>
           <ListBox ItemsSource="{Binding ComparisonReaderPages}"
+                   ItemContainerTheme="{StaticResource ReaderPageContainerTheme}"
                    IsVisible="{Binding !ShowComparisonDifferenceImage}"
                    SelectedItem="{Binding ComparisonSelectedPage, Mode=OneWay}"
                    Background="Transparent" BorderThickness="0" Padding="0,0,0,64"
                    ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto">
             <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel HorizontalAlignment="Center" /></ItemsPanelTemplate></ListBox.ItemsPanel>
-            <ListBox.Styles>
-              <Style Selector="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="Padding" Value="0" /><Setter Property="Background" Value="Transparent" /></Style>
-              <Style Selector="ListBoxItem:selected /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /></Style>
-              <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /></Style>
-            </ListBox.Styles>
             <ListBox.ItemTemplate><DataTemplate x:DataType="reader:PdfPageViewModel"><reader:PdfPageView /></DataTemplate></ListBox.ItemTemplate>
           </ListBox>
         </Panel>

@@ -204,7 +204,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         if (change.Property == SelectedObjectProperty || change.Property == SceneProperty || change.Property == SelectionModeProperty) ResetObjectTransform();
         if (change.Property == ActiveSearchHighlightProperty || change.Property == SceneProperty) QueueSearchReveal();
         if (change.Property == CommentAnchorObjectNumberProperty || change.Property == SceneProperty) QueueCommentAnchorReveal();
-        if (change.Property == FormAnchorFieldNameProperty || change.Property == SceneProperty) QueueFormAnchorReveal();
+        if (change.Property == FormAnchorFieldNameProperty || change.Property == FormAnchorObjectNumberProperty || change.Property == SceneProperty) QueueFormAnchorReveal();
         if (change.Property == EditorToolProperty) {
             Cursor = EditorTool == PdfEditorTool.Select ? _textCursor : _crossCursor;
             ResetPointerState();

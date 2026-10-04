@@ -36,7 +36,8 @@
       <CheckBox IsVisible="{Binding SelectedFormField.IsCheckBoxEditor}" IsChecked="{Binding SelectedFormField.IsChecked, Mode=TwoWay}"
                 Content="{loc:Loc DocumentWorkspace.Checked}" AutomationProperties.Name="{Binding SelectedFormField.DisplayName}" />
       <ComboBox IsVisible="{Binding SelectedFormField.IsSingleChoiceEditor}" ItemsSource="{Binding SelectedFormField.Choices}"
-                SelectedItem="{Binding SelectedFormField.SelectedChoice, Mode=TwoWay}" AutomationProperties.Name="{Binding SelectedFormField.DisplayName}">
+                SelectedItem="{Binding SelectedFormField.SelectedChoice, Mode=OneWay}" SelectionChanged="OnChoiceSelectionChanged"
+                AutomationProperties.Name="{Binding SelectedFormField.DisplayName}">
         <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfFormChoiceViewModel"><TextBlock Text="{Binding DisplayText}" /></DataTemplate></ComboBox.ItemTemplate>
       </ComboBox>
       <TextBox IsVisible="{Binding SelectedFormField.IsEditableChoice}" Text="{Binding SelectedFormField.TextValue, Mode=TwoWay}"
