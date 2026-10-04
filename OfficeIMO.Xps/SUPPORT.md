@@ -1,0 +1,44 @@
+# XPS/OpenXPS support
+
+The native package lifecycle and the rendering profile are separate contracts.
+Preserving an unsupported native element does not mean that it can be rendered.
+
+| Operation | Supported contract | Boundary |
+| --- | --- | --- |
+| Read | Microsoft XPS and ECMA-388 OpenXPS; OPC relationships/content types; multiple fixed documents; ordered page references; UTF-8/UTF-16 XML | Conventional ZIP parts; interleaved OPC piece streams and protected packages are not supported |
+| Create | Both dialects; pages, vector paths, embedded fonts, Unicode glyph runs, PNG/JPEG image placement | Typed creation is a bounded fixed-page profile, not a complete schema object model |
+| Edit | Detached native page XML with explicit replacement; new resource parts | Loaded document-sequence restructuring and resource replacement are not exposed |
+| Save | Original dialect; native page content and opaque parts retained; direct required-resource relationships emitted; deterministic ZIP output on the same runtime | ZIP metadata/XML bytes may change; no dialect conversion; signed packages cannot be rewritten |
+| Text extraction | UnicodeString runs in markup order | No inferred reading order, paragraphs, or glyph-ID-to-Unicode reconstruction |
+| Paths | Abbreviated geometry, fill rules, explicit path figures/segments, fills, strokes, dashes, matrix transforms, clipping | Per-segment fill/stroke suppression and asymmetric/triangle caps are diagnosed |
+| Text rendering | Embedded TrueType programs/collections, obfuscation, explicit glyph IDs, cluster mappings, advances/offsets, horizontal bidi direction | Outlined output; sideways glyphs, style simulations, and unsupported font programs are diagnosed |
+| Brushes | Hex/scRGB solid colors; linear/radial gradients; scoped and external package resource dictionaries; non-tiled PNG/JPEG image brushes and their matrix transforms | VisualBrush, tiled image brushes, ICC ContextColor, color-converted images, gradient transforms, TIFF/JPEG-XR rendering, and opacity masks are diagnosed |
+| Navigation | Safe web/mail links and native page/sequence named targets projected into SVG page filenames | Non-page unresolved and unsafe destinations are diagnosed; document navigation is not a PDF preservation contract |
+| SVG | Self-contained images and glyph outlines; strict by default; explicit partial result with diagnostics | Unknown markup/attributes are diagnosed; no claim of complete XPS consumer conformance |
+| Drawing/images | Existing managed Core scene and image exporters | Shared viewport, element, geometry, raster, and codec limits still apply; any reported SVG import loss rejects conversion |
+| PDF | Optional thin bridge to the existing PDF engine, retaining page dimensions | Vector outlines rather than searchable text; no print-ticket/structure/signature migration |
+| Security | Package-local resource resolution; no external fetch; DTD prohibition; bounded ZIP/XML/page expansion; cooperative cancellation; atomic path saves | Inspection does not authenticate signatures or make arbitrary native documents trusted |
+
+## Qualification
+
+The focused tests exercise both dialects, package reopening and native edits,
+opaque-part preservation, deterministic saves, fonts/glyph positioning, image
+placement, gradients, external resource dictionaries, hostile inputs, cancellation,
+and preservation of the destination on a rejected signed-package save.
+
+Independent input: [Ecma's published ECMA-388 XPS document](https://ecma-international.org/wp-content/uploads/ECMA-388.xps),
+which uses the Microsoft XPS dialect and contains 494 pages (SHA-256
+`579b553f499800713bdbbc3a82be6065db8611a050b585c011a29ebd8533c9ad`). The full sequence is
+loaded and each page is exercised through SVG conversion. Cover, dense text/table,
+and graphics pages are the representative rendering checks; successful conversion
+is not a pixel-equivalence claim for every page.
+
+Generated OpenXPS sequence, fixed-document, and fixed-page markup is checked against
+[Ecma's OpenXPS schemas](https://ecma-international.org/wp-content/uploads/OpenXPS-WC3-Schemas.zip).
+MuPDF/PyMuPDF 1.26.5 independently opens a generated Microsoft XPS document, extracts
+its Unicode text, and renders its font/image placements. Its handling of this
+OpenXPS package selects a generic ZIP reader, so it does not establish independent
+OpenXPS rendering acceptance. These tools are isolated validation tools and are
+not product dependencies or ordinary build requirements.
+
+The open qualification and rendering work belongs in [the roadmap](../Docs/ROADMAP.md#xpsopenxps).

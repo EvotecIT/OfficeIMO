@@ -736,6 +736,8 @@ jobs:
             project: OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj
           - name: Markup
             project: OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj
+          - name: Xps
+            project: OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj
           - name: OpenDocument
             project: OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj
           - name: OpenDocument-Converters

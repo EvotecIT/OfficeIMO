@@ -14,6 +14,8 @@
     "OfficeIMO.ChartForgeX": "3.4.X",
     "OfficeIMO.Confluence": "3.4.X",
     "OfficeIMO.Core": "3.4.X",
+    "OfficeIMO.Xps": "3.4.X",
+    "OfficeIMO.Xps.Pdf": "3.4.X",
     "OfficeIMO.Data.Arrow": "3.4.X",
     "OfficeIMO.Data.Generators": "3.4.X",
     "OfficeIMO.DocBook": "3.4.X",

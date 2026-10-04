@@ -327,6 +327,14 @@ therefore do not change the restore graph, trimming roots, or NativeAOT surface 
 
 _Dependency footprint:_ only `OfficeIMO.Core`; no OpenDocument SDK and no LibreOffice runtime.
 
+#### [OfficeIMO.Xps](OfficeIMO.Xps/README.md)
+
+Portable XPS/OpenXPS package reading, native page editing, and writing, with
+embedded fonts, paths, images, and explicit conversion diagnostics. SVG and raster
+export reuse the shared drawing engine; [OfficeIMO.Xps.Pdf](OfficeIMO.Xps.Pdf/README.md)
+adds vector PDF export. [Rendering and preservation boundaries](OfficeIMO.Xps/SUPPORT.md)
+are documented separately. The core package references only `OfficeIMO.Core`.
+
 #### [OfficeIMO.Rtf](OfficeIMO.Rtf/README.md)
 
 - [x] Bounded RTF lexer/parser with a lossless syntax tree and exact unchanged-source round trips

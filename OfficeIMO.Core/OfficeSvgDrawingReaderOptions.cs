@@ -54,6 +54,9 @@ public sealed class OfficeSvgDrawingReaderOptions {
     /// </summary>
     public int MaximumElements { get; set; } = DefaultMaximumElements;
 
+    /// <summary>Maximum geometric path/polygon commands, including expanded references. Defaults to 20000; explicitly bounded fixed-page imports can request up to 1000000. Text, effects, and raster safety retain their separate limits.</summary>
+    public int MaximumGeometryCommands { get; set; } = 20000;
+
     /// <summary>Maximum SVG viewport width or height. Increase this only for trusted SVG input.</summary>
     public double MaximumViewportDimension { get; set; } = DefaultMaximumViewportDimension;
 

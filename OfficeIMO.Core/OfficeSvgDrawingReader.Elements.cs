@@ -240,9 +240,9 @@ public static partial class OfficeSvgDrawingReader {
             "circle" => CreateCircle(element, style, viewX, viewY, drawing.Width, drawing.Height),
             "ellipse" => CreateEllipse(element, style, viewX, viewY, drawing.Width, drawing.Height),
             "line" => CreateLine(element, style, viewX, viewY, drawing.Width, drawing.Height),
-            "polygon" => CreatePolygon(element, style, viewX, viewY, close: true, ref pathCommands, ref pathCommandLimitExceeded),
-            "polyline" => CreatePolygon(element, style, viewX, viewY, close: false, ref pathCommands, ref pathCommandLimitExceeded),
-            "path" => CreatePath(element, style, viewX, viewY, ref pathCommands, ref pathCommandLimitExceeded),
+            "polygon" => CreatePolygon(element, style, viewX, viewY, close: true, ref pathCommands, ref pathCommandLimitExceeded, references.MaximumGeometryCommands),
+            "polyline" => CreatePolygon(element, style, viewX, viewY, close: false, ref pathCommands, ref pathCommandLimitExceeded, references.MaximumGeometryCommands),
+            "path" => CreatePath(element, style, viewX, viewY, ref pathCommands, ref pathCommandLimitExceeded, references.MaximumGeometryCommands),
             _ => null
         };
         if (shape == null) {

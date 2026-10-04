@@ -462,6 +462,15 @@ These are outside P10 and must not displace unfinished baseline milestones: Prim
 
 Treat a format as a full OfficeIMO product only when a stable public model can support create, read, edit, deterministic write, reopen, preservation, and conversion without pretending to reconstruct a proprietary application. Reader-only products still require bounded parsing, structured diagnostics, provenance-aware fixtures, and an explicit structured-versus-salvage result. Conversion hosts and `OfficeIMO.Reader.*` adapters remain thin over the owning format package.
 
+### XPS/OpenXPS
+
+Current native lifecycle and rendering boundaries: [OfficeIMO.Xps support matrix](../OfficeIMO.Xps/SUPPORT.md).
+
+- [ ] Qualify OpenXPS with an independent native producer and consumer, and widen the Microsoft XPS producer corpus beyond the Ecma document and generated interoperability cases.
+- [ ] Extend the rendering profile with independently checked sideways glyphs, style simulation, visual/tiled brushes, opacity masks, gradient transforms, and color-managed/TIFF/JPEG-XR resources through the existing Core owners.
+- [ ] Add preservation-aware loaded-sequence/page restructuring and qualify interleaved OPC piece streams before claiming those native package profiles.
+- [ ] Add searchable PDF text and explicit document-navigation/structure mapping; expose thin Reader/workflow adapters after the owning conversion contracts are qualified.
+
 ### Full create, read, edit, and write products
 
 - [ ] Extend [EPUB book publishing](../OfficeIMO.Workflows/README.md#book-publishing) beyond the qualified reflowable path: fixed-page geometry, media-overlay timing authoring, publication accessibility metadata/review, richer content editing and a wider independent producer/reader corpus. Qualify CSS semantics and portable font/rendering behavior before expanding fidelity claims. Keep scripting, DRM, and general encrypted-resource editing outside the authoring contract.
