@@ -73,6 +73,8 @@ continues to follow the reader's mapping-error policy.
 
 `OfficeDrawing.ExportImage(format, options)` exports a detached drawing through the same raster limits, density metadata, codecs, deadline, and diagnostic policy. Raster output is rendered at the requested density. SVG retains vector geometry and text; it cannot add detail to embedded raster images. Register regular and bold font faces for consistent measurement and output across machines.
 
+Interactive `OfficeDrawing` links accept HTTP(S), mail, telephone, and local relative or fragment targets. SVG import keeps the painted content but omits links with executable, data, file, or other unsupported schemes; direct `AddLink` calls reject those targets. SVG export retains accepted links as interactive anchors.
+
 Raster strokes preserve fractional widths, caps, joins, miter limits, and dash phase. The renderer paints
 overlapping pieces of one stroke together, so an extra point or intersecting subpath does not darken
 translucent ink. Affine transforms apply to the stroke outline. Curve detail follows output density,

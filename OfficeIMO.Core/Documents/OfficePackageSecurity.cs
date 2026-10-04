@@ -61,7 +61,7 @@ namespace OfficeIMO {
         Error
     }
 
-    /// <summary>Resource limits and active-content policy applied before Word or Excel opens a package.</summary>
+    /// <summary>Resource limits and active-content policy applied before a document loader opens a package.</summary>
     public sealed class OfficePackageSecurityOptions {
         /// <summary>Maximum complete source size. Defaults to 512 MiB.</summary>
         public long MaxPackageBytes { get; set; } = 512L * 1024L * 1024L;

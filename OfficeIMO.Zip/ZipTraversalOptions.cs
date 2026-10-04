@@ -10,6 +10,18 @@ public sealed class ZipTraversalOptions {
     public int MaxEntries { get; set; } = 5000;
 
     /// <summary>
+    /// Maximum number of physical ZIP entries, including rejected files and directories, before archive metadata is materialized.
+    /// Defaults to 10,000. This is independent of <see cref="MaxEntries"/>.
+    /// </summary>
+    public int MaxPhysicalEntries { get; set; } = 10_000;
+
+    /// <summary>Maximum compressed archive bytes inspected. Defaults to 512 MiB.</summary>
+    public long MaxArchiveBytes { get; set; } = 512L * 1024 * 1024;
+
+    /// <summary>Maximum warning records retained. The final record becomes an overflow summary when needed. Defaults to 256.</summary>
+    public int MaxWarnings { get; set; } = 256;
+
+    /// <summary>
     /// Maximum path depth for entries.
     /// </summary>
     public int MaxDepth { get; set; } = 16;
