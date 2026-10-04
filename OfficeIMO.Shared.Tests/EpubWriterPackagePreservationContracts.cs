@@ -160,6 +160,67 @@ public sealed class EpubWriterPackagePreservationContracts {
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void EditedContentWithRetainedManifestAliases_ValidatesFragments(bool missingFragment) {
+        EpubPublication sourceBook = EpubWritingContracts.CreateBook();
+        byte[] source = sourceBook.Write().Bytes;
+        XDocument package = XDocument.Parse(Encoding.UTF8.GetString(ReadEntry(source, sourceBook.PackagePath)));
+        XElement manifest = package.Root!.Element(Opf + "manifest")!;
+        for (int alias = 0; alias < 32; alias++) {
+            manifest.Add(new XElement(Opf + "item", new XAttribute("id", "alias-" + alias),
+                new XAttribute("href", "first.xhtml"), new XAttribute("media-type", "application/xhtml+xml")));
+        }
+        source = Rewrite(source, new Dictionary<string, byte[]> {
+            [sourceBook.PackagePath] = Encoding.UTF8.GetBytes(package.ToString())
+        });
+        EpubPublication book = EpubPublication.Load(new MemoryStream(source));
+        XDocument content = book.GetContentXml("first");
+        XNamespace html = "http://www.w3.org/1999/xhtml";
+        XElement body = content.Root!.Element(html + "body")!;
+        body.Add(new XElement(html + "p", new XAttribute("id", "target"), "Target"));
+        body.Add(new XElement(html + "a", new XAttribute("href", missingFragment ? "#absent" : "#target"), "Link"));
+        book.SetContentXml("first", content);
+
+        if (missingFragment) {
+            Assert.Throws<InvalidDataException>(() => book.Write());
+        } else {
+            EpubPublication output = EpubPublication.Load(new MemoryStream(book.Write().Bytes));
+            Assert.Contains(output.Manifest, item => item.Id == "alias-31");
+            Assert.Contains(output.GetContentXml("first").Descendants(html + "p"), item => (string?)item.Attribute("id") == "target");
+        }
+    }
+
+    [Fact]
+    public void RetainedManifestAliases_AcceptSameLengthContentEdit() {
+        EpubPublication original = EpubWritingContracts.CreateBook();
+        byte[] source = original.Write().Bytes;
+        XDocument package = XDocument.Parse(Encoding.UTF8.GetString(ReadEntry(source, original.PackagePath)));
+        XElement manifest = package.Root!.Element(Opf + "manifest")!;
+        for (int alias = 0; alias < 64; alias++) {
+            manifest.Add(new XElement(Opf + "item", new XAttribute("id", "same-length-alias-" + alias),
+                new XAttribute("href", "first.xhtml"), new XAttribute("media-type", "application/xhtml+xml")));
+        }
+        XDocument content = XDocument.Parse(Encoding.UTF8.GetString(ReadEntry(source, "EPUB/first.xhtml")));
+        content.Root!.Add(new XComment(new string('a', 8192)));
+        byte[] retained = Encoding.UTF8.GetBytes(content.ToString(SaveOptions.DisableFormatting));
+        source = Rewrite(source, new Dictionary<string, byte[]> {
+            [original.PackagePath] = Encoding.UTF8.GetBytes(package.ToString()),
+            ["EPUB/first.xhtml"] = retained
+        });
+        EpubPublication book = EpubPublication.Load(new MemoryStream(source));
+        string edited = Encoding.UTF8.GetString(retained).Replace(new string('a', 8192), new string('a', 8191) + "b");
+        byte[] replacement = Encoding.UTF8.GetBytes(edited);
+        Assert.Equal(retained.Length, replacement.Length);
+        book.UpdateResource("first", replacement);
+
+        EpubPublication output = EpubPublication.Load(new MemoryStream(book.Write().Bytes));
+
+        Assert.Equal(replacement, output.GetResourceBytes("first"));
+        Assert.Contains(output.Manifest, item => item.Id == "same-length-alias-63");
+    }
+
     private static EpubPublication ControlPublication(string path) {
         EpubPublication book = EpubWritingContracts.CreateBook();
         if (path == "META-INF/encryption.xml") book.AddResource("protected", "EPUB/protected.dat", "application/octet-stream", new byte[] { 42 });
