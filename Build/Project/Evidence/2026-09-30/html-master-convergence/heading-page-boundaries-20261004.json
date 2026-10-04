@@ -1,0 +1,274 @@
+{
+  "recordedUtc": "2026-10-04T23:32:42.591655+00:00",
+  "sourceCommit": "77b588942adef799bb1b32ab925558b0d3e9358f",
+  "scope": "Owned static pagination margin/first-content contract; not full H10, platform or browser parity acceptance",
+  "behavior": [
+    "Truncate consecutive unpainted adjoining margins after an unforced boundary",
+    "Retain following top margin across direct, nested and named-page forced boundaries",
+    "Keep heading through actual first text or atomic image/drawing content of a nested forward column",
+    "Retain border, navigation, running-string and resume-target safeguards"
+  ],
+  "normalValidation": {
+    "htmlTests": {
+      "atomic-final-net10.trx": {
+        "total": "4302",
+        "executed": "4302",
+        "passed": "4302",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "atomic-final-net8.trx": {
+        "total": "4302",
+        "executed": "4302",
+        "passed": "4302",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "image-keep-before.trx": {
+        "total": "4",
+        "executed": "4",
+        "passed": "2",
+        "failed": "2",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "image-keep-atomic-after.trx": {
+        "total": "22",
+        "executed": "22",
+        "passed": "22",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    "netstandardBuild": "0 warnings/errors",
+    "apiToolAndFixtureBuilds": "normal clean source, 0 warnings/errors",
+    "net472": "Extra local attempt failed MSB3644: Windows-only target/reference assemblies unavailable on this Mac. No pass or runtime claim; Windows current-source qualification remains open",
+    "heldOutCases": "All8 advanced-held-out cases in each full HTML suite",
+    "sourceCoreCopyHashes": {
+      "OfficeIMO.Core/bin/Release/net10.0/OfficeIMO.Core.dll": "f8ffd2147b512f3a6668d509808bf41882b3763e4322035559a8d5e3f4ee5969",
+      "OfficeIMO.Tool/bin/Release/net10.0/OfficeIMO.Core.dll": "f8ffd2147b512f3a6668d509808bf41882b3763e4322035559a8d5e3f4ee5969",
+      "Ignore/MasterConvergenceQualification/api-probe/bin/Release/net10.0/OfficeIMO.Core.dll": "f8ffd2147b512f3a6668d509808bf41882b3763e4322035559a8d5e3f4ee5969",
+      "Ignore/MasterConvergenceQualification/heading-margin-boundary-296a8170e/office-probe/bin/Release/net10.0/OfficeIMO.Core.dll": "f8ffd2147b512f3a6668d509808bf41882b3763e4322035559a8d5e3f4ee5969"
+    }
+  },
+  "independentReview": {
+    "reviewer": "heading_break_margin_owner_review",
+    "fullPassUsed": true,
+    "targetedConfirmationUsed": true,
+    "findings": [
+      {
+        "contract": "Forward direct, descendant and named-page forced boundaries",
+        "reproducedFailingCases": 4,
+        "closedBy": "review-findings-logical-after plus final full suites"
+      },
+      {
+        "contract": "Keep heading through nested first substantive content",
+        "reproducedTextFailingCases": 2,
+        "reproducedAtomicFailingCases": 2,
+        "closedBy": "image-keep-atomic-after plus final full suites and independent PDF controls"
+      }
+    ],
+    "remainingIndependentObservation": "Targeted confirmation left atomic-content sibling pending; primary reproduced and resolved through existing shared atomic visual-range owner. No new full review loop."
+  },
+  "artifactValidation": {
+    "regularFixtureCount": 12,
+    "regularFixtureReceipts": "Ignore/MasterConvergenceQualification/heading-margin-boundary-296a8170e/clean-fixture-receipts.json",
+    "visualClassification": {
+      "marginFixture": "Both producers place heading and complete drawing on page2",
+      "paddingFixture": "OfficeIMO keeps heading with first substantive drawing on page2; Chromium places heading at page1 bottom and drawing on page2",
+      "scope": "Own keep-through-first-content contract, with a recorded browser fragmentation difference. No browser-parity claim."
+    },
+    "atomicDrawingPaint": "20 CSS px complete on page2, absent on page1 in both independently produced controls",
+    "bodyBackgroundAndAdjoiningMarginHypotheses": "No gap reproduced in three controls; retain diagnosis, no production change made"
+  },
+  "referenceReplay": {
+    "profiles": [
+      {
+        "profile": "print-paged",
+        "pages": 10,
+        "imageOccurrences": 11,
+        "links": 58,
+        "apiToolBytesEqual": true,
+        "independentRawPerPageTextEqual": true,
+        "reportHasLoss": true
+      },
+      {
+        "profile": "screen-media-paged",
+        "pages": 12,
+        "imageOccurrences": 11,
+        "links": 58,
+        "apiToolBytesEqual": true,
+        "independentRawPerPageTextEqual": true,
+        "reportHasLoss": true
+      },
+      {
+        "profile": "screen-snapshot-paged",
+        "pages": 8,
+        "imageOccurrences": 17,
+        "links": 62,
+        "apiToolBytesEqual": true,
+        "independentRawPerPageTextEqual": true,
+        "reportHasLoss": true
+      }
+    ],
+    "all36ArticleBlocksInStructureOrder": true,
+    "comparison": [
+      {
+        "profile": "print-paged",
+        "pages": 10,
+        "images": 11,
+        "uriLinks": 58,
+        "sha256": "43d0b0009dbef837f15c9e6c19806a09f59086da154537cfe85a7f8e7c00f545",
+        "baselineByteEqual": true,
+        "fullNonWhitespaceCharactersEqual": true,
+        "sourcePhotoPixelsEqual": true,
+        "uriMultisetEqual": true
+      },
+      {
+        "profile": "screen-media-paged",
+        "pages": 12,
+        "images": 11,
+        "uriLinks": 58,
+        "sha256": "70c0ca563d1ebefdef4886bd144295145a38060abc3494bb0194708731ced8d0",
+        "baselineByteEqual": true,
+        "fullNonWhitespaceCharactersEqual": true,
+        "sourcePhotoPixelsEqual": true,
+        "uriMultisetEqual": true
+      },
+      {
+        "profile": "screen-snapshot-paged",
+        "pages": 8,
+        "images": 17,
+        "uriLinks": 62,
+        "sha256": "59ab4fd41027399213e44d4d43e3319e7fd167019c70580c2c5f46a9e49073f7",
+        "baselineByteEqual": true,
+        "fullNonWhitespaceCharactersEqual": true,
+        "sourcePhotoPixelsEqual": true,
+        "uriMultisetEqual": true
+      },
+      {
+        "profile": "print-zero-margin",
+        "pages": 9,
+        "images": 11,
+        "uriLinks": 58,
+        "sha256": "89bad8cb9a5c096150ad0837646cfd5a0b80f155ca0961f31ad1fbb133fb9f47",
+        "baselineByteEqual": true,
+        "fullNonWhitespaceCharactersEqual": true,
+        "sourcePhotoPixelsEqual": true,
+        "uriMultisetEqual": true
+      }
+    ],
+    "appearanceCriterion": "All4 compared PDFs byte-identical to accepted baseline; real page5 gap remains OPEN. Generic fixture repairs do not qualify that gap."
+  },
+  "planetaryAndChesapeakeReplay": {
+    "routes": 6,
+    "pages": 67,
+    "allRawPerPageTextEqual": true,
+    "allImageAndUriRectanglesEqual": true,
+    "allPagesPixelIdentical72dpi": true,
+    "counts": [
+      {
+        "case": "planets",
+        "profile": "print-paged",
+        "pages": 19
+      },
+      {
+        "case": "planets",
+        "profile": "screen-media-paged",
+        "pages": 22
+      },
+      {
+        "case": "planets",
+        "profile": "screen-snapshot-paged",
+        "pages": 14
+      },
+      {
+        "case": "chesapeake",
+        "profile": "print-paged",
+        "pages": 3
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-media-paged",
+        "pages": 5
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-snapshot-paged",
+        "pages": 4
+      }
+    ],
+    "comparisonControl": "966539fd403b36b8af6a946e6f98dc3cf1556f18",
+    "reportsUnchanged": true,
+    "hasLossRetained": true,
+    "classification": "PDF bytes differ from older control while all content, image/annotation geometry and page pixels remain exact; invisible serialization differences are not a visual regression"
+  },
+  "retainedEvidence": {
+    "heading": "Ignore/MasterConvergenceQualification/heading-margin-boundary-296a8170e/",
+    "reference": "Ignore/MasterConvergenceQualification/reference-heading-clean-77b588942/",
+    "routes": "Ignore/MasterConvergenceQualification/{api,tool}-{planets,chesapeake}-77b588942/",
+    "compactPaint": "Ignore/MasterConvergenceQualification/heading-route-paint-77b588942.json"
+  },
+  "remainingCriteria": [
+    "Actual Reference page5 margin metadata through its nested grid/row parent",
+    "Reference navigation arrow, card label, footer background/font/link appearance",
+    "Wider native targets, manual accessibility and all11 historical PDF intents",
+    "Current-source hosted platform packages and unchanged budgets; qualified long-lived integration"
+  ],
+  "nextBoundedDeliverable": "Trace h-revolution-of-earth margin/break metadata through actual nested parent before proposing another generic fixture or owner change. Body background and simple adjoining-margin hypotheses already rejected; do not repeat or tune thresholds.",
+  "cleanup": {
+    "targets": 303,
+    "bytes": 3818767854,
+    "allAbsent": true,
+    "mainTargets": 185,
+    "pdfTargets": 118,
+    "executedNativeErrorsRecoveredThroughFreshGuardedDotNet": 156,
+    "retained": "Final PDFs/native source, final TRX and failure logs, compact manifests, package receipts/platform controls; shared caches and unrelated worktrees untouched",
+    "supersededSuccessfulReportsRemoved": 4,
+    "supersededSuccessfulReportBytes": 25678586,
+    "totalRemovedBytesIncludingReports": 3844446440
+  }
+}
