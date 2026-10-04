@@ -3927,5 +3927,127 @@
       }
     },
     "scope": "Identified independent text extraction: twelve exact replacement/Unicode/LF cases; six registered-font fallback cases; twenty-eight installed-font selection cases per framework per platform. This probe excludes full HTML/PDF suites, packages, static timing and H10 appearance. Prior current-source timing failures remain open."
+  },
+  "localCaseControlledQualification20261004": {
+    "sourceCommit": "d257cecc1651abe58c06740ff29b517d3a3821e1",
+    "diagnosticRoot": "Ignore/H10JobQualification/static-case-control-d257cecc1",
+    "summarySha256": "7ceb1621a317b53ff91690ec450532d35f79e184a43a1e1101f830da634a943d",
+    "normalBudgetSourceClean": true,
+    "normalBudgetReportSha256": "48518e20868a66cc02c90aeb7f23fa93eeddf21ae62d04f6ee3702d83dffb4da",
+    "localEnvironment": {
+      "osFamily": "macOS",
+      "osDescription": "macOS 27.0.1",
+      "osArchitecture": "Arm64",
+      "processArchitecture": "Arm64",
+      "frameworkDescription": ".NET 10.0.12",
+      "machineName": "evomini",
+      "processorCount": 10
+    },
+    "normalBudgetCeilingsUnchanged": {
+      "osFamily": "macOS",
+      "coldProcessElapsedMilliseconds": 8000,
+      "warmIterationElapsedMilliseconds": 3000,
+      "coldManagedAllocatedBytes": 1250000000,
+      "warmManagedAllocatedBytes": 1100000000,
+      "peakWorkingSetBytes": 700000000,
+      "outputBytesPerIteration": 3000000,
+      "cancellationElapsedMilliseconds": 250
+    },
+    "coldProcessMilliseconds": 5038.5185,
+    "warmIterationMilliseconds": [
+      2370.7528,
+      2107.0487,
+      1924.557
+    ],
+    "coldWarmFingerprint": "f13c9b7bb36a389ddf7ba23e8d9e2f3bae91ff0a97a99d65ece9727b2f55f08e",
+    "normalBudgetFailures": [],
+    "cancellation": {
+      "status": "Passed",
+      "elapsedMilliseconds": 1.7896,
+      "detail": "Cancellation propagated through the asynchronous resource boundary."
+    },
+    "pairedDiagnostic": {
+      "source": "d257cecc1651abe58c06740ff29b517d3a3821e1",
+      "control": "cdb8a9bd64e09c1cc4b83c23f462978ba836d528",
+      "releasedProviderBinariesEqual": true,
+      "candidateWarmMilliseconds": 2055.8389,
+      "controlWarmMilliseconds": 2043.73,
+      "candidateWarmAllocatedBytes": 883905208,
+      "controlWarmAllocatedBytes": 883227080,
+      "eightFrozenCaseInputsAndWorkerSourcesIdentical": true,
+      "outputCountEach": 76,
+      "equivalence": {
+        "caseFingerprintsEqual": 6,
+        "totalCases": 8,
+        "allPngAndSvgBytesEqual": true,
+        "differentPdfByteStreams": 4,
+        "all16IndependentPdfTextsAndPageCountsEqual": true,
+        "pdfPaintComparison": [
+          {
+            "case": "columns-footnotes-brief",
+            "profile": "print",
+            "pixelsEqualAt72Dpi": false,
+            "differentPixels": 846,
+            "totalPixels": 250320,
+            "boundingBox": [
+              219,
+              198,
+              350,
+              209
+            ]
+          },
+          {
+            "case": "columns-footnotes-brief",
+            "profile": "snapshot",
+            "pixelsEqualAt72Dpi": false,
+            "differentPixels": 1677,
+            "totalPixels": 388800,
+            "boundingBox": [
+              297,
+              89,
+              566,
+              100
+            ]
+          },
+          {
+            "case": "typography-specimen",
+            "profile": "print",
+            "pixelsEqualAt72Dpi": false,
+            "differentPixels": 3840,
+            "totalPixels": 501832,
+            "boundingBox": [
+              35,
+              405,
+              212,
+              489
+            ]
+          },
+          {
+            "case": "typography-specimen",
+            "profile": "snapshot",
+            "pixelsEqualAt72Dpi": false,
+            "differentPixels": 3848,
+            "totalPixels": 388800,
+            "boundingBox": [
+              25,
+              399,
+              202,
+              483
+            ]
+          }
+        ],
+        "fontDifferenceClassification": "The current PDF fallback owner preserves the selected serif face in the two multilingual cases; the constants package paints those affected runs as sans serif. The authored columns fixture requests Georgia,serif. Before/after cropped paint pairs were inspected. This is disclosed output evolution; no claim of all-PDF byte/pixel equivalence or pure mathematical-glyph timing isolation."
+      },
+      "limits": "Current and constants control perform the same eight source/profile/encoder workflows and 76 outputs. Paired local warmed costs are similar (~2.05s); this does not prove no regression on other CPUs/platforms or settle hosted failure. PNG-heavy clipping and typography cases dominate both implementations. No product optimization or ceiling change follows from this sample."
+    },
+    "remaining": "Hosted macOS 3-processor Arm64 and Windows/Linux timing/operation budgets remain open. Local is macOS 27.0.1, 10 processors, Arm64; previous hosted Mac 26.6.2 fingerprint equals current local f13c9b7b... but timings fail. Hardware/domain causation is unproven. Converge current master deliberately before the next package/full-platform qualification. Use shared PowerForge benchmark orchestration/import and the unchanged workload worker for paired same-host control; do not add a consumer benchmark framework.",
+    "cleanup": {
+      "removedTargets": 7,
+      "removedMiB": 163.3,
+      "boundedRecoveries": 4,
+      "absenceVerified": true,
+      "retainedBytes": 3549791,
+      "retainedPurpose": "Diagnostic source/provenance and complete per-case measurements, exact all-output hashes/independent text comparisons, differing PDF/crop proofs, setup failure and normal budget report. Regenerable binaries, obj and private cache removed; original feeds/shared caches preserved."
+    }
   }
 }
