@@ -139,6 +139,32 @@ patch in a separate candidate checkout. Run the recorded cases through the
 snapshot comparison runner described below, using the same benchmark assembly
 for both snapshots. The rejected candidate is not part of the current product.
 
+## Peer refresh and remaining gaps
+
+The [post-change peer packet](excel-csv-broad-throughput-2026-10-04/peer-refresh-native.json)
+retains 109 CSV and 26 Excel native cases, including each observation, allocation
+result and job setting. It covers async read contracts, mapping, typed scans,
+text/file/DataReader writing and the 65K corpus. The CSV production source is
+unchanged between the broad allocation commit and `882226a45`. Later large XML
+reader changes supersede the Excel read results; use their separate evidence
+before assessing the current reader. These peer reports lack independent
+per-run binary fingerprints and are diagnostic evidence, not a final ranking.
+
+The refresh still exposes short-JSON writing costs. At 1,000 short JSON rows,
+OfficeIMO measures about 0.50 ms with `AsNeeded` and 0.47 ms with `Always`,
+versus 0.28 and 0.27 ms for CsvHelper. OfficeIMO allocates about 192 and 203 KiB,
+versus 618 and 651 KiB. Long JSON and dense-quote results favor OfficeIMO in
+this run. Those gains do not close the short-field throughput gap, and timing
+differs substantially from the earlier small-workload measurements.
+
+For the equivalent 25,000-row compact XLSX export, OfficeIMO measures
+19.11/20.38 ms across the two processor groups, SpreadCheetah 14.03/14.13 ms,
+LargeXlsx 16.32/15.90 ms and Sylvan 18.96/18.92 ms. Every implementation's
+headers and cells are independently reopened and checked. These runs retain
+all outliers and use fixed placement, but do not rotate cross-engine order;
+the busy-host timing limits still apply. General export throughput remains
+an open target.
+
 ## Million-row memory and output checks
 
 The separate CSV memory lane measures 100,000 and 1,000,000 plain/multiline rows,

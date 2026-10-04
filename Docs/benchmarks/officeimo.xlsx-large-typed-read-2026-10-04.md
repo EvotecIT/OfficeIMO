@@ -456,6 +456,55 @@ native cases show inconsistent timing changes and additional allocation. The
 [rejected results and original patch text](excel-large-typed-read-2026-10-04/rejected-stream-buffer.json)
 remain reproducible evidence, not part of the product implementation.
 
+## Reusing inferred coordinates from complete scans
+
+Commit `e7680caf1` reuses inferred row coordinates from the complete validation
+scan. Used-range discovery also caches the empty index for sequential sheets.
+Sparse discovery keeps coordinate-map construction lazy, so callers requesting
+only a range do not retain a map for rows they never read. Publication follows
+the complete XML scan and its final cancellation check.
+
+The output-validated matrix covers 28 workloads at 2,500 and 25,000 rows:
+explicit coordinates, omitted row coordinates, omitted row and cell coordinates,
+typed readers, explicit and discovered ranges, discovery alone on dense and
+sparse sheets, and double/decimal DataTable controls. All 56 native cases and
+2,688 rotated samples complete successfully. The native comparison uses
+24 warmups, 12 measurements and eight operations; rotated runs use 12 warmups,
+24 measurements and four operations on each processor group.
+
+| 25,000-row workload | Median ratio, group A / B | Managed allocation before / after |
+| --- | ---: | ---: |
+| Omitted row coordinates, typed reader | 0.75 / 0.79 | 313,919 / 292,731 B |
+| Omitted row coordinates, discovered range | 0.77 / 0.77 | 2,282,652 / 2,261,396 B |
+| Omitted row and cell coordinates, typed reader | 0.78 / 0.78 | 297,643 / 282,057 B |
+| Omitted row and cell coordinates, discovered range | 0.80 / 0.78 | 2,266,498 / 2,250,682 B |
+| Sparse omitted coordinates, discovery only | 1.00 / 1.00 | 225,328 / 225,922 B |
+
+A ratio below one favors the candidate. The four omitted-coordinate projection
+cases also improve at 2,500 rows, with ratios of 0.76–0.92 across the two groups.
+Explicit typed-reader and discovered-range controls remain within 3%. Other
+controls are less stable: dense omitted-coordinate discovery measures 2–13%
+slower at 25,000 rows, and decimal DataTable materialization measures 7–11%
+slower despite unchanged allocation. These signals remain open; the results
+do not establish a universal speedup on this busy workstation.
+
+The first eager-cache design increased 25,000-row sparse discovery allocation
+from 225,832 to 2,185,824 bytes. It was rejected. Its
+[native and valid rotated observations](excel-large-typed-read-2026-10-04/rejected-eager-coordinate-cache.json)
+remain separate from the final candidate. A preliminary rotation invalidated
+by a source-provenance change contributes no accepted timing samples.
+
+The final candidate passes 5,376 Windows .NET 10 tests with five existing skips,
+760 focused .NET 8 tests, 755 .NET Framework 4.7.2 tests, and 760 Linux/WSL .NET 10
+tests. The product builds for `netstandard2.0`; benchmarks build for .NET 8 and
+.NET 10. Independent review and one targeted confirmation report no actionable
+findings. The packet retains [native observations](excel-large-typed-read-2026-10-04/coordinate-cache-native.json),
+[rotated samples](excel-large-typed-read-2026-10-04/coordinate-cache-rotated.json),
+[case definitions](excel-large-typed-read-2026-10-04/coordinate-cache-cases.json),
+and [source, binary, review and validation provenance](excel-large-typed-read-2026-10-04/coordinate-cache-provenance.json).
+Warmed allocation does not measure retained or peak memory, and correctness
+on WSL does not qualify native-Linux timing.
+
 ## Earlier allocation profile and remaining work
 
 A profile after the buffer guard, before scan consolidation, attributes roughly
@@ -469,8 +518,9 @@ interpreted as precise CPU time.
 The [spreadsheet roadmap](../ROADMAP.md#spreadsheet-and-csv-delivery-order)
 retains large-sheet decoding, general read/export throughput, and portable timing
 and memory qualification. The omitted-row coordinate disagreement found during
-scan consolidation is fixed by the coordinate stage above. Its additional scan
-cost remains a throughput target; correctness is not a reason to hide that cost.
+scan consolidation is fixed by the coordinate stage above. The coordinate-cache
+stage recovers part of its additional scan cost; general XML-reader throughput
+and the unfavorable controls remain open.
 
 ## Validation and reproduction
 
