@@ -5,6 +5,9 @@ namespace OfficeIMO.IWork.Internal;
 internal static partial class IWorkFormulaReader {
     internal static Guid? ReadTableIdentifier(IWorkWireMessage? table) {
         if (table == null || table.FieldCount(1) != 1 || table.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)) return null;
+        // A canonical textual UUID is exactly 36 ASCII bytes. Check the wire
+        // payload before decoding or scanning a source-controlled large string.
+        if (table.GetBytes(1) is not byte[] bytes || bytes.Length != 36) return null;
         string? text = table.GetString(1, out bool complete);
         return complete && Guid.TryParseExact(text, "D", out Guid identifier) ? identifier : null;
     }

@@ -138,6 +138,28 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
+    public void Reader_bounds_repeated_inline_image_description_output() {
+        using var package = InlineImagePackage("repeatedDrawableDescription");
+        var options = new ReaderIWorkOptions {
+            ReadOptions = new IWorkReadOptions {
+                MaximumProjectedImages = 2,
+                MaximumProjectedTextCharacters = 90
+            }
+        };
+
+        InvalidDataException failure = Assert.Throws<InvalidDataException>(() =>
+            IWorkReaderAdapter.ReadDocument(package, "sample.pages", new ReaderOptions(), options, CancellationToken.None));
+        Assert.Contains("Text character count", failure.Message);
+
+        using var acceptedPackage = InlineImagePackage("repeatedDrawableDescription");
+        options.ReadOptions!.MaximumProjectedTextCharacters = 120;
+        OfficeDocumentReadResult accepted = IWorkReaderAdapter.ReadDocument(
+            acceptedPackage, "sample.pages", new ReaderOptions(), options, CancellationToken.None);
+        Assert.Equal(2, accepted.Assets.Count);
+        Assert.All(accepted.Assets, asset => Assert.Equal(50, asset.AltText?.Length));
+    }
+
+    [Fact]
     public void Reader_preserves_links_on_inline_table_runs_against_the_emitted_table_block() {
         IWorkSourceDocument source = IWorkSourceDocument.Open(CorpusFixture("picodocs/sample-v14.4.pages"));
         var original = source.ReadPages();
@@ -195,13 +217,15 @@ public sealed partial class IWorkBoundaryTests {
             FloatField(3, moved ? 1f : 0f), VarintField(4, 0), FloatField(5, 0f), defect == "unknownEnvelope" ? VarintField(6, 1) : Array.Empty<byte>());
         byte[] geometry = Message(BytesField(1, Message(FloatField(1, 0f), FloatField(2, 0f))),
             BytesField(2, Message(FloatField(1, 40f), FloatField(2, 30f))), FloatField(4, 0f));
-        byte[] image = Message(BytesField(1, Message(BytesField(1, geometry))), BytesField(11, Message(VarintField(1, 10))));
+        byte[] image = Message(BytesField(1, Message(BytesField(1, geometry),
+                defect == "repeatedDrawableDescription" ? StringField(8, new string('x', 50)) : Array.Empty<byte>())),
+            BytesField(11, Message(VarintField(1, 10))));
         byte[] records = Message(
             ArchiveRecord(1, 10000, Message(ReferenceField(4, 2)), new ulong[] { 2 }),
             ArchiveRecord(2, 2001, Message(StringField(3, text), BytesField(9, attachments), defect is "linkedRun" or "linkedMarker"
                 ? BytesField(11, Message(Entry(markerOnly ? 0 : 9, 50), BytesField(1, Message(VarintField(1, markerOnly ? 1ul : 10ul))))) : Array.Empty<byte>()), markerOnly ? new ulong[] { 20 } : new ulong[] { 20, 21 }),
             ArchiveRecord(20, defect == "wrongAttachment" ? 2021u : 2003u, Attachment(defect == "missingDrawable" ? 999ul : 30ul, defect == "nonzeroPlacement"), new ulong[] { 30 }),
-            ArchiveRecord(21, 2003, Attachment(defect == "repeatedDrawable" ? 30ul : 31ul, false), new ulong[] { defect == "repeatedDrawable" ? 30ul : 31ul }),
+            ArchiveRecord(21, 2003, Attachment(defect is "repeatedDrawable" or "repeatedDrawableDescription" ? 30ul : 31ul, false), new ulong[] { defect is "repeatedDrawable" or "repeatedDrawableDescription" ? 30ul : 31ul }),
             ArchiveRecord(30, defect == "wrongDrawable" ? 2021u : 3005u, image), ArchiveRecord(31, 3005, image),
             ArchiveRecord(50, 2032, Message(StringField(2, "https://example.test/inline"))),
             ArchiveRecord(40, 11006, Message(BytesField(4, Message(VarintField(1, 10), StringField(3, "image.png"), StringField(4, "image.png"))))));

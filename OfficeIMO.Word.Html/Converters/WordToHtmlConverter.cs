@@ -206,6 +206,7 @@ namespace OfficeIMO.Word.Html {
 
 
             void AppendRuns(IElement parent, WordParagraph para, bool processNotes = true) {
+                AppendAdditionalBookmarkAnchors(parent, para, options);
                 var runs = para.GetRuns().ToList();
                 var paragraphChildren = para._paragraph.ChildElements.ToList();
                 IReadOnlyList<WordEquationOccurrence> equations = WordEquation.GetOccurrences(para._document, para._paragraph);

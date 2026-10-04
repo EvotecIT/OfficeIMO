@@ -11,6 +11,9 @@ public static partial class WordIWorkConverter {
         WordTable table = pageHost == null
             ? document.AddTable(source.RowCount, source.ColumnCount, WordTableStyle.TableGrid)
             : document.CreateTable(source.RowCount, source.ColumnCount, WordTableStyle.TableGrid);
+        // Rows and Cells enumerate and rebuild wrapper lists on every access.
+        // Keep row wrappers once and materialize cells only when a row needs them.
+        List<WordTableRow> rows = table.Rows;
         table.Description = source.AccessibilityDescription;
         if (source.DefaultColumnWidth is > 0 || source.ColumnWidths.Count > 0) {
             List<int> widths = table.ColumnWidth;
@@ -24,28 +27,39 @@ public static partial class WordIWorkConverter {
         for (int row = 1; row <= source.RowCount; row++) {
             cancellationToken.ThrowIfCancellationRequested();
             if (source.GetRowHeight(row) is double height) {
-                if (source.AutoResizeRows == true) table.Rows[row - 1].MinimumHeight = ToSignedTwips(height);
-                else table.Rows[row - 1].Height = ToSignedTwips(height);
+                if (source.AutoResizeRows == true) rows[row - 1].MinimumHeight = ToSignedTwips(height);
+                else rows[row - 1].Height = ToSignedTwips(height);
             }
         }
         for (int row = 1; row <= source.RowCount; row++) {
             cancellationToken.ThrowIfCancellationRequested();
+            List<WordTableCell>? targetCells = null;
             for (int column = 1; column <= source.ColumnCount; column++) {
-                WordTableCell fillTarget = table.Rows[row - 1].Cells[column - 1];
-                if (source.GetFill(row, column) is { } fill) {
-                    if (fill.Color is { } color) fillTarget.ShadingFillColorHex = color.RgbHex;
-                    else fillTarget.ShadingPattern = WordShadingPattern.Nil;
+                var fill = source.GetFill(row, column);
+                IWorkParagraphStyle? style = source.GetParagraphStyle(row, column);
+                if (fill == null && style == null) continue;
+                targetCells ??= rows[row - 1].Cells;
+                WordTableCell target = targetCells[column - 1];
+                if (fill != null) {
+                    if (fill.Color is { } color) target.ShadingFillColorHex = color.RgbHex;
+                    else target.ShadingPattern = WordShadingPattern.Nil;
                 }
-                if (source.GetParagraphStyle(row, column) is { } style) {
-                    WordParagraph paragraph = table.Rows[row - 1].Cells[column - 1].Paragraphs[0];
+                if (style != null) {
+                    WordParagraph paragraph = target.Paragraphs[0];
                     ApplyParagraphStyle(paragraph, style, string.Empty);
                     ApplyTextStyle(paragraph, style.TextStyle);
                 }
             }
         }
+        int sourceRow = 0;
+        List<WordTableCell>? sourceRowCells = null;
         foreach (IWorkTableCell sourceCell in source.Cells) {
             cancellationToken.ThrowIfCancellationRequested();
-            WordTableCell target = table.Rows[sourceCell.Row - 1].Cells[sourceCell.Column - 1];
+            if (sourceCell.Row != sourceRow) {
+                sourceRow = sourceCell.Row;
+                sourceRowCells = rows[sourceRow - 1].Cells;
+            }
+            WordTableCell target = sourceRowCells![sourceCell.Column - 1];
             if (sourceCell.Padding is { } padding) {
                 target.MarginLeftWidth = checked((short)ToSignedTwips(padding.LeftPoints));
                 target.MarginTopWidth = checked((short)ToSignedTwips(padding.TopPoints));
@@ -90,8 +104,8 @@ public static partial class WordIWorkConverter {
             table.MergeCells(merge.FirstRow - 1, merge.FirstColumn - 1,
                 merge.LastRow - merge.FirstRow + 1, merge.LastColumn - merge.FirstColumn + 1);
         }
-        for (int row = 0; row < Math.Min(source.HeaderRowCount, table.Rows.Count); row++) {
-            table.Rows[row].RepeatHeaderRowAtTheTopOfEachPage = true;
+        for (int row = 0; row < Math.Min(source.HeaderRowCount, rows.Count); row++) {
+            rows[row].RepeatHeaderRowAtTheTopOfEachPage = true;
         }
         if (tableHost != null) tableHost._table.InsertAfterSelf(table._table);
         else if (pageHost != null) document.InsertTableAfter(pageHost, table);

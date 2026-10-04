@@ -460,7 +460,7 @@ Treat a format as a full OfficeIMO product only when a stable public model can s
 
 ### Full create, read, edit, and write products
 
-- [ ] Extend the [EPUB native writer](../OfficeIMO.Epub/README.md#create-a-publication) with manuscript import through shared Word/Markdown/HTML owners and Studio publishing/export. Qualify fixed-page geometry, media-overlay authoring, complete stylesheet resource closure, and a wider independent producer corpus before expanding those support claims. Keep scripting, DRM, and general encrypted-resource editing outside the authoring contract.
+- [ ] Extend [EPUB book publishing](../OfficeIMO.Workflows/README.md#book-publishing) beyond the qualified reflowable path: fixed-page geometry, media-overlay timing authoring, publication accessibility metadata/review, richer content editing and a wider independent producer/reader corpus. Qualify CSS semantics and portable font/rendering behavior before expanding fidelity claims. Keep scripting, DRM, and general encrypted-resource editing outside the authoring contract.
 - [ ] Add JATS Archiving and Publishing read, validation, preservation, and conversion, with create/edit/write limited initially to the JATS Article Authoring profile. Preserve namespaced extensions and front/body/back matter that the typed model does not yet understand, report the tag-set/version explicitly, and require schema plus reopen evidence before expanding the authored profile.
 - [ ] Evaluate FictionBook 2 as a lower-priority full XML ebook product after EPUB authoring is stable. Reuse shared document, image, metadata, and Reader contracts, preserve unknown namespaces, and require independently produced fixtures before committing to deterministic write support.
 
@@ -492,7 +492,7 @@ Treat a format as a full OfficeIMO product only when a stable public model can s
 ### Admission and sequencing
 
 - [ ] Extend the generated capability and conversion catalogs so every additional format declares `FullProduct`, `ReadConvert`, `SalvageRead`, or `IntentionalBoundary`, together with versions/profiles, security behavior, preservation guarantees, fixture provenance, and route maturity.
-- [ ] Deliver the remaining expansion wave in ownership order: the DbaClientX-backed DBF adapter; EPUB authoring; bounded JATS; then proprietary legacy and additional ebook readers selected by real fixture availability and consumer demand.
+- [ ] Deliver the remaining expansion wave in ownership order: the DbaClientX-backed DBF adapter; bounded JATS; then proprietary legacy and additional ebook readers selected by real fixture availability and consumer demand.
 - [ ] Require hostile-input limits, path and stream parity, cancellation where applicable, reopen or independent-reader evidence, deterministic-loss reporting, and license/provenance review before publishing any new format package. A file-extension detector or text scraper alone does not qualify as format support.
 
 ## Completion rule

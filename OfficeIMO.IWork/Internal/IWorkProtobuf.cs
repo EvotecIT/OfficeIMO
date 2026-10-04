@@ -30,6 +30,8 @@ internal sealed class IWorkWireMessage {
     private readonly Dictionary<int, List<IWorkWireValue>> _fields;
     private readonly IWorkReadOptions _options;
     private readonly int _depth;
+    private readonly Dictionary<int, (IWorkWireMessage? Message, InvalidDataException? Error)> _nestedMessages = new();
+    private readonly object _nestedMessageLock = new();
 
     internal IWorkWireMessage(Dictionary<int, List<IWorkWireValue>> fields, IWorkReadOptions options, int depth) {
         _fields = fields;
@@ -164,7 +166,21 @@ internal sealed class IWorkWireMessage {
 
     internal IWorkWireMessage? GetMessage(int field) {
         byte[]? bytes = GetBytes(field);
-        return bytes == null ? null : IWorkProtobuf.Parse(bytes, _options, _depth + 1);
+        if (bytes == null) return null;
+        lock (_nestedMessageLock) {
+            if (_nestedMessages.TryGetValue(field, out var cached)) {
+                if (cached.Error != null) throw cached.Error;
+                return cached.Message;
+            }
+            try {
+                IWorkWireMessage message = IWorkProtobuf.Parse(bytes, _options, _depth + 1);
+                _nestedMessages.Add(field, (message, null));
+                return message;
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
+                _nestedMessages.Add(field, (null, exception));
+                throw;
+            }
+        }
     }
 
     internal IReadOnlyList<IWorkWireMessage> GetRepeatedMessages(int field) {

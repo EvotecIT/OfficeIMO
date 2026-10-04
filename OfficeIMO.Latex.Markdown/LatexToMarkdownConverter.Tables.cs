@@ -8,6 +8,17 @@ internal static partial class LatexToMarkdownConverter {
         var target = new TableBlock();
         ApplyColumnAlignments(context, source, target, diagnostics);
         bool header = source.Rows.Count > 1 && source.Rows[0].Cells.All(static cell => cell.Content.TrimStart().StartsWith("\\textbf", StringComparison.Ordinal));
+        // Markdown's object-tree binder pads every row to the effective column count.
+        // Check the expanded shape before creating any projected cells.
+        const int maximumProjectedColumns = 4096;
+        int columns = Math.Max(target.Alignments.Count,
+            source.Rows.Count == 0 ? 0 : source.Rows.Max(static row => row.Cells.Count));
+        // Even an empty table materializes an aligned header when Reader asks for HeaderCells.
+        long projectedRows = source.Rows.Count == 0 ? (columns > 0 ? 1L : 0L)
+            : source.Rows.Count + (header ? 0L : 1L);
+        if (columns > maximumProjectedColumns)
+            throw new System.IO.InvalidDataException("LaTeX table exceeds the Markdown projection cell limit.");
+        context.ChargeProjectedTableCells((long)columns * projectedRows);
         var structuredHeaders = new List<TableCell>();
         var structuredRows = new List<IReadOnlyList<TableCell>>();
         if (!header && source.Rows.Count > 0) {

@@ -14,7 +14,8 @@ public sealed partial class EpubPublication {
         return HtmlResourceKind.Other;
     }
 
-    private bool ValidateAuthoredResources(XDocument content, string owner, HtmlResourceManifest resources, EpubManifestItem[] manifest, CancellationToken token) {
+    private bool ValidateAuthoredResources(XDocument content, string owner, HtmlResourceManifest resources, EpubManifestItem[] manifest, CancellationToken token,
+        Func<string, bool>? validateStylesheet = null) {
         var local = new HashSet<string>(manifest.Where(item => item.Reference.Kind == EpubReferenceKind.Container)
             .Select(item => item.Reference.ContainerPath!), StringComparer.Ordinal);
         var remote = manifest.Where(item => item.Reference.Kind == EpubReferenceKind.External)
@@ -57,6 +58,12 @@ public sealed partial class EpubPublication {
                     throw new InvalidDataException("Authored publication resource is not declared in the manifest: " + reference.Original);
                 if (scripted.Contains(reference.ContainerPath))
                     throw new NotSupportedException("Authored content cannot embed a retained scripted resource.");
+                if (kind == HtmlResourceKind.Stylesheet) {
+                    var declaration = manifest.First(item => item.Reference.ContainerPath == reference.ContainerPath);
+                    if (!HasMediaType(declaration.MediaType, "text/css"))
+                        throw new InvalidDataException("A stylesheet reference must select a declared CSS resource.");
+                    if (validateStylesheet != null) hasRemoteResources |= validateStylesheet(reference.ContainerPath);
+                }
             } else if (reference.Kind == EpubReferenceKind.External) {
                 if (!HtmlUrlPolicyEvaluator.IsAllowed(reference.ResolvedValue, policy))
                     throw new NotSupportedException("Authored content contains a URL blocked by the shared HTML policy.");

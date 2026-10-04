@@ -9,12 +9,11 @@ namespace OfficeIMO.Excel {
         private bool TryEvaluateDateDifValue(string args, out FormulaArgumentValue result) {
             result = default;
             var tokens = SplitFormulaArguments(args);
-            if (tokens.Count == 3 && TryEvaluateFormulaOrNumeric(tokens[0], out double start)
-                && TryEvaluateFormulaOrNumeric(tokens[1], out double end) && Math.Floor(end) < Math.Floor(start)) {
+            if (!TryEvaluateDateDif(tokens, out double number, out bool reversed)) {
+                if (!reversed) return false;
                 result = FormulaArgumentValue.Error("#NUM!");
                 return true;
             }
-            if (!TryEvaluateDateDif(tokens, out double number)) return false;
             result = new FormulaArgumentValue(number, InvariantNumberText.Get(number));
             return true;
         }
@@ -61,14 +60,13 @@ namespace OfficeIMO.Excel {
                 return TryEvaluateYearFrac(tokens, out result);
             }
 
-            if (!TryResolveFormulaOrNumericArguments(tokens, out var numbers)) {
-                return false;
-            }
-
             if (function == "DATE") {
                 if (!TryEvaluateDateValue(args, out FormulaArgumentValue dateValue) || !dateValue.Number.HasValue) return false;
                 result = dateValue.Number.Value;
                 return true;
+            }
+            if (!TryResolveFormulaOrNumericArguments(tokens, out var numbers)) {
+                return false;
             }
             if (function == "TIME") {
                 if (numbers.Count != 3) {
@@ -370,14 +368,19 @@ namespace OfficeIMO.Excel {
             return date.Month == 2 && date.Day == DateTime.DaysInMonth(date.Year, 2);
         }
 
-        private bool TryEvaluateDateDif(IReadOnlyList<string> tokens, out double result) {
+        private bool TryEvaluateDateDif(IReadOnlyList<string> tokens, out double result) =>
+            TryEvaluateDateDif(tokens, out result, out _);
+
+        private bool TryEvaluateDateDif(IReadOnlyList<string> tokens, out double result, out bool reversed) {
             result = 0;
+            reversed = false;
             if (tokens.Count != 3
                 || !TryEvaluateFormulaOrNumeric(tokens[0], out double startSerial)
-                || !TryEvaluateFormulaOrNumeric(tokens[1], out double endSerial)
+                || !TryEvaluateFormulaOrNumeric(tokens[1], out double endSerial)) return false;
+            reversed = Math.Floor(endSerial) < Math.Floor(startSerial);
+            if (reversed
                 || !TryGetDateFromSerial(startSerial, out DateTime startDate)
                 || !TryGetDateFromSerial(endSerial, out DateTime endDate)
-                || Math.Floor(endSerial) < Math.Floor(startSerial)
                 || !TryResolveTextArgument(tokens[2], out string unit)) {
                 return false;
             }

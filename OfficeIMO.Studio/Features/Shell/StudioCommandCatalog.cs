@@ -63,6 +63,7 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
         Add("Convert", "Convert files", "Convert supported Office, web, markup, PDF, and image files.", "Convert", document.ShowConversionWorkbenchCommand, tool: true);
         Add("Provenance", "File origin and text integrity", "Assess supported origin records and Unicode findings, review selected carrier removal, and export a report.", "Review", document.ShowProvenanceCommand, tool: true);
         Add("Invoices", "Invoices", "Inspect and validate invoice XML, convert formats, render PDFs, or edit source headers.", "Convert", document.ShowInvoiceWorkbenchCommand, tool: true);
+        Add("PublishBook", "Publish a book", "Import manuscripts, organize chapters, review and export an EPUB book.", "Convert", document.ShowBookWorkbenchCommand, tool: true);
         Add("Jobs", "Jobs", "Review active work and outputs from this session.", "Navigate", document.ShowJobsCommand);
         Add("Ocr", "Make PDF searchable", "Recognize scanned pages and add a searchable text layer.", "Convert", document.ShowOcrCommand, tool: true);
         Add("Assemble", "Assemble PDF", "Combine PDFs, images, Office files, folders, and ZIP archives.", "Organize", document.ShowAssemblyCommand, tool: true);

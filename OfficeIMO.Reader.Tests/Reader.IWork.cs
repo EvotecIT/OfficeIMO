@@ -45,6 +45,53 @@ public sealed class ReaderIWorkTests {
             fromPath.GetPageProvenance());
     }
 
+#if NET6_0_OR_GREATER
+    [Theory]
+    [InlineData("linked.pages", ReaderDetectionMode.ContentWhenUnknown)]
+    [InlineData("linked.data", ReaderDetectionMode.PreferContent)]
+    public async Task IWorkPathReadsRejectSymbolicLinksEvenWhenContentDetectionSelectsHandler(
+        string linkName, ReaderDetectionMode detectionMode) {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-iwork-reader-link-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string link = Path.Combine(root, linkName);
+            File.CreateSymbolicLink(link, Fixture("nim-iwork/simple.pages"));
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
+            var options = new ReaderOptions { DetectionMode = detectionMode };
+
+            Assert.Throws<InvalidDataException>(() => reader.Detect(link,
+                new ReaderDetectionOptions { Mode = ReaderDetectionMode.PreferContent }));
+            await Assert.ThrowsAsync<InvalidDataException>(() => reader.DetectAsync(link,
+                new ReaderDetectionOptions { Mode = ReaderDetectionMode.PreferContent }));
+            Assert.Throws<InvalidDataException>(() => reader.ReadDocument(link, options));
+            Assert.Throws<InvalidDataException>(() => reader.Read(link, options).ToArray());
+            await Assert.ThrowsAsync<InvalidDataException>(() => reader.ReadDocumentAsync(link, options));
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+#endif
+
+    [Fact]
+    public void IWorkAwareContentDetectionAllowsOrdinaryFileSharedWithWriter() {
+        string path = Path.Combine(Path.GetTempPath(),
+            "officeimo-iwork-detection-" + Guid.NewGuid().ToString("N") + ".txt");
+        try {
+            using var writer = new FileStream(path, FileMode.CreateNew, FileAccess.ReadWrite,
+                FileShare.ReadWrite | FileShare.Delete);
+            byte[] text = System.Text.Encoding.UTF8.GetBytes("ordinary text");
+            writer.Write(text, 0, text.Length);
+            writer.Flush();
+
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
+            ReaderDetectionResult detection = reader.Detect(path,
+                new ReaderDetectionOptions { Mode = ReaderDetectionMode.PreferContent });
+            Assert.True(detection.ContentInspected);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     [Fact]
     public void NumbersTablesRetainCachedValuesAndReportBoundedProjection() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()

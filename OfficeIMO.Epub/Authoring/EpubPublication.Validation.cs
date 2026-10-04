@@ -80,8 +80,19 @@ public sealed partial class EpubPublication {
             (HasMediaType(item.MediaType, "application/xhtml+xml") || HasMediaType(item.MediaType, "image/svg+xml") || HasMediaType(item.MediaType, "application/x-dtbncx+xml")))
             .GroupBy(RequireLocalPath, StringComparer.Ordinal).ToArray();
         var anchors = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
-        // Gather every target's anchors first so fragment checks can stream without
-        // retaining one reference object per link or per manifest alias.
+        bool resourcesRemoved = _originalEntries.Keys.Any(path => !entries.ContainsKey(path));
+        string[] changedStylesheets = manifest.Where(item => HasMediaType(item.MediaType, "text/css") && item.Reference.Kind == EpubReferenceKind.Container)
+            .Select(item => item.Reference.ContainerPath!).Where(path => resourcesRemoved ||
+                !_originalEntries.TryGetValue(path, out byte[]? prior) || !prior.SequenceEqual(entries[path]))
+            .Distinct(StringComparer.Ordinal).ToArray();
+        var stylesheetResults = new Dictionary<string, bool>(StringComparer.Ordinal);
+        bool CheckStylesheet(string path) {
+            if (!stylesheetResults.TryGetValue(path, out bool remote)) stylesheetResults[path] = remote = ValidateStylesheetClosure(path, entries, manifest, token);
+            return remote;
+        }
+        foreach (string path in changedStylesheets) CheckStylesheet(path);
+
+        // Gather each target's anchors before streaming fragment validation.
         foreach (var group in contentGroups) {
             token.ThrowIfCancellationRequested();
             string path = group.Key;
@@ -103,7 +114,7 @@ public sealed partial class EpubPublication {
             foreach (EpubManifestItem item in group) {
                 token.ThrowIfCancellationRequested();
                 bool rewritten = payloadChanged || !HasMediaType(OriginalManifestItem(item.Id)?.MediaType, item.MediaType);
-                if (!rewritten || HasMediaType(item.MediaType, "application/x-dtbncx+xml")) continue;
+                if ((!rewritten && changedStylesheets.Length == 0) || HasMediaType(item.MediaType, "application/x-dtbncx+xml")) continue;
                 if (!checkedMediaTypes.TryGetValue(item.MediaType, out bool hasRemoteResources)) {
                     ValidateContent(content, item.MediaType);
                     string analysisContent = content.ToString(SaveOptions.DisableFormatting);
@@ -113,7 +124,7 @@ public sealed partial class EpubPublication {
                     var resources = OfficeIMO.Html.HtmlResourcePipeline.BuildManifest(analysisContent,
                         new OfficeIMO.Html.HtmlResourcePipelineOptions { Limits = limits });
                     if (resources.Resources.Any(resource => !resource.IsAllowed)) throw new NotSupportedException("Authored content contains a URL blocked by the shared HTML policy.");
-                    hasRemoteResources = ValidateAuthoredResources(content, path, resources, manifest, token);
+                    hasRemoteResources = ValidateAuthoredResources(content, path, resources, manifest, token, CheckStylesheet);
                     checkedMediaTypes.Add(item.MediaType, hasRemoteResources);
                 }
                 if (PackageVersion == "3.0") UpdateContentProperties(item, hasSvg, hasMathMl, hasRemoteResources);

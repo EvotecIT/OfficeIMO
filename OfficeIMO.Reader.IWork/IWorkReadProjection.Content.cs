@@ -217,6 +217,8 @@ internal sealed partial class IWorkReadProjection {
     private ReaderLocation AddImage(OfficeDocumentPage page, IWorkImageAsset source, bool includeAnchorBlock = false) {
         _cancellationToken.ThrowIfCancellationRequested();
         _projectionBudget.AddImage();
+        if (source.AccessibilityDescription != null)
+            _projectionBudget.AddTextCharacters(source.AccessibilityDescription.Length);
         if (_options.IncludeImagePayloads) _projectionBudget.AddProjectedImageBytes(source.Length);
         ReportUnsupportedRotation(page, source.Geometry, "image");
         string id = "iwork-a" + (_assets.Count + 1).ToString("D6", CultureInfo.InvariantCulture);

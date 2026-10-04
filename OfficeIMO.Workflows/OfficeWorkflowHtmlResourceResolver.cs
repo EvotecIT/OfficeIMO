@@ -15,6 +15,13 @@ internal static class OfficeWorkflowHtmlResourceResolver {
     internal static bool IsSupportedDependency(string path) =>
         SupportedDependencyExtensions.Contains(Path.GetExtension(path));
 
+    internal static HtmlRenderResourceResolver CreateResolver(string inputPath, long maximumResourceBytes) {
+        string sourceDirectory = Path.GetDirectoryName(Path.GetFullPath(inputPath))
+            ?? throw new ArgumentException("Manuscript input requires a parent directory.", nameof(inputPath));
+        string physicalRoot = OfficeWorkflowPathIdentity.ResolvePhysicalPath(sourceDirectory);
+        return (request, token) => ResolveAsync(request, physicalRoot, maximumResourceBytes, null, token);
+    }
+
     internal static HtmlToPdfOptions CreateOptions(
         string inputPath,
         long maximumResourceBytes,
@@ -120,6 +127,10 @@ internal static class OfficeWorkflowHtmlResourceResolver {
         if (request.Kind == HtmlResourceKind.Stylesheet) return "text/css";
         if (request.Kind == HtmlResourceKind.Font) return GetFontContentType(request.Uri.LocalPath);
         if (request.Kind == HtmlResourceKind.Image) return GetImageContentType(request.Uri.LocalPath);
+        if (request.Kind == HtmlResourceKind.Media) return Path.GetExtension(request.Uri.LocalPath).ToLowerInvariant() switch {
+            ".mp3" => "audio/mpeg", ".m4a" => "audio/mp4", ".mp4" => "video/mp4", ".webm" => "video/webm", ".vtt" => "text/vtt",
+            _ => "application/octet-stream"
+        };
         return "application/octet-stream";
     }
 

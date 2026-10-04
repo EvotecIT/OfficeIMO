@@ -12,6 +12,30 @@ public sealed class ReaderLatexModularTests {
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    public void PlainLabelLinksRetainTextInReaderProjection(bool blocks) {
+        const string source = @"\documentclass{article}\begin{document}Before \url{https://example.test/a} and \ref{sec:x} then \href{https://example.test/b}{rich label} after.\end{document}";
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(LatexDocument.Parse(source),
+            latexOptions: new ReaderLatexOptions { ChunkByBlock = blocks }).ToArray();
+        string text = string.Concat(chunks.Select(static chunk => chunk.Text));
+        Assert.Contains("https://example.test/a", text, StringComparison.Ordinal);
+        Assert.Contains("sec:x", text, StringComparison.Ordinal);
+        Assert.Contains("rich label", text, StringComparison.Ordinal);
+        Assert.Contains("after", text, StringComparison.Ordinal);
+        Assert.Contains(chunks, static chunk => chunk.Markdown?.Contains("https://example.test/a", StringComparison.Ordinal) == true);
+    }
+
+    [Fact]
+    public void EmptyAlignedTablesCannotBypassReaderProjectionBudget() {
+        string table = "\\begin{tabular}{" + new string('l', 4096) + "}\\end{tabular}";
+        string source = "\\documentclass{article}\\begin{document}"
+            + string.Concat(Enumerable.Repeat(table, 17)) + "\\end{document}";
+        Assert.Throws<System.IO.InvalidDataException>(() => LatexReaderAdapter.Read(
+            LatexDocument.Parse(source), latexOptions: new ReaderLatexOptions { ChunkByBlock = true }).ToArray());
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void InertMetadataDoesNotCreateReaderTextOrFrontMatter(bool blocks) {
         const string source = @"\documentclass{article}\begin{document}Public\end{document}\title{INERT}\author{PRIVATE}\date{INERT}";
         ReaderChunk chunk = Assert.Single(LatexReaderAdapter.Read(LatexDocument.Parse(source),
