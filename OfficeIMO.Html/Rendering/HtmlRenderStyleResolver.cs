@@ -227,7 +227,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             Display = display,
             DisplayWasSpecified = !string.IsNullOrWhiteSpace(computed.GetValue("display")),
             PaintVisible = ResolvePaintVisibility(computed.GetValue("visibility"), parent),
-            Font = new OfficeFontInfo(family, fontSize, fontStyle),
+            Font = new OfficeFontInfo(family, fontSize, fontDescriptor, fontStyle),
             FontDescriptor = fontDescriptor,
             UnderlineStyle = propagatedUnderline && !ownsUnderline
                 ? parent!.UnderlineStyle

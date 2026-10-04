@@ -1,11 +1,14 @@
 namespace OfficeIMO.Rtf.Writing;
 
 internal static partial class RtfDocumentWriter {
-    public static string Write(RtfDocument document, RtfWriteOptions options, RtfConversionReport? report = null) {
+    public static string Write(RtfDocument document, RtfWriteOptions options, RtfConversionReport? report = null,
+        bool semanticBaseline = false) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         options ??= new RtfWriteOptions();
         RtfTableTraversalGuard.ValidateDocument(document);
-        int unicodeSkipCount = GetUnicodeSkipCount(document.Settings);
+        // The comparison string keeps the authored \uc setting in the header, but
+        // does not need fallback bytes to detect semantic edits.
+        int unicodeSkipCount = semanticBaseline ? 0 : GetUnicodeSkipCount(document.Settings);
         var context = new RtfWriteContext(document.Settings.DefaultLanguageId, unicodeSkipCount,
             document.Styles.Any(style => style.Id == 0 && style.Kind == RtfStyleKind.Paragraph) ? 0 : (int?)null,
             formattingDocument: options.MaterializeStyleFormatting ? document : null);

@@ -65,6 +65,13 @@
     <EmbeddedResource Include="Schemas\officeimo.document.read-result.v8.schema.json">
       <LogicalName>OfficeIMO.Reader.Schemas.officeimo.document.read-result.v8.schema.json</LogicalName>
     </EmbeddedResource>
+    <None Include="Schemas\officeimo.document.read-result.v9.schema.json">
+      <Pack>True</Pack>
+      <PackagePath>schemas\officeimo.document.read-result.v9.schema.json</PackagePath>
+    </None>
+    <EmbeddedResource Include="Schemas\officeimo.document.read-result.v9.schema.json">
+      <LogicalName>OfficeIMO.Reader.Schemas.officeimo.document.read-result.v9.schema.json</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
@@ -77,6 +84,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Ocr" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Email" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Word" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Excel" />

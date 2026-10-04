@@ -224,6 +224,20 @@ public sealed class HtmlRenderPage {
         double surfaceHeight,
         OfficeFontFaceCollection fonts) {
         OfficeShape shape = visual.InnerShape.Clone();
+        // A canvas backdrop owns the complete last raster pixel even when content layout
+        // produces a fractional page size. Ordinary boxes retain fractional area coverage.
+        if ((visual.Source == "render-surface" || visual.Source == "render-root-background") &&
+            visual.X == 0D && visual.Y == 0D && shape.Kind == OfficeShapeKind.Rectangle &&
+            shape.Width == surfaceWidth && shape.Height == surfaceHeight &&
+            shape.StrokeWidth == 0D && shape.FillGradient == null && shape.FillRadialGradient == null &&
+            shape.ClipPath == null && (shape.Transform == null || shape.Transform.Value.Equals(OfficeTransform.Identity))) {
+            var backdrop = OfficeShape.Rectangle(Math.Ceiling(surfaceWidth), Math.Ceiling(surfaceHeight));
+            backdrop.FillColor = shape.FillColor;
+            backdrop.FillOpacity = shape.FillOpacity;
+            backdrop.StrokeWidth = 0D;
+            drawing.AddShapeForClippedRendering(backdrop, 0D, 0D);
+            return;
+        }
         if (visual.X >= 0D &&
             visual.Y >= 0D &&
             visual.X + shape.Width <= surfaceWidth &&

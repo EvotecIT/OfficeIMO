@@ -13,37 +13,31 @@ namespace OfficeIMO.Word {
 
             internal HashSet<string> ActiveNoteKeys { get; } = new(StringComparer.Ordinal);
             internal IReadOnlyDictionary<string, string?> ParagraphStyleNames { get; }
-            private Dictionary<Paragraph, bool[]> ComplexFieldPrefixes { get; } = new();
+            private Dictionary<Paragraph, WordComplexFieldRunVisibility.FieldState> ComplexFieldPrefixes { get; } = new();
             private HashSet<OpenXmlElement> ScannedFieldStories { get; } = new();
 
-            internal Stack<bool> ComplexFieldResultsFor(Paragraph paragraph) {
+            internal WordComplexFieldRunVisibility.FieldState? ComplexFieldResultsFor(Paragraph paragraph) {
                 OpenXmlElement story = paragraph.Ancestors().FirstOrDefault(element =>
                     element is Footnote or Endnote or DocumentFormat.OpenXml.Wordprocessing.Header
                         or DocumentFormat.OpenXml.Wordprocessing.Footer)
                     ?? paragraph.Ancestors().LastOrDefault() ?? paragraph;
                 if (ScannedFieldStories.Add(story) && story.Descendants<FieldChar>().Any()) {
-                    var stack = new Stack<bool>();
+                    var visibility = new WordComplexFieldRunVisibility();
                     foreach (Paragraph candidate in story.Descendants<Paragraph>()) {
-                        if (stack.Count > 0) ComplexFieldPrefixes[candidate] = stack.Reverse().ToArray();
-                        foreach (FieldChar marker in candidate.Descendants<FieldChar>()) {
-                            if (marker.FieldCharType?.Value == FieldCharValues.Begin) stack.Push(false);
-                            else if (marker.FieldCharType?.Value == FieldCharValues.Separate && stack.Count > 0) {
-                                stack.Pop();
-                                stack.Push(true);
-                            } else if (marker.FieldCharType?.Value == FieldCharValues.End && stack.Count > 0) {
-                                stack.Pop();
-                            }
-                        }
+                        if (visibility.CurrentState is WordComplexFieldRunVisibility.FieldState state)
+                            ComplexFieldPrefixes[candidate] = state;
+                        visibility.ObserveParagraphMarkers(candidate);
                     }
                 }
-                return ComplexFieldPrefixes.TryGetValue(paragraph, out bool[]? prefix)
-                    ? new Stack<bool>(prefix) : new Stack<bool>();
+                return ComplexFieldPrefixes.TryGetValue(paragraph,
+                    out WordComplexFieldRunVisibility.FieldState? prefix) ? prefix : null;
             }
         }
 
         /// <summary>Creates an independent snapshot of document metadata, sections, stories, paragraphs, tables, notes, and images.</summary>
         /// <returns>A snapshot suitable for inspection or serialization without retaining live Open XML elements.</returns>
         public WordDocumentSnapshot CreateInspectionSnapshot() {
+            using var visibilityScope = WordComplexFieldRunVisibility.BeginConversionScope();
             var expansionContext = new InspectionExpansionContext(BuildParagraphStyleNameLookup());
             var snapshot = new WordDocumentSnapshot {
                 FilePath = string.IsNullOrWhiteSpace(FilePath) ? null : FilePath,
@@ -247,7 +241,7 @@ namespace OfficeIMO.Word {
             // same run sequence that is stored in the inspection snapshot.
             int runIndex = 0;
             var fieldVisibility = new WordComplexFieldRunVisibility(
-                expansionContext.ComplexFieldResultsFor(paragraph._paragraph).Reverse());
+                expansionContext.ComplexFieldResultsFor(paragraph._paragraph));
             foreach (OpenXmlElement item in EnumerateInspectionInlineItems(paragraph._paragraph)) {
                 if (item is SimpleField field) {
                     Hyperlink? containingLink = field.Ancestors<Hyperlink>().FirstOrDefault();

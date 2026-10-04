@@ -54,6 +54,64 @@ jobs:
       - name: Validate scripted-document capture and conversion
         run: dotnet test OfficeIMO.Html.Runtime.Tests/OfficeIMO.Html.Runtime.Tests.csproj -c Release -f ${{ matrix.framework }}
 
+  workflow-contracts:
+    name: 'Workflow contracts / ${{ matrix.os }} / ${{ matrix.framework }}'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        framework: [net8.0, net10.0]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Test shared workflows and registered Apple routes
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet test OfficeIMO.Workflows.Tests/OfficeIMO.Workflows.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=workflows.trx' --results-directory TestResults/Workflows
+          dotnet test OfficeIMO.Workflows.IWork.Tests/OfficeIMO.Workflows.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=iwork.trx' --results-directory TestResults/Workflows
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: workflow-tests-${{ matrix.os }}-${{ matrix.framework }}
+          path: TestResults/Workflows
+          if-no-files-found: ignore
+          retention-days: 7
+
+  document-ai-contracts:
+    name: 'Document AI contracts / ${{ matrix.os }}'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Test document AI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet test OfficeIMO.AI.Tests/OfficeIMO.AI.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --logger 'trx;LogFileName=document-ai.trx' --results-directory TestResults/DocumentAI
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: document-ai-tests-${{ matrix.os }}
+          path: TestResults/DocumentAI
+          if-no-files-found: ignore
+          retention-days: 7
+
   studio-contracts:
     name: 'Studio workflows and accessibility / ${{ matrix.os }}'
     runs-on: ${{ matrix.os }}
@@ -69,10 +127,20 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
       - name: Test Studio
         shell: pwsh
+        env:
+          OFFICEIMO_STUDIO_VISUAL_OUTPUT: ${{ github.workspace }}/TestResults/Studio/Visual
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
           dotnet test OfficeIMO.Studio.Tests/OfficeIMO.Studio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --logger 'trx;LogFileName=studio.trx' --results-directory TestResults/Studio
+      - name: Test Store channel availability
+        shell: pwsh
+        env:
+          OFFICEIMO_STUDIO_VISUAL_OUTPUT: ${{ github.workspace }}/TestResults/Studio/StoreVisual
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet test OfficeIMO.Studio.Tests/OfficeIMO.Studio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 -p:OfficeIMOStudioDistribution=MacAppStore --filter 'FullyQualifiedName~StudioDistributionPolicyTests|FullyQualifiedName~InvoiceWorkbenchVisualTests' --logger 'trx;LogFileName=studio-store.trx' --results-directory TestResults/Studio/Store
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
@@ -131,8 +199,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
-        with:
-          submodules: true
 
       - name: Validate benchmark evidence policy
         shell: pwsh
@@ -1656,8 +1722,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
-        with:
-          submodules: true
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
@@ -1686,6 +1750,7 @@ jobs:
           dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfReadStreamTests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.Tests.Markdown.Test_SaveAsMarkdown_FileAndRead" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.CSV.Tests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          dotnet test OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.VerifyTests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
 
       - name: Summarize failing tests
@@ -1785,14 +1850,12 @@ jobs:
   aot-trim-analyzers:
     name: 'AOT/Trim analyzers'
     runs-on: ubuntu-latest
-    # Analyzer builds plus isolated NativeAOT publishes now exceed the former
-    # 35-minute budget on a cold runner; retain room for evidence upload/cleanup.
-    timeout-minutes: 50
+    # The full isolated production matrix reaches its final tool publish near
+    # 50 minutes on cold runners; retain room for that publish and evidence upload.
+    timeout-minutes: 90
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
-        with:
-          submodules: true
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
@@ -1854,8 +1917,8 @@ jobs:
   aot-windows:
     name: 'NativeAOT Windows'
     runs-on: windows-latest
-    # The production matrix can finish near 35 minutes before cache post-actions.
-    timeout-minutes: 50
+    # Cold production-matrix runs reach the final tool publish near 50 minutes.
+    timeout-minutes: 90
     steps:
       - name: Checkout code
         uses: actions/checkout@v7

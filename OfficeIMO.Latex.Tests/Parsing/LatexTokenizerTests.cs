@@ -1,6 +1,23 @@
 namespace OfficeIMO.Latex.Tests;
 
 public sealed class LatexTokenizerTests {
+    [Theory]
+    [InlineData("\n")]
+    [InlineData("\r\n")]
+    [InlineData("\r")]
+    public void DenseInlineVerbatimStopsAtEachDelimiterBeforeTheLineEnding(string ending) {
+        string repeated = string.Concat(Enumerable.Repeat("\\verb|x%{}| \\verb*+y+ ", 32));
+        string source = repeated + "\\verb!unfinished" + ending + "\\section{Next}";
+        IReadOnlyList<LatexToken> tokens = LatexTokenizer.Tokenize(source);
+        Assert.Equal(source, string.Concat(tokens.Select(static token => token.Text)));
+        LatexToken[] opaque = tokens.Where(static token => token.Kind == LatexTokenKind.Verbatim).ToArray();
+        Assert.Equal(65, opaque.Length);
+        Assert.All(opaque.Take(64), static token => Assert.True(token.IsTerminated));
+        Assert.Equal("\\verb!unfinished", opaque[64].Text);
+        Assert.False(opaque[64].IsTerminated);
+        Assert.Contains(tokens, static token => token.Kind == LatexTokenKind.Command && token.Value == "section");
+    }
+
     [Fact]
     public void Tokenizer_CoversCommandsCommentsEscapesMathAndMixedLineEndingsExactly() {
         const string source = "\\section{A} % comment\r\nText \\% $x_1$ $$y^2$$\r";

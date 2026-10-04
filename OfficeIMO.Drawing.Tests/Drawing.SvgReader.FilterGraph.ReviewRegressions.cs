@@ -85,6 +85,31 @@ public partial class DrawingTests {
         Assert.Single(FilterGraphElements(drawing!).OfType<OfficeDrawingShape>());
     }
 
+    [Fact]
+    public void SvgFilterGraphChargesNestedEffectAtItsOwnSurfaceSize() {
+        string points = string.Join(" ", Enumerable.Range(0, 128).Select(i => {
+            double angle = 2D * Math.PI * i / 128D;
+            return FormattableString.Invariant($"{512D + 500D * Math.Cos(angle)},{512D + 500D * Math.Sin(angle)}");
+        }));
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'><defs>"
+            + "<filter id='f' filterUnits='userSpaceOnUse' x='0' y='0' width='1' height='1'><feColorMatrix/></filter></defs>"
+            + "<g filter='url(#f)'><g style='mix-blend-mode:multiply'><polygon points='" + points
+            + "' fill='red'/></g></g></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(1, unsupported);
+        Assert.Empty(FilterGraphElements(drawing!).OfType<OfficeDrawingImage>());
+    }
+
+    [Fact]
+    public void RasterContourRejectsQuadraticSinglePixelSubdivisionWork() {
+        var points = Enumerable.Range(0, 6000).Select(i =>
+            new OfficePoint(i % 2 == 0 ? 0.1D : 0.9D, 0.1D + 0.8D * i / 6000D)).ToArray();
+        var canvas = new OfficeRasterCanvas(new OfficeRasterImage(1, 1));
+
+        Assert.Throws<InvalidOperationException>(() => canvas.FillPolygon(points, OfficeColor.Black));
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]

@@ -1,0 +1,43 @@
+{
+  "source": "numbers-parser/single-cell-formulas.numbers",
+  "sha256": "4ce0593faa61bf159bde0752ade1fa202afcd142317ba16fdec8eb71a7149170",
+  "provider": "numbers-parser",
+  "providerVersion": "4.19.0",
+  "sourceSheet": "Math",
+  "sourceTable": "Tests",
+  "cases": [
+    {
+      "row": 34,
+      "column": 2,
+      "formula": "GCD(128,80,44,2^53)",
+      "functionIndex": 58,
+      "operands": [
+        128,
+        80,
+        44,
+        9007199254740992
+      ],
+      "exactIntegerResult": "4",
+      "nativeCachedValue": 4.0,
+      "excelDocumentedError": "#NUM!",
+      "excelContract": "https://support.microsoft.com/en-us/excel/functions/gcd-function"
+    },
+    {
+      "row": 49,
+      "column": 2,
+      "formula": "LCM(128,80,44,2^53)",
+      "functionIndex": 75,
+      "operands": [
+        128,
+        80,
+        44,
+        9007199254740992
+      ],
+      "exactIntegerResult": "495395959010754560",
+      "nativeCachedValue": 4.95395959010755e+17,
+      "excelDocumentedError": "#NUM!",
+      "excelContract": "https://support.microsoft.com/en-us/excel/functions/lcm-function"
+    }
+  ],
+  "limits": "Unchanged producer caches and independently computed integer results. Excel error is a documented contract, not a live Excel execution. No Apple export or native recalculation oracle."
+}

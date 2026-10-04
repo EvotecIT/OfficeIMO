@@ -119,6 +119,8 @@ public enum ReaderInputKind {
 /// A normalized extraction chunk produced by <see cref="OfficeDocumentReader"/>.
 /// </summary>
 public sealed class ReaderChunk {
+    internal ReaderChunk CopyForContainer() => (ReaderChunk)MemberwiseClone();
+
     // Adapter projections can span multiple bounded chunks while remaining one
     // logical Markdown block. This is intentionally an internal aggregation
     // contract rather than part of the versioned transport schema.
@@ -458,7 +460,8 @@ public sealed class ReaderLocation {
     public string? Sheet { get; set; }
 
     /// <summary>
-    /// Optional A1 range descriptor (Excel).
+    /// Optional source cell or range descriptor in A1 notation. For containers with multiple
+    /// tables, <see cref="TableIndex"/> identifies the table whose coordinates are used.
     /// </summary>
     public string? A1Range { get; set; }
 

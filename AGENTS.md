@@ -99,3 +99,15 @@ mcp-publisher publish OfficeIMO.Tool/server.json
 For CI publication, the official publisher supports `mcp-publisher login github-oidc` with `id-token: write` on an authorized GitHub workflow. Follow the [MCP Registry publishing instructions](https://modelcontextprotocol.io/registry/quickstart) and verify the returned name and version in the Registry API. Registry publication provides discovery; ChatGPT and Claude public directories have their own submission and approval requirements.
 
 `Build/validate_mcp_registry.py` validates against a fixed official schema URI and checks the source ownership marker. The OfficeIMO.Tool package smoke gate checks the same marker in the README declared by the actual NuGet artifact. Keep both checks when changing Registry metadata or package inputs.
+
+## Runtime dependency evidence
+
+OfficeIMO Studio and the executable OfficeIMO.Workflows document conversions use
+OfficeIMO engines in process. LibreOffice references in fixtures, compatibility
+reports, benchmarks, or opt-in verification scripts describe independent
+validation, not a product runtime requirement. Pandoc-style syntax references in
+Markdown comparison tests do not imply a Pandoc executable dependency. Do not
+carry either tool into Studio prerequisites, App Store restrictions, privacy
+claims, packaging, or feature gating without a reachable production call site.
+OCR's optional Tesseract process and printer queue delivery are separate
+capabilities; assess them from their own execution paths.

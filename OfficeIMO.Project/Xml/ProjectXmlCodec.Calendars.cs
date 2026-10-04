@@ -157,5 +157,5 @@ internal static partial class ProjectXmlCodec {
         return node;
     }
     internal static decimal? DependencyLag(ProjectDependency link, ProjectDocument document) => link.LagPercent ??
-        (link.Lag.HasValue ? checked(link.Lag.Value.Value * ProjectXmlValue.MinutesPerUnit(link.Lag.Value.Unit, link.Lag.Value.IsElapsed, document) * 10) : (decimal?)null);
+        (link.Lag.HasValue ? ProjectTimeUnits.ScaledMinutes(link.Lag.Value, document.Settings, 10) : (decimal?)null);
 }

@@ -613,7 +613,7 @@ namespace OfficeIMO.Tests {
                 shape.Shape.StrokeWidth > 0D) >= 2);
 
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
-            Assert.True(CountPixelsNear(image!, OfficeColor.Black) > 40);
+            Assert.True(RasterColorTestSupport.MeasureCoverage(image!, OfficeColor.Black, OfficeColor.White) > 40D);
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("DrawingML", svgText, StringComparison.Ordinal);
             Assert.Contains("Legacy", svgText, StringComparison.Ordinal);
@@ -648,7 +648,7 @@ namespace OfficeIMO.Tests {
             Assert.True(afterText.X > textBoxText.X);
 
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
-            Assert.True(CountPixelsNear(image!, OfficeColor.Black) > 40);
+            Assert.True(RasterColorTestSupport.MeasureCoverage(image!, OfficeColor.Black, OfficeColor.White) > 40D);
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("Tight floating text box", svgText, StringComparison.Ordinal);
             Assert.Contains("After tight text box", svgText, StringComparison.Ordinal);
@@ -681,7 +681,7 @@ namespace OfficeIMO.Tests {
             Assert.True(afterText.Y > textBoxText.Y + textBoxText.Height);
 
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
-            Assert.True(CountPixelsNear(image!, OfficeColor.Black) > 40);
+            Assert.True(RasterColorTestSupport.MeasureCoverage(image!, OfficeColor.Black, OfficeColor.White) > 40D);
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("<rect", svgText, StringComparison.Ordinal);
         }
@@ -716,7 +716,7 @@ namespace OfficeIMO.Tests {
             Assert.True(behindTextIndex < foregroundTextIndex);
 
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
-            Assert.True(CountPixelsNear(image!, OfficeColor.Black) > 40);
+            Assert.True(RasterColorTestSupport.MeasureCoverage(image!, OfficeColor.Black, OfficeColor.White) > 40D);
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("<rect", svgText, StringComparison.Ordinal);
         }
@@ -3848,7 +3848,7 @@ namespace OfficeIMO.Tests {
             Assert.True(footerAfterText.Y < footerFrame.Y + footerFrame.Shape.Height);
 
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
-            Assert.True(CountPixelsNear(rendered!, OfficeColor.Black) > 40);
+            Assert.True(RasterColorTestSupport.MeasureCoverage(rendered!, OfficeColor.Black, OfficeColor.White) > 40D);
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("Header", svgText, StringComparison.Ordinal);
             Assert.Contains("Footer", svgText, StringComparison.Ordinal);
@@ -5202,8 +5202,7 @@ namespace OfficeIMO.Tests {
             table.Width = 3000;
             table.ColumnWidthType = WordTableWidthUnit.Dxa;
             table.ColumnWidth = new List<int> { 3000 };
-            table.Rows[0].Height = 240;
-            table.Rows[0]._tableRow.TableRowProperties!.GetFirstChild<TableRowHeight>()!.HeightType = HeightRuleValues.AtLeast;
+            table.Rows[0].MinimumHeight = 240;
             table.Rows[0].Cells[0].Paragraphs[0].Text = string.Join(
                 " ",
                 Enumerable.Range(1, 32).Select(index => "AtLeastRowToken" + index.ToString("00", CultureInfo.InvariantCulture)));

@@ -2,12 +2,21 @@ namespace OfficeIMO.AsciiDoc;
 
 internal sealed class AsciiDocSyntaxFactory {
     private readonly AsciiDocSourceText _source;
+    private int _tableCells;
 
-    internal AsciiDocSyntaxFactory(AsciiDocSourceText source) {
+    internal AsciiDocSyntaxFactory(AsciiDocSourceText source, System.Threading.CancellationToken cancellationToken = default, AsciiDocParseOptions? options = null) {
         _source = source;
+        CancellationToken = cancellationToken;
+        Options = options ?? new AsciiDocParseOptions();
     }
 
     internal AsciiDocSourceText Source => _source;
+    internal System.Threading.CancellationToken CancellationToken { get; }
+    internal AsciiDocParseOptions Options { get; }
+    internal void ReserveTableCell() {
+        if (_tableCells >= Options.MaximumTableCellCount) throw new InvalidDataException("AsciiDoc source exceeds MaximumTableCellCount.");
+        _tableCells++;
+    }
 
     internal AsciiDocSyntaxNode Node(AsciiDocSyntaxKind kind, int start, int end, IReadOnlyList<AsciiDocSyntaxNode>? children = null) =>
         new AsciiDocSyntaxNode(

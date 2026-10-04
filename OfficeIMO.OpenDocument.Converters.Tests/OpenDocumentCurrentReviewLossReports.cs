@@ -800,6 +800,37 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
+    public void OdsToExcelRejectsCombinedAnnotationTextBeyondDecodedLimit() {
+        OdsDocument source = OdsDocument.Create();
+        source.AddSheet("Data").Cell(0, 0).SetString("Cell");
+        XElement cell = source.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Table + "table-cell").Single();
+        for (int index = 0; index < 2; index++) {
+            cell.Add(new XElement(OdfNamespaces.Office + "annotation",
+                new XElement(OdfNamespaces.Text + "p",
+                    new XElement(OdfNamespaces.Text + "s",
+                        new XAttribute(OdfNamespaces.Text + "c", 8 * 1024 * 1024)))));
+        }
+
+        Assert.Throws<InvalidDataException>(() => source.ToExcelDocumentResult());
+    }
+
+    [Fact]
+    public void OdsToExcelCountsAnnotationMetadataInDecodedLimit() {
+        OdsDocument source = OdsDocument.Create();
+        source.AddSheet("Data").Cell(0, 0).SetString("Cell");
+        XElement cell = source.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Table + "table-cell").Single();
+        cell.Add(new XElement(OdfNamespaces.Office + "annotation",
+            new XAttribute(OdfNamespaces.Office + "name", "Named"),
+            new XElement(OdfNamespaces.Text + "p",
+                new XElement(OdfNamespaces.Text + "s",
+                    new XAttribute(OdfNamespaces.Text + "c", 16 * 1024 * 1024)))));
+
+        Assert.Throws<InvalidDataException>(() => source.ToExcelDocumentResult());
+    }
+
+    [Fact]
     public void OversizedInlineOdsValidationIsReportedInsteadOfWritingAnInvalidExcelFormula() {
         OdsDocument source = OdsDocument.Create();
         OdsValidation validation = source.AddValidation("Oversized",

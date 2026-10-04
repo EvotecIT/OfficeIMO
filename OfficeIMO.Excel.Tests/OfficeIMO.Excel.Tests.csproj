@@ -59,6 +59,7 @@
     <Compile Include="..\OfficeIMO.TestAssets\PortableVisualFontAssets.cs" Link="PortableVisualFontAssets.cs" />
     <None Include="..\OfficeIMO.TestAssets\Fonts\*.ttf" Link="Fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\OfficeIMO.TestAssets\VisualBaselineTestSupport.cs" Link="VisualBaselineTestSupport.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\RasterColorTestSupport.cs" Link="RasterColorTestSupport.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="ManagedTextShapingTestAssets.cs" />
   </ItemGroup>
 

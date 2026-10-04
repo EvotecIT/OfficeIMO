@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Text;
+using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.TestAssets;
@@ -29,7 +31,7 @@ public class PdfSystemFontCollectionTests {
     [InlineData(false)]
     public void MixedCollectionRetainsTheSupportedTrueTypeFace(bool cffFirst) {
         byte[] cff = LoadCff();
-        byte[] trueType = PdfSystemFontNameTests.WithNames(
+        byte[] trueType = WithNames(
             (3, 1033, 1, ManagedTextShapingTestAssets.FamilyName), (3, 1033, 2, "Regular"));
         byte[] collection = cffFirst ? CreateCollection(cff, trueType) : CreateCollection(trueType, cff);
         byte[] selected = Assert.Single(OfficeTrueTypeCollection.ExtractPrograms(collection));
@@ -54,6 +56,45 @@ public class PdfSystemFontCollectionTests {
         int face = (int)ReadUInt32(collection, 12);
         WriteUInt32(collection, face + 12 + 8, (uint)collection.Length);
         Assert.Throws<NotSupportedException>(() => OfficeTrueTypeCollection.ExtractPrograms(collection));
+    }
+
+    private static byte[] WithNames(params (int Platform, int Language, int Id, string Text)[] names) {
+        byte[][] strings = names.Select(name => Encoding.BigEndianUnicode.GetBytes(name.Text)).ToArray();
+        int stringOffset = 6 + names.Length * 12;
+        byte[] table = new byte[stringOffset + strings.Sum(value => value.Length)];
+        WriteUInt16(table, 2, names.Length);
+        WriteUInt16(table, 4, stringOffset);
+        int cursor = stringOffset;
+        for (int index = 0; index < names.Length; index++) {
+            int record = 6 + index * 12;
+            WriteUInt16(table, record, names[index].Platform);
+            WriteUInt16(table, record + 2, names[index].Platform == 3 ? 1 : 4);
+            WriteUInt16(table, record + 4, names[index].Language);
+            WriteUInt16(table, record + 6, names[index].Id);
+            WriteUInt16(table, record + 8, strings[index].Length);
+            WriteUInt16(table, record + 10, cursor - stringOffset);
+            strings[index].CopyTo(table, cursor);
+            cursor += strings[index].Length;
+        }
+
+        byte[] source = ManagedTextShapingTestAssets.CreateFont('A');
+        byte[] result = new byte[source.Length + table.Length];
+        source.CopyTo(result, 0);
+        table.CopyTo(result, source.Length);
+        int tableCount = (source[4] << 8) | source[5];
+        for (int index = 0; index < tableCount; index++) {
+            int record = 12 + index * 16;
+            if (Encoding.ASCII.GetString(source, record, 4) != "name") continue;
+            WriteUInt32(result, record + 8, (uint)source.Length);
+            WriteUInt32(result, record + 12, (uint)table.Length);
+            return result;
+        }
+        throw new InvalidOperationException("Test font has no name table.");
+    }
+
+    private static void WriteUInt16(byte[] data, int offset, int value) {
+        data[offset] = (byte)(value >> 8);
+        data[offset + 1] = (byte)value;
     }
 
     private static byte[] LoadCff() => File.ReadAllBytes(

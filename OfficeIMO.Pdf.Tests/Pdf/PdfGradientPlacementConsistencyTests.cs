@@ -32,11 +32,12 @@ public class PdfGradientPlacementConsistencyTests {
             double[] values = match.Groups[1].Value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(value => double.Parse(value, CultureInfo.InvariantCulture)).ToArray();
             Assert.Equal(4, values.Length);
-            // The normalized field t=(x+y)/2 becomes t=x/400-y/200
-            // in PDF local coordinates. Its normal, not its endpoints, must
-            // survive the non-uniform scale: the axial vector is (80,-160).
+            // Untransformed PDF coordinates point upward; transformed shapes keep
+            // their top-down local coordinates until the single placement matrix.
+            // The gradient's normal must survive the non-square coordinate scale.
             Assert.InRange(values[2] - values[0], 79.999, 80.001);
-            Assert.InRange(values[3] - values[1], -160.001, -159.999);
+            double expectedY = transformed ? 160D : -160D;
+            Assert.InRange(values[3] - values[1], expectedY - .001D, expectedY + .001D);
         }
     }
 }

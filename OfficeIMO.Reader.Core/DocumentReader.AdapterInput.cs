@@ -9,14 +9,17 @@ internal static partial class DocumentReaderEngine {
     internal static ReaderAdapterInputSnapshot ReadAdapterInput(
         string path,
         ReaderOptions options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        long? maximumInputBytes = null,
+        Func<string, FileStream>? openFile = null) {
         if (path == null) throw new ArgumentNullException(nameof(path));
         if (!File.Exists(path)) throw new FileNotFoundException("File '" + path + "' does not exist.", path);
-        long? maxInputBytes = ResolveInitialMaxInputBytes(path, options);
+        long? maxInputBytes = BoundAdapterInputBytes(ResolveInitialMaxInputBytes(path, options), maximumInputBytes);
         ReaderInputLimits.EnforceFileSize(path, maxInputBytes);
 
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-        ReaderAdapterInputSnapshot snapshot = ReadAdapterInput(
+        using var stream = openFile?.Invoke(path)
+            ?? new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        ReaderAdapterInputSnapshot snapshot = CaptureAdapterInput(
             stream,
             path,
             options,
@@ -39,20 +42,25 @@ internal static partial class DocumentReaderEngine {
         Stream stream,
         string? sourceName,
         ReaderOptions options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        long? maximumInputBytes = null) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
         string logicalName = string.IsNullOrWhiteSpace(sourceName) ? "memory" : sourceName!.Trim();
-        return ReadAdapterInput(
+        return CaptureAdapterInput(
             stream,
             logicalName,
             options,
             cancellationToken,
-            ResolveStreamMaxInputBytes(logicalName, options,
-                stream.CanSeek));
+            BoundAdapterInputBytes(ResolveStreamMaxInputBytes(logicalName, options,
+                stream.CanSeek), maximumInputBytes));
     }
 
-    private static ReaderAdapterInputSnapshot ReadAdapterInput(
+    private static long? BoundAdapterInputBytes(long? readerMaximum, long? adapterMaximum) =>
+        readerMaximum.HasValue && adapterMaximum.HasValue ? Math.Min(readerMaximum.Value, adapterMaximum.Value)
+            : readerMaximum ?? adapterMaximum;
+
+    private static ReaderAdapterInputSnapshot CaptureAdapterInput(
         Stream stream,
         string logicalName,
         ReaderOptions options,

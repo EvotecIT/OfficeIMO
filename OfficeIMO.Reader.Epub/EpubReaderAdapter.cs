@@ -18,7 +18,7 @@ internal static partial class EpubReaderAdapter {
         var options = readerOptions ?? new ReaderOptions();
         ReaderInputLimits.EnforceFileSize(epubPath, options.MaxInputBytes);
         var source = BuildSourceMetadataFromPath(epubPath, options.ComputeHashes);
-        var document = EpubDocument.Load(epubPath, CreateStructuredOptions(epubOptions));
+        var document = EpubDocument.Load(epubPath, CreateStructuredOptions(epubOptions), cancellationToken);
         return ReadDocument(document, source, options, cancellationToken);
     }
 
@@ -41,7 +41,7 @@ internal static partial class EpubReaderAdapter {
         var source = BuildSourceMetadataFromStream(parseStream, logicalSourceName, options.ComputeHashes);
         EpubDocument document;
         try {
-            document = EpubDocument.Load(parseStream, CreateStructuredOptions(epubOptions));
+            document = EpubDocument.Load(parseStream, CreateStructuredOptions(epubOptions), cancellationToken);
         } finally {
             if (ownsParseStream) {
                 parseStream.Dispose();
@@ -120,8 +120,8 @@ internal static partial class EpubReaderAdapter {
                 blockIndex++;
                 chunkPart++;
             }
-            if (chunkPart == 0 && chapter.HasStructuredContent) {
-                yield return BuildStructuredOnlyChapterChunk(
+            if (chunkPart == 0) {
+                yield return BuildEmptyChapterChunk(
                     chapter,
                     source,
                     options,
@@ -270,27 +270,7 @@ internal static partial class EpubReaderAdapter {
         return Math.Max(1, (safeText.Length + 3) / 4);
     }
 
-    private static string ComputeChunkHash(ReaderChunk chunk) {
-        var data = string.Join("|",
-            chunk.Kind.ToString(),
-            chunk.SourceId ?? string.Empty,
-            chunk.Location.Path ?? string.Empty,
-            chunk.Location.HeadingPath ?? string.Empty,
-            chunk.Location.HeadingSlug ?? string.Empty,
-            chunk.Location.SourceBlockKind ?? string.Empty,
-            chunk.Location.BlockAnchor ?? string.Empty,
-            chunk.Location.Sheet ?? string.Empty,
-            chunk.Location.A1Range ?? string.Empty,
-            chunk.Location.Page?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-            chunk.Location.Slide?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-            chunk.Location.StartLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-            chunk.Location.NormalizedStartLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-            chunk.Location.NormalizedEndLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-            chunk.Text ?? string.Empty,
-            chunk.Markdown ?? string.Empty);
-
-        return ComputeSha256Hex(data);
-    }
+    private static string ComputeChunkHash(ReaderChunk chunk) => DocumentReaderEngine.ComputeChunkHash(chunk);
 
     private static SourceMetadata BuildSourceMetadataFromPath(string epubPath, bool computeHash) {
         var normalizedPath = NormalizePathForId(epubPath);

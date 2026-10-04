@@ -6,6 +6,11 @@ using System.Globalization;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private static CellFormat GetBaseCellFormat(Stylesheet stylesheet, uint styleIndex) {
+            if (BatchFor(stylesheet) is { } batch) {
+                return batch.CellFormat(styleIndex) is { } cached
+                    ? (CellFormat)cached.CloneNode(true)
+                    : new CellFormat { NumberFormatId = 0U, FontId = 0U, FillId = 0U, BorderId = 0U, FormatId = 0U };
+            }
             var cellFormats = stylesheet.CellFormats?.Elements<CellFormat>().ToList();
             var baseFormat = cellFormats?.ElementAtOrDefault((int)styleIndex);
             if (baseFormat != null) {
@@ -43,6 +48,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static uint AppendOrReuseCellFormat(Stylesheet stylesheet, CellFormat candidate) {
+            if (BatchFor(stylesheet) is { } batch) return batch.CellFormatIndex(candidate);
             var cellFormats = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
             var existing = cellFormats.Elements<CellFormat>()
                 .Select((format, index) => new { format, index })
@@ -57,6 +63,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static uint GetOrCreateFill(Stylesheet stylesheet, Fill candidate) {
+            if (BatchFor(stylesheet) is { } batch) return batch.FillIndex(candidate);
             var fills = stylesheet.Fills ??= new Fills();
             var existing = fills.Elements<Fill>()
                 .Select((fill, index) => new { fill, index })
@@ -71,6 +78,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static uint GetOrCreateNumberFormatId(Stylesheet stylesheet, string numberFormat) {
+            if (BatchFor(stylesheet) is { } batch) return batch.NumberFormatId(numberFormat);
             stylesheet.NumberingFormats ??= new NumberingFormats();
             NumberingFormat? existingFormat = stylesheet.NumberingFormats.Elements<NumberingFormat>()
                 .FirstOrDefault(n => n.FormatCode != null && n.FormatCode.Value == numberFormat);
@@ -114,13 +122,18 @@ namespace OfficeIMO.Excel {
 
         private static uint GetOrCreateFontVariant(Stylesheet stylesheet, uint? baseFontId, Action<DocumentFormat.OpenXml.Spreadsheet.Font> mutate) {
             var fonts = stylesheet.Fonts ??= new Fonts(new DocumentFormat.OpenXml.Spreadsheet.Font());
-            var baseFont = fonts.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ElementAtOrDefault((int)(baseFontId ?? 0U));
+            StyleBatch? batch = BatchFor(stylesheet);
+            var baseFont = batch is not null
+                ? batch.Font(baseFontId ?? 0U)
+                : fonts.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ElementAtOrDefault((int)(baseFontId ?? 0U));
             var candidate = baseFont != null
                 ? (DocumentFormat.OpenXml.Spreadsheet.Font)baseFont.CloneNode(true)
                 : new DocumentFormat.OpenXml.Spreadsheet.Font();
 
             mutate(candidate);
             NormalizeFontChildOrder(candidate);
+
+            if (batch is not null) return batch.FontIndex(candidate);
 
             var existing = fonts.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>()
                 .Select((font, index) => new { font, index })

@@ -11,7 +11,7 @@ public sealed partial class ProjectDocument {
             Target.Work = Plan.Work; Target.ActualWork = Plan.ActualWork; Target.RemainingWork = Plan.RemainingWork;
             Target.OvertimeWork = Plan.OvertimeWork; Target.ActualOvertimeWork = Plan.ActualOvertimeWork;
             Target.Cost = Plan.Cost; Target.ActualCost = Plan.ActualCost; Target.RemainingCost = Plan.RemainingCost;
-            Target.PercentWorkComplete = Plan.Work.Minutes == 0 ? 0 : (int)decimal.Round(Plan.ActualWork.Minutes / Plan.Work.Minutes * 100m, 0, MidpointRounding.AwayFromZero);
+            Target.PercentWorkComplete = ProjectTimeUnits.Percentage(Plan.ActualWork, Plan.Work);
             foreach (var value in Target.TimephasedData.Where(v => v.Type.HasValue && ReplacedTypes.Contains(v.Type.Value)).ToArray()) Target.TimephasedData.Remove(value);
             foreach (var value in Values) {
                 var item = Target.TimephasedData.Add(); item.Type = value.Type; item.Uid = Target.Uid;
@@ -43,7 +43,7 @@ public sealed partial class ProjectDocument {
                 if (lastFinish.HasValue && interval.Start > lastFinish.Value)
                     update.Values.Add((1, lastFinish.Value, interval.Start, "PT0H0M0S"));
                 update.Values.Add((1, interval.Start, interval.Finish,
-                    ProjectXmlValue.Work(new ProjectWork(interval.Work.Minutes - interval.OvertimeWork.Minutes))!));
+                    ProjectXmlValue.Work(ProjectWork.Subtract(interval.Work, interval.OvertimeWork))!));
                 lastFinish = interval.Finish;
             }
             if (plan.ActualCost != target.ActualCost || result.RecalculatedActualCosts && plan.Cost.HasValue) update.ReplacedTypes.Add(6);
@@ -56,11 +56,10 @@ public sealed partial class ProjectDocument {
     }
     private sealed class ResourceUpdate {
         internal ProjectResource Target = null!;
-        internal decimal? Work, ActualWork, RemainingWork, Cost, ActualCost, RemainingCost;
+        internal ProjectWork? Work, ActualWork, RemainingWork;
+        internal decimal? Cost, ActualCost, RemainingCost;
         internal void Apply() {
-            Target.Work = Work.HasValue ? new ProjectWork(Work.Value) : (ProjectWork?)null;
-            Target.ActualWork = ActualWork.HasValue ? new ProjectWork(ActualWork.Value) : (ProjectWork?)null;
-            Target.RemainingWork = RemainingWork.HasValue ? new ProjectWork(RemainingWork.Value) : (ProjectWork?)null;
+            Target.Work = Work; Target.ActualWork = ActualWork; Target.RemainingWork = RemainingWork;
             Target.Cost = Cost; Target.ActualCost = ActualCost; Target.RemainingCost = RemainingCost;
         }
     }
@@ -69,15 +68,20 @@ public sealed partial class ProjectDocument {
         var plans = result.Assignments.ToDictionary(a => a.AssignmentUid);
         var updates = new List<ResourceUpdate>();
         decimal? Sum(IEnumerable<decimal?> values) { decimal total = 0; foreach (var value in values) { if (!value.HasValue) return null; total = checked(total + value.Value); } return total; }
+        ProjectWork? SumWork(IEnumerable<ProjectWork?> values) {
+            var complete = new List<ProjectWork>();
+            foreach (var value in values) { if (!value.HasValue) return null; complete.Add(value.Value); }
+            return ProjectWork.Sum(complete);
+        }
         var assignmentsByResource = Assignments.Where(a => a.Resource != null).ToLookup(a => a.Resource!);
         foreach (var resource in Resources) {
             var group = assignmentsByResource[resource].ToArray();
             if (group.Length != 0 && !group.Any(a => plans.ContainsKey(a.Uid))) continue;
             var entries = group.Select(a => (Source: a, Plan: plans.TryGetValue(a.Uid, out var plan) ? plan : null)).ToArray();
             updates.Add(new ResourceUpdate { Target = resource,
-                Work = Sum(entries.Select(e => e.Plan == null ? e.Source.Work?.Minutes : e.Plan.Work.Minutes)),
-                ActualWork = Sum(entries.Select(e => e.Plan == null ? e.Source.ActualWork?.Minutes : e.Plan.ActualWork.Minutes)),
-                RemainingWork = Sum(entries.Select(e => e.Plan == null ? e.Source.RemainingWork?.Minutes : e.Plan.RemainingWork.Minutes)),
+                Work = SumWork(entries.Select(e => e.Plan == null ? e.Source.Work : e.Plan.Work)),
+                ActualWork = SumWork(entries.Select(e => e.Plan == null ? e.Source.ActualWork : e.Plan.ActualWork)),
+                RemainingWork = SumWork(entries.Select(e => e.Plan == null ? e.Source.RemainingWork : e.Plan.RemainingWork)),
                 Cost = Sum(entries.Select(e => e.Plan == null ? e.Source.Cost : e.Plan.Cost)),
                 ActualCost = Sum(entries.Select(e => e.Plan == null ? e.Source.ActualCost : e.Plan.ActualCost)),
                 RemainingCost = Sum(entries.Select(e => e.Plan == null ? e.Source.RemainingCost : e.Plan.RemainingCost)) });

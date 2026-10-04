@@ -45,6 +45,14 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        /// <summary>Sets an explicit no-fill slide background, overriding inherited theme fills.</summary>
+        public void SetBackgroundNoFill() {
+            CommonSlideData common = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
+            Background background = new Background();
+            background.BackgroundProperties = new BackgroundProperties(new A.NoFill());
+            common.Background = background;
+        }
+
         /// <summary>
         ///     Sets a background image for the slide.
         /// </summary>

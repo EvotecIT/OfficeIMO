@@ -39,5 +39,5 @@ results are not detached from their environment.
 Treat cold elapsed time as directional on a busy workstation. Managed
 allocations and output size are normally more stable. Peak working set includes
 runtime startup and should only be compared between isolated probes on similar
-environments. Establish repeated Windows and non-Windows baselines before
+environments. A `null` peak-working-set value means the runtime did not expose that measurement; it is not a zero-memory result. Establish repeated Windows and non-Windows baselines before
 turning these measurements into regression budgets.

@@ -13,9 +13,17 @@ public sealed partial class LatexDocument {
 
     /// <summary>Loads a LaTeX document from a caller-owned stream with syntax and recovery diagnostics.</summary>
     public static LatexParseResult LoadResult(Stream stream, LatexParseOptions? options = null, Encoding? encoding = null) {
-        options ??= new LatexParseOptions();
-        byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, options.MaximumInputBytes);
-        return ParseResult(Decode(bytes, encoding, options), options);
+        return LoadResult(stream, options, encoding, CancellationToken.None);
+    }
+
+    /// <summary>Loads a caller-owned stream with byte and character limits and cooperative cancellation.</summary>
+    public static LatexParseResult LoadResult(Stream stream, LatexParseOptions? options, Encoding? encoding, CancellationToken cancellationToken) {
+        options = (options ?? new LatexParseOptions()).Clone();
+        cancellationToken.ThrowIfCancellationRequested();
+        LatexTokenizer.Validate(string.Empty, options);
+        byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, cancellationToken, options.MaximumInputBytes);
+        cancellationToken.ThrowIfCancellationRequested();
+        return ParseResult(Decode(bytes, encoding, options), options, cancellationToken);
     }
 
     /// <summary>Asynchronously loads and parses a LaTeX file.</summary>
@@ -51,7 +59,9 @@ public sealed partial class LatexDocument {
         LatexParseOptions? options = null,
         Encoding? encoding = null,
         CancellationToken cancellationToken = default) {
-        options ??= new LatexParseOptions();
+        options = (options ?? new LatexParseOptions()).Clone();
+        cancellationToken.ThrowIfCancellationRequested();
+        LatexTokenizer.Validate(string.Empty, options);
         byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(
             stream,
             cancellationToken,

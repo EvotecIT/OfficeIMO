@@ -359,7 +359,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.Bullet:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
                         LevelText = new LevelText() { Val = "\u2022" },
@@ -372,7 +371,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.BulletSquareSymbol:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
                         LevelText = new LevelText() { Val = "\u25A0" },
@@ -385,7 +383,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.BulletBlackCircle:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
                         LevelText = new LevelText() { Val = "\u25CF" },
@@ -398,7 +395,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.BulletDiamondSymbol:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
                         LevelText = new LevelText() { Val = "\u25C6" },
@@ -411,7 +407,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.BulletArrowSymbol:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
                         LevelText = new LevelText() { Val = "\u25BA" },
@@ -424,7 +419,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.BulletSolidRound:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
                         LevelText = new LevelText() { Val = "·" },
@@ -440,7 +434,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.BulletOpenCircle:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
                         LevelText = new LevelText() { Val = "o" },
@@ -456,7 +449,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.BulletSquare2:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
                         LevelText = new LevelText() { Val = "■" },
@@ -469,7 +461,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.BulletSquare:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
                         LevelText = new LevelText() { Val = "§" },
@@ -485,7 +476,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.BulletClubs:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
                         LevelText = new LevelText() { Val = "v" },
@@ -501,7 +491,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.BulletArrow:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
                         LevelText = new LevelText() { Val = "Ø" },
@@ -517,7 +506,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.BulletDiamond:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
                         LevelText = new LevelText() { Val = "¨" },
@@ -533,7 +521,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.BulletCheckmark:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Bullet },
                         LevelText = new LevelText() { Val = "ü" },
@@ -549,7 +536,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.Decimal:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Decimal },
                         LevelText = new LevelText() { Val = "%CurrentLevel" },
@@ -562,7 +548,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.DecimalBracket:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Decimal },
                         LevelText = new LevelText() { Val = "%CurrentLevel)" },
@@ -575,7 +560,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.DecimalDot:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.Decimal },
                         LevelText = new LevelText() { Val = "%CurrentLevel." },
@@ -588,7 +572,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.LowerLetter:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.LowerLetter },
                         LevelText = new LevelText() { Val = "%CurrentLevel" },
@@ -601,7 +584,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.LowerLetterBracket:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.LowerLetter },
                         LevelText = new LevelText() { Val = "%CurrentLevel)" },
@@ -614,7 +596,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.LowerLetterDot:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.LowerLetter },
                         LevelText = new LevelText() { Val = "%CurrentLevel." },
@@ -627,7 +608,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.UpperLetter:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.UpperLetter },
                         LevelText = new LevelText() { Val = "%CurrentLevel" },
@@ -640,7 +620,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.UpperLetterBracket:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.UpperLetter },
                         LevelText = new LevelText() { Val = "%CurrentLevel)" },
@@ -653,7 +632,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.UpperLetterDot:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.UpperLetter },
                         LevelText = new LevelText() { Val = "%CurrentLevel." },
@@ -666,7 +644,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.LowerRoman:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.LowerRoman },
                         LevelText = new LevelText() { Val = "%CurrentLevel" },
@@ -679,7 +656,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.LowerRomanBracket:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.LowerRoman },
                         LevelText = new LevelText() { Val = "%CurrentLevel)" },
@@ -692,7 +668,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.LowerRomanDot:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.LowerRoman },
                         LevelText = new LevelText() { Val = "%CurrentLevel." },
@@ -705,7 +680,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.UpperRoman:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.UpperRoman },
                         LevelText = new LevelText() { Val = "%CurrentLevel" },
@@ -718,7 +692,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.UpperRomanBracket:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.UpperRoman },
                         LevelText = new LevelText() { Val = "%CurrentLevel)" },
@@ -731,7 +704,6 @@ namespace OfficeIMO.Word {
                 case WordListLevelKind.UpperRomanDot:
                     _level = new Level() {
                         LevelIndex = 0,
-                        TemplateCode = "",
                         StartNumberingValue = new StartNumberingValue() { Val = 1 },
                         NumberingFormat = new NumberingFormat() { Val = NumberFormatValues.UpperRoman },
                         LevelText = new LevelText() { Val = "%CurrentLevel." },

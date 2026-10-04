@@ -10,6 +10,9 @@ public sealed class ProcessOcrRequest {
     public string SchemaId { get; set; } = ProcessOcrProtocol.RequestSchemaId;
     /// <summary>Protocol schema version.</summary>
     public int SchemaVersion { get; set; } = ProcessOcrProtocol.Version;
+    /// <summary>Requested operation. Absent for text recognition to preserve existing version-2 bridges; orientation requires an explicitly capable bridge.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public OcrOperation Operation { get; set; }
     /// <summary>Caller-owned recognition candidate identifier.</summary>
     public string? CandidateId { get; set; }
     /// <summary>Caller-defined candidate kind.</summary>

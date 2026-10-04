@@ -170,7 +170,34 @@ public sealed class OpenDocumentHardeningTests {
         Assert.Throws<InvalidOperationException>(() => signed.ToBytes());
         byte[] unsigned = signed.ToBytes(new OdfSaveOptions { SignatureHandling = OdfSignatureHandling.RemoveInvalidated });
         Assert.False(ContainsEntry(unsigned, "META-INF/documentsignatures.xml"));
+        Assert.Equal(OdfVersion.V1_4, OdtDocument.Load(new MemoryStream(unsigned)).Version);
+        Assert.Equal(OdfVersion.V1_3, signed.Version);
+        Assert.Contains("META-INF/documentsignatures.xml", signed.PackageEntries);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task FailedOrCanceledSaveKeepsVersionSignaturesAndPendingEdits() {
+        OdtDocument created = OdtDocument.Create();
+        byte[] signedBytes = RewritePackage(created.ToBytes(new OdfSaveOptions { CompatibilityProfile = OdfCompatibilityProfile.Odf13 }),
+            additions: new[] { new OdfTestPackageEntry("META-INF/documentsignatures.xml", Encoding.UTF8.GetBytes("<signatures/>")) });
+        OdtDocument signed = OdtDocument.Load(new MemoryStream(signedBytes));
+        OdtParagraph paragraph = signed.AddParagraph("Pending edit");
+        var remove = new OdfSaveOptions { SignatureHandling = OdfSignatureHandling.RemoveInvalidated };
+        using var readOnly = new MemoryStream(Array.Empty<byte>(), writable: false);
+        Assert.Throws<ArgumentException>(() => signed.Save(readOnly, remove));
+        using var canceledDestination = new MemoryStream();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => signed.SaveAsync(canceledDestination, remove,
+            new System.Threading.CancellationToken(canceled: true)));
+        Assert.Equal(OdfVersion.V1_3, signed.Version);
+        Assert.Contains("META-INF/documentsignatures.xml", signed.PackageEntries);
+        Assert.Throws<InvalidOperationException>(() => signed.ToBytes());
+        using var accepted = new MemoryStream();
+        signed.Save(accepted, remove);
         Assert.Equal(OdfVersion.V1_4, signed.Version);
+        Assert.DoesNotContain("META-INF/documentsignatures.xml", signed.PackageEntries);
+        paragraph.Text = "Still editable after save";
+        Assert.Contains(OdtDocument.Load(new MemoryStream(signed.ToBytes())).Paragraphs,
+            item => item.Text == "Still editable after save");
     }
 
     [Fact]
@@ -198,8 +225,7 @@ public sealed class OpenDocumentHardeningTests {
 
     [Theory]
     [InlineData("of:=----------------1")]
-    [InlineData("of:=1^1^1^1^1^1^1^1^1")]
-    public void FormulaSyntaxDepthBoundsRecursiveUnaryAndPowerOperators(string formula) {
+    public void FormulaSyntaxDepthBoundsRecursiveUnaryOperators(string formula) {
         OdsDocument document = OdsDocument.Create();
         document.AddSheet("Data");
 

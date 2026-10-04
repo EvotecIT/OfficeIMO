@@ -14,6 +14,7 @@ internal static partial class DocumentReaderEngine {
         CancellationToken cancellationToken = default) {
         ValidateReadableStream(stream);
         ReaderOptions effective = NormalizeOptions(options);
+        using var readScope = ReaderReadScope.Enter(effective);
         string logicalName = NormalizeLogicalSourceName(sourceName, "memory");
         Stream readStream = ReaderInputLimits.EnsureSeekableReadStream(
             stream,
@@ -48,9 +49,19 @@ internal static partial class DocumentReaderEngine {
         string logicalName,
         ReaderOptions effective,
         ReaderHandlerDescriptor handler,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken) =>
+        ReadResolvedStream(readStream, logicalName, effective, handler, cancellationToken, out _);
+
+    private static ReaderChunk[] ReadResolvedStream(
+        Stream readStream,
+        string logicalName,
+        ReaderOptions effective,
+        ReaderHandlerDescriptor handler,
+        CancellationToken cancellationToken,
+        out SourceInfo source,
+        SourceInfo? sourceOverride = null) {
         long position = readStream.Position;
-        SourceInfo source = BuildSourceInfoFromStream(readStream, logicalName,
+        source = sourceOverride ?? BuildSourceInfoFromStream(readStream, logicalName,
             ShouldComputeSourceHash(handler, effective), cancellationToken);
         readStream.Position = position;
         IEnumerable<ReaderChunk> chunks;
@@ -61,15 +72,16 @@ internal static partial class DocumentReaderEngine {
             OfficeDocumentReadResult result = ValidateDocumentResult(
                 handler.ReadDocumentStream(readStream, logicalName, effective, cancellationToken),
                 handler.Id);
-            chunks = result.Chunks ?? Array.Empty<ReaderChunk>();
+            chunks = ReaderReadScope.Complete(result).Chunks ?? Array.Empty<ReaderChunk>();
         } else if (handler.ReadDocumentStreamAsync != null) {
             throw CreateAsyncOnlyHandlerException(handler.Id, "stream");
         } else {
             throw new NotSupportedException($"Reader handler '{handler.Id}' does not support stream input.");
         }
 
+        SourceInfo chunkSource = source;
         return chunks
-            .Select(chunk => EnrichChunk(chunk, source, effective.ComputeHashes))
+            .Select(chunk => EnrichChunk(chunk, chunkSource, effective.ComputeHashes))
             .ToArray();
     }
 

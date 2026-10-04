@@ -43,7 +43,10 @@ namespace OfficeIMO.Excel.Utilities {
             if (string.IsNullOrWhiteSpace(formula)) return string.Empty;
             string f = formula!.Trim();
             if (f.StartsWith("=", StringComparison.Ordinal)) f = f.Substring(1);
-            return SanitizeString(f, maxLength: 8192); // practical limit for formulas
+            string stored = ExcelFormulaStorage.PrepareForXlsx(SanitizeString(f, maxLength: 8192));
+            if (stored.Length > 8192)
+                throw new ArgumentException("The formula exceeds the XLSX storage limit after function-prefix expansion.", nameof(formula));
+            return stored;
         }
     }
 }

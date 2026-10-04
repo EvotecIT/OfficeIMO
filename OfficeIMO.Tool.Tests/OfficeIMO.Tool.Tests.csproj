@@ -34,6 +34,7 @@
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Pdf.Ocr\OfficeIMO.Pdf.Ocr.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.IWork\OfficeIMO.Reader.IWork.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Markdown\OfficeIMO.Reader.Markdown.csproj" />
   </ItemGroup>
 
@@ -45,6 +46,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\numbers-parser\test-10-formulas.numbers" Link="Documents\IWorkCorpus\numbers-parser\test-10-formulas.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\nim-iwork\simple.numbers" Link="Documents\IWorkCorpus\nim-iwork\simple.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\keynotekit\tabledeck-v15.2.1.key" Link="Documents\IWorkCorpus\keynotekit\tabledeck-v15.2.1.key" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\nim-iwork\simple.pages"
+          Link="Documents\IWorkCorpus\nim-iwork\simple.pages" CopyToOutputDirectory="PreserveNewest" />
     <Using Include="System" />
     <Using Include="System.Collections.Generic" />
     <Using Include="System.IO" />

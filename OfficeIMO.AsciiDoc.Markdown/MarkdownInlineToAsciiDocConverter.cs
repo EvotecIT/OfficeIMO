@@ -10,15 +10,15 @@ internal static class MarkdownInlineToAsciiDocConverter {
             IMarkdownInline inline = source.Nodes[index];
             switch (inline) {
                 case MarkdownTextRun text: output.Append(EscapeText(text.Text)); break;
-                case BoldInline bold: output.Append('*').Append(EscapeText(bold.Text)).Append('*'); break;
-                case BoldSequenceInline bold: output.Append('*').Append(Convert(bold.Inlines, diagnostics, owner)).Append('*'); break;
-                case BoldItalicInline boldItalic: output.Append("*_").Append(EscapeText(boldItalic.Text)).Append("_*"); break;
-                case BoldItalicSequenceInline boldItalic: output.Append("*_").Append(Convert(boldItalic.Inlines, diagnostics, owner)).Append("_*"); break;
-                case ItalicInline italic: output.Append('_').Append(EscapeText(italic.Text)).Append('_'); break;
-                case ItalicSequenceInline italic: output.Append('_').Append(Convert(italic.Inlines, diagnostics, owner)).Append('_'); break;
-                case CodeSpanInline code: output.Append('`').Append(code.Text.Replace("`", "\\`")).Append('`'); break;
-                case HighlightInline highlight: output.Append('#').Append(EscapeText(highlight.Text)).Append('#'); break;
-                case HighlightSequenceInline highlight: output.Append('#').Append(Convert(highlight.Inlines, diagnostics, owner)).Append('#'); break;
+                case BoldInline bold: AppendFormatted(output, "*", EscapeText(bold.Text), source, index); break;
+                case BoldSequenceInline bold: AppendFormatted(output, "*", Convert(bold.Inlines, diagnostics, owner), source, index); break;
+                case BoldItalicInline boldItalic: AppendFormatted(output, "*_", EscapeText(boldItalic.Text), source, index); break;
+                case BoldItalicSequenceInline boldItalic: AppendFormatted(output, "*_", Convert(boldItalic.Inlines, diagnostics, owner), source, index); break;
+                case ItalicInline italic: AppendFormatted(output, "_", EscapeText(italic.Text), source, index); break;
+                case ItalicSequenceInline italic: AppendFormatted(output, "_", Convert(italic.Inlines, diagnostics, owner), source, index); break;
+                case CodeSpanInline code: AppendFormatted(output, "`", EscapeText(code.Text), source, index); break;
+                case HighlightInline highlight: AppendFormatted(output, "#", EscapeText(highlight.Text), source, index); break;
+                case HighlightSequenceInline highlight: AppendFormatted(output, "#", Convert(highlight.Inlines, diagnostics, owner), source, index); break;
                 case SuperscriptInline superscript: output.Append('^').Append(EscapeText(superscript.Text)).Append('^'); break;
                 case SuperscriptSequenceInline superscript: output.Append('^').Append(Convert(superscript.Inlines, diagnostics, owner)).Append('^'); break;
                 case SubscriptInline subscript: output.Append('~').Append(EscapeText(subscript.Text)).Append('~'); break;
@@ -70,10 +70,25 @@ internal static class MarkdownInlineToAsciiDocConverter {
         var output = new System.Text.StringBuilder(value.Length);
         for (int index = 0; index < value.Length; index++) {
             char current = value[index];
-            if ("\\*_`#~^{}".IndexOf(current) >= 0) output.Append('\\');
+            if ("\\*_`#~^{}[]<>".IndexOf(current) >= 0) output.Append('\\');
             output.Append(current);
         }
         return output.ToString();
+    }
+
+    private static void AppendFormatted(System.Text.StringBuilder output, string markers, string content, InlineSequence source, int index) {
+        char? before = output.Length == 0 ? null : (char?)output[output.Length - 1];
+        char? after = null;
+        if (index + 1 < source.Nodes.Count) {
+            IMarkdownInline next = source.Nodes[index + 1];
+            after = next is MarkdownTextRun text && text.Text.Length > 0 ? text.Text[0]
+                : next is SoftBreakInline || next is HardBreakInline ? '\n' : '_';
+        }
+        bool unconstrained = !AsciiDocInlineFormattingRules.CanOpen(before, content.Length == 0 ? null : (char?)content[0]) ||
+            !AsciiDocInlineFormattingRules.CanClose(content.Length == 0 ? null : (char?)content[content.Length - 1], after);
+        string opening = unconstrained ? string.Concat(markers.Select(marker => new string(marker, 2))) : markers;
+        string closing = new string(opening.Reverse().ToArray());
+        output.Append(opening).Append(content).Append(closing);
     }
 
     private static string EscapeTarget(string value) => value.Replace("[", "\\[").Replace("]", "\\]");

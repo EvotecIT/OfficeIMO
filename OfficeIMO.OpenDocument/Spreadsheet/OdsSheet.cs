@@ -4,13 +4,20 @@ namespace OfficeIMO.OpenDocument;
 public sealed partial class OdsSheet {
     /// <summary>Default maximum number of cells that one merge operation may materialize.</summary>
     public const long DefaultMaximumMergeCells = 100_000;
+    /// <summary>Maximum number of embedded chart frames projected from one sheet.</summary>
+    public const int DefaultMaximumChartFrames = 256;
 
     private readonly OdsDocument _document;
+    private int _editExternalVersion = -1;
     private XElement? _lastEditedRow;
     private long _lastEditedRowStart;
     private XElement? _lastEditedCellRow;
     private XElement? _lastEditedCell;
     private long _lastEditedCellStart;
+    private IReadOnlyList<OdsColumnRun>? _cachedColumnRuns;
+    private int _columnRunsContentVersion = -1;
+    private int _columnRunsExternalVersion = -1;
+    private bool _cachedHasColumnDefaults;
 
     internal OdsSheet(OdsDocument document, XElement element) { _document = document; Element = element; }
 
@@ -35,34 +42,58 @@ public sealed partial class OdsSheet {
     /// <summary>Embedded charts whose chart content can be read safely from this package.</summary>
     public IReadOnlyList<OdsChart> Charts {
         get {
-            var charts = new List<OdsChart>();
-            long rowIndex = 0;
-            foreach (XElement row in RowElements()) {
-                long rowRepeat = OdsRepeatModel.Read(row, OdfNamespaces.Table + "number-rows-repeated");
-                long columnIndex = 0;
-                foreach (XElement cell in CellElements(row)) {
-                    long columnRepeat = OdsRepeatModel.Read(cell, OdfNamespaces.Table + "number-columns-repeated");
-                    if (rowRepeat == 1 && columnRepeat == 1) {
-                        foreach (XElement frame in cell.Descendants(OdfNamespaces.Draw + "frame")) {
-                            if (frame.Element(OdfNamespaces.Draw + "object") == null) continue;
-                            OdsChart? chart = OdsChart.TryRead(_document, frame, rowIndex, columnIndex);
-                            if (chart != null) charts.Add(chart);
-                        }
-                    }
-                    columnIndex = checked(columnIndex + columnRepeat);
-                }
-                rowIndex = checked(rowIndex + rowRepeat);
-            }
-            XElement? shapes = Element.Element(OdfNamespaces.Table + "shapes");
-            if (shapes != null) {
-                foreach (XElement frame in shapes.Descendants(OdfNamespaces.Draw + "frame")) {
-                    if (frame.Element(OdfNamespaces.Draw + "object") == null) continue;
-                    OdsChart? chart = OdsChart.TryRead(_document, frame, null, null);
-                    if (chart != null) charts.Add(chart);
-                }
-            }
+            IReadOnlyList<OdsChart> charts = GetCharts(DefaultMaximumChartFrames, out bool truncated);
+            if (truncated) throw new NotSupportedException("The sheet exceeds the embedded chart frame limit.");
             return charts;
         }
+    }
+
+    internal IReadOnlyList<OdsChart> GetCharts(int maximumFrames, out bool truncated) {
+        if (maximumFrames < 1) throw new ArgumentOutOfRangeException(nameof(maximumFrames));
+        var charts = new List<OdsChart>();
+        var parsedParts = new Dictionary<string, OdsChart?>(StringComparer.Ordinal);
+        int frames = 0;
+        bool reachedLimit = false;
+        void AddFrame(XElement frame, long? anchorRow, long? anchorColumn) {
+            if (frame.Element(OdfNamespaces.Draw + "object") == null) return;
+            if (++frames > maximumFrames) { reachedLimit = true; return; }
+            if (!OdsChart.TryGetContentPath(frame, out _, out string partPath)) return;
+            if (!parsedParts.TryGetValue(partPath, out OdsChart? template)) {
+                template = OdsChart.TryRead(_document, frame, anchorRow, anchorColumn);
+                parsedParts.Add(partPath, template);
+                if (template != null) charts.Add(template);
+            } else if (template != null) {
+                try { charts.Add(template.WithFrame(frame, anchorRow, anchorColumn)); }
+                catch (InvalidDataException) { /* A malformed frame is not a readable chart. */ }
+            }
+        }
+        long rowIndex = 0;
+        foreach (XElement row in RowElements()) {
+            long rowRepeat = OdsRepeatModel.Read(row, OdfNamespaces.Table + "number-rows-repeated");
+            long columnIndex = 0;
+            foreach (XElement cell in CellElements(row)) {
+                long columnRepeat = OdsRepeatModel.Read(cell, OdfNamespaces.Table + "number-columns-repeated");
+                if (rowRepeat == 1 && columnRepeat == 1) {
+                    foreach (XElement frame in cell.Descendants(OdfNamespaces.Draw + "frame")) {
+                        AddFrame(frame, rowIndex, columnIndex);
+                        if (reachedLimit) break;
+                    }
+                }
+                if (reachedLimit) break;
+                columnIndex = checked(columnIndex + columnRepeat);
+            }
+            if (reachedLimit) break;
+            rowIndex = checked(rowIndex + rowRepeat);
+        }
+        XElement? shapes = Element.Element(OdfNamespaces.Table + "shapes");
+        if (!reachedLimit && shapes != null) {
+            foreach (XElement frame in shapes.Descendants(OdfNamespaces.Draw + "frame")) {
+                AddFrame(frame, null, null);
+                if (reachedLimit) break;
+            }
+        }
+        truncated = reachedLimit;
+        return charts;
     }
 
     /// <summary>Optional ODF print range expression.</summary>
@@ -76,15 +107,37 @@ public sealed partial class OdsSheet {
 
     internal IReadOnlyList<OdsRowRun> GetRowRuns(IReadOnlyList<OdsColumnRun>? columnRuns = null) {
         var runs = new List<OdsRowRun>();
+        Func<IReadOnlyList<OdsColumnRun>> getColumns;
+        Func<bool> hasColumnDefaults;
+        if (columnRuns == null) {
+            getColumns = GetCachedColumnRuns;
+            hasColumnDefaults = () => _cachedHasColumnDefaults;
+        } else {
+            IReadOnlyList<OdsColumnRun> fixedColumns = columnRuns;
+            bool fixedHasDefaults = fixedColumns.Any(column => column.DefaultCellStyleName != null);
+            getColumns = () => fixedColumns;
+            hasColumnDefaults = () => fixedHasDefaults;
+        }
         long start = 0;
         foreach (XElement row in RowElements()) {
             long repeat = OdsRepeatModel.Read(row, OdfNamespaces.Table + "number-rows-repeated");
             runs.Add(new OdsRowRun(_document, row, start, repeat,
-                column => GetDefaultCellStyleName(row, column, columnRuns ?? ColumnRuns),
-                () => columnRuns ?? ColumnRuns));
+                column => GetDefaultCellStyleName(row, column, getColumns()),
+                getColumns, hasColumnDefaults));
             start = checked(start + repeat);
         }
         return runs;
+    }
+
+    private IReadOnlyList<OdsColumnRun> GetCachedColumnRuns() {
+        if (_cachedColumnRuns == null || _columnRunsContentVersion != _document.Package.ContentEditVersion ||
+            _columnRunsExternalVersion != _document.Package.ExternalXmlEditVersion) {
+            _cachedColumnRuns = ColumnRuns;
+            _cachedHasColumnDefaults = _cachedColumnRuns.Any(column => column.DefaultCellStyleName != null);
+            _columnRunsContentVersion = _document.Package.ContentEditVersion;
+            _columnRunsExternalVersion = _document.Package.ExternalXmlEditVersion;
+        }
+        return _cachedColumnRuns;
     }
 
     /// <summary>Sparse column definition runs without expanding repeats.</summary>
@@ -174,30 +227,16 @@ public sealed partial class OdsSheet {
     public OdsCellValue GetValue(long row, long column) {
         if (row < 0) throw new ArgumentOutOfRangeException(nameof(row));
         if (column < 0) throw new ArgumentOutOfRangeException(nameof(column));
-        XElement? rowElement = FindPrototypeRow(row);
-        if (rowElement == null) return OdsCellValue.Empty;
-        long start = 0;
-        foreach (XElement cell in CellElements(rowElement)) {
-            long count = OdsRepeatModel.Read(cell, OdfNamespaces.Table + "number-columns-repeated");
-            if (column < checked(start + count)) return OdsCell.ReadValue(cell);
-            start = checked(start + count);
-        }
-        return OdsCellValue.Empty;
+        XElement? cell = FindPrototypeCell(row, column);
+        return cell == null ? OdsCellValue.Empty : OdsCell.ReadValue(cell);
     }
 
     /// <summary>Reads a formula without splitting or expanding repeat runs.</summary>
     public string? GetFormula(long row, long column) {
         if (row < 0) throw new ArgumentOutOfRangeException(nameof(row));
         if (column < 0) throw new ArgumentOutOfRangeException(nameof(column));
-        XElement? rowElement = FindPrototypeRow(row);
-        if (rowElement == null) return null;
-        long start = 0;
-        foreach (XElement cell in CellElements(rowElement)) {
-            long count = OdsRepeatModel.Read(cell, OdfNamespaces.Table + "number-columns-repeated");
-            if (column < checked(start + count)) return (string?)cell.Attribute(OdfNamespaces.Table + "formula");
-            start = checked(start + count);
-        }
-        return null;
+        XElement? cell = FindPrototypeCell(row, column);
+        return (string?)cell?.Attribute(OdfNamespaces.Table + "formula");
     }
 
     /// <summary>Merges a rectangular cell range and marks non-anchor positions as covered cells.</summary>
@@ -260,6 +299,12 @@ public sealed partial class OdsSheet {
         .Where(column => ReferenceEquals(column.Ancestors(OdfNamespaces.Table + "table").FirstOrDefault(), Element));
 
     private XElement GetRowForEdit(long rowIndex) {
+        if (_editExternalVersion != _document.Package.ExternalXmlEditVersion) {
+            _lastEditedRow = null;
+            _lastEditedCellRow = null;
+            _lastEditedCell = null;
+            _editExternalVersion = _document.Package.ExternalXmlEditVersion;
+        }
         long start = 0;
         IEnumerable<XElement> candidates = RowElements();
         if (_lastEditedRow?.Parent != null && rowIndex >= _lastEditedRowStart) {
@@ -295,16 +340,6 @@ public sealed partial class OdsSheet {
         CacheRow(result, rowIndex);
         Dirty();
         return result;
-    }
-
-    private XElement? FindPrototypeRow(long rowIndex) {
-        long start = 0;
-        foreach (XElement element in RowElements()) {
-            long count = OdsRepeatModel.Read(element, OdfNamespaces.Table + "number-rows-repeated");
-            if (rowIndex < checked(start + count)) return element;
-            start = checked(start + count);
-        }
-        return null;
     }
 
     private XElement GetCellForEdit(XElement row, long columnIndex) {

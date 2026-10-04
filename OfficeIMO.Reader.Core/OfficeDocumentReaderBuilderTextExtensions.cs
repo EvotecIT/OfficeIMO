@@ -31,10 +31,16 @@ public static class OfficeDocumentReaderBuilderTextExtensions {
                 : "Last-resort bounded byte-to-text projection for inputs no format handler accepts.",
             Kind = kind,
             Extensions = extensions,
+            FormatQualifications = extensions.Select(extension => new ReaderFormatQualification(extension, "Text" + extension,
+                ReaderFormatSupport.ReadConvert, "BOM-aware text decoding", new[] { "Decoded Unicode text and normalized line breaks" },
+                new[] { "Replacement decoding is diagnosed; strict decoding is optional", "No document layout or embedded structures" },
+                new[] { "OfficeIMO.Reader.Tests/Reader.Incremental.cs" })).ToArray(),
             UseDetectedKindFallback = true,
+            SupportsIncrementalPath = true,
+            SupportsIncrementalStream = true,
             ReadPath = (path, options, token) => TextReaderAdapter.Read(path, kind, options, token),
             ReadStream = (stream, sourceName, options, token) => TextReaderAdapter.Read(stream, sourceName, kind, options, token),
-            WarningBehavior = kind == ReaderInputKind.Unknown ? ReaderWarningBehavior.Mixed : ReaderWarningBehavior.ExceptionsOnly,
+            WarningBehavior = ReaderWarningBehavior.Mixed,
             DeterministicOutput = true
         };
 }

@@ -1,0 +1,32 @@
+<package xmlns="http://www.idpf.org/2007/opf" xmlns:epub="http://www.idpf.org/2007/ops" version="3.0" xml:lang="en" unique-identifier="pub-id">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:coverage id="coverage">Package Documents</dc:coverage>
+    <meta refines="#coverage" property="schema:version">3.3</meta>
+    <dc:creator>Dave Cramer</dc:creator>
+    <dc:date>2021-11-22</dc:date>
+    <dc:description>Basic test of whether a reading system can display SVG spine items
+     in the correct order.</dc:description>
+    <dc:identifier id="pub-id">pkg-spine-order-svg</dc:identifier>
+    <dc:language>en</dc:language>
+    <dc:publisher>W3C</dc:publisher>
+    <dc:title>pkg-spine-order-svg</dc:title>
+    <link rel="dcterms:rights" href="https://www.w3.org/Consortium/Legal/2015/copyright-software-and-document"/>
+    <link rel="dcterms:rightsHolder" href="https://www.w3.org"/>
+    <meta property="dcterms:isReferencedBy">https://www.w3.org/TR/epub-rs/#confreq-rs-spine-order</meta>
+    <meta property="dcterms:modified">2021-11-22T00:00:00Z</meta>
+  </metadata>
+  <manifest>
+    <item id="content_001" href="1.svg" media-type="image/svg+xml"/>
+    <item id="content_002" href="2.svg" media-type="image/svg+xml"/>
+    <item id="content_003" href="3.svg" media-type="image/svg+xml"/>
+    <item id="content_004" href="4.svg" media-type="image/svg+xml"/>
+
+    <item id="nav" properties="nav" href="nav.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="content_001"/>
+    <itemref idref="content_002"/>
+    <itemref idref="content_003"/>
+    <itemref idref="content_004"/>
+  </spine>
+</package>

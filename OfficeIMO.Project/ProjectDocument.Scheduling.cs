@@ -32,8 +32,8 @@ public sealed partial class ProjectDocument {
         var resourceUpdates = PrepareResourceUpdates(result);
         var progressDurations = result.Tasks.Where(t => t.Calculation != null).ToDictionary(t => t.TaskUid, t => {
             decimal scale = ProjectXmlValue.MinutesPerUnit(t.Duration.Unit, t.Duration.IsElapsed, this);
-            return (Actual: new ProjectDuration(t.Calculation!.ActualDuration.Value / scale, t.Duration.Unit, t.Duration.IsElapsed, t.Duration.IsEstimated),
-                Remaining: new ProjectDuration(t.Calculation.RemainingDuration.Value / scale, t.Duration.Unit, t.Duration.IsElapsed, t.Duration.IsEstimated));
+            return (Actual: ProjectDuration.FromMinutes(t.Calculation!.ActualDuration.Value, t.Duration.Unit, t.Duration.IsElapsed, t.Duration.IsEstimated, scale),
+                Remaining: ProjectDuration.FromMinutes(t.Calculation.RemainingDuration.Value, t.Duration.Unit, t.Duration.IsElapsed, t.Duration.IsEstimated, scale));
         });
         using (BeginUpdate()) {
             if (result.CalculatedAssignments) Settings.ExternallyEdited = false;

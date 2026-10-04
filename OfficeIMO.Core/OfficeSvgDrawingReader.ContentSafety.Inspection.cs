@@ -631,7 +631,7 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static readonly string[] SvgUnmodeledTextGeometryProperties = {
-        "alignment-baseline", "direction", "font", "font-kerning", "font-size-adjust", "font-stretch", "font-variant",
+        "alignment-baseline", "direction", "font", "font-kerning", "font-size-adjust", "font-variant",
         "glyph-orientation-horizontal", "glyph-orientation-vertical", "kerning", "letter-spacing",
         "lengthAdjust", "stroke-width", "textLength", "text-rendering", "unicode-bidi", "white-space",
         "transform-box", "transform-origin", "word-spacing"

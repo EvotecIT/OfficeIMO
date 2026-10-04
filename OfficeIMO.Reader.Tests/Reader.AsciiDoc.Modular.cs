@@ -8,6 +8,17 @@ namespace OfficeIMO.Tests;
 [Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderAsciiDocModularTests {
     [Fact]
+    public void BlockChunksResolveExternalFootnoteDefinitionsAndHeadingReferences() {
+        var document = AsciiDocDocument.Parse("[[section]]\n== A section\n\nFirst footnote:note[Definition].\n\nSecond footnote:note[] xref:section[].\n");
+        var options = new ReaderAsciiDocOptions();
+        ReaderChunk[] chunks = AsciiDocReaderAdapter.Read(document, "references.adoc", asciiDocOptions: options).ToArray();
+        ReaderChunk second = Assert.Single(chunks, chunk => chunk.Text.StartsWith("Second", StringComparison.Ordinal));
+        Assert.Contains("Definition", second.Markdown);
+        Assert.Contains("[A section](#section)", second.Markdown);
+        Assert.DoesNotContain(second.Warnings ?? Array.Empty<string>(), warning => warning.StartsWith("ADOCREF004:", StringComparison.Ordinal) || warning.StartsWith("ADOCMD104:", StringComparison.Ordinal));
+        Assert.Null(options.MarkdownOptions.References);
+    }
+    [Fact]
     public void ReadAsciiDocDocument_EmitsTypedBlockChunksWithSourceLines() {
         const string source = "= Guide\n\n== Start\nParagraph\n\n* one\n** nested\n";
         AsciiDocDocument document = AsciiDocDocument.ParseResult(source).Document;
@@ -92,7 +103,39 @@ public sealed class ReaderAsciiDocModularTests {
             "attributes.adoc"));
 
         Assert.Contains("OfficeIMO", paragraph.Markdown, StringComparison.Ordinal);
+        Assert.Equal("Use OfficeIMO.", paragraph.Text);
         Assert.DoesNotContain("{product}", paragraph.Markdown, StringComparison.Ordinal);
         Assert.DoesNotContain(paragraph.Warnings ?? Array.Empty<string>(), warning => warning.StartsWith("ADOCMD101:", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void SourceOrderedAttributeChangesResolveInTextAndMarkdown(bool chunkByBlock) {
+        const string source = ":color: blue\n\nFirst {color}.\n\n:color: red\n\nSecond {color}.\n";
+        ReaderChunk[] chunks = AsciiDocReaderAdapter.Read(AsciiDocDocument.Parse(source), "colors.adoc",
+            asciiDocOptions: new ReaderAsciiDocOptions { ChunkByBlock = chunkByBlock }).ToArray();
+        string text = string.Join("\n", chunks.Select(chunk => chunk.Text));
+        string markdown = string.Join("\n", chunks.Select(chunk => chunk.Markdown));
+        Assert.Contains("First blue.", text);
+        Assert.Contains("Second red.", text);
+        Assert.Contains("First blue.", markdown);
+        Assert.Contains("Second red.", markdown);
+    }
+
+    [Fact]
+    public void ReaderForwardsTheConfiguredCompoundDepthLimit() {
+        AsciiDocDocument document = AsciiDocDocument.Parse("====\nParagraph\n====\n");
+        var options = new ReaderAsciiDocOptions(); options.MarkdownOptions.MaximumBlockNestingDepth = 1;
+        Assert.Throws<InvalidDataException>(() => AsciiDocReaderAdapter.Read(document, "depth.adoc", asciiDocOptions: options).ToArray());
+    }
+
+    [Fact]
+    public void StreamReaderHonorsTheNativeCharacterLimitAndRestoresCallerPosition() {
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Text longer than eight characters."), writable: false);
+        var options = new ReaderAsciiDocOptions(); options.ParseOptions.MaximumInputLength = 8;
+        Assert.Throws<InvalidDataException>(() => AsciiDocReaderAdapter.Read(stream, "limit.adoc", asciiDocOptions: options).ToArray());
+        Assert.True(stream.CanRead);
+        Assert.Equal(0, stream.Position);
     }
 }

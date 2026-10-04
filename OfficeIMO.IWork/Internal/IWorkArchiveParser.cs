@@ -5,6 +5,7 @@ namespace OfficeIMO.IWork.Internal;
 internal sealed class IWorkObjectIndex {
     private readonly Dictionary<ulong, IWorkArchiveRecord> _objects;
     private readonly Dictionary<IWorkArchiveRecord, IWorkWireMessage> _messages = new();
+    private readonly Dictionary<IWorkArchiveRecord, InvalidDataException> _malformedMessages = new();
     private readonly object _messageLock = new();
     private readonly IWorkReadOptions _options;
     private readonly CancellationToken _cancellationToken;
@@ -31,9 +32,15 @@ internal sealed class IWorkObjectIndex {
         _cancellationToken.ThrowIfCancellationRequested();
         lock (_messageLock) {
             if (_messages.TryGetValue(record, out IWorkWireMessage? cached)) return cached;
-            IWorkWireMessage parsed = IWorkProtobuf.Parse(record.Payload, _options);
-            _messages.Add(record, parsed);
-            return parsed;
+            if (_malformedMessages.TryGetValue(record, out InvalidDataException? malformed)) throw malformed;
+            try {
+                IWorkWireMessage parsed = IWorkProtobuf.Parse(record.Payload, _options);
+                _messages.Add(record, parsed);
+                return parsed;
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
+                _malformedMessages.Add(record, exception);
+                throw;
+            }
         }
     }
 
@@ -80,15 +87,22 @@ internal sealed class IWorkObjectIndex {
     }
 
     internal IReadOnlyList<IWorkArchiveRecord> DereferenceAll(IWorkWireMessage message, int field,
-        out int unresolvedReferenceCount) {
+        out int unresolvedReferenceCount) => DereferenceAll(message, field, out unresolvedReferenceCount, out _);
+
+    internal IReadOnlyList<IWorkArchiveRecord> DereferenceAll(IWorkWireMessage message, int field,
+        out int unresolvedReferenceCount, out bool rejectedReferenceSet, List<int>? resolvedPositions = null) {
         var result = new List<IWorkArchiveRecord>();
+        resolvedPositions?.Clear();
         unresolvedReferenceCount = 0;
         IReadOnlyList<IWorkWireMessage> references = TryGetMessages(message, field, out bool malformed);
+        rejectedReferenceSet = malformed;
         if (malformed) {
-            unresolvedReferenceCount = 1;
+            unresolvedReferenceCount = message.FieldCount(field);
             return result;
         }
+        int position = 0;
         foreach (IWorkWireMessage reference in references) {
+            position++;
             if (reference.FieldCount(1) != 1
                 || reference.HasUnexpectedWireKind(1, IWorkWireKind.Varint)) {
                 unresolvedReferenceCount++;
@@ -97,6 +111,7 @@ internal sealed class IWorkObjectIndex {
             ulong? identifier = reference.GetUnsigned(1);
             if (identifier.HasValue && _objects.TryGetValue(identifier.Value, out IWorkArchiveRecord? record)) {
                 result.Add(record);
+                resolvedPositions?.Add(position);
             } else {
                 unresolvedReferenceCount++;
             }
@@ -113,7 +128,7 @@ internal sealed class IWorkObjectIndex {
                 || message.HasUnexpectedWireKind(field, IWorkWireKind.Bytes);
             if (malformed) return null;
             return message.GetMessage(field);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             malformed = true;
             return null;
         }
@@ -129,7 +144,7 @@ internal sealed class IWorkObjectIndex {
             malformed = message.HasUnexpectedWireKind(field, IWorkWireKind.Bytes);
             if (malformed) return Array.Empty<IWorkWireMessage>();
             return message.GetRepeatedMessages(field);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             malformed = true;
             return Array.Empty<IWorkWireMessage>();
         }

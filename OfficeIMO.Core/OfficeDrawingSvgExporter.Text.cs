@@ -10,6 +10,7 @@ public static partial class OfficeDrawingSvgExporter {
         OfficeRasterCanvas textMetrics,
         string idPrefix,
         ref int clipPathId) {
+        using var faceScope = textMetrics.PushTextFace(text.Font.Face);
         bool useFrameTransform = text.FlipHorizontal || text.FlipVertical ||
             (text.TextDirection == OfficeTextDirection.TopToBottom && Math.Abs(text.RotationDegrees) > 0.000001D);
         if (useFrameTransform) {
@@ -52,7 +53,7 @@ public static partial class OfficeDrawingSvgExporter {
                 text.StrikethroughStyle,
                 text.DecorationColor,
                 text.FeatureSettings,
-                text.FontPalette);
+                text.FontPalette, text.Font.Face);
             sb.Append("</g>");
             if (useFrameTransform) sb.Append("</g>");
             return;
@@ -107,7 +108,7 @@ public static partial class OfficeDrawingSvgExporter {
             text.FontPalette,
             OfficeTextShapingBackend.BrowserNative,
             text.PreservesPaintedGlyphs ? OfficeTextDirection.LeftToRight : text.TextDirection,
-            text.PreservesPaintedGlyphs);
+            text.PreservesPaintedGlyphs, face: text.Font.Face);
 
         if (useFrameTransform) {
             sb.Append("</g>");
@@ -163,8 +164,9 @@ public static partial class OfficeDrawingSvgExporter {
                 wrap: text.WrapText,
                 shrinkToFit: text.ShrinkToFit,
                 paragraphIndent: text.ParagraphIndent);
-        sb.AppendSvgStyledTextBlock(
+        sb.AppendSvgStyledTextBlockWithFace(
             layout,
+            text.Font.Face,
             contentX,
             contentY + baselineOffset,
             contentWidth,

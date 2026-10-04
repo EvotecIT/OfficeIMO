@@ -46,11 +46,8 @@ namespace OfficeIMO.Excel {
             if (!TryResolveFormulaArgument(tokens[0], out FormulaArgumentValue candidate)
                 || candidate.IsUnresolvedFormula
                 || !candidate.HasValue) {
-                if (!TryInferFormulaErrorArgument(tokens[0], out string inferredErrorCode)) {
-                    return false;
-                }
-
-                candidate = FormulaArgumentValue.Error(inferredErrorCode);
+                // Only a successfully evaluated typed error activates the fallback.
+                return false;
             }
 
             if (!candidate.IsError || !shouldUseFallback(candidate.ErrorCode ?? "#VALUE!")) {
@@ -167,7 +164,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 bool isFormula = referenceSheet.TryGetExistingCell(referenceRow, referenceColumn)?.CellFormula != null;
-                result = new FormulaArgumentValue(isFormula ? 1d : 0d, isFormula ? "1" : "0", isBoolean: true);
+                result = FormulaArgumentValue.Boolean(isFormula);
                 return true;
             }
 
@@ -183,13 +180,13 @@ namespace OfficeIMO.Excel {
                     matches = !value.HasValue;
                     break;
                 case "ISNUMBER":
-                    matches = value.Number.HasValue && !value.IsBoolean;
+                    matches = value.IsNumericAggregateValue && !value.IsBoolean;
+                    break;
+                case "ISTEXT":
+                    matches = value.SourceCellKind == ExcelCellDataKind.Text || (value.Text != null && !value.Number.HasValue && !value.IsError);
                     break;
                 case "ISLOGICAL":
                     matches = value.IsBoolean;
-                    break;
-                case "ISTEXT":
-                    matches = value.Text != null && !value.Number.HasValue && !value.IsError;
                     break;
                 case "ISERROR":
                     matches = value.IsError;
@@ -204,13 +201,19 @@ namespace OfficeIMO.Excel {
                     return false;
             }
 
-            result = new FormulaArgumentValue(matches ? 1d : 0d, matches ? "1" : "0", isBoolean: true);
+            result = FormulaArgumentValue.Boolean(matches);
             return true;
         }
 
         private bool TryEvaluateReferenceShapeFunction(string function, string args, out double result) {
             result = 0;
-            var tokens = SplitFormulaArguments(args);
+            if ((function == "ROW" || function == "COLUMN") && string.IsNullOrWhiteSpace(args)) {
+                if (_formulaEvaluationCellReference == null
+                    || !TryParseCellReference(_formulaEvaluationCellReference, out int ownRow, out int ownColumn)) return false;
+                result = function == "ROW" ? ownRow : ownColumn;
+                return true;
+            }
+            var tokens = SplitFormulaArguments(args, preserveEmpty: true);
             if (tokens.Count != 1) {
                 return false;
             }
@@ -240,7 +243,16 @@ namespace OfficeIMO.Excel {
                     out r2,
                     out c2,
                     out _)) {
-                return false;
+                // Scalar literals have one row and one column. Do not turn an
+                // unresolved reference or unsupported array into a scalar value.
+                string literal = tokens[0].Trim();
+                if (!ExcelFormulaExpressionParser.TryParseTextLiteral(literal, out _)
+                    && !(double.TryParse(literal, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+                        && !double.IsNaN(number) && !double.IsInfinity(number))
+                    && !literal.Equals("TRUE", StringComparison.OrdinalIgnoreCase)
+                    && !literal.Equals("FALSE", StringComparison.OrdinalIgnoreCase)) return false;
+                result = 1;
+                return true;
             }
 
             result = function == "ROWS"
@@ -268,60 +280,16 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryResolveInfoArgument(string token, out FormulaArgumentValue value) {
-            if (TryResolveFormulaArgument(token, out value)) {
-                return true;
-            }
-
-            if (TryInferFormulaErrorArgument(token, out string errorCode)) {
-                value = FormulaArgumentValue.Error(errorCode);
-                return true;
-            }
-
-            value = default;
-            return false;
-        }
-
-        private bool TryInferFormulaErrorArgument(string token, out string errorCode) {
-            string trimmed = token.Trim();
-            if (TryParseFormulaErrorLiteral(trimmed, out errorCode)) {
-                return true;
-            }
-
-            if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(trimmed, out ExcelFormulaFunctionCallSyntax? functionCall)) {
-                string function = functionCall!.Name.ToUpperInvariant();
-                errorCode = function == "MATCH" || function == "XMATCH" || function == "XLOOKUP" || function == "VLOOKUP" || function == "HLOOKUP"
-                    ? "#N/A"
-                    : "#VALUE!";
-                return true;
-            }
-
-            if (ExcelFormulaExpressionParser.TryParseArithmetic(trimmed, out ExcelFormulaBinaryExpressionSyntax? binary)
-                && string.Equals(binary!.Operator, "/", StringComparison.Ordinal)
-                && TryResolveNumericOperand(binary.Right, out double divisor)
-                && Math.Abs(divisor) < double.Epsilon) {
-                errorCode = "#DIV/0!";
-                return true;
-            }
-
-            errorCode = string.Empty;
-            return false;
+            return TryResolveFormulaArgument(token, out value) && !value.IsUnresolvedFormula;
         }
 
         private bool TryEvaluateFormulaOrNumeric(string token, out double result) {
-            if (TryEvaluateFormula(token, out result)) {
-                return true;
-            }
-            // A blocked dependency cannot become calculable through another
-            // syntax path. Retrying it can multiply work in deep chains.
-            if (_formulaEvaluationGuardState?.DependencyGuardBlocked == true) return false;
-            if (TryResolveNumericOperand(token, out result)) return true;
-            if (_formulaEvaluationGuardState?.DependencyGuardBlocked == true) return false;
-
             if (TryResolveFormulaArgument(token, out FormulaArgumentValue value) && value.Number.HasValue) {
                 result = value.Number.Value;
                 return true;
             }
 
+            result = 0;
             return false;
         }
 
@@ -405,7 +373,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            var numbers = values.Where(value => value.Number.HasValue).Select(value => value.Number!.Value).ToList();
+            var numbers = values.Where(value => value.IsNumericAggregateValue).Select(value => value.Number!.Value).ToList();
             if (functionCode == 2) {
                 result = numbers.Count;
                 return true;
@@ -462,7 +430,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            var numbers = matched.Where(value => value.Number.HasValue).Select(value => value.Number!.Value).ToList();
+            var numbers = matched.Where(value => value.IsNumericAggregateValue).Select(value => value.Number!.Value).ToList();
             if (function == "SUMIF") {
                 result = numbers.Sum();
                 return true;

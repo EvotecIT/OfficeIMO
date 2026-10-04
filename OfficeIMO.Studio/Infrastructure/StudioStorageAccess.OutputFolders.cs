@@ -7,7 +7,7 @@ namespace OfficeIMO.Studio.Infrastructure;
 internal sealed partial class StudioStorageAccess {
     private readonly Dictionary<string, (IStorageFolder Folder, string Name)> _outputFolderReferences = new(StringComparer.Ordinal);
 
-    private bool OwnsProviderItem(IStorageItem item) {
+    internal bool OwnsProviderItem(IStorageItem item) {
         lock (_sync) return _files.Values.Any(file => ReferenceEquals(file, item)) || _retiredFiles.Any(file => ReferenceEquals(file, item)) ||
             _folders.Values.Any(folder => ReferenceEquals(folder, item)) || _retiredFolders.Any(folder => ReferenceEquals(folder, item));
     }

@@ -91,6 +91,7 @@ internal static class ReaderToolOutput {
         for (int index = 0; index < paths.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             string relativePath = Path.GetRelativePath(sourceRoot, paths[index]);
+            if (relativePath == ".") relativePath = Path.GetFileName(Path.TrimEndingDirectorySeparator(paths[index]));
             string suffix = format == ReaderToolOutputFormat.Json ? ".reader.json" : ".md";
             string outputPath = Path.Combine(outputRoot, relativePath + suffix);
             ReaderToolPathSafety.EnsureOutsideInput(sourceRoot, outputPath);

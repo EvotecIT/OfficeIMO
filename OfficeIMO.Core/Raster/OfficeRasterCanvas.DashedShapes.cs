@@ -89,30 +89,9 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
-        double rotationRadians = OfficeGeometry.DegreesToRadians(rotationDegrees);
-        double patternPosition = 0D;
-        OfficePoint previous = CreateArcStartPoint(centerX, centerY, radiusX, radiusY, 0D, rotationRadians, rotationCenterX, rotationCenterY);
-        foreach (OfficePoint current in OfficeGeometry.CreateEllipticalArcPoints(
-            centerX,
-            centerY,
-            radiusX,
-            radiusY,
-            0D,
-            Math.PI * 2D,
-            segments,
-            rotationRadians,
-            rotationCenterX,
-            rotationCenterY)) {
-            if (resetDashPatternForEachSegment) {
-                DrawDashedLine(previous.X, previous.Y, current.X, current.Y, color, thickness, dashLength, gapLength);
-            } else {
-                DrawDashedPathSegment(previous, current, color, thickness, dashLength, gapLength, ref patternPosition);
-            }
-
-            previous = current;
-        }
+        var points = CreateEllipseStrokePoints(centerX, centerY, radiusX, radiusY, rotationDegrees, rotationCenterX, rotationCenterY, segments);
+        DrawDashedPolyline(points, color, thickness, dashLength, gapLength, resetDashPatternForEachSegment);
     }
-
     /// <summary>
     /// Draws an elliptical outline using an alternating dash and gap pattern.
     /// </summary>
@@ -143,184 +122,18 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
-        List<double> pattern = NormalizeDashPattern(dashPattern);
-        if (pattern.Count == 0) {
-            DrawEllipse(centerX, centerY, radiusX, radiusY, OfficeColor.Transparent, color, thickness, rotationDegrees, rotationCenterX, rotationCenterY);
-            return;
-        }
-
-        double rotationRadians = OfficeGeometry.DegreesToRadians(rotationDegrees);
-        double patternPosition = 0D;
-        OfficePoint previous = CreateArcStartPoint(centerX, centerY, radiusX, radiusY, 0D, rotationRadians, rotationCenterX, rotationCenterY);
-        foreach (OfficePoint current in OfficeGeometry.CreateEllipticalArcPoints(
-            centerX,
-            centerY,
-            radiusX,
-            radiusY,
-            0D,
-            Math.PI * 2D,
-            segments,
-            rotationRadians,
-            rotationCenterX,
-            rotationCenterY)) {
-            DrawPatternedPathSegment(previous, current, color, thickness, pattern, ref patternPosition);
-            previous = current;
-        }
+        var points = CreateEllipseStrokePoints(centerX, centerY, radiusX, radiusY, rotationDegrees, rotationCenterX, rotationCenterY, segments);
+        DrawPatternedPolyline(points, color, thickness, dashPattern);
     }
 
-    private void DrawDashedPathSegment(
-        OfficePoint start,
-        OfficePoint end,
-        OfficeColor color,
-        double thickness,
-        double dashLength,
-        double gapLength,
-        ref double patternPosition) {
-        NormalizeRasterDashLengths(ref dashLength, ref gapLength);
-        double length = Distance(start.X, start.Y, end.X, end.Y);
-        if (!IsFinite(length) || length <= 0D) {
-            return;
-        }
-
-        double cycle = SaturatingDashCycle(dashLength, gapLength);
-        if (cycle <= 0D) {
-            return;
-        }
-
-        OfficePoint clippedStart = start;
-        OfficePoint clippedEnd = end;
-        if (!TryClipLineToCanvas(ref clippedStart, ref clippedEnd, thickness, length, out double leadingDistance, out double trailingDistance)) {
-            patternPosition = AdvancePatternPosition(patternPosition, length, cycle);
-            return;
-        }
-        patternPosition = AdvancePatternPosition(patternPosition, leadingDistance, cycle);
-        length = Distance(clippedStart.X, clippedStart.Y, clippedEnd.X, clippedEnd.Y);
-        double position = 0D;
-        while (position < length) {
-            bool inDash = patternPosition < dashLength || gapLength == 0D;
-            double patternRemaining = inDash
-                ? dashLength - patternPosition
-                : cycle - patternPosition;
-            if (patternRemaining <= MinimumDashSegmentAdvance) {
-                patternPosition = inDash && gapLength > 0D ? dashLength : 0D;
-                continue;
-            }
-
-            double next = Math.Min(length, position + patternRemaining);
-            double consumed = next - position;
-            if (consumed <= MinimumDashSegmentAdvance) {
-                break;
-            }
-
-            if (inDash) {
-                double startT = position / length;
-                double endT = next / length;
-                DrawLineSegment(
-                    clippedStart.X + ((clippedEnd.X - clippedStart.X) * startT),
-                    clippedStart.Y + ((clippedEnd.Y - clippedStart.Y) * startT),
-                    clippedStart.X + ((clippedEnd.X - clippedStart.X) * endT),
-                    clippedStart.Y + ((clippedEnd.Y - clippedStart.Y) * endT),
-                    color,
-                    thickness);
-            }
-
-            position = next;
-            patternPosition += consumed;
-            while (patternPosition >= cycle) {
-                patternPosition -= cycle;
-            }
-        }
-        patternPosition = AdvancePatternPosition(patternPosition, trailingDistance, cycle);
+    private static List<OfficePoint> CreateEllipseStrokePoints(double centerX, double centerY, double radiusX, double radiusY,
+        double rotationDegrees, double rotationCenterX, double rotationCenterY, int segments) {
+        segments = Math.Max(segments, OfficeCurveFlattening.ArcSegments(Math.Max(radiusX, radiusY), Math.PI * 2D));
+        double rotation = OfficeGeometry.DegreesToRadians(rotationDegrees);
+        var points = new List<OfficePoint> { CreateArcStartPoint(centerX, centerY, radiusX, radiusY, 0D, rotation, rotationCenterX, rotationCenterY) };
+        points.AddRange(OfficeGeometry.CreateEllipticalArcPoints(centerX, centerY, radiusX, radiusY, 0D, Math.PI * 2D, segments, rotation, rotationCenterX, rotationCenterY));
+        return points;
     }
-
-    private void DrawPatternedPathSegment(
-        OfficePoint start,
-        OfficePoint end,
-        OfficeColor color,
-        double thickness,
-        IReadOnlyList<double> dashPattern,
-        ref double patternPosition) {
-        double length = Distance(start.X, start.Y, end.X, end.Y);
-        if (!IsFinite(length) || length <= 0D || dashPattern.Count == 0) {
-            return;
-        }
-
-        dashPattern = NormalizeRasterDashPattern(dashPattern);
-
-        double cycle = 0D;
-        for (int i = 0; i < dashPattern.Count; i++) {
-            cycle = SaturatingDashCycle(cycle, dashPattern[i]);
-            if (cycle == double.MaxValue) break;
-        }
-
-        if (!IsFinite(cycle) || cycle <= 0D) {
-            return;
-        }
-
-        OfficePoint clippedStart = start;
-        OfficePoint clippedEnd = end;
-        if (!TryClipLineToCanvas(ref clippedStart, ref clippedEnd, thickness, length, out double leadingDistance, out double trailingDistance)) {
-            patternPosition = AdvancePatternPosition(patternPosition, length, cycle);
-            return;
-        }
-        patternPosition = AdvancePatternPosition(patternPosition, leadingDistance, cycle);
-        length = Distance(clippedStart.X, clippedStart.Y, clippedEnd.X, clippedEnd.Y);
-        double position = 0D;
-        while (position < length) {
-            int patternIndex = 0;
-            double patternOffset = patternPosition;
-            while (patternIndex < dashPattern.Count && patternOffset >= dashPattern[patternIndex]) {
-                patternOffset -= dashPattern[patternIndex];
-                patternIndex++;
-            }
-
-            if (patternIndex >= dashPattern.Count) {
-                patternIndex = 0;
-                patternOffset = 0D;
-            }
-
-            double segmentRemaining = dashPattern[patternIndex] - patternOffset;
-            if (segmentRemaining <= MinimumDashSegmentAdvance) {
-                double nextBoundary = 0D;
-                for (int index = 0; index <= patternIndex; index++) {
-                    nextBoundary = SaturatingDashCycle(nextBoundary, dashPattern[index]);
-                }
-                patternPosition = nextBoundary >= cycle - MinimumDashSegmentAdvance ? 0D : nextBoundary;
-                continue;
-            }
-
-            double next = Math.Min(length, position + segmentRemaining);
-            double consumed = next - position;
-            if (consumed <= MinimumDashSegmentAdvance) {
-                break;
-            }
-
-            if ((patternIndex & 1) == 0) {
-                double startT = position / length;
-                double endT = next / length;
-                DrawLineSegment(
-                    clippedStart.X + ((clippedEnd.X - clippedStart.X) * startT),
-                    clippedStart.Y + ((clippedEnd.Y - clippedStart.Y) * startT),
-                    clippedStart.X + ((clippedEnd.X - clippedStart.X) * endT),
-                    clippedStart.Y + ((clippedEnd.Y - clippedStart.Y) * endT),
-                    color,
-                    thickness);
-            }
-
-            position = next;
-            patternPosition += consumed;
-            while (patternPosition >= cycle) {
-                patternPosition -= cycle;
-            }
-        }
-        patternPosition = AdvancePatternPosition(patternPosition, trailingDistance, cycle);
-    }
-
-    private static double SaturatingDashCycle(double left, double right) {
-        if (!IsFinite(left) || !IsFinite(right) || left < 0D || right < 0D) return 0D;
-        return left > double.MaxValue - right ? double.MaxValue : left + right;
-    }
-
     private static void NormalizeRasterDashLengths(ref double dashLength, ref double gapLength) {
         double smallest = gapLength > 0D ? Math.Min(dashLength, gapLength) : dashLength;
         if (!IsFinite(smallest) || smallest <= 0D || smallest >= MinimumRasterDashLength) return;
@@ -336,25 +149,4 @@ public sealed partial class OfficeRasterCanvas {
         gapLength = normalizedGap;
     }
 
-    private static IReadOnlyList<double> NormalizeRasterDashPattern(IReadOnlyList<double> pattern) {
-        double smallest = double.MaxValue;
-        for (int index = 0; index < pattern.Count; index++) {
-            double length = pattern[index];
-            if (IsFinite(length) && length > 0D) smallest = Math.Min(smallest, length);
-        }
-        if (smallest == double.MaxValue || smallest >= MinimumRasterDashLength) return pattern;
-
-        double scale = MinimumRasterDashLength / smallest;
-        var normalized = new double[pattern.Count];
-        for (int index = 0; index < pattern.Count; index++) {
-            normalized[index] = pattern[index] * scale;
-            if (!IsFinite(scale) || !IsFinite(normalized[index])) {
-                for (int fallbackIndex = 0; fallbackIndex < pattern.Count; fallbackIndex++) {
-                    normalized[fallbackIndex] = Math.Max(pattern[fallbackIndex], MinimumRasterDashLength);
-                }
-                break;
-            }
-        }
-        return normalized;
-    }
 }

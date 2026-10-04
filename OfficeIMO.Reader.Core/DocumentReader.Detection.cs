@@ -13,6 +13,8 @@ internal static partial class DocumentReaderEngine {
     /// Detects a file kind from extension and bounded content evidence.
     /// </summary>
     public static ReaderDetectionResult Detect(string path, ReaderDetectionOptions? options = null) {
+        if (path == null) throw new ArgumentNullException(nameof(path));
+        if (Directory.Exists(path)) return DetectDirectoryBundle(path);
         ValidateFilePath(path);
         ReaderDetectionOptions effectiveOptions = NormalizeDetectionOptions(options);
         ReaderDetectionResult extensionResult = BuildExtensionDetection(path);
@@ -20,7 +22,7 @@ internal static partial class DocumentReaderEngine {
             return extensionResult;
         }
 
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        using var stream = OpenPathForContentDetection(path);
         return DetectCore(stream, path, effectiveOptions, extensionResult);
     }
 
@@ -62,6 +64,9 @@ internal static partial class DocumentReaderEngine {
         string path,
         ReaderDetectionOptions? options = null,
         CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (path == null) throw new ArgumentNullException(nameof(path));
+        if (Directory.Exists(path)) return DetectDirectoryBundle(path);
         ValidateFilePath(path);
         ReaderDetectionOptions effectiveOptions = NormalizeDetectionOptions(options);
         ReaderDetectionResult extensionResult = BuildExtensionDetection(path);
@@ -69,13 +74,7 @@ internal static partial class DocumentReaderEngine {
             return extensionResult;
         }
 
-        using var stream = new FileStream(
-            path,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.ReadWrite | FileShare.Delete,
-            bufferSize: 4096,
-            useAsync: true);
+        using var stream = OpenPathForContentDetection(path);
         return await DetectCoreAsync(stream, path, effectiveOptions, extensionResult, cancellationToken).ConfigureAwait(false);
     }
 
@@ -283,9 +282,13 @@ internal static partial class DocumentReaderEngine {
         CancellationToken cancellationToken) {
         if (handler.ExtensionValidationProbeStream == null || !handler.SupportsPathInput) return false;
         cancellationToken.ThrowIfCancellationRequested();
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        using var stream = OpenPathForContentDetection(path);
         return handler.ExtensionValidationProbeStream(stream, path, options, cancellationToken);
     }
+
+    private static FileStream OpenPathForContentDetection(string path) =>
+        GetActiveHandlerRegistry().OpenPathForContentDetection?.Invoke(path)
+        ?? new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
 
     private static bool ValidateExtensionHandler(Stream stream, string? sourceName, ReaderHandlerDescriptor handler,
         ReaderOptions options, CancellationToken cancellationToken) {

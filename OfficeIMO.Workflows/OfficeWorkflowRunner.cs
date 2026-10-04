@@ -49,7 +49,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             failureStage = WorkflowFailureStage.Input;
             Report(progress, validated.Id, "validate", "Validating input and workflow limits", 0.05D);
             cancellationToken.ThrowIfCancellationRequested();
+            IOfficeWorkflowStagingGuard? stagingGuard = validated.PublicationGuard as IOfficeWorkflowStagingGuard;
             validated = await inputs.CaptureAsync(validated, cancellationToken).ConfigureAwait(false);
+            if (validated.Registration is not null) inputs.ReportSourceCapture(diagnostics);
             inputBytes = new FileInfo(validated.InputPath).Length;
             EnforceInputLimit(validated.InputPath, inputBytes, validated.Limits);
             if (validated.ComparisonPath is not null) {
@@ -76,7 +78,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                     stopwatch.Elapsed,
                     artifact.Summary,
                     diagnostics,
-                    artifact.HealthReport, artifact.SignatureReport);
+                    artifact.HealthReport, artifact.SignatureReport, artifact.ConversionEvidence);
             }
 
             if (artifact.Bytes.LongLength > validated.Limits.MaximumOutputBytes) {
@@ -90,7 +92,11 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             failureStage = WorkflowFailureStage.Output;
             string outputDirectory = validated.OutputStream is null ? Path.GetDirectoryName(validated.OutputPath!)!
                 : providerStagingDirectory = OfficeIMO.Core.Internal.OfficeTemporaryDirectory.Create("officeimo-provider-output-");
+            if (stagingGuard != null)
+                await stagingGuard.EnsureStagingDirectoryAllowedAsync(outputDirectory, cancellationToken).ConfigureAwait(false);
             Directory.CreateDirectory(outputDirectory);
+            if (stagingGuard != null)
+                await stagingGuard.EnsureStagingDirectoryAllowedAsync(outputDirectory, cancellationToken).ConfigureAwait(false);
             stagingPath = Path.Combine(
                 outputDirectory,
                 "." + Path.GetFileName(validated.OutputStream?.Name ?? validated.OutputPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
@@ -127,7 +133,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 return new OfficeWorkflowResult(validated.Id, validated.Operation, outcome.Status,
                     outcome.Status is OfficeWorkflowStatus.Completed or OfficeWorkflowStatus.Cancelled ? OfficeWorkflowFailureKind.None : OfficeWorkflowFailureKind.OutputFailed,
                     outcome.Status == OfficeWorkflowStatus.Completed ? outcome.PublishedLocation : null,
-                    inputBytes, outcome.OutputBytes, stopwatch.Elapsed, outcome.Summary, diagnostics, artifact.HealthReport, outcome.Recovery, artifact.SignatureReport);
+                    inputBytes, outcome.OutputBytes, stopwatch.Elapsed, outcome.Summary, diagnostics, artifact.HealthReport, outcome.Recovery, artifact.SignatureReport, artifact.ConversionEvidence);
             }
             string publishedPath = await PublishAsync(stagingPath, validated.OutputPath!, validated.ConflictPolicy,
                 validated.PublicationGuard, cancellationToken).ConfigureAwait(false);
@@ -147,7 +153,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 stopwatch.Elapsed,
                 artifact.Summary,
                 diagnostics,
-                artifact.HealthReport, artifact.SignatureReport);
+                artifact.HealthReport, artifact.SignatureReport, artifact.ConversionEvidence);
         } catch (OperationCanceledException error) when (cancellationToken.IsCancellationRequested) {
             ReportInputStagingCleanupFailure(error, diagnostics);
             inputs.Cleanup(diagnostics);
@@ -651,7 +657,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         string summary,
         IReadOnlyList<OfficeWorkflowDiagnostic> diagnostics,
         PdfHealthReport? report,
-        PdfSignatureValidationReport? signatureReport = null) => new(
+        PdfSignatureValidationReport? signatureReport = null,
+        OfficeWorkflowConversionEvidence? conversionEvidence = null) => new(
             request.Id,
             request.Operation,
             status,
@@ -662,7 +669,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             duration,
             summary,
             diagnostics,
-            report, signatureReport: signatureReport);
+            report, signatureReport: signatureReport, conversionEvidence: conversionEvidence);
 
     private static void Report(IProgress<OfficeWorkflowProgress>? progress, string id, string stage, string message, double fraction) {
         try {
@@ -724,7 +731,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         }
     }
 
-    private sealed record OperationArtifact(byte[]? Bytes, string Summary, PdfHealthReport? HealthReport, PdfSignatureValidationReport? SignatureReport = null);
+    private sealed record OperationArtifact(byte[]? Bytes, string Summary, PdfHealthReport? HealthReport, PdfSignatureValidationReport? SignatureReport = null, OfficeWorkflowConversionEvidence? ConversionEvidence = null);
 
     private sealed record PreparedRequest(
         string Id,
@@ -761,5 +768,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         IPdfSignatureCryptographyProvider? OutputSignatureValidator = null,
         OfficeWorkflowConversionOptions? ConversionOptions = null,
         OfficeScanCleanupOptions? ScanCleanup = null,
-        WordImageOptimizationOptions? WordImageOptimization = null);
+        OfficeWorkflowConversionRegistration? Registration = null,
+        IOfficeWorkflowConversionSettings? RegisteredConversionSettings = null,
+        WordImageOptimizationOptions? WordImageOptimization = null,
+        OfficeWorkflowDirectoryPackageInput? InputDirectoryPackage = null);
 }

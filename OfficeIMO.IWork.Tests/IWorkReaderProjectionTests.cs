@@ -7,10 +7,11 @@ namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkBoundaryTests {
     [Theory]
-    [InlineData("◦", "    - Nested")]
-    [InlineData("3)", "    3. Nested")]
+    [InlineData("◦", IWorkListMarkerKind.Text, "    - Nested")]
+    [InlineData("1)", IWorkListMarkerKind.Number, "    1. Nested")]
+    [InlineData("1)", IWorkListMarkerKind.Text, "    - Nested")]
     public void Reader_lists_use_markdown_markers_at_the_source_depth(
-        string sourceLabel, string expected) {
+        string sourceLabel, IWorkListMarkerKind kind, string expected) {
         var style = new IWorkTextStyle(null, null, null, null, null,
             null, null, null, null);
         var paragraphStyle = new IWorkParagraphStyle(null, null, null, null,
@@ -18,7 +19,7 @@ public sealed partial class IWorkBoundaryTests {
         var paragraph = new IWorkTextParagraph(
             new[] { new IWorkTextRun("Nested", style, null) }, paragraphStyle,
             listIdentifier: null, listLevel: 2, listLabel: sourceLabel,
-            breakKind: IWorkParagraphBreakKind.None);
+            breakKind: IWorkParagraphBreakKind.None, listMarkerKind: kind);
 
         Assert.Equal(expected, IWorkReadProjection.RichTextMarkdown(paragraph));
         Assert.Equal(sourceLabel, paragraph.ListLabel);

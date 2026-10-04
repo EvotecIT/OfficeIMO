@@ -1,4 +1,5 @@
 using OfficeIMO.Project;
+if (args.Length == 3 && args[0] == "save-scale") return SaveWorkload.Run(int.Parse(args[1], System.Globalization.CultureInfo.InvariantCulture), Enum.Parse<ProjectFileFormat>(args[2]));
 if (args.Length == 3 && args[0] == "outline-codes") return OutlineCodeProof.Create(args[1], args[2]);
 if (args.Length == 3 && args[0] == "custom-fields") return CustomFieldProof.Create(args[1], args[2]);
 if (args.Length == 3 && args[0] == "custom-readback") return CustomFieldProof.Verify(args[1], args[2]);

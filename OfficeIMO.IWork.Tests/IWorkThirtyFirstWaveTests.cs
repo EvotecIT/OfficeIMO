@@ -8,11 +8,12 @@ public sealed partial class IWorkBoundaryTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void Keynote_first_observation_of_each_list_level_preserves_its_start(
+    public void Partial_keynote_lists_preserve_each_level_numbering_kind(
         bool presenterNotes) {
         using MemoryStream package = CreateKeynotePackageWithNestedList(presenterNotes);
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = IWorkSourceDocument.Open(package).ToPowerPointPresentationResult(
+            new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         PowerPointSlide slide = Assert.Single(result.Value.Slides);
         PowerPointParagraph[] paragraphs = (presenterNotes
                 ? slide.Notes.Paragraphs
@@ -23,8 +24,9 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(result.IsVisualFallback);
         Assert.Equal(2, paragraphs.Length);
         Assert.Equal(1, paragraphs[0].NumberingStartAt);
-        Assert.Equal(3, paragraphs[1].NumberingStartAt);
+        Assert.Equal(1, paragraphs[1].NumberingStartAt);
         Assert.Equal(1, paragraphs[1].Level);
+        Assert.Equal(PowerPointNumberingScheme.AlphaLowerCharacterPeriod, paragraphs[1].NumberingScheme);
 
         using var saved = new MemoryStream();
         result.Value.Save(saved);
@@ -37,7 +39,7 @@ public sealed partial class IWorkBoundaryTests {
             .Where(paragraph => paragraph.Text is "One" or "Deep")
             .ToArray();
         Assert.Equal(2, persisted.Length);
-        Assert.Equal(3, persisted[1].NumberingStartAt);
+        Assert.Equal(1, persisted[1].NumberingStartAt);
         Assert.Equal(1, persisted[1].Level);
     }
 
@@ -155,7 +157,7 @@ public sealed partial class IWorkBoundaryTests {
             BytesField(1, Message(VarintField(1, 0), ReferenceField(2, firstParagraphStyleId))),
             BytesField(1, Message(VarintField(1, 4), ReferenceField(2, secondParagraphStyleId))));
         byte[] listStyle = Message(
-            VarintField(11, 1), VarintField(11, 1),
+            VarintField(11, 3), VarintField(11, 3), VarintField(15, 0), VarintField(15, 12),
             FloatField(13, 0f), FloatField(13, 18f),
             StringField(16, "1."), StringField(16, "c."));
         var records = new List<byte[]> {

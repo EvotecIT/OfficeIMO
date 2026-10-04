@@ -6,11 +6,13 @@ public sealed partial class OfficeWorkflowRunner {
     /// <summary>Captures and verifies local identity inside the selected provider's readable access scope.</summary>
     private sealed class WorkflowSourceAccess(string location, OfficeWorkflowStreamInput source) {
         internal string Location { get; } = location;
+        internal IOfficeWorkflowPublicationGuard? SourceGuard => source.SourcePublicationGuard;
+        internal bool IsDirectoryPackage => source.SnapshotKind == OfficeWorkflowSourceSnapshotKind.DirectoryPackage;
         internal string? LocalPath { get; } = OfficeStorageIdentity.GetLocalPath(location);
         private string? _identity;
         internal bool HasCapturedIdentity => _identity is not null;
 
-        internal OfficeWorkflowStreamInput CreateInput() => new(source.Name, OpenReadAsync, source.ExpectedSha256);
+        internal OfficeWorkflowStreamInput CreateInput() => new(source.Name, OpenReadAsync, source.ExpectedSha256, source.SnapshotKind, source.SourcePublicationGuard);
 
         internal async Task<Stream> OpenReadAsync(CancellationToken token) {
             Stream stream = await source.OpenRead(token).ConfigureAwait(false);
@@ -62,7 +64,10 @@ public sealed partial class OfficeWorkflowRunner {
             _accesses = accesses;
             _output = output;
             _allowMissingLocalSources = allowMissingLocalSources;
-            _localScopes = accesses.Where(access => access.LocalPath is not null)
+            // Directory-package streams are complete in-memory transport archives, not filesystem
+            // access scopes. The batch preflight opens them one at a time; their owner guards and
+            // captured root identities remain in _accesses for both publication checks.
+            _localScopes = accesses.Where(access => access.LocalPath is not null && !access.IsDirectoryPackage)
                 .GroupBy(access => access.Location, StringComparer.Ordinal).Select(group => group.First()).ToArray();
             _localSources = sources.Where(source => !accesses.Any(access => access.Location == source))
                 .Select(OfficeStorageIdentity.GetLocalPath).OfType<string>()
@@ -89,8 +94,20 @@ public sealed partial class OfficeWorkflowRunner {
                 }
                 token.ThrowIfCancellationRequested();
                 if (!SourcesAreSeparate(path, isDirectory)) return false;
+                foreach (var access in _accesses) {
+                    if (access.SourceGuard is { } guard && !await guard.CanPublishAsync(path, isDirectory, token).ConfigureAwait(false)) return false;
+                }
                 if (_host is not null && !await _host.CanPublishAsync(path, isDirectory, token).ConfigureAwait(false)) return false;
                 token.ThrowIfCancellationRequested();
+                // Reopen package transports after host authorization to check membership again.
+                // Each archive is disposed before the next one is opened, so batch size does not
+                // multiply the live in-memory transport budget.
+                foreach (var access in _accesses.Where(access => access.IsDirectoryPackage && access.LocalPath is not null)) {
+                    await using Stream package = await access.OpenReadAsync(token).ConfigureAwait(false);
+                }
+                foreach (var access in _accesses) {
+                    if (access.SourceGuard is { } guard && !await guard.CanPublishAsync(path, isDirectory, token).ConfigureAwait(false)) return false;
+                }
                 return SourcesAreSeparate(path, isDirectory);
             } finally {
                 List<Exception>? failures = null;
@@ -111,6 +128,9 @@ public sealed partial class OfficeWorkflowRunner {
                     throw new IOException("The workflow source was replaced during execution.");
             }
             if (_sources.Any(source => OfficeStorageIdentity.AreEquivalent(source, path))) return false;
+            if (_accesses.Any(access => access.IsDirectoryPackage && access.LocalPath is { } local &&
+                OfficeStorageIdentity.GetLocalPath(path) is { } output &&
+                OfficePathIdentity.IsSameOrDescendant(output, local))) return false;
             string? outputDirectory = isDirectory ? OfficeStorageIdentity.GetLocalPath(path) : null;
             return outputDirectory is null || !_sources.Any(source => OfficeStorageIdentity.GetLocalPath(source) is { } local &&
                 OfficePathIdentity.IsSameOrDescendant(local, outputDirectory));

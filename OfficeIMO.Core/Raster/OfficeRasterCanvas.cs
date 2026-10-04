@@ -159,133 +159,40 @@ public sealed partial class OfficeRasterCanvas {
 
     /// <summary>Fills a rectangle.</summary>
     public void FillRectangle(double x, double y, double width, double height, OfficeColor color) {
-        if (color.A == 0 || width <= 0D || height <= 0D || IsOutsideCanvas(x, y, width, height)) {
-            return;
-        }
-
-        int left = Clamp((int)Math.Floor(x), 0, Width - 1);
-        int top = Clamp((int)Math.Floor(y), 0, Height - 1);
-        int right = Clamp((int)Math.Ceiling(x + width), 0, Width);
-        int bottom = Clamp((int)Math.Ceiling(y + height), 0, Height);
-        for (int py = top; py < bottom; py++) {
-            for (int px = left; px < right; px++) {
-                BlendPixel(px, py, color);
-            }
-        }
+        if (width <= 0D || height <= 0D || color.A == 0) return;
+        FillPolygonCore(RectanglePoints(x, y, width, height), color);
     }
 
     /// <summary>Fills a rectangle with a linear gradient.</summary>
     public void FillLinearGradientRectangle(double x, double y, double width, double height, OfficeLinearGradient gradient) {
-        if (gradient == null) {
-            throw new ArgumentNullException(nameof(gradient));
-        }
-
-        if (width <= 0D || height <= 0D || IsOutsideCanvas(x, y, width, height)) {
-            return;
-        }
-
-        OfficeGradientStop start = gradient.Stops[0];
-        int left = Clamp((int)Math.Floor(x), 0, Width - 1);
-        int top = Clamp((int)Math.Floor(y), 0, Height - 1);
-        int right = Clamp((int)Math.Ceiling(x + width), 0, Width);
-        int bottom = Clamp((int)Math.Ceiling(y + height), 0, Height);
-        double dx = gradient.EndX - gradient.StartX;
-        double dy = gradient.EndY - gradient.StartY;
-        double lengthSquared = (dx * dx) + (dy * dy);
-        if (lengthSquared <= double.Epsilon) {
-            FillRectangle(x, y, width, height, start.Color);
-            return;
-        }
-
-        for (int py = top; py < bottom; py++) {
-            double ny = ((py + 0.5D) - y) / height;
-            for (int px = left; px < right; px++) {
-                double nx = ((px + 0.5D) - x) / width;
-                double ratio = (((nx - gradient.StartX) * dx) + ((ny - gradient.StartY) * dy)) / lengthSquared;
-                BlendPixel(px, py, InterpolateGradient(gradient, Clamp(ratio, 0D, 1D)));
-            }
-        }
+        if (gradient == null) throw new ArgumentNullException(nameof(gradient));
+        if (width <= 0D || height <= 0D) return;
+        FillPolygonCore(RectanglePoints(x, y, width, height), gradient);
     }
 
     /// <summary>Fills a rectangle with a radial gradient.</summary>
     public void FillRadialGradientRectangle(double x, double y, double width, double height, OfficeRadialGradient gradient) {
-        if (gradient == null) {
-            throw new ArgumentNullException(nameof(gradient));
-        }
-
-        if (width <= 0D || height <= 0D || IsOutsideCanvas(x, y, width, height)) {
-            return;
-        }
-
-        int left = Clamp((int)Math.Floor(x), 0, Width - 1);
-        int top = Clamp((int)Math.Floor(y), 0, Height - 1);
-        int right = Clamp((int)Math.Ceiling(x + width), 0, Width);
-        int bottom = Clamp((int)Math.Ceiling(y + height), 0, Height);
-        for (int py = top; py < bottom; py++) {
-            double ny = ((py + 0.5D) - y) / height;
-            for (int px = left; px < right; px++) {
-                double nx = ((px + 0.5D) - x) / width;
-                BlendPixel(px, py, InterpolateGradient(gradient, ComputeRadialRatio(gradient, nx, ny)));
-            }
-        }
+        if (gradient == null) throw new ArgumentNullException(nameof(gradient));
+        if (width <= 0D || height <= 0D) return;
+        FillPolygonCore(RectanglePoints(x, y, width, height), gradient);
     }
 
     /// <summary>Draws a rectangle outline.</summary>
     public void DrawRectangle(double x, double y, double width, double height, OfficeColor color, double thickness = 1D) {
-        DrawLine(x, y, x + width, y, color, thickness);
-        DrawLine(x + width, y, x + width, y + height, color, thickness);
-        DrawLine(x + width, y + height, x, y + height, color, thickness);
-        DrawLine(x, y + height, x, y, color, thickness);
+        if (width <= 0D || height <= 0D) return;
+        StrokePolyline(new[] { new OfficePoint(x, y), new OfficePoint(x + width, y), new OfficePoint(x + width, y + height), new OfficePoint(x, y + height) }, color, thickness, closed: true);
     }
 
     /// <summary>Fills an ellipse bounded by the supplied rectangle.</summary>
     public void FillEllipse(double x, double y, double width, double height, OfficeColor color) {
-        if (color.A == 0 || width <= 0D || height <= 0D || IsOutsideCanvas(x, y, width, height)) {
-            return;
-        }
-
-        int left = Clamp((int)Math.Floor(x), 0, Width - 1);
-        int top = Clamp((int)Math.Floor(y), 0, Height - 1);
-        int right = Clamp((int)Math.Ceiling(x + width), 0, Width - 1);
-        int bottom = Clamp((int)Math.Ceiling(y + height), 0, Height - 1);
-        for (int py = top; py <= bottom; py++) {
-            _cancellationToken.ThrowIfCancellationRequested();
-            for (int px = left; px <= right; px++) {
-                double coverage = EllipseFillCoverage(px, py, x, y, width, height);
-                if (coverage > 0D) {
-                    BlendPixel(px, py, ApplyCoverage(color, coverage));
-                }
-            }
-        }
+        if (width <= 0D || height <= 0D || color.A == 0) return;
+        FillPolygonCore(OfficeCurveFlattening.Ellipse(x + width / 2D, y + height / 2D, width / 2D, height / 2D, 1D), color);
     }
 
     /// <summary>Draws an ellipse outline bounded by the supplied rectangle.</summary>
     public void DrawEllipse(double x, double y, double width, double height, OfficeColor color, double thickness = 1D) {
-        if (color.A == 0 || width <= 0D || height <= 0D || thickness <= 0D || IsOutsideCanvas(x, y, width, height)) {
-            return;
-        }
-
-        double rx = width / 2D;
-        double ry = height / 2D;
-        double cx = x + rx;
-        double cy = y + ry;
-        double innerRx = Math.Max(0.0001D, rx - (thickness / 2D));
-        double innerRy = Math.Max(0.0001D, ry - (thickness / 2D));
-        double outerRx = rx + (thickness / 2D);
-        double outerRy = ry + (thickness / 2D);
-        int left = Clamp((int)Math.Floor(cx - outerRx), 0, Width - 1);
-        int top = Clamp((int)Math.Floor(cy - outerRy), 0, Height - 1);
-        int right = Clamp((int)Math.Ceiling(cx + outerRx), 0, Width - 1);
-        int bottom = Clamp((int)Math.Ceiling(cy + outerRy), 0, Height - 1);
-        for (int py = top; py <= bottom; py++) {
-            _cancellationToken.ThrowIfCancellationRequested();
-            for (int px = left; px <= right; px++) {
-                double coverage = EllipseStrokeCoverage(px, py, cx, cy, outerRx, outerRy, innerRx, innerRy);
-                if (coverage > 0D) {
-                    BlendPixel(px, py, ApplyCoverage(color, coverage));
-                }
-            }
-        }
+        if (width <= 0D || height <= 0D) return;
+        StrokePolyline(OfficeCurveFlattening.Ellipse(x + width / 2D, y + height / 2D, width / 2D, height / 2D, 1D), color, thickness, closed: true);
     }
 
     /// <summary>Draws a filled and/or stroked ellipse using center/radius coordinates and optional rotation.</summary>
@@ -300,50 +207,12 @@ public sealed partial class OfficeRasterCanvas {
         double rotationDegrees = 0D,
         double rotationCenterX = 0D,
         double rotationCenterY = 0D) {
-        if (radiusX <= 0D || radiusY <= 0D || (fill.A == 0 && (stroke.A == 0 || thickness <= 0D))) {
-            return;
-        }
-
-        double strokeHalf = Math.Max(0D, thickness / 2D);
-        double outerRadiusX = Math.Max(radiusX + strokeHalf, 0.0001D);
-        double outerRadiusY = Math.Max(radiusY + strokeHalf, 0.0001D);
-        double rotationRadians = OfficeGeometry.DegreesToRadians(rotationDegrees);
-        OfficePoint topLeft = OfficeGeometry.RotatePoint(new OfficePoint(centerX - outerRadiusX, centerY - outerRadiusY), rotationCenterX, rotationCenterY, rotationRadians);
-        OfficePoint topRight = OfficeGeometry.RotatePoint(new OfficePoint(centerX + outerRadiusX, centerY - outerRadiusY), rotationCenterX, rotationCenterY, rotationRadians);
-        OfficePoint bottomRight = OfficeGeometry.RotatePoint(new OfficePoint(centerX + outerRadiusX, centerY + outerRadiusY), rotationCenterX, rotationCenterY, rotationRadians);
-        OfficePoint bottomLeft = OfficeGeometry.RotatePoint(new OfficePoint(centerX - outerRadiusX, centerY + outerRadiusY), rotationCenterX, rotationCenterY, rotationRadians);
-        double minX = Math.Min(Math.Min(topLeft.X, topRight.X), Math.Min(bottomRight.X, bottomLeft.X));
-        double maxX = Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomRight.X, bottomLeft.X));
-        double minY = Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomRight.Y, bottomLeft.Y));
-        double maxY = Math.Max(Math.Max(topLeft.Y, topRight.Y), Math.Max(bottomRight.Y, bottomLeft.Y));
-        int left = Clamp((int)Math.Floor(minX - 1D), 0, Width - 1);
-        int right = Clamp((int)Math.Ceiling(maxX + 1D), 0, Width - 1);
-        int top = Clamp((int)Math.Floor(minY - 1D), 0, Height - 1);
-        int bottom = Clamp((int)Math.Ceiling(maxY + 1D), 0, Height - 1);
-        for (int py = top; py <= bottom; py++) {
-            _cancellationToken.ThrowIfCancellationRequested();
-            for (int px = left; px <= right; px++) {
-                (double FillCoverage, double StrokeCoverage) coverage = RotatedEllipseCoverage(
-                    px,
-                    py,
-                    centerX,
-                    centerY,
-                    radiusX,
-                    radiusY,
-                    strokeHalf,
-                    fill.A > 0,
-                    rotationRadians,
-                    rotationCenterX,
-                    rotationCenterY);
-                if (fill.A > 0 && coverage.FillCoverage > 0D) {
-                    BlendPixel(px, py, ApplyCoverage(fill, coverage.FillCoverage));
-                }
-
-                if (stroke.A > 0 && thickness > 0D && coverage.StrokeCoverage > 0D) {
-                    BlendPixel(px, py, ApplyCoverage(stroke, coverage.StrokeCoverage));
-                }
-            }
-        }
+        if (radiusX <= 0D || radiusY <= 0D) return;
+        var points = OfficeCurveFlattening.Ellipse(centerX, centerY, radiusX, radiusY, 1D);
+        double radians = OfficeGeometry.DegreesToRadians(rotationDegrees);
+        for (int i = 0; i < points.Count; i++) points[i] = OfficeGeometry.RotatePoint(points[i], rotationCenterX, rotationCenterY, radians);
+        if (fill.A > 0) FillPolygonCore(points, fill);
+        StrokePolyline(points, stroke, thickness, closed: true);
     }
 
     /// <summary>Draws a line segment.</summary>
@@ -357,20 +226,9 @@ public sealed partial class OfficeRasterCanvas {
 
     /// <summary>Draws a dashed line segment.</summary>
     public void DrawDashedLine(double x1, double y1, double x2, double y2, OfficeColor color, double thickness = 1D, double dashLength = 6D, double gapLength = 4D) {
-        if (color.A == 0 || thickness <= 0D || dashLength <= 0D || gapLength < 0D
-            || !IsFinite(dashLength) || !IsFinite(gapLength)) {
-            return;
-        }
-
-        double length = Distance(x1, y1, x2, y2);
-        if (!IsFinite(length) || length <= 0D) {
-            return;
-        }
+        if (!IsFinite(dashLength) || !IsFinite(gapLength) || dashLength <= 0D || gapLength < 0D) return;
         NormalizeRasterDashLengths(ref dashLength, ref gapLength);
-        if (!TryClipLineToCanvas(ref x1, ref y1, ref x2, ref y2, thickness, length, out double leadingDistance, out _)) return;
-        double cycle = dashLength + gapLength;
-        double patternPosition = AdvancePatternPosition(0D, leadingDistance, cycle);
-        DrawDashedPathSegment(new OfficePoint(x1, y1), new OfficePoint(x2, y2), color, thickness, dashLength, gapLength, ref patternPosition);
+        StrokePolyline(new[] { new OfficePoint(x1, y1), new OfficePoint(x2, y2) }, color, thickness, pattern: new[] { dashLength, gapLength });
     }
 
     /// <summary>Draws a line segment using a shared Office stroke dash style.</summary>
@@ -405,41 +263,7 @@ public sealed partial class OfficeRasterCanvas {
 
     /// <summary>Draws a line segment using an alternating dash and gap pattern.</summary>
     public void DrawPatternedLine(double x1, double y1, double x2, double y2, OfficeColor color, double thickness, IReadOnlyList<double>? dashPattern) {
-        if (color.A == 0 || thickness <= 0D) {
-            return;
-        }
-
-        if (dashPattern == null || dashPattern.Count == 0) {
-            DrawLine(x1, y1, x2, y2, color, thickness);
-            return;
-        }
-
-        double length = Distance(x1, y1, x2, y2);
-        if (!IsFinite(length) || length <= 0D) {
-            return;
-        }
-
-        List<double> pattern = new List<double>(dashPattern.Count);
-        for (int i = 0; i < dashPattern.Count; i++) {
-            if (dashPattern[i] > 0D) {
-                pattern.Add(dashPattern[i]);
-            }
-        }
-
-        if (pattern.Count == 0) {
-            DrawLine(x1, y1, x2, y2, color, thickness);
-            return;
-        }
-        if ((pattern.Count & 1) == 1) {
-            int originalCount = pattern.Count;
-            for (int index = 0; index < originalCount; index++) pattern.Add(pattern[index]);
-        }
-        IReadOnlyList<double> rasterPattern = NormalizeRasterDashPattern(pattern);
-        if (!TryClipLineToCanvas(ref x1, ref y1, ref x2, ref y2, thickness, length, out double leadingDistance, out _)) return;
-        double cycle = 0D;
-        for (int index = 0; index < rasterPattern.Count; index++) cycle += rasterPattern[index];
-        double patternPosition = AdvancePatternPosition(0D, leadingDistance, cycle);
-        DrawPatternedPathSegment(new OfficePoint(x1, y1), new OfficePoint(x2, y2), color, thickness, rasterPattern, ref patternPosition);
+        StrokePolyline(new[] { new OfficePoint(x1, y1), new OfficePoint(x2, y2) }, color, thickness, pattern: dashPattern);
     }
 
     /// <summary>Draws an elliptical arc using center/radius coordinates and optional rotation.</summary>
@@ -455,55 +279,18 @@ public sealed partial class OfficeRasterCanvas {
         double rotationDegrees = 0D,
         double rotationCenterX = 0D,
         double rotationCenterY = 0D) {
-        if (color.A == 0 || thickness <= 0D || radiusX <= 0D || radiusY <= 0D) {
-            return;
-        }
-
-        double sweep = endDegrees - startDegrees;
-        if (Math.Abs(sweep) <= 0.0001D) {
-            return;
-        }
-
-        int segments = Math.Max(4, (int)Math.Ceiling(Math.Abs(sweep) / 10D));
-        double startRadians = OfficeGeometry.DegreesToRadians(startDegrees);
-        double sweepRadians = OfficeGeometry.DegreesToRadians(sweep);
-        double rotationRadians = OfficeGeometry.DegreesToRadians(rotationDegrees);
-        OfficePoint previous = CreateArcStartPoint(centerX, centerY, radiusX, radiusY, startRadians, rotationRadians, rotationCenterX, rotationCenterY);
-        foreach (OfficePoint current in OfficeGeometry.CreateEllipticalArcPoints(
-            centerX,
-            centerY,
-            radiusX,
-            radiusY,
-            startRadians,
-            sweepRadians,
-            segments,
-            rotationRadians,
-            rotationCenterX,
-            rotationCenterY)) {
-            DrawLine(previous.X, previous.Y, current.X, current.Y, color, thickness);
-            previous = current;
-        }
+        if (color.A == 0 || thickness <= 0D || radiusX <= 0D || radiusY <= 0D) return;
+        double start = OfficeGeometry.DegreesToRadians(startDegrees), sweep = OfficeGeometry.DegreesToRadians(endDegrees - startDegrees);
+        if (!IsFinite(sweep) || Math.Abs(sweep) <= 1E-9D) return;
+        int segments = OfficeCurveFlattening.ArcSegments(Math.Max(radiusX, radiusY), sweep);
+        double rotation = OfficeGeometry.DegreesToRadians(rotationDegrees);
+        var points = new List<OfficePoint> { CreateArcStartPoint(centerX, centerY, radiusX, radiusY, start, rotation, rotationCenterX, rotationCenterY) };
+        points.AddRange(OfficeGeometry.CreateEllipticalArcPoints(centerX, centerY, radiusX, radiusY, start, sweep, segments, rotation, rotationCenterX, rotationCenterY));
+        StrokePolyline(points, color, thickness);
     }
 
-    private void DrawLineSegment(double x1, double y1, double x2, double y2, OfficeColor color, double thickness) {
-        double radius = Math.Max(0.5D, thickness / 2D);
-        double outer = radius + 1D;
-        int left = Clamp((int)Math.Floor(Math.Min(x1, x2) - outer), 0, Width - 1);
-        int top = Clamp((int)Math.Floor(Math.Min(y1, y2) - outer), 0, Height - 1);
-        int right = Clamp((int)Math.Ceiling(Math.Max(x1, x2) + outer), 0, Width - 1);
-        int bottom = Clamp((int)Math.Ceiling(Math.Max(y1, y2) + outer), 0, Height - 1);
-        for (int py = top; py <= bottom; py++) {
-            _cancellationToken.ThrowIfCancellationRequested();
-            for (int px = left; px <= right; px++) {
-                double distance = DistanceToSegment(px + 0.5D, py + 0.5D, x1, y1, x2, y2);
-                double coverage = Clamp(radius + 0.5D - distance, 0D, 1D);
-                if (coverage > 0D) {
-                    BlendPixel(px, py, ApplyCoverage(color, coverage));
-                }
-            }
-        }
-    }
-
+    private void DrawLineSegment(double x1, double y1, double x2, double y2, OfficeColor color, double thickness) =>
+        StrokePolyline(new[] { new OfficePoint(x1, y1), new OfficePoint(x2, y2) }, color, thickness);
     /// <summary>Fills a polygon.</summary>
     public void FillPolygon(IReadOnlyList<OfficePoint> points, OfficeColor color) {
         if (color.A == 0 || points == null || points.Count < 3) {
@@ -567,15 +354,8 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
-        for (int i = 1; i < points.Count; i++) {
-            DrawLine(points[i - 1].X, points[i - 1].Y, points[i].X, points[i].Y, color, thickness);
-        }
-
-        if (points.Count > 2) {
-            DrawLine(points[points.Count - 1].X, points[points.Count - 1].Y, points[0].X, points[0].Y, color, thickness);
-        }
+        StrokePolyline(points, color, thickness, closed: points.Count > 2);
     }
-
     /// <summary>Draws an image scaled into the supplied rectangle.</summary>
     public void DrawImage(OfficeRasterImage image, double x, double y, double width, double height) {
         DrawImage(
@@ -734,6 +514,10 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
+        if (interpolate) image = PrefilterImage(image,
+            SamplingAxisLength(inverseTransform.M11, inverseTransform.M21) * image.Width * sourceWidth,
+            SamplingAxisLength(inverseTransform.M12, inverseTransform.M22) * image.Height * sourceHeight);
+
         (double minX, double minY, double maxX, double maxY) = projection.GetDestinationBounds();
         int left = Clamp((int)Math.Floor(minX), 0, Width - 1);
         int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
@@ -741,7 +525,6 @@ public sealed partial class OfficeRasterCanvas {
         int bottom = Clamp((int)Math.Ceiling(maxY), 0, Height - 1);
         _cancellationToken.ThrowIfCancellationRequested();
         for (int py = top; py <= bottom; py++) {
-            _cancellationToken.ThrowIfCancellationRequested();
             _cancellationToken.ThrowIfCancellationRequested();
             for (int px = left; px <= right; px++) {
                 OfficePoint unit = inverseTransform.TransformPoint(new OfficePoint(px + 0.5D, py + 0.5D));
@@ -776,6 +559,7 @@ public sealed partial class OfficeRasterCanvas {
         if (opacity <= 0D || !transform.TryInvert(out OfficeTransform inverse)) return;
 
         (double minX, double minY, double maxX, double maxY) = transform.TransformRectangleBounds(0D, 0D, image.Width, image.Height);
+        if (interpolate) image = PrefilterAffineImage(image, ref inverse);
         int left = Clamp((int)Math.Floor(minX), 0, Width - 1);
         int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
         int right = Clamp((int)Math.Ceiling(maxX), 0, Width - 1);
@@ -794,216 +578,6 @@ public sealed partial class OfficeRasterCanvas {
                 BlendPixel(px, py, color);
             }
         }
-    }
-
-    private void FillContours(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeColor color, OfficeFillRule fillRule) {
-        if (color.A == 0 || contours == null || contours.Count == 0) {
-            return;
-        }
-
-        bool found = false;
-        double minX = 0D;
-        double maxX = 0D;
-        double minY = 0D;
-        double maxY = 0D;
-        for (int i = 0; i < contours.Count; i++) {
-            IReadOnlyList<OfficePoint> contour = contours[i];
-            if (contour.Count < 3) {
-                continue;
-            }
-
-            for (int j = 0; j < contour.Count; j++) {
-                OfficePoint point = contour[j];
-                if (!found) {
-                    minX = maxX = point.X;
-                    minY = maxY = point.Y;
-                    found = true;
-                } else {
-                    minX = Math.Min(minX, point.X);
-                    maxX = Math.Max(maxX, point.X);
-                    minY = Math.Min(minY, point.Y);
-                    maxY = Math.Max(maxY, point.Y);
-                }
-            }
-        }
-
-        if (!found) {
-            return;
-        }
-
-        int left = Clamp((int)Math.Floor(minX), 0, Width - 1);
-        int right = Clamp((int)Math.Ceiling(maxX), 0, Width - 1);
-        int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
-        int bottom = Clamp((int)Math.Ceiling(maxY), 0, Height - 1);
-        int rasterWidth = right - left + 1;
-        if (rasterWidth <= 0 || bottom < top) return;
-        int coverageLength = Math.Min(rasterWidth,
-            MaximumContourCoverageTileWidth);
-#if NET8_0_OR_GREATER
-        byte[] coverage = ArrayPool<byte>.Shared.Rent(coverageLength);
-#else
-        byte[] coverage = new byte[coverageLength];
-#endif
-        try {
-            RasterizeAndBlendContourCoverage(contours, fillRule, color,
-                left, right, top, bottom, coverage);
-        } finally {
-#if NET8_0_OR_GREATER
-            ArrayPool<byte>.Shared.Return(coverage);
-#endif
-        }
-    }
-
-    private void RasterizeAndBlendContourCoverage(
-        IReadOnlyList<IReadOnlyList<OfficePoint>> contours,
-        OfficeFillRule fillRule,
-        OfficeColor color,
-        int left,
-        int right,
-        int top,
-        int bottom,
-        byte[] coverage) {
-        int samples = CoverageSamples;
-        int maximumCoverage = samples * samples;
-        int edgeCapacity = 0;
-        for (int contourIndex = 0; contourIndex < contours.Count; contourIndex++) {
-            edgeCapacity += contours[contourIndex].Count;
-        }
-        var crossingsBySample = new List<ContourCrossing>[samples];
-        for (int sy = 0; sy < samples; sy++) {
-            crossingsBySample[sy] = new List<ContourCrossing>(edgeCapacity);
-        }
-        for (int py = top; py <= bottom; py++) {
-            _cancellationToken.ThrowIfCancellationRequested();
-            for (int sy = 0; sy < samples; sy++) {
-                List<ContourCrossing> crossings = crossingsBySample[sy];
-                double sampleY = py + (sy + 0.5D) / samples;
-                crossings.Clear();
-                AddContourCrossings(contours, sampleY, crossings);
-                crossings.Sort(ContourCrossingComparer.Instance);
-            }
-            for (int tileLeft = left; tileLeft <= right;
-                 tileLeft += coverage.Length) {
-                int tileRight = Math.Min(right,
-                    tileLeft + coverage.Length - 1);
-                int tileWidth = tileRight - tileLeft + 1;
-                Array.Clear(coverage, 0, tileWidth);
-                for (int sy = 0; sy < samples; sy++) {
-                    List<ContourCrossing> crossings = crossingsBySample[sy];
-                    if (crossings.Count < 2) continue;
-                    AddContourIntervals(crossings, fillRule, tileLeft,
-                        tileRight, samples, 0, coverage);
-                }
-                for (int px = tileLeft; px <= tileRight; px++) {
-                    int covered = coverage[px - tileLeft];
-                    if (covered > 0) {
-                        BlendPixel(px, py, ApplyCoverage(color,
-                            covered / (double)maximumCoverage));
-                    }
-                }
-            }
-        }
-    }
-
-    private static void AddContourCrossings(
-        IReadOnlyList<IReadOnlyList<OfficePoint>> contours,
-        double sampleY,
-        List<ContourCrossing> crossings) {
-        for (int contourIndex = 0; contourIndex < contours.Count; contourIndex++) {
-            IReadOnlyList<OfficePoint> contour = contours[contourIndex];
-            if (contour.Count < 3) continue;
-            OfficePoint start = contour[contour.Count - 1];
-            for (int pointIndex = 0; pointIndex < contour.Count; pointIndex++) {
-                OfficePoint end = contour[pointIndex];
-                bool upward = start.Y <= sampleY && end.Y > sampleY;
-                bool downward = start.Y > sampleY && end.Y <= sampleY;
-                if (upward || downward) {
-                    double deltaY = end.Y - start.Y;
-                    double crossingX = start.X +
-                        ((sampleY - start.Y) * (end.X - start.X) / deltaY);
-                    crossings.Add(new ContourCrossing(crossingX,
-                        upward ? 1 : -1));
-                }
-                start = end;
-            }
-        }
-    }
-
-    private static void AddContourIntervals(
-        List<ContourCrossing> crossings,
-        OfficeFillRule fillRule,
-        int left,
-        int right,
-        int samples,
-        int rowOffset,
-        byte[] coverage) {
-        int winding = 0;
-        double previousX = crossings[0].X;
-        int index = 0;
-        while (index < crossings.Count) {
-            double x = crossings[index].X;
-            bool inside = fillRule == OfficeFillRule.NonZero
-                ? winding != 0
-                : (winding & 1) == 1;
-            if (inside && x > previousX) {
-                AddContourIntervalCoverage(previousX, x, left, right, samples,
-                    rowOffset, coverage);
-            }
-
-            int crossingCount = 0;
-            int windingDelta = 0;
-            do {
-                crossingCount++;
-                windingDelta += crossings[index].WindingDelta;
-                index++;
-            } while (index < crossings.Count &&
-                     Math.Abs(crossings[index].X - x) <= 1E-9D);
-
-            winding += fillRule == OfficeFillRule.NonZero
-                ? windingDelta
-                : crossingCount;
-            previousX = x;
-        }
-    }
-
-    private static void AddContourIntervalCoverage(
-        double startX,
-        double endX,
-        int left,
-        int right,
-        int samples,
-        int rowOffset,
-        byte[] coverage) {
-        int firstPixel = Math.Max(left, (int)Math.Floor(startX));
-        int lastPixel = Math.Min(right, (int)Math.Floor(endX));
-        for (int px = firstPixel; px <= lastPixel; px++) {
-            int covered = 0;
-            for (int sx = 0; sx < samples; sx++) {
-                double sampleX = px + (sx + 0.5D) / samples;
-                if (sampleX >= startX && sampleX < endX) covered++;
-            }
-            if (covered > 0) {
-                coverage[rowOffset + px - left] += checked((byte)covered);
-            }
-        }
-    }
-
-    private readonly struct ContourCrossing {
-        internal ContourCrossing(double x, int windingDelta) {
-            X = x;
-            WindingDelta = windingDelta;
-        }
-
-        internal double X { get; }
-        internal int WindingDelta { get; }
-    }
-
-    private sealed class ContourCrossingComparer : IComparer<ContourCrossing> {
-        internal static readonly ContourCrossingComparer Instance =
-            new ContourCrossingComparer();
-
-        public int Compare(ContourCrossing x, ContourCrossing y) =>
-            x.X.CompareTo(y.X);
     }
 
     private static bool ContainsPoint(IReadOnlyList<OfficePoint> points, double x, double y) {
@@ -1062,110 +636,6 @@ public sealed partial class OfficeRasterCanvas {
     private bool IsOutsideCanvas(double x, double y, double width, double height) =>
         x >= Width || y >= Height || x + width <= 0D || y + height <= 0D;
 
-    private double PolygonCoverage(IReadOnlyList<OfficePoint> points, int x, int y) {
-        int samples = CoverageSamples;
-        int covered = 0;
-        for (int sy = 0; sy < samples; sy++) {
-            double sampleY = y + (sy + 0.5D) / samples;
-            for (int sx = 0; sx < samples; sx++) {
-                double sampleX = x + (sx + 0.5D) / samples;
-                if (ContainsPoint(points, sampleX, sampleY)) {
-                    covered++;
-                }
-            }
-        }
-
-        return covered / (double)(samples * samples);
-    }
-
-    private double EllipseFillCoverage(int x, int y, double ellipseX, double ellipseY, double width, double height) {
-        double rx = width / 2D;
-        double ry = height / 2D;
-        double cx = ellipseX + rx;
-        double cy = ellipseY + ry;
-        int samples = CoverageSamples;
-        int covered = 0;
-        for (int sy = 0; sy < samples; sy++) {
-            double sampleY = y + (sy + 0.5D) / samples;
-            for (int sx = 0; sx < samples; sx++) {
-                double sampleX = x + (sx + 0.5D) / samples;
-                double dx = (sampleX - cx) / Math.Max(rx, 0.0001D);
-                double dy = (sampleY - cy) / Math.Max(ry, 0.0001D);
-                if ((dx * dx) + (dy * dy) <= 1D) {
-                    covered++;
-                }
-            }
-        }
-
-        return covered / (double)(samples * samples);
-    }
-
-    private double EllipseStrokeCoverage(int x, int y, double cx, double cy, double outerRx, double outerRy, double innerRx, double innerRy) {
-        int samples = CoverageSamples;
-        int covered = 0;
-        for (int sy = 0; sy < samples; sy++) {
-            double sampleY = y + (sy + 0.5D) / samples;
-            for (int sx = 0; sx < samples; sx++) {
-                double sampleX = x + (sx + 0.5D) / samples;
-                double ox = (sampleX - cx) / Math.Max(outerRx, 0.0001D);
-                double oy = (sampleY - cy) / Math.Max(outerRy, 0.0001D);
-                double ix = (sampleX - cx) / innerRx;
-                double iy = (sampleY - cy) / innerRy;
-                if ((ox * ox) + (oy * oy) <= 1D && (ix * ix) + (iy * iy) >= 1D) {
-                    covered++;
-                }
-            }
-        }
-
-        return covered / (double)(samples * samples);
-    }
-
-    private (double FillCoverage, double StrokeCoverage) RotatedEllipseCoverage(
-        int x,
-        int y,
-        double centerX,
-        double centerY,
-        double radiusX,
-        double radiusY,
-        double strokeHalf,
-        bool hasFill,
-        double rotationRadians,
-        double rotationCenterX,
-        double rotationCenterY) {
-        int filled = 0;
-        int stroked = 0;
-        double outerRadiusX = Math.Max(radiusX + strokeHalf, 0.0001D);
-        double outerRadiusY = Math.Max(radiusY + strokeHalf, 0.0001D);
-        double innerRadiusX = Math.Max(radiusX - strokeHalf, 0.0001D);
-        double innerRadiusY = Math.Max(radiusY - strokeHalf, 0.0001D);
-        int samples = CoverageSamples;
-        for (int sy = 0; sy < samples; sy++) {
-            double sampleY = y + (sy + 0.5D) / samples;
-            for (int sx = 0; sx < samples; sx++) {
-                double sampleX = x + (sx + 0.5D) / samples;
-                OfficePoint local = Math.Abs(rotationRadians) > 0.0001D
-                    ? OfficeGeometry.RotatePoint(new OfficePoint(sampleX, sampleY), rotationCenterX, rotationCenterY, -rotationRadians)
-                    : new OfficePoint(sampleX, sampleY);
-                double dx = local.X - centerX;
-                double dy = local.Y - centerY;
-                double fillMetric = (dx * dx / (radiusX * radiusX)) + (dy * dy / (radiusY * radiusY));
-                if (hasFill && fillMetric <= 1D) {
-                    filled++;
-                    continue;
-                }
-
-                double outerMetric = (dx * dx / (outerRadiusX * outerRadiusX)) + (dy * dy / (outerRadiusY * outerRadiusY));
-                double innerMetric = (dx * dx / (innerRadiusX * innerRadiusX)) + (dy * dy / (innerRadiusY * innerRadiusY));
-                if (outerMetric <= 1D && innerMetric >= 1D) {
-                    stroked++;
-                }
-            }
-        }
-
-        double sampleCount = samples * samples;
-        return (filled / sampleCount, stroked / sampleCount);
-    }
-
     private static OfficeColor SampleBilinear(OfficeRasterImage image, double sourceX, double sourceY) {
         int x0 = Clamp((int)Math.Floor(sourceX), 0, image.Width - 1);
         int y0 = Clamp((int)Math.Floor(sourceY), 0, image.Height - 1);
@@ -1213,25 +683,6 @@ public sealed partial class OfficeRasterCanvas {
             (c01 * a01 * w01) +
             (c11 * a11 * w11);
         return (byte)Math.Round(Clamp(premultiplied / alpha, 0D, 255D));
-    }
-
-    private static double DistanceToSegment(double px, double py, double x1, double y1, double x2, double y2) {
-        double dx = x2 - x1;
-        double dy = y2 - y1;
-        double lengthSquared = (dx * dx) + (dy * dy);
-        if (lengthSquared < 0.0001D) {
-            double sx = px - x1;
-            double sy = py - y1;
-            return Math.Sqrt((sx * sx) + (sy * sy));
-        }
-
-        double t = ((px - x1) * dx + (py - y1) * dy) / lengthSquared;
-        t = Clamp(t, 0D, 1D);
-        double projectionX = x1 + t * dx;
-        double projectionY = y1 + t * dy;
-        double distanceX = px - projectionX;
-        double distanceY = py - projectionY;
-        return Math.Sqrt((distanceX * distanceX) + (distanceY * distanceY));
     }
 
     private static double Distance(double x1, double y1, double x2, double y2) {

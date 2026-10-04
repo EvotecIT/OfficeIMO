@@ -3,11 +3,7 @@ using OfficeIMO.OneNote;
 namespace OfficeIMO.Reader.OneNote;
 
 internal static partial class OneNoteReaderAdapter {
-    private static string BuildChunkHashInput(ReaderChunk chunk) {
-        return string.Join("|", chunk.Kind.ToString(), chunk.SourceId ?? string.Empty,
-            chunk.Location.Page?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-            chunk.Location.BlockAnchor ?? string.Empty, chunk.Text, chunk.Markdown ?? string.Empty);
-    }
+
 
     private static string BuildSourceId(string value) {
         string normalized = Path.DirectorySeparatorChar == '\\' ? value.ToLowerInvariant() : value;

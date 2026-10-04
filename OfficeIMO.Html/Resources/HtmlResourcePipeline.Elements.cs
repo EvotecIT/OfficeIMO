@@ -4,7 +4,8 @@ using AngleSharp.Html.Dom;
 namespace OfficeIMO.Html;
 
 public static partial class HtmlResourcePipeline {
-    private static void AddElementResources(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options, int srcDocDepth) {
+    private static void AddElementResources(HtmlResourceManifest manifest, IElement element, Uri? baseUri,
+        HtmlResourcePipelineOptions options, int srcDocDepth, Dictionary<IDocument, string?> preferredSets) {
         string name = element.TagName.ToLowerInvariant();
         if (SupportsLegacyBackground(name)) AddLegacyBackground(manifest, element, baseUri, options);
 
@@ -26,7 +27,7 @@ public static partial class HtmlResourcePipeline {
                 AddSource(manifest, element, baseUri, options);
                 break;
             case "link":
-                AddLink(manifest, element, baseUri, options);
+                AddLink(manifest, element, baseUri, options, preferredSets);
                 break;
             case "base":
                 break;
@@ -83,7 +84,7 @@ public static partial class HtmlResourcePipeline {
                     AddAttribute(manifest, HtmlResourceKind.Other, element, "src", baseUri, options);
                 }
 
-                AddSrcDocResources(manifest, element, baseUri, options, srcDocDepth);
+                AddSrcDocResources(manifest, element, baseUri, options, srcDocDepth, preferredSets);
                 break;
         }
     }
@@ -316,7 +317,8 @@ public static partial class HtmlResourcePipeline {
         return false;
     }
 
-    private static void AddLink(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
+    private static void AddLink(HtmlResourceManifest manifest, IElement element, Uri? baseUri,
+        HtmlResourcePipelineOptions options, Dictionary<IDocument, string?> preferredSets) {
         if (!IsHtmlNamespaceElement(element)) return;
         string rel = element.GetAttribute("rel") ?? string.Empty;
         HashSet<string> relTokens = GetRelTokens(rel);
@@ -326,29 +328,14 @@ public static partial class HtmlResourcePipeline {
         if (isDocumentIcon && !options.IncludeDocumentIcons && !isPreload && !isStylesheet) return;
         if (isStylesheet && (element.HasAttribute("disabled")
                 || !IsCssStylesheetType(element.GetAttribute("type"))
-                || relTokens.Contains("alternate") && !IsSelectedAlternateStylesheet(element, options))) {
+                || relTokens.Contains("alternate") && !IsSelectedAlternateStylesheet(element, options, preferredSets))) {
             return;
         }
         if ((isPreload || isStylesheet) && !IsApplicableMedia(element.GetAttribute("media") ?? string.Empty, options)) {
             return;
         }
 
-        HtmlResourceKind kind;
-        if (isStylesheet) {
-            kind = HtmlResourceKind.Stylesheet;
-        } else if (relTokens.Contains("modulepreload")) {
-            kind = HtmlResourceKind.Script;
-        } else if (isPreload) {
-            kind = GetPreloadKind(element.GetAttribute("as"));
-            if (kind == HtmlResourceKind.Stylesheet) kind = HtmlResourceKind.Other;
-        } else if (relTokens.Contains("font")) {
-            kind = HtmlResourceKind.Font;
-        } else if (relTokens.Contains("icon") || relTokens.Contains("apple-touch-icon") || relTokens.Contains("shortcut icon")) {
-            kind = HtmlResourceKind.Image;
-        } else {
-            kind = HtmlResourceKind.Hyperlink;
-        }
-
+        HtmlResourceKind kind = GetLinkResourceKind(rel, element.GetAttribute("as"));
         if (isPreload && kind == HtmlResourceKind.Image) {
             if (options.MediaWidth.HasValue && options.MediaHeight.HasValue
                 && AddSrcSet(manifest, HtmlResourceKind.Image, element, "imagesrcset", baseUri, options,
@@ -363,16 +350,43 @@ public static partial class HtmlResourcePipeline {
         AddAttribute(manifest, kind, element, "href", baseUri, options);
     }
 
-    private static bool IsSelectedAlternateStylesheet(IElement link, HtmlResourcePipelineOptions options) {
-        string? title = NormalizeStylesheetSetTitle(link.GetAttribute("title"));
-        return title != null
-            && string.Equals(title, FindPreferredStylesheetSet(link, options), StringComparison.Ordinal);
+    /// <summary>Classifies an HTML link independently of the media context selecting it for rendering.</summary>
+    internal static HtmlResourceKind GetLinkResourceKind(string? rel, string? preloadAs) {
+        HashSet<string> relTokens = GetRelTokens(rel ?? string.Empty);
+        bool isStylesheet = relTokens.Contains("stylesheet"), isPreload = relTokens.Contains("preload");
+        HtmlResourceKind kind;
+        if (isStylesheet) {
+            kind = HtmlResourceKind.Stylesheet;
+        } else if (relTokens.Contains("modulepreload")) {
+            kind = HtmlResourceKind.Script;
+        } else if (isPreload) {
+            kind = GetPreloadKind(preloadAs);
+            if (kind == HtmlResourceKind.Stylesheet) kind = HtmlResourceKind.Other;
+        } else if (relTokens.Contains("font")) {
+            kind = HtmlResourceKind.Font;
+        } else if (relTokens.Contains("icon") || relTokens.Contains("apple-touch-icon") || relTokens.Contains("shortcut icon")) {
+            kind = HtmlResourceKind.Image;
+        } else {
+            kind = HtmlResourceKind.Hyperlink;
+        }
+
+        return kind;
     }
 
-    private static string? FindPreferredStylesheetSet(IElement context, HtmlResourcePipelineOptions options) {
-        IDocument? owner = context.Owner;
-        if (owner == null) return null;
-        foreach (IElement candidate in owner.QuerySelectorAll("link[href], style")) {
+    private static bool IsSelectedAlternateStylesheet(IElement link, HtmlResourcePipelineOptions options,
+        Dictionary<IDocument, string?> preferredSets) {
+        string? title = NormalizeStylesheetSetTitle(link.GetAttribute("title"));
+        IDocument? owner = link.Owner;
+        if (title == null || owner == null) return false;
+        if (!preferredSets.TryGetValue(owner, out string? preferredSet)) {
+            preferredSet = FindPreferredStylesheetSet(owner, options);
+            preferredSets.Add(owner, preferredSet);
+        }
+        return string.Equals(title, preferredSet, StringComparison.Ordinal);
+    }
+
+    private static string? FindPreferredStylesheetSet(IDocument document, HtmlResourcePipelineOptions options) {
+        foreach (IElement candidate in document.QuerySelectorAll("link[href], style")) {
             string? title = NormalizeStylesheetSetTitle(candidate.GetAttribute("title"));
             if (title == null) continue;
             if (string.Equals(candidate.LocalName, "link", StringComparison.OrdinalIgnoreCase)) {
@@ -566,7 +580,8 @@ public static partial class HtmlResourcePipeline {
         return HtmlPictureSourceSupport.IsSupportedConversionContentType(type);
     }
 
-    private static void AddSrcDocResources(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options, int srcDocDepth) {
+    private static void AddSrcDocResources(HtmlResourceManifest manifest, IElement element, Uri? baseUri,
+        HtmlResourcePipelineOptions options, int srcDocDepth, Dictionary<IDocument, string?> preferredSets) {
         string? srcdoc = element.GetAttribute("srcdoc");
         if (string.IsNullOrWhiteSpace(srcdoc)) {
             return;
@@ -579,7 +594,7 @@ public static partial class HtmlResourcePipeline {
         IHtmlDocument nested = HtmlDocumentParser.ParseDocument(srcdoc!);
         Uri? nestedBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(nested, baseUri);
         foreach (IElement nestedElement in nested.QuerySelectorAll(ResourceSelector)) {
-            AddElementResources(manifest, nestedElement, nestedBaseUri, options, srcDocDepth + 1);
+            AddElementResources(manifest, nestedElement, nestedBaseUri, options, srcDocDepth + 1, preferredSets);
         }
 
         AddCssResources(manifest, nested, nestedBaseUri, options);

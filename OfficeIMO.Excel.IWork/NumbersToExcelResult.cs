@@ -5,11 +5,13 @@ namespace OfficeIMO.Excel.IWork;
 /// <summary>Contains an Excel conversion and the Numbers source evidence that produced it.</summary>
 public sealed class NumbersToExcelResult : IDisposable {
     internal NumbersToExcelResult(ExcelDocument value, IWorkSourceDocument source,
-        IWorkNumbersProjection projection, IWorkConversionReport report) {
+        IWorkNumbersProjection projection, IWorkConversionReport report,
+        IReadOnlyList<NumbersWorksheetMapping> worksheetMappings) {
         Value = value;
         Source = source;
         Projection = projection;
         Report = report;
+        WorksheetMappings = Array.AsReadOnly(worksheetMappings.ToArray());
     }
 
     /// <summary>Gets the converted editable OfficeIMO Excel workbook.</summary>
@@ -20,6 +22,8 @@ public sealed class NumbersToExcelResult : IDisposable {
     public IWorkNumbersProjection Projection { get; }
     /// <summary>Gets the loss-aware conversion report.</summary>
     public IWorkConversionReport Report { get; }
+    /// <summary>Gets the original sheet/table identity and actual destination name for every generated worksheet.</summary>
+    public IReadOnlyList<NumbersWorksheetMapping> WorksheetMappings { get; }
     /// <summary>Gets whether the result uses a visual preview rather than editable reconstruction.</summary>
     public bool IsVisualFallback => Report.ProjectionKind == IWorkProjectionKind.VisualFallback;
     /// <summary>Gets whether known source records or visuals were flattened, omitted, or reported as errors.</summary>

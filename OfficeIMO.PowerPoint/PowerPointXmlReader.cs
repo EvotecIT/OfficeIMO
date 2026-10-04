@@ -17,10 +17,18 @@ internal static class PowerPointXmlReader {
         return XDocument.Load(reader, options);
     }
 
-    internal static bool? ReadSlideShow(Stream stream) {
-        using XmlReader reader = XmlReader.Create(stream, PackageXmlReaderSettings);
+    internal static bool? ReadSlideShow(Stream stream, long maximumCharactersInPart) {
+        var settings = new XmlReaderSettings {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null,
+            MaxCharactersInDocument = maximumCharactersInPart > 0
+                ? Math.Min(MaximumPackageXmlCharacters, maximumCharactersInPart)
+                : MaximumPackageXmlCharacters
+        };
+        using XmlReader reader = XmlReader.Create(stream, settings);
         reader.MoveToContent();
         string? value = reader.GetAttribute("show");
+        while (reader.Read()) { }
         return value == null ? null : XmlConvert.ToBoolean(value);
     }
 }

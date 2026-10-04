@@ -4,9 +4,17 @@
 
 The package does not add a second document or PDF engine. Desktop applications, command-line tools, and services can share this workflow contract while keeping their user-interface and hosting code thin.
 
+## Opt-in Apple conversion
+
+[OfficeIMO.Workflows.IWork](../OfficeIMO.Workflows.IWork/README.md) supplies Pages-to-Word, Numbers-to-Excel, and Keynote-to-PowerPoint routes. `IWorkWorkflow.CreateRunner()` shares this runner's source capture, limits, destination reopen validation, and publication contract. `IOfficeWorkflowRunner.ConversionRoutes` exposes the configured executable routes; the static `OfficeWorkflowCatalog` describes built-in executability. The default workflow package remains independent of iWork.
+
+`OfficeWorkflowConversionRegistration` adds an implementation of an existing canonical route to a runner. It cannot replace built-in owners. Opt-in converters accept captured ZIP/file streams, write to a bounded caller-owned output stream, and return immutable `OfficeWorkflowConversionEvidence`. Current opt-in destination formats are DOCX, XLSX, and PPTX. `OfficeWorkflowResult.ConversionEvidence` retains fidelity categories and compact source facts; successful reopen does not establish visual equivalence.
+
+Provider directory packages use `OfficeWorkflowRequest.InputDirectoryPackage` with a registered directory-package converter. The shared runner preserves member layout in bounded private staging and verifies original provider membership and content before publication. The host supplies permission-aware root identity and output-separation checks through `OfficeWorkflowDirectoryPackageInput.SourcePublicationGuard`. The selected filename determines routing; an explicit output is required.
+
 ## Single conversions and file batches
 
-`OfficeWorkflowRunner` executes the routes in `OfficeWorkflowCatalog.ExecutableRoutes`. Directory and selected-file batches use those same routes, profiles, renderer options, diagnostics and publication policies. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown and RTF. Other targets use the existing PDF-to-DOCX/XLSX/PPTX/HTML routes. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
+`OfficeWorkflowRunner` executes its configured `ConversionRoutes`. Ordinary directory and selected-file batches use those same routes, including registered adapters, profiles, renderer options, diagnostics and publication policies. Registered adapters use the options captured when the runner was created. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown and RTF. Other built-in targets use the existing PDF-to-DOCX/XLSX/PPTX/HTML routes. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
 
 ```csharp
 using OfficeIMO.Pdf;
@@ -18,7 +26,7 @@ var options = new OfficeWorkflowConversionOptions {
 var runner = new OfficeWorkflowRunner();
 var single = await runner.RunAsync(new OfficeWorkflowRequest {
     Operation = OfficeWorkflowOperation.Convert,
-    InputPath = "report.txt", OutputPath = "report.pdf", ConversionOptions = options
+    InputPath = "report.txt", OutputPath = "report.pdf", ConversionRouteId = "txt-pdf", ConversionOptions = options
 }, cancellationToken: cancellationToken);
 
 OfficeConversionBatchResult batch = await OfficeWorkflow.ConvertDirectory("Documents")
@@ -37,9 +45,61 @@ var html = await OfficeWorkflow.ConvertFiles("report.pdf", "appendix.pdf")
 
 Ordinary batches support the existing `Fail`, `Rename` and `Replace` conflict policies. Directory discovery is incremental and skips filesystem links. Outputs retain the full relative source filename plus the target extension, so `report.doc` and `report.docx` have distinct PDF names. Explicit files retain relative paths when `InputDirectory` supplies their common root; otherwise they use their filenames, and destination collisions follow the selected policy.
 
+## Book publishing
+
+`BookManuscriptImporter` composes the owning Word, Markdown, HTML and EPUB libraries.
+It imports `.docx`, `.md`, `.markdown`, `.html` and `.htm` manuscripts into reflowable
+books, retaining each conversion stage's fidelity categories. Word uses its static
+final revision view: comments are omitted, fields use their stored visible results,
+and live controls are outside the book contract. Notes and supported semantic content
+remain in the publication. Markdown front matter supplies title, language and author.
+
+```csharp
+using OfficeIMO.Epub;
+using OfficeIMO.Workflows;
+
+var imported = await BookManuscriptImporter.ImportFileAsync("manuscript.md",
+    new EpubManuscriptOptions { ChapterHeadingLevel = 1 });
+BookProject project = BookProject.FromImport(imported);
+imported.Report.RequireNoLoss();
+project.RenameChapter(0, "Opening chapter");
+project.SetStylesheet("body{font-family:serif;line-height:1.6}");
+await File.WriteAllBytesAsync("book.oibook", project.ToProjectBytes());
+BookProject reopened = BookProject.LoadProject(await File.ReadAllBytesAsync("book.oibook"));
+await File.WriteAllBytesAsync("book.epub", reopened.Export().Bytes);
+```
+
+The file route allows at most 64 MiB of manuscript input and resolves assets only
+inside the manuscript's physical parent directory. It rejects executable Word
+package parts. `ImportBytesAsync` consumes a host-owned snapshot and does not read
+files implicitly; a host may supply a permission-aware resource resolver and base URI.
+Typed `ImportWordAsync` and `ImportMarkdownAsync` reuse an already loaded source.
+
+`BookProject` owns validated edits: metadata, chapter insertion/removal/reordering,
+chapter titles and XHTML bodies, a project stylesheet, and cover selection.
+`ApplyEdits` commits a complete editor draft atomically. Invalid or cancelled edits
+retain the previous publication. Deleting a linked chapter requires repairing its
+remaining links first. A blank creator retains the current creator. Package edits
+have one bounded session-only undo/redo step; the history is not saved in the project.
+`PreviewChapter` renders through `OfficeIMO.Epub.Image` using retained package assets.
+It selects the requested spine position and fails if that chapter was omitted by the
+bounded reading policy. Navigation edits also reject incomplete reader projections,
+retaining the complete publication when item, depth, or XML size limits are reached.
+
+The `.oibook` container stores `publication.epub` and a versioned review record, with
+physical ZIP validation and byte/count limits. Loading never extracts files.
+Projects may retain non-fatal review findings until the author acknowledges them;
+failure diagnostics cannot be accepted as export-ready. Every EPUB export still runs
+the native writer's validation. Project review records are user-owned state, not an
+authenticity certificate. Project instances are mutable and not thread-safe.
+Hosts own destination permissions, conflict handling and safe publication; Studio
+uses its existing verified storage owner for those operations.
+
 ## Optional checkpoints
 
 Add `.WithCheckpoint("PDF-State")` to the builder, or set `CheckpointDirectory` on `OfficeConversionBatchRequest`, for restartable execution. Source, output and checkpoint trees must be separate local folders. For selected HTML files and Markdown files with local resources enabled, output and checkpoint folders must also be outside each file's resource tree, including an explicit Markdown `BaseDirectory`. Checkpoint jobs require `Fail`: recorded completed artifacts are immutable and verified by source, rendering-settings, local-resource and output hashes before reuse.
+
+Checkpoints support built-in routes. Registered adapters require an ordinary batch because their captured runtime configuration cannot be fingerprinted. An explicit registered route with checkpoints is rejected before execution; a registered input discovered in a mixed checkpoint batch reports a failed item without publishing it.
 
 Before publication, the runner flushes validated staged output and records its hash and staging identity. Restart can finish that recorded move or verify an output moved before the final receipt was written. Changed completed sources or settings, altered/missing outputs and outputs without a bound receipt fail the item for inspection. `RetryFailed` permits retrying recorded failures, including corrected failed inputs. Completed files and recorded pending publications survive cancellation. An interruption before publication intent is recorded can leave a hidden staging file; inspect it before removing it.
 
@@ -359,6 +419,12 @@ The runner snapshots the source, optimizes through `OfficeIMO.Word`, reopens the
 DOCX and supported legacy DOC inputs can produce DOCX, native DOC, or PDF. Incomplete legacy projections block output; analysis warns that its inventory covers only projected pictures. The native DOC writer preflights destination support. Word reports encoded-media savings; `InputBytes` and `OutputBytes` measure actual files. PDF generation after Word optimization retains its default image policy to avoid a second JPEG quality reduction. [Word image options and preservation rules](../OfficeIMO.Word/README.md#images) apply to every host.
 
 ## Convert a document
+
+The executable conversion routes run in process through the OfficeIMO format and
+rendering packages. They do not launch an external office suite or document
+converter. Independent producer files and compatibility checks belong to
+validation; they are not prerequisites for running these conversions.
+
 
 ```csharp
 using OfficeIMO.Workflows;
@@ -696,3 +762,21 @@ byte[] cleanedCopy = result.ToArray();
 For memory-only report export, pass the inspected bytes and report to `OfficeProvenanceReportSerializer.FromBuffer(fileName, bytes, inspection, removal)` and serialize the returned result. These factories do not read paths or verify cryptographic authenticity.
 
 `OfficeTextIntegrityReview` in Core owns source-bound text selections and encoding-preserving export. `OfficeTextIntegrityReportSerializer.Serialize(review, review.Text, fileName, selectedIndices)` exports exact findings, selected occurrence indices, UTF-16 offset units, source hashes, encoding/BOM information, and the selected-copy digest. It does not include the full source text.
+
+<!-- officeimo-operation-catalog:start -->
+## Generated capability summary
+
+This table is generated from the package-neutral OfficeIMO operation catalog. The detailed source contracts remain authoritative for feature-level behavior and limitations.
+
+| Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Create | 1 | 0 | 0 | 0 | 0 | 0 |
+| Read | 1 | 0 | 0 | 0 | 0 | 0 |
+| Edit | 1 | 0 | 0 | 0 | 0 | 0 |
+| Preserve | 1 | 0 | 0 | 0 | 0 | 0 |
+| Validate | 0 | 1 | 0 | 0 | 0 | 0 |
+| Convert | 0 | 2 | 0 | 0 | 0 | 0 |
+| Export | 1 | 0 | 0 | 0 | 0 | 0 |
+
+The complete rows for `OfficeIMO.Workflows` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
+<!-- officeimo-operation-catalog:end -->

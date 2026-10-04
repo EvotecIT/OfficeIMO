@@ -99,6 +99,11 @@ internal sealed class ReaderHandlerRegistrySnapshot {
         .OrderBy(static handler => handler.Id, StringComparer.Ordinal)
         .ToArray();
 
+    internal Func<string, FileStream>? OpenPathForContentDetection => _handlersById.Values
+        .OrderBy(static handler => handler.Id, StringComparer.Ordinal)
+        .Select(static handler => handler.OpenPathForContentDetection)
+        .FirstOrDefault(static opener => opener != null);
+
     public IReadOnlyList<string> Extensions => _handlerIdByExtension.Keys
         .OrderBy(static extension => extension, StringComparer.Ordinal)
         .ToArray();
@@ -163,6 +168,9 @@ internal sealed class ReaderHandlerRegistrySnapshot {
 }
 
 internal sealed class ReaderHandlerDescriptor {
+    public IReadOnlyList<ReaderFormatQualification> FormatQualifications { get; private set; } = Array.Empty<ReaderFormatQualification>();
+    public bool SupportsIncrementalPath { get; private set; }
+    public bool SupportsIncrementalStream { get; private set; }
     private const int MaximumInputLimitProbeBytes = 64 * 1024;
 
     private ReaderHandlerDescriptor(
@@ -184,11 +192,13 @@ internal sealed class ReaderHandlerDescriptor {
         Func<string, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? readPath,
         Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? readStream,
         Func<string, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? readDocumentPath,
+        Func<string, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? readDirectoryBundle,
         Func<Stream, string?, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? readDocumentStream,
         Func<string, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? readDocumentPathAsync,
         Func<Stream, string?, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? readDocumentStreamAsync,
         Func<Stream, string?, ReaderOptions, CancellationToken, bool>? probeStream,
-        Func<Stream, string?, ReaderOptions, CancellationToken, bool>? extensionValidationProbeStream) {
+        Func<Stream, string?, ReaderOptions, CancellationToken, bool>? extensionValidationProbeStream,
+        Func<string, FileStream>? openPathForContentDetection) {
         Id = id;
         DisplayName = displayName;
         Description = description;
@@ -207,11 +217,13 @@ internal sealed class ReaderHandlerDescriptor {
         ReadPath = readPath;
         ReadStream = readStream;
         ReadDocumentPath = readDocumentPath;
+        ReadDirectoryBundle = readDirectoryBundle;
         ReadDocumentStream = readDocumentStream;
         ReadDocumentPathAsync = readDocumentPathAsync;
         ReadDocumentStreamAsync = readDocumentStreamAsync;
         ProbeStream = probeStream;
         ExtensionValidationProbeStream = extensionValidationProbeStream;
+        OpenPathForContentDetection = openPathForContentDetection;
     }
 
     public string Id { get; }
@@ -232,11 +244,13 @@ internal sealed class ReaderHandlerDescriptor {
     public Func<string, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? ReadPath { get; }
     public Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? ReadStream { get; }
     public Func<string, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? ReadDocumentPath { get; }
+    public Func<string, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? ReadDirectoryBundle { get; }
     public Func<Stream, string?, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? ReadDocumentStream { get; }
     public Func<string, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? ReadDocumentPathAsync { get; }
     public Func<Stream, string?, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? ReadDocumentStreamAsync { get; }
     public Func<Stream, string?, ReaderOptions, CancellationToken, bool>? ProbeStream { get; }
     public Func<Stream, string?, ReaderOptions, CancellationToken, bool>? ExtensionValidationProbeStream { get; }
+    internal Func<string, FileStream>? OpenPathForContentDetection { get; }
     public bool SupportsPathInput => ReadPath != null || ReadDocumentPath != null || ReadDocumentPathAsync != null;
     public bool SupportsStreamInput => ReadStream != null || ReadDocumentStream != null || ReadDocumentStreamAsync != null;
 
@@ -248,6 +262,7 @@ internal sealed class ReaderHandlerDescriptor {
         if (registration.ReadPath == null &&
             registration.ReadStream == null &&
             registration.ReadDocumentPath == null &&
+            registration.ReadDirectoryBundle == null &&
             registration.ReadDocumentStream == null &&
             registration.ReadDocumentPathAsync == null &&
             registration.ReadDocumentStreamAsync == null) {
@@ -258,6 +273,10 @@ internal sealed class ReaderHandlerDescriptor {
 
         if (registration.DefaultMaxInputBytes.HasValue && registration.DefaultMaxInputBytes.Value < 1) {
             throw new ArgumentException("DefaultMaxInputBytes must be greater than 0 when specified.", nameof(registration));
+        }
+        if (registration.SupportsIncrementalPath && registration.ReadPath == null ||
+            registration.SupportsIncrementalStream && registration.ReadStream == null) {
+            throw new ArgumentException("Incremental support requires the corresponding chunk delegate.", nameof(registration));
         }
 
         IReadOnlyList<string> extensions = NormalizeExtensions(registration.Extensions);
@@ -295,24 +314,46 @@ internal sealed class ReaderHandlerDescriptor {
             registration.ReadPath,
             registration.ReadStream,
             registration.ReadDocumentPath,
+            registration.ReadDirectoryBundle,
             registration.ReadDocumentStream,
             registration.ReadDocumentPathAsync,
             registration.ReadDocumentStreamAsync,
             registration.ProbeStream,
-            registration.ExtensionValidationProbeStream);
+            registration.ExtensionValidationProbeStream,
+            registration.OpenPathForContentDetection) {
+                FormatQualifications = NormalizeQualifications(registration.FormatQualifications, extensions, id),
+                SupportsIncrementalPath = registration.SupportsIncrementalPath,
+                SupportsIncrementalStream = registration.SupportsIncrementalStream
+            };
+    }
+
+    private static IReadOnlyList<ReaderFormatQualification> NormalizeQualifications(
+        IReadOnlyList<ReaderFormatQualification>? profiles, IReadOnlyList<string> extensions, string handlerId) {
+        var byExtension = new Dictionary<string, ReaderFormatQualification>(StringComparer.OrdinalIgnoreCase);
+        foreach (var profile in profiles ?? Array.Empty<ReaderFormatQualification>()) {
+            if (profile == null || !extensions.Contains(profile.Extension, StringComparer.OrdinalIgnoreCase) || byExtension.ContainsKey(profile.Extension))
+                throw new ArgumentException("Format profiles must identify distinct registered extensions.", nameof(profiles));
+            byExtension.Add(profile.Extension, profile);
+        }
+        return Array.AsReadOnly(extensions.Select(extension => byExtension.TryGetValue(extension, out var profile)
+            ? profile : new ReaderFormatQualification(extension, handlerId + extension)).ToArray());
     }
 
     public ReaderHandlerCapability ToCapability() {
         return new ReaderHandlerCapability {
             Id = Id,
+            FormatQualifications = Array.AsReadOnly(FormatQualifications.ToArray()),
             DisplayName = DisplayName,
             Description = Description,
             Origin = Origin,
             Kind = Kind,
+            SupportsIncrementalPath = SupportsIncrementalPath,
+            SupportsIncrementalStream = SupportsIncrementalStream,
             Extensions = Extensions.ToArray(),
             SupportsPath = SupportsPathInput,
             SupportsStream = SupportsStreamInput,
             SupportsDocumentPath = ReadDocumentPath != null || ReadDocumentPathAsync != null,
+            SupportsDirectoryBundle = ReadDirectoryBundle != null,
             SupportsDocumentStream = ReadDocumentStream != null || ReadDocumentStreamAsync != null,
             SupportsAsyncPath = ReadDocumentPathAsync != null,
             SupportsAsyncStream = ReadDocumentStreamAsync != null,

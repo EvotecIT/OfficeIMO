@@ -112,19 +112,30 @@ namespace OfficeIMO.OpenXml.Internal {
             bool horizontalBar = plot.Descendants<C.BarChart>().Any(bar =>
                 bar.BarDirection?.Val?.Value == C.BarDirectionValues.Bar);
             bool scatter = plot.Descendants<C.ScatterChart>().Any();
+            // Only the lowest maximum for each axis group and coordinate matters:
+            // a point suppressed by any matching axis is above that minimum.
+            var maxima = new Dictionary<(OfficeChartAxisGroup Group, bool XValues), double>();
             foreach (C.ValueAxis axis in plot.Elements<C.ValueAxis>()) {
                 double? maximum = axis.GetFirstChild<C.Scaling>()?.GetFirstChild<C.MaxAxisValue>()?.Val?.Value;
-                if (!maximum.HasValue) continue;
+                if (!maximum.HasValue || double.IsNaN(maximum.Value)) continue;
                 C.AxisPositionValues? position = axis.AxisPosition?.Val?.Value;
                 bool horizontal = position == C.AxisPositionValues.Bottom || position == C.AxisPositionValues.Top;
                 if (horizontal && !horizontalBar && !scatter || !horizontal && horizontalBar) continue;
                 OfficeChartAxisGroup group = position == C.AxisPositionValues.Right || position == C.AxisPositionValues.Top
                     ? OfficeChartAxisGroup.Secondary : OfficeChartAxisGroup.Primary;
+                var key = (group, XValues: horizontal && scatter);
+                if (!maxima.TryGetValue(key, out double previous) || maximum.Value < previous)
+                    maxima[key] = maximum.Value;
+            }
+            foreach (var threshold in maxima) {
+                OfficeChartAxisGroup group = threshold.Key.Group;
+                bool xValues = threshold.Key.XValues;
+                double maximum = threshold.Value;
                 foreach (OfficeChartSeries item in allSeries.Where(item => item.AxisGroup == group)) {
                     OfficeChartKind kind = item.RenderKind ?? defaultKind;
                     if (IsStackedForLabelMaximum(kind)) continue;
-                    IReadOnlyList<double>? values = horizontal && scatter ? item.XValues : item.Values;
-                    if (values?.Any(value => value > maximum.Value) == true) return true;
+                    IReadOnlyList<double>? values = xValues ? item.XValues : item.Values;
+                    if (values?.Any(value => value > maximum) == true) return true;
                 }
                 foreach (var stack in allSeries.Where(item => item.AxisGroup == group &&
                         IsStackedForLabelMaximum(item.RenderKind ?? defaultKind))
@@ -147,10 +158,10 @@ namespace OfficeIMO.OpenXml.Internal {
                             double value = member.Values[index];
                             if (value > 0D) {
                                 positiveCumulative += value;
-                                if ((percent ? positiveCumulative / positiveTotal : positiveCumulative) > maximum.Value) return true;
+                                if ((percent ? positiveCumulative / positiveTotal : positiveCumulative) > maximum) return true;
                             } else if (value < 0D) {
                                 negativeCumulative += value;
-                                if ((percent ? negativeCumulative / negativeTotal : negativeCumulative) > maximum.Value) return true;
+                                if ((percent ? negativeCumulative / negativeTotal : negativeCumulative) > maximum) return true;
                             }
                         }
                     }

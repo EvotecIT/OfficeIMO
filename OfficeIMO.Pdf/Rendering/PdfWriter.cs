@@ -605,6 +605,7 @@ internal static partial class PdfWriter {
                             shadingColorTransform);
                     int shadingId = AddObject(objects, shadingObject);
                     shadings.Add(("/" + shading.Name, shadingId));
+                    AddGradientAlphaResources(objects, shading, graphicsStates);
                 }
             }
 
@@ -1791,13 +1792,14 @@ internal static partial class PdfWriter {
             content.GraphicsState(graphicsStateName!);
         }
 
-        // One logical replacement preserves rotated reading order across fallback faces.
-        sb.Append("/Span << /ActualText ").Append(PdfSyntaxEscaper.TextString(watermark.Text)).Append(" >> BDC\n");
         content
             .BeginText()
             .Font(fontAlias, watermark.FontSize, options.NeedsSyntheticOblique(baseFont))
             .FillColor(watermark.Color)
             .TextMatrix(cos, sin, -sin, cos, originX, originY);
+        // Keep logical replacement inside the text object so redaction of the
+        // watermark removes the visible glyphs and their extraction text together.
+        sb.Append("/Span << /ActualText ").Append(PdfSyntaxEscaper.TextString(watermark.Text)).Append(" >> BDC\n");
         foreach (PdfTextRun run in runs) {
             string text = run.Text ?? string.Empty;
             if (text.Length == 0) {
@@ -1812,8 +1814,8 @@ internal static partial class PdfWriter {
                 .ShowText(EncodeTextShowCommand(text, runFont, options), runFontSize, suppressActualText: true);
         }
 
-        content.EndText();
         sb.Append("EMC\n");
+        content.EndText();
         content.RestoreState();
     }
 

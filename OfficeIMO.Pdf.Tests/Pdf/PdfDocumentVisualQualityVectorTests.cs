@@ -440,7 +440,7 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .Shape(shape)
             .ToBytes());
-        Assert.Contains("67.5 0 0 20 22.5 20 cm", transformedContent);
+        Assert.Contains("67.5 0 0 -20 22.5 20 cm", transformedContent);
     }
 
     [Fact]
@@ -462,7 +462,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         string content = Encoding.ASCII.GetString(bytes);
 
-        Assert.Contains("/ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 20 20 0]", content);
+        Assert.Contains("/ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 0 20 20]", content);
         Assert.Contains("q\n1 0 0 -1 40 125 cm", content);
         Assert.Contains("q\n0 0 40 20 re W n\n/SH1 sh\nQ", content);
     }
@@ -488,7 +488,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         Assert.Contains("/ShadingType 3 /ColorSpace /DeviceRGB /Coords [0.5 0.5 0 0.5 0.5 0.5]", content);
         Assert.Contains("q\n1 0 0 -1 40 125 cm", content);
-        Assert.Contains("q\n0 0 40 20 re W n\n40 0 0 20 0 0 cm\n/SH1 sh\nQ", content);
+        Assert.Contains("q\n0 0 40 20 re W n\n40 0 0 -20 0 20 cm\n/SH1 sh\nQ", content);
     }
 
     [Fact]

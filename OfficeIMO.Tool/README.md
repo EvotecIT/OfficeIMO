@@ -127,6 +127,11 @@ officeimo convert report.txt report.pdf --text-encoding utf-8 --tab-size 4
 officeimo convert workbook.xlsx workbook.pdf
 officeimo convert deck.pptx deck.pdf
 
+# Convert Apple ZIP files or local directory packages through shared workflows
+officeimo convert document.pages document.docx
+officeimo convert budget.numbers budget.xlsx
+officeimo convert presentation.key presentation.pptx
+
 # Supported documents to Markdown or JSON through OfficeIMO.Reader
 officeimo convert workbook.xlsx workbook.md
 officeimo convert report.docx report.json
@@ -203,13 +208,17 @@ The positional destination is optional for DOCX, XLSX, and PPTX to PDF conversio
 
 Markdown and JSON destinations are semantic Reader projections rather than fixed-layout renderings. They use the same handlers as `officeimo reader read` and support every input format reported by `officeimo reader capabilities`.
 
-All `convert` destinations are protected from accidental replacement. Pass `--force` explicitly when an existing PDF, Markdown, or JSON file should be replaced.
+`officeimo reader read` accepts iWork directory bundles with `.pages`, `.numbers`, or `.key` extensions as individual documents. Folder discovery also keeps each bundle intact. Export files and asset directories must be outside the source bundle; reported size and content hashes describe the bounded captured package. These Reader outputs are semantic extraction, with the same rendering limits as other Reader routes.
+
+Apple-to-OOXML conversion accepts ZIP files and local directory packages and returns JSON with typed fidelity diagnostics, producer/projection facts, source snapshot SHA-256, coverage, and publication status. Defaults reject partial editable reconstruction and previews without known complete coverage. Use `--iwork-mode auto|editable|visual`, `--allow-partial`, `--allow-incomplete-preview`, and `--normalize-worksheet-names` only when those acceptance choices fit the task. `--max-input-bytes` and `--max-output-bytes` bound conversion. Directory-package checksums describe a private transport ZIP, identified by `snapshotKind = DirectoryPackage`. Root replacement and changes to file membership or content prevent publication. The destination must be outside the source package and separate from its members. Native permission-scoped directory intake remains outside this local-filesystem contract.
+
+All `convert` destinations are protected from accidental replacement. Pass `--force` explicitly when an existing output file should be replaced.
 
 ## Command areas
 
 - `officeimo invoice` inspects, validates, converts and renders CII/UBL invoices through the shared invoice workflows, individually or in bounded batches.
 
-- `officeimo convert` routes PDF destinations to the first-party Word, Excel, or PowerPoint PDF adapter and Markdown/JSON destinations to OfficeIMO.Reader.
+- `officeimo convert` routes Apple-to-OOXML destinations through `OfficeIMO.Workflows.IWork`, PDF destinations to the first-party Word, Excel, or PowerPoint PDF adapter and Markdown/JSON destinations to OfficeIMO.Reader.
 - `officeimo read` and `officeimo extract` are convenient aliases for `officeimo reader read`.
 - `officeimo inspect` is a convenient alias for `officeimo agent inspect`.
 - `officeimo tabular` lists workbook sheets, reports reader schemas, and converts CSV, TSV, XLSX, XLSB, or XLS tabular data.

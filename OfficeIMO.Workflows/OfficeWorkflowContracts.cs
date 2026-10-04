@@ -180,6 +180,9 @@ public sealed class OfficeWorkflowRequest {
     /// <summary>Optional provider access for <see cref="InputPath"/>. The path remains the original location or absolute URI.</summary>
     public OfficeWorkflowStreamInput? InputStream { get; set; }
 
+    /// <summary>Optional provider directory package for a registered conversion route. Mutually exclusive with InputStream; requires an explicit output.</summary>
+    public OfficeWorkflowDirectoryPackageInput? InputDirectoryPackage { get; set; }
+
     /// <summary>Ordered one-based pages for ExtractPages, including intentional repeats. Limited to 100,000 entries.</summary>
     public int[]? PageNumbers { get; set; }
 
@@ -194,6 +197,8 @@ public sealed class OfficeWorkflowRequest {
 
     /// <summary>Optional route-specific settings, independently copied and validated before asynchronous execution.</summary>
     public OfficeWorkflowConversionOptions? ConversionOptions { get; set; }
+    /// <summary>Adapter-owned conversion settings, validated and independently copied by the selected registration before execution.</summary>
+    public IOfficeWorkflowConversionSettings? RegisteredConversionSettings { get; set; }
     /// <summary>Explicit scan preparation and raster-output acknowledgement for ScanCleanup.</summary>
     public OfficeScanCleanupOptions? ScanCleanup { get; set; }
 
@@ -245,6 +250,9 @@ public sealed class OfficeWorkflowRequest {
 
 /// <summary>Runs typed local OfficeIMO document workflows for desktop, command-line, and service hosts.</summary>
 public interface IOfficeWorkflowRunner {
+    /// <summary>Executable routes of this runner. Implementations with opt-in adapters override this view.</summary>
+    IReadOnlyList<OfficeWorkflowRoute> ConversionRoutes => OfficeWorkflowCatalog.ExecutableRoutes;
+
     /// <summary>Runs one workflow request.</summary>
     Task<OfficeWorkflowResult> RunAsync(
         OfficeWorkflowRequest request,
@@ -376,9 +384,13 @@ public static class OfficeWorkflowCatalog {
 
     /// <summary>Finds the unique catalog route matching source and target extensions.</summary>
     public static OfficeWorkflowRoute? Find(string sourceExtension, string targetExtension, bool executableOnly = false) {
+        return Find(sourceExtension, targetExtension, executableOnly ? ExecutableRoutesValue : AllRoutesValue);
+    }
+
+    /// <summary>Applies canonical extension selection to the executable routes captured from one runner.</summary>
+    internal static OfficeWorkflowRoute? Find(string sourceExtension, string targetExtension, IReadOnlyList<OfficeWorkflowRoute> routes) {
         string source = NormalizeExtension(sourceExtension);
         string target = NormalizeExtension(targetExtension);
-        IReadOnlyList<OfficeWorkflowRoute> routes = executableOnly ? ExecutableRoutesValue : AllRoutesValue;
         // A literal text file defaults to literal conversion. Markup remains available through Via(routeId).
         if (source == ".txt" && target == ".pdf") return routes.FirstOrDefault(route => route.Id == "txt-pdf");
         OfficeWorkflowRoute? match = null;

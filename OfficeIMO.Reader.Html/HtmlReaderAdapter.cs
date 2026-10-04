@@ -85,15 +85,19 @@ internal static partial class HtmlReaderAdapter {
 
     internal static IEnumerable<ReaderChunk> ReadContent(string html, SourceMetadata source, ReaderOptions effective, ReaderHtmlOptions? htmlOptions, CancellationToken cancellationToken) {
         var effectiveHtmlOptions = ReaderHtmlOptionsCloner.CloneOrDefault(htmlOptions);
-        int maxChars = effective.MaxChars > 0 ? effective.MaxChars : 8_000;
-        var logicalSourceName = source.Path;
-
         HtmlConversionDocument conversionDocument = ParseConversionDocument(
             html,
             effectiveHtmlOptions,
             effectiveHtmlOptions.HtmlToMarkdownOptions?.BaseUri);
         string markdown = conversionDocument.ToMarkdown(effectiveHtmlOptions.HtmlToMarkdownOptions);
 
+        return ChunkMarkdown(markdown, source, effective, effectiveHtmlOptions, cancellationToken);
+    }
+
+    private static IEnumerable<ReaderChunk> ChunkMarkdown(string markdown, SourceMetadata source,
+        ReaderOptions effective, ReaderHtmlOptions effectiveHtmlOptions, CancellationToken cancellationToken) {
+        int maxChars = effective.MaxChars > 0 ? effective.MaxChars : 8_000;
+        string logicalSourceName = source.Path;
         if (string.IsNullOrWhiteSpace(markdown)) {
             yield return EnrichChunk(BuildWarningChunk(logicalSourceName, "html-warning-0000", "HTML content produced no markdown text."), source, effective.ComputeHashes);
             yield break;
@@ -403,27 +407,7 @@ internal static partial class HtmlReaderAdapter {
         return Math.Max(1, (safeText.Length + 3) / 4);
     }
 
-    private static string ComputeChunkHash(ReaderChunk chunk) {
-        var data = string.Join("|",
-            chunk.Kind.ToString(),
-            chunk.SourceId ?? string.Empty,
-            chunk.Location.Path ?? string.Empty,
-            chunk.Location.HeadingPath ?? string.Empty,
-            chunk.Location.HeadingSlug ?? string.Empty,
-            chunk.Location.SourceBlockKind ?? string.Empty,
-            chunk.Location.BlockAnchor ?? string.Empty,
-            chunk.Location.Sheet ?? string.Empty,
-            chunk.Location.A1Range ?? string.Empty,
-            chunk.Location.Page?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-            chunk.Location.Slide?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-            chunk.Location.StartLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-            chunk.Location.NormalizedStartLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-            chunk.Location.NormalizedEndLine?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-            chunk.Text ?? string.Empty,
-            chunk.Markdown ?? string.Empty);
-
-        return ComputeSha256Hex(data);
-    }
+    private static string ComputeChunkHash(ReaderChunk chunk) => DocumentReaderEngine.ComputeChunkHash(chunk);
 
     internal static SourceMetadata BuildSourceMetadataFromPath(string path, bool computeHash) {
         var normalizedPath = NormalizePathForId(path);

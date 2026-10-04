@@ -24,7 +24,6 @@ public sealed partial class OfficeWorkflowRunner {
                 if (entry.Input is null) { Directory.CreateDirectory(path); continue; }
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 long remaining = maximumBytes - bytes;
-                if (remaining < 1) throw new InvalidDataException("The provider inputs exceed the workflow input limit.");
                 var access = new WorkflowSourceAccess(entry.Location, entry.Input);
                 OfficeWorkflowStreamInput input = access.CreateInput();
                 // The original member name determines routing; the intermediate snapshot uses a safe extension.

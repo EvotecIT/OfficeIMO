@@ -115,7 +115,7 @@ Deploy this behind a load balancer and you have a scalable, stateless conversion
 
 ## Limitations
 
-The conversion engine handles paragraphs, tables, images, headers, footers, page breaks, and basic styles well. Complex features like SmartArt, embedded OLE objects, and advanced text effects may render with reduced fidelity. For those edge cases, consider Aspose or a LibreOffice sidecar container.
+The conversion engine handles paragraphs, tables, images, headers, footers, page breaks, and basic styles well. Complex features like SmartArt, embedded OLE objects, and advanced text effects may render with reduced fidelity. Review the conversion diagnostics and qualify those features against representative documents before using the output.
 
 For many business documents, including invoices, letters, reports, and contracts, OfficeIMO.Word.Pdf can produce solid PDF output without Office automation. As always with document rendering, validate the result against the templates and fidelity requirements that matter to your workflow.
 

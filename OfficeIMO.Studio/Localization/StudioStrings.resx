@@ -2327,6 +2327,27 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Signing.Certify.FormsAndComments" xml:space="preserve"><value>Form filling, comments and signing</value></data>
   <data name="FillSign.ImageNeedsContent" xml:space="preserve"><value>This PDF only accepts annotations, so a picture signature cannot be placed. Draw or type your signature instead.</value></data>
   <data name="Tools.FlattenAnnotations" xml:space="preserve"><value>Flatten all annotations</value></data>
+  <data name="Conversion.IWork.Representation" xml:space="preserve"><value>Apple document representation</value></data>
+  <data name="Conversion.IWork.AcceptanceHint" xml:space="preserve"><value>Embedded previews can contain only the first page or a composite. Conversion rejects incomplete coverage and partial editable recovery unless you allow them.</value></data>
+  <data name="Conversion.IWork.AllowPartial" xml:space="preserve"><value>Allow partial editable reconstruction</value></data>
+  <data name="Conversion.IWork.AllowIncompletePreview" xml:space="preserve"><value>Allow an incomplete source preview</value></data>
+  <data name="Conversion.IWork.NormalizeNames" xml:space="preserve"><value>Normalize Excel worksheet names</value></data>
+  <data name="Conversion.IWork.SourceEvidence" xml:space="preserve"><value>Source and reconstruction evidence</value></data>
+  <data name="Conversion.IWork.SourceFingerprint" xml:space="preserve"><value>Captured snapshot SHA-256</value></data>
+  <data name="Conversion.IWork.VisualResult" xml:space="preserve"><value>Embedded visual preview</value></data>
+  <data name="Conversion.IWork.EditableResult" xml:space="preserve"><value>Editable reconstruction</value></data>
+  <data name="Conversion.IWork.FullCoverage" xml:space="preserve"><value>Known full-document preview coverage</value></data>
+  <data name="Conversion.IWork.IncompleteCoverage" xml:space="preserve"><value>Preview coverage is incomplete or unknown</value></data>
+  <data name="Conversion.IWork.PartialResult" xml:space="preserve"><value>Partial editable reconstruction was accepted</value></data>
+  <data name="Conversion.IWork.ReconstructionCounts" xml:space="preserve"><value>{0} reconstructed items · {1} records without a field-level fidelity assessment</value></data>
+  <data name="Conversion.Mode.Auto" xml:space="preserve"><value>Editable content with preview fallback</value></data>
+  <data name="Conversion.Mode.EditableOnly" xml:space="preserve"><value>Editable content only</value></data>
+  <data name="Conversion.Mode.VisualOnly" xml:space="preserve"><value>Embedded visual preview</value></data>
+  <data name="Conversion.IWork.SourceUnitCounts" xml:space="preserve"><value>{0} identified source units · {1} reconstructed · {2} omitted · {3} unassessed</value></data>
+  <data name="Conversion.IWork.FormulaCounts" xml:space="preserve"><value>Source formulas: {0} complete · {1} incomplete · {6} unassessed. Recovered caches: {2} complete · {3} partial · {4} approximate · {5} missing · {7} unassessed</value></data>
+  <data name="Activation.Unsupported" xml:space="preserve"><value>This item cannot be opened here. Select a PDF or a supported conversion file. Native directory packages require a local startup path.</value></data>
+  <data name="Activation.Busy" xml:space="preserve"><value>Wait for the current operation to finish, then open the file again.</value></data>
+
   <data name="Invoice.ChooseInput" xml:space="preserve"><value>Choose invoice XML</value></data>
   <data name="Invoice.Input" xml:space="preserve"><value>Invoice XML</value></data>
   <data name="Invoice.OutputFolder" xml:space="preserve"><value>Output folder</value></data>
@@ -2416,6 +2437,7 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Conversion.BatchExport.FinishedResult" xml:space="preserve"><value>Finished: {0} completed, {1} reused, {2} failed, {3} skipped.</value></data>
   <data name="Conversion.BatchExport.CancelledResult" xml:space="preserve"><value>Cancelled: {0} completed, {1} reused, {2} failed, {3} skipped.</value></data>
   <data name="Conversion.BatchExport.Cancelled" xml:space="preserve"><value>Batch cancelled. Completed files remain available.</value></data>
+  <data name="ConversionWorkbench.AddPackage" xml:space="preserve"><value>Add package</value></data>
   <data name="Apple.ToggleSidebar" xml:space="preserve"><value>Show or hide sidebar</value></data>
   <data name="Apple.OpenDocuments" xml:space="preserve"><value>Open documents</value></data>
   <data name="Apple.More" xml:space="preserve"><value>More</value></data>
@@ -2439,4 +2461,35 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Apple.ReopenTab" xml:space="preserve"><value>Reopen Closed Tab</value></data>
   <data name="Apple.Open" xml:space="preserve"><value>Open…</value></data>
   <data name="Apple.SaveAs" xml:space="preserve"><value>Save As…</value></data>
+  <data name="Book.New" xml:space="preserve"><value>New book</value></data>
+  <data name="Book.Open" xml:space="preserve"><value>Open or import…</value></data>
+  <data name="Book.SaveProject" xml:space="preserve"><value>Save book project…</value></data>
+  <data name="Book.Export" xml:space="preserve"><value>Export EPUB…</value></data>
+  <data name="Book.Undo" xml:space="preserve"><value>Undo book edit</value></data>
+  <data name="Book.Redo" xml:space="preserve"><value>Redo book edit</value></data>
+  <data name="Book.Details" xml:space="preserve"><value>Book details</value></data>
+  <data name="Book.BookTitle" xml:space="preserve"><value>Title</value></data>
+  <data name="Book.Creator" xml:space="preserve"><value>Author (blank retains the current value)</value></data>
+  <data name="Book.Language" xml:space="preserve"><value>Language tag, such as en or pl-PL</value></data>
+  <data name="Book.Cover" xml:space="preserve"><value>Choose cover image…</value></data>
+  <data name="Book.Apply" xml:space="preserve"><value>Apply and validate edits</value></data>
+  <data name="Book.Stylesheet" xml:space="preserve"><value>Book typography CSS</value></data>
+  <data name="Book.StyleHint" xml:space="preserve"><value>Project styles follow imported styles. Use CSS to adjust typography; referenced assets must already belong to the book.</value></data>
+  <data name="Book.Unsaved" xml:space="preserve"><value>Unsaved project changes</value></data>
+  <data name="Book.Chapters" xml:space="preserve"><value>Chapters</value></data>
+  <data name="Book.AddChapter" xml:space="preserve"><value>Add chapter</value></data>
+  <data name="Book.RemoveChapter" xml:space="preserve"><value>Remove chapter</value></data>
+  <data name="Book.MoveUp" xml:space="preserve"><value>Move earlier</value></data>
+  <data name="Book.MoveDown" xml:space="preserve"><value>Move later</value></data>
+  <data name="Book.ChapterTitle" xml:space="preserve"><value>Chapter title</value></data>
+  <data name="Book.Rename" xml:space="preserve"><value>Rename chapter</value></data>
+  <data name="Book.Content" xml:space="preserve"><value>Chapter XHTML body</value></data>
+  <data name="Book.ContentHint" xml:space="preserve"><value>Edit the XHTML body. Keep its namespace and linked anchor identifiers; invalid edits leave the previous chapter intact.</value></data>
+  <data name="Book.Preview" xml:space="preserve"><value>Preview</value></data>
+  <data name="Book.PreviewChapter" xml:space="preserve"><value>Preview selected chapter</value></data>
+  <data name="Book.Review" xml:space="preserve"><value>Import review</value></data>
+  <data name="Book.ReviewHint" xml:space="preserve"><value>Review the import findings and the book's appearance. Missing dependencies or failed conversions block EPUB export. Reported omissions and approximations require your acknowledgment. Independently check the final EPUB and its accessibility metadata before publishing; this workspace does not certify accessibility.</value></data>
+  <data name="Book.AcceptLoss" xml:space="preserve"><value>I reviewed and accept these import changes</value></data>
+  <data name="Command.PublishBook.Title" xml:space="preserve"><value>Publish a book</value></data>
+  <data name="Command.PublishBook.Description" xml:space="preserve"><value>Import manuscripts, organize chapters, review and export an EPUB book.</value></data>
 </root>

@@ -11,6 +11,9 @@ namespace OfficeIMO.Reader;
 /// without hard dependencies.
 /// </summary>
 public sealed class ReaderHandlerRegistration {
+    /// <summary>Per-extension extraction declarations. Omitted extensions remain explicitly unqualified.</summary>
+    public IReadOnlyList<ReaderFormatQualification> FormatQualifications { get; set; } = Array.Empty<ReaderFormatQualification>();
+
     /// <summary>
     /// Stable unique identifier for this handler (for example: "officeimo.reader.epub").
     /// </summary>
@@ -59,12 +62,24 @@ public sealed class ReaderHandlerRegistration {
     /// </summary>
     public Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? ReadStream { get; set; }
 
+    /// <summary>Whether ReadPath yields chunks before the complete document is materialized. Default: false.</summary>
+    public bool SupportsIncrementalPath { get; set; }
+
+    /// <summary>Whether ReadStream yields chunks without making a complete input snapshot. Default: false.</summary>
+    public bool SupportsIncrementalStream { get; set; }
+
     /// <summary>
     /// Optional path-based rich document reader delegate. When present,
     /// <see cref="OfficeDocumentReader.ReadDocument(string, ReaderOptions?, CancellationToken)"/>
     /// dispatches directly to this delegate instead of rebuilding a generic result from chunks.
     /// </summary>
     public Func<string, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? ReadDocumentPath { get; set; }
+
+    /// <summary>Optional reader for directory packages identified by this handler's exact registered extensions.</summary>
+    /// <remarks>The handler owns bounded traversal, physical-root and link validation, cancellation, and snapshot hashing.
+    /// It must report the aggregate physical file bytes in Source.LengthBytes and enforce ReaderOptions.MaxInputBytes.
+    /// A registered package is ingested as one document, without traversing its contents as a folder.</remarks>
+    public Func<string, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? ReadDirectoryBundle { get; set; }
 
     /// <summary>
     /// Optional stream-based rich document reader delegate. The delegate must not close the caller-owned stream.
@@ -96,6 +111,10 @@ public sealed class ReaderHandlerRegistration {
     /// close the caller-owned stream; Core restores caller-visible stream position after validation.
     /// </summary>
     public Func<Stream, string?, ReaderOptions, CancellationToken, bool>? ExtensionValidationProbeStream { get; set; }
+
+    // A strict path handler also protects content detection before the kind is known.
+    // Internal because consumers do not otherwise need to change Reader path-opening policy.
+    internal Func<string, FileStream>? OpenPathForContentDetection { get; set; }
 
     /// <summary>
     /// Optional advertised default max input bytes for this handler.
@@ -153,6 +172,14 @@ public sealed class ReaderHandlerRegistration {
 /// Immutable capability descriptor for configured handlers.
 /// </summary>
 public sealed class ReaderHandlerCapability {
+    /// <summary>Per-extension extraction declarations, independent of delegate availability.</summary>
+    public IReadOnlyList<ReaderFormatQualification> FormatQualifications { get; set; } = Array.Empty<ReaderFormatQualification>();
+
+    /// <summary>Whether the handler supports incremental path output without document processors.</summary>
+    public bool SupportsIncrementalPath { get; set; }
+
+    /// <summary>Whether the handler supports forward incremental stream output without document processors.</summary>
+    public bool SupportsIncrementalStream { get; set; }
     /// <summary>
     /// Stable unique handler identifier.
     /// </summary>
@@ -197,6 +224,9 @@ public sealed class ReaderHandlerCapability {
     /// True when the handler supplies a native path-based <see cref="OfficeDocumentReadResult"/> projection.
     /// </summary>
     public bool SupportsDocumentPath { get; set; }
+
+    /// <summary>True when the handler explicitly reads directory packages as individual documents.</summary>
+    public bool SupportsDirectoryBundle { get; set; }
 
     /// <summary>
     /// True when the handler supplies a native stream-based <see cref="OfficeDocumentReadResult"/> projection.
@@ -256,7 +286,7 @@ public static class ReaderCapabilitySchema {
     /// <summary>
     /// Current schema version.
     /// </summary>
-    public const int Version = 5;
+    public const int Version = 6;
 }
 
 /// <summary>Identifies the publisher of a configured Reader handler.</summary>

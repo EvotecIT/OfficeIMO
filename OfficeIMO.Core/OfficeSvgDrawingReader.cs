@@ -1198,6 +1198,7 @@ public static partial class OfficeSvgDrawingReader {
         ApplyProperty("font-family", element.Attribute("font-family")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("font-size", element.Attribute("font-size")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("font-style", element.Attribute("font-style")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("font-stretch", element.Attribute("font-stretch")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("font-weight", element.Attribute("font-weight")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("writing-mode", element.Attribute("writing-mode")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("text-orientation", element.Attribute("text-orientation")?.Value, paintServers, ref result, ref unsupported);
@@ -1380,18 +1381,18 @@ public static partial class OfficeSvgDrawingReader {
                 else style.LineHeight = lineHeight;
                 break;
             case "font-style":
-                if (normalized.Equals("normal", StringComparison.OrdinalIgnoreCase)) style.FontStyle &= ~OfficeFontStyle.Italic;
-                else if (normalized.Equals("italic", StringComparison.OrdinalIgnoreCase) || normalized.Equals("oblique", StringComparison.OrdinalIgnoreCase)) style.FontStyle |= OfficeFontStyle.Italic;
-                else unsupported++;
+                if (!OfficeFontFaceCssParser.TrySlant(normalized, style.FontFace, out OfficeFontSlant slant, out double angle)) { unsupported++; break; }
+                style.FontFace = new OfficeFontFaceDescriptor(style.FontFace.Weight, style.FontFace.StretchPercent, slant, angle);
+                style.FontStyle = (style.FontStyle & ~(OfficeFontStyle.Bold | OfficeFontStyle.Italic)) | style.FontFace.ToStyle();
                 break;
             case "font-weight":
-                if (normalized.Equals("normal", StringComparison.OrdinalIgnoreCase) || normalized == "400") style.FontStyle &= ~OfficeFontStyle.Bold;
-                else if (normalized.Equals("bold", StringComparison.OrdinalIgnoreCase) || normalized.Equals("bolder", StringComparison.OrdinalIgnoreCase)) style.FontStyle |= OfficeFontStyle.Bold;
-                else if (int.TryParse(normalized, NumberStyles.Integer, CultureInfo.InvariantCulture, out int weight) && weight >= 1 && weight <= 1000) {
-                    if (weight >= 600) style.FontStyle |= OfficeFontStyle.Bold;
-                    else style.FontStyle &= ~OfficeFontStyle.Bold;
-                }
-                else unsupported++;
+                if (!OfficeFontFaceCssParser.TryWeight(normalized, style.FontFace.Weight, out int weight)) { unsupported++; break; }
+                style.FontFace = new OfficeFontFaceDescriptor(weight, style.FontFace.StretchPercent, style.FontFace.Slant, style.FontFace.ObliqueAngleDegrees);
+                style.FontStyle = (style.FontStyle & ~(OfficeFontStyle.Bold | OfficeFontStyle.Italic)) | style.FontFace.ToStyle();
+                break;
+            case "font-stretch":
+                if (!OfficeFontFaceCssParser.TryStretch(normalized, style.FontFace.StretchPercent, out double stretch)) { unsupported++; break; }
+                style.FontFace = new OfficeFontFaceDescriptor(style.FontFace.Weight, stretch, style.FontFace.Slant, style.FontFace.ObliqueAngleDegrees);
                 break;
             case "writing-mode":
                 string writingMode = normalized.ToLowerInvariant();
@@ -1774,6 +1775,7 @@ public static partial class OfficeSvgDrawingReader {
         internal double FontSize;
         internal SvgLineHeight LineHeight;
         internal OfficeFontStyle FontStyle;
+        internal OfficeFontFaceDescriptor FontFace;
         internal string TextAnchor;
         internal OfficeTextDirection TextDirection;
         internal bool PlaintextBidi;
@@ -1826,6 +1828,7 @@ public static partial class OfficeSvgDrawingReader {
             FontSize = 16D,
             LineHeight = SvgLineHeight.Normal,
             FontStyle = OfficeFontStyle.Regular,
+            FontFace = OfficeFontFaceDescriptor.Regular,
             TextAnchor = "start",
             TextDirection = OfficeTextDirection.LeftToRight,
             DominantBaseline = SvgDominantBaseline.Alphabetic,

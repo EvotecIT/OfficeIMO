@@ -17,9 +17,15 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(0, stream.Position);
 
         stream.Position = 5;
-        Assert.ThrowsAny<Exception>(() => IWorkReaderAdapter.ReadDocument(stream,
-            "sample.pages", readerOptions, iWorkOptions, CancellationToken.None));
+        Assert.Equal(ReaderInputKind.IWork, IWorkReaderAdapter.ReadDocument(stream,
+            "sample.pages", readerOptions, iWorkOptions, CancellationToken.None).Kind);
         Assert.Equal(5, stream.Position);
+
+        using var invalid = new MemoryStream(new byte[] { 1, 2, 3 });
+        invalid.Position = 1;
+        Assert.ThrowsAny<Exception>(() => IWorkReaderAdapter.ReadDocument(invalid,
+            "sample.pages", readerOptions, iWorkOptions, CancellationToken.None));
+        Assert.Equal(1, invalid.Position);
     }
 
     [Fact]
@@ -111,17 +117,21 @@ public sealed partial class IWorkBoundaryTests {
             diagnostic.Code == "IWORK_READER_TABLE_STYLE_PARTIAL");
     }
 
-    [Fact]
-    public void Reader_reports_unrepresented_paragraph_alignment_without_run_style() {
+    [Theory]
+    [InlineData(true, null, true)]
+    [InlineData(false, "Symbol", true)]
+    [InlineData(false, null, false)]
+    public void Reader_reports_unrepresented_paragraph_or_marker_style_without_run_style(
+        bool aligned, string? markerFont, bool expectedDiagnostic) {
         IWorkSourceDocument source = IWorkSourceDocument.Open(
             Fixture("nim-iwork/simple.pages"), IWorkDocumentKind.Pages);
         var plainStyle = new IWorkTextStyle(null, null, null, null, null,
             null, null, null, null);
-        var alignedStyle = new IWorkParagraphStyle(null, IWorkTextAlignment.Right,
+        var alignedStyle = new IWorkParagraphStyle(null, aligned ? IWorkTextAlignment.Right : null,
             null, null, null, null, null, null, null, null, plainStyle);
         var body = new IWorkTextContent(new[] {
             new IWorkTextParagraph(new[] { new IWorkTextRun("Aligned", plainStyle, null) },
-                alignedStyle, null, -1, null, IWorkParagraphBreakKind.None)
+                alignedStyle, 1, 0, "•", IWorkParagraphBreakKind.None, markerFont)
         }, true, true);
         var pages = new IWorkPagesProjection(source, body,
             Array.Empty<IWorkPagesSection>(), Array.Empty<IWorkTextBox>(),
@@ -134,8 +144,8 @@ public sealed partial class IWorkBoundaryTests {
         projection.AddPages(pages);
         projection.Complete(source);
 
-        Assert.Contains(result.Diagnostics, diagnostic =>
-            diagnostic.Code == "IWORK_READER_TEXT_STYLE_PARTIAL");
+        Assert.Equal(expectedDiagnostic, result.Diagnostics.Any(diagnostic =>
+            diagnostic.Code == "IWORK_READER_TEXT_STYLE_PARTIAL"));
     }
 
     [Fact]
@@ -193,19 +203,20 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Reader_rich_text_markdown_observes_cancellation_during_a_large_run() {
+    public void Reader_rich_text_markdown_rejects_cancelled_work() {
         var style = new IWorkTextStyle(null, null, null, null, null,
             null, null, null, null);
         var paragraphStyle = new IWorkParagraphStyle(null, null, null, null, null,
             null, null, null, null, null, style);
         var paragraph = new IWorkTextParagraph(new[] {
-            new IWorkTextRun(new string('*', 4 * 1024 * 1024), style, null)
+            new IWorkTextRun("*cancelled rich text*", style, null)
         }, paragraphStyle, null, -1, null, IWorkParagraphBreakKind.None);
         using var cancellation = new CancellationTokenSource();
-        cancellation.CancelAfter(TimeSpan.FromMilliseconds(1));
+        cancellation.Cancel();
 
-        Assert.Throws<OperationCanceledException>(() =>
+        OperationCanceledException exception = Assert.Throws<OperationCanceledException>(() =>
             IWorkReadProjection.RichTextMarkdown(paragraph, cancellation.Token));
+        Assert.Equal(cancellation.Token, exception.CancellationToken);
     }
 
     [Fact]
@@ -255,7 +266,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Pages)]
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Reader_reports_formula_cache_styles_it_cannot_project(IWorkDocumentKind kind) {
-        using MemoryStream package = CreateFormulaTableWithIncompleteRichCacheStyle(kind);
+        using MemoryStream package = CreateFormulaTableWithRichCacheStyle(kind);
 
         OfficeDocumentReadResult result = IWorkReaderAdapter.ReadDocument(package,
             kind == IWorkDocumentKind.Pages ? "sample.pages" : "sample.key",

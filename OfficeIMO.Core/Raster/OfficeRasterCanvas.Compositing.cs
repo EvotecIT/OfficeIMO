@@ -20,11 +20,13 @@ public sealed partial class OfficeRasterCanvas {
         if (opacity <= 0D || !transform.TryInvert(out OfficeTransform inverse)) return;
 
         (double minX, double minY, double maxX, double maxY) = transform.TransformRectangleBounds(0D, 0D, image.Width, image.Height);
+        if (interpolate) image = PrefilterAffineImage(image, ref inverse);
         int left = Clamp((int)Math.Floor(minX), 0, Width - 1);
         int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
         int right = Clamp((int)Math.Ceiling(maxX), 0, Width - 1);
         int bottom = Clamp((int)Math.Ceiling(maxY), 0, Height - 1);
         for (int y = top; y <= bottom; y++) {
+            _cancellationToken.ThrowIfCancellationRequested();
             for (int x = left; x <= right; x++) {
                 if (!IsPixelInsideClip(x, y)) continue;
                 OfficePoint sourcePoint = inverse.TransformPoint(new OfficePoint(x + 0.5D, y + 0.5D));

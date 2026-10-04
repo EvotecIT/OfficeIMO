@@ -7,6 +7,45 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfImageDocumentTests {
     [Fact]
+    public void OrientedTiffIsCheckedAgainstSourcePixelLimitBeforeNormalization() {
+        byte[] tiff = OfficeRasterImageEncoder.Encode(
+            new OfficeRasterImage(2, 1, OfficeColor.Red), OfficeImageExportFormat.Tiff);
+        Assert.Equal((byte)'I', tiff[0]);
+        int ifd = BitConverter.ToInt32(tiff, 4);
+        int entries = BitConverter.ToUInt16(tiff, ifd);
+        int widthEntry = -1;
+        int heightEntry = -1;
+        int orientationEntry = -1;
+        for (int index = 0; index < entries; index++) {
+            int entry = ifd + 2 + index * 12;
+            switch (BitConverter.ToUInt16(tiff, entry)) {
+                case 256: widthEntry = entry; break;
+                case 257: heightEntry = entry; break;
+                case 274: orientationEntry = entry; break;
+            }
+        }
+        Assert.True(widthEntry >= 0 && heightEntry >= 0 && orientationEntry >= 0);
+        BitConverter.GetBytes((ushort)6).CopyTo(tiff, orientationEntry + 8);
+        Assert.Equal(OfficeImageOrientation.Rotate90Clockwise,
+            ReadOrientation(tiff));
+        Assert.Equal(OfficeImageFormat.Png,
+            PdfDocument.PrepareImageDocumentSource(tiff, default).Info.Format);
+
+        BitConverter.GetBytes(5000).CopyTo(tiff, widthEntry + 8);
+        BitConverter.GetBytes(5000).CopyTo(tiff, heightEntry + 8);
+        Assert.True(OfficeImageReader.TryIdentify(tiff, null, out OfficeImageInfo identified));
+        Assert.Equal(25_000_000L, (long)identified.Width * identified.Height);
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.PrepareImageDocumentSource(tiff, default));
+        Assert.Contains("8000000", exception.Message);
+
+        static OfficeImageOrientation ReadOrientation(byte[] image) {
+            Assert.True(OfficeImageOrientationNormalizer.TryRead(image, out OfficeImageOrientation orientation));
+            return orientation;
+        }
+    }
+
+    [Fact]
     public void CreateFromImagesPreservesCallerOrderAndUsesImagePhysicalSize() {
         byte[] first = PdfPngTestImages.CreateRgbPng(96, 48);
         byte[] second = PdfPngTestImages.CreateRgbPng(48, 96);

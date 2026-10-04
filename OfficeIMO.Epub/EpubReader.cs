@@ -11,25 +11,26 @@ internal static partial class EpubReader {
     /// <summary>
     /// Reads an EPUB document from disk.
     /// </summary>
-    public static EpubDocument Read(string epubPath, EpubReadOptions? options = null) {
+    public static EpubDocument Read(string epubPath, EpubReadOptions? options = null, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (epubPath == null) throw new ArgumentNullException(nameof(epubPath));
         if (epubPath.Length == 0) throw new ArgumentException("EPUB path cannot be empty.", nameof(epubPath));
         if (!File.Exists(epubPath)) throw new FileNotFoundException($"EPUB file '{epubPath}' doesn't exist.", epubPath);
 
         using var fs = new FileStream(epubPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-        return Read(fs, options);
+        return Read(fs, options, cancellationToken);
     }
 
     /// <summary>
     /// Reads an EPUB document from a stream.
     /// </summary>
-    public static EpubDocument Read(Stream epubStream, EpubReadOptions? options = null) {
+    public static EpubDocument Read(Stream epubStream, EpubReadOptions? options = null, CancellationToken cancellationToken = default) {
         if (epubStream == null) throw new ArgumentNullException(nameof(epubStream));
         if (!epubStream.CanRead) throw new IOException("EPUB stream must be readable.");
 
         EpubReadOptions effective = Normalize(options);
         try {
-            return ReadBytes(OfficeStreamReader.ReadAllBytes(epubStream, effective.MaxPackageBytes), effective);
+            return ReadBytes(OfficeStreamReader.ReadAllBytes(epubStream, cancellationToken, effective.MaxPackageBytes), effective, cancellationToken);
         } catch (EpubReadException) {
             throw;
         } catch (InvalidDataException exception) {
@@ -112,15 +113,24 @@ internal static partial class EpubReader {
             .ToDictionary(static group => group.Key, static group => group.First(), StringComparer.Ordinal);
         EpubNavigationResult navigation = ReadNavigation(entryIndex, package, effective, diagnostics, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        List<ChapterCandidate> candidates = BuildChapterCandidates(entryIndex, package, effective, diagnostics, cancellationToken);
+        List<ChapterCandidate> candidates = BuildChapterCandidates(entryIndex, package, effective, diagnostics, cancellationToken, out EpubReadSummary readSummary);
 
         var chapters = new List<EpubChapter>();
         int emitted = 0;
         long totalRawHtmlBytes = 0;
+        long totalTextCharacters = 0;
+        var remainingPositions = candidates.GroupBy(candidate => candidate.Path, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+        var parsedEntries = new Dictionary<string, ParsedChapterEntry>(StringComparer.Ordinal);
 
         foreach (var candidate in candidates) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (emitted >= effective.MaxChapters) break;
+            if (emitted >= effective.MaxChapters) {
+                diagnostics.Warning("epub.chapter.count-limit",
+                    $"Chapter extraction stopped at MaxChapters ({effective.MaxChapters}); selected reading positions remain unprocessed.",
+                    candidate.Path);
+                break;
+            }
             if (effective.MaxChapterBytes.HasValue && candidate.Entry.Length > effective.MaxChapterBytes.Value) {
                 string path = candidate.Path;
                 diagnostics.Warning(
@@ -140,16 +150,26 @@ internal static partial class EpubReader {
                 continue;
             }
 
-            string markup = ReadEntryText(candidate.Entry, effective.MaxChapterBytes, cancellationToken);
-            if (!TryReadChapterMarkup(markup, out ChapterMarkupInfo chapterMarkup)) {
-                diagnostics.Warning(
-                    "epub.chapter.invalid-xhtml",
-                    $"Skipped chapter '{normalizedPath}' because chapter markup is not valid XML/XHTML.",
-                    normalizedPath);
+            if (!parsedEntries.TryGetValue(normalizedPath, out ParsedChapterEntry? parsed)) {
+                parsed = ParseChapterEntry(candidate, effective,
+                    candidate.Entry.Length <= effective.MaxTotalRawHtmlBytes - totalRawHtmlBytes, cancellationToken);
+                if (remainingPositions[normalizedPath] > 1) parsedEntries.Add(normalizedPath, parsed);
+            }
+            if (--remainingPositions[normalizedPath] == 0) parsedEntries.Remove(normalizedPath);
+            if (parsed.ErrorCode != null) {
+                diagnostics.Warning(parsed.ErrorCode, parsed.ErrorMessage!, normalizedPath);
                 continue;
             }
+            ChapterMarkupInfo chapterMarkup = parsed.Markup;
 
             string text = chapterMarkup.Text;
+            if (text.Length > effective.MaxTotalTextCharacters - totalTextCharacters) {
+                diagnostics.Warning("epub.chapter.text-total-limit",
+                    $"Chapter extraction stopped before '{normalizedPath}' at MaxTotalTextCharacters ({effective.MaxTotalTextCharacters}).",
+                    normalizedPath);
+                break;
+            }
+            totalTextCharacters += text.Length;
             bool hasStructuredContent = chapterMarkup.HasStructuredContent;
             string? retainedHtml = null;
             if (effective.IncludeRawHtml) {
@@ -159,16 +179,12 @@ internal static partial class EpubReader {
                         $"Did not retain raw HTML for chapter '{normalizedPath}' because MaxTotalRawHtmlBytes ({effective.MaxTotalRawHtmlBytes}) was reached.",
                         normalizedPath);
                 } else {
-                    retainedHtml = markup;
+                    retainedHtml = parsed.Html;
                     totalRawHtmlBytes += candidate.Entry.Length;
                 }
             }
-            if (text.Length == 0 && !hasStructuredContent) {
-                continue;
-            }
-
             emitted++;
-            string? title = ResolveChapterTitle(chapterMarkup, navigation.TitleMap, normalizedPath);
+            string? title = ResolveChapterTitle(chapterMarkup, navigation.TitleMap, candidate.PrimaryResourcePath ?? normalizedPath, normalizedPath);
 
             chapters.Add(new EpubChapter {
                 Order = emitted,
@@ -195,6 +211,8 @@ internal static partial class EpubReader {
             diagnostics,
             cancellationToken);
 
+        readSummary.ExtractedChapterCount = chapters.Count;
+
         if (package?.RenditionLayout == EpubRenditionLayout.PrePaginated || chapters.Any(static chapter => chapter.IsFixedLayout)) {
             diagnostics.Warning(
                 "epub.layout.fixed",
@@ -217,6 +235,7 @@ internal static partial class EpubReader {
             PageList = navigation.PageList.ToArray(),
             Landmarks = navigation.Landmarks.ToArray(),
             Chapters = chapters.ToArray(),
+            ReadSummary = readSummary,
             Resources = resources.ToArray(),
             Encryption = encryption.ToArray(),
             Signatures = signatures,

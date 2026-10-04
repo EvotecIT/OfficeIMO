@@ -12,6 +12,63 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class ExcelOdsDataPilotConversionTests {
     [Fact]
+    public void WideOdsPivotHeadersRemainBoundToNativeExcelText() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        for (int column = 0; column < 128; column++) {
+            sheet.Cell(0, column).SetString("Field-" + (column + 1));
+            sheet.Cell(1, column).SetString("Item-" + column);
+        }
+        sheet.Cell(1, 127).SetNumber(10);
+        OdsDataPilotTable pivot = source.AddDataPilotTable("WideOdsPivot",
+            "Data.A1:Data.DX2", "Data.EA1:Data.EB3");
+        pivot.AddField("Field-1", "row");
+        pivot.AddField("Field-128", "data", "sum");
+
+        using ExcelDocument target = source.ToExcelDocumentResult().Value;
+        Assert.Equal("WideOdsPivot", Assert.Single(target.Sheets.Single().GetPivotTables()).Name);
+        Assert.Empty(target.ValidateOpenXml());
+    }
+
+    [Theory]
+    [InlineData(OfficeIMO.DocumentAccessMode.ReadOnly)]
+    [InlineData(OfficeIMO.DocumentAccessMode.ReadWrite)]
+    public void WideSharedStringPivotHeadersPreserveNativeBindings(OfficeIMO.DocumentAccessMode accessMode) {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        const int columns = 128;
+        for (int column = 1; column <= columns; column++) {
+            sheet.CellValue(1, column, "Field-" + column);
+            sheet.CellValue(2, column, column == columns ? (object)10d : "North");
+        }
+        sheet.AddPivotTable("A1:DX2", "DZ1", name: "WidePivot", rowFields: new[] { "Field-1" },
+            dataFields: new[] { new ExcelPivotDataField("Field-128", ExcelPivotDataFunction.Sum) });
+        byte[] bytes = source.ToBytes();
+        using var stream = new MemoryStream();
+        stream.Write(bytes, 0, bytes.Length);
+        stream.Position = 0;
+        using (var package = SpreadsheetDocument.Open(stream, true)) {
+            var table = package.WorkbookPart!.SharedStringTablePart!.SharedStringTable!;
+            for (int index = 0; index < 2048; index++) {
+                table.Append(new DocumentFormat.OpenXml.Spreadsheet.SharedStringItem(
+                    new DocumentFormat.OpenXml.Spreadsheet.Text("Unused-" + index)));
+            }
+            table.Save();
+        }
+        using ExcelDocument imported = ExcelDocument.Load(new MemoryStream(stream.ToArray()),
+            new ExcelLoadOptions { AccessMode = accessMode });
+        var conversion = imported.ToOpenDocumentResult();
+        OdsDataPilotTable pivot = Assert.Single(conversion.Value.DataPilotTables);
+        Assert.Equal("Field-1", pivot.Fields[0].SourceFieldName);
+        Assert.Equal("Field-128", pivot.Fields[1].SourceFieldName);
+        Assert.True(OdsDocument.Load(new MemoryStream(conversion.Value.ToBytes())).Validate().IsValid);
+        if (accessMode == OfficeIMO.DocumentAccessMode.ReadWrite) {
+            imported.Sheets.Single().CellAt(1, 1).SetValue("Changed");
+            Assert.Empty(imported.ToOpenDocumentResult().Value.DataPilotTables);
+        }
+    }
+
+    [Fact]
     public void ExcelPivotOutputOverMergeIsExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddWorksheet("Data");

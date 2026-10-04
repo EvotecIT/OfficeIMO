@@ -19,30 +19,26 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private bool TryResolveTextArgumentValues(IEnumerable<string> tokens, out List<string> values) {
+        private bool TryResolveTextArgumentValues(IEnumerable<string> tokens, out List<string> values, out string? errorCode) {
             values = new List<string>();
+            errorCode = null;
+            int remainingCellBudget = MaxResolvedFormulaRangeCells;
             foreach (string token in tokens) {
-                if (TryResolveFormulaRange(token, out var rangeValues)) {
+                if (TryResolveFormulaRange(token, out var rangeValues, ref remainingCellBudget)) {
                     foreach (var rangeValue in rangeValues) {
-                        if (rangeValue.IsUnresolvedFormula) {
-                            values.Clear();
-                            return false;
-                        }
-
+                        if (rangeValue.IsUnresolvedFormula) { values.Clear(); return false; }
+                        if (rangeValue.IsError) { errorCode = rangeValue.ErrorCode; values.Clear(); return true; }
                         values.Add(FormulaValueToText(rangeValue));
                     }
-
                     continue;
                 }
-
-                if (!TryResolveTextArgument(token, out string value)) {
+                if (!TryResolveFormulaArgument(token, out FormulaArgumentValue value) || value.IsUnresolvedFormula) {
                     values.Clear();
                     return false;
                 }
-
-                values.Add(value);
+                if (value.IsError) { errorCode = value.ErrorCode; values.Clear(); return true; }
+                values.Add(FormulaValueToText(value));
             }
-
             return true;
         }
 
@@ -94,18 +90,25 @@ namespace OfficeIMO.Excel {
             }
 
             if (trimmed.Equals("TRUE", StringComparison.OrdinalIgnoreCase)) {
-                value = new FormulaArgumentValue(1d, "1", isBoolean: true);
+                value = FormulaArgumentValue.Boolean(true);
                 return true;
             }
 
             if (trimmed.Equals("FALSE", StringComparison.OrdinalIgnoreCase)) {
-                value = new FormulaArgumentValue(0d, "0", isBoolean: true);
+                value = FormulaArgumentValue.Boolean(false);
                 return true;
             }
 
             if (TryParseFormulaErrorLiteral(trimmed, out string errorCode)) {
                 value = FormulaArgumentValue.Error(errorCode);
                 return true;
+            }
+
+            // A scalar OFFSET owns blank-to-zero coercion. Do not consume its
+            // reference as a plain cell before dispatching the function.
+            if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(trimmed, out ExcelFormulaFunctionCallSyntax? call)
+                && call!.Name.Equals("OFFSET", StringComparison.OrdinalIgnoreCase)) {
+                return TryEvaluateFormulaValue(trimmed, out value, allowScalarExpression: false);
             }
 
             if (TryParseQualifiedFormulaCellReference(trimmed, out ExcelSheet sheet, out int row, out int column)) {
@@ -181,7 +184,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static IReadOnlyList<string> SplitFormulaArguments(string args) {
+        private static IReadOnlyList<string> SplitFormulaArguments(string args, bool preserveEmpty = false) {
             var tokens = new List<string>();
             var builder = new StringBuilder();
             int depth = 0;
@@ -251,7 +254,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (!inString && ch == ',' && depth == 0 && bracketDepth == 0) {
-                    AddToken(tokens, builder);
+                    AddToken(tokens, builder, preserveEmpty);
                     continue;
                 }
 
@@ -262,38 +265,17 @@ namespace OfficeIMO.Excel {
                 return Array.Empty<string>();
             }
 
-            AddToken(tokens, builder);
+            AddToken(tokens, builder, preserveEmpty);
             return tokens;
         }
 
-        private static void AddToken(List<string> tokens, StringBuilder builder) {
+        private static void AddToken(List<string> tokens, StringBuilder builder, bool preserveEmpty = false) {
             string token = builder.ToString().Trim();
-            if (token.Length > 0) {
+            if (token.Length > 0 || preserveEmpty) {
                 tokens.Add(token);
             }
 
             builder.Clear();
-        }
-
-        private static bool TryConvertFormulaAValues(IReadOnlyList<FormulaArgumentValue> values, out List<double> numbers) {
-            numbers = new List<double>();
-            foreach (var value in values) {
-                if (value.IsUnresolvedFormula || value.IsError) {
-                    numbers.Clear();
-                    return false;
-                }
-
-                if (value.Number.HasValue) {
-                    numbers.Add(value.Number.Value);
-                    continue;
-                }
-
-                if (value.Text != null) {
-                    numbers.Add(0d);
-                }
-            }
-
-            return true;
         }
 
         private bool TryResolveNumericOperand(string token, out double value) {
@@ -465,6 +447,13 @@ namespace OfficeIMO.Excel {
             out int c1,
             out int r2,
             out int c2) {
+            if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(token, out ExcelFormulaFunctionCallSyntax? call)
+                && call!.Name.Equals("OFFSET", StringComparison.OrdinalIgnoreCase)) {
+                bool resolved = TryResolveOffsetRange(call.Arguments, currentRow, out sheet, out r1, out c1, out r2, out c2,
+                    out FormulaArgumentValue error);
+                if (error.IsError && !_formulaReferenceError.IsError) _formulaReferenceError = error;
+                return resolved && !error.IsError;
+            }
             if (TryParseQualifiedFormulaRange(token, out sheet, out r1, out c1, out r2, out c2)) {
                 return true;
             }
@@ -981,7 +970,7 @@ namespace OfficeIMO.Excel {
             bool unresolvedFormula = false;
             if (cell?.CellFormula != null && _formulaEvaluationCache != null) {
                 if (TryEvaluateFormulaCellValue(cell, out FormulaArgumentValue formulaResult)) {
-                    return formulaResult;
+                    return formulaResult.AsReferencedValue();
                 }
 
                 if (_formulaEvaluationDepthFrames != null
@@ -1004,7 +993,7 @@ namespace OfficeIMO.Excel {
         private FormulaArgumentValue ResolveFormulaArgumentSnapshot(int row, int column, bool unresolvedFormula,
             bool withoutFormula, bool unevaluatedFormulaCache) {
             if (withoutFormula && _formulaEvaluationCache != null
-                && TryResolveFixedArrayChild(row, column, out FormulaArgumentValue arrayValue)) return arrayValue;
+                && TryResolveFixedArrayChild(row, column, out FormulaArgumentValue arrayValue)) return arrayValue.AsReferencedValue();
             var value = GetCellValueSnapshot(row, column);
             if (unresolvedFormula && value.Value == null && string.IsNullOrEmpty(value.CachedText)) {
                 return FormulaArgumentValue.UnresolvedFormula();
@@ -1016,22 +1005,28 @@ namespace OfficeIMO.Excel {
                 _formulaEvaluationDepthFrames.Peek().IncludeChild(1);
             }
 
-            if (value.Kind == ExcelCellDataKind.Error) {
+            var cachedType = value.HasFormula ? TryGetExistingCell(row, column)?.DataType?.Value : null;
+            if (value.Kind == ExcelCellDataKind.Error
+                || cachedType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Error) {
                 return FormulaArgumentValue.Error(value.CachedText ?? value.Value?.ToString() ?? "#VALUE!");
             }
 
-            var cachedType = value.HasFormula ? TryGetExistingCell(row, column)?.DataType?.Value : null;
+            ExcelCellDataKind sourceKind = value.Kind == ExcelCellDataKind.Formula
+                ? value.Value is bool ? ExcelCellDataKind.Boolean
+                    : value.Value is double ? ExcelCellDataKind.Number
+                    : value.Value != null ? ExcelCellDataKind.Text : ExcelCellDataKind.Blank
+                : value.Kind;
             if (value.Kind == ExcelCellDataKind.Text
                 || cachedType == DocumentFormat.OpenXml.Spreadsheet.CellValues.String
                 || cachedType == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString
                 || cachedType == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
                 return new FormulaArgumentValue(null, value.Value?.ToString() ?? string.Empty,
-                    isUnevaluatedFormulaCache: unevaluatedFormulaCache);
+                    sourceCellKind: sourceKind, isUnevaluatedFormulaCache: unevaluatedFormulaCache);
             }
 
             if (value.Value is bool boolean) {
                 return new FormulaArgumentValue(boolean ? 1 : 0, boolean ? "1" : "0", isBoolean: true,
-                    isUnevaluatedFormulaCache: unevaluatedFormulaCache);
+                    sourceCellKind: sourceKind, isUnevaluatedFormulaCache: unevaluatedFormulaCache);
             }
 
             if (TryParseFormulaErrorLiteral(value.CachedText ?? value.Value?.ToString() ?? string.Empty, out string errorCode)) {
@@ -1039,15 +1034,15 @@ namespace OfficeIMO.Excel {
             }
 
             if (value.Value is double d) {
-                return new FormulaArgumentValue(d, value.CachedText, isUnevaluatedFormulaCache: unevaluatedFormulaCache);
+                return new FormulaArgumentValue(d, value.CachedText, sourceCellKind: sourceKind, isUnevaluatedFormulaCache: unevaluatedFormulaCache);
             }
 
             if (double.TryParse(value.CachedText, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
-                return new FormulaArgumentValue(parsed, value.CachedText, isUnevaluatedFormulaCache: unevaluatedFormulaCache);
+                return new FormulaArgumentValue(parsed, value.CachedText, sourceCellKind: sourceKind, isUnevaluatedFormulaCache: unevaluatedFormulaCache);
             }
 
             return new FormulaArgumentValue(null, value.Value?.ToString(),
-                isUnevaluatedFormulaCache: unevaluatedFormulaCache);
+                sourceCellKind: sourceKind, isUnevaluatedFormulaCache: unevaluatedFormulaCache);
         }
 
         private static string? NormalizeFormulaCellReference(string? reference) {

@@ -22,6 +22,19 @@ internal static partial class PdfWriter {
         System.Collections.Generic.IReadOnlyList<PdfTextRun> source =
             runs as System.Collections.Generic.IReadOnlyList<PdfTextRun>
             ?? new System.Collections.Generic.List<PdfTextRun>(runs);
+        int layoutControls = 0;
+        foreach (PdfTextRun run in source) {
+            if (run.InlineElement != null) continue;
+            string text = run.Text ?? string.Empty;
+            for (int index = 0; index < text.Length; index++) {
+                char ch = text[index];
+                if (ch is not ('\r' or '\n' or '\t')) continue;
+                if (layoutControls >= MaximumTextLayoutLines)
+                    throw new System.IO.InvalidDataException("PDF text exceeds the 100,000-layout-control limit.");
+                layoutControls++;
+                if (ch == '\r' && index + 1 < text.Length && text[index + 1] == '\n') index++;
+            }
+        }
         System.Collections.Generic.List<PdfTextRun>? normalized = null;
         for (int index = 0; index < source.Count; index++) {
             PdfTextRun run = source[index];

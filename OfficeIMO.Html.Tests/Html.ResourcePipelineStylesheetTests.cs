@@ -5,6 +5,21 @@ namespace OfficeIMO.Tests;
 
 public partial class Html {
     [Fact]
+    public void ManifestSelectsOnlyAlternatesInThePreferredStylesheetSet() {
+        string links = string.Concat(Enumerable.Range(0, 64).Select(index =>
+            $"<link rel='stylesheet' href='https://example.test/plain-{index}.css'>"))
+            + "<link rel='stylesheet' title='default' href='https://example.test/default.css'>"
+            + "<link rel='alternate stylesheet' title='default' href='https://example.test/selected.css'>"
+            + "<link rel='alternate stylesheet' title='other' href='https://example.test/unselected.css'>";
+
+        HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest("<head>" + links + "</head>");
+
+        Assert.Contains(manifest.Resources, resource => resource.Source == "https://example.test/selected.css"
+            && resource.Kind == HtmlResourceKind.Stylesheet);
+        Assert.DoesNotContain(manifest.Resources, resource => resource.Source == "https://example.test/unselected.css");
+    }
+
+    [Fact]
     public void ExternalStylesheetManifestUsesCanonicalCssResourceDiscovery() {
         HtmlUrlPolicy policy = HtmlUrlPolicy.CreateOfficeIMOProfile();
         policy.DisallowFileUrls = false;

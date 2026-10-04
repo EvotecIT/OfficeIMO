@@ -17,11 +17,12 @@ namespace OfficeIMO.Excel {
             numbers = new List<double>();
             if (TryResolveFormulaRange(token, out var values, ref remainingCellBudget)) {
                 foreach (var value in values) {
-                    if (!value.Number.HasValue) {
+                    // Keep positional series numeric-only; dropping entries here would misalign paired ranges.
+                    if (!value.IsNumericAggregateValue) {
                         return false;
                     }
 
-                    numbers.Add(value.Number.Value);
+                    numbers.Add(value.Number!.Value);
                 }
 
                 return true;
@@ -91,7 +92,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            var numbers = matched.Where(value => value.Number.HasValue).Select(value => value.Number!.Value).ToList();
+            var numbers = matched.Where(value => value.IsNumericAggregateValue).Select(value => value.Number!.Value).ToList();
             if (function == "SUMIFS") {
                 result = numbers.Sum();
                 return true;
@@ -113,60 +114,20 @@ namespace OfficeIMO.Excel {
 
         private bool TryEvaluateCondition(string condition, out bool result) {
             result = false;
+            if (TrySplitFormulaComparison(condition, out string leftToken, out string comparisonOperator, out string rightToken)) {
+                if (!TryResolveFormulaArgument(leftToken, out FormulaArgumentValue leftValue)
+                    || !TryResolveFormulaArgument(rightToken, out FormulaArgumentValue rightValue)
+                    || leftValue.IsUnresolvedFormula || rightValue.IsUnresolvedFormula
+                    || !leftValue.HasValue || !rightValue.HasValue) return false;
+                return TryCompareFormulaValues(leftValue, comparisonOperator, rightValue, out result);
+            }
+
             if (TryResolveBooleanArgument(condition, out bool booleanResult)) {
                 result = booleanResult;
                 return true;
             }
 
-            if (TrySplitFormulaComparison(condition, out string leftToken, out string comparisonOperator, out string rightToken)
-                && TryResolveFormulaArgument(leftToken, out FormulaArgumentValue leftValue)
-                && TryResolveFormulaArgument(rightToken, out FormulaArgumentValue rightValue)
-                && !leftValue.IsUnresolvedFormula
-                && !rightValue.IsUnresolvedFormula
-                && leftValue.HasValue
-                && rightValue.HasValue) {
-                return TryCompareFormulaValues(leftValue, comparisonOperator, rightValue, out result);
-            }
-
-            if (ExcelFormulaExpressionParser.TryParseComparison(condition, out ExcelFormulaBinaryExpressionSyntax? comparison)) {
-                if (!TryResolveNumericOperand(comparison!.Left, out double left)
-                    || !TryResolveNumericOperand(comparison.Right, out double right)) {
-                    return false;
-                }
-
-                switch (comparison.Operator) {
-                    case ">":
-                        result = left > right;
-                        return true;
-                    case "<":
-                        result = left < right;
-                        return true;
-                    case ">=":
-                        result = left >= right;
-                        return true;
-                    case "<=":
-                        result = left <= right;
-                        return true;
-                    case "=":
-                        result = left == right;
-                        return true;
-                    case "<>":
-                        result = left != right;
-                        return true;
-                }
-            }
-
-            if (TryEvaluateFormula(condition, out double formulaValue)) {
-                result = Math.Abs(formulaValue) >= double.Epsilon;
-                return true;
-            }
-
-            if (!TryResolveNumericOperand(condition, out double value)) {
-                return false;
-            }
-
-            result = Math.Abs(value) >= double.Epsilon;
-            return true;
+            return false;
         }
 
         private static bool TrySplitFormulaComparison(string condition, out string left, out string comparisonOperator, out string right) {

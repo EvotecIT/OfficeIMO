@@ -22,6 +22,10 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(OfficeIMOStudioDistribution)' == 'MacAppStore'">
+    <DefineConstants>$(DefineConstants);OFFICEIMO_MAC_APP_STORE</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <AvaloniaResource Include="Assets\OfficeIMO.Studio.ico" />
     <AvaloniaResource Include="Assets\OfficeIMO.Studio.png" />
@@ -41,9 +45,23 @@
     <ProjectReference Include="..\OfficeIMO.Pdf.Ocr\OfficeIMO.Pdf.Ocr.csproj" />
     <ProjectReference Include="..\OfficeIMO.Security\OfficeIMO.Security.csproj" />
     <ProjectReference Include="..\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Workflows.IWork\OfficeIMO.Workflows.IWork.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Studio.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\LICENSE" Link="Licenses\OfficeIMO-MIT.txt"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\OfficeIMO.Core\Licenses\*.txt" Link="Licenses\%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\OfficeIMO.Core\THIRD-PARTY-NOTICES.md" Link="Licenses\OfficeIMO.Core-THIRD-PARTY-NOTICES.md"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\OfficeIMO.Pdf\Resources\sRGB-LICENSE.txt" Link="Licenses\sRGB-LICENSE.txt"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="OPEN_SOURCE.md" Link="Licenses\OPEN_SOURCE.md"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

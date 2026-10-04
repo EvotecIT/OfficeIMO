@@ -326,9 +326,9 @@ public static partial class OfficeSvgDrawingReader {
         SvgPaintContext style,
         OfficeFontFaceCollection fonts,
         out IOfficeFontProgram? program) {
-        program = fonts.ResolveForText(text, style.FontFamily, style.FontStyle, fontSize, out _)
-            ?? OfficeTrueTypeFont.TryLoadFontFamilyForText(style.FontFamily, style.FontStyle, text, out _)
-                ?.ForInstalledOpticalSize(fontSize, (style.FontStyle & OfficeFontStyle.Bold) != 0);
+        program = fonts.ResolveForText(text, style.FontFamily, style.FontFace, fontSize, out _)
+            ?? OfficeTrueTypeFont.TryLoadFontFamilyForText(style.FontFamily, style.FontFace, text, out _)
+                ?.ForInstalledOpticalSize(fontSize, style.FontFace.Weight >= 600);
         if (program != null) {
             double measured = program.Measure(text, fontSize);
             if (!double.IsNaN(measured) && !double.IsInfinity(measured) && measured > 0D) {
@@ -557,7 +557,7 @@ public static partial class OfficeSvgDrawingReader {
         OfficeColor baseColor = run.Style.Fill.Value;
         double opacity = Math.Max(0D, Math.Min(1D, run.Style.FillOpacity * run.Style.Opacity));
         OfficeColor color = OfficeColor.FromRgba(baseColor.R, baseColor.G, baseColor.B, (byte)Math.Round(baseColor.A * opacity));
-        var font = new OfficeFontInfo(run.Style.FontFamily, run.FontSize, run.Style.FontStyle);
+        var font = new OfficeFontInfo(run.Style.FontFamily, run.FontSize, run.Style.FontFace, run.Style.FontStyle);
         OfficeTransform textTransform = Math.Abs(run.RotationDegrees) <= 0.0000001D
             ? run.Transform
             : OfficeTransform.RotateDegrees(run.RotationDegrees, run.RotationCenterX, run.RotationCenterY).Then(run.Transform);

@@ -8,15 +8,24 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Partial_rich_formula_cache_remains_editable_with_a_cached_value() {
         using MemoryStream package = CreateNumbersWithPartialRichCell(hasFormula: true);
+        Assert.Throws<InvalidDataException>(() => ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
+            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
+        package.Position = 0;
 
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
             conversionOptions: new IWorkConversionOptions {
-                Mode = IWorkConversionMode.EditableOnly
+                Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true
             });
         IWorkTableCell cell = Assert.Single(Assert.Single(Assert.Single(
             result.Projection.Sheets).Tables).Cells);
 
         Assert.False(result.IsVisualFallback);
+        Assert.True(result.Report.IsPartialEditableReconstruction);
+        Assert.Throws<InvalidOperationException>(() => result.Report.RequireCompleteEditableReconstruction());
+        IWorkFormulaCellStatus assessment = Assert.Single(result.Report.FormulaCells);
+        Assert.True(assessment.ExpressionIsComplete);
+        Assert.Equal(IWorkFormulaCacheStatus.Partial, assessment.CacheStatus);
+        Assert.Equal(1, result.Report.FormulaSummary.PartialCacheCount);
         Assert.Equal(IWorkCellKind.Formula, cell.Kind);
         Assert.Equal("Beforeafter", cell.Value);
         Assert.True(cell.FormulaIsComplete);
@@ -52,6 +61,9 @@ public sealed partial class IWorkBoundaryTests {
             result.Projection.Sheets).Tables).Cells);
 
         Assert.True(result.IsVisualFallback);
+        IWorkFormulaCellStatus assessment = Assert.Single(result.Report.FormulaCells);
+        Assert.False(assessment.ExpressionIsComplete);
+        Assert.Equal(IWorkFormulaCacheStatus.Partial, assessment.CacheStatus);
         Assert.False(cell.FormulaIsComplete);
         Assert.False(cell.CachedValueIsComplete);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -78,9 +90,12 @@ public sealed partial class IWorkBoundaryTests {
             includeUnusedRichEntry: true);
 
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+            conversionOptions: new IWorkConversionOptions {
+                Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true
+            });
 
         Assert.False(result.IsVisualFallback);
+        Assert.True(result.Projection.HasEditableContent);
         Assert.DoesNotContain(result.Projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_TABLE_RICH_TEXT_STORAGE_UNSUPPORTED");
     }
@@ -132,9 +147,12 @@ public sealed partial class IWorkBoundaryTests {
             includeUnusedRichEntry: true, invalidUnusedWrapper: true);
 
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+            conversionOptions: new IWorkConversionOptions {
+                Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true
+            });
 
         Assert.False(result.IsVisualFallback);
+        Assert.True(result.Projection.HasEditableContent);
         Assert.DoesNotContain(result.Projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_TABLE_RICH_TEXT_STORAGE_UNSUPPORTED");
     }
@@ -162,14 +180,14 @@ public sealed partial class IWorkBoundaryTests {
                 VarintField(7, 1), StringField(8, "Cached")),
                 hasFormula ? new ulong[] { 12, 13, 16 } : new ulong[] { 12, 13 }),
             ArchiveRecord(12, 6002, Message(BytesField(5, row))),
-            ArchiveRecord(13, 6005, Message(BytesField(3,
+            ArchiveRecord(13, 6005, Message(VarintField(1, 8), BytesField(3,
                 Message(VarintField(1, 1), ReferenceField(9, 14))),
                 includeUnusedRichEntry ? BytesField(3,
                     Message(VarintField(1, 2), ReferenceField(9, 17))) : Array.Empty<byte>()),
                 includeUnusedRichEntry ? new ulong[] { 14, 17 } : new ulong[] { 14 }),
             ArchiveRecord(14, 6218, Message(ReferenceField(1, 15)), new ulong[] { 15 }),
             ArchiveRecord(15, 2001, Message(StringField(3, "Before\uFFFCafter"))),
-            hasFormula && includeFormulaRecord ? ArchiveRecord(16, 6201, Message(BytesField(3,
+            hasFormula && includeFormulaRecord ? ArchiveRecord(16, 6201, Message(VarintField(1, 3), BytesField(3,
                 Message(VarintField(1, 0), BytesField(5, FormulaConstant(1d))))))
                 : Array.Empty<byte>(),
             includeUnusedRichEntry ? invalidUnusedWrapper

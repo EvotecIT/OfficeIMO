@@ -73,6 +73,28 @@ continues to follow the reader's mapping-error policy.
 
 `OfficeDrawing.ExportImage(format, options)` exports a detached drawing through the same raster limits, density metadata, codecs, deadline, and diagnostic policy. Raster output is rendered at the requested density. SVG retains vector geometry and text; it cannot add detail to embedded raster images. Register regular and bold font faces for consistent measurement and output across machines.
 
+Raster strokes preserve fractional widths, caps, joins, miter limits, and dash phase. The renderer paints
+overlapping pieces of one stroke together, so an extra point or intersecting subpath does not darken
+translucent ink. Affine transforms apply to the stroke outline. Curve detail follows output density,
+with a target error of 0.05 device pixels and a bounded segment count. Thin contour details contribute
+their area even when they fall between sample rows. Image reduction averages premultiplied colors
+before bilinear placement; explicit nearest-neighbor drawing retains its pixel-art behavior.
+
+`OfficeFontInfo.Face` carries numeric weight, stretch, and slant through measurement, raster painting,
+and SVG export. Register the faces a document needs and request the descriptor directly:
+
+```csharp
+var drawing = new OfficeDrawing(240, 80);
+drawing.Fonts.Add("Inter", File.ReadAllBytes("Inter-Regular.ttf"), new OfficeFontFaceDescriptor(400));
+drawing.Fonts.Add("Inter", File.ReadAllBytes("Inter-Medium.ttf"), new OfficeFontFaceDescriptor(500));
+drawing.AddText("Monthly report", 12, 12, 216, 56,
+    new OfficeFontInfo("Inter", 20, new OfficeFontFaceDescriptor(500)));
+```
+
+Face matching follows CSS ordering within the requested family. Missing faces use the available
+matching face and existing fallback policy. Simulated bold paints its combined outline once,
+preserving the requested opacity.
+
 ## Prepare scanned images
 
 `OfficeScanProcessor` in `OfficeIMO.Drawing` prepares a separately owned raster for OCR. It supports explicit quarter-turns, manual straightening, confidence-filtered deskew, local paper-brightness normalization, black and white levels, gamma, grayscale or bilevel output, and proportional downsampling:

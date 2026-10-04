@@ -11,6 +11,7 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void DrawDrawingTextAt(OfficeDrawingText text, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics) {
             if (string.IsNullOrEmpty(text.Text)) return;
+            text = currentOpts.ResolveDrawingFont(text);
             double textOpacity = (text.Color ?? OfficeColor.Black).A / 255D;
             string? opacityState = EnsureGraphicsState(textOpacity, textOpacity);
             if (opacityState != null) {

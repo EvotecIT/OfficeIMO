@@ -20,7 +20,7 @@ internal static class OdfListStyleStore {
         return name;
     }
 
-    internal static bool IsOrdered(OdfDocument document, string? styleName, string partPath = "content.xml") {
+    internal static bool IsOrdered(OdfDocument document, string? styleName, string partPath = "content.xml", int level = 1) {
         if (string.IsNullOrWhiteSpace(styleName)) return false;
         XElement? style = Find(document, partPath, OdfNamespaces.Office + "automatic-styles", styleName!);
         if (style == null && !string.Equals(partPath, "styles.xml", StringComparison.Ordinal) && document.Package.ContainsEntry("styles.xml")) {
@@ -29,7 +29,11 @@ internal static class OdfListStyleStore {
         } else if (style == null && string.Equals(partPath, "styles.xml", StringComparison.Ordinal)) {
             style = Find(document, "styles.xml", OdfNamespaces.Office + "styles", styleName!);
         }
-        return style?.Elements().Any(element => element.Name == OdfNamespaces.Text + "list-level-style-number") == true;
+        XElement? levelStyle = style?.Elements().FirstOrDefault(element =>
+            int.TryParse((string?)element.Attribute(OdfNamespaces.Text + "level"), NumberStyles.Integer,
+                CultureInfo.InvariantCulture, out int definedLevel) && definedLevel == level);
+        return levelStyle != null ? levelStyle.Name == OdfNamespaces.Text + "list-level-style-number" :
+            style?.Elements().Any(element => element.Name == OdfNamespaces.Text + "list-level-style-number") == true;
     }
 
     private static XElement? Find(OdfDocument document, string partPath, XName containerName, string styleName) {

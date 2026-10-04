@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel {
         public int ParallelThreshold { get; set; } = 10_000;
 
         /// <summary>Per-operation thresholds (names: "CellValues", "InsertObjects", "InsertObjects.PowerShellProjection", "AutoFitColumns", ...).</summary>
-        public Dictionary<string, int> OperationThresholds { get; } = new(StringComparer.Ordinal);
+        public Dictionary<string, int> OperationThresholds { get; private set; } = new(StringComparer.Ordinal);
 
         /// <summary>Optional cap for parallel compute phase.</summary>
         public int? MaxDegreeOfParallelism { get; set; }
@@ -88,6 +88,12 @@ namespace OfficeIMO.Excel {
         /// </summary>
         internal void ReportTiming(string operation, TimeSpan elapsed)
             => OnTiming?.Invoke(operation, elapsed);
+
+        internal ExcelExecutionPolicy Clone() {
+            var clone = (ExcelExecutionPolicy)MemberwiseClone();
+            clone.OperationThresholds = new Dictionary<string, int>(OperationThresholds, StringComparer.Ordinal);
+            return clone;
+        }
 
         internal void ReportInfo(string message)
             => OnInfo?.Invoke(message);

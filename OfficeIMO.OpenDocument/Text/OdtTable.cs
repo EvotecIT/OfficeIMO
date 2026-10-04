@@ -185,15 +185,15 @@ public sealed class OdtTableCell {
     public IReadOnlyList<OdtParagraph> Paragraphs {
         get {
             // Reading a repeated cell must remain sparse. A paragraph resolves its
-            // logical row and cell only if a note is actually inserted.
+            // logical row and cell only when it is edited.
             return _element.Elements()
                 .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
                 .Select((element, index) => new OdtParagraph(_document, element,
-                    materializeForNote: () => ResolveParagraphForNote(index))).ToList();
+                    materializeForEdit: () => ResolveParagraphForEdit(index))).ToList();
         }
     }
 
-    private XElement ResolveParagraphForNote(int index) {
+    private XElement ResolveParagraphForEdit(int index) {
         // Splitting a repeated row or cell clones its existing notes. Their IDs
         // would then be shared by several physical notes, so reject before the
         // first XML mutation instead of inserting against a stale note index.
@@ -205,18 +205,20 @@ public sealed class OdtTableCell {
             OdsRepeatModel.Read(row, OdfNamespaces.Table + "number-rows-repeated") > 1 &&
             row.Descendants(OdfNamespaces.Text + "note").Any();
         if (repeatsCellWithNote || repeatsRowWithNote) {
-            throw new NotSupportedException("Adding a note while splitting a repeated table cell or row containing a note is not supported.");
+            throw new NotSupportedException("Editing while splitting a repeated table cell or row containing a note is not supported.");
         }
         EnsureMaterialized();
         return _element.Elements()
             .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
             .ElementAt(index);
     }
+    internal IReadOnlyList<OdtContentBlock> ReadContentBlocks() => _document.EnumerateContentBlocks(_element).ToList();
+    internal XElement Element => _element;
+
     /// <summary>Cell text joined across paragraphs.</summary>
     public string Text {
-        get => string.Join("\n", _element.Elements()
-            .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
-            .Select(element => new OdtParagraph(_document, element).Text));
+        get => OdfTextCodec.ReadJoined(_element.Elements()
+            .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h"));
         set {
             if (IsCovered) throw new InvalidOperationException("Covered table cells cannot contain text.");
             EnsureMaterialized();

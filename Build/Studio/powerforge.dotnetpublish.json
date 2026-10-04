@@ -202,7 +202,7 @@
         "MinimumSystemVersion": "13.0",
         "Category": "public.app-category.productivity",
         "Copyright": "Copyright © Evotec",
-        "DocumentExtensions": [ "pdf", "docx", "xlsx", "pptx" ],
+        "DocumentExtensions": [ "pdf", "docx", "xlsx", "pptx", "pages", "numbers", "key" ],
         "CodesignIdentity": "-",
         "HardenedRuntime": true,
         "Timestamp": false,

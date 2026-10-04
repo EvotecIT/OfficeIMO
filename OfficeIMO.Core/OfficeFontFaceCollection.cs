@@ -288,8 +288,21 @@ public sealed partial class OfficeFontFaceCollection {
         if (fonts == null || ReferenceEquals(fonts, this)) {
             return this;
         }
+        AddFaces(fonts.Faces);
+        foreach (string fallbackFamily in fonts.FallbackFamilies) {
+            bool exists = false;
+            foreach (string existing in _fallbackFamilies) {
+                if (!string.Equals(existing, fallbackFamily, StringComparison.OrdinalIgnoreCase)) continue;
+                exists = true;
+                break;
+            }
+            if (!exists) _fallbackFamilies.Add(fallbackFamily);
+        }
+        return this;
+    }
 
-        foreach (OfficeFontFace face in fonts.Faces) {
+    internal void AddFaces(IEnumerable<OfficeFontFace> faces) {
+        foreach (OfficeFontFace face in faces) {
             OfficeFontFace copy = face.Clone();
             bool replaced = false;
             for (int index = _faces.Count - 1; index >= 0; index--) {
@@ -306,17 +319,6 @@ public sealed partial class OfficeFontFaceCollection {
                 _faces.Add(copy);
             }
         }
-        foreach (string fallbackFamily in fonts.FallbackFamilies) {
-            bool exists = false;
-            foreach (string existing in _fallbackFamilies) {
-                if (!string.Equals(existing, fallbackFamily, StringComparison.OrdinalIgnoreCase)) continue;
-                exists = true;
-                break;
-            }
-            if (!exists) _fallbackFamilies.Add(fallbackFamily);
-        }
-
-        return this;
     }
 
     /// <summary>
@@ -524,7 +526,7 @@ public sealed partial class OfficeFontFaceCollection {
             StringComparer.OrdinalIgnoreCase);
         foreach (OfficeFontFace candidate in candidates) {
             bool explicitlySelected = explicitlySelectedFaces.Contains(candidate.ResourceFamilyName);
-            if (explicitlySelected ? candidate.HasGlyphs(text!) : candidate.Covers(text!)) {
+            if (CoversPlannedText(candidate, text!, requireUnicodeRange: !explicitlySelected)) {
                 face = candidate;
                 return true;
             }
@@ -593,6 +595,29 @@ public sealed partial class OfficeFontFaceCollection {
         ResolveForText(text, familyNames, style, out OfficeFontFace? face);
         resolvedStyle = face?.Style ?? OfficeFontStyle.Regular;
         return face?.ForOpticalSize(fontSize).Program;
+    }
+
+    internal IOfficeFontProgram? ResolveForText(string text, string? familyNames, OfficeFontFaceDescriptor descriptor, out OfficeFontStyle resolvedStyle) =>
+        ResolveForText(text, familyNames, descriptor, fontSize: null, out resolvedStyle);
+
+    internal IOfficeFontProgram? ResolveForText(string text, string? familyNames, OfficeFontFaceDescriptor descriptor,
+        double fontSize, out OfficeFontStyle resolvedStyle) =>
+        ResolveForText(text, familyNames, descriptor, (double?)fontSize, out resolvedStyle);
+
+    private IOfficeFontProgram? ResolveForText(string text, string? familyNames, OfficeFontFaceDescriptor descriptor,
+        double? fontSize, out OfficeFontStyle resolvedStyle) {
+        resolvedStyle = OfficeFontStyle.Regular;
+        OfficeFontFace? face = null;
+        if (!TryResolveFaceForText(text, familyNames, descriptor, out face)
+            && string.IsNullOrEmpty(text) && !string.IsNullOrWhiteSpace(familyNames)) {
+            foreach (OfficeFontFace candidate in ResolveFallbackCandidates(familyNames!, descriptor)) {
+                face = candidate;
+                break;
+            }
+        }
+        if (face == null) return null;
+        resolvedStyle = face.Descriptor.ToStyle();
+        return fontSize.HasValue ? face.ForOpticalSize(fontSize.Value).Program : face.ParsedFont;
     }
 
     private IOfficeFontProgram? ResolveForText(string text, string? familyNames, OfficeFontStyle style, out OfficeFontFace? resolvedFace) {

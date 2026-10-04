@@ -17,11 +17,15 @@ public sealed class ReaderOpenDocumentOptions {
     /// <summary>Maximum decoded XML characters accepted by the OpenDocument parser.</summary>
     public long? MaxXmlCharacters { get; set; } = 10_000_000L;
 
+    /// <summary>Maximum text characters extracted across the document before building joined text or Markdown. Repeated cells consume this budget for each logical occurrence.</summary>
+    public long MaxExtractedCharacters { get; set; } = 16_000_000L;
+
     internal ReaderOpenDocumentOptions Clone() => new ReaderOpenDocumentOptions {
         SheetName = SheetName,
         A1Range = A1Range,
         HeadersInFirstRow = HeadersInFirstRow,
         IncludeSpeakerNotes = IncludeSpeakerNotes,
-        MaxXmlCharacters = MaxXmlCharacters
+        MaxXmlCharacters = MaxXmlCharacters,
+        MaxExtractedCharacters = MaxExtractedCharacters
     };
 }

@@ -78,7 +78,7 @@ namespace OfficeIMO.Word {
                 Compatibility? compatibility = settings.Elements<Compatibility>().FirstOrDefault();
                 if (compatibility == null) {
                     compatibility = new Compatibility();
-                    settings.Append(compatibility);
+                    settings.AddChild(compatibility, true);
                 }
 
                 foreach (CompatibilitySetting setting in compatibility.Elements<CompatibilitySetting>()) {

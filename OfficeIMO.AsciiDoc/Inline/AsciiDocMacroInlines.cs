@@ -29,7 +29,7 @@ public class AsciiDocMacroInline : AsciiDocInline {
     }
 
     /// <summary>Raw content between square brackets.</summary>
-    public string AttributeList {
+    public virtual string AttributeList {
         get => _attributeList;
         set { string normalized = value ?? string.Empty; AsciiDocText.EnsureSingleLine(normalized, nameof(value)); SetValue(ref _attributeList, normalized); }
     }
@@ -38,6 +38,20 @@ public class AsciiDocMacroInline : AsciiDocInline {
     public AsciiDocElementAttributes Attributes => AsciiDocAttributeListParser.Parse(AttributeList);
 
     internal override string WriteCore(AsciiDocWriterContext context) => Name + ":" + Target + "[" + AttributeList + "]";
+}
+
+/// <summary>A named or anonymous footnote definition, or a reference to a named footnote.</summary>
+public sealed class AsciiDocFootnoteInline : AsciiDocMacroInline {
+    private readonly AsciiDocEditableInlineContent _content;
+    internal AsciiDocFootnoteInline(AsciiDocSyntaxNode syntax, string id, string content, AsciiDocInlineSequence inlines)
+        : base(syntax, "footnote", id, content) => _content = new AsciiDocEditableInlineContent(content, inlines);
+    /// <summary>Current inline footnote source.</summary>
+    public override string AttributeList { get => _content.Text; set => _content.Assign(value ?? string.Empty); }
+    /// <summary>Typed editable footnote content.</summary>
+    public AsciiDocInlineSequence Inlines => _content.Inlines;
+    /// <inheritdoc />
+    public override bool IsModified => base.IsModified || _content.IsModified;
+    internal override string WriteCore(AsciiDocWriterContext context) => Name + ":" + Target + "[" + _content.Write(context) + "]";
 }
 
 /// <summary>Inline STEM expression using <c>stem:</c>, <c>latexmath:</c>, or <c>asciimath:</c>.</summary>

@@ -17,26 +17,26 @@ internal static partial class DocumentReaderEngine {
     /// <param name="cancellationToken">Cancellation token.</param>
     public static OfficeDocumentReadResult ReadDocument(string path, ReaderOptions? options = null, CancellationToken cancellationToken = default) {
         if (path == null) throw new ArgumentNullException(nameof(path));
-        if (Directory.Exists(path)) {
-            throw new IOException($"'{path}' is a directory. Use {nameof(ReadFolder)}(...) to ingest directories.");
-        }
+        if (Directory.Exists(path)) return ReadDirectoryBundle(path, options, cancellationToken);
         if (!File.Exists(path)) throw new FileNotFoundException($"File '{path}' doesn't exist.", path);
 
         ReaderOptions opt = NormalizeOptions(options);
+        using var readScope = ReaderReadScope.Enter(opt);
         EnforceFileSize(path, ResolveInitialMaxInputBytes(path, opt));
         if (!TryResolvePathHandler(path, opt, cancellationToken,
                 out ReaderHandlerDescriptor handler, out ReaderDetectionResult detection)) {
             throw CreateUnsupportedInputException(path, detection);
         }
         if (handler.ReadDocumentPath != null) {
-            OfficeDocumentReadResult result = ValidateDocumentResult(handler.ReadDocumentPath(path, opt, cancellationToken), handler.Id);
             SourceInfo source = BuildSourceInfoFromPath(path, ShouldComputeSourceHash(handler, opt), cancellationToken);
-            return ApplyDetectionDiagnostics(FinalizeHandlerDocumentResult(result, source, opt.ComputeHashes), detection);
+            OfficeDocumentReadResult result = ValidateDocumentResult(handler.ReadDocumentPath(path, opt, cancellationToken), handler.Id);
+            ValidateUnchangedPathSource(source, cancellationToken);
+            return ReaderReadScope.Complete(ApplyDetectionDiagnostics(FinalizeHandlerDocumentResult(result, source, opt.ComputeHashes), detection));
         }
 
-        ReaderChunk[] chunks = ReadResolvedPath(path, opt, handler, cancellationToken);
-        return BuildChunkDocumentResult(
-            chunks, path, handler.Kind, BuildPathDocumentSource(path, chunks), detection: detection);
+        ReaderChunk[] chunks = ReadResolvedPath(path, opt, handler, cancellationToken, out SourceInfo chunkSource);
+        return ReaderReadScope.Complete(BuildChunkDocumentResult(
+            chunks, path, handler.Kind, BuildDocumentSource(chunkSource, chunks), detection: detection));
     }
 
     /// <summary>
@@ -51,6 +51,7 @@ internal static partial class DocumentReaderEngine {
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
         ReaderOptions opt = NormalizeOptions(options);
+        using var readScope = ReaderReadScope.Enter(opt);
         string logicalSourceName = NormalizeLogicalSourceName(sourceName, "memory");
         Stream readStream = ReaderInputLimits.EnsureSeekableReadStream(
             stream,
@@ -76,7 +77,7 @@ internal static partial class DocumentReaderEngine {
                     customStreamHandler.Id);
                 SourceInfo source = BuildSourceInfoFromStream(readStream, logicalSourceName,
                     ShouldComputeSourceHash(customStreamHandler, opt), cancellationToken);
-                return ApplyDetectionDiagnostics(FinalizeHandlerDocumentResult(result, source, opt.ComputeHashes), detection);
+                return ReaderReadScope.Complete(ApplyDetectionDiagnostics(FinalizeHandlerDocumentResult(result, source, opt.ComputeHashes), detection));
             }
 
             long position = readStream.Position;
@@ -85,14 +86,15 @@ internal static partial class DocumentReaderEngine {
                 logicalSourceName,
                 opt,
                 customStreamHandler,
-                cancellationToken);
+                cancellationToken,
+                out SourceInfo chunkSource);
             if (readStream.CanSeek) readStream.Position = position;
-            return BuildChunkDocumentResult(
+            return ReaderReadScope.Complete(BuildChunkDocumentResult(
                 chunks,
                 logicalSourceName,
                 customStreamHandler.Kind,
-                BuildStreamDocumentSource(readStream, logicalSourceName, chunks),
-                detection: detection);
+                BuildDocumentSource(chunkSource, chunks),
+                detection: detection));
         } finally {
             if (ownsReadStream) {
                 readStream.Dispose();
@@ -170,7 +172,8 @@ internal static partial class DocumentReaderEngine {
         IReadOnlyList<OfficeDocumentAsset>? assets = null,
         ReaderDetectionResult? detection = null,
         IReadOnlyList<OfficeDocumentOcrCandidate>? ocrCandidates = null) {
-        ReaderInputKind kind = chunks.Count > 0 ? chunks[0].Kind : fallbackKind;
+        ReaderInputKind kind = fallbackKind != ReaderInputKind.Unknown || chunks.Count == 0
+            ? fallbackKind : chunks[0].Kind;
         ReaderTable[] tables = ExtractTables(chunks).ToArray();
         ReaderVisual[] visuals = ExtractVisuals(chunks).ToArray();
         OfficeDocumentAsset[] assetArray = assets == null || assets.Count == 0 ? Array.Empty<OfficeDocumentAsset>() : assets.ToArray();
@@ -210,52 +213,16 @@ internal static partial class DocumentReaderEngine {
         };
     }
 
-    private static OfficeDocumentSource BuildPathDocumentSource(string path, IReadOnlyList<ReaderChunk> chunks) {
-        ReaderChunk? first = chunks.Count > 0 ? chunks[0] : null;
-        DateTime? lastWriteUtc = first?.SourceLastWriteUtc;
-        long? lengthBytes = first?.SourceLengthBytes;
-
-        if (!lastWriteUtc.HasValue || !lengthBytes.HasValue) {
-            try {
-                var info = new FileInfo(path);
-                if (info.Exists) {
-                    lastWriteUtc ??= info.LastWriteTimeUtc;
-                    lengthBytes ??= info.Length;
-                }
-            } catch {
-                // Best-effort source metadata.
-            }
-        }
-
+    private static OfficeDocumentSource BuildDocumentSource(SourceInfo source, IReadOnlyList<ReaderChunk> chunks) {
+        // A container's root is the input itself. Child metadata belongs only to child chunks.
+        ReaderChunk? rootChunk = chunks.FirstOrDefault(chunk =>
+            string.Equals(chunk.SourceId, source.SourceId, StringComparison.Ordinal));
         return new OfficeDocumentSource {
-            Path = first?.Location.Path ?? path,
-            SourceId = first?.SourceId ?? BuildSourceId(NormalizePathForId(path)),
-            SourceHash = first?.SourceHash,
-            LastWriteUtc = lastWriteUtc,
-            LengthBytes = lengthBytes
-        };
-    }
-
-    private static OfficeDocumentSource BuildStreamDocumentSource(Stream stream, string sourceName, IReadOnlyList<ReaderChunk> chunks) {
-        ReaderChunk? first = chunks.Count > 0 ? chunks[0] : null;
-        long? lengthBytes = first?.SourceLengthBytes;
-
-        if (!lengthBytes.HasValue) {
-            try {
-                if (stream.CanSeek) {
-                    lengthBytes = stream.Length;
-                }
-            } catch {
-                // Best-effort source metadata.
-            }
-        }
-
-        return new OfficeDocumentSource {
-            Path = first?.Location.Path ?? sourceName,
-            SourceId = first?.SourceId ?? BuildSourceId(sourceName),
-            SourceHash = first?.SourceHash,
-            LastWriteUtc = first?.SourceLastWriteUtc,
-            LengthBytes = lengthBytes
+            Path = source.Path,
+            SourceId = source.SourceId,
+            SourceHash = source.SourceHash ?? rootChunk?.SourceHash,
+            LastWriteUtc = source.LastWriteUtc,
+            LengthBytes = source.LengthBytes
         };
     }
 
@@ -275,7 +242,8 @@ internal static partial class DocumentReaderEngine {
             ReaderChunk chunk = chunks[index];
             string? value = valueSelector(chunk, index);
             if (string.IsNullOrEmpty(value) ||
-                (string.IsNullOrWhiteSpace(value) && !chunk.ContinuesPreviousChunk)) continue;
+                (string.IsNullOrWhiteSpace(value) && !chunk.ContinuesPreviousChunk
+                    && chunk.Kind != ReaderInputKind.Text && chunk.Kind != ReaderInputKind.Unknown)) continue;
 
             if (markdown == null) {
                 markdown = new StringBuilder(value!.Length);

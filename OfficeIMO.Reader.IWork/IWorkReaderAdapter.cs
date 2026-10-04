@@ -21,10 +21,27 @@ internal static class IWorkReaderAdapter {
         ReaderIWorkOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         IWorkDocumentKind? expected = ExpectedKind(path);
-        IWorkSourceDocument source = expected.HasValue
-            ? IWorkSourceDocument.Open(path, expected.Value, options.ReadOptions, cancellationToken)
-            : IWorkSourceDocument.Open(path, options.ReadOptions, cancellationToken);
-        return Project(source, path, readerOptions, options, cancellationToken);
+        IWorkReadOptions bounded = (options.ReadOptions ?? new IWorkReadOptions()).Clone();
+        if (readerOptions.MaxInputBytes is long maximumBytes) {
+            bounded.MaximumPackageBytes = Math.Min(bounded.MaximumPackageBytes, maximumBytes);
+        }
+        ReaderAdapterInputSnapshot? input = Directory.Exists(path) ? null
+            : DocumentReaderEngine.ReadAdapterInput(path, readerOptions, cancellationToken,
+                bounded.MaximumPackageBytes, IWorkContainerReader.OpenPackageFileForRead);
+        IWorkSourceDocument source = input != null
+            ? expected.HasValue
+                ? IWorkSourceDocument.Open(input.Bytes, expected.Value, bounded, cancellationToken)
+                : IWorkSourceDocument.Open(input.Bytes, bounded, cancellationToken)
+            : expected.HasValue
+                ? IWorkSourceDocument.Open(path, expected.Value, bounded, cancellationToken)
+                : IWorkSourceDocument.Open(path, bounded, cancellationToken);
+        OfficeDocumentReadResult result = Project(source, path, readerOptions, options, cancellationToken);
+        if (source.ContainerKind == IWorkContainerKind.DirectoryBundle) {
+            result.Source.LengthBytes = source.ContainerLengthBytes;
+            if (readerOptions.ComputeHashes) result.Source.SourceHash = source.ComputePackageContentHash();
+        }
+        if (input != null) ApplyCapturedSource(result, input, readerOptions.ComputeHashes);
+        return result;
     }
 
     internal static OfficeDocumentReadResult ReadDocument(Stream stream, string? sourceName,
@@ -34,15 +51,20 @@ internal static class IWorkReaderAdapter {
         string logicalName = string.IsNullOrWhiteSpace(sourceName)
             ? "document.pages" : sourceName!.Trim();
         IWorkDocumentKind? expected = ExpectedKind(logicalName);
-        long originalPosition = stream.CanSeek ? stream.Position : 0;
-        try {
-            IWorkSourceDocument source = expected.HasValue
-                ? IWorkSourceDocument.Open(stream, expected.Value, options.ReadOptions, cancellationToken)
-                : IWorkSourceDocument.Open(stream, options.ReadOptions, cancellationToken);
-            return Project(source, logicalName, readerOptions, options, cancellationToken);
-        } finally {
-            if (stream.CanSeek) stream.Position = originalPosition;
-        }
+        IWorkReadOptions bounded = (options.ReadOptions ?? new IWorkReadOptions()).Clone();
+        ReaderAdapterInputSnapshot input = DocumentReaderEngine.ReadAdapterInput(stream, logicalName,
+            readerOptions, cancellationToken, bounded.MaximumPackageBytes);
+        IWorkSourceDocument source = expected.HasValue
+            ? IWorkSourceDocument.Open(input.Bytes, expected.Value, bounded, cancellationToken)
+            : IWorkSourceDocument.Open(input.Bytes, bounded, cancellationToken);
+        OfficeDocumentReadResult result = Project(source, logicalName, readerOptions, options, cancellationToken);
+        ApplyCapturedSource(result, input, readerOptions.ComputeHashes);
+        return result;
+    }
+
+    private static void ApplyCapturedSource(OfficeDocumentReadResult result, ReaderAdapterInputSnapshot input, bool computeHashes) {
+        result.Source = input.Source;
+        foreach (ReaderChunk chunk in result.Chunks) DocumentReaderEngine.ApplyAdapterSource(chunk, input, computeHashes);
     }
 
     private static IWorkDocumentKind? ExpectedKind(string name) =>
@@ -61,7 +83,9 @@ internal static class IWorkReaderAdapter {
             Source = new OfficeDocumentSource { Path = path },
             CapabilitiesUsed = new[] { "officeimo.reader.iwork", "officeimo.iwork.semantic-source" }
         };
-        var projection = new IWorkReadProjection(result, path, readerOptions, options,
+        ReaderIWorkOptions destinationOptions = options.Clone();
+        destinationOptions.ReadOptions = source.Options;
+        var projection = new IWorkReadProjection(result, path, readerOptions, destinationOptions,
             cancellationToken);
         switch (source.Kind) {
             case IWorkDocumentKind.Pages:

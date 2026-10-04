@@ -17,7 +17,7 @@ public static partial class MarkdownPdfConverterExtensions {
             case MarkdownPdfFrontMatterRenderMode.Hidden:
                 return;
             case MarkdownPdfFrontMatterRenderMode.DocumentHeader:
-                if (RenderFrontMatterDocumentHeader(pdf, frontMatter, document, visualTheme)) {
+                if (RenderFrontMatterDocumentHeader(pdf, frontMatter, document, options, visualTheme)) {
                     return;
                 }
 
@@ -31,7 +31,7 @@ public static partial class MarkdownPdfConverterExtensions {
         RenderFrontMatterTable(pdf, frontMatter, visualTheme);
     }
 
-    private static bool RenderFrontMatterDocumentHeader(PdfCore.PdfDocument pdf, FrontMatterBlock frontMatter, MarkdownDoc document, MarkdownPdfStyle visualTheme) {
+    private static bool RenderFrontMatterDocumentHeader(PdfCore.PdfDocument pdf, FrontMatterBlock frontMatter, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
         string? title = GetFrontMatterMetadata(frontMatter, "title");
         if (title == null) {
             return false;
@@ -39,7 +39,7 @@ public static partial class MarkdownPdfConverterExtensions {
 
         string? anchor = FindMatchingFirstHeadingAnchor(document, title);
         if (!string.IsNullOrWhiteSpace(anchor)) {
-            pdf.Bookmark(anchor!);
+            options.Anchors?.RegisterNamed(pdf, anchor!);
         }
 
         pdf.H1(title, PdfCore.PdfAlign.Left, visualTheme.DocumentHeaderTitleColorSnapshot, style: new PdfCore.PdfHeadingStyle {

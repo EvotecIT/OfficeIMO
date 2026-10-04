@@ -44,7 +44,7 @@ internal sealed class HtmlCssFontFaceDefinition {
 }
 
 public static partial class HtmlResourcePipeline {
-    internal static IReadOnlyList<HtmlCssFontFaceDefinition> ExtractFontFaces(string css, HtmlResourcePipelineOptions options) {
+    internal static IReadOnlyList<HtmlCssFontFaceDefinition> ExtractFontFaces(string css, HtmlResourcePipelineOptions options, bool includeInactiveResources = false) {
         var definitions = new List<HtmlCssFontFaceDefinition>();
         if (string.IsNullOrWhiteSpace(css)) {
             return definitions.AsReadOnly();
@@ -60,7 +60,7 @@ public static partial class HtmlResourcePipeline {
             MapRawFontFaceDescriptors(rule, rawRules, rawDescriptors, ref rawRuleIndex);
         }
         foreach (ICssRule rule in stylesheet.Rules) {
-            AddFontFaces(rule, options, definitions, rawDescriptors);
+            AddFontFaces(rule, options, definitions, rawDescriptors, includeInactiveResources);
         }
 
         return definitions.AsReadOnly();
@@ -132,12 +132,12 @@ public static partial class HtmlResourcePipeline {
         ICssRule rule,
         HtmlResourcePipelineOptions options,
         ICollection<HtmlCssFontFaceDefinition> definitions,
-        IReadOnlyDictionary<ICssFontFaceRule, IReadOnlyDictionary<string, string>> rawDescriptors) {
-        if (rule is ICssMediaRule mediaRule && !IsApplicableMedia(mediaRule.ConditionText, options)) {
+        IReadOnlyDictionary<ICssFontFaceRule, IReadOnlyDictionary<string, string>> rawDescriptors, bool includeInactiveResources) {
+        if (!includeInactiveResources && rule is ICssMediaRule mediaRule && !IsApplicableMedia(mediaRule.ConditionText, options)) {
             return;
         }
 
-        if (rule is ICssSupportsRule supportsRule && !HtmlComputedStyleEngine.IsApplicableSupports(supportsRule.ConditionText)) {
+        if (!includeInactiveResources && rule is ICssSupportsRule supportsRule && !HtmlComputedStyleEngine.IsApplicableSupports(supportsRule.ConditionText)) {
             return;
         }
 
@@ -157,7 +157,7 @@ public static partial class HtmlResourcePipeline {
 
         if (rule is ICssGroupingRule groupingRule) {
             foreach (ICssRule child in groupingRule.Rules) {
-                AddFontFaces(child, options, definitions, rawDescriptors);
+                AddFontFaces(child, options, definitions, rawDescriptors, includeInactiveResources);
             }
         }
     }

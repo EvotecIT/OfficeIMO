@@ -125,6 +125,7 @@
     "OfficeIMO.Word.Pdf": "3.4.X",
     "OfficeIMO.Word.Rtf": "3.4.X",
     "OfficeIMO.Workflows": "3.4.X",
+    "OfficeIMO.Workflows.IWork": "3.4.X",
     "OfficeIMO.Zip": "3.4.X"
   },
   "VersionBindings": [

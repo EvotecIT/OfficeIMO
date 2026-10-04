@@ -4,6 +4,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
+    private const int MaximumTextLayoutLines = 100_000;
     private const double DefaultParagraphTabStopWidth = 36D;
     private static readonly char[] TokenSplitChars = new[] { ' ', '\n', '\t' };
     private static readonly char[] HardLineSplitChars = new[] { '\n' };
@@ -595,6 +596,8 @@ internal static partial class PdfWriter {
         }
 
         void StartNewLine() {
+            if (lines.Count >= MaximumTextLayoutLines)
+                throw new System.IO.InvalidDataException("PDF paragraph layout exceeds the 100,000-line limit.");
             heights.Add(currentLineHeight);
             completedHeight += currentLineHeight;
             lines.Add(new());
@@ -2089,16 +2092,10 @@ internal static partial class PdfWriter {
                                 underlines.Add((lineXOrigin + segmentStartX + wordStart.Value, lineXOrigin + segmentStartX + advance, yLine, ulColor, OfficeIMO.Drawing.OfficeTextDecorationStyle.Single));
                             }
                         } else {
-                            for (int wordStart = 0; wordStart < s.Text.Length;) {
-                                while (wordStart < s.Text.Length && char.IsWhiteSpace(s.Text[wordStart])) wordStart++;
-                                if (wordStart == s.Text.Length) break;
-                                int wordEnd = wordStart;
-                                while (wordEnd < s.Text.Length && !char.IsWhiteSpace(s.Text[wordEnd])) wordEnd++;
-                                double startAdvance = MeasurePositionedTextWidth(s.Text.Substring(0, wordStart), s.Font, s.NamedFont, s.FontSize, s.Baseline, opts, s.FeatureSettings, s.TextDirection, s.FontMetricScale);
-                                double endAdvance = MeasurePositionedTextWidth(s.Text.Substring(0, wordEnd), s.Font, s.NamedFont, s.FontSize, s.Baseline, opts, s.FeatureSettings, s.TextDirection, s.FontMetricScale);
-                                underlines.Add((lineXOrigin + segmentStartX + startAdvance, lineXOrigin + segmentStartX + endAdvance, yLine, ulColor, OfficeIMO.Drawing.OfficeTextDecorationStyle.Single));
-                                wordStart = wordEnd;
-                            }
+                            VisitWordDecorationAdvances(s.Text,
+                                span => MeasurePositionedTextWidth(span, s.Font, s.NamedFont, s.FontSize, s.Baseline, opts, s.FeatureSettings, s.TextDirection, s.FontMetricScale),
+                                (start, end) => underlines.Add((lineXOrigin + segmentStartX + start,
+                                    lineXOrigin + segmentStartX + end, yLine, ulColor, OfficeIMO.Drawing.OfficeTextDecorationStyle.Single)));
                         }
                     } else {
                         underlines.Add((lineXOrigin + segmentStartX, lineXOrigin + segmentStartX + wSeg, yLine, ulColor, s.UnderlineStyle));

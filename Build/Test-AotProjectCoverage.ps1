@@ -49,6 +49,11 @@ $nativeTools = @(
 )
 $managedOnly = @(
     [ordered]@{
+        name = 'OfficeIMO.Workflows.IWork'
+        classification = 'managed-cross-platform'
+        evidence = 'Opt-in iWork workflow routes are qualified through managed .NET 8 and 10 tests; destination converter NativeAOT evidence does not qualify the complete workflow surface.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.Invoicing.KSeF'
         classification = 'managed-cross-platform'
         evidence = 'KSeF transport, cryptography and receipt contracts are qualified through managed .NET 8 and 10 tests; no dedicated NativeAOT qualification host is claimed.'

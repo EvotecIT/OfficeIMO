@@ -1252,6 +1252,10 @@ namespace OfficeIMO.Tests {
                     await Assert.ThrowsAsync<StopAfterCheckpointException>(() => first.DownloadToFileAsync("file-1", path,
                         checkpointSink: (checkpoint, _) => {
                             saved = checkpoint;
+#if NET6_0_OR_GREATER
+                            if (!OperatingSystem.IsWindows()) Assert.Equal(
+                                UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(path));
+#endif
                             if (checkpoint.ConfirmedBytes > 0) throw new StopAfterCheckpointException();
                             return Task.CompletedTask;
                         },

@@ -1495,10 +1495,17 @@ namespace OfficeIMO.Tests {
 
             RgbaPng image = DecodeRgbaPng(png);
             (int RedMin, int RedMax, int RedCount) = FindVerticalColorSpanNear(image, 150, radius: 2, IsRedPixel);
-            (int BlueMin, int BlueMax, int BlueCount) = FindVerticalColorSpanNear(image, 150, radius: 2, IsBluePixel);
+            (int BlueMin, int BlueMax, int BlueCount) = FindVerticalColorSpanNear(image, 150, radius: 2, HasBlueCoverage);
             Assert.True(RedCount > 0, "Expected regular SVG stroke to render in package preview output.");
             Assert.True(BlueCount > 0, "Expected SVG vector-effect=\"non-scaling-stroke\" stroke to render in package preview output.");
             Assert.True((RedMax - RedMin) > (BlueMax - BlueMin) + 4, $"Expected regular SVG stroke to scale thicker than non-scaling stroke. Red span {RedMin}-{RedMax}, blue span {BlueMin}-{BlueMax}.");
+
+            static bool HasBlueCoverage(RgbaPng sample, int x, int y) {
+                int offset = ((y * sample.Width) + x) * 4;
+                OfficeColor actual = OfficeColor.FromRgba(sample.Pixels[offset], sample.Pixels[offset + 1],
+                    sample.Pixels[offset + 2], sample.Pixels[offset + 3]);
+                return RasterColorTestSupport.GetCoverage(actual, OfficeColor.FromRgb(0, 112, 192), OfficeColor.White) > 0.05D;
+            }
         }
 
         [Fact]

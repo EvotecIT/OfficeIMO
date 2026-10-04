@@ -90,7 +90,7 @@ public sealed class IWorkParagraphStyle {
     internal IWorkParagraphStyle(string? name, IWorkTextAlignment? alignment,
         double? firstLineIndentPoints, double? leftIndentPoints, double? rightIndentPoints,
         double? spaceBeforePoints, double? spaceAfterPoints, bool? pageBreakBefore,
-        bool? keepWithNext, bool? keepLinesTogether, IWorkTextStyle textStyle) {
+        bool? keepWithNext, bool? keepLinesTogether, IWorkTextStyle textStyle, double? lineSpacingMultiplier = null, IReadOnlyList<IWorkTabStop>? tabStops = null) {
         Name = name;
         Alignment = alignment;
         FirstLineIndentPoints = firstLineIndentPoints;
@@ -102,6 +102,8 @@ public sealed class IWorkParagraphStyle {
         KeepWithNext = keepWithNext;
         KeepLinesTogether = keepLinesTogether;
         TextStyle = textStyle;
+        LineSpacingMultiplier = lineSpacingMultiplier;
+        TabStops = tabStops;
     }
 
     /// <summary>Gets the source style name, when present.</summary>
@@ -118,6 +120,10 @@ public sealed class IWorkParagraphStyle {
     public double? SpaceBeforePoints { get; }
     /// <summary>Gets spacing after the paragraph in points.</summary>
     public double? SpaceAfterPoints { get; }
+    /// <summary>Gets explicit positive relative line spacing; null when absent, cleared or unqualified.</summary>
+    public double? LineSpacingMultiplier { get; }
+    /// <summary>Gets qualified custom tabs; null means unspecified and an empty list clears inherited source tabs.</summary>
+    public IReadOnlyList<IWorkTabStop>? TabStops { get; }
     /// <summary>Gets whether the paragraph starts on a new page.</summary>
     public bool? PageBreakBefore { get; }
     /// <summary>Gets whether the paragraph should stay with the next paragraph.</summary>
@@ -130,10 +136,11 @@ public sealed class IWorkParagraphStyle {
 
 /// <summary>One contiguous rich-text run.</summary>
 public sealed class IWorkTextRun {
-    internal IWorkTextRun(string text, IWorkTextStyle style, string? hyperlink) {
+    internal IWorkTextRun(string text, IWorkTextStyle style, string? hyperlink, IWorkInlineObject? inlineObject = null) {
         Text = text;
         Style = style;
         Hyperlink = hyperlink;
+        InlineObject = inlineObject;
     }
 
     /// <summary>Gets run text.</summary>
@@ -142,18 +149,23 @@ public sealed class IWorkTextRun {
     public IWorkTextStyle Style { get; }
     /// <summary>Gets an external hyperlink target, when present.</summary>
     public string? Hyperlink { get; }
+    /// <summary>Gets the drawable attachment at this run's source position, or null for an ordinary text run.</summary>
+    public IWorkInlineObject? InlineObject { get; }
 }
 
 /// <summary>One paragraph in an iWork rich-text storage.</summary>
 public sealed class IWorkTextParagraph {
     internal IWorkTextParagraph(IReadOnlyList<IWorkTextRun> runs, IWorkParagraphStyle style,
         ulong? listIdentifier, int listLevel, string? listLabel,
-        IWorkParagraphBreakKind breakKind) {
+        IWorkParagraphBreakKind breakKind, string? listFontName = null,
+        IWorkListMarkerKind listMarkerKind = IWorkListMarkerKind.Text) {
         Runs = Array.AsReadOnly(runs.ToArray());
         Style = style;
         ListIdentifier = listIdentifier;
         ListLevel = listLevel;
         ListLabel = listLabel;
+        ListFontName = listFontName;
+        ListMarkerKind = listLevel < 0 ? IWorkListMarkerKind.None : listMarkerKind;
         BreakKind = breakKind;
     }
 
@@ -163,10 +175,15 @@ public sealed class IWorkTextParagraph {
     public IWorkParagraphStyle Style { get; }
     /// <summary>Gets the stable source list-style identifier, or null for a non-list paragraph.</summary>
     public ulong? ListIdentifier { get; }
-    /// <summary>Gets the zero-based list level, or -1 for a non-list paragraph.</summary>
+    /// <summary>Gets the explicit zero-based list level, falling back to indentation when unavailable, or -1 for a non-list paragraph.</summary>
     public int ListLevel { get; }
-    /// <summary>Gets the source list label, when directly recoverable.</summary>
+    /// <summary>Gets the source string label or the initial marker for a recovered numbering kind.
+    /// A numbering marker describes its format, not a qualified paragraph counter or restart value.</summary>
     public string? ListLabel { get; }
+    /// <summary>Gets the explicit marker font, including inherited list-style formatting, or null when unspecified or cleared.</summary>
+    public string? ListFontName { get; }
+    /// <summary>Gets the native marker kind; literal text labels are never inferred to be numbering.</summary>
+    public IWorkListMarkerKind ListMarkerKind { get; }
     /// <summary>Gets the delimiter that ended the paragraph.</summary>
     public IWorkParagraphBreakKind BreakKind { get; }
     /// <summary>Gets paragraph text without its terminal delimiter.</summary>
@@ -175,21 +192,37 @@ public sealed class IWorkTextParagraph {
 
 /// <summary>Immutable rich text recovered from one iWork text storage.</summary>
 public sealed class IWorkTextContent {
+    private string? _plainText;
+
     internal IWorkTextContent(IReadOnlyList<IWorkTextParagraph> paragraphs,
-        bool isComplete, bool isTextComplete) {
+        bool isComplete, bool isTextComplete, bool hasInvalidSourceText = false,
+        bool hasUnresolvedInlineObjects = false, bool? isFormattingComplete = null,
+        IWorkObjectIdentity? sourceIdentity = null) {
         Paragraphs = Array.AsReadOnly(paragraphs.ToArray());
         IsComplete = isComplete;
         IsTextComplete = isTextComplete;
+        HasInvalidSourceText = hasInvalidSourceText;
+        HasUnresolvedInlineObjects = hasUnresolvedInlineObjects;
+        IsFormattingComplete = isFormattingComplete ?? isComplete;
+        SourceIdentity = sourceIdentity;
     }
 
     /// <summary>Gets paragraphs, including meaningful empty paragraphs.</summary>
     public IReadOnlyList<IWorkTextParagraph> Paragraphs { get; }
+    /// <summary>Gets the native text-storage identity when the content was read from a source record.</summary>
+    public IWorkObjectIdentity? SourceIdentity { get; }
     /// <summary>Gets whether text and all referenced style records were decoded.</summary>
     public bool IsComplete { get; }
     /// <summary>Gets whether all source text was decoded independently of its formatting.</summary>
     public bool IsTextComplete { get; }
+    /// <summary>Gets whether source text contains invalid encoding, unsupported characters, or malformed text fields.</summary>
+    public bool HasInvalidSourceText { get; }
+    /// <summary>Gets whether inline object markers could not be resolved into editable content.</summary>
+    public bool HasUnresolvedInlineObjects { get; }
+    /// <summary>Gets whether the referenced paragraph, list, run, and hyperlink formatting was decoded.</summary>
+    public bool IsFormattingComplete { get; }
     /// <summary>Gets normalized plain text while preserving paragraph boundaries.</summary>
-    public string PlainText => string.Join("\n", Paragraphs.Select(paragraph => paragraph.Text));
+    public string PlainText => _plainText ??= string.Join("\n", Paragraphs.Select(paragraph => paragraph.Text));
 }
 
 /// <summary>Headers and footers associated with one Pages section in source order.</summary>
@@ -200,8 +233,13 @@ public sealed class IWorkPagesSection {
         IReadOnlyList<IWorkTextContent>? evenPageHeaders,
         IReadOnlyList<IWorkTextContent>? evenPageFooters,
         IReadOnlyList<IWorkTextContent>? defaultPageHeaders,
-        IReadOnlyList<IWorkTextContent>? defaultPageFooters) {
+        IReadOnlyList<IWorkTextContent>? defaultPageFooters,
+        bool differentFirstPage = false, bool differentOddAndEvenPages = false,
+        bool hideFirstPageHeadersAndFooters = false) {
         Index = index;
+        DifferentFirstPage = differentFirstPage;
+        DifferentOddAndEvenPages = differentOddAndEvenPages;
+        HideFirstPageHeadersAndFooters = hideFirstPageHeadersAndFooters;
         HasFirstPageTemplate = firstPageHeaders != null || firstPageFooters != null;
         HasEvenPageTemplate = evenPageHeaders != null || evenPageFooters != null;
         HasDefaultPageTemplate = defaultPageHeaders != null || defaultPageFooters != null;
@@ -211,6 +249,8 @@ public sealed class IWorkPagesSection {
         EvenPageFooterContents = Freeze(evenPageFooters);
         DefaultPageHeaderContents = Freeze(defaultPageHeaders);
         DefaultPageFooterContents = Freeze(defaultPageFooters);
+        SelectedHeaderContents = SelectContents(FirstPageHeaderContents, EvenPageHeaderContents, DefaultPageHeaderContents);
+        SelectedFooterContents = SelectContents(FirstPageFooterContents, EvenPageFooterContents, DefaultPageFooterContents);
         HeaderContents = Array.AsReadOnly(FirstPageHeaderContents
             .Concat(EvenPageHeaderContents).Concat(DefaultPageHeaderContents).ToArray());
         FooterContents = Array.AsReadOnly(FirstPageFooterContents
@@ -219,6 +259,12 @@ public sealed class IWorkPagesSection {
 
     /// <summary>Gets the zero-based source section index.</summary>
     public int Index { get; }
+    /// <summary>Gets whether the section selects its first-page template instead of the default template.</summary>
+    public bool DifferentFirstPage { get; }
+    /// <summary>Gets whether the section selects its even-page template on even pages.</summary>
+    public bool DifferentOddAndEvenPages { get; }
+    /// <summary>Gets whether headers and footers are hidden on the section's first page.</summary>
+    public bool HideFirstPageHeadersAndFooters { get; }
     /// <summary>Gets whether the source declares a distinct first-page template.</summary>
     public bool HasFirstPageTemplate { get; }
     /// <summary>Gets whether the source declares a distinct even-page template.</summary>
@@ -237,10 +283,20 @@ public sealed class IWorkPagesSection {
     public IReadOnlyList<IWorkTextContent> DefaultPageHeaderContents { get; }
     /// <summary>Gets rich default odd-page footer storages.</summary>
     public IReadOnlyList<IWorkTextContent> DefaultPageFooterContents { get; }
+    /// <summary>Gets header storages selected by section settings, in first/even/default template order. This is a semantic inventory, not a rendered page count.</summary>
+    public IReadOnlyList<IWorkTextContent> SelectedHeaderContents { get; }
+    /// <summary>Gets footer storages selected by section settings, in first/even/default template order. This is a semantic inventory, not a rendered page count.</summary>
+    public IReadOnlyList<IWorkTextContent> SelectedFooterContents { get; }
     /// <summary>Gets all rich header storages in first/even/default source-template order.</summary>
     public IReadOnlyList<IWorkTextContent> HeaderContents { get; }
     /// <summary>Gets all rich footer storages in first/even/default source-template order.</summary>
     public IReadOnlyList<IWorkTextContent> FooterContents { get; }
+
+    private IReadOnlyList<IWorkTextContent> SelectContents(IReadOnlyList<IWorkTextContent> first,
+        IReadOnlyList<IWorkTextContent> even, IReadOnlyList<IWorkTextContent> defaults) =>
+        Array.AsReadOnly((DifferentFirstPage && !HideFirstPageHeadersAndFooters ? first : Array.Empty<IWorkTextContent>())
+            .Concat(DifferentOddAndEvenPages ? even : Array.Empty<IWorkTextContent>())
+            .Concat(defaults).ToArray());
 
     private static IReadOnlyList<IWorkTextContent> Freeze(
         IReadOnlyList<IWorkTextContent>? contents) =>

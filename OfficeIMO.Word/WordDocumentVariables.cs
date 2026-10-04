@@ -75,7 +75,7 @@ namespace OfficeIMO.Word {
 
             if (_variables == null) {
                 _variables = new DocumentVariables();
-                settings.Append(_variables);
+                settings.AddChild(_variables, true);
             }
 
             // remove variables not present in the dictionary

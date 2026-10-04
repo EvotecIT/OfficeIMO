@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <Compile Include="..\OfficeIMO.TestAssets\VisualBaselineTestSupport.cs" Link="VisualBaselineTestSupport.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\RasterColorTestSupport.cs" Link="RasterColorTestSupport.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="ManagedTextShapingTestAssets.cs" />
   </ItemGroup>
 

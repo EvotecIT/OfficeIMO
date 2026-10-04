@@ -571,7 +571,7 @@ namespace OfficeIMO.Excel {
             return ResolveRichValueError(cell, cell.CellValue?.InnerText) ?? string.Empty;
         }
 
-        private SharedStringCache BuildCellTextSharedStringSnapshot() {
+        internal SharedStringCache BuildCellTextSharedStringSnapshot() {
             if (_spreadSheetDocument.FileOpenAccess != FileAccess.Read) {
                 return SharedStringCache.Build(_spreadSheetDocument);
             }

@@ -2,17 +2,30 @@ using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Adf;
 
-internal static class MarkdownToAdfConverter {
-    internal static AdfDocument Convert(MarkdownDoc source, List<AdfConversionDiagnostic> diagnostics) {
+internal sealed class MarkdownToAdfConverter {
+    private readonly Func<string, string>? _localIdFactory;
+    private string? _identityRoot;
+    private readonly HashSet<string> _localIds = new HashSet<string>(StringComparer.Ordinal);
+    private readonly List<(AdfNode Node, string Path)> _pendingTaskIds = new List<(AdfNode, string)>();
+
+    private MarkdownToAdfConverter(AdfConversionOptions options) {
+        _localIdFactory = options.LocalIdFactory;
+    }
+
+    internal static AdfDocument Convert(MarkdownDoc source, List<AdfConversionDiagnostic> diagnostics, AdfConversionOptions options) =>
+        new MarkdownToAdfConverter(options).ConvertCore(source, diagnostics);
+
+    private AdfDocument ConvertCore(MarkdownDoc source, List<AdfConversionDiagnostic> diagnostics) {
         var document = new AdfDocument();
         for (int i = 0; i < source.Blocks.Count; i++) {
             AdfNode? node = ConvertBlock(source.Blocks[i], "$.blocks[" + i + "]", diagnostics);
             if (node != null) document.Content.Add(node);
         }
+        AssignGeneratedTaskIds();
         return document;
     }
 
-    private static AdfNode? ConvertBlock(IMarkdownBlock block, string path, List<AdfConversionDiagnostic> diagnostics) {
+    private AdfNode? ConvertBlock(IMarkdownBlock block, string path, List<AdfConversionDiagnostic> diagnostics, string parentType = "doc") {
         switch (block) {
             case ParagraphBlock paragraph:
                 return WithInlines(new AdfNode("paragraph"), paragraph.Inlines, path, diagnostics);
@@ -30,15 +43,18 @@ internal static class MarkdownToAdfConverter {
                 } else {
                     foreach (string line in quote.Lines) quoteNode.Content.Add(new AdfNode("paragraph") { Content = { AdfNode.TextNode(line) } });
                 }
-                return quoteNode;
+                return quoteNode.Content.Count == 0 ? OmitEmptyBlock(path, diagnostics, "quote") : quoteNode;
             case UnorderedListBlock unordered:
-                if (CanConvertTaskList(unordered.Items)) return ConvertTaskList(unordered.Items, path, diagnostics);
+                if (unordered.Items.Count == 0) return OmitEmptyBlock(path, diagnostics, "list");
+                if (parentType != "blockquote" && CanConvertTaskList(unordered.Items)) return ConvertTaskList(unordered.Items, path, diagnostics);
                 return ConvertList("bulletList", unordered.Items, path, diagnostics, 1);
             case OrderedListBlock ordered:
+                if (ordered.Items.Count == 0) return OmitEmptyBlock(path, diagnostics, "list");
                 return ConvertList("orderedList", ordered.Items, path, diagnostics, ordered.Start);
             case HorizontalRuleBlock:
                 return new AdfNode("rule");
             case TableBlock table:
+                if (table.HeaderInlines.Count == 0 && table.RowInlines.Count == 0) return OmitEmptyBlock(path, diagnostics, "table");
                 return ConvertTable(table, path, diagnostics);
             case HtmlRawBlock raw:
                 diagnostics.Add(Warning("MARKDOWN_RAW_HTML", path, "Raw HTML has no exact ADF mapping and was retained as an extension node."));
@@ -52,7 +68,7 @@ internal static class MarkdownToAdfConverter {
         }
     }
 
-    private static AdfNode ConvertList(string type, IReadOnlyList<ListItem> items, string path, List<AdfConversionDiagnostic> diagnostics, int order) {
+    private AdfNode ConvertList(string type, IReadOnlyList<ListItem> items, string path, List<AdfConversionDiagnostic> diagnostics, int order) {
         var list = new AdfNode(type);
         if (type == "orderedList" && order != 1) list.SetAttribute("order", order);
         for (int i = 0; i < items.Count; i++) {
@@ -76,23 +92,56 @@ internal static class MarkdownToAdfConverter {
         return list;
     }
 
-    private static bool CanConvertTaskList(IReadOnlyList<ListItem> items) =>
+    private bool CanConvertTaskList(IReadOnlyList<ListItem> items) =>
         items.Count > 0 && items.All(item => item.IsTask && item.AdditionalParagraphs.Count == 0 && item.NestedBlocks.Count == 0);
 
-    private static AdfNode ConvertTaskList(IReadOnlyList<ListItem> items, string path, List<AdfConversionDiagnostic> diagnostics) {
-        var list = new AdfNode("taskList").SetAttribute("localId", Guid.NewGuid().ToString("D"));
+    private AdfNode ConvertTaskList(IReadOnlyList<ListItem> items, string path, List<AdfConversionDiagnostic> diagnostics) {
+        var list = new AdfNode("taskList");
+        SetTaskId(list, path);
         for (int i = 0; i < items.Count; i++) {
             ListItem sourceItem = items[i];
             var item = new AdfNode("taskItem")
-                .SetAttribute("localId", Guid.NewGuid().ToString("D"))
                 .SetAttribute("state", sourceItem.Checked ? "DONE" : "TODO");
+            SetTaskId(item, path + ".items[" + i + "]");
             WithInlines(item, sourceItem.Content, path + ".items[" + i + "]", diagnostics);
             list.Content.Add(item);
         }
         return list;
     }
 
-    private static AdfNode ConvertTable(TableBlock table, string path, List<AdfConversionDiagnostic> diagnostics) {
+    private void SetTaskId(AdfNode node, string path) {
+        if (_localIdFactory == null) _pendingTaskIds.Add((node, path));
+        else node.SetAttribute("localId", LocalId(path));
+    }
+
+    private void AssignGeneratedTaskIds() {
+        if (_pendingTaskIds.Count == 0) return;
+        // Task lists are shallow after inline projection. Hashing only these nodes
+        // avoids rendering unsupported Markdown and serializing unrelated deep ADF.
+        var taskLists = _pendingTaskIds.Where(pending => pending.Node.Type == "taskList")
+            .Select(pending => pending.Node);
+        using var hash = System.Security.Cryptography.SHA256.Create();
+        _identityRoot = BitConverter.ToString(hash.ComputeHash(
+            System.Text.Encoding.UTF8.GetBytes(new AdfDocument(taskLists).ToJson())));
+        foreach (var pending in _pendingTaskIds)
+            pending.Node.SetAttribute("localId", LocalId(pending.Path));
+    }
+
+    private string LocalId(string path) {
+        string id;
+        if (_localIdFactory != null) id = _localIdFactory(path);
+        else {
+            using var hash = System.Security.Cryptography.SHA256.Create();
+            byte[] bytes = hash.ComputeHash(System.Text.Encoding.UTF8.GetBytes(_identityRoot + "\n" + path));
+            var guidBytes = new byte[16];
+            Array.Copy(bytes, guidBytes, guidBytes.Length);
+            id = new Guid(guidBytes).ToString("D");
+        }
+        if (string.IsNullOrWhiteSpace(id) || !_localIds.Add(id)) throw new InvalidOperationException("ADF task localId values must be nonempty and unique within a conversion.");
+        return id;
+    }
+
+    private AdfNode ConvertTable(TableBlock table, string path, List<AdfConversionDiagnostic> diagnostics) {
         var result = new AdfNode("table");
         if (table.HeaderInlines.Count > 0) {
             var header = new AdfNode("tableRow");
@@ -116,12 +165,12 @@ internal static class MarkdownToAdfConverter {
         return result;
     }
 
-    private static AdfNode WithInlines(AdfNode target, InlineSequence sequence, string path, List<AdfConversionDiagnostic> diagnostics) {
+    private AdfNode WithInlines(AdfNode target, InlineSequence sequence, string path, List<AdfConversionDiagnostic> diagnostics) {
         AppendInlines(target.Content, sequence, Array.Empty<AdfMark>(), path, diagnostics);
         return target;
     }
 
-    private static void AppendInlines(List<AdfNode> target, InlineSequence sequence, IReadOnlyList<AdfMark> inheritedMarks, string path, List<AdfConversionDiagnostic> diagnostics) {
+    private void AppendInlines(List<AdfNode> target, InlineSequence sequence, IReadOnlyList<AdfMark> inheritedMarks, string path, List<AdfConversionDiagnostic> diagnostics) {
         for (int i = 0; i < sequence.Nodes.Count; i++) {
             IMarkdownInline inline = sequence.Nodes[i];
             string inlinePath = path + ".inlines[" + i + "]";
@@ -202,15 +251,15 @@ internal static class MarkdownToAdfConverter {
         }
     }
 
-    private static IReadOnlyList<AdfMark> AddMark(IReadOnlyList<AdfMark> marks, AdfMark added) {
+    private IReadOnlyList<AdfMark> AddMark(IReadOnlyList<AdfMark> marks, AdfMark added) {
         var result = CloneMarks(marks).ToList();
         result.Add(added);
         return result;
     }
 
-    private static AdfMark ScriptMark(string type) => new AdfMark("subsup").SetAttribute("type", type);
+    private AdfMark ScriptMark(string type) => new AdfMark("subsup").SetAttribute("type", type);
 
-    private static IReadOnlyList<AdfMark> CloneMarks(IReadOnlyList<AdfMark> marks) {
+    private IReadOnlyList<AdfMark> CloneMarks(IReadOnlyList<AdfMark> marks) {
         var result = new List<AdfMark>(marks.Count);
         foreach (AdfMark source in marks) {
             var copy = new AdfMark(source.Type);
@@ -221,12 +270,27 @@ internal static class MarkdownToAdfConverter {
         return result;
     }
 
-    private static void AddBlocks(AdfNode target, IReadOnlyList<IMarkdownBlock> blocks, string path, List<AdfConversionDiagnostic> diagnostics) {
+    private void AddBlocks(AdfNode target, IReadOnlyList<IMarkdownBlock> blocks, string path, List<AdfConversionDiagnostic> diagnostics) {
         for (int i = 0; i < blocks.Count; i++) {
-            AdfNode? converted = ConvertBlock(blocks[i], path + "[" + i + "]", diagnostics);
-            if (converted != null) target.Content.Add(converted);
+            string childPath = path + "[" + i + "]";
+            AdfNode? converted = ConvertBlock(blocks[i], childPath, diagnostics, target.Type);
+            if (converted == null) continue;
+            bool restricted = target.Type == "blockquote" || target.Type == "listItem";
+            bool allowed = converted.Type == "paragraph" || converted.Type == "bulletList" || converted.Type == "orderedList" ||
+                converted.Type == "codeBlock" || converted.Type == "mediaSingle" || converted.Type == "extension" ||
+                target.Type == "blockquote" && converted.Type == "mediaGroup" || target.Type == "listItem" && converted.Type == "taskList";
+            if (restricted && !allowed) {
+                diagnostics.Add(Warning("MARKDOWN_CONTEXT_FALLBACK", childPath, "The Markdown block is not allowed in this ADF container and is preserved as visible Markdown source in a paragraph."));
+                converted = new AdfNode("paragraph") { Content = { AdfNode.TextNode(blocks[i].RenderMarkdown()) } };
+            }
+            target.Content.Add(converted);
         }
     }
 
-    private static AdfConversionDiagnostic Warning(string code, string path, string message) => new AdfConversionDiagnostic(code, path, message, AdfConversionSeverity.Warning);
+    private AdfConversionDiagnostic Warning(string code, string path, string message) => new AdfConversionDiagnostic(code, path, message, AdfConversionSeverity.Warning);
+
+    private AdfNode? OmitEmptyBlock(string path, List<AdfConversionDiagnostic> diagnostics, string type) {
+        diagnostics.Add(Warning("MARKDOWN_EMPTY_BLOCK_OMITTED", path, "An empty Markdown " + type + " cannot satisfy the ADF content contract and was omitted."));
+        return null;
+    }
 }

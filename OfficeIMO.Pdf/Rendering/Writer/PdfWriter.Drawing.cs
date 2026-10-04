@@ -470,6 +470,7 @@ internal static partial class PdfWriter {
             ApplyRadialGradientTransform(content, shape, x, y);
         }
 
+        if (HasGradientAlpha(shape)) content.GraphicsState(GradientAlphaStateName(shadingName));
         content.Shading(shadingName)
             .RestoreState();
     }
@@ -494,9 +495,10 @@ internal static partial class PdfWriter {
             AppendLocalShapeClipPath(sb, shape);
             var gradientContent = new ContentStreamBuilder(sb);
             if (shape.FillRadialGradient != null) {
-                ApplyRadialGradientTransform(gradientContent, shape, 0D, 0D);
+                ApplyRadialGradientTransform(gradientContent, shape, 0D, 0D, localCoordinates: true);
             }
 
+            if (HasGradientAlpha(shape)) gradientContent.GraphicsState(GradientAlphaStateName(shadingName!));
             gradientContent.Shading(shadingName!)
                 .RestoreState();
         }

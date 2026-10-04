@@ -13,7 +13,7 @@ Create an ODT document:
 ```csharp
 using OfficeIMO.OpenDocument;
 
-using OdtDocument document = OdtDocument.Create();
+OdtDocument document = OdtDocument.Create();
 document.AddHeading("Summary", 1);
 document.AddParagraph("Created with OfficeIMO.OpenDocument.");
 
@@ -43,7 +43,7 @@ Add native ODT footnotes or endnotes at the current paragraph position:
 ```csharp
 using OfficeIMO.OpenDocument;
 
-using OdtDocument document = OdtDocument.Create();
+OdtDocument document = OdtDocument.Create();
 OdtParagraph paragraph = document.AddParagraph("The result is documented");
 paragraph.AddFootnote("Source and calculation details.");
 paragraph.AddText(" in the appendix.");
@@ -90,7 +90,7 @@ ODS data pilot tables can be inspected through `OdsDocument.DataPilotTables`. Us
 Create an ODP presentation:
 
 ```csharp
-using OdpPresentation presentation = OdpPresentation.Create();
+OdpPresentation presentation = OdpPresentation.Create();
 OdpMasterPage master = presentation.AddMasterPage("Brand");
 master.BackgroundColor = OdfColor.Parse("#F8FBFF");
 OdpPresentationLayout layout = presentation.AddLayout("Title");
@@ -110,13 +110,13 @@ Nest text styles and links when their formatting changes within a sentence:
 ```csharp
 using OfficeIMO.OpenDocument;
 
-using OdtDocument document = OdtDocument.Create();
+OdtDocument document = OdtDocument.Create();
 OdtParagraph paragraph = document.AddParagraph();
 OdtSpan emphasis = paragraph.AddSpan("Read ");
 emphasis.Bold = true;
 emphasis.AddHyperlink("the guide", "https://example.com/guide").Italic = true;
 
-using OdpPresentation presentation = OdpPresentation.Create();
+OdpPresentation presentation = OdpPresentation.Create();
 OdpSlide slide = presentation.AddSlide("Links");
 OdpParagraph slideText = slide.AddTextBox(
     OdfRect.FromCentimeters(2, 9, 18, 2)).AddParagraph();
@@ -124,6 +124,8 @@ OdpRun label = slideText.AddRun("Open ");
 label.Bold = true;
 label.AddHyperlink("the guide", "https://example.com/guide").Underline = true;
 ```
+
+`OdtTableCell.Paragraphs` and `OdpTableCell.Paragraphs` read repeated cells without expanding them. Edit through the selected logical cell to change only that row and column; child spans, links, fields, and runs follow the same rule.
 
 `InlineNodes` exposes nested `Children` in document order. A nested run inherits text properties from its containing span or link until its own style overrides them.
 
@@ -140,7 +142,7 @@ dotnet add package OfficeIMO.PowerPoint.OpenDocument
 Typed objects remain backed by the source XML. A targeted edit rewrites its owning XML part while untouched package entries keep their original bytes.
 
 ```csharp
-using OdtDocument document = OdtDocument.Open("input.odt");
+OdtDocument document = OdtDocument.Load("input.odt");
 document.Paragraphs[0].Text = "Updated text";
 OdfSaveResult result = document.Save("output.odt", new OdfSaveOptions {
     CompatibilityProfile = OdfCompatibilityProfile.PreserveSource
@@ -150,6 +152,10 @@ IReadOnlyList<string> rewritten = result.Report.RewrittenEntries;
 IReadOnlyList<string> lossy = result.Report.LossyEntries;
 ```
 
+`Serialize`, `ToBytes`, `ToStream`, `SaveCopy`, and `SaveCopyAsync` produce independent outputs without accepting pending edits or changing the source version, signatures, path, or encryption state. Stream saves also remain independent when a source path is attached. Use `Save` or `SaveAsync` with a path to accept changes and associate the document with that destination.
+
+A failed or canceled write keeps pending edits, the source version, and signature and encryption state intact. Existing typed wrappers remain usable after a successful save.
+
 New documents use ODF 1.4. Set `OdfCompatibilityProfile.Odf13` when the output needs the ODF 1.3 schema and compatibility profile.
 Distinct first-page master-page headers and footers require ODF 1.4. Saving those stories with the ODF 1.3 profile, or preserving an older source version, fails before writing an invalid package.
 
@@ -158,7 +164,7 @@ Distinct first-page master-page headers and footers require ODF 1.4. Saving thos
 Password encryption is format-owned and does not require `OfficeIMO.Security`:
 
 ```csharp
-using OdtDocument document = OdtDocument.Load("protected.odt", new OdfLoadOptions {
+OdtDocument document = OdtDocument.Load("protected.odt", new OdfLoadOptions {
     Password = password
 });
 
@@ -198,7 +204,7 @@ Unknown XML, vendor extensions, scripts, embedded content, and unsupported drawi
 
 ## Explicit boundaries
 
-- Formula evaluation covers arithmetic, comparisons, concatenation, cell/range references, and common aggregate/math functions. External data, volatile functions, matrix formulas, and the complete OpenFormula language are not included.
+- Formula evaluation covers arithmetic, comparisons, concatenation, cell/range references, Boolean constants, and common aggregate/math functions. OpenFormula prefix minus binds before powers, and chained powers associate from the left. `OdsFormulaEvaluationOptions` bounds operations, dependencies, ranges, formula length, individual text results, and cumulative text work; concatenation limits are checked before allocation. External data, volatile functions, matrix formulas, and the complete OpenFormula language are not included.
 - Typed validation syntax covers explicit lists and scalar whole-number, decimal, and text-length comparisons. Other valid ODF conditions remain preserved text and are reported by conversions that cannot map them exactly.
 - Ordered ODT/ODP inline syntax types text, nested spans/runs, and hyperlinks. ODT also types inline images and bookmark markers. Unsupported inline elements remain `Other` nodes and conversion reports their approximation.
 - Tracked-change editing covers paragraph insertions and deletions. Arbitrary inline merges and conflict resolution remain preservation-oriented.

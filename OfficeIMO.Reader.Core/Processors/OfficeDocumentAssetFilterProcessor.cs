@@ -127,14 +127,14 @@ public sealed class OfficeDocumentAssetFilterProcessor : OfficeDocumentProcessor
             removedIds.Contains(assetId!);
     }
 
-    private static string BuildOcrSignature(string? reason, ReaderLocation? location) => string.Join("|", new[] {
+    private static string BuildOcrSignature(string? reason, ReaderLocation? location) => string.Concat(new[] {
         reason ?? string.Empty,
         location?.Path ?? string.Empty,
         location?.Page?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
         location?.Slide?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
         location?.Sheet ?? string.Empty,
         location?.BlockAnchor ?? string.Empty
-    });
+    }.Select(value => value.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + value));
 
     private static IEnumerable<OfficeDocumentOcrCandidate> EnumerateCandidates(OfficeDocumentReadResult document) {
         foreach (OfficeDocumentOcrCandidate candidate in document.OcrCandidates ?? Array.Empty<OfficeDocumentOcrCandidate>()) {

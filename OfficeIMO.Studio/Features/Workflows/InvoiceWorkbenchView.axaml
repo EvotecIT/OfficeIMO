@@ -40,11 +40,11 @@
 <CheckBox IsChecked="{Binding PageIdentity}" Margin="0,0,16,0"><TextBlock Text="{loc:Loc Invoice.PageIdentity}" TextWrapping="Wrap" /></CheckBox></WrapPanel>
       </StackPanel>
      </Expander>
-     <Expander Header="{loc:Loc Invoice.Standards}">
+     <Expander x:Name="InvoiceStandardsPanel" Header="{loc:Loc Invoice.Standards}">
       <StackPanel Spacing="8" Margin="0,8,0,0">
-       <CheckBox IsChecked="{Binding RequireStandards}"><TextBlock Text="{loc:Loc Invoice.RequireStandards}" TextWrapping="Wrap" /></CheckBox>
-       <StackPanel IsVisible="{Binding RequireStandards}" Spacing="8">
-        <TextBlock Text="{Binding StandardsHint}" Classes="muted" TextWrapping="Wrap" />
+       <TextBlock Text="{Binding StandardsHint}" Classes="muted" TextWrapping="Wrap" />
+       <CheckBox x:Name="InvoiceStandardsToggle" IsEnabled="{Binding IsStandardsAvailable}" IsChecked="{Binding RequireStandards}"><TextBlock Text="{loc:Loc Invoice.RequireStandards}" TextWrapping="Wrap" /></CheckBox>
+       <StackPanel IsVisible="{Binding RequireStandards}" IsEnabled="{Binding IsStandardsAvailable}" Spacing="8">
         <StackPanel IsVisible="{Binding ShowsSourceRelease}"><StackPanel Spacing="4"><TextBlock Text="{loc:Loc Invoice.SourceRelease}" /><ComboBox ItemsSource="{Binding Releases}" SelectedItem="{Binding SelectedRelease}" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Invoice.SourceRelease}"><ComboBox.ItemTemplate><DataTemplate x:DataType="workflow:InvoiceReleaseChoice"><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></StackPanel></StackPanel>
 <StackPanel Spacing="4"><TextBlock Text="{loc:Loc Invoice.RuleBundle}" /><TextBox Text="{Binding RuleBundlePath}" PlaceholderText="{loc:Loc Invoice.RuleBundle}" AutomationProperties.Name="{loc:Loc Invoice.RuleBundle}" /></StackPanel>
 <StackPanel Spacing="4"><TextBlock Text="{loc:Loc Invoice.SaxonJar}" /><TextBox Text="{Binding SaxonJarPath}" PlaceholderText="{loc:Loc Invoice.SaxonJar}" AutomationProperties.Name="{loc:Loc Invoice.SaxonJar}" /></StackPanel>
