@@ -208,7 +208,9 @@ internal sealed partial class PdfTrueTypeFontProgram {
         }
 
         lock (_usageLock) {
-            _usedGlyphIds.Add(glyphId);
+            bool hasMapping = _usedGlyphToUnicode.TryGetValue(glyphId, out string? existing);
+            // A stored mapping already owns this glyph in the usage set; reset clears both.
+            if (!hasMapping) _usedGlyphIds.Add(glyphId);
             if (glyphId <= 0) {
                 return;
             }
@@ -217,13 +219,13 @@ internal sealed partial class PdfTrueTypeFontProgram {
             // needs the string once per unique glyph, so when the glyph already maps to this exact scalar
             // the ConvertFromUtf32 allocation is skipped. Any different/longer scalar still materializes and
             // runs the normal replacement check, so the stored map is unchanged.
-            if (_usedGlyphToUnicode.TryGetValue(glyphId, out string? existing) && ScalarEqualsText(existing, unicodeScalar)) {
+            if (hasMapping && ScalarEqualsText(existing!, unicodeScalar)) {
                 return;
             }
 
             string unicodeText = OfficeArabicTextShaper.ToLogicalText(char.ConvertFromUtf32(unicodeScalar));
             if (!string.IsNullOrEmpty(unicodeText) &&
-                (!_usedGlyphToUnicode.TryGetValue(glyphId, out string? existingText) || ShouldReplaceGlyphUnicodeText(unicodeText, existingText))) {
+                (!hasMapping || ShouldReplaceGlyphUnicodeText(unicodeText, existing!))) {
                 _usedGlyphToUnicode[glyphId] = unicodeText;
             }
         }
@@ -256,10 +258,11 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
     // The caller owns _usageLock. This also serves token batches without entering it per glyph.
     private void RecordNormalizedGlyphUsage(int glyphId, string unicodeText) {
-        _usedGlyphIds.Add(glyphId);
+        bool hasMapping = _usedGlyphToUnicode.TryGetValue(glyphId, out string? existingText);
+        if (!hasMapping) _usedGlyphIds.Add(glyphId);
         if (glyphId > 0 &&
             !string.IsNullOrEmpty(unicodeText) &&
-            (!_usedGlyphToUnicode.TryGetValue(glyphId, out string? existingText) || ShouldReplaceGlyphUnicodeText(unicodeText, existingText))) {
+            (!hasMapping || ShouldReplaceGlyphUnicodeText(unicodeText, existingText!))) {
             _usedGlyphToUnicode[glyphId] = unicodeText;
         }
     }

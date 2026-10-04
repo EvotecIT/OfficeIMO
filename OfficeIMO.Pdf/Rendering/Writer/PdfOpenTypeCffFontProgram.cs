@@ -321,16 +321,18 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
 
     internal void RecordGlyphUsage(int glyphId, int unicodeScalar) {
         lock (_usageLock) {
-            _usedGlyphIds.Add(glyphId);
+            bool hasMapping = _usedGlyphToUnicode.TryGetValue(glyphId, out string? existing);
+            // A stored mapping already owns this glyph in the usage set; reset clears both.
+            if (!hasMapping) _usedGlyphIds.Add(glyphId);
             // Called per glyph occurrence; the glyph -> unicode map needs the string only once per unique
             // glyph, so skip the ConvertFromUtf32 allocation when the glyph already maps to this scalar.
-            if (_usedGlyphToUnicode.TryGetValue(glyphId, out string? existing) && ScalarEqualsText(existing, unicodeScalar)) {
+            if (hasMapping && ScalarEqualsText(existing!, unicodeScalar)) {
                 return;
             }
 
             string unicodeText = OfficeArabicTextShaper.ToLogicalText(char.ConvertFromUtf32(unicodeScalar));
             if (!string.IsNullOrEmpty(unicodeText) &&
-                (!_usedGlyphToUnicode.TryGetValue(glyphId, out string? existingText) || ShouldReplaceGlyphUnicodeText(unicodeText, existingText))) {
+                (!hasMapping || ShouldReplaceGlyphUnicodeText(unicodeText, existing!))) {
                 _usedGlyphToUnicode[glyphId] = unicodeText;
             }
         }
@@ -352,9 +354,10 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
     internal void RecordGlyphUsage(int glyphId, string unicodeText) {
         unicodeText = OfficeArabicTextShaper.ToLogicalText(unicodeText);
         lock (_usageLock) {
-            _usedGlyphIds.Add(glyphId);
+            bool hasMapping = _usedGlyphToUnicode.TryGetValue(glyphId, out string? existingText);
+            if (!hasMapping) _usedGlyphIds.Add(glyphId);
             if (!string.IsNullOrEmpty(unicodeText) &&
-                (!_usedGlyphToUnicode.TryGetValue(glyphId, out string? existingText) || ShouldReplaceGlyphUnicodeText(unicodeText, existingText))) {
+                (!hasMapping || ShouldReplaceGlyphUnicodeText(unicodeText, existingText!))) {
                 _usedGlyphToUnicode[glyphId] = unicodeText;
             }
         }
