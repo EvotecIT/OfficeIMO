@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Internal;
+using OfficeIMO.Studio.Infrastructure;
 
 namespace OfficeIMO.Studio.Features.Workspace;
 
@@ -15,8 +16,10 @@ internal sealed partial class PdfWorkspaceRecoveryStore {
     private readonly string _root;
     private readonly SemaphoreSlim _persistenceGate = new(1, 1);
     private bool _persistenceEnabled;
+    private readonly StudioLocalDocumentRoot? _documents;
 
-    internal PdfWorkspaceRecoveryStore(string? root = null, bool persistenceEnabled = true) {
+    internal PdfWorkspaceRecoveryStore(string? root = null, bool persistenceEnabled = true, StudioLocalDocumentRoot? documents = null) {
+        _documents = documents;
         _persistenceEnabled = persistenceEnabled;
         _root = root ?? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -193,7 +196,7 @@ internal sealed partial class PdfWorkspaceRecoveryStore {
         }
     }
 
-    private static string Canonicalize(string sourcePath) => OfficeStorageIdentity.Normalize(sourcePath);
+    private string Canonicalize(string sourcePath) => OfficeStorageIdentity.Normalize(_documents?.GetIdentity(sourcePath) ?? sourcePath);
 
     private static string CreateKey(string canonicalPath) {
         string identity = OfficeStorageIdentity.GetPersistenceKey(canonicalPath);

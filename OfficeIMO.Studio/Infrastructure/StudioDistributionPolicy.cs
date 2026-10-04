@@ -12,5 +12,5 @@ internal static class StudioDistributionPolicy {
         }
     }
 
-    internal static bool ExternalToolsAllowed => !IsMacAppStore;
+    internal static bool ExternalToolsAllowed => !IsMacAppStore && !OperatingSystem.IsIOS();
 }

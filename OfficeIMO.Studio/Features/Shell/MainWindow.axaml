@@ -27,50 +27,7 @@
   <Window.Styles>
     <Style Selector="Grid#NavigationRail"><Setter Property="RowSpacing" Value="2" /><Setter Property="Margin" Value="8,4,8,10" /></Style>
     <Style Selector="StackPanel.navLabel"><Setter Property="Spacing" Value="2" /><Setter Property="HorizontalAlignment" Value="Center" /></Style>
-    <Style Selector="ListBox#DocumentTabs ListBoxItem">
-      <Setter Property="Padding" Value="0" />
-      <Setter Property="Margin" Value="0,0,2,0" />
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="VerticalAlignment" Value="Bottom" />
-      <Setter Property="MinHeight" Value="0" />
-    </Style>
-    <Style Selector="ListBox#DocumentTabs ListBoxItem /template/ ContentPresenter">
-      <Setter Property="CornerRadius" Value="8,8,0,0" />
-    </Style>
-    <Style Selector="ListBox#DocumentTabs ListBoxItem:selected /template/ ContentPresenter, ListBox#DocumentTabs ListBoxItem:pointerover /template/ ContentPresenter, ListBox#DocumentTabs ListBoxItem:selected:pointerover /template/ ContentPresenter">
-      <Setter Property="Background" Value="Transparent" />
-    </Style>
-    <Style Selector="Border.documentTab">
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="Height" Value="36" />
-      <Setter Property="CornerRadius" Value="8,8,0,0" />
-    </Style>
-    <Style Selector="ListBoxItem:pointerover Border.documentTab">
-      <Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" />
-    </Style>
-    <Style Selector="ListBoxItem:selected Border.documentTab">
-      <Setter Property="Background" Value="{DynamicResource StudioPanelBrush}" />
-    </Style>
-    <Style Selector="Border.documentTab TextBlock.tabTitle">
-      <Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" />
-    </Style>
-    <Style Selector="ListBoxItem:selected Border.documentTab TextBlock.tabTitle">
-      <Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" />
-    </Style>
-    <Style Selector="Button.tabClose">
-      <Setter Property="Width" Value="22" />
-      <Setter Property="Height" Value="22" />
-      <Setter Property="Padding" Value="0" />
-      <Setter Property="CornerRadius" Value="5" />
-      <Setter Property="Background" Value="Transparent" />
-      <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="Opacity" Value="0.6" />
-    </Style>
-    <Style Selector="Button.tabClose:pointerover"><Setter Property="Opacity" Value="1" /></Style>
-    <Style Selector="Button.tabClose.dirty"><Setter Property="Opacity" Value="0" /></Style>
-    <Style Selector="ListBoxItem:pointerover Button.tabClose.dirty"><Setter Property="Opacity" Value="1" /></Style>
-    <Style Selector="ListBoxItem:pointerover Ellipse.dirtyDot"><Setter Property="Opacity" Value="0" /></Style>
-    <Style Selector="Button.tabClose:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" /></Style>
+    <StyleInclude Source="avares://OfficeIMO.Studio/Features/Shell/DocumentTabStyles.axaml" />
     <Style Selector="Button#CommandSearchButton">
       <Setter Property="Background" Value="{DynamicResource StudioPanelBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
@@ -110,38 +67,40 @@
            Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"
            AutomationProperties.Name="OfficeIMO Studio" />
     <Grid x:Name="TitleBar" Grid.Row="0" Grid.Column="1" ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="6">
-      <StackPanel x:Name="TitleDocuments" Orientation="Horizontal" VerticalAlignment="Stretch" Spacing="2">
+      <Grid x:Name="TitleDocuments" ColumnDefinitions="*,Auto,Auto" VerticalAlignment="Stretch" ColumnSpacing="2">
         <TextBlock Text="OfficeIMO Studio" VerticalAlignment="Center" FontWeight="SemiBold" Margin="2,0,10,0"
                    x:Name="AppTitleText" x:DataType="shell:StudioDocumentTabHost" IsVisible="{Binding !HasTabs}" IsHitTestVisible="False" />
-        <ListBox x:Name="DocumentTabs" x:DataType="shell:StudioDocumentTabHost"
+        <TabControl x:Name="DocumentTabs" x:DataType="shell:StudioDocumentTabHost"
                  ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab, Mode=TwoWay}"
-                 IsVisible="{Binding HasTabs}" SelectionMode="Single" VerticalAlignment="Bottom"
+                 IsVisible="{Binding HasTabs}" VerticalAlignment="Center"
+                 AutomationProperties.Name="{loc:Loc Apple.OpenDocuments}"
+                 SelectionChanged="OnDocumentTabSelectionChanged"
                  Background="Transparent" BorderThickness="0" MaxWidth="900"
                  chrome:WindowDecorationProperties.ElementRole="User"
                  ScrollViewer.HorizontalScrollBarVisibility="Hidden" ScrollViewer.VerticalScrollBarVisibility="Disabled">
-          <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ListBox.ItemsPanel>
-          <ListBox.ItemTemplate>
+          <TabControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></TabControl.ItemsPanel>
+          <TabControl.ItemTemplate>
             <DataTemplate x:DataType="shell:StudioDocumentTabViewModel">
               <Border Classes="documentTab" MinWidth="140" MaxWidth="240" Padding="12,0,6,0"
                       ToolTip.Tip="{Binding SourcePath}" PointerReleased="OnDocumentTabPointerReleased">
-                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                  <PathIcon Data="{StaticResource IconDocument}" Width="13" Height="13" Foreground="{DynamicResource StudioErrorBrush}" />
+                <Grid Classes="tabContents" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                  <PathIcon Classes="tabIcon" Data="{StaticResource IconDocument}" Width="13" Height="13" Foreground="{DynamicResource StudioMutedTextBrush}" />
                   <TextBlock Grid.Column="1" Classes="tabTitle" Text="{Binding DisplayTitle}" FontSize="12.5" FontWeight="Medium"
                              TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                  <Grid Grid.Column="2">
+                  <Grid Classes="tabCloseHost">
                     <Ellipse Classes="dirtyDot" Width="7" Height="7" Fill="{DynamicResource StudioAccentBrush}" IsVisible="{Binding IsDirty}"
                              HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
-                    <Button Classes="tabClose" Classes.dirty="{Binding IsDirty}" Command="{Binding CloseCommand}"
-                            AutomationProperties.Name="{loc:Loc Common.Close}" ToolTip.Tip="{loc:Loc Common.Close}">
+                    <Button Classes="tabClose" Classes.dirty="{Binding IsDirty}" Click="OnDocumentTabCloseClick"
+                            AutomationProperties.Name="{Binding CloseLabel}" ToolTip.Tip="{Binding CloseLabel}">
                       <PathIcon Data="{StaticResource IconClose}" Width="10" Height="10" />
                     </Button>
                   </Grid>
                 </Grid>
               </Border>
             </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
-        <Button x:Name="OpenDocumentTabButton" Classes="icon" x:DataType="shell:StudioDocumentTabHost"
+          </TabControl.ItemTemplate>
+        </TabControl>
+        <Button x:Name="OpenDocumentTabButton" Grid.Column="1" Classes="icon" x:DataType="shell:StudioDocumentTabHost"
                 Command="{Binding OpenNewTabCommand}" Width="30" Height="30" VerticalAlignment="Center"
                 chrome:WindowDecorationProperties.ElementRole="User"
                 AutomationProperties.Name="{loc:Loc MainWindow.OpenAnotherDocument}"
@@ -149,7 +108,14 @@
                 ToolTip.Tip="{loc:Loc MainWindow.OpenAnotherDocument}">
           <PathIcon Data="{StaticResource IconPlus}" Width="14" Height="14" />
         </Button>
-      </StackPanel>
+        <Button x:Name="DocumentListButton" Grid.Column="2" Classes="icon" Width="30" Height="30"
+                VerticalAlignment="Center"
+                chrome:WindowDecorationProperties.ElementRole="User"
+                AutomationProperties.Name="{loc:Loc Apple.OpenDocuments}" ToolTip.Tip="{loc:Loc Apple.OpenDocuments}">
+          <PathIcon Data="{StaticResource IconChevronDown}" Width="12" Height="12" />
+          <Button.Flyout><MenuFlyout Opening="OnDocumentListOpening" Placement="BottomEdgeAlignedRight" /></Button.Flyout>
+        </Button>
+      </Grid>
 
       <Button x:Name="CommandSearchButton" Grid.Column="2" Width="300" VerticalAlignment="Center" Click="OnCommandsClick"
               chrome:WindowDecorationProperties.ElementRole="User"
@@ -184,6 +150,12 @@
                 SelectedItem="{Binding SelectedTab, Mode=TwoWay}" AutomationProperties.Name="{loc:Loc Apple.OpenDocuments}">
         <ComboBox.ItemTemplate><DataTemplate x:DataType="shell:StudioDocumentTabViewModel"><TextBlock Text="{Binding DisplayTitle}" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
       </ComboBox>
+      <Button x:Name="CompactCloseDocumentButton" Grid.Column="1" Classes="icon" IsVisible="False"
+              Width="44" Height="44" VerticalAlignment="Center" Click="OnCloseDocumentClick"
+              chrome:WindowDecorationProperties.ElementRole="User"
+              AutomationProperties.Name="{loc:Loc Apple.CloseDocument}" ToolTip.Tip="{loc:Loc Apple.CloseDocument}">
+        <PathIcon Data="{StaticResource IconClose}" Width="14" Height="14" />
+      </Button>
       <Border x:Name="CaptionButtonsSpacer" Grid.Column="4" Width="0" />
     </Grid>
 

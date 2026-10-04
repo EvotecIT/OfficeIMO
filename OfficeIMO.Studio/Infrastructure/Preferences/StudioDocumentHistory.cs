@@ -10,10 +10,10 @@ internal sealed record StudioHistoryCleanupResult(bool RecentDocuments, bool Rea
 internal sealed class StudioDocumentHistory {
     private readonly StudioPreferencesService _preferences;
 
-    internal StudioDocumentHistory(StudioDataPaths paths, StudioPreferencesService preferences) {
+    internal StudioDocumentHistory(StudioDataPaths paths, StudioPreferencesService preferences, StudioLocalDocumentRoot? documents = null) {
         _preferences = preferences;
-        RecentDocuments = new(paths.RecentDocumentsPath, () => RememberHistory);
-        ReadingPositions = new(paths.DocumentViewsPath, () => RememberHistory);
+        RecentDocuments = new(paths.RecentDocumentsPath, () => RememberHistory, documents);
+        ReadingPositions = new(paths.DocumentViewsPath, () => RememberHistory, documents);
         RestartSession = new(paths.SessionPath);
     }
 

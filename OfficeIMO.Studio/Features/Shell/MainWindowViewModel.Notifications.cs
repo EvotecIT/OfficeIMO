@@ -42,6 +42,7 @@ public sealed partial class MainWindowViewModel {
     }
 
     partial void OnIsWorkspaceBusyChanged(bool value) {
+        NotifyFormNavigation();
         NotifyDocumentStructureActions();
         ExportCommentSummaryCommand.NotifyCanExecuteChanged();
         if (value) {

@@ -1,6 +1,10 @@
 <Project>
   <!-- Turn warnings into errors across the solution to keep code quality high. -->
   <PropertyGroup>
+    <!-- Keep portable mobile-library output separate from the desktop executable. -->
+    <BaseIntermediateOutputPath Condition="'$(MSBuildProjectName)' == 'OfficeIMO.Studio' and '$(OfficeIMOStudioMobile)' == 'true'">obj/mobile/</BaseIntermediateOutputPath>
+    <BaseOutputPath Condition="'$(MSBuildProjectName)' == 'OfficeIMO.Studio' and '$(OfficeIMOStudioMobile)' == 'true'">bin/mobile/</BaseOutputPath>
+    <DefaultItemExcludes Condition="'$(MSBuildProjectName)' == 'OfficeIMO.Studio'">$(DefaultItemExcludes);bin/**;obj/**</DefaultItemExcludes>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <!-- Do not elevate informational messages (e.g., preview SDK notice). -->
     <OfficeIMOSharedSourceDir>$(MSBuildThisFileDirectory)OfficeIMO.SharedSource</OfficeIMOSharedSourceDir>

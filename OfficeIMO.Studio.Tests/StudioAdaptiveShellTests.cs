@@ -58,7 +58,7 @@ public sealed class StudioAdaptiveShellTests {
                 }
                 Layout(window, 1280, 820);
                 Assert.False(window.FindControl<Control>("CompactNavigation")!.IsVisible);
-                Assert.True(window.FindControl<ListBox>("DocumentTabs")!.IsEffectivelyVisible);
+                Assert.True(window.FindControl<TabControl>("DocumentTabs")!.IsEffectivelyVisible);
             } finally { window.Close(); }
             return true;
         }, CancellationToken.None);

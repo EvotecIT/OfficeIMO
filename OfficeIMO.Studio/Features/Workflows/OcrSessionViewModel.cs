@@ -38,6 +38,7 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
         _storage = storage; _jobs = jobs; _recovery = recovery; _guard = guard;
         _confirmProvider = confirmProvider ?? (_ => Task.FromResult(false));
         _createEngine = createEngine ?? CreateEngineAsync;
+        RecognitionUnavailableReason = createEngine is null ? StudioOcrProvider.UnavailableReason : null;
         _openOutput = openOutput;
         Languages = OcrLanguageChoice.CreateChoices(localizer);
         foreach (var language in Languages) language.PropertyChanged += LanguageChanged;
@@ -80,9 +81,11 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
         RemoveSelectedCommand.NotifyCanExecuteChanged();
     }
     private void SelectedItemChanged(object? sender, PropertyChangedEventArgs args) => OnPropertyChanged(nameof(HasSelectedOutput));
-    public bool CanRun => !_disposed && !IsBusy && !string.IsNullOrWhiteSpace(OutputFolder) &&
+    public string? RecognitionUnavailableReason { get; }
+    public bool IsRecognitionAvailable => RecognitionUnavailableReason is null;
+    public bool CanRun => IsRecognitionAvailable && !_disposed && !IsBusy && !string.IsNullOrWhiteSpace(OutputFolder) &&
         Languages.Any(item => item.IsSelected) && Items.Any(item => item.Status is null);
-    public bool CanRetry => !_disposed && !IsBusy && !string.IsNullOrWhiteSpace(OutputFolder) &&
+    public bool CanRetry => IsRecognitionAvailable && !_disposed && !IsBusy && !string.IsNullOrWhiteSpace(OutputFolder) &&
         Languages.Any(item => item.IsSelected) && Items.Any(item => item.CanRetry);
     partial void OnIsBusyChanged(bool value) => NotifyCommands();
     partial void OnOutputFolderChanged(string value) {
