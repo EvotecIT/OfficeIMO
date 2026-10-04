@@ -1,0 +1,752 @@
+{
+  "$schema": "officeimo.html.h10-job-native-table-evidence",
+  "recordedUtc": "2026-10-04T00:28:37.308113+00:00",
+  "sourceCommits": {
+    "routeAndNativeTableReplay": "4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+    "oneNoteReplay": "1523ae78e32fe389d89914b761452cd4dbf10a51",
+    "adoptedUnixOwner": "ed7fcf373ce5ad9fac6fcdbced75be093362f1c3"
+  },
+  "cleanSourceRequired": true,
+  "ownership": "HtmlConversionDocument and HtmlRenderRequest/Result with MHTML and target adapters; retained AngleSharp/Css/Js/Jint boundaries. No new runtime dependency.",
+  "pdfRoutes": {
+    "viewportCssPixels": [
+      816,
+      900
+    ],
+    "resourcePolicy": "PortableDeterministic",
+    "observations": [
+      {
+        "case": "planets",
+        "profile": "print-paged",
+        "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "pages": 19,
+        "pdfSha256": "4cf795920bb01fac72bc051eb6c05c7738ad01adfdb4db2c74126ef947dd2098",
+        "imageOccurrences": 16,
+        "linkAnnotations": 72,
+        "report": {
+          "hasLoss": true,
+          "hasErrors": false,
+          "fidelityStatus": 2,
+          "warningCounts": {
+            "HtmlPdfFontProgramOutlined": 4,
+            "HtmlPdfFontOutlineBudgetApproximated": 1,
+            "HtmlPdfTranslucentGradientRasterized": 4,
+            "HtmlRenderResourceUnavailable": 45,
+            "HtmlRenderFontFaceUnavailable": 24,
+            "HtmlRenderGridValueUnsupported": 16,
+            "HtmlRenderPositionStickyStatic": 1,
+            "HtmlRenderSvgContentUnsupported": 5,
+            "HtmlRenderOpenTypeFeatureUnsupported": 6,
+            "HtmlRenderOverflowScrollSnapshot": 1,
+            "unsupported-font-ligature-substitution": 4
+          }
+        }
+      },
+      {
+        "case": "planets",
+        "profile": "screen-media-paged",
+        "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "pages": 22,
+        "pdfSha256": "9df7ed16dbd7d8911405af0c6ed4662bd3e20a6744d1fe617c1d625185eabf99",
+        "imageOccurrences": 18,
+        "linkAnnotations": 73,
+        "report": {
+          "hasLoss": true,
+          "hasErrors": false,
+          "fidelityStatus": 2,
+          "warningCounts": {
+            "HtmlPdfFontProgramOutlined": 4,
+            "HtmlPdfFontOutlineBudgetApproximated": 1,
+            "HtmlPdfTranslucentGradientRasterized": 4,
+            "HtmlRenderResourceUnavailable": 45,
+            "HtmlRenderFontFaceUnavailable": 24,
+            "HtmlRenderGridValueUnsupported": 8,
+            "HtmlRenderPositionStickyStatic": 1,
+            "HtmlRenderSvgContentUnsupported": 2,
+            "HtmlRenderOpenTypeFeatureUnsupported": 6,
+            "HtmlRenderOverflowScrollSnapshot": 1,
+            "HtmlRenderForcedFragment": 2,
+            "unsupported-font-ligature-substitution": 3
+          }
+        }
+      },
+      {
+        "case": "planets",
+        "profile": "screen-snapshot-paged",
+        "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "pages": 14,
+        "pdfSha256": "39423b2a9afa23c8aa6406903a8cafc367e566789d26da5238ead71e6adda208",
+        "imageOccurrences": 23,
+        "linkAnnotations": 83,
+        "report": {
+          "hasLoss": true,
+          "hasErrors": false,
+          "fidelityStatus": 2,
+          "warningCounts": {
+            "HtmlPdfFontProgramOutlined": 4,
+            "HtmlPdfFontOutlineBudgetApproximated": 1,
+            "HtmlPdfTranslucentGradientRasterized": 6,
+            "HtmlRenderResourceUnavailable": 45,
+            "HtmlRenderFontFaceUnavailable": 24,
+            "HtmlRenderGridValueUnsupported": 8,
+            "HtmlRenderPositionStickyStatic": 2,
+            "HtmlRenderSvgContentUnsupported": 2,
+            "HtmlRenderOpenTypeFeatureUnsupported": 6,
+            "unsupported-font-ligature-substitution": 4
+          }
+        }
+      },
+      {
+        "case": "chesapeake",
+        "profile": "print-paged",
+        "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "pages": 3,
+        "pdfSha256": "caafb1c4f0400c051c69d46920ad4cf6282ac8c6c453cd11b13e3a9621eebc71",
+        "imageOccurrences": 16,
+        "linkAnnotations": 44,
+        "report": {
+          "hasLoss": true,
+          "hasErrors": false,
+          "fidelityStatus": 1,
+          "warningCounts": {
+            "HtmlRenderResourceUnavailable": 34,
+            "HtmlRenderFontFaceUnavailable": 27,
+            "HtmlRenderOverflowScrollSnapshot": 1,
+            "unsupported-font-ligature-substitution": 3
+          }
+        }
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-media-paged",
+        "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "pages": 5,
+        "pdfSha256": "8f7d3cb9ec60d88856a5a967cdb4d548f6c894b11909efca121c86bf0ed95bbd",
+        "imageOccurrences": 19,
+        "linkAnnotations": 55,
+        "report": {
+          "hasLoss": true,
+          "hasErrors": false,
+          "fidelityStatus": 2,
+          "warningCounts": {
+            "HtmlRenderResourceUnavailable": 34,
+            "HtmlRenderFontFaceUnavailable": 27,
+            "HtmlRenderFormFieldTypographyStaticFallback": 1,
+            "HtmlRenderOverflowScrollSnapshot": 1,
+            "unsupported-font-ligature-substitution": 5
+          }
+        }
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-snapshot-paged",
+        "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Html.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+          "OfficeIMO.Pdf": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "pages": 4,
+        "pdfSha256": "94567efcdfab12d31644d37b10c7ddc21819a375cc9b06b763dd568e56fdd504",
+        "imageOccurrences": 22,
+        "linkAnnotations": 56,
+        "report": {
+          "hasLoss": true,
+          "hasErrors": false,
+          "fidelityStatus": 2,
+          "warningCounts": {
+            "HtmlRenderResourceUnavailable": 34,
+            "HtmlRenderFontFaceUnavailable": 27,
+            "HtmlRenderFormFieldTypographyStaticFallback": 1,
+            "unsupported-font-ligature-substitution": 4
+          }
+        }
+      }
+    ],
+    "acceptance": "API and actual Tool byte equality, independent Poppler per-page text equality, image/link occurrence observations. This is not appearance acceptance, complete archived-resource coverage, or acceptance of all eleven earlier planetary variants."
+  },
+  "nativeTables": {
+    "predeclared": {
+      "declaredUtc": "2026-10-03T23:26:42.085011+00:00",
+      "sourceArchiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+      "sourceMethod": "Independent MIME decode and HTML table transcription before viewing new native output. Compare five-column header and data rows; single-cell source notes retained separately, without a merged-cell acceptance claim.",
+      "columnCount": 5,
+      "tables": [
+        {
+          "sourceIndex": 0,
+          "rows": [
+            [
+              "",
+              "Mercury",
+              "Venus",
+              "Earth",
+              "Mars"
+            ],
+            [
+              "Mean distance from Sun (au)",
+              "0.387",
+              "0.723",
+              "1",
+              "1.524"
+            ],
+            [
+              "Light minutes from Sun",
+              "3.2",
+              "6.0",
+              "8.3",
+              "12.7"
+            ],
+            [
+              "Mass (x Earth)",
+              "0.0553",
+              "0.815",
+              "1",
+              "0.107"
+            ],
+            [
+              "Equatorial radius (x Earth)",
+              "0.383",
+              "0.949",
+              "1",
+              "0.533"
+            ],
+            [
+              "Rotation period (Earth days)",
+              "175.942",
+              "- 116.75 (retrograde)",
+              "1",
+              "1.027"
+            ],
+            [
+              "Orbit period (Earth years)",
+              "0.241",
+              "0.615",
+              "1",
+              "1.881"
+            ],
+            [
+              "Mean orbital velocity (km/s)",
+              "47.87",
+              "35.02",
+              "29.78",
+              "24.13"
+            ],
+            [
+              "Natural satellites",
+              "0",
+              "0",
+              "1",
+              "2"
+            ],
+            [
+              "Surface atmospheric pressure (bars)",
+              "Near 0",
+              "92",
+              "1",
+              ".0069 to .009"
+            ],
+            [
+              "Global Magnetic field",
+              "Faint",
+              "None",
+              "Yes",
+              "None"
+            ]
+          ],
+          "sourceNotes": [
+            [
+              "Here is a more extensive table of planetary data."
+            ]
+          ]
+        },
+        {
+          "sourceIndex": 1,
+          "rows": [
+            [
+              "",
+              "Jupiter",
+              "Saturn",
+              "Uranus",
+              "Neptune"
+            ],
+            [
+              "Mean distance from Sun (au)",
+              "5.20 au",
+              "9.58 au",
+              "19.20 au",
+              "30.05 au"
+            ],
+            [
+              "Light hours from Sun",
+              "0.72",
+              "1.3",
+              "2.7",
+              "4.2"
+            ],
+            [
+              "Mass (x Earth)",
+              "317.8",
+              "95.2",
+              "14.5",
+              "17.1"
+            ],
+            [
+              "Radius (x Earth)",
+              "11.21",
+              "9.45",
+              "4.01",
+              "3.88"
+            ],
+            [
+              "Rotation period (hours)",
+              "9.9",
+              "10.7",
+              "17.2",
+              "16.1"
+            ],
+            [
+              "Orbit period (Earth years)",
+              "11.9",
+              "29.4",
+              "83.7",
+              "163.7"
+            ],
+            [
+              "Mean orbital velocity (km/s)",
+              "13.07",
+              "9.69",
+              "6.81",
+              "5.43"
+            ],
+            [
+              "Known natural satellites (as of January 2013)",
+              "67",
+              "62",
+              "27",
+              "13"
+            ],
+            [
+              "Rings",
+              "Dust",
+              "Extensive system",
+              "Thin, dark",
+              "Broken ring arcs"
+            ]
+          ],
+          "sourceNotes": []
+        }
+      ],
+      "comparison": "Collapse only whitespace; preserve column order and text. Excel native numeric cells may be compared by invariant numeric value, with the original text and cell value retained. Fragmented PowerPoint tables may repeat header rows; data rows must retain original order and column ownership.",
+      "remaining": "This does not accept full chapter appearance, native image placement, manual accessibility or the all-page PDF reference contract."
+    },
+    "observations": [
+      {
+        "target": "word",
+        "nativeTableLocations": [
+          {
+            "location": "table-1",
+            "rows": 12
+          },
+          {
+            "location": "table-2",
+            "rows": 10
+          }
+        ],
+        "comparedFiveColumnRows": 21,
+        "expectedFiveColumnRows": 21,
+        "repeatedHeaders": 0,
+        "literalRowDifferences": [],
+        "sourceOrderedLabelsEqual": true,
+        "reportHasLoss": true,
+        "markerOnlyPassed": true,
+        "artifactSha256": "3462c833fa1687b8d591c4ecb1e3041b2c3cff1dda75fac85bae7b06efc24879"
+      },
+      {
+        "target": "excel",
+        "nativeTableLocations": [
+          {
+            "location": "The Terrestrial Planets",
+            "rows": 12
+          },
+          {
+            "location": "The Terrestrial Planets 2",
+            "rows": 10
+          }
+        ],
+        "comparedFiveColumnRows": 21,
+        "expectedFiveColumnRows": 21,
+        "repeatedHeaders": 0,
+        "literalRowDifferences": [],
+        "sourceOrderedLabelsEqual": true,
+        "reportHasLoss": true,
+        "markerOnlyPassed": true,
+        "artifactSha256": "890fd4a31610ef32662c7d40b6aa37fb66f10e22f70134788f3660d7903400bd"
+      },
+      {
+        "target": "powerpoint",
+        "nativeTableLocations": [
+          {
+            "location": "slide-10/table-1",
+            "rows": 4
+          },
+          {
+            "location": "slide-11/table-1",
+            "rows": 8
+          },
+          {
+            "location": "slide-12/table-1",
+            "rows": 2
+          },
+          {
+            "location": "slide-25/table-1",
+            "rows": 8
+          },
+          {
+            "location": "slide-26/table-1",
+            "rows": 3
+          }
+        ],
+        "comparedFiveColumnRows": 21,
+        "expectedFiveColumnRows": 21,
+        "repeatedHeaders": 3,
+        "literalRowDifferences": [],
+        "sourceOrderedLabelsEqual": true,
+        "reportHasLoss": true,
+        "markerOnlyPassed": true,
+        "artifactSha256": "4c9aed70ad290a6d3ae560aa847931d3972c93ff0cbc469f3e9e8fa7c8f00e1c"
+      },
+      {
+        "target": "onenote",
+        "nativeTableLocations": [
+          {
+            "location": "page-2/table-1",
+            "rows": 12
+          },
+          {
+            "location": "page-2/table-2",
+            "rows": 10
+          }
+        ],
+        "comparedFiveColumnRows": 21,
+        "expectedFiveColumnRows": 21,
+        "repeatedHeaders": 0,
+        "literalRowDifferences": [],
+        "sourceOrderedLabelsEqual": true,
+        "reportHasLoss": true,
+        "markerOnlyPassed": true,
+        "artifactSha256": "5dab66c462ddf1a8da9546c42317cf7a139f76f459f540a856ad23bab0277196"
+      },
+      {
+        "target": "rtf",
+        "nativeTableLocations": [
+          {
+            "location": "table-1",
+            "rows": 12
+          },
+          {
+            "location": "table-2",
+            "rows": 10
+          }
+        ],
+        "comparedFiveColumnRows": 21,
+        "expectedFiveColumnRows": 21,
+        "repeatedHeaders": 0,
+        "literalRowDifferences": [],
+        "sourceOrderedLabelsEqual": true,
+        "reportHasLoss": true,
+        "markerOnlyPassed": true,
+        "artifactSha256": "7d6b4474a77947ce1403fbda115fc3cfc52b3307372acb26fb6f275f4fdcabe7"
+      },
+      {
+        "target": "markdown",
+        "nativeTableLocations": [
+          {
+            "location": "table-1",
+            "rows": 12
+          },
+          {
+            "location": "table-2",
+            "rows": 10
+          }
+        ],
+        "comparedFiveColumnRows": 21,
+        "expectedFiveColumnRows": 21,
+        "repeatedHeaders": 0,
+        "literalRowDifferences": [
+          {
+            "index": 0,
+            "expected": [
+              "",
+              "Mercury",
+              "Venus",
+              "Earth",
+              "Mars"
+            ],
+            "actual": [
+              "",
+              "[Mercury](http://nssdc.gsfc.nasa.gov/planetary/factsheet/mercuryfact.html)",
+              "[Venus](http://nssdc.gsfc.nasa.gov/planetary/factsheet/venusfact.html)",
+              "[Earth](http://nssdc.gsfc.nasa.gov/planetary/factsheet/earthfact.html)",
+              "[Mars](http://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html)"
+            ]
+          },
+          {
+            "index": 5,
+            "expected": [
+              "Rotation period (Earth days)",
+              "175.942",
+              "- 116.75 (retrograde)",
+              "1",
+              "1.027"
+            ],
+            "actual": [
+              "Rotation period <br>(Earth days)",
+              "175.942",
+              "- 116.75 <br>(retrograde)",
+              "1",
+              "1.027"
+            ]
+          },
+          {
+            "index": 9,
+            "expected": [
+              "Surface atmospheric pressure (bars)",
+              "Near 0",
+              "92",
+              "1",
+              ".0069 to .009"
+            ],
+            "actual": [
+              "Surface atmospheric pressure (bars)",
+              "Near 0",
+              "92",
+              "1",
+              ".0069 <br>to .009"
+            ]
+          },
+          {
+            "index": 11,
+            "expected": [
+              "",
+              "Jupiter",
+              "Saturn",
+              "Uranus",
+              "Neptune"
+            ],
+            "actual": [
+              "",
+              "[Jupiter](http://nssdc.gsfc.nasa.gov/planetary/factsheet/jupiterfact.html)",
+              "[Saturn](http://nssdc.gsfc.nasa.gov/planetary/factsheet/saturnfact.html)",
+              "[Uranus](http://nssdc.gsfc.nasa.gov/planetary/factsheet/uranusfact.html)",
+              "[Neptune](http://nssdc.gsfc.nasa.gov/planetary/factsheet/neptunefact.html)"
+            ]
+          },
+          {
+            "index": 19,
+            "expected": [
+              "Known natural satellites (as of January 2013)",
+              "67",
+              "62",
+              "27",
+              "13"
+            ],
+            "actual": [
+              "Known natural satellites (as of January 2013)",
+              "[67](http://www.dtm.ciw.edu/users/sheppard/satellites/jupsatdata.html)",
+              "[62](http://www.dtm.ciw.edu/users/sheppard/satellites/satsatdata.html)",
+              "[27](http://www.dtm.ciw.edu/users/sheppard/satellites/urasatdata.html)",
+              "[13](http://www.dtm.ciw.edu/users/sheppard/satellites/nepsatdata.html)"
+            ]
+          }
+        ],
+        "sourceOrderedLabelsEqual": true,
+        "reportHasLoss": true,
+        "markerOnlyPassed": true,
+        "artifactSha256": "2f36d6712928d25864185183ac62544b4dfeefaed5b0b2c1b7d87f807d4cbaad"
+      }
+    ],
+    "owners": {
+      "runner": "1.0.0+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+      "HTML": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+      "MHTML": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+      "Word HTML": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+      "Excel HTML": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+      "PowerPoint HTML": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+      "OneNote HTML": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+      "RTF HTML": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+      "Markdown HTML": "3.4.4+4b7c3aa13e7207ce9929238c8ceb28771ff44a8f"
+    },
+    "acceptance": "21 regular source rows including headers retain five-column ownership and order. PowerPoint repeats three fragment headers. Markdown preserves five rows with literal link/br markup differences. Source-note merges, named Excel tables, native application appearance and accessibility remain separate."
+  },
+  "fixes": [
+    {
+      "owner": "RTF",
+      "behavior": "Distinct tables separated by body content or section breaks remain distinct after reopen; consecutive rows stay grouped.",
+      "before": "one 22-row table in NASA replay",
+      "after": "two tables with 12 and 10 rows",
+      "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2759"
+    },
+    {
+      "owner": "Word.Html",
+      "behavior": "Empty, comment-only and nested-table-only cells retain required native paragraphs.",
+      "proof": "DOCX schema validation and independent LibreOffice rendering keep preceding article text outside the blank header cell.",
+      "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2760"
+    },
+    {
+      "owner": "OneNote",
+      "behavior": "Native WebP image media type survives reopen.",
+      "beforeMediaType": null,
+      "after": {
+        "AltText": "An orange, hazy view of Titan's surface.",
+        "MediaType": "image/webp",
+        "FileName": "image.webp",
+        "SourcePath": null,
+        "Length": 1390,
+        "Sha256": "4a0689bd056202047a2600100552b3738dafd63019003d584826d951fdcc2b63"
+      },
+      "reopenedPayloadCount": 16,
+      "inspectionRasterAssets": 14,
+      "nativeApplicationAccepted": false,
+      "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2761"
+    },
+    {
+      "owner": "Core Unix file opening",
+      "behavior": "Apple ARM64 varargs place creation mode on stack; shared master owner adopted, including Drive caller.",
+      "proof": "Observed old branch plan mode0054 and two Tool failures; four direct native open/openat mode cases and full Tool tests pass after correction.",
+      "duplicatePrCreated": false
+    }
+  ],
+  "validation": {
+    "masterBasedExtractedOwners": {
+      "RTF": {
+        "net8.0": {
+          "executed": 930,
+          "passed": 930,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "net10.0": {
+          "executed": 930,
+          "passed": 930,
+          "failed": 0,
+          "notExecuted": 0
+        }
+      },
+      "Word-related HTML": {
+        "net8.0": {
+          "executed": 801,
+          "passed": 801,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "net10.0": {
+          "executed": 801,
+          "passed": 801,
+          "failed": 0,
+          "notExecuted": 0
+        }
+      },
+      "OneNote": {
+        "net8.0": {
+          "executed": 338,
+          "passed": 338,
+          "failed": 0,
+          "notExecuted": 0
+        },
+        "net10.0": {
+          "executed": 338,
+          "passed": 338,
+          "failed": 0,
+          "notExecuted": 0
+        }
+      }
+    },
+    "masterBasedStandardBuilds": [
+      "OfficeIMO.Rtf",
+      "OfficeIMO.Word.Html",
+      "OfficeIMO.OneNote"
+    ],
+    "staticBranchHtml": {
+      "source": "4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
+      "net8": {
+        "passed": 4218,
+        "failed": 0
+      },
+      "net10": {
+        "passed": 4218,
+        "failed": 0
+      }
+    },
+    "Tool": {
+      "net8": {
+        "passed": 259,
+        "boundary": "Earlier branch validation after the Apple ARM64 mode correction; exact compiled head was not captured in this ledger."
+      },
+      "net10": {
+        "source": "1523ae78e32fe389d89914b761452cd4dbf10a51",
+        "passed": 259
+      }
+    },
+    "review": "One independent read-only CLI/native-owner review of 4b7c3aa13, no actionable P0-P2. Later canonical Unix adoption reuses master owner; OneNote mapping is a narrow reproduced native round-trip fix."
+  },
+  "visualObservations": {
+    "nativeWord": "Final LibreOffice first-table page confirms body/header ownership, but width still clips at right edge.",
+    "nativeRtf": "RTF artifact unchanged from independently rendered prior output; five wide columns can clip rightmost data.",
+    "nativeExcel": "Prior independent rendering clips long first-column labels; worksheet-grid observations do not close print layout.",
+    "nativePowerPoint": "Prior independent rendering shows low-contrast header text and fragment pagination limits.",
+    "nativeOneNote": "Saved/reopened payloads and bounded HTML projection only; native OneNote application unavailable.",
+    "pdfAllPageContactSheets": "All six inspected. Planetary screen-media page3 nearly empty; planetary snapshot has dark body text on black background. Both fail appearance acceptance. Chesapeake retains footer placement and repeated fixed-control differences."
+  },
+  "remaining": [
+    "Repair and independently qualify snapshot background/contrast and screen-media empty-page behavior.",
+    "Complete table widths, article/photo order, slide contrast and target-specific native application acceptance.",
+    "Complete remaining corpus/intent/workbench/browser surfaces and operation-level loss/resource checks.",
+    "Resolve all-platform static timing and remaining H10 platform budgets without changing ceilings; current source3a28 run37160774821 fails timing.",
+    "Settle standalone current-head PR CI/reviews and integrate only qualified source."
+  ],
+  "retainedEvidenceRoot": "Ignore/H10JobQualification",
+  "publishedPackagesOrFullHtmlPr": false
+}

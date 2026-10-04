@@ -2,7 +2,7 @@
 
 This opt-in runner converts one frozen MHTML page from the [predeclared H10 corpus](../../OfficeIMO.Pdf.Benchmarks.Comparisons/Corpus/html-h10-page-selection.json) into its selected editable targets. It saves and reopens each artifact, checks the page's declared visible text markers, and records conversion reports, resource counts, elapsed time and allocations. A passing marker check does **not** establish visual or structural fidelity. Inspect each target against the `editableTargets.inspect` criteria and review every loss diagnostic before accepting it.
 
-Each target report also records `nativeTables` from the reopened format model, separately from its HTML export. Word, PowerPoint, OneNote, RTF and Markdown entries contain native table rows and cells; Excel entries contain worksheet grids and do not imply named Excel tables. Compare these cells with the frozen source, including column ownership and fragmented tables. The observations do not change the marker-based `passed` field into structural acceptance. Table snapshots and Excel reads are bounded to 100,000 cells per table or worksheet.
+Each target report also records `NativeTables` from the reopened format model, separately from its HTML export. Word, PowerPoint, OneNote, RTF and Markdown entries contain native table rows and cells; Excel entries contain worksheet grids and do not imply named Excel tables. Compare these cells with the frozen source, including column ownership and fragmented tables. The observations do not change the marker-based `Passed` field into structural acceptance. Table snapshots and Excel reads are bounded to 100,000 cells per table or worksheet.
 
 Build the runner from the repository's supported .NET SDK, then run its DLL from the repository root:
 
