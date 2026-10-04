@@ -3137,5 +3137,269 @@
       "website": "Old PR head failed generated site/Chromium endpoint readiness; startup cause unproven, no bypass.",
       "roadmap": "Both observed failures retained under Release-wide quality; current-head CI remains authoritative."
     }
+  },
+  "logicalFallbackCurrentSourceRecheck": {
+    "runId": 37160774821,
+    "url": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37160774821",
+    "sourceCommit": "3a28b4ac807009cb80774671633fc85b20636239",
+    "settledUtc": "2026-10-04T00:31:59.910808+00:00",
+    "status": "failed",
+    "platforms": {
+      "Linux": {
+        "compiledSource": {
+          "commit": "3a28b4ac807009cb80774671633fc85b20636239",
+          "worktreeClean": true,
+          "corpusId": "officeimo-html-h4-advanced-held-out",
+          "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+          "caseCount": 8,
+          "outputsPerIteration": 76
+        },
+        "environment": {
+          "osFamily": "Linux",
+          "osDescription": "Ubuntu 24.04.5 LTS",
+          "osArchitecture": "X64",
+          "processArchitecture": "X64",
+          "frameworkDescription": ".NET 10.0.12",
+          "machineName": "runnervm8df0l",
+          "processorCount": 4
+        },
+        "tests": {
+          "html-net10.0.trx": {
+            "passed": 4215,
+            "failed": 0,
+            "executed": 4215
+          },
+          "pdf-fonts-net10.0.trx": {
+            "passed": 28,
+            "failed": 0,
+            "executed": 28
+          },
+          "pdf-net10.0.trx": {
+            "passed": 8703,
+            "failed": 0,
+            "executed": 8703
+          },
+          "pdf-fonts-net8.0.trx": {
+            "passed": 28,
+            "failed": 0,
+            "executed": 28
+          },
+          "drawing-math-net10.0.trx": {
+            "passed": 1,
+            "failed": 0,
+            "executed": 1
+          },
+          "drawing-math-net8.0.trx": {
+            "passed": 1,
+            "failed": 0,
+            "executed": 1
+          },
+          "html-net8.0.trx": {
+            "passed": 4215,
+            "failed": 0,
+            "executed": 4215
+          }
+        },
+        "failures": [],
+        "coldProcessMilliseconds": 12704.8998,
+        "warmMilliseconds": [
+          4508.4653,
+          4548.0779,
+          4552.9273
+        ],
+        "budgetFailures": [
+          "cold process elapsed milliseconds 12704.9 exceeded ceiling 12000.0."
+        ],
+        "coldFingerprint": "5b3dfc0b2b10341b4d130e9b7d0dd8353a201c172fd6b3ee729094facb146d93",
+        "coldAllocatedBytes": 974941840,
+        "warmAllocatedBytes": [
+          798957496,
+          798965984,
+          798981864
+        ],
+        "peakWorkingSetBytes": 325496832,
+        "requiredValidator": {
+          "executable": "/usr/bin/pdftotext",
+          "version": "pdftotext version 24.02.0\nCopyright 2005-2024 The Poppler Developers - http://poppler.freedesktop.org\nCopyright 1996-2011, 2022 Glyph & Cog, LLC"
+        }
+      },
+      "Windows": {
+        "compiledSource": {
+          "commit": "3a28b4ac807009cb80774671633fc85b20636239",
+          "worktreeClean": true,
+          "corpusId": "officeimo-html-h4-advanced-held-out",
+          "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+          "caseCount": 8,
+          "outputsPerIteration": 76
+        },
+        "environment": {
+          "osFamily": "Windows",
+          "osDescription": "Microsoft Windows 10.0.26100",
+          "osArchitecture": "X64",
+          "processArchitecture": "X64",
+          "frameworkDescription": ".NET 10.0.12",
+          "machineName": "runnervmfi6oq",
+          "processorCount": 4
+        },
+        "tests": {
+          "html-net10.0.trx": {
+            "passed": 4215,
+            "failed": 0,
+            "executed": 4215
+          },
+          "pdf-fonts-net10.0.trx": {
+            "passed": 28,
+            "failed": 0,
+            "executed": 28
+          },
+          "pdf-net10.0.trx": {
+            "passed": 8700,
+            "failed": 3,
+            "executed": 8703
+          },
+          "pdf-fonts-net8.0.trx": {
+            "passed": 28,
+            "failed": 0,
+            "executed": 28
+          },
+          "drawing-math-net10.0.trx": {
+            "passed": 1,
+            "failed": 0,
+            "executed": 1
+          },
+          "drawing-math-net8.0.trx": {
+            "passed": 1,
+            "failed": 0,
+            "executed": 1
+          },
+          "html-net8.0.trx": {
+            "passed": 4215,
+            "failed": 0,
+            "executed": 4215
+          }
+        },
+        "failures": [
+          {
+            "test": "OfficeIMO.Tests.Pdf.PdfExternalEngineProofTests.LogicalTextReplacesPaintExactlyOnceInIndependentExtraction(scenario: \"following\", replacement: \"Logical replacement words\")",
+            "message": "Assert.Equal() Failure: Strings differ\r\n                                    \u2193 (pos 25)\r\nExpected: \"Logical replacement words\\r\\nFollowingPaint\"\r\nActual:   \"Logical replacement words\\nFollowingPaint\"\r\n                                    \u2191 (pos 25)"
+          },
+          {
+            "test": "OfficeIMO.Tests.Pdf.PdfExternalEngineProofTests.LogicalTextReplacesPaintExactlyOnceInIndependentExtraction(scenario: \"drawing\", replacement: \"R\u00e9sum\u00e9 \\ud83d\\ude00\")",
+            "message": "Assert.Equal() Failure: Strings differ\r\n            \u2193 (pos 1)\r\nExpected: \"R\u00e9sum\u00e9 \\ud83d\\ude00\"\r\nActual:   \"R\u251c\u2310sum\u251c\u2310 \u2261\u0192\u00ff\u00c7\"\r\n            \u2191 (pos 1)"
+          },
+          {
+            "test": "OfficeIMO.Tests.Pdf.PdfExternalEngineProofTests.LogicalTextReplacesPaintExactlyOnceInIndependentExtraction(scenario: \"canvas\", replacement: \"R\u00e9sum\u00e9 \\ud83d\\ude00\")",
+            "message": "Assert.Equal() Failure: Strings differ\r\n            \u2193 (pos 1)\r\nExpected: \"R\u00e9sum\u00e9 \\ud83d\\ude00\"\r\nActual:   \"R\u251c\u2310sum\u251c\u2310 \u2261\u0192\u00ff\u00c7\"\r\n            \u2191 (pos 1)"
+          }
+        ],
+        "coldProcessMilliseconds": 12906.8051,
+        "warmMilliseconds": [
+          5926.6052,
+          5048.6854,
+          5061.7433
+        ],
+        "budgetFailures": [
+          "cold process elapsed milliseconds 12906.8 exceeded ceiling 12000.0.",
+          "warm iteration 1 elapsed milliseconds 5926.6 exceeded ceiling 4000.0.",
+          "warm iteration 2 elapsed milliseconds 5048.7 exceeded ceiling 4000.0.",
+          "warm iteration 3 elapsed milliseconds 5061.7 exceeded ceiling 4000.0."
+        ],
+        "coldFingerprint": "e351dbd91ced1f68fa31e3df4b4a62f47a718982cb52702baef5f26e019c731f",
+        "coldAllocatedBytes": 2384926336,
+        "warmAllocatedBytes": [
+          988406744,
+          988378192,
+          988313664
+        ],
+        "peakWorkingSetBytes": 1424859136,
+        "requiredValidator": {
+          "executable": "C:\\Program Files\\Git\\mingw64\\bin\\pdftotext.exe",
+          "version": "pdftotext version 4.06 [www.xpdfreader.com]\r\nCopyright 1996-2025 Glyph & Cog, LLC"
+        }
+      },
+      "macOS": {
+        "compiledSource": {
+          "commit": "3a28b4ac807009cb80774671633fc85b20636239",
+          "worktreeClean": true,
+          "corpusId": "officeimo-html-h4-advanced-held-out",
+          "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+          "caseCount": 8,
+          "outputsPerIteration": 76
+        },
+        "environment": {
+          "osFamily": "macOS",
+          "osDescription": "macOS 26.6.2",
+          "osArchitecture": "Arm64",
+          "processArchitecture": "Arm64",
+          "frameworkDescription": ".NET 10.0.12",
+          "machineName": "sat12-bq150-bd5dcee1-470a-4801-ace9-e53abb6bf30a-16035D1AECB1",
+          "processorCount": 3
+        },
+        "tests": {
+          "html-net10.0.trx": {
+            "passed": 4215,
+            "failed": 0,
+            "executed": 4215
+          },
+          "pdf-fonts-net10.0.trx": {
+            "passed": 28,
+            "failed": 0,
+            "executed": 28
+          },
+          "pdf-net10.0.trx": {
+            "passed": 8703,
+            "failed": 0,
+            "executed": 8703
+          },
+          "pdf-fonts-net8.0.trx": {
+            "passed": 28,
+            "failed": 0,
+            "executed": 28
+          },
+          "drawing-math-net10.0.trx": {
+            "passed": 1,
+            "failed": 0,
+            "executed": 1
+          },
+          "drawing-math-net8.0.trx": {
+            "passed": 1,
+            "failed": 0,
+            "executed": 1
+          },
+          "html-net8.0.trx": {
+            "passed": 4215,
+            "failed": 0,
+            "executed": 4215
+          }
+        },
+        "failures": [],
+        "coldProcessMilliseconds": 11618.9662,
+        "warmMilliseconds": [
+          6630.3577,
+          4942.6762,
+          5108.2607
+        ],
+        "budgetFailures": [
+          "cold process elapsed milliseconds 11619.0 exceeded ceiling 8000.0.",
+          "warm iteration 1 elapsed milliseconds 6630.4 exceeded ceiling 3000.0.",
+          "warm iteration 2 elapsed milliseconds 4942.7 exceeded ceiling 3000.0.",
+          "warm iteration 3 elapsed milliseconds 5108.3 exceeded ceiling 3000.0."
+        ],
+        "coldFingerprint": "f13c9b7bb36a389ddf7ba23e8d9e2f3bae91ff0a97a99d65ece9727b2f55f08e",
+        "coldAllocatedBytes": 1069583264,
+        "warmAllocatedBytes": [
+          883486048,
+          885132992,
+          885040680
+        ],
+        "peakWorkingSetBytes": 479510528,
+        "requiredValidator": {
+          "executable": "/opt/homebrew/bin/pdftotext",
+          "version": "pdftotext version 26.09.0\nCopyright 2005-2026 The Poppler Developers - http://poppler.freedesktop.org\nCopyright 1996-2011, 2022 Glyph & Cog, LLC"
+        }
+      }
+    },
+    "packedConsumerStep": "passed on all three platforms; existing nineteen-package/public-consumer assertions executed",
+    "classification": "Three Windows proof failures come from the observer using host-dependent UTF-8 decoding and expecting CRLF for the reader LF contract. Fix observer and prove current-head Windows exact extraction before acceptance. All three timing gates remain failed; no ceiling changed. This is not a qualified static milestone."
   }
 }
