@@ -8,7 +8,7 @@ internal sealed partial class XpsSvgConverter {
             Resource resource = ResolveResource(value, scope)!; brush = resource.Value; part = resource.Part;
         }
         if (brush == null) {
-            if (value == null) { target.SetAttributeValue(attribute, "none"); return; }
+            if (value == null) { Set(target, attribute, "none"); return; }
             SetColor(target, attribute, attribute + "-opacity", value); return;
         }
         switch (brush.Name.LocalName) {
@@ -19,7 +19,7 @@ internal sealed partial class XpsSvgConverter {
             case "LinearGradientBrush": case "RadialGradientBrush":
                 Gradient(brush, target, attribute); break;
             case "ImageBrush": ImageBrush(brush, target, attribute, scope, part, depth); break;
-            default: Loss("Brush: " + brush.Name.LocalName); target.SetAttributeValue(attribute, "none"); break;
+            default: Loss("Brush: " + brush.Name.LocalName); Set(target, attribute, "none"); break;
         }
     }
     private void SetColor(XElement element, string colorAttribute, string alphaAttribute, string color, double opacity = 1) {
@@ -28,22 +28,22 @@ internal sealed partial class XpsSvgConverter {
             if ((hex.Length != 3 && hex.Length != 4 && hex.Length != 6 && hex.Length != 8) || hex.Any(c => !Uri.IsHexDigit(c))) throw new InvalidDataException("Invalid XPS color.");
             if (hex.Length <= 4) hex = string.Concat(hex.Select(c => new string(c, 2)));
             if (hex.Length == 8) { opacity *= int.Parse(hex.Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture) / 255D; hex = hex.Substring(2); }
-            element.SetAttributeValue(colorAttribute, "#" + hex);
+            Set(element, colorAttribute, "#" + hex);
         } else if (color.StartsWith("sc#", StringComparison.Ordinal)) {
             var n = Numbers(color.Substring(3));
             if (n.Length != 3 && n.Length != 4) throw new InvalidDataException("Invalid scRGB color.");
             int offset = n.Length == 4 ? 1 : 0;
             if (offset == 1) opacity *= Unit(N(n[0]));
             int Channel(double c) => (int)Math.Round(Math.Max(0, Math.Min(1, c <= 0.0031308 ? c * 12.92 : 1.055 * Math.Pow(c, 1 / 2.4) - 0.055)) * 255);
-            element.SetAttributeValue(colorAttribute, "rgb(" + string.Join(",", n.Skip(offset).Select(Channel)) + ")");
-        } else { Loss("Color: " + (color.StartsWith("ContextColor", StringComparison.Ordinal) ? "ICC ContextColor" : "unsupported syntax")); element.SetAttributeValue(colorAttribute, "none"); }
-        if (opacity != 1) element.SetAttributeValue(alphaAttribute, N(opacity));
+            Set(element, colorAttribute, "rgb(" + string.Join(",", n.Skip(offset).Select(Channel)) + ")");
+        } else { Loss("Color: " + (color.StartsWith("ContextColor", StringComparison.Ordinal) ? "ICC ContextColor" : "unsupported syntax")); Set(element, colorAttribute, "none"); }
+        if (opacity != 1) Set(element, alphaAttribute, N(opacity));
     }
     private void Gradient(XElement brush, XElement target, string attribute) {
         CheckAttributes(brush, "StartPoint EndPoint Center GradientOrigin RadiusX RadiusY MappingMode SpreadMethod ColorInterpolationMode Opacity Transform");
         bool radial = brush.Name.LocalName == "RadialGradientBrush";
         string id = "paint" + (++_id);
-        var gradient = new XElement(Svg + (radial ? "radialGradient" : "linearGradient"), new XAttribute("id", id),
+        var gradient = Element((radial ? "radialGradient" : "linearGradient"), new XAttribute("id", id),
             new XAttribute("gradientUnits", ((string?)brush.Attribute("MappingMode") ?? "Absolute") == "Absolute" ? "userSpaceOnUse" : "objectBoundingBox"));
         if (radial) {
             var center = Numbers((string?)brush.Attribute("Center") ?? "0,0");
@@ -51,17 +51,17 @@ internal sealed partial class XpsSvgConverter {
             if (center.Length != 2 || origin.Length != 2) throw new InvalidDataException("Invalid radial gradient coordinates.");
             double rx = XpsPackage.Number((string?)brush.Attribute("RadiusX")); double ry = XpsPackage.Number((string?)brush.Attribute("RadiusY"));
             if (rx <= 0 || ry <= 0) throw new InvalidDataException("Gradient radii must be positive.");
-            gradient.SetAttributeValue("cx", N(center[0])); gradient.SetAttributeValue("cy", N(center[1])); gradient.SetAttributeValue("r", N(rx));
-            gradient.SetAttributeValue("fx", N(origin[0])); gradient.SetAttributeValue("fy", N(center[1] + (origin[1] - center[1]) * rx / ry));
-            gradient.SetAttributeValue("gradientTransform", "translate(0 " + N(center[1]) + ") scale(1 " + N(ry / rx) + ") translate(0 " + N(-center[1]) + ")");
+            Set(gradient, "cx", N(center[0])); Set(gradient, "cy", N(center[1])); Set(gradient, "r", N(rx));
+            Set(gradient, "fx", N(origin[0])); Set(gradient, "fy", N(center[1] + (origin[1] - center[1]) * rx / ry));
+            Set(gradient, "gradientTransform", "translate(0 " + N(center[1]) + ") scale(1 " + N(ry / rx) + ") translate(0 " + N(-center[1]) + ")");
         } else {
             var start = Numbers((string?)brush.Attribute("StartPoint") ?? "0,0"); var end = Numbers((string?)brush.Attribute("EndPoint") ?? "1,1");
             if (start.Length != 2 || end.Length != 2) throw new InvalidDataException("Invalid gradient coordinates.");
-            gradient.SetAttributeValue("x1", N(start[0])); gradient.SetAttributeValue("y1", N(start[1])); gradient.SetAttributeValue("x2", N(end[0])); gradient.SetAttributeValue("y2", N(end[1]));
+            Set(gradient, "x1", N(start[0])); Set(gradient, "y1", N(start[1])); Set(gradient, "x2", N(end[0])); Set(gradient, "y2", N(end[1]));
         }
         string spread = (string?)brush.Attribute("SpreadMethod") ?? "Pad";
-        gradient.SetAttributeValue("spreadMethod", spread.ToLowerInvariant());
-        gradient.SetAttributeValue("color-interpolation", ((string?)brush.Attribute("ColorInterpolationMode") ?? "SRgbLinearInterpolation") == "ScRgbLinearInterpolation" ? "linearRGB" : "sRGB");
+        Set(gradient, "spreadMethod", spread.ToLowerInvariant());
+        Set(gradient, "color-interpolation", ((string?)brush.Attribute("ColorInterpolationMode") ?? "SRgbLinearInterpolation") == "ScRgbLinearInterpolation" ? "linearRGB" : "sRGB");
         if (brush.Attribute("Transform") != null || brush.Elements().Any(c => c.Name.LocalName.EndsWith(".Transform", StringComparison.Ordinal))) Loss("Gradient brush transform");
         double opacity = Unit((string?)brush.Attribute("Opacity") ?? "1");
         foreach (var child in brush.Elements()) {
@@ -69,11 +69,11 @@ internal sealed partial class XpsSvgConverter {
             foreach (var stop in child.Elements()) {
                 if (stop.Name.LocalName != "GradientStop") { Loss("Gradient stop element"); continue; }
                 CheckAttributes(stop, "Offset Color");
-                var svgStop = new XElement(Svg + "stop", new XAttribute("offset", N(XpsPackage.Number((string?)stop.Attribute("Offset")))));
+                var svgStop = Element("stop", new XAttribute("offset", N(XpsPackage.Number((string?)stop.Attribute("Offset")))));
                 SetColor(svgStop, "stop-color", "stop-opacity", (string?)stop.Attribute("Color") ?? "#00000000", opacity); gradient.Add(svgStop);
             }
         }
-        _defs.Add(gradient); target.SetAttributeValue(attribute, "url(#" + id + ")");
+        _defs.Add(gradient); Set(target, attribute, "url(#" + id + ")");
     }
     private void ImageBrush(XElement brush, XElement target, string attribute, Dictionary<string, Resource> scope, string part, int depth) {
         Charge(depth);
@@ -93,16 +93,17 @@ internal sealed partial class XpsSvgConverter {
         double width = info.Width * 96D / (info.DpiX > 0 ? info.DpiX : 96D);
         double height = info.Height * 96D / (info.DpiY > 0 ? info.DpiY : 96D);
         string clipId = "imageClip" + (++_id);
-        _defs.Add(new XElement(Svg + "clipPath", new XAttribute("id", clipId), new XElement(Svg + "rect", new XAttribute("x", N(viewport[0])), new XAttribute("y", N(viewport[1])), new XAttribute("width", N(viewport[2])), new XAttribute("height", N(viewport[3])))));
-        string encoded = System.Convert.ToBase64String(bytes); _outputCharacters = checked(_outputCharacters + encoded.Length);
-        if (_outputCharacters > 32 * 1024 * 1024) throw new InvalidDataException("XPS SVG output budget exceeded.");
-        var image = new XElement(Svg + "image", new XAttribute("href", "data:" + type + ";base64," + encoded),
+        _defs.Add(Element("clipPath", new XAttribute("id", clipId), Element("rect", new XAttribute("x", N(viewport[0])), new XAttribute("y", N(viewport[1])), new XAttribute("width", N(viewport[2])), new XAttribute("height", N(viewport[3])))));
+        // Check before allocating a potentially large base64 value; Element accounts for it.
+        EnsureOutputCapacity(((long)bytes.Length + 2) / 3 * 4 + 128);
+        string encoded = System.Convert.ToBase64String(bytes);
+        var image = Element("image", new XAttribute("href", "data:" + type + ";base64," + encoded),
             new XAttribute("x", N(viewport[0] - viewbox[0] * viewport[2] / viewbox[2])), new XAttribute("y", N(viewport[1] - viewbox[1] * viewport[3] / viewbox[3])),
             new XAttribute("width", N(width * viewport[2] / viewbox[2])), new XAttribute("height", N(height * viewport[3] / viewbox[3])), new XAttribute("preserveAspectRatio", "none"));
         if (attribute != "fill") { Loss("Image brush stroke"); return; }
-        target.SetAttributeValue("fill", "none");
-        var projection = new XElement(Svg + "g", new XAttribute("clip-path", "url(#" + clipId + ")"), new XAttribute("opacity", N(Unit((string?)brush.Attribute("Opacity") ?? "1"))), image);
+        Set(target, "fill", "none");
+        var projection = Element("g", new XAttribute("clip-path", "url(#" + clipId + ")"), new XAttribute("opacity", N(Unit((string?)brush.Attribute("Opacity") ?? "1"))), image);
         string? transform = Transform(brush, scope, "Transform");
-        _imageFills[target] = transform == null ? projection : new XElement(Svg + "g", new XAttribute("transform", transform), projection);
+        _imageFills[target] = transform == null ? projection : Element("g", new XAttribute("transform", transform), projection);
     }
 }

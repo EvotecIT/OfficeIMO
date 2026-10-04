@@ -71,6 +71,7 @@ public sealed class XpsPage {
     internal static void ValidateDimension(double value) {
         if (value <= 0 || double.IsNaN(value) || double.IsInfinity(value) || value > 100000) throw new ArgumentOutOfRangeException(nameof(value), "XPS dimensions must be positive and at most 100000 units.");
     }
+    internal bool HasNamedTarget(string name) => _markup.DescendantsAndSelf().Any(e => (string?)e.Attribute("Name") == name && !e.Ancestors().Any(a => a.Name.LocalName == "VisualBrush.Visual"));
     internal byte[] Serialize() => XpsPackage.Serialize(_markup);
     internal IEnumerable<string> ResourceReferences() => _markup.Descendants().Attributes().Where(a => a.Name.LocalName == "FontUri" || a.Name.LocalName == "ImageSource" || (a.Name.LocalName == "Source" && a.Parent?.Name.LocalName == "ResourceDictionary"))
         .Where(a => !a.Value.StartsWith("{", StringComparison.Ordinal)).Select(a => XpsPackage.Resolve(PartName, a.Value.Split('#')[0])).Distinct(StringComparer.OrdinalIgnoreCase);

@@ -19,6 +19,8 @@ File.WriteAllBytes("page-1.png", page.ExportImage(OfficeImageExportFormat.Png).B
 
 Coordinates are XPS units: 96 units per inch. Pages follow the native document
 sequence, including multiple fixed documents and repeated page references.
+Repeated references share a single editable page: editing that native part updates
+all occurrences.
 `ExtractText()` returns `UnicodeString` runs in markup order; it does not infer
 paragraphs or recover missing Unicode from glyph IDs.
 

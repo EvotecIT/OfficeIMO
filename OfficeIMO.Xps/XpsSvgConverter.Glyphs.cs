@@ -3,6 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Xps;
 
 internal sealed partial class XpsSvgConverter {
+    private long _fontBytes;
     private XElement? Glyphs(XElement e, Dictionary<string, Resource> scope, string part, int depth) {
         Charge(depth);
         CheckAttributes(e, "FontUri FontRenderingEmSize OriginX OriginY UnicodeString Indices Fill BidiLevel IsSideways StyleSimulations RenderTransform Clip Opacity FixedPage.NavigateUri CaretStops DeviceFontName");
@@ -18,6 +19,9 @@ internal sealed partial class XpsSvgConverter {
         if (!_fonts.TryGetValue(fontKey, out var font)) {
             if (_fonts.Count >= 256) throw new InvalidDataException("XPS page font count exceeded.");
             string type = _page.Document.ContentType(name);
+            int fontLength = _page.Document.Part(name).Length;
+            if (fontLength > 64 * 1024 * 1024 - _fontBytes) throw new InvalidDataException("XPS font materialization budget exceeded.");
+            _fontBytes += fontLength;
             byte[] bytes = _page.Document.GetPartBytes(name);
             if (type == "application/vnd.ms-package.obfuscated-opentype") XpsFontEncoding.Toggle(bytes, name);
             else if (type != "application/vnd.ms-opentype") throw new InvalidDataException("Invalid XPS font content type.");
@@ -70,7 +74,11 @@ internal sealed partial class XpsSvgConverter {
                 foreach (var contour in contours) {
                     _points = checked(_points + contour.Count);
                     if (_points > 1000000) throw new InvalidDataException("XPS glyph outline point limit exceeded.");
-                    for (int i = 0; i < contour.Count; i++) data.Append(i == 0 ? "M" : "L").Append(N(contour[i].X)).Append(' ').Append(N(contour[i].Y)).Append(' ');
+                    for (int i = 0; i < contour.Count; i++) {
+                        string point = (i == 0 ? "M" : "L") + N(contour[i].X) + " " + N(contour[i].Y) + " ";
+                        EnsureOutputCapacity((long)data.Length + point.Length + 2);
+                        data.Append(point);
+                    }
                     data.Append("Z ");
                 }
                 x += rtl ? -advance : advance;
@@ -78,15 +86,14 @@ internal sealed partial class XpsSvgConverter {
             textIndex += codeUnits;
             entryIndex += glyphCount;
         }
-        _outputCharacters = checked(_outputCharacters + data.Length);
-        if (_outputCharacters > 32 * 1024 * 1024) throw new InvalidDataException("XPS SVG output budget exceeded.");
+
         if (data.Length == 0) {
-            var empty = new XElement(Svg + "g");
-            if (text.Length > 0) empty.SetAttributeValue("aria-label", text);
+            var empty = Element("g");
+            if (text.Length > 0) Set(empty, "aria-label", text);
             return empty;
         }
-        var path = new XElement(Svg + "path", new XAttribute("d", data.ToString()), new XAttribute("fill-rule", "nonzero"));
-        if (text.Length > 0) path.SetAttributeValue("aria-label", text);
+        var path = Element("path", new XAttribute("d", data.ToString()), new XAttribute("fill-rule", "nonzero"));
+        if (text.Length > 0) Set(path, "aria-label", text);
         Paint(e, "Fill", path, "fill", scope, part, depth);
         return ApplyImageFill(path);
     }

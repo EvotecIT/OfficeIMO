@@ -14,6 +14,7 @@ public sealed partial class XpsDocument {
         var xml = new XElement(ns + "FixedPage", new XAttribute("Width", XpsPackage.N(width)), new XAttribute("Height", XpsPackage.N(height)), new XAttribute(XNamespace.Xml + "lang", language));
         var page = new XpsPage(this, name, xml);
         _pages.Add(page); PutXml(name, xml, "fixedpage");
+        if (!_documentStarts.ContainsKey(_createdDocument)) _documentStarts.Add(_createdDocument, 0);
         XElement doc = ReadXml(_createdDocument, default);
         doc.Add(new XElement(ns + "PageContent", new XAttribute("Source", "/" + name), new XAttribute("Width", XpsPackage.N(width)), new XAttribute("Height", XpsPackage.N(height))));
         PutXml(_createdDocument, doc, "fixeddocument");
@@ -56,12 +57,11 @@ public sealed partial class XpsDocument {
             _types.Values.Any(t => t.IndexOf("digital-signature", StringComparison.OrdinalIgnoreCase) >= 0))
             throw new NotSupportedException("Saving digitally signed XPS packages is not supported; retain the original signed bytes.");
         var output = new Dictionary<string, byte[]>(_parts, StringComparer.OrdinalIgnoreCase);
-        var pageParts = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+        var pageParts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (XpsPage page in _pages) {
             cancellationToken.ThrowIfCancellationRequested();
-            byte[] bytes = page.Serialize();
-            if (pageParts.TryGetValue(page.PartName, out var previous) && !previous.SequenceEqual(bytes)) throw new InvalidOperationException("Repeated references to one page have conflicting edits.");
-            pageParts[page.PartName] = bytes; output[page.PartName] = bytes;
+            if (!pageParts.Add(page.PartName)) continue;
+            output[page.PartName] = page.Serialize();
             string relName = page.PartName.Substring(0, page.PartName.LastIndexOf('/') + 1) + "_rels/" + Path.GetFileName(page.PartName) + ".rels";
             XElement rels = output.TryGetValue(relName, out var relBytes) ? XpsPackage.Xml(relBytes, _limits, cancellationToken) : new XElement(XpsPackage.Relationships + "Relationships");
             foreach (string resource in page.ResourceReferences()) {

@@ -10,14 +10,14 @@ Preserving an unsupported native element does not mean that it can be rendered.
 | Edit | Detached native page XML with explicit replacement; new resource parts | Loaded document-sequence restructuring and resource replacement are not exposed |
 | Save | Original dialect; native page content and opaque parts retained; direct required-resource relationships emitted; deterministic ZIP output on the same runtime | ZIP metadata/XML bytes may change; no dialect conversion; signed packages cannot be rewritten |
 | Text extraction | UnicodeString runs in markup order | No inferred reading order, paragraphs, or glyph-ID-to-Unicode reconstruction |
-| Paths | Abbreviated geometry, fill rules, explicit path figures/segments, fills, strokes, dashes, matrix transforms, clipping | Per-segment fill/stroke suppression and asymmetric/triangle caps are diagnosed |
+| Paths | Abbreviated geometry, fill rules, explicit path figures/segments, fills, strokes, dashes, matrix transforms, clipping | Per-segment fill/stroke suppression, asymmetric/triangle or separate dash caps, and over-limit clipped miters are diagnosed |
 | Text rendering | Embedded TrueType programs/collections, obfuscation, explicit glyph IDs, cluster mappings, advances/offsets, horizontal bidi direction | Outlined output; sideways glyphs, style simulations, and unsupported font programs are diagnosed |
 | Brushes | Hex/scRGB solid colors; linear/radial gradients; scoped and external package resource dictionaries; non-tiled PNG/JPEG image brushes and their matrix transforms | VisualBrush, tiled image brushes, ICC ContextColor, color-converted images, gradient transforms, TIFF/JPEG-XR rendering, and opacity masks are diagnosed |
-| Navigation | Safe web/mail links and native page/sequence named targets projected into SVG page filenames | Non-page unresolved and unsafe destinations are diagnosed; document navigation is not a PDF preservation contract |
+| Navigation | Safe web/mail links; page/document/sequence named targets with scoped first-occurrence lookup; sequence page numbers projected into SVG filenames | Non-page unresolved and unsafe destinations are diagnosed; document navigation is not a PDF preservation contract |
 | SVG | Self-contained images and glyph outlines; strict by default; explicit partial result with diagnostics | Unknown markup/attributes are diagnosed; no claim of complete XPS consumer conformance |
 | Drawing/images | Existing managed Core scene and image exporters | Shared viewport, element, geometry, raster, and codec limits still apply; any reported SVG import loss rejects conversion |
 | PDF | Optional thin bridge to the existing PDF engine, retaining page dimensions | Vector outlines rather than searchable text; no print-ticket/structure/signature migration |
-| Security | Package-local resource resolution; no external fetch; DTD prohibition; bounded ZIP/XML/page expansion; cooperative cancellation; atomic path saves | Inspection does not authenticate signatures or make arbitrary native documents trusted |
+| Security | Package-local resource resolution; no external fetch; DTD prohibition; shared backing for repeated page parts; bounded ZIP/XML/page and expanded SVG node/character/resource-binding growth; cooperative cancellation; atomic path saves | Inspection does not authenticate signatures or make arbitrary native documents trusted |
 
 ## Qualification
 

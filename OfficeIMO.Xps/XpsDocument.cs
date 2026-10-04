@@ -7,7 +7,8 @@ public sealed partial class XpsDocument {
     private readonly Dictionary<string, byte[]> _parts = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _types = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<XpsPage> _pages = new();
-    private readonly Dictionary<string, int> _linkTargets = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Dictionary<string, int>> _linkTargets = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int> _documentStarts = new(StringComparer.OrdinalIgnoreCase);
     private readonly XpsReadOptions _limits;
     private readonly string _sequence;
     private readonly string? _createdDocument;
@@ -16,7 +17,7 @@ public sealed partial class XpsDocument {
     }
     /// <summary>The markup dialect detected from the package relationship and sequence.</summary>
     public XpsFormat Format { get; }
-    /// <summary>Pages in document-sequence order; repeated page references retain their order.</summary>
+    /// <summary>Pages in document-sequence order. Repeated references share one editable native page.</summary>
     public IReadOnlyList<XpsPage> Pages => _pages.AsReadOnly();
     /// <summary>Names of retained package parts, without a leading slash.</summary>
     public IReadOnlyCollection<string> PartNames => _parts.Keys.ToArray();
@@ -85,28 +86,49 @@ public sealed partial class XpsDocument {
         XNamespace ns = XpsPackage.Namespace(format);
         XElement sequenceXml = result.RequiredXml(sequence, "FixedDocumentSequence", "fixeddocumentsequence", cancellationToken);
         if (sequenceXml.Elements().Any(e => e.Name != ns + "DocumentReference")) throw new NotSupportedException("Unsupported content in XPS document sequence.");
+        var documents = new Dictionary<string, XElement>(StringComparer.OrdinalIgnoreCase);
+        var pages = new Dictionary<string, XpsPage>(StringComparer.OrdinalIgnoreCase);
+        var sequenceTargets = new Dictionary<string, int>(StringComparer.Ordinal);
+        result._linkTargets.Add(sequence, sequenceTargets);
         foreach (var reference in sequenceXml.Elements(ns + "DocumentReference")) {
+            cancellationToken.ThrowIfCancellationRequested();
             string docPart = XpsPackage.Resolve(sequence, (string?)reference.Attribute("Source") ?? "");
-            XElement doc = result.RequiredXml(docPart, "FixedDocument", "fixeddocument", cancellationToken);
-            if (doc.Elements().Any(e => e.Name != ns + "PageContent")) throw new NotSupportedException("Unsupported content in XPS fixed document.");
+            bool firstDocumentReference = !documents.TryGetValue(docPart, out var doc);
+            if (firstDocumentReference) {
+                doc = result.RequiredXml(docPart, "FixedDocument", "fixeddocument", cancellationToken);
+                documents.Add(docPart, doc);
+                result._documentStarts.Add(docPart, doc.Elements(ns + "PageContent").Any() ? result._pages.Count : -1);
+                result._linkTargets.Add(docPart, new Dictionary<string, int>(StringComparer.Ordinal));
+            }
+            if (doc!.Elements().Any(e => e.Name != ns + "PageContent")) throw new NotSupportedException("Unsupported content in XPS fixed document.");
             foreach (var pageRef in doc.Elements(ns + "PageContent")) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (result._pages.Count >= limits.MaximumPages) throw new InvalidDataException("XPS page limit exceeded.");
                 string pagePart = XpsPackage.Resolve(docPart, (string?)pageRef.Attribute("Source") ?? "");
-                var page = new XpsPage(result, pagePart, result.RequiredXml(pagePart, "FixedPage", "fixedpage", cancellationToken));
+                // One native part has one editable backing, even when referenced repeatedly.
+                if (!pages.TryGetValue(pagePart, out var page)) {
+                    page = new XpsPage(result, pagePart, result.RequiredXml(pagePart, "FixedPage", "fixedpage", cancellationToken));
+                    pages.Add(pagePart, page);
+                }
                 result._pages.Add(page);
+                if (!firstDocumentReference) continue;
                 foreach (var target in pageRef.Elements(ns + "PageContent.LinkTargets").Elements(ns + "LinkTarget")) {
                     string anchor = (string?)target.Attribute("Name") ?? throw new InvalidDataException("Missing link target name.");
-                    if (result._linkTargets.ContainsKey(anchor)) throw new InvalidDataException("Duplicate XPS sequence link target.");
-                    result._linkTargets.Add(anchor, result._pages.Count - 1);
+                    var documentTargets = result._linkTargets[docPart];
+                    if (!documentTargets.ContainsKey(anchor)) documentTargets.Add(anchor, result._pages.Count - 1);
+                    if (!sequenceTargets.ContainsKey(anchor)) sequenceTargets.Add(anchor, result._pages.Count - 1);
                 }
             }
         }
         return result;
     }
-    internal int LinkTargetPage(string sourcePart, string anchor) {
-        if (!_parts.ContainsKey(sourcePart)) return -1;
-        return _linkTargets.TryGetValue(anchor, out int index) ? index : -1;
+    internal int LinkTargetPage(string sourcePart, string? anchor) {
+        if (string.Equals(sourcePart, _sequence, StringComparison.OrdinalIgnoreCase) &&
+            int.TryParse(anchor, NumberStyles.None, CultureInfo.InvariantCulture, out int number) && number > 0 && number <= _pages.Count) return number - 1;
+        if (anchor != null && _linkTargets.TryGetValue(sourcePart, out var targets) && targets.TryGetValue(anchor, out int index)) return index;
+        if (_documentStarts.TryGetValue(sourcePart, out int first)) return first < _pages.Count ? first : -1;
+        if (string.Equals(sourcePart, _sequence, StringComparison.OrdinalIgnoreCase)) return _pages.Count > 0 ? 0 : -1;
+        return _pages.FindIndex(p => string.Equals(p.PartName, sourcePart, StringComparison.OrdinalIgnoreCase));
     }
     internal byte[] Part(string name) => _parts.TryGetValue(name, out var bytes) ? bytes : throw new InvalidDataException("Missing XPS part: " + name);
     internal XElement ReadXml(string name, CancellationToken token) => XpsPackage.Xml(Part(name), _limits, token);

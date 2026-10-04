@@ -6,15 +6,17 @@ internal sealed partial class XpsSvgConverter {
     private readonly XpsPage _page;
     private readonly CancellationToken _token;
     private readonly List<string> _diagnostics = new();
-    private readonly XElement _defs = new(Svg + "defs");
+    private readonly XElement _defs;
     private readonly Dictionary<XElement, XElement> _imageFills = new();
     private int _id;
     private int _visited;
     private int _points;
     private int _pathCommands;
-    private int _outputCharacters;
+    private long _outputCharacters;
+    private int _outputNodes;
+    private readonly Dictionary<string, XElement> _resourceDictionaries = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, OfficeIMO.Drawing.OfficeTrueTypeFont> _fonts = new(StringComparer.OrdinalIgnoreCase);
-    internal XpsSvgConverter(XpsPage page, CancellationToken token) { _page = page; _token = token; }
+    internal XpsSvgConverter(XpsPage page, CancellationToken token) { _page = page; _token = token; _defs = Element("defs"); }
     private sealed class Resource {
         internal Resource(XElement value, string part) { Value = value; Part = part; }
         internal XElement Value { get; }
@@ -22,9 +24,10 @@ internal sealed partial class XpsSvgConverter {
     }
     internal XpsSvgResult Convert(bool allowPartial) {
         _token.ThrowIfCancellationRequested();
-        var root = new XElement(Svg + "svg", new XAttribute("width", N(_page.Width)), new XAttribute("height", N(_page.Height)), new XAttribute("viewBox", "0 0 " + N(_page.Width) + " " + N(_page.Height)), _defs);
+        var root = Element("svg", new XAttribute("width", N(_page.Width)), new XAttribute("height", N(_page.Height)), new XAttribute("viewBox", "0 0 " + N(_page.Width) + " " + N(_page.Height)), _defs);
         XElement page = _page.GetMarkup();
         CheckAttributes(page, "Width Height ContentBox BleedBox Name");
+        if (page.Attribute("Name") is XAttribute pageName) Set(root, "id", "xps-" + pageName.Value);
         RenderChildren(page, root, new Dictionary<string, Resource>(), _page.PartName, 0);
         if (_diagnostics.Count != 0 && !allowPartial) throw new NotSupportedException("XPS conversion would lose features: " + string.Join("; ", _diagnostics.Take(12)));
         return new XpsSvgResult(root.ToString(SaveOptions.DisableFormatting), _diagnostics);
@@ -43,9 +46,10 @@ internal sealed partial class XpsSvgConverter {
         if (depth > 64 || ++_visited > 100000) throw new InvalidDataException("XPS conversion complexity limit exceeded.");
     }
     private Dictionary<string, Resource> Resources(XElement parent, Dictionary<string, Resource> inherited, string part, int depth) {
-        var scope = new Dictionary<string, Resource>(inherited, StringComparer.Ordinal);
         XElement? container = parent.Element(parent.Name.Namespace + (parent.Name.LocalName + ".Resources"));
-        if (container == null) return scope;
+        if (container == null) return inherited;
+        ChargeBindings(inherited.Count);
+        var scope = new Dictionary<string, Resource>(inherited, StringComparer.Ordinal);
         var localKeys = new HashSet<string>(StringComparer.Ordinal);
         foreach (var dictionary in container.Elements()) ReadDictionary(dictionary, part, scope, localKeys, new HashSet<string>(StringComparer.OrdinalIgnoreCase), depth);
         return scope;
@@ -59,13 +63,18 @@ internal sealed partial class XpsSvgConverter {
             string name = XpsPackage.Resolve(part, source);
             if (!stack.Add(name)) throw new InvalidDataException("Cyclic XPS resource dictionary.");
             if (_page.Document.ContentType(name) != XpsPackage.Type("resourcedictionary")) throw new InvalidDataException("Invalid resource dictionary content type.");
-            ReadDictionary(_page.Document.ReadXml(name, _token), name, scope, keys, stack, depth + 1);
+            if (!_resourceDictionaries.TryGetValue(name, out var external)) {
+                external = _page.Document.ReadXml(name, _token);
+                _resourceDictionaries.Add(name, external);
+            }
+            ReadDictionary(external, name, scope, keys, stack, depth + 1);
             stack.Remove(name);
         }
         foreach (var item in dictionary.Elements()) {
             string? key = (string?)item.Attribute(ResourceKeyNamespace + "Key");
             if (key == null) { Loss("Unkeyed resource: " + item.Name.LocalName); continue; }
             if (!keys.Add(key)) throw new InvalidDataException("Duplicate XPS resource key.");
+            ChargeBindings(1);
             scope[key] = new Resource(item, part);
         }
     }
@@ -88,7 +97,7 @@ internal sealed partial class XpsSvgConverter {
             switch (child.Name.LocalName) {
                 case "Canvas":
                     CheckAttributes(child, "RenderTransform Clip Opacity FixedPage.NavigateUri");
-                    result = new XElement(Svg + "g");
+                    result = Element("g");
                     RenderChildren(child, result, scope, part, depth + 1); break;
                 case "Path": result = PathElement(child, scope, part, depth + 1); break;
                 case "Glyphs": result = Glyphs(child, scope, part, depth + 1); break;
@@ -96,21 +105,21 @@ internal sealed partial class XpsSvgConverter {
             }
             if (result == null) continue;
             string? transform = Transform(child, scope);
-            if (transform != null) result.SetAttributeValue("transform", transform);
+            if (transform != null) Set(result, "transform", transform);
             string? clip = Geometry(child, "Clip", scope);
             if (clip != null) {
                 string id = "clip" + (++_id);
                 string path = StripFillRule(clip, out string rule);
-                _defs.Add(new XElement(Svg + "clipPath", new XAttribute("id", id), new XAttribute("clipPathUnits", "userSpaceOnUse"), new XElement(Svg + "path", new XAttribute("d", path), new XAttribute("clip-rule", rule))));
-                result.SetAttributeValue("clip-path", "url(#" + id + ")");
+                _defs.Add(Element("clipPath", new XAttribute("id", id), new XAttribute("clipPathUnits", "userSpaceOnUse"), Element("path", new XAttribute("d", path), new XAttribute("clip-rule", rule))));
+                Set(result, "clip-path", "url(#" + id + ")");
             }
-            if (child.Attribute("Opacity") is XAttribute opacity) result.SetAttributeValue("opacity", N(Unit(opacity.Value)));
+            if (child.Attribute("Opacity") is XAttribute opacity) Set(result, "opacity", N(Unit(opacity.Value)));
             string? link = (string?)child.Attribute("FixedPage.NavigateUri");
             if (link != null) {
                 string? href = Link(link, part);
-                if (href != null) result = new XElement(Svg + "a", new XAttribute("href", href), result);
+                if (href != null) result = Element("a", new XAttribute("href", href), result);
             }
-            if (child.Attribute("Name") is XAttribute name) result.SetAttributeValue("id", "xps-" + name.Value);
+            if (child.Attribute("Name") is XAttribute name) Set(result, "id", "xps-" + name.Value);
             target.Add(result);
         }
     }
@@ -122,11 +131,12 @@ internal sealed partial class XpsSvgConverter {
         }
         string[] pieces = target.Split('#');
         string name = XpsPackage.Resolve(part, pieces[0]);
-        int index = _page.Document.Pages.ToList().FindIndex(p => string.Equals(p.PartName, name, StringComparison.OrdinalIgnoreCase));
-        if (index < 0 && pieces.Length == 2) index = _page.Document.LinkTargetPage(name, pieces[1]);
+        string? anchor = pieces.Length == 2 ? pieces[1] : null;
+        int index = _page.Document.LinkTargetPage(name, anchor);
         if (index < 0) { Loss("Navigation to unresolved page target"); return null; }
-        string fragment = pieces.Length == 2 ? "#xps-" + pieces[1] : "";
-        return name == _page.PartName ? fragment : "page-" + (index + 1).ToString(CultureInfo.InvariantCulture) + ".svg" + fragment;
+        // Unknown advertised names and numeric page addresses refer to the top of the page.
+        string fragment = anchor != null && _page.Document.Pages[index].HasNamedTarget(anchor) ? "#xps-" + anchor : "";
+        return string.Equals(_page.Document.Pages[index].PartName, _page.PartName, StringComparison.OrdinalIgnoreCase) ? fragment : "page-" + (index + 1).ToString(CultureInfo.InvariantCulture) + ".svg" + fragment;
     }
     private static double Unit(string value) {
         double number = XpsPackage.Number(value);
@@ -199,26 +209,17 @@ internal sealed partial class XpsSvgConverter {
         Charge(depth);
         CheckAttributes(e, "Data Fill Stroke StrokeThickness StrokeDashArray StrokeDashOffset StrokeStartLineCap StrokeEndLineCap StrokeDashCap StrokeLineJoin StrokeMiterLimit RenderTransform Clip Opacity FixedPage.NavigateUri");
         string path = StripFillRule(Geometry(e, "Data", scope) ?? "", out string rule);
-        var result = new XElement(Svg + "path", new XAttribute("d", path), new XAttribute("fill-rule", rule));
+        var result = Element("path", new XAttribute("d", path), new XAttribute("fill-rule", rule));
         Paint(e, "Fill", result, "fill", scope, part, depth);
         Paint(e, "Stroke", result, "stroke", scope, part, depth);
-        foreach (var pair in new[] { ("StrokeThickness", "stroke-width"), ("StrokeMiterLimit", "stroke-miterlimit") }) if (e.Attribute(pair.Item1) is XAttribute a) result.SetAttributeValue(pair.Item2, N(XpsPackage.Number(a.Value)));
-        double thickness = XpsPackage.Number((string?)e.Attribute("StrokeThickness"), 1);
-        if (e.Attribute("StrokeDashArray") is XAttribute dash) result.SetAttributeValue("stroke-dasharray", string.Join(" ", Numbers(dash.Value).Select(n => N(n * thickness))));
-        if (e.Attribute("StrokeDashOffset") is XAttribute offset) result.SetAttributeValue("stroke-dashoffset", N(XpsPackage.Number(offset.Value) * thickness));
-        string cap = (string?)e.Attribute("StrokeStartLineCap") ?? "Flat";
-        if (cap != ((string?)e.Attribute("StrokeEndLineCap") ?? "Flat")) Loss("Unequal stroke end caps");
-        if (e.Attribute("StrokeDashCap") is XAttribute dashCap && dashCap.Value != cap) Loss("Separate stroke dash caps");
-        if (cap == "Triangle") Loss("Triangle stroke cap");
-        result.SetAttributeValue("stroke-linecap", cap == "Round" ? "round" : cap == "Square" ? "square" : "butt");
-        result.SetAttributeValue("stroke-linejoin", ((string?)e.Attribute("StrokeLineJoin") ?? "Miter").ToLowerInvariant());
+        Stroke(e, result, path);
         foreach (var child in e.Elements()) if (!new[] { "Path.Data", "Path.Fill", "Path.Stroke", "Path.Clip", "Path.RenderTransform" }.Contains(child.Name.LocalName)) Loss(child.Name.LocalName);
         return ApplyImageFill(result);
     }
     private XElement ApplyImageFill(XElement path) {
         if (!_imageFills.TryGetValue(path, out var image)) return path;
         string id = "pathClip" + (++_id);
-        _defs.Add(new XElement(Svg + "clipPath", new XAttribute("id", id), new XElement(Svg + "path", new XAttribute("d", (string?)path.Attribute("d") ?? ""), new XAttribute("clip-rule", (string?)path.Attribute("fill-rule") ?? "evenodd"))));
-        return new XElement(Svg + "g", new XElement(Svg + "g", new XAttribute("clip-path", "url(#" + id + ")"), image), path);
+        _defs.Add(Element("clipPath", new XAttribute("id", id), Element("path", new XAttribute("d", (string?)path.Attribute("d") ?? ""), new XAttribute("clip-rule", (string?)path.Attribute("fill-rule") ?? "evenodd"))));
+        return Element("g", Element("g", new XAttribute("clip-path", "url(#" + id + ")"), image), path);
     }
 }
