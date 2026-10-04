@@ -9,15 +9,20 @@ public sealed partial class StudioOutputActions {
     private readonly Func<string, Task> _revealFolder;
     private readonly Action<string> _reportError;
 
-    internal StudioOutputActions(Func<string, CancellationToken, Task> open, Func<string, Task> revealFolder, Action<string> reportError) {
+    internal StudioOutputActions(Func<string, CancellationToken, Task> open, Func<string, Task> revealFolder, Action<string> reportError, bool supportsFolderNavigation = true) {
+        SupportsFolderNavigation = supportsFolderNavigation;
         _open = open;
         _revealFolder = revealFolder;
         _reportError = reportError;
     }
 
-    private static bool HasLocation(string? location) => !string.IsNullOrWhiteSpace(location);
+    /// <summary>Whether this host can open or reveal a filesystem folder.</summary>
+    public bool SupportsFolderNavigation { get; }
 
-    private static bool IsLocal(string? location) => HasLocation(location) && OfficeStorageIdentity.GetLocalPath(location!) is not null;
+    private bool HasLocation(string? location) => !string.IsNullOrWhiteSpace(location) &&
+        (SupportsFolderNavigation || OfficeStorageIdentity.GetLocalPath(location) is not { } path || !Directory.Exists(path));
+
+    private bool IsLocal(string? location) => SupportsFolderNavigation && HasLocation(location) && OfficeStorageIdentity.GetLocalPath(location!) is not null;
 
     [RelayCommand(CanExecute = nameof(HasLocation))]
     private async Task OpenAsync(string? location, CancellationToken cancellationToken) {

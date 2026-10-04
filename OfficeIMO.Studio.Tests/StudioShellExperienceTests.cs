@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
+using Avalonia.Input;
+using Avalonia.Input.Raw;
 using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Features.Editor;
 using OfficeIMO.Studio.Features.Reader;
@@ -34,6 +36,15 @@ public sealed class StudioShellExperienceTests {
                 Assert.True(document.CanUndo);
                 Assert.False(undo.IsVisible);
                 CaptureToast(window, "export");
+                window.FindControl<Button>("CommandSearchButton")!.Focus();
+                var primary = OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control;
+                window.KeyPress(Key.Z, primary, PhysicalKey.None, null);
+                await document.UndoCommand.ExecutionTask!;
+                Assert.Single(document.Pages);
+                window.KeyPress(OperatingSystem.IsMacOS() ? Key.Z : Key.Y,
+                    OperatingSystem.IsMacOS() ? primary | RawInputModifiers.Shift : primary, PhysicalKey.None, null);
+                await document.RedoCommand.ExecutionTask!;
+                Assert.Equal(2, document.Pages.Count);
             } finally { window.Close(); }
             return true;
         }, CancellationToken.None);

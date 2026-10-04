@@ -9,7 +9,7 @@ namespace OfficeIMO.Studio.Features.Organizer;
 
 public sealed partial class PageExtractionPreviewViewModel : ObservableObject {
     private readonly Func<string, Task> _open;
-    private readonly Func<string, Task> _reveal;
+    private readonly Func<string, Task>? _reveal;
     private readonly IStudioLocalizer _localizer;
     [ObservableProperty] private string _pageRange;
     [ObservableProperty] private string? _errorMessage;
@@ -19,7 +19,7 @@ public sealed partial class PageExtractionPreviewViewModel : ObservableObject {
     [ObservableProperty] private string? _outputPath;
     [ObservableProperty] private bool _hasRecovery;
     internal PageExtractionPreviewViewModel(int pageCount, int[] pages, string destination, bool provider,
-        IStudioLocalizer localizer, Func<string, Task> open, Func<string, Task> reveal) {
+        IStudioLocalizer localizer, Func<string, Task> open, Func<string, Task>? reveal) {
         PageCount = pageCount; Destination = destination; _localizer = localizer; _open = open; _reveal = reveal;
         DestinationHint = localizer.Get(provider ? "Organizer.ExtractProviderHint" : "Organizer.ExtractLocalHint");
         _pageRange = string.Join(',', pages); UpdatePlan();
@@ -30,7 +30,7 @@ public sealed partial class PageExtractionPreviewViewModel : ObservableObject {
     public bool IsPreview => !HasResult;
     public bool CanApply => IsPreview && ErrorMessage is null && Pages.Count > 0;
     public bool CanOpenOutput => HasResult && OutputPath is not null;
-    public bool CanRevealOutput => CanOpenOutput && OfficeStorageIdentity.GetLocalPath(OutputPath!) is not null;
+    public bool CanRevealOutput => _reveal is not null && CanOpenOutput && OfficeStorageIdentity.GetLocalPath(OutputPath!) is not null;
     public string PageCountLabel => _localizer.Format("Organizer.ExtractPageCount", PageCount, Pages.Count);
     internal int[] SelectedPages => Pages.Select(page => page.SourcePage).ToArray();
     partial void OnPageRangeChanged(string value) { if (IsPreview) UpdatePlan(); }
@@ -62,7 +62,7 @@ public sealed partial class PageExtractionPreviewViewModel : ObservableObject {
     [RelayCommand(CanExecute = nameof(CanRevealOutput))]
     private async Task RevealOutputAsync() {
         if (!CanRevealOutput) return;
-        try { await _reveal(OfficeStorageIdentity.GetLocalPath(OutputPath!)!).ConfigureAwait(true); }
+        try { await _reveal!(OfficeStorageIdentity.GetLocalPath(OutputPath!)!).ConfigureAwait(true); }
         catch (Exception error) { ErrorMessage = error.Message; }
     }
 }

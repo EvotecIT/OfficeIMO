@@ -1,0 +1,15 @@
+<Project>
+  <ItemGroup>
+    <StudioLicense Include="$(MSBuildThisFileDirectory)../../LICENSE" Link="Licenses/OfficeIMO-MIT.txt" />
+    <StudioLicense Include="$(MSBuildThisFileDirectory)../../OfficeIMO.Core/Licenses/*.txt" Link="Licenses/%(Filename)%(Extension)" />
+    <StudioLicense Include="$(MSBuildThisFileDirectory)../../OfficeIMO.Core/THIRD-PARTY-NOTICES.md" Link="Licenses/OfficeIMO.Core-THIRD-PARTY-NOTICES.md" />
+    <StudioLicense Include="$(MSBuildThisFileDirectory)../../OfficeIMO.Pdf/Resources/sRGB-LICENSE.txt" Link="Licenses/sRGB-LICENSE.txt" />
+    <StudioLicense Include="$(MSBuildThisFileDirectory)../../OfficeIMO.Studio/OPEN_SOURCE.md" Link="Licenses/OPEN_SOURCE.md" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'OfficeIMO.Studio.iOS'">
+    <BundleResource Include="@(StudioLicense)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'OfficeIMO.Studio' and '$(OfficeIMOStudioMobile)' != 'true'">
+    <Content Include="@(StudioLicense)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

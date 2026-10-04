@@ -7,19 +7,13 @@
   <Style Selector="Window.apple Border.railIndicator"><Setter Property="IsVisible" Value="False" /></Style>
   <Style Selector="Window.apple Grid#NavigationRail ToggleButton.nav:checked /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioNavActiveBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
   <Style Selector="Window.apple Grid#NavigationRail ToggleButton.nav:checked"><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
-  <!-- Floating document tabs retain their selected state independently of hover and keyboard focus. -->
-  <Style Selector="Window.apple ListBox#DocumentTabs"><Setter Property="Padding" Value="4" /></Style>
-  <Style Selector="Window.apple ListBox#DocumentTabs ListBoxItem"><Setter Property="Margin" Value="0,0,4,0" /></Style>
-  <Style Selector="Window.apple Border.documentTab">
-    <Setter Property="CornerRadius" Value="9" /><Setter Property="Height" Value="34" />
-    <Setter Property="BorderThickness" Value="1" /><Setter Property="BorderBrush" Value="Transparent" />
-  </Style>
-  <Style Selector="Window.apple ListBoxItem:selected Border.documentTab">
-    <Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
-    <Setter Property="BoxShadow" Value="0 1 3 0 #18000000" />
-  </Style>
-  <Style Selector="Window.apple ListBoxItem:selected TextBlock.tabTitle"><Setter Property="FontWeight" Value="SemiBold" /></Style>
+  <!-- Document tabs sit in the toolbar; selection and keyboard focus remain distinct. -->
+  <Style Selector="Window.apple TabControl#DocumentTabs"><Setter Property="Padding" Value="0" /></Style>
+  <Style Selector="Window.apple Border.documentTab"><Setter Property="CornerRadius" Value="6" /><Setter Property="Height" Value="32" /></Style>
+  <Style Selector="Window.apple TabItem:selected Border.documentTab"><Setter Property="Background" Value="{DynamicResource StudioPanelBrush}" /></Style>
+  <Style Selector="Window.apple PathIcon.tabIcon"><Setter Property="IsVisible" Value="False" /></Style>
+  <Style Selector="Window.apple Grid.tabCloseHost"><Setter Property="Grid.Column" Value="0" /></Style>
+  <Style Selector="Window.apple TabItem:selected TextBlock.tabTitle"><Setter Property="FontWeight" Value="SemiBold" /></Style>
   <Style Selector="Window.apple Grid#NavigationRail ToggleButton.nav PathIcon"><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /></Style>
   <Style Selector="Window.apple Border.floating"><Setter Property="CornerRadius" Value="22" /><Setter Property="Padding" Value="8,5" /></Style>
   <Style Selector="Window.apple Button.icon, Window.apple ToggleButton.icon"><Setter Property="CornerRadius" Value="8" /></Style>
