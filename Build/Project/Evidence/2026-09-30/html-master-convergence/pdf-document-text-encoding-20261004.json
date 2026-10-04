@@ -472,5 +472,60 @@
       "PR worktree Ignore/PdfDocumentStringQualification (four-target feeds, final packed consumers, tests/review snapshots and cleanup receipts)"
     ],
     "retainedComparisonRunnerPurpose": "Next declared intent replay/prior-source controls"
+  },
+  "standaloneCiFollowThrough20261004": {
+    "recordedAtUtc": "2026-10-04T16:33:45.760173+00:00",
+    "head": "372942daadddbaa2d7b38293d43aa5e7db7893ef",
+    "mergeReady": false,
+    "failures": [
+      {
+        "job": "website-build / website-ci-untrusted / website-run",
+        "runId": 37211815910,
+        "jobId": 111464364194,
+        "observed": "Release-hub live GitHub fetch failed the existing completeness gate after207ms. Exact HTTP response/warnings absent from exception, so root cause remains unconfirmed.",
+        "gatePreserved": true
+      },
+      {
+        "job": "Workflow contracts / windows-latest / net8.0",
+        "runId": 37211815363,
+        "jobId": 111464362531,
+        "observed": "Annotation confirms job exceeded20minute maximum. No failed assertion in available log; no completed TRX artifact was produced.",
+        "timeoutRaised": false
+      }
+    ],
+    "comparison": {
+      "successfulWebsiteRun": 37215635710,
+      "enginePin": "ed66623b4e30c6436cb39631cede09d482609c30",
+      "failedEnginePin": "c97e6855ca9eaa53c2411ac11d8cf2a91dbb7182",
+      "credentialMode": "none",
+      "releaseGeneratorSha256": "c18d18482dfbef842d3705292b4b3ae1aeff2e2c664aa74f75dc5c3df2559236",
+      "releaseGeneratorByteIdentical": true,
+      "pipelineReleaseTaskUnchanged": true,
+      "newerPinChangesInComparedTaskFile": "API docs assemblies/xmls only, outside release task.",
+      "boundary": "Passing comparison uses different engine revision. Matching release-owner code supports one diagnostic retry; it does not prove the original transient/root cause."
+    },
+    "actions": "One selected-job rerun for each failure on the unchanged PR head, no code or workflow change, no approval bypass or manual hosted-review request.",
+    "remaining": [
+      "Delayed exact-head all-CI and paginated feedback recheck",
+      "Diagnose/reproduce if a failure repeats, then consolidate any necessary shared-owner fix",
+      "Merge only all gates settled, preserve evidence and clean owned worktree"
+    ],
+    "unchangedRechecks": 0,
+    "delayedFeedback": "Complete page0threads/reviews/raw+issuecomments/body reactions; no manual hosted request. Exact snapshot retained.",
+    "reruns": [
+      {
+        "runId": "37211815910",
+        "attempt": 2,
+        "initialVerifiedState": "in_progress",
+        "head": "372942daadddbaa2d7b38293d43aa5e7db7893ef"
+      },
+      {
+        "runId": "37211815363",
+        "attempt": 2,
+        "initialVerifiedState": "in_progress",
+        "head": "372942daadddbaa2d7b38293d43aa5e7db7893ef"
+      }
+    ],
+    "retainedEvidence": "Ignore/MasterConvergenceQualification/pdf-doc-encoding/ci-follow-through-372942daa"
   }
 }
