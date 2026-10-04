@@ -85,6 +85,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Ocr" />
+    <InternalsVisibleTo Include="OfficeIMO.AI" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Email" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Word" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Excel" />

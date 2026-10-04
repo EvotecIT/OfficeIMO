@@ -171,7 +171,7 @@ internal static partial class PdfReaderAdapter {
         OfficeDocumentAsset[] assets = BuildDocumentAssets(pages, source).ToArray();
         OfficeDocumentLink[] links = BuildDocumentLinks(pages, source).ToArray();
         OfficeDocumentFormField[] forms = BuildDocumentForms(pages, source).ToArray();
-        OfficeDocumentOcrCandidate[] ocrCandidates = BuildDocumentOcrCandidates(pages, source, assets).ToArray();
+        OfficeDocumentOcrCandidate[] ocrCandidates = BuildDocumentOcrCandidates(pages, source, assets, pdfOptions, cancellationToken).ToArray();
 
         return new OfficeDocumentReadResult {
             Kind = ReaderInputKind.Pdf,
@@ -352,10 +352,14 @@ internal static partial class PdfReaderAdapter {
         };
     }
 
-    private static IEnumerable<OfficeDocumentOcrCandidate> BuildDocumentOcrCandidates(IReadOnlyList<PdfLogicalPage> pages, SourceMetadata source, IReadOnlyList<OfficeDocumentAsset> assets) {
+    private static IEnumerable<OfficeDocumentOcrCandidate> BuildDocumentOcrCandidates(IReadOnlyList<PdfLogicalPage> pages, SourceMetadata source,
+        IReadOnlyList<OfficeDocumentAsset> assets, ReaderPdfOptions options, CancellationToken cancellationToken) {
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfLogicalPage page = pages[pageIndex];
-            if (page.Images.Count == 0 || HasMeaningfulNativeText(page)) {
+            bool nativeText = HasMeaningfulNativeText(page);
+            if (page.Images.Count == 0 || (nativeText && (!options.IncludeMixedPageOcrCandidates
+                || !HasSubstantialImageContent(page, options.MinimumMixedPageImageAreaRatio, cancellationToken)))) {
                 continue;
             }
 
@@ -366,7 +370,9 @@ internal static partial class PdfReaderAdapter {
             yield return new OfficeDocumentOcrCandidate {
                 Id = "pdf-page-" + pageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + pageIndex.ToString("D4", CultureInfo.InvariantCulture) + "-ocr-0000",
                 Kind = image == null ? "page" : "image",
-                Reason = "PDF page contains image content but no meaningful native text blocks.",
+                Reason = nativeText
+                    ? "PDF page contains substantial image content alongside native text; review whether OCR is needed for the image content."
+                    : "PDF page contains image content but no meaningful native text blocks.",
                 Confidence = 0.85D,
                 AssetId = asset?.Id,
                 ImageCount = page.Images.Count,
@@ -375,6 +381,25 @@ internal static partial class PdfReaderAdapter {
                 Region = BuildOcrCandidateRegion(page, image)
             };
         }
+    }
+
+    private static bool HasSubstantialImageContent(PdfLogicalPage page, double minimumRatio, CancellationToken cancellationToken) {
+        if (minimumRatio == 0) return true;
+        double pageArea = page.Width * page.Height;
+        if (!(pageArea > 0) || double.IsInfinity(pageArea) || double.IsNaN(pageArea)) return false;
+        double imageArea = 0;
+        foreach (PdfLogicalImage image in page.Images) {
+            cancellationToken.ThrowIfCancellationRequested();
+            foreach (PdfImagePlacement placement in image.Placements) {
+                cancellationToken.ThrowIfCancellationRequested();
+                double width = Math.Max(0, Math.Min(page.Width, placement.X + placement.Width) - Math.Max(0, placement.X));
+                double height = Math.Max(0, Math.Min(page.Height, placement.Y + placement.Height) - Math.Max(0, placement.Y));
+                double area = width * height;
+                if (!double.IsNaN(area) && !double.IsInfinity(area)) imageArea += area;
+                if (imageArea / pageArea >= minimumRatio) return true;
+            }
+        }
+        return false;
     }
 
     private static bool HasMeaningfulNativeText(PdfLogicalPage page) {

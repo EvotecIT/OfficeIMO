@@ -30,6 +30,22 @@ IReadOnlyList<ReaderChunk> chunks = reader
 
 For an encrypted PDF, register `AddPdfHandler(new ReaderPdfOptions { Password = password })` with a password supplied by the caller. The password is used locally to open the PDF and is not included in extracted content or metadata. PDF content-extraction permissions still apply.
 
+### Discover OCR needs on mixed pages
+
+The default policy emits candidates for image pages without native text. For a scanned body with a native footer, opt into mixed-page discovery:
+
+```csharp
+var reader = new OfficeDocumentReaderBuilder()
+    .AddPdfHandler(new ReaderPdfOptions {
+        IncludeMixedPageOcrCandidates = true,
+        MinimumMixedPageImageAreaRatio = 0.25
+    })
+    .Build();
+var document = reader.ReadDocument("mixed-invoice.pdf");
+```
+
+The image-area threshold filters small decorative images. It is a discovery heuristic, not proof that an image contains text or that native text covers the image. Native blocks remain available, while candidates and `ocr-needed` diagnostics disclose the additional review. Use `OfficeIMO.Pdf.Ocr` for rendered-page recognition, geometry-aware native-text merging and searchable output; the Reader adapter does not run an OCR provider.
+
 ### Read page-aware Markdown chunks
 
 ```csharp
