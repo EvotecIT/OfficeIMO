@@ -67,6 +67,24 @@ a row, so the first-row lane contains only OfficeIMO. Use full scans for the
 completed-row comparison, and keep cold versus warmed
 allocation and sampled process memory separate.
 
+## Numeric XML result shapes
+
+`ExcelNumericXmlReadBenchmarks` exercises numeric decoding through DataReader,
+rectangular arrays, and DataTable. It uses 2,500 and 25,000 rows with both
+`NumericAsDecimal` settings. The worksheet uses UTF-16 so the streaming XML
+fallback can be measured independently of the indexed reader's size boundary.
+Setup checks every header, value, row count, and numeric result type. Each timed
+operation opens, consumes, and disposes its result, checking the row count and
+aggregate value. Generated fixtures are deleted during cleanup.
+
+```powershell
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter '*ExcelNumericXmlReadBenchmarks*' --priority Normal --warmupCount 24 --iterationCount 12 --invocationCount 4 --unrollFactor 1 --outliers DontRemove --artifacts ./Ignore/Benchmarks/numeric-xml-read
+```
+
+This OfficeIMO-only lane supports before/after comparisons within each API and
+number mode. The result shapes have different allocation contracts, so they do
+not form a ranking against one another.
+
 ## Snapshot and profile artifacts
 
 ```powershell
