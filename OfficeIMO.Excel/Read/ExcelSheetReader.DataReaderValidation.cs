@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel {
                 ?? throw new InvalidDataException($"Worksheet '{_sheetName}' has no worksheet root.");
             foreach (Cell cell in worksheet.Descendants<Cell>()) {
                 ct.ThrowIfCancellationRequested();
-                string reference = cell.CellReference?.Value ?? "(unknown cell)";
+                var reference = new XmlCoordinateReference(cell.CellReference?.Value);
                 if (cell.StyleIndex?.Value is uint styleIndex) {
                     ValidateCellStyleReference(styleIndex, reference);
                 }
@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel {
 
                 throw new NotSupportedException(
                     $"Data-reader projection cannot safely expand the shared-formula follower " +
-                    $"'{_sheetName}'!{reference}. Read the workbook through ExcelDocument when resolved " +
+                    $"'{_sheetName}'!{reference.ToString()}. Read the workbook through ExcelDocument when resolved " +
                     "shared-formula text is required.");
             }
         }
@@ -84,7 +84,7 @@ namespace OfficeIMO.Excel {
                             || reader.Depth != sheetDataDepth + 1 || !spreadsheetElement) {
                             bounds = null;
                         } else {
-                            bounds.BeginRow(reader.GetAttribute("r"));
+                            bounds.BeginRow(ReadXmlReferenceAttribute(reader).Text);
                             if (reader.IsEmptyElement) bounds.EndRow();
                             else rowDepth = reader.Depth;
                         }
@@ -102,16 +102,15 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                string? rawReference = reader.GetAttribute("r");
+                XmlCoordinateReference reference = ReadXmlReferenceAttribute(reader);
                 if (bounds != null) {
                     if (rowDepth >= 0 && reader.Depth == rowDepth + 1
                         && (reader.NamespaceURI == SpreadsheetNamespace || reader.NamespaceURI == StrictSpreadsheetNamespace)) {
-                        bounds.AddCell(rawReference);
+                        bounds.AddCell(reference.Text);
                     } else {
                         bounds = null;
                     }
                 }
-                string reference = rawReference ?? "(unknown cell)";
                 string? styleIndex = reader.GetAttribute("s");
                 if (styleIndex != null) {
                     ValidateCellStyleReference(styleIndex, reference);
@@ -188,7 +187,7 @@ namespace OfficeIMO.Excel {
 
                 throw new NotSupportedException(
                     $"Data-reader projection cannot safely expand the shared-formula follower " +
-                    $"'{_sheetName}'!{reference}. Read the workbook through ExcelDocument when resolved " +
+                    $"'{_sheetName}'!{reference.ToString()}. Read the workbook through ExcelDocument when resolved " +
                     "shared-formula text is required.");
             }
             ct.ThrowIfCancellationRequested();
@@ -201,7 +200,7 @@ namespace OfficeIMO.Excel {
         private static string ReadSimpleElementText(
             XmlReader reader,
             CancellationToken ct,
-            string cellReference) {
+            XmlCoordinateReference cellReference) {
             int elementDepth = reader.Depth;
             string elementName = reader.LocalName;
             string elementNamespace = reader.NamespaceURI;
@@ -212,32 +211,32 @@ namespace OfficeIMO.Excel {
                 || !string.Equals(reader.LocalName, elementName, StringComparison.Ordinal)
                 || !string.Equals(reader.NamespaceURI, elementNamespace, StringComparison.Ordinal)) {
                 throw new InvalidDataException(
-                    $"Worksheet cell {cellReference} element '{elementName}' must contain only text.");
+                    $"Worksheet cell {cellReference.ToString()} element '{elementName}' must contain only text.");
             }
 
             return value;
         }
 
-        private void ValidateCellStyleReference(string rawIndex, string reference) {
+        private void ValidateCellStyleReference(string rawIndex, XmlCoordinateReference reference) {
             if (TryParseUInt(rawIndex, out uint styleIndex)) {
                 ValidateCellStyleReference(styleIndex, reference);
                 return;
             }
 
             throw new InvalidDataException(
-                $"Worksheet '{_sheetName}' cell {reference} contains an invalid cell style index.");
+                $"Worksheet '{_sheetName}' cell {reference.ToString()} contains an invalid cell style index.");
         }
 
-        private void ValidateCellStyleReference(uint styleIndex, string reference) {
+        private void ValidateCellStyleReference(uint styleIndex, XmlCoordinateReference reference) {
             if (styleIndex < (uint)Styles.CellFormatCount) {
                 return;
             }
 
             throw new InvalidDataException(
-                $"Worksheet '{_sheetName}' cell {reference} references a missing cell style.");
+                $"Worksheet '{_sheetName}' cell {reference.ToString()} references a missing cell style.");
         }
 
-        private void ValidateSharedStringReference(string? rawIndex, string reference) {
+        private void ValidateSharedStringReference(string? rawIndex, XmlCoordinateReference reference) {
             var items = _sharedStringItems ??= _sst.GetItems();
             if (TryParseSharedStringIndex(rawIndex, out int index)
                 && (uint)index < (uint)items.Count) {
@@ -245,7 +244,7 @@ namespace OfficeIMO.Excel {
             }
 
             throw new InvalidDataException(
-                $"Worksheet '{_sheetName}' cell {reference} references a missing shared string.");
+                $"Worksheet '{_sheetName}' cell {reference.ToString()} references a missing shared string.");
         }
 
     }

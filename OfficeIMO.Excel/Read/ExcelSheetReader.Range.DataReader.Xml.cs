@@ -588,7 +588,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    int rowIndex = ParsePositiveIntAttribute(_reader.GetAttribute("r"));
+                    int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(_reader).Text);
                     if (rowIndex <= 0) {
                         rowIndex = _nextWorksheetRowIndex;
                     }
@@ -835,7 +835,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    int rowIndex = ParsePositiveIntAttribute(_reader.GetAttribute("r"));
+                    int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(_reader).Text);
                     if (rowIndex <= 0) {
                         rowIndex = _nextWorksheetRowIndex;
                     }

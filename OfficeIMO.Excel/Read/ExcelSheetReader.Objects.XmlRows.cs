@@ -168,15 +168,15 @@ namespace OfficeIMO.Excel {
         }
 
         private static int GetXmlCellColumnIndex(XmlReader cellReader, ref int nextColumnIndex) {
-            return GetXmlCellColumnIndex(cellReader.GetAttribute("r"), ref nextColumnIndex);
+            return GetXmlCellColumnIndex(ReadXmlReferenceAttribute(cellReader).Text, ref nextColumnIndex);
         }
 
-        private static int GetXmlCellColumnIndex(string? reference, ref int nextColumnIndex) {
+        private static int GetXmlCellColumnIndex(ReadOnlySpan<char> reference, ref int nextColumnIndex) {
             int columnIndex = TryGetExpectedSingleLetterColumnIndex(reference, nextColumnIndex, out int expectedColumnIndex)
                 ? expectedColumnIndex
                 : A1.ParseColumnIndexFromCellReferenceWithKnownRowFast(reference);
             if (columnIndex <= 0) {
-                columnIndex = string.IsNullOrEmpty(reference) ? nextColumnIndex : 0;
+                columnIndex = reference.IsEmpty ? nextColumnIndex : 0;
             }
 
             if (columnIndex > 0) {
@@ -186,14 +186,14 @@ namespace OfficeIMO.Excel {
             return columnIndex;
         }
 
-        private static bool TryGetExpectedSingleLetterColumnIndex(string? reference, int expectedColumnIndex, out int columnIndex) {
+        private static bool TryGetExpectedSingleLetterColumnIndex(ReadOnlySpan<char> reference, int expectedColumnIndex, out int columnIndex) {
             columnIndex = 0;
             if ((uint)(expectedColumnIndex - 1) >= 26U
-                || string.IsNullOrEmpty(reference)) {
+                || reference.IsEmpty) {
                 return false;
             }
 
-            string text = reference!;
+            ReadOnlySpan<char> text = reference;
             if (text.Length < 2) {
                 return false;
             }

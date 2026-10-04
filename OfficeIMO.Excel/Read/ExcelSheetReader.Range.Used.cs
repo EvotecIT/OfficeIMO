@@ -74,7 +74,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                    int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                     bool hasExplicitRowIndex = rowIndex > 0;
                     if (!hasExplicitRowIndex) {
                         rowIndex = nextRowIndex;
@@ -106,7 +106,7 @@ namespace OfficeIMO.Excel {
                         int cellColumn;
                         if (hasExplicitRowIndex) {
                             cellColumn = GetXmlCellColumnIndex(reader, ref nextColumnIndex);
-                        } else if (A1.TryParseCellReferenceFast(reader.GetAttribute("r"), out int parsedRow, out int parsedColumn)) {
+                        } else if (A1.TryParseCellReferenceFast(ReadXmlReferenceAttribute(reader).Text, out int parsedRow, out int parsedColumn)) {
                             if (parsedRow > 0) {
                                 cellRow = parsedRow;
                             }

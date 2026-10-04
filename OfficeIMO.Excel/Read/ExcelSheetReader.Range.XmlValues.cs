@@ -648,12 +648,12 @@ namespace OfficeIMO.Excel {
                 : rawText;
         }
 
-        private static int ParsePositiveIntAttribute(string? value) {
-            if (string.IsNullOrEmpty(value)) {
+        private static int ParsePositiveIntAttribute(ReadOnlySpan<char> value) {
+            if (value.IsEmpty) {
                 return 0;
             }
 
-            string text = value!;
+            ReadOnlySpan<char> text = value;
             int result = 0;
             for (int i = 0; i < text.Length; i++) {
                 int digit = text[i] - '0';
