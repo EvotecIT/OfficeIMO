@@ -71,16 +71,26 @@ internal sealed partial class CslEvaluator {
     }
 
     private CslText Layout(XElement element, CslContext context, int depth) {
-        CslText[] fields = element.Elements().Select(child => Evaluate(child, context, depth + 1)).ToArray();
+        IEnumerable<CslText> fields = element.Elements().Select(child => Evaluate(child, context, depth + 1));
         if (context.Scope != XElementScope.Bibliography || context.Sorting ||
             _style.Root.Element(CslStyle.Namespace + "bibliography")?.Attribute("second-field-align") == null)
             return Join(fields, string.Empty);
 
-        int first = Array.FindIndex(fields, field => !field.IsEmpty);
-        if (first < 0) return CslText.Empty;
-        CslText remaining = Join(fields.Skip(first + 1), string.Empty);
-        if (remaining.IsEmpty) return fields[first];
-        return Join(new[] { fields[first].MarkFirstAlignedField(), remaining }, string.Empty);
+        using IEnumerator<CslText> iterator = fields.GetEnumerator();
+        CslText first = CslText.Empty;
+        while (iterator.MoveNext()) {
+            if (iterator.Current.IsEmpty) continue;
+            first = iterator.Current;
+            break;
+        }
+        if (first.IsEmpty) return CslText.Empty;
+
+        IEnumerable<CslText> Remaining() {
+            while (iterator.MoveNext()) yield return iterator.Current;
+        }
+        CslText remaining = Join(Remaining(), string.Empty);
+        if (remaining.IsEmpty) return first;
+        return Join(new[] { first.MarkFirstAlignedField(), remaining }, string.Empty);
     }
 
     private CslText Children(XElement element, CslContext context, int depth, bool suppressEmptyVariables = false) {
