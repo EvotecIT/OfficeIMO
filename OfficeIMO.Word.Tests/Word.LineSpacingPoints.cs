@@ -73,6 +73,9 @@ namespace OfficeIMO.Tests {
             Assert.Null(paragraph.LineSpacing);
             Assert.Null(paragraph.LineSpacingPoints);
             Assert.Equal(WordLineSpacingRule.AtLeast, paragraph.LineSpacingRule);
+            using WordDocument reopened = WordDocument.Load(new MemoryStream(document.ToBytes()));
+            Assert.Null(reopened.Paragraphs[0].LineSpacing);
+            Assert.Equal(WordLineSpacingRule.AtLeast, reopened.Paragraphs[0].LineSpacingRule);
         }
     }
 }

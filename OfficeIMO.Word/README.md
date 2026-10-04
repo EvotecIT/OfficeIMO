@@ -67,7 +67,7 @@ document.Save();
 
 ## Paragraph formatting and inheritance
 
-Use `LineSpacing = 360` with `LineSpacingRule = WordLineSpacingRule.Auto` for 1.5 lines. `LineSpacingPoints = 18` selects exact spacing when the paragraph has no explicit rule; declare `AtLeast` to use an 18-point minimum. Assigning `null` to `LineSpacingPoints` removes its numeric value and retains an explicit rule. Native DOC saving carries document-default spacing into root paragraph styles, preserving derived-style overrides without changing the source styles.
+Use `LineSpacing = 360` with `LineSpacingRule = WordLineSpacingRule.Auto` for 1.5 lines. `LineSpacingPoints = 18` selects exact spacing when the paragraph has no explicit rule; declare `AtLeast` to use an 18-point minimum. Assigning `null` to `LineSpacingPoints` removes its numeric value and retains an authored rule in DOCX. Word applies a spacing rule only with a numeric value in the same declaration; otherwise the complete value/rule pair is inherited. Native DOC saving carries document-default spacing into root paragraph styles without changing the source styles.
 
 Paragraph pagination controls support explicit on, off, and inherited values. Use the nullable `*Override` properties to disable a setting enabled by a paragraph style, or set them to `null` to remove direct formatting:
 

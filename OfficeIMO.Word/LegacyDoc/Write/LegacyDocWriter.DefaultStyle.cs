@@ -54,11 +54,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 Style style = (Style)original.CloneNode(true);
                 StyleParagraphProperties properties = style.StyleParagraphProperties ??= new StyleParagraphProperties();
                 SpacingBetweenLines spacing = properties.SpacingBetweenLines ??= new SpacingBetweenLines();
-                bool authoredLine = spacing.Line != null;
+                bool authoredLine = !string.IsNullOrWhiteSpace(spacing.Line?.Value);
+                if (!authoredLine && !string.IsNullOrWhiteSpace(defaults.Line?.Value)) {
+                    // Word inherits the numeric value and its interpretation
+                    // together. A rule without a local value is not an override.
+                    spacing.Line = defaults.Line!.Value;
+                    spacing.LineRule = defaults.LineRule?.Value ?? LineSpacingRuleValues.Auto;
+                }
                 foreach (var attribute in defaults.GetAttributes()) {
-                    // An authored line without a rule means automatic spacing,
-                    // even when document defaults specify a fixed-height rule.
-                    if (attribute.LocalName == "lineRule" && authoredLine && spacing.LineRule == null) continue;
+                    // The line/rule pair is handled above. An authored line
+                    // without a rule means automatic spacing.
+                    if (attribute.LocalName is "line" or "lineRule") continue;
                     if (!spacing.GetAttributes().Any(existing => existing.LocalName == attribute.LocalName && existing.NamespaceUri == attribute.NamespaceUri)) {
                         spacing.SetAttribute(attribute);
                     }

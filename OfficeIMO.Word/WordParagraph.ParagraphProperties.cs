@@ -375,7 +375,9 @@ namespace OfficeIMO.Word {
             set {
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 var spacing = props.SpacingBetweenLines ?? new SpacingBetweenLines();
-                spacing.Line = value?.ToString();
+                spacing.Line = value.HasValue
+                    ? new StringValue(value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                    : null;
                 props.SpacingBetweenLines = spacing;
             }
         }

@@ -295,6 +295,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var styledCells = new LegacyDocWritableTableCell[writableCells.Count];
             for (int columnIndex = 0; columnIndex < writableCells.Count; columnIndex++) {
                 LegacyDocWritableTableCell cell = writableCells[columnIndex];
+                LegacyDocWritableParagraphFormatting originalParagraphFormatting = cell.ParagraphFormatting;
+                LegacyDocWritableParagraphFormatting conditionalParagraphFormatting = LegacyDocWritableParagraphFormatting.Plain;
+                TableStyleOverrideValues? paragraphConditionalType = null;
                 foreach (LegacyDocTableConditionalStyle conditionalStyle in conditionalStyles.Styles) {
                     if (!AppliesToCell(conditionalStyle.Type, tableLook, conditionalStyles.RowBandSize, conditionalStyles.ColumnBandSize, rowIndex, rowCount, columnIndex, writableCells.Count)) {
                         continue;
@@ -342,7 +345,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     }
 
                     if (conditionalStyle.ParagraphFormatting.HasFormatting) {
-                        cell = cell.WithParagraphFormatting(conditionalStyle.ParagraphFormatting.WithInheritedParagraphFormatting(cell.ParagraphFormatting));
+                        // Derived declarations occur first within each condition;
+                        // the base fills missing properties. A later, more specific
+                        // condition overrides the previously resolved condition.
+                        conditionalParagraphFormatting = paragraphConditionalType == conditionalStyle.Type
+                            ? conditionalParagraphFormatting.WithInheritedParagraphFormatting(conditionalStyle.ParagraphFormatting)
+                            : conditionalStyle.ParagraphFormatting.WithInheritedParagraphFormatting(conditionalParagraphFormatting);
+                        paragraphConditionalType = conditionalStyle.Type;
+                        cell = cell.WithParagraphFormatting(conditionalParagraphFormatting.WithInheritedParagraphFormatting(originalParagraphFormatting));
                     }
 
                     if (conditionalStyle.RunFormatting.HasFormatting) {

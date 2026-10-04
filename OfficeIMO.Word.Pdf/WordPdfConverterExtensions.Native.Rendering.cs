@@ -205,7 +205,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 string headingText = GetNativeHeadingText(renderContent, runs, paragraph, nativeFontMap, hasEquationContent);
-                RenderNativeHeading(pdf, headingLevel, headingText, objectAlign, headingColor, paragraph, paragraphStyle, nativeFontMap, headingLink.LinkUri, headingLink.LinkDestinationName, headingLink.LinkContents);
+                RenderNativeHeading(pdf, headingLevel, headingText, objectAlign, headingColor, paragraph, paragraphStyle, nativeDefaults, nativeFontMap, headingLink.LinkUri, headingLink.LinkDestinationName, headingLink.LinkContents);
                 if (CreateNativeBottomBorderRuleStyle(paragraph, paragraphStyle) is { } headingRuleStyle) {
                     pdf.HR(style: headingRuleStyle);
                 }
@@ -900,8 +900,8 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RenderNativeHeading(INativePdfFlow pdf, int level, string text, PdfCore.PdfAlign align, PdfCore.PdfColor? color, WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle, NativeFontMap nativeFontMap, string? linkUri = null, string? linkDestinationName = null, string? linkContents = null) {
-            PdfCore.PdfHeadingStyle style = CreateNativeWordHeadingStyle(level, paragraph, paragraphStyle, nativeFontMap);
+        private static void RenderNativeHeading(INativePdfFlow pdf, int level, string text, PdfCore.PdfAlign align, PdfCore.PdfColor? color, WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap, string? linkUri = null, string? linkDestinationName = null, string? linkContents = null) {
+            PdfCore.PdfHeadingStyle style = CreateNativeWordHeadingStyle(level, paragraph, paragraphStyle, nativeDefaults, nativeFontMap);
             string normalizedText = NormalizeNativeDirectText(text);
             if (string.IsNullOrWhiteSpace(normalizedText)) {
                 return;
@@ -971,7 +971,7 @@ namespace OfficeIMO.Word.Pdf {
                 .Replace('\t', ' ');
         }
 
-        private static PdfCore.PdfHeadingStyle CreateNativeWordHeadingStyle(int level, WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle, NativeFontMap nativeFontMap) {
+        private static PdfCore.PdfHeadingStyle CreateNativeWordHeadingStyle(int level, WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
             double fontSize = level switch {
                 1 => 16D,
@@ -993,7 +993,8 @@ namespace OfficeIMO.Word.Pdf {
                 style.FontSize = declaredFontSize;
             }
 
-            if (HasNativeHeadingDeclaredLineHeight(paragraph, styleDefaults) && paragraphStyle.LineHeight.HasValue) {
+            if (ResolveNativeParagraphLineSpacing(paragraph, styleDefaults, nativeDefaults).Value.HasValue && paragraphStyle.LineHeight.HasValue) {
+                style.FontSize = ResolveNativeParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults);
                 style.LineHeight = paragraphStyle.LineHeight.Value;
             }
 
@@ -1028,12 +1029,6 @@ namespace OfficeIMO.Word.Pdf {
 
             return null;
         }
-
-        private static bool HasNativeHeadingDeclaredLineHeight(WordParagraph paragraph, NativeParagraphStyleDefaults styleDefaults) =>
-            paragraph.LineSpacing.HasValue ||
-            paragraph.LineSpacingPoints.HasValue ||
-            styleDefaults.LineHeight.HasValue ||
-            styleDefaults.LineSpacingPoints.HasValue;
 
         private static bool HasNativeHeadingDeclaredSpacingBefore(WordParagraph paragraph, NativeParagraphStyleDefaults styleDefaults) =>
             paragraph.LineSpacingBeforePoints.HasValue || styleDefaults.SpacingBefore.HasValue;

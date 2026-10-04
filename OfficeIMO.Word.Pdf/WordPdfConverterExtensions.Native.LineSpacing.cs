@@ -6,8 +6,10 @@ namespace OfficeIMO.Word.Pdf {
         // Retain authored units until the effective paragraph font is resolved. An
         // automatic value is a multiplier, not a height measured with the style font.
         private readonly record struct NativeLineSpacing(double? Value, W.LineSpacingRuleValues? Rule) {
+            // Word ignores a rule without a value in the same declaration.
+            // Inherit the complete pair so its numeric units do not change.
             public NativeLineSpacing Inherit(NativeLineSpacing inherited) =>
-                new(Value ?? inherited.Value, Rule ?? inherited.Rule);
+                Value.HasValue ? this : inherited;
 
             public double? Resolve(double fontSize, double naturalLineHeight) {
                 if (!Value.HasValue) return null;
