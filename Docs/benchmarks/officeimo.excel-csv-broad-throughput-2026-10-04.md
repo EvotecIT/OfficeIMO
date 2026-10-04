@@ -178,6 +178,25 @@ all outliers and use fixed placement, but do not rotate cross-engine order;
 the busy-host timing limits still apply. General export throughput remains
 an open target.
 
+## macOS conformance
+
+The [macOS evidence packet](excel-csv-broad-throughput-2026-10-04/macos-conformance.json)
+records the integrated source at `a97198615` on Apple M4, macOS 27.0.1 and
+.NET SDK 10.0.112. The clean detached worktree passes all 638 CSV tests and
+5,376 Excel tests, with five existing Excel skips. Both comparison projects
+build for .NET 10.
+
+BenchmarkDotNet Dry runs complete 133 CSV and 22 Excel comparison cases with
+their existing complete-output setup validators. The CSV cases cover text,
+file and DataReader writing, async reads, wide async reads, typed scans,
+automatic mapping, custom delimiters and the 65K corpus. Excel covers compact
+DataReader export, 25,000/250,000/1,000,000-row complete reads and the 65K
+corpus. The packet retains each case, report hash, binary hash and test result.
+
+These runs establish conformance on ARM64. Dry timing and allocation are not
+ranked, and concurrent CI and simulator activity prevents a quiet-host timing
+claim. Portable throughput and retained/peak-memory budgets remain open.
+
 ## Million-row memory and output checks
 
 The separate CSV memory lane measures 100,000 and 1,000,000 plain/multiline rows,
