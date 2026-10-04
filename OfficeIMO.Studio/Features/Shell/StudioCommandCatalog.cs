@@ -33,7 +33,8 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
         Add("Undo", "Undo", "Undo the last document edit.", "Edit", document.UndoCommand,
             () => Loaded() ?? (!document.CanUndo ? Text("NoUndo", "There is no edit to undo.") : null), shortcut: modifier + "Z");
         Add("Redo", "Redo", "Restore the last undone edit.", "Edit", document.RedoCommand,
-            () => Loaded() ?? (!document.CanRedo ? Text("NoRedo", "There is no edit to redo.") : null), shortcut: StudioShortcutLabels.Format("Ctrl+Shift+Z"));
+            () => Loaded() ?? (!document.CanRedo ? Text("NoRedo", "There is no edit to redo.") : null),
+            shortcut: OperatingSystem.IsMacOS() || OperatingSystem.IsIOS() ? StudioShortcutLabels.Format("Ctrl+Shift+Z") : "Ctrl+Y");
         Add("Read", "Read document", "Return to the document reading workspace.", "Read", document.ShowViewModeCommand, Loaded, workspace: true);
         Add("FocusReading", "Focus reading", "Hide document tools and panes, or restore the workspace.", "Read", document.ToggleFocusReadingCommand, Loaded, shortcut: "F9");
         Add("Comment", "Comment and review", "Add annotations and review existing comments.", "Review", document.ShowAnnotateModeCommand, Loaded, true, workspace: true);

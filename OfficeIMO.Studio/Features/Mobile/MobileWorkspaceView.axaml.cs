@@ -32,6 +32,7 @@ public sealed partial class MobileWorkspaceView : UserControl {
         InitializeComponent();
         InitializeTouchInput();
         InitializeNavigation();
+        CommandPalette.UseTouchPresentation();
         MobileAssistant.ManageConnectionsAsync = connections => ShowDialogAsync<bool>(
             new Features.Assistant.ConnectionsDialogContent { DataContext = connections });
         SizeChanged += (_, _) => UpdateLayoutMode();
@@ -49,6 +50,7 @@ public sealed partial class MobileWorkspaceView : UserControl {
     internal MainWindowViewModel? Document => DataContext as MainWindowViewModel;
 
     private void ObserveDocument() {
+        if (!ReferenceEquals(_observedDocument, Document)) CommandPalette.Dismiss();
         if (_observedDocument is not null) {
             _observedDocument.PropertyChanged -= OnDocumentChanged;
             _noteDrafts[_observedDocument] = NoteText.Text ?? string.Empty;

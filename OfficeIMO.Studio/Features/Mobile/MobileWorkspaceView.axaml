@@ -4,7 +4,7 @@
              xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
              xmlns:infra="using:OfficeIMO.Studio.Infrastructure" xmlns:ai="using:OfficeIMO.Studio.Features.Assistant"
              x:Class="OfficeIMO.Studio.Features.Mobile.MobileWorkspaceView" x:DataType="shell:MainWindowViewModel"
-             FontFamily="Helvetica Neue" Foreground="{DynamicResource StudioTextBrush}">
+             Foreground="{DynamicResource StudioTextBrush}">
   <UserControl.Styles><StyleInclude Source="MobileWorkspaceStyles.axaml"/></UserControl.Styles>
   <Grid>
   <SplitView x:Name="ApplicationNavigation" OpenPaneLength="196" PanePlacement="Left" DisplayMode="Inline"
@@ -12,7 +12,11 @@
     <SplitView.Pane>
       <Grid x:Name="ApplicationSidebar" RowDefinitions="Auto,*,Auto" Margin="10,12">
         <TextBlock Text="OfficeIMO Studio" FontSize="18" FontWeight="SemiBold" Margin="12,10,0,22"/>
-        <StackPanel Grid.Row="1" Spacing="5">
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="5">
+          <Button x:Name="CommandSearchButton" Classes="touch" Click="OnCommandsClick" HorizontalContentAlignment="Stretch" AutomationProperties.Name="{loc:Loc Commands.PaletteTitle}">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12"><PathIcon Data="{StaticResource IconSearch}"/><TextBlock Grid.Column="1" Text="{loc:Loc Commands.PaletteTitle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/></Grid>
+          </Button>
           <infra:StudioRadioToggle Classes="appNavigation" Command="{Binding Commands[Home]}" IsChecked="{Binding IsHomeMode, Mode=OneWay}" Click="OnApplicationNavigationClick" AutomationProperties.Name="Home">
             <StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource IconHome}" Width="18" Height="18"/><TextBlock Text="{loc:Loc MainWindow.Home}" VerticalAlignment="Center"/></StackPanel>
           </infra:StudioRadioToggle>
@@ -29,6 +33,7 @@
             <StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource IconJobs}" Width="18" Height="18"/><TextBlock Text="{loc:Loc Jobs.Title}" VerticalAlignment="Center"/></StackPanel>
           </infra:StudioRadioToggle>
         </StackPanel>
+        </ScrollViewer>
         <infra:StudioRadioToggle Grid.Row="2" Classes="appNavigation" Command="{Binding Commands[Settings]}" IsChecked="{Binding IsSettingsMode, Mode=OneWay}" Click="OnApplicationNavigationClick" AutomationProperties.Name="Settings">
           <StackPanel Orientation="Horizontal" Spacing="12"><PathIcon Data="{StaticResource IconSettings}" Width="18" Height="18"/><TextBlock Text="{loc:Loc Settings.Settings}" VerticalAlignment="Center"/></StackPanel>
         </infra:StudioRadioToggle>
@@ -225,5 +230,6 @@
       </Grid>
     </Border>
   </Border>
+  <shell:StudioCommandPalette x:Name="CommandPalette" IsVisible="False"/>
   </Grid>
 </UserControl>

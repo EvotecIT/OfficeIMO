@@ -16,12 +16,12 @@ public sealed partial class MobileWorkspaceView {
 
     internal void SetInitializing(bool value) {
         _initializing = value;
-        ApplicationNavigation.IsEnabled = !value && !DialogScrim.IsVisible;
+        ApplicationNavigation.IsEnabled = !value && !DialogScrim.IsVisible && !CommandPalette.IsOpen;
     }
 
     /// <summary>Presents the shared review inside the application and cancels when its host detaches.</summary>
     internal async Task<T?> ShowDialogAsync<T>(StudioDialogContent content) {
-        if (_dismissDialog is not null || SheetScrim.IsVisible || !this.IsAttachedToVisualTree()) {
+        if (_dismissDialog is not null || SheetScrim.IsVisible || CommandPalette.IsOpen || !this.IsAttachedToVisualTree()) {
             content.Dismissed();
             return default;
         }

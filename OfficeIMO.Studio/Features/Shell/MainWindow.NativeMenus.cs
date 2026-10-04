@@ -27,7 +27,7 @@ public sealed partial class MainWindow {
         }
 
         var close = new AsyncRelayCommand(CloseSelectedDocumentTabAsync, () => TabHost.HasTabs);
-        var reopen = new AsyncRelayCommand(TabHost.ReopenClosedTabAsync);
+        var reopen = new AsyncRelayCommand(TabHost.ReopenClosedTabAsync, () => TabHost.CanReopenClosedTab);
         var open = Item("Open", "Meta+O"); open.Header = Text("Open");
         var saveAs = Item("SaveAs", "Meta+Shift+S"); saveAs.Header = Text("SaveAs");
         var file = Group("File", open, new NativeMenuItemSeparator(), Item("Save", "Meta+S"), saveAs,
@@ -81,7 +81,23 @@ public sealed partial class MainWindow {
             new NativeMenuItemSeparator(), Action("NextTab", () => TabHost.SelectRelativeTab(false), "Control+Tab"),
             Action("PreviousTab", () => TabHost.SelectRelativeTab(true), "Control+Shift+Tab"),
             new NativeMenuItem(Text("ReopenTab")) { Command = reopen, Gesture = KeyGesture.Parse("Meta+Shift+T") });
-        window.Menu!.NeedsUpdate += (_, _) => fullscreen.Header = Text(WindowState == WindowState.FullScreen ? "LeaveFullScreen" : "FullScreen");
+        int windowActions = window.Menu!.Items.Count;
+        window.Menu.NeedsUpdate += (_, _) => {
+            fullscreen.Header = Text(WindowState == WindowState.FullScreen ? "LeaveFullScreen" : "FullScreen");
+            reopen.NotifyCanExecuteChanged();
+            while (window.Menu.Items.Count > windowActions) window.Menu.Items.RemoveAt(windowActions);
+            if (!TabHost.HasTabs) return;
+            window.Menu.Items.Add(new NativeMenuItemSeparator());
+            foreach (var tab in TabHost.Tabs) {
+                window.Menu.Items.Add(new NativeMenuItem(tab.Title) {
+                    ToggleType = MenuItemToggleType.Radio,
+                    IsChecked = ReferenceEquals(tab, TabHost.SelectedTab),
+                    Command = new RelayCommand(() => {
+                        if (TabHost.Tabs.Contains(tab)) TabHost.SelectedTab = tab;
+                    })
+                });
+            }
+        };
         // AppKit's exporter keeps the attached root menu identity across document switches.
         var menus = NativeMenu.GetMenu(this);
         bool attach = menus is null;

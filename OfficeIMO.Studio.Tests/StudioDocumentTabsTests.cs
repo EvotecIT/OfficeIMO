@@ -54,8 +54,22 @@ public sealed class StudioDocumentTabsTests {
                     Layout(window, 900);
                     Assert.Same(search, window.FocusManager!.GetFocusedElement());
                     AssertVisibleInStrip(tabs, tabs.ContainerFromIndex(0)!);
+                    if (OperatingSystem.IsMacOS()) {
+                        window.KeyPress(Key.OemCloseBrackets, RawInputModifiers.Meta | RawInputModifiers.Shift, PhysicalKey.None, null);
+                        Assert.Same(window.TabHost.Tabs[1], window.TabHost.SelectedTab);
+                        window.KeyPress(Key.OemOpenBrackets, RawInputModifiers.Meta | RawInputModifiers.Shift, PhysicalKey.None, null);
+                        Assert.Same(window.TabHost.Tabs[0], window.TabHost.SelectedTab);
+                    }
                     var close = tabs.ContainerFromIndex(0)!.GetVisualDescendants().OfType<Button>().Single();
                     Assert.Equal("Close Document 1.pdf", ControlAutomationPeer.CreatePeerForElement(close)!.GetName());
+
+                    // Selecting a document through the native menu must not leave commands targeting the previous tab.
+                    Task palette = window.ShowCommandPaletteAsync();
+                    Layout(window, 900);
+                    Assert.True(window.CommandPaletteControl.IsOpen);
+                    window.TabHost.SelectedTab = window.TabHost.Tabs[1];
+                    await palette;
+                    Assert.False(window.CommandPaletteControl.IsOpen);
 
                     Layout(window, 390);
                     var picker = window.FindControl<ComboBox>("CompactDocumentPicker")!;
@@ -67,7 +81,8 @@ public sealed class StudioDocumentTabsTests {
 
                     tabs.ContainerFromIndex(7)!.Focus();
                     var closed = window.TabHost.SelectedTab;
-                    window.KeyPress(Key.W, OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control, PhysicalKey.None, null);
+                    window.KeyPress(OperatingSystem.IsMacOS() ? Key.W : Key.F4,
+                        OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control, PhysicalKey.None, null);
                     Layout(window, 1280);
                     Assert.DoesNotContain(closed, window.TabHost.Tabs);
                     Assert.Same(tabs.ContainerFromIndex(tabs.SelectedIndex), window.FocusManager!.GetFocusedElement());

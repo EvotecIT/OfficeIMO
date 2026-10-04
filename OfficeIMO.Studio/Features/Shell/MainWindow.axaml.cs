@@ -133,6 +133,7 @@ public sealed partial class MainWindow : Window {
 
     private void ActivateDocument(MainWindowViewModel document) {
         if (ReferenceEquals(ViewModel, document)) return;
+        CommandPalette.Dismiss();
         ViewModel.SaveDocumentViewState();
         _changingActiveDocument = true;
         try {
@@ -186,11 +187,12 @@ public sealed partial class MainWindow : Window {
     internal async Task ShowCommandPaletteAsync() {
         if (_commandPaletteOpen) return;
         _commandPaletteOpen = true;
+        var document = ViewModel;
         IInputElement? previousFocus = FocusManager?.GetFocusedElement();
         try {
-            StudioCommandItem? command = await CommandPalette.ShowAsync(ViewModel.Commands);
+            StudioCommandItem? command = await CommandPalette.ShowAsync(document.Commands);
             (previousFocus as Control)?.Focus();
-            if (command is not null) await command.ExecuteAsync();
+            if (command is not null && ReferenceEquals(ViewModel, document)) await command.ExecuteAsync();
         } finally {
             _commandPaletteOpen = false;
         }
@@ -283,8 +285,19 @@ public sealed partial class MainWindow : Window {
             return;
         }
 
-        if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.Key == Key.Tab) {
+        if (e.KeyModifiers is KeyModifiers.Control or (KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.Tab) {
             TabHost.SelectRelativeTab(e.KeyModifiers.HasFlag(KeyModifiers.Shift));
+            e.Handled = true;
+            return;
+        }
+        if (OperatingSystem.IsMacOS() && e.KeyModifiers == (KeyModifiers.Meta | KeyModifiers.Shift) &&
+            e.Key is Key.OemOpenBrackets or Key.OemCloseBrackets) {
+            TabHost.SelectRelativeTab(e.Key == Key.OemOpenBrackets);
+            e.Handled = true;
+            return;
+        }
+        if (!OperatingSystem.IsMacOS() && e.KeyModifiers == KeyModifiers.Control && e.Key == Key.F4) {
+            await CloseSelectedDocumentTabAsync();
             e.Handled = true;
             return;
         }
@@ -322,6 +335,12 @@ public sealed partial class MainWindow : Window {
         }
 
         if (IsTextEntryFocused()) return;
+
+        if (!OperatingSystem.IsMacOS() && e.KeyModifiers == KeyModifiers.Control && e.Key == Key.Y) {
+            await ViewModel.Commands["Redo"].ExecuteAsync();
+            e.Handled = true;
+            return;
+        }
 
         if (e.KeyModifiers == KeyModifiers.None && TrySelectToolShortcut(e.Key)) {
             e.Handled = true;

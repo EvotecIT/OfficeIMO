@@ -45,6 +45,7 @@ public sealed partial class MobileWorkspaceView {
     private void ApplyKeyboardAvoidance() {
         SheetScrim.Margin = new Thickness(0, 0, 0, _keyboardOverlap);
         DialogScrim.Margin = new Thickness(0, 0, 0, _keyboardOverlap);
+        CommandPalette.Margin = new Thickness(0, 0, 0, _keyboardOverlap);
         AssistantHost.Margin = new Thickness(0, 0, 0, SheetScrim.IsVisible || DialogScrim.IsVisible ? 0 : _keyboardOverlap);
     }
 }
