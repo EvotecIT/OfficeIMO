@@ -40,7 +40,7 @@ public partial class PdfExternalEngineProofTests {
                 if (scenario == "following") canvas.Text("FollowingPaint", 10D, 50D, 100D, 20D);
             });
         }
-        string expected = scenario == "following" ? replacement + Environment.NewLine + "FollowingPaint" : replacement;
+        string expected = scenario == "following" ? replacement + "\n" + "FollowingPaint" : replacement;
         byte[] pdf = document.ToBytes();
         Assert.Equal(expected, PdfReadDocument.Open(pdf).ExtractText().Trim());
         PdfExternalValidator validator = PdfExternalValidator.PdfText();

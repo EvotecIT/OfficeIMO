@@ -49,7 +49,7 @@ internal sealed class PdfExternalValidator {
     internal static PdfExternalValidator PdfText() {
         string? explicitPath = Environment.GetEnvironmentVariable("OFFICEIMO_PDFTOTEXT");
         string? path = FirstNonEmpty(explicitPath) ?? FindOnPath("pdftotext", "pdftotext.exe");
-        return new PdfExternalValidator("PDF text", path, new[] { "-raw", "-enc", "UTF-8", "{pdf}", "-" }, explicitPath == null && path != null);
+        return new PdfExternalValidator("PDF text", path, new[] { "-raw", "-enc", "UTF-8", "-eol", "unix", "{pdf}", "-" }, explicitPath == null && path != null);
     }
 
     internal static PdfExternalValidator PdfUa() {
@@ -127,31 +127,23 @@ internal sealed class PdfExternalValidator {
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
+                StandardOutputEncoding = Encoding.UTF8,
+                StandardErrorEncoding = Encoding.UTF8,
                 CreateNoWindow = true
             };
 
-            var outputBuilder = new StringBuilder();
-            var errorBuilder = new StringBuilder();
             using var process = new Process {
                 StartInfo = startInfo
-            };
-            process.OutputDataReceived += (_, e) => {
-                if (e.Data != null) {
-                    outputBuilder.AppendLine(e.Data);
-                }
-            };
-            process.ErrorDataReceived += (_, e) => {
-                if (e.Data != null) {
-                    errorBuilder.AppendLine(e.Data);
-                }
             };
 
             if (!process.Start()) {
                 throw new InvalidOperationException("Failed to start " + Name + " validator.");
             }
 
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
+            // Preserve the tool's bytes and line endings after UTF-8 decoding. Line
+            // callbacks would rebuild the output with this host's newline convention.
+            var outputRead = process.StandardOutput.ReadToEndAsync();
+            var errorRead = process.StandardError.ReadToEndAsync();
             if (!process.WaitForExit(60000)) {
                 try {
                     process.Kill();
@@ -162,8 +154,8 @@ internal sealed class PdfExternalValidator {
             }
 
             process.WaitForExit();
-            string output = outputBuilder.ToString();
-            string error = errorBuilder.ToString();
+            string output = outputRead.GetAwaiter().GetResult();
+            string error = errorRead.GetAwaiter().GetResult();
             return new PdfExternalProcessResult(Name, ExecutablePath!, arguments, process.ExitCode, output, error, AutoDetected);
         } finally {
             TryDeleteDirectory(workDir);
