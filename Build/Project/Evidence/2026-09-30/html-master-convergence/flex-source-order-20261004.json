@@ -261,7 +261,12 @@
     "existingManualProbeExtended": true,
     "selectedHtmlCasesExpectedPerFramework": 30,
     "selectedPdfCasesExpectedPerFramework": 79,
-    "status": "Ready to dispatch after pushed checkpoint; no platform result claimed"
+    "status": "Dispatched; results pending",
+    "runId": 37222516895,
+    "url": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37222516895",
+    "workflowAndSourceCommit": "826ad155e6de0b3d6b1dc73cfddf1c19e9e23fe7",
+    "dispatchedAtUtc": "2026-10-04T17:57:56Z",
+    "excludesTimingAndPackages": true
   },
   "remainingAcceptance": [
     "Windows/Linux/macOS current-source focused correctness",
@@ -273,5 +278,26 @@
     "No general browser parity or assistive-technology claim",
     "The diagnostic static capture is correctness evidence, not a timing-budget pass",
     "No full HTML/runtime PR, merge to master or release"
-  ]
+  ],
+  "consolidation": {
+    "branch": "feature/html-master-convergence",
+    "mergeCommit": "c3a24dd99240474c5b706d7cb824efe9af84c621",
+    "ownerAndWorkflowTreesIdenticalToQualifiedCheckpoint": true,
+    "longLivedBranchesNotAdopted": true
+  },
+  "cleanup": {
+    "generatedTargetsRemoved": 223,
+    "generatedBytesRemoved": 4371545328,
+    "allTargetsAbsent": true,
+    "hiddenReadOnlyNativeExecutionErrors": 112,
+    "guardedDotNetRecoverySucceeded": true,
+    "preservedFiles": 283,
+    "preservedBytes": 101757516,
+    "allPreservedBytesShaVerified": true,
+    "retainedManifest": "Ignore/MasterConvergenceQualification/logical-source-order-d62e30cde/preservation-manifest.json",
+    "ordinaryMilestoneWorktreeRemoved": true,
+    "worktreeAbsentAndUnregistered": true,
+    "mergedLocalBranchDeleted": true,
+    "remoteSourceBranchRetainedForActiveHostedRun": true
+  }
 }
