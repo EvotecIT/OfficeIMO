@@ -4,6 +4,54 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class DrawingPngWriterTests {
         [Theory]
+        [InlineData(257, 129, OfficePngCompression.Optimal)]
+        [InlineData(257, 129, OfficePngCompression.Stored)]
+        [InlineData(16381, 1, OfficePngCompression.Stored)]
+        public void MaterializedPngEncodersPreserveLargeRgbaAndResolution(int width, int height, OfficePngCompression compression) {
+            var image = new OfficeRasterImage(width, height);
+            uint state = 0x915DF32B;
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    state ^= state << 13;
+                    state ^= state >> 17;
+                    state ^= state << 5;
+                    image.SetPixel(x, y, OfficeColor.FromRgba(
+                        (byte)state, (byte)(state >> 8), (byte)(state >> 16), (byte)(state >> 24)));
+                }
+            }
+
+            byte[] expected = image.GetPixels();
+            var options = new OfficePngEncodeOptions { Compression = compression, DpiX = 144, DpiY = 120 };
+            var withoutMetadata = new OfficePngEncodeOptions {
+                Compression = compression, DpiX = 144, DpiY = 120, WritePhysicalResolution = false
+            };
+            byte[][] withResolution = {
+                OfficePngWriter.Encode(image, options),
+                OfficePngWriter.EncodeRgba(width, height, expected, options)
+            };
+            byte[][] withoutResolution = {
+                OfficePngWriter.Encode(image, compression),
+                OfficePngWriter.EncodeRgba(width, height, expected, compression),
+                OfficePngWriter.Encode(image, withoutMetadata),
+                OfficePngWriter.EncodeRgba(width, height, expected, withoutMetadata)
+            };
+
+            foreach (byte[] png in withResolution.Concat(withoutResolution)) {
+                Assert.True(OfficePngReader.TryDecode(png, out OfficeRasterImage? decoded));
+                Assert.NotNull(decoded);
+                Assert.Equal(expected, decoded!.GetPixels());
+            }
+            foreach (byte[] png in withResolution) {
+                OfficeImageInfo info = OfficeImageReader.Identify(png);
+                Assert.InRange(info.DpiX, 143.98, 144.02);
+                Assert.InRange(info.DpiY, 119.98, 120.02);
+            }
+            foreach (byte[] png in withoutResolution) {
+                Assert.Throws<InvalidOperationException>(() => ExtractChunk(png, "pHYs"));
+            }
+        }
+
+        [Theory]
         [InlineData(1)]
         [InlineData(5)]
         [InlineData(6)]

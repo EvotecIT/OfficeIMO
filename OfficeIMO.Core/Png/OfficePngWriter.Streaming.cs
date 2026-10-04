@@ -260,13 +260,16 @@ public static partial class OfficePngWriter {
 
     private sealed class PngIdatChunkStream : Stream {
         private readonly Stream _destination;
-        private readonly byte[] _buffer;
+        private readonly int _chunkSize;
+        private byte[] _buffer;
         private int _count;
         private bool _completed;
 
         internal PngIdatChunkStream(Stream destination, int chunkSize) {
             _destination = destination;
-            _buffer = new byte[chunkSize];
+            _chunkSize = chunkSize;
+            // Grow with the compressed output, including large rasters that compress to a tiny PNG.
+            _buffer = new byte[Math.Min(256, chunkSize)];
         }
 
         public override bool CanRead => false;
@@ -298,19 +301,29 @@ public static partial class OfficePngWriter {
             if (offset > buffer.Length - count) throw new ArgumentException("The buffer range is invalid.", nameof(buffer));
 
             while (count > 0) {
-                int copied = Math.Min(count, _buffer.Length - _count);
+                int copied = Math.Min(count, _chunkSize - _count);
+                EnsureCapacity(_count + copied);
                 Buffer.BlockCopy(buffer, offset, _buffer, _count, copied);
                 _count += copied;
                 offset += copied;
                 count -= copied;
-                if (_count == _buffer.Length) FlushChunk();
+                if (_count == _chunkSize) FlushChunk();
             }
         }
 
         public override void WriteByte(byte value) {
             if (_completed) throw new InvalidOperationException("The PNG IDAT stream is complete.");
+            EnsureCapacity(_count + 1);
             _buffer[_count++] = value;
-            if (_count == _buffer.Length) FlushChunk();
+            if (_count == _chunkSize) FlushChunk();
+        }
+
+        private void EnsureCapacity(int required) {
+            if (required <= _buffer.Length) return;
+            int capacity = Math.Min(_chunkSize, Math.Max(required, _buffer.Length * 2));
+            var buffer = new byte[capacity];
+            Buffer.BlockCopy(_buffer, 0, buffer, 0, _count);
+            _buffer = buffer;
         }
 
         private void FlushChunk() {
