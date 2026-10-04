@@ -1514,19 +1514,19 @@
             "failures": [
               {
                 "name": "OfficeIMO.Tests.Pdf.PdfExternalEngineProofTests.LogicalTextReplacesPaintExactlyOnceInIndependentExtraction(scenario: \"nested\")",
-                "message": "Assert.Equal() Failure: Strings differ\r\n            ↓ (pos 1)\r\nExpected: \"LogicalReplacement\"\r\nActual:   \"L\\r\\no\\r\\ng\\r\\ni\\r\\nc\\r\\na\\r\\nl\\r\\nR\\r\\ne\\r\\np\\r\\nl\\r\\na\\r\\nc\\r\\ne\\r\"···\r\n            ↑ (pos 1)"
+                "message": "Assert.Equal() Failure: Strings differ\r\n            \u2193 (pos 1)\r\nExpected: \"LogicalReplacement\"\r\nActual:   \"L\\r\\no\\r\\ng\\r\\ni\\r\\nc\\r\\na\\r\\nl\\r\\nR\\r\\ne\\r\\np\\r\\nl\\r\\na\\r\\nc\\r\\ne\\r\"\u00b7\u00b7\u00b7\r\n            \u2191 (pos 1)"
               },
               {
                 "name": "OfficeIMO.Tests.Pdf.PdfExternalEngineProofTests.LogicalTextReplacesPaintExactlyOnceInIndependentExtraction(scenario: \"drawing\")",
-                "message": "Assert.Equal() Failure: Strings differ\r\n            ↓ (pos 1)\r\nExpected: \"LogicalReplacement\"\r\nActual:   \"L\\r\\no\\r\\ng\\r\\ni\\r\\nc\\r\\na\\r\\nl\\r\\nR\\r\\ne\\r\\np\\r\\nl\\r\\na\\r\\nc\\r\\ne\\r\"···\r\n            ↑ (pos 1)"
+                "message": "Assert.Equal() Failure: Strings differ\r\n            \u2193 (pos 1)\r\nExpected: \"LogicalReplacement\"\r\nActual:   \"L\\r\\no\\r\\ng\\r\\ni\\r\\nc\\r\\na\\r\\nl\\r\\nR\\r\\ne\\r\\np\\r\\nl\\r\\na\\r\\nc\\r\\ne\\r\"\u00b7\u00b7\u00b7\r\n            \u2191 (pos 1)"
               },
               {
                 "name": "OfficeIMO.Tests.Pdf.PdfExternalEngineProofTests.LogicalTextReplacesPaintExactlyOnceInIndependentExtraction(scenario: \"effect\")",
-                "message": "Assert.Equal() Failure: Strings differ\r\n            ↓ (pos 1)\r\nExpected: \"LogicalReplacement\"\r\nActual:   \"L\\r\\no\\r\\ng\\r\\ni\\r\\nc\\r\\na\\r\\nl\\r\\nR\\r\\ne\\r\\np\\r\\nl\\r\\na\\r\\nc\\r\\ne\\r\"···\r\n            ↑ (pos 1)"
+                "message": "Assert.Equal() Failure: Strings differ\r\n            \u2193 (pos 1)\r\nExpected: \"LogicalReplacement\"\r\nActual:   \"L\\r\\no\\r\\ng\\r\\ni\\r\\nc\\r\\na\\r\\nl\\r\\nR\\r\\ne\\r\\np\\r\\nl\\r\\na\\r\\nc\\r\\ne\\r\"\u00b7\u00b7\u00b7\r\n            \u2191 (pos 1)"
               },
               {
                 "name": "OfficeIMO.Tests.Pdf.PdfExternalEngineProofTests.LogicalTextReplacesPaintExactlyOnceInIndependentExtraction(scenario: \"canvas\")",
-                "message": "Assert.Equal() Failure: Strings differ\r\n            ↓ (pos 1)\r\nExpected: \"LogicalReplacement\"\r\nActual:   \"L\\r\\no\\r\\ng\\r\\ni\\r\\nc\\r\\na\\r\\nl\\r\\nR\\r\\ne\\r\\np\\r\\nl\\r\\na\\r\\nc\\r\\ne\\r\"···\r\n            ↑ (pos 1)"
+                "message": "Assert.Equal() Failure: Strings differ\r\n            \u2193 (pos 1)\r\nExpected: \"LogicalReplacement\"\r\nActual:   \"L\\r\\no\\r\\ng\\r\\ni\\r\\nc\\r\\na\\r\\nl\\r\\nR\\r\\ne\\r\\np\\r\\nl\\r\\na\\r\\nc\\r\\ne\\r\"\u00b7\u00b7\u00b7\r\n            \u2191 (pos 1)"
               }
             ],
             "sha256": "f5b0d1f4c7746913a46cf1877eb3b39381dae831bcd7a1848c9faef625d99bba",
@@ -1670,7 +1670,7 @@
             "failures": [
               {
                 "name": "OfficeIMO.Tests.Pdf.PdfFontFamilyTests.PdfDocument_RegisteredFallbacksPreserveSelectedFontCoveredSpans",
-                "message": "Assert.Contains() Failure: Sub-string not found\nString:    \"%PDF-1.4\\n%????\\n1 0 obj\\n<< /Type /Pages /C\"···\nNot found: \"/BaseFont /EmojiFallback\""
+                "message": "Assert.Contains() Failure: Sub-string not found\nString:    \"%PDF-1.4\\n%????\\n1 0 obj\\n<< /Type /Pages /C\"\u00b7\u00b7\u00b7\nNot found: \"/BaseFont /EmojiFallback\""
               }
             ],
             "sha256": "681c4c51d8cd3e553eafad39f96ea1698be42aa17880e6cc6631edd596bf8b36",
@@ -2195,7 +2195,7 @@
         {
           "framework": ".NET 8.0.23",
           "pages": 1,
-          "text": "A😀B",
+          "text": "A\ud83d\ude00B",
           "fonts": [
             "DocumentPrimary-Regular",
             "EmojiFallback-Regular"
@@ -2209,7 +2209,7 @@
         {
           "framework": ".NET 10.0.12",
           "pages": 1,
-          "text": "A😀B",
+          "text": "A\ud83d\ude00B",
           "fonts": [
             "DocumentPrimary-Regular",
             "EmojiFallback-Regular"
@@ -2223,7 +2223,7 @@
       ],
       "independentProof": {
         "validator": "Poppler 26.09.0",
-        "exactText": "A😀B",
+        "exactText": "A\ud83d\ude00B",
         "visual": "144 dpi inspected on both frameworks: Latin A/B and complete emoji on one line. PNG and independent extracted-text bytes identical.",
         "byteLimit": "PDF bytes differ between net8 and net10; no cross-framework PDF-byte determinism claim or root-cause claim."
       },
@@ -2874,8 +2874,8 @@
           "scenario": "canvas",
           "extractor": "xpdf",
           "exitCode": 0,
-          "expected": "Public logical replacement 😀\nFollowingPaint",
-          "actual": "Public logical replacement 😀\nFollowingPaint",
+          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
           "passed": true,
           "pdfSha256": "a64a14188fb571958f0ead20b830c68e65691cdb4cd6fe59ad5a931294ee038c"
         },
@@ -2884,8 +2884,8 @@
           "scenario": "canvas",
           "extractor": "poppler",
           "exitCode": 0,
-          "expected": "Public logical replacement 😀\nFollowingPaint",
-          "actual": "Public logical replacement 😀\nFollowingPaint",
+          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
           "passed": true,
           "pdfSha256": "a64a14188fb571958f0ead20b830c68e65691cdb4cd6fe59ad5a931294ee038c"
         },
@@ -2894,8 +2894,8 @@
           "scenario": "nested",
           "extractor": "xpdf",
           "exitCode": 0,
-          "expected": "Public logical replacement 😀\nFollowingPaint",
-          "actual": "Public logical replacement 😀\nFollowingPaint",
+          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
           "passed": true,
           "pdfSha256": "a64a14188fb571958f0ead20b830c68e65691cdb4cd6fe59ad5a931294ee038c"
         },
@@ -2904,8 +2904,8 @@
           "scenario": "nested",
           "extractor": "poppler",
           "exitCode": 0,
-          "expected": "Public logical replacement 😀\nFollowingPaint",
-          "actual": "Public logical replacement 😀\nFollowingPaint",
+          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
           "passed": true,
           "pdfSha256": "a64a14188fb571958f0ead20b830c68e65691cdb4cd6fe59ad5a931294ee038c"
         },
@@ -2914,8 +2914,8 @@
           "scenario": "effect",
           "extractor": "xpdf",
           "exitCode": 0,
-          "expected": "Public logical replacement 😀\nFollowingPaint",
-          "actual": "Public logical replacement 😀\nFollowingPaint",
+          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
           "passed": true,
           "pdfSha256": "8e9e180e10030cb8771035740d88dc20dd315e78fedfc0c34d152f3a4988d4f5"
         },
@@ -2924,8 +2924,8 @@
           "scenario": "effect",
           "extractor": "poppler",
           "exitCode": 0,
-          "expected": "Public logical replacement 😀\nFollowingPaint",
-          "actual": "Public logical replacement 😀\nFollowingPaint",
+          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
           "passed": true,
           "pdfSha256": "8e9e180e10030cb8771035740d88dc20dd315e78fedfc0c34d152f3a4988d4f5"
         },
@@ -2934,8 +2934,8 @@
           "scenario": "vector",
           "extractor": "xpdf",
           "exitCode": 0,
-          "expected": "Public logical replacement 😀\nFollowingPaint",
-          "actual": "Public logical replacement 😀\nFollowingPaint",
+          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
           "passed": true,
           "pdfSha256": "04f79d76ab0ff1805220e13bcad1085568e6b5ac16607a97cf02fbacb9cb99bf"
         },
@@ -2944,8 +2944,8 @@
           "scenario": "vector",
           "extractor": "poppler",
           "exitCode": 0,
-          "expected": "Public logical replacement 😀\nFollowingPaint",
-          "actual": "Public logical replacement 😀\nFollowingPaint",
+          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
           "passed": true,
           "pdfSha256": "04f79d76ab0ff1805220e13bcad1085568e6b5ac16607a97cf02fbacb9cb99bf"
         },
@@ -2954,8 +2954,8 @@
           "scenario": "canvas",
           "extractor": "xpdf",
           "exitCode": 0,
-          "expected": "Public logical replacement 😀\nFollowingPaint",
-          "actual": "Public logical replacement 😀\nFollowingPaint",
+          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
           "passed": true,
           "pdfSha256": "a64a14188fb571958f0ead20b830c68e65691cdb4cd6fe59ad5a931294ee038c"
         },
@@ -2964,8 +2964,8 @@
           "scenario": "canvas",
           "extractor": "poppler",
           "exitCode": 0,
-          "expected": "Public logical replacement 😀\nFollowingPaint",
-          "actual": "Public logical replacement 😀\nFollowingPaint",
+          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
           "passed": true,
           "pdfSha256": "a64a14188fb571958f0ead20b830c68e65691cdb4cd6fe59ad5a931294ee038c"
         },
@@ -2974,8 +2974,8 @@
           "scenario": "nested",
           "extractor": "xpdf",
           "exitCode": 0,
-          "expected": "Public logical replacement 😀\nFollowingPaint",
-          "actual": "Public logical replacement 😀\nFollowingPaint",
+          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
           "passed": true,
           "pdfSha256": "a64a14188fb571958f0ead20b830c68e65691cdb4cd6fe59ad5a931294ee038c"
         },
@@ -2984,8 +2984,8 @@
           "scenario": "nested",
           "extractor": "poppler",
           "exitCode": 0,
-          "expected": "Public logical replacement 😀\nFollowingPaint",
-          "actual": "Public logical replacement 😀\nFollowingPaint",
+          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
           "passed": true,
           "pdfSha256": "a64a14188fb571958f0ead20b830c68e65691cdb4cd6fe59ad5a931294ee038c"
         },
@@ -2994,8 +2994,8 @@
           "scenario": "effect",
           "extractor": "xpdf",
           "exitCode": 0,
-          "expected": "Public logical replacement 😀\nFollowingPaint",
-          "actual": "Public logical replacement 😀\nFollowingPaint",
+          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
           "passed": true,
           "pdfSha256": "8e9e180e10030cb8771035740d88dc20dd315e78fedfc0c34d152f3a4988d4f5"
         },
@@ -3004,8 +3004,8 @@
           "scenario": "effect",
           "extractor": "poppler",
           "exitCode": 0,
-          "expected": "Public logical replacement 😀\nFollowingPaint",
-          "actual": "Public logical replacement 😀\nFollowingPaint",
+          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
           "passed": true,
           "pdfSha256": "8e9e180e10030cb8771035740d88dc20dd315e78fedfc0c34d152f3a4988d4f5"
         },
@@ -3014,8 +3014,8 @@
           "scenario": "vector",
           "extractor": "xpdf",
           "exitCode": 0,
-          "expected": "Public logical replacement 😀\nFollowingPaint",
-          "actual": "Public logical replacement 😀\nFollowingPaint",
+          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
           "passed": true,
           "pdfSha256": "04f79d76ab0ff1805220e13bcad1085568e6b5ac16607a97cf02fbacb9cb99bf"
         },
@@ -3024,8 +3024,8 @@
           "scenario": "vector",
           "extractor": "poppler",
           "exitCode": 0,
-          "expected": "Public logical replacement 😀\nFollowingPaint",
-          "actual": "Public logical replacement 😀\nFollowingPaint",
+          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
           "passed": true,
           "pdfSha256": "04f79d76ab0ff1805220e13bcad1085568e6b5ac16607a97cf02fbacb9cb99bf"
         }
@@ -3094,7 +3094,7 @@
         {
           "framework": ".NET 8.0.23",
           "pages": 1,
-          "text": "A\nA\nA😀B\nB",
+          "text": "A\nA\nA\ud83d\ude00B\nB",
           "fonts": [
             "DocumentPrimary-Regular",
             "EmojiFallback-Regular"
@@ -3102,13 +3102,13 @@
           "core": "3.4.4+d6bdfb7f32cfd758cf86115a7bacb4948ab615fe",
           "pdf": "3.4.4+d6bdfb7f32cfd758cf86115a7bacb4948ab615fe",
           "pdfSha256": "0ac62655d8d0732aa641eea89ba72263af99cca02e179b0a2d1827748997a59b",
-          "independentText": "A\nA\nA😀B\nB",
+          "independentText": "A\nA\nA\ud83d\ude00B\nB",
           "pngSha256": "59a19a7b79248bc2e1cac43e385152629b995228dc8e8251caa9909201af044e"
         },
         {
           "framework": ".NET 10.0.12",
           "pages": 1,
-          "text": "A\nA\nA😀B\nB",
+          "text": "A\nA\nA\ud83d\ude00B\nB",
           "fonts": [
             "DocumentPrimary-Regular",
             "EmojiFallback-Regular"
@@ -3116,11 +3116,11 @@
           "core": "3.4.4+d6bdfb7f32cfd758cf86115a7bacb4948ab615fe",
           "pdf": "3.4.4+d6bdfb7f32cfd758cf86115a7bacb4948ab615fe",
           "pdfSha256": "6bcfcedd11adc5f95b8fceed7fc7b828c4d41c0cffd269e92865140e10cd2d33",
-          "independentText": "A\nA\nA😀B\nB",
+          "independentText": "A\nA\nA\ud83d\ude00B\nB",
           "pngSha256": "59a19a7b79248bc2e1cac43e385152629b995228dc8e8251caa9909201af044e"
         }
       ],
-      "independentProof": "Poppler raw Unicode text exactly matches A\\nA\\nA😀B\\nB; both framework rasters share a hash and the native render was visually inspected.",
+      "independentProof": "Poppler raw Unicode text exactly matches A\\nA\\nA\ud83d\ude00B\\nB; both framework rasters share a hash and the native render was visually inspected.",
       "localReview": "One owner-level read-only closure after the external wave and one targeted confirmation. Null/clone/nested mapping fixes confirmed; the final direct-use tracking omission was reproduced across six paragraph/canvas/mixed-run cases, fixed in both shared entry paths, sibling-swept and covered by focused/full proof. No repeat full review merely for a new SHA.",
       "publication": {
         "head": "d6bdfb7f32cfd758cf86115a7bacb4948ab615fe",
@@ -3281,15 +3281,15 @@
         "failures": [
           {
             "test": "OfficeIMO.Tests.Pdf.PdfExternalEngineProofTests.LogicalTextReplacesPaintExactlyOnceInIndependentExtraction(scenario: \"following\", replacement: \"Logical replacement words\")",
-            "message": "Assert.Equal() Failure: Strings differ\r\n                                    ↓ (pos 25)\r\nExpected: \"Logical replacement words\\r\\nFollowingPaint\"\r\nActual:   \"Logical replacement words\\nFollowingPaint\"\r\n                                    ↑ (pos 25)"
+            "message": "Assert.Equal() Failure: Strings differ\r\n                                    \u2193 (pos 25)\r\nExpected: \"Logical replacement words\\r\\nFollowingPaint\"\r\nActual:   \"Logical replacement words\\nFollowingPaint\"\r\n                                    \u2191 (pos 25)"
           },
           {
-            "test": "OfficeIMO.Tests.Pdf.PdfExternalEngineProofTests.LogicalTextReplacesPaintExactlyOnceInIndependentExtraction(scenario: \"drawing\", replacement: \"Résumé \\ud83d\\ude00\")",
-            "message": "Assert.Equal() Failure: Strings differ\r\n            ↓ (pos 1)\r\nExpected: \"Résumé \\ud83d\\ude00\"\r\nActual:   \"R├⌐sum├⌐ ≡ƒÿÇ\"\r\n            ↑ (pos 1)"
+            "test": "OfficeIMO.Tests.Pdf.PdfExternalEngineProofTests.LogicalTextReplacesPaintExactlyOnceInIndependentExtraction(scenario: \"drawing\", replacement: \"R\u00e9sum\u00e9 \\ud83d\\ude00\")",
+            "message": "Assert.Equal() Failure: Strings differ\r\n            \u2193 (pos 1)\r\nExpected: \"R\u00e9sum\u00e9 \\ud83d\\ude00\"\r\nActual:   \"R\u251c\u2310sum\u251c\u2310 \u2261\u0192\u00ff\u00c7\"\r\n            \u2191 (pos 1)"
           },
           {
-            "test": "OfficeIMO.Tests.Pdf.PdfExternalEngineProofTests.LogicalTextReplacesPaintExactlyOnceInIndependentExtraction(scenario: \"canvas\", replacement: \"Résumé \\ud83d\\ude00\")",
-            "message": "Assert.Equal() Failure: Strings differ\r\n            ↓ (pos 1)\r\nExpected: \"Résumé \\ud83d\\ude00\"\r\nActual:   \"R├⌐sum├⌐ ≡ƒÿÇ\"\r\n            ↑ (pos 1)"
+            "test": "OfficeIMO.Tests.Pdf.PdfExternalEngineProofTests.LogicalTextReplacesPaintExactlyOnceInIndependentExtraction(scenario: \"canvas\", replacement: \"R\u00e9sum\u00e9 \\ud83d\\ude00\")",
+            "message": "Assert.Equal() Failure: Strings differ\r\n            \u2193 (pos 1)\r\nExpected: \"R\u00e9sum\u00e9 \\ud83d\\ude00\"\r\nActual:   \"R\u251c\u2310sum\u251c\u2310 \u2261\u0192\u00ff\u00c7\"\r\n            \u2191 (pos 1)"
           }
         ],
         "coldProcessMilliseconds": 12906.8051,
@@ -3455,8 +3455,8 @@
             "ValidatorName": "PDF text",
             "ExecutablePath": "/usr/bin/pdftotext",
             "ExitCode": 0,
-            "ExpectedText": "Résumé 😀",
-            "ActualText": "Résumé 😀",
+            "ExpectedText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "ActualText": "R\u00e9sum\u00e9 \ud83d\ude00",
             "Passed": true
           },
           {
@@ -3491,8 +3491,8 @@
             "ValidatorName": "PDF text",
             "ExecutablePath": "/usr/bin/pdftotext",
             "ExitCode": 0,
-            "ExpectedText": "Résumé 😀",
-            "ActualText": "Résumé 😀",
+            "ExpectedText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "ActualText": "R\u00e9sum\u00e9 \ud83d\ude00",
             "Passed": true
           },
           {
@@ -3627,8 +3627,8 @@
             "ValidatorName": "PDF text",
             "ExecutablePath": "C:\\Program Files\\Git\\mingw64\\bin\\pdftotext.exe",
             "ExitCode": 0,
-            "ExpectedText": "Résumé 😀",
-            "ActualText": "Résumé 😀",
+            "ExpectedText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "ActualText": "R\u00e9sum\u00e9 \ud83d\ude00",
             "Passed": true
           },
           {
@@ -3663,8 +3663,8 @@
             "ValidatorName": "PDF text",
             "ExecutablePath": "C:\\Program Files\\Git\\mingw64\\bin\\pdftotext.exe",
             "ExitCode": 0,
-            "ExpectedText": "Résumé 😀",
-            "ActualText": "Résumé 😀",
+            "ExpectedText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "ActualText": "R\u00e9sum\u00e9 \ud83d\ude00",
             "Passed": true
           },
           {
@@ -3799,8 +3799,8 @@
             "ValidatorName": "PDF text",
             "ExecutablePath": "/opt/homebrew/bin/pdftotext",
             "ExitCode": 0,
-            "ExpectedText": "Résumé 😀",
-            "ActualText": "Résumé 😀",
+            "ExpectedText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "ActualText": "R\u00e9sum\u00e9 \ud83d\ude00",
             "Passed": true
           },
           {
@@ -3835,8 +3835,8 @@
             "ValidatorName": "PDF text",
             "ExecutablePath": "/opt/homebrew/bin/pdftotext",
             "ExitCode": 0,
-            "ExpectedText": "Résumé 😀",
-            "ActualText": "Résumé 😀",
+            "ExpectedText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "ActualText": "R\u00e9sum\u00e9 \ud83d\ude00",
             "Passed": true
           },
           {
@@ -5190,7 +5190,27 @@
         "publishedClaim": false
       },
       "reviewBoundary": "Identical canvas/helper/tests and same two renderer call sites; preceding renderer font/shadow differences excluded; existing full owner review current.",
-      "initialSnapshot": "Exact head, queued/running CI, no failures and complete review-thread page with zero threads/reviews/comments. No manual hosted-review request."
+      "initialSnapshot": "Exact head, queued/running CI, no failures and complete review-thread page with zero threads/reviews/comments. No manual hosted-review request.",
+      "settled": {
+        "checkedAtUtc": "2026-10-04T17:20:54Z",
+        "exactHead": "8b722366d1987d3eb87d8ddf6fdce4d13bceb2f9",
+        "checks": {
+          "success": 99,
+          "skipped": 6
+        },
+        "unresolvedReviewThreads": 0,
+        "completeThreadPage": true,
+        "reviews": 0,
+        "rawReviewComments": 0,
+        "issueComments": 0,
+        "bodyReactions": 0,
+        "mergeCommit": "e66c2e69cb2fadcc1721f49a906f7db2b92afd46",
+        "mergedAtUtc": "2026-10-04T17:21:57Z",
+        "worktreeAndLocalBranchRemoved": true,
+        "uniqueEvidence": "Ignore/MasterConvergenceQualification/merged-rectangle-clips-e66c2e69c",
+        "preservedFiles": 31,
+        "preservedBytes": 22128411
+      }
     },
     "hostedQualification": {
       "runId": 37215418944,
@@ -5202,7 +5222,156 @@
       "createdAtUtc": "2026-10-04T16:04:40Z",
       "initialVerifiedState": "queued",
       "qualified": false,
-      "scope": "Existing unchanged optional three-platform correctness/package/static-budget lane plus prior-source control; outputs, allocations, memory, cancellation and timing remain required."
+      "scope": "Existing unchanged optional three-platform correctness/package/static-budget lane plus prior-source control; outputs, allocations, memory, cancellation and timing remain required.",
+      "settledAtUtc": "2026-10-04T17:28:05.147274+00:00",
+      "status": "completed",
+      "conclusion": "failure",
+      "platformComparisons": [
+        {
+          "platform": "ubuntu",
+          "sameHost": true,
+          "sameFingerprint": true,
+          "candidate": {
+            "coldMs": 9050.6421,
+            "warmMs": [
+              3966.7266,
+              3919.286,
+              3898.6896
+            ],
+            "coldAllocation": 1082789064,
+            "peakBytes": 342843392,
+            "failures": []
+          },
+          "control": {
+            "coldMs": 8927.2552,
+            "warmMs": [
+              4328.2694,
+              4199.8206,
+              4249.2445
+            ],
+            "coldAllocation": 1081570144,
+            "peakBytes": 342450176,
+            "failures": []
+          }
+        },
+        {
+          "platform": "windows",
+          "sameHost": true,
+          "sameFingerprint": true,
+          "candidate": {
+            "coldMs": 17941.551,
+            "warmMs": [
+              7089.9645,
+              6899.0758,
+              6902.3627
+            ],
+            "coldAllocation": 2504016568,
+            "peakBytes": 1471311872,
+            "failures": [
+              "cold process elapsed milliseconds 17941.6 exceeded ceiling 12000.0.",
+              "cold managed allocated bytes 2504016568.0 exceeded ceiling 2500000000.0.",
+              "warm iteration 1 elapsed milliseconds 7090.0 exceeded ceiling 4000.0.",
+              "warm iteration 2 elapsed milliseconds 6899.1 exceeded ceiling 4000.0.",
+              "warm iteration 3 elapsed milliseconds 6902.4 exceeded ceiling 4000.0."
+            ]
+          },
+          "control": {
+            "coldMs": 17322.8142,
+            "warmMs": [
+              8298.3193,
+              8171.7588,
+              8132.5251
+            ],
+            "coldAllocation": 2502204840,
+            "peakBytes": 1467027456,
+            "failures": [
+              "cold process elapsed milliseconds 17322.8 exceeded ceiling 12000.0.",
+              "cold managed allocated bytes 2502204840.0 exceeded ceiling 2500000000.0.",
+              "warm iteration 1 elapsed milliseconds 8298.3 exceeded ceiling 4000.0.",
+              "warm iteration 2 elapsed milliseconds 8171.8 exceeded ceiling 4000.0.",
+              "warm iteration 3 elapsed milliseconds 8132.5 exceeded ceiling 4000.0."
+            ]
+          }
+        },
+        {
+          "platform": "macos",
+          "sameHost": true,
+          "sameFingerprint": true,
+          "candidate": {
+            "coldMs": 12172.9712,
+            "warmMs": [
+              6872.0977,
+              5190.1664,
+              5116.9015
+            ],
+            "coldAllocation": 1226722256,
+            "peakBytes": 714113024,
+            "failures": [
+              "cold process elapsed milliseconds 12173.0 exceeded ceiling 8000.0.",
+              "warm iteration 1 elapsed milliseconds 6872.1 exceeded ceiling 3000.0.",
+              "warm iteration 2 elapsed milliseconds 5190.2 exceeded ceiling 3000.0.",
+              "warm iteration 3 elapsed milliseconds 5116.9 exceeded ceiling 3000.0.",
+              "peak working-set bytes 714113024.0 exceeded ceiling 700000000.0."
+            ]
+          },
+          "control": {
+            "coldMs": 14144.0521,
+            "warmMs": [
+              10857.9858,
+              10562.15,
+              8246.2446
+            ],
+            "coldAllocation": 1225703704,
+            "peakBytes": 668827648,
+            "failures": [
+              "cold process elapsed milliseconds 14144.1 exceeded ceiling 8000.0.",
+              "warm iteration 1 elapsed milliseconds 10858.0 exceeded ceiling 3000.0.",
+              "warm iteration 2 elapsed milliseconds 10562.2 exceeded ceiling 3000.0.",
+              "warm iteration 3 elapsed milliseconds 8246.2 exceeded ceiling 3000.0."
+            ]
+          }
+        }
+      ],
+      "correctness": [
+        {
+          "platform": "html-static-qualification-ubuntu-latest",
+          "passed": {
+            "html-net10.0": 4266,
+            "pdf-fonts-net10.0": 28,
+            "pdf-net10.0": 8779,
+            "pdf-fonts-net8.0": 28,
+            "drawing-math-net10.0": 1,
+            "drawing-math-net8.0": 1,
+            "html-net8.0": 4266
+          }
+        },
+        {
+          "platform": "html-static-qualification-windows-latest",
+          "passed": {
+            "html-net10.0": 4266,
+            "pdf-fonts-net10.0": 28,
+            "pdf-net10.0": 8779,
+            "pdf-fonts-net8.0": 28,
+            "drawing-math-net10.0": 1,
+            "drawing-math-net8.0": 1,
+            "html-net8.0": 4266
+          }
+        },
+        {
+          "platform": "html-static-qualification-macos-latest",
+          "passed": {
+            "html-net10.0": 4266,
+            "pdf-fonts-net10.0": 28,
+            "pdf-net10.0": 8779,
+            "pdf-fonts-net8.0": 28,
+            "drawing-math-net10.0": 1,
+            "drawing-math-net8.0": 1,
+            "html-net8.0": 4266
+          }
+        }
+      ],
+      "packageGate": "Hosted package jobs succeeded; uploaded NUPKG/origin artifacts remain separate from the inspected correctness and budget artifacts.",
+      "interpretation": "Candidate and control have identical corpus/output fingerprints on each same host. Candidate warm times improve on all three hosts, but macOS and Windows exceed unchanged ceilings. macOS candidate peak exceeds700MB; Windows candidate and control cold allocations exceed2.5GB. Linux passes all gates. Improvement is not budget qualification."
     },
     "cleanup": {
       "allTargetsAbsent": true,
@@ -5212,8 +5381,8 @@
       "retained": "Normal NUPKG and feed/loaded-origin receipts, final full and failure TRX/logs, corpus artifacts, baseline/candidate DLLs and PowerForge kernel proof; unrelated worktrees and shared caches untouched."
     },
     "remaining": [
-      "Complete exact-source platform artifact/owner/package review and unchanged performance ceilings; retain any failure",
-      "Settle standalone PR current-head CI and delayed complete feedback before authorized merge",
+      "Close remaining unchanged macOS/Windows timing, memory and allocation ceilings with equivalent controlled workloads; Linux is qualified on e377",
+      "Inspect current hosted package artifacts independently",
       "Qualified long-lived HTML adoption and synchronization; no HTML-to-master merge or release"
     ],
     "retainedEvidence": "Ignore/MasterConvergenceQualification/rectangle-clip-cost",
