@@ -4,9 +4,9 @@ namespace OfficeIMO.IWork.Internal;
 
 internal sealed class IWorkObjectIndex {
     private readonly Dictionary<ulong, IWorkArchiveRecord> _objects;
-    private readonly Dictionary<IWorkArchiveRecord, IWorkWireMessage> _messages = new();
-    private readonly Dictionary<IWorkArchiveRecord, InvalidDataException> _malformedMessages = new();
-    private readonly object _messageLock = new();
+    private readonly Dictionary<IWorkArchiveRecord, IWorkWireMessage> _messages;
+    private readonly Dictionary<IWorkArchiveRecord, InvalidDataException> _malformedMessages;
+    private readonly object _messageLock;
     private readonly IWorkReadOptions _options;
     private readonly CancellationToken _cancellationToken;
 
@@ -14,6 +14,9 @@ internal sealed class IWorkObjectIndex {
         CancellationToken cancellationToken = default) {
         _options = options;
         _cancellationToken = cancellationToken;
+        _messages = new();
+        _malformedMessages = new();
+        _messageLock = new();
         _objects = new Dictionary<ulong, IWorkArchiveRecord>();
         foreach (IWorkArchiveRecord record in records) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -26,11 +29,24 @@ internal sealed class IWorkObjectIndex {
         }
     }
 
+    private IWorkObjectIndex(IWorkObjectIndex source, CancellationToken cancellationToken) {
+        _objects = source._objects;
+        _messages = source._messages;
+        _malformedMessages = source._malformedMessages;
+        _messageLock = source._messageLock;
+        _options = source._options;
+        _cancellationToken = cancellationToken;
+    }
+
+    internal IWorkObjectIndex WithCancellation(CancellationToken cancellationToken) =>
+        new(this, cancellationToken);
+
     internal IEnumerable<IWorkArchiveRecord> PrimaryRecords => _objects.Values;
 
     internal IWorkWireMessage Message(IWorkArchiveRecord record) {
         _cancellationToken.ThrowIfCancellationRequested();
         lock (_messageLock) {
+            _cancellationToken.ThrowIfCancellationRequested();
             if (_messages.TryGetValue(record, out IWorkWireMessage? cached)) return cached;
             if (_malformedMessages.TryGetValue(record, out InvalidDataException? malformed)) throw malformed;
             try {

@@ -170,6 +170,9 @@ internal static partial class IWorkKeynoteReader {
             if (!text.IsComplete) MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction, incompleteTextStorages, text);
             if (!text.IsTextComplete && text.Paragraphs.Count == 0)
                 omittedUnits.Add(new IWorkObjectIdentity(storage));
+            IWorkTextBoxLayout? layout = IWorkTextBoxLayoutReader.Read(index, drawable,
+                projectionBudget, references, out bool layoutComplete);
+            if (!layoutComplete) MarkDrawableIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
             IWorkWireMessage? drawableMessage = IWorkDrawingReader.DrawableMessage(index, drawable,
                 out bool drawableComplete);
             if (!drawableComplete) {
@@ -212,7 +215,7 @@ internal static partial class IWorkKeynoteReader {
                     MarkDrawableIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
                 }
                 if (text.Paragraphs.Count == 0) projectionBudget.AddTextItem();
-                title = new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription, new IWorkObjectIdentity(drawable));
+                title = new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription, new IWorkObjectIdentity(drawable), layout);
                 drawables.Add(new IWorkKeynoteDrawable(title, isTitlePlaceholder: true));
             } else {
                 bool isBodyPlaceholder = bodyPlaceholder?.Identifier == drawable.Identifier;
@@ -244,7 +247,7 @@ internal static partial class IWorkKeynoteReader {
                     MarkDrawableIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
                 }
                 if (text.Paragraphs.Count == 0) projectionBudget.AddTextItem();
-                var textBox = new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription, new IWorkObjectIdentity(drawable));
+                var textBox = new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription, new IWorkObjectIdentity(drawable), layout);
                 textBoxes.Add(textBox);
                 drawables.Add(new IWorkKeynoteDrawable(textBox, isTitlePlaceholder: false));
             }
@@ -307,19 +310,16 @@ internal static partial class IWorkKeynoteReader {
             MarkTextMetadataIncomplete(slide, diagnostics, ref supportsEditableReconstruction);
         }
         if (slideName != null) projectionBudget.AddTextCharacters(slideName.Length);
-        IEnumerable<IWorkTextContent> slideText =
-            (title == null ? Array.Empty<IWorkTextContent>() : new[] { title.Content })
-            .Concat(textBoxes.Select(textBox => textBox.Content))
-            .Concat(tables.SelectMany(table => table.Cells)
-                .Where(cell => cell.RichText != null).Select(cell => cell.RichText!))
+        IEnumerable<IWorkTextContent> paginatedText = tables.SelectMany(table => table.Cells)
+            .Where(cell => cell.RichText != null).Select(cell => cell.RichText!)
             .Append(notes);
-        if (slideText.SelectMany(content => content.Paragraphs).Any(paragraph =>
-                paragraph.Style.PageBreakBefore == true
-                || paragraph.Style.KeepWithNext == true
-                || paragraph.Style.KeepLinesTogether == true)) {
+        if (textBoxes.Concat(title == null ? Array.Empty<IWorkTextBox>() : new[] { title })
+                .Any(box => box.Content.Paragraphs.Any(paragraph => IWorkTextBoxLayoutReader.HasUnsupportedPagination(paragraph.Style, box)))
+            || paginatedText.SelectMany(content => content.Paragraphs)
+                .Any(paragraph => IWorkTextBoxLayoutReader.HasUnsupportedPagination(paragraph.Style))) {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_UNSUPPORTED",
-                "Keynote paragraph page/keep flags have no PPTX slide-text equivalent; editable text is preserved without those pagination flags.",
+                "Keynote paragraph page/keep flags require unqualified pagination behavior outside a resolved fixed frame; editable text is preserved without those flags.",
                 slide.EntryPath, slide.Identifier));
         }
         return new IWorkKeynoteSlide(position, slideName ?? string.Empty,

@@ -70,14 +70,16 @@ for identifier in sorted(selected):
                     'property': field, 'decodedProperties': str(message).strip()}
         if field == 'line_spacing' and message.mode == 0 and message.HasField('amount') and not message.HasField('baselineRule'):
             evidence['relativeMultiplier'] = message.amount
-        if field == 'tabs' and message.tabs and all(not tab.leader for tab in message.tabs):
+        if field == 'line_spacing' and not message.ListFields():
+            evidence['defaultLineSpacing'] = True
+        if field == 'tabs' and all(not tab.leader for tab in message.tabs):
             evidence['tabStops'] = [{'positionPoints': tab.position, 'alignment': tab.alignment} for tab in message.tabs]
         declarations.append(evidence)
     if declarations:
         styles.append({'recordIdentifier': identifier, 'declarations': declarations})
 manifest = {'source': name, 'sourceSha256': source_hash, 'extractorVersion': 'numbers-parser 4.19.0',
             'license': 'The unchanged fixture retains its existing corpus provenance and license.',
-            'qualification': 'Selected body paragraph styles and their parent chain; Explicit relative multipliers are decoded independently; remaining line spacing and tab declarations stay unassessed by the shared projection. Empty declarations are retained without inventing default semantics. No native export or rendered appearance qualification.',
+            'qualification': 'Selected body paragraph styles and their parent chain. Explicit relative multipliers and custom tabs are decoded independently. Empty shared TSWP declarations use the single-spacing and empty-custom-tab defaults qualified against Apple Numbers 14.5 in native-exports/numbers-simple-v14.5.json. Other declarations remain unassessed. This manifest does not qualify Pages rendered appearance.',
             'storageIdentifiers': storages, 'styles': styles}
 args.output.write_text(json.dumps(manifest, indent=2) + '\n')
 print(f'Extracted {sum(len(s["declarations"]) for s in styles)} declarations from {len(styles)} selected styles')

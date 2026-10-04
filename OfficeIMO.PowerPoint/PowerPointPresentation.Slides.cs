@@ -20,7 +20,12 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="layoutIndex">Index of the slide layout.</param>
         public PowerPointSlide AddSlide(int masterIndex = 0, int layoutIndex = 0) {
             ThrowIfDisposed();
-            string slideRelId = GetNextSlideRelationshipId();
+            SlideLayoutPart layoutPart = GetSlideLayoutPart(masterIndex, layoutIndex);
+            return AddSlideCore(layoutPart, GetNextSlideRelationshipId(), GetNextSlideId(), savePresentation: true);
+        }
+
+        private PowerPointSlide AddSlideCore(SlideLayoutPart layoutPart, string slideRelId,
+            uint newId, bool savePresentation) {
             SlidePart slidePart = _presentationPart.AddNewPart<SlidePart>(slideRelId);
             // Create slide exactly like the working example
             slidePart.Slide = new Slide(
@@ -32,20 +37,6 @@ namespace OfficeIMO.PowerPoint {
                             new ApplicationNonVisualDrawingProperties()),
                         PowerPointUtils.CreateDefaultGroupShapeProperties())),
                 new ColorMapOverride(new A.MasterColorMapping()));
-
-            SlideMasterPart[] masters = _presentationPart.SlideMasterParts.ToArray();
-            if (masterIndex < 0 || masterIndex >= masters.Length) {
-                throw new ArgumentOutOfRangeException(nameof(masterIndex));
-            }
-
-            SlideMasterPart masterPart = masters[masterIndex];
-
-            SlideLayoutPart[] layouts = masterPart.SlideLayoutParts.ToArray();
-            if (layoutIndex < 0 || layoutIndex >= layouts.Length) {
-                throw new ArgumentOutOfRangeException(nameof(layoutIndex));
-            }
-
-            SlideLayoutPart layoutPart = layouts[layoutIndex];
 
             // Check if this slide part already has a reference to this layout part
             string? existingRelId = null;
@@ -84,12 +75,11 @@ namespace OfficeIMO.PowerPoint {
                 PresentationRoot.SlideIdList = new SlideIdList();
             }
 
-            uint newId = GetNextSlideId();
             SlideId slideId = new() { Id = newId };
             PowerPointUtils.SetRelationshipIdValue(slideId, slideRelId);
             PresentationRoot.SlideIdList.Append(slideId);
             AssignSlideToNearestSection(newId, _slides.Count);
-            PresentationRoot.Save();
+            if (savePresentation) PresentationRoot.Save();
 
             PowerPointSlide slide = new(slidePart);
             _slides.Add(slide);
@@ -327,6 +317,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointSlide sourceSlide = _slides[index];
             SlidePart sourcePart = sourceSlide.SlidePart;
             Slide sourceSlideRoot = sourcePart.Slide ?? throw new InvalidOperationException("Source slide is missing its slide definition.");
+            uint nextSlideId = GetNextSlideId();
 
             sourceSlide.Save();
 
@@ -348,7 +339,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             SlideIdList slideIdList = PresentationRoot.SlideIdList ??= new SlideIdList();
-            SlideId slideId = new() { Id = GetNextSlideId() };
+            SlideId slideId = new() { Id = nextSlideId };
             PowerPointUtils.SetRelationshipIdValue(slideId, slideRelId);
             InsertSlideId(slideIdList, slideId, targetIndex);
             AssignSlideToNearestSection(slideId.Id?.Value ?? throw new InvalidOperationException("Slide ID is missing."),
@@ -407,6 +398,7 @@ namespace OfficeIMO.PowerPoint {
                 sourcePresentation, requestedSource, includeLinkedSlides);
             IReadOnlyList<PowerPointSlide> importSources = importPlan.Slides;
             ValidateSlideImportSources(importSources);
+            _ = GetNextSlideId(importSources.Count);
             Presentation originalPresentation = (Presentation)
                 PresentationRoot.CloneNode(true);
             var originalTopLevelParts = new HashSet<OpenXmlPart>(

@@ -23,13 +23,13 @@ public sealed partial class IWorkBoundaryTests {
         }
         switch (kind) {
             case IWorkDocumentKind.Pages:
-                using (var result = source.ToWordDocumentResult()) Assert.True(result.IsVisualFallback);
+                using (var result = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false })) Assert.True(result.IsVisualFallback);
                 break;
             case IWorkDocumentKind.Numbers:
-                using (var result = source.ToExcelDocumentResult()) Assert.True(result.IsVisualFallback);
+                using (var result = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false })) Assert.True(result.IsVisualFallback);
                 break;
             default:
-                using (var result = source.ToPowerPointPresentationResult()) Assert.True(result.IsVisualFallback);
+                using (var result = source.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false })) Assert.True(result.IsVisualFallback);
                 break;
         }
         package.Position = 0;
@@ -136,7 +136,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("a")]
     public void PowerPoint_does_not_infer_numbering_from_literal_text(string label) {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1, text: "Item", listLabel: label);
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         if (label.Length > 1) {
             Assert.True(result.IsVisualFallback);
         } else {

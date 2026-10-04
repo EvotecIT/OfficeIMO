@@ -52,7 +52,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Repeated_distinct_Keynote_body_placeholders_disable_editable_reconstruction() {
         using MemoryStream package = CreateKeynotePackageWithDistinctBodyPlaceholders();
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -66,7 +66,7 @@ public sealed partial class IWorkBoundaryTests {
                 conflictingNumberValue: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         IWorkTableCell cell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);
 
@@ -80,7 +80,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Sub-tick date", 1, 1, 0.00000015d, date: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         IWorkTableCell cell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);
 
@@ -114,7 +114,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Text_colors_reject_conflicting_color_models() {
         using MemoryStream package = CreatePagesPackageWithConflictingColorModels();
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,

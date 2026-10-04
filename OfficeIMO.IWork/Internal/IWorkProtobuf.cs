@@ -30,13 +30,16 @@ internal sealed class IWorkWireMessage {
     private readonly Dictionary<int, List<IWorkWireValue>> _fields;
     private readonly IWorkReadOptions _options;
     private readonly int _depth;
+    private readonly int _totalFieldCount;
     private readonly Dictionary<int, (IWorkWireMessage? Message, InvalidDataException? Error)> _nestedMessages = new();
     private readonly object _nestedMessageLock = new();
 
-    internal IWorkWireMessage(Dictionary<int, List<IWorkWireValue>> fields, IWorkReadOptions options, int depth) {
+    internal IWorkWireMessage(Dictionary<int, List<IWorkWireValue>> fields, IWorkReadOptions options, int depth,
+        int totalFieldCount) {
         _fields = fields;
         _options = options;
         _depth = depth;
+        _totalFieldCount = totalFieldCount;
     }
 
     internal ulong? GetUnsigned(int field) {
@@ -108,13 +111,28 @@ internal sealed class IWorkWireMessage {
     internal bool HasField(int field) => Values(field).Count > 0;
 
     internal int FieldCount(int field) => Values(field).Count;
-    internal int TotalFieldCount => _fields.Values.Sum(values => values.Count);
+    internal int TotalFieldCount => _totalFieldCount;
 
     internal IEnumerable<IWorkWireValue> EnumerateValues(int field) => Values(field);
 
+    internal bool HasUnexpectedWireKind(int field, IWorkWireKind expectedKind) {
+        if (!_fields.TryGetValue(field, out List<IWorkWireValue>? values)) return false;
+        for (int index = 0; index < values.Count; index++) {
+            if (values[index].Kind != expectedKind) return true;
+        }
+        return false;
+    }
+
     internal bool HasUnexpectedWireKind(int field, params IWorkWireKind[] expectedKinds) {
-        IReadOnlyList<IWorkWireValue> values = Values(field);
-        return values.Any(value => !expectedKinds.Contains(value.Kind));
+        if (!_fields.TryGetValue(field, out List<IWorkWireValue>? values)) return false;
+        for (int index = 0; index < values.Count; index++) {
+            bool expected = false;
+            for (int kind = 0; kind < expectedKinds.Length; kind++) {
+                if (values[index].Kind == expectedKinds[kind]) { expected = true; break; }
+            }
+            if (!expected) return true;
+        }
+        return false;
     }
 
     internal IReadOnlyList<byte[]> GetRepeatedBytes(int field) => Values(field)
@@ -387,7 +405,7 @@ internal static class IWorkProtobuf {
             }
             values.Add(value);
         }
-        return new IWorkWireMessage(fields, options, depth);
+        return new IWorkWireMessage(fields, options, depth, fieldCount);
     }
 
     internal static ulong ReadVarint(byte[] data, ref int offset) {

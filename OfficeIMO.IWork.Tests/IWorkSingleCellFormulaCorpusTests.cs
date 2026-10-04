@@ -34,8 +34,8 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
             Assert.Equal((row == 20 ? "=COLUMNS" : "=ROWS") + "({1,2,3})", referenceTable.GetCell(row, 2)!.Formula);
             Assert.True(referenceTable.GetCell(row, 2)!.CachedValueIsComplete);
         }
-        using var result = source.ToExcelDocumentResult(new IWorkConversionOptions {
-            AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
+        using var result = source.ToExcelDocumentResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions {
+            AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true }));
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED"
             && diagnostic.Message.Contains("date outside", StringComparison.Ordinal));

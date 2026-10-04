@@ -21,6 +21,7 @@ using OfficeIMO.Zip;
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddZipHandler(new ZipTraversalOptions {
         MaxEntries = 1000,
+        MaxPhysicalEntries = 5000,
         MaxDepth = 8,
         MaxTotalUncompressedBytes = 100L * 1024L * 1024L
     })
@@ -92,6 +93,8 @@ foreach (string warning in chunks.SelectMany(chunk => chunk.Warnings ?? Array.Em
 - Warning chunks for skipped or failed entries.
 - Bounded nested ZIP traversal with `ReaderZipOptions`.
 - Path and stream dispatch, including non-seekable stream support.
+
+The adapter checks compressed size and every physical ZIP entry before opening top-level or nested archives. Path and stream inputs are copied into bounded private snapshots so validation and parsing see the same bytes. Its default source limit is 512 MiB and its default physical entry limit is 10,000. `ReaderOptions.MaxInputBytes` can lower the source limit; raise `ZipTraversalOptions.MaxArchiveBytes` or `MaxPhysicalEntries` deliberately for larger trusted archives. A top-level archive above either limit fails before metadata loading; a nested archive is skipped with a warning.
 
 ## Boundaries
 

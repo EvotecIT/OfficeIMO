@@ -43,6 +43,14 @@ table.Style = WordTableStyle.TableGrid;
 document.Save();
 ```
 
+When a Word file comes from an untrusted source, pass the bounded load profile before parsing it:
+
+```csharp
+using var incoming = WordDocument.Load("upload.docx", WordLoadOptions.UntrustedDefaults);
+```
+
+This profile rejects macros, embedded payloads, ActiveX, and external relationships. Ordinary load options retain compatibility with documents containing those parts; `PackageSecurity` can be set explicitly for a different policy.
+
 `AsFluent()` wraps the same `WordDocument`; `End()` returns that document for
 direct object-model work:
 

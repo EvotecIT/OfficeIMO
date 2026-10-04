@@ -10,7 +10,8 @@ public static partial class OfficeSvgDrawingReader {
         XAttribute[] hrefAttributes = element.Attributes()
             .Where(attribute => attribute.Name.LocalName.Equals("href", StringComparison.Ordinal))
             .ToArray();
-        if (hrefAttributes.Length != 1 || string.IsNullOrWhiteSpace(hrefAttributes[0].Value)) {
+        if (hrefAttributes.Length != 1 ||
+            !OfficeDrawingLinkPolicy.TryNormalize(hrefAttributes[0].Value, out string safeUri)) {
             unsupported++;
             return;
         }
@@ -26,7 +27,7 @@ public static partial class OfficeSvgDrawingReader {
             alternativeText = element.Elements()
                 .FirstOrDefault(child => child.Name.LocalName.Equals("title", StringComparison.OrdinalIgnoreCase))?.Value;
         }
-        target.AddLink(hrefAttributes[0].Value, left, top, right - left, bottom - top, alternativeText);
+        target.AddLink(safeUri, left, top, right - left, bottom - top, alternativeText);
     }
 
     private static bool TryGetSvgDrawingBounds(IEnumerable<OfficeDrawingElement> elements, out SvgInteractiveBounds bounds) {

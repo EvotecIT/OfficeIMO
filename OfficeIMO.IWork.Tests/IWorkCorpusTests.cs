@@ -165,7 +165,7 @@ public sealed class IWorkCorpusTests {
             Fixture("numbers-parser/test-10-formulas.numbers")).ReadNumbers();
         IWorkTable table = numbers.Sheets[0].Tables[0];
 
-        Assert.False(numbers.HasEditableContent);
+        Assert.True(numbers.HasEditableContent);
         Assert.True(numbers.HasRecoverableContent);
         Assert.DoesNotContain(numbers.Diagnostics, d => d.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED");
         Assert.Equal(IWorkCellUnsupportedFeatures.None, table.GetCell(3, 3)!.UnsupportedFeatures);
@@ -189,7 +189,7 @@ public sealed class IWorkCorpusTests {
         IWorkNumbersProjection numbers = IWorkSourceDocument.Open(Fixture(RelativePath)).ReadNumbers();
         IWorkTable first = numbers.Sheets[0].Tables[0];
 
-        Assert.False(numbers.HasEditableContent);
+        Assert.True(numbers.HasEditableContent);
         Assert.True(numbers.HasRecoverableContent);
         Assert.Equal(5, first.MergedRanges.Count);
         Assert.Contains(first.MergedRanges, merge => merge.FirstRow == 2 && merge.FirstColumn == 1
@@ -219,7 +219,7 @@ public sealed class IWorkCorpusTests {
             conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
 
         Assert.False(result.IsVisualFallback);
-        Assert.True(result.Report.IsPartialEditableReconstruction);
+        result.Report.RequireCompleteEditableReconstruction();
         ExcelSheet first = result.Value.Sheets[0];
         Assert.Equal("A1+A2", first.GetFormulaText(2, 2));
         Assert.Equal("SUM(A1:A2)", first.GetFormulaText(6, 2));
@@ -256,7 +256,6 @@ public sealed class IWorkCorpusTests {
         using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(
             Fixture("nim-iwork/simple.key"), conversionOptions: new IWorkConversionOptions {
                 Mode = IWorkConversionMode.EditableOnly,
-                AllowPartialEditableReconstruction = true
             });
         Assert.False(result.IsVisualFallback);
         using var saved = new MemoryStream();
@@ -335,7 +334,7 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Pages_owner_uses_visual_fallback_for_unresolved_inline_objects() {
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(Fixture("iwork-converter/a.pages"));
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(Fixture("iwork-converter/a.pages"), conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -425,7 +424,7 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Pages_owner_projects_tables_and_embedded_image_into_word() {
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(Fixture("picodocs/sample-v14.4.pages"));
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(Fixture("picodocs/sample-v14.4.pages"), conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Empty(result.Value.Tables);
@@ -451,7 +450,7 @@ public sealed class IWorkCorpusTests {
 
     [Fact]
     public void Keynote_owner_falls_back_when_rich_text_uses_pagination_flags() {
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(Fixture("iwork-converter/a.key"));
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(Fixture("iwork-converter/a.key"), conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Equal(1920d, result.Value.SlideSize.WidthPoints, 3);
@@ -513,7 +512,7 @@ public sealed class IWorkCorpusTests {
         Assert.InRange(table.HeightPoints, expectedHeight - 0.001d, expectedHeight + 0.001d);
 
         using var imageFallback = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(
-            Fixture("keynotekit/imagedeck-v15.2.1.key"));
+            Fixture("keynotekit/imagedeck-v15.2.1.key"), conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(imageFallback.IsVisualFallback);
         Assert.Contains(imageFallback.Report.SourceDeclarationIssues, issue => issue.FieldPath == "11/27"
             && issue.Owner.EntryPath == "Index/DocumentStylesheet.iwa"
@@ -532,11 +531,12 @@ public sealed class IWorkCorpusTests {
     public void Owner_adapters_save_and_reopen_semantic_or_visual_outputs() {
         using var pages = WordIWorkConverter.ConvertPagesToWordResult(Fixture("nim-iwork/simple.pages"), conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         using var numbers = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture("nim-iwork/simple.numbers"), conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
-        using var keynote = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(Fixture("nim-iwork/simple.key"));
+        using var keynote = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(Fixture("nim-iwork/simple.key"), conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.False(pages.IsVisualFallback);
         Assert.False(numbers.IsVisualFallback);
-        Assert.True(keynote.IsVisualFallback);
+        Assert.False(keynote.IsVisualFallback);
+        keynote.Report.RequireCompleteEditableReconstruction();
         using var wordBytes = new MemoryStream();
         using var excelBytes = new MemoryStream();
         using var powerPointBytes = new MemoryStream();
@@ -553,8 +553,9 @@ public sealed class IWorkCorpusTests {
         Assert.Contains(word.Paragraphs, paragraph => paragraph.Text == "hello pages");
         Assert.Single(excel.Sheets);
         Assert.Equal("a", excel.Sheets[0].CellAt(1, 1).GetValue<string>());
-        Assert.Single(powerPoint.Slides);
-        Assert.Single(powerPoint.Slides[0].Pictures);
+        Assert.Equal(2, powerPoint.Slides.Count);
+        Assert.Empty(powerPoint.Slides[0].Pictures);
+        Assert.Contains(powerPoint.Slides[0].TextBoxes, box => box.Text.Contains("first bullet", StringComparison.Ordinal));
     }
 
     [Theory]
@@ -580,7 +581,7 @@ public sealed class IWorkCorpusTests {
     public void Keynote_visual_fallback_uses_the_recovered_source_canvas() {
         using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(
             Fixture("nim-iwork/simple.key"),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly });
+            conversionOptions: IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly }));
 
         PowerPointPicture picture = Assert.Single(Assert.Single(result.Value.Slides).Pictures);
         Assert.Equal(result.Value.SlideSize.WidthPoints / 72d, picture.WidthInches, 3);
@@ -688,19 +689,19 @@ public sealed class IWorkCorpusTests {
 
     private static IWorkConversionReport ReadPagesVisual(string relativePath, IWorkConversionOptions options) {
         using var result = WordIWorkConverter.ConvertPagesToWordResult(
-            Fixture(relativePath), conversionOptions: options);
+            Fixture(relativePath), conversionOptions: IWorkTestPolicy.ForIncompletePreview(options));
         return result.Report;
     }
 
     private static IWorkConversionReport ReadNumbersVisual(string relativePath, IWorkConversionOptions options) {
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(
-            Fixture(relativePath), conversionOptions: options);
+            Fixture(relativePath), conversionOptions: IWorkTestPolicy.ForIncompletePreview(options));
         return result.Report;
     }
 
     private static IWorkConversionReport ReadKeynoteVisual(string relativePath, IWorkConversionOptions options) {
         using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(
-            Fixture(relativePath), conversionOptions: options);
+            Fixture(relativePath), conversionOptions: IWorkTestPolicy.ForIncompletePreview(options));
         return result.Report;
     }
 

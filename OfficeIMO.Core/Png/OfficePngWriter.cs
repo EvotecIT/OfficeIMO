@@ -10,7 +10,8 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 public enum OfficePngCompression {
     /// <summary>
-    /// Compress scanlines with the platform deflate implementation.
+    /// Compress scanlines with the platform deflate implementation. RGBA encoding
+    /// compares adaptive and unfiltered rows and uses the smaller compressed form.
     /// </summary>
     Optimal,
 

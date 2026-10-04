@@ -166,13 +166,13 @@ public sealed partial class IWorkBoundaryTests {
         var options = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
-            using var automatic = source.ToWordDocumentResult(); Assert.True(automatic.IsVisualFallback);
+            using var automatic = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
             using var partial = source.ToWordDocumentResult(options); partial.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
             Assert.Equal(cell.CachedDisplayText, reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
             Assert.Empty(reopened.ValidateDocument());
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var automatic = source.ToExcelDocumentResult(); Assert.True(automatic.IsVisualFallback);
+            using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
             using var partial = source.ToExcelDocumentResult(options); partial.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
             if (cell.Value is DateTime date) Assert.Equal(date.ToOADate(), reopened.Sheets[0].CellAt(1, 1).GetValue<double>(), 10);
@@ -182,7 +182,7 @@ public sealed partial class IWorkBoundaryTests {
                 reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
             Assert.Empty(reopened.ValidateOpenXml());
         } else {
-            using var automatic = source.ToPowerPointPresentationResult(); Assert.True(automatic.IsVisualFallback);
+            using var automatic = source.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
             using var partial = source.ToPowerPointPresentationResult(options); partial.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
             Assert.Equal(cell.CachedDisplayText, Assert.Single(reopened.Slides[0].Tables).GetCell(0, 0).Text);

@@ -79,7 +79,59 @@ The website reads published Studio assets from the release hub. It shows Windows
 
 Windows binaries and the MSI use the existing OfficeIMO Authenticode certificate profile and a trusted timestamp. A missing signing tool, certificate, or timestamp is a release failure. Do not disable signing for a public artifact.
 
-Updates are manual for the initial product channel: install a newer signed artifact over the existing identity. Automatic update checks and Microsoft Store/App Installer publication remain disabled until a stable release feed and rollback policy exist. Building artifacts does not publish them.
+MSI updates install a newer signed artifact over the existing identity. The MSI installs for all users under `Program Files`; installation, upgrades and removal require administrator approval. Studio runs as a normal user. Microsoft Store distribution through an MSI keeps the installer-based update model. Building artifacts does not publish them.
+
+## WinGet and Microsoft Store catalogs
+
+Reuse the signed MSI assets from a published Studio release. Download its two
+Windows MSIs, `windows-release-manifest.json` and `windows-SHA256SUMS.txt` into one
+directory. Prepare submission inputs with PowerForge on Windows:
+
+```powershell
+./Build/Studio/Prepare-StudioCatalog.ps1 -AssetRoot ./downloads -OutputPath ./Artifacts/Studio/Catalog
+winget validate ./Artifacts/Studio/Catalog/Winget/EvotecIT.OfficeIMO.Studio/<version>
+wingetcreate submit ./Artifacts/Studio/Catalog/Winget/EvotecIT.OfficeIMO.Studio/<version>
+```
+
+Choose a new output directory for each preparation. The shared engine verifies
+release checksums, MSI Authenticode trust and installer identity, version and
+architecture, then generates the WinGet manifests and Store package JSON.
+Verify embedded executable signatures and exercise installation, upgrade,
+launch and removal on the claimed architectures before catalog acceptance.
+WinGet submission creates a pull request in Microsoft's package repository;
+catalog availability requires its validation and acceptance.
+
+The Store reuses the same signed MSI bytes and `/qn /norestart` switches. Its
+package URLs must return those bytes directly over HTTPS without redirection.
+GitHub release download URLs redirect and are rejected by Partner Center.
+Before using the generated `desktop-packages.json` for the Store, set each
+`PackageUrl` to an immutable URL on the product's approved distribution host
+and verify that a request with redirects disabled returns the matching release
+checksum. WinGet may retain its GitHub release URLs.
+Create a company developer account once, then reserve **OfficeIMO Studio** as an
+MSI/EXE product. Complete the first submission in Partner Center: package URLs,
+availability, properties, age ratings, description, screenshots, support and
+[privacy policy](https://officeimo.com/studio/privacy/). Listing claims and
+screenshots must describe the submitted release, rather than newer source.
+See [Microsoft's MSI requirements](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msi/app-package-requirements)
+and [first-submission API boundary](https://learn.microsoft.com/en-us/windows/apps/publish/store-submission-api).
+
+For later package updates, copy `powerforge.store.submit.example.json` to a local
+submission config and replace its identity placeholders. Set
+`DesktopPackagesPath` to the prepared `desktop-packages.json`, relative to the
+config. Associate an Entra application with the required Partner Center role and
+supply its secret through `PARTNER_CENTER_CLIENT_SECRET`:
+
+```powershell
+powerforge store submit --config ./Build/Studio/powerforge.store.submit.json --target Studio.Windows --plan
+powerforge store submit --config ./Build/Studio/powerforge.store.submit.json --target Studio.Windows --validate
+```
+
+The example keeps `Commit: false` so the first API run updates draft package
+metadata. Set `Commit: true` when submitting that prepared update. PowerForge
+owns validation, authentication, upload and status reporting; Studio supplies
+product metadata and paths. Other MSI products reuse the same commands with
+their own release config and Store product ID.
 
 For everyday macOS development and stable privacy permissions, use [`Build-StudioMacDevelopment.ps1`](Build-StudioMacDevelopment.ps1) and the [development signing instructions](Apple/README.md#local-macos-development).
 

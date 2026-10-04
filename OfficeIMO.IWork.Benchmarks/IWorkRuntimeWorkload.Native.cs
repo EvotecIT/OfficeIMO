@@ -29,10 +29,10 @@ public sealed partial class IWorkRuntimeWorkload {
         VerifiedUnits = 0;
         if (_operation == "LoadProject") {
             if (_projection is IWorkPagesProjection pages) {
-                if (!pages.HasRecoverableContent) throw new InvalidDataException("Native Pages content is unavailable.");
+                if (!pages.HasEditableContent) throw new InvalidDataException("Native Pages content is incomplete.");
                 ValidateNativeText(pages.Body.Paragraphs.Select(paragraph => paragraph.Text));
             } else if (_projection is IWorkNumbersProjection numbers) {
-                if (!numbers.HasRecoverableContent) throw new InvalidDataException("Native Numbers content is unavailable.");
+                if (!numbers.HasEditableContent) throw new InvalidDataException("Native Numbers content is incomplete.");
                 IWorkTable table = numbers.Sheets.Single().Tables.Single();
                 if (table.RowCount != 3 || table.ColumnCount != 3 || table.Cells.Count != 9)
                     throw new InvalidDataException("Native Numbers dimensions or cell count mismatch.");

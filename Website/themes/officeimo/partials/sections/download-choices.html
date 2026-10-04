@@ -70,6 +70,16 @@
     {{ end }}
   {{ end }}
 {{ end }}
+{{ studio_msi_x64_url = "" }}
+{{ studio_msi_arm64_url = "" }}
+{{ if studio_msi_x64 }}{{ studio_msi_x64_url = studio_msi_x64.downloadUrl }}{{ end }}
+{{ if studio_msi_arm64 }}{{ studio_msi_arm64_url = studio_msi_arm64.downloadUrl }}{{ end }}
+{{ if data.studio_installer_downloads && data.studio_installer_downloads.artifacts }}
+  {{ for installer in data.studio_installer_downloads.artifacts }}
+    {{ if studio_msi_x64 && installer.sourceUrl == studio_msi_x64.downloadUrl }}{{ studio_msi_x64_url = installer.downloadUrl }}{{ end }}
+    {{ if studio_msi_arm64 && installer.sourceUrl == studio_msi_arm64.downloadUrl }}{{ studio_msi_arm64_url = installer.downloadUrl }}{{ end }}
+  {{ end }}
+{{ end }}
 <section class="imo-download-choice" id="studio-downloads" aria-labelledby="studio-download-title">
   <div><p class="imo-application-eyebrow">Desktop</p><h2 id="studio-download-title">Studio</h2><p>Read, review, and organize documents visually.</p><a href="/studio/">See the workspace →</a></div>
   <div>
@@ -79,8 +89,8 @@
       {{ if studio_windows_release.tag == "Studio-v0.1.9765" }}<p>Arm64 installation and runtime testing for version 0.1.9765 is pending.</p>{{ end }}
       {{ if studio_windows_release.tag == "Studio-v0.1.9767" }}<p>Arm64 installation and runtime testing for version 0.1.9767 is pending.</p>{{ end }}
       <dl class="imo-channel-list">
-        <div><dt>Windows x64</dt><dd><a href="{{ studio_msi_x64.downloadUrl }}">Windows x64 MSI installer</a> · <a href="{{ studio_zip_x64.downloadUrl }}">Windows x64 portable ZIP</a></dd></div>
-        <div><dt>Windows Arm64</dt><dd><a href="{{ studio_msi_arm64.downloadUrl }}">Windows Arm64 MSI installer</a> · <a href="{{ studio_zip_arm64.downloadUrl }}">Windows Arm64 portable ZIP</a></dd></div>
+        <div><dt>Windows x64</dt><dd><a href="{{ studio_msi_x64_url }}">Windows x64 MSI installer</a> · <a href="{{ studio_zip_x64.downloadUrl }}">Windows x64 portable ZIP</a></dd></div>
+        <div><dt>Windows Arm64</dt><dd><a href="{{ studio_msi_arm64_url }}">Windows Arm64 MSI installer</a> · <a href="{{ studio_zip_arm64.downloadUrl }}">Windows Arm64 portable ZIP</a></dd></div>
       </dl>
       <p><a href="{{ studio_windows_release.url }}">Release notes and checksums</a></p>
     {{ else }}

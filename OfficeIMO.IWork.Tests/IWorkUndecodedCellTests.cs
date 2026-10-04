@@ -92,21 +92,21 @@ public sealed partial class IWorkBoundaryTests {
         IWorkConversionReport report;
         string marker;
         if (kind == IWorkDocumentKind.Pages) {
-            using var automatic = source.ToWordDocumentResult();
+            using var automatic = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
             using var partial = source.ToWordDocumentResult(options); report = partial.Report;
             partial.Value.Save(saved); saved.Position = 0;
             using WordDocument reopened = WordDocument.Load(saved);
             marker = reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text;
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var automatic = source.ToExcelDocumentResult();
+            using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
             using var partial = source.ToExcelDocumentResult(options); report = partial.Report;
             partial.Value.Save(saved); saved.Position = 0;
             using ExcelDocument reopened = ExcelDocument.Load(saved);
             marker = Assert.IsType<string>(reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
         } else {
-            using var automatic = source.ToPowerPointPresentationResult();
+            using var automatic = source.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
             using var partial = source.ToPowerPointPresentationResult(options); report = partial.Report;
             partial.Value.Save(saved); saved.Position = 0;

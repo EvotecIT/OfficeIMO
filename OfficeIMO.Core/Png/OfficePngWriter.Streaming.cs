@@ -151,13 +151,26 @@ public static partial class OfficePngWriter {
         byte[] rgba,
         System.Threading.CancellationToken cancellationToken,
         Action<OfficeRasterEncodingCheckpoint>? checkpointObserver) {
+        var workspace = new PngFilteringWorkspace(width);
+        using var adaptiveSize = new PngSizeProbeStream();
+        using var unfilteredSize = new PngSizeProbeStream();
+        WriteRgbaZlib(adaptiveSize, height, rgba, workspace, adaptiveFiltering: true, cancellationToken, checkpointObserver);
+        WriteRgbaZlib(unfilteredSize, height, rgba, workspace, adaptiveFiltering: false, cancellationToken, checkpointObserver);
+        WriteRgbaZlib(destination, height, rgba, workspace,
+            adaptiveFiltering: adaptiveSize.Length <= unfilteredSize.Length, cancellationToken, checkpointObserver);
+    }
+
+    private static void WriteRgbaZlib(
+        Stream destination, int height, byte[] rgba, PngFilteringWorkspace workspace,
+        bool adaptiveFiltering, System.Threading.CancellationToken cancellationToken,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver) {
         destination.WriteByte(0x78);
         destination.WriteByte(0x9C);
 
-        int stride = checked(width * 4);
-        var filteredRow = new byte[checked(stride + 1)];
-        var paethCandidate = new byte[stride];
-        var compressionBatch = new byte[Math.Max(filteredRow.Length, 64 * 1024)];
+        int stride = workspace.Stride;
+        byte[] filteredRow = workspace.Row;
+        byte[] paethCandidate = workspace.Paeth;
+        byte[] compressionBatch = workspace.Batch;
         int batchLength = 0;
         uint adlerA = 1;
         uint adlerB = 0;
@@ -167,7 +180,10 @@ public static partial class OfficePngWriter {
                 checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.PngCompressionRow);
                 cancellationToken.ThrowIfCancellationRequested();
                 int rowOffset = y * stride;
-                if (y == 0) {
+                if (!adaptiveFiltering) {
+                    filteredRow[0] = 0;
+                    Buffer.BlockCopy(rgba, rowOffset, filteredRow, 1, stride);
+                } else if (y == 0) {
                     filteredRow[0] = 1;
                     FilterFirstRowSub(rgba, rowOffset, stride, filteredRow, 1, cancellationToken, checkpointObserver);
                 } else {

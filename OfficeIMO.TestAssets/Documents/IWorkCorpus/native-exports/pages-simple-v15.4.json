@@ -1,0 +1,80 @@
+{
+  "source": "nim-iwork/simple.pages",
+  "sourceSha256": "5aee6d03277d2db2104f593e64afe081dec539f0117b97124b6f99158124c93e",
+  "producer": "Apple Pages",
+  "producerVersion": "15.4",
+  "sourceProducerVersion": "14.5",
+  "export": "native-exports/pages-simple-v15.4.docx",
+  "exportSha256": "6d80e3fc30bd7efabecf6cb8669ab2d5ed3ebb8f4ca235b0413b6687416168b1",
+  "renderExport": "native-exports/pages-simple-v15.4.pdf",
+  "renderExportSha256": "0aecf02c486f927690113686b567901fcc545072dc128278513aece2ebdddfba",
+  "capturedUtc": "2026-10-03T22:06:02Z",
+  "sourceModified": false,
+  "exportOptions": {
+    "word": "DOCX; no password.",
+    "pdf": "Best image quality; comments, smart annotations and password disabled."
+  },
+  "nativeFormatting": {
+    "font": "Times Regular",
+    "fontSizePoints": 12,
+    "lineSpacingMultiplier": 1,
+    "customTabStops": [],
+    "defaultTabIntervalPoints": 36,
+    "horizontalAlignment": "Left"
+  },
+  "qualifiedSourceFields": {
+    "paragraphTextFont": "Times-Roman",
+    "lineSpacingFieldPath": "12/13",
+    "lineSpacingPayload": "empty",
+    "customTabsFieldPath": "12/25",
+    "customTabsPayload": "empty"
+  },
+  "qualification": "Unchanged licensed Pages 14.5 fixture opened and exported through Apple Pages 15.4. Native controls and DOCX qualify three body paragraphs including one empty paragraph, 12-point Times text, single spacing, default tabs, US Letter size and margins. Native rendering comparison qualifies this fixture only; broader typography, pagination, sections, tables and producer compatibility remain outside this evidence.",
+  "fontProvenance": {
+    "nativeControl": "Times Regular",
+    "nativeDocxFont": "Times Roman",
+    "decodedSourceFont": "Times-Roman",
+    "nativeEmbeddedPdfFont": "Times-Roman, TrueType subset",
+    "fontSource": "Installed macOS font; no standalone font distributed."
+  },
+  "destinationRendering": {
+    "export": "native-exports/pages-simple-officeimo-v15.4.pdf",
+    "exportSha256": "46e49374217f622e71bcf15b056b6ddfc2966821e8863c88a549f721ee80accf",
+    "convertedDocxSha256": "bfc466b3fbc4b0ef065f39f17333e4ea676b79496d3012431dcdc9f8e3a1ef13",
+    "renderer": "Apple Pages 15.4 on macOS 27.0.1 (26A434)",
+    "importRepairPrompt": false,
+    "sourceFiles": [
+      {
+        "path": "OfficeIMO.Word/WordParagraph.ParagraphMarkFormatting.cs",
+        "sha256": "3a7733814e6ad1465f224a871f2731b4966922a749058ad9eb25e53f40ece2d7"
+      },
+      {
+        "path": "OfficeIMO.Word.IWork/WordIWorkConverter.cs",
+        "sha256": "732bba8fac57e057caa3798f7236c151713d46357c45e73a9c18084620c3131d"
+      },
+      {
+        "path": "OfficeIMO.Word.IWork/WordIWorkConverter.Tables.cs",
+        "sha256": "4d78d32e81c5a8e3e7228d57fc830e13c3cee8366474d044cfd4ca0aa6ba81c5"
+      }
+    ]
+  },
+  "renderComparison": {
+    "pageCount": 1,
+    "pageSizePoints": [
+      612,
+      792
+    ],
+    "wordCount": 7,
+    "maximumWordBoundsDeltaPoints": 0,
+    "rasterizer": "pdftoppm version 26.09.0",
+    "rasterOptions": "-singlefile -scale-to 1200 -png",
+    "rasterDimensionsPixels": [
+      928,
+      1200
+    ],
+    "referenceRasterSha256": "871156d4d84971b03e85625b8f6df8ae72e94b5f5f9cd51767df2b9cb187ef72",
+    "destinationRasterSha256": "871156d4d84971b03e85625b8f6df8ae72e94b5f5f9cd51767df2b9cb187ef72",
+    "visuallyInspected": true,
+    "scope": "This unchanged simple fixture only; producer, renderer and fonts above. No general pagination or typography claim."
+  }
+}
