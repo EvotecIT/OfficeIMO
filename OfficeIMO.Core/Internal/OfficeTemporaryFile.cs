@@ -49,7 +49,7 @@ namespace OfficeIMO.Core.Internal {
         }
 
         internal static FileStream CreateUnixOwnerOnly(string path, int bufferSize, FileOptions options) {
-            int descriptor = OfficeUnixFile.Open(path, GetExclusiveCreateFlags(), 0x180U);
+            int descriptor = OfficeUnixFile.OpenWithMode(path, GetExclusiveCreateFlags(), 0x180U);
             if (descriptor < 0) {
                 throw new IOException(
                     "Unable to create an owner-only temporary file (OS error "

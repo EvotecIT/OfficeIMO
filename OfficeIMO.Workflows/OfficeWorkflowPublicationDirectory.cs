@@ -41,7 +41,7 @@ internal sealed class OfficeWorkflowPublicationDirectory : IDisposable {
             stream.Flush(flushToDisk: true);
             return;
         }
-        int descriptor = OfficeUnixFile.OpenAt(UnixFd, name, UnixWriteOnly | UnixCreate | UnixExclusive |
+        int descriptor = OfficeUnixFile.OpenAtWithMode(UnixFd, name, UnixWriteOnly | UnixCreate | UnixExclusive |
             UnixNoFollow | UnixCloseOnExec, 384); // 0600
         if (descriptor < 0) throw UnixError("create", name);
         using var handle = new SafeFileHandle(new IntPtr(descriptor), ownsHandle: true);
@@ -129,12 +129,12 @@ internal sealed class OfficeWorkflowPublicationDirectory : IDisposable {
                 foreach (string segment in relative.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)) {
                     ValidateName(segment);
                     int parent = checked((int)current.DangerousGetHandle().ToInt64());
-                    int child = OfficeUnixFile.OpenAt(parent, segment, flags, 0);
+                    int child = OfficeUnixFile.OpenAtWithMode(parent, segment, flags, 0);
                     if (child < 0 && Marshal.GetLastWin32Error() == ErrorNoEntry) {
                         if (UnixMkdirAt(parent, segment, 493) != 0 &&
                             Marshal.GetLastWin32Error() != ErrorAlreadyExists)
                             throw UnixError("create directory", segment);
-                        child = OfficeUnixFile.OpenAt(parent, segment, flags, 0);
+                        child = OfficeUnixFile.OpenAtWithMode(parent, segment, flags, 0);
                     }
                     if (child < 0) throw UnixError("open directory", segment);
                     current.Dispose();

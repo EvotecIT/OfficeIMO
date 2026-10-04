@@ -18,10 +18,10 @@ public sealed class OfficeUnixFileTests {
         string path = Path.Combine(directory, "created.bin");
         int flags = OperatingSystem.IsMacOS() ? 1 | 0x200 | 0x800 : 1 | 0x40 | 0x80;
         try {
-            using var parent = new SafeFileHandle((nint)OfficeUnixFile.Open(directory, 0, 0), ownsHandle: true);
+            using var parent = new SafeFileHandle((nint)OfficeUnixFile.OpenWithMode(directory, 0, 0), ownsHandle: true);
             int descriptor = relative
-                ? OfficeUnixFile.OpenAt(parent.DangerousGetHandle().ToInt32(), "created.bin", flags, (uint)mode)
-                : OfficeUnixFile.Open(path, flags, (uint)mode);
+                ? OfficeUnixFile.OpenAtWithMode(parent.DangerousGetHandle().ToInt32(), "created.bin", flags, (uint)mode)
+                : OfficeUnixFile.OpenWithMode(path, flags, (uint)mode);
             Assert.True(descriptor >= 0, "Exclusive native file creation failed.");
             using (var handle = new SafeFileHandle((nint)descriptor, ownsHandle: true))
             using (var stream = new FileStream(handle, FileAccess.Write)) stream.WriteByte(81);
