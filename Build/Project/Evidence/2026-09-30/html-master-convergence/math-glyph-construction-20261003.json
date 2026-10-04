@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "measuredUtc": "2026-10-03T11:52:17.568454+00:00",
   "scope": "Two static math milestones: font glyph construction and per-glyph placement",
-  "status": "Implementation, correctness, rendered artifacts and packages qualified; unchanged macOS timing gate pending",
+  "status": "Static math construction/placement, independent rendered artifacts and packed consumers qualified within the declared subset; combined-source platform performance budgets failed and qualified long-lived adoption remains open",
   "source": {
     "implementationCommit": "395d5ce4874c45e919c0bf91be3c694b692bfd47",
     "baseCommit": "40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40",
@@ -589,8 +589,8 @@
       },
       {
         "requirement": "Unchanged opt-in budgets",
-        "proof": "Candidate/control hosted run37197479439 scheduled for12:15UTC recheck; original failures and prior-source local pass retained",
-        "status": "pending current combined-source performance qualification"
+        "proof": "Settled candidate/control run37203264110 retains equivalent same-host workload, output and package receipts. Mac/Windows/Linux elapsed-time budgets, Mac process memory and Windows cold allocation remain failed. Source864317173; later PDF string correction is unmeasured.",
+        "status": "failed measured combined-source budgets; renderer cost remediation and current-source acceptance required"
       },
       {
         "requirement": "Committed synchronized clean HTML checkpoints and cleanup",
@@ -599,7 +599,7 @@
       }
     ],
     "complete": false,
-    "timingAttempted": false,
+    "timingAttempted": true,
     "retainedAuditRoot": "Ignore/MasterConvergenceQualification/math-goal-audit",
     "predeclarationBoundary": "Original declared subset, source/font hashes and decisive fixtures remain in the original record; this audit does not expand or relabel the supported grammar.",
     "cleanup": {
@@ -611,6 +611,65 @@
       "resultSha256": "4f4c8598591a4657cad428bc78c7f11cd9c45197650cb7b7218dfa52f5b2371e",
       "retainedBytes": 63730,
       "retained": "Consumer source/configuration, exact-origin/assembly receipts, original failed restore, passing logs and requirement/source audit; no expanded private package cache remains"
+    },
+    "followThroughRecordedAtUtc": "2026-10-04T15:36:56.718243+00:00",
+    "mathBlobsRecheckedAgainst": "ee3df1e28983890c547429479423246ad8fd51b8",
+    "mathBlobsStillMatchAudit": true,
+    "hostedBudgetFollowThrough": {
+      "run": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37203264110",
+      "sourceCommit": "864317173d9520b243e2224acbb5e924b5fed781",
+      "overall": "failure: optional measurements, not correctness or packages",
+      "testsPassed": 52053,
+      "proofOwner": "static-delivery-platform-control-20261003.json#rasterExportResourceRemediation20261004.currentHostedQualification",
+      "limit": "Settled stored evidence; no new GitHub polling. PDF text-string corrections at b6a3a469 are later source and remain outside this budget measurement.",
+      "platformFailures": [
+        {
+          "platform": "html-static-qualification-macos-latest",
+          "coldMilliseconds": 16072.807,
+          "warmMilliseconds": [
+            5698.0191,
+            5588.0115,
+            5152.6305
+          ],
+          "failures": [
+            "cold process elapsed milliseconds 16072.8 exceeded ceiling 8000.0.",
+            "warm iteration 1 elapsed milliseconds 5698.0 exceeded ceiling 3000.0.",
+            "warm iteration 2 elapsed milliseconds 5588.0 exceeded ceiling 3000.0.",
+            "warm iteration 3 elapsed milliseconds 5152.6 exceeded ceiling 3000.0.",
+            "peak working-set bytes 715505664.0 exceeded ceiling 700000000.0."
+          ]
+        },
+        {
+          "platform": "html-static-qualification-ubuntu-latest",
+          "coldMilliseconds": 13793.3762,
+          "warmMilliseconds": [
+            7160.5211,
+            7094.0254,
+            7187.5505
+          ],
+          "failures": [
+            "cold process elapsed milliseconds 13793.4 exceeded ceiling 12000.0.",
+            "warm iteration 1 elapsed milliseconds 7160.5 exceeded ceiling 5000.0.",
+            "warm iteration 2 elapsed milliseconds 7094.0 exceeded ceiling 5000.0.",
+            "warm iteration 3 elapsed milliseconds 7187.6 exceeded ceiling 5000.0."
+          ]
+        },
+        {
+          "platform": "html-static-qualification-windows-latest",
+          "coldMilliseconds": 11064.9964,
+          "warmMilliseconds": [
+            5261.6881,
+            5049.7389,
+            4889.7392
+          ],
+          "failures": [
+            "cold managed allocated bytes 2502677464.0 exceeded ceiling 2500000000.0.",
+            "warm iteration 1 elapsed milliseconds 5261.7 exceeded ceiling 4000.0.",
+            "warm iteration 2 elapsed milliseconds 5049.7 exceeded ceiling 4000.0.",
+            "warm iteration 3 elapsed milliseconds 4889.7 exceeded ceiling 4000.0."
+          ]
+        }
+      ]
     }
   }
 }
