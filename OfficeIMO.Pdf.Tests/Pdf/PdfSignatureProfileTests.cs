@@ -211,7 +211,8 @@ public class PdfSignatureProfileTests {
     [Fact]
     public void WideSingleRowPngTransformationHonorsCancellationInsidePackedExpansion() {
         const int width = 8193;
-        byte[] png = PdfPngTestImages.CreateWidePackedGrayscalePng(width);
+        // Transparent packed samples still require cancellable grayscale/alpha expansion.
+        byte[] png = PdfPngTestImages.CreateWidePackedGrayscalePng(width, includeTransparency: true);
         var imageInfo = new OfficeImageInfo(OfficeImageFormat.Png, width, 1);
         using var cancellation = new CancellationTokenSource();
         var checkpoints = new List<int>();
