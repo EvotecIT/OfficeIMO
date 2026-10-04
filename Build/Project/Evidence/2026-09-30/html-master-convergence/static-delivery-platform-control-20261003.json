@@ -1514,19 +1514,19 @@
             "failures": [
               {
                 "name": "OfficeIMO.Tests.Pdf.PdfExternalEngineProofTests.LogicalTextReplacesPaintExactlyOnceInIndependentExtraction(scenario: \"nested\")",
-                "message": "Assert.Equal() Failure: Strings differ\r\n            \u2193 (pos 1)\r\nExpected: \"LogicalReplacement\"\r\nActual:   \"L\\r\\no\\r\\ng\\r\\ni\\r\\nc\\r\\na\\r\\nl\\r\\nR\\r\\ne\\r\\np\\r\\nl\\r\\na\\r\\nc\\r\\ne\\r\"\u00b7\u00b7\u00b7\r\n            \u2191 (pos 1)"
+                "message": "Assert.Equal() Failure: Strings differ\r\n            ↓ (pos 1)\r\nExpected: \"LogicalReplacement\"\r\nActual:   \"L\\r\\no\\r\\ng\\r\\ni\\r\\nc\\r\\na\\r\\nl\\r\\nR\\r\\ne\\r\\np\\r\\nl\\r\\na\\r\\nc\\r\\ne\\r\"···\r\n            ↑ (pos 1)"
               },
               {
                 "name": "OfficeIMO.Tests.Pdf.PdfExternalEngineProofTests.LogicalTextReplacesPaintExactlyOnceInIndependentExtraction(scenario: \"drawing\")",
-                "message": "Assert.Equal() Failure: Strings differ\r\n            \u2193 (pos 1)\r\nExpected: \"LogicalReplacement\"\r\nActual:   \"L\\r\\no\\r\\ng\\r\\ni\\r\\nc\\r\\na\\r\\nl\\r\\nR\\r\\ne\\r\\np\\r\\nl\\r\\na\\r\\nc\\r\\ne\\r\"\u00b7\u00b7\u00b7\r\n            \u2191 (pos 1)"
+                "message": "Assert.Equal() Failure: Strings differ\r\n            ↓ (pos 1)\r\nExpected: \"LogicalReplacement\"\r\nActual:   \"L\\r\\no\\r\\ng\\r\\ni\\r\\nc\\r\\na\\r\\nl\\r\\nR\\r\\ne\\r\\np\\r\\nl\\r\\na\\r\\nc\\r\\ne\\r\"···\r\n            ↑ (pos 1)"
               },
               {
                 "name": "OfficeIMO.Tests.Pdf.PdfExternalEngineProofTests.LogicalTextReplacesPaintExactlyOnceInIndependentExtraction(scenario: \"effect\")",
-                "message": "Assert.Equal() Failure: Strings differ\r\n            \u2193 (pos 1)\r\nExpected: \"LogicalReplacement\"\r\nActual:   \"L\\r\\no\\r\\ng\\r\\ni\\r\\nc\\r\\na\\r\\nl\\r\\nR\\r\\ne\\r\\np\\r\\nl\\r\\na\\r\\nc\\r\\ne\\r\"\u00b7\u00b7\u00b7\r\n            \u2191 (pos 1)"
+                "message": "Assert.Equal() Failure: Strings differ\r\n            ↓ (pos 1)\r\nExpected: \"LogicalReplacement\"\r\nActual:   \"L\\r\\no\\r\\ng\\r\\ni\\r\\nc\\r\\na\\r\\nl\\r\\nR\\r\\ne\\r\\np\\r\\nl\\r\\na\\r\\nc\\r\\ne\\r\"···\r\n            ↑ (pos 1)"
               },
               {
                 "name": "OfficeIMO.Tests.Pdf.PdfExternalEngineProofTests.LogicalTextReplacesPaintExactlyOnceInIndependentExtraction(scenario: \"canvas\")",
-                "message": "Assert.Equal() Failure: Strings differ\r\n            \u2193 (pos 1)\r\nExpected: \"LogicalReplacement\"\r\nActual:   \"L\\r\\no\\r\\ng\\r\\ni\\r\\nc\\r\\na\\r\\nl\\r\\nR\\r\\ne\\r\\np\\r\\nl\\r\\na\\r\\nc\\r\\ne\\r\"\u00b7\u00b7\u00b7\r\n            \u2191 (pos 1)"
+                "message": "Assert.Equal() Failure: Strings differ\r\n            ↓ (pos 1)\r\nExpected: \"LogicalReplacement\"\r\nActual:   \"L\\r\\no\\r\\ng\\r\\ni\\r\\nc\\r\\na\\r\\nl\\r\\nR\\r\\ne\\r\\np\\r\\nl\\r\\na\\r\\nc\\r\\ne\\r\"···\r\n            ↑ (pos 1)"
               }
             ],
             "sha256": "f5b0d1f4c7746913a46cf1877eb3b39381dae831bcd7a1848c9faef625d99bba",
@@ -1670,7 +1670,7 @@
             "failures": [
               {
                 "name": "OfficeIMO.Tests.Pdf.PdfFontFamilyTests.PdfDocument_RegisteredFallbacksPreserveSelectedFontCoveredSpans",
-                "message": "Assert.Contains() Failure: Sub-string not found\nString:    \"%PDF-1.4\\n%????\\n1 0 obj\\n<< /Type /Pages /C\"\u00b7\u00b7\u00b7\nNot found: \"/BaseFont /EmojiFallback\""
+                "message": "Assert.Contains() Failure: Sub-string not found\nString:    \"%PDF-1.4\\n%????\\n1 0 obj\\n<< /Type /Pages /C\"···\nNot found: \"/BaseFont /EmojiFallback\""
               }
             ],
             "sha256": "681c4c51d8cd3e553eafad39f96ea1698be42aa17880e6cc6631edd596bf8b36",
@@ -2195,7 +2195,7 @@
         {
           "framework": ".NET 8.0.23",
           "pages": 1,
-          "text": "A\ud83d\ude00B",
+          "text": "A😀B",
           "fonts": [
             "DocumentPrimary-Regular",
             "EmojiFallback-Regular"
@@ -2209,7 +2209,7 @@
         {
           "framework": ".NET 10.0.12",
           "pages": 1,
-          "text": "A\ud83d\ude00B",
+          "text": "A😀B",
           "fonts": [
             "DocumentPrimary-Regular",
             "EmojiFallback-Regular"
@@ -2223,7 +2223,7 @@
       ],
       "independentProof": {
         "validator": "Poppler 26.09.0",
-        "exactText": "A\ud83d\ude00B",
+        "exactText": "A😀B",
         "visual": "144 dpi inspected on both frameworks: Latin A/B and complete emoji on one line. PNG and independent extracted-text bytes identical.",
         "byteLimit": "PDF bytes differ between net8 and net10; no cross-framework PDF-byte determinism claim or root-cause claim."
       },
@@ -2874,8 +2874,8 @@
           "scenario": "canvas",
           "extractor": "xpdf",
           "exitCode": 0,
-          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
-          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "expected": "Public logical replacement 😀\nFollowingPaint",
+          "actual": "Public logical replacement 😀\nFollowingPaint",
           "passed": true,
           "pdfSha256": "a64a14188fb571958f0ead20b830c68e65691cdb4cd6fe59ad5a931294ee038c"
         },
@@ -2884,8 +2884,8 @@
           "scenario": "canvas",
           "extractor": "poppler",
           "exitCode": 0,
-          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
-          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "expected": "Public logical replacement 😀\nFollowingPaint",
+          "actual": "Public logical replacement 😀\nFollowingPaint",
           "passed": true,
           "pdfSha256": "a64a14188fb571958f0ead20b830c68e65691cdb4cd6fe59ad5a931294ee038c"
         },
@@ -2894,8 +2894,8 @@
           "scenario": "nested",
           "extractor": "xpdf",
           "exitCode": 0,
-          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
-          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "expected": "Public logical replacement 😀\nFollowingPaint",
+          "actual": "Public logical replacement 😀\nFollowingPaint",
           "passed": true,
           "pdfSha256": "a64a14188fb571958f0ead20b830c68e65691cdb4cd6fe59ad5a931294ee038c"
         },
@@ -2904,8 +2904,8 @@
           "scenario": "nested",
           "extractor": "poppler",
           "exitCode": 0,
-          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
-          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "expected": "Public logical replacement 😀\nFollowingPaint",
+          "actual": "Public logical replacement 😀\nFollowingPaint",
           "passed": true,
           "pdfSha256": "a64a14188fb571958f0ead20b830c68e65691cdb4cd6fe59ad5a931294ee038c"
         },
@@ -2914,8 +2914,8 @@
           "scenario": "effect",
           "extractor": "xpdf",
           "exitCode": 0,
-          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
-          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "expected": "Public logical replacement 😀\nFollowingPaint",
+          "actual": "Public logical replacement 😀\nFollowingPaint",
           "passed": true,
           "pdfSha256": "8e9e180e10030cb8771035740d88dc20dd315e78fedfc0c34d152f3a4988d4f5"
         },
@@ -2924,8 +2924,8 @@
           "scenario": "effect",
           "extractor": "poppler",
           "exitCode": 0,
-          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
-          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "expected": "Public logical replacement 😀\nFollowingPaint",
+          "actual": "Public logical replacement 😀\nFollowingPaint",
           "passed": true,
           "pdfSha256": "8e9e180e10030cb8771035740d88dc20dd315e78fedfc0c34d152f3a4988d4f5"
         },
@@ -2934,8 +2934,8 @@
           "scenario": "vector",
           "extractor": "xpdf",
           "exitCode": 0,
-          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
-          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "expected": "Public logical replacement 😀\nFollowingPaint",
+          "actual": "Public logical replacement 😀\nFollowingPaint",
           "passed": true,
           "pdfSha256": "04f79d76ab0ff1805220e13bcad1085568e6b5ac16607a97cf02fbacb9cb99bf"
         },
@@ -2944,8 +2944,8 @@
           "scenario": "vector",
           "extractor": "poppler",
           "exitCode": 0,
-          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
-          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "expected": "Public logical replacement 😀\nFollowingPaint",
+          "actual": "Public logical replacement 😀\nFollowingPaint",
           "passed": true,
           "pdfSha256": "04f79d76ab0ff1805220e13bcad1085568e6b5ac16607a97cf02fbacb9cb99bf"
         },
@@ -2954,8 +2954,8 @@
           "scenario": "canvas",
           "extractor": "xpdf",
           "exitCode": 0,
-          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
-          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "expected": "Public logical replacement 😀\nFollowingPaint",
+          "actual": "Public logical replacement 😀\nFollowingPaint",
           "passed": true,
           "pdfSha256": "a64a14188fb571958f0ead20b830c68e65691cdb4cd6fe59ad5a931294ee038c"
         },
@@ -2964,8 +2964,8 @@
           "scenario": "canvas",
           "extractor": "poppler",
           "exitCode": 0,
-          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
-          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "expected": "Public logical replacement 😀\nFollowingPaint",
+          "actual": "Public logical replacement 😀\nFollowingPaint",
           "passed": true,
           "pdfSha256": "a64a14188fb571958f0ead20b830c68e65691cdb4cd6fe59ad5a931294ee038c"
         },
@@ -2974,8 +2974,8 @@
           "scenario": "nested",
           "extractor": "xpdf",
           "exitCode": 0,
-          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
-          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "expected": "Public logical replacement 😀\nFollowingPaint",
+          "actual": "Public logical replacement 😀\nFollowingPaint",
           "passed": true,
           "pdfSha256": "a64a14188fb571958f0ead20b830c68e65691cdb4cd6fe59ad5a931294ee038c"
         },
@@ -2984,8 +2984,8 @@
           "scenario": "nested",
           "extractor": "poppler",
           "exitCode": 0,
-          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
-          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "expected": "Public logical replacement 😀\nFollowingPaint",
+          "actual": "Public logical replacement 😀\nFollowingPaint",
           "passed": true,
           "pdfSha256": "a64a14188fb571958f0ead20b830c68e65691cdb4cd6fe59ad5a931294ee038c"
         },
@@ -2994,8 +2994,8 @@
           "scenario": "effect",
           "extractor": "xpdf",
           "exitCode": 0,
-          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
-          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "expected": "Public logical replacement 😀\nFollowingPaint",
+          "actual": "Public logical replacement 😀\nFollowingPaint",
           "passed": true,
           "pdfSha256": "8e9e180e10030cb8771035740d88dc20dd315e78fedfc0c34d152f3a4988d4f5"
         },
@@ -3004,8 +3004,8 @@
           "scenario": "effect",
           "extractor": "poppler",
           "exitCode": 0,
-          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
-          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "expected": "Public logical replacement 😀\nFollowingPaint",
+          "actual": "Public logical replacement 😀\nFollowingPaint",
           "passed": true,
           "pdfSha256": "8e9e180e10030cb8771035740d88dc20dd315e78fedfc0c34d152f3a4988d4f5"
         },
@@ -3014,8 +3014,8 @@
           "scenario": "vector",
           "extractor": "xpdf",
           "exitCode": 0,
-          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
-          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "expected": "Public logical replacement 😀\nFollowingPaint",
+          "actual": "Public logical replacement 😀\nFollowingPaint",
           "passed": true,
           "pdfSha256": "04f79d76ab0ff1805220e13bcad1085568e6b5ac16607a97cf02fbacb9cb99bf"
         },
@@ -3024,8 +3024,8 @@
           "scenario": "vector",
           "extractor": "poppler",
           "exitCode": 0,
-          "expected": "Public logical replacement \ud83d\ude00\nFollowingPaint",
-          "actual": "Public logical replacement \ud83d\ude00\nFollowingPaint",
+          "expected": "Public logical replacement 😀\nFollowingPaint",
+          "actual": "Public logical replacement 😀\nFollowingPaint",
           "passed": true,
           "pdfSha256": "04f79d76ab0ff1805220e13bcad1085568e6b5ac16607a97cf02fbacb9cb99bf"
         }
@@ -3094,7 +3094,7 @@
         {
           "framework": ".NET 8.0.23",
           "pages": 1,
-          "text": "A\nA\nA\ud83d\ude00B\nB",
+          "text": "A\nA\nA😀B\nB",
           "fonts": [
             "DocumentPrimary-Regular",
             "EmojiFallback-Regular"
@@ -3102,13 +3102,13 @@
           "core": "3.4.4+d6bdfb7f32cfd758cf86115a7bacb4948ab615fe",
           "pdf": "3.4.4+d6bdfb7f32cfd758cf86115a7bacb4948ab615fe",
           "pdfSha256": "0ac62655d8d0732aa641eea89ba72263af99cca02e179b0a2d1827748997a59b",
-          "independentText": "A\nA\nA\ud83d\ude00B\nB",
+          "independentText": "A\nA\nA😀B\nB",
           "pngSha256": "59a19a7b79248bc2e1cac43e385152629b995228dc8e8251caa9909201af044e"
         },
         {
           "framework": ".NET 10.0.12",
           "pages": 1,
-          "text": "A\nA\nA\ud83d\ude00B\nB",
+          "text": "A\nA\nA😀B\nB",
           "fonts": [
             "DocumentPrimary-Regular",
             "EmojiFallback-Regular"
@@ -3116,11 +3116,11 @@
           "core": "3.4.4+d6bdfb7f32cfd758cf86115a7bacb4948ab615fe",
           "pdf": "3.4.4+d6bdfb7f32cfd758cf86115a7bacb4948ab615fe",
           "pdfSha256": "6bcfcedd11adc5f95b8fceed7fc7b828c4d41c0cffd269e92865140e10cd2d33",
-          "independentText": "A\nA\nA\ud83d\ude00B\nB",
+          "independentText": "A\nA\nA😀B\nB",
           "pngSha256": "59a19a7b79248bc2e1cac43e385152629b995228dc8e8251caa9909201af044e"
         }
       ],
-      "independentProof": "Poppler raw Unicode text exactly matches A\\nA\\nA\ud83d\ude00B\\nB; both framework rasters share a hash and the native render was visually inspected.",
+      "independentProof": "Poppler raw Unicode text exactly matches A\\nA\\nA😀B\\nB; both framework rasters share a hash and the native render was visually inspected.",
       "localReview": "One owner-level read-only closure after the external wave and one targeted confirmation. Null/clone/nested mapping fixes confirmed; the final direct-use tracking omission was reproduced across six paragraph/canvas/mixed-run cases, fixed in both shared entry paths, sibling-swept and covered by focused/full proof. No repeat full review merely for a new SHA.",
       "publication": {
         "head": "d6bdfb7f32cfd758cf86115a7bacb4948ab615fe",
@@ -3281,15 +3281,15 @@
         "failures": [
           {
             "test": "OfficeIMO.Tests.Pdf.PdfExternalEngineProofTests.LogicalTextReplacesPaintExactlyOnceInIndependentExtraction(scenario: \"following\", replacement: \"Logical replacement words\")",
-            "message": "Assert.Equal() Failure: Strings differ\r\n                                    \u2193 (pos 25)\r\nExpected: \"Logical replacement words\\r\\nFollowingPaint\"\r\nActual:   \"Logical replacement words\\nFollowingPaint\"\r\n                                    \u2191 (pos 25)"
+            "message": "Assert.Equal() Failure: Strings differ\r\n                                    ↓ (pos 25)\r\nExpected: \"Logical replacement words\\r\\nFollowingPaint\"\r\nActual:   \"Logical replacement words\\nFollowingPaint\"\r\n                                    ↑ (pos 25)"
           },
           {
-            "test": "OfficeIMO.Tests.Pdf.PdfExternalEngineProofTests.LogicalTextReplacesPaintExactlyOnceInIndependentExtraction(scenario: \"drawing\", replacement: \"R\u00e9sum\u00e9 \\ud83d\\ude00\")",
-            "message": "Assert.Equal() Failure: Strings differ\r\n            \u2193 (pos 1)\r\nExpected: \"R\u00e9sum\u00e9 \\ud83d\\ude00\"\r\nActual:   \"R\u251c\u2310sum\u251c\u2310 \u2261\u0192\u00ff\u00c7\"\r\n            \u2191 (pos 1)"
+            "test": "OfficeIMO.Tests.Pdf.PdfExternalEngineProofTests.LogicalTextReplacesPaintExactlyOnceInIndependentExtraction(scenario: \"drawing\", replacement: \"Résumé \\ud83d\\ude00\")",
+            "message": "Assert.Equal() Failure: Strings differ\r\n            ↓ (pos 1)\r\nExpected: \"Résumé \\ud83d\\ude00\"\r\nActual:   \"R├⌐sum├⌐ ≡ƒÿÇ\"\r\n            ↑ (pos 1)"
           },
           {
-            "test": "OfficeIMO.Tests.Pdf.PdfExternalEngineProofTests.LogicalTextReplacesPaintExactlyOnceInIndependentExtraction(scenario: \"canvas\", replacement: \"R\u00e9sum\u00e9 \\ud83d\\ude00\")",
-            "message": "Assert.Equal() Failure: Strings differ\r\n            \u2193 (pos 1)\r\nExpected: \"R\u00e9sum\u00e9 \\ud83d\\ude00\"\r\nActual:   \"R\u251c\u2310sum\u251c\u2310 \u2261\u0192\u00ff\u00c7\"\r\n            \u2191 (pos 1)"
+            "test": "OfficeIMO.Tests.Pdf.PdfExternalEngineProofTests.LogicalTextReplacesPaintExactlyOnceInIndependentExtraction(scenario: \"canvas\", replacement: \"Résumé \\ud83d\\ude00\")",
+            "message": "Assert.Equal() Failure: Strings differ\r\n            ↓ (pos 1)\r\nExpected: \"Résumé \\ud83d\\ude00\"\r\nActual:   \"R├⌐sum├⌐ ≡ƒÿÇ\"\r\n            ↑ (pos 1)"
           }
         ],
         "coldProcessMilliseconds": 12906.8051,
@@ -3455,8 +3455,8 @@
             "ValidatorName": "PDF text",
             "ExecutablePath": "/usr/bin/pdftotext",
             "ExitCode": 0,
-            "ExpectedText": "R\u00e9sum\u00e9 \ud83d\ude00",
-            "ActualText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "ExpectedText": "Résumé 😀",
+            "ActualText": "Résumé 😀",
             "Passed": true
           },
           {
@@ -3491,8 +3491,8 @@
             "ValidatorName": "PDF text",
             "ExecutablePath": "/usr/bin/pdftotext",
             "ExitCode": 0,
-            "ExpectedText": "R\u00e9sum\u00e9 \ud83d\ude00",
-            "ActualText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "ExpectedText": "Résumé 😀",
+            "ActualText": "Résumé 😀",
             "Passed": true
           },
           {
@@ -3627,8 +3627,8 @@
             "ValidatorName": "PDF text",
             "ExecutablePath": "C:\\Program Files\\Git\\mingw64\\bin\\pdftotext.exe",
             "ExitCode": 0,
-            "ExpectedText": "R\u00e9sum\u00e9 \ud83d\ude00",
-            "ActualText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "ExpectedText": "Résumé 😀",
+            "ActualText": "Résumé 😀",
             "Passed": true
           },
           {
@@ -3663,8 +3663,8 @@
             "ValidatorName": "PDF text",
             "ExecutablePath": "C:\\Program Files\\Git\\mingw64\\bin\\pdftotext.exe",
             "ExitCode": 0,
-            "ExpectedText": "R\u00e9sum\u00e9 \ud83d\ude00",
-            "ActualText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "ExpectedText": "Résumé 😀",
+            "ActualText": "Résumé 😀",
             "Passed": true
           },
           {
@@ -3799,8 +3799,8 @@
             "ValidatorName": "PDF text",
             "ExecutablePath": "/opt/homebrew/bin/pdftotext",
             "ExitCode": 0,
-            "ExpectedText": "R\u00e9sum\u00e9 \ud83d\ude00",
-            "ActualText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "ExpectedText": "Résumé 😀",
+            "ActualText": "Résumé 😀",
             "Passed": true
           },
           {
@@ -3835,8 +3835,8 @@
             "ValidatorName": "PDF text",
             "ExecutablePath": "/opt/homebrew/bin/pdftotext",
             "ExitCode": 0,
-            "ExpectedText": "R\u00e9sum\u00e9 \ud83d\ude00",
-            "ActualText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "ExpectedText": "Résumé 😀",
+            "ActualText": "Résumé 😀",
             "Passed": true
           },
           {
@@ -4335,7 +4335,7 @@
     "tradeoff": "Additional PNG compression passes trade CPU work for smaller lossless output. No portable throughput claim; diagnostic elapsed times are not acceptance.",
     "hostedPackageEvidence": "Existing opt-in workflow now retains selected feed packages, installed OfficeIMO package origins/hashes, consumer assets and loaded binaries; next run must verify actual artifacts.",
     "retainedEvidence": "Ignore/MasterConvergenceQualification/static-allocation-diagnostic-c135",
-    "remaining": "Unchanged clean-source/platform timing, allocation, peak-memory, output and cancellation budgets; nineteen current packages/consumers; qualified long-lived adoption. Prior hosted/control failures remain visible.",
+    "remaining": "Hosted elapsed-time budgets, macOS process-memory ceiling and Windows cold allocation remain failed. Output/allocation improvements are observed; diagnose remaining raster/clip cost using equivalent workload before another measurement. Later PDF text-string changes need their own source qualification; long-lived adoption remains open.",
     "standalonePr": {
       "number": 2780,
       "head": "5956518e5b60153a460451e85b674e932434f84a",
@@ -4345,7 +4345,21 @@
         "net8.0",
         "net10.0"
       ],
-      "packageReceiptBoundary": "Four-target master-based Core package; zero runtime dependencies; fresh private local-feed origin, installed NUPKG SHA and loaded consumer DLL hashes verified. Receipt retained in the standalone worktree."
+      "packageReceiptBoundary": "Four-target master-based Core package; zero runtime dependencies; fresh private local-feed origin, installed NUPKG SHA and loaded consumer DLL hashes verified. Receipt retained in the standalone worktree.",
+      "state": "merged",
+      "mergeCommit": "4c5c95951f6363d310840cf7e0fecedba5775892",
+      "mergedAtUtc": "2026-10-04T13:55:43Z",
+      "currentHeadChecks": {
+        "success": 99,
+        "skipped": 6
+      },
+      "reviewThreadsComplete": true,
+      "unresolvedThreads": 0,
+      "delayedAutomaticReviews": "code and security completed, no findings, thumbs-up",
+      "ownedWorktreeAndLocalBranchRemoved": true,
+      "remoteBranchAlreadyAbsent": true,
+      "preservedEvidence": "Ignore/MasterConvergenceQualification/merged-raster-resource-4c5c95951",
+      "preservedVerifiedBytes": 17040876
     },
     "freshPlatformRun": {
       "runId": 37203264110,
@@ -4361,6 +4375,654 @@
       "plannedVerifiedBytes": 943191944,
       "scope": "Completed test/package/route owner bin/obj and superseded diagnostic builds/backups; no tracked source, feeds, evidence or shared caches removed",
       "actualFilesystemErrorRecovery": "Hidden/read-only residuals recovered after fresh guard preflight through the hygiene helper DotNet route; all targets absent."
+    },
+    "currentHostedQualification": {
+      "run": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37203264110",
+      "sourceCommit": "864317173d9520b243e2224acbb5e924b5fed781",
+      "overall": "failure: optional measurements, not correctness or packages",
+      "testsPassed": 52053,
+      "actualResultsMatchCounters": true,
+      "packages": {
+        "windows": {
+          "sourceCommit": "864317173d9520b243e2224acbb5e924b5fed781",
+          "packageCount": 19,
+          "consumerCount": 2,
+          "allInstalledOriginsMatchFreshFeed": true,
+          "allInstalledPackageBytesAndSha512MatchFeed": true,
+          "allConsumerOwnerDllsMatchFourTargetPackages": true,
+          "allOwnerDllSourceVersionsMatch": true,
+          "receipt": "Ignore/MasterConvergenceQualification/raster-resource-package-windows-864317173/origin-hash-verification.json"
+        },
+        "macos": {
+          "sourceCommit": "864317173d9520b243e2224acbb5e924b5fed781",
+          "packageCount": 19,
+          "consumerCount": 2,
+          "allInstalledOriginsMatchFreshFeed": true,
+          "allInstalledPackageBytesAndSha512MatchFeed": true,
+          "allConsumerOwnerDllsMatchFourTargetPackages": true,
+          "allOwnerDllSourceVersionsMatch": true,
+          "receipt": "Ignore/MasterConvergenceQualification/raster-resource-package-macos-864317173/origin-hash-verification.json"
+        },
+        "linux": {
+          "sourceCommit": "864317173d9520b243e2224acbb5e924b5fed781",
+          "packageCount": 19,
+          "consumerCount": 2,
+          "allInstalledOriginsMatchFreshFeed": true,
+          "allInstalledPackageBytesAndSha512MatchFeed": true,
+          "allConsumerOwnerDllsMatchFourTargetPackages": true,
+          "allOwnerDllSourceVersionsMatch": true,
+          "receipt": "Ignore/MasterConvergenceQualification/raster-resource-package-linux-864317173/origin-hash-verification.json"
+        }
+      },
+      "measurementOrder": "candidate then c135 control on each same hosted runner; no rotated throughput ranking",
+      "measurements": [
+        {
+          "platform": "html-static-qualification-macos-latest",
+          "candidate": {
+            "schemaVersion": 1,
+            "generatedUtc": "2026-10-04T13:11:47.552+00:00",
+            "environment": {
+              "osFamily": "macOS",
+              "osDescription": "macOS 26.6.2",
+              "osArchitecture": "Arm64",
+              "processArchitecture": "Arm64",
+              "frameworkDescription": ".NET 10.0.12",
+              "machineName": "sat12-bq165-1909f008-16fd-47cd-8e51-1f413e8c6ccc-0A3D91A3FACA",
+              "processorCount": 3
+            },
+            "source": {
+              "commit": "864317173d9520b243e2224acbb5e924b5fed781",
+              "worktreeClean": true,
+              "corpusId": "officeimo-html-h4-advanced-held-out",
+              "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+              "caseCount": 8,
+              "outputsPerIteration": 76
+            },
+            "ceiling": {
+              "osFamily": "macOS",
+              "coldProcessElapsedMilliseconds": 8000,
+              "warmIterationElapsedMilliseconds": 3000,
+              "coldManagedAllocatedBytes": 1250000000,
+              "warmManagedAllocatedBytes": 1100000000,
+              "peakWorkingSetBytes": 700000000,
+              "outputBytesPerIteration": 3000000,
+              "cancellationElapsedMilliseconds": 250
+            },
+            "cold": {
+              "mode": "cold",
+              "processElapsedMilliseconds": 16072.807,
+              "peakWorkingSetBytes": 424591360,
+              "memorySampleCount": 170,
+              "iterations": [
+                {
+                  "number": 1,
+                  "elapsedMilliseconds": 15891.667,
+                  "managedAllocatedBytes": 1225857928,
+                  "outputBytes": 2593665,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "3432bca44fb7156c2b8124430b19012b2a6538229d954ed09561f5adaf3226aa"
+                }
+              ],
+              "deterministic": true
+            },
+            "warm": {
+              "mode": "warm",
+              "processElapsedMilliseconds": 30710.2558,
+              "peakWorkingSetBytes": 715505664,
+              "memorySampleCount": 329,
+              "iterations": [
+                {
+                  "number": 1,
+                  "elapsedMilliseconds": 5698.0191,
+                  "managedAllocatedBytes": 988097544,
+                  "outputBytes": 2593665,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "3432bca44fb7156c2b8124430b19012b2a6538229d954ed09561f5adaf3226aa"
+                },
+                {
+                  "number": 2,
+                  "elapsedMilliseconds": 5588.0115,
+                  "managedAllocatedBytes": 988380952,
+                  "outputBytes": 2593665,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "3432bca44fb7156c2b8124430b19012b2a6538229d954ed09561f5adaf3226aa"
+                },
+                {
+                  "number": 3,
+                  "elapsedMilliseconds": 5152.6305,
+                  "managedAllocatedBytes": 988372664,
+                  "outputBytes": 2593665,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "3432bca44fb7156c2b8124430b19012b2a6538229d954ed09561f5adaf3226aa"
+                }
+              ],
+              "deterministic": true
+            },
+            "cancellation": {
+              "status": "Passed",
+              "elapsedMilliseconds": 3.0822,
+              "detail": "Cancellation propagated through the asynchronous resource boundary."
+            },
+            "failures": [
+              "cold process elapsed milliseconds 16072.8 exceeded ceiling 8000.0.",
+              "warm iteration 1 elapsed milliseconds 5698.0 exceeded ceiling 3000.0.",
+              "warm iteration 2 elapsed milliseconds 5588.0 exceeded ceiling 3000.0.",
+              "warm iteration 3 elapsed milliseconds 5152.6 exceeded ceiling 3000.0.",
+              "peak working-set bytes 715505664.0 exceeded ceiling 700000000.0."
+            ]
+          },
+          "control": {
+            "schemaVersion": 1,
+            "generatedUtc": "2026-10-04T13:13:26.036188+00:00",
+            "environment": {
+              "osFamily": "macOS",
+              "osDescription": "macOS 26.6.2",
+              "osArchitecture": "Arm64",
+              "processArchitecture": "Arm64",
+              "frameworkDescription": ".NET 10.0.12",
+              "machineName": "sat12-bq165-1909f008-16fd-47cd-8e51-1f413e8c6ccc-0A3D91A3FACA",
+              "processorCount": 3
+            },
+            "source": {
+              "commit": "c1352693b3f280441c0fbfbdec76a2f040bb149a",
+              "worktreeClean": true,
+              "corpusId": "officeimo-html-h4-advanced-held-out",
+              "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+              "caseCount": 8,
+              "outputsPerIteration": 76
+            },
+            "ceiling": {
+              "osFamily": "macOS",
+              "coldProcessElapsedMilliseconds": 8000,
+              "warmIterationElapsedMilliseconds": 3000,
+              "coldManagedAllocatedBytes": 1250000000,
+              "warmManagedAllocatedBytes": 1100000000,
+              "peakWorkingSetBytes": 700000000,
+              "outputBytesPerIteration": 3000000,
+              "cancellationElapsedMilliseconds": 250
+            },
+            "cold": {
+              "mode": "cold",
+              "processElapsedMilliseconds": 12675.2239,
+              "peakWorkingSetBytes": 473874432,
+              "memorySampleCount": 161,
+              "iterations": [
+                {
+                  "number": 1,
+                  "elapsedMilliseconds": 12452.9965,
+                  "managedAllocatedBytes": 1846251424,
+                  "outputBytes": 2867671,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "6a0ed91d826aacbb1cc49d33d98299d58ca46d80cbd9e22a4b26bae811dba111"
+                }
+              ],
+              "deterministic": true
+            },
+            "warm": {
+              "mode": "warm",
+              "processElapsedMilliseconds": 38114.9468,
+              "peakWorkingSetBytes": 640761856,
+              "memorySampleCount": 464,
+              "iterations": [
+                {
+                  "number": 1,
+                  "elapsedMilliseconds": 9066.7867,
+                  "managedAllocatedBytes": 1607671936,
+                  "outputBytes": 2867671,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "6a0ed91d826aacbb1cc49d33d98299d58ca46d80cbd9e22a4b26bae811dba111"
+                },
+                {
+                  "number": 2,
+                  "elapsedMilliseconds": 7876.1777,
+                  "managedAllocatedBytes": 1607717840,
+                  "outputBytes": 2867671,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "6a0ed91d826aacbb1cc49d33d98299d58ca46d80cbd9e22a4b26bae811dba111"
+                },
+                {
+                  "number": 3,
+                  "elapsedMilliseconds": 7781.1733,
+                  "managedAllocatedBytes": 1607692896,
+                  "outputBytes": 2867671,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "6a0ed91d826aacbb1cc49d33d98299d58ca46d80cbd9e22a4b26bae811dba111"
+                }
+              ],
+              "deterministic": true
+            },
+            "cancellation": {
+              "status": "Passed",
+              "elapsedMilliseconds": 3.1992,
+              "detail": "Cancellation propagated through the asynchronous resource boundary."
+            },
+            "failures": [
+              "cold process elapsed milliseconds 12675.2 exceeded ceiling 8000.0.",
+              "cold managed allocated bytes 1846251424.0 exceeded ceiling 1250000000.0.",
+              "warm iteration 1 elapsed milliseconds 9066.8 exceeded ceiling 3000.0.",
+              "warm iteration 1 managed allocated bytes 1607671936.0 exceeded ceiling 1100000000.0.",
+              "warm iteration 2 elapsed milliseconds 7876.2 exceeded ceiling 3000.0.",
+              "warm iteration 2 managed allocated bytes 1607717840.0 exceeded ceiling 1100000000.0.",
+              "warm iteration 3 elapsed milliseconds 7781.2 exceeded ceiling 3000.0.",
+              "warm iteration 3 managed allocated bytes 1607692896.0 exceeded ceiling 1100000000.0."
+            ]
+          }
+        },
+        {
+          "platform": "html-static-qualification-ubuntu-latest",
+          "candidate": {
+            "schemaVersion": 1,
+            "generatedUtc": "2026-10-04T13:10:13.5490122+00:00",
+            "environment": {
+              "osFamily": "Linux",
+              "osDescription": "Ubuntu 24.04.5 LTS",
+              "osArchitecture": "X64",
+              "processArchitecture": "X64",
+              "frameworkDescription": ".NET 10.0.12",
+              "machineName": "runnervm8df0l",
+              "processorCount": 4
+            },
+            "source": {
+              "commit": "864317173d9520b243e2224acbb5e924b5fed781",
+              "worktreeClean": true,
+              "corpusId": "officeimo-html-h4-advanced-held-out",
+              "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+              "caseCount": 8,
+              "outputsPerIteration": 76
+            },
+            "ceiling": {
+              "osFamily": "Linux",
+              "coldProcessElapsedMilliseconds": 12000,
+              "warmIterationElapsedMilliseconds": 5000,
+              "coldManagedAllocatedBytes": 1100000000,
+              "warmManagedAllocatedBytes": 1000000000,
+              "peakWorkingSetBytes": 500000000,
+              "outputBytesPerIteration": 3000000,
+              "cancellationElapsedMilliseconds": 250
+            },
+            "cold": {
+              "mode": "cold",
+              "processElapsedMilliseconds": 13793.3762,
+              "peakWorkingSetBytes": 298078208,
+              "memorySampleCount": 1034,
+              "iterations": [
+                {
+                  "number": 1,
+                  "elapsedMilliseconds": 13631.691,
+                  "managedAllocatedBytes": 1081545280,
+                  "outputBytes": 2858165,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "7675324c11438f27838f4def97d59d83196898645a3f1cb9d26ad763c0b84a35"
+                }
+              ],
+              "deterministic": true
+            },
+            "warm": {
+              "mode": "warm",
+              "processElapsedMilliseconds": 35495.769,
+              "peakWorkingSetBytes": 339165184,
+              "memorySampleCount": 2708,
+              "iterations": [
+                {
+                  "number": 1,
+                  "elapsedMilliseconds": 7160.5211,
+                  "managedAllocatedBytes": 901147840,
+                  "outputBytes": 2858165,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "7675324c11438f27838f4def97d59d83196898645a3f1cb9d26ad763c0b84a35"
+                },
+                {
+                  "number": 2,
+                  "elapsedMilliseconds": 7094.0254,
+                  "managedAllocatedBytes": 901106216,
+                  "outputBytes": 2858165,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "7675324c11438f27838f4def97d59d83196898645a3f1cb9d26ad763c0b84a35"
+                },
+                {
+                  "number": 3,
+                  "elapsedMilliseconds": 7187.5505,
+                  "managedAllocatedBytes": 901087536,
+                  "outputBytes": 2858165,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "7675324c11438f27838f4def97d59d83196898645a3f1cb9d26ad763c0b84a35"
+                }
+              ],
+              "deterministic": true
+            },
+            "cancellation": {
+              "status": "Passed",
+              "elapsedMilliseconds": 5.9732,
+              "detail": "Cancellation propagated through the asynchronous resource boundary."
+            },
+            "failures": [
+              "cold process elapsed milliseconds 13793.4 exceeded ceiling 12000.0.",
+              "warm iteration 1 elapsed milliseconds 7160.5 exceeded ceiling 5000.0.",
+              "warm iteration 2 elapsed milliseconds 7094.0 exceeded ceiling 5000.0.",
+              "warm iteration 3 elapsed milliseconds 7187.6 exceeded ceiling 5000.0."
+            ]
+          },
+          "control": {
+            "schemaVersion": 1,
+            "generatedUtc": "2026-10-04T13:11:51.6473232+00:00",
+            "environment": {
+              "osFamily": "Linux",
+              "osDescription": "Ubuntu 24.04.5 LTS",
+              "osArchitecture": "X64",
+              "processArchitecture": "X64",
+              "frameworkDescription": ".NET 10.0.12",
+              "machineName": "runnervm8df0l",
+              "processorCount": 4
+            },
+            "source": {
+              "commit": "c1352693b3f280441c0fbfbdec76a2f040bb149a",
+              "worktreeClean": true,
+              "corpusId": "officeimo-html-h4-advanced-held-out",
+              "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+              "caseCount": 8,
+              "outputsPerIteration": 76
+            },
+            "ceiling": {
+              "osFamily": "Linux",
+              "coldProcessElapsedMilliseconds": 12000,
+              "warmIterationElapsedMilliseconds": 5000,
+              "coldManagedAllocatedBytes": 1100000000,
+              "warmManagedAllocatedBytes": 1000000000,
+              "peakWorkingSetBytes": 500000000,
+              "outputBytesPerIteration": 3000000,
+              "cancellationElapsedMilliseconds": 250
+            },
+            "cold": {
+              "mode": "cold",
+              "processElapsedMilliseconds": 14939.1073,
+              "peakWorkingSetBytes": 278859776,
+              "memorySampleCount": 1101,
+              "iterations": [
+                {
+                  "number": 1,
+                  "elapsedMilliseconds": 14777.2999,
+                  "managedAllocatedBytes": 1569224480,
+                  "outputBytes": 3116798,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "59b4a66a583244f1fa98087023d7488ef123d90381e93bf161496707246d955a"
+                }
+              ],
+              "deterministic": true
+            },
+            "warm": {
+              "mode": "warm",
+              "processElapsedMilliseconds": 33738.5197,
+              "peakWorkingSetBytes": 357105664,
+              "memorySampleCount": 2573,
+              "iterations": [
+                {
+                  "number": 1,
+                  "elapsedMilliseconds": 6795.5158,
+                  "managedAllocatedBytes": 1390086856,
+                  "outputBytes": 3116798,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "59b4a66a583244f1fa98087023d7488ef123d90381e93bf161496707246d955a"
+                },
+                {
+                  "number": 2,
+                  "elapsedMilliseconds": 6708.6356,
+                  "managedAllocatedBytes": 1389990096,
+                  "outputBytes": 3116798,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "59b4a66a583244f1fa98087023d7488ef123d90381e93bf161496707246d955a"
+                },
+                {
+                  "number": 3,
+                  "elapsedMilliseconds": 6615.6496,
+                  "managedAllocatedBytes": 1390047992,
+                  "outputBytes": 3116798,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "59b4a66a583244f1fa98087023d7488ef123d90381e93bf161496707246d955a"
+                }
+              ],
+              "deterministic": true
+            },
+            "cancellation": {
+              "status": "Passed",
+              "elapsedMilliseconds": 6.2648,
+              "detail": "Cancellation propagated through the asynchronous resource boundary."
+            },
+            "failures": [
+              "cold process elapsed milliseconds 14939.1 exceeded ceiling 12000.0.",
+              "cold managed allocated bytes 1569224480.0 exceeded ceiling 1100000000.0.",
+              "warm iteration 1 elapsed milliseconds 6795.5 exceeded ceiling 5000.0.",
+              "warm iteration 1 managed allocated bytes 1390086856.0 exceeded ceiling 1000000000.0.",
+              "warm iteration 1 output bytes 3116798.0 exceeded ceiling 3000000.0.",
+              "warm iteration 2 elapsed milliseconds 6708.6 exceeded ceiling 5000.0.",
+              "warm iteration 2 managed allocated bytes 1389990096.0 exceeded ceiling 1000000000.0.",
+              "warm iteration 2 output bytes 3116798.0 exceeded ceiling 3000000.0.",
+              "warm iteration 3 elapsed milliseconds 6615.6 exceeded ceiling 5000.0.",
+              "warm iteration 3 managed allocated bytes 1390047992.0 exceeded ceiling 1000000000.0.",
+              "warm iteration 3 output bytes 3116798.0 exceeded ceiling 3000000.0.",
+              "cold output bytes 3116798.0 exceeded ceiling 3000000.0."
+            ]
+          }
+        },
+        {
+          "platform": "html-static-qualification-windows-latest",
+          "candidate": {
+            "schemaVersion": 1,
+            "generatedUtc": "2026-10-04T13:00:02.0966698+00:00",
+            "environment": {
+              "osFamily": "Windows",
+              "osDescription": "Microsoft Windows 10.0.26100",
+              "osArchitecture": "X64",
+              "processArchitecture": "X64",
+              "frameworkDescription": ".NET 10.0.12",
+              "machineName": "runnervmfi6oq",
+              "processorCount": 4
+            },
+            "source": {
+              "commit": "864317173d9520b243e2224acbb5e924b5fed781",
+              "worktreeClean": true,
+              "corpusId": "officeimo-html-h4-advanced-held-out",
+              "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+              "caseCount": 8,
+              "outputsPerIteration": 76
+            },
+            "ceiling": {
+              "osFamily": "Windows",
+              "coldProcessElapsedMilliseconds": 12000,
+              "warmIterationElapsedMilliseconds": 4000,
+              "coldManagedAllocatedBytes": 2500000000,
+              "warmManagedAllocatedBytes": 1200000000,
+              "peakWorkingSetBytes": 1500000000,
+              "outputBytesPerIteration": 3000000,
+              "cancellationElapsedMilliseconds": 250
+            },
+            "cold": {
+              "mode": "cold",
+              "processElapsedMilliseconds": 11064.9964,
+              "peakWorkingSetBytes": 855666688,
+              "memorySampleCount": 450,
+              "iterations": [
+                {
+                  "number": 1,
+                  "elapsedMilliseconds": 10834.0245,
+                  "managedAllocatedBytes": 2502677464,
+                  "outputBytes": 2929775,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "884a21541a1ba3b81ab34fc6013c943ef2e9cfcec2793b761275f1d30eabe4c3"
+                }
+              ],
+              "deterministic": true
+            },
+            "warm": {
+              "mode": "warm",
+              "processElapsedMilliseconds": 25994.1048,
+              "peakWorkingSetBytes": 1445937152,
+              "memorySampleCount": 1133,
+              "iterations": [
+                {
+                  "number": 1,
+                  "elapsedMilliseconds": 5261.6881,
+                  "managedAllocatedBytes": 1098619432,
+                  "outputBytes": 2929775,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "884a21541a1ba3b81ab34fc6013c943ef2e9cfcec2793b761275f1d30eabe4c3"
+                },
+                {
+                  "number": 2,
+                  "elapsedMilliseconds": 5049.7389,
+                  "managedAllocatedBytes": 1098763760,
+                  "outputBytes": 2929775,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "884a21541a1ba3b81ab34fc6013c943ef2e9cfcec2793b761275f1d30eabe4c3"
+                },
+                {
+                  "number": 3,
+                  "elapsedMilliseconds": 4889.7392,
+                  "managedAllocatedBytes": 1098673840,
+                  "outputBytes": 2929775,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "884a21541a1ba3b81ab34fc6013c943ef2e9cfcec2793b761275f1d30eabe4c3"
+                }
+              ],
+              "deterministic": true
+            },
+            "cancellation": {
+              "status": "Passed",
+              "elapsedMilliseconds": 3.5807,
+              "detail": "Cancellation propagated through the asynchronous resource boundary."
+            },
+            "failures": [
+              "cold managed allocated bytes 2502677464.0 exceeded ceiling 2500000000.0.",
+              "warm iteration 1 elapsed milliseconds 5261.7 exceeded ceiling 4000.0.",
+              "warm iteration 2 elapsed milliseconds 5049.7 exceeded ceiling 4000.0.",
+              "warm iteration 3 elapsed milliseconds 4889.7 exceeded ceiling 4000.0."
+            ]
+          },
+          "control": {
+            "schemaVersion": 1,
+            "generatedUtc": "2026-10-04T13:01:07.9979827+00:00",
+            "environment": {
+              "osFamily": "Windows",
+              "osDescription": "Microsoft Windows 10.0.26100",
+              "osArchitecture": "X64",
+              "processArchitecture": "X64",
+              "frameworkDescription": ".NET 10.0.12",
+              "machineName": "runnervmfi6oq",
+              "processorCount": 4
+            },
+            "source": {
+              "commit": "c1352693b3f280441c0fbfbdec76a2f040bb149a",
+              "worktreeClean": true,
+              "corpusId": "officeimo-html-h4-advanced-held-out",
+              "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+              "caseCount": 8,
+              "outputsPerIteration": 76
+            },
+            "ceiling": {
+              "osFamily": "Windows",
+              "coldProcessElapsedMilliseconds": 12000,
+              "warmIterationElapsedMilliseconds": 4000,
+              "coldManagedAllocatedBytes": 2500000000,
+              "warmManagedAllocatedBytes": 1200000000,
+              "peakWorkingSetBytes": 1500000000,
+              "outputBytesPerIteration": 3000000,
+              "cancellationElapsedMilliseconds": 250
+            },
+            "cold": {
+              "mode": "cold",
+              "processElapsedMilliseconds": 11212.5392,
+              "peakWorkingSetBytes": 875036672,
+              "memorySampleCount": 489,
+              "iterations": [
+                {
+                  "number": 1,
+                  "elapsedMilliseconds": 11032.1439,
+                  "managedAllocatedBytes": 3122275808,
+                  "outputBytes": 3203501,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "2b4acb055d1502ed5256c91125eb4919c0e0ca95d795efe4cc4a0f44405e1f16"
+                }
+              ],
+              "deterministic": true
+            },
+            "warm": {
+              "mode": "warm",
+              "processElapsedMilliseconds": 24297.9124,
+              "peakWorkingSetBytes": 1301270528,
+              "memorySampleCount": 1059,
+              "iterations": [
+                {
+                  "number": 1,
+                  "elapsedMilliseconds": 4687.9755,
+                  "managedAllocatedBytes": 1718493136,
+                  "outputBytes": 3203501,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "2b4acb055d1502ed5256c91125eb4919c0e0ca95d795efe4cc4a0f44405e1f16"
+                },
+                {
+                  "number": 2,
+                  "elapsedMilliseconds": 4453.2938,
+                  "managedAllocatedBytes": 1718582392,
+                  "outputBytes": 3203501,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "2b4acb055d1502ed5256c91125eb4919c0e0ca95d795efe4cc4a0f44405e1f16"
+                },
+                {
+                  "number": 3,
+                  "elapsedMilliseconds": 4282.9678,
+                  "managedAllocatedBytes": 1718532584,
+                  "outputBytes": 3203501,
+                  "caseCount": 8,
+                  "outputCount": 76,
+                  "fingerprintSha256": "2b4acb055d1502ed5256c91125eb4919c0e0ca95d795efe4cc4a0f44405e1f16"
+                }
+              ],
+              "deterministic": true
+            },
+            "cancellation": {
+              "status": "Passed",
+              "elapsedMilliseconds": 3.6768,
+              "detail": "Cancellation propagated through the asynchronous resource boundary."
+            },
+            "failures": [
+              "cold managed allocated bytes 3122275808.0 exceeded ceiling 2500000000.0.",
+              "warm iteration 1 elapsed milliseconds 4688.0 exceeded ceiling 4000.0.",
+              "warm iteration 1 managed allocated bytes 1718493136.0 exceeded ceiling 1200000000.0.",
+              "warm iteration 1 output bytes 3203501.0 exceeded ceiling 3000000.0.",
+              "warm iteration 2 elapsed milliseconds 4453.3 exceeded ceiling 4000.0.",
+              "warm iteration 2 managed allocated bytes 1718582392.0 exceeded ceiling 1200000000.0.",
+              "warm iteration 2 output bytes 3203501.0 exceeded ceiling 3000000.0.",
+              "warm iteration 3 elapsed milliseconds 4283.0 exceeded ceiling 4000.0.",
+              "warm iteration 3 managed allocated bytes 1718532584.0 exceeded ceiling 1200000000.0.",
+              "warm iteration 3 output bytes 3203501.0 exceeded ceiling 3000000.0.",
+              "cold output bytes 3203501.0 exceeded ceiling 3000000.0."
+            ]
+          }
+        }
+      ],
+      "boundary": "This source predates the PDF text-string correction; its results do not qualify the later correction or long-lived adoption."
     }
   }
 }

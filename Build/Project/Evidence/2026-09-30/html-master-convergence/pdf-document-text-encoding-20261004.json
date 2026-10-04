@@ -1,0 +1,102 @@
+{
+  "schema": 1,
+  "recordedAtUtc": "2026-10-04T14:41:47.948469+00:00",
+  "sourceCommit": "b6a3a469849f119063beb8a16fef3e54a7924606",
+  "scope": "Semantic PDF text encoding, byte-preserving parsed strings and encoded name-tree order; standalone shared PDF owner",
+  "observedDefect": "Archived NASA Reference Systems caption contains Earth’s. Prior generated ActualText used Windows-1252 byte 92, which independent PDFDocEncoding readers decode as trademark. Self-round-trip concealed the error.",
+  "ownerShape": {
+    "existingPdfDocEncodingExtended": true,
+    "fontGlyphEncodingSeparate": true,
+    "parsedBytePayloadsPreserved": true,
+    "nameTreeSharedEncodedByteComparer": true,
+    "publicApiChanges": false,
+    "newProductionDependencies": false
+  },
+  "localReview": {
+    "baseCommit": "f460e65b30602d56a076e5557fdf6acbff8c5d9c",
+    "candidateFingerprint": "a6adbba3e97d5aeea53f9928ef9b1c5394d8380a",
+    "fullPass": 1,
+    "targetedConfirmation": 1,
+    "boundary": "candidate-reviewed",
+    "reproducedFindings": [
+      "parsed binary payload semantic re-encoding",
+      "signature WinAnsi font resource missing Encoding",
+      "merge and attachment name-tree Unicode ordinal ordering"
+    ],
+    "remainingFindings": []
+  },
+  "focusedTests": {
+    "framework": "net10.0",
+    "passed": 276,
+    "failed": 0,
+    "skipped": 0,
+    "trx": "Ignore/MasterConvergenceQualification/pdf-doc-encoding/closure-focused/closure-focused.trx"
+  },
+  "normalNetstandard20Build": {
+    "warnings": 0,
+    "errors": 0,
+    "log": "Ignore/MasterConvergenceQualification/pdf-doc-encoding-standard-build-resumed.log"
+  },
+  "independentPublicConsumer": {
+    "observer": "pypdf 6.10.0 and Poppler 26.09",
+    "metadataActualTextNavigationExact": true,
+    "parsedIndexedPaletteExactAcrossExtractionOptimization": true,
+    "nameTreeEncodedKeysSortedAndPayloadsExact": true,
+    "signatureAppearanceWinAnsiGlyphsIndependent": true,
+    "sha256": {
+      "palette-source-pdf13.pdf": "8831e118bb910c623bcf98db61be5fcc43514de3197d8392c1fe9c4d565864e6",
+      "edited.pdf": "527b944ae312a3ce14bf9747a3939f115f6b612cbd7eac1d6cf4cd91d41312d4",
+      "palette-source.pdf": "f6e705d6f94fe2f0f87ad6af451c9cf7b124d4edc988f93161643d193a022699",
+      "signature-appearance.pdf": "b0c3b64b9c7b97171e5525507dc7344bfe7069754dd3798dda9d52ffff02188b",
+      "attachments-edited.pdf": "a35ba6a32e122143a148f24663423677eb0e40af3d706b14c36acb49ac1e0355",
+      "attachments.pdf": "41982c1556b9fdcde07b1e71ff6eb2e2a8583f8bfe4f1278f60f757215fd43b7",
+      "palette-optimized.pdf": "4e7586beb18ee97cd3e253e76b2e878aaa904e2d3298517c007477e145017b33",
+      "palette-extracted.pdf": "77b2f42cd0ceeb0b2357ab1b9b7c79e36703207fd9a886cb3ccb4fb1dee8388a",
+      "created.pdf": "8523e2bf3c95a43b48ad1b5a56f7444a3144123e2951ec77476618c75fe7ae50",
+      "destinations-merged.pdf": "4728460c89b2195bc84f4204d51a4135edfeff73def394b316efa8e9e7c2d585",
+      "signature.pdf": "73dd5a12713919a2f3db5da06aebf394348394b368035db60779502bf9737d82"
+    }
+  },
+  "independentRasters": {
+    "observer": "Poppler 26.09 at 144dpi; pixel buffer SHA256",
+    "hashes": {
+      "palette-source": "2d8aa526ce90cc663f89fe0b5916cef81ddbf867a7b38598b43128651a10df86",
+      "palette-extracted": "2d8aa526ce90cc663f89fe0b5916cef81ddbf867a7b38598b43128651a10df86",
+      "palette-optimized": "2d8aa526ce90cc663f89fe0b5916cef81ddbf867a7b38598b43128651a10df86",
+      "signature-appearance": "ad0ac7d47495de9c3d2eb104de020a19322f4c87a90a64f1c5f31ddcf2e1b1f9"
+    },
+    "allThreePaletteRendersIdentical": true,
+    "signatureAppearanceInspected": true
+  },
+  "separateFollowup": {
+    "fixture": "Ignore/MasterConvergenceQualification/pdf-doc-encoding/public-proof/palette-source-pdf13.pdf",
+    "failure": "Optimization changes PDF header/effective version 1.3 to 1.4 and its preservation guard rejects candidate",
+    "disposition": "Open PDF engine roadmap item; current byte-preservation proof uses explicit PDF 1.4 and an applied optimization rewrite",
+    "preservationGateNotRelaxed": true
+  },
+  "remainingQualification": [
+    "Full PDF correctness suites net8/net10 after interrupted runs",
+    "Current-master standalone extraction package/platform CI",
+    "Clean-source held-out API/Tool replay, all-page content and visuals"
+  ],
+  "limits": [
+    "Independent artifacts do not establish general PDF compatibility or manual accessibility",
+    "Prior hosted 864317173 package/correctness and failed timing results do not qualify this later correction",
+    "No full HTML/runtime PR, long-lived adoption or release"
+  ],
+  "broadPdfTests": {
+    "net10.0": {
+      "passed": 8779,
+      "failed": 0,
+      "skipped": 0,
+      "trx": "Ignore/MasterConvergenceQualification/pdf-doc-encoding/resumed-full-net10/resumed-full-net10.trx"
+    }
+  },
+  "interruptedRuns": {
+    "disposition": "Original full net8/net10 handles disappeared without TRX; process inventory confirmed terminal before replacement runs",
+    "retainedLogs": [
+      "Ignore/MasterConvergenceQualification/pdf-doc-encoding-closure-full-net10.log",
+      "Ignore/MasterConvergenceQualification/pdf-doc-encoding-closure-full-net8.log"
+    ]
+  }
+}
