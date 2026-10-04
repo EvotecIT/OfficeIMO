@@ -132,8 +132,12 @@ public static partial class OfficePngReader {
             var threshold = Sse2.Subtract(Sse2.Add(Sse2.Add(upperLeft, upperLeft), upperLeft), Sse2.Add(left, above));
             var aboveLow = Sse2.CompareGreaterThan(threshold, low);
             var belowHigh = Sse2.CompareGreaterThan(high, threshold);
-            var prediction = Sse2.Or(Sse2.AndNot(aboveLow, high),
-                Sse2.Or(Sse2.AndNot(belowHigh, low), Sse2.And(Sse2.And(aboveLow, belowHigh), upperLeft)));
+            var prediction = Sse41.IsSupported
+                ? Sse41.BlendVariable(low.AsByte(),
+                    Sse41.BlendVariable(high.AsByte(), upperLeft.AsByte(), aboveLow.AsByte()),
+                    belowHigh.AsByte()).AsInt16()
+                : Sse2.Or(Sse2.AndNot(aboveLow, high),
+                    Sse2.Or(Sse2.AndNot(belowHigh, low), Sse2.And(Sse2.And(aboveLow, belowHigh), upperLeft)));
             var predictedBytes = Sse2.PackUnsignedSaturate(prediction, Vector128<short>.Zero);
             var value = Sse2.Add(ReadRgbaPixel(ref Unsafe.Add(ref data, index)), predictedBytes);
             WriteRgbaPixel(ref Unsafe.Add(ref data, index), value);
