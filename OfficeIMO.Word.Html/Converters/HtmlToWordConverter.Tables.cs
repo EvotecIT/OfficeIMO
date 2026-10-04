@@ -138,6 +138,10 @@ namespace OfficeIMO.Word.Html {
                             }
                         }
 
+                        // Empty HTML cells still need a native paragraph. Without one,
+                        // Word readers may pull preceding body text into the table.
+                        if (wordCell.Paragraphs.Count == 0) wordCell.AddParagraph();
+
                         if (alignment.HasValue) {
                             foreach (var p in wordCell.Paragraphs) {
                                 p.ParagraphAlignment = alignment.Value.ToOfficeEnum();
