@@ -6,19 +6,27 @@ Preserving an unsupported native element does not mean that it can be rendered.
 | Operation | Supported contract | Boundary |
 | --- | --- | --- |
 | Read | Microsoft XPS and ECMA-388 OpenXPS; OPC relationships/content types; multiple fixed documents; ordered page references; UTF-8/UTF-16 XML; bounded interleaved OPC piece assembly | Materialized loading, not progressive streaming; protected packages are not supported |
-| Create | Both dialects; pages, vector paths, embedded fonts, Unicode glyph runs, PNG/JPEG image placement | Typed creation is a bounded fixed-page profile, not a complete schema object model |
+| Create | Both dialects; pages, vector paths, embedded fonts, Unicode glyph runs, PNG/JPEG/TIFF image placement | Typed creation is a bounded fixed-page profile, not a complete schema object model |
 | Edit | Detached native page XML; loaded document/page insertion, reordering, transfer and reference removal; shared backing for repeated references; encoded resource replacement | Removed parts/resources remain preserved; opaque semantic metadata is not rewritten |
-| Save | Original dialect; native page content and opaque parts retained; direct required-resource relationships emitted; deterministic ZIP output on the same runtime | ZIP metadata/XML bytes may change; interleaved storage is normalized to atomic parts; no dialect conversion; signed packages cannot be rewritten |
+| Save | Original dialect; native page content and opaque parts retained; required-resource relationships emitted, including profiles and transitive dictionary resources; deterministic ZIP output on the same runtime | ZIP metadata/XML bytes may change; interleaved storage is normalized to atomic parts; no dialect conversion; signed packages cannot be rewritten |
 | Text extraction | UnicodeString runs in markup order | No inferred reading order, paragraphs, or glyph-ID-to-Unicode reconstruction |
 | Paths | Abbreviated geometry, fill rules, explicit path figures/segments, fills, strokes, dashes, matrix transforms, clipping | Per-segment fill/stroke suppression, asymmetric/triangle or separate dash caps, and over-limit clipped miters (including the native degenerate-segment rule) are diagnosed |
 | Text rendering | Embedded TrueType programs/collections, obfuscation, explicit glyph IDs, cluster mappings, advances/offsets, horizontal bidi, sideways top-center positioning with vertical metrics or OS/2/hhea fallbacks | Outlined output; style simulations and unsupported font programs are diagnosed; sideways runs require even BidiLevel |
-| Brushes | Hex/scRGB solid colors; linear/radial gradients; scoped and external package resource dictionaries; PNG/JPEG and visual brushes with absolute viewbox/viewport mapping, matrix transforms, Tile/FlipX/FlipY/FlipXY repetition, and alpha opacity masks | Non-tiled brush strokes, ICC ContextColor, color-converted images, and TIFF/JPEG-XR rendering are diagnosed |
+| Brushes | Hex/scRGB and ICC ContextColor solids/gradient stops; linear/radial gradients; scoped and external package resource dictionaries; PNG/JPEG/TIFF and visual brushes with absolute viewbox/viewport mapping, matrix transforms, Tile/FlipX/FlipY/FlipXY repetition, and alpha opacity masks | Non-tiled brush strokes, color-converted images, embedded TIFF color management, unsupported TIFF encodings, and JPEG-XR rendering are diagnosed |
 | Navigation | Safe web/mail links; page/document/sequence named targets with scoped first-occurrence lookup; sequence page numbers projected into SVG filenames | Non-page unresolved and unsafe destinations are diagnosed; known fixed-page destinations follow structural moves; links to removed pages are unresolved; document navigation is not a PDF preservation contract |
 | Gradient transforms | Affine transforms retained in SVG; affine linear gradients and axis-aligned scaled/translated radial gradients convert through Core | Rotated/sheared radial gradients and non-Pad radial spread reject drawing/image/PDF conversion |
 | SVG | Self-contained images and glyph outlines; strict by default; explicit partial result with diagnostics | Unknown markup/attributes are diagnosed; no claim of complete XPS consumer conformance |
 | Drawing/images | Existing managed Core scene and image exporters | Shared viewport, element, geometry, raster, and codec limits still apply; any reported SVG import loss rejects conversion |
 | PDF | Optional thin bridge to the existing PDF engine, retaining page dimensions, bounded vector tile expansion, and native alpha-mask Forms | Vector outlines rather than searchable text; no print-ticket/structure/signature migration |
 | Security | Package-local resource resolution; no external fetch; DTD prohibition; shared backing for repeated page parts; bounded ZIP/XML/page and expanded SVG node/character/resource-binding growth; cooperative cancellation; atomic path saves | Inspection does not authenticate signatures or make arbitrary native documents trusted |
+
+ICC ContextColor uses Core's supported RGB, gray, CMYK and N-channel profiles,
+converting to sRGB with media-relative colorimetric intent and no black-point
+compensation. Alpha and channel values are clamped to the native range. Profile
+parsing has a 4 MiB per-profile ceiling and a 64 MiB aggregate parser allowance.
+PrintTicket color overrides are not interpreted. TIFF uses Core's managed decoder
+for the first image, up to four million pixels, retaining its physical dimensions;
+embedded color-management metadata is diagnosed rather than discarded.
 
 ## Qualification
 
@@ -75,5 +83,12 @@ distinct OS/2 origins. GhostXPS 10.08.0 renders all eight native sideways cases 
 matching placement, including these metrics and rotated/clipped runs. Raster
 comparisons retain font rasterization differences: worst mean channel error is
 1.82/255, with fewer than 1.7% of channels differing by more than 10/255.
+
+ICC tests reuse independently generated LittleCMS reference swatches for two RGB
+matrix profiles, an RGB v4 LUT profile, and a CMYK LUT profile. GhostXPS 10.08.0
+renders the same 24 swatches in both dialects within one 8-bit channel value when
+configured with matching relative intent and black-point compensation disabled.
+TIFF placement and colors are checked in both dialects; upscaled boundaries retain
+interpolation differences between the managed and independent renderers.
 
 The open qualification and rendering work belongs in [the roadmap](../Docs/ROADMAP.md#xpsopenxps).

@@ -9,21 +9,21 @@ internal sealed partial class XpsSvgConverter {
         }
         if (brush == null) {
             if (value == null) { Set(target, attribute, "none"); return; }
-            SetColor(target, attribute, attribute + "-opacity", value); return;
+            SetColor(target, attribute, attribute + "-opacity", value, part); return;
         }
         switch (brush.Name.LocalName) {
             case "SolidColorBrush":
                 CheckAttributes(brush, "Color Opacity");
-                SetColor(target, attribute, attribute + "-opacity", (string?)brush.Attribute("Color") ?? "#00000000", Unit((string?)brush.Attribute("Opacity") ?? "1"));
+                SetColor(target, attribute, attribute + "-opacity", (string?)brush.Attribute("Color") ?? "#00000000", part, Unit((string?)brush.Attribute("Opacity") ?? "1"));
                 break;
             case "LinearGradientBrush": case "RadialGradientBrush":
-                Gradient(brush, target, attribute, scope); break;
+                Gradient(brush, target, attribute, scope, part); break;
             case "VisualBrush": VisualBrush(brush, target, attribute, scope, part, depth); break;
             case "ImageBrush": ImageBrush(brush, target, attribute, scope, part, depth); break;
             default: Loss("Brush: " + brush.Name.LocalName); Set(target, attribute, "none"); break;
         }
     }
-    private void SetColor(XElement element, string colorAttribute, string alphaAttribute, string color, double opacity = 1) {
+    private void SetColor(XElement element, string colorAttribute, string alphaAttribute, string color, string part, double opacity = 1) {
         if (color.StartsWith("#", StringComparison.Ordinal)) {
             string hex = color.Substring(1);
             if ((hex.Length != 3 && hex.Length != 4 && hex.Length != 6 && hex.Length != 8) || hex.Any(c => !Uri.IsHexDigit(c))) throw new InvalidDataException("Invalid XPS color.");
@@ -37,10 +37,21 @@ internal sealed partial class XpsSvgConverter {
             if (offset == 1) opacity *= Unit(N(n[0]));
             int Channel(double c) => (int)Math.Round(Math.Max(0, Math.Min(1, c <= 0.0031308 ? c * 12.92 : 1.055 * Math.Pow(c, 1 / 2.4) - 0.055)) * 255);
             Set(element, colorAttribute, "rgb(" + string.Join(",", n.Skip(offset).Select(Channel)) + ")");
-        } else { Loss("Color: " + (color.StartsWith("ContextColor", StringComparison.Ordinal) ? "ICC ContextColor" : "unsupported syntax")); Set(element, colorAttribute, "none"); }
+        } else if (XpsResourceSyntax.IsContextColor(color)) {
+            var context = XpsResourceSyntax.ContextColor(color);
+            var profile = ColorProfile(part, context.Uri);
+            if (profile == null) { Set(element, colorAttribute, "none"); return; }
+            if (context.Values.Length != profile.ComponentCount + 1) throw new InvalidDataException("ContextColor channel count does not match its ICC profile.");
+            opacity *= Clamp(context.Values[0]);
+            var channels = context.Values.Skip(1).Select(Clamp).ToArray();
+            if (!profile.TryConvert(channels, OfficeIMO.Drawing.OfficeIccRenderingIntent.RelativeColorimetric, out var converted)) {
+                Loss("ICC color conversion"); Set(element, colorAttribute, "none"); return;
+            }
+            Set(element, colorAttribute, "rgb(" + converted.R + "," + converted.G + "," + converted.B + ")");
+        } else { Loss("Color: unsupported syntax"); Set(element, colorAttribute, "none"); }
         if (opacity != 1) Set(element, alphaAttribute, N(opacity));
     }
-    private void Gradient(XElement brush, XElement target, string attribute, Dictionary<string, Resource> scope) {
+    private void Gradient(XElement brush, XElement target, string attribute, Dictionary<string, Resource> scope, string part) {
         CheckAttributes(brush, "StartPoint EndPoint Center GradientOrigin RadiusX RadiusY MappingMode SpreadMethod ColorInterpolationMode Opacity Transform");
         bool radial = brush.Name.LocalName == "RadialGradientBrush";
         string id = "paint" + (++_id);
@@ -73,7 +84,7 @@ internal sealed partial class XpsSvgConverter {
                 if (stop.Name.LocalName != "GradientStop") { Loss("Gradient stop element"); continue; }
                 CheckAttributes(stop, "Offset Color");
                 var svgStop = Element("stop", new XAttribute("offset", N(XpsPackage.Number((string?)stop.Attribute("Offset")))));
-                SetColor(svgStop, "stop-color", "stop-opacity", (string?)stop.Attribute("Color") ?? "#00000000", opacity); gradient.Add(svgStop);
+                SetColor(svgStop, "stop-color", "stop-opacity", (string?)stop.Attribute("Color") ?? "#00000000", part, opacity); gradient.Add(svgStop);
             }
         }
         _defs.Add(gradient); Set(target, attribute, "url(#" + id + ")");

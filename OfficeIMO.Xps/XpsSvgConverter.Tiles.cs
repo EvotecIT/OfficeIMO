@@ -30,10 +30,20 @@ internal sealed partial class XpsSvgConverter {
         string uri = (string?)brush.Attribute("ImageSource") ?? throw new InvalidDataException("Missing image source.");
         if (uri.StartsWith("{", StringComparison.Ordinal)) { Loss("Color-converted image source"); return; }
         string name = XpsPackage.Resolve(part, uri), type = _page.Document.ContentType(name);
-        if (type != "image/png" && type != "image/jpeg") { Loss("Image codec: " + type); return; }
+        if (type != "image/png" && type != "image/jpeg" && type != "image/tiff") { Loss("Image codec: " + type); return; }
         byte[] bytes = _page.Document.Part(name);
         var info = OfficeIMO.Drawing.OfficeImageReader.Identify(bytes);
         double width = info.Width * 96D / (info.DpiX > 0 ? info.DpiX : 96D), height = info.Height * 96D / (info.DpiY > 0 ? info.DpiY : 96D);
+        if (type == "image/tiff") {
+            var metadata = OfficeIMO.Drawing.OfficeImageMetadataInspector.Inspect(bytes, info.Format, 0, _token);
+            if (metadata.HasColorRenderingMetadata) { Loss("TIFF embedded color management"); return; }
+            var options = new OfficeIMO.Drawing.OfficeRasterDecodeOptions { MaximumDecodedPixels = 4_000_000, CancellationToken = _token };
+            if (!OfficeIMO.Drawing.OfficeRasterImageDecoder.TryDecode(bytes, options, out var raster, out _) || raster == null) {
+                Loss("Unsupported TIFF encoding"); return;
+            }
+            bytes = OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(raster, OfficeIMO.Drawing.OfficeImageExportFormat.Png, null, 16 * 1024 * 1024, _token);
+            type = "image/png";
+        }
         EnsureOutputCapacity(((long)bytes.Length + 2) / 3 * 4 + 128);
         var image = Element("image", new XAttribute("href", "data:" + type + ";base64," + System.Convert.ToBase64String(bytes)),
             new XAttribute("x", "0"), new XAttribute("y", "0"), new XAttribute("width", N(width)), new XAttribute("height", N(height)), new XAttribute("preserveAspectRatio", "none"));

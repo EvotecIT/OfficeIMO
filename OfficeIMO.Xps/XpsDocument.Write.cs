@@ -90,7 +90,11 @@ public sealed partial class XpsDocument {
             else output[page.PartName] = page.Serialize();
             string relName = page.PartName.Substring(0, page.PartName.LastIndexOf('/') + 1) + "_rels/" + Path.GetFileName(page.PartName) + ".rels";
             XElement rels = output.TryGetValue(relName, out var relBytes) ? XpsPackage.Xml(relBytes, _limits, cancellationToken) : new XElement(XpsPackage.Relationships + "Relationships");
-            foreach (string resource in page.ResourceReferences(markup)) {
+            foreach (string resource in page.ResourceReferences(markup, name => {
+                string resourceType = replacementTypes != null && replacementTypes.TryGetValue(name, out var replacementType) ? replacementType : (_types.TryGetValue(name, out var storedType) ? storedType : "");
+                return resourceType == XpsPackage.Type("resourcedictionary") && output.TryGetValue(name, out var dictionaryBytes)
+                    ? XpsPackage.Xml(dictionaryBytes, _limits, cancellationToken) : null;
+            })) {
                 if (validateResources && !output.ContainsKey(resource)) throw new InvalidDataException("Missing XPS part: " + resource);
                 string type = XpsPackage.Namespace(Format) + "/required-resource";
                 if (!rels.Elements().Any(r => (string?)r.Attribute("Type") == type && XpsPackage.Resolve(page.PartName, (string?)r.Attribute("Target") ?? "") == resource))
