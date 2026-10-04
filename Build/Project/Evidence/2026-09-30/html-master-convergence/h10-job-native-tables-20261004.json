@@ -1,10 +1,13 @@
 {
   "$schema": "officeimo.html.h10-job-native-table-evidence",
-  "recordedUtc": "2026-10-04T00:28:37.308113+00:00",
+  "recordedUtc": "2026-10-04T02:36:00.571392+00:00",
   "sourceCommits": {
     "routeAndNativeTableReplay": "4b7c3aa13e7207ce9929238c8ceb28771ff44a8f",
     "oneNoteReplay": "1523ae78e32fe389d89914b761452cd4dbf10a51",
-    "adoptedUnixOwner": "ed7fcf373ce5ad9fac6fcdbced75be093362f1c3"
+    "adoptedUnixOwner": "ed7fcf373ce5ad9fac6fcdbced75be093362f1c3",
+    "screenBodyBackground": "648391a095e231427e54aaf7b9c9a044f97ebf20",
+    "stylesheetDisplayRetention": "d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+    "screenBackgroundFinalReplay": "d589345b3e3a4d1e93b66aa7d263e7a55003e9e8"
   },
   "cleanSourceRequired": true,
   "ownership": "HtmlConversionDocument and HtmlRenderRequest/Result with MHTML and target adapters; retained AngleSharp/Css/Js/Jint boundaries. No new runtime dependency.",
@@ -738,15 +741,341 @@
     "nativeExcel": "Prior independent rendering clips long first-column labels; worksheet-grid observations do not close print layout.",
     "nativePowerPoint": "Prior independent rendering shows low-contrast header text and fragment pagination limits.",
     "nativeOneNote": "Saved/reopened payloads and bounded HTML projection only; native OneNote application unavailable.",
-    "pdfAllPageContactSheets": "All six inspected. Planetary screen-media page3 nearly empty; planetary snapshot has dark body text on black background. Both fail appearance acceptance. Chesapeake retains footer placement and repeated fixed-control differences."
+    "pdfAllPageContactSheets": "Prior six-profile inspection identified planetary snapshot contrast and screen-media page3 failures. Final d589345b3 snapshot contacts confirm the contrast correction; planetary screen-media page3 remains a 56 CSS-pixel body-background-only fragment before an oversized figure. Chesapeake snapshot is byte-identical and retains its known footer/fixed-control differences."
   },
   "remaining": [
-    "Repair and independently qualify snapshot background/contrast and screen-media empty-page behavior.",
+    "Independently qualify screen-media background-only/oversized-figure fragmentation and the remaining named H10 profile appearance failures.",
     "Complete table widths, article/photo order, slide contrast and target-specific native application acceptance.",
     "Complete remaining corpus/intent/workbench/browser surfaces and operation-level loss/resource checks.",
     "Resolve all-platform static timing and remaining H10 platform budgets without changing ceilings; current source3a28 run37160774821 fails timing.",
     "Settle standalone current-head PR CI/reviews and integrate only qualified source."
   ],
   "retainedEvidenceRoot": "Ignore/H10JobQualification",
-  "publishedPackagesOrFullHtmlPr": false
+  "publishedPackagesOrFullHtmlPr": false,
+  "screenBackgroundQualification20261004": {
+    "source": "d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+    "cleanSourceReplay": true,
+    "viewportCssPixels": [
+      816,
+      900
+    ],
+    "resourcePolicy": "PortableDeterministic",
+    "changes": [
+      "Preserve the body background box when html owns a distinct canvas in continuous screen rendering and snapshot slicing.",
+      "Suppress the body box for display:contents while preserving children; supported stylesheet display survives rules that use retained-provider declaration fallback."
+    ],
+    "independentFixtures": {
+      "baselineSource": "e3f2d0eac2e8818991216d18b56dde447ac44280",
+      "independentFixture": "body-canvas.html",
+      "browserObserved": {
+        "canvasBackground": "rgb(34, 34, 34)",
+        "bodyBackground": "rgb(255, 255, 255)",
+        "bodyBottomCssPx": 240,
+        "headerBottomCssPx": 40,
+        "footerTopCssPx": 200,
+        "consoleWarningsErrors": [],
+        "viewport": [
+          1280,
+          720
+        ]
+      },
+      "beforeTests": {
+        "failed": 3,
+        "passed": 0,
+        "actualArticlePixel": "#222222",
+        "expectedArticlePixel": "#FFFFFF"
+      },
+      "candidateCriteria": [
+        "Article sample white across full-page/viewport/snapshot; footer black; canvas beneath body remains #222.",
+        "Frozen NASA and held-out Chesapeake same three-profile page counts, image/link occurrences, full extracted-token multisets and API/Tool bytes. Snapshot may paint the restored body background. Print and screen-media PDFs should remain byte-identical.",
+        "Full HTML net8/net10, netstandard build and H4 advanced held-out.",
+        "Inspect final snapshot PDF first page and all-page contact sheet. Broader H10 appearance/native/platform timing remain open."
+      ],
+      "contentsBrowserObserved": {
+        "canvasBackground": "rgb(34, 34, 34)",
+        "bodyDisplay": "contents",
+        "bodyBoxHeightCssPixels": 0,
+        "sectionHeightCssPixels": 80,
+        "consoleWarningsErrors": [],
+        "viewport": [
+          1280,
+          720
+        ]
+      },
+      "stylesheetRetentionBefore": {
+        "publicApi": "HtmlComputedStyleEngine.Compute",
+        "standaloneDeclaration": "contents",
+        "mixedDisplayAndMarginDeclaration": "",
+        "regressionsFailed": 7,
+        "inlineRegressionsPassed": 4
+      },
+      "sourceCodeHead": "d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+      "retainedProviderBoundary": "Supported display declarations use the existing authored-declaration retention path; AngleSharp/Css remain the parser/style providers."
+    },
+    "validation": {
+      "stableCandidateTests": {
+        "net10.0": {
+          "passed": 4232,
+          "failed": 0,
+          "skipped": 0,
+          "h4AdvancedHeldOutPassed": 8,
+          "trx": "Ignore/H10JobQualification/contrast-fixture/tests/html-stylesheet-final-net10.0.trx",
+          "trxSha256": "c289af08700c70774bdb71da6afb97fb1dda0d2db0d388f394c63021c026ee2c"
+        },
+        "net8.0": {
+          "passed": 4232,
+          "failed": 0,
+          "skipped": 0,
+          "h4AdvancedHeldOutPassed": 8,
+          "trx": "Ignore/H10JobQualification/contrast-fixture/tests/html-stylesheet-final-net8.0.trx",
+          "trxSha256": "120c20a4ce430dcb94a789a469cb2d7a09812b0816b8850247f86299ecb08a61"
+        }
+      },
+      "netstandard2Build": {
+        "warnings": 0,
+        "errors": 0
+      },
+      "normalCleanHeadBuilds": [
+        "ApiProbe",
+        "OfficeIMO.Tool",
+        "ContrastProbe"
+      ],
+      "review": {
+        "bodyPainting": "One independent strictly read-only full pass and one targeted confirmation; reproduced P2 body-box suppression defect fixed.",
+        "stylesheetRetention": "Narrow correction in the existing validated declaration-retention path. Seven pre-fix failures, direct public computed-style before/after proof, priority/invalid-value and inline/stylesheet raster checks; no extra full review merely for a new SHA."
+      },
+      "platformTimingRerun": false
+    },
+    "routes": [
+      {
+        "case": "planets",
+        "profile": "print-paged",
+        "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "baselineWholeTextTokenMultisetEqual": true,
+        "pages": 19,
+        "pdfSha256": "4cf795920bb01fac72bc051eb6c05c7738ad01adfdb4db2c74126ef947dd2098",
+        "imageOccurrences": 16,
+        "linkAnnotations": 72,
+        "conversionReportUnchanged": true,
+        "reportHasLoss": true,
+        "baselineOwnerPageTextAndLinkArraysEqual": true
+      },
+      {
+        "case": "planets",
+        "profile": "screen-media-paged",
+        "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "baselineWholeTextTokenMultisetEqual": true,
+        "pages": 22,
+        "pdfSha256": "9df7ed16dbd7d8911405af0c6ed4662bd3e20a6744d1fe617c1d625185eabf99",
+        "imageOccurrences": 18,
+        "linkAnnotations": 73,
+        "conversionReportUnchanged": true,
+        "reportHasLoss": true,
+        "baselineOwnerPageTextAndLinkArraysEqual": true
+      },
+      {
+        "case": "planets",
+        "profile": "screen-snapshot-paged",
+        "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": false,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "baselineWholeTextTokenMultisetEqual": true,
+        "pages": 14,
+        "pdfSha256": "6da411b98b16f3356309c8343408531b93922718573765f8627c8d8e0df209bc",
+        "imageOccurrences": 23,
+        "linkAnnotations": 83,
+        "conversionReportUnchanged": true,
+        "reportHasLoss": true,
+        "baselineOwnerPageTextAndLinkArraysEqual": true
+      },
+      {
+        "case": "chesapeake",
+        "profile": "print-paged",
+        "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "baselineWholeTextTokenMultisetEqual": true,
+        "pages": 3,
+        "pdfSha256": "caafb1c4f0400c051c69d46920ad4cf6282ac8c6c453cd11b13e3a9621eebc71",
+        "imageOccurrences": 16,
+        "linkAnnotations": 44,
+        "conversionReportUnchanged": true,
+        "reportHasLoss": true,
+        "baselineOwnerPageTextAndLinkArraysEqual": true
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-media-paged",
+        "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "baselineWholeTextTokenMultisetEqual": true,
+        "pages": 5,
+        "pdfSha256": "8f7d3cb9ec60d88856a5a967cdb4d548f6c894b11909efca121c86bf0ed95bbd",
+        "imageOccurrences": 19,
+        "linkAnnotations": 55,
+        "conversionReportUnchanged": true,
+        "reportHasLoss": true,
+        "baselineOwnerPageTextAndLinkArraysEqual": true
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-snapshot-paged",
+        "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Html.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+          "OfficeIMO.Pdf": "3.4.4+d589345b3e3a4d1e93b66aa7d263e7a55003e9e8"
+        },
+        "pdfBytesEqual": true,
+        "rawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "baselineWholeTextTokenMultisetEqual": true,
+        "pages": 4,
+        "pdfSha256": "94567efcdfab12d31644d37b10c7ddc21819a375cc9b06b763dd568e56fdd504",
+        "imageOccurrences": 22,
+        "linkAnnotations": 56,
+        "conversionReportUnchanged": true,
+        "reportHasLoss": true,
+        "baselineOwnerPageTextAndLinkArraysEqual": true
+      }
+    ],
+    "assetPreservation": {
+      "decodedImageBytesPerPageEqual": true,
+      "linkTargetsAndRectanglesPerPageEqual": true,
+      "linkRectangleComparisonDecimalPlaces": 6,
+      "artifact": "Ignore/H10JobQualification/contrast-fixture/snapshot-asset-preservation.json"
+    },
+    "visuals": {
+      "finalPlanetaryAll14SnapshotPagesInspected": true,
+      "finalContentsStylesheetPdfInspected": true,
+      "heldOutChesapeakeAll4SnapshotPagesInspected": true,
+      "articleContrastAccepted": true,
+      "broaderAppearanceAccepted": false,
+      "contactSheets": [
+        "Ignore/H10JobQualification/contrast-fixture/final-snapshot-visuals-d589345b3/planets-contact.png",
+        "Ignore/H10JobQualification/contrast-fixture/final-snapshot-visuals-d589345b3/chesapeake-contact.png"
+      ],
+      "observation": "Dark article text now paints on white body backgrounds across planetary snapshot pages. Dark header/footer and canvas margins remain distinct. Snapshot content, decoded images, link targets and per-page text are preserved; other five PDFs remain byte-identical to the baseline. Footer clipping, snapshot cuts and native appearance remain separately qualified."
+    },
+    "screenMediaBlankPage": {
+      "source": "e3f2d0eac2e8818991216d18b56dde447ac44280",
+      "sourceUnchangedForScreenMediaPdf": true,
+      "page": 3,
+      "visualCount": 5,
+      "textVisuals": 0,
+      "imageVisuals": 0,
+      "bodyFragmentHeightCssPixels": 56,
+      "visuals": [
+        {
+          "kind": "HtmlRenderShape",
+          "Source": "render-surface",
+          "PaintOrder": -2147483648,
+          "X": 0,
+          "Y": 0,
+          "Width": 793.7007874015749,
+          "Height": 1122.5196850393702,
+          "fill": "#FFFFFF",
+          "text": null
+        },
+        {
+          "kind": "HtmlRenderShape",
+          "Source": "render-root-background",
+          "PaintOrder": -2147483647,
+          "X": 0,
+          "Y": 0,
+          "Width": 793.7007874015749,
+          "Height": 1122.5196850393702,
+          "fill": "#000000",
+          "text": null
+        },
+        {
+          "kind": "HtmlRenderClipGroup",
+          "Source": "body.wp-singular.topic-template.topic-template-template-sidebar.topic-template-template-sidebar-php.single.single-topic.postid-107670.wp-theme-nasa.wp-child-theme-nasa-child:viewport-overflow",
+          "PaintOrder": 2,
+          "X": 0,
+          "Y": 0,
+          "Width": 793.7007874015749,
+          "Height": 1122.5196850393702,
+          "fill": null,
+          "text": null
+        },
+        {
+          "kind": "HtmlRenderClipGroup",
+          "Source": "body.wp-singular.topic-template.topic-template-template-sidebar.topic-template-template-sidebar-php.single.single-topic.postid-107670.wp-theme-nasa.wp-child-theme-nasa-child",
+          "PaintOrder": 0,
+          "X": 48,
+          "Y": 48,
+          "Width": 697.7007874015749,
+          "Height": 56,
+          "fill": null,
+          "text": null
+        },
+        {
+          "kind": "HtmlRenderShape",
+          "Source": "body.wp-singular.topic-template.topic-template-template-sidebar.topic-template-template-sidebar-php.single.single-topic.postid-107670.wp-theme-nasa.wp-child-theme-nasa-child",
+          "PaintOrder": 0,
+          "X": 48,
+          "Y": -1950.0542181818182,
+          "Width": 697.7007874015749,
+          "Height": 18633.485756440565,
+          "fill": "#FFFFFF",
+          "text": null
+        }
+      ],
+      "nextPageImage": {
+        "widthCssPixels": 601.7007874015749,
+        "heightCssPixels": 1749.7458897637796
+      },
+      "status": "Observed pagination failure remains open; background-only prefix precedes an oversized figure.",
+      "nextDeliverable": "Create an independent oversized-figure/margin print fixture and prove legal fragmentation before changing pagination."
+    },
+    "qualificationLimit": "Two frozen sources and three explicit PDF profiles; this does not qualify all eleven historical intents, manual accessibility, native whole-page appearance or current platform timing."
+  }
 }
