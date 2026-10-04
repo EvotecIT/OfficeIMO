@@ -78,6 +78,7 @@ public sealed partial class EpubPublication {
         identifier ??= "urn:uuid:" + Guid.NewGuid().ToString("D");
         RequireText(identifier, nameof(identifier));
         var package = new XDocument(new XElement(Opf + "package",
+            new XAttribute(XNamespace.Xml + "lang", language),
             new XAttribute("version", version == EpubVersion.Epub3 ? "3.0" : "2.0"),
             new XAttribute("unique-identifier", "publication-id"),
             new XElement(Opf + "metadata", new XAttribute(XNamespace.Xmlns + "dc", Dc.NamespaceName),

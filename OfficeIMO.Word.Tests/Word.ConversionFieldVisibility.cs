@@ -17,6 +17,31 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordConversionFieldVisibilityTests {
     [Fact]
+    public void NestedFieldStateAcrossParagraphsKeepsInstructionAndResultVisibility() {
+        using WordDocument document = WordDocument.Create();
+        WordParagraph start = document.AddParagraph();
+        for (int index = 0; index < 64; index++)
+            start._paragraph.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }));
+        WordParagraph hidden = document.AddParagraph();
+        hidden._paragraph.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+            new SimpleField(new Run(new Text("Secret"))) { Instruction = " PAGE " },
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }));
+        WordParagraph visible = document.AddParagraph();
+        visible._paragraph.Append(new SimpleField(new Run(new Text("Visible"))) { Instruction = " PAGE " });
+        for (int index = 0; index < 65; index++)
+            visible._paragraph.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+        WordDocumentSnapshot snapshot = document.CreateInspectionSnapshot();
+        WordParagraphSnapshot[] paragraphs = snapshot.Sections[0].Elements.OfType<WordParagraphSnapshot>().ToArray();
+        WordInlineFieldSnapshot[] fields = paragraphs.SelectMany(paragraph => paragraph.InlineFields).ToArray();
+        Assert.DoesNotContain(fields, field => field.ResultText == "Secret" && !field.IsHiddenInstructionContent);
+        Assert.Contains(fields, field => field.ResultText == "Visible" && !field.IsHiddenInstructionContent);
+        Assert.DoesNotContain("Secret", document.ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("Visible", document.ToHtml(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MixedFieldMarkersWithinOneRunKeepOnlyVisibleSegments() {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("Prefix ");

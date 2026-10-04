@@ -7,20 +7,30 @@ namespace OfficeIMO.Word {
     /// Tracks which run content is visible while walking a paragraph's complex fields.
     /// </summary>
     internal sealed class WordComplexFieldRunVisibility {
-        private static readonly AsyncLocal<Dictionary<OpenXmlElement, Dictionary<Paragraph, bool[]>>?> ConversionPrefixes = new();
-        private readonly Stack<bool> _resultRegions = new();
+        private static readonly AsyncLocal<Dictionary<OpenXmlElement, Dictionary<Paragraph, FieldState>>?> ConversionPrefixes = new();
+        private FieldState? _state;
 
-        internal WordComplexFieldRunVisibility(IEnumerable<bool>? outerToInnerResults = null) {
-            if (outerToInnerResults != null)
-                foreach (bool isResult in outerToInnerResults) _resultRegions.Push(isResult);
+        internal sealed class FieldState {
+            internal FieldState(FieldState? parent, bool isResult) {
+                Parent = parent;
+                IsResult = isResult;
+                HiddenCount = (parent?.HiddenCount ?? 0) + (isResult ? 0 : 1);
+            }
+
+            internal FieldState? Parent { get; }
+            internal bool IsResult { get; }
+            internal int HiddenCount { get; }
         }
 
-        internal bool IsVisible => !_resultRegions.Contains(false);
-        internal bool HasOpenField => _resultRegions.Count > 0;
+        internal WordComplexFieldRunVisibility(FieldState? state = null) => _state = state;
+
+        internal FieldState? CurrentState => _state;
+        internal bool IsVisible => (_state?.HiddenCount ?? 0) == 0;
+        internal bool HasOpenField => _state != null;
 
         internal static IDisposable BeginConversionScope() {
-            Dictionary<OpenXmlElement, Dictionary<Paragraph, bool[]>>? previous = ConversionPrefixes.Value;
-            ConversionPrefixes.Value = new Dictionary<OpenXmlElement, Dictionary<Paragraph, bool[]>>();
+            Dictionary<OpenXmlElement, Dictionary<Paragraph, FieldState>>? previous = ConversionPrefixes.Value;
+            ConversionPrefixes.Value = new Dictionary<OpenXmlElement, Dictionary<Paragraph, FieldState>>();
             return new ConversionScope(previous);
         }
 
@@ -29,13 +39,13 @@ namespace OfficeIMO.Word {
             OpenXmlElement story = textBoxStory ?? paragraph.Ancestors().FirstOrDefault(element =>
                 element is Footnote or Endnote or Header or Footer)
                 ?? paragraph.Ancestors().LastOrDefault() ?? paragraph;
-            Dictionary<OpenXmlElement, Dictionary<Paragraph, bool[]>>? cache = ConversionPrefixes.Value;
+            Dictionary<OpenXmlElement, Dictionary<Paragraph, FieldState>>? cache = ConversionPrefixes.Value;
             if (cache != null) {
-                if (!cache.TryGetValue(story, out Dictionary<Paragraph, bool[]>? prefixes)) {
+                if (!cache.TryGetValue(story, out Dictionary<Paragraph, FieldState>? prefixes)) {
                     prefixes = BuildStoryPrefixes(story, textBoxStory != null);
                     cache.Add(story, prefixes);
                 }
-                return prefixes.TryGetValue(paragraph, out bool[]? prefix)
+                return prefixes.TryGetValue(paragraph, out FieldState? prefix)
                     ? new WordComplexFieldRunVisibility(prefix) : new WordComplexFieldRunVisibility();
             }
 
@@ -48,26 +58,26 @@ namespace OfficeIMO.Word {
             return visibility;
         }
 
-        private static Dictionary<Paragraph, bool[]> BuildStoryPrefixes(OpenXmlElement story, bool isTextBoxStory) {
-            var prefixes = new Dictionary<Paragraph, bool[]>();
+        private static Dictionary<Paragraph, FieldState> BuildStoryPrefixes(OpenXmlElement story, bool isTextBoxStory) {
+            var prefixes = new Dictionary<Paragraph, FieldState>();
             var visibility = new WordComplexFieldRunVisibility();
             foreach (Paragraph paragraph in story.Descendants<Paragraph>()) {
                 if (!isTextBoxStory && paragraph.Ancestors<TextBoxContent>().Any()) continue;
-                if (visibility.HasOpenField) prefixes[paragraph] = visibility._resultRegions.Reverse().ToArray();
+                if (visibility.CurrentState is FieldState state) prefixes[paragraph] = state;
                 visibility.ObserveParagraphMarkers(paragraph);
             }
             return prefixes;
         }
 
-        private void ObserveParagraphMarkers(Paragraph paragraph) {
+        internal void ObserveParagraphMarkers(Paragraph paragraph) {
             foreach (FieldChar marker in paragraph.Descendants<FieldChar>()
                 .Where(marker => ReferenceEquals(marker.Ancestors<Paragraph>().FirstOrDefault(), paragraph)))
                 Observe(marker);
         }
 
         private sealed class ConversionScope : IDisposable {
-            private readonly Dictionary<OpenXmlElement, Dictionary<Paragraph, bool[]>>? _previous;
-            internal ConversionScope(Dictionary<OpenXmlElement, Dictionary<Paragraph, bool[]>>? previous) => _previous = previous;
+            private readonly Dictionary<OpenXmlElement, Dictionary<Paragraph, FieldState>>? _previous;
+            internal ConversionScope(Dictionary<OpenXmlElement, Dictionary<Paragraph, FieldState>>? previous) => _previous = previous;
             public void Dispose() => ConversionPrefixes.Value = _previous;
         }
 
@@ -103,12 +113,11 @@ namespace OfficeIMO.Word {
 
         private void Observe(FieldChar marker) {
             if (marker.FieldCharType?.Value == FieldCharValues.Begin) {
-                _resultRegions.Push(false);
-            } else if (marker.FieldCharType?.Value == FieldCharValues.Separate && _resultRegions.Count > 0) {
-                _resultRegions.Pop();
-                _resultRegions.Push(true);
-            } else if (marker.FieldCharType?.Value == FieldCharValues.End && _resultRegions.Count > 0) {
-                _resultRegions.Pop();
+                _state = new FieldState(_state, false);
+            } else if (marker.FieldCharType?.Value == FieldCharValues.Separate && _state != null) {
+                _state = new FieldState(_state.Parent, true);
+            } else if (marker.FieldCharType?.Value == FieldCharValues.End && _state != null) {
+                _state = _state.Parent;
             }
         }
     }

@@ -5,6 +5,7 @@ internal static partial class IWorkTextReader {
         ulong? identifier, double? paragraphLeftIndentPoints, int? explicitLevel,
         IWorkProjectionBudget projectionBudget,
         Dictionary<(ulong Identifier, double? LeftIndentPoints, int? ExplicitLevel), Cached<(int Level, string? Label, string? FontName, IWorkListMarkerKind Kind, IWorkListLayout? Layout)>> cache,
+        Dictionary<ulong, Cached<ListStyleData>> decodedStyles,
         bool tolerateStyleDepth,
         IWorkSourceReferenceIssueCollector references,
         ref bool complete) {
@@ -14,18 +15,24 @@ internal static partial class IWorkTextReader {
             if (!cached.IsComplete) complete = false;
             return cached.Value;
         }
-        bool resolvedCompletely = true;
-        var data = new ListStyleData();
-        var chain = IWorkStyleReader.ReadChain(index, identifier.Value,
-            projectionBudget.MaximumTextStyleInheritanceDepth,
-            type => type == ListStyleArchive, tolerateStyleDepth, references, ref resolvedCompletely);
-        for (int styleIndex = chain.Count - 1; styleIndex >= 0; styleIndex--) {
-            IWorkWireMessage message = chain[styleIndex].Message;
-            ApplyStyleName(message, value => data.Name = value, projectionBudget, chain[styleIndex].Record, references, ref resolvedCompletely);
-            OverlayList(message, data, projectionBudget,
-                new StylePropertyEvidence(chain[styleIndex].Record, "", references.Declarations),
-                ref resolvedCompletely);
+        if (!decodedStyles.TryGetValue(identifier.Value, out Cached<ListStyleData> decoded)) {
+            bool decodedCompletely = true;
+            var style = new ListStyleData();
+            var chain = IWorkStyleReader.ReadChain(index, identifier.Value,
+                projectionBudget.MaximumTextStyleInheritanceDepth,
+                type => type == ListStyleArchive, tolerateStyleDepth, references, ref decodedCompletely);
+            for (int styleIndex = chain.Count - 1; styleIndex >= 0; styleIndex--) {
+                IWorkWireMessage message = chain[styleIndex].Message;
+                ApplyStyleName(message, value => style.Name = value, projectionBudget, chain[styleIndex].Record, references, ref decodedCompletely);
+                OverlayList(message, style, projectionBudget,
+                    new StylePropertyEvidence(chain[styleIndex].Record, "", references.Declarations),
+                    ref decodedCompletely);
+            }
+            decoded = new Cached<ListStyleData>(style, decodedCompletely);
+            decodedStyles.Add(identifier.Value, decoded);
         }
+        bool resolvedCompletely = decoded.IsComplete;
+        ListStyleData data = decoded.Value;
         int level = explicitLevel ?? ResolveListLevel(data, paragraphLeftIndentPoints, ref resolvedCompletely);
         if (level >= data.LabelTypes.Count) resolvedCompletely = false;
         ulong labelType = level >= 0 && level < data.LabelTypes.Count

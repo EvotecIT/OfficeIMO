@@ -247,11 +247,10 @@ internal static partial class PdfWriter {
         }
 
         double height = startLine == 0 ? layout.TopSpacing : 0D;
-        for (int i = 0; i < visible; i++) {
-            int lineIndex = startLine + i;
-            height += lineIndex < layout.LineHeights.Count ? layout.LineHeights[lineIndex] : fallbackLeading;
-        }
-
+        int measuredStart = System.Math.Min(startLine, layout.LineHeights.Count);
+        int measuredEnd = System.Math.Min(startLine + visible, layout.LineHeights.Count);
+        height += layout.LineHeightPrefix[measuredEnd] - layout.LineHeightPrefix[measuredStart];
+        height += (visible - (measuredEnd - measuredStart)) * fallbackLeading;
         return height;
     }
 

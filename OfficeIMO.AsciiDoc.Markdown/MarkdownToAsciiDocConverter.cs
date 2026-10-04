@@ -45,7 +45,7 @@ internal static class MarkdownToAsciiDocConverter {
                     MarkdownInlineToAsciiDocConverter.Convert(heading.Inlines, diagnostics, heading);
             case ParagraphBlock paragraph:
                 return ConvertMetadata(paragraph, null, options.LineEnding) +
-                    MarkdownInlineToAsciiDocConverter.Convert(paragraph.Inlines, diagnostics, paragraph);
+                    AsciiDocLiteralText.EscapeBlockStarts(MarkdownInlineToAsciiDocConverter.Convert(paragraph.Inlines, diagnostics, paragraph));
             case UnorderedListBlock unordered:
                 return ConvertList(unordered.Items, false, unordered, options, diagnostics, ref documentTitleWritten);
             case OrderedListBlock ordered:

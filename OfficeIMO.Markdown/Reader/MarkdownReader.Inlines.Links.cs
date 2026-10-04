@@ -215,7 +215,18 @@ public static partial class MarkdownReader {
         var inlineHtmlWrapperMatches = BuildInlineHtmlWrapperMatchIndex(label);
 
         for (int i = 0; i < label.Length; i++) {
+            if (label[i] == '\\' && i + 1 < label.Length && IsBackslashEscapable(label[i + 1])) {
+                i++;
+                continue;
+            }
+            if (label[i] == '!' && TrySkipLinkLabelImage(label, i, state, inlineHtmlWrapperMatches, out int imageLength)) {
+                i += imageLength - 1;
+                continue;
+            }
             if (TrySkipLinkLabelInlineSpan(label, i, options, out int spanConsumed, inlineHtmlWrapperMatches)) {
+                if (label[i] == '<' && TryParseAngleAutolink(label, i, out _, out _, out _)) return true;
+                if (label[i] == '<' && inlineHtmlWrapperMatches.TryGet(i, out string tagName, out int closingStart) &&
+                    ContainsAngleAutolinkInLabelSpan(label, i + tagName.Length + 2, closingStart, options, state, inlineHtmlWrapperMatches)) return true;
                 i += spanConsumed - 1;
                 continue;
             }
@@ -268,6 +279,32 @@ public static partial class MarkdownReader {
 
         return false;
     }
+
+    private static bool ContainsAngleAutolinkInLabelSpan(
+        string text, int start, int end, MarkdownReaderOptions? options, MarkdownReaderState? state,
+        InlineHtmlWrapperMatchIndex matches) {
+        // Inspect wrapper contents without recursively rescanning nested wrappers. Code, escapes,
+        // HTML attributes and image alternatives are literal contexts rather than nested links.
+        for (int i = start; i < end; i++) {
+            if (text[i] == '\\' && i + 1 < end && IsBackslashEscapable(text[i + 1])) { i++; continue; }
+            if (text[i] == '`' && TryConsumeMatchedBacktickSpan(text, i, out int codeLength) && i + codeLength <= end) {
+                i += codeLength - 1;
+                continue;
+            }
+            if (text[i] == '!' && TrySkipLinkLabelImage(text, i, state, matches, out int imageLength) && i + imageLength <= end) {
+                i += imageLength - 1;
+                continue;
+            }
+            if (text[i] != '<') continue;
+            if (TryParseAngleAutolink(text, i, out int angleLength, out _, out _) && i + angleLength <= end) return true;
+            if (options?.InlineHtml != false && TryConsumeRawInlineHtmlTag(text, i, out int htmlLength) && i + htmlLength <= end) i += htmlLength - 1;
+        }
+        return false;
+    }
+
+    private static bool TrySkipLinkLabelImage(string text, int start, MarkdownReaderState? state, InlineHtmlWrapperMatchIndex matches, out int consumed) =>
+        TryParseInlineImage(text, start, out consumed, out _, out _, out _, out _, out _, out _, out _, out _, out _, matches) ||
+        (state != null && TryParseReferenceImage(text, start, out consumed, out _, out _, out _, out _, matches));
 
     private static bool TryParseLink(
         string text,

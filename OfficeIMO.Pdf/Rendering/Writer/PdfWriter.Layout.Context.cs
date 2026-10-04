@@ -18,6 +18,7 @@ internal static partial class PdfWriter {
         private readonly System.Collections.Generic.Dictionary<FlowMaterializationKey, System.Collections.Generic.IReadOnlyList<IPdfBlock>> deferredMaterializations;
         private readonly System.Threading.CancellationToken cancellationToken;
         private readonly int? maximumGeneratedPages;
+        private long startedPageCount;
         private readonly System.Collections.Generic.List<SectionBlock> encounteredSectionDefinitions = new System.Collections.Generic.List<SectionBlock>();
         private readonly System.Collections.Generic.Dictionary<System.Collections.Generic.List<ColItem>, double[]> rowColumnKeepChainHeights = new System.Collections.Generic.Dictionary<System.Collections.Generic.List<ColItem>, double[]>();
         private bool encounteredTableOfContents;
@@ -90,8 +91,9 @@ internal static partial class PdfWriter {
             int? effectiveMaximumPages = maximumGeneratedPages is int documentMaximum
                 ? options.MaxGeneratedPages is int pageMaximum ? System.Math.Min(documentMaximum, pageMaximum) : documentMaximum
                 : options.MaxGeneratedPages;
-            if (effectiveMaximumPages is int maximumPages && pages.Count >= maximumPages)
+            if (effectiveMaximumPages is int maximumPages && startedPageCount >= maximumPages)
                 throw new InvalidDataException("PDF layout exceeded the configured generated page limit.");
+            startedPageCount++;
             currentOpts = options;
             width = options.PageWidth - options.MarginLeft - options.MarginRight;
             yStart = options.PageHeight - options.MarginTop;

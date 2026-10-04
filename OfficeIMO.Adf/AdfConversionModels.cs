@@ -68,6 +68,9 @@ public sealed class AdfConversionDiagnostic {
         return code switch {
             "MARKDOWN_UNSUPPORTED_BLOCK" or
             "MARKDOWN_UNSUPPORTED_INLINE" or
+            "MARKDOWN_IMAGE_PROPERTIES_DROPPED" or
+            "MARKDOWN_IMAGE_TITLE_DROPPED" or
+            "MARKDOWN_INLINE_IMAGE_PROJECTED" or
             "ADF_ROOT_PROPERTIES_DROPPED" or
             "ADF_EMPTY_PARAGRAPH_DROPPED" or
             "ADF_HEADING_PROPERTIES_DROPPED" or
@@ -77,6 +80,16 @@ public sealed class AdfConversionDiagnostic {
             "ADF_TABLE_CELL_ATTRIBUTES_DROPPED" or
             "ADF_LINK_ATTRIBUTES_DROPPED" or
             "ADF_TASK_LOCAL_IDS_REGENERATED" => OfficeConversionLossKind.Omission,
+            "ADF_NODE_PROPERTIES_DROPPED" or
+            "ADF_MARK_PROPERTIES_DROPPED" or
+            "ADF_BLOCK_MARKS_DROPPED" or
+            "ADF_INLINE_PROJECTED" or
+            "ADF_CARD_PROJECTED" or
+            "ADF_MEDIA_PROJECTED" or
+            "ADF_UNSUPPORTED_INLINE" or
+            "ADF_UNSUPPORTED_INLINE_OMITTED" or
+            "ADF_EXTENSION_RESOLVED" or
+            "MARKDOWN_EMPTY_BLOCK_OMITTED" => OfficeConversionLossKind.Omission,
             _ => OfficeConversionLossKind.Approximation
         };
     }
@@ -87,7 +100,7 @@ public sealed class AdfConversionReport : IOfficeConversionReport {
     /// <summary>Creates a report by copying the supplied diagnostic sequence.</summary>
     /// <param name="diagnostics">Diagnostics to include in the report; an empty sequence is allowed.</param>
     public AdfConversionReport(IEnumerable<AdfConversionDiagnostic> diagnostics) {
-        Diagnostics = diagnostics?.ToArray() ?? throw new ArgumentNullException(nameof(diagnostics));
+        Diagnostics = Array.AsReadOnly(diagnostics?.ToArray() ?? throw new ArgumentNullException(nameof(diagnostics)));
         FidelityDiagnostics = Array.AsReadOnly(Diagnostics.Select(static diagnostic =>
             new OfficeConversionFidelityDiagnostic(
                 diagnostic.Code,
@@ -99,7 +112,7 @@ public sealed class AdfConversionReport : IOfficeConversionReport {
     /// <summary>Gets a report with no diagnostics, which is considered lossless.</summary>
     public static AdfConversionReport Empty { get; } = new AdfConversionReport(Array.Empty<AdfConversionDiagnostic>());
     /// <summary>Gets the diagnostics captured when this report was created.</summary>
-    /// <remarks>The sequence is copied from the constructor input; the exposed collection is not an immutable snapshot.</remarks>
+    /// <remarks>The collection is an immutable snapshot of the constructor input.</remarks>
     public IReadOnlyList<AdfConversionDiagnostic> Diagnostics { get; }
 
     /// <summary>Gets category-preserving conversion diagnostics.</summary>
@@ -128,7 +141,18 @@ public sealed class AdfConversionResult<T> : OfficeConversionResult<T, AdfConver
 }
 
 /// <summary>Options for ADF projections.</summary>
-public sealed class AdfConversionOptions {
+public sealed class AdfConversionOptions : AdfProcessingOptions {
     /// <summary>When true, visible placeholders are emitted for unsupported nodes with no projectable text.</summary>
     public bool EmitUnsupportedPlaceholders { get; set; }
+
+    /// <summary>Optional caller-owned projection for extension nodes. Returning null uses the normal fallback. Native extension metadata remains in the ADF model.</summary>
+    /// <remarks>Handles extension, bodiedExtension and inlineExtension nodes. An inline projection must contain at most one paragraph.</remarks>
+    public Func<AdfNode, OfficeIMO.Markdown.MarkdownDoc?>? ExtensionResolver { get; set; }
+
+    /// <summary>Optional factory for task localId values, called with a stable structural path. Values must be nonempty and unique within a conversion. The default derives deterministic IDs from the document content and path.</summary>
+    public Func<string, string>? LocalIdFactory { get; set; }
+
+    /// <summary>Optional validation of generated ADF, including a full-schema contract and caller-defined destination policy.</summary>
+    /// <remarks>Validation errors appear in the conversion report. The generated document remains available for inspection and editing.</remarks>
+    public AdfValidationOptions? DestinationValidation { get; set; }
 }

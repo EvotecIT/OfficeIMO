@@ -24,6 +24,31 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
+    public void Malformed_primary_record_is_rejected_once_for_repeated_selections() {
+        var record = new IWorkArchiveRecord(1, 5, Array.Empty<uint>(), Array.Empty<ulong>(),
+            Array.Empty<ulong>(), "Index/Slide.iwa", 0, new byte[] { 0x80 });
+        var index = new IWorkObjectIndex(new[] { record }, new IWorkReadOptions());
+
+        InvalidDataException first = Assert.Throws<InvalidDataException>(() => index.Message(record));
+        InvalidDataException second = Assert.Throws<InvalidDataException>(() => index.Message(record));
+        Assert.Same(first, second);
+        Assert.False(IWorkProtobuf.IsLimitException(second));
+    }
+
+    [Fact]
+    public void Selected_nested_message_reuses_success_and_malformed_results() {
+        var options = new IWorkReadOptions();
+        IWorkWireMessage valid = IWorkProtobuf.Parse(BytesField(11, Message(VarintField(1, 7))), options);
+        Assert.Same(valid.GetMessage(11), valid.GetMessage(11));
+
+        IWorkWireMessage malformed = IWorkProtobuf.Parse(BytesField(11, new byte[] { 0x80 }), options);
+        InvalidDataException first = Assert.Throws<InvalidDataException>(() => malformed.GetMessage(11));
+        InvalidDataException second = Assert.Throws<InvalidDataException>(() => malformed.GetMessage(11));
+        Assert.Same(first, second);
+        Assert.False(IWorkProtobuf.IsLimitException(second));
+    }
+
+    [Fact]
     public void Repeated_distinct_Keynote_body_placeholders_disable_editable_reconstruction() {
         using MemoryStream package = CreateKeynotePackageWithDistinctBodyPlaceholders();
 

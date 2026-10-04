@@ -32,12 +32,17 @@ internal sealed partial class ContentStreamBuilder {
         for (int index = 0; index < glyphs.Count;) {
             var cluster = new List<PdfGlyphInfo>();
             var logical = new System.Text.StringBuilder();
-            int clusterStart = glyphs[index].LogicalClusterStart;
+            int logicalEnd = glyphs[index].LogicalClusterStart;
             do {
                 PdfGlyphInfo glyph = glyphs[index++];
                 cluster.Add(glyph);
                 logical.Append(glyph.UnicodeText);
-            } while (index < glyphs.Count && glyphs[index].LogicalClusterStart == clusterStart);
+                // GSUB multiple substitution and a later ligature can give
+                // neighboring glyphs different starts but overlapping source
+                // ownership. Keep that whole interval in one redaction scope.
+                logicalEnd = Math.Max(logicalEnd, Math.Max(glyph.LogicalClusterStart + 1,
+                    glyph.TextIndex + glyph.UnicodeText.Length));
+            } while (index < glyphs.Count && glyphs[index].LogicalClusterStart < logicalEnd);
             _sb.Append("ET\nBT\n");
             TextMatrixApplied(_textA, _textB, _textC, _textD, _textE, _textF);
             bool marked = logical.Length != 0;

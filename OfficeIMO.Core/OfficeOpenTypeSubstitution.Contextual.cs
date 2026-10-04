@@ -123,7 +123,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         return true;
     }
 
-    private int ApplyMultiple(List<GlyphToken> glyphs, int index, int subtable) {
+    private int ApplyMultiple(List<GlyphToken> glyphs, int index, int subtable, ref int operations) {
         Ensure(subtable, 6);
         if (_reader.ReadUInt16(subtable) != 1) return 0;
         int coverage = Relative(subtable, _reader.ReadUInt16(subtable + 2), 4);
@@ -135,6 +135,11 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         int replacementCount = _reader.ReadUInt16(sequence);
         if (replacementCount <= 0 || replacementCount > MaximumContextGlyphs) return 0;
         Ensure(sequence + 2, checked(replacementCount * 2));
+        if (glyphs.Count > MaximumOperations - replacementCount + 1)
+            throw new InvalidDataException("GSUB shaping exceeded the managed glyph budget.");
+        // InsertRange shifts the remaining tail. Charge that work as well as the
+        // new tokens so a chain of multiple substitutions cannot amplify input.
+        ChargeOperations(ref operations, checked(glyphs.Count - index + replacementCount));
         GlyphToken source = glyphs[index];
         var replacements = new GlyphToken[replacementCount];
         for (int replacementIndex = 0; replacementIndex < replacementCount; replacementIndex++) {
@@ -328,7 +333,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         CancellationToken cancellationToken, ref int operations, int recursionDepth) {
         if (index < 0 || index >= glyphs.Count) return 0;
         if (lookupType == 1) return ApplySingle(glyphs, index, subtable) ? 1 : 0;
-        if (lookupType == 2) return ApplyMultiple(glyphs, index, subtable);
+        if (lookupType == 2) return ApplyMultiple(glyphs, index, subtable, ref operations);
         if (lookupType == 3) return ApplyAlternate(glyphs, index, subtable, featureValue) ? 1 : 0;
         if (lookupType == 4) return ApplyLigature(glyphs, index, subtable, ref operations) ? 1 : 0;
         if (lookupType == 5) return ApplyContextual(glyphs, index, subtable, featureValue, cancellationToken, ref operations, recursionDepth);

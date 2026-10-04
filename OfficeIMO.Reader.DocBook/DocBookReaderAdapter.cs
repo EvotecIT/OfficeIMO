@@ -127,8 +127,11 @@ internal static partial class DocBookReaderAdapter {
             if (!preformatted && inlineProjectionNode != null &&
                 TryBuildInlineFragments(inlineProjectionNode, out IReadOnlyList<InlineFragment> inlineFragments)) {
                 int inlinePart = 0;
+                string previousSuffix = string.Empty;
                 foreach (InlineFragment fragment in inlineFragments) {
                     string markdownPrefix = fragment.MarkdownPrefix;
+                    if (previousSuffix.Length > 0 && markdownPrefix.Length > 0 && previousSuffix[previousSuffix.Length - 1] == markdownPrefix[0] &&
+                        markdownPrefix[0] is '*' or '_' or '~' or '^' or '`') markdownPrefix = "<!-- -->" + markdownPrefix;
                     if (inlinePart == 0 && IsHeadingNode(node)) {
                         markdownPrefix = new string('#', Math.Min(node.Level ?? 1, 6)) + " " + markdownPrefix;
                     }
@@ -150,6 +153,7 @@ internal static partial class DocBookReaderAdapter {
                         };
                         inlinePart++;
                     }
+                    previousSuffix = fragment.MarkdownSuffix;
                 }
                 emittedInlineProjection = true;
                 if (ownsInlineText) yield break;
@@ -173,7 +177,7 @@ internal static partial class DocBookReaderAdapter {
                 }
                 if (listMarker != null) markdownPrefix = listMarker.TakePrefix() + markdownPrefix;
                 IReadOnlyList<ProjectionPart> parts = SplitProjection(
-                    projectedText, markdownPrefix, markdownSuffix, false, reader.MaxChars);
+                    projectedText, markdownPrefix, markdownSuffix, !preformatted, reader.MaxChars);
                 for (int part = 0; part < parts.Count; part++) {
                     yield return new ReaderChunk {
                         Id = parts.Count == 1 ? "docbook-" + currentSource : "docbook-" + currentSource + "-part-" + (part + 1),
@@ -329,7 +333,7 @@ internal static partial class DocBookReaderAdapter {
             for (int offset = 0; offset < text.Length;) {
                 int sourceLength = char.IsHighSurrogate(text[offset]) && offset + 1 < text.Length &&
                     char.IsLowSurrogate(text[offset + 1]) ? 2 : 1;
-                bool escaped = sourceLength == 1 && (text[offset] == '\\' || text[offset] == '[' || text[offset] == ']');
+                bool escaped = sourceLength == 1 && ReaderMarkdownEscaping.IsLiteralPunctuation(text[offset]);
                 int markdownLength = sourceLength + (escaped ? 1 : 0);
                 if (escaped && markdownLength > effectiveMaxChars) {
                     if (markdownPart.Length > 0) Flush();

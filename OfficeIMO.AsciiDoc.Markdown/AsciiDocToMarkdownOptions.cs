@@ -16,4 +16,21 @@ public sealed class AsciiDocToMarkdownOptions {
 
     /// <summary>Behavior for undefined attributes when expansion is enabled.</summary>
     public AsciiDocUndefinedAttributeBehavior UndefinedAttributeBehavior { get; set; } = AsciiDocUndefinedAttributeBehavior.Preserve;
+
+    /// <summary>Maximum recursively converted compound-block depth. Defaults to 64.</summary>
+    public int MaximumBlockNestingDepth { get; set; } = 64;
+
+    /// <summary>Optional document reference snapshot when converting an individual block.</summary>
+    public AsciiDocReferenceCatalog? References { get; set; }
+    internal HashSet<string> UsedFootnotes { get; } = new HashSet<string>(StringComparer.Ordinal);
+
+    internal AsciiDocToMarkdownOptions WithReferences(AsciiDocReferenceCatalog references) => new AsciiDocToMarkdownOptions {
+        IncludeDocumentAttributesAsFrontMatter = IncludeDocumentAttributesAsFrontMatter,
+        PreserveUnsupportedAsSource = PreserveUnsupportedAsSource,
+        PreserveCommentsAsSource = PreserveCommentsAsSource,
+        ExpandDocumentAttributes = ExpandDocumentAttributes,
+        UndefinedAttributeBehavior = UndefinedAttributeBehavior,
+        MaximumBlockNestingDepth = MaximumBlockNestingDepth,
+        References = References ?? references
+    };
 }

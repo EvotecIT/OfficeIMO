@@ -13,6 +13,11 @@ internal static partial class PdfWriter {
                 sb.Append(" /MCID ").Append(markedContentId.Value.ToString(CultureInfo.InvariantCulture));
             }
             sb.Append(" >> BDC\n");
+            PdfStandardFont font = ChooseNormal(currentOpts.DefaultFont);
+            string fontResource = GetFontResourceName(font, null, font);
+            // Readers can derive replacement geometry from the first and last glyph.
+            // Matching anchors keep arbitrary painted baselines out of that geometry.
+            WriteLogicalTextAnchor(font, fontResource, anchorX, anchorY).RestoreState();
             bool previousAccessibility = _suppressCanvasAccessibilityWrappers;
             bool previousStructure = _suppressCanvasStructureRegistration;
             bool previousActualTextChildren = _suppressCanvasActualTextChildren;
@@ -26,8 +31,16 @@ internal static partial class PdfWriter {
                 _suppressCanvasStructureRegistration = previousStructure;
                 _suppressCanvasActualTextChildren = previousActualTextChildren;
             }
-            PdfStandardFont font = ChooseNormal(currentOpts.DefaultFont);
-            string fontResource = GetFontResourceName(font, null, font);
+            var content = WriteLogicalTextAnchor(font, fontResource, anchorX, anchorY);
+            // Close the replacement while its anchor font and text state are active.
+            // Restoring the painted text state first changes reader spacing heuristics.
+            sb.Append("EMC\n");
+            content.RestoreState();
+            MarkSimpleFont(font);
+            pageDirty = true;
+        }
+
+        private ContentStreamBuilder WriteLogicalTextAnchor(PdfStandardFont font, string fontResource, double anchorX, double anchorY) {
             var content = new ContentStreamBuilder(sb)
                 .SaveState()
                 .BeginText()
@@ -35,10 +48,7 @@ internal static partial class PdfWriter {
                 .TextRenderingMode(3)
                 .TextMatrix(anchorX, anchorY);
             content.ShowText(EncodeActualTextAnchor(font, currentOpts), 1D);
-            content.EndText().RestoreState();
-            sb.Append("EMC\n");
-            MarkSimpleFont(font);
-            pageDirty = true;
+            return content.EndText();
         }
 
     }

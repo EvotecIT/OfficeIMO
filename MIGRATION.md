@@ -9,9 +9,27 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## DocBook, ADF and Data projection contracts
+
+ADF operations enforce resource limits through `AdfProcessingOptions`, inherited by `AdfConversionOptions` and `AdfValidationOptions`. The default graph limit is 100,000 nodes and marks. If an application intentionally processes documents above the defaults, pass explicit limits to parsing, validation, JSON writing and conversion. Validation reports unsafe graphs and graph-limit failures as invalid results; writing and conversion throw `InvalidDataException`. Structural validation also rejects empty required content and missing panel types. Inspect omission diagnostics when `RequireNoLoss()` rejects metadata or semantic projections that previously lost properties silently. Default task IDs derive from bounded generated task-list content; supply `LocalIdFactory` when an integration needs its own stable identity policy.
+
+DocBook Reader Markdown escapes literal syntax. Applications comparing exact Markdown strings must allow escapes; plain chunk text retains its source text. CALS cells use newlines between distinct block paragraphs. Typed component body additions are placed before child sections and indexes; raw XML with the opposite order receives `DB024`.
+
+Arrow decimals must fit both declared scale and precision. Redundant fractional zeros are accepted. Increase `DecimalPrecision` for values outside the declared coefficient range rather than relying on invalid Arrow output. `CollectionColumnMapping.HeaderPrefix` now changes displayed Excel and PowerPoint headers; use `null` for the original collection-path prefix. Column selection, formatting and flattened dictionary keys retain their original paths.
+
+## OCR and AI extraction
+
+`OfficeDocumentOcrExecutionOptions` bounds a whole operation with a five-minute `TotalTimeout`, 4 Mi recognized characters, 100,000 detailed spans and 4 Mi span characters by default. These totals also apply across attachments in `ApplyOcrTreeAsync`. Set `MaxTotalRecognizedCharacters`, `MaxTotalSpans`, `MaxTotalSpanCharacters` and `TotalTimeout` explicitly for workloads that require larger accepted output or longer execution. Limit diagnostics report truncation or skipped recognition; unresolved candidates remain available.
+
+Decimal field extraction rejects precision loss and underflow instead of returning a rounded `Present` value. Handle `Invalid` and review its exact raw value and citations when the requested decimal cannot represent the source exactly.
+
 ## ODS row layout conversion
 
 ODS-to-XLSX conversion materializes at most 4,096 individual hidden-row or row-height layouts per sheet by default. Larger row-layout expansions are reported under `expansion-limits`; set `ExcelOpenDocumentConversionOptions.MaximumRowLayoutRows` when a trusted workbook needs a higher limit.
+
+## ODT-to-Word image copies
+
+ODT-to-Word conversion now copies at most 64 MiB of embedded image bytes by default across the resulting document. Set `WordOpenDocumentConversionOptions.MaxConvertedImageBytes` to a larger value for trusted documents that need every image, and inspect the conversion report or use `LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss` when skipped images must fail conversion.
 
 ## Chart data label separators
 
@@ -19,9 +37,14 @@ ODS-to-XLSX conversion materializes at most 4,096 individual hidden-row or row-h
 
 ## RTF Unicode fallback width
 
+
 Normalized RTF writing accepts `UnicodeSkipCount` values from 0 through 8. Set a larger authored value to a supported width before calling `ToRtf`; larger values now raise `ArgumentOutOfRangeException` instead of generating disproportionate fallback output. Reading and lossless source export still preserve an incoming `\uc` value, including one that cannot be used for normalized writing.
 
 ## LaTeX editing and conversion contracts
+
+Known required arguments now accept an unbraced character or control sequence as one token. Code that treated `LATEX007` as a rejection of every unbraced argument should instead inspect `LatexArgument.IsSingleToken` and the actual missing-argument diagnostics. For example, `\textbf ABC` binds only `A`; an edited replacement is written in braces. Handle the additive `LatexSyntaxKind.SingleTokenArgument` enum member in exhaustive syntax switches.
+
+LaTeX footnotes now produce typed Markdown references and definitions. Reader block mode includes `SourceBlockKind = "footnote"` at the note's source location and heading path. Consumers that switch on block kinds should handle it; definition text is separate from the surrounding paragraph.
 
 LaTeX conversion projects the current edited source. Reader locations and conversion diagnostic spans refer to that rebound source; native syntax spans continue to describe the original parse. Conflicting edits to the same span now throw instead of silently selecting one replacement. Edit one representation, or use identical replacements when two views describe the same region.
 
@@ -152,6 +175,16 @@ Invalid chapter encodings produce `epub.chapter.invalid-encoding` and are skippe
 when a larger publication is required. Check `ReadSummary.IsComplete` and structured
 diagnostics when limits or unreadable content can produce partial output; archive
 recovery scanning cannot establish publication completeness.
+
+## CSL contributor roles, availability dates, and item types
+
+CSL JSON parsing places all standard contributor roles in `BibliographyItem.Contributors`, all standard date roles in `Dates`, and all standard item types in `Type`. Applications reading recognized properties such as `director`, `container-author`, or `available-date` from item `NativeFields` should use the corresponding contributor role or `GetDate(BibliographyDateRole.Available)`. Incorrectly shaped and unknown properties remain native fields, and unchanged preserve-mode writing retains the original source.
+
+Existing enum numeric values remain stable; the additional item types, contributor roles, and availability date are appended. Extend application switches that assumed the earlier enum set. When converting to a format with a smaller vocabulary, inspect the conversion report or enable `RequireNoLoss` to reject unsupported roles, dates, and types.
+
+## Bibliography and AsciiDoc path saves
+
+`BibliographyDocument.Save` / `SaveAsync` and `AsciiDocDocument.Save` / `SaveAsync` require atomic file publication. If a filesystem cannot atomically replace an existing destination, the operation fails and preserves that file. Applications saving to such filesystems should catch the filesystem exception and choose a destination that supports atomic replacement. Caller-owned stream saves retain their stream-writing behavior and can leave partial output on failure or cancellation.
 
 ## Conversion batches replace the PDF archive surface
 
@@ -358,6 +391,24 @@ Folder and detailed path reads apply the configured document processor pipeline.
 second processing pass that previously compensated for these routes bypassing processors.
 Word tables preserve complete Markdown when an atomic table exceeds `MaxChars` and emit a warning.
 Applications that require terminal limits should configure `ReaderOptions.ResourceLimits`.
+
+## Reader XML limits and changing sources
+
+XML extraction uses `XmlReadOptions.MaxDepth` (128), `MaxNodes` (200,000), and
+`MaxScalarLength` (1,048,576) by default. Inputs exceeding these limits throw
+`ReaderResourceLimitException`. Increase the relevant option for trusted larger inputs.
+XML and YAML values within their configured limits retain their full normalized text.
+
+Path reads reject a detected source change with `IOException`. Retry against a stable file.
+Keep incremental inputs stable until enumeration finishes: a later failure cannot withdraw
+chunks already delivered to the consumer.
+
+Async file reads use the same normalized file identity and timestamps as synchronous reads.
+Rebuild indexes that stored the previous async stream-derived source IDs or chunk hashes.
+Chunk-based container results describe the outer input in `Kind` and `Source`; member identity,
+hash, length and timestamps remain on the member chunks, including after document processing.
+Folder byte budgets charge the physical file size. Consumers that inferred the first member's
+kind or metadata from the root envelope should read that member's chunk instead.
 
 ## Reader document schema version 8
 

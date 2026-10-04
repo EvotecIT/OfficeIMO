@@ -4,6 +4,17 @@ using OfficeIMO.Reader.Email;
 namespace OfficeIMO.Email.AddressBook.Tests;
 
 public sealed class ReaderEmailAddressBookTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ItemReaderEnforcesAggregateChunkBudgets(bool hashes) {
+        using var source = new MemoryStream(new OabV4Fixture().Build(), writable: false);
+        using var iterator = EmailAddressBookEntryReader.Read(source, "bounded.oab",
+            new ReaderOptions { ComputeHashes = hashes, ResourceLimits = new ReaderResourceLimits { MaxChunks = 1 } }).GetEnumerator();
+        Assert.True(iterator.MoveNext());
+        Assert.Throws<ReaderResourceLimitException>(() => iterator.MoveNext());
+    }
+
     [Fact]
     public void ItemReaderProjectsOneBoundedTypedChunkPerEntry() {
         using (var stream = new MemoryStream(new OabV4Fixture().Build(), writable: false)) {

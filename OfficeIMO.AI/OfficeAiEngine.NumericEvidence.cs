@@ -6,16 +6,16 @@ public sealed partial class OfficeAiEngine {
     private static readonly string[] CurrencyTokens = CreateCurrencyTokens();
     // Substring provenance alone can drop a sign, leading digits, or a fractional part.
     // Check the original observation, including context outside a quote or request slice.
-    private static bool IsCompleteNumberAt(string source, int start, int length, NumberFormatInfo format) {
+    private static bool IsCompleteNumberAt(string source, int start, int length, NumberFormatInfo format, CancellationToken cancellationToken) {
         int end = start + length;
         if (start > 0 && IsDecimalDigitAt(source, start - 1)) return false;
         if (start > 1 && source[start - 1] is 'e' or 'E' && IsDecimalDigitAt(source, start - 2)) return false;
         if (end < source.Length && (IsDecimalDigitAt(source, end) || HasNumberSign(source, end, backwards: false, format))) return false;
         if (end < source.Length && source[end] is 'e' or 'E' && end + 1 < source.Length
             && (IsDecimalDigitAt(source, end + 1) || HasNumberSign(source, end + 1, backwards: false, format))) return false;
-        int before = SkipCurrencyContext(source, start - 1, -1);
+        int before = SkipCurrencyContext(source, start - 1, -1, cancellationToken);
         if (before >= 0 && (source[before] == '(' || HasNumberSign(source, before, backwards: true, format))) return false;
-        int after = SkipCurrencyContext(source, end, 1);
+        int after = SkipCurrencyContext(source, end, 1, cancellationToken);
         if (after < source.Length && HasNumberSign(source, after, backwards: false, format)) return false;
         return !HasNumericContinuation(source, start, backwards: true, format)
             && !HasNumericContinuation(source, end, backwards: false, format);
@@ -36,8 +36,9 @@ public sealed partial class OfficeAiEngine {
         return false;
     }
 
-    private static int SkipCurrencyContext(string source, int index, int direction) {
+    private static int SkipCurrencyContext(string source, int index, int direction, CancellationToken cancellationToken) {
         while (index >= 0 && index < source.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (char.IsWhiteSpace(source[index]) && source[index] is not ('\r' or '\n' or '\u000b' or '\u000c' or '\u0085' or '\u2028' or '\u2029')) {
                 index += direction;
                 continue;

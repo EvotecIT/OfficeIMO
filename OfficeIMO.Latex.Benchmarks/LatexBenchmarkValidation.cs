@@ -36,4 +36,20 @@ internal static class LatexBenchmarkValidation {
         }
         return result;
     }
+
+    internal static void InspectTokens(LatexDocument document) {
+        int cursor = 0;
+        foreach (LatexToken token in document.Tokens) {
+            LatexSourceSpan span = token.Span;
+            string text = token.Text;
+            string? value = token.Value;
+            if (span.Start.Offset != cursor || span.Length != text.Length ||
+                !document.Source.Text.AsSpan(cursor, span.Length).SequenceEqual(text.AsSpan()) || !token.IsTerminated)
+                throw new InvalidOperationException("Public token inspection lost exact source coverage or termination state.");
+            if (token.Kind == LatexTokenKind.Command && !text.AsSpan(1).SequenceEqual(value.AsSpan()))
+                throw new InvalidOperationException("Public token inspection changed a control sequence value.");
+            cursor = span.End.Offset;
+        }
+        if (cursor != document.Source.Text.Length) throw new InvalidOperationException("Public token inspection lost source tail.");
+    }
 }

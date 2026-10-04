@@ -1,7 +1,6 @@
 # OfficeIMO.AsciiDoc support matrix
 
 - Status: bounded-profile implementation
-- Updated: 2026-08-20
 - Profiles: `AsciiDocDocumentProfile.OfficeIMO`, `AsciiDocDocumentProfile.PreserveOnly`
 - Runtime dependencies: BCL and existing OfficeIMO project references only
 
@@ -22,12 +21,13 @@ This matrix describes the implemented contract. It is not a claim of complete As
 | Decoded character source | Semantic | `AsciiDocSourceText` retains the complete string and maps offsets to lines and columns. |
 | Lossless syntax tree | Semantic | Explicit nodes and trivia cover every source character. Each node retains its exact source slice. |
 | Mixed line endings and missing final newline | Semantic | LF, CRLF, CR, and the absence of a final line ending round-trip unchanged. |
-| Original encoding and BOM | Unsupported | `Load` decodes text and `Save` writes UTF-8 using .NET defaults; byte-for-byte file reproduction is not promised. |
+| Original encoding and BOM | Unsupported preservation | Bounded path/stream loading recognizes Unicode BOMs consistently; caller-selected encodings take precedence. Original encoding and BOM bytes are not retained for byte-for-byte reproduction. |
 | Preserve writer | Semantic | An unchanged document is returned character-for-character. An edit regenerates only its owned subtree. |
 | Canonical writer | Semantic | Recognized nodes use stable markers and a caller-selected line ending. |
 | Recovery | Semantic | Known unterminated delimited blocks are diagnosed and remain source-preserved. |
 | Variable-length delimiters | Semantic | Listing, literal, example, sidebar, quote, passthrough, and comment delimiters accept matching repeated-marker lines of four or more characters. This lets generated content contain the normal four-character fence unchanged. |
-| Resource budgets | Semantic | Input length, block count, inline-node count, nesting, processing output, resources, and expansion are bounded. |
+| Resource budgets | Semantic | Incremental decoded input, block count, inline-node count, nesting, table-cell count, columns/spans, processing output, resources, and expansion are bounded. Compound and rich-cell views are parsed lazily with their owner's limits. |
+| Structural authoring | Semantic | `Create`, fragment `Add`/`Insert`, paragraph/heading helpers, and metadata-aware `Remove`/`Move` operate on the native model. |
 | Parser implementation | Semantic | Stateful scanners; no regular-expression parser or external process. |
 | Named profiles | Semantic | `AsciiDocParseOptions.CreateProfile` and `AsciiDocProcessorOptions.CreateProfile` pin the lossless document contract. Parsing never enables includes or registered extensions; both require explicit processor configuration. |
 
@@ -36,7 +36,7 @@ This matrix describes the implemented contract. It is not a claim of complete As
 | AsciiDoc feature | Native status | Markdown/Reader outcome | Current boundary |
 |---|---|---|---|
 | Document title and section headings | Semantic | Converted | Equals-sign headings through six markers; source-backed inline titles. |
-| Document attributes | Semantic | Converted | Set/unset entries and effective values; set values can become Markdown front matter. |
+| Document attributes | Semantic | Converted | Set/unset entries apply in source order, including compound bodies; final set values can become Markdown front matter and unset values are removed. |
 | Paragraphs | Semantic | Converted | Multiline source and typed inline sequences. |
 | Block attribute lists | Semantic | Converted where meaningful | Positional, named, ID, role, option, and `subs` values bind to the following block without duplicate writer ownership. |
 | Block titles and anchors | Semantic | Converted | Titles have typed inlines; `[[id,reftext]]` metadata binds to its block. |
@@ -47,7 +47,8 @@ This matrix describes the implemented contract. It is not a claim of complete As
 | Styled admonition blocks | Semantic | Converted | An admonition style on a compatible delimited block is exposed semantically. |
 | Listing and literal blocks | Semantic | Converted | Listing/source content maps to code; literal content maps to text code. |
 | Quote blocks | Semantic | Converted | Maps to Markdown quote semantics. |
-| Example, sidebar, and open blocks | Semantic | Simplified with diagnostics | Source structure is retained; Markdown uses the closest named/container representation available. |
+| Example, sidebar, and open blocks | Semantic | Simplified with diagnostics | Editable typed bodies project every child block; the outer presentation may be simplified. |
+| Callout lists | Semantic | Converted or visible numbering | A catalog correlates explanations with markers in preceding code blocks and reports missing/duplicate relationships. Irregular numbering remains visible with a conversion diagnostic. |
 | Passthrough blocks | Semantic | Fallback | Source remains exact; Markdown receives an explicit `asciidoc` fallback. |
 | Line and block comments | Semantic | Omitted or fallback | Reader/Markdown inclusion is option-controlled. |
 | Block macros | Semantic | Converted or fallback | Image macros convert; unknown macros remain typed, editable, visible, and diagnosed. |
@@ -59,11 +60,12 @@ This matrix describes the implemented contract. It is not a claim of complete As
 |---|---|---|
 | Strong, emphasis, monospace | Semantic | Constrained and unconstrained forms, nesting, escaping, and edits are retained and converted. |
 | Attribute references | Semantic | Typed source nodes; evaluated values are available through bounded substitution APIs. |
-| Cross-references and anchors | Semantic | Typed and editable; mapped to Markdown links/anchors where representable. |
+| Cross-references and anchors | Semantic | Typed and editable; explicit and generated section targets supply reference text and diagnose duplicate/dangling targets. Generated IDs honor source-order `sectids`/`idprefix`/`idseparator`, common visible title semantics, and duplicate suffixes; unsupported title substitutions and empty IDs are diagnosed. IDs reach Markdown headings and HTML links. |
 | Links, images, and general inline macros | Semantic | Common link/image forms convert; unknown macro names retain source and produce a fallback diagnostic. |
 | Inline STEM | Semantic | Retains AsciiDoc math source and converts through Markdown's semantic math carrier with diagnostics where layout is unavailable. |
 | Inline passthrough | Semantic | Exact source is retained; conversion is explicit and may fall back. |
-| Superscript, subscript, mark, footnote, UI/callout macros | Source-preserved | No dedicated semantic types in the current profile. |
+| Footnotes and bibliography anchors | Semantic | Named/anonymous footnotes and triple-bracket bibliography anchors are typed. Markdown emits used definitions and visible bibliography labels. |
+| Superscript, subscript, mark, UI macros | Source-preserved | No dedicated semantic types in the current profile. |
 
 ## Tables
 
@@ -75,7 +77,7 @@ This matrix describes the implemented contract. It is not a claim of complete As
 | Header option | Semantic | Header rows are marked and mapped to structured Markdown tables. |
 | Row/column spans | Semantic | Span prefixes are retained and carried through the structured Markdown bridge. Reverse conversion counts logical columns, including column spans. |
 | Cell alignment and style | Semantic | Parsed and retained; target renderers may simplify unsupported layout/style. |
-| Nested AsciiDoc blocks inside `a` cells | Source-preserved | Cell source is retained, but recursive block parsing inside a cell is not implemented. |
+| Nested AsciiDoc blocks inside `a` cells | Semantic | Lazy editable block bodies project paragraphs, lists, and compound content. Literal and monospace cell styles retain code semantics; ordinary cells expose editable inlines. |
 | Footer and advanced table layout | Source-preserved | No dedicated semantic behavior yet. |
 
 ## Processing and extensibility
@@ -89,6 +91,7 @@ Processing is explicit: `AsciiDocDocument.Parse` never reads another file or exe
 | `ifdef`, `ifndef`, `ifeval`, `endif` | Semantic processing | Explicit preprocessing with deterministic diagnostics. |
 | Includes | Semantic processing, disabled by default | Requires a caller-supplied resolver. The built-in file resolver is root-confined and rejects URI, absolute, traversal, and symbolic-link escapes by default. |
 | Include selection | Semantic processing | Line selection, named tags, `*`/`**` wildcards, named and wildcard exclusions, nested tag markers, and level offsets, with cycle/depth/count/byte/output limits. |
+| Include provenance | Semantic processing | `SourceMap` maps processed ranges to original root/include spans after nested includes and line/tag selection. Generated/transformed ranges have explicit approximate origins; processing diagnostics use original line numbers. |
 | Registered directives | Semantic processing | Callers may register bounded in-process .NET processors. Built-ins are reserved. Documents cannot load code or assemblies. |
 | General extension ecosystem | Unsupported | No Ruby/JavaScript processors, dynamic plugins, or document-controlled assembly loading. |
 
@@ -103,4 +106,4 @@ Processing is explicit: `AsciiDocDocument.Parse` never reads another file or exe
 
 ## Deliberate limits
 
-The current profile does not promise full Asciidoctor substitution parity, every inline macro, generated indexes/lists, callout correlation, recursive AsciiDoc table cells, remote includes, ecosystem extensions, or Asciidoctor-identical HTML/PDF layout. Those features require individual semantic, security, writer, and conversion contracts before they can be marked supported.
+The current profile does not promise full Asciidoctor substitution parity, every inline macro, generated indexes/lists, advanced table layout, remote includes, ecosystem extensions, or Asciidoctor-identical HTML/PDF layout. Generated section IDs cover the title semantics described above; other features require individual semantic, security, writer, and conversion contracts before they can be marked supported.

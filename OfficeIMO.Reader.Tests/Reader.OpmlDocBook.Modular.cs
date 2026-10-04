@@ -213,7 +213,7 @@ public sealed class ReaderOpmlDocBookModularTests {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
         OfficeDocumentReadResult result = DocBookReaderAdapter.ReadDocument(stream);
 
-        Assert.Equal("See [site](https://example.test/a_\\(b\\)) and [target](#target).", result.Markdown);
+        Assert.Equal("See [site](https://example.test/a_\\(b\\)) and [target](#target)\\.", result.Markdown);
         Assert.Contains(result.Chunks, chunk => chunk.Markdown == "[site](https://example.test/a_\\(b\\))");
         Assert.Contains(result.Chunks, chunk => chunk.Markdown == "[target](#target)");
 

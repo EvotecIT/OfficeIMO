@@ -20,6 +20,7 @@ internal sealed class PdfFontResource {
     public string? DrawingFontFamily { get; }
     public int? FontWeight { get; }
     public int? FontDescriptorFlags { get; }
+    internal bool IsSymbolicSubstitute { get; }
     public bool IsBold => PdfFontStyleEvidence.IsBold(BaseFont, FontWeight);
     public bool IsItalic => PdfFontStyleEvidence.IsItalic(BaseFont, FontDescriptorFlags);
     internal PdfType3FontResource? Type3 { get; }
@@ -51,6 +52,7 @@ internal sealed class PdfFontResource {
         DrawingFontFamily = CreateDrawingFontFamily(baseFont, embeddedTrueTypeFont);
         FontWeight = fontWeight;
         FontDescriptorFlags = fontDescriptorFlags;
+        IsSymbolicSubstitute = DetectSymbolicSubstitute(baseFont, fontDescriptorFlags);
     }
 
     private PdfFontResource(string resourceName, PdfFontResource source, PdfDrawingFontProgram? drawingProgram = null) {
@@ -71,7 +73,19 @@ internal sealed class PdfFontResource {
             : CreateDrawingFontFamily(source.BaseFont, embeddedTrueTypeFont, drawingProgram);
         FontWeight = source.FontWeight;
         FontDescriptorFlags = source.FontDescriptorFlags;
+        IsSymbolicSubstitute = source.IsSymbolicSubstitute;
         Type3 = source.Type3;
+    }
+
+    private static bool DetectSymbolicSubstitute(string baseFont, int? descriptorFlags) {
+        if (descriptorFlags is int flags && (flags & 4) != 0) return true;
+        int subsetSeparator = baseFont.IndexOf('+');
+        int offset = subsetSeparator >= 0 ? subsetSeparator + 1 : 0;
+        return HasPrefix("Symbol") || HasPrefix("ZapfDingbats") ||
+            HasPrefix("Wingdings") || HasPrefix("Webdings");
+
+        bool HasPrefix(string name) => baseFont.Length - offset >= name.Length &&
+            string.Compare(baseFont, offset, name, 0, name.Length, StringComparison.OrdinalIgnoreCase) == 0;
     }
 
     internal PdfFontResource WithResourceName(string resourceName) =>

@@ -857,19 +857,8 @@ public sealed partial class PdfReadPage {
         if (!font.HasToUnicode || font.EmbeddedTrueTypeFont != null ||
             font.DrawingFontFamily != null || font.Type3 != null ||
             string.Equals(font.FontSubtype, "Type0", StringComparison.Ordinal)) return false;
-        if (IsSymbolicSubstitute(font)) return font.Differences is { Count: > 0 };
+        if (font.IsSymbolicSubstitute) return font.Differences is { Count: > 0 };
         return true;
-    }
-
-    private static bool IsSymbolicSubstitute(PdfFontResource font) {
-        if (font.FontDescriptorFlags is int flags && (flags & 4) != 0) return true;
-        string baseFont = font.BaseFont;
-        int subsetSeparator = baseFont.IndexOf('+');
-        if (subsetSeparator >= 0) baseFont = baseFont.Substring(subsetSeparator + 1);
-        return baseFont.StartsWith("Symbol", StringComparison.OrdinalIgnoreCase) ||
-            baseFont.StartsWith("ZapfDingbats", StringComparison.OrdinalIgnoreCase) ||
-            baseFont.StartsWith("Wingdings", StringComparison.OrdinalIgnoreCase) ||
-            baseFont.StartsWith("Webdings", StringComparison.OrdinalIgnoreCase);
     }
 
     private void CollectTextAndForms(
@@ -949,7 +938,7 @@ public sealed partial class PdfReadPage {
         string? DecodeSubstitutedGlyph(string fontRes, byte[] code) {
             if (code.Length != 1 || !fonts.TryGetValue(fontRes, out PdfFontResource? font) ||
                 !PaintsSubstitutedEncodingGlyphs(font)) return null;
-            if (IsSymbolicSubstitute(font) &&
+            if (font.IsSymbolicSubstitute &&
                 font.Differences?.ContainsKey(code[0]) != true) return null;
             substitutedGlyphDecoders ??= new Dictionary<string, Func<byte, string>>(StringComparer.Ordinal);
             if (!substitutedGlyphDecoders.TryGetValue(fontRes, out Func<byte, string>? decode)) {

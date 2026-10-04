@@ -6,10 +6,12 @@ internal static class AsciiDocInlineToMarkdownConverter {
         AsciiDocDocumentAttributes attributes,
         AsciiDocToMarkdownOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics,
-        AsciiDocBlock owner) {
+        AsciiDocBlock owner,
+        int depth = 0) {
+        if (depth >= 64) throw new System.IO.InvalidDataException("AsciiDoc inline conversion exceeds the nesting limit.");
         var target = new InlineSequence { AutoSpacing = false };
         for (int index = 0; index < source.Items.Count; index++) {
-            Add(target, source.Items[index], attributes, options, diagnostics, owner);
+            Add(target, source.Items[index], attributes, options, diagnostics, owner, depth);
         }
         return target;
     }
@@ -20,32 +22,49 @@ internal static class AsciiDocInlineToMarkdownConverter {
         AsciiDocDocumentAttributes attributes,
         AsciiDocToMarkdownOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics,
-        AsciiDocBlock owner) {
+        AsciiDocBlock owner,
+        int depth) {
         switch (source) {
             case AsciiDocTextInline text:
-                AddText(target, Unescape(text.Text));
+                string literal = owner is AsciiDocParagraph
+                    ? AsciiDocLiteralText.UnescapeBlockStarts(text.Text, text.Span.Start.Column == 1)
+                    : text.Text;
+                AddText(target, Unescape(literal));
                 break;
             case AsciiDocFormattedInline formatted:
-                AddFormatted(target, formatted, attributes, options, diagnostics, owner);
+                AddFormatted(target, formatted, attributes, options, diagnostics, owner, depth);
                 break;
             case AsciiDocAttributeReferenceInline reference:
                 AddAttributeReference(target, reference, attributes, options, diagnostics, owner);
                 break;
             case AsciiDocCrossReferenceInline crossReference:
+                string crossTarget = Substitute(crossReference.Target, attributes, options, diagnostics, owner);
+                string crossLabel = crossReference.Text ?? (options.References != null && options.References.Targets.TryGetValue(crossTarget, out var resolved) ? resolved.IsBibliography ? "[" + resolved.Label + "]" : resolved.Label : crossTarget);
                 target.AddRaw(new LinkInline(
-                    crossReference.Text ?? crossReference.Target,
-                    NormalizeCrossReference(crossReference.Target),
+                    Substitute(crossLabel, attributes, options, diagnostics, owner),
+                    NormalizeCrossReference(crossTarget),
                     null));
                 break;
             case AsciiDocAnchorInline anchor:
+                if (owner is AsciiDocHeading && !anchor.IsBibliography &&
+                    string.Equals(options.References?.GetBlockId(owner), anchor.Id, StringComparison.Ordinal)) break;
                 target.AddRaw(new HtmlRawInline("<a id=\"" + EscapeHtmlAttribute(anchor.Id) + "\"></a>"));
+                if (anchor.IsBibliography) AddText(target, "[" + (anchor.ReferenceText ?? anchor.Id) + "]");
+                break;
+            case AsciiDocFootnoteInline footnote:
+                string? footnoteLabel = options.References?.GetFootnoteLabel(footnote);
+                if (footnoteLabel != null && options.References!.Footnotes.ContainsKey(footnoteLabel)) {
+                    options.UsedFootnotes.Add(footnoteLabel);
+                    target.AddRaw(new FootnoteRefInline(footnoteLabel));
+                }
+                else { AddText(target, footnote.OriginalText); Report(diagnostics, owner, "ADOCMD104", "footnote", "Unresolved footnote retained as visible source text."); }
                 break;
             case AsciiDocStemInline stem:
                 target.AddRaw(new CodeSpanInline(stem.Expression));
                 Report(diagnostics, owner, "ADOCMD103", "inline-stem", "Inline STEM converted to a code span because Markdown has no portable math inline contract.");
                 break;
             case AsciiDocMacroInline macro:
-                AddMacro(target, macro, diagnostics, owner);
+                AddMacro(target, macro, attributes, options, diagnostics, owner, depth);
                 break;
             case AsciiDocPassthroughInline passthrough:
                 AddText(target, passthrough.Content);
@@ -63,8 +82,9 @@ internal static class AsciiDocInlineToMarkdownConverter {
         AsciiDocDocumentAttributes attributes,
         AsciiDocToMarkdownOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics,
-        AsciiDocBlock owner) {
-        InlineSequence nested = Convert(source.Content, attributes, options, diagnostics, owner);
+        AsciiDocBlock owner,
+        int depth) {
+        InlineSequence nested = Convert(source.Content, attributes, options, diagnostics, owner, depth + 1);
         switch (source.Style) {
             case AsciiDocInlineStyle.Strong: target.AddRaw(new BoldSequenceInline(nested)); break;
             case AsciiDocInlineStyle.Emphasis: target.AddRaw(new ItalicSequenceInline(nested)); break;
@@ -99,23 +119,43 @@ internal static class AsciiDocInlineToMarkdownConverter {
     private static void AddMacro(
         InlineSequence target,
         AsciiDocMacroInline source,
+        AsciiDocDocumentAttributes attributes,
+        AsciiDocToMarkdownOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics,
-        AsciiDocBlock owner) {
+        AsciiDocBlock owner,
+        int depth) {
         string label = FirstAttribute(source.AttributeList) ?? source.Target;
+        string destination = source.Target;
+        destination = Substitute(destination, attributes, options, diagnostics, owner);
+        label = Substitute(label, attributes, options, diagnostics, owner);
         if (string.Equals(source.Name, "image", StringComparison.Ordinal)) {
-            target.AddRaw(new ImageInline(label, source.Target));
+            target.AddRaw(new ImageInline(label, destination));
             return;
         }
         if (string.Equals(source.Name, "link", StringComparison.Ordinal)) {
-            target.AddRaw(new LinkInline(label, source.Target, null));
+            target.AddRaw(new LinkInline(Convert(AsciiDocInlineSequence.Parse(label), attributes, options, diagnostics, owner, depth + 1), destination, null));
+            return;
+        }
+        if ((source.Name == "https" || source.Name == "http" || source.Name == "ftp") && source.Target.StartsWith("//", StringComparison.Ordinal)) {
+            string visible = FirstAttribute(source.AttributeList) == null ? source.Name + ":" + destination : label;
+            target.AddRaw(new LinkInline(Convert(AsciiDocInlineSequence.Parse(visible), attributes, options, diagnostics, owner, depth + 1), source.Name + ":" + destination, null));
             return;
         }
         if (string.Equals(source.Name, "xref", StringComparison.Ordinal)) {
-            target.AddRaw(new LinkInline(label, NormalizeCrossReference(source.Target), null));
+            if (FirstAttribute(source.AttributeList) == null && options.References != null && options.References.Targets.TryGetValue(destination, out var resolved))
+                label = resolved.IsBibliography ? "[" + resolved.Label + "]" : Substitute(resolved.Label, attributes, options, diagnostics, owner);
+            target.AddRaw(new LinkInline(label, NormalizeCrossReference(destination), null));
             return;
         }
         AddText(target, source.OriginalText);
         Report(diagnostics, owner, "ADOCMD102", "inline-macro:" + source.Name, "Unknown inline macro retained as visible source text.");
+    }
+
+    private static string Substitute(string value, AsciiDocDocumentAttributes attributes, AsciiDocToMarkdownOptions options, List<AsciiDocMarkdownConversionDiagnostic> diagnostics, AsciiDocBlock owner) {
+        if (!options.ExpandDocumentAttributes) return value;
+        var result = AsciiDocAttributeSubstitutor.Substitute(value, attributes, new AsciiDocAttributeSubstitutionOptions { UndefinedAttributeBehavior = options.UndefinedAttributeBehavior });
+        foreach (var diagnostic in result.Diagnostics) Report(diagnostics, owner, "ADOCMD101", "attribute-reference", diagnostic.Message);
+        return result.Value;
     }
 
     private static void AddText(InlineSequence target, string value) {
@@ -134,7 +174,7 @@ internal static class AsciiDocInlineToMarkdownConverter {
         var output = new System.Text.StringBuilder();
         for (int index = 0; index < sequence.Items.Count; index++) {
             AsciiDocInline item = sequence.Items[index];
-            if (item is AsciiDocTextInline text) output.Append(text.Text);
+            if (item is AsciiDocTextInline text) output.Append(Unescape(text.Text));
             else if (item is AsciiDocFormattedInline formatted) output.Append(PlainText(formatted.Content));
             else if (item is AsciiDocPassthroughInline pass) output.Append(pass.Content);
             else output.Append(item.OriginalText);
@@ -151,7 +191,7 @@ internal static class AsciiDocInlineToMarkdownConverter {
         return output.ToString();
     }
 
-    private static bool IsEscapable(char value) => "*_'`#+~^{}[]<>\\".IndexOf(value) >= 0;
+    private static bool IsEscapable(char value) => "*_'`#+~^{}[]<>:\\".IndexOf(value) >= 0;
 
     private static string NormalizeCrossReference(string target) {
         if (target.IndexOf('#') >= 0 || target.IndexOf('/') >= 0 || target.IndexOf('.') >= 0) return target;

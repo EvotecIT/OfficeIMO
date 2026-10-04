@@ -5,14 +5,14 @@ public enum AsciiDocListKind {
     /// <summary>Unordered list.</summary>
     Unordered = 0,
     /// <summary>Ordered list.</summary>
-    Ordered = 1
+    Ordered = 1,
+    /// <summary>Numbered explanations corresponding to callout markers in a preceding verbatim block.</summary>
+    Callout = 2
 }
 
 /// <summary>Source-backed item within an AsciiDoc list.</summary>
 public sealed class AsciiDocListItem {
-    private string _text;
-    private bool _isModified;
-    private bool _textWasAssigned;
+    private readonly AsciiDocEditableInlineContent _content;
     private readonly List<AsciiDocBlock> _attachedBlocks = new List<AsciiDocBlock>();
 
     internal AsciiDocListItem(
@@ -27,8 +27,7 @@ public sealed class AsciiDocListItem {
         Kind = kind;
         Marker = marker;
         Depth = depth;
-        _text = text;
-        Inlines = inlines;
+        _content = new AsciiDocEditableInlineContent(text, inlines);
         TrailingLineEnding = trailingLineEnding;
     }
 
@@ -46,39 +45,37 @@ public sealed class AsciiDocListItem {
 
     /// <summary>Item text after the marker.</summary>
     public string Text {
-        get => !_textWasAssigned && Inlines.IsModified ? Inlines.ToAsciiDoc() : _text;
+        get => _content.Text;
         set {
             string normalized = value ?? string.Empty;
             AsciiDocText.EnsureSingleLine(normalized, nameof(value));
-            if (string.Equals(_text, normalized, StringComparison.Ordinal)) return;
-            _text = normalized;
-            _isModified = true;
-            _textWasAssigned = true;
+            _content.Assign(normalized);
         }
     }
 
     /// <summary>Typed lossless inline content in the item.</summary>
-    public AsciiDocInlineSequence Inlines { get; }
+    public AsciiDocInlineSequence Inlines => _content.Inlines;
 
     /// <summary>Compound blocks attached through list continuation markers.</summary>
     public IReadOnlyList<AsciiDocBlock> AttachedBlocks => _attachedBlocks;
 
     /// <summary>True when the item text was edited.</summary>
-    public bool IsModified => _isModified || Inlines.IsModified;
+    public bool IsModified => _content.IsModified;
 
     internal string TrailingLineEnding { get; }
 
     internal void AddAttachedBlock(AsciiDocBlock block) => _attachedBlocks.Add(block);
+    internal void RemoveAttachedBlock(AsciiDocBlock block) => _attachedBlocks.Remove(block);
 
     internal string Write(AsciiDocWriterContext context) {
         if (context.Mode == AsciiDocWriterMode.Preserve && !IsModified) return Syntax.OriginalText;
         string marker = context.Mode == AsciiDocWriterMode.Preserve
             ? Marker
-            : (Kind == AsciiDocListKind.Ordered ? new string('.', Depth) : new string('*', Depth));
+            : (Kind == AsciiDocListKind.Callout ? Marker : Kind == AsciiDocListKind.Ordered ? new string('.', Depth) : new string('*', Depth));
         string ending = context.Mode == AsciiDocWriterMode.Preserve
             ? TrailingLineEnding
             : (TrailingLineEnding.Length == 0 ? string.Empty : context.LineEnding);
-        return marker + " " + (_textWasAssigned ? _text : Inlines.Write(context)) + ending;
+        return marker + " " + _content.Write(context) + ending;
     }
 }
 

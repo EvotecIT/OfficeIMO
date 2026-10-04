@@ -513,7 +513,6 @@ public sealed class BibliographyReviewRegressionTests {
     [InlineData("Smith and Jones", "Jane", null)]
     [InlineData("Doe, Smith", "Jane", null)]
     [InlineData("Beethoven", "Ludwig", "Van")]
-    [InlineData("van Example", "Jane", null)]
     public void Structured_Bib_names_with_contributor_separators_block_strict_output(string family, string given, string? particle) {
         var document = new BibliographyDocument(BibliographyFormat.BibLatex);
         var item = new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = "Names" };

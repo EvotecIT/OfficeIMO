@@ -28,13 +28,13 @@ namespace OfficeIMO.GoogleWorkspace.Auth.GoogleApis {
             _store = store ?? throw new ArgumentNullException(nameof(store));
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc cref="IGoogleWorkspaceTokenStore.StoreAsync{T}(string, T)" />
         public Task StoreAsync<T>(string key, T value) => _store.StoreAsync(key, value);
-        /// <inheritdoc />
+        /// <inheritdoc cref="IGoogleWorkspaceTokenStore.DeleteAsync{T}(string)" />
         public Task DeleteAsync<T>(string key) => _store.DeleteAsync<T>(key);
-        /// <inheritdoc />
+        /// <inheritdoc cref="IGoogleWorkspaceTokenStore.GetAsync{T}(string)" />
         public Task<T> GetAsync<T>(string key) => GetRequiredAsync<T>(key);
-        /// <inheritdoc />
+        /// <inheritdoc cref="IGoogleWorkspaceTokenStore.ClearAsync" />
         public Task ClearAsync() => _store.ClearAsync();
 
         private async Task<T> GetRequiredAsync<T>(string key) {

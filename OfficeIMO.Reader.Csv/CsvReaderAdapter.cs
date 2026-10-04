@@ -21,7 +21,7 @@ internal static class CsvReaderAdapter {
         var extension = GetNormalizedExtension(path);
         var delimiter = extension == ".tsv" ? '\t' : ',';
 
-        var records = CsvDocument.ReadRecords(path, CreateCsvLoadOptions(delimiter));
+        var records = CsvDocument.ReadRecords(path, CreateCsvLoadOptions(delimiter, cancellationToken));
 
         foreach (var chunk in ReadCsvRecords(records, source, options, effectiveReaderOptions.ComputeHashes, cancellationToken)) {
             yield return chunk;
@@ -50,7 +50,7 @@ internal static class CsvReaderAdapter {
             var sourcePath = BuildLogicalSourcePath(sourceName, extension == ".tsv" ? "document.tsv" : "document.csv");
             var source = BuildSourceMetadataFromStream(parseStream, sourcePath, effectiveReaderOptions.ComputeHashes);
             using var textReader = new StreamReader(parseStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
-            var records = CsvDocument.ReadRecords(textReader, CreateCsvLoadOptions(delimiter));
+            var records = CsvDocument.ReadRecords(textReader, CreateCsvLoadOptions(delimiter, cancellationToken));
 
             foreach (var chunk in ReadCsvRecords(records, source, options, effectiveReaderOptions.ComputeHashes, cancellationToken)) {
                 yield return chunk;
@@ -62,8 +62,9 @@ internal static class CsvReaderAdapter {
         }
     }
 
-    private static CsvLoadOptions CreateCsvLoadOptions(char delimiter) =>
+    private static CsvLoadOptions CreateCsvLoadOptions(char delimiter, CancellationToken cancellationToken) =>
         new CsvLoadOptions {
+            CancellationToken = cancellationToken,
             Delimiter = delimiter,
             HasHeaderRow = false,
             SkipCommentRowsBeforeHeader = false,

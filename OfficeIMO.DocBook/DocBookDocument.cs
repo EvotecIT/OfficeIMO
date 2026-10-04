@@ -24,6 +24,11 @@ public sealed partial class DocBookDocument {
     private DocBookDocument(XDocument xml, DocBookProfile profile, byte[]? originalBytes, string? originalText) {
         _xml = xml; Profile = profile; _originalBytes = originalBytes; _originalText = originalText;
         _originalXmlFingerprint = GetXmlFingerprint(xml);
+        CaptureDeclaration();
+        var weakDocument = new WeakReference<DocBookDocument>(this);
+        _xml.Changed += (_, _) => {
+            if (weakDocument.TryGetTarget(out DocBookDocument? document) && document != null) document._xmlChanged = true;
+        };
     }
 
     /// <summary>Exact writer and bounded-validation profile selected for this document.</summary>
@@ -32,7 +37,7 @@ public sealed partial class DocBookDocument {
     public DocBookSchemaProfile SchemaProfile => DocBookSchemaProfiles.Get(Profile);
     /// <summary>Document root kind.</summary>
     public DocBookDocumentKind Kind => RootElement.Name.LocalName == "book" ? DocBookDocumentKind.Book : DocBookDocumentKind.Article;
-    /// <summary>True after a mutation through this API.</summary>
+    /// <summary>True after a typed mutation or while the backing XML differs from its loaded form.</summary>
     public bool IsModified => HasChanges;
     /// <summary>Root element as a typed common node.</summary>
     public DocBookNode Root => new DocBookNode(this, RootElement);
@@ -151,6 +156,7 @@ public sealed partial class DocBookDocument {
         }
 
         int position = 0;
+        var siblingStates = new Dictionary<XElement, DocBookSiblingState>();
         foreach (XElement element in root.DescendantsAndSelf()) {
             cancellationToken.ThrowIfCancellationRequested();
             string path = "/" + rootName + "//* [" + (++position) + "]";
@@ -171,49 +177,56 @@ public sealed partial class DocBookDocument {
             XElement? parent = element.Parent;
             DocBookNodeKind parentKind = parent == null ? DocBookNodeKind.Unknown : DocBookNames.GetKind(parent.Name, Namespace);
             string? expectedInfoName = parent == null ? null : GetComponentInfoElementName(parent);
+            DocBookSiblingState? siblings = null;
+            if (parent != null && !siblingStates.TryGetValue(parent, out siblings)) {
+                siblings = new DocBookSiblingState();
+                siblingStates.Add(parent, siblings);
+            }
             bool invalidInfoParent = kind == DocBookNodeKind.Info && element != root &&
                 (expectedInfoName != null
                     ? !string.Equals(localName, expectedInfoName, StringComparison.Ordinal)
                     : parentKind != DocBookNodeKind.Unknown);
             bool duplicateInfo = kind == DocBookNodeKind.Info && expectedInfoName != null &&
                 string.Equals(localName, expectedInfoName, StringComparison.Ordinal) &&
-                element.ElementsBeforeSelf(Namespace + expectedInfoName).Any();
+                siblings!.SawInfo;
             if (duplicateInfo) {
                 diagnostics.Add(new DocBookDiagnostic("DB019", DocBookDiagnosticSeverity.Error,
                     $"{localName} appears more than once under the same component.", path));
             }
             bool duplicateSingleton =
                 (kind != DocBookNodeKind.Info && IsSingletonTypedChild(kind) &&
-                 element.ElementsBeforeSelf().Any(sibling => DocBookNames.GetKind(sibling.Name, Namespace) == kind)) ||
+                 siblings != null && siblings.HasSingleton(kind)) ||
                 (parentKind == DocBookNodeKind.TableGroup && element.Name == Namespace + "tfoot" &&
-                 element.ElementsBeforeSelf(element.Name).Any());
+                 siblings != null && siblings.SawTableFoot);
             if (duplicateSingleton) {
                 diagnostics.Add(new DocBookDiagnostic("DB019", DocBookDiagnosticSeverity.Error,
                     $"{localName} appears more than once under the same parent.", path));
             }
             bool misplacedTitle = kind == DocBookNodeKind.Title && parent != null && IsTitleBearingContainer(parent) &&
-                element.ElementsBeforeSelf().Any(sibling => DocBookNames.GetKind(sibling.Name, Namespace) != DocBookNodeKind.Info);
+                siblings!.SawNonInfo;
             if (misplacedTitle) {
                 diagnostics.Add(new DocBookDiagnostic("DB020", DocBookDiagnosticSeverity.Error,
                     "title must appear in the container header before subtitle and body content.", path));
             }
             bool misplacedSubtitle = kind == DocBookNodeKind.Subtitle && parent != null && IsTitleBearingContainer(parent) &&
-                element.ElementsBeforeSelf().Any(sibling => {
-                    DocBookNodeKind siblingKind = DocBookNames.GetKind(sibling.Name, Namespace);
-                    return siblingKind != DocBookNodeKind.Info && siblingKind != DocBookNodeKind.Title &&
-                        siblingKind != DocBookNodeKind.Subtitle;
-                });
+                siblings!.SawBody;
             if (misplacedSubtitle) {
                 diagnostics.Add(new DocBookDiagnostic("DB022", DocBookDiagnosticSeverity.Error,
                     "subtitle must appear in the container header before body content.", path));
             }
             int calsOrder = GetCalsChildOrder(element);
             bool misplacedTableSection = parentKind == DocBookNodeKind.TableGroup && calsOrder >= 0 &&
-                element.ElementsBeforeSelf().Any(sibling => GetCalsChildOrder(sibling) > calsOrder);
+                siblings != null && siblings.MaximumCalsOrder > calsOrder;
             if (misplacedTableSection) {
                 diagnostics.Add(new DocBookDiagnostic("DB020", DocBookDiagnosticSeverity.Error,
                     $"{localName} appears after a later CALS table section; expected colspec, spanspec, thead, tfoot, then tbody.", path));
             }
+            if (parent != null && IsSupportedComponent(parent) && IsFlowTypedChild(kind) && siblings!.SawSubdivision) {
+                diagnostics.Add(new DocBookDiagnostic("DB024", DocBookDiagnosticSeverity.Error,
+                    "Component body content must precede child sections and indexes.", path));
+            }
+            siblings?.Record(kind, kind == DocBookNodeKind.Info && localName == expectedInfoName,
+                element.Name == Namespace + "tfoot", calsOrder, IsSingletonTypedChild(kind));
             if (element != root && element.Name.Namespace != Namespace &&
                 IsKnownUntypedDocBookLocalName(localName) &&
                 (element.Name.Namespace == XNamespace.None ||
@@ -751,8 +764,6 @@ public sealed partial class DocBookDocument {
         static InvalidDataException UnsupportedEntity() => new InvalidDataException(
             "DocBook internal subsets may use bounded internal general entities, but external and parameter entity declarations are not supported.");
     }
-
-    private bool HasChanges => _modified || !string.Equals(_originalXmlFingerprint, GetXmlFingerprint(_xml), StringComparison.Ordinal);
 
     private static string GetXmlFingerprint(XDocument xml) =>
         (xml.Declaration?.ToString() ?? string.Empty) + "\n" + xml.ToString(SaveOptions.DisableFormatting);
