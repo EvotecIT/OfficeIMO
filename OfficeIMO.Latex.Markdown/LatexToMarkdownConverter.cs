@@ -47,20 +47,39 @@ internal static partial class LatexToMarkdownConverter {
             blocks.Add(new LatexProjectedBlock(candidate.Span, candidate.Kind, projected, blockDiagnostics));
             consumedUntil = candidate.Span.End.Offset;
         }
+        foreach (LatexFootnoteUse footnote in context.Footnotes.Used) {
+            context.CheckCancellation();
+            var footnoteDiagnostics = new List<LatexMarkdownConversionDiagnostic>();
+            var definition = new FootnoteDefinitionBlock(footnote.Label, ConvertContent(context,
+                footnote.Body.ContentSpan, options, footnoteDiagnostics));
+            var footnoteDoc = MarkdownDoc.Create().Add(definition);
+            aggregateBlocks.Add(definition);
+            diagnostics.AddRange(footnoteDiagnostics);
+            blocks.Add(new LatexProjectedBlock(footnote.Command.Syntax.Span, "footnote", footnoteDoc, footnoteDiagnostics));
+        }
         context.CheckCancellation();
         target.AddRange(aggregateBlocks);
         context.CheckCancellation();
-        return new LatexMarkdownProjection(document, new LatexToMarkdownResult(target, diagnostics), blocks, globalDiagnostics);
+        // Definitions may be serialized at the end of Markdown, while Reader source
+        // ownership and heading paths follow their position in the input document.
+        return new LatexMarkdownProjection(document, new LatexToMarkdownResult(target, diagnostics),
+            blocks.OrderBy(static block => block.Span.Start.Offset).ThenByDescending(static block => block.Span.Length).ToArray(), globalDiagnostics);
     }
 
-    private static IEnumerable<BlockCandidate> BuildCandidates(LatexProjectionContext context) {
+    private static IEnumerable<BlockCandidate> BuildCandidates(LatexProjectionContext context, bool includeInlineBodies = false) {
         if (context.Document.Body == null || context.Document.Profile == LatexDocumentProfile.PreserveOnly) {
             LatexSourceSpan fallback = context.Document.SyntaxTree.Root.Span;
             context.CheckCancellation();
             yield return new BlockCandidate(fallback, fallback);
             yield break;
         }
-        int start = context.Document.Body.ContentSpan.Start.Offset;
+        foreach (BlockCandidate candidate in BuildBodyCandidates(context))
+            if (includeInlineBodies || !LatexProjectionContext.IsInsideInlineBody(candidate, context.Document.Body.ContentSpan))
+                yield return candidate;
+    }
+
+    private static IEnumerable<BlockCandidate> BuildBodyCandidates(LatexProjectionContext context) {
+        int start = context.Document.Body!.ContentSpan.Start.Offset;
         int end = context.Document.Body.ContentSpan.End.Offset;
         foreach (LatexHeading heading in context.Document.Headings.Where(heading => IsInside(heading.Command.Syntax.Span, start, end))) {
             context.CheckCancellation();
@@ -224,8 +243,7 @@ internal static partial class LatexToMarkdownConverter {
                 var term = item.ItemCommand.GetOptionalArgument(0) is LatexArgument label
                     ? LatexInlineToMarkdownConverter.Convert(context, label.ContentSpan, diagnostics)
                     : new InlineSequence { AutoSpacing = false };
-                var body = new ParagraphBlock(LatexInlineToMarkdownConverter.Convert(context, item.ContentSpan, diagnostics));
-                definitions.AddEntry(new DefinitionListEntry(term, new IMarkdownBlock[] { body }));
+                definitions.AddEntry(new DefinitionListEntry(term, ConvertContent(context, item.ContentSpan, options, diagnostics)));
             }
             target.Add(definitions);
             return;
@@ -234,14 +252,14 @@ internal static partial class LatexToMarkdownConverter {
             var list = new OrderedListBlock();
             foreach (LatexListItem item in items) {
                 context.CheckCancellation();
-                list.Items.Add(new ListItem(ConvertListItem(context, item, diagnostics)));
+                list.Items.Add(ConvertStructuredListItem(context, item, options, diagnostics));
             }
             target.Add(list);
         } else {
             var list = new UnorderedListBlock();
             foreach (LatexListItem item in items) {
                 context.CheckCancellation();
-                list.Items.Add(new ListItem(ConvertListItem(context, item, diagnostics)));
+                list.Items.Add(ConvertStructuredListItem(context, item, options, diagnostics));
             }
             target.Add(list);
         }
@@ -251,7 +269,7 @@ internal static partial class LatexToMarkdownConverter {
         var items = new List<LatexListItem>();
         foreach (LatexListItem item in source.Items) {
             context.CheckCancellation();
-            if (!LatexSemanticBuilder.IsInsideCommandArgument(item.ItemCommand.Syntax)) items.Add(item);
+            if (!LatexSemanticBuilder.IsInsideCommandArgumentBeforeEnvironment(item.ItemCommand.Syntax)) items.Add(item);
         }
         if (items.Count == source.Items.Count) return source.Items;
         // Native inventory includes commands in preserved arguments. Rebind item
@@ -268,24 +286,6 @@ internal static partial class LatexToMarkdownConverter {
         return items;
     }
 
-    private static InlineSequence ConvertListItem(
-        LatexProjectionContext context,
-        LatexListItem item,
-        List<LatexMarkdownConversionDiagnostic> diagnostics) {
-        InlineSequence content = LatexInlineToMarkdownConverter.Convert(context, item.ContentSpan, diagnostics);
-        if (item.ItemCommand.GetOptionalArgument(0) is LatexArgument label) {
-            InlineSequence labeled = LatexInlineToMarkdownConverter.Convert(context, label.ContentSpan, diagnostics);
-            if (LatexProjectedText.HasVisibleText(labeled, context.CancellationToken) && LatexProjectedText.HasVisibleText(content, context.CancellationToken))
-                labeled.AddRaw(new MarkdownTextRun(": "));
-            foreach (IMarkdownInline inline in content.Nodes) labeled.AddRaw(inline);
-            diagnostics.Add(new LatexMarkdownConversionDiagnostic(
-                "LATEXMD214", LatexMarkdownConversionOutcome.Simplified, "list-item-label",
-                "The custom TeX item label was retained as visible item text; target list markers use Markdown numbering or bullets.", item.ItemCommand.Syntax.Span));
-            return labeled;
-        }
-        return content;
-    }
-
     private static void AddFigure(
         LatexProjectionContext context,
         MarkdownDoc target,
@@ -299,7 +299,7 @@ internal static partial class LatexToMarkdownConverter {
         var graphics = new List<LatexImage>();
         foreach (LatexImage image in source.Images) {
             context.CheckCancellation();
-            if (!LatexSemanticBuilder.IsInsideCommandArgument(image.Command.Syntax)) graphics.Add(image);
+            if (!LatexSemanticBuilder.IsInsideCommandArgumentBeforeEnvironment(image.Command.Syntax)) graphics.Add(image);
         }
         var images = new List<IMarkdownBlock>();
         for (int index = 0; index < graphics.Count; index++) {
@@ -350,7 +350,7 @@ internal static partial class LatexToMarkdownConverter {
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         if (string.Equals(source.Name, "quote", StringComparison.Ordinal) || string.Equals(source.Name, "quotation", StringComparison.Ordinal)) {
             var quote = new QuoteBlock();
-            quote.ChildBlocks.Add(new ParagraphBlock(LatexInlineToMarkdownConverter.Convert(context, source.ContentSpan, diagnostics)));
+            quote.ChildBlocks.AddRange(ConvertContent(context, source.ContentSpan, options, diagnostics));
             target.Add(quote);
             return;
         }
@@ -472,7 +472,7 @@ internal static partial class LatexToMarkdownConverter {
 
     private static bool IsInside(LatexSourceSpan span, int start, int end) => span.Start.Offset >= start && span.End.Offset <= end;
 
-    private sealed class BlockCandidate {
+    internal sealed class BlockCandidate {
         internal BlockCandidate(LatexSourceSpan span, object value) { Span = span; Value = value; }
         internal LatexSourceSpan Span { get; }
         internal object Value { get; }

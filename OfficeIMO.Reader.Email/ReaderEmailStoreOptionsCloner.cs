@@ -58,7 +58,8 @@ internal static class ReaderEmailStoreOptionsCloner {
             maxMessageBytes: source.MaxMessageBytes,
             maxDirectoryDepth: source.MaxDirectoryDepth,
             maxDirectoryFileCount: source.MaxDirectoryFileCount,
-            maxDecodedTableBytes: source.MaxDecodedTableBytes);
+            maxDecodedTableBytes: source.MaxDecodedTableBytes,
+            maxDirectoryEntryCount: source.MaxDirectoryEntryCount);
     }
 
     private static EmailStoreItemReadOptions? CloneItemReadOptions(

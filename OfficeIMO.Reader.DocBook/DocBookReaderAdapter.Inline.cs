@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using OfficeIMO;
 
 namespace OfficeIMO.Reader.DocBook;
@@ -25,12 +26,41 @@ internal static partial class DocBookReaderAdapter {
                 }
             }
         }
-        foreach (OfficeDocumentModelNode child in node.Children) Append(child);
+        foreach (OfficeDocumentModelNode child in node.Children) Append(child, string.Empty, string.Empty);
         fragments = result;
         return hasTarget && result.Count > 0;
 
-        void Append(OfficeDocumentModelNode child) {
+        void Append(OfficeDocumentModelNode child, string prefix, string suffix) {
             if (IsIndexTerm(child.Kind)) return;
+            bool emphasis = child.Kind == "extension:emphasis" || child.Kind == "extension:{http://docbook.org/ns/docbook}emphasis";
+            bool literal = child.Kind == "extension:literal" || child.Kind == "extension:{http://docbook.org/ns/docbook}literal";
+            if (literal) {
+                string text = GetInlinePlainText(child);
+                if (text.Length == 0) return;
+                int longestRun = 0, run = 0;
+                foreach (char character in text) { run = character == '`' ? run + 1 : 0; longestRun = Math.Max(longestRun, run); }
+                string fence = new string('`', longestRun + 1);
+                bool padding = text.StartsWith("`", StringComparison.Ordinal) || text.EndsWith("`", StringComparison.Ordinal) ||
+                    (text.StartsWith(" ", StringComparison.Ordinal) && text.EndsWith(" ", StringComparison.Ordinal) && text.Trim(' ').Length > 0);
+                string pad = padding ? " " : string.Empty;
+                result.Add(new InlineFragment(text, null, prefix + fence + pad, pad + fence + suffix, false));
+                hasTarget = true;
+                return;
+            }
+            if (emphasis) {
+                bool strong = child.Attributes.TryGetValue("role", out string? role) && (role == "bold" || role == "strong");
+                string text = GetInlinePlainText(child);
+                bool boundaryWhitespace = text.Length > 0 && (char.IsWhiteSpace(text[0]) || char.IsWhiteSpace(text[text.Length - 1]));
+                // Links and nested styles split this element into independently wrapped fragments.
+                // Markdown delimiters around those fragments may touch whitespace even when the
+                // complete emphasis element does not, so use HTML wrappers for structured content.
+                bool useInlineHtml = boundaryWhitespace || child.Children.Any(item => !string.Equals(item.Kind, "text", StringComparison.OrdinalIgnoreCase));
+                string opening = useInlineHtml ? (strong ? "<strong>" : "<em>") : (strong ? "**" : "*");
+                string closing = useInlineHtml ? (strong ? "</strong>" : "</em>") : opening;
+                prefix += opening;
+                suffix = closing + suffix;
+                hasTarget = true;
+            }
             if (string.Equals(child.Kind, "link", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(child.Kind, "cross-reference", StringComparison.OrdinalIgnoreCase)) {
                 string? destination = GetInlineDestination(child);
@@ -38,7 +68,7 @@ internal static partial class DocBookReaderAdapter {
                 if (!string.IsNullOrEmpty(destination)) {
                     if (label.Length > 0 || string.Equals(child.Kind, "cross-reference", StringComparison.OrdinalIgnoreCase)) {
                         if (label.Length == 0) label = destination![0] == '#' ? destination.Substring(1) : destination;
-                        result.Add(new InlineFragment(label, destination));
+                        result.Add(new InlineFragment(label, destination, prefix, suffix));
                         hasTarget = true;
                         return;
                     }
@@ -46,23 +76,24 @@ internal static partial class DocBookReaderAdapter {
             }
 
             if (string.Equals(child.Kind, "text", StringComparison.OrdinalIgnoreCase)) {
-                AddPlain(child.Text);
+                AddPlain(child.Text, prefix, suffix);
                 return;
             }
             if (child.Children.Count > 0) {
-                foreach (OfficeDocumentModelNode grandchild in child.Children) Append(grandchild);
+                foreach (OfficeDocumentModelNode grandchild in child.Children) Append(grandchild, prefix, suffix);
             } else {
-                AddPlain(child.Text);
+                AddPlain(child.Text, prefix, suffix);
             }
         }
 
-        void AddPlain(string text) {
+        void AddPlain(string text, string prefix, string suffix) {
             if (text.Length == 0) return;
-            if (result.Count > 0 && result[result.Count - 1].Destination == null) {
+            if (result.Count > 0 && result[result.Count - 1].Destination == null &&
+                result[result.Count - 1].StylePrefix == prefix && result[result.Count - 1].StyleSuffix == suffix && result[result.Count - 1].EscapesMarkdownText) {
                 InlineFragment previous = result[result.Count - 1];
-                result[result.Count - 1] = new InlineFragment(previous.Text + text, null);
+                result[result.Count - 1] = new InlineFragment(previous.Text + text, null, prefix, suffix);
             } else {
-                result.Add(new InlineFragment(text, null));
+                result.Add(new InlineFragment(text, null, prefix, suffix));
             }
         }
     }
@@ -91,18 +122,21 @@ internal static partial class DocBookReaderAdapter {
     }
 
     private sealed class InlineFragment {
-        internal InlineFragment(string text, string? destination) {
+        internal InlineFragment(string text, string? destination, string prefix = "", string suffix = "", bool escapeText = true) {
             Text = text;
             Destination = destination;
+            StylePrefix = prefix;
+            StyleSuffix = suffix;
+            EscapesMarkdownText = escapeText;
         }
 
         internal string Text { get; }
         internal string? Destination { get; }
-        internal string MarkdownPrefix => Destination == null ? string.Empty : "[";
-        internal string MarkdownSuffix => Destination == null
-            ? string.Empty
-            : "](" + EscapeDestination(Destination) + ")";
-        internal bool EscapesMarkdownText => Destination != null;
+        internal string StylePrefix { get; }
+        internal string StyleSuffix { get; }
+        internal string MarkdownPrefix => (Destination == null ? string.Empty : "[") + StylePrefix;
+        internal string MarkdownSuffix => StyleSuffix + (Destination == null ? string.Empty : "](" + EscapeDestination(Destination) + ")");
+        internal bool EscapesMarkdownText { get; }
 
         private static string EscapeDestination(string value) {
             var escaped = new System.Text.StringBuilder(value.Length);

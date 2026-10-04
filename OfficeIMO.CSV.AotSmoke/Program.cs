@@ -126,7 +126,8 @@ using (ArrowCArrayStreamOwner.ArrowCArrayStreamLease nativeLease = nativeArrowOw
     ConsumeArrowAbiDirectly(nativeLease.Address, expectedColumns: 2, expectedRows: 2, maximumBatchRows: 1);
 }
 
-Console.WriteLine("PASS | CSV parse, schema inspection, mapping, managed import and direct Arrow C ABI consumption, and sequential/parallel typed DataReader writing");
+ArrowAbiPayloadConsumer.Verify();
+Console.WriteLine("PASS | CSV parse, schema inspection, mapping, managed import, raw Arrow C ABI integer/UTF-8/null/decimal buffers and releases, and sequential/parallel typed DataReader writing");
 
 static unsafe void ConsumeArrowAbiDirectly(nint address, long expectedColumns, long expectedRows, long maximumBatchRows) {
     var stream = (NativeArrowArrayStream*)address;

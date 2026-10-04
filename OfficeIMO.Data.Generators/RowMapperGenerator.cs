@@ -135,12 +135,12 @@ public sealed class RowMapperGenerator : IIncrementalGenerator {
 
     private static ImmutableArray<IPropertySymbol> GetWritableProperties(INamedTypeSymbol model) {
         var builder = ImmutableArray.CreateBuilder<IPropertySymbol>();
-        var propertyNames = new HashSet<string>(StringComparer.Ordinal);
+        var memberNames = new HashSet<string>(StringComparer.Ordinal);
         for (INamedTypeSymbol? current = model;
              current is not null && current.SpecialType != SpecialType.System_Object;
              current = current.BaseType) {
-            foreach (IPropertySymbol property in current.GetMembers().OfType<IPropertySymbol>()) {
-                if (!propertyNames.Add(property.Name)) continue;
+            foreach (ISymbol member in current.GetMembers()) {
+                if (!memberNames.Add(member.Name) || member is not IPropertySymbol property) continue;
 
                 if (!property.IsStatic &&
                     property.DeclaredAccessibility == Accessibility.Public &&

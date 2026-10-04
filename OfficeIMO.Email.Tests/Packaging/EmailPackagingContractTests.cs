@@ -57,15 +57,5 @@ public sealed class EmailPackagingContractTests {
         }));
     }
 
-    private static string GetRepositoryRoot() {
-        DirectoryInfo? directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory != null) {
-            if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln")) ||
-                File.Exists(Path.Combine(directory.FullName, "OfficeImo.sln"))) {
-                return directory.FullName;
-            }
-            directory = directory.Parent;
-        }
-        throw new DirectoryNotFoundException("Unable to locate the OfficeIMO repository root.");
-    }
+    private static string GetRepositoryRoot() => EmailTestRepository.FindRoot();
 }

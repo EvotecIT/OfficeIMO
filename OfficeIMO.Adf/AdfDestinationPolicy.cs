@@ -46,8 +46,7 @@ public sealed class AdfDestinationPolicy {
 
     internal AdfValidationResult Validate(AdfDocument document, AdfValidationResult baseline, CancellationToken cancellationToken) {
         // The baseline reports unsafe graphs. Do not start another traversal through one.
-        if (baseline.Issues.Any(issue => issue.Code == "ADF_CYCLIC_CONTENT" || issue.Code == "ADF_NULL_NODE" ||
-            issue.Code == "ADF_NULL_MARK" || issue.Code == "ADF_CONTENT_DEPTH_EXCEEDED" || issue.Code == "ADF_NODE_LIMIT_EXCEEDED")) return baseline;
+        if (baseline.Issues.Any(issue => issue.IsGraphSafetyFailure)) return baseline;
         var issues = baseline.Issues.ToList();
         var pending = new Stack<Frame>();
         pending.Push(new Frame(document.ContentItems, "$"));

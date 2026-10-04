@@ -16,6 +16,12 @@ public sealed class LatexArgument : ILatexSourceEdit {
         _source = source;
         Syntax = syntax;
         IsOptional = syntax.Kind == LatexSyntaxKind.OptionalGroup;
+        IsSingleToken = syntax.Kind == LatexSyntaxKind.SingleTokenArgument;
+        if (IsSingleToken) {
+            ContentSpan = syntax.Span;
+            IsTerminated = true;
+            return;
+        }
         bool closed = syntax.Children.Count >= 2 && syntax.Children[syntax.Children.Count - 1].Kind == LatexSyntaxKind.GroupDelimiter;
         int start = syntax.Children.Count == 0 ? syntax.StartOffset : syntax.Children[0].EndOffset;
         int end = closed ? syntax.Children[syntax.Children.Count - 1].StartOffset : syntax.EndOffset;
@@ -23,11 +29,13 @@ public sealed class LatexArgument : ILatexSourceEdit {
         IsTerminated = closed;
     }
 
-    /// <summary>Lossless group syntax.</summary>
+    /// <summary>Lossless argument syntax, including an unbraced single token.</summary>
     public LatexSyntaxNode Syntax { get; }
     /// <summary>True for square-bracket optional arguments.</summary>
     public bool IsOptional { get; }
-    /// <summary>True when a closing delimiter was present.</summary>
+    /// <summary>True when the original required argument is one unbraced TeX token. Edited content is written in braces.</summary>
+    public bool IsSingleToken { get; }
+    /// <summary>True for a bound single token or a group with its closing delimiter.</summary>
     public bool IsTerminated { get; }
     /// <summary>Content span excluding delimiters.</summary>
     public LatexSourceSpan ContentSpan { get; }
@@ -44,7 +52,7 @@ public sealed class LatexArgument : ILatexSourceEdit {
     /// <summary>True when content changed.</summary>
     public bool IsModified => _isModified;
     LatexSourceSpan ILatexSourceEdit.EditSpan => ContentSpan;
-    string ILatexSourceEdit.Replacement => Content;
+    string ILatexSourceEdit.Replacement => IsSingleToken ? "{" + Content + "}" : Content;
 }
 
 /// <summary>Source-backed LaTeX command without macro execution.</summary>
@@ -57,7 +65,8 @@ public sealed class LatexCommand {
         var arguments = new List<LatexArgument>();
         for (int index = 0; index < syntax.Children.Count; index++) {
             LatexSyntaxNode child = syntax.Children[index];
-            if (child.Kind == LatexSyntaxKind.RequiredGroup || child.Kind == LatexSyntaxKind.OptionalGroup) {
+            if (child.Kind == LatexSyntaxKind.RequiredGroup || child.Kind == LatexSyntaxKind.OptionalGroup ||
+                child.Kind == LatexSyntaxKind.SingleTokenArgument) {
                 arguments.Add(new LatexArgument(child, source));
             }
         }

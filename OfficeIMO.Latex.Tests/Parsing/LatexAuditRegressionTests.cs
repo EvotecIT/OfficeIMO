@@ -55,7 +55,7 @@ public sealed class LatexAuditRegressionTests {
 
     [Theory]
     [InlineData("\\textbf")]
-    [InlineData("\\textbf X")]
+    [InlineData("\\textbf }")]
     public void UnsupportedArgumentShapeIsDiagnosedAndPreserved(string source) {
         LatexDocument document = LatexDocument.Parse(source);
         Assert.Contains(document.Diagnostics, static diagnostic => diagnostic.Code == "LATEX007");

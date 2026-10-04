@@ -72,17 +72,24 @@ public sealed class EmailStoreItemContentAvailability {
         foreach (EmailStoreItemReadParts part in EnumerateParts(loadedParts)) {
             switch (part) {
                 case EmailStoreItemReadParts.Bodies:
-                    if (HasBody(document)) available |= part;
+                    if (HasUnresolvedEmlxParts(document)) indeterminate |= part;
+                    else if (HasBody(document)) available |= part;
                     else ClassifyMissing(part, headerOnly, potentiallyPartial,
                         emptyIsComplete: true, ref available, ref unavailable, ref indeterminate);
                     break;
+                case EmailStoreItemReadParts.AttachmentMetadata:
+                    if (HasMissingDeclaredEmlxAttachments(document, isPartialEmlx)) indeterminate |= part;
+                    else available |= part;
+                    break;
                 case EmailStoreItemReadParts.AttachmentContent:
-                    if (HasAllAttachmentContent(document)) available |= part;
+                    if (HasMissingDeclaredEmlxAttachments(document, isPartialEmlx)) indeterminate |= part;
+                    else if (HasAllAttachmentContent(document)) available |= part;
                     else ClassifyMissing(part, headerOnly, potentiallyPartial,
                         emptyIsComplete: false, ref available, ref unavailable, ref indeterminate);
                     break;
                 case EmailStoreItemReadParts.EmbeddedItems:
-                    if (HasAllEmbeddedItems(document)) available |= part;
+                    if (HasUnresolvedEmlxParts(document)) indeterminate |= part;
+                    else if (HasAllEmbeddedItems(document)) available |= part;
                     else ClassifyMissing(part, headerOnly, potentiallyPartial,
                         emptyIsComplete: false, ref available, ref unavailable, ref indeterminate);
                     break;
@@ -134,6 +141,17 @@ public sealed class EmailStoreItemContentAvailability {
         !string.IsNullOrEmpty(document.Body.Text) ||
         !string.IsNullOrEmpty(document.Body.Html) ||
         !string.IsNullOrEmpty(document.Body.Rtf);
+
+    private static bool HasMissingDeclaredEmlxAttachments(EmailDocument document, bool partial) {
+        if (!partial) return false;
+        if (HasUnresolvedEmlxParts(document)) return true;
+        if (!document.Properties.TryGetValue("Emlx:Flag:AttachmentCount", out object? count)) return false;
+        return count is int integer && integer > document.Attachments.Count ||
+            count is long longInteger && longInteger > document.Attachments.Count;
+    }
+
+    private static bool HasUnresolvedEmlxParts(EmailDocument document) =>
+        document.Properties.TryGetValue("Emlx:UnresolvedPartCount", out object? count) && count is int number && number > 0;
 
     private static bool HasAllAttachmentContent(EmailDocument document) {
         foreach (EmailAttachment attachment in document.Attachments) {

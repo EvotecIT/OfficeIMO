@@ -22,7 +22,9 @@ internal sealed partial class DocumentAssistantViewModel {
             AssistantSource source = _capture(CurrentPageOnly);
             var timer = Stopwatch.StartNew();
             using var stream = new MemoryStream(source.Bytes, writable: false);
-            OfficeAiDocument document = await OfficeAiDocument.ReadAsync(new OfficeDocumentReaderBuilder().AddPdfHandler(source.ReaderOptions).Build(),
+            var readerOptions = source.ReaderOptions?.Clone() ?? ReaderPdfOptions.CreateOfficeIMOProfile();
+            readerOptions.IncludeMixedPageOcrCandidates = true;
+            OfficeAiDocument document = await OfficeAiDocument.ReadAsync(new OfficeDocumentReaderBuilder().AddPdfHandler(readerOptions).Build(),
                 stream, source.Name, cancellationToken: cancellation.Token);
             if (_disposed || generation != _generation || cancellation.IsCancellationRequested || !source.IsCurrent()) return;
             if (_snapshotHash != document.SnapshotHash) { _history.Clear(); Messages.Clear(); LastAnswerText = string.Empty; }

@@ -68,6 +68,9 @@ public sealed class AdfConversionDiagnostic {
         return code switch {
             "MARKDOWN_UNSUPPORTED_BLOCK" or
             "MARKDOWN_UNSUPPORTED_INLINE" or
+            "MARKDOWN_IMAGE_PROPERTIES_DROPPED" or
+            "MARKDOWN_IMAGE_TITLE_DROPPED" or
+            "MARKDOWN_INLINE_IMAGE_PROJECTED" or
             "ADF_ROOT_PROPERTIES_DROPPED" or
             "ADF_EMPTY_PARAGRAPH_DROPPED" or
             "ADF_HEADING_PROPERTIES_DROPPED" or
@@ -80,6 +83,12 @@ public sealed class AdfConversionDiagnostic {
             "ADF_NODE_PROPERTIES_DROPPED" or
             "ADF_MARK_PROPERTIES_DROPPED" or
             "ADF_BLOCK_MARKS_DROPPED" or
+            "ADF_INLINE_PROJECTED" or
+            "ADF_CARD_PROJECTED" or
+            "ADF_MEDIA_PROJECTED" or
+            "ADF_UNSUPPORTED_INLINE" or
+            "ADF_UNSUPPORTED_INLINE_OMITTED" or
+            "ADF_EXTENSION_RESOLVED" or
             "MARKDOWN_EMPTY_BLOCK_OMITTED" => OfficeConversionLossKind.Omission,
             _ => OfficeConversionLossKind.Approximation
         };
@@ -132,7 +141,7 @@ public sealed class AdfConversionResult<T> : OfficeConversionResult<T, AdfConver
 }
 
 /// <summary>Options for ADF projections.</summary>
-public sealed class AdfConversionOptions {
+public sealed class AdfConversionOptions : AdfProcessingOptions {
     /// <summary>When true, visible placeholders are emitted for unsupported nodes with no projectable text.</summary>
     public bool EmitUnsupportedPlaceholders { get; set; }
 

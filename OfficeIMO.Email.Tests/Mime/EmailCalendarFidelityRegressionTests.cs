@@ -46,11 +46,11 @@ public sealed class EmailCalendarFidelityRegressionTests {
             "ORGANIZER;CN=Owner:mailto:owner@example.com\r\nEND:VTODO\r\n", "PUBLISH");
         EmailDocument document = new EmailDocumentReader().Read(eml).Document;
 
-        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+        EmailConversionReport report = new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
         EmailDocument stored = new EmailDocumentReader().Read(
-            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
-        string regenerated = CalendarText(new EmailDocumentWriter().ToBytes(stored, EmailFileFormat.Eml));
+            new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
+        string regenerated = CalendarText(new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(stored, EmailFileFormat.Eml));
 
         Assert.True(report.CanWrite);
         Assert.Contains("ORGANIZER;CN=\"Owner\":mailto:owner@example.com", regenerated,

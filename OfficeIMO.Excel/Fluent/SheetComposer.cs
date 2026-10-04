@@ -50,9 +50,7 @@ namespace OfficeIMO.Excel.Fluent {
         }
 
         private static string TransformHeader(string path, ObjectFlattenerOptions opts) {
-            foreach (var prefix in opts.HeaderPrefixTrimPaths)
-                if (!string.IsNullOrEmpty(prefix) && path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                    path = path.Substring(prefix.Length);
+            path = opts.GetHeaderPath(path);
             static IEnumerable<string> Humanize(string segment) {
                 if (string.IsNullOrEmpty(segment)) yield break;
                 var raw = segment.Replace('_', ' ').Replace('-', ' ');

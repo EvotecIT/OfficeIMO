@@ -153,6 +153,7 @@ public sealed partial class ReaderOcrCoreTests {
                 Location = source.OcrCandidates[0].Location
             }
         };
+        source.Pages = Array.Empty<OfficeDocumentPage>(); // This fixture describes one ambiguous page, without stale individual-image projections.
         var engine = new RecordingOcrEngine();
 
         OfficeDocumentOcrExecutionResult execution = await source.ApplyOcrAsync(engine);

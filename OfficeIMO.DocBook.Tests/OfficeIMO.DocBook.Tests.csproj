@@ -23,6 +23,9 @@
     <ProjectReference Include="..\OfficeIMO.DocBook\OfficeIMO.DocBook.csproj"/>
   </ItemGroup>
   <ItemGroup>
+    <None Update="Fixtures/*.docbook" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <Using Include="System"/>
     <Using Include="System.IO"/>
     <Using Include="System.Linq"/>

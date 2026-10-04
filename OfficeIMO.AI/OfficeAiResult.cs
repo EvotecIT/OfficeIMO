@@ -18,6 +18,8 @@ public enum OfficeAiResultStatus {
 public sealed record OfficeAiCitation(string EvidenceId, int? Page, string? Quote, bool QuoteMatched) {
     /// <summary>Zero-based UTF-16 offset of the matched quote in the original snapshot evidence; null for images.</summary>
     public int? QuoteStart { get; init; }
+    /// <summary>Original snapshot location, copied from evidence rather than supplied by the model.</summary>
+    public OfficeAiSourceLocation? SourceLocation { get; init; }
 }
 
 /// <summary>A contiguous UTF-16 range supplied in a successfully validated request.</summary>

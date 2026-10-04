@@ -460,7 +460,7 @@ internal static class DataValueConverter {
         DataReaderMappingValue? providerValue = value as DataReaderMappingValue;
         if (providerValue is not null) value = providerValue.Original;
 
-        if (value is null) {
+        if (value is null || ReferenceEquals(value, DBNull.Value)) {
             if (underlyingType is null && targetType.IsValueType) {
                 error = $"Cannot assign null to non-nullable type {targetType.Name}.";
                 return false;

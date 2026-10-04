@@ -15,7 +15,7 @@ public sealed class EmailMimeMetadataTests {
             "Return-Receipt-To: Delivery Desk <delivery-receipts@example.com>\r\n" +
             "Content-Type: text/plain; charset=utf-8\r\n\r\nBody\r\n");
         var reader = new EmailDocumentReader();
-        var writer = new EmailDocumentWriter();
+        var writer = new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn));
         EmailDocument source = reader.Read(eml).Document;
 
         EmailDocument stored = reader.Read(writer.ToBytes(source, storeFormat)).Document;
@@ -77,7 +77,7 @@ public sealed class EmailMimeMetadataTests {
         var source = new EmailDocument { Format = EmailFileFormat.OutlookMsg, Subject = "Mapi" };
         source.MapiProperties.Add(new MapiProperty(0x66aa, MapiPropertyType.Binary, new byte[] { 1 }));
 
-        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(source, EmailFileFormat.Eml);
+        EmailConversionReport report = new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).AnalyzeConversion(source, EmailFileFormat.Eml);
 
         Assert.True(report.CanWrite);
         Assert.True(report.HasPotentialDataLoss);

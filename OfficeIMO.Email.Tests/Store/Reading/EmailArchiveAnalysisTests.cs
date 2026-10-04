@@ -148,7 +148,7 @@ public sealed class EmailArchiveAnalysisTests {
         using var stream = new MutatingStream(mbox);
         using var session = EmailStoreSession.Open(stream, "archive.mbox");
         stream.Armed = true;
-        Assert.Throws<IOException>(() => session.AnalyzeArchive());
+        Assert.Throws<InvalidDataException>(() => session.AnalyzeArchive());
         using var stable = new MemoryStream(mbox);
         using var stableSession = EmailStoreSession.Open(stable, "archive.mbox");
         using var cancellation = new CancellationTokenSource(); cancellation.Cancel();

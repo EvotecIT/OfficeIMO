@@ -34,7 +34,7 @@ public sealed class AdfTaskProjectionTests {
     }
 
     [Fact]
-    public void DeepUnrelatedContentDoesNotPreventTaskProjection() {
+    public void ConfiguredDepthAllowsUnrelatedDeepContentAlongsideTasks() {
         var outer = new UnorderedListBlock();
         UnorderedListBlock current = outer;
         for (int depth = 0; depth < 33; depth++) {
@@ -48,11 +48,54 @@ public sealed class AdfTaskProjectionTests {
         MarkdownDoc markdown = MarkdownDoc.Create().Add(outer)
             .Add(new UnorderedListBlock { Items = { ListItem.Task("Ready", done: false) } });
 
-        AdfConversionResult<AdfDocument> result = AdfConverter.FromMarkdown(markdown);
+        Assert.Throws<System.IO.InvalidDataException>(() => AdfConverter.FromMarkdown(markdown));
+        var limits = new AdfConversionOptions { MaxDepth = 128 };
+        AdfConversionResult<AdfDocument> result = AdfConverter.FromMarkdown(markdown, limits);
 
         Assert.Equal(2, result.Value.Content.Count);
         Assert.False(string.IsNullOrWhiteSpace(result.Value.Content[1].GetStringAttribute("localId")));
+        Assert.Contains("Deep content", result.Value.ToJson(limits));
         Assert.Throws<System.IO.InvalidDataException>(() => result.Value.ToJson());
+    }
+
+    [Fact]
+    public void TaskIdentitiesDoNotChangeWhenUnrelatedContentChanges() {
+        AdfDocument Convert(string text) => AdfConverter.FromMarkdown(MarkdownDoc.Create()
+            .Add(new ParagraphBlock(new InlineSequence().Text(text)))
+            .Add(new UnorderedListBlock { Items = { ListItem.Task("Ready") } })).Value;
+
+        AdfNode first = Convert("Before").Content[1];
+        AdfNode second = Convert("After").Content[1];
+        Assert.Equal(first.GetStringAttribute("localId"), second.GetStringAttribute("localId"));
+        Assert.Equal(first.Content[0].GetStringAttribute("localId"), second.Content[0].GetStringAttribute("localId"));
+    }
+
+    [Fact]
+    public void NestedTaskIdentitiesRespectTheCallerNodeBudgetWithoutDuplicatingRoots() {
+        var outer = new UnorderedListBlock { Items = { ListItem.Task("Task") } };
+        UnorderedListBlock current = outer;
+        for (int depth = 1; depth < 8; depth++) {
+            var child = new UnorderedListBlock { Items = { ListItem.Task("Task") } };
+            current.Items[0].NestedBlocks.Add(child);
+            current = child;
+        }
+        var limits = new AdfConversionOptions { MaxNodes = 64 };
+        AdfDocument document = AdfConverter.FromMarkdown(MarkdownDoc.Create().Add(outer), limits).Value;
+        Assert.True(document.Validate(new AdfValidationOptions { Profile = AdfValidationProfile.FullSchema, MaxNodes = 64 }).IsValid);
+        Assert.False(string.IsNullOrWhiteSpace(document.Content[0].GetStringAttribute("localId")));
+        Assert.Contains("taskList", document.ToJson(limits));
+    }
+
+    [Fact]
+    public void TaskIdentityCallbacksRunOnlyAfterGraphLimitsPass() {
+        int calls = 0;
+        var options = new AdfConversionOptions {
+            MaxTextCharacters = 1,
+            LocalIdFactory = path => { calls++; return path; }
+        };
+        var markdown = MarkdownDoc.Create().Add(new UnorderedListBlock { Items = { ListItem.Task("Oversized") } });
+        Assert.Throws<System.IO.InvalidDataException>(() => AdfConverter.FromMarkdown(markdown, options));
+        Assert.Equal(0, calls);
     }
 
     private sealed class UnrenderableBlock : IMarkdownBlock {

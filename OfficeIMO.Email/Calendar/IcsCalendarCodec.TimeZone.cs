@@ -1,8 +1,24 @@
 namespace OfficeIMO.Email;
 
 internal static partial class IcsCalendarCodec {
+    private static OutlookTimeZoneDefinition? ResolveEmbeddedComponentTimeZone(string text, bool isEvent,
+        IList<EmailDiagnostic> diagnostics, string location, EmailDocument document) {
+        try {
+            IcsDocument calendar = IcsDocument.Parse(text.TrimStart('\uFEFF'));
+            ContentLineComponent? master = calendar.GetComponents(isEvent ? "VEVENT" : "VTODO").FirstOrDefault();
+            IcsTemporalValue? start = master?.GetTemporalValue("DTSTART");
+            if (master == null || !start.HasValue) return null;
+            return ResolveEmbeddedRecurrenceTimeZone(calendar, master, start.Value, diagnostics, location, document);
+        } catch (Exception exception) when (exception is InvalidDataException || exception is FormatException ||
+            exception is ArgumentException || exception is OverflowException) {
+            ReportTimeZoneProjectionFailure(exception.Message, diagnostics, location, document);
+            return null;
+        }
+    }
+
     private static OutlookTimeZoneDefinition? ResolveEmbeddedRecurrenceTimeZone(IcsDocument calendar,
-        IcsTemporalValue start, IList<EmailDiagnostic> diagnostics, string location, EmailDocument document) {
+        ContentLineComponent master, IcsTemporalValue start, IList<EmailDiagnostic> diagnostics,
+        string location, EmailDocument document) {
         if (start.Kind != IcsTemporalValueKind.ZonedDateTime || string.IsNullOrWhiteSpace(start.TimeZoneId))
             return null;
         ContentLineComponent[] matches = calendar.GetComponents("VTIMEZONE").Where(component =>
@@ -14,7 +30,8 @@ internal static partial class IcsCalendarCodec {
                 diagnostics, location, document);
             return null;
         }
-        if (TryConvertTimeZone(matches[0], out OutlookTimeZoneDefinition? definition, out string? error))
+        if (TryConvertTimeZone(matches[0], out OutlookTimeZoneDefinition? definition, out string? error,
+                minimumReferenceYear: GetEarliestReferenceYear(calendar, master, start)))
             return definition;
         ReportTimeZoneProjectionFailure(error ?? "The embedded VTIMEZONE cannot be represented by Outlook rules.",
             diagnostics, location, document);
@@ -28,12 +45,17 @@ internal static partial class IcsCalendarCodec {
         document.MimeSemanticProjectionIsIncomplete = true;
     }
 
-    private static bool TryConvertTimeZone(ContentLineComponent component,
-        out OutlookTimeZoneDefinition? definition, out string? error) {
+    internal static bool TryConvertTimeZone(ContentLineComponent component,
+        out OutlookTimeZoneDefinition? definition, out string? error,
+        bool allowMicrosoft1601PlaceholderDates = false, int? minimumReferenceYear = null) {
         definition = null;
         error = null;
         string? timeZoneId = component.GetFirstProperty("TZID")?.Value;
         if (string.IsNullOrWhiteSpace(timeZoneId)) return Fail("VTIMEZONE requires one non-empty TZID.", out error);
+        // OLM's Microsoft producer uses the first day of a transition month in 1601 as
+        // a placeholder. Keep ordinary iCalendar DTSTART/RRULE consistency checks strict.
+        bool allowPlaceholderDates = allowMicrosoft1601PlaceholderDates &&
+            component.GetFirstProperty("X-ENTOURAGE-CFTIMEZONE") != null;
         Observance[] observances;
         try {
             observances = component.Components.Where(child =>
@@ -47,7 +69,20 @@ internal static partial class IcsCalendarCodec {
         if (observances.Length == 0) return Fail("VTIMEZONE does not contain an Outlook-representable observance.", out error);
 
         var result = new OutlookTimeZoneDefinition { KeyName = timeZoneId };
-        IGrouping<int, Observance>[] groups = observances.GroupBy(value => value.Start.Year)
+        int? pairedYear = null;
+        if (observances.Length == 2 && observances.Count(value => value.IsDaylight) == 1 &&
+            observances[0].Start.Year != observances[1].Start.Year) {
+            // Apple retains the independent first dates of the current STANDARD
+            // and DAYLIGHT rules. Project only complete future years of that pair;
+            // the Outlook year-based model cannot describe the partial history.
+            int firstCompleteYear = checked(observances.Max(value => value.Start.Year) + 1);
+            if (observances.Any(value => value.Rule?.GetValue("UNTIL") != null) ||
+                minimumReferenceYear == null || minimumReferenceYear < firstCompleteYear)
+                return Fail("Differently dated observances require references after both rules' first complete year and no UNTIL bounds.",
+                    out error);
+            pairedYear = firstCompleteYear;
+        }
+        IGrouping<int, Observance>[] groups = observances.GroupBy(value => pairedYear ?? value.Start.Year)
             .OrderBy(value => value.Key).ToArray();
         for (int groupIndex = 0; groupIndex < groups.Length; groupIndex++) {
             IGrouping<int, Observance> group = groups[groupIndex];
@@ -75,8 +110,8 @@ internal static partial class IcsCalendarCodec {
                     return Fail("Paired STANDARD and DAYLIGHT rules must use consistent UNTIL bounds.", out error);
                 if (standard.OffsetFrom != daylight.OffsetTo || daylight.OffsetFrom != standard.OffsetTo)
                     return Fail("STANDARD and DAYLIGHT offsets do not form one reciprocal Outlook rule.", out error);
-                if (!TryCreateTransition(standard, out standardTransition, out error) ||
-                    !TryCreateTransition(daylight, out daylightTransition, out error)) return false;
+                if (!TryCreateTransition(standard, allowPlaceholderDates, out standardTransition, out error) ||
+                    !TryCreateTransition(daylight, allowPlaceholderDates, out daylightTransition, out error)) return false;
                 daylightOffset = daylight.OffsetTo;
             }
             int bias = checked(-(int)standard.OffsetTo.TotalMinutes);
@@ -93,6 +128,30 @@ internal static partial class IcsCalendarCodec {
             result.Rules[index].Flags = index == result.Rules.Count - 1 ? (ushort)0x0002 : (ushort)0;
         definition = result;
         return true;
+    }
+
+    private static int GetEarliestReferenceYear(IcsDocument calendar, ContentLineComponent master,
+        IcsTemporalValue start) {
+        int year = start.Value.Year;
+        string? uid = master.GetFirstProperty("UID")?.Value;
+        foreach (ContentLineComponent component in calendar.GetComponents(master.Name).Where(component =>
+                     ReferenceEquals(component, master) || !string.IsNullOrWhiteSpace(uid) &&
+                     string.Equals(component.GetFirstProperty("UID")?.Value, uid, StringComparison.Ordinal))) {
+            foreach (string name in new[] { "DTSTART", "DTEND", "DUE", "RECURRENCE-ID", "EXDATE", "RDATE" }) {
+                foreach (ContentLineProperty property in component.GetProperties(name)) {
+                    foreach (string raw in property.Value.Split(',')) {
+                        if (IcsTemporalValue.TryParse(CloneTemporalProperty(property, raw), out IcsTemporalValue value))
+                            year = Math.Min(year, value.Value.Year);
+                    }
+                }
+            }
+            foreach (ContentLineProperty rule in component.GetProperties("RRULE")) {
+                string? until = IcsRecurrenceRule.Parse(rule.Value).GetValue("UNTIL");
+                if (until != null && IcsTemporalValue.TryParse(new ContentLineProperty("UNTIL", until),
+                        out IcsTemporalValue value)) year = Math.Min(year, value.Value.Year);
+            }
+        }
+        return year;
     }
 
     private static Observance ParseObservance(ContentLineComponent component) {
@@ -127,17 +186,23 @@ internal static partial class IcsCalendarCodec {
         return TimeSpan.FromMinutes(text[0] == '-' ? -totalMinutes : totalMinutes);
     }
 
-    private static bool TryCreateTransition(Observance observance,
+    private static bool TryCreateTransition(Observance observance, bool allowPlaceholderDates,
         out OutlookTimeZoneTransition transition, out string? error) {
         transition = OutlookTimeZoneRule.DisabledTransition;
         error = null;
         if (observance.Rule == null ||
             !string.Equals(observance.Rule.Frequency, "YEARLY", StringComparison.OrdinalIgnoreCase))
             return Fail("Daylight VTIMEZONE observances require a yearly RRULE for Outlook projection.", out error);
-        var allowed = new HashSet<string>(new[] { "FREQ", "BYMONTH", "BYDAY", "UNTIL" },
+        var allowed = new HashSet<string>(new[] { "FREQ", "BYMONTH", "BYDAY", "UNTIL", "INTERVAL",
+            "BYHOUR", "BYMINUTE", "BYSECOND" },
             StringComparer.OrdinalIgnoreCase);
         if (observance.Rule.Parts.Any(part => !allowed.Contains(part.Name)))
             return Fail("The VTIMEZONE RRULE contains a part that Outlook transition rules cannot represent.", out error);
+        if (!MatchesOptionalInteger(observance.Rule, "INTERVAL", 1) ||
+            !MatchesOptionalInteger(observance.Rule, "BYHOUR", observance.Start.Hour) ||
+            !MatchesOptionalInteger(observance.Rule, "BYMINUTE", observance.Start.Minute) ||
+            !MatchesOptionalInteger(observance.Rule, "BYSECOND", observance.Start.Second))
+            return Fail("The VTIMEZONE RRULE interval or time selectors differ from its yearly transition.", out error);
         if (!int.TryParse(observance.Rule.GetValue("BYMONTH"), NumberStyles.None,
                 CultureInfo.InvariantCulture, out int month) || month < 1 || month > 12)
             return Fail("The VTIMEZONE RRULE requires one valid BYMONTH value.", out error);
@@ -148,9 +213,17 @@ internal static partial class IcsCalendarCodec {
             checked((ushort)(ordinal == -1 ? 5 : ordinal)), checked((ushort)observance.Start.Hour),
             checked((ushort)observance.Start.Minute), checked((ushort)observance.Start.Second),
             checked((ushort)observance.Start.Millisecond));
-        if (transition.GetDateTime(observance.Start.Year)?.Date != observance.Start.Date)
+        bool isMicrosoftPlaceholder = allowPlaceholderDates && observance.Start.Year == 1601 &&
+            observance.Start.Day == 1 && observance.Start.Month == month;
+        if (!isMicrosoftPlaceholder && transition.GetDateTime(observance.Start.Year)?.Date != observance.Start.Date)
             return Fail("The VTIMEZONE DTSTART does not match its yearly transition rule.", out error);
         return true;
+    }
+
+    private static bool MatchesOptionalInteger(IcsRecurrenceRule rule, string name, int expected) {
+        string? value = rule.GetValue(name);
+        return value == null || int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture,
+            out int number) && number == expected;
     }
 
     private static bool TryParseOrdinalDay(string value, out int ordinal, out DayOfWeek dayOfWeek) {

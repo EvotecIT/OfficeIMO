@@ -4,12 +4,14 @@ namespace OfficeIMO.AI;
 
 public sealed partial class OfficeAiEngine {
     private static bool TryValidateValueEvidence(string raw, IReadOnlyList<OfficeAiCitation> citations, Batch batch,
-        OfficeAiDocument document, Func<string, int, int, bool> isComplete, out IReadOnlyList<OfficeAiCitation> locatedCitations) {
+        OfficeAiDocument document, Func<string, int, int, bool> isComplete, CancellationToken cancellationToken,
+        out IReadOnlyList<OfficeAiCitation> locatedCitations) {
         bool supported = false;
         var located = new List<OfficeAiCitation>(citations.Count);
         foreach (OfficeAiCitation citation in citations) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (batch.Images.ContainsKey(citation.EvidenceId)) { supported = true; located.Add(citation); continue; }
-            OfficeAiCitation? complete = FindCompleteValueCitation(raw, citation, batch, document, isComplete);
+            OfficeAiCitation? complete = FindCompleteValueCitation(raw, citation, batch, document, isComplete, cancellationToken);
             supported |= complete is not null;
             located.Add(complete ?? citation);
         }
@@ -18,12 +20,13 @@ public sealed partial class OfficeAiEngine {
     }
 
     private static OfficeAiCitation? FindCompleteValueCitation(string raw, OfficeAiCitation citation, Batch batch,
-        OfficeAiDocument document, Func<string, int, int, bool> isComplete) {
+        OfficeAiDocument document, Func<string, int, int, bool> isComplete, CancellationToken cancellationToken) {
         if (citation.Quote is not { } quote) return null;
         string value = raw.Trim();
         OfficeAiEvidence? original = document.Evidence.FirstOrDefault(item => item.Id == citation.EvidenceId);
         if (original is null || value.Length == 0) return null;
         foreach (var item in batch.Evidence) {
+            cancellationToken.ThrowIfCancellationRequested();
             EvidenceSlice slice = batch.Slices.TryGetValue(item.Key, out var fragment) ? fragment : new(item.Key, 0, item.Value.Text.Length);
             if (slice.OriginalId != citation.EvidenceId) continue;
             // Search only the evidence actually sent in this batch; the complete-value check may
@@ -31,9 +34,11 @@ public sealed partial class OfficeAiEngine {
             string observed = item.Value.Text;
             for (int offset = observed.IndexOf(value, StringComparison.Ordinal); offset >= 0;
                 offset = observed.IndexOf(value, offset + 1, StringComparison.Ordinal)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!isComplete(original.Text, slice.Start + offset, value.Length)) continue;
                 for (int withinQuote = quote.IndexOf(value, StringComparison.Ordinal); withinQuote >= 0;
                     withinQuote = quote.IndexOf(value, withinQuote + 1, StringComparison.Ordinal)) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     int quoteStart = offset - withinQuote;
                     if (quoteStart >= 0 && quoteStart + quote.Length <= observed.Length
                         && observed.AsSpan(quoteStart, quote.Length).SequenceEqual(quote.AsSpan()))

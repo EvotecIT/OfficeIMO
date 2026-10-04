@@ -64,7 +64,7 @@ public sealed partial class OfficeAiEngine {
                     if (response.InputTokens < 0 || response.OutputTokens < 0) throw Invalid();
                     inputTokens = SumUsage(inputTokens, response.InputTokens); outputTokens = SumUsage(outputTokens, response.OutputTokens);
                     usageRecorded = true;
-                    next.AddRange(ParseSynthesis(response, group.Claims, request.Limits));
+                    next.AddRange(ParseSynthesis(response, group.Claims, request.Limits, token));
                 } catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
                   catch (OfficeAiExecutionException exception) {
                     inputTokens = null; outputTokens = null;
@@ -86,16 +86,19 @@ public sealed partial class OfficeAiEngine {
     }
 
     private static IReadOnlyList<OfficeAiClaim> ParseSynthesis(OfficeAiExecutionResponse response,
-        IReadOnlyList<OfficeAiClaim> sources, OfficeAiLimits limits) {
+        IReadOnlyList<OfficeAiClaim> sources, OfficeAiLimits limits, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (response is null || !response.IsComplete || string.IsNullOrWhiteSpace(response.Json)
             || response.Json.Length > limits.MaxResponseCharacters) throw Invalid();
         try {
             using JsonDocument json = JsonDocument.Parse(response.Json, new JsonDocumentOptions { MaxDepth = 8 });
+            cancellationToken.ThrowIfCancellationRequested();
             CheckObject(json.RootElement, "claims");
             var claims = new List<OfficeAiClaim>();
             var covered = new HashSet<string>(StringComparer.Ordinal);
             var lookup = sources.Select((claim, index) => (Id: "c" + index, Claim: claim)).ToDictionary(item => item.Id, item => item.Claim, StringComparer.Ordinal);
             foreach (JsonElement item in Items(json.RootElement.GetProperty("claims"), limits.MaxResultItems)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 CheckObject(item, "text", "sourceClaimIds");
                 string text = Text(item.GetProperty("text"));
                 string[] ids = Items(item.GetProperty("sourceClaimIds"), 200).Select(id => Text(id)).ToArray();

@@ -2,13 +2,14 @@ using System.IO.Compression;
 using System.Xml;
 using System.Xml.Linq;
 using OfficeIMO.Email;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Email.Store;
 
 /// <summary>Reads Outlook for Mac archives through bounded ZIP and XML primitives.</summary>
 internal sealed partial class OlmStoreReader {
     private readonly EmailStoreReaderOptions _options;
-    private readonly List<EmailStoreDiagnostic> _diagnostics = new List<EmailStoreDiagnostic>();
+    private readonly EmailStoreDiagnosticCollection _diagnostics = new EmailStoreDiagnosticCollection();
     private readonly Dictionary<string, EmailStoreFolder> _folders =
         new Dictionary<string, EmailStoreFolder>(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, ZipArchiveEntry> _entries =
@@ -18,31 +19,69 @@ internal sealed partial class OlmStoreReader {
     private int _itemCount;
     private long _totalAttachmentBytes;
     private OlmDecodedArchiveBudget _decodedArchiveBudget = null!;
+    private Action<EmailStoreItem, string, int, OutlookItemKind>? _catalogItem;
+    private EmailStoreItemReadOptions? _readOptions;
+    private EmailReadWorkspace? _workspace;
+    private string? _selectedEntryPath;
+    private XDocument? _selectedXml;
 
     internal OlmStoreReader(EmailStoreReaderOptions options) {
         _options = options ?? throw new ArgumentNullException(nameof(options));
     }
 
-    internal EmailStoreReadResult Read(Stream stream, string? sourceName, CancellationToken cancellationToken) {
+    internal EmailStoreReadResult ReadArchive(ZipArchive archive, string? sourceName, long sourceLength,
+        CancellationToken cancellationToken,
+        Action<EmailStoreItem, string, int, OutlookItemKind>? catalogItem = null) {
         _cancellationToken = cancellationToken;
+        _catalogItem = catalogItem;
         _decodedArchiveBudget = new OlmDecodedArchiveBudget(_options.MaxArchiveDecodedBytes);
-        _store = new EmailStore {
-            Format = EmailStoreFormat.Olm,
-            DisplayName = GetDisplayName(sourceName)
-        };
-
-        stream.Position = 0;
-        using (var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true)) {
-            IndexArchive(archive);
-            foreach (ZipArchiveEntry entry in archive.Entries) {
-                _cancellationToken.ThrowIfCancellationRequested();
-                if (!IsXmlEntry(entry) || !IsIndexedEntry(entry)) continue;
-                ReadXmlEntry(entry);
-            }
+        _store = new EmailStore { Format = EmailStoreFormat.Olm, DisplayName = GetDisplayName(sourceName) };
+        IndexArchive(archive);
+        foreach (ZipArchiveEntry entry in archive.Entries) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            if (IsXmlEntry(entry) && IsIndexedEntry(entry)) ReadXmlEntry(entry);
         }
-
-        return new EmailStoreReadResult(_store, _diagnostics.AsReadOnly(), stream.Length);
+        _catalogItem = null;
+        return new EmailStoreReadResult(_store, _diagnostics.AsReadOnly(), sourceLength);
     }
+
+    internal EmailStoreItem ReadSelected(string entryPath, int index, OutlookItemKind kind,
+        string id, string folderId, EmailStoreItemReadOptions options,
+        EmailReadWorkspace? workspace, CancellationToken cancellationToken) {
+        _cancellationToken = cancellationToken;
+        _readOptions = options;
+        _workspace = workspace;
+        _totalAttachmentBytes = 0;
+        _decodedArchiveBudget = new OlmDecodedArchiveBudget(_options.MaxArchiveDecodedBytes);
+        try {
+            if (!TryNormalizeArchivePath(entryPath, out string normalized) || !_entries.TryGetValue(normalized, out ZipArchiveEntry? entry))
+                throw new InvalidDataException("The indexed OLM entry is no longer available.");
+            if (_selectedEntryPath != normalized || _selectedXml == null) {
+                // One bounded XML entry is retained so multi-record Contacts/Calendar entries are not
+                // decompressed once per selected record. The session requires a stable source.
+                _selectedXml = null;
+                _selectedEntryPath = null;
+                _selectedXml = LoadXml(entry);
+                _selectedEntryPath = normalized;
+            }
+            XElement? root = _selectedXml.Root;
+            string elementName = GetItemElementName(kind);
+            XElement? item = root?.Elements().Where(element =>
+                string.Equals(element.Name.LocalName, elementName, StringComparison.OrdinalIgnoreCase)).Skip(index).FirstOrDefault();
+            if (item == null) throw new InvalidDataException("The indexed OLM item is no longer available.");
+            return CreateItem(item, kind, id, folderId, entryPath + "#" + index.ToString(CultureInfo.InvariantCulture));
+        } finally {
+            _readOptions = null;
+            _workspace = null;
+        }
+    }
+
+    internal IReadOnlyList<EmailStoreDiagnostic> Diagnostics => _diagnostics;
+
+    private static string GetItemElementName(OutlookItemKind kind) => kind switch {
+        OutlookItemKind.Appointment => "appointment", OutlookItemKind.Contact => "contact",
+        OutlookItemKind.Task => "task", OutlookItemKind.Note => "note", _ => "email"
+    };
 
     private void IndexArchive(ZipArchive archive) {
         if (archive.Entries.Count > _options.MaxArchiveEntries) {
@@ -118,6 +157,10 @@ internal sealed partial class OlmStoreReader {
                 ReadItems(entry, root, "task", OutlookItemKind.Task);
             } else if (string.Equals(rootName, "notes", StringComparison.OrdinalIgnoreCase)) {
                 ReadItems(entry, root, "note", OutlookItemKind.Note);
+            } else {
+                _diagnostics.Add(new EmailStoreDiagnostic("EMAIL_STORE_OLM_XML_UNSUPPORTED",
+                    "This XML entry is outside the supported OLM item collections and was not projected.",
+                    EmailStoreDiagnosticSeverity.Warning, location));
             }
         } catch (EmailStoreLimitExceededException) {
             throw;
@@ -145,12 +188,35 @@ internal sealed partial class OlmStoreReader {
 
             string id = string.Concat("olm:item:", NormalizeSlashes(entry.FullName), "#", index.ToString(CultureInfo.InvariantCulture));
             string location = string.Concat(entry.FullName, "#", index.ToString(CultureInfo.InvariantCulture));
-            long decodedPropertyBytes = CountItemPropertyBytes(item);
-            EmailDocument document = ProjectItem(item, kind, id, folder.Id, location);
-            folder.MutableItems.Add(new EmailStoreItem(
-                id, folder.Id, document, format: EmailStoreFormat.Olm) { DecodedPropertyBytes = decodedPropertyBytes });
+            EmailStoreItem projected = CreateItem(item, kind, id, folder.Id, location);
+            if (_catalogItem != null) _catalogItem(projected, entry.FullName, index, kind);
+            else folder.MutableItems.Add(projected);
             index++;
         }
+    }
+
+    private EmailStoreItem CreateItem(XElement item, OutlookItemKind kind, string id, string folderId, string location) {
+        long decodedPropertyBytes = CountItemPropertyBytes(item);
+        EmailDocument document = ProjectItem(item, kind, id, folderId, location);
+        long maximum = Math.Min(_options.MaxDecodedPropertyBytesPerItem,
+            _readOptions?.MaxDecodedPropertyBytes ?? long.MaxValue);
+        if (document.Properties.TryGetValue("Olm:StructuredProperties", out object? structured) && structured is string[] fragments) {
+            foreach (string fragment in fragments)
+                decodedPropertyBytes = AddBounded(decodedPropertyBytes, Encoding.UTF8.GetByteCount(fragment),
+                    nameof(EmailStoreReaderOptions.MaxDecodedPropertyBytesPerItem), maximum);
+        }
+        if (document.Properties.TryGetValue("Olm:ItemAttributes", out object? attributes) && attributes is string attributeXml)
+            decodedPropertyBytes = AddBounded(decodedPropertyBytes, Encoding.UTF8.GetByteCount(attributeXml),
+                nameof(EmailStoreReaderOptions.MaxDecodedPropertyBytesPerItem), maximum);
+        EmailStoreItemReadParts parts = _readOptions?.Parts ?? EmailStoreItemReadParts.All;
+        if (_catalogItem != null || (_readOptions == null && !_options.RetainAttachmentContent))
+            parts &= ~EmailStoreItemReadParts.AttachmentContent;
+        if ((parts & EmailStoreItemReadParts.Bodies) == 0) { document.Body.Text = null; document.Body.Html = null; document.Body.Rtf = null; }
+        if ((parts & EmailStoreItemReadParts.Recipients) == 0) document.Recipients.Clear();
+        if ((parts & EmailStoreItemReadParts.AttachmentMetadata) == 0) document.Attachments.Clear();
+        return new EmailStoreItem(id, folderId, document, loadedParts: parts, format: EmailStoreFormat.Olm) {
+            DecodedPropertyBytes = decodedPropertyBytes
+        };
     }
 
     private XDocument LoadXml(ZipArchiveEntry entry) {
@@ -162,20 +228,28 @@ internal sealed partial class OlmStoreReader {
             IgnoreComments = true
         };
         using (Stream stream = OpenDecodedEntry(entry, _options.MaxArchiveEntryBytes))
-        using (XmlReader reader = XmlReader.Create(stream, settings)) {
-            return XDocument.Load(reader, LoadOptions.None);
+        using (XmlReader reader = XmlReader.Create(stream, settings))
+        using (var bounded = new OfficeXmlLimitingReader(reader, "OLM XML", _options.MaxBTreeDepth,
+            (int)Math.Min(int.MaxValue, (long)_options.MaxPropertiesPerItem * _options.MaxItemCount + 1),
+            (int)Math.Min(int.MaxValue, (long)_options.MaxPropertiesPerItem * _options.MaxItemCount), _cancellationToken)) {
+            return XDocument.Load(bounded, LoadOptions.None);
         }
     }
 
     private long CountItemPropertyBytes(XElement item) {
         long bytes = 0;
-        foreach (string value in item.DescendantNodes().OfType<XText>().Select(node => node.Value)
-            .Concat(item.DescendantsAndSelf().Attributes().Select(attribute => attribute.Value))) {
+        long properties = item.Descendants().LongCount() + item.DescendantsAndSelf().Attributes().LongCount();
+        if (properties > _options.MaxPropertiesPerItem)
+            throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxPropertiesPerItem), properties, _options.MaxPropertiesPerItem);
+        long maximum = Math.Min(_options.MaxDecodedPropertyBytesPerItem,
+            _readOptions?.MaxDecodedPropertyBytes ?? long.MaxValue);
+        foreach (string value in item.DescendantsAndSelf().Select(element => element.Name.ToString())
+            .Concat(item.DescendantNodes().OfType<XText>().Select(node => node.Value))
+            .Concat(item.DescendantsAndSelf().Attributes().Select(attribute => attribute.Name.ToString() + attribute.Value))) {
             _cancellationToken.ThrowIfCancellationRequested();
             bytes = checked(bytes + Encoding.UTF8.GetByteCount(value));
-            if (bytes > _options.MaxDecodedPropertyBytesPerItem)
-                throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxDecodedPropertyBytesPerItem),
-                    bytes, _options.MaxDecodedPropertyBytesPerItem);
+            if (bytes > maximum)
+                throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxDecodedPropertyBytesPerItem), bytes, maximum);
         }
         return bytes;
     }

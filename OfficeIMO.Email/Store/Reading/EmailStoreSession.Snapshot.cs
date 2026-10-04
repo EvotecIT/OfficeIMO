@@ -69,7 +69,7 @@ public sealed partial class EmailStoreSession {
             EmailStoreSession session;
             try {
                 session = OpenCore(snapshot, sourceName, effective,
-                    leaveOpen: false, originalPosition: 0, cancellationToken);
+                    leaveOpen: false, originalPosition: 0, cancellationToken, isSnapshot: true);
             } catch {
                 snapshot.Dispose();
                 throw;
