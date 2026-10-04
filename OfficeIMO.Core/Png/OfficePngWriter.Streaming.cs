@@ -147,7 +147,7 @@ public static partial class OfficePngWriter {
     }
 
     private static void WriteOptimalZlib(
-        Stream destination,
+        PngIdatChunkStream destination,
         int width,
         int height,
         byte[] rgba,
@@ -156,11 +156,15 @@ public static partial class OfficePngWriter {
         Action<OfficeRasterEncodingCheckpoint>? checkpointObserver) {
         var workspace = new PngFilteringWorkspace(width, bilevel);
         using var adaptiveSize = new PngSizeProbeStream();
-        using var unfilteredSize = new PngSizeProbeStream();
+        using var unfilteredSize = new PngSizeProbeStream(destination);
         WriteRgbaZlib(adaptiveSize, height, rgba, workspace, adaptiveFiltering: true, cancellationToken, checkpointObserver);
         WriteRgbaZlib(unfilteredSize, height, rgba, workspace, adaptiveFiltering: false, cancellationToken, checkpointObserver);
+        bool adaptiveFiltering = adaptiveSize.Length <= unfilteredSize.Length;
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!adaptiveFiltering && unfilteredSize.FullyCaptured) return;
+        destination.DiscardProbe();
         WriteRgbaZlib(destination, height, rgba, workspace,
-            adaptiveFiltering: adaptiveSize.Length <= unfilteredSize.Length, cancellationToken, checkpointObserver);
+            adaptiveFiltering, cancellationToken, checkpointObserver);
     }
 
     private static void WriteRgbaZlib(
@@ -309,6 +313,35 @@ public static partial class OfficePngWriter {
             FlushChunk();
             _completed = true;
         }
+
+        // A size probe may retain its candidate in this existing bounded buffer.
+        // It cannot write IDAT bytes to the caller before selection is complete.
+        internal bool TryCaptureProbe(byte[] buffer, int offset, int count) {
+            if (count > _chunkSize - _count) return false;
+            EnsureCapacity(_count + count);
+            Buffer.BlockCopy(buffer, offset, _buffer, _count, count);
+            _count += count;
+            return true;
+        }
+
+        internal bool TryCaptureProbeByte(byte value) {
+            if (_count == _chunkSize) return false;
+            EnsureCapacity(_count + 1);
+            _buffer[_count++] = value;
+            return true;
+        }
+
+#if NET8_0_OR_GREATER
+        internal bool TryCaptureProbe(ReadOnlySpan<byte> buffer) {
+            if (buffer.Length > _chunkSize - _count) return false;
+            EnsureCapacity(_count + buffer.Length);
+            buffer.CopyTo(_buffer.AsSpan(_count));
+            _count += buffer.Length;
+            return true;
+        }
+#endif
+
+        internal void DiscardProbe() => _count = 0;
 
         public override void Flush() => _destination.Flush();
         public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();

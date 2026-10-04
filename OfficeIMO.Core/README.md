@@ -503,7 +503,7 @@ OfficeRasterImageEncoder.EncodeTo(image, OfficeImageExportFormat.Png, writer, op
 ReadOnlyMemory<byte> png = writer.WrittenMemory;
 ```
 
-The stream overload leaves the destination open. PNG's `Optimal` compression compares adaptive and unfiltered rows in the selected sample layout and writes the smaller compressed form. Its size probes reuse scanline scratch without retaining candidate images or compressed payloads; the extra compression passes trade CPU work for smaller output while preserving pixels, density metadata and cancellation. `Stored` writes uncompressed zlib blocks with eight-bit RGBA samples.
+The stream overload leaves the destination open. PNG's `Optimal` compression compares adaptive and unfiltered rows in the selected sample layout and writes the smaller compressed form. Its size probes share bounded scanline scratch. An unfiltered candidate that fits in the existing 64 KiB IDAT buffer can be written directly when it wins; other outputs use a final compression pass. This preserves pixels, density metadata, cancellation and the encoded-byte ceiling without retaining a second image or an unbounded compressed payload. `Stored` writes uncompressed zlib blocks with eight-bit RGBA samples.
 
 The byte-array WebP encoder deterministically chooses bounded prediction, subtract-green, LZ77, and Huffman coding when that is smaller than the literal lossless VP8L form; direct streaming keeps the low-copy literal form. TIFF output is a classic RGBA image with uncompressed, LZW, PackBits, or Deflate strips; LZW and Deflate use horizontal prediction by default. Use `OfficeTiffCodec.EncodePages(...)` when the output needs more than one page. JPEG uses the managed quality, subsampling, progressive, metadata, and transparency-flattening settings.
 

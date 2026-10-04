@@ -87,6 +87,17 @@ public class DrawingPngBilevelWriterTests {
     [InlineData(9, 1)]
     public void BilevelPackingAndAllCompressionPassesRemainCancellable(int cancelAtRow, int cancelAtBlock) {
         var image = CreateScan(8193, 4);
+        if (cancelAtRow == 9) {
+            const int width = 262145, height = 4;
+            byte[] pixels = new byte[width * height * 4];
+            var random = new Random(0x706e67);
+            for (int offset = 0; offset < pixels.Length; offset += 4) {
+                byte value = random.Next(2) == 0 ? (byte)0 : (byte)255;
+                pixels[offset] = pixels[offset + 1] = pixels[offset + 2] = value;
+                pixels[offset + 3] = 255;
+            }
+            image = OfficeRasterImage.FromRgba32(width, height, pixels);
+        }
         using var destination = new MemoryStream();
         using var cancellation = new CancellationTokenSource();
         int rows = 0, blocks = 0;
