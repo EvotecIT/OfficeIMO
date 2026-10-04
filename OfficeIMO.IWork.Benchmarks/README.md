@@ -7,6 +7,11 @@ deterministic native-content and cancellation checks run in a dedicated workflow
 warmups, rotated iteration order, elapsed and memory counters, artifacts and gates.
 The library owns synthetic inputs, pinned native fixtures and semantic validation.
 
+The [2026-10-04 portable run](../Docs/benchmarks/officeimo.iwork-portable-runtime-2026-10-04.md)
+retains 6,390 validated samples on Linux x64, macOS arm64 and Windows x64. It covers
+two scale/native passes, 50 repeated operations per native case, separate managed/resident
+sampling and active I/O cancellation. Its observations do not establish portable ceilings.
+
 The [2026-10-04 macOS comparison](../Docs/benchmarks/officeimo.iwork-runtime-2026-10-04.md)
 retains 360 validated samples from a repeated scale matrix, including slower
 elapsed cases, allocation changes and whole-process memory observations. It does
@@ -21,7 +26,8 @@ dotnet build OfficeIMO.IWork.Benchmarks/OfficeIMO.IWork.Benchmarks.csproj -c Rel
 ```
 
 Use a fresh PowerShell 7 process. The runner requires PowerForge operation allocation
-measurement and fails when that counter is missing. To validate against shared
+measurement and its operation-memory sampling policy API. It fails when allocation
+counters or requested observations are missing. To validate against shared
 source, build `PSPublishModule/PSPublishModule.csproj -c Release -f net8.0` in the
 PowerForge checkout with its pinned SDK, then pass the built `PSPublishModule.dll`
 with `-ModulePath`. `-BinaryRoot` selects the matching OfficeIMO workload and owner
@@ -66,7 +72,8 @@ The [iWork runtime evidence workflow](../.github/workflows/iwork-runtime-evidenc
 runs this correctness check on Windows, Linux and macOS for workload changes.
 Manual dispatch additionally builds a pinned PowerForge source owner, runs the
 scale matrix twice, and measures 50 repeated native operations per case and pass
-in fresh PowerShell hosts. Measurements stay outside ordinary PR gates.
+in fresh PowerShell hosts. A separate native pass enables memory sampling.
+Measurements stay outside ordinary PR gates.
 
 Artifacts include raw samples, summaries, CSV tables and environment metadata.
 Case variables retain deterministic input SHA-256 hashes; metadata retains the
@@ -94,6 +101,15 @@ Use a single case and operation in a fresh host to reduce changes from other cas
 ```powershell
 ./Build/Benchmarks/Run-IWorkRuntimeBenchmarks.ps1 -Scale Native -Kind Keynote -Operation ConvertSave -IterationCount 50 -MeasureRetainedMemory
 ```
+
+Add `-MemorySamplingIntervalMilliseconds 5` for managed-heap and resident-page
+observations during each operation. Zero disables sampling by default; enabled
+intervals range from 1 through 1000 milliseconds. Raw metrics retain the baseline,
+sampled maximum, maximum-minus-baseline change and sample counts. Sampled maxima are
+lower bounds on peaks: short operations may have only the two boundary readings,
+and transient peaks can fall between observations. They include observer/host
+effects and do not isolate native allocations. The wrapper gives these samples
+their own run mode; keep their timing separate from uninstrumented comparisons.
 
 `CancelDuringLoad` and `CancelDuringConvert` request cancellation synchronously
 after the caller stream's first nonempty package read. `CancelDuringNativeCopy`
