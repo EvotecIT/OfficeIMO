@@ -113,21 +113,22 @@ public class CsvDataReaderWriterRegressionTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void WriteDataReader_CancellationKeepsCompletedRowsFromBatchedPaths(bool formattedTextDelimiter)
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    public void WriteDataReader_CancellationKeepsCompletedRowsFromBatchedPaths(bool textDelimiter, bool formatted)
     {
         using var cancellation = new CancellationTokenSource();
         using var reader = new ThrowingGetValuesDataReader(
             new[] { "Name" },
             new[] { new object?[] { "Alpha" }, new object?[] { "Beta" } },
             afterRead: index => { if (index == 1) cancellation.Cancel(); },
-            supportGetValues: formattedTextDelimiter);
+            supportGetValues: textDelimiter);
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         var options = new CsvSaveOptions {
             NewLine = "\n",
-            DelimiterText = formattedTextDelimiter ? "||" : ",",
-            DateTimeFormat = formattedTextDelimiter ? "O" : null
+            DelimiterText = textDelimiter ? "||" : ",",
+            DateTimeFormat = formatted ? "O" : null
         };
 
         Assert.Throws<OperationCanceledException>(() =>
@@ -137,11 +138,13 @@ public class CsvDataReaderWriterRegressionTests
     }
 
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(false, true)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public void WriteDataReader_FormattingFailureDoesNotWritePartialBufferedRow(bool formattedTextDelimiter, bool supportGetValues)
+    [InlineData(false, false, false)]
+    [InlineData(false, false, true)]
+    [InlineData(true, true, false)]
+    [InlineData(true, true, true)]
+    [InlineData(true, false, false)]
+    [InlineData(true, false, true)]
+    public void WriteDataReader_FormattingFailureDoesNotWritePartialBufferedRow(bool textDelimiter, bool formatted, bool supportGetValues)
     {
         using var reader = new ThrowingGetValuesDataReader(
             new[] { "Name", "Value" },
@@ -152,21 +155,22 @@ public class CsvDataReaderWriterRegressionTests
             supportGetValues: supportGetValues);
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
 
-        string delimiter = formattedTextDelimiter ? "||" : ",";
+        string delimiter = textDelimiter ? "||" : ",";
         Assert.Throws<InvalidOperationException>(() => CsvDocument.WriteDataReader(
             writer, reader,
-            new CsvSaveOptions { DelimiterText = delimiter, DateTimeFormat = formattedTextDelimiter ? "O" : null, NewLine = "\n" }));
+            new CsvSaveOptions { DelimiterText = delimiter, DateTimeFormat = formatted ? "O" : null, NewLine = "\n" }));
 
         Assert.Equal($"Name{delimiter}Value\nAlpha{delimiter}One\n", writer.ToString());
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void WriteDataReader_CancellationAfterLargeRowKeepsCompletedRow(bool formattedTextDelimiter)
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    public void WriteDataReader_CancellationAfterLargeRowKeepsCompletedRow(bool textDelimiter, bool formatted)
     {
         using var cancellation = new CancellationTokenSource();
-        string largeValue = new string('x', formattedTextDelimiter ? 9_000 : 40_000);
+        string largeValue = new string('x', textDelimiter ? 9_000 : 40_000);
         using var reader = new ThrowingGetValuesDataReader(
             new[] { "Name", "Value" },
             new[] {
@@ -176,10 +180,10 @@ public class CsvDataReaderWriterRegressionTests
             supportGetValues: true);
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
 
-        string delimiter = formattedTextDelimiter ? "||" : ",";
+        string delimiter = textDelimiter ? "||" : ",";
         Assert.Throws<OperationCanceledException>(() => CsvDocument.WriteDataReader(
             writer, reader,
-            new CsvSaveOptions { DelimiterText = delimiter, DateTimeFormat = formattedTextDelimiter ? "O" : null, NewLine = "\n" },
+            new CsvSaveOptions { DelimiterText = delimiter, DateTimeFormat = formatted ? "O" : null, NewLine = "\n" },
             cancellation.Token));
 
         Assert.Equal($"Name{delimiter}Value\nAlpha{delimiter}One\nBeta{delimiter}" + largeValue + "\n", writer.ToString());

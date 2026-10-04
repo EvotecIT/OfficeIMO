@@ -17,6 +17,9 @@ public class CsvTextWriteBenchmarks {
     [Params(CsvQuoteMode.AsNeeded, CsvQuoteMode.Always)]
     public CsvQuoteMode QuoteMode { get; set; }
 
+    [Params(",", "||")]
+    public string Delimiter { get; set; } = ",";
+
     [Params("Notes", "Json", "Quotes")]
     public string TextShape { get; set; } = "Notes";
 
@@ -38,8 +41,8 @@ public class CsvTextWriteBenchmarks {
         using var peerWriter = new StringWriter(CultureInfo.InvariantCulture);
         WriteOfficeIMO(officeWriter);
         WriteCsvHelper(peerWriter);
-        CsvBenchmarkOutputValidator.Validate(nameof(OfficeIMO), officeWriter.ToString(), Headers, _rows.Length, expectedTextRows: null, expectedObjectRows: _rows);
-        CsvBenchmarkOutputValidator.Validate(nameof(CsvHelper), peerWriter.ToString(), Headers, _rows.Length, expectedTextRows: null, expectedObjectRows: _rows);
+        CsvBenchmarkOutputValidator.Validate(nameof(OfficeIMO), officeWriter.ToString(), Headers, _rows.Length, expectedTextRows: null, expectedObjectRows: _rows, delimiter: Delimiter);
+        CsvBenchmarkOutputValidator.Validate(nameof(CsvHelper), peerWriter.ToString(), Headers, _rows.Length, expectedTextRows: null, expectedObjectRows: _rows, delimiter: Delimiter);
         if (officeWriter.ToString() != peerWriter.ToString()) throw new InvalidOperationException("CSV writers produced different text or quoting.");
     }
 
@@ -59,11 +62,11 @@ public class CsvTextWriteBenchmarks {
 
     private void WriteOfficeIMO(TextWriter writer) {
         using var reader = new BenchmarkArrayDataReader(Headers, _rows, [typeof(string), typeof(string)]);
-        CsvDocument.WriteDataReader(writer, reader, new CsvSaveOptions { NewLine = "\n", QuoteMode = QuoteMode });
+        CsvDocument.WriteDataReader(writer, reader, new CsvSaveOptions { NewLine = "\n", QuoteMode = QuoteMode, DelimiterText = Delimiter });
     }
 
     private void WriteCsvHelper(TextWriter writer) {
-        var configuration = new CsvConfiguration(CultureInfo.InvariantCulture) { NewLine = "\n" };
+        var configuration = new CsvConfiguration(CultureInfo.InvariantCulture) { NewLine = "\n", Delimiter = Delimiter };
         if (QuoteMode == CsvQuoteMode.Always) configuration.ShouldQuote = _ => true;
         using var csv = new global::CsvHelper.CsvWriter(writer, configuration, leaveOpen: true);
         using var reader = new BenchmarkArrayDataReader(Headers, _rows, [typeof(string), typeof(string)]);

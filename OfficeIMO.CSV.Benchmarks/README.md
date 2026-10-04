@@ -116,7 +116,8 @@ after retaining the compact reports and provenance needed to reproduce the run.
 
 ## Text export and quote density
 
-`CsvTextWriteBenchmarks` writes 1,000 two-column rows through the public
+`CsvTextWriteBenchmarks` writes 1,000 two-column rows with comma and `||`
+delimiters through the public
 DataReader API and CsvHelper. It covers short labels, long notes, JSON-shaped
 text, and an all-quotes stress case under `AsNeeded` and `Always`. Setup reads
 every output field and requires identical CSV text, including headers, quoting,
