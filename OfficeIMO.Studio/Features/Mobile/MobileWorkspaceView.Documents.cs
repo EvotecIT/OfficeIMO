@@ -43,7 +43,8 @@ public sealed partial class MobileWorkspaceView {
             return Task.FromResult(UnsavedChangesDecision.Cancel);
         _closeDecision = new(TaskCreationOptions.RunContinuationsAsynchronously);
         CloseDescription.Text = StudioLocalization.Current.Format("Dialog.SaveChangesTo", document.DocumentName.TrimEnd(' ', '*'));
-        ShowSheet(StudioLocalization.Current.Get("Dialog.UnsavedChanges"), CloseScroll, DocumentsButton);
+        ShowSheet(StudioLocalization.Current.Get("Dialog.UnsavedChanges"), CloseScroll,
+            ShortDocumentsButton.IsVisible ? ShortDocumentsButton : DocumentsButton);
         return _closeDecision.Task;
     }
 
@@ -65,6 +66,7 @@ public sealed partial class MobileWorkspaceView {
 
     private void OnDocumentTapped(object? sender, TappedEventArgs e) {
         if (e.Source is not Avalonia.Visual source ||
+            source.GetSelfAndVisualAncestors().OfType<Button>().Any() ||
             source.GetSelfAndVisualAncestors().OfType<ListBoxItem>().FirstOrDefault()?.DataContext is not StudioDocumentTabViewModel tab ||
             _controller is null) return;
         _controller.Tabs.SelectedTab = tab;

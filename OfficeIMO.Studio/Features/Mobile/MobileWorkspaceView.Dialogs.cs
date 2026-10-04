@@ -66,7 +66,7 @@ public sealed partial class MobileWorkspaceView {
             DialogContent.Content = null;
             ApplicationNavigation.IsEnabled = !_initializing;
             content.Dismissed();
-            previousFocus?.Focus();
+            RestoreWorkspaceFocus(previousFocus);
         }
     }
 

@@ -1,5 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -13,6 +15,93 @@ using OfficeIMO.Studio.Infrastructure;
 namespace OfficeIMO.Studio.Tests;
 
 public sealed partial class StudioMobileApplicationTests {
+    [Fact]
+    public async Task LandscapePageActionsLeaveRoomForPagesAndDocumentSwitching() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-mobile-landscape-" + Guid.NewGuid().ToString("N"));
+        try {
+            using var session = TestAppBuilder.StartSession();
+            await session.Dispatch(async () => {
+                var services = StudioApplicationServices.Create(new StudioDataPaths(Path.Combine(root, "data")),
+                    new StudioLocalDocumentRoot(Path.Combine(root, "documents")));
+                var view = new MobileWorkspaceView();
+                using var controller = new MobileDocumentController(services, _ => Task.FromResult<IStorageFile?>(null), _ => Task.CompletedTask);
+                view.Connect(controller);
+                var window = new Window { Content = view, Width = 844, Height = 390 };
+                try {
+                    window.Show();
+                    await controller.OpenSampleAsync();
+                    await controller.OpenSampleAsync();
+                    var document = controller.Document;
+                    await document.Commands["Pages"].ExecuteAsync(); Layout(window);
+                    var editor = Assert.Single(view.GetVisualDescendants().OfType<DocumentWorkspaceView>());
+                    editor.OrganizerListControl.SelectedItem = document.OrganizerPages[1];
+                    using var renderTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+                    while (document.OrganizerPages.Any(page => page.IsLoading)) await Task.Delay(10, renderTimeout.Token);
+                    Layout(window);
+                    var actions = editor.FindControl<Border>("OrganizerActionBar")!;
+                    var pages = editor.OrganizerListControl;
+                    Capture(window, "application-landscape-pages");
+                    Assert.True(pages.Bounds.Height >= 100, $"Page viewport is only {pages.Bounds.Height} points high.");
+                    double pagesBottom = pages.TranslatePoint(new Point(0, pages.Bounds.Height), window)!.Value.Y;
+                    Assert.True(actions.TranslatePoint(default, window)!.Value.Y >= pagesBottom);
+                    Click(window, view, document.MoveSelectedUpCommand);
+                    await document.MoveSelectedUpCommand.ExecutionTask!;
+                    Assert.True(document.IsDirty);
+                    Click(window, view.FindControl<Button>("ShortDocumentsButton")!); Layout(window);
+                    Assert.True(view.FindControl<ListBox>("DocumentList")!.IsEffectivelyVisible);
+                    Assert.Equal(2, view.FindControl<ListBox>("DocumentList")!.ItemCount);
+                    var closingTab = controller.Tabs.SelectedTab!;
+                    var close = view.FindControl<ListBox>("DocumentList")!.GetVisualDescendants().OfType<Button>()
+                        .Single(button => button.Classes.Contains("documentListClose") && ReferenceEquals(button.DataContext, closingTab));
+                    Click(window, close); Layout(window);
+                    Assert.True(view.FindControl<ScrollViewer>("CloseScroll")!.IsEffectivelyVisible);
+                    Click(window, view.FindControl<Button>("CloseCancel")!); Layout(window);
+                    await closingTab.CloseCommand.ExecutionTask!;
+                    Assert.Equal(2, controller.Tabs.Tabs.Count);
+                    Assert.True(document.IsDirty);
+                    window.Width = 390; window.Height = 844; Layout(window);
+                    Assert.True(view.FindControl<Grid>("TabBar")!.IsEffectivelyVisible);
+                    Assert.False(view.FindControl<Button>("ShortDocumentsButton")!.IsEffectivelyVisible);
+                    Assert.Same(document, controller.Document);
+                    // The opener changes during rotation; dismissal must restore a usable keyboard target.
+                    foreach (bool landscape in new[] { true, false }) {
+                        Click(window, view.FindControl<Button>(landscape ? "DocumentsButton" : "ShortDocumentsButton")!);
+                        window.Width = landscape ? 844 : 390;
+                        window.Height = landscape ? 390 : 844;
+                        Layout(window);
+                        if (landscape) Click(window, view.FindControl<Button>("SheetDone")!);
+                        else window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.None, null);
+                        Layout(window);
+                        var expectedFocus = view.FindControl<Button>(landscape ? "ShortDocumentsButton" : "DocumentsButton")!;
+                        Assert.True(ReferenceEquals(expectedFocus, window.FocusManager!.GetFocusedElement()),
+                            $"Landscape={landscape}, sheet={view.FindControl<Border>("SheetScrim")!.IsVisible}, targetVisible={expectedFocus.IsEffectivelyVisible}, enabled={expectedFocus.IsEffectivelyEnabled}, focusable={expectedFocus.Focusable}, actual={window.FocusManager.GetFocusedElement()}");
+                    }
+                    // Compact toolbars retain the shared reading command, including its exit action.
+                    var menuButton = editor.FindControl<Button>("DocumentMenuButton")!;
+                    Click(window, menuButton); Layout(window);
+                    var menu = Assert.IsType<MenuFlyout>(menuButton.Flyout);
+                    var focus = Assert.Single(menu.Items.OfType<MenuItem>(),
+                        item => ReferenceEquals(item.Command, document.Commands["FocusReading"]));
+                    Assert.True(focus.IsEffectivelyVisible && focus.IsEffectivelyEnabled);
+                    focus.Command!.Execute(null); menu.Hide(); Layout(window);
+                    Assert.True(document.IsFocusReading);
+                    Click(window, editor, document.Commands["FocusReading"]); Layout(window);
+                    Assert.False(document.IsFocusReading);
+                    await document.SelectedPage!.EnsureRenderedAsync();
+                    Assert.True(document.SelectedPage.HasScene, "Exiting focus reading must keep the touch reader rendered.");
+                    window.Width = 844; window.Height = 390; Layout(window);
+                    await document.SelectedPage.EnsureRenderedAsync();
+                    Assert.True(document.SelectedPage.HasScene);
+                    await document.Commands["Comment"].ExecuteAsync(); Layout(window);
+                    document.ShowViewModeCommand.Execute(null); Layout(window);
+                    await document.SelectedPage.EnsureRenderedAsync();
+                    Assert.True(document.SelectedPage.HasScene, "Returning from editing must keep the touch reader rendered.");
+                } finally { window.Close(); services.Storage.Dispose(); }
+                return true;
+            }, CancellationToken.None);
+        } finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+
     [Theory]
     [InlineData(1366, 1024)]
     [InlineData(390, 844)]
@@ -69,6 +158,7 @@ public sealed partial class StudioMobileApplicationTests {
                     using var thumbnailTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
                     while (document.OrganizerPages.Any(page => page.IsLoading)) await Task.Delay(10, thumbnailTimeout.Token);
                     Layout(window); Capture(window, $"application-pages-{width}");
+                    Assert.All(editor.OrganizerListControl.GetRealizedContainers(), page => Assert.InRange(page.Bounds.Width, 44, 250));
                     var actions = editor.FindControl<Border>("OrganizerActionBar")!;
                     foreach (var button in actions.GetVisualDescendants().OfType<Button>().Where(button => button.IsEffectivelyVisible)) {
                         Assert.True(button.Bounds.Width >= 44 && button.Bounds.Height >= 44);

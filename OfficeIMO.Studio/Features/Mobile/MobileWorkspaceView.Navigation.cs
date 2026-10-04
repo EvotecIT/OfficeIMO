@@ -29,7 +29,6 @@ public sealed partial class MobileWorkspaceView {
         _controller.ConfirmUnsavedChangesAsync = ConfirmUnsavedChangesAsync;
         MobileTabs.DataContext = controller.Tabs;
         DocumentList.DataContext = controller.Tabs;
-        TabBar.IsVisible = true;
         DataContext = controller.Document;
     }
 
@@ -48,7 +47,6 @@ public sealed partial class MobileWorkspaceView {
         if (_controller is null) return;
         HostPageList(null);
         DataContext = _controller.Document;
-        TabBar.IsVisible = _controller.Tabs.HasTabs;
         // Closed documents should not remain retained by presentation-only state.
         foreach (var document in _configuredDocuments.Where(document => !_controller.Tabs.OperationDocuments.Contains(document)).ToArray()) {
             _configuredDocuments.Remove(document);
@@ -86,6 +84,7 @@ public sealed partial class MobileWorkspaceView {
     private async void OnCloseTabClick(object? sender, RoutedEventArgs e) {
         if (sender is not Control { DataContext: StudioDocumentTabViewModel tab } || _controller is null) return;
         e.Handled = true;
+        if (SheetScrim.IsVisible && DocumentList.IsVisible) DismissSheet();
         await tab.CloseCommand.ExecuteAsync(null);
         RevealSelectedTab(focus: true);
     }
@@ -97,7 +96,7 @@ public sealed partial class MobileWorkspaceView {
     private void RevealSelectedTab(bool focus = false) => Dispatcher.UIThread.Post(() => {
         var selected = MobileTabs.ContainerFromIndex(MobileTabs.SelectedIndex);
         selected?.BringIntoView();
-        if (focus) (selected ?? OpenButton).Focus(NavigationMethod.Directional);
+        if (focus) (ShortDocumentsButton.IsVisible ? ShortDocumentsButton : selected ?? OpenButton).Focus(NavigationMethod.Directional);
     }, DispatcherPriority.Loaded);
 
     private void OnTabContextRequested(object? sender, ContextRequestedEventArgs e) {

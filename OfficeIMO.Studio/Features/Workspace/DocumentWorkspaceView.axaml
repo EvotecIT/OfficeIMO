@@ -14,6 +14,11 @@
     <Style Selector=".phone :is(Control).zoomDetail"><Setter Property="IsVisible" Value="False" /></Style>
     <Style Selector=".phone Button#SaveButton TextBlock"><Setter Property="IsVisible" Value="False" /></Style>
 
+    <Style Selector=".shortLandscape Border#OrganizerActionBar TextBlock.cmdLabel"><Setter Property="IsVisible" Value="False" /></Style>
+    <Style Selector=".shortLandscape Viewbox.organizerPreview"><Setter Property="Height" Value="100" /><Setter Property="Width" Value="82" /></Style>
+    <Style Selector="Button.shortRange"><Setter Property="IsVisible" Value="False" /></Style>
+    <Style Selector=".shortLandscape Button.shortRange"><Setter Property="IsVisible" Value="True" /></Style>
+    <Style Selector=".shortLandscape Expander#OrganizerRangePicker"><Setter Property="IsVisible" Value="False" /></Style>
     <Style Selector="ListBox#OrganizerList">
       <Setter Property="ItemsPanel"><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></Setter>
     </Style>
@@ -236,6 +241,17 @@
                     AutomationProperties.Name="{loc:Loc DocumentWorkspace.SelectAll}" ToolTip.Tip="{loc:Loc DocumentWorkspace.SelectAll}">
               <StackPanel Orientation="Horizontal"><PathIcon Data="{StaticResource IconSelectAll}" /><TextBlock Classes="cmdLabel" Text="{loc:Loc DocumentWorkspace.SelectAll}" /></StackPanel>
             </Button>
+            <Button Classes="cmd shortRange" AutomationProperties.Name="{loc:Loc Organizer.SelectRanges}" ToolTip.Tip="{loc:Loc Organizer.SelectRanges}">
+              <PathIcon Data="{StaticResource IconPages}" />
+              <Button.Flyout><Flyout Placement="Bottom">
+                <StackPanel Width="260" Spacing="8">
+                  <TextBlock Text="{loc:Loc Organizer.SelectRanges}" FontWeight="SemiBold" />
+                  <TextBox Text="{Binding OrganizerPageRange}" PlaceholderText="{loc:Loc Organizer.RangeHint}" MaxLength="4096" AutomationProperties.Name="{loc:Loc Organizer.PageRange}" />
+                  <Button Classes="tool" Content="{loc:Loc Organizer.SelectRange}" Command="{Binding SelectPageRangeCommand}" />
+                  <TextBlock Text="{Binding OrganizerRangeError}" TextWrapping="Wrap" Foreground="{DynamicResource StudioErrorBrush}" />
+                </StackPanel>
+              </Flyout></Button.Flyout>
+            </Button>
           </WrapPanel>
 
           <WrapPanel IsVisible="{Binding IsFormsDocumentMode}" ItemSpacing="1" LineSpacing="4">
@@ -379,6 +395,7 @@
                 <MenuItem Header="{loc:Loc MainWindow.Find}" Click="OnFindClick" />
                 <MenuItem Header="{loc:Loc DocumentWorkspace.FitPage}" Command="{Binding Commands[FitPage]}" />
                 <MenuItem Header="{loc:Loc DocumentWorkspace.FitWidth}" Command="{Binding Commands[FitWidth]}" />
+                <MenuItem Header="{loc:Loc Commands.FocusReading.Title}" Command="{Binding Commands[FocusReading]}" />
                 <Separator />
                 <MenuItem Header="{loc:Loc Export.Markdown}" Command="{Binding ExportDocumentCommand}" CommandParameter="Markdown" />
                 <MenuItem Header="{loc:Loc Export.Text}" Command="{Binding ExportDocumentCommand}" CommandParameter="Text" />
@@ -436,13 +453,13 @@
       <Grid x:Name="NavigationPane" Grid.Column="0" ClipToBounds="True" Background="{DynamicResource StudioPanelBrush}">
         <Border IsVisible="{Binding HasDocument}" Background="{DynamicResource StudioPanelBrush}"
                 BorderBrush="{DynamicResource StudioSubtleBorderBrush}" BorderThickness="0,0,1,0">
-          <Grid>
+          <Grid RowDefinitions="*,Auto">
             <TabControl x:Name="NavigationTabs" Classes="paneTabs" Padding="0" Margin="8,6,0,0">
               <TabItem AutomationProperties.Name="{loc:Loc DocumentWorkspace.Pages}">
                 <TabItem.Header><StackPanel Orientation="Horizontal" Spacing="6" ToolTip.Tip="{loc:Loc DocumentWorkspace.Pages}"><PathIcon Data="{StaticResource IconPages}" Width="13" Height="13" /><TextBlock Classes="paneTabLabel" Text="{loc:Loc DocumentWorkspace.Pages}" /></StackPanel></TabItem.Header>
                 <Grid RowDefinitions="Auto,*">
                   <StackPanel IsVisible="{Binding IsPagesDocumentMode}" Margin="12,8,12,0" Spacing="5" MaxWidth="560" HorizontalAlignment="Left">
-                    <Expander Header="{Binding OrganizerSelectionLabel}" AutomationProperties.Name="{loc:Loc Organizer.SelectRanges}"
+                    <Expander x:Name="OrganizerRangePicker" Header="{Binding OrganizerSelectionLabel}" AutomationProperties.Name="{loc:Loc Organizer.SelectRanges}"
                               IsExpanded="{Binding IsOrganizerRangeExpanded}" HorizontalAlignment="Stretch">
                       <StackPanel Spacing="6">
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
@@ -460,7 +477,7 @@
                            Background="Transparent" BorderThickness="0"
                            ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListBox.Styles><Style Selector="ListBoxItem"><Setter Property="IsSelected" Value="{ReflectionBinding IsSelected, Mode=TwoWay}" /></Style></ListBox.Styles>
-                    <ListBox.ItemTemplate><DataTemplate x:DataType="organizer:PdfOrganizerPageViewModel"><organizer:PdfOrganizerPageView /></DataTemplate></ListBox.ItemTemplate>
+                    <ListBox.ItemTemplate><DataTemplate x:DataType="organizer:PdfOrganizerPageViewModel"><Viewbox Classes="organizerPreview" Stretch="Uniform" StretchDirection="DownOnly"><organizer:PdfOrganizerPageView /></Viewbox></DataTemplate></ListBox.ItemTemplate>
                   </ListBox>
                 </Grid>
               </TabItem>

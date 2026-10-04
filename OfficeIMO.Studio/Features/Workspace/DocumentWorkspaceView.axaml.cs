@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using System.ComponentModel;
+using Avalonia;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Features.Shell;
 using OfficeIMO.Studio.Infrastructure.Localization;
@@ -11,6 +12,7 @@ namespace OfficeIMO.Studio.Features.Workspace;
 public sealed partial class DocumentWorkspaceView : UserControl {
     private bool? _compactLayout;
     private bool _phoneLayout;
+    private bool _shortLandscape;
     private double _availableWidth;
     private MainWindowViewModel? _document;
     private double _navigationWidth = 238D;
@@ -20,7 +22,7 @@ public sealed partial class DocumentWorkspaceView : UserControl {
     public DocumentWorkspaceView() {
         InitializeComponent();
         InitializeOrganizerInput();
-        SizeChanged += (_, e) => ApplyResponsiveLayout(e.NewSize.Width);
+        SizeChanged += (_, e) => ApplyResponsiveLayout(e.NewSize.Width, e.NewSize.Height);
         DataContextChanged += (_, _) => {
             if (_document is not null) {
                 CapturePaneWidths();
@@ -36,20 +38,26 @@ public sealed partial class DocumentWorkspaceView : UserControl {
         InspectorSplitter.KeyUp += (_, _) => CapturePaneWidths();
     }
 
-    internal void ApplyResponsiveLayout(double width) {
+    internal void ApplyResponsiveLayout(double width, double height = 0) {
         _availableWidth = Math.Max(0, width);
-        bool phone = width < 700;
+        bool shortLandscape = UseTouchPresentation && width >= 600 && height is > 0 and < 420;
+        bool shortChanged = _shortLandscape != shortLandscape;
+        _shortLandscape = shortLandscape;
+        bool phone = width < 700 || shortLandscape;
+        Classes.Set("shortLandscape", shortLandscape);
+        Grid.SetRow(OrganizerActionBar, shortLandscape ? 1 : 0);
+        OrganizerActionBar.Margin = shortLandscape ? new Thickness(8, 0, 8, 4) : new Thickness(16, 0, 16, 18);
         bool phoneChanged = _phoneLayout != phone;
         _phoneLayout = phone;
         UpdateOverlayWidths();
         Classes.Set("phone", phone);
-        Grid.SetRow(ContextTools, phone ? 1 : 0);
-        Grid.SetColumn(ContextTools, phone ? 0 : 2);
-        Grid.SetColumnSpan(ContextTools, phone ? 4 : 1);
+        Grid.SetRow(ContextTools, phone && !shortLandscape ? 1 : 0);
+        Grid.SetColumn(ContextTools, phone && !shortLandscape ? 0 : 2);
+        Grid.SetColumnSpan(ContextTools, phone && !shortLandscape ? 4 : 1);
         DocumentModePicker.Width = phone ? 130 : 170;
         CommandRow.Classes.Set("compactCommands", width < 1320D);
         bool compact = width < 1100D;
-        if (_compactLayout == compact && !phoneChanged) return;
+        if (_compactLayout == compact && !phoneChanged && !shortChanged) return;
         _compactLayout = compact;
         DocumentModeButtons.IsVisible = !compact;
         DocumentModePicker.IsVisible = compact;

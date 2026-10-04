@@ -15,7 +15,7 @@ public sealed partial class MobileWorkspaceView {
     private readonly Dictionary<StudioWorkspaceMode, Control> _features = [];
     private bool? _wideApplicationNavigation;
     private DocumentWorkspaceView? _editingWorkspace;
-    private bool IsTouchReader => Document is null || Document.IsPdfWorkspaceMode && Document.IsViewDocumentMode;
+    private bool IsTouchReader => Document is null || Document.IsPdfWorkspaceMode && Document.IsViewDocumentMode && !Document.IsFocusReading;
 
     private void OnCloseAssistantClick(object? sender, RoutedEventArgs e) {
         if (Document is { } document) document.IsAssistantVisible = false;
@@ -51,13 +51,19 @@ public sealed partial class MobileWorkspaceView {
         ReaderNavigation.IsVisible = reader && Document?.HasDocument == true;
         PagesButton.IsVisible = reader;
         OpenButton.IsVisible = Bounds.Width >= 600;
+        // Only the active reader owns page-render lifetimes. A hidden attached reader can
+        // lose its scene when the shared editor detaches from the same page model.
+        if (!reader) ReaderSurface.Child = null;
         if (!reader && Document is { } document) {
             if (!_features.TryGetValue(document.WorkspaceMode, out Control? feature)) {
                 feature = CreateFeature(document.WorkspaceMode);
                 _features.Add(document.WorkspaceMode, feature);
             }
             FeatureSurface.Content = feature;
-        } else FeatureSurface.Content = null;
+        } else {
+            FeatureSurface.Content = null;
+            ReaderSurface.Child = PageScroll;
+        }
         if (!reader) SearchPanel.IsVisible = false;
         Dispatcher.UIThread.Post(UpdateActiveViewport, DispatcherPriority.Loaded);
     }

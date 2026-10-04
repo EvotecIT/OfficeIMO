@@ -49,10 +49,17 @@
           </Button>
           <Button x:Name="OpenButton" Classes="touch" Command="{Binding OpenCommand}" AutomationProperties.Name="Open PDF from Files" ToolTip.Tip="Open a PDF in a new tab"><PathIcon Data="{StaticResource IconOpen}"/></Button>
         </StackPanel>
-        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2" Margin="4,0">
+        <StackPanel x:Name="TitleStack" Grid.Column="1" VerticalAlignment="Center" Spacing="2" Margin="4,0">
           <TextBlock x:Name="WorkspaceTitle" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
           <TextBlock x:Name="DocumentSubtitle" IsVisible="{Binding HasDocument}" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" TextTrimming="CharacterEllipsis"/>
         </StackPanel>
+        <Button x:Name="ShortDocumentsButton" Grid.Column="1" Classes="touch" IsVisible="False" Click="OnDocumentsClick"
+                HorizontalContentAlignment="Left" AutomationProperties.Name="Open documents">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <TextBlock Text="{Binding DocumentName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+            <PathIcon Grid.Column="1" Data="{StaticResource IconChevronDown}" Width="12" Height="12"/>
+          </Grid>
+        </Button>
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
           <StackPanel x:Name="WideTools" Orientation="Horizontal" Spacing="8" IsEnabled="{Binding HasDocument}">
             <Border Classes="toolGroup"><StackPanel Orientation="Horizontal"><Button Classes="touch neutral" Command="{Binding UndoCommand}" AutomationProperties.Name="Undo" ToolTip.Tip="Undo"><PathIcon Data="{StaticResource IconUndo}"/></Button><Button Classes="touch neutral" Command="{Binding RedoCommand}" AutomationProperties.Name="Redo" ToolTip.Tip="Redo"><PathIcon Data="{StaticResource IconRedo}"/></Button></StackPanel></Border>
@@ -69,10 +76,12 @@
               <MenuItem Header="Pages" Command="{Binding ShowPagesModeCommand}"/>
               <MenuItem Header="Forms" Command="{Binding ShowFormsModeCommand}"/>
               <MenuItem Header="Protect" Command="{Binding ShowProtectModeCommand}"/>
+              <Separator/>
+              <MenuItem Header="{loc:Loc Commands.FocusReading.Title}" Command="{Binding Commands[FocusReading]}"/>
             </MenuFlyout></Button.Flyout>
           </Button>
           <Button x:Name="HomeSampleButton" Classes="touch" Content="Try a sample" Click="OnSampleClick" IsVisible="False"/>
-          <Button x:Name="SaveButton" Classes="touch" Command="{Binding SaveCommand}" IsVisible="{Binding HasDocument}" AutomationProperties.Name="{loc:Loc Common.Save}" ToolTip.Tip="Save the working copy on this device">
+          <Button x:Name="SaveButton" Classes="touch" Command="{Binding SaveCommand}" IsVisible="{Binding HasDocument}" AutomationProperties.Name="{loc:Loc Common.Save}" ToolTip.Tip="Save document">
             <PathIcon Data="{StaticResource IconSave}"/>
           </Button>
           <Button x:Name="ShareButton" Classes="touch" Click="OnShareClick" IsVisible="False" IsEnabled="{Binding HasDocument}" AutomationProperties.Name="Share" ToolTip.Tip="Save and share a copy">
@@ -170,17 +179,18 @@
                      ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab, Mode=TwoWay}" Tapped="OnDocumentTapped" KeyDown="OnDocumentListKeyDown"
                      AutomationProperties.Name="Open documents" MaxHeight="420">
               <ListBox.ItemTemplate><DataTemplate x:DataType="shell:StudioDocumentTabViewModel">
-                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" MinHeight="48">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12" MinHeight="48">
                   <PathIcon Data="{StaticResource IconDocument}" Width="22" Height="22" Foreground="{DynamicResource StudioAccentBrush}"/>
                   <TextBlock Grid.Column="1" Text="{Binding DisplayTitle}" TextWrapping="Wrap" VerticalAlignment="Center"/>
                   <Ellipse Grid.Column="2" Width="7" Height="7" Fill="{DynamicResource StudioAccentBrush}" IsVisible="{Binding IsDirty}"/>
+                  <Button Grid.Column="3" Classes="touch neutral documentListClose" Click="OnCloseTabClick" AutomationProperties.Name="{Binding CloseLabel}"><PathIcon Data="{StaticResource IconClose}" Width="11" Height="11"/></Button>
                 </Grid>
               </DataTemplate></ListBox.ItemTemplate>
             </ListBox>
             <ScrollViewer x:Name="CloseScroll" IsVisible="False">
               <StackPanel Spacing="14">
                 <TextBlock x:Name="CloseDescription" TextWrapping="Wrap" FontSize="16"/>
-                <TextBlock Text="Save keeps your edits in the working copy on this device. Use Share to export a copy to Files or another app." TextWrapping="Wrap" Foreground="{DynamicResource StudioMutedTextBrush}"/>
+                <TextBlock Text="Save keeps your changes in this document. Use Share to send a copy to Files or another app." TextWrapping="Wrap" Foreground="{DynamicResource StudioMutedTextBrush}"/>
                 <Button Classes="touch filled" Content="{loc:Loc Common.Save}" Click="OnSaveAndCloseClick" HorizontalAlignment="Stretch"/>
                 <Button Classes="touch destructive" Content="{loc:Loc Common.Discard}" Click="OnDiscardAndCloseClick" HorizontalAlignment="Stretch"/>
                 <Button x:Name="CloseCancel" Classes="touch" Content="{loc:Loc Common.Cancel}" Click="OnDismissClick" HorizontalAlignment="Stretch"/>

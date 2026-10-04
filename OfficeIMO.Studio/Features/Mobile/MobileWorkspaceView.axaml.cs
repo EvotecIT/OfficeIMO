@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using System.ComponentModel;
 using OfficeIMO.Studio.Features.Editor;
 using OfficeIMO.Studio.Features.Reader;
@@ -67,7 +68,7 @@ public sealed partial class MobileWorkspaceView : UserControl {
     private void OnDocumentChanged(object? sender, PropertyChangedEventArgs e) {
         if (e.PropertyName == nameof(MainWindowViewModel.DocumentMode) && Document is { } active)
             active.WorkspaceMode = StudioWorkspaceMode.PdfWorkspace;
-        if (e.PropertyName is nameof(MainWindowViewModel.WorkspaceMode) or nameof(MainWindowViewModel.DocumentMode)) UpdateLayoutMode();
+        if (e.PropertyName is nameof(MainWindowViewModel.WorkspaceMode) or nameof(MainWindowViewModel.DocumentMode) or nameof(MainWindowViewModel.IsFocusReading)) UpdateLayoutMode();
         // Opening restores desktop view preferences; the mobile surface always presents one page at a time.
         if (e.PropertyName == nameof(MainWindowViewModel.IsOpening) && Document?.IsOpening == false) {
             FitNewDocument();
@@ -95,6 +96,11 @@ public sealed partial class MobileWorkspaceView : UserControl {
     private void UpdateLayoutMode() {
         UpdateApplicationFeature();
         bool wide = Bounds.Width >= 720;
+        bool shortLandscape = Bounds.Width >= 600 && Bounds.Height is > 0 and < 500;
+        bool hasTabs = _controller?.Tabs.HasTabs == true;
+        TabBar.IsVisible = hasTabs && !shortLandscape;
+        ShortDocumentsButton.IsVisible = hasTabs && shortLandscape;
+        TitleStack.IsVisible = !ShortDocumentsButton.IsVisible;
         bool sidebar = IsTouchReader && HasSidebarRoom && _showPages && Document?.HasDocument == true;
         WideTools.IsVisible = wide && IsTouchReader;
         CompactTools.IsVisible = !wide && IsTouchReader && Document?.HasDocument == true;
@@ -111,6 +117,7 @@ public sealed partial class MobileWorkspaceView : UserControl {
         HostPageList(pageSheet ? SheetPages : sidebar ? SidebarPages : null);
         _pageList.Height = pageSheet ? Math.Min(420, Math.Max(120, Bounds.Height - 180)) : double.NaN;
         DocumentList.MaxHeight = Math.Max(100, Bounds.Height - 180);
+        if (SheetScrim.IsVisible) Dispatcher.UIThread.Post(FocusSheet, DispatcherPriority.Loaded);
     }
 
     private void OnPagesClick(object? sender, RoutedEventArgs e) {
@@ -162,12 +169,18 @@ public sealed partial class MobileWorkspaceView : UserControl {
         SheetScrim.IsVisible = true;
         ApplyKeyboardAvoidance();
         ApplicationSidebar.IsEnabled = HeaderBar.IsEnabled = TabBar.IsEnabled = SearchPanel.IsEnabled = WorkspaceGrid.IsEnabled = FooterBar.IsEnabled = false;
-        Control focus = CloseScroll.IsVisible ? CloseCancel : NoteScroll.IsVisible ? NoteText : DocumentList.IsVisible ? DocumentList : SheetDone;
-        focus.Focus();
+        FocusSheet();
         // ScrollViewer content can join the visual tree only after its first visible layout.
-        Dispatcher.UIThread.Post(() => {
-            if (SheetScrim.IsVisible && content.IsEffectivelyVisible) focus.Focus();
-        }, DispatcherPriority.Loaded);
+        Dispatcher.UIThread.Post(FocusSheet, DispatcherPriority.Loaded);
+    }
+
+    private void FocusSheet() {
+        if (!SheetScrim.IsVisible) return;
+        if (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is Control focused &&
+            focused.IsEffectivelyVisible && focused.GetVisualAncestors().Contains(SheetCard)) return;
+        Control focus = CloseScroll.IsVisible ? CloseCancel : NoteScroll.IsVisible ? NoteText :
+            DocumentList.IsVisible ? DocumentList.ContainerFromIndex(DocumentList.SelectedIndex) ?? SheetDone : SheetDone;
+        focus.Focus();
     }
 
     private void OnDismissClick(object? sender, RoutedEventArgs e) => DismissSheet();
@@ -178,7 +191,20 @@ public sealed partial class MobileWorkspaceView : UserControl {
         SheetScrim.IsVisible = false;
         ApplicationSidebar.IsEnabled = HeaderBar.IsEnabled = TabBar.IsEnabled = SearchPanel.IsEnabled = WorkspaceGrid.IsEnabled = FooterBar.IsEnabled = true;
         UpdateLayoutMode();
-        _sheetOpener?.Focus();
+        Control? opener = _sheetOpener;
+        _sheetOpener = null;
+        RestoreWorkspaceFocus(opener);
+        Dispatcher.UIThread.Post(() => {
+            if (!SheetScrim.IsVisible && !DialogScrim.IsVisible) RestoreWorkspaceFocus(opener);
+        }, DispatcherPriority.Loaded);
+    }
+
+    private void RestoreWorkspaceFocus(Control? opener) {
+        if (opener is { IsEffectivelyVisible: true, IsEffectivelyEnabled: true } && opener.Focus()) return;
+        // Rotation can replace the opener while a sheet or shared dialog remains open.
+        Control fallback = ShortDocumentsButton.IsEffectivelyVisible ? ShortDocumentsButton :
+            DocumentsButton.IsEffectivelyVisible ? DocumentsButton : ApplicationMenuButton;
+        fallback.Focus();
     }
 
     private async void OnAddNoteClick(object? sender, RoutedEventArgs e) {
