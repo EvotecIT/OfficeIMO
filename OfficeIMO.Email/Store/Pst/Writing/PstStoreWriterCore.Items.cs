@@ -12,6 +12,7 @@ internal sealed partial class PstStoreWriterCore {
         }
 
         var emailDiagnostics = new List<EmailDiagnostic>();
+        emailDiagnostics.AddRange(EmailConversionAnalyzer.AnalyzeArchiveMetadata(document));
         MsgPropertyBuilder messageBuilder = MsgWriter.CreateMessageProperties(
             document, emailDiagnostics, string.Concat("message/", FormatId(messageNid)),
             new EmailWriterOptions(EmailConversionLossPolicy.Allow,

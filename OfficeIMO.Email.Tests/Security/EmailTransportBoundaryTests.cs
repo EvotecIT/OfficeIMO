@@ -14,9 +14,5 @@ public sealed class EmailTransportBoundaryTests {
         Assert.DoesNotContain("Google.Apis", googleCore, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string FindRepositoryRoot() {
-        DirectoryInfo? directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory != null && !File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln"))) directory = directory.Parent;
-        return directory?.FullName ?? throw new DirectoryNotFoundException("OfficeIMO repository root was not found.");
-    }
+    private static string FindRepositoryRoot() => EmailTestRepository.FindRoot();
 }

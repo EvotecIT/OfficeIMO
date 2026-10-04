@@ -16,10 +16,12 @@ internal static class EmailStoreMessageReader {
 
     internal static EmailReadResult Read(Stream stream, EmailStoreReaderOptions options,
         CancellationToken cancellationToken, bool? includeAttachmentContent = null, long? maxDecodedPropertyBytes = null,
-        bool includeEmbeddedMessages = true) {
+        bool includeEmbeddedMessages = true, bool preferStreamingAttachmentContent = false) {
         try {
-            return new EmailDocumentReader(CreateOptions(options, includeAttachmentContent, maxDecodedPropertyBytes, includeEmbeddedMessages))
-                .Read(stream, cancellationToken);
+            var reader = new EmailDocumentReader(CreateOptions(options, includeAttachmentContent, maxDecodedPropertyBytes, includeEmbeddedMessages));
+            return preferStreamingAttachmentContent || !(includeAttachmentContent ?? options.RetainAttachmentContent)
+                ? reader.ReadStreaming(stream, cancellationToken: cancellationToken)
+                : reader.Read(stream, cancellationToken);
         } catch (EmailLimitExceededException exception) {
             throw ConvertLimit(exception);
         }
@@ -40,7 +42,7 @@ internal static class EmailStoreMessageReader {
             maxAttachmentCount: options.MaxAttachmentsPerItem,
             includeEmbeddedMessages: includeEmbeddedMessages);
 
-    private static EmailStoreLimitExceededException ConvertLimit(EmailLimitExceededException exception) {
+    internal static EmailStoreLimitExceededException ConvertLimit(EmailLimitExceededException exception) {
         string name = exception.LimitName == nameof(EmailReaderOptions.MaxInputBytes)
             ? nameof(EmailStoreReaderOptions.MaxMessageBytes)
             : exception.LimitName == nameof(EmailReaderOptions.MaxAttachmentBytes)

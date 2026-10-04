@@ -1736,8 +1736,17 @@ jobs:
           dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfReadStreamTests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.Tests.Markdown.Test_SaveAsMarkdown_FileAndRead" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.CSV.Tests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          dotnet test OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "(FullyQualifiedName~Emlx|FullyQualifiedName~MailboxDirectory|FullyQualifiedName~AppleMailboxPackage|FullyQualifiedName~Store.Tests.Olm|FullyQualifiedName~EmailStoreSelectedSourceTests|FullyQualifiedName~EmbeddedSemanticLossTests|FullyQualifiedName~SynthesizedTaskPayloadTests|FullyQualifiedName~ArchiveLossPolicyTests|FullyQualifiedName~NativeAppleExportTests|FullyQualifiedName~AppleSourceLossTests|FullyQualifiedName~IcsDocumentTests|FullyQualifiedName~VCardDocumentTests|FullyQualifiedName~EmailStoreNativeDirectoryExport|FullyQualifiedName~EmailSmimeTests)&Category!=Performance" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          dotnet test OfficeIMO.Security.Tests/OfficeIMO.Security.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~CmsPlatformKeyTests|FullyQualifiedName~CmsSecurityTests.Envelope" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+
           dotnet test OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.VerifyTests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+
+      - name: Qualify native macOS Keychain S/MIME
+        env:
+          OFFICEIMO_EMAIL_NATIVE_KEYCHAIN: '1'
+          OFFICEIMO_EMAIL_KEYCHAIN_SCRATCH: ${{ runner.temp }}
+        run: dotnet test OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework ${{ matrix.framework }} --filter "FullyQualifiedName~NativeMacKeychainTests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
 
       - name: Summarize failing tests
         if: failure() && env.SUMMARIZE_FAILURES == 'true'

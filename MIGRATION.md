@@ -40,6 +40,46 @@ ODT-to-Word conversion now copies at most 64 MiB of embedded image bytes by defa
 
 Normalized RTF writing accepts `UnicodeSkipCount` values from 0 through 8. Set a larger authored value to a supported width before calling `ToRtf`; larger values now raise `ArgumentOutOfRangeException` instead of generating disproportionate fallback output. Reading and lossless source export still preserve an incoming `\uc` value, including one that cannot be used for normalized writing.
 
+## Apple Mail and Outlook for Mac stores
+
+`EmailStoreReaderOptions` adds `maxDirectoryEntryCount` while retaining its original constructor
+signature. The new bound counts all visited directory entries rather than only message files.
+Use `MaxDirectoryFileCount` for candidate message and Apple sibling-storage files, and `MaxItemCount`
+for cataloged messages. Reader's `MaxItems` independently limits the projected selection.
+Files inside identified Apple attachment storage are payloads, including
+those with `.eml` extensions, and are no longer indexed as independent messages.
+Account directories and empty mailbox folders now participate in directory folder identity. Reopen
+directory sessions and recreate durable checkpoints after upgrading; old fingerprints do not use
+the current catalog schema.
+
+Use the case-sensitive dictionary in `EmailDocument.Properties["Emlx:Metadata"]` when editing
+Apple metadata. Flat `Emlx:Metadata:<key>` values are read aliases and participate in writing only
+when no exact catalog is supplied. Ambiguous case-colliding aliases are not created. Opaque trailer rewrites require explicit `Warn` or `Allow`.
+The default `Block` loss policy also rejects omitted EMLX, OLM and MAPI/TNEF metadata, and partial
+content whose completeness cannot be established, including regenerated embedded messages and
+synthesized Outlook task payloads. Embedded calendar, contact and protected-content losses use the
+same policy. Transport signatures retain the separate `SignatureMutationPolicy` contract.
+Use `new EmailWriterOptions(EmailConversionLossPolicy.Warn)`
+when intentionally exporting the common message content, and inspect the returned diagnostics.
+Strict PST creation rejects omitted EMLX/OLM metadata.
+
+Live EMLX, mbox and OLM sessions verify the complete source before and after selected reads,
+including same-length edits. Directory sessions pin message and recovered attachment files at
+first projection. Detected changes invalidate retained attachment readers. Reopen a changed source,
+or use `EmailStoreSession.OpenSnapshot` for a private, stable copy of a standalone archive whose
+repeated reads avoid additional source-fingerprint scans. Keep actively written archives quiescent
+while opening; source validation does not take an atomic filesystem snapshot.
+
+OLM sessions project selected items on demand. Request `PreferStreamingAttachmentContent` on
+`EmailStoreItemReadOptions` for file-backed payloads and keep the owning session alive until the
+content has been copied or written. Session disposal expires both new and outstanding readers.
+
+Reader's default store handler also streams OLM and EMLX attachments. Supported attachment text
+is projected before the session closes, while returned assets carry metadata without `PayloadBytes`.
+If an application needs retained attachment bytes, register the handler with
+`new ReaderEmailStoreOptions { StreamAttachmentContent = false }` and leave the item's explicit
+streaming preference disabled. Keep `StoreOptions.RetainAttachmentContent` enabled for that workflow.
+
 ## LaTeX editing and conversion contracts
 
 Known required arguments now accept an unbraced character or control sequence as one token. Code that treated `LATEX007` as a rejection of every unbraced argument should instead inspect `LatexArgument.IsSingleToken` and the actual missing-argument diagnostics. For example, `\textbf ABC` binds only `A`; an edited replacement is written in braces. Handle the additive `LatexSyntaxKind.SingleTokenArgument` enum member in exhaustive syntax switches.

@@ -44,7 +44,8 @@ public sealed class PstMutationPlanTests {
                 Assert.Contains(plan.Operations, operation =>
                     operation.Kind == EmailStorePstMutationOperationKind.PatchItem &&
                     operation.EntityId == originalId && operation.ChangeCount == 3);
-                Assert.Equal(originalBytes, File.ReadAllBytes(path));
+                if (transaction.AllowsConcurrentReaders) Assert.Equal(originalBytes, File.ReadAllBytes(path));
+                else Assert.Throws<IOException>(() => File.ReadAllBytes(path));
 
                 EmailStorePstMutationReport report = transaction.Commit();
 

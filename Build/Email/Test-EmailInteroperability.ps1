@@ -10,7 +10,7 @@ caller-selected output directory. A requested lane must execute every named test
 [CmdletBinding()]
 param(
     [ValidateSet('Managed', 'MsgReader', 'MimeKit', 'LibPff', 'Outlook', 'Smime',
-        'PrivateStores', 'PrivateStoreConversion')]
+        'PrivateStores', 'PrivateStoreConversion', 'ApplePartial', 'NativeKeychain')]
     [string[]] $Lane = @('Managed'),
     [ValidateSet('net8.0', 'net10.0', 'net472')]
     [string] $Framework = 'net8.0',
@@ -48,6 +48,8 @@ $tests = 'OfficeIMO.Email.Tests.'
 $stores = 'OfficeIMO.Email.Store.Tests.'
 $lanes = [ordered] @{
     Managed = @()
+    ApplePartial = @($stores + 'ExternalApplePartialEmlxCorpusTests.RecoversPinnedIndependentSiblingAndPreservesDecodedBytesThroughEmlExport')
+    NativeKeychain = @($tests + 'NativeMacKeychainTests.CallerSelectedNonExtractableIdentitySignsDecryptsAndHonorsKeychainAuthorization')
     MsgReader = @($tests + 'ExternalEmailCorpusTests.ProcessesAllMsgReaderSamplesWhenCorpusIsAvailable')
     MimeKit = @(
         $tests + 'ExternalEmailCorpusTests.ProcessesMimeKitMimeTnefAndMboxCorporaWhenAvailable'
