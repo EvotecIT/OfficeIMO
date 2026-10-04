@@ -352,7 +352,11 @@ namespace OfficeIMO.Core.Internal {
             private int _byteOffset;
             private int _bitOffset;
             private int _readOffset;
+#if NET8_0_OR_GREATER
+            private ulong _buffer;
+#else
             private uint _buffer;
+#endif
             private int _bufferedBits;
 
             internal DeflateBitReader(byte[] bytes, int offset, int count) {
@@ -376,10 +380,17 @@ namespace OfficeIMO.Core.Internal {
                 if (count < 0 || count > 16) return false;
                 while (_bufferedBits < count) {
 #if NET8_0_OR_GREATER
-                    // Refilling at most 15 buffered bits with 16 more fits the
-                    // uint reservoir. Lookahead does not advance consumption.
+                    // At most 15 buffered bits plus a 32-bit refill fit the
+                    // ulong reservoir. Lookahead does not advance consumption.
+                    if (_end - _readOffset >= 4) {
+                        _buffer |= (ulong)System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(
+                            _bytes.AsSpan(_readOffset, 4)) << _bufferedBits;
+                        _readOffset += 4;
+                        _bufferedBits += 32;
+                        continue;
+                    }
                     if (_end - _readOffset >= 2) {
-                        _buffer |= (uint)System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(
+                        _buffer |= (ulong)System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(
                             _bytes.AsSpan(_readOffset, 2)) << _bufferedBits;
                         _readOffset += 2;
                         _bufferedBits += 16;
