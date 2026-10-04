@@ -6,10 +6,10 @@ internal sealed partial class XpsSvgConverter {
     private long _fontBytes;
     private XElement? Glyphs(XElement e, Dictionary<string, Resource> scope, string part, int depth) {
         Charge(depth);
-        CheckAttributes(e, "FontUri FontRenderingEmSize OriginX OriginY UnicodeString Indices Fill BidiLevel IsSideways StyleSimulations RenderTransform Clip Opacity FixedPage.NavigateUri CaretStops DeviceFontName");
+        CheckAttributes(e, "FontUri FontRenderingEmSize OriginX OriginY UnicodeString Indices Fill BidiLevel IsSideways StyleSimulations RenderTransform Clip Opacity OpacityMask FixedPage.NavigateUri CaretStops DeviceFontName");
         if ((string?)e.Attribute("IsSideways") == "true") { Loss("Sideways glyphs"); return null; }
         if (((string?)e.Attribute("StyleSimulations") ?? "None") != "None") { Loss("Simulated font style"); return null; }
-        foreach (var child in e.Elements()) if (!new[] { "Glyphs.Fill", "Glyphs.Clip", "Glyphs.RenderTransform" }.Contains(child.Name.LocalName)) Loss(child.Name.LocalName);
+        foreach (var child in e.Elements()) if (!new[] { "Glyphs.Fill", "Glyphs.Clip", "Glyphs.RenderTransform", "Glyphs.OpacityMask" }.Contains(child.Name.LocalName)) Loss(child.Name.LocalName);
         string uri = (string?)e.Attribute("FontUri") ?? throw new InvalidDataException("Missing glyph font URI.");
         string[] uriParts = uri.Split('#');
         if (uriParts.Length > 2) throw new InvalidDataException("Invalid font face URI.");
@@ -95,7 +95,7 @@ internal sealed partial class XpsSvgConverter {
         var path = Element("path", new XAttribute("d", data.ToString()), new XAttribute("fill-rule", "nonzero"));
         if (text.Length > 0) Set(path, "aria-label", text);
         Paint(e, "Fill", path, "fill", scope, part, depth);
-        return ApplyImageFill(path);
+        return ApplyBrushFill(path);
     }
     private static int ParseInt(string text) {
         if (!int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out int value) || value < 0 || value > 65535) throw new InvalidDataException("Invalid XPS integer.");

@@ -648,6 +648,10 @@ internal static partial class PdfWriter {
                         }
                     }
 
+                    if (img.Interpolate) {
+                        imageStream.DictionarySuffix += " /Interpolate true";
+                        if (imageStream.SoftMask != null) imageStream.SoftMask.DictionarySuffix += " /Interpolate true";
+                    }
                     int imgId = EnsureImageXObject(imageStream);
                     if (!pageImageResourceNames.TryGetValue(imgId, out string? name)) {
                         name = "/Im" + (pageImageResourceNames.Count + 1).ToString(CultureInfo.InvariantCulture);
@@ -664,6 +668,12 @@ internal static partial class PdfWriter {
                 for (int effectIndex = 0; effectIndex < page.EffectGroups.Count; effectIndex++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     PageEffectGroup effect = page.EffectGroups[effectIndex];
+                    if (effect.AlphaMask != null) {
+                        int maskStateId = AddObject(objects, "<< /Type /ExtGState /ca 1 /CA 1 /BM /Normal /SMask << /S /Alpha /G " +
+                            effect.AlphaMask.ObjectId.ToString(CultureInfo.InvariantCulture) + " 0 R >> >>");
+                        effect.MaskGraphicsStateName = "GM" + (effectIndex + 1).ToString(CultureInfo.InvariantCulture);
+                        graphicsStates.Add(("/" + effect.MaskGraphicsStateName, maskStateId));
+                    }
                     string effectContent = ReplaceInlineImageDrawTokens(layout.ReadContent(effect.Content), page.Images);
                     effectContent = ReplaceInlineEffectGroupTokens(effectContent, page.EffectGroups, effectIndex);
                     PdfPrintColorTransform? effectColorTransform = pageOpts.ConvertVectorColorsToPdfXPrintCondition
@@ -1375,8 +1385,9 @@ internal static partial class PdfWriter {
             var invocation = new StringBuilder();
             var stream = new ContentStreamBuilder(invocation).SaveState();
             if (!string.IsNullOrEmpty(effect.GraphicsStateName)) stream.GraphicsState(effect.GraphicsStateName!);
-            stream.TransformMatrix(effect.Transform)
-                .XObject(effect.Name)
+            stream.TransformMatrix(effect.Transform);
+            if (effect.MaskGraphicsStateName != null) stream.GraphicsState(effect.MaskGraphicsStateName);
+            stream.XObject(effect.Name)
                 .RestoreState();
             result = result.Replace(effect.Token, invocation.ToString());
         }

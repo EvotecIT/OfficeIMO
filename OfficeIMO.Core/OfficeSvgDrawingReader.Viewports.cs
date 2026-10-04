@@ -118,6 +118,8 @@ public static partial class OfficeSvgDrawingReader {
         var viewportBudget = references.CaptureSurfaceBudget();
         if (!references.TryChargeNestedViewport(width, height, childViewWidth, childViewHeight)) return false;
 
+        double viewportOpacity = style.Opacity;
+        style.Opacity = 1D;
         bool hasEffects = TryResolveSvgEffects(
             element,
             width,
@@ -186,7 +188,7 @@ public static partial class OfficeSvgDrawingReader {
             content,
             OfficeTransform.Translate(x, y).Then(transform),
             blendMode,
-            softMask);
+            softMask, viewportOpacity);
         return true;
     }
 

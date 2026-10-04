@@ -20,9 +20,9 @@ internal static partial class PdfWriter {
         private void RenderEffectGroup(OfficeTransform topLeftPageTransform, double opacity, Action renderContent) =>
             RenderEffectGroup(topLeftPageTransform, opacity, OfficeBlendMode.Normal, renderContent);
 
-        private void RenderEffectGroup(OfficeTransform topLeftPageTransform, double opacity, OfficeBlendMode blendMode, Action renderContent) {
+        private void RenderEffectGroup(OfficeTransform topLeftPageTransform, double opacity, OfficeBlendMode blendMode, Action renderContent, bool forceForm = false) {
             OfficeTransform transform = ConvertTopLeftCanvasTransform(topLeftPageTransform, currentOpts.PageHeight);
-            if (opacity >= 1D && blendMode == OfficeBlendMode.Normal &&
+            if (!forceForm && opacity >= 1D && blendMode == OfficeBlendMode.Normal &&
                 (currentOpts.TaggedStructureMode != PdfTaggedStructureMode.CatalogMarkers ||
                  _suppressCanvasAccessibilityWrappers ||
                  _suppressCanvasActualTextChildren)) {

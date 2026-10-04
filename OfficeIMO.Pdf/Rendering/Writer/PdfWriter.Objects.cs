@@ -434,6 +434,8 @@ internal static partial class PdfWriter {
 
     private sealed class PageEffectGroup {
         public PdfPageContentHandle Content { get; set; }
+        public PageEffectGroup? AlphaMask { get; set; }
+        public string? MaskGraphicsStateName { get; set; }
         public string Token { get; set; } = string.Empty;
         public OfficeTransform Transform { get; set; } = OfficeTransform.Identity;
         public string? GraphicsStateName { get; set; }
@@ -459,6 +461,7 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageImage {
+        public bool Interpolate { get; set; }
         public byte[] Data { get; set; } = System.Array.Empty<byte>();
         public OfficeImageInfo Info { get; set; } = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         public PdfImageStream? PreparedStream { get; set; }

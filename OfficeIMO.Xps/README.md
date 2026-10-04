@@ -71,6 +71,16 @@ rendered approximation. `AddPage()` appends to newly created documents; loaded
 sequences retain their existing structure. `AddResource()` adds a new part and
 `GetPartBytes()` returns a copy; neither exposes mutable internal buffers.
 
+## Native brush rendering
+
+Native page markup can use linear and radial gradients, PNG/JPEG image brushes,
+and visual brushes containing paths, glyphs, or canvases. Image and visual brushes
+map absolute viewboxes into viewports and support tiled and mirrored repetition.
+Canvas, path, and glyph opacity masks use brush alpha. These features flow through
+`ToSvg()`, `ToDrawing()`, image export, and the PDF bridge within the
+[documented rendering limits](SUPPORT.md). Conversion rejects unsupported drawing
+features instead of silently dropping them.
+
 ## I/O and preservation
 
 `Load` accepts paths, byte arrays, and readable streams, including non-seekable

@@ -122,6 +122,8 @@ public static partial class OfficeSvgDrawingReader {
             return;
         }
         if (name is "g" or "a" or "switch") {
+            double groupOpacity = style.Opacity;
+            style.Opacity = 1D;
             var elementBudget = references.CaptureSurfaceBudget();
             bool hasEffects = TryResolveSvgEffects(
                 element,
@@ -145,6 +147,7 @@ public static partial class OfficeSvgDrawingReader {
                 out OfficeBlendMode blendMode,
                 out OfficeDrawingSoftMask? softMask,
                 out SvgFilterEffect? filterEffect);
+            hasEffects |= groupOpacity < 1D;
             bool capturesLink = name == "a";
             if (hasEffects && !references.TryChargeEffectSurfaces(drawing.Width, drawing.Height, softMask != null)) {
                 references.RestoreSurfaceBudget(elementBudget);
@@ -165,7 +168,7 @@ public static partial class OfficeSvgDrawingReader {
             OfficeDrawing linkContent = target;
             if (hasEffects) {
                 bool applied = TryApplySvgFilter(target, filterEffect, references, transform, maximumElements, ref visited, ref unsupported, out target);
-                AddSvgFilteredDrawing(drawing, target, applied ? filterEffect : null, blendMode, softMask);
+                AddSvgFilteredDrawing(drawing, target, applied ? filterEffect : null, blendMode, softMask, groupOpacity);
             } else if (capturesLink) {
                 drawing.AddDrawingForClippedRendering(target, 0D, 0D, null);
             }
@@ -175,6 +178,8 @@ public static partial class OfficeSvgDrawingReader {
             return;
         }
         if (name is "use" or "text") {
+            double groupOpacity = style.Opacity;
+            style.Opacity = 1D;
             var elementBudget = references.CaptureSurfaceBudget();
             bool hasEffects = TryResolveSvgEffects(
                 element,
@@ -198,6 +203,7 @@ public static partial class OfficeSvgDrawingReader {
                 out OfficeBlendMode blendMode,
                 out OfficeDrawingSoftMask? softMask,
                 out SvgFilterEffect? filterEffect);
+            hasEffects |= groupOpacity < 1D;
             if (hasEffects && !references.TryChargeEffectSurfaces(drawing.Width, drawing.Height, softMask != null)) {
                 references.RestoreSurfaceBudget(elementBudget);
                 unsupported++;
@@ -230,11 +236,13 @@ public static partial class OfficeSvgDrawingReader {
             }
             if (hasEffects) {
                 bool applied = TryApplySvgFilter(target, filterEffect, references, transform, maximumElements, ref visited, ref unsupported, out target);
-                AddSvgFilteredDrawing(drawing, target, applied ? filterEffect : null, blendMode, softMask);
+                AddSvgFilteredDrawing(drawing, target, applied ? filterEffect : null, blendMode, softMask, groupOpacity);
             }
             return;
         }
 
+        double shapeOpacity = style.Opacity;
+        style.Opacity = 1D;
         OfficeDrawingShape? shape = name switch {
             "rect" => CreateRectangle(element, style, viewX, viewY, drawing.Width, drawing.Height, ref unsupported),
             "circle" => CreateCircle(element, style, viewX, viewY, drawing.Width, drawing.Height),
@@ -338,6 +346,7 @@ public static partial class OfficeSvgDrawingReader {
                 out OfficeBlendMode blendMode,
                 out OfficeDrawingSoftMask? softMask,
                 out SvgFilterEffect? filterEffect);
+            hasEffects |= shapeOpacity < 1D;
             if (hasEffects || hasPattern || hasStrokePattern || hasMarkers) {
                 if (!references.TryChargeEffectSurfaces(drawing.Width, drawing.Height, softMask != null)) {
                     references.RestoreSurfaceBudget(shapeBudget);
@@ -353,7 +362,7 @@ public static partial class OfficeSvgDrawingReader {
                     ((OfficeDrawingEffectGroup)target.Elements[target.Elements.Count - 1]).IsSvgMarkerPaint = true;
                 }
                 bool applied = TryApplySvgFilter(target, filterEffect, references, transform, maximumElements, ref visited, ref unsupported, out target);
-                AddSvgFilteredDrawing(drawing, target, applied ? filterEffect : null, blendMode, softMask);
+                AddSvgFilteredDrawing(drawing, target, applied ? filterEffect : null, blendMode, softMask, shapeOpacity);
             } else {
                 drawing.AddShapeForClippedRendering(shape.Shape, shape.X, shape.Y);
             }

@@ -94,6 +94,8 @@ public static partial class OfficeSvgDrawingReader {
             rootDefaults.DashPercentageReference = NormalizedSvgDiagonal(viewWidth, viewHeight);
             var context = ResolvePaintContext(root, rootDefaults, paintServers, ref unsupportedFeatureCount);
             OfficeTransform rootTransform = ResolveTransform(root, OfficeTransform.Identity, viewX, viewY, ref unsupportedFeatureCount);
+            double rootOpacity = context.Opacity;
+            context.Opacity = 1D;
             bool rootHasEffects = TryResolveSvgEffects(
                 root,
                 scene.Width,
@@ -116,6 +118,7 @@ public static partial class OfficeSvgDrawingReader {
                 out OfficeBlendMode rootBlendMode,
                 out OfficeDrawingSoftMask? rootSoftMask,
                 out SvgFilterEffect? rootFilterEffect);
+            rootHasEffects |= rootOpacity < 1D;
             if (rootHasEffects && !references.TryChargeEffectSurfaces(viewWidth, viewHeight, rootSoftMask != null)) {
                 return false;
             }
@@ -126,7 +129,7 @@ public static partial class OfficeSvgDrawingReader {
                 ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupportedFeatureCount);
             if (rootHasEffects) {
                 TryApplySvgFilter(rootContent, rootFilterEffect, references, rootTransform, maximumElements, ref visited, ref unsupportedFeatureCount, out rootContent);
-                scene.AddEffectDrawing(rootContent, OfficeTransform.Identity, rootBlendMode, rootSoftMask);
+                scene.AddEffectDrawing(rootContent, OfficeTransform.Identity, rootBlendMode, rootSoftMask, rootOpacity);
             }
             string? rootClip = ReadPresentationProperty(root, "clip-path");
             if (!string.IsNullOrWhiteSpace(rootClip) && !rootClip!.Trim().Equals("none", StringComparison.OrdinalIgnoreCase)) {

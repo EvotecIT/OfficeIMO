@@ -12,11 +12,12 @@ Preserving an unsupported native element does not mean that it can be rendered.
 | Text extraction | UnicodeString runs in markup order | No inferred reading order, paragraphs, or glyph-ID-to-Unicode reconstruction |
 | Paths | Abbreviated geometry, fill rules, explicit path figures/segments, fills, strokes, dashes, matrix transforms, clipping | Per-segment fill/stroke suppression, asymmetric/triangle or separate dash caps, and over-limit clipped miters (including the native degenerate-segment rule) are diagnosed |
 | Text rendering | Embedded TrueType programs/collections, obfuscation, explicit glyph IDs, cluster mappings, advances/offsets, horizontal bidi direction | Outlined output; sideways glyphs, style simulations, and unsupported font programs are diagnosed |
-| Brushes | Hex/scRGB solid colors; linear/radial gradients; scoped and external package resource dictionaries; non-tiled PNG/JPEG image brushes and their matrix transforms | VisualBrush, tiled image brushes, ICC ContextColor, color-converted images, gradient transforms, TIFF/JPEG-XR rendering, and opacity masks are diagnosed |
+| Brushes | Hex/scRGB solid colors; linear/radial gradients; scoped and external package resource dictionaries; PNG/JPEG and visual brushes with absolute viewbox/viewport mapping, matrix transforms, Tile/FlipX/FlipY/FlipXY repetition, and alpha opacity masks | Non-tiled brush strokes, ICC ContextColor, color-converted images, and TIFF/JPEG-XR rendering are diagnosed |
 | Navigation | Safe web/mail links; page/document/sequence named targets with scoped first-occurrence lookup; sequence page numbers projected into SVG filenames | Non-page unresolved and unsafe destinations are diagnosed; document navigation is not a PDF preservation contract |
+| Gradient transforms | Affine transforms retained in SVG; affine linear gradients and axis-aligned scaled/translated radial gradients convert through Core | Rotated/sheared radial gradients and non-Pad radial spread reject drawing/image/PDF conversion |
 | SVG | Self-contained images and glyph outlines; strict by default; explicit partial result with diagnostics | Unknown markup/attributes are diagnosed; no claim of complete XPS consumer conformance |
 | Drawing/images | Existing managed Core scene and image exporters | Shared viewport, element, geometry, raster, and codec limits still apply; any reported SVG import loss rejects conversion |
-| PDF | Optional thin bridge to the existing PDF engine, retaining page dimensions | Vector outlines rather than searchable text; no print-ticket/structure/signature migration |
+| PDF | Optional thin bridge to the existing PDF engine, retaining page dimensions, bounded vector tile expansion, and native alpha-mask Forms | Vector outlines rather than searchable text; no print-ticket/structure/signature migration |
 | Security | Package-local resource resolution; no external fetch; DTD prohibition; shared backing for repeated page parts; bounded ZIP/XML/page and expanded SVG node/character/resource-binding growth; cooperative cancellation; atomic path saves | Inspection does not authenticate signatures or make arbitrary native documents trusted |
 
 ## Qualification
@@ -40,5 +41,14 @@ its Unicode text, and renders its font/image placements. Its handling of this
 OpenXPS package selects a generic ZIP reader, so it does not establish independent
 OpenXPS rendering acceptance. These tools are isolated validation tools and are
 not product dependencies or ordinary build requirements.
+
+A generated 16-case brush corpus is compared at 96 DPI against MuPDF's native XPS
+renderer, including non-zero tile origins, all flip modes, transformed patterns,
+linear-gradient transforms, and solid/gradient/tiled alpha masks. Fourteen cases agree
+within small rasterization differences. The overlapping visual-brush mask and masked-group cases disagree
+with MuPDF's native XPS renderer: OfficeIMO follows ECMA-388 section 18.5's isolated
+composition rule, verified by opacity arithmetic and independently rendered PDF
+output. These checks qualify representative cases, not every combination of native
+brushes, fonts, transforms, and effects.
 
 The open qualification and rendering work belongs in [the roadmap](../Docs/ROADMAP.md#xpsopenxps).

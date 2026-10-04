@@ -210,6 +210,7 @@ internal static partial class PdfWriter {
         private void DrawDrawingElements(OfficeDrawing drawing, double originX, double originTopY, OfficeDrawingTextMetrics? textMetrics = null) {
             textMetrics ??= CreateDrawingTextMetrics(currentOpts);
             for (int i = 0; i < drawing.Elements.Count; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (drawing.Elements[i] is OfficeDrawingShape shape) {
                     double xShape = originX + shape.X;
                     double bottomY = originTopY - shape.Y - shape.Shape.Height;
@@ -223,15 +224,9 @@ internal static partial class PdfWriter {
                 } else if (drawing.Elements[i] is OfficeDrawingGroup group) {
                     DrawDrawingGroupAt(group, originX, originTopY, textMetrics);
                 } else if (drawing.Elements[i] is OfficeDrawingEffectGroup effectGroup) {
-                    if (effectGroup.BlendMode != OfficeBlendMode.Normal || effectGroup.SoftMask != null) {
-                        throw new NotSupportedException("OfficeIMO.Pdf does not yet support drawing effect groups with a blend mode or soft mask.");
-                    }
-
-                    OfficeTransform pageTransform = ToTopLeftPageTransform(effectGroup.Transform, originX, originTopY);
-                    RenderEffectGroup(
-                        pageTransform,
-                        effectGroup.Opacity,
-                        () => DrawDrawingElements(effectGroup.InnerDrawing, originX, originTopY, textMetrics));
+                    DrawDrawingEffectAt(effectGroup, originX, originTopY, textMetrics);
+                } else if (drawing.Elements[i] is OfficeDrawingTilingPattern pattern) {
+                    DrawDrawingPatternAt(pattern, originX, originTopY, textMetrics);
                 } else {
                     throw new NotSupportedException(
                         "OfficeIMO.Pdf does not yet support drawing elements of type " +
@@ -317,6 +312,7 @@ internal static partial class PdfWriter {
                 targetBottomY,
                 projection.Width,
                 projection.Height);
+            pageImage.Interpolate = image.Interpolate;
             pageImage.Opacity = image.Opacity;
             pageImage.GraphicsStateName = EnsureGraphicsState(image.Opacity, image.Opacity);
             pageImage.HorizontalFlip = projection.FlipHorizontal;

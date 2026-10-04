@@ -160,6 +160,13 @@ Gradient fills and strokes preserve color-stop alpha through native transparency
 including header and footer shapes. Gradient direction follows the same local coordinates
 before and after an affine transform.
 
+Drawing export retains bounded vector tiling patterns, isolated group opacity and
+blend modes, and alpha soft masks with transparent backdrops. Luminosity masks and
+nontransparent mask backdrops reject export. Embedded drawing images preserve their
+interpolation setting. When reopening PDFs, the managed reader still flattens ordinary
+transparency groups; overlapping children can therefore render too dark. Exported
+native PDF groups are a separate contract from that reader limitation.
+
 `OfficeDrawing.AddVerticalText(...)` draws native positioned glyphs in PDF when
 the selected shaping provider supplies vertical advances and complete logical
 text coverage, the chosen font is embedded, and an `/ActualText` wrapper owns

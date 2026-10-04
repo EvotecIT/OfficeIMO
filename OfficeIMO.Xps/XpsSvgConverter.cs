@@ -7,7 +7,7 @@ internal sealed partial class XpsSvgConverter {
     private readonly CancellationToken _token;
     private readonly List<string> _diagnostics = new();
     private readonly XElement _defs;
-    private readonly Dictionary<XElement, XElement> _imageFills = new();
+    private readonly Dictionary<XElement, XElement> _brushFills = new();
     private int _id;
     private int _visited;
     private int _points;
@@ -28,11 +28,14 @@ internal sealed partial class XpsSvgConverter {
         XElement page = _page.GetMarkup();
         CheckAttributes(page, "Width Height ContentBox BleedBox Name");
         if (page.Attribute("Name") is XAttribute pageName) Set(root, "id", "xps-" + pageName.Value);
-        RenderChildren(page, root, new Dictionary<string, Resource>(), _page.PartName, 0);
+        RenderChildren(page, root, new Dictionary<string, Resource>(), _page.PartName, 0, new BrushRegion(0, 0, _page.Width, _page.Height));
         if (_diagnostics.Count != 0 && !allowPartial) throw new NotSupportedException("XPS conversion would lose features: " + string.Join("; ", _diagnostics.Take(12)));
         return new XpsSvgResult(root.ToString(SaveOptions.DisableFormatting), _diagnostics);
     }
-    private static string N(double value) => XpsPackage.N(value);
+    private static string N(double value) {
+        if (double.IsNaN(value) || double.IsInfinity(value)) throw new InvalidDataException("Non-finite XPS projection coordinate.");
+        return XpsPackage.N(value);
+    }
     private void Loss(string message) { if (_diagnostics.Count < 100 && !_diagnostics.Contains(message)) _diagnostics.Add(message); }
     private void CheckAttributes(XElement e, string allowed) {
         var names = new HashSet<string>((allowed + " Name").Split(' '), StringComparer.Ordinal);
@@ -85,26 +88,28 @@ internal sealed partial class XpsSvgConverter {
         if (!resources.TryGetValue(key, out var found)) throw new InvalidDataException("Missing XPS resource: " + key);
         return found;
     }
-    private void RenderChildren(XElement parent, XElement target, Dictionary<string, Resource> inherited, string part, int depth) {
+    private void RenderChildren(XElement parent, XElement target, Dictionary<string, Resource> inherited, string part, int depth, BrushRegion region, XElement? singleVisual = null) {
         Charge(depth);
         var scope = Resources(parent, inherited, part, depth);
-        foreach (XElement child in parent.Elements()) {
+        foreach (XElement child in singleVisual == null ? parent.Elements() : new[] { singleVisual }) {
             _token.ThrowIfCancellationRequested();
             if (child.Name.LocalName == parent.Name.LocalName + ".Resources") continue;
-            if (child.Name.LocalName == parent.Name.LocalName + ".RenderTransform" || child.Name.LocalName == parent.Name.LocalName + ".Clip") continue;
+            if (child.Name.LocalName == parent.Name.LocalName + ".RenderTransform" || child.Name.LocalName == parent.Name.LocalName + ".Clip" || child.Name.LocalName == parent.Name.LocalName + ".OpacityMask") continue;
             if (child.Name.NamespaceName != XpsPackage.Namespace(_page.Document.Format)) { Loss("Foreign element: " + child.Name); continue; }
+            string? transform = Transform(child, scope);
+            BrushRegion localRegion = LocalRegion(region, transform);
             XElement? result;
             switch (child.Name.LocalName) {
                 case "Canvas":
-                    CheckAttributes(child, "RenderTransform Clip Opacity FixedPage.NavigateUri");
+                    CheckAttributes(child, "RenderTransform Clip Opacity OpacityMask FixedPage.NavigateUri");
                     result = Element("g");
-                    RenderChildren(child, result, scope, part, depth + 1); break;
+                    RenderChildren(child, result, scope, part, depth + 1, localRegion); break;
                 case "Path": result = PathElement(child, scope, part, depth + 1); break;
                 case "Glyphs": result = Glyphs(child, scope, part, depth + 1); break;
                 default: Loss("Element: " + child.Name.LocalName); continue;
             }
             if (result == null) continue;
-            string? transform = Transform(child, scope);
+            ApplyOpacityMask(child, result, scope, part, depth + 1, localRegion);
             if (transform != null) Set(result, "transform", transform);
             string? clip = Geometry(child, "Clip", scope);
             if (clip != null) {
@@ -115,11 +120,11 @@ internal sealed partial class XpsSvgConverter {
             }
             if (child.Attribute("Opacity") is XAttribute opacity) Set(result, "opacity", N(Unit(opacity.Value)));
             string? link = (string?)child.Attribute("FixedPage.NavigateUri");
-            if (link != null) {
+            if (link != null && _visualDepth == 0) {
                 string? href = Link(link, part);
                 if (href != null) result = Element("a", new XAttribute("href", href), result);
             }
-            if (child.Attribute("Name") is XAttribute name) Set(result, "id", "xps-" + name.Value);
+            if (_visualDepth == 0 && child.Attribute("Name") is XAttribute name) Set(result, "id", "xps-" + name.Value);
             target.Add(result);
         }
     }
@@ -207,17 +212,17 @@ internal sealed partial class XpsSvgConverter {
     }
     private XElement PathElement(XElement e, Dictionary<string, Resource> scope, string part, int depth) {
         Charge(depth);
-        CheckAttributes(e, "Data Fill Stroke StrokeThickness StrokeDashArray StrokeDashOffset StrokeStartLineCap StrokeEndLineCap StrokeDashCap StrokeLineJoin StrokeMiterLimit RenderTransform Clip Opacity FixedPage.NavigateUri");
+        CheckAttributes(e, "Data Fill Stroke StrokeThickness StrokeDashArray StrokeDashOffset StrokeStartLineCap StrokeEndLineCap StrokeDashCap StrokeLineJoin StrokeMiterLimit RenderTransform Clip Opacity OpacityMask FixedPage.NavigateUri");
         string path = StripFillRule(Geometry(e, "Data", scope) ?? "", out string rule);
         var result = Element("path", new XAttribute("d", path), new XAttribute("fill-rule", rule));
         Paint(e, "Fill", result, "fill", scope, part, depth);
         Paint(e, "Stroke", result, "stroke", scope, part, depth);
         Stroke(e, result, path);
-        foreach (var child in e.Elements()) if (!new[] { "Path.Data", "Path.Fill", "Path.Stroke", "Path.Clip", "Path.RenderTransform" }.Contains(child.Name.LocalName)) Loss(child.Name.LocalName);
-        return ApplyImageFill(result);
+        foreach (var child in e.Elements()) if (!new[] { "Path.Data", "Path.Fill", "Path.Stroke", "Path.Clip", "Path.RenderTransform", "Path.OpacityMask" }.Contains(child.Name.LocalName)) Loss(child.Name.LocalName);
+        return ApplyBrushFill(result);
     }
-    private XElement ApplyImageFill(XElement path) {
-        if (!_imageFills.TryGetValue(path, out var image)) return path;
+    private XElement ApplyBrushFill(XElement path) {
+        if (!_brushFills.TryGetValue(path, out var image)) return path;
         string id = "pathClip" + (++_id);
         _defs.Add(Element("clipPath", new XAttribute("id", id), Element("path", new XAttribute("d", (string?)path.Attribute("d") ?? ""), new XAttribute("clip-rule", (string?)path.Attribute("fill-rule") ?? "evenodd"))));
         return Element("g", Element("g", new XAttribute("clip-path", "url(#" + id + ")"), image), path);

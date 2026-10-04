@@ -7,11 +7,11 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeSvgDrawingReader {
     private static void AddSvgFilteredDrawing(OfficeDrawing drawing, OfficeDrawing filtered,
-        SvgFilterEffect? filter, OfficeBlendMode blend, OfficeDrawingSoftMask? mask) {
+        SvgFilterEffect? filter, OfficeBlendMode blend, OfficeDrawingSoftMask? mask, double opacity = 1D) {
         // A managed graph already has its own filter-region clip. An identity
         // effect surface would prematurely clip it to the SVG viewport before
         // an enclosing graph can sample or translate the outside paint.
-        if (filter?.Graph != null && blend == OfficeBlendMode.Normal && mask == null) {
+        if (filter?.Graph != null && blend == OfficeBlendMode.Normal && mask == null && opacity >= 1D) {
             drawing.AddDrawingForClippedRendering(filtered, 0D, 0D, null);
         } else if (filter?.Graph != null && filtered.Elements.Count == 1 && filtered.Elements[0] is OfficeDrawingGroup region) {
             if (region.ClipPath.Kind == OfficeClipPathKind.Empty) {
@@ -27,10 +27,10 @@ public static partial class OfficeSvgDrawingReader {
                 localMask.AddDrawingForClippedRendering(mask.InnerDrawing, -region.X, -region.Y, null);
                 mask = new OfficeDrawingSoftMask(localMask, mask.Mode);
             }
-            drawing.AddEffectDrawing(local, OfficeTransform.Translate(region.X, region.Y), blend, mask);
+            drawing.AddEffectDrawing(local, OfficeTransform.Translate(region.X, region.Y), blend, mask, opacity);
             ((OfficeDrawingEffectGroup)drawing.Elements[drawing.Elements.Count - 1]).UnfilteredGeometryBounds = region.UnfilteredGeometryBounds;
         } else {
-            drawing.AddEffectDrawing(filtered, OfficeTransform.Identity, blend, mask);
+            drawing.AddEffectDrawing(filtered, OfficeTransform.Identity, blend, mask, opacity);
         }
     }
 
