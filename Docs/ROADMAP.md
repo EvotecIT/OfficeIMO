@@ -115,7 +115,7 @@ Combine independent Apple reference evidence in I2 with common formatting covera
 
 ### I6: native creation and lifecycle
 
-- [ ] Extend the [qualified native Keynote creation slice](officeimo.iwork-support-matrix.md#native-keynote-creation) beyond static slides and uniformly styled plain text. Qualify additional producer versions, installed/fallback fonts, text scripts, rich runs, media and tables through independent decoding, Apple reopen/edit/export and rendered comparisons. Establish writer trimming/AOT and portable operation-level resource evidence.
+- [ ] Extend the [qualified native Keynote creation slice](officeimo.iwork-support-matrix.md#native-keynote-creation) beyond static slides and uniformly styled plain text. Qualify additional producer versions, installed/fallback fonts, text scripts, rich runs, media and tables through independent decoding, Apple reopen/edit/export and rendered comparisons. Extend the bounded macOS arm64 writer NativeAOT qualification to other supported hosts and establish portable operation-level resource evidence.
 - [ ] Implement owned native Pages and Numbers creation codecs and models with template-free generation, deterministic packages, bounded resource/cancellation behavior, independent decoding and Apple reopen/export evidence. Add edited-source save-back only with explicit preservation and operation-level loss reports; creation does not establish that lifecycle.
 
 ## Desktop Studio
