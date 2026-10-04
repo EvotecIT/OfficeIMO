@@ -21,6 +21,10 @@ on:
         required: true
         type: boolean
         default: false
+      confirm-no-prior-submission:
+        description: I checked both catalogs; this release has no prior submission (required without retained history).
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -28,7 +32,7 @@ permissions:
 
 jobs:
   catalog:
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-catalog-update.yml@072f3abbb63704588976b46ab59108747c8edc2a
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-catalog-update.yml@469c2098c0ab57848cd803d401880811e0e64ce4
     with:
       environment-name: studio-catalog
       profile-path: Build/Studio/powerforge.catalog.json
@@ -38,6 +42,7 @@ jobs:
       checksums-name: windows-SHA256SUMS.txt
       channel: ${{ inputs.channel }}
       execute: ${{ inputs.execute }}
+      confirm-no-prior-submission: ${{ inputs.confirm-no-prior-submission }}
     secrets:
       WINGET_CREATE_GITHUB_TOKEN: ${{ secrets.WINGET_CREATE_GITHUB_TOKEN }}
       PARTNER_CENTER_TENANT_ID: ${{ secrets.PARTNER_CENTER_TENANT_ID }}

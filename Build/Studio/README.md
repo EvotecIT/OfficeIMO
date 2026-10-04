@@ -134,8 +134,12 @@ Studio's product identity and environment variable names.
 
 The **Update Studio catalogs** Actions workflow accepts a published Studio tag,
 the public delivery release ID and a channel. Its default is preflight; select
-the execute input to submit. It downloads the release assets, restores any prior
-receipt, and archives intent before publishing. A canceled or uncertain run
+the execute input to submit. It requalifies the signed release assets, restores
+matching progress from a verified dispatch of the same workflow and branch,
+and archives intent before publishing. Without confirmed receipt history,
+check both catalogs and select `confirm-no-prior-submission` before executing.
+This includes the first submission of a new version; a preflight alone never
+confirms missing history. A canceled or uncertain run
 stops instead of automatically repeating a remote mutation. Retain its receipt
 artifacts; reconcile them using the [shared catalog update commands](https://github.com/EvotecIT/PSPublishModule/blob/main/Docs/PSPublishModule.CatalogUpdates.md).
 Store certification and WinGet moderator acceptance remain separate from
