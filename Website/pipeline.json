@@ -4168,10 +4168,7 @@
       ],
       "maxTotalFiles": 20000,
       "maxFileBytes": 26214400,
-      "budgetExclude": [
-        "downloads/studio/0.1.9767/OfficeIMO-Studio-0.1.9767-win-x64.msi",
-        "downloads/studio/0.1.9767/OfficeIMO-Studio-0.1.9767-win-arm64.msi"
-      ],
+      "budgetExclude": "downloads/studio/0.1.9767/OfficeIMO-Studio-0.1.9767-win-x64.msi,downloads/studio/0.1.9767/OfficeIMO-Studio-0.1.9767-win-arm64.msi",
       "navSelector": "header nav",
       "navCanonicalPath": "index.html",
       "navCanonicalRequired": true,
