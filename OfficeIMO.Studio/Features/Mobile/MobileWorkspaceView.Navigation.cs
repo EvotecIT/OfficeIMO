@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using OfficeIMO.Studio.Features.Organizer;
+using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Features.Shell;
 
 namespace OfficeIMO.Studio.Features.Mobile;
@@ -71,6 +72,17 @@ public sealed partial class MobileWorkspaceView {
             _pageList.SelectedItem = Document?.OrganizerPages.FirstOrDefault(page => page.PageNumber == Document.SelectedPage?.PageNumber);
             if (_pageList.SelectedItem is { } selected) _pageList.ScrollIntoView(selected);
         } finally { _selectingThumbnail = previous; }
+    }
+
+    private async void OnGoToPageClick(object? sender, RoutedEventArgs e) {
+        if (Document is not { HasDocument: true, SelectedPage: { } selectedPage } document) return;
+        // A document can be replaced by a platform open request while its chooser is visible.
+        var pages = document.Pages.ToArray();
+        int? page = await ShowDialogAsync<int?>(new PageNavigationDialogContent(selectedPage.PageNumber, pages.Length));
+        if (page is not { } number || !ReferenceEquals(Document, document) ||
+            number < 1 || number > pages.Length || !document.Pages.Contains(pages[number - 1])) return;
+        document.SelectedPage = pages[number - 1];
+        PageScroll.Offset = default;
     }
 
     private void HostPageList(ContentControl? host) {

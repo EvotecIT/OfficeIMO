@@ -29,6 +29,7 @@ public sealed partial class DocumentWorkspaceView : UserControl {
                 _document.PropertyChanged -= OnDocumentChanged;
             }
             _document = DataContext as MainWindowViewModel;
+            SetPageNumberError(null);
             if (_document is not null) _document.PropertyChanged += OnDocumentChanged;
             RestorePaneWidths();
         };
@@ -101,8 +102,7 @@ public sealed partial class DocumentWorkspaceView : UserControl {
 
     private void OnPageNumberKeyDown(object? sender, KeyEventArgs e) {
         if (e.Key == Key.Enter) {
-            GoToTypedPage();
-            (GridPagesList.IsEffectivelyVisible ? GridPagesList : PagesList).Focus();
+            if (GoToTypedPage()) (GridPagesList.IsEffectivelyVisible ? GridPagesList : PagesList).Focus();
             e.Handled = true;
         } else if (e.Key == Key.Escape) {
             UpdatePageNumber();
@@ -111,15 +111,28 @@ public sealed partial class DocumentWorkspaceView : UserControl {
         }
     }
 
-    private void OnPageNumberLostFocus(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => UpdatePageNumber();
-
-    private void GoToTypedPage() {
-        if (_document is null) return;
-        if (int.TryParse(PageNumberBox.Text, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.CurrentCulture, out int page) &&
-            page >= 1 && page <= _document.Pages.Count) {
-            _document.NavigateToOrganizerPage(page);
-        }
+    private void OnPageNumberLostFocus(object? sender, Avalonia.Interactivity.RoutedEventArgs e) {
+        SetPageNumberError(null);
         UpdatePageNumber();
+    }
+
+    private bool GoToTypedPage() {
+        if (_document is null) return false;
+        if (PdfPageNavigation.TryParsePageNumber(PageNumberBox.Text, _document.Pages.Count, out int page)) {
+            SetPageNumberError(null);
+            _document.NavigateToOrganizerPage(page);
+            return true;
+        }
+        SetPageNumberError(StudioLocalization.Current.Format("Reader.InvalidPage", _document.Pages.Count));
+        return false;
+    }
+
+    private void SetPageNumberError(string? message) {
+        // Keep the announcement text when hiding it: Avalonia's macOS live-region
+        // bridge cannot announce a null name. Hidden errors are excluded from the UI.
+        if (message is not null) PageNumberError.Text = message;
+        PageNumberErrorBanner.IsVisible = message is not null;
+        PageNumberBox.Classes.Set("invalidPage", message is not null);
     }
 
     private void OnFindClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => FocusSearch();

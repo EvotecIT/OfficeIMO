@@ -160,11 +160,15 @@
           <Button Grid.Column="4" Classes="touch" Command="{Binding FitPageCommand}" HorizontalAlignment="Center" AutomationProperties.Name="Fit"><PathIcon Data="{StaticResource IconFitPage}"/></Button>
         </Grid>
         <Grid x:Name="ReaderNavigation" ColumnDefinitions="*,Auto" IsVisible="{Binding HasDocument}">
-          <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+          <Grid ColumnDefinitions="Auto,*,Auto" MaxWidth="220" HorizontalAlignment="Left">
             <Button Classes="touch neutral" Command="{Binding PreviousPageCommand}" AutomationProperties.Name="Previous page"><PathIcon Data="{StaticResource IconChevronLeft}" Width="12" Height="12"/></Button>
-            <TextBlock Text="{Binding PageStatusText}" FontSize="12" Foreground="{DynamicResource StudioMutedTextBrush}" VerticalAlignment="Center"/>
-            <Button Classes="touch neutral" Command="{Binding NextPageCommand}" AutomationProperties.Name="Next page"><PathIcon Data="{StaticResource IconChevronRight}" Width="12" Height="12"/></Button>
-          </StackPanel>
+            <Button x:Name="GoToPageButton" Grid.Column="1" Classes="touch" Click="OnGoToPageClick" Padding="4,8"
+                    AutomationProperties.Name="{loc:Loc Reader.GoToPage}" AutomationProperties.HelpText="{Binding PageStatusText}"
+                    ToolTip.Tip="{loc:Loc Reader.GoToPage}" IsEnabled="{Binding HasDocument}">
+              <TextBlock Text="{Binding PageStatusText}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+            </Button>
+            <Button Grid.Column="2" Classes="touch neutral" Command="{Binding NextPageCommand}" AutomationProperties.Name="Next page"><PathIcon Data="{StaticResource IconChevronRight}" Width="12" Height="12"/></Button>
+          </Grid>
           <StackPanel Grid.Column="1" Orientation="Horizontal">
             <Button x:Name="WideFit" Classes="touch" Command="{Binding FitPageCommand}" AutomationProperties.Name="Fit" ToolTip.Tip="Fit page"><PathIcon Data="{StaticResource IconFitPage}"/></Button>
             <Button Classes="touch neutral" Content="−" Command="{Binding ZoomOutCommand}" AutomationProperties.Name="Zoom out"/>

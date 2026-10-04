@@ -2077,6 +2077,10 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Shell.MoveDownTip" xml:space="preserve"><value>Move selected pages later (Alt+Down)</value></data>
   <data name="Shell.PageNumber" xml:space="preserve"><value>Current page</value></data>
   <data name="Shell.PageNumberTip" xml:space="preserve"><value>Type a page number and press Enter</value></data>
+  <data name="Reader.GoToPage" xml:space="preserve"><value>Go to page</value></data>
+  <data name="Reader.Go" xml:space="preserve"><value>Go</value></data>
+  <data name="Reader.PageRange" xml:space="preserve"><value>Page 1 to {0}</value></data>
+  <data name="Reader.InvalidPage" xml:space="preserve"><value>Enter a whole page number from 1 to {0}.</value></data>
   <data name="Shell.PageCount" xml:space="preserve"><value>of {0:N0}</value></data>
   <data name="Shell.UnsavedChanges" xml:space="preserve"><value>Unsaved changes</value></data>
   <data name="Shell.RedactionSection" xml:space="preserve"><value>Permanent redaction</value></data>

@@ -10,6 +10,9 @@
              x:Class="OfficeIMO.Studio.Features.Workspace.DocumentWorkspaceView"
              x:DataType="shell:MainWindowViewModel">
   <UserControl.Styles>
+    <Style Selector="TextBox#PageNumberBox.invalidPage /template/ Border#PART_BorderElement">
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioErrorBrush}"/>
+    </Style>
     <Style Selector=".phone :is(Control).secondaryAction"><Setter Property="IsVisible" Value="False" /></Style>
     <Style Selector=".phone :is(Control).zoomDetail"><Setter Property="IsVisible" Value="False" /></Style>
     <Style Selector=".phone Button#SaveButton TextBlock"><Setter Property="IsVisible" Value="False" /></Style>
@@ -747,6 +750,11 @@
         </Border>
 
         <!-- Floating page and zoom controls over the canvas. -->
+        <Border x:Name="PageNumberErrorBanner" Grid.Row="1" Grid.ColumnSpan="3" Classes="floating"
+                IsVisible="False" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="12,0,12,72" MaxWidth="360" Padding="12,8">
+          <TextBlock x:Name="PageNumberError" Foreground="{DynamicResource StudioErrorBrush}"
+                     TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+        </Border>
         <Border x:Name="PagePill" Grid.Row="1" Grid.ColumnSpan="3" Classes="floating" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,16">
           <StackPanel Orientation="Horizontal" Spacing="2">
             <Button Classes="icon" Command="{Binding PreviousPageCommand}" IsEnabled="{Binding CanGoPrevious}"

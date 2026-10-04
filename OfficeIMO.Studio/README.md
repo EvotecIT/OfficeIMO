@@ -197,7 +197,7 @@ Studio restores open tabs and their recoverable edits after restart. Working-cop
 
 Search supports previous and next matches, Enter and Shift+Enter navigation, and Escape to clear highlights and return to the reader. A hardware keyboard also supports Command+O, Command+S, Command+W, Command+F, Command+Z and Command+Shift+Z. Use Control+Tab to switch documents and Command+Shift+T to reopen a closed document.
 
-Wide reading layouts show page thumbnails beside the document and grouped review tools above it. Compact layouts move review tools to the bottom and open thumbnails in a Pages sheet. Notes and document reviews account for the software keyboard. Choose **Try a sample** to open a three-page introduction.
+Wide reading layouts show page thumbnails beside the document and grouped review tools above it. Compact layouts move review tools to the bottom and open thumbnails in a Pages sheet. Tap the page counter to enter a page number, then choose **Go** or press Enter. The chooser stays above the software keyboard and leaves the reading position unchanged when cancelled. Desktop readers keep an inline page-number field; invalid numbers remain available for correction. Notes and document reviews also account for the software keyboard. Choose **Try a sample** to open a three-page introduction.
 
 **File origin and text integrity** imports an app-owned working copy, then uses the desktop local-file engine. Copies and JSON reports remain on the device; open their entries in **Jobs** to share or save them to Files. The imported source remains unchanged.
 
