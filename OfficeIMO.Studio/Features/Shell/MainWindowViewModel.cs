@@ -310,6 +310,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     partial void OnIsOpeningChanged(bool value) {
         OnPropertyChanged(nameof(CanStartDocumentTransition));
         OnPropertyChanged(nameof(CanCancelOperation));
+        NotifyFormNavigation();
     }
 
     partial void OnSelectedPageChanged(PdfPageViewModel? oldValue, PdfPageViewModel? newValue) {

@@ -6,6 +6,39 @@ namespace OfficeIMO.Studio.Features.Shell;
 public sealed partial class MainWindowViewModel {
     private bool _refreshingFormFields;
 
+    private int SelectedFormFieldIndex => SelectedFormField is null ? -1 : FormFields.IndexOf(SelectedFormField);
+
+    /// <summary>The selected field's position in the document's form-field order.</summary>
+    public string FormFieldPosition => _localizer.Format("Forms.FieldPosition", SelectedFormFieldIndex + 1, FormFields.Count);
+
+    /// <summary>Whether the field before the selection can be visited without interrupting an operation.</summary>
+    public bool CanSelectPreviousFormField => CanStartDocumentTransition && SelectedFormFieldIndex > 0;
+    /// <summary>Whether the field after the selection can be visited without interrupting an operation.</summary>
+    public bool CanSelectNextFormField => CanStartDocumentTransition && SelectedFormFieldIndex >= 0 && SelectedFormFieldIndex < FormFields.Count - 1;
+
+    [RelayCommand(CanExecute = nameof(CanSelectPreviousFormField))]
+    private void SelectPreviousFormField() => SelectAdjacentFormField(-1);
+
+    [RelayCommand(CanExecute = nameof(CanSelectNextFormField))]
+    private void SelectNextFormField() => SelectAdjacentFormField(1);
+
+    private void SelectAdjacentFormField(int direction) {
+        int index = SelectedFormFieldIndex;
+        int next = index + direction;
+        if (!CanStartDocumentTransition || index < 0 || next < 0 || next >= FormFields.Count) return;
+        // Use the same selection path as the picker; value drafts belong to each field.
+        ShowFormsMode();
+        SelectedFormField = FormFields[next];
+    }
+
+    private void NotifyFormNavigation() {
+        OnPropertyChanged(nameof(FormFieldPosition));
+        OnPropertyChanged(nameof(CanSelectPreviousFormField));
+        OnPropertyChanged(nameof(CanSelectNextFormField));
+        SelectPreviousFormFieldCommand.NotifyCanExecuteChanged();
+        SelectNextFormFieldCommand.NotifyCanExecuteChanged();
+    }
+
     private void RebuildFormFields() {
         var previous = SelectedFormField;
         bool sameDocument = ReferenceEquals(_formWorkspace, _workspace);
@@ -15,6 +48,7 @@ public sealed partial class MainWindowViewModel {
             _refreshingFormFields = false;
             if (!sameDocument || previous is null || SelectedFormField?.HasSameDefinition(previous) != true) ResetFormDefinition();
             UpdateFormAnchor();
+            NotifyFormNavigation();
         }
     }
 

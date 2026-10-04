@@ -105,15 +105,23 @@ public sealed partial class StudioMobileApplicationTests {
     [Theory]
     [InlineData(1366, 1024)]
     [InlineData(390, 844)]
+    [InlineData(844, 390)]
     public async Task FormsAndPageReviewSaveThroughTheMobileHost(int width, int height) {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-mobile-edit-" + Guid.NewGuid().ToString("N"));
         try {
             using var session = TestAppBuilder.StartSession();
             await session.Dispatch(async () => {
                 byte[] original = PdfDocument.Create(pdf => {
-                    pdf.Page(page => page.Size(300, 400));
-                    pdf.Page(page => page.Size(300, 400));
-                }).Forms.Edit(edit => edit.Create(new() { Name = "Name", Value = "Original", X = 30, Y = 300 })).ToBytes();
+                    pdf.Page(page => page.Size(300, 400).Content(content => content.Text("Traveller details")));
+                    pdf.Page(page => page.Size(300, 400).Content(content => content.Text("Destination details")));
+                }).Forms.Edit(edit => edit
+                    .Create(new() { Name = "Name", Value = "Original", X = 30, Y = 250 })
+                    .Create(new() { Name = "Reference", Value = "STUDIO-123", FieldFlags = 1, X = 30, Y = 190 })
+                    .Create(new() { Name = "Destination", PageNumber = 2, Value = "", X = 30, Y = 250 })).ToBytes();
+                if (Environment.GetEnvironmentVariable("OFFICEIMO_STUDIO_VISUAL_OUTPUT") is { Length: > 0 } evidence) {
+                    Directory.CreateDirectory(evidence);
+                    File.WriteAllBytes(Path.Combine(evidence, "form-navigation.pdf"), original);
+                }
                 var source = new TestStorageFile("content://mobile/form.pdf", original, "form.pdf");
                 var services = StudioApplicationServices.Create(new StudioDataPaths(Path.Combine(root, "data")),
                     new StudioLocalDocumentRoot(Path.Combine(root, "documents")));
@@ -133,6 +141,23 @@ public sealed partial class StudioMobileApplicationTests {
                     value.Text = "Completed on iPad";
                     Layout(window);
                     Assert.Equal("Completed on iPad", document.SelectedFormField!.TextValue);
+                    Assert.False(document.Commands["PreviousFormField"].IsAvailable);
+                    Click(window, inspector, document.Commands["NextFormField"]); Layout(window);
+                    Assert.Equal("Reference", document.SelectedFormField!.Name);
+                    Assert.False(document.SelectedFormField.CanFill);
+                    Click(window, inspector, document.Commands["NextFormField"]); Layout(window);
+                    Assert.Equal("Destination", document.SelectedFormField!.Name);
+                    Assert.Equal(2, document.SelectedPage!.PageNumber);
+                    Assert.False(document.Commands["NextFormField"].IsAvailable);
+                    var destination = inspector.GetVisualDescendants().OfType<TextBox>()
+                        .Single(box => box.IsEffectivelyVisible && Avalonia.Automation.AutomationProperties.GetName(box) == "Destination");
+                    destination.Text = "Poland";
+                    Layout(window); Capture(window, $"application-form-navigation-{width}");
+                    Click(window, inspector, document.Commands["PreviousFormField"]);
+                    Click(window, inspector, document.Commands["PreviousFormField"]); Layout(window);
+                    Assert.Equal("Name", document.SelectedFormField!.Name);
+                    Assert.Equal(1, document.SelectedPage!.PageNumber);
+                    Assert.Equal("Completed on iPad", document.SelectedFormField.TextValue);
                     var apply = inspector.GetVisualDescendants().OfType<Button>().Single(button => ReferenceEquals(button.Command, document.FillFormFieldCommand));
                     apply.BringIntoView(); Layout(window);
                     Assert.True(apply.Bounds.Height >= 44);
@@ -143,13 +168,17 @@ public sealed partial class StudioMobileApplicationTests {
                     Click(window, view.FindControl<Button>("SaveButton")!);
                     await document.SaveCommand.ExecutionTask!;
                     Assert.False(document.IsDirty, document.ErrorMessage);
-                    var field = Assert.Single(PdfDocument.Load(document.DocumentPath!).Inspect().FormFields);
-                    Assert.Equal("Completed on iPad", field.Value);
+                    var fields = PdfDocument.Load(document.DocumentPath!).Inspect().FormFields;
+                    Assert.Equal("Completed on iPad", fields.Single(field => field.Name == "Name").Value);
+                    Assert.Equal("Poland", fields.Single(field => field.Name == "Destination").Value);
+                    Assert.Equal("STUDIO-123", fields.Single(field => field.Name == "Reference").Value);
                     Assert.Equal(original, source.Bytes);
                     // Page-tree rewriting has the same PDF capability limits as desktop.
                     // Exercise reordering on a supported document after saving the form.
                     await controller.OpenSampleAsync();
                     document = controller.Document;
+                    Assert.False(document.Commands["PreviousFormField"].IsAvailable);
+                    Assert.False(document.Commands["NextFormField"].IsAvailable);
                     string[] pageText = PdfReadDocument.Open(document.DocumentPath!).Pages.Select(page => page.ExtractText()).ToArray();
                     await document.Commands["Pages"].ExecuteAsync(); Layout(window);
                     var editor = Assert.Single(view.GetVisualDescendants().OfType<DocumentWorkspaceView>());

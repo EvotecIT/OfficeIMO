@@ -1565,6 +1565,10 @@
   <data name="Forms.ApplyTabOrder" xml:space="preserve"><value>Apply tab order</value></data>
   <data name="Forms.AdvancedGeometry" xml:space="preserve"><value>Advanced placement</value></data>
   <data name="Forms.ShowField" xml:space="preserve"><value>Show field on page</value></data>
+  <data name="Forms.ChooseField" xml:space="preserve"><value>Choose a form field</value></data>
+  <data name="Forms.PreviousField" xml:space="preserve"><value>Previous form field</value></data>
+  <data name="Forms.NextField" xml:space="preserve"><value>Next form field</value></data>
+  <data name="Forms.FieldPosition" xml:space="preserve"><value>Field {0} of {1}</value></data>
   <data name="Forms.PreviewAppearance" xml:space="preserve"><value>Preview field appearance</value></data>
   <data name="Forms.CancelPreview" xml:space="preserve"><value>Cancel preview</value></data>
   <data name="Forms.PreviewHint" xml:space="preserve"><value>Preview of this field on its first page. Other fields show their saved values. Apply or save to keep this edit.</value></data>

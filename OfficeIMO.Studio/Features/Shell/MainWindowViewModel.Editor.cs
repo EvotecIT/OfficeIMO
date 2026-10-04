@@ -216,6 +216,7 @@ public sealed partial class MainWindowViewModel {
         if (!_refreshingFormFields && IsFormsDocumentMode) ShowSelectedFormField();
         UpdateFormAnchor();
         NotifyFormValueActions();
+        NotifyFormNavigation();
     }
 
     private void OnFormValueChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args) => NotifyFormValueActions();

@@ -5,6 +5,8 @@ using Avalonia.Input;
 using Avalonia.Input.Raw;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Features.Mobile;
 using OfficeIMO.Studio.Features.Reader;
@@ -38,7 +40,7 @@ public sealed partial class StudioMobileWorkspaceTests {
                     var opener = view.FindControl<Button>("GoToPageButton")!;
                     Assert.True(opener.Bounds.Height >= 44);
                     Assert.True(opener.Bounds.Width >= 44);
-                    Click(view, "Go to page");
+                    await OpenPageChooserAsync(view, window, width, height);
                     Layout(window, width, height);
                     var dialog = Assert.IsType<PageNavigationDialogContent>(view.FindControl<ContentControl>("DialogContent")!.Content);
                     var input = dialog.FindControl<TextBox>("PageInput")!;
@@ -64,7 +66,7 @@ public sealed partial class StudioMobileWorkspaceTests {
                     Assert.Same(opener, window.FocusManager.GetFocusedElement());
                     Assert.True(view.FindControl<SplitView>("ApplicationNavigation")!.IsEnabled);
 
-                    Click(view, "Go to page");
+                    await OpenPageChooserAsync(view, window, width, height);
                     Layout(window, width, height);
                     dialog = (PageNavigationDialogContent)view.FindControl<ContentControl>("DialogContent")!.Content!;
                     dialog.FindControl<TextBox>("PageInput")!.Text = "2";
@@ -72,7 +74,7 @@ public sealed partial class StudioMobileWorkspaceTests {
                     await WaitForPageChooserAsync(view);
                     Assert.Equal(3, document.SelectedPage.PageNumber);
 
-                    Click(view, "Go to page");
+                    await OpenPageChooserAsync(view, window, width, height);
                     Layout(window, width, height);
                     dialog = (PageNavigationDialogContent)view.FindControl<ContentControl>("DialogContent")!.Content!;
                     dialog.FindControl<TextBox>("PageInput")!.Text = "2";
@@ -81,7 +83,7 @@ public sealed partial class StudioMobileWorkspaceTests {
                     await WaitForPageChooserAsync(view);
                     Assert.Equal(3, document.SelectedPage.PageNumber);
 
-                    Click(view, "Go to page");
+                    await OpenPageChooserAsync(view, window, width, height);
                     Layout(window, width, height);
                     dialog = (PageNavigationDialogContent)view.FindControl<ContentControl>("DialogContent")!.Content!;
                     await controller.OpenSampleAsync();
@@ -92,7 +94,7 @@ public sealed partial class StudioMobileWorkspaceTests {
                     Assert.Equal(3, document.SelectedPage.PageNumber);
 
                     window.RequestedThemeVariant = ThemeVariant.Dark;
-                    Click(view, "Go to page");
+                    await OpenPageChooserAsync(view, window, width, height);
                     Layout(window, width, height);
                     Capture(window, $"page-chooser-dark-{width}");
                     window.Close();
@@ -145,6 +147,30 @@ public sealed partial class StudioMobileWorkspaceTests {
                 return true;
             }, CancellationToken.None);
         } finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+
+    private static async Task OpenPageChooserAsync(MobileWorkspaceView view, Window window, int width, int height) {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        var button = view.FindControl<Button>("GoToPageButton")!;
+        Point? previous = null;
+        int stableFrames = 0;
+        // Headless pointer input also pumps rendering. Let the resized navigation pane
+        // settle before capturing coordinates so that down/up reach the same button.
+        while (true) {
+            Layout(window, width, height);
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+            Point point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
+            bool hitsButton = window.InputHitTest(point) is Visual hit && hit.GetSelfAndVisualAncestors().Contains(button);
+            stableFrames = hitsButton && previous == point ? stableFrames + 1 : 0;
+            if (stableFrames >= 3) {
+                window.MouseDown(point, MouseButton.Left);
+                window.MouseUp(point, MouseButton.Left);
+                return;
+            }
+            previous = point;
+            await Task.Delay(10, timeout.Token);
+        }
     }
 
     private static async Task WaitForPageChooserAsync(MobileWorkspaceView view) {
