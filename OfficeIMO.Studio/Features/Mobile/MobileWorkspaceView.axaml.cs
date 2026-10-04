@@ -36,7 +36,7 @@ public sealed partial class MobileWorkspaceView : UserControl {
         MobileAssistant.ManageConnectionsAsync = connections => ShowDialogAsync<bool>(
             new Features.Assistant.ConnectionsDialogContent { DataContext = connections });
         SizeChanged += (_, _) => UpdateLayoutMode();
-        PageScroll.SizeChanged += (_, _) => UpdateActiveViewport();
+        PageScroll.SizeChanged += (_, _) => { CancelPinch(); UpdateActiveViewport(); };
         DataContextChanged += (_, _) => ObserveDocument();
         AttachedToVisualTree += (_, _) => ObserveDocument();
         DetachedFromVisualTree += (_, _) => {
@@ -57,7 +57,7 @@ public sealed partial class MobileWorkspaceView : UserControl {
         }
         _observedDocument = Document;
         NoteText.Text = Document is { } active && _noteDrafts.TryGetValue(active, out string? draft) ? draft : string.Empty;
-        _pinchStartZoom = null;
+        CancelPinch();
         PageScroll.Offset = default;
         RefreshPageList();
         UpdateActiveViewport();
@@ -76,7 +76,7 @@ public sealed partial class MobileWorkspaceView : UserControl {
             FitNewDocument();
             RefreshPageList();
         }
-        if (e.PropertyName == nameof(MainWindowViewModel.SelectedPage)) SelectCurrentThumbnail();
+        if (e.PropertyName == nameof(MainWindowViewModel.SelectedPage)) { CancelPinch(); SelectCurrentThumbnail(); }
         if (e.PropertyName is nameof(MainWindowViewModel.IsDirty) or nameof(MainWindowViewModel.IsWorkspaceBusy) or
             nameof(MainWindowViewModel.HasDocument) or nameof(MainWindowViewModel.IsOpening)) UpdateDocumentStatus();
     }

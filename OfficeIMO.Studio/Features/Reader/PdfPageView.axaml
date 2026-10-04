@@ -46,7 +46,7 @@
     </MenuFlyout>
   </UserControl.Resources>
   <StackPanel Width="{Binding DisplayWidth}" Margin="24,14" HorizontalAlignment="Center" Spacing="8">
-    <Border Width="{Binding DisplayWidth}"
+    <Border x:Name="PagePaper" Width="{Binding DisplayWidth}"
             Height="{Binding DisplayHeight}"
             Background="White"
             BorderBrush="{DynamicResource StudioSubtleBorderBrush}"

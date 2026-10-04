@@ -2,23 +2,27 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Platform;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 
 namespace OfficeIMO.Studio.Features.Mobile;
 
 public sealed partial class MobileWorkspaceView {
-    private double? _pinchStartZoom;
     private IInputPane? _inputPane;
     private double _keyboardOverlap;
 
     private void InitializeTouchInput() {
-        PageScroll.GestureRecognizers.Add(new PinchGestureRecognizer());
-        PageScroll.AddHandler(InputElement.PinchEvent, (_, e) => {
-            if (Document is not { } document) return;
-            _pinchStartZoom ??= document.Zoom;
-            document.SetTouchZoom(_pinchStartZoom.Value * e.Scale);
-            e.Handled = true;
-        });
-        PageScroll.AddHandler(InputElement.PinchEndedEvent, (_, _) => _pinchStartZoom = null);
+        _pinchRecognizer.Started += () => _suppressPinchContext = true;
+        PageScroll.GestureRecognizers.Add(_pinchRecognizer);
+        PageScroll.DetachedFromVisualTree += (_, _) => CancelPinch();
+        PageScroll.AddHandler(PointerPressedEvent, (_, _) => {
+            if (_pinchStartZoom is null && !_ignorePinch) _suppressPinchContext = false;
+        }, RoutingStrategies.Tunnel);
+        PageScroll.AddHandler(ContextRequestedEvent, (sender, e) => {
+            // A holding gesture can reach the page after its touches have been taken by the pinch recognizer.
+            if (_suppressPinchContext && e.TryGetPosition(PageScroll, out _)) e.Handled = true;
+        }, RoutingStrategies.Tunnel);
+        PageScroll.AddHandler(InputElement.PinchEvent, OnPinch);
+        PageScroll.AddHandler(InputElement.PinchEndedEvent, (_, _) => EndPinch());
         AttachedToVisualTree += (_, _) => {
             _inputPane = TopLevel.GetTopLevel(this)?.InputPane;
             if (_inputPane is not null) _inputPane.StateChanged += OnInputPaneChanged;
@@ -26,7 +30,7 @@ public sealed partial class MobileWorkspaceView {
         DetachedFromVisualTree += (_, _) => {
             if (_inputPane is not null) _inputPane.StateChanged -= OnInputPaneChanged;
             _inputPane = null;
-            _pinchStartZoom = null;
+            CancelPinch();
         };
     }
 
