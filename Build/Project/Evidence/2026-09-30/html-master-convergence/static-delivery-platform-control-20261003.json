@@ -3401,5 +3401,531 @@
     },
     "packedConsumerStep": "passed on all three platforms; existing nineteen-package/public-consumer assertions executed",
     "classification": "Three Windows proof failures come from the observer using host-dependent UTF-8 decoding and expecting CRLF for the reader LF contract. Fix observer and prove current-head Windows exact extraction before acceptance. All three timing gates remain failed; no ceiling changed. This is not a qualified static milestone."
+  },
+  "utf8LfFocusedPlatformProof20261004": {
+    "runId": 37165805678,
+    "url": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37165805678",
+    "sourceHead": "7a78710948f4bd01436d4c7870225012b9d30f04",
+    "suite": "html-static-pdf-probe",
+    "conclusion": "success",
+    "platforms": {
+      "html-static-qualification-ubuntu-latest": {
+        "textValidator": {
+          "executable": "/usr/bin/pdftotext",
+          "version": "pdftotext version 24.02.0\nCopyright 2005-2024 The Poppler Developers - http://poppler.freedesktop.org\nCopyright 1996-2011, 2022 Glyph & Cog, LLC"
+        },
+        "tests": [
+          {
+            "file": "pdf-fonts-net10.0.trx",
+            "total": 28,
+            "passed": 28,
+            "failed": 0
+          },
+          {
+            "file": "pdf-net10.0.trx",
+            "total": 18,
+            "passed": 18,
+            "failed": 0
+          },
+          {
+            "file": "pdf-fonts-net8.0.trx",
+            "total": 28,
+            "passed": 28,
+            "failed": 0
+          }
+        ],
+        "exactExtraction": [
+          {
+            "Scenario": "canvas",
+            "PdfFile": "logical-text-canvas-2886f603.pdf",
+            "PdfLength": 1513,
+            "PdfSha256": "372a42fedf8e55c717ac121dbc23914be9eb0e2cefc3be426af57b5dfcd1d4ee",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/usr/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "LogicalReplacement",
+            "ActualText": "LogicalReplacement",
+            "Passed": true
+          },
+          {
+            "Scenario": "canvas",
+            "PdfFile": "logical-text-canvas-8eed52bf.pdf",
+            "PdfLength": 1517,
+            "PdfSha256": "a264637968d5fadeccdc67bb330ab7e07473f160f5fb6781b36f0841415a074f",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/usr/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "ActualText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "Passed": true
+          },
+          {
+            "Scenario": "canvas",
+            "PdfFile": "logical-text-canvas-bed3fa25.pdf",
+            "PdfLength": 1527,
+            "PdfSha256": "713edad3624c51afb19045bc18d6e132fd8507baac0f0fe573c2306cfc3e9a5d",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/usr/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "Logical replacement words",
+            "ActualText": "Logical replacement words",
+            "Passed": true
+          },
+          {
+            "Scenario": "drawing",
+            "PdfFile": "logical-text-drawing-2886f603.pdf",
+            "PdfLength": 1535,
+            "PdfSha256": "e292457d055b3802093dc29515b8d45be2f07d1d8ba966dd39bc68dae94db954",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/usr/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "LogicalReplacement",
+            "ActualText": "LogicalReplacement",
+            "Passed": true
+          },
+          {
+            "Scenario": "drawing",
+            "PdfFile": "logical-text-drawing-8eed52bf.pdf",
+            "PdfLength": 1539,
+            "PdfSha256": "1557c3360166bb08355d40728e912e98b65cf11d42f246f80a1fd62e424b04da",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/usr/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "ActualText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "Passed": true
+          },
+          {
+            "Scenario": "drawing",
+            "PdfFile": "logical-text-drawing-bed3fa25.pdf",
+            "PdfLength": 1549,
+            "PdfSha256": "fc0fbe4255eab76d5316558552adc2cc8e780f1fd05fb03f3eb2c25c54d15c32",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/usr/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "Logical replacement words",
+            "ActualText": "Logical replacement words",
+            "Passed": true
+          },
+          {
+            "Scenario": "effect",
+            "PdfFile": "logical-text-effect-2886f603.pdf",
+            "PdfLength": 1899,
+            "PdfSha256": "2fe813292af48473a671e6fb506fa62c58780a6d712965ff18aa8d40706dd846",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/usr/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "LogicalReplacement",
+            "ActualText": "LogicalReplacement",
+            "Passed": true
+          },
+          {
+            "Scenario": "effect",
+            "PdfFile": "logical-text-effect-bed3fa25.pdf",
+            "PdfLength": 1913,
+            "PdfSha256": "ce6acfbb787cb4e1daa0dfca106287a0262ba7a8471db5683a79613c8a618732",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/usr/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "Logical replacement words",
+            "ActualText": "Logical replacement words",
+            "Passed": true
+          },
+          {
+            "Scenario": "following",
+            "PdfFile": "logical-text-following-bed3fa25.pdf",
+            "PdfLength": 1811,
+            "PdfSha256": "e17fa53986c6f15c7dd8cadcc1190f5fa2c2712b778f1bf02bd55267d02b3982",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/usr/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "Logical replacement words\nFollowingPaint",
+            "ActualText": "Logical replacement words\nFollowingPaint",
+            "Passed": true
+          },
+          {
+            "Scenario": "nested",
+            "PdfFile": "logical-text-nested-2886f603.pdf",
+            "PdfLength": 1513,
+            "PdfSha256": "372a42fedf8e55c717ac121dbc23914be9eb0e2cefc3be426af57b5dfcd1d4ee",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/usr/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "LogicalReplacement",
+            "ActualText": "LogicalReplacement",
+            "Passed": true
+          },
+          {
+            "Scenario": "nested",
+            "PdfFile": "logical-text-nested-bed3fa25.pdf",
+            "PdfLength": 1527,
+            "PdfSha256": "713edad3624c51afb19045bc18d6e132fd8507baac0f0fe573c2306cfc3e9a5d",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/usr/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "Logical replacement words",
+            "ActualText": "Logical replacement words",
+            "Passed": true
+          },
+          {
+            "Scenario": "shape",
+            "PdfFile": "logical-text-shape-2886f603.pdf",
+            "PdfLength": 1400,
+            "PdfSha256": "389019853e140febf0a1cd3b004a0ee26c045e6e833afe326dee4df81930daca",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/usr/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "LogicalReplacement",
+            "ActualText": "LogicalReplacement",
+            "Passed": true
+          }
+        ]
+      },
+      "html-static-qualification-windows-latest": {
+        "textValidator": {
+          "executable": "C:\\Program Files\\Git\\mingw64\\bin\\pdftotext.exe",
+          "version": "pdftotext version 4.06 [www.xpdfreader.com]\r\nCopyright 1996-2025 Glyph & Cog, LLC"
+        },
+        "tests": [
+          {
+            "file": "pdf-fonts-net10.0.trx",
+            "total": 28,
+            "passed": 28,
+            "failed": 0
+          },
+          {
+            "file": "pdf-net10.0.trx",
+            "total": 18,
+            "passed": 18,
+            "failed": 0
+          },
+          {
+            "file": "pdf-fonts-net8.0.trx",
+            "total": 28,
+            "passed": 28,
+            "failed": 0
+          }
+        ],
+        "exactExtraction": [
+          {
+            "Scenario": "canvas",
+            "PdfFile": "logical-text-canvas-2886f603.pdf",
+            "PdfLength": 1513,
+            "PdfSha256": "372a42fedf8e55c717ac121dbc23914be9eb0e2cefc3be426af57b5dfcd1d4ee",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "C:\\Program Files\\Git\\mingw64\\bin\\pdftotext.exe",
+            "ExitCode": 0,
+            "ExpectedText": "LogicalReplacement",
+            "ActualText": "LogicalReplacement",
+            "Passed": true
+          },
+          {
+            "Scenario": "canvas",
+            "PdfFile": "logical-text-canvas-8eed52bf.pdf",
+            "PdfLength": 1517,
+            "PdfSha256": "a264637968d5fadeccdc67bb330ab7e07473f160f5fb6781b36f0841415a074f",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "C:\\Program Files\\Git\\mingw64\\bin\\pdftotext.exe",
+            "ExitCode": 0,
+            "ExpectedText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "ActualText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "Passed": true
+          },
+          {
+            "Scenario": "canvas",
+            "PdfFile": "logical-text-canvas-bed3fa25.pdf",
+            "PdfLength": 1527,
+            "PdfSha256": "713edad3624c51afb19045bc18d6e132fd8507baac0f0fe573c2306cfc3e9a5d",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "C:\\Program Files\\Git\\mingw64\\bin\\pdftotext.exe",
+            "ExitCode": 0,
+            "ExpectedText": "Logical replacement words",
+            "ActualText": "Logical replacement words",
+            "Passed": true
+          },
+          {
+            "Scenario": "drawing",
+            "PdfFile": "logical-text-drawing-2886f603.pdf",
+            "PdfLength": 1535,
+            "PdfSha256": "e292457d055b3802093dc29515b8d45be2f07d1d8ba966dd39bc68dae94db954",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "C:\\Program Files\\Git\\mingw64\\bin\\pdftotext.exe",
+            "ExitCode": 0,
+            "ExpectedText": "LogicalReplacement",
+            "ActualText": "LogicalReplacement",
+            "Passed": true
+          },
+          {
+            "Scenario": "drawing",
+            "PdfFile": "logical-text-drawing-8eed52bf.pdf",
+            "PdfLength": 1539,
+            "PdfSha256": "1557c3360166bb08355d40728e912e98b65cf11d42f246f80a1fd62e424b04da",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "C:\\Program Files\\Git\\mingw64\\bin\\pdftotext.exe",
+            "ExitCode": 0,
+            "ExpectedText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "ActualText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "Passed": true
+          },
+          {
+            "Scenario": "drawing",
+            "PdfFile": "logical-text-drawing-bed3fa25.pdf",
+            "PdfLength": 1549,
+            "PdfSha256": "fc0fbe4255eab76d5316558552adc2cc8e780f1fd05fb03f3eb2c25c54d15c32",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "C:\\Program Files\\Git\\mingw64\\bin\\pdftotext.exe",
+            "ExitCode": 0,
+            "ExpectedText": "Logical replacement words",
+            "ActualText": "Logical replacement words",
+            "Passed": true
+          },
+          {
+            "Scenario": "effect",
+            "PdfFile": "logical-text-effect-2886f603.pdf",
+            "PdfLength": 1899,
+            "PdfSha256": "2fe813292af48473a671e6fb506fa62c58780a6d712965ff18aa8d40706dd846",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "C:\\Program Files\\Git\\mingw64\\bin\\pdftotext.exe",
+            "ExitCode": 0,
+            "ExpectedText": "LogicalReplacement",
+            "ActualText": "LogicalReplacement",
+            "Passed": true
+          },
+          {
+            "Scenario": "effect",
+            "PdfFile": "logical-text-effect-bed3fa25.pdf",
+            "PdfLength": 1913,
+            "PdfSha256": "ce6acfbb787cb4e1daa0dfca106287a0262ba7a8471db5683a79613c8a618732",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "C:\\Program Files\\Git\\mingw64\\bin\\pdftotext.exe",
+            "ExitCode": 0,
+            "ExpectedText": "Logical replacement words",
+            "ActualText": "Logical replacement words",
+            "Passed": true
+          },
+          {
+            "Scenario": "following",
+            "PdfFile": "logical-text-following-bed3fa25.pdf",
+            "PdfLength": 1811,
+            "PdfSha256": "e17fa53986c6f15c7dd8cadcc1190f5fa2c2712b778f1bf02bd55267d02b3982",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "C:\\Program Files\\Git\\mingw64\\bin\\pdftotext.exe",
+            "ExitCode": 0,
+            "ExpectedText": "Logical replacement words\nFollowingPaint",
+            "ActualText": "Logical replacement words\nFollowingPaint",
+            "Passed": true
+          },
+          {
+            "Scenario": "nested",
+            "PdfFile": "logical-text-nested-2886f603.pdf",
+            "PdfLength": 1513,
+            "PdfSha256": "372a42fedf8e55c717ac121dbc23914be9eb0e2cefc3be426af57b5dfcd1d4ee",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "C:\\Program Files\\Git\\mingw64\\bin\\pdftotext.exe",
+            "ExitCode": 0,
+            "ExpectedText": "LogicalReplacement",
+            "ActualText": "LogicalReplacement",
+            "Passed": true
+          },
+          {
+            "Scenario": "nested",
+            "PdfFile": "logical-text-nested-bed3fa25.pdf",
+            "PdfLength": 1527,
+            "PdfSha256": "713edad3624c51afb19045bc18d6e132fd8507baac0f0fe573c2306cfc3e9a5d",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "C:\\Program Files\\Git\\mingw64\\bin\\pdftotext.exe",
+            "ExitCode": 0,
+            "ExpectedText": "Logical replacement words",
+            "ActualText": "Logical replacement words",
+            "Passed": true
+          },
+          {
+            "Scenario": "shape",
+            "PdfFile": "logical-text-shape-2886f603.pdf",
+            "PdfLength": 1400,
+            "PdfSha256": "389019853e140febf0a1cd3b004a0ee26c045e6e833afe326dee4df81930daca",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "C:\\Program Files\\Git\\mingw64\\bin\\pdftotext.exe",
+            "ExitCode": 0,
+            "ExpectedText": "LogicalReplacement",
+            "ActualText": "LogicalReplacement",
+            "Passed": true
+          }
+        ]
+      },
+      "html-static-qualification-macos-latest": {
+        "textValidator": {
+          "executable": "/opt/homebrew/bin/pdftotext",
+          "version": "pdftotext version 26.09.0\nCopyright 2005-2026 The Poppler Developers - http://poppler.freedesktop.org\nCopyright 1996-2011, 2022 Glyph & Cog, LLC"
+        },
+        "tests": [
+          {
+            "file": "pdf-fonts-net10.0.trx",
+            "total": 28,
+            "passed": 28,
+            "failed": 0
+          },
+          {
+            "file": "pdf-net10.0.trx",
+            "total": 18,
+            "passed": 18,
+            "failed": 0
+          },
+          {
+            "file": "pdf-fonts-net8.0.trx",
+            "total": 28,
+            "passed": 28,
+            "failed": 0
+          }
+        ],
+        "exactExtraction": [
+          {
+            "Scenario": "canvas",
+            "PdfFile": "logical-text-canvas-2886f603.pdf",
+            "PdfLength": 1513,
+            "PdfSha256": "372a42fedf8e55c717ac121dbc23914be9eb0e2cefc3be426af57b5dfcd1d4ee",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/opt/homebrew/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "LogicalReplacement",
+            "ActualText": "LogicalReplacement",
+            "Passed": true
+          },
+          {
+            "Scenario": "canvas",
+            "PdfFile": "logical-text-canvas-8eed52bf.pdf",
+            "PdfLength": 1517,
+            "PdfSha256": "a264637968d5fadeccdc67bb330ab7e07473f160f5fb6781b36f0841415a074f",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/opt/homebrew/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "ActualText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "Passed": true
+          },
+          {
+            "Scenario": "canvas",
+            "PdfFile": "logical-text-canvas-bed3fa25.pdf",
+            "PdfLength": 1527,
+            "PdfSha256": "713edad3624c51afb19045bc18d6e132fd8507baac0f0fe573c2306cfc3e9a5d",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/opt/homebrew/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "Logical replacement words",
+            "ActualText": "Logical replacement words",
+            "Passed": true
+          },
+          {
+            "Scenario": "drawing",
+            "PdfFile": "logical-text-drawing-2886f603.pdf",
+            "PdfLength": 1535,
+            "PdfSha256": "e292457d055b3802093dc29515b8d45be2f07d1d8ba966dd39bc68dae94db954",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/opt/homebrew/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "LogicalReplacement",
+            "ActualText": "LogicalReplacement",
+            "Passed": true
+          },
+          {
+            "Scenario": "drawing",
+            "PdfFile": "logical-text-drawing-8eed52bf.pdf",
+            "PdfLength": 1539,
+            "PdfSha256": "1557c3360166bb08355d40728e912e98b65cf11d42f246f80a1fd62e424b04da",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/opt/homebrew/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "ActualText": "R\u00e9sum\u00e9 \ud83d\ude00",
+            "Passed": true
+          },
+          {
+            "Scenario": "drawing",
+            "PdfFile": "logical-text-drawing-bed3fa25.pdf",
+            "PdfLength": 1549,
+            "PdfSha256": "fc0fbe4255eab76d5316558552adc2cc8e780f1fd05fb03f3eb2c25c54d15c32",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/opt/homebrew/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "Logical replacement words",
+            "ActualText": "Logical replacement words",
+            "Passed": true
+          },
+          {
+            "Scenario": "effect",
+            "PdfFile": "logical-text-effect-2886f603.pdf",
+            "PdfLength": 1899,
+            "PdfSha256": "2fe813292af48473a671e6fb506fa62c58780a6d712965ff18aa8d40706dd846",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/opt/homebrew/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "LogicalReplacement",
+            "ActualText": "LogicalReplacement",
+            "Passed": true
+          },
+          {
+            "Scenario": "effect",
+            "PdfFile": "logical-text-effect-bed3fa25.pdf",
+            "PdfLength": 1913,
+            "PdfSha256": "ce6acfbb787cb4e1daa0dfca106287a0262ba7a8471db5683a79613c8a618732",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/opt/homebrew/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "Logical replacement words",
+            "ActualText": "Logical replacement words",
+            "Passed": true
+          },
+          {
+            "Scenario": "following",
+            "PdfFile": "logical-text-following-bed3fa25.pdf",
+            "PdfLength": 1811,
+            "PdfSha256": "e17fa53986c6f15c7dd8cadcc1190f5fa2c2712b778f1bf02bd55267d02b3982",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/opt/homebrew/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "Logical replacement words\nFollowingPaint",
+            "ActualText": "Logical replacement words\nFollowingPaint",
+            "Passed": true
+          },
+          {
+            "Scenario": "nested",
+            "PdfFile": "logical-text-nested-2886f603.pdf",
+            "PdfLength": 1513,
+            "PdfSha256": "372a42fedf8e55c717ac121dbc23914be9eb0e2cefc3be426af57b5dfcd1d4ee",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/opt/homebrew/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "LogicalReplacement",
+            "ActualText": "LogicalReplacement",
+            "Passed": true
+          },
+          {
+            "Scenario": "nested",
+            "PdfFile": "logical-text-nested-bed3fa25.pdf",
+            "PdfLength": 1527,
+            "PdfSha256": "713edad3624c51afb19045bc18d6e132fd8507baac0f0fe573c2306cfc3e9a5d",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/opt/homebrew/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "Logical replacement words",
+            "ActualText": "Logical replacement words",
+            "Passed": true
+          },
+          {
+            "Scenario": "shape",
+            "PdfFile": "logical-text-shape-2886f603.pdf",
+            "PdfLength": 1400,
+            "PdfSha256": "389019853e140febf0a1cd3b004a0ee26c045e6e833afe326dee4df81930daca",
+            "ValidatorName": "PDF text",
+            "ExecutablePath": "/opt/homebrew/bin/pdftotext",
+            "ExitCode": 0,
+            "ExpectedText": "LogicalReplacement",
+            "ActualText": "LogicalReplacement",
+            "Passed": true
+          }
+        ]
+      }
+    },
+    "scope": "Identified independent text extraction: twelve exact replacement/Unicode/LF cases; six registered-font fallback cases; twenty-eight installed-font selection cases per framework per platform. This probe excludes full HTML/PDF suites, packages, static timing and H10 appearance. Prior current-source timing failures remain open."
   }
 }
