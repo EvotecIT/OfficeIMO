@@ -80,6 +80,29 @@ Both workflows:
 
 If the synced repo does not contain the generated help snapshot, the build falls back to the checked-in PowerShell API inputs instead of failing.
 
+## Studio installer downloads
+
+The website publishes signed Studio MSIs at immutable versioned paths such as
+`https://officeimo.com/downloads/studio/0.1.9767/OfficeIMO-Studio-0.1.9767-win-x64.msi`.
+These files are included in the GitHub Pages deployment so the URL serves the
+installer directly, without a redirect to GitHub's release storage.
+
+[`Website/data/studio_installer_downloads.json`](../Website/data/studio_installer_downloads.json)
+owns the source URLs, relative destination paths, exact sizes and SHA-256 pins.
+PowerForge's `download-artifacts` pipeline step checks every pin after the final
+site build. The downloads page uses local links only for matching pinned release
+assets; portable archives and other release assets keep their release links.
+
+When adding a release, verify its signed artifacts and append new versioned
+entries. Keep entries used by Microsoft Store or other catalogs so later website
+deployments continue to publish those URLs. Never replace the bytes at a published
+versioned path. Check the complete deployment against GitHub Pages' one-gigabyte
+site limit; the manifest's byte limit covers installer downloads only.
+
+Before using a URL in a Store submission, retrieve it without following redirects
+and confirm HTTP 200, exact length, SHA-256 and Authenticode signature against the
+release. GitHub release URLs remain suitable for WinGet manifests.
+
 ## Editing guidance
 
 - Edit authored content in `Website/content/`, `Website/data/`, `Website/site.json`, `Website/pipeline.json`, and theme files under `Website/themes/officeimo/`.

@@ -3605,10 +3605,17 @@
       "clean": false
     },
     {
+      "task": "download-artifacts",
+      "id": "prepare-studio-downloads",
+      "dependsOn": "build-site-xref-refresh",
+      "config": "./data/studio_installer_downloads.json",
+      "siteRoot": "./_site"
+    },
+    {
       "task": "exec",
       "id": "verify-content-layout-contracts",
       "dependsOn": [
-        "build-site-xref-refresh"
+        "prepare-studio-downloads"
       ],
       "command": "pwsh",
       "argsList": [
