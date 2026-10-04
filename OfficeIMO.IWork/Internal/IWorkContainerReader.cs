@@ -27,6 +27,17 @@ internal static class IWorkContainerReader {
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A source path is required.", nameof(path));
         if (Directory.Exists(path)) return ReadDirectory(path, options, cancellationToken);
+        using FileStream stream = OpenPackageFileForRead(path);
+        return Read(stream, options, cancellationToken);
+    }
+
+    internal static FileStream OpenPackageFileForRead(string path) => OpenPackageFileForRead(path, FileShare.Read);
+
+    internal static FileStream OpenPackageFileForContentDetection(string path) =>
+        OpenPackageFileForRead(path, FileShare.ReadWrite | FileShare.Delete);
+
+    private static FileStream OpenPackageFileForRead(string path, FileShare share) {
+        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A source path is required.", nameof(path));
         if (!File.Exists(path)) throw new FileNotFoundException("The iWork source was not found.", path);
 
         string fullPath = Path.GetFullPath(path);
@@ -36,9 +47,7 @@ internal static class IWorkContainerReader {
         string parent = Path.GetDirectoryName(fullPath)
             ?? throw new InvalidDataException("The iWork package path has no parent directory.");
         string physicalRoot = OfficePathIdentity.ResolvePhysicalPath(parent);
-        using FileStream stream = OfficePathIdentity.OpenRegularFileForRead(
-            fullPath, physicalRoot, 81920);
-        return Read(stream, options, cancellationToken);
+        return OfficePathIdentity.OpenRegularFileForRead(fullPath, physicalRoot, 81920, share);
     }
 
     internal static IWorkPackageData Read(Stream stream, IWorkReadOptions options,
