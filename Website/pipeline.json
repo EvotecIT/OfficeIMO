@@ -3605,17 +3605,10 @@
       "clean": false
     },
     {
-      "task": "download-artifacts",
-      "id": "prepare-studio-downloads",
-      "dependsOn": "build-site-xref-refresh",
-      "config": "./data/studio_installer_downloads.json",
-      "siteRoot": "./_site"
-    },
-    {
       "task": "exec",
       "id": "verify-content-layout-contracts",
       "dependsOn": [
-        "prepare-studio-downloads"
+        "build-site-xref-refresh"
       ],
       "command": "pwsh",
       "argsList": [
@@ -4168,7 +4161,6 @@
       ],
       "maxTotalFiles": 20000,
       "maxFileBytes": 26214400,
-      "budgetExclude": "downloads/studio/0.1.9767/OfficeIMO-Studio-0.1.9767-win-x64.msi,downloads/studio/0.1.9767/OfficeIMO-Studio-0.1.9767-win-arm64.msi",
       "navSelector": "header nav",
       "navCanonicalPath": "index.html",
       "navCanonicalRequired": true,

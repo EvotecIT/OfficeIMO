@@ -76,8 +76,8 @@
 {{ if studio_msi_arm64 }}{{ studio_msi_arm64_url = studio_msi_arm64.downloadUrl }}{{ end }}
 {{ if data.studio_installer_downloads && data.studio_installer_downloads.artifacts }}
   {{ for installer in data.studio_installer_downloads.artifacts }}
-    {{ if studio_msi_x64 && installer.sourceUrl == studio_msi_x64.downloadUrl }}{{ studio_msi_x64_url = "/" + installer.path }}{{ end }}
-    {{ if studio_msi_arm64 && installer.sourceUrl == studio_msi_arm64.downloadUrl }}{{ studio_msi_arm64_url = "/" + installer.path }}{{ end }}
+    {{ if studio_msi_x64 && installer.sourceUrl == studio_msi_x64.downloadUrl }}{{ studio_msi_x64_url = installer.downloadUrl }}{{ end }}
+    {{ if studio_msi_arm64 && installer.sourceUrl == studio_msi_arm64.downloadUrl }}{{ studio_msi_arm64_url = installer.downloadUrl }}{{ end }}
   {{ end }}
 {{ end }}
 <section class="imo-download-choice" id="studio-downloads" aria-labelledby="studio-download-title">

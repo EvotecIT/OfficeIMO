@@ -1,15 +1,14 @@
 {
-  "maximumTotalBytes": 900000000,
   "artifacts": [
     {
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/releases/download/Studio-v0.1.9767/OfficeIMO-Studio-0.1.9767-win-x64.msi",
-      "path": "downloads/studio/0.1.9767/OfficeIMO-Studio-0.1.9767-win-x64.msi",
+      "downloadUrl": "https://downloads.officeimo.com/releases/officeimo-studio/rel-officeimo-studio-0-1-9767-preview-c7491bc-2bea1a4197de/windows-x64-msi/download",
       "sha256": "094928E41737619B4DD4A7A2A1F692DB74351FB46F00EAD82F064E3250DFCA51",
       "sizeBytes": 52891648
     },
     {
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/releases/download/Studio-v0.1.9767/OfficeIMO-Studio-0.1.9767-win-arm64.msi",
-      "path": "downloads/studio/0.1.9767/OfficeIMO-Studio-0.1.9767-win-arm64.msi",
+      "downloadUrl": "https://downloads.officeimo.com/releases/officeimo-studio/rel-officeimo-studio-0-1-9767-preview-c7491bc-2bea1a4197de/windows-arm64-msi/download",
       "sha256": "1C5CF38D16540255C6E93D4EA555E47AC574A740F92589A126CB32B169F13947",
       "sizeBytes": 50343936
     }

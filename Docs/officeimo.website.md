@@ -82,27 +82,22 @@ If the synced repo does not contain the generated help snapshot, the build falls
 
 ## Studio installer downloads
 
-The website publishes signed Studio MSIs at immutable versioned paths such as
-`https://officeimo.com/downloads/studio/0.1.9767/OfficeIMO-Studio-0.1.9767-win-x64.msi`.
-These files are included in the GitHub Pages deployment so the URL serves the
-installer directly, without a redirect to GitHub's release storage.
+The downloads page links signed Windows Studio MSIs to `downloads.officeimo.com`.
+Evotec Control manages the release lifecycle and download activity through the
+shared Licensing distribution service. The branded hostname serves the immutable
+release objects directly over HTTPS.
 
 [`Website/data/studio_installer_downloads.json`](../Website/data/studio_installer_downloads.json)
-owns the source URLs, relative destination paths, exact sizes and SHA-256 pins.
-PowerForge's `download-artifacts` pipeline step checks every pin after the final
-site build. The downloads page uses local links only for matching pinned release
-assets; portable archives and other release assets keep their release links.
+maps verified GitHub release asset URLs to their branded download URLs and records
+the exact sizes and SHA-256 values. The downloads page uses the branded link only
+when the release asset matches an entry. Portable archives, Linux packages and
+other assets keep their GitHub release links. Installer bytes are held by the
+distribution service and are not included in the website build.
 
-When adding a release, verify its signed artifacts and append new versioned
-entries. Keep entries used by Microsoft Store or other catalogs so later website
-deployments continue to publish those URLs. Never replace the bytes at a published
-versioned path. Check the complete deployment against GitHub Pages' one-gigabyte
-site limit; the manifest's byte limit covers installer downloads only.
-
-The site audit exempts the two pinned MSI paths from its general 25 MiB file
-budget. Their exact sizes and hashes are enforced by `download-artifacts`.
-Add the corresponding exact audit exception when pinning a new installer; keep
-the general budget for other site assets.
+When adding a release, publish and verify its signed artifacts through Control,
+promote the exact release to public stable, and add its verified URL mapping.
+Keep objects referenced by Microsoft Store or other catalogs available at their
+original versioned URLs. Never replace bytes at a published release path.
 
 Before using a URL in a Store submission, retrieve it without following redirects
 and confirm HTTP 200, exact length, SHA-256 and Authenticode signature against the
