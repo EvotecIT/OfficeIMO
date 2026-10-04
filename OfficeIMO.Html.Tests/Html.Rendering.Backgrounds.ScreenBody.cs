@@ -39,13 +39,17 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
-    [InlineData(HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderUserAgentStyleMode.Document)]
-    [InlineData(HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderUserAgentStyleMode.Browser)]
-    [InlineData(HtmlRenderIntentProfile.ScreenSnapshotPaged, HtmlRenderUserAgentStyleMode.Document)]
-    [InlineData(HtmlRenderIntentProfile.ScreenMediaPaged, HtmlRenderUserAgentStyleMode.Document)]
+    [InlineData(HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderUserAgentStyleMode.Document, false)]
+    [InlineData(HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderUserAgentStyleMode.Browser, false)]
+    [InlineData(HtmlRenderIntentProfile.ScreenSnapshotPaged, HtmlRenderUserAgentStyleMode.Document, false)]
+    [InlineData(HtmlRenderIntentProfile.ScreenMediaPaged, HtmlRenderUserAgentStyleMode.Document, false)]
+    [InlineData(HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderUserAgentStyleMode.Document, true)]
+    [InlineData(HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderUserAgentStyleMode.Browser, true)]
+    [InlineData(HtmlRenderIntentProfile.ScreenSnapshotPaged, HtmlRenderUserAgentStyleMode.Document, true)]
+    [InlineData(HtmlRenderIntentProfile.ScreenMediaPaged, HtmlRenderUserAgentStyleMode.Document, true)]
     public void HtmlRender_ContentsBodyKeepsChildrenWithoutPaintingABodyBox(
-        HtmlRenderIntentProfile profile, HtmlRenderUserAgentStyleMode userAgentStyles) {
-        const string html = """
+        HtmlRenderIntentProfile profile, HtmlRenderUserAgentStyleMode userAgentStyles, bool stylesheetDisplay) {
+        string html = """
             <style>
               html { background: #222; }
               body { margin: 0; background: white; color: white; }
@@ -53,6 +57,8 @@ public sealed partial class HtmlRenderingTests {
             </style>
             <body style="display:contents"><section>Contents child marker</section></body>
             """;
+        if (stylesheetDisplay) html = html.Replace("margin: 0;", "display: contents; margin: 0;")
+            .Replace(" style=\"display:contents\"", string.Empty);
         var options = new HtmlRenderOptions {
             ViewportWidth = 384D,
             ViewportHeight = 288D,

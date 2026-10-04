@@ -1086,7 +1086,9 @@ public static partial class HtmlComputedStyleEngine {
         for (int index = 0; index < ownedRule.Declarations.Count; index++) {
             OfficeIMO.Html.Css.HtmlCssDeclaration declaration = ownedRule.Declarations[index];
             string propertyName = declaration.Name.Trim().ToLowerInvariant();
-            if (propertyName is not ("flex" or "flex-grow" or "flex-shrink" or "flex-basis" or "float" or "float-reference" or "text-transform")) continue;
+            // Supported display keywords such as contents can be lost by the retained
+            // provider when another declaration makes the whole rule use this path.
+            if (propertyName is not ("display" or "flex" or "flex-grow" or "flex-shrink" or "flex-basis" or "float" or "float-reference" or "text-transform")) continue;
             string value = RestoreProtectedDeclarationValue(StripCssCommentsOutsideStrings(
                 OfficeIMO.Html.Css.HtmlCssPropertyParser.Parse(declaration, UnboundedPropertyTokenization).AuthoredValue).Trim());
             if (!IsSupportedDeclarationValue(propertyName, value)) continue;

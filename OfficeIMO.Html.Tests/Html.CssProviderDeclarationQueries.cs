@@ -4,6 +4,18 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class HtmlCssProviderDeclarationQueryTests {
+    [Theory]
+    [InlineData("display:contents;margin:0")]
+    [InlineData("display:contents!important;display:block;-webkit-appearance:none")]
+    [InlineData("display:contents;display:made-up!important;-webkit-appearance:none")]
+    public void ProviderFallbackPreservesSupportedDisplayWithOtherDeclarations(string declarations) {
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<style>#target{" + declarations + "}</style><div id='target'>Content</div>");
+        HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document)[document.Document.QuerySelector("#target")!];
+
+        Assert.Equal("contents", style.GetValue("display"));
+    }
+
     [Fact]
     public void ProviderFallbackPreservesVariableShorthandsNestedFamiliesAndImportance() {
         // The vendor declaration makes this rule use the retained provider path.
