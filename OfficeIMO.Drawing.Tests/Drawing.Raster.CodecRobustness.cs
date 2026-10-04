@@ -38,6 +38,7 @@ public sealed class DrawingRasterCodecRobustnessTests {
     }
 
     [Fact]
+    [Trait("Category", "Performance")]
     public void BoundedPngAndTiffDecodeObserveCancellationInsideValidationAndCodecWork() {
         var source = new OfficeRasterImage(4096, 1025, OfficeColor.FromRgba(24, 80, 160, 224));
         byte[][] encoded = {

@@ -16,17 +16,18 @@ public static class OfficeRasterContainerInspector {
         OfficeRasterDecodeOptions? options,
         out OfficeRasterContainerInfo? container) =>
         TryInspectCore(
-            encodedBytes, options, enforceAllTiffPagePixelLimits: true, out container, out _, out _);
+            encodedBytes, options, enforceAllTiffPagePixelLimits: true, out container, out _, out _, out _);
 
     internal static bool TryInspectForDecode(
         byte[]? encodedBytes,
         OfficeRasterDecodeOptions options,
         out OfficeRasterContainerInfo? container,
         out OfficeImageFormat detectedFormat,
-        out OfficeRasterImage? inspectedImage) =>
+        out OfficeRasterImage? inspectedImage,
+        out OfficePngContainerValidation pngValidation) =>
         TryInspectCore(
             encodedBytes, options, enforceAllTiffPagePixelLimits: false,
-            out container, out detectedFormat, out inspectedImage);
+            out container, out detectedFormat, out inspectedImage, out pngValidation);
 
     private static bool TryInspectCore(
         byte[]? encodedBytes,
@@ -34,17 +35,19 @@ public static class OfficeRasterContainerInspector {
         bool enforceAllTiffPagePixelLimits,
         out OfficeRasterContainerInfo? container,
         out OfficeImageFormat detectedFormat,
-        out OfficeRasterImage? inspectedImage) {
+        out OfficeRasterImage? inspectedImage,
+        out OfficePngContainerValidation pngValidation) {
         container = null;
         detectedFormat = OfficeImageFormat.Unknown;
         inspectedImage = null;
+        pngValidation = default;
         OfficeRasterDecodeOptions effective = options ?? new OfficeRasterDecodeOptions();
         effective.Validate();
         effective.CancellationToken.ThrowIfCancellationRequested();
         if (encodedBytes == null || encodedBytes.Length == 0 || encodedBytes.Length > effective.MaximumEncodedBytes ||
             !IsInspectionWorkingSetWithinLimit(encodedBytes.LongLength, effective.RetainedManagedBytes, frameCount: 0) ||
             !OfficeImageReader.TryIdentifyByContent(
-                encodedBytes, fileName: null, effective.CancellationToken, out OfficeImageInfo imageInfo)) {
+                encodedBytes, fileName: null, effective.CancellationToken, out OfficeImageInfo imageInfo, out pngValidation)) {
             return false;
         }
         detectedFormat = imageInfo.Format;
@@ -58,7 +61,7 @@ public static class OfficeRasterContainerInspector {
                 return TryInspectGif(encodedBytes, imageInfo, effective, out container);
             case OfficeImageFormat.Png:
                 return TryInspectPng(
-                    encodedBytes, imageInfo, effective,
+                    encodedBytes, imageInfo, effective, pngValidation.FrameCount,
                     validateDecodedPayloads: enforceAllTiffPagePixelLimits, out container);
             case OfficeImageFormat.Tiff:
                 return OfficeTiffCodec.TryInspectPages(
@@ -303,11 +306,10 @@ public static class OfficeRasterContainerInspector {
         byte[] bytes,
         OfficeImageInfo imageInfo,
         OfficeRasterDecodeOptions options,
+        int frameCount,
         bool validateDecodedPayloads,
         out OfficeRasterContainerInfo? container) {
         container = null;
-        if (!OfficePngReader.TryGetFrameCount(
-                bytes, options.CancellationToken, out int frameCount)) return false;
         if (frameCount > 65535 ||
             !IsInspectionWorkingSetWithinLimit(
                 bytes.LongLength, options.RetainedManagedBytes, frameCount)) return false;

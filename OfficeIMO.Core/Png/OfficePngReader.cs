@@ -52,12 +52,13 @@ public static partial class OfficePngReader {
         byte[] bytes,
         CancellationToken cancellationToken,
         long retainedManagedBytes,
-        out OfficeRasterImage? image) {
+        out OfficeRasterImage? image,
+        OfficePngContainerValidation containerValidation = default) {
         image = null;
         try {
             if (!TryReadPayload(
                     bytes, cancellationToken, includeRgbaOutput: true,
-                    retainedManagedBytes, out PngPayload payload)) {
+                    retainedManagedBytes, out PngPayload payload, containerValidation)) {
                 return false;
             }
 
@@ -406,10 +407,12 @@ public static partial class OfficePngReader {
         CancellationToken cancellationToken,
         bool includeRgbaOutput,
         long retainedManagedBytes,
-        out PngPayload payload) {
+        out PngPayload payload,
+        OfficePngContainerValidation containerValidation = default) {
         payload = null!;
         if (bytes == null ||
-            !OfficePngContainerValidator.TryValidate(bytes, cancellationToken, out _, out _)) return false;
+            (!containerValidation.IsFor(bytes) &&
+             !OfficePngContainerValidator.TryValidate(bytes, cancellationToken, out _, out _))) return false;
         cancellationToken.ThrowIfCancellationRequested();
 
         int width = 0;

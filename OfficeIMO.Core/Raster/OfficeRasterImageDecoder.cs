@@ -96,7 +96,8 @@ public static partial class OfficeRasterImageDecoder {
         }
         if (!OfficeRasterContainerInspector.TryInspectForDecode(
                 bytes, effective, out OfficeRasterContainerInfo? container,
-                out OfficeImageFormat detectedFormat, out OfficeRasterImage? inspectedImage) || container == null) {
+                out OfficeImageFormat detectedFormat, out OfficeRasterImage? inspectedImage,
+                out OfficePngContainerValidation pngValidation) || container == null) {
             info = new OfficeRasterDecodeInfo(detectedFormat, 0, effective.FrameIndex, succeeded: false,
                 diagnostic: "The raster container is malformed, unsupported, or outside the configured limits.");
             return false;
@@ -176,7 +177,7 @@ public static partial class OfficeRasterImageDecoder {
         } else {
             success = format switch {
                 OfficeImageFormat.Png => OfficePngReader.TryDecode(
-                    bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image),
+                    bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image, pngValidation),
                 OfficeImageFormat.Jpeg => OfficeJpegCodec.TryDecode(
                     bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image),
                 OfficeImageFormat.Bmp => OfficeBmpReader.TryDecode(
