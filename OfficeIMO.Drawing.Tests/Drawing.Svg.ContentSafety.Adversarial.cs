@@ -1450,7 +1450,8 @@ public sealed class SvgContentSafetyAdversarialTests {
             "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 1000 1000'>" +
             "<rect width='1000' height='1000' fill='white'/>" +
             "<text font-family='OfficeIMO Shaping Test' font-size='100' fill='white' transform='scale(.1,1)' x='1000' y='100'>A</text></svg>");
-        var readerOptions = new OfficeSvgDrawingReaderOptions();
+        // Fund the single visual comparison, including transformed text and sampling.
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumContentSafetyVisualComparisons = 1 };
         readerOptions.Fonts.Add(ManagedTextShapingTestAssets.FamilyName, ManagedTextShapingTestAssets.CreateFont('A'));
 
         OfficeContentSafetyFinding finding = Assert.Single(

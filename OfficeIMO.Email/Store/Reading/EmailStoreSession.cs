@@ -237,7 +237,7 @@ public sealed partial class EmailStoreSession : IDisposable {
 
     private static EmailStoreSession OpenCore(Stream stream, string? sourceName,
         EmailStoreReaderOptions options, bool leaveOpen, long originalPosition,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, bool isSnapshot = false) {
         if (stream.Length > options.MaxInputBytes) {
             throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxInputBytes),
                 stream.Length, options.MaxInputBytes);
@@ -252,16 +252,14 @@ public sealed partial class EmailStoreSession : IDisposable {
                     backend = new PstStoreSessionBackend(stream, format, options, cancellationToken);
                     break;
                 case EmailStoreFormat.Olm:
-                    backend = new MaterializedEmailStoreSessionBackend(
-                        new OlmStoreReader(options).Read(stream, sourceName, cancellationToken));
+                    backend = new OlmStoreSessionBackend(stream, sourceName, options, cancellationToken, isSnapshot);
                     break;
                 case EmailStoreFormat.Emlx:
-                    backend = new MaterializedEmailStoreSessionBackend(
-                        new EmlxStoreReader(options).Read(stream, sourceName, cancellationToken));
+                    backend = new EmlxStoreSessionBackend(stream, sourceName, options, cancellationToken, isSnapshot);
                     break;
                 case EmailStoreFormat.Mbox:
                     backend = new MboxStoreSessionBackend(
-                        stream, sourceName, options, cancellationToken);
+                        stream, sourceName, options, cancellationToken, isSnapshot);
                     break;
                 default:
                     throw new InvalidDataException("The source is not a supported email-store artifact.");

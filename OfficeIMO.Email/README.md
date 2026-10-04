@@ -104,7 +104,7 @@ The session makes a bounded private copy and hashes it while copying, then reuse
 for queries and checkpoints. Caller-side changes after opening cannot change the snapshot's results.
 Keep the original source stable while it is copied and dispose the session to remove its temporary file.
 Opening a new snapshot still validates checkpoints against the newly copied bytes; ordinary sessions continue
-to check the source before and after durable queries. Directory stores retain their existing content validation.
+to check the source before and after durable queries. Directory sessions are live catalogs: durable queries verify file membership, logical folders, and source content before and after scanning. A changed catalog requires reopening; directory snapshots are not implemented.
 
 `EmailStoreSession.PlanMaintenance` is read-only and source-bound. It returns `CompleteInspection` rather than `None` whenever item, recovery, structural page, block, or byte bounds leave evidence incomplete, or when requested structural verification is unsupported for the source format. Executable repair remains a separate operation through recovery export, PST compaction, or PST split planning; OfficeIMO never repairs the opened source in place and rewrite paths require semantic post-verification.
 
@@ -517,8 +517,10 @@ mail clients; `SignedMimeEntity` still exposes the original bytes and a structur
 Results name the concrete provider and project signer identity, chain-building, revocation, timestamp, and offline-policy
 status into stable email diagnostic codes. `DecryptThenVerify` records and enforces the outer-decrypt, inner-verify order,
 while an unparseable protected entity remains available as retained bytes plus diagnostics.
-The current Bouncy Castle envelope adapter requires an RSA recipient key that the platform certificate handle permits
-to be exported. Non-exportable keys fail with `EnvelopePrivateKeyNotExportable` instead of weakening key policy.
+On .NET 8 and later, the Security provider decrypts RSA PKCS#1/OAEP with AES-CBC through the supplied
+platform key handle without exporting private parameters. Keychain identity selection remains caller-owned.
+Other envelope profiles and older targets require an exportable RSA key and report
+`EnvelopePrivateKeyNotExportable` when export is unavailable.
 
 ## Mailbox stores and store-backed content
 
@@ -578,6 +580,76 @@ ordinals, outcomes, and difference-path tokens without subjects, addresses, mess
 Use `DiscardIncompleteState` when an interrupted migration must not retain its writer-owned staging files.
 
 Use `EmailDataArtifact.Open` from the included `OfficeIMO.Email.Data` namespace when an application wants one discovery entry point across individual artifacts, stores, and OAB files. No additional package is required.
+
+### Apple Mail and Outlook for Mac
+
+Open an exported Apple Mail `.mbox` package, its containing folder, or a copied Mail directory
+with `EmailStoreSession.Open(path)`. Packages containing an aggregate `mbox` file and directories
+containing individual EMLX messages use the same folder and item APIs. Account directories remain
+part of folder identity, empty mailbox folders are retained, and AppleDouble `._` sidecars are skipped.
+`MaxDirectoryEntryCount` bounds every visited entry, including unrelated files and directories;
+message/attachment-storage file, item, folder, depth, and source-byte limits are separate.
+
+EMLX reads support XML and binary property lists. `document.Properties["Emlx:Metadata"]` contains
+an ordinal, case-sensitive metadata dictionary. This is the authoritative editable catalog; flat
+`Emlx:Metadata:*` properties are read aliases and are used for writing only when no catalog exists. Editing and
+writing EMLX preserves unknown supported values and unknown flag bits while updating projected
+message flags. Unsupported or malformed trailers remain in `Emlx:RawMetadata`: `Block` rejects
+opaque metadata rewrites, while `Warn` and `Allow` copy the trailer unchanged and report that edits
+could not be reconciled. The default `Block` policy rejects exports that omit retained EMLX, OLM
+or MAPI/TNEF metadata, including regenerated embedded messages. Regenerated embedded messages also
+undergo the same calendar, contact and protected-content loss checks as the outer message, including
+task payloads synthesized from `TaskCommunication.EmbeddedTask`.
+Exact preserved MIME attachment payloads are copied without regenerating their projected models.
+Select `new EmailWriterOptions(EmailConversionLossPolicy.Warn)` to export
+the common message content with diagnostics for the omitted fields.
+
+Live EMLX, mbox and OLM sessions validate their source with a bounded SHA-256 before and after each
+selected read, rejecting detected changes including same-length edits. Directory sessions pin each message and recovered attachment
+file when it is first projected, and reject subsequent content changes. A detected change expires
+retained attachment streams; reopen the session to read the changed source.
+The buffer size stays fixed, but each check reads the complete artifact or selected directory file.
+Use `EmailStoreSession.OpenSnapshot` for repeated reads of a standalone archive when a private stable
+copy can avoid repeated source hashing. The initial snapshot copy and hash perform source I/O.
+Use an exported or otherwise quiescent archive when the source is actively written; these reads do
+not take an atomic filesystem snapshot.
+Directory sessions recover empty MIME parts in `Messages/<numeric-id>.partial.emlx`
+from `Attachments/<numeric-id>/<one-based-MIME-part-path>/<file>`. For example, nested part
+`2.1` is the first child of the second root part. Each part directory must contain exactly
+one nonempty regular file. Recovery uses MIME identity rather than the attachment filename and
+never leaves the selected root or follows links. Opening just `Messages` or a standalone
+EMLX file cannot grant access to sibling storage.
+
+`Emlx:RecoveredPartCount` and `Emlx:UnresolvedPartCount` describe the identified placeholders.
+Base64, quoted-printable, 7bit, 8bit and binary placeholders are reconstructed as Base64;
+original transfer formatting and payload-dependent integrity headers are not retained.
+Missing, ambiguous, malformed, unsupported-encoding and protected parts remain unavailable.
+Unresolved content is marked indeterminate in `ContentAvailability` and reported during
+conversion. Apple’s `X-Apple-Content-Length` is retained as provenance; it is not a verified
+decoded sibling length. Metadata reads also use a bounded temporary reconstruction to
+derive actual payload lengths. Selected streaming reads return session-owned content sources.
+Offline recovery cannot establish whether further content exists remotely, so partial
+sources retain a completeness diagnostic; `Block` rejects the conversion, while `Warn` and `Allow`
+accept it with that diagnostic. The [qualification runner](../Build/Email/README.md)
+distinguishes the pinned independent storage fixture from native Apple Mail acceptance.
+
+OLM sessions retain summaries and one bounded XML entry, then project selected records. They
+preserve nested, repeated, attributed, and case-colliding fields as XML fragments in
+`Olm:StructuredProperties`, and item attributes in `Olm:ItemAttributes`. Export reports archive
+metadata that has no target representation. OLM creation and rewriting are outside the contract.
+
+```csharp
+using EmailStoreSession session = EmailStoreSession.Open("Mail Export");
+EmailStoreItemReference reference = session.EnumerateItems().First();
+EmailStoreItem selected = session.ReadItem(reference,
+    new EmailStoreItemReadOptions(preferStreamingAttachmentContent: true));
+```
+
+EMLX, Mbox, mailbox-directory, and OLM selected reads honor the streaming preference. Decoded attachment
+files belong to the session; disposing it closes outstanding readers and expires their content
+sources. Repeated streaming reads consume the session's aggregate attachment and retained-read
+budgets. Keep the session open while writing or copying that content. `ReadAll` remains a
+materializing convenience and follows `RetainAttachmentContent`.
 
 ### Store-backed attachment content
 

@@ -28,7 +28,8 @@ public sealed class EmailStoreReaderOptions {
         long maxMessageBytes = 256L * 1024 * 1024,
         int maxDirectoryDepth = 64,
         int maxDirectoryFileCount = 1_000_000,
-        long maxDecodedTableBytes = 8L * 1024 * 1024 * 1024) {
+        long maxDecodedTableBytes = 8L * 1024 * 1024 * 1024,
+        int maxDirectoryEntryCount = 2_000_000) {
         MaxInputBytes = Positive(maxInputBytes, nameof(maxInputBytes));
         MaxNodeCount = Positive(maxNodeCount, nameof(maxNodeCount));
         MaxBTreeDepth = Positive(maxBTreeDepth, nameof(maxBTreeDepth));
@@ -55,7 +56,37 @@ public sealed class EmailStoreReaderOptions {
         MaxDirectoryDepth = Positive(maxDirectoryDepth, nameof(maxDirectoryDepth));
         MaxDirectoryFileCount = Positive(maxDirectoryFileCount, nameof(maxDirectoryFileCount));
         MaxDecodedTableBytes = Positive(maxDecodedTableBytes, nameof(maxDecodedTableBytes));
+        MaxDirectoryEntryCount = Positive(maxDirectoryEntryCount, nameof(maxDirectoryEntryCount));
     }
+
+    /// <summary>Creates options using the original constructor contract with the default directory-entry bound.</summary>
+    public EmailStoreReaderOptions(
+        long maxInputBytes,
+        int maxNodeCount,
+        int maxBTreeDepth,
+        int maxCachedBTreePages,
+        int maxFolderCount,
+        int maxItemCount,
+        int maxPropertiesPerItem,
+        long maxDecodedPropertyBytesPerItem,
+        int maxAttachmentsPerItem,
+        long maxAttachmentBytes,
+        long maxTotalAttachmentBytes,
+        bool retainAttachmentContent,
+        string? pstPassword,
+        Encoding? pstPasswordEncoding,
+        bool includeAssociatedItems,
+        bool includeOrphanedItems,
+        int maxNestedMessageDepth,
+        int maxArchiveEntries,
+        long maxArchiveEntryBytes,
+        long maxArchiveDecodedBytes,
+        long maxXmlCharactersPerItem,
+        long maxMessageBytes,
+        int maxDirectoryDepth,
+        int maxDirectoryFileCount,
+        long maxDecodedTableBytes)
+        : this(maxInputBytes, maxNodeCount, maxBTreeDepth, maxCachedBTreePages, maxFolderCount, maxItemCount, maxPropertiesPerItem, maxDecodedPropertyBytesPerItem, maxAttachmentsPerItem, maxAttachmentBytes, maxTotalAttachmentBytes, retainAttachmentContent, pstPassword, pstPasswordEncoding, includeAssociatedItems, includeOrphanedItems, maxNestedMessageDepth, maxArchiveEntries, maxArchiveEntryBytes, maxArchiveDecodedBytes, maxXmlCharactersPerItem, maxMessageBytes, maxDirectoryDepth, maxDirectoryFileCount, maxDecodedTableBytes, 2_000_000) { }
 
     /// <summary>Default bounded options.</summary>
     public static EmailStoreReaderOptions Default { get; } = new EmailStoreReaderOptions();
@@ -106,10 +137,12 @@ public sealed class EmailStoreReaderOptions {
     public long MaxMessageBytes { get; }
     /// <summary>Maximum directory depth traversed by mailbox-directory sessions.</summary>
     public int MaxDirectoryDepth { get; }
-    /// <summary>Maximum EML, EMLX, and Maildir files indexed by one mailbox-directory session.</summary>
+    /// <summary>Maximum message and identified Apple attachment-storage files indexed by one mailbox-directory session.</summary>
     public int MaxDirectoryFileCount { get; }
     /// <summary>Maximum decoded bytes traversed from one PST/OST table data tree.</summary>
     public long MaxDecodedTableBytes { get; }
+    /// <summary>Maximum filesystem entries visited, including directories, sidecars and unrelated files.</summary>
+    public int MaxDirectoryEntryCount { get; }
 
     private static int Positive(int value, string name) {
         if (value <= 0) throw new ArgumentOutOfRangeException(name);

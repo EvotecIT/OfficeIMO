@@ -17,6 +17,14 @@ HTML and RTF bodies use the existing HTML adapter for semantic Markdown even whe
 email handlers. A host's registered HTML handler takes precedence. Projection failures retain the safe HTML
 source and report `EMAIL_BODY_READER_FAILED`.
 
+Store attachments use bounded session streams by default, including OLM and EMLX.
+Reader consumes supported attachment text before closing the session and returns asset metadata without
+`PayloadBytes` for streamed content. To retain available attachment bytes in a result, register the store handler
+with `new ReaderEmailStoreOptions { StreamAttachmentContent = false }` and keep the item's explicit streaming
+preference disabled. `StoreOptions.RetainAttachmentContent = false` omits payloads in either mode.
+Registered store safety limits, including `MaxDirectoryEntryCount`, survive option cloning; `MaxItems` bounds
+the projected selection independently of the store's catalog limits.
+
 Direct message, mailbox, iCalendar, and vCard handlers expose native asynchronous path and stream entry points.
 `ReadDocumentAsync` uses their owning libraries' async I/O and Reader.Core's asynchronous source hashing.
 Source hashes are computed once by Reader.Core when `ComputeHashes` is enabled, and caller streams remain open

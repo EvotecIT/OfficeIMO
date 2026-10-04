@@ -293,10 +293,10 @@ public sealed class EmailMimeWriterTests {
         source.Body.Text = "body";
         source.MessageMetadata.InternetReferences = "<root@example.test> <parent@example.test>";
         source.MessageMetadata.InReplyToId = "<parent@example.test>";
-        byte[] msg = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] msg = new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(source, EmailFileFormat.OutlookMsg);
         EmailDocument retained = new EmailDocumentReader().Read(msg).Document;
 
-        byte[] emlBytes = new EmailDocumentWriter().ToBytes(retained, EmailFileFormat.Eml);
+        byte[] emlBytes = new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(retained, EmailFileFormat.Eml);
         string eml = Encoding.ASCII.GetString(emlBytes);
         EmailDocument roundTrip = new EmailDocumentReader().Read(emlBytes).Document;
 

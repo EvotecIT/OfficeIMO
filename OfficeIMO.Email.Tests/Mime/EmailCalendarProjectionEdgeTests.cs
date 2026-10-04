@@ -48,8 +48,8 @@ public sealed class EmailCalendarProjectionEdgeTests {
         EmailDocument document = new EmailDocumentReader().Read(eml).Document;
 
         EmailDocument roundTrip = new EmailDocumentReader().Read(
-            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
-        string regenerated = CalendarText(new EmailDocumentWriter().ToBytes(roundTrip, EmailFileFormat.Eml));
+            new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
+        string regenerated = CalendarText(new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(roundTrip, EmailFileFormat.Eml));
 
         Assert.Contains(document.Recipients, recipient => recipient.Address.Address == "assignee@example.com");
         Assert.Contains(roundTrip.Recipients, recipient => recipient.Address.Address == "assignee@example.com");
@@ -437,8 +437,8 @@ public sealed class EmailCalendarProjectionEdgeTests {
         EmailDocument document = new EmailDocumentReader().Read(eml).Document;
 
         EmailDocument storeRoundTrip = new EmailDocumentReader().Read(
-            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
-        string regenerated = CalendarText(new EmailDocumentWriter().ToBytes(storeRoundTrip, EmailFileFormat.Eml));
+            new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
+        string regenerated = CalendarText(new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(storeRoundTrip, EmailFileFormat.Eml));
 
         Assert.Equal(3, document.MessageMetadata.Sensitivity);
         Assert.Equal(3, storeRoundTrip.MessageMetadata.Sensitivity);

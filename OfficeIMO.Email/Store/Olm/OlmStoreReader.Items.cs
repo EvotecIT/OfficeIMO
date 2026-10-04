@@ -28,7 +28,7 @@ internal sealed partial class OlmStoreReader {
                 ProjectAppointment(document, item, location);
                 break;
             case OutlookItemKind.Contact:
-                ProjectContact(document, item);
+                ProjectContact(document, item, location);
                 break;
             case OutlookItemKind.Task:
                 ProjectTask(document, item);
@@ -93,7 +93,6 @@ internal sealed partial class OlmStoreReader {
             ResponseStatus = IntegerValue(item, "OPFCalendarEventGetAcceptStatus"),
             IsRecurring = BooleanValue(item, "OPFCalendarEventIsRecurring"),
             ReminderIsSet = BooleanValue(item, "OPFCalendarEventGetHasReminder"),
-            ReminderDeltaMinutes = IntegerValue(item, "OPFCalendarEventCopyReminderDelta"),
             ReminderTime = DateValue(item, "OPFCalendarEventCopyReminderTime"),
             TimeZoneDescription = Value(item, "OPFCalendarEventCopyStartTimeZone")
         };
@@ -101,6 +100,7 @@ internal sealed partial class OlmStoreReader {
             double minutes = (document.Appointment.End.Value - document.Appointment.Start.Value).TotalMinutes;
             if (minutes >= 0 && minutes <= int.MaxValue) document.Appointment.DurationMinutes = (int)minutes;
         }
+        ProjectAppointmentCalendar(document, item, location);
 
         AddAppointmentRecipients(document, item);
         string? organizer = Value(item, "OPFCalendarEventCopyOrganizer");
@@ -112,7 +112,7 @@ internal sealed partial class OlmStoreReader {
         AddAttachments(document, item, "OPFCalendarEventCopyAttachmentList", location);
     }
 
-    private static void ProjectContact(EmailDocument document, XElement item) {
+    private void ProjectContact(EmailDocument document, XElement item, string location) {
         var contact = new OutlookContact {
             DisplayName = Value(item, "OPFContactCopyDisplayName"),
             Prefix = Value(item, "OPFContactCopyTitle"),
@@ -138,6 +138,10 @@ internal sealed partial class OlmStoreReader {
         document.Body.Text = Value(item, "OPFContactCopyNotesPlain");
         document.Body.Html = Value(item, "OPFContactCopyNotes");
         document.MessageMetadata.ModifiedDate = DateValue(item, "OPFContactCopyModDate");
+        if (contact.HasPicture == true) {
+            RecordProjectionIssue(document, "EMAIL_STORE_OLM_CONTACT_PICTURE_UNAVAILABLE",
+                "The OLM contact declares a picture, but no picture payload is available through the supported source mapping.", location);
+        }
 
         contact.BusinessAddress.Street = Value(item, "OPFContactCopyBusinessStreetAddress");
         contact.BusinessAddress.City = Value(item, "OPFContactCopyBusinessCity");
@@ -269,7 +273,22 @@ internal sealed partial class OlmStoreReader {
         }
         _totalAttachmentBytes = AddBounded(_totalAttachmentBytes, attachment.Length,
             nameof(EmailStoreReaderOptions.MaxTotalAttachmentBytes), _options.MaxTotalAttachmentBytes);
-        if (_options.RetainAttachmentContent) {
+        bool includeContent = _catalogItem == null && (_readOptions?.Includes(EmailStoreItemReadParts.AttachmentContent) ?? _options.RetainAttachmentContent);
+        if (includeContent && _workspace != null) {
+            string key = "olm:attachment:" + document.Attachments.Count.ToString(CultureInfo.InvariantCulture);
+            using (Stream source = OpenDecodedEntry(entry, _options.MaxAttachmentBytes, nameof(EmailStoreReaderOptions.MaxAttachmentBytes)))
+            using (Stream destination = _workspace.OpenExternalDestination(key, entry.Length)) {
+                var buffer = new byte[81920];
+                while (true) {
+                    _cancellationToken.ThrowIfCancellationRequested();
+                    int read = source.Read(buffer, 0, buffer.Length);
+                    if (read == 0) break;
+                    destination.Write(buffer, 0, read);
+                }
+                if (destination.Length != entry.Length) throw new InvalidDataException("The OLM attachment length differs from its ZIP directory declaration.");
+            }
+            attachment.ContentSource = _workspace.GetSources()[key];
+        } else if (includeContent) {
             byte[] content = ReadEntryBytes(entry);
             if (content.LongLength > attachment.Length) {
                 _totalAttachmentBytes = AddBounded(
@@ -376,23 +395,32 @@ internal sealed partial class OlmStoreReader {
     }
 
     private static void PreserveScalarProperties(EmailDocument document, XElement item) {
+        if (item.HasAttributes) {
+            document.Properties["Olm:ItemAttributes"] = new XElement(item.Name, item.Attributes()).ToString(SaveOptions.DisableFormatting);
+        }
+        var repeatedNames = new HashSet<string>(item.Elements().GroupBy(element => element.Name.LocalName,
+            StringComparer.OrdinalIgnoreCase).Where(group => group.Count() > 1).Select(group => group.Key), StringComparer.OrdinalIgnoreCase);
+        string[] structured = item.Elements().Where(element => element.HasElements || element.HasAttributes ||
+            repeatedNames.Contains(element.Name.LocalName)).Select(element => element.ToString(SaveOptions.DisableFormatting)).ToArray();
+        if (structured.Length > 0) document.Properties["Olm:StructuredProperties"] = structured;
         foreach (XElement element in item.Elements().Where(element => !element.HasElements)) {
             string name = element.Name.LocalName;
-            if (IsProjectedLargeBody(name) || string.IsNullOrEmpty(element.Value)) continue;
+            if (IsProjectedLargeBody(name, document.OutlookItemKind) || string.IsNullOrEmpty(element.Value)) continue;
             document.Properties[string.Concat("Olm:", name)] = element.Value;
         }
     }
 
-    private static bool IsProjectedLargeBody(string name) {
-        return name.EndsWith("CopyBody", StringComparison.OrdinalIgnoreCase) ||
-               name.EndsWith("CopyHTMLBody", StringComparison.OrdinalIgnoreCase) ||
-               name.EndsWith("CopyDescription", StringComparison.OrdinalIgnoreCase) ||
-               name.EndsWith("CopyDescriptionPlain", StringComparison.OrdinalIgnoreCase) ||
-               name.EndsWith("CopyNote", StringComparison.OrdinalIgnoreCase) ||
-               name.EndsWith("CopyNotePlain", StringComparison.OrdinalIgnoreCase) ||
-               name.EndsWith("CopyNotes", StringComparison.OrdinalIgnoreCase) ||
-               name.EndsWith("CopyNotesPlain", StringComparison.OrdinalIgnoreCase) ||
-               name.EndsWith("CopyText", StringComparison.OrdinalIgnoreCase);
+    private static bool IsProjectedLargeBody(string name, OutlookItemKind kind) {
+        switch (kind) {
+            case OutlookItemKind.Message: return Matches("OPFMessageCopyBody", "OPFMessageCopyHTMLBody");
+            case OutlookItemKind.Appointment: return Matches("OPFCalendarEventCopyDescription", "OPFCalendarEventCopyDescriptionPlain");
+            case OutlookItemKind.Contact: return Matches("OPFContactCopyNotes", "OPFContactCopyNotesPlain");
+            case OutlookItemKind.Task: return Matches("OPFTaskCopyNote", "OPFTaskCopyNotePlain");
+            case OutlookItemKind.Note: return Matches("OPFNoteCopyText", "OPFNoteCopyText");
+            default: return false;
+        }
+        bool Matches(string first, string second) => string.Equals(name, first, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, second, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string GetMessageClass(OutlookItemKind kind) {
@@ -437,8 +465,8 @@ internal sealed partial class OlmStoreReader {
     private static int? ParseInteger(string? value) {
         if (value == null) return null;
         if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int result)) return result;
-        if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double floating) &&
-            floating >= int.MinValue && floating <= int.MaxValue) return (int)floating;
+        if (decimal.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out decimal floating) &&
+            floating >= int.MinValue && floating <= int.MaxValue && decimal.Truncate(floating) == floating) return (int)floating;
         return null;
     }
 
