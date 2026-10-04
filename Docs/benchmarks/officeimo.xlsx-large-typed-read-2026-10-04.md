@@ -9,9 +9,10 @@ returning rows. The baseline is `9fb634005`, following the
 This removes about 128 MiB of managed allocation from opening the million-row
 fixture. A subsequent change, `8dc37d02a`, discovers worksheet bounds during
 complete reader validation and removes another 153 MiB from that operation.
-The measurements below keep these stages separate. Neither stage resolves the
-remaining large-sheet allocation and opening costs, and the contended timing
-runs do not establish a portable speedup.
+Buffered numeric decoding subsequently removes another 77 MiB from a complete
+million-row scan. The measurements below keep these stages separate. Large-sheet
+allocation and opening costs remain, and the contended timing runs do not
+establish a portable speedup.
 
 ## Workload and allocation
 
@@ -91,6 +92,63 @@ Both the [initial observations](excel-large-typed-read-2026-10-04/range-scan-nat
 and [longer-warmup observations](excel-large-typed-read-2026-10-04/pool-check-native.json)
 remain available. No throughput improvement is claimed from these contended runs.
 
+## Buffered numeric XML decoding
+
+The next comparison uses `6d36a99c4` as its source baseline, including the scan
+consolidation above. Candidate `d16c7d2ce` parses cached numeric XML values into the
+existing reusable character buffer before converting the stored double to a
+decimal. It preserves date handling, numeric precision, overflow fallback, and
+the caller's formula-result policy. The
+[numeric provenance](excel-large-typed-read-2026-10-04/numeric-provenance.json)
+identifies the candidate source and measured assemblies.
+
+The added numeric lane reads two columns and 25,000 rows through DataReader,
+range, and DataTable APIs, each with double and decimal options. UTF-16 input
+exercises the XML fallback independently of the indexed reader's size boundary.
+Setup validates every header, value, type, and row count. These are separate
+before/after contracts; the different result shapes are not ranked against one
+another.
+
+| Numeric API and mode | Before allocation | After allocation |
+| --- | ---: | ---: |
+| DataReader, decimal | 8.55 MiB | 6.85 MiB |
+| Range, decimal | 6.35 MiB | 4.64 MiB |
+| DataTable, decimal | 11.01 MiB | 9.29 MiB |
+| DataReader, double | 6.47 MiB | 6.45 MiB |
+| Range, double | 4.25 MiB | 4.25 MiB |
+| DataTable, double | 8.91 MiB | 8.91 MiB |
+
+These cases and five adjacent controls complete 24 warmups, twelve measured
+iterations, and four operations per iteration. The ordinary 25K typed scan and
+first-row operation, 65K corpus, and 2,500-row object/DataTable reads allocate
+essentially the same amount before and after. The decimal reductions are 19.9%,
+27.0%, and 15.6%, respectively.
+
+The larger typed workload completes five warmups and five measured iterations
+with one operation per iteration:
+
+| Operation | Rows | Before allocation | After allocation |
+| --- | ---: | ---: | ---: |
+| Complete scan | 250,000 | 163.33 MiB | 145.02 MiB |
+| Complete scan | 1,000,000 | 662.67 MiB | 585.62 MiB |
+| Open and read first row | 250,000 | 58.35 MiB | 58.35 MiB |
+| Open and read first row | 1,000,000 | 235.73 MiB | 235.73 MiB |
+
+The complete-scan reductions are 11.2% and 11.6%. First-row allocation is
+unchanged because that operation decodes few numeric values. Across all three
+stages, the million-row complete scan allocates about 38% less than the original
+943.11 MiB observation. This does not establish a reduction in peak or retained
+memory.
+
+All [30 native cases](excel-large-typed-read-2026-10-04/numeric-native.json)
+complete. Timing remains mixed. A follow-up rotates all six numeric cases and
+the 65K control across both verified processor groups, retaining
+[672 measured samples](excel-large-typed-read-2026-10-04/numeric-rotated.json).
+For example, decimal range reads have candidate/baseline mean ratios of 1.12
+and 0.95 on the two groups. These observations do not establish a portable
+speedup or a consistent throughput regression; unfavorable observations remain
+in the packet. All runs use Normal priority and retain outliers.
+
 ## Remaining allocation owners
 
 A profile after the buffer guard, before scan consolidation, attributes roughly
@@ -129,6 +187,18 @@ records source/binary hashes, test outcomes, and the review fingerprint.
 A fresh .NET 10 build under Ubuntu 24.04/WSL passes the same 323 focused tests.
 That qualifies correctness on this Linux environment, not native-Linux timing.
 
+For numeric decoding, the full Windows .NET 10 suite passes 5,240 tests with five
+skips. Focused reader, range, and shared-string checks pass 608 tests on .NET 8
+and 603 on .NET Framework 4.7.2. The product builds for `netstandard2.0` and the
+benchmark builds for .NET 8 and .NET 10 with zero warnings or errors. A fresh
+Ubuntu 24.04/WSL build passes the same 608 focused tests. An independent read-only
+review finds no actionable defects; its fingerprint is recorded in the numeric
+provenance. The new correctness cases reproduce and repair an empty
+XML value that could prevent reader advancement when cached formula results
+were disabled, and values truncated when split across text and CDATA. They
+exercise numeric, string, boolean, shared-string, long-value, and typed-object
+paths in addition to the measured APIs.
+
 Use the [snapshot reproduction guide](excel-csv-broad-throughput-2026-10-04/reproduction/README.md)
 with the baseline and candidate commits above, the candidate benchmark harness
 in both snapshots, and this packet's [case file](excel-large-typed-read-2026-10-04/large-cases.json).
@@ -138,6 +208,17 @@ For the smaller-case follow-up, select the [three-case file](excel-large-typed-r
 24 warmups, twelve iterations, and four invocations. The
 [benchmark README](../../OfficeIMO.Excel.Benchmarks/README.md#large-typed-reads)
 also describes direct full-scan comparisons and the OfficeIMO-only first-row lane.
+
+For numeric decoding, use the candidate benchmark harness in both snapshots and
+the [small-case file](excel-large-typed-read-2026-10-04/numeric-small-cases.json)
+with 24/12/4 warmup/iteration/invocation counts. Use the
+[large-case file](excel-large-typed-read-2026-10-04/numeric-large-measured-cases.json)
+with 5/5/1 counts. The existing PowerForge rotated driver uses the
+[seven-case file](excel-large-typed-read-2026-10-04/numeric-rotated-cases.json),
+twelve warmups, 24 measured samples per engine, and four operations per sample
+on each processor group. Resolve snapshot, case-file, and fixture paths to
+absolute paths before invoking BenchmarkDotNet: its worker directory differs
+from the caller's directory.
 
 The packet retains [all native observations](excel-large-typed-read-2026-10-04/native.json),
 [source and binary provenance](excel-large-typed-read-2026-10-04/provenance.json),
