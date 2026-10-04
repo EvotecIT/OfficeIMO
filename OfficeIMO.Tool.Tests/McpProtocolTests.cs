@@ -7,7 +7,7 @@ namespace OfficeIMO.Tool.Tests;
 
 public sealed class McpProtocolTests {
     [Fact]
-    public async Task StdioServerDefaultsFilesystemAccessToItsWorkingDirectory() {
+    public async Task StdioServerEnforcesConfiguredFilesystemRoot() {
         string testRoot = Path.Combine(
             Path.GetTempPath(),
             "officeimo-mcp-root-" + Guid.NewGuid().ToString("N"));
@@ -36,7 +36,7 @@ public sealed class McpProtocolTests {
                     : [assemblyPath, "mcp", "serve", "--stdio"],
                 WorkingDirectory = allowedRoot,
                 EnvironmentVariables = new Dictionary<string, string?> {
-                    [AgentPathPolicy.AllowedRootsEnvironmentVariable] = null
+                    [AgentPathPolicy.AllowedRootsEnvironmentVariable] = allowedRoot
                 }
             });
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
@@ -103,7 +103,10 @@ public sealed class McpProtocolTests {
             Arguments = usePackagedTool
                 ? ["mcp", "serve", "--stdio"]
                 : [assemblyPath, "mcp", "serve", "--stdio"],
-            WorkingDirectory = Path.GetDirectoryName(assemblyPath)
+            WorkingDirectory = Path.GetDirectoryName(assemblyPath),
+            EnvironmentVariables = new Dictionary<string, string?> {
+                [AgentPathPolicy.AllowedRootsEnvironmentVariable] = Path.GetDirectoryName(assemblyPath)
+            }
         });
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
         await using McpClient client = await McpClient.CreateAsync(
