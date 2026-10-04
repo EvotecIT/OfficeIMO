@@ -16,9 +16,11 @@ internal sealed class JsonRecentDocumentStore : IRecentDocumentStore {
     private const int MaximumBytes = 512 * 1024;
     private readonly string _path;
     private readonly Func<bool> _enabled;
+    private readonly Infrastructure.StudioLocalDocumentRoot? _documents;
 
-    public JsonRecentDocumentStore(string path, Func<bool>? enabled = null) {
+    public JsonRecentDocumentStore(string path, Func<bool>? enabled = null, Infrastructure.StudioLocalDocumentRoot? documents = null) {
         _path = Path.GetFullPath(path);
+        _documents = documents;
         _enabled = enabled ?? (() => true);
     }
 
@@ -40,7 +42,9 @@ internal sealed class JsonRecentDocumentStore : IRecentDocumentStore {
                     if (entry.Reference is { } reference && (reference.Name is null || reference.Name.Length > 4096 ||
                         reference.Bookmark?.Length > 32768 || OfficeIMO.Internal.OfficeStorageIdentity.Normalize(reference.Location) !=
                         OfficeIMO.Internal.OfficeStorageIdentity.Normalize(entry.Path))) continue;
-                    var document = new RecentDocumentViewModel(entry.Path, entry.OpenedAt) { StorageReference = entry.Reference };
+                    string path = _documents?.Resolve(entry.Path) ?? entry.Path;
+                    if (Infrastructure.StudioLocalDocumentRoot.IsIdentity(path)) continue;
+                    var document = new RecentDocumentViewModel(path, entry.OpenedAt) { StorageReference = entry.Reference, LocalDocuments = _documents };
                     if (OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(document.Path) is null ||
                         entry.Reference?.Bookmark is not null || File.Exists(document.Path)) documents.Add(document);
                 } catch (Exception exception) when (exception is IOException or ArgumentException or NotSupportedException or SecurityException) {
@@ -60,7 +64,11 @@ internal sealed class JsonRecentDocumentStore : IRecentDocumentStore {
             if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
             RecentDocumentEntry[] entries = documents
                 .Take(MaximumEntries)
-                .Select(static document => new RecentDocumentEntry(document.Path, document.OpenedAt, document.StorageReference))
+                .Select(document => {
+                    string path = _documents?.GetIdentity(document.Path) ?? document.Path;
+                    return new RecentDocumentEntry(path, document.OpenedAt,
+                        Infrastructure.StudioLocalDocumentRoot.IsIdentity(path) ? null : document.StorageReference);
+                })
                 .ToArray();
             string json = JsonSerializer.Serialize(entries, new JsonSerializerOptions { WriteIndented = true });
             byte[] bytes = System.Text.Encoding.UTF8.GetBytes(json);

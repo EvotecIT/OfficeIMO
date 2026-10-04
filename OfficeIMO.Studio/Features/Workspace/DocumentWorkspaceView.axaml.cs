@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using System.ComponentModel;
+using Avalonia;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Features.Shell;
 using OfficeIMO.Studio.Infrastructure.Localization;
@@ -11,20 +12,24 @@ namespace OfficeIMO.Studio.Features.Workspace;
 public sealed partial class DocumentWorkspaceView : UserControl {
     private bool? _compactLayout;
     private bool _phoneLayout;
+    private bool _shortLandscape;
     private double _availableWidth;
     private MainWindowViewModel? _document;
     private double _navigationWidth = 238D;
     private double _inspectorWidth = 300D;
+    internal bool UseTouchPresentation { get; set; }
 
     public DocumentWorkspaceView() {
         InitializeComponent();
-        SizeChanged += (_, e) => ApplyResponsiveLayout(e.NewSize.Width);
+        InitializeOrganizerInput();
+        SizeChanged += (_, e) => ApplyResponsiveLayout(e.NewSize.Width, e.NewSize.Height);
         DataContextChanged += (_, _) => {
             if (_document is not null) {
                 CapturePaneWidths();
                 _document.PropertyChanged -= OnDocumentChanged;
             }
             _document = DataContext as MainWindowViewModel;
+            SetPageNumberError(null);
             if (_document is not null) _document.PropertyChanged += OnDocumentChanged;
             RestorePaneWidths();
         };
@@ -34,20 +39,26 @@ public sealed partial class DocumentWorkspaceView : UserControl {
         InspectorSplitter.KeyUp += (_, _) => CapturePaneWidths();
     }
 
-    internal void ApplyResponsiveLayout(double width) {
+    internal void ApplyResponsiveLayout(double width, double height = 0) {
         _availableWidth = Math.Max(0, width);
-        bool phone = width < 700;
+        bool shortLandscape = UseTouchPresentation && width >= 600 && height is > 0 and < 420;
+        bool shortChanged = _shortLandscape != shortLandscape;
+        _shortLandscape = shortLandscape;
+        bool phone = width < 700 || shortLandscape;
+        Classes.Set("shortLandscape", shortLandscape);
+        Grid.SetRow(OrganizerActionBar, shortLandscape ? 1 : 0);
+        OrganizerActionBar.Margin = shortLandscape ? new Thickness(8, 0, 8, 4) : new Thickness(16, 0, 16, 18);
         bool phoneChanged = _phoneLayout != phone;
         _phoneLayout = phone;
         UpdateOverlayWidths();
         Classes.Set("phone", phone);
-        Grid.SetRow(ContextTools, phone ? 1 : 0);
-        Grid.SetColumn(ContextTools, phone ? 0 : 2);
-        Grid.SetColumnSpan(ContextTools, phone ? 4 : 1);
+        Grid.SetRow(ContextTools, phone && !shortLandscape ? 1 : 0);
+        Grid.SetColumn(ContextTools, phone && !shortLandscape ? 0 : 2);
+        Grid.SetColumnSpan(ContextTools, phone && !shortLandscape ? 4 : 1);
         DocumentModePicker.Width = phone ? 130 : 170;
         CommandRow.Classes.Set("compactCommands", width < 1320D);
         bool compact = width < 1100D;
-        if (_compactLayout == compact && !phoneChanged) return;
+        if (_compactLayout == compact && !phoneChanged && !shortChanged) return;
         _compactLayout = compact;
         DocumentModeButtons.IsVisible = !compact;
         DocumentModePicker.IsVisible = compact;
@@ -84,15 +95,14 @@ public sealed partial class DocumentWorkspaceView : UserControl {
         StatusHint.Text = _document.DocumentMode switch {
             StudioDocumentMode.View => _document.ReaderHint,
             StudioDocumentMode.Annotate or StudioDocumentMode.Edit => _document.EditorInstruction,
-            StudioDocumentMode.Pages => StudioLocalization.Current.Get("Shell.OrganizerStatus"),
+            StudioDocumentMode.Pages => StudioLocalization.Current.Get(UseTouchPresentation ? "Shell.OrganizerTouchStatus" : "Shell.OrganizerStatus"),
             _ => null
         };
     }
 
     private void OnPageNumberKeyDown(object? sender, KeyEventArgs e) {
         if (e.Key == Key.Enter) {
-            GoToTypedPage();
-            (GridPagesList.IsEffectivelyVisible ? GridPagesList : PagesList).Focus();
+            if (GoToTypedPage()) (GridPagesList.IsEffectivelyVisible ? GridPagesList : PagesList).Focus();
             e.Handled = true;
         } else if (e.Key == Key.Escape) {
             UpdatePageNumber();
@@ -101,15 +111,28 @@ public sealed partial class DocumentWorkspaceView : UserControl {
         }
     }
 
-    private void OnPageNumberLostFocus(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => UpdatePageNumber();
-
-    private void GoToTypedPage() {
-        if (_document is null) return;
-        if (int.TryParse(PageNumberBox.Text, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.CurrentCulture, out int page) &&
-            page >= 1 && page <= _document.Pages.Count) {
-            _document.NavigateToOrganizerPage(page);
-        }
+    private void OnPageNumberLostFocus(object? sender, Avalonia.Interactivity.RoutedEventArgs e) {
+        SetPageNumberError(null);
         UpdatePageNumber();
+    }
+
+    private bool GoToTypedPage() {
+        if (_document is null) return false;
+        if (PdfPageNavigation.TryParsePageNumber(PageNumberBox.Text, _document.Pages.Count, out int page)) {
+            SetPageNumberError(null);
+            _document.NavigateToOrganizerPage(page);
+            return true;
+        }
+        SetPageNumberError(StudioLocalization.Current.Format("Reader.InvalidPage", _document.Pages.Count));
+        return false;
+    }
+
+    private void SetPageNumberError(string? message) {
+        // Keep the announcement text when hiding it: Avalonia's macOS live-region
+        // bridge cannot announce a null name. Hidden errors are excluded from the UI.
+        if (message is not null) PageNumberError.Text = message;
+        PageNumberErrorBanner.IsVisible = message is not null;
+        PageNumberBox.Classes.Set("invalidPage", message is not null);
     }
 
     private void OnFindClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => FocusSearch();

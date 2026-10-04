@@ -46,6 +46,9 @@ public class PathIdentityContracts {
                 inside, physicalRoot, insideStream.SafeFileHandle));
             Assert.False(OfficePathIdentity.IsOpenedFileWithinRootByIdentity(
                 outside, physicalRoot, outsideStream.SafeFileHandle));
+            // A contained pathname must not authorize a different opened file.
+            Assert.False(OfficePathIdentity.IsOpenedFileWithinRootByIdentity(
+                inside, physicalRoot, outsideStream.SafeFileHandle));
         } finally {
             if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
         }

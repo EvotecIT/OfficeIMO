@@ -9,7 +9,7 @@
   <UserControl.Resources><workflow:ConversionOptionLabelConverter x:Key="ConversionModeLabel" /></UserControl.Resources>
   <Grid x:Name="WorkspaceGrid" ColumnDefinitions="270,*,300" RowDefinitions="*,Auto,Auto"
         Background="{DynamicResource StudioPanelMutedBrush}">
-    <Border Grid.Column="0" Grid.RowSpan="3" Background="{DynamicResource StudioPanelBrush}"
+    <Border x:Name="SetupPanel" Grid.Column="0" Grid.RowSpan="3" Background="{DynamicResource StudioPanelBrush}"
             BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,1,0">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Margin="18" Spacing="12">
@@ -54,8 +54,8 @@
                   HorizontalAlignment="Left" />
           <Expander x:Name="BatchExportPanel" Header="{loc:Loc Conversion.BatchExport.Title}" HorizontalAlignment="Stretch">
             <StackPanel Spacing="8">
-              <TextBlock Text="{loc:Loc Conversion.BatchExport.Description}" TextWrapping="Wrap" />
-              <StackPanel Spacing="6" IsEnabled="{Binding ConversionWorkbench.BatchExport.CanEdit}">
+              <TextBlock Text="{loc:Loc Conversion.BatchExport.Description}" IsVisible="{Binding ConversionWorkbench.BatchExport.IsAvailable}" TextWrapping="Wrap" />
+              <StackPanel Spacing="6" IsVisible="{Binding ConversionWorkbench.BatchExport.IsAvailable}" IsEnabled="{Binding ConversionWorkbench.BatchExport.CanEdit}">
                 <TextBlock Text="{loc:Loc Conversion.BatchExport.Source}" FontWeight="SemiBold" />
                 <TextBox Text="{Binding ConversionWorkbench.BatchExport.InputDirectory, Mode=TwoWay}" />
                 <Button Classes="tool" Content="{loc:Loc Conversion.BatchExport.ChooseSource}" Command="{Binding ConversionWorkbench.BatchExport.ChooseFolderCommand}" CommandParameter="input" />
@@ -83,19 +83,19 @@
       </ScrollViewer>
     </Border>
 
-    <Grid Grid.Column="1" RowDefinitions="68,Auto,*" Margin="18,0">
-      <Grid Grid.Row="0" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+    <Grid x:Name="QueuePanel" Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="18,0">
+      <StackPanel Grid.Row="0" Spacing="10" Margin="0,16,0,12">
         <StackPanel>
           <TextBlock Classes="sectionTitle" Text="{loc:Loc ConversionWorkbench.ConversionQueue}" />
           <TextBlock Classes="muted" Text="{Binding ConversionWorkbench.QueueSummary}" FontSize="12" />
         </StackPanel>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="7">
+        <WrapPanel ItemSpacing="7" LineSpacing="6">
           <Button Classes="primary" AutomationProperties.Name="{loc:Loc ConversionWorkbench.AddFiles}" Content="{loc:Loc ConversionWorkbench.AddFiles}" Command="{Binding ConversionWorkbench.AddFilesCommand}" />
           <Button Classes="tool" AutomationProperties.Name="{loc:Loc ConversionWorkbench.AddPackage}" Content="{loc:Loc ConversionWorkbench.AddPackage}" Command="{Binding ConversionWorkbench.AddPackageCommand}" />
           <Button Classes="tool" AutomationProperties.Name="{loc:Loc ConversionWorkbench.Remove}" Content="{loc:Loc ConversionWorkbench.Remove}" Command="{Binding ConversionWorkbench.RemoveSelectedCommand}" />
           <Button Classes="tool" AutomationProperties.Name="{loc:Loc ConversionWorkbench.Clear}" Content="{loc:Loc ConversionWorkbench.Clear}" Command="{Binding ConversionWorkbench.ClearQueueCommand}" />
-        </StackPanel>
-      </Grid>
+        </WrapPanel>
+      </StackPanel>
 
       <Border Grid.Row="1" IsVisible="{Binding ConversionWorkbench.HasUnmatchedInputs}" Classes="card" Margin="0,0,0,12" Padding="16">
         <StackPanel Spacing="10" IsEnabled="{Binding ConversionWorkbench.CanEditQueue}">
@@ -274,6 +274,11 @@
       </ScrollViewer>
     </Border>
 
+    <TabControl x:Name="CompactTabs" Grid.ColumnSpan="3" IsVisible="False" Classes="pageTabs">
+      <TabItem x:Name="SetupTab" Header="{loc:Loc Conversion.CompactSetup}"/>
+      <TabItem x:Name="QueueTab" Header="{loc:Loc Conversion.CompactQueue}"/>
+      <TabItem x:Name="DetailsTab" Header="{loc:Loc Conversion.CompactDetails}"/>
+    </TabControl>
     <Border Grid.Row="2" Grid.ColumnSpan="3" Background="{DynamicResource StudioPanelBrush}"
             BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0">
       <StackPanel Margin="18,10" Spacing="7">
