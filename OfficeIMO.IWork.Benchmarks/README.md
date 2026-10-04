@@ -6,6 +6,11 @@ correctness CI. [PowerForge](https://github.com/EvotecIT/PSPublishModule) owns
 warmups, rotated iteration order, elapsed and memory counters, artifacts and gates.
 The library owns synthetic inputs, pinned native fixtures and semantic validation.
 
+The [2026-10-04 macOS comparison](../Docs/benchmarks/officeimo.iwork-runtime-2026-10-04.md)
+retains 360 validated samples from a repeated scale matrix, including slower
+elapsed cases, allocation changes and whole-process memory observations. It does
+not establish portable performance budgets.
+
 Build from the repository root using the pinned SDK:
 
 ```powershell
