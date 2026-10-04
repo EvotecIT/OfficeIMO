@@ -113,12 +113,12 @@ namespace OfficeIMO.Excel {
                         bounds = null;
                     }
                 }
-                string? styleIndex = reader.GetAttribute("s");
-                if (styleIndex != null) {
+                XmlStyleAttribute styleIndex = ReadXmlStyleAttribute(reader);
+                if (styleIndex.Present) {
                     ValidateCellStyleReference(styleIndex, reference);
                 }
                 bool sharedStringCell = string.Equals(
-                    reader.GetAttribute("t"),
+                    ReadXmlCellTypeAttribute(reader),
                     "s",
                     StringComparison.Ordinal);
                 bool sharedFollower = false;
@@ -219,9 +219,9 @@ namespace OfficeIMO.Excel {
             return value;
         }
 
-        private void ValidateCellStyleReference(string rawIndex, XmlCoordinateReference reference) {
-            if (TryParseUInt(rawIndex, out uint styleIndex)) {
-                ValidateCellStyleReference(styleIndex, reference);
+        private void ValidateCellStyleReference(XmlStyleAttribute style, XmlCoordinateReference reference) {
+            if (style.Valid) {
+                ValidateCellStyleReference(style.Index, reference);
                 return;
             }
 

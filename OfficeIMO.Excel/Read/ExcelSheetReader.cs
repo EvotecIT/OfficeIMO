@@ -31,9 +31,7 @@ namespace OfficeIMO.Excel {
         private List<string>? _sharedStringItems;
         private bool? _hasWorksheetPartStreamContent;
         private string? _usedRangeA1;
-        private string? _lastDateStyleAttribute;
         private char[]? _xmlValueTextBuffer;
-        private bool _lastDateStyleAttributeResult;
         private static readonly XmlReaderSettings WorksheetXmlReaderSettings = CreateWorksheetXmlReaderSettings();
         private static readonly object BoxedTrue = true;
         private static readonly object BoxedFalse = false;
@@ -109,7 +107,6 @@ namespace OfficeIMO.Excel {
 
         private DateTime FromExcelSerialDate(double serial, bool calendarStyle) => calendarStyle ? ExcelDateSystemConverter.FromSerial(serial, _dateSystem) : DateTime.FromOADate(serial);
         private DateTime FromExcelSerialDate(double serial, uint? styleIndex) => FromExcelSerialDate(serial, styleIndex.HasValue && Styles.IsDateSystemShiftStyle(styleIndex.Value));
-        private bool IsCalendarStyleAttribute(string? attribute) => uint.TryParse(attribute, NumberStyles.None, CultureInfo.InvariantCulture, out uint index) && Styles.IsDateSystemShiftStyle(index);
 
         private StylesCache Styles => _stylesCache ??= _styles.Value;
 
@@ -235,7 +232,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryReadXmlCellValueForCellEnumeration(XmlReader cellReader, int rowIndex, int columnIndex, out object? value, out bool explicitBlank) {
-            XmlCellKind cellKind = ParseXmlCellKind(cellReader.GetAttribute("t"));
+            XmlCellKind cellKind = ParseXmlCellKind(ReadXmlCellTypeAttribute(cellReader));
             bool readStyleIndex = true;
 
             CellRaw raw = ReadXmlCellRaw(cellReader, rowIndex, columnIndex, cellKind, readStyleIndex);
@@ -437,27 +434,6 @@ namespace OfficeIMO.Excel {
                 && typeHint != CellValues.InlineString
                 && typeHint != CellValues.Date
                 && Styles.HasDateStyles;
-        }
-
-        private bool IsDateStyleAttribute(string? styleAttribute) {
-            if (string.IsNullOrEmpty(styleAttribute)) {
-                return false;
-            }
-
-            if (string.Equals(styleAttribute, _lastDateStyleAttribute, StringComparison.Ordinal)) {
-                return _lastDateStyleAttributeResult;
-            }
-
-            if (!Styles.HasDateStyles) {
-                _lastDateStyleAttribute = styleAttribute;
-                _lastDateStyleAttributeResult = false;
-                return false;
-            }
-
-            bool result = TryParseUInt(styleAttribute, out uint styleIndex) && Styles.IsDateLike(styleIndex);
-            _lastDateStyleAttribute = styleAttribute;
-            _lastDateStyleAttributeResult = result;
-            return result;
         }
 
         private static XmlCellKind ParseXmlCellKind(string? type) {

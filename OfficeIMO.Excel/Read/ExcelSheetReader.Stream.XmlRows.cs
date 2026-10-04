@@ -92,7 +92,7 @@ namespace OfficeIMO.Excel {
                     seenColumns = orderedSeen <= 0 ? 0UL : CreateAllColumnsSeenMask(orderedSeen);
                 }
 
-                rowValues[columnOffset] = ReadXmlCellValue(rowReader, rowReader.GetAttribute("t"), preserveDateSerial);
+                rowValues[columnOffset] = ReadXmlCellValue(rowReader, ReadXmlCellTypeAttribute(rowReader), preserveDateSerial);
                 if (canUseOrderedFullWidthExit) {
                     nextExpectedColumn++;
                 }
@@ -167,7 +167,7 @@ namespace OfficeIMO.Excel {
                     canUseOrderedFullWidthExit = false;
                 }
 
-                rowValues[columnOffset] = ReadXmlCellValue(rowReader, rowReader.GetAttribute("t"), preserveDateSerial);
+                rowValues[columnOffset] = ReadXmlCellValue(rowReader, ReadXmlCellTypeAttribute(rowReader), preserveDateSerial);
                 seenColumnMask |= (byte)(1 << columnOffset);
 
                 if (canUseOrderedFullWidthExit) {
@@ -245,7 +245,7 @@ namespace OfficeIMO.Excel {
                     canUseOrderedFullWidthExit = false;
                 }
 
-                rowValues[columnOffset] = ReadXmlCellValue(rowReader, rowReader.GetAttribute("t"), preserveDateSerial);
+                rowValues[columnOffset] = ReadXmlCellValue(rowReader, ReadXmlCellTypeAttribute(rowReader), preserveDateSerial);
 
                 if (canUseOrderedFullWidthExit) {
                     nextExpectedColumn++;

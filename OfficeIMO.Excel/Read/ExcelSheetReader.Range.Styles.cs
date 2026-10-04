@@ -53,7 +53,7 @@ namespace OfficeIMO.Excel {
 
                         int columnIndex = GetXmlCellColumnIndex(reader, ref nextColumnIndex);
                         if (columnIndex >= firstColumn && columnIndex <= lastColumn) {
-                            uint styleIndex = TryParseUInt(reader.GetAttribute("s"), out uint parsedStyle)
+                            uint styleIndex = TryReadXmlStyleIndex(reader, out uint parsedStyle)
                                 ? parsedStyle
                                 : 0U;
                             styles[rowIndex - firstRow, columnIndex - firstColumn] = styleIndex;

@@ -31,7 +31,7 @@ namespace OfficeIMO.Excel {
         }
 
         private object? ReadXmlCellValue(XmlReader cellReader) {
-            return ReadXmlCellValue(cellReader, cellReader.GetAttribute("t"));
+            return ReadXmlCellValue(cellReader, ReadXmlCellTypeAttribute(cellReader));
         }
 
         private object? ReadXmlCellValue(XmlReader cellReader, string? cellType, bool preserveDateSerial = false) {
@@ -44,7 +44,7 @@ namespace OfficeIMO.Excel {
             }
             if (preserveDateSerial && _opt.TreatDatesUsingNumberFormat
                 && CellKindCanUseDateStyle(ParseXmlCellKind(cellType))
-                && IsDateStyleAttribute(cellReader.GetAttribute("s"))) {
+                && IsDateStyleAttribute(ReadXmlStyleAttribute(cellReader))) {
                 return ConvertRawForDataReader(ReadXmlCellRaw(cellReader, 0, 0, ParseXmlCellKind(cellType), readStyleIndex: true));
             }
 
@@ -75,7 +75,7 @@ namespace OfficeIMO.Excel {
             bool useDateStyle = false;
             bool calendarStyle = false;
             if (_opt.TreatDatesUsingNumberFormat && CellKindCanUseDateStyle(cellKind)) {
-                string? styleAttribute = cellReader.GetAttribute("s");
+                XmlStyleAttribute styleAttribute = ReadXmlStyleAttribute(cellReader);
                 useDateStyle = IsDateStyleAttribute(styleAttribute);
                 calendarStyle = useDateStyle && IsCalendarStyleAttribute(styleAttribute);
             }
@@ -192,8 +192,9 @@ namespace OfficeIMO.Excel {
             bool useCachedFormulaResult = _opt.UseCachedFormulaResult;
             bool numericAsDecimal = _opt.NumericAsDecimal;
             CultureInfo culture = _opt.Culture;
-            bool useDateStyle = _opt.TreatDatesUsingNumberFormat && IsDateStyleAttribute(cellReader.GetAttribute("s"));
-            bool calendarStyle = useDateStyle && IsCalendarStyleAttribute(cellReader.GetAttribute("s"));
+            XmlStyleAttribute style = _opt.TreatDatesUsingNumberFormat ? ReadXmlStyleAttribute(cellReader) : default;
+            bool useDateStyle = IsDateStyleAttribute(style);
+            bool calendarStyle = useDateStyle && IsCalendarStyleAttribute(style);
 
             int depth = cellReader.Depth;
             string? rawText = null;
@@ -463,29 +464,5 @@ namespace OfficeIMO.Excel {
             return result;
         }
 
-        private static bool TryParseUInt(string? value, out uint result) {
-            result = 0;
-            if (string.IsNullOrEmpty(value)) {
-                return false;
-            }
-
-            string text = value!;
-            uint parsed = 0;
-            for (int i = 0; i < text.Length; i++) {
-                uint digit = (uint)(text[i] - '0');
-                if (digit > 9U) {
-                    return uint.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out result);
-                }
-
-                if (parsed > (uint.MaxValue - digit) / 10U) {
-                    return uint.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out result);
-                }
-
-                parsed = (parsed * 10U) + digit;
-            }
-
-            result = parsed;
-            return true;
-        }
     }
 }

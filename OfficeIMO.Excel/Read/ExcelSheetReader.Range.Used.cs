@@ -125,7 +125,7 @@ namespace OfficeIMO.Excel {
                             return false;
                         }
 
-                        result[cellRow - firstRow, cellColumn - firstColumn] = ReadXmlCellValue(reader, reader.GetAttribute("t"));
+                        result[cellRow - firstRow, cellColumn - firstColumn] = ReadXmlCellValue(reader, ReadXmlCellTypeAttribute(reader));
                     }
                 }
 

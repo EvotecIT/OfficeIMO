@@ -173,7 +173,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryReadXmlCellValueForEnumeration(XmlReader cellReader, int rowIndex, int columnIndex, out object? value) {
-            XmlCellKind cellKind = ParseXmlCellKind(cellReader.GetAttribute("t"));
+            XmlCellKind cellKind = ParseXmlCellKind(ReadXmlCellTypeAttribute(cellReader));
             bool readStyleIndex = true;
 
             CellRaw raw = ReadXmlCellRaw(cellReader, rowIndex, columnIndex, cellKind, readStyleIndex);

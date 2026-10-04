@@ -242,14 +242,14 @@ namespace OfficeIMO.Excel {
         }
 
         private CellRaw ReadXmlCellRaw(XmlReader cellReader, int rowIndex, int columnIndex) {
-            XmlCellKind cellKind = ParseXmlCellKind(cellReader.GetAttribute("t"));
+            XmlCellKind cellKind = ParseXmlCellKind(ReadXmlCellTypeAttribute(cellReader));
             bool readStyleIndex = _opt.TreatDatesUsingNumberFormat
                 && CellKindCanUseDateStyle(cellKind);
             return ReadXmlCellRaw(cellReader, rowIndex, columnIndex, cellKind, readStyleIndex);
         }
 
         private CellRaw ReadXmlCellRaw<TTarget>(XmlReader cellReader, int rowIndex, int columnIndex, TypedPropertyBinding<TTarget> binding) {
-            XmlCellKind cellKind = ParseXmlCellKind(cellReader.GetAttribute("t"));
+            XmlCellKind cellKind = ParseXmlCellKind(ReadXmlCellTypeAttribute(cellReader));
             bool readStyleIndex = _opt.CellValueConverter != null
                 || (_opt.TreatDatesUsingNumberFormat
                 && binding.NeedsDateStyleConversion
@@ -264,12 +264,12 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            XmlCellKind cellKind = ParseXmlCellKind(cellReader.GetAttribute("t"));
+            XmlCellKind cellKind = ParseXmlCellKind(ReadXmlCellTypeAttribute(cellReader));
             uint? styleIndex = null;
             if (_opt.TreatDatesUsingNumberFormat
                 && binding.NeedsDateStyleConversion
                 && CellKindCanUseDateStyle(cellKind)
-                && TryParseUInt(cellReader.GetAttribute("s"), out uint parsedStyle)) {
+                && TryReadXmlStyleIndex(cellReader, out uint parsedStyle)) {
                 if (Styles.HasDateStyles) {
                     styleIndex = parsedStyle;
                 }
@@ -449,14 +449,14 @@ namespace OfficeIMO.Excel {
         }
 
         private CellRaw ReadXmlCellRaw(XmlReader cellReader, int rowIndex, int columnIndex, XmlCellKind cellKind, bool readStyleIndex) {
-            string? metadataIndex = cellReader.GetAttribute("t") == "e" ? cellReader.GetAttribute("vm") : null;
+            string? metadataIndex = ReadXmlCellTypeAttribute(cellReader) == "e" ? cellReader.GetAttribute("vm") : null;
             var raw = new CellRaw {
                 Row = rowIndex,
                 Col = columnIndex,
                 TypeHint = ToCellValueType(cellKind)
             };
 
-            if (readStyleIndex && TryParseUInt(cellReader.GetAttribute("s"), out uint parsedStyle)) {
+            if (readStyleIndex && TryReadXmlStyleIndex(cellReader, out uint parsedStyle)) {
                 raw.StyleIndex = parsedStyle;
             }
 

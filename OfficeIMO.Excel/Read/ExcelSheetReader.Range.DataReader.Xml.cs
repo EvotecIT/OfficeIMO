@@ -570,7 +570,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    string? cellType = _reader.GetAttribute("t");
+                    string? cellType = ReadXmlCellTypeAttribute(_reader);
                     if (columnIndex == targetColumn
                         && targetKind != XmlDataReaderTargetKind.None
                         && _owner.TryReadXmlCellPrimitiveForDataReader(
@@ -647,7 +647,7 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
 
-                        _currentValues[columnOffset] = _owner.ReadXmlCellValue(_reader, _reader.GetAttribute("t"), preserveDateSerial: true);
+                        _currentValues[columnOffset] = _owner.ReadXmlCellValue(_reader, ReadXmlCellTypeAttribute(_reader), preserveDateSerial: true);
                         _currentPrimitiveKinds[columnOffset] = XmlDataReaderPrimitiveKind.None;
                         _currentValueLoaded[columnOffset] = true;
                     }

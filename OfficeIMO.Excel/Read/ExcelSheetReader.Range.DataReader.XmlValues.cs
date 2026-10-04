@@ -26,7 +26,7 @@ namespace OfficeIMO.Excel {
 
             XmlCellKind cellKind = ParseXmlCellKind(cellType);
             if (cellKind == XmlCellKind.Default || cellKind == XmlCellKind.Number) {
-                string? style = cellReader.GetAttribute("s");
+                XmlStyleAttribute style = ReadXmlStyleAttribute(cellReader);
                 bool useDateStyle = _opt.TreatDatesUsingNumberFormat && IsDateStyleAttribute(style);
                 if (targetKind == XmlDataReaderTargetKind.Numeric
                     || (targetKind == XmlDataReaderTargetKind.DateTime && useDateStyle)) {
