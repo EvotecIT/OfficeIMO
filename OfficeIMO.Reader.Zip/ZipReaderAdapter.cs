@@ -435,6 +435,7 @@ internal static class ZipReaderAdapter {
     }
 
     private static bool ShouldAttemptRead(string entryName) {
+        if (ReaderNestedContent.CanRead(entryName)) return true;
         var kind = DocumentReaderEngine.DetectKind(entryName);
         if (kind != ReaderInputKind.Unknown) return true;
 

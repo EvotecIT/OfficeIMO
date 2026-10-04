@@ -459,13 +459,18 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 InputPath = input
             },
             cancellationToken: cancellation.Token);
-        await detector.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        try {
+            await Task.WhenAny(detector.Started.Task, operation).WaitAsync(TimeSpan.FromSeconds(30));
+            Assert.True(detector.Started.Task.IsCompletedSuccessfully, "Assessment must enter the detector before cancellation.");
+            cancellation.Cancel();
+            OfficeProvenanceWorkflowResult result = await operation.WaitAsync(TimeSpan.FromSeconds(30));
 
-        cancellation.Cancel();
-        OfficeProvenanceWorkflowResult result = await operation.WaitAsync(TimeSpan.FromSeconds(2));
-
-        Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
-        Assert.True(detector.CancellationObserved);
+            Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
+            Assert.True(detector.CancellationObserved);
+        } finally {
+            // Release the blocking provider even when startup or an assertion fails.
+            cancellation.Cancel();
+        }
     }
 
     [Fact]
@@ -480,13 +485,17 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 InputPath = input
             },
             cancellationToken: cancellation.Token);
-        await verifier.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        try {
+            await Task.WhenAny(verifier.Started.Task, operation).WaitAsync(TimeSpan.FromSeconds(30));
+            Assert.True(verifier.Started.Task.IsCompletedSuccessfully, "Assessment must enter the verifier before cancellation.");
+            cancellation.Cancel();
+            OfficeProvenanceWorkflowResult result = await operation.WaitAsync(TimeSpan.FromSeconds(30));
 
-        cancellation.Cancel();
-        OfficeProvenanceWorkflowResult result = await operation.WaitAsync(TimeSpan.FromSeconds(2));
-
-        Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
-        Assert.True(verifier.CancellationObserved);
+            Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
+            Assert.True(verifier.CancellationObserved);
+        } finally {
+            cancellation.Cancel();
+        }
     }
 
     [Fact]

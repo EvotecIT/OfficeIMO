@@ -47,16 +47,35 @@ public sealed class ReaderPdfOptions {
     public bool ChunkByPage { get; set; } = true;
 
     /// <summary>
+    /// Includes substantial image content on pages that also contain native text in OCR candidate discovery.
+    /// Default: false. A candidate is a review signal, not proof that an image contains text.
+    /// </summary>
+    public bool IncludeMixedPageOcrCandidates { get; set; }
+
+    /// <summary>
+    /// Minimum combined visible image area as a fraction of page area for mixed-page OCR candidates.
+    /// Defaults to 0.25. Zero considers every mixed image page; values must be finite and between zero and one.
+    /// </summary>
+    public double MinimumMixedPageImageAreaRatio { get; set; } = 0.25D;
+
+    /// <summary>
     /// Creates a defensive copy for handler registration reuse.
     /// </summary>
-    public ReaderPdfOptions Clone() => new ReaderPdfOptions {
-        Password = Password,
-        ReadOptions = ReadOptions?.Clone(),
-        MarkdownOptions = CloneMarkdownOptions(MarkdownOptions),
-        IncludeParagraphContinuationMetadata = IncludeParagraphContinuationMetadata,
-        ParagraphContinuationOptions = CloneParagraphContinuationOptions(ParagraphContinuationOptions),
-        ChunkByPage = ChunkByPage
-    };
+    public ReaderPdfOptions Clone() {
+        if (double.IsNaN(MinimumMixedPageImageAreaRatio) || double.IsInfinity(MinimumMixedPageImageAreaRatio)
+            || MinimumMixedPageImageAreaRatio < 0 || MinimumMixedPageImageAreaRatio > 1)
+            throw new ArgumentOutOfRangeException(nameof(MinimumMixedPageImageAreaRatio));
+        return new ReaderPdfOptions {
+            Password = Password,
+            ReadOptions = ReadOptions?.Clone(),
+            MarkdownOptions = CloneMarkdownOptions(MarkdownOptions),
+            IncludeParagraphContinuationMetadata = IncludeParagraphContinuationMetadata,
+            ParagraphContinuationOptions = CloneParagraphContinuationOptions(ParagraphContinuationOptions),
+            ChunkByPage = ChunkByPage,
+            IncludeMixedPageOcrCandidates = IncludeMixedPageOcrCandidates,
+            MinimumMixedPageImageAreaRatio = MinimumMixedPageImageAreaRatio
+        };
+    }
 
     internal static PdfLogicalParagraphContinuationOptions? CloneParagraphContinuationOptions(PdfLogicalParagraphContinuationOptions? options) {
         if (options is null) return null;

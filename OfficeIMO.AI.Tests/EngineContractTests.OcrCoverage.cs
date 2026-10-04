@@ -47,15 +47,22 @@ public sealed partial class EngineContractTests {
         Assert.Equal(incomplete, complete.SnapshotHash != document.SnapshotHash);
     }
 
-    [Fact]
-    public async Task PendingNestedOcrPreventsMissingFieldFromBecomingAClaimOfAbsence() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task NestedSourceCoverageControlsMissingFieldInterpretation(bool pendingOcr) {
         var source = new OfficeDocumentReadResult {
             Blocks = new[] { new OfficeDocumentBlock { Text = "readable" } },
             NestedDocuments = new[] { new OfficeDocumentNestedResult { Path = "scan.pdf", Document = new OfficeDocumentReadResult {
-                OcrCandidates = new[] { new OfficeDocumentOcrCandidate { Id = "scan" } }
+                OcrCandidates = pendingOcr ? new[] { new OfficeDocumentOcrCandidate { Id = "scan" } }
+                    : Array.Empty<OfficeDocumentOcrCandidate>(),
+                Diagnostics = new[] { new OfficeDocumentDiagnostic {
+                    Severity = OfficeDocumentDiagnosticSeverity.Information,
+                    Category = OfficeDocumentDiagnosticCategory.Adapter, Code = "EMAIL_ATTACHMENT_READER_SUCCEEDED"
+                } }
             } } }
         };
-        var document = OfficeAiDocument.FromReadResult(new byte[] { 1 }, source);
+        var document = OfficeAiDocument.FromReadResult(new byte[] { 1 }, OfficeDocumentReadResultJson.Deserialize(source.ToJson()));
         string response = System.Text.Json.JsonSerializer.Serialize(new {
             claims = Array.Empty<object>(),
             fields = new { field1 = new { status = "missing", rawValue = (string?)null, evidence = Array.Empty<object>() } },
@@ -65,9 +72,10 @@ public sealed partial class EngineContractTests {
             Operation = OfficeAiOperation.ExtractFields,
             Fields = new[] { new OfficeAiFieldDefinition("amount", OfficeAiFieldType.Integer) }
         });
-        Assert.Equal(OfficeAiResultStatus.Partial, result.Status);
-        Assert.Equal(OfficeAiFieldStatus.NotEvaluated, Assert.Single(result.Fields).Status);
-        Assert.Contains("source-reader-diagnostics", result.Diagnostics);
+        Assert.Equal(pendingOcr, document.HasSourceDiagnostics);
+        Assert.Equal(pendingOcr ? OfficeAiResultStatus.Partial : OfficeAiResultStatus.InsufficientEvidence, result.Status);
+        Assert.Equal(pendingOcr ? OfficeAiFieldStatus.NotEvaluated : OfficeAiFieldStatus.Missing, Assert.Single(result.Fields).Status);
+        Assert.Equal(pendingOcr, result.Diagnostics.Contains("source-reader-diagnostics"));
     }
 
     [Theory]
