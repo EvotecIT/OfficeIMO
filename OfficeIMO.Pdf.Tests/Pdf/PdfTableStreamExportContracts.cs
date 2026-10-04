@@ -1298,6 +1298,7 @@ public class PdfTableStreamExportContracts {
     }
 
     [Fact]
+    [Trait("Category", "Performance")]
     public void VectorVisibility_ReusedTransparentPatternTileStaysBounded() {
         const int elementCount = 512;
         var patternContent = new System.Text.StringBuilder(elementCount * 24);
@@ -1332,6 +1333,7 @@ public class PdfTableStreamExportContracts {
     }
 
     [Fact]
+    [Trait("Category", "Performance")]
     public void VectorVisibility_RepeatedFormsReuseInheritedPatternResource() {
         const int elementCount = 2048;
         const int invocationCount = 2048;
@@ -1378,6 +1380,7 @@ public class PdfTableStreamExportContracts {
     }
 
     [Fact]
+    [Trait("Category", "Performance")]
     public void VectorVisibility_ReusedAuthoredClipStaysBoundedAndConservative() {
         const int contourCount = 2048;
         const int primitiveCount = 256;
@@ -1407,6 +1410,7 @@ public class PdfTableStreamExportContracts {
     }
 
     [Fact]
+    [Trait("Category", "Performance")]
     public void VectorVisibility_ComplexDisjointPathsStayBoundedAndConservative() {
         const int contourCount = 511;
         var content = new System.Text.StringBuilder(contourCount * 80);
