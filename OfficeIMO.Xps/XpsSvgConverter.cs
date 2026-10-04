@@ -103,6 +103,9 @@ internal sealed partial class XpsSvgConverter {
             if (child.Name.NamespaceName != XpsPackage.Namespace(_page.Document.Format)) { Loss("Foreign element: " + child.Name); continue; }
             string? transform = Transform(child, scope);
             BrushRegion localRegion = LocalRegion(region, transform);
+            double previousStrokeResolution = _strokeResolution;
+            _strokeResolution = StrokeResolution(previousStrokeResolution, transform);
+            try {
             int firstText = _textSpans.Count;
             int firstTarget = _targets.Count;
             XElement? result;
@@ -136,6 +139,7 @@ internal sealed partial class XpsSvgConverter {
             if (_visualDepth == 0 && child.Attribute("Name") is XAttribute name) Set(result, "id", "xps-" + name.Value);
             RecordNavigationBounds(child, parent, transform, firstTarget);
             target.Add(result);
+            } finally { _strokeResolution = previousStrokeResolution; }
         }
     }
     private string? Link(string target, string part) {
@@ -200,51 +204,45 @@ internal sealed partial class XpsSvgConverter {
         string figures = (string?)geometry.Attribute("Figures") ?? Figures(geometry);
         return ((string?)geometry.Attribute("FillRule") == "NonZero" ? "F1 " : "F0 ") + figures;
     }
-    private string Figures(XElement geometry) {
-        var data = new StringBuilder();
-        foreach (var figure in geometry.Elements()) {
-            if (figure.Name.LocalName != "PathFigure") { Loss("Geometry child: " + figure.Name.LocalName); continue; }
-            CheckAttributes(figure, "StartPoint IsClosed IsFilled");
-            if ((string?)figure.Attribute("IsFilled") == "false") Loss("Unfilled path figure");
-            data.Append("M ").Append((string?)figure.Attribute("StartPoint") ?? throw new InvalidDataException("Missing figure start."));
-            foreach (var segment in figure.Elements()) {
-                CheckAttributes(segment, "Point Points Point1 Point2 Point3 Size RotationAngle IsLargeArc SweepDirection IsStroked");
-                if ((string?)segment.Attribute("IsStroked") == "false") Loss("Unstroked path segment");
-                switch (segment.Name.LocalName) {
-                    case "PolyLineSegment": data.Append(" L ").Append((string?)segment.Attribute("Points")); break;
-                    case "PolyBezierSegment": data.Append(" C ").Append((string?)segment.Attribute("Points")); break;
-                    case "PolyQuadraticBezierSegment": data.Append(" Q ").Append((string?)segment.Attribute("Points")); break;
-                    case "ArcSegment": data.Append(" A ").Append((string?)segment.Attribute("Size")).Append(' ').Append((string?)segment.Attribute("RotationAngle") ?? "0").Append(' ').Append((string?)segment.Attribute("IsLargeArc") == "true" ? "1" : "0").Append(' ').Append((string?)segment.Attribute("SweepDirection") == "Clockwise" ? "1" : "0").Append(' ').Append((string?)segment.Attribute("Point")); break;
-                    default: Loss("Path segment: " + segment.Name.LocalName); break;
-                }
-            }
-            if ((string?)figure.Attribute("IsClosed") == "true") data.Append(" Z ");
-        }
-        return data.ToString();
-    }
+    private string Figures(XElement geometry) => ProjectFigures(geometry).Fill;
     private XElement PathElement(XElement e, Dictionary<string, Resource> scope, string part, int depth, BrushRegion region) {
         Charge(depth);
         CheckAttributes(e, "Data Fill Stroke StrokeThickness StrokeDashArray StrokeDashOffset StrokeStartLineCap StrokeEndLineCap StrokeDashCap StrokeLineJoin StrokeMiterLimit RenderTransform Clip Opacity OpacityMask FixedPage.NavigateUri");
-        string path = StripFillRule(Geometry(e, "Data", scope) ?? "", out string rule, out var bounds);
+        var projection = PathProjection(e, scope);
+        string path = StripFillRule(projection?.Full ?? Geometry(e, "Data", scope) ?? "", out string rule, out var bounds);
         if (_visualDepth == 0 && bounds.HasValue) _nativeBounds[e] = bounds.Value;
-        var result = Element("path", new XAttribute("d", path), new XAttribute("fill-rule", rule));
+        string fillPath = bounds.HasValue && bounds.Value.Width == 0D && bounds.Value.Height == 0D ? "" : projection?.Fill ?? path;
+        var result = Element("path", new XAttribute("d", fillPath), new XAttribute("fill-rule", rule));
         Paint(e, "Fill", result, "fill", scope, part, depth);
         Paint(e, "Stroke", result, "stroke", scope, part, depth);
-        Stroke(e, result, path);
+        Stroke(e, result, path, region, projection);
         foreach (var child in e.Elements()) if (!new[] { "Path.Data", "Path.Fill", "Path.Stroke", "Path.Clip", "Path.RenderTransform", "Path.OpacityMask" }.Contains(child.Name.LocalName)) Loss(child.Name.LocalName);
         return ApplyBrushFill(result, region);
     }
     private XElement ApplyBrushFill(XElement path, BrushRegion? region = null) {
-        XElement result = path;
-        if (_brushFills.TryGetValue(path, out var image)) {
+        bool fillAbsent = (string?)path.Attribute("fill") == "none" && !_brushFills.ContainsKey(path);
+        XElement result = string.IsNullOrWhiteSpace((string?)path.Attribute("d")) || fillAbsent && _strokeOutlines.ContainsKey(path) ? Element("g") : path;
+        if (!string.IsNullOrWhiteSpace((string?)path.Attribute("d")) && _brushFills.TryGetValue(path, out var image)) {
             string id = "pathClip" + (++_id);
             _defs.Add(Element("clipPath", new XAttribute("id", id), Element("path", new XAttribute("d", (string?)path.Attribute("d") ?? ""), new XAttribute("clip-rule", (string?)path.Attribute("fill-rule") ?? "evenodd"))));
             result = Element("g", Element("g", new XAttribute("clip-path", "url(#" + id + ")"), image), path);
         }
+        if (_strokeOutlines.TryGetValue(path, out var outline) && !_brushStrokes.ContainsKey(path)) {
+            var paint = Element("path", new XAttribute("d", outline), new XAttribute("fill-rule", "nonzero"),
+                new XAttribute("fill", (string?)path.Attribute("stroke") ?? "none"), new XAttribute("stroke", "none"));
+            if (path.Attribute("stroke-opacity") is XAttribute opacity) Set(paint, "fill-opacity", opacity.Value);
+            Set(path, "stroke", "none");
+            result = Element("g", result, paint);
+        }
         if (_brushStrokes.TryGetValue(path, out var stroke)) {
             var visible = region ?? throw new InvalidOperationException("A brush stroke requires the local visible region.");
             var coverage = CloneProjection(path);
-            Set(coverage, "fill", "none"); Set(coverage, "stroke", "#ffffff");
+            if (_strokeOutlines.TryGetValue(path, out var coverageOutline)) {
+                Set(coverage, "d", coverageOutline); Set(coverage, "fill-rule", "nonzero");
+                Set(coverage, "fill", "#ffffff"); Set(coverage, "stroke", "none");
+                coverage.Attribute("fill-opacity")?.Remove();
+                if (path.Attribute("stroke-opacity") is XAttribute strokeOpacity) Set(coverage, "fill-opacity", strokeOpacity.Value);
+            } else { Set(coverage, "fill", "none"); Set(coverage, "stroke", "#ffffff"); }
             Set(path, "stroke", "none");
             result = Element("g", result, ApplyCoverageMask(coverage, stroke.Paint, IntersectRegion(visible, stroke.Bounds)));
         }

@@ -69,8 +69,7 @@ public sealed class XpsDocumentTests {
         var doc = XpsDocument.Load(Sample()); var page = doc.Pages[0]; var xml = page.GetMarkup();
         xml.Elements().First().SetAttributeValue("Stroke", "#FF000000");
         xml.Elements().First().SetAttributeValue("StrokeStartLineCap", "Triangle"); page.ReplaceMarkup(xml);
-        Assert.Throws<NotSupportedException>(() => page.ToSvg());
-        Assert.False(page.ToSvg(allowPartial: true).IsComplete);
+        Assert.True(page.ToSvg().IsComplete);
         Assert.NotNull(XpsDocument.Load(doc.Save()).Pages[0].GetMarkup().Elements().First().Attribute("StrokeStartLineCap"));
     }
     [Fact]

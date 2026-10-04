@@ -83,12 +83,15 @@ internal sealed partial class XpsSvgConverter {
             if (visual.Name.NamespaceName != XpsPackage.Namespace(_page.Document.Format) || !new[] { "Canvas", "Path", "Glyphs" }.Contains(visual.Name.LocalName)) throw new InvalidDataException("Invalid visual brush content.");
             var content = Element("g");
             _visualDepth++;
+            double previousStrokeResolution = _strokeResolution;
+            _strokeResolution = StrokeResolution(previousStrokeResolution * Math.Max(viewport.Width / source.Width, viewport.Height / source.Height),
+                Transform(brush, scope, "Transform"));
             try {
                 // An empty wrapper lets the ordinary native visual pipeline handle this
                 // root exactly as a page child, with source-viewbox visibility for masks.
                 var wrapper = new XElement(visual.Name.Namespace + "Canvas");
                 RenderChildren(wrapper, content, scope, part, depth + 1, source, visual);
-            } finally { _visualDepth--; }
+            } finally { _visualDepth--; _strokeResolution = previousStrokeResolution; }
             ProjectTile(brush, target, attribute, content, source, viewport, scope);
         } finally { _visualStack.Remove(brush); }
     }

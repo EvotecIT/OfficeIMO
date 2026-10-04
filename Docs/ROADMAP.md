@@ -467,7 +467,7 @@ Treat a format as a full OfficeIMO product only when a stable public model can s
 Current native lifecycle and rendering boundaries: [OfficeIMO.Xps support matrix](../OfficeIMO.Xps/SUPPORT.md).
 
 - [ ] Qualify independently produced OpenXPS documents and widen the Microsoft XPS producer corpus beyond the Ecma document, Ghostscript output, and generated interoperability cases.
-- [ ] Extend the rendering profile with clipped miters and separate dash caps, boundary/exterior radial focal-point behavior and wider gradient interoperability, remaining non-ICC image colorimetry, default CMYK/SWOP and incompatible-profile fallback behavior, and JPEG-XR resources through the existing Core owners.
+- [ ] Qualify native stroke behavior at degenerate and mixed-segment cap boundaries where independent consumers disagree with the specification, and extend the rendering profile with boundary/exterior radial focal-point behavior and wider gradient interoperability, remaining non-ICC image colorimetry, default CMYK/SWOP and incompatible-profile fallback behavior, and JPEG-XR resources through the existing Core owners.
 - [ ] Qualify interleaved OPC input with independently produced fixtures and extend structural edits beyond DocumentStructure page/outline references to StoryFragments content and known extension semantics.
 - [ ] Add PDF semantic structure and logical reading-order mapping beyond the links, named destinations and outlines in the support matrix; expose thin Reader/workflow adapters after the owning conversion contracts are qualified.
 

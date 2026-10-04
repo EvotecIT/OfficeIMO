@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Xps;
 
 internal sealed partial class XpsSvgConverter {
-    private void Stroke(XElement source, XElement target, string path) {
+    private void Stroke(XElement source, XElement target, string path, BrushRegion region, GeometryProjection? projection) {
         double thickness = XpsPackage.Number((string?)source.Attribute("StrokeThickness"), 1);
         double miterLimit = XpsPackage.Number((string?)source.Attribute("StrokeMiterLimit"), 10);
         if (thickness < 0 || miterLimit < 1) throw new InvalidDataException("Invalid XPS stroke dimensions.");
@@ -17,17 +17,19 @@ internal sealed partial class XpsSvgConverter {
         string cap = (string?)source.Attribute("StrokeStartLineCap") ?? "Flat";
         string endCap = (string?)source.Attribute("StrokeEndLineCap") ?? "Flat";
         string dashCap = (string?)source.Attribute("StrokeDashCap") ?? "Flat";
-        if (hasStroke) {
-            if (cap != endCap) Loss("Unequal stroke end caps");
-            if (dashes.Length > 0 && dashCap != cap) Loss("Separate stroke dash caps");
-            if (cap == "Triangle" || endCap == "Triangle" || (dashes.Length > 0 && dashCap == "Triangle")) Loss("Triangle stroke cap");
-        }
         if (!new[] { "Flat", "Round", "Square", "Triangle" }.Contains(cap) || !new[] { "Flat", "Round", "Square", "Triangle" }.Contains(endCap) || !new[] { "Flat", "Round", "Square", "Triangle" }.Contains(dashCap)) throw new InvalidDataException("Invalid XPS stroke cap.");
         Set(target, "stroke-linecap", cap == "Round" ? "round" : cap == "Square" ? "square" : "butt");
         string join = (string?)source.Attribute("StrokeLineJoin") ?? "Miter";
         if (!new[] { "Miter", "Round", "Bevel" }.Contains(join)) throw new InvalidDataException("Invalid XPS stroke join.");
         Set(target, "stroke-linejoin", join.ToLowerInvariant());
-        if (hasStroke && join == "Miter" && RequiresClippedMiter(path, miterLimit)) Loss("Clipped miter stroke join");
+        if (hasStroke && (cap != endCap || cap == "Triangle" || endCap == "Triangle" ||
+            (dashes.Length > 0 && (dashCap != cap || dashCap == "Triangle")) ||
+            (projection?.HasSeparateStrokeGeometry ?? false) || HasDegenerateStrokeFigure(path) ||
+            (join == "Miter" && RequiresClippedMiter(path, miterLimit)))) {
+            _strokeOutlines[target] = StrokeOutline(path, thickness, miterLimit, dashes.Select(n => n * thickness).ToArray(),
+                XpsPackage.Number((string?)source.Attribute("StrokeDashOffset"), 0) * thickness,
+                cap, endCap, dashCap, join, region, projection?.Strokes);
+        }
     }
 
     // SVG bevels over-limit miters; XPS clips their tips. Detect those joins using the

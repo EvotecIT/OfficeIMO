@@ -79,12 +79,12 @@ public sealed class XpsBoundsAndNavigationTests {
     }
 
     [Fact]
-    public void NativeMiterDefaultIsRetainedAndClippedMitersAreDiagnosed() {
+    public void NativeMiterDefaultAndClippedMitersAreRetained() {
         var page = XpsDocument.Create().AddPage(100, 100).AddPath("M0,90L50,0L70,90", null, "#FF000000", 3);
         Assert.Contains("stroke-miterlimit=\"10\"", page.ToSvg().Svg);
         var xml = page.GetMarkup(); xml.Elements().Single().SetAttributeValue("StrokeMiterLimit", "2"); page.ReplaceMarkup(xml);
-        Assert.Contains("Clipped miter stroke join", page.ToSvg(true).Diagnostics);
-        Assert.Throws<NotSupportedException>(() => page.ToSvg());
+        Assert.True(page.ToSvg().IsComplete);
+        Assert.Contains("fill-rule=\"nonzero\"", page.ToSvg().Svg);
         xml.Elements().Single().SetAttributeValue("StrokeLineJoin", "Bevel"); page.ReplaceMarkup(xml);
         Assert.True(page.ToSvg().IsComplete);
     }
@@ -95,8 +95,8 @@ public sealed class XpsBoundsAndNavigationTests {
     [InlineData("M10,10 L10,10 L50,10 L50,50 Z")]
     public void DegenerateSegmentsUseTheNativeImpliedMiterLimit(string geometry) {
         var page = XpsDocument.Create().AddPage(100, 100).AddPath(geometry, null, "#FF000000", 4);
-        Assert.Contains("Clipped miter stroke join", page.ToSvg(true).Diagnostics);
-        Assert.Throws<NotSupportedException>(() => page.ToSvg());
+        Assert.True(page.ToSvg().IsComplete);
+        Assert.Contains("fill-rule=\"nonzero\"", page.ToSvg().Svg);
         var xml = page.GetMarkup(); xml.Elements().Single().SetAttributeValue("StrokeLineJoin", "Round"); page.ReplaceMarkup(xml);
         Assert.True(page.ToSvg().IsComplete);
     }
@@ -106,8 +106,7 @@ public sealed class XpsBoundsAndNavigationTests {
         var page = XpsDocument.Create().AddPage(100, 100).AddPath("M10,20L90,20", null, "#FF000000", 3);
         var xml = page.GetMarkup(); var path = xml.Elements().Single();
         path.SetAttributeValue("StrokeStartLineCap", "Round"); path.SetAttributeValue("StrokeEndLineCap", "Round"); path.SetAttributeValue("StrokeDashArray", "2,1"); page.ReplaceMarkup(xml);
-        Assert.Contains("Separate stroke dash caps", page.ToSvg(true).Diagnostics);
-        Assert.Throws<NotSupportedException>(() => page.ToSvg());
+        Assert.True(page.ToSvg().IsComplete);
         path.SetAttributeValue("StrokeDashCap", "Round"); page.ReplaceMarkup(xml);
         Assert.True(page.ToSvg().IsComplete);
     }

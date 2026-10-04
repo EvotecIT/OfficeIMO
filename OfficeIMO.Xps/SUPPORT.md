@@ -10,7 +10,7 @@ Preserving an unsupported native element does not mean that it can be rendered.
 | Edit | Detached native page XML; loaded document/page insertion, reordering, transfer and reference removal; shared backing for repeated references; encoded resource replacement; relationship-owned DocumentStructure outline and story-page reference rewriting | Removed parts/resources remain preserved; story references to removed pages and resulting empty stories are removed; opaque metadata and StoryFragments content semantics are not rewritten |
 | Save | Original dialect; native page content and opaque parts retained; required-resource relationships emitted, including profiles and transitive dictionary resources; deterministic ZIP output on the same runtime | ZIP metadata/XML bytes may change; interleaved storage is normalized to atomic parts; no dialect conversion; signed packages cannot be rewritten |
 | Text extraction | UnicodeString runs in markup order | No inferred reading order, paragraphs, or glyph-ID-to-Unicode reconstruction |
-| Paths | Abbreviated geometry, fill rules, explicit path figures/segments, fills, strokes, dashes, matrix transforms, clipping | Per-segment fill/stroke suppression, asymmetric/triangle or separate dash caps, and over-limit clipped miters (including the native degenerate-segment rule) are diagnosed |
+| Paths | Abbreviated geometry, fill rules, explicit figures/segments with fill/stroke suppression, dashes with separate endpoint/dash caps, triangle caps, clipped miters and the degenerate-segment limit, matrix transforms and clipping | Extended strokes use bounded adaptive vector outlines; native Windows confirmation remains for degenerate and mixed-segment cap rules where the independent engines disagree with the specification |
 | Text rendering | Embedded TrueType programs/collections, obfuscation, explicit glyph IDs, cluster mappings, advances/offsets, horizontal bidi, bold/italic style simulation, sideways top-center positioning with vertical metrics or OS/2/hhea fallbacks | Outlined output; unsupported font programs are diagnosed; sideways runs require even BidiLevel |
 | Brushes | Hex/scRGB and ICC ContextColor solids/gradient stops; linear/radial gradients; scoped and external package resource dictionaries; ICC-managed PNG/JPEG/TIFF and visual brushes with absolute viewbox/viewport mapping, matrix transforms, Tile/FlipX/FlipY/FlipXY repetition, non-tiled fills/strokes, and alpha opacity masks | Unsupported image/profile channel combinations, non-ICC colorimetry, unsupported TIFF encodings, and JPEG-XR rendering are diagnosed |
 | Navigation | Safe web/mail links; page/document/sequence named targets with scoped first-occurrence lookup; sequence page numbers projected into SVG filenames; PDF links, named destinations and DocumentStructure outlines | Non-page unresolved and unsafe destinations are diagnosed; known fixed-page destinations follow structural moves; links to removed pages are unresolved; PDF link hit areas are rectangles and path destination positions use conservative geometry bounds |
@@ -157,3 +157,26 @@ and 1.02/255 for PDF; repeat boundaries and stroke edges have the largest raster
 differences. Managed tests check analytic color samples, SVG round trips, opaque
 PDF reimport, opacity/clone retention and rejection at the expansion limit. These
 cases do not qualify all focal positions or every producer's gradient conventions.
+
+Stroke qualification includes 48 generated XPS/OpenXPS cases and 16 focused rendering
+regressions covering clipped miters,
+asymmetric and triangle caps, separate dash caps, overlapping translucent dashes,
+closed seams, curve/affine placement, fill/stroke suppression, and gradient, image
+and visual-brush paint. Core constructs the stroke as one nonzero union before the
+native transform, so overlapping pieces do not compound the brush opacity. Curve
+approximation accounts for native and visual-brush transforms; subdivision, expanded
+points and SVG output remain bounded.
+Open figures retain their caps when their endpoints coincide. Painted dashes retain
+authored degenerate vertices, including closed seams. Small line/arc coordinates
+remain distinct before affine magnification; equivalent transformed and untransformed
+managed fixtures have the same coverage.
+
+GhostXPS/Ghostscript and MuPDF render the same generated fixtures at 96 DPI. Their
+rendered evidence is supplemented by analytic managed checks. Both XPS engines omit
+fully degenerate strokes and apply authored line caps at internal breaks created by
+unstroked segments; the managed checks follow ECMA-388 18.6.5, 18.6.8 and 18.6.10 for
+those cases. Exact dash-boundary caps, dashed degenerate joins, leading degenerate
+closed seams and magnified short geometry also differ between consumers. These
+discrepancies remain visible qualification gaps, requiring
+a native Windows consumer or another producer/consumer fixture; they are not treated
+as proof that every native stroke case is independently qualified.
