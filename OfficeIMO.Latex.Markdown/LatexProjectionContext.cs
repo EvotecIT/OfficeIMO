@@ -16,6 +16,8 @@ internal sealed class LatexProjectionContext {
     private readonly Dictionary<LatexSyntaxNode, LatexEnvironment> _environments = new();
     private readonly HashSet<LatexEnvironment> _semanticEnvironments = new();
     private readonly IReadOnlyList<LatexSourceSpan> _excluded = Array.Empty<LatexSourceSpan>();
+    private readonly LatexToMarkdownConverter.BlockCandidate[] _contentCandidates;
+    private readonly LatexFootnoteProjection _footnotes = new();
 
     internal LatexProjectionContext(LatexDocument document, CancellationToken cancellationToken) {
         Document = document;
@@ -35,8 +37,9 @@ internal sealed class LatexProjectionContext {
             while (owner != null && owner.Kind != LatexSyntaxKind.Environment) owner = owner.Parent;
             if (owner != null && command.Name == "label" && !IsInsidePreservedArgument(command.Syntax) && !_theoremLabels.ContainsKey(owner))
                 _theoremLabels.Add(owner, command);
-            if (LatexSemanticBuilder.IsInsideCommandArgument(command.Syntax)) continue;
-            if ((owner == null || ReferenceEquals(owner, document.Body?.Syntax)) && !_firstCommands.ContainsKey(command.Name))
+            if (LatexSemanticBuilder.IsInsideCommandArgumentBeforeEnvironment(command.Syntax)) continue;
+            if (!LatexSemanticBuilder.IsInsideCommandArgument(command.Syntax) &&
+                (owner == null || ReferenceEquals(owner, document.Body?.Syntax)) && !_firstCommands.ContainsKey(command.Name))
                 _firstCommands.Add(command.Name, command);
             if (owner == null) continue;
             if (!_directCommands.TryGetValue(owner, out var commands)) {
@@ -60,7 +63,7 @@ internal sealed class LatexProjectionContext {
             inlines.Add(new LatexInlineCandidate(node.Span, null, null, node));
         }
         Verbatim = verbatim;
-        foreach (LatexToken token in document.Tokens) {
+        foreach (LatexTokenView token in document.TokenViews) {
             CheckCancellation();
             if (token.Kind != LatexTokenKind.Comment) continue;
             int end = token.Span.End.Offset;
@@ -82,6 +85,7 @@ internal sealed class LatexProjectionContext {
         _inlines = inlines.OrderBy(static item => item.Span.Start.Offset).ThenByDescending(static item => item.Span.End.Offset).ToArray();
         _comments = comments.OrderBy(static item => item.Span.Start.Offset).ToArray();
         _labels = document.Labels.OrderBy(static item => item.Command.Syntax.Span.Start.Offset).ToArray();
+        _contentCandidates = LatexToMarkdownConverter.IndexContentCandidates(this);
         CheckCancellation();
     }
 
@@ -103,6 +107,8 @@ internal sealed class LatexProjectionContext {
         _environments = source._environments;
         _semanticEnvironments = source._semanticEnvironments;
         _excluded = excluded;
+        _contentCandidates = source._contentCandidates;
+        _footnotes = source._footnotes;
     }
 
     internal LatexProjectionContext WithExcludedSpans(IEnumerable<LatexSourceSpan> spans) {
@@ -122,6 +128,33 @@ internal sealed class LatexProjectionContext {
     internal LatexCommand? FirstCommand(string name) => _firstCommands.TryGetValue(name, out var command) ? command : null;
     internal string? DocumentClassName => FirstCommand("documentclass")?.GetRequiredArgument(0)?.Content.Trim();
     internal bool HasSemanticProjection(LatexEnvironment environment) => _semanticEnvironments.Contains(environment);
+    internal LatexFootnoteProjection Footnotes => _footnotes;
+    internal IEnumerable<LatexToMarkdownConverter.BlockCandidate> ContentCandidates(LatexSourceSpan span) {
+        int first = LowerBound(_contentCandidates.Length, span.Start.Offset, i => _contentCandidates[i].Span.Start.Offset);
+        for (int index = first; index < _contentCandidates.Length && _contentCandidates[index].Span.Start.Offset < span.End.Offset; index++) {
+            CheckCancellation();
+            LatexToMarkdownConverter.BlockCandidate candidate = _contentCandidates[index];
+            if (candidate.Span.End.Offset <= span.End.Offset && !IsInsideInlineBody(candidate, span)) yield return candidate;
+        }
+    }
+
+    internal static bool IsInsideInlineBody(LatexToMarkdownConverter.BlockCandidate candidate, LatexSourceSpan scope) {
+        LatexSyntaxNode? syntax = candidate.Value switch {
+            LatexHeading heading => heading.Command.Syntax,
+            LatexList list => list.Environment.Syntax,
+            LatexFigure figure => figure.Environment.Syntax,
+            LatexTable table => table.Environment.Syntax,
+            LatexTheorem theorem => theorem.Environment.Syntax,
+            LatexMath math => math.Syntax,
+            LatexEnvironment environment => environment.Syntax,
+            LatexSyntaxNode node => node,
+            _ => null
+        };
+        for (LatexSyntaxNode? parent = syntax?.Parent; parent != null; parent = parent.Parent)
+            if (parent.Kind == LatexSyntaxKind.Command && parent.Value == "footnote" &&
+                parent.StartOffset >= scope.Start.Offset && parent.EndOffset <= scope.End.Offset) return true;
+        return false;
+    }
     internal LatexCommand? FindDirectCommand(LatexEnvironment? environment, string name) => environment != null
         && _directCommands.TryGetValue(environment.Syntax, out var commands) && commands.TryGetValue(name, out var command) ? command : null;
     internal LatexCommand? FindTheoremLabel(LatexEnvironment environment) =>

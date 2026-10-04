@@ -138,19 +138,29 @@ internal static class LatexReaderChunkBuilder {
     private static IReadOnlyList<LatexDiagnostic> PartitionDiagnostics(LatexParseResult parse, IReadOnlyList<LatexProjectedBlock> blocks,
         List<LatexDiagnostic>[] byBlock, CancellationToken cancellationToken) {
         var unattached = new List<LatexDiagnostic>();
+        int[] footnotes = Enumerable.Range(0, blocks.Count).Where(index => blocks[index].Kind == "footnote").ToArray();
+        int[]? outer = footnotes.Length == 0 ? null
+            : Enumerable.Range(0, blocks.Count).Where(index => blocks[index].Kind != "footnote").ToArray();
         foreach (LatexDiagnostic diagnostic in parse.Diagnostics) {
             cancellationToken.ThrowIfCancellationRequested();
-            int low = 0, high = blocks.Count;
-            while (low < high) {
-                int middle = low + (high - low) / 2;
-                if (blocks[middle].Span.Start.Offset <= diagnostic.Span.Start.Offset) low = middle + 1;
-                else high = middle;
-            }
-            int index = low - 1;
-            if (index >= 0 && diagnostic.Span.End.Offset <= blocks[index].Span.End.Offset) byBlock[index].Add(diagnostic);
+            int index = FindContainingBlock(blocks, diagnostic.Span, footnotes);
+            if (index < 0) index = FindContainingBlock(blocks, diagnostic.Span, outer);
+            if (index >= 0) byBlock[index].Add(diagnostic);
             else unattached.Add(diagnostic);
         }
         return unattached;
+    }
+
+    private static int FindContainingBlock(IReadOnlyList<LatexProjectedBlock> blocks, LatexSourceSpan span, int[]? indices) {
+        int low = 0, high = indices?.Length ?? blocks.Count;
+        while (low < high) {
+            int middle = low + (high - low) / 2;
+            if (blocks[indices == null ? middle : indices[middle]].Span.Start.Offset <= span.Start.Offset) low = middle + 1;
+            else high = middle;
+        }
+        if (low == 0) return -1;
+        int index = indices == null ? low - 1 : indices[low - 1];
+        return span.End.Offset <= blocks[index].Span.End.Offset ? index : -1;
     }
 
     private static int InclusiveEnd(LatexSourceSpan span) => span.End.Column == 1 && span.End.Line > span.Start.Line ? span.End.Line - 1 : span.End.Line;

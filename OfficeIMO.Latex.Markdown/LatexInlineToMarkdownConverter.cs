@@ -53,10 +53,22 @@ internal static class LatexInlineToMarkdownConverter {
         if (signature != null && command.Arguments.Count(static argument => !argument.IsOptional) < signature.Arguments.Count(static argument => argument == LatexArgumentGroupKind.Required)) {
             target.AddRaw(new CodeSpanInline(LatexToMarkdownConverter.ExtractVisibleSource(context, command.Syntax.Span, diagnostics)));
             Report(diagnostics, "LATEXMD112", LatexMarkdownConversionOutcome.SourceFallback, "command-arguments:" + command.Name,
-                "The bounded profile requires braced arguments; the incomplete or unbraced command was retained as source.", command.Syntax.Span);
+                "The command is missing a required argument; its available source was retained.", command.Syntax.Span);
             return;
         }
         switch (command.Name) {
+            case "footnote":
+                if (LatexSemanticBuilder.IsInsideFootnote(command.Syntax)) {
+                    target.AddRaw(new CodeSpanInline(LatexToMarkdownConverter.ExtractVisibleSource(context, command.Syntax.Span, diagnostics)));
+                    Report(diagnostics, "LATEXMD116", LatexMarkdownConversionOutcome.SourceFallback, "nested-footnote",
+                        "A footnote inside another footnote was retained as source; nested TeX footnote insertion is not evaluated.", command.Syntax.Span);
+                } else {
+                    target.AddRaw(new FootnoteRefInline(context.Footnotes.Register(command)));
+                    if (command.GetOptionalArgument(0) != null)
+                        Report(diagnostics, "LATEXMD117", LatexMarkdownConversionOutcome.Simplified, "footnote-mark",
+                            "The footnote body and reference were retained with a target label; explicit TeX marks and counter state are not evaluated.", command.Syntax.Span);
+                }
+                break;
             case "textbf":
                 target.AddRaw(new BoldSequenceInline(ConvertArgument(context, first, diagnostics)));
                 break;
@@ -89,7 +101,7 @@ internal static class LatexInlineToMarkdownConverter {
                 if (destination == null) {
                     target.AddRaw(new CodeSpanInline(LatexToMarkdownConverter.ExtractVisibleSource(context, command.Syntax.Span, diagnostics)));
                     Report(diagnostics, "LATEXMD112", LatexMarkdownConversionOutcome.SourceFallback, "command-arguments:hyperref",
-                        "The bounded hyperlink form requires an optional label and a braced visible label.", command.Syntax.Span);
+                        "The bounded hyperlink form requires an optional destination and a visible label argument.", command.Syntax.Span);
                 } else {
                     target.AddRaw(new LinkInline(ConvertArgument(context, first, diagnostics), "#" + ReadArgumentSource(context, destination, diagnostics), null));
                 }

@@ -1,7 +1,7 @@
 # OfficeIMO LaTeX benchmarks
 
-This opt-in BenchmarkDotNet project measures complete lossless parsing and
-parse-plus-preserve-write workflows over deterministic small, normal, and large
+This opt-in BenchmarkDotNet project measures complete lossless parsing,
+parse-plus-preserve-write and complete public-token inspection over deterministic small, normal, and large
 documents. Every workload is validated before timing: parsing must be lossless,
 diagnostics must contain no errors, heading counts and content markers must
 match, and preserve writing must reproduce the input exactly.
@@ -26,6 +26,26 @@ dotnet run -c Release -f net10.0 --project .\OfficeIMO.Latex.Benchmarks -- --evi
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Latex.Benchmarks -- --verify-budgets
 ```
 
+Measure full public-token inspection separately:
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Latex.Benchmarks -- --evidence --operation ParseInspect --repeat 3 --json .benchmark-artifacts\latex\inspection.json
+```
+
+`ParseInspect` reads and validates every token's text, value, span, and termination
+state, and retains the parsed document. This exposes allocation deferred by compact
+internal token storage. It has no checked-in budget; the default evidence and budget
+routes continue to select `Parse` and `ParseWrite`. Each isolated measurement records
+the SHA-256 hashes of the loaded native and benchmark assemblies. BenchmarkDotNet
+setup reports the same hashes and validates the complete inspection path.
+
+The corpus uses fixed CRLF line endings on every OS; input hashes identify the
+exact source measured. Retained memory is live heap size minus fragmentation after
+forced full blocking collection. The report keeps the older `GC.GetTotalMemory`
+retained estimate separately and labels sampled peaks as estimates. Process peak
+is `null` when the platform API does not report it; budget verification then fails
+with an unavailable-metric diagnostic. A missing value is never interpreted as zero.
+
 Start with a dry run, then use the short or default job for measurements:
 
 ```powershell
@@ -36,3 +56,7 @@ dotnet run -c Release -f net10.0 --project .\OfficeIMO.Latex.Benchmarks -- --fil
 BenchmarkDotNet artifacts are machine-specific. Keep them under the ignored
 `.benchmark-artifacts` root or another temporary location and publish only
 environment-qualified results.
+
+The [2026-10-03 model memory evidence](../Docs/benchmarks/officeimo.latex-model-memory-2026-10-03.md)
+records controlled comparisons, native platform qualification and the allocation
+tradeoff when callers inspect every public token.

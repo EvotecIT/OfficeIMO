@@ -31,7 +31,8 @@ public static partial class MarkdownPdfConverterExtensions {
                     if (node is HeadingBlock heading) Add(owner, document.GetHeadingAnchor(heading));
                     Add(owner, identifier);
                     if (node is HtmlRawInline html && TryGetInlineAnchor(html.Html, out string? inlineAnchor)) Add(owner, inlineAnchor);
-                    bool flattened = entry.Flattened || node is TableBlock || node is DefinitionListBlock;
+                    bool flattened = entry.Flattened || node is TableBlock ||
+                        node is DefinitionListBlock definitions && !HasStructuredDefinitions(definitions);
                     IReadOnlyList<MarkdownObject> children = node.ChildObjects;
                     for (int index = children.Count - 1; index >= 0; index--) stack.Push((children[index], owner, flattened));
                 }

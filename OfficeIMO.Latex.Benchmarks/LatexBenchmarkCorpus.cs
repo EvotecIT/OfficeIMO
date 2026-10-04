@@ -45,6 +45,7 @@ internal static class LatexBenchmarkCorpus {
             source.AppendLine("\\end{itemize}");
         }
         source.AppendLine("\\end{document}");
-        return new LatexBenchmarkFixture(scale, source.ToString(), sectionCount, sectionCount * recordsPerSection);
+        // Keep the established Windows corpus bytes identical on every platform.
+        return new LatexBenchmarkFixture(scale, source.ToString().ReplaceLineEndings("\r\n"), sectionCount, sectionCount * recordsPerSection);
     }
 }
