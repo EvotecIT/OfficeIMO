@@ -374,7 +374,89 @@ The earlier allocation reductions do not establish competitive leadership.
 OfficeIMO's eager validation is part of its measured full-read cost; peer
 first-row behavior is not treated as an equivalent contract.
 
-## Remaining allocation owners
+## XML type and style attributes
+
+Commit `33d26b66d` reads ordinary cell type and style attributes into a reusable
+character buffer instead of allocating a string for each attribute. Known cell
+types reuse constants, and a parsed style index supplies both date classification
+and the 1904-calendar adjustment. Long, escaped, empty, and unknown attributes
+retain the XML reader's value semantics. The baseline is `15b5f2848`; the benchmark
+harness is identical in both binary snapshots.
+
+The warmed native matrix contains 54 before/after cases. PowerForge contributes
+2,400 successful rotated samples across both processor groups. This stage extends
+the allocation result to multiple sizes and materialized APIs:
+
+| Workload | Before allocation | After allocation |
+| --- | ---: | ---: |
+| 1,000,000 rows, all typed fields | 93.447 MiB | 2.008 MiB |
+| 1,000,000 rows, first-row operation | 46.866 MiB | 1.147 MiB |
+| 250,000 rows, all typed fields | 23.541 MiB | 0.680 MiB |
+| 250,000 rows, first-row operation | 11.961 MiB | 0.483 MiB |
+| 25,000 rows, all typed fields | 1.471 MiB | 0.327 MiB |
+| 25,000 rows, first-row operation | 1.471 MiB | 0.327 MiB |
+| 2,500-row materialized DataTable | 1.833 MiB | 1.547 MiB |
+| 2,500-row materialized objects | 2.333 MiB | 2.048 MiB |
+
+Numeric XML without type/style attributes, omitted-coordinate cases, and ordinary
+or prefixed shared-string cases have essentially unchanged allocation. The 65K
+control measures 2.572 MiB in both snapshots in this run; that is higher than the
+earlier warmed observations and does not establish a stable absolute budget.
+The object-valued numeric DataReader cases vary by roughly 16 KiB in opposite
+directions. Keep those observations alongside the improvements.
+
+Throughput remains unresolved. The table shows candidate/baseline median ratios
+from the rotated runs; values above 1 are slower. Means and every raw sample are
+retained, including large timing excursions while other workstation work ran.
+
+| Workload | First processor group | Second processor group |
+| --- | ---: | ---: |
+| 1,000,000 rows, all typed fields | 1.026 | 1.043 |
+| 1,000,000 rows, first-row operation | 1.019 | 1.047 |
+| 250,000 rows, all typed fields | 1.049 | 1.078 |
+| 250,000 rows, first-row operation | 1.053 | 1.053 |
+| 25,000 rows, all typed fields | 1.013 | 1.123 |
+| 25,000 rows, first-row operation | 1.088 | 1.132 |
+| Numeric XML DataTable, double values | 1.265 | 1.282 |
+| Numeric XML DataTable, decimal values | 1.067 | 1.089 |
+| Materialized objects | 1.073 | 1.141 |
+
+These slower cases remain performance work. This stage qualifies a substantial
+allocation reduction, not a general speedup or competitive lead. Allocation also
+does not measure retained or peak process memory.
+
+The new metadata tests expose a pre-existing date error: a 1904 workbook using
+the valid padded/signed style index `" +1 "` returned `2024-02-29` instead of
+`2028-03-01`. The saved baseline reproduces the failure. Using the same parsed
+style index for both date decisions fixes it across typed getters, object values,
+ranges, DataTable, and typed objects. Tests also cover numeric entities, long
+style indices, unknown types spanning a surrogate boundary, invalid styles, and
+cell-reference diagnostics.
+
+The full .NET 10 suite passes 5,376 tests with five skips. Focused suites pass 760
+tests on .NET 8, 755 on .NET Framework 4.7.2, and 760 on Ubuntu/WSL .NET 10. The
+`netstandard2.0` product builds without warnings or errors. An independent
+read-only review reports no actionable findings. These checks qualify correctness
+on those runtimes; portable timing and memory budgets remain open.
+
+Reproduce the large cases with 5/5/1 warmup/iteration/invocation counts and the
+[small-case matrix](excel-large-typed-read-2026-10-04/metadata-small-cases.json)
+with 24/12/4 counts. Rotated large runs use 3/12/1; small runs use 12/24/4. All
+runs retain outliers and use Normal priority with the two previously recorded
+processor masks. The packet contains [native results](excel-large-typed-read-2026-10-04/metadata-attributes-native.json),
+[rotated observations](excel-large-typed-read-2026-10-04/metadata-attributes-rotated.json),
+and [source, binary, review, and test provenance](excel-large-typed-read-2026-10-04/metadata-attributes-provenance.json).
+The [refreshed profile](excel-large-typed-read-2026-10-04/metadata-attributes-profile.json)
+records 99 weighted allocation samples across five complete million-row scans,
+excluding fixture generation. XML parsing and package reads remain investigation
+targets; sampled thread stacks do not establish precise CPU-time attribution.
+
+An earlier 128 KiB worksheet-stream buffering experiment was removed. Its eight
+native cases show inconsistent timing changes and additional allocation. The
+[rejected results and original patch text](excel-large-typed-read-2026-10-04/rejected-stream-buffer.json)
+remain reproducible evidence, not part of the product implementation.
+
+## Earlier allocation profile and remaining work
 
 A profile after the buffer guard, before scan consolidation, attributes roughly
 190 MiB per operation to used-range discovery and 198 MiB to worksheet validation
@@ -386,10 +468,9 @@ interpreted as precise CPU time.
 
 The [spreadsheet roadmap](../ROADMAP.md#spreadsheet-and-csv-delivery-order)
 retains large-sheet decoding, general read/export throughput, and portable timing
-and memory qualification. Validation also exposes a pre-existing disagreement
-between used-range inference and reader row positions when a row omits its index
-and its cells reference a later row. The saved baseline reproduces it; the scan
-consolidation does not fix or worsen that separate defect.
+and memory qualification. The omitted-row coordinate disagreement found during
+scan consolidation is fixed by the coordinate stage above. Its additional scan
+cost remains a throughput target; correctness is not a reason to hide that cost.
 
 ## Validation and reproduction
 

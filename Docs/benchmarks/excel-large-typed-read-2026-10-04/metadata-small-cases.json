@@ -1,0 +1,249 @@
+{
+  "Numeric-DataReader-Double": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "NumericAsDecimal": false,
+      "Api": "DataReader"
+    }
+  },
+  "Numeric-DataReader-Decimal": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "NumericAsDecimal": true,
+      "Api": "DataReader"
+    }
+  },
+  "Numeric-Range-Double": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "NumericAsDecimal": false,
+      "Api": "Range"
+    }
+  },
+  "Numeric-Range-Decimal": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "NumericAsDecimal": true,
+      "Api": "Range"
+    }
+  },
+  "Numeric-DataTable-Double": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "NumericAsDecimal": false,
+      "Api": "DataTable"
+    }
+  },
+  "Numeric-DataTable-Decimal": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "NumericAsDecimal": true,
+      "Api": "DataTable"
+    }
+  },
+  "Large-25000-AllRows": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Method": "OfficeIMO",
+    "Setup": "SetupOfficeIMO",
+    "Properties": {
+      "RowCount": 25000,
+      "Operation": "AllRows"
+    }
+  },
+  "Large-25000-FirstRow": {
+    "Library": "Excel",
+    "Class": "ExcelLargeTypedReadBenchmarks",
+    "Method": "OfficeIMO",
+    "Setup": "SetupOfficeIMO",
+    "Properties": {
+      "RowCount": 25000,
+      "Operation": "FirstRow"
+    }
+  },
+  "Typed65K": {
+    "Library": "Excel",
+    "Class": "MarkPflug65KXlsxBenchmarks",
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Properties": {}
+  },
+  "Materialized-OfficeIMO_Read_Objects": {
+    "Properties": {
+      "RowCount": 2500
+    },
+    "Class": "ExcelReadBenchmarks",
+    "Setup": "Setup",
+    "Method": "OfficeIMO_Read_Objects",
+    "Library": "Excel"
+  },
+  "Materialized-OfficeIMO_Read_DataTable": {
+    "Properties": {
+      "RowCount": 2500
+    },
+    "Class": "ExcelReadBenchmarks",
+    "Setup": "Setup",
+    "Method": "OfficeIMO_Read_DataTable",
+    "Library": "Excel"
+  },
+  "Excel-Sst-25000-EntityTail-Prefix-False": {
+    "Properties": {
+      "PrefixedWorksheet": false,
+      "Shape": "EntityTail",
+      "RowCount": 25000
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "Excel-Sst-25000-RichText-Prefix-True": {
+    "Properties": {
+      "PrefixedWorksheet": true,
+      "Shape": "RichText",
+      "RowCount": 25000
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "Excel-Sst-25000-RichText-Prefix-False": {
+    "Properties": {
+      "PrefixedWorksheet": false,
+      "Shape": "RichText",
+      "RowCount": 25000
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "Excel-Sst-25000-EntityTail-Prefix-True": {
+    "Properties": {
+      "PrefixedWorksheet": true,
+      "Shape": "EntityTail",
+      "RowCount": 25000
+    },
+    "Method": "OfficeIMO",
+    "Setup": "Setup",
+    "Library": "Excel",
+    "Class": "ExcelSharedStringReadBenchmarks"
+  },
+  "NumericTyped-2500-Decimal": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 2500,
+      "NumericAsDecimal": true,
+      "Api": "TypedDataReader"
+    }
+  },
+  "NumericTyped-2500-Double": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 2500,
+      "NumericAsDecimal": false,
+      "Api": "TypedDataReader"
+    }
+  },
+  "NumericTyped-25000-Decimal": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "NumericAsDecimal": true,
+      "Api": "TypedDataReader"
+    }
+  },
+  "NumericTyped-25000-Double": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "NumericAsDecimal": false,
+      "Api": "TypedDataReader"
+    }
+  },
+  "ImplicitRows-TypedDataReader-25000": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "NumericAsDecimal": true,
+      "Api": "TypedDataReader",
+      "Coordinates": "ImplicitRows"
+    }
+  },
+  "ImplicitRows-Range-25000": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "NumericAsDecimal": true,
+      "Api": "Range",
+      "Coordinates": "ImplicitRows"
+    }
+  },
+  "ImplicitRowsAndCells-TypedDataReader-25000": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "NumericAsDecimal": true,
+      "Api": "TypedDataReader",
+      "Coordinates": "ImplicitRowsAndCells"
+    }
+  },
+  "ImplicitRowsAndCells-Range-25000": {
+    "Library": "Excel",
+    "Class": "ExcelNumericXmlReadBenchmarks",
+    "Method": "Read",
+    "Setup": "Setup",
+    "Properties": {
+      "RowCount": 25000,
+      "NumericAsDecimal": true,
+      "Api": "Range",
+      "Coordinates": "ImplicitRowsAndCells"
+    }
+  }
+}
