@@ -416,9 +416,201 @@
     "Broader operator spacing and MathML attribute/CSS grammar",
     "Manual assistive-technology qualification"
   ],
-  "remainingMilestoneGate": "Unchanged macOS timing budget, followed by evidence finalization and fast-forward synchronization of the two HTML branches.",
+  "remainingMilestoneGate": "Current combined-source unchanged timing/platform budgets and equivalent hosted source controls, followed by qualified clean synchronization of the two long-lived HTML branches. Original contended timing failures remain retained.",
   "releaseBoundary": "Branch checkpoint only. No full HTML/runtime PR, HTML merge into master, package release or upstream polling.",
   "retainedArtifactRoot": "Ignore/MathGlyphQualification/",
   "cleanup": "Superseded probes, private expanded package cache, task-only fontTools environment and duplicate intermediate test/artifact output removed through verified containment checks. Decisive outputs, nineteen packages, compact failure summaries and final tests retained. Unrelated worktrees preserved.",
-  "integrationBuildLimit": "Earlier external-provider checkout deterministic SourceRoot failure remains a separate larger-runtime validation gap; normal package proof here is not qualification of that checkout."
+  "integrationBuildLimit": "Earlier external-provider checkout deterministic SourceRoot failure remains a separate larger-runtime validation gap; normal package proof here is not qualification of that checkout.",
+  "currentSourceAudit": {
+    "recordedAtUtc": "2026-10-04T11:39:32.072835+00:00",
+    "sourceCheckpointBeforeEvidence": "ce34a73b275b78bce7fccf4725310e02a2613e1f",
+    "corePackageSourceCommit": "966539fd403b36b8af6a946e6f98dc3cf1556f18",
+    "coreSourceUnchangedSincePackageBuild": true,
+    "sourceBlobs": [
+      {
+        "path": "OfficeIMO.Core/Math/OfficeMath.cs",
+        "originalBlob": "77b81c01c04fc6625b1c4239cc69e3c1124b404d",
+        "currentBlob": "77b81c01c04fc6625b1c4239cc69e3c1124b404d",
+        "unchanged": true
+      },
+      {
+        "path": "OfficeIMO.Core/Math/OfficeMathConstant.cs",
+        "originalBlob": "5877d071ea5177721057fb132414f2993d6abbfd",
+        "currentBlob": "5877d071ea5177721057fb132414f2993d6abbfd",
+        "unchanged": true
+      },
+      {
+        "path": "OfficeIMO.Core/Math/OfficeMathExpression.cs",
+        "originalBlob": "e33051ea25c8570bdb94aed22dce79db8f45d2b0",
+        "currentBlob": "e33051ea25c8570bdb94aed22dce79db8f45d2b0",
+        "unchanged": true
+      },
+      {
+        "path": "OfficeIMO.Core/Math/OfficeMathFontConstants.cs",
+        "originalBlob": "984e251dab78a3831eb120850f775b71c06ca5d1",
+        "currentBlob": "984e251dab78a3831eb120850f775b71c06ca5d1",
+        "unchanged": true
+      },
+      {
+        "path": "OfficeIMO.Core/Math/OfficeMathGlyphData.cs",
+        "originalBlob": "4b715f29a115b4e0b0a8beb1958c54d490ed23b8",
+        "currentBlob": "4b715f29a115b4e0b0a8beb1958c54d490ed23b8",
+        "unchanged": true
+      },
+      {
+        "path": "OfficeIMO.Core/Math/OfficeMathMarkup.MathMlParser.cs",
+        "originalBlob": "61c95bba65fde9ba93dc88e449295feee0d79a7a",
+        "currentBlob": "61c95bba65fde9ba93dc88e449295feee0d79a7a",
+        "unchanged": true
+      },
+      {
+        "path": "OfficeIMO.Core/Math/OfficeMathMarkup.cs",
+        "originalBlob": "99352b7d1005e5b1812547fa496c2d22f93123bf",
+        "currentBlob": "99352b7d1005e5b1812547fa496c2d22f93123bf",
+        "unchanged": true
+      },
+      {
+        "path": "OfficeIMO.Core/Math/OfficeMathParseException.cs",
+        "originalBlob": "41f5454de64391995113ac59b90a4c1ab3ef31bf",
+        "currentBlob": "41f5454de64391995113ac59b90a4c1ab3ef31bf",
+        "unchanged": true
+      },
+      {
+        "path": "OfficeIMO.Core/Math/OfficeMathRenderOptions.cs",
+        "originalBlob": "c92af110d4f12548290007357b9a855ad3df8296",
+        "currentBlob": "c92af110d4f12548290007357b9a855ad3df8296",
+        "unchanged": true
+      },
+      {
+        "path": "OfficeIMO.Core/Math/OfficeMathRenderer.FontMetrics.cs",
+        "originalBlob": "44a8d36c7faa2500edfff0fa3c7edda8e2bd13af",
+        "currentBlob": "0bbad2f87fe4c62fc0a2cf4fab8bac9ab24418b8",
+        "unchanged": false
+      },
+      {
+        "path": "OfficeIMO.Core/Math/OfficeMathRenderer.GlyphConstruction.cs",
+        "originalBlob": "48894e5a3c872d6d63996feee5986792b39ea934",
+        "currentBlob": "e2502f47c8075be45c5ea848161bb65e928010e2",
+        "unchanged": false
+      },
+      {
+        "path": "OfficeIMO.Core/Math/OfficeMathRenderer.GlyphPlacement.cs",
+        "originalBlob": "f9aff9ac6d51d1c73f0f0564f64d26c4829a03af",
+        "currentBlob": "f9aff9ac6d51d1c73f0f0564f64d26c4829a03af",
+        "unchanged": true
+      },
+      {
+        "path": "OfficeIMO.Core/Math/OfficeMathRenderer.MathConstants.cs",
+        "originalBlob": "3c9e9cc6be50952bfa5e0063d95ab75d9b139f3a",
+        "currentBlob": "3c9e9cc6be50952bfa5e0063d95ab75d9b139f3a",
+        "unchanged": true
+      },
+      {
+        "path": "OfficeIMO.Core/Math/OfficeMathRenderer.StretchGeometry.cs",
+        "originalBlob": "d73f434f5cfe65d4305d7b3e4242e60dfa777226",
+        "currentBlob": "d73f434f5cfe65d4305d7b3e4242e60dfa777226",
+        "unchanged": true
+      },
+      {
+        "path": "OfficeIMO.Core/Math/OfficeMathRenderer.cs",
+        "originalBlob": "daacbdd9d56a348d27d4f831f1c0768ae9a7c3c1",
+        "currentBlob": "b658cd5266d761452798a81c0e8305c510f90943",
+        "unchanged": false
+      },
+      {
+        "path": "OfficeIMO.Core/OfficeOpenTypeMathGlyphs.cs",
+        "originalBlob": "167a79f8aa784fe74c2d307a209c46cbcf75f102",
+        "currentBlob": "167a79f8aa784fe74c2d307a209c46cbcf75f102",
+        "unchanged": true
+      }
+    ],
+    "changedMathContract": "Numeric OfficeFontInfo.Face is passed through the existing resolver in three files; explicit 500-vs400 advance/constants and designed-operator selection regressions pass. TrueType face descriptor and curve flattening changes belong to separately qualified convergence owners.",
+    "historicalReceiptsChecked": 29,
+    "historicalReceiptsHashExact": true,
+    "receiptVerificationSha256": "9cc73e30b2a9b98541a1878cbdb3f6fa5ec227c36a93b443add35cc3e310c7e0",
+    "freshPublicMathConsumer": {
+      "proofSha256": "b44f0e8d775c7464be8a4b771eba95d733853ec7c6e872817dae0345442a1ab6",
+      "packageSha256": "b873d54c23982b9f11811c99e436d9b2bf4f48de85714006c718d87b567ada38",
+      "sameInstalledBytes": true,
+      "fontSha256": "3a5f3f26f40d5698b3c62dd085d48d6663696a3f80825aab8b553d5097518e8c",
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "originalRadicalAndAccentDimensionsRetained": true,
+      "consumerSourceUnchanged": true,
+      "mathNamedPassingResultsPerFramework": {
+        "net8.0": 92,
+        "net10.0": 92
+      },
+      "numericFaceRegressionAndCancellationResultsRetained": true,
+      "setupFailurePreserved": "The initial offline-only restore lacked net8 framework reference/host packs. Original failure retained; Microsoft framework packs mapped to the ordinary NuGet SDK source, Core remained mapped to the qualified local feed. No product code/configuration changed."
+    },
+    "requirements": [
+      {
+        "requirement": "Bounded variants/assemblies for radicals, fences and large operators",
+        "proof": "Original named-font metadata/oracles and browser fixtures retain exact hashes; construction tests and current public radical/accent consumer pass",
+        "status": "proven within declared static subset"
+      },
+      {
+        "requirement": "Italic correction, accent attachment and math kerning",
+        "proof": "Glyph placement/metadata source blobs unchanged; original complete STIX/synthetic tables and 16-case browser proof preserved, current placement tests pass",
+        "status": "proven within declared static subset"
+      },
+      {
+        "requirement": "One shared Core/font owner, thin HTML and retained providers",
+        "proof": "Core source/nuspec and current static graph inspected; normal four-target Core package has no external runtime dependencies",
+        "status": "proven; no production dependency changed"
+      },
+      {
+        "requirement": "Fallback/opt-out/cancellation/resource bounds",
+        "proof": "Current named construction, placement and cancellation results are retained in the Math-named TRX subset; authored fallback and invalid metadata contracts remain in source",
+        "status": "current managed contracts proven"
+      },
+      {
+        "requirement": "Formula/ActualText/attachment preservation",
+        "proof": "Current combined-source profile machine results, H4 and eighteen-case semantic/decoded attachment checks in master-owner-convergence-20261004.json",
+        "status": "machine/artifact proof; no manual accessibility claim"
+      },
+      {
+        "requirement": "Risk-appropriate independent review and meaningful regression closure",
+        "proof": "Original math/PDF full+targeted reviews and later convergence font/raster plus bounded-PDF reviews retained; current numeric-face regressions directly exercised",
+        "status": "coverage current for implemented contracts; no new product code in this audit"
+      },
+      {
+        "requirement": "Framework and packed-consumer qualification",
+        "proof": "Current full Drawing/HTML/PDF net8/net10 proof plus fresh exact-origin Core public math consumer on both runtimes; four-target package retained",
+        "status": "net8/net10 execution proven; net472/netstandard remain pack/build scope on this Mac"
+      },
+      {
+        "requirement": "H4/static rendered output and independent fonts/browser",
+        "proof": "Current exact-code-head H4 eight and static eighteen artifacts revalidated after convergence; original named-font browser receipts hash-verified",
+        "status": "bounded corpus proof; no full browser or variable MATH claim"
+      },
+      {
+        "requirement": "Unchanged opt-in budgets",
+        "proof": "Candidate/control hosted run37197479439 scheduled for12:15UTC recheck; original failures and prior-source local pass retained",
+        "status": "pending current combined-source performance qualification"
+      },
+      {
+        "requirement": "Committed synchronized clean HTML checkpoints and cleanup",
+        "proof": "Milestone/combined source backed up and clean before this audit; long-lived HTML/H10 still40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40",
+        "status": "pending qualified long-lived adoption; active milestone worktrees preserved"
+      }
+    ],
+    "complete": false,
+    "timingAttempted": false,
+    "retainedAuditRoot": "Ignore/MasterConvergenceQualification/math-goal-audit",
+    "predeclarationBoundary": "Original declared subset, source/font hashes and decisive fixtures remain in the original record; this audit does not expand or relabel the supported grammar.",
+    "cleanup": {
+      "generatedTargets": 3,
+      "removedBytes": 121734878,
+      "allAbsent": true,
+      "nativeRemoved": 1,
+      "nativeExecutionErrorsRecovered": 2,
+      "resultSha256": "4f4c8598591a4657cad428bc78c7f11cd9c45197650cb7b7218dfa52f5b2371e",
+      "retainedBytes": 63730,
+      "retained": "Consumer source/configuration, exact-origin/assembly receipts, original failed restore, passing logs and requirement/source audit; no expanded private package cache remains"
+    }
+  }
 }
