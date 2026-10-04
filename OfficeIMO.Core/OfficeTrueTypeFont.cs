@@ -112,6 +112,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         _lineGap = checked(ReadInt16(_data, _hhea + 8) + (mvar?.HorizontalLineGapDelta ?? 0));
         _numHMetrics = ReadUInt16(_data, _hhea + 34);
         _numGlyphs = ReadUInt16(_data, _maxp + 4);
+        _fixedGlyphTables = new FixedGlyphTables(tables, tableLengths);
         _colorGlyphs = reader == null ? null : OfficeOpenTypeColorGlyphs.TryParse(reader);
         _variations = variationModel != null && variationModel.IsVariable
             ? OfficeTrueTypeVariations.Parse(data, tables, variationModel, _numGlyphs)

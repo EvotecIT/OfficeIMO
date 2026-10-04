@@ -7,7 +7,10 @@ internal sealed partial class XpsSvgConverter {
     private XElement? Glyphs(XElement e, Dictionary<string, Resource> scope, string part, int depth) {
         Charge(depth);
         CheckAttributes(e, "FontUri FontRenderingEmSize OriginX OriginY UnicodeString Indices Fill BidiLevel IsSideways StyleSimulations RenderTransform Clip Opacity OpacityMask FixedPage.NavigateUri CaretStops DeviceFontName");
-        if ((string?)e.Attribute("IsSideways") == "true") { Loss("Sideways glyphs"); return null; }
+        string sidewaysValue = (string?)e.Attribute("IsSideways") ?? "false";
+        if (sidewaysValue != "true" && sidewaysValue != "false" && sidewaysValue != "1" && sidewaysValue != "0")
+            throw new InvalidDataException("Invalid IsSideways value.");
+        bool sideways = sidewaysValue == "true" || sidewaysValue == "1";
         if (((string?)e.Attribute("StyleSimulations") ?? "None") != "None") { Loss("Simulated font style"); return null; }
         foreach (var child in e.Elements()) if (!new[] { "Glyphs.Fill", "Glyphs.Clip", "Glyphs.RenderTransform", "Glyphs.OpacityMask" }.Contains(child.Name.LocalName)) Loss(child.Name.LocalName);
         string uri = (string?)e.Attribute("FontUri") ?? throw new InvalidDataException("Missing glyph font URI.");
@@ -35,6 +38,7 @@ internal sealed partial class XpsSvgConverter {
         double x = XpsPackage.Number((string?)e.Attribute("OriginX")); double y = XpsPackage.Number((string?)e.Attribute("OriginY"));
         int bidi = ParseInt((string?)e.Attribute("BidiLevel") ?? "0");
         bool rtl = (bidi & 1) == 1;
+        if (sideways && rtl) throw new InvalidDataException("Sideways glyphs require an even BidiLevel.");
         string text = XpsPage.Unescape((string?)e.Attribute("UnicodeString") ?? "");
         string indices = (string?)e.Attribute("Indices") ?? "";
         string[] entries = indices.Length == 0 ? Array.Empty<string>() : indices.Split(';');
@@ -64,18 +68,24 @@ internal sealed partial class XpsSvgConverter {
                     int scalar = char.ConvertToUtf32(text, textIndex);
                     _ = font.TryGetGlyphMetrics(scalar, out glyph, out _);
                 }
-                double nativeAdvance = font.FixedGlyphAdvance(glyph, size);
+                double topX = 0, topY = 0;
+                double nativeAdvance = sideways
+                    ? font.FixedGlyphVerticalMetrics(glyph, size, out topX, out topY)
+                    : font.FixedGlyphAdvance(glyph, size);
                 double advance = fields.Length > 1 && fields[1].Length > 0 ? XpsPackage.Number(fields[1]) * size / 100 : nativeAdvance;
                 if (advance < 0) throw new InvalidDataException("Negative glyph advance.");
                 double u = fields.Length > 2 && fields[2].Length > 0 ? XpsPackage.Number(fields[2]) * size / 100 : 0;
                 double v = fields.Length > 3 && fields[3].Length > 0 ? XpsPackage.Number(fields[3]) * size / 100 : 0;
                 double gx = rtl ? x - nativeAdvance - u : x + u;
-                var contours = font.FixedGlyphContours(glyph, size, gx, y - v, Math.Max(1, 1000000 - _points), _token);
+                var contours = font.FixedGlyphContours(glyph, size, sideways ? 0 : gx, sideways ? 0 : y - v, Math.Max(1, 1000000 - _points), _token);
                 foreach (var contour in contours) {
                     _points = checked(_points + contour.Count);
                     if (_points > 1000000) throw new InvalidDataException("XPS glyph outline point limit exceeded.");
                     for (int i = 0; i < contour.Count; i++) {
-                        string point = (i == 0 ? "M" : "L") + N(contour[i].X) + " " + N(contour[i].Y) + " ";
+                        // Rotate the outline about its top-center origin; advance and offsets remain in run coordinates.
+                        double px = sideways ? gx + contour[i].Y + topY : contour[i].X;
+                        double py = sideways ? y - v - contour[i].X + topX : contour[i].Y;
+                        string point = (i == 0 ? "M" : "L") + N(px) + " " + N(py) + " ";
                         EnsureOutputCapacity((long)data.Length + point.Length + 2);
                         data.Append(point);
                     }

@@ -11,7 +11,7 @@ Preserving an unsupported native element does not mean that it can be rendered.
 | Save | Original dialect; native page content and opaque parts retained; direct required-resource relationships emitted; deterministic ZIP output on the same runtime | ZIP metadata/XML bytes may change; no dialect conversion; signed packages cannot be rewritten |
 | Text extraction | UnicodeString runs in markup order | No inferred reading order, paragraphs, or glyph-ID-to-Unicode reconstruction |
 | Paths | Abbreviated geometry, fill rules, explicit path figures/segments, fills, strokes, dashes, matrix transforms, clipping | Per-segment fill/stroke suppression, asymmetric/triangle or separate dash caps, and over-limit clipped miters (including the native degenerate-segment rule) are diagnosed |
-| Text rendering | Embedded TrueType programs/collections, obfuscation, explicit glyph IDs, cluster mappings, advances/offsets, horizontal bidi direction | Outlined output; sideways glyphs, style simulations, and unsupported font programs are diagnosed |
+| Text rendering | Embedded TrueType programs/collections, obfuscation, explicit glyph IDs, cluster mappings, advances/offsets, horizontal bidi, sideways top-center positioning with vertical metrics or OS/2/hhea fallbacks | Outlined output; style simulations and unsupported font programs are diagnosed; sideways runs require even BidiLevel |
 | Brushes | Hex/scRGB solid colors; linear/radial gradients; scoped and external package resource dictionaries; PNG/JPEG and visual brushes with absolute viewbox/viewport mapping, matrix transforms, Tile/FlipX/FlipY/FlipXY repetition, and alpha opacity masks | Non-tiled brush strokes, ICC ContextColor, color-converted images, and TIFF/JPEG-XR rendering are diagnosed |
 | Navigation | Safe web/mail links; page/document/sequence named targets with scoped first-occurrence lookup; sequence page numbers projected into SVG filenames | Non-page unresolved and unsafe destinations are diagnosed; document navigation is not a PDF preservation contract |
 | Gradient transforms | Affine transforms retained in SVG; affine linear gradients and axis-aligned scaled/translated radial gradients convert through Core | Rotated/sheared radial gradients and non-Pad radial spread reject drawing/image/PDF conversion |
@@ -50,5 +50,16 @@ with MuPDF's native XPS renderer: OfficeIMO follows ECMA-388 section 18.5's isol
 composition rule, verified by opacity arithmetic and independently rendered PDF
 output. These checks qualify representative cases, not every combination of native
 brushes, fonts, transforms, and effects.
+
+Sideways text follows ECMA-388 §12.1.6 for TrueType outlines: top-center origins,
+vertical advances, run-relative offsets, and rotation before the page transform.
+Metric-table tests cover compressed vertical metrics and both fallback sources.
+A generated corpus checks horizontal and rotated/clipped runs against independent
+fontTools metric extraction and MuPDF rendering of equivalent horizontal glyphs.
+Direct MuPDF 1.26.5 sideways rendering agrees for the unmodified fallback fonts,
+but its fixed font-ascender origin disagrees with per-glyph vertical bearings and
+distinct OS/2 origins. These cases have specification-based reference evidence,
+not independent native sideways acceptance. OpenXPS native-consumer qualification
+remains open.
 
 The open qualification and rendering work belongs in [the roadmap](../Docs/ROADMAP.md#xpsopenxps).

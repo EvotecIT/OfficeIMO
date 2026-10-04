@@ -25,8 +25,10 @@ all occurrences.
 paragraphs or recover missing Unicode from glyph IDs.
 
 SVG export outlines embedded TrueType glyphs at their native positions, including
-explicit glyph IDs, advances, offsets, and clusters. It does not reshape printed
-text or substitute installed fonts. SVG navigation uses `page-N.svg` filenames
+explicit glyph IDs, advances, offsets, clusters, and sideways runs. Sideways glyphs
+use each font's vertical metrics, falling back to OS/2 or horizontal-header metrics;
+page transforms can arrange these runs into vertical columns. Export does not
+reshape printed text or substitute installed fonts. SVG navigation uses `page-N.svg` filenames
 and `xps-` prefixes for native named targets; keep that naming when exporting a
 whole document. The original native navigation remains in the saved XPS package.
 
