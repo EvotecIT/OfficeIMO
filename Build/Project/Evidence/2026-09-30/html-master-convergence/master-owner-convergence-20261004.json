@@ -1,6 +1,6 @@
 {
   "schema": "officeimo.html.master-owner-convergence",
-  "recordedAtUtc": "2026-10-04T10:17:01.667583+00:00",
+  "recordedAtUtc": "2026-10-04T11:29:49.734774+00:00",
   "sourceCommit": "966539fd403b36b8af6a946e6f98dc3cf1556f18",
   "masterInputCommit": "2f88a03b487e6dbc2d1fdd1e5d3efa5d9fa718cc",
   "h10InputCommit": "28a9f587556d40651faf2143a609aafc7c33be4a",
@@ -429,11 +429,10 @@
     "retainedWorkerBinaries": "Normal static-budget and comparison workers retained for active qualification; four-target owner build outputs removed. These worker copies do not establish any later-head build."
   },
   "remaining": [
-    "Current-source normal static and H10 operation budgets, and three-platform focused bounded-owner probe. All local static/H4 artifacts are now replayed; wider unfamiliar-page acceptance remains separate.",
-    "Current-source normal static and H10 operation budgets; same-host/domain hosted controls and Windows/Linux/macOS acceptance. Prior hosted timing failures remain visible; no ceiling change.",
-    "Isolated current-master standalone raster/PDF fix candidates and ordinary current-head PR gates, when extracted.",
-    "Named unfamiliar-page resources/appearance, all eleven historical intents, wider held-out corpus, native editable widths/pagination/appearance and manual accessibility.",
-    "Qualified convergence into long-lived branches and scoped worktree cleanup. Full HTML/runtime PR, master merge and release remain unauthorized."
+    "Current-source hosted static budgets/packages and same-runner prior-source controls on Windows, Linux and macOS. Prior timing failures remain visible; no ceiling change.",
+    "Named unfamiliar-page resource, reading-order and appearance acceptance across the eleven historical intents and wider held-out corpus; operation/case platform budgets. Replay alone does not close appearance.",
+    "Native editable widths/pagination/appearance, whole-page application proof and manual accessibility remain separate.",
+    "Qualified convergence into long-lived branches and cleanup of superseded milestone worktrees. Full HTML/runtime PR, HTML-to-master merge and release remain unauthorized."
   ],
   "longLivedAdoption": "Not performed; feature/html-engine and feature/html-unknown-page-qualification remain at40bfe04b0583b8781ff51c83c9c1cbf9b02c3f40 until acceptance gates are satisfied.",
   "focusedThreePlatformProbe": {
@@ -479,7 +478,7 @@
       "url": "https://github.com/EvotecIT/OfficeIMO/pull/2774",
       "baseCommit": "dfb5753794bbbe6cbb1a71c8e5d6fe83f4ec4f07",
       "head": "5d3e6b8357f2c999e9639824bbbed668f8964b0a",
-      "stateAtCheckpoint": "open; exact-head CI and delayed repository review pending",
+      "stateAtCheckpoint": "merged; exact-head CI and delayed complete reviews passed",
       "fullCorrectnessTestsPerFramework": 3274,
       "frameworks": [
         "net8.0",
@@ -506,21 +505,46 @@
           "net10.0"
         ]
       },
-      "packageProofPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-raster-sampling-working-budget/Ignore/RasterSamplingQualification/package-proof.json",
+      "packageProofPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-master-convergence/Ignore/MasterConvergenceQualification/merged-standalone-owners/RasterSamplingQualification/package-proof.json",
       "cleanup": {
         "removedTargets": 11,
         "removedBytes": 483956330,
         "allAbsent": true,
         "recovery": "Actual native hidden/read-only filesystem errors recovered after fresh guarded DotNet preflight; no tool-policy rejection"
       },
-      "independentReview": "Prior current owner full+targeted coverage retained; extracted implementation bytes unchanged, standalone dependency and package proof completed"
+      "independentReview": "Prior current owner full+targeted coverage retained; extracted implementation bytes unchanged, standalone dependency and package proof completed",
+      "mergeCommit": "bf2a56b2ba8029601539ad5ab99a8e01cf8f1fc1",
+      "mergedAtUtc": "2026-10-04T11:17:46Z",
+      "settledCurrentHeadCi": {
+        "success": 99,
+        "skipped": 6,
+        "failures": 0,
+        "pending": 0
+      },
+      "delayedReview": {
+        "completePagination": true,
+        "unresolvedThreads": 0,
+        "actionableComments": 0,
+        "manualHostedReviewRequested": false
+      },
+      "originalPackageProofPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-raster-sampling-working-budget/Ignore/RasterSamplingQualification/package-proof.json",
+      "postMergeCleanup": {
+        "shaVerifiedPreservedFiles": 21,
+        "preservedBytes": 16914532,
+        "retainedRoot": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-master-convergence/Ignore/MasterConvergenceQualification/merged-standalone-owners/RasterSamplingQualification",
+        "worktreeAbsent": true,
+        "registrationAbsent": true,
+        "localBranchAbsent": true,
+        "remoteBranchAbsent": true,
+        "preservationManifestSha256": "d0b47a95eb89c0f3a298059002cc426483691dbbdc8087743608d85ee09d06cd"
+      }
     },
     {
       "pr": 2775,
       "url": "https://github.com/EvotecIT/OfficeIMO/pull/2775",
       "baseCommit": "dfb5753794bbbe6cbb1a71c8e5d6fe83f4ec4f07",
       "head": "2dd83d7eb8e9c47d6b317a1c1a2a9f9b2ae0a317",
-      "stateAtCheckpoint": "open; exact-head CI and delayed repository review pending",
+      "stateAtCheckpoint": "merged; exact-head CI and delayed complete reviews passed",
       "fullCorrectnessTestsPerFramework": 8685,
       "frameworks": [
         "net8.0",
@@ -598,7 +622,7 @@
         ],
         "net472ExecutionClaimed": false
       },
-      "packageProofPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-pdf-bounded-logical-spans/Ignore/BoundedPdfQualification/package-proof.json",
+      "packageProofPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-master-convergence/Ignore/MasterConvergenceQualification/merged-standalone-owners/BoundedPdfQualification/package-proof.json",
       "cleanup": {
         "removedTargets": 95,
         "removedBytes": 1830012739,
@@ -615,6 +639,31 @@
         "findings": [],
         "targetedConfirmationUsed": false,
         "disposition": "accept as shaped"
+      },
+      "mergeCommit": "39c57cae86fd9a7c13a66043b69de396c5437100",
+      "mergedAtUtc": "2026-10-04T11:17:50Z",
+      "settledCurrentHeadCi": {
+        "success": 91,
+        "skipped": 3,
+        "failures": 0,
+        "pending": 0
+      },
+      "delayedReview": {
+        "completePagination": true,
+        "unresolvedThreads": 0,
+        "actionableComments": 0,
+        "manualHostedReviewRequested": false
+      },
+      "originalPackageProofPath": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-pdf-bounded-logical-spans/Ignore/BoundedPdfQualification/package-proof.json",
+      "postMergeCleanup": {
+        "shaVerifiedPreservedFiles": 103,
+        "preservedBytes": 42664169,
+        "retainedRoot": "/Volumes/Samsung/Development/GitHub/_worktrees/OfficeIMO-html-master-convergence/Ignore/MasterConvergenceQualification/merged-standalone-owners/BoundedPdfQualification",
+        "worktreeAbsent": true,
+        "registrationAbsent": true,
+        "localBranchAbsent": true,
+        "remoteBranchAbsent": true,
+        "preservationManifestSha256": "d0b47a95eb89c0f3a298059002cc426483691dbbdc8087743608d85ee09d06cd"
       }
     }
   ],
@@ -630,14 +679,15 @@
     "measurementAttempted": false,
     "buildLog": "Ignore/MasterConvergenceQualification/static-budget-build-741887337.log",
     "hostEvidence": "Ignore/MasterConvergenceQualification/timing-host-741887337.txt",
-    "reason": "At09:47 UTC CPU idle1.27/4.79%; after completed task builds and cleanup10:15 UTC idle14.12/43.86%, with unrelated dotnet, simulator and Actions browser work still present. No current combined-source timing claim.",
+    "reason": "No combined-source local measurement under sustained unrelated simulator/build/indexer activity. Hosted paired lane pending; no current timing acceptance.",
     "unchangedCeilings": true,
     "previousHostedFailuresRetained": true,
     "remaining": [
       "Quiet current-source timing",
       "Equivalent same-host/domain source controls and hosted budgets/packages",
       "Qualified long-lived branch adoption"
-    ]
+    ],
+    "sameRunnerHostedControl": "Pending run37197479439; normal candidate plus equivalent prior-source control, both unchanged ceilings"
   },
   "sameRunnerControlPlan": {
     "recordedUtc": "2026-10-04T11:03:46.525740+00:00",
@@ -687,6 +737,37 @@
     "hostEvidence": "Ignore/MasterConvergenceQualification/same-runner-control/host-before-dispatch.txt",
     "limits": [
       "One ordered pair is diagnostic; it does not establish a portable performance ranking or clear prior hosted failures."
-    ]
+    ],
+    "dispatch": {
+      "workflowAndSourceCommit": "59d21d60829dee1d6620dd1710c8c6b4c26b1288",
+      "runId": 37197479439,
+      "url": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37197479439",
+      "dispatchedAtUtc": "2026-10-04T11:04:30Z",
+      "lastVerifiedState": "queued at approximately 11:07 UTC; no early repeat polling",
+      "nextCheckUtc": "2026-10-04T12:15:00Z",
+      "cancelledSetupRun": {
+        "runId": 37197460598,
+        "reason": "Mistyped nonexistent source_ref; cancelled before measurement, not a product timing result"
+      }
+    }
+  },
+  "historicalPdfIntentReplay": {
+    "record": "pdf-intent-replay-20261004.json",
+    "recordSha256": "7755c171421f5f75e624f3b4c8ccf8c4aa902100f96102cafe77c30ff98aa6e7",
+    "attempted": 33,
+    "completed": 32,
+    "excluded": 1,
+    "broaderMilestoneComplete": false
+  },
+  "intentReplayCleanup": {
+    "targets": 22,
+    "removedBytes": 167457528,
+    "allAbsent": true,
+    "nativeRemoved": 11,
+    "nativeExecutionErrorsRecovered": 11,
+    "recovery": "Fresh guarded DotNet preflight after actual native hidden/read-only filesystem errors; no pre-execution policy rejection",
+    "retainedRoot": "Ignore/MasterConvergenceQualification/pdf-intent-matrix",
+    "retainedBytes": 74265012,
+    "resultSha256": "5c108ddd2989e18b0596b94ac27b2ecd42ea5685c597433b7ea60a12ae2c603e"
   }
 }

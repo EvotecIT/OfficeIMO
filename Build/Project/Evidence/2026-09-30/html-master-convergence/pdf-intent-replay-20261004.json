@@ -1,0 +1,813 @@
+{
+  "schema": 1,
+  "recordedAtUtc": "2026-10-04T11:26:09.302211+00:00",
+  "sourceCommit": "59d21d60829dee1d6620dd1710c8c6b4c26b1288",
+  "scope": "Frozen unfamiliar-page historical PDF intents; independent content/resource observations and bounded paint classification, not full appearance acceptance",
+  "predeclared": {
+    "declaredUtc": "2026-10-04T11:05:50.643182+00:00",
+    "manifestSha256": "e750a7b622fe8390e04ddaeb0b365e8789033d03a2edb3be8b2ecfccd8994e9b",
+    "cases": [
+      {
+        "case": "wai",
+        "role": "development",
+        "sourceSha256": "e412cfda033d9aa02b7abd455ae0fab917c2e44ba0ad0f4bc83f233877a4397d",
+        "sourceBlockCount": 21,
+        "sourceTableRowCount": 0
+      },
+      {
+        "case": "chesapeake",
+        "role": "held-out",
+        "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+        "sourceBlockCount": 12,
+        "sourceTableRowCount": 0
+      },
+      {
+        "case": "planets",
+        "role": "development",
+        "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+        "sourceBlockCount": 165,
+        "sourceTableRowCount": 22
+      }
+    ],
+    "intents": [
+      "officeimo-print",
+      "officeimo-print-zero-margin",
+      "officeimo-print-fit-browser-viewport",
+      "officeimo-print-fit-1200",
+      "officeimo-print-fit-1200-local-fonts",
+      "officeimo-print-browser-ua",
+      "officeimo-print-zero-margin-local-fonts",
+      "officeimo-screen-media",
+      "officeimo-screen-media-local-fonts",
+      "officeimo-screen-snapshot",
+      "officeimo-screen-snapshot-local-fonts"
+    ]
+  },
+  "attemptedOperations": 33,
+  "completedPdfs": 32,
+  "excludedOperations": [
+    {
+      "case": "chesapeake",
+      "intent": "officeimo-print-fit-browser-viewport",
+      "requestedFitWidthCssPixels": 816,
+      "authoredPageSize": "A3",
+      "classification": "Supported API rejects a fitting width narrower than authored printable content, as documented; contradictory preset excluded after preserving its failure",
+      "failureRetained": "Ignore/MasterConvergenceQualification/pdf-intent-matrix/chesapeake-59d21d608/observations.json",
+      "notARendererFix": true
+    }
+  ],
+  "observations": [
+    {
+      "case": "wai",
+      "intent": "officeimo-print",
+      "pdfSha256": "07282b9e62be371c52707d572970b67481d97e990325455e27f4cd294ca44bf1",
+      "pages": 4,
+      "imageObjects": 5,
+      "externalLinks": 58,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 6,
+      "unmatchedDefaultSourceBlocks": 6,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "be5a17c947cfa4e2ca05f51bd20cb8db75f77208814745d79d1b4abe3d17e21a",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": false,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": true
+      }
+    },
+    {
+      "case": "wai",
+      "intent": "officeimo-print-zero-margin",
+      "pdfSha256": "92008c335027d9b965f2dc5ccc9d095133e929b95988e912f52a4048479d9fce",
+      "pages": 3,
+      "imageObjects": 5,
+      "externalLinks": 54,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 6,
+      "unmatchedDefaultSourceBlocks": 7,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "f2bf8beb668da5ebf138cb94f0b02c29ca91ea40fff2816e591f3fc946b9db60",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": false,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": true
+      }
+    },
+    {
+      "case": "wai",
+      "intent": "officeimo-print-fit-browser-viewport",
+      "pdfSha256": "0c364fb42076a92cd8346754d01f296bfd8b51fa9425a9df643721ceadd4608c",
+      "pages": 3,
+      "imageObjects": 5,
+      "externalLinks": 53,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 6,
+      "unmatchedDefaultSourceBlocks": 6,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "status": "untested: no corresponding same-source retained historical intent"
+      }
+    },
+    {
+      "case": "wai",
+      "intent": "officeimo-print-fit-1200",
+      "pdfSha256": "f4a2886e61fafaa23d6ae719364a6b2163b813a63c2d3b980b6755e81e462315",
+      "pages": 2,
+      "imageObjects": 5,
+      "externalLinks": 49,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 6,
+      "unmatchedDefaultSourceBlocks": 6,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "193c70ae223c328dc708d74a5f5cb00fc34173a47cd6404c584133b580e30bfd",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": false,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": true
+      }
+    },
+    {
+      "case": "wai",
+      "intent": "officeimo-print-fit-1200-local-fonts",
+      "pdfSha256": "f4a2886e61fafaa23d6ae719364a6b2163b813a63c2d3b980b6755e81e462315",
+      "pages": 2,
+      "imageObjects": 5,
+      "externalLinks": 49,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 6,
+      "unmatchedDefaultSourceBlocks": 6,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "193c70ae223c328dc708d74a5f5cb00fc34173a47cd6404c584133b580e30bfd",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": false,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": true
+      }
+    },
+    {
+      "case": "wai",
+      "intent": "officeimo-print-browser-ua",
+      "pdfSha256": "92008c335027d9b965f2dc5ccc9d095133e929b95988e912f52a4048479d9fce",
+      "pages": 3,
+      "imageObjects": 5,
+      "externalLinks": 54,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 6,
+      "unmatchedDefaultSourceBlocks": 7,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "12b20b152c782d8f786dae79ded7a72f3da4c89f064f2359db25b3d126fbf508",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": false,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": true
+      }
+    },
+    {
+      "case": "wai",
+      "intent": "officeimo-print-zero-margin-local-fonts",
+      "pdfSha256": "92008c335027d9b965f2dc5ccc9d095133e929b95988e912f52a4048479d9fce",
+      "pages": 3,
+      "imageObjects": 5,
+      "externalLinks": 54,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 6,
+      "unmatchedDefaultSourceBlocks": 7,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "f2bf8beb668da5ebf138cb94f0b02c29ca91ea40fff2816e591f3fc946b9db60",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": false,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": true
+      }
+    },
+    {
+      "case": "wai",
+      "intent": "officeimo-screen-media",
+      "pdfSha256": "2e43e7fcbc79963a86e660aa04d471fe72438ecf6151de9e23134b11c6283b6e",
+      "pages": 3,
+      "imageObjects": 5,
+      "externalLinks": 65,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 0,
+      "unmatchedDefaultSourceBlocks": 0,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "fa88b25eaba6aa5aa793da61413dc53e7173b84a827d8a55bd6ecab80c8b0085",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": false,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": true
+      }
+    },
+    {
+      "case": "wai",
+      "intent": "officeimo-screen-media-local-fonts",
+      "pdfSha256": "2e43e7fcbc79963a86e660aa04d471fe72438ecf6151de9e23134b11c6283b6e",
+      "pages": 3,
+      "imageObjects": 5,
+      "externalLinks": 65,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 0,
+      "unmatchedDefaultSourceBlocks": 0,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "fa88b25eaba6aa5aa793da61413dc53e7173b84a827d8a55bd6ecab80c8b0085",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": false,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": true
+      }
+    },
+    {
+      "case": "wai",
+      "intent": "officeimo-screen-snapshot",
+      "pdfSha256": "7bd871d6b80ca630a1946889f6e6b6e3971860465170ecd519b21422f36e0324",
+      "pages": 4,
+      "imageObjects": 6,
+      "externalLinks": 68,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 0,
+      "unmatchedDefaultSourceBlocks": 1,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "8f8e16774cc26adc8ac08f35adf99e9cb53fb08c927f32937dc3f534663a314f",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": false,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": true
+      }
+    },
+    {
+      "case": "wai",
+      "intent": "officeimo-screen-snapshot-local-fonts",
+      "pdfSha256": "7bd871d6b80ca630a1946889f6e6b6e3971860465170ecd519b21422f36e0324",
+      "pages": 4,
+      "imageObjects": 6,
+      "externalLinks": 68,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 0,
+      "unmatchedDefaultSourceBlocks": 1,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "8f8e16774cc26adc8ac08f35adf99e9cb53fb08c927f32937dc3f534663a314f",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": false,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": true
+      }
+    },
+    {
+      "case": "chesapeake",
+      "intent": "officeimo-print",
+      "pdfSha256": "caafb1c4f0400c051c69d46920ad4cf6282ac8c6c453cd11b13e3a9621eebc71",
+      "pages": 3,
+      "imageObjects": 16,
+      "externalLinks": 44,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 12,
+      "unmatchedDefaultSourceBlocks": 0,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "c0805d440e122673f42de34abe8bbff352dd3d075d842563d04f4fd8da4cd71e",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": true,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": true
+      }
+    },
+    {
+      "case": "chesapeake",
+      "intent": "officeimo-print-zero-margin",
+      "pdfSha256": "e482959e34594c2142c64de1eb1343fc49b6bdb8ec9a98f83850ac3cd528c87f",
+      "pages": 3,
+      "imageObjects": 16,
+      "externalLinks": 44,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 12,
+      "unmatchedDefaultSourceBlocks": 0,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "522b67f93ef86f3d7839be4ce900fb87b75be523583e1cbc73ef18430abebf73",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": true,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": true
+      }
+    },
+    {
+      "case": "chesapeake",
+      "intent": "officeimo-print-fit-1200",
+      "pdfSha256": "0bfc0dd233d64a8fe26df00783bec172b8acc29605448e7e9fbb30ea8c440c0d",
+      "pages": 3,
+      "imageObjects": 16,
+      "externalLinks": 44,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 12,
+      "unmatchedDefaultSourceBlocks": 0,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "f9908fa13637f23e3f581d5666f275b454c35fafb0f49ee7c33e23a7cc6398f6",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": true,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": true
+      }
+    },
+    {
+      "case": "chesapeake",
+      "intent": "officeimo-print-fit-1200-local-fonts",
+      "pdfSha256": "0bfc0dd233d64a8fe26df00783bec172b8acc29605448e7e9fbb30ea8c440c0d",
+      "pages": 3,
+      "imageObjects": 16,
+      "externalLinks": 44,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 12,
+      "unmatchedDefaultSourceBlocks": 0,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "f9908fa13637f23e3f581d5666f275b454c35fafb0f49ee7c33e23a7cc6398f6",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": true,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": true
+      }
+    },
+    {
+      "case": "chesapeake",
+      "intent": "officeimo-print-browser-ua",
+      "pdfSha256": "20240be600396988ebe91f9d01982e5d8c1bde31114a97b1508a0c5a2ffbaef0",
+      "pages": 3,
+      "imageObjects": 16,
+      "externalLinks": 44,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 12,
+      "unmatchedDefaultSourceBlocks": 0,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "5d5b2530d4ae99cde993e5bb5f4eeccd231755a2072f1c0aabd8650fcd6d2646",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": true,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": true
+      }
+    },
+    {
+      "case": "chesapeake",
+      "intent": "officeimo-print-zero-margin-local-fonts",
+      "pdfSha256": "e482959e34594c2142c64de1eb1343fc49b6bdb8ec9a98f83850ac3cd528c87f",
+      "pages": 3,
+      "imageObjects": 16,
+      "externalLinks": 44,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 12,
+      "unmatchedDefaultSourceBlocks": 0,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "522b67f93ef86f3d7839be4ce900fb87b75be523583e1cbc73ef18430abebf73",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": true,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": true
+      }
+    },
+    {
+      "case": "chesapeake",
+      "intent": "officeimo-screen-media",
+      "pdfSha256": "e3c82e77d9f7d55556008f70996b58f89a8a3321791eddd7591ded655c8a28a2",
+      "pages": 4,
+      "imageObjects": 18,
+      "externalLinks": 52,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 12,
+      "unmatchedDefaultSourceBlocks": 1,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "940c99ad55a3c575b756d841a4ba446d896d81a2e3f4be368925bc5715bec04d",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": true,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": true
+      }
+    },
+    {
+      "case": "chesapeake",
+      "intent": "officeimo-screen-media-local-fonts",
+      "pdfSha256": "12a5e3b4095f709cbf8774fec98f5f543794b061b77ab4a433c59da5a59235f5",
+      "pages": 4,
+      "imageObjects": 18,
+      "externalLinks": 52,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 12,
+      "unmatchedDefaultSourceBlocks": 1,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "c75ae0ae86cb7f42dad9f9e3dff482b52db63a329483098fbd13d4ca1bf0b0ca",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": true,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": true
+      }
+    },
+    {
+      "case": "chesapeake",
+      "intent": "officeimo-screen-snapshot",
+      "pdfSha256": "a547ee0ca86a929bcae9b596fbdd1da1c21de81f5a89b61af75335272a4d02d6",
+      "pages": 5,
+      "imageObjects": 16,
+      "externalLinks": 49,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 12,
+      "unmatchedDefaultSourceBlocks": 2,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "a9271d1e01434c7845ab72ddd256ab96ae3bf21e328ff32d07db3b653874bf3d",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": true,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": true
+      }
+    },
+    {
+      "case": "chesapeake",
+      "intent": "officeimo-screen-snapshot-local-fonts",
+      "pdfSha256": "04caf31853bc47a5b06c7dd1125a206df9d98f38d5e06ebc3c9960e5a1156985",
+      "pages": 5,
+      "imageObjects": 16,
+      "externalLinks": 49,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 12,
+      "unmatchedDefaultSourceBlocks": 2,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "f0a08607e3e0ee84afed19d81c6c6f2dfcafed0c521ae1dadb295d0c89e648d8",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": true,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": true
+      }
+    },
+    {
+      "case": "planets",
+      "intent": "officeimo-print",
+      "pdfSha256": "964b2531fd23577fcc71ee6e3dec23d392a4f1358c5c2dd382d56c5f19dc5f55",
+      "pages": 19,
+      "imageObjects": 16,
+      "externalLinks": 72,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 2,
+      "unmatchedDefaultSourceBlocks": 9,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "b6855978ca3d6bb6c832145a844d34e4fbf284d5abe83e1dc51594475fe33a7e",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": false,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": false
+      }
+    },
+    {
+      "case": "planets",
+      "intent": "officeimo-print-zero-margin",
+      "pdfSha256": "258b7ec1144192b84928a67d767acd9a0060a67f99ef4916512b88bd69a5d3da",
+      "pages": 16,
+      "imageObjects": 16,
+      "externalLinks": 71,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 2,
+      "unmatchedDefaultSourceBlocks": 14,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": false,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": false
+      }
+    },
+    {
+      "case": "planets",
+      "intent": "officeimo-print-fit-browser-viewport",
+      "pdfSha256": "baa3456eee5299cd77b08d47c0d159a2feed70009c46a5d0543f99306b7418a3",
+      "pages": 16,
+      "imageObjects": 16,
+      "externalLinks": 71,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 1,
+      "unmatchedDefaultSourceBlocks": 10,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "70bd7305e38a3aca89c8ff3f56145fe70def65576d6a818de5d04bfde46eca68",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": false,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": false
+      }
+    },
+    {
+      "case": "planets",
+      "intent": "officeimo-print-fit-1200",
+      "pdfSha256": "96c442244f423e54731323acb19bcd521952eac626e31ea0ac744b3ce5e4fe8f",
+      "pages": 11,
+      "imageObjects": 16,
+      "externalLinks": 71,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 0,
+      "unmatchedDefaultSourceBlocks": 7,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": false,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": false
+      }
+    },
+    {
+      "case": "planets",
+      "intent": "officeimo-print-fit-1200-local-fonts",
+      "pdfSha256": "96c442244f423e54731323acb19bcd521952eac626e31ea0ac744b3ce5e4fe8f",
+      "pages": 11,
+      "imageObjects": 16,
+      "externalLinks": 71,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 0,
+      "unmatchedDefaultSourceBlocks": 7,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "1e07ffd8e37b79d72c793cca5f0c4e3da27863791832082492939cd1527c7376",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": false,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": false
+      }
+    },
+    {
+      "case": "planets",
+      "intent": "officeimo-print-browser-ua",
+      "pdfSha256": "258b7ec1144192b84928a67d767acd9a0060a67f99ef4916512b88bd69a5d3da",
+      "pages": 16,
+      "imageObjects": 16,
+      "externalLinks": 71,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 2,
+      "unmatchedDefaultSourceBlocks": 14,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": false,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": false
+      }
+    },
+    {
+      "case": "planets",
+      "intent": "officeimo-print-zero-margin-local-fonts",
+      "pdfSha256": "258b7ec1144192b84928a67d767acd9a0060a67f99ef4916512b88bd69a5d3da",
+      "pages": 16,
+      "imageObjects": 16,
+      "externalLinks": 71,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 2,
+      "unmatchedDefaultSourceBlocks": 14,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "46a43d503f493f5174100cba442b86f0406210a630dd1e974026eb78f545f49e",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": false,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": false
+      }
+    },
+    {
+      "case": "planets",
+      "intent": "officeimo-screen-media",
+      "pdfSha256": "d868da5c8cda8307df1e242362aeab0223989ac982001193127b15515fade3ba",
+      "pages": 21,
+      "imageObjects": 18,
+      "externalLinks": 73,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 0,
+      "unmatchedDefaultSourceBlocks": 0,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": false,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": false
+      }
+    },
+    {
+      "case": "planets",
+      "intent": "officeimo-screen-media-local-fonts",
+      "pdfSha256": "d868da5c8cda8307df1e242362aeab0223989ac982001193127b15515fade3ba",
+      "pages": 21,
+      "imageObjects": 18,
+      "externalLinks": 73,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 0,
+      "unmatchedDefaultSourceBlocks": 0,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "b70a0fb8af49177408a1a0310aea9d4b1b3592b495a83abf9b9218626c1ee5e8",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": false,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": false
+      }
+    },
+    {
+      "case": "planets",
+      "intent": "officeimo-screen-snapshot",
+      "pdfSha256": "20b8d08ac426674dc9c3282905f5d515b2330502af26b48103066724b5f597b9",
+      "pages": 16,
+      "imageObjects": 22,
+      "externalLinks": 80,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 5,
+      "unmatchedDefaultSourceBlocks": 9,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": false,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": false
+      }
+    },
+    {
+      "case": "planets",
+      "intent": "officeimo-screen-snapshot-local-fonts",
+      "pdfSha256": "20b8d08ac426674dc9c3282905f5d515b2330502af26b48103066724b5f597b9",
+      "pages": 16,
+      "imageObjects": 22,
+      "externalLinks": 80,
+      "hasLoss": true,
+      "unmatchedRawSourceBlocks": 5,
+      "unmatchedDefaultSourceBlocks": 9,
+      "missingTableRows": [],
+      "tableRowsInSourceOrder": true,
+      "historical": {
+        "baselinePdfSha256": "ed1ef4de8c4b491089cb2ca5806d20aef64393b91a94745c3003ede0ea8cb0b2",
+        "pagesEqual": true,
+        "rawSplitTokenMultisetEqual": false,
+        "rawNonWhitespaceCharacterMultisetEqual": true,
+        "externalUriMultisetEqual": true,
+        "imageDataMultisetEqual": false
+      }
+    }
+  ],
+  "classifications": {
+    "waiPrint": {
+      "sourceBlocksInterruptedByGeneratedLinkUrls": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "authoredPrintHiddenBlocks": [
+        19,
+        20
+      ],
+      "hiddenSelector": "#helpimprove",
+      "hiddenRule": "@media print { #helpimprove { display:none; } }",
+      "rawHistoricalTokenChanges": "Four punctuation joins; original exact token deltas are retained. Character-multiset equality is a diagnostic only, not a reading-order or whitespace acceptance gate.",
+      "screenMediaSourceWordWindows": "All 21 selected source blocks match both raw and default extraction; snapshot default ordering has one unmatched block and remains open"
+    },
+    "chesapeakeSpaces": {
+      "originalRawObservation": "All twelve source block windows fail because raw extraction joins much of the embedded-font body text; the same observation occurs in historical output",
+      "independentProof": [
+        "Space CID maps to U+0020 and appears in the content stream",
+        "pypdf preserves the spaces",
+        "Poppler default and layout modes preserve the spaces"
+      ],
+      "classification": "Extractor-mode/font limitation, not an established OfficeIMO missing-space defect",
+      "remaining": "Screen-media one and snapshot two selected blocks remain unmatched in default order; retain reading-order and appearance qualification",
+      "originalFailuresPreserved": true
+    },
+    "planetaryText": {
+      "sourceTable": "Header and all 21 regular five-column rows found in source order in every one of eleven intents",
+      "historicalRawDelta": "Eight punctuation joins and one adjacent header-label join; exact added/removed tokens retained, non-whitespace character counts unchanged",
+      "remaining": "Selected paragraph windows interrupted by fragmentation/captions and global reading order still require appearance and sequence acceptance"
+    },
+    "planetaryPaint": {
+      "decodedRgbaPhotos": "All unchanged image pixel hashes retained; each intent has two differing same-sized generated black-alpha images",
+      "zeroMarginDiagnostic": "Both changed images have zero RGB channels; same-dimension pairing measured max RGB delta 0 and max alpha delta 94",
+      "affectedVisuals": "Card-overlay paint on zero-margin pages 14 and 15; compared with corresponding historical pages at 72 dpi, photograph and label geometry retained",
+      "limit": "No full browser gradient or all-intent appearance acceptance follows from these diagnostics. No matching source bitmap was found for the alpha-mask oracle attempt; its empty result is retained, not a pass."
+    }
+  },
+  "resourceInventory": [
+    {
+      "case": "wai",
+      "mimeLocations": 15,
+      "distinctUnavailableCandidateUrisAbsentFromArchive": 20,
+      "distinctUnavailableCandidateUrisPresentInArchive": 0
+    },
+    {
+      "case": "chesapeake",
+      "mimeLocations": 26,
+      "distinctUnavailableCandidateUrisAbsentFromArchive": 34,
+      "distinctUnavailableCandidateUrisPresentInArchive": 0
+    },
+    {
+      "case": "planets",
+      "mimeLocations": 43,
+      "distinctUnavailableCandidateUrisAbsentFromArchive": 45,
+      "distinctUnavailableCandidateUrisPresentInArchive": 0
+    }
+  ],
+  "resourceMethod": "Exact or fragment-free diagnostic URI lookup against frozen MIME Content-Location, no live downloads or query/path rewriting. Absent font alternatives do not by themselves establish missing visible glyphs. Chosen-font, icon/SVG and appearance diagnostics remain open.",
+  "visualInspection": {
+    "newlyInspectedCurrentPages": 8,
+    "profiles": [
+      "WAI print-zero-margin pages 1-3",
+      "Chesapeake print pages 1-3",
+      "Planetary print-zero-margin pages 14-15 with paired historical references"
+    ],
+    "remaining": "This does not inspect every page of all 32 PDFs; named sparse footer, fixed-control, typography, icon and profile appearance gaps remain open."
+  },
+  "independentEvidence": {
+    "rawObservationsSha256": "16f85e3390d984597b273b76e7169a8dad1a04706af446e8f90b669df178a3ea",
+    "supplementalObservationsSha256": "c027fa8d05eee87ef981c7fc7aa550d631bae2ad61414c61283ff54166a23154",
+    "archiveResourceObservationsSha256": "662baf62a262ef93397ad6e6f4fbf3003417a1105ceaf70e360f46fdf68945dc",
+    "runStatusSha256": "be74eeaf3cfbdb771d40fe4195119ac52165349f1c32e13f16a3325709f30144",
+    "retainedRoot": "Ignore/MasterConvergenceQualification/pdf-intent-matrix",
+    "articleTextAndSourceContracts": "Ignored local evidence only; not included in this tracked record"
+  },
+  "limits": [
+    "Every completed operation retains HasLoss=true and its original conversion report.",
+    "Historical options differ from the three canonical PortableDeterministic API/Tool routes; only corresponding intents are compared.",
+    "WAI is development, Chesapeake held-out and planetary development; no all-web success rate follows.",
+    "Setup/extractor failures and unmatched source windows remain visible; no whitespace normalization is used to declare an exact text pass.",
+    "Timing, full native editable acceptance, manual accessibility and browser parity are not established."
+  ]
+}
