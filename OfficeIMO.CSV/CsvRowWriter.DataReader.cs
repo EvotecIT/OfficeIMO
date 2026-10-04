@@ -59,13 +59,28 @@ public sealed partial class CsvRowWriter
             _rowBuffer.Clear();
         }
 
+        var useTypedBatch = false;
 #if NET6_0_OR_GREATER
         var defaultFieldKinds = _useDefaultWritePath
             ? CsvWriter.TryCreateDataReaderFieldKinds(reader)
             : null;
+        if (defaultFieldKinds != null)
+        {
+            // Copying each completed row into the pool helps text-only exports,
+            // but costs throughput for typed tables. Keep their direct batch.
+            foreach (var kind in defaultFieldKinds)
+            {
+                if (kind != CsvWriter.DataReaderFieldKind.String)
+                {
+                    useTypedBatch = true;
+                    break;
+                }
+            }
+        }
 #endif
         var rowValues = new object[fieldCount];
         var useBufferedValues = true;
+        var completedBufferedLength = 0;
         char[]? batch = null;
         var batchLength = 0;
         void FlushBatch()
@@ -117,7 +132,20 @@ public sealed partial class CsvRowWriter
                         _delimiter,
                         _options.NewLine,
                         _options.Culture);
-                    BufferCompletedRow();
+                    if (useTypedBatch)
+                    {
+                        completedBufferedLength = _rowBuffer.Length;
+                        if (_rowBuffer.Length >= CsvWriter.DataReaderFlushThreshold)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            completedBufferedLength = 0;
+                            CsvWriter.FlushBufferedContent(_writer, _rowBuffer);
+                        }
+                    }
+                    else
+                    {
+                        BufferCompletedRow();
+                    }
                     continue;
                 }
 #endif
@@ -156,14 +184,27 @@ public sealed partial class CsvRowWriter
             if (usesBatchedRecords)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                FlushBatch();
+                if (useTypedBatch)
+                {
+                    completedBufferedLength = 0;
+                    CsvWriter.FlushBufferedContent(_writer, _rowBuffer);
+                }
+                else
+                {
+                    FlushBatch();
+                }
             }
         }
         catch
         {
             if (usesBatchedRecords)
             {
-                _rowBuffer.Clear();
+                _rowBuffer.Length = completedBufferedLength;
+                if (completedBufferedLength != 0)
+                {
+                    completedBufferedLength = 0;
+                    CsvWriter.FlushBufferedContent(_writer, _rowBuffer);
+                }
                 FlushBatch();
             }
 
