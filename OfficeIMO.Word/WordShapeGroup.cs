@@ -70,7 +70,7 @@ namespace OfficeIMO.Word {
         public bool TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot? snapshot) =>
             WordDrawingLayoutReader.TryRead(_drawing, out snapshot);
 
-        /// <inheritdoc />
+        /// <summary>Removes the group drawing from its containing paragraph.</summary>
         public void Remove() => _drawing.Remove();
 
         internal static WordShapeGroup Add(WordParagraph paragraph, IEnumerable<WordShapeGroupItem> items, double? leftPt, double? topPt) {
