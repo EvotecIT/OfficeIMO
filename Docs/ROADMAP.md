@@ -76,7 +76,7 @@ Completion evidence: a visitor can choose a task, find the supported surface, in
 
 ## Apple iWork
 
-The [source-reader support matrix](officeimo.iwork-support-matrix.md) owns the current Pages, Numbers, and Keynote contracts. Keep one bounded read-only source model and opt-in adapters to the existing Word, Excel, and PowerPoint owners. Native iWork writing remains a separate product decision requiring independent multi-version reopen and round-trip evidence.
+The [iWork support matrix](officeimo.iwork-support-matrix.md) owns the current Pages, Numbers, Keynote and bounded native Keynote creation contracts. Keep one bounded read-only source model, the separate owned creation codec, and opt-in adapters to the existing Word, Excel, and PowerPoint owners. Extend native writing through independent reopen and round-trip evidence.
 
 Combine independent Apple reference evidence in I2 with common formatting coverage in I3. Qualify public package consumers in I4 before expanding conversion routes. Use I1 for deeper fidelity inventories and I5 for measured runtime and Apple host acceptance.
 
@@ -112,6 +112,11 @@ Combine independent Apple reference evidence in I2 with common formatting covera
 - [ ] Establish elapsed, allocation, retained/peak-memory, and cancellation-latency budgets for large packages and repeated conversions; extend the [opt-in runtime lane](../OfficeIMO.IWork.Benchmarks/README.md) beyond its synthetic scale matrix and small native Pages/Numbers inputs with native Keynote and large independent-producer workloads. Measure repeated-open/conversion stability and mid-operation cancellation with bounded output cleanup; keep timing and memory gates opt-in. Qualify the remaining applicable trimming/AOT and portable-font contracts beyond the [bounded macOS source/Reader and conversion NativeAOT evidence](officeimo.iwork-support-matrix.md#bounded-nativeaot-qualification).
 - [ ] Complete Apple host and artifact evidence through [Studio desktop acceptance and distribution](#phase-5-desktop-acceptance-and-distribution), including cold-start and additional-format Finder activation beyond the [qualified running-app Numbers intake](../OfficeIMO.Studio/README.md), native menus, signed sandbox bookmark recovery, permitted helpers, and exact-artifact Developer ID/notarization/Gatekeeper checks. Reuse PowerForge for packaging and release ownership.
 - [ ] Qualify the document engines selected by the [bounded iPad feasibility slice](#phase-7-ipad-then-iphone) on a physical device before expanding mobile support claims.
+
+### I6: native creation and lifecycle
+
+- [ ] Extend the [qualified native Keynote creation slice](officeimo.iwork-support-matrix.md#native-keynote-creation) beyond static slides and uniformly styled plain text. Qualify additional producer versions, installed/fallback fonts, text scripts, rich runs, media and tables through independent decoding, Apple reopen/edit/export and rendered comparisons. Establish writer trimming/AOT and portable operation-level resource evidence.
+- [ ] Implement owned native Pages and Numbers creation codecs and models with template-free generation, deterministic packages, bounded resource/cancellation behavior, independent decoding and Apple reopen/export evidence. Add edited-source save-back only with explicit preservation and operation-level loss reports; creation does not establish that lifecycle.
 
 ## Desktop Studio
 

@@ -56,6 +56,9 @@ internal static class IWorkTextBoxLayoutReader {
                 Reject(item.Record, "11/5", properties.FieldCount(5), references, ref complete);
             IWorkWireMessage? padding = Child(properties, 6, item.Record, "11/6", references, ref complete);
             if (padding != null) {
+                if (padding.TotalFieldCount != Enumerable.Range(1, 4).Sum(padding.FieldCount))
+                    Reject(item.Record, "11/6", properties.FieldCount(6), references, ref complete);
+                // A present PaddingArchive replaces the whole inherited property. Apple omits zero-valued sides.
                 left = Float(padding, 1, item.Record, references, ref complete);
                 top = Float(padding, 2, item.Record, references, ref complete);
                 right = Float(padding, 3, item.Record, references, ref complete);
@@ -110,6 +113,7 @@ internal static class IWorkTextBoxLayoutReader {
 
     private static double? Float(IWorkWireMessage owner, int field, IWorkArchiveRecord record,
         IWorkSourceReferenceIssueCollector references, ref bool complete) {
+        if (!owner.HasField(field)) return 0;
         float? value = owner.GetFloat(field);
         if (owner.FieldCount(field) != 1 || owner.HasUnexpectedWireKind(field, IWorkWireKind.Fixed32)
             || !value.HasValue || float.IsNaN(value.Value) || float.IsInfinity(value.Value) || value < 0) {
