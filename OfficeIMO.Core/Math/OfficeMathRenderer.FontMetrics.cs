@@ -49,9 +49,9 @@ public static partial class OfficeMathRenderer {
         private bool HasScopedTextCoverage(string text, double size) {
             if (text.Length == 0) return false;
             foreach (OfficeFontFallbackRun run in _options.Fonts.PlanFallbackRuns(text,
-                _options.Font.FamilyName, _options.Font.Style)) {
+                _options.Font.FamilyName, _options.Font.Face)) {
                 if (!_options.Fonts.TryResolveFaceForText(run.Text, run.FamilyName,
-                    _options.Font.Style, size, out _)) return false;
+                    _options.Font.Face, size, out _)) return false;
             }
             return true;
         }

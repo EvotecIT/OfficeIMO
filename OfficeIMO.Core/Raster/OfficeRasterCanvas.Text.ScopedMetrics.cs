@@ -21,6 +21,7 @@ public sealed partial class OfficeRasterCanvas {
             // Mathematical script levels can be below one unit. The general public text
             // measurement floor is unsuitable here; use positioned paint's 0.1-unit floor.
             double size = Math.Max(0.1D, font.Size);
+            using var faceScope = canvas.PushTextFace(font.Face);
             double advance = canvas.MeasurePositionedText(text, size, font.FamilyName, font.Style,
                 OfficeTextFeatureSettings.Default, OfficeTextDirection.Auto);
             var bounds = canvas.MeasurePositionedTextBounds(text, 0D, 0D, advance, 0D, size,

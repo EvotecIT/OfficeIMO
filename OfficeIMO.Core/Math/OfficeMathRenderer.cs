@@ -150,7 +150,7 @@ public static partial class OfficeMathRenderer {
             _measurer = OfficeTextMeasurer.Create(options.Font);
             _measureScopedText = measureScopedText ?? OfficeRasterCanvas.CreateScopedPositionedTextMeasurement(options.Fonts, cancellationToken);
             if (options.UseFontMathMetrics && options.Fonts.TryResolveFaceForText("x", options.Font.FamilyName,
-                    options.Font.Style, FontSize(1D), out OfficeFontFace? face))
+                    options.Font.Face, FontSize(1D), out OfficeFontFace? face))
                 _mathConstants = (face!.Program as IOfficeMathFontProgram)?.MathConstants;
         }
 
@@ -285,7 +285,7 @@ public static partial class OfficeMathRenderer {
             text is "(" or ")" or "[" or "]" or "{" or "}" or "|" or "‖" or "⟨" or "⟩";
 
         private double MathAxis(double scale) => _mathConstants != null ? MathValue(OfficeMathConstant.AxisHeight, scale) :
-            _options.Fonts.TryResolveFaceForText("x", _options.Font.FamilyName, _options.Font.Style,
+            _options.Fonts.TryResolveFaceForText("x", _options.Font.FamilyName, _options.Font.Face,
                 FontSize(scale), out _)
                 ? Text("x", scale).Baseline / 2D : FontSize(scale) * 0.25D;
 

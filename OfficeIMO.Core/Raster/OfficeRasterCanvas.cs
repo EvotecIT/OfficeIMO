@@ -794,25 +794,3 @@ public sealed partial class OfficeRasterCanvas {
 
     private static double Clamp(double value, double min, double max) => value < min ? min : value > max ? max : value;
 }
-
-internal sealed class OfficeRasterTransformedTextBudget {
-    internal long Pixels;
-    internal long IntermediatePixels;
-
-    internal void EnsureIntermediateSurfacePixels(long pixels, long maximumRasterPixels) {
-        long consumed = IntermediatePixels;
-        if (pixels < 0L || pixels > maximumRasterPixels - consumed) {
-            throw new OfficeImageExportLimitException(1D,
-                pixels > long.MaxValue - consumed ? long.MaxValue : consumed + pixels,
-                maximumRasterPixels,
-                OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Png));
-        }
-    }
-
-    internal void ChargeIntermediateSurfacePixels(long pixels, long maximumRasterPixels) {
-        EnsureIntermediateSurfacePixels(pixels, maximumRasterPixels);
-        IntermediatePixels += pixels;
-    }
-
-    internal void ReleaseIntermediateSurfacePixels(long pixels) => IntermediatePixels -= pixels;
-}
