@@ -80,6 +80,33 @@ public class PdfFontMeasurementTests {
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DefaultMeasurementOverflowRetainsOnlyTheVisitedGlyphUsage(bool cff) {
+        string? path = cff ? PdfComplianceTestFonts.FindBundledOpenTypeCffFont() : PdfComplianceTestFonts.FindBundledTrueTypeFont();
+        Assert.NotNull(path);
+        byte[] data = File.ReadAllBytes(path!);
+        WriteUInt16(data, FindTableOffset(data, "head") + 18, 16);
+        WriteUInt16(data, FindTableOffset(data, "hhea") + 34, 1);
+        WriteUInt16(data, FindTableOffset(data, "hmtx"), ushort.MaxValue);
+        string text = new string('A', 524) + "BC";
+
+        PdfTrueTypeFontProgram? tt = cff ? null : PdfTrueTypeFontProgram.Parse(data, "Overflow");
+        PdfOpenTypeCffFontProgram? ot = cff ? PdfOpenTypeCffFontProgram.Parse(data, "Overflow") : null;
+        Func<string, double> measure = cff
+            ? value => ot!.MeasureTextWidth(value, 10, PdfTextShapingMode.OpenTypeLigatures)
+            : value => tt!.MeasureTextWidth(value, 10, PdfTextShapingMode.OpenTypeLigatures);
+
+        Assert.Equal(2_146_271_512 * 10D / 1000, measure(text.Substring(0, 524)));
+        if (cff) ot!.ResetGlyphUsage(); else tt!.ResetGlyphUsage();
+        Assert.Throws<OverflowException>(() => measure(text));
+        var mappings = cff ? ot!.GetGlyphToUnicodeMappings() : tt!.GetGlyphToUnicodeMappings();
+        Assert.Equal(new[] { "A", "B" }, mappings.Select(mapping => mapping.UnicodeText).OrderBy(value => value));
+        Assert.Equal(mappings.Select(mapping => mapping.GlyphId).OrderBy(glyph => glyph),
+            cff ? ot!.GetUsedGlyphIds() : tt!.GetUsedGlyphIds());
+    }
+
+    [Theory]
     [InlineData(false, "office affinity fine flow")]
     [InlineData(true, "office affinity fine flow")]
     [InlineData(false, "123.45 ([)]")]

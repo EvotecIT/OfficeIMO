@@ -250,12 +250,17 @@ internal sealed partial class PdfTrueTypeFontProgram {
         unicodeText = OfficeArabicTextShaper.ToLogicalText(unicodeText);
 
         lock (_usageLock) {
-            _usedGlyphIds.Add(glyphId);
-            if (glyphId > 0 &&
-                !string.IsNullOrEmpty(unicodeText) &&
-                (!_usedGlyphToUnicode.TryGetValue(glyphId, out string? existingText) || ShouldReplaceGlyphUnicodeText(unicodeText, existingText))) {
-                _usedGlyphToUnicode[glyphId] = unicodeText;
-            }
+            RecordNormalizedGlyphUsage(glyphId, unicodeText);
+        }
+    }
+
+    // The caller owns _usageLock. This also serves token batches without entering it per glyph.
+    private void RecordNormalizedGlyphUsage(int glyphId, string unicodeText) {
+        _usedGlyphIds.Add(glyphId);
+        if (glyphId > 0 &&
+            !string.IsNullOrEmpty(unicodeText) &&
+            (!_usedGlyphToUnicode.TryGetValue(glyphId, out string? existingText) || ShouldReplaceGlyphUnicodeText(unicodeText, existingText))) {
+            _usedGlyphToUnicode[glyphId] = unicodeText;
         }
     }
 
