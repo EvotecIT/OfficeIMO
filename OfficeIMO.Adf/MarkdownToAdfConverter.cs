@@ -4,17 +4,16 @@ namespace OfficeIMO.Adf;
 
 internal sealed class MarkdownToAdfConverter {
     private readonly Func<string, string>? _localIdFactory;
-    private readonly string _identityRoot;
+    private string? _identityRoot;
     private readonly HashSet<string> _localIds = new HashSet<string>(StringComparer.Ordinal);
+    private readonly List<(AdfNode Node, string Path)> _pendingTaskIds = new List<(AdfNode, string)>();
 
-    private MarkdownToAdfConverter(MarkdownDoc source, AdfConversionOptions options) {
+    private MarkdownToAdfConverter(AdfConversionOptions options) {
         _localIdFactory = options.LocalIdFactory;
-        using var hash = System.Security.Cryptography.SHA256.Create();
-        _identityRoot = BitConverter.ToString(hash.ComputeHash(System.Text.Encoding.UTF8.GetBytes(source.ToMarkdown())));
     }
 
     internal static AdfDocument Convert(MarkdownDoc source, List<AdfConversionDiagnostic> diagnostics, AdfConversionOptions options) =>
-        new MarkdownToAdfConverter(source, options).ConvertCore(source, diagnostics);
+        new MarkdownToAdfConverter(options).ConvertCore(source, diagnostics);
 
     private AdfDocument ConvertCore(MarkdownDoc source, List<AdfConversionDiagnostic> diagnostics) {
         var document = new AdfDocument();
@@ -22,6 +21,7 @@ internal sealed class MarkdownToAdfConverter {
             AdfNode? node = ConvertBlock(source.Blocks[i], "$.blocks[" + i + "]", diagnostics);
             if (node != null) document.Content.Add(node);
         }
+        AssignGeneratedTaskIds();
         return document;
     }
 
@@ -96,16 +96,35 @@ internal sealed class MarkdownToAdfConverter {
         items.Count > 0 && items.All(item => item.IsTask && item.AdditionalParagraphs.Count == 0 && item.NestedBlocks.Count == 0);
 
     private AdfNode ConvertTaskList(IReadOnlyList<ListItem> items, string path, List<AdfConversionDiagnostic> diagnostics) {
-        var list = new AdfNode("taskList").SetAttribute("localId", LocalId(path));
+        var list = new AdfNode("taskList");
+        SetTaskId(list, path);
         for (int i = 0; i < items.Count; i++) {
             ListItem sourceItem = items[i];
             var item = new AdfNode("taskItem")
-                .SetAttribute("localId", LocalId(path + ".items[" + i + "]"))
                 .SetAttribute("state", sourceItem.Checked ? "DONE" : "TODO");
+            SetTaskId(item, path + ".items[" + i + "]");
             WithInlines(item, sourceItem.Content, path + ".items[" + i + "]", diagnostics);
             list.Content.Add(item);
         }
         return list;
+    }
+
+    private void SetTaskId(AdfNode node, string path) {
+        if (_localIdFactory == null) _pendingTaskIds.Add((node, path));
+        else node.SetAttribute("localId", LocalId(path));
+    }
+
+    private void AssignGeneratedTaskIds() {
+        if (_pendingTaskIds.Count == 0) return;
+        // Task lists are shallow after inline projection. Hashing only these nodes
+        // avoids rendering unsupported Markdown and serializing unrelated deep ADF.
+        var taskLists = _pendingTaskIds.Where(pending => pending.Node.Type == "taskList")
+            .Select(pending => pending.Node);
+        using var hash = System.Security.Cryptography.SHA256.Create();
+        _identityRoot = BitConverter.ToString(hash.ComputeHash(
+            System.Text.Encoding.UTF8.GetBytes(new AdfDocument(taskLists).ToJson())));
+        foreach (var pending in _pendingTaskIds)
+            pending.Node.SetAttribute("localId", LocalId(pending.Path));
     }
 
     private string LocalId(string path) {
