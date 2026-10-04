@@ -139,6 +139,19 @@ patch in a separate candidate checkout. Run the recorded cases through the
 snapshot comparison runner described below, using the same benchmark assembly
 for both snapshots. The rejected candidate is not part of the current product.
 
+An additional single-character `Always`-quoting batch experiment is also removed.
+Its eight-workload screen retains 16 native cases: short notes and JSON, long
+JSON, ASCII file output, and unchanged `AsNeeded` controls. Short always-quoted
+JSON adds 7,728 allocated bytes per operation, and both short always-quoted text
+cases measure slower. Control timings also vary substantially, so the screen
+does not establish stable speed ratios. It gives no basis for adopting the
+change. All 638 .NET 10 CSV tests pass before and after removal; the additional
+always-quoted cancellation and formatting-failure contracts remain. The
+[screen packet](excel-csv-broad-throughput-2026-10-04/rejected-csv-always-quoted-batching.json)
+includes complete observations, rejected source, binary hashes and case settings.
+No rotated, other-runtime, or independent-review qualification is claimed for
+this rejected experiment.
+
 ## Peer refresh and remaining gaps
 
 The [post-change peer packet](excel-csv-broad-throughput-2026-10-04/peer-refresh-native.json)
