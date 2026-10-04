@@ -82,6 +82,15 @@ aggregate value. Generated fixtures are deleted during cleanup.
 The `TypedDataReader` lane consumes integer IDs and decimal amounts without
 boxing them in the timed loop. Setup also checks object values after typed access
 so allocation improvements preserve the canonical numeric result types.
+`UsedRange` includes range discovery and reads its headers and data; `Range`
+reads an explicit rectangle. Keep those operations separate when interpreting
+scan costs.
+
+`ExcelUsedRangeDiscoveryBenchmarks` measures only `GetUsedRangeA1`, without
+materializing cells afterward. Dense and sparse 2,500/25,000-row worksheets use
+explicit or omitted row indices. Setup checks the generated coordinate counts;
+every operation validates the exact discovered bounds. This lane exposes
+allocation costs that a subsequent full read can otherwise hide.
 
 ```powershell
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter '*ExcelNumericXmlReadBenchmarks*' --priority Normal --warmupCount 24 --iterationCount 12 --invocationCount 4 --unrollFactor 1 --outliers DontRemove --artifacts ./Ignore/Benchmarks/numeric-xml-read

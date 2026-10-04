@@ -26,7 +26,7 @@ public class ExcelNumericXmlReadBenchmarks {
     [Params(false, true)]
     public bool NumericAsDecimal { get; set; }
 
-    [Params("DataReader", "TypedDataReader", "Range", "DataTable")]
+    [Params("DataReader", "TypedDataReader", "Range", "UsedRange", "DataTable")]
     public string Api { get; set; } = "DataReader";
 
     [Params("Explicit", "ImplicitRows", "ImplicitRowsAndCells")]
@@ -107,16 +107,22 @@ public class ExcelNumericXmlReadBenchmarks {
         } else {
             using var owner = ExcelDocumentReader.Open(_path, options);
             var sheet = owner.GetSheet("Data");
-            if (Api == "Range") {
-                if (validate) {
+            if (Api == "Range" || Api == "UsedRange") {
+                bool discoverRange = Api == "UsedRange";
+                if (validate && !discoverRange) {
                     var headers = sheet.ReadRange("A1:B1", ExcelExecutionMode.Sequential);
                     if (!Equals(headers[0, 0], Headers[0]) || !Equals(headers[0, 1], Headers[1])) {
                         throw new InvalidDataException("Range headers differ.");
                     }
                 }
-                var rows = sheet.ReadRange(_range, ExcelExecutionMode.Sequential);
+                string range = discoverRange ? sheet.GetUsedRangeA1() : _range;
+                if (discoverRange && range != _tableRange) throw new InvalidDataException("Used range differs.");
+                var rows = sheet.ReadRange(range, ExcelExecutionMode.Sequential);
                 if (rows.GetLength(1) != 2) throw new InvalidDataException("Range width differs.");
-                for (int row = 0; row < rows.GetLength(0); row++) Add(ref result, rows[row, 0], rows[row, 1], count++, validate);
+                if (discoverRange && (!Equals(rows[0, 0], Headers[0]) || !Equals(rows[0, 1], Headers[1]))) {
+                    throw new InvalidDataException("Used range headers differ.");
+                }
+                for (int row = discoverRange ? 1 : 0; row < rows.GetLength(0); row++) Add(ref result, rows[row, 0], rows[row, 1], count++, validate);
             } else if (Api == "DataTable") {
                 using DataTable table = sheet.ReadRangeAsDataTable(_tableRange, headersInFirstRow: true);
                 if (table.Columns.Count != 2 || table.Columns[0].ColumnName != Headers[0] || table.Columns[1].ColumnName != Headers[1]) {

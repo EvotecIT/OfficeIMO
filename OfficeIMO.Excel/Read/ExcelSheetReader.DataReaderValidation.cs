@@ -59,6 +59,8 @@ namespace OfficeIMO.Excel {
             // Otherwise reuse this complete validation scan to discover actual bounds.
             var bounds = _usedRangeA1 == null && !_wsPart.TableDefinitionParts.Any()
                 ? new WorksheetRangeAccumulator() : null;
+            var coordinates = bounds != null && Volatile.Read(ref _implicitXmlRowIndexes) == null
+                ? new ImplicitXmlRowIndexBuilder() : null;
             bool haveSheetData = false;
             bool completedSheetData = false;
             int sheetDataDepth = -1;
@@ -87,13 +89,17 @@ namespace OfficeIMO.Excel {
                                 || reader.Depth != sheetDataDepth + 1 || !spreadsheetElement) {
                                 bounds = null;
                             } else {
-                                bounds.BeginRow(ReadXmlReferenceAttribute(reader).Text);
-                                if (reader.IsEmptyElement) bounds.EndRow();
-                                else rowDepth = reader.Depth;
+                                int declaredRowIndex = bounds.BeginRow(ReadXmlReferenceAttribute(reader).Text);
+                                coordinates?.BeginRow(reader, declaredRowIndex);
+                                if (reader.IsEmptyElement) {
+                                    bounds.EndRow();
+                                    coordinates?.EndRow();
+                                } else rowDepth = reader.Depth;
                             }
                         } else if (nodeType == XmlNodeType.EndElement) {
                             if (reader.Depth == rowDepth && localName == "row") {
                                 bounds.EndRow();
+                                coordinates?.EndRow();
                                 rowDepth = -1;
                             } else if (reader.Depth == sheetDataDepth && localName == "sheetData") {
                                 completedSheetData = true;
@@ -109,6 +115,7 @@ namespace OfficeIMO.Excel {
                     if (rowDepth >= 0 && reader.Depth == rowDepth + 1
                         && (reader.NamespaceURI == SpreadsheetNamespace || reader.NamespaceURI == StrictSpreadsheetNamespace)) {
                         bounds.AddCell(reference.Text);
+                        coordinates?.AddCell(reference.Text);
                     } else {
                         bounds = null;
                     }
@@ -193,9 +200,13 @@ namespace OfficeIMO.Excel {
                     "shared-formula text is required.");
             }
             ct.ThrowIfCancellationRequested();
-            if (bounds != null && completedSheetData && rowDepth < 0
-                && bounds.TryGetReference(out string usedRangeReference)) {
-                _usedRangeA1 = usedRangeReference;
+            if (bounds != null && completedSheetData && rowDepth < 0) {
+                if (bounds.TryGetReference(out string usedRangeReference)) {
+                    _usedRangeA1 = usedRangeReference;
+                }
+                if (coordinates != null) {
+                    Interlocked.CompareExchange(ref _implicitXmlRowIndexes, coordinates.Indexes, null);
+                }
             }
         }
 

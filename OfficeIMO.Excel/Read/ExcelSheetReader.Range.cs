@@ -135,6 +135,8 @@ namespace OfficeIMO.Excel {
                 using var reader = OpenWorksheetXmlReader(stream);
 
                 var bounds = new WorksheetRangeAccumulator();
+                var coordinates = Volatile.Read(ref _implicitXmlRowIndexes) == null
+                    ? new ImplicitXmlRowIndexBuilder() : null;
 
                 while (reader.Read()) {
                     ct.ThrowIfCancellationRequested();
@@ -142,8 +144,10 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    bounds.BeginRow(ReadXmlReferenceAttribute(reader).Text);
+                    int declaredRowIndex = bounds.BeginRow(ReadXmlReferenceAttribute(reader).Text);
+                    coordinates?.BeginRow(reader, declaredRowIndex);
                     if (reader.IsEmptyElement) {
+                        coordinates?.EndRow();
                         continue;
                     }
 
@@ -162,7 +166,9 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
 
-                        bounds.AddCell(ReadXmlReferenceAttribute(reader).Text);
+                        ReadOnlySpan<char> cellReference = ReadXmlReferenceAttribute(reader).Text;
+                        bounds.AddCell(cellReference);
+                        if (reader.Depth == rowDepth + 1) coordinates?.AddCell(cellReference);
 
                         if (!reader.IsEmptyElement) {
                             reader.Skip();
@@ -171,8 +177,18 @@ namespace OfficeIMO.Excel {
                     }
 
                     bounds.EndRow();
+                    coordinates?.EndRow();
+                    // Discovery alone should not retain a sparse coordinate map.
+                    // A reader can build it lazily if it later needs those rows.
+                    // Sequential sheets still publish the empty index, avoiding
+                    // an otherwise redundant scan on the first omitted row.
+                    if (coordinates != null && coordinates.Indexes.Count != 0) coordinates = null;
                 }
 
+                ct.ThrowIfCancellationRequested();
+                if (coordinates != null) {
+                    Interlocked.CompareExchange(ref _implicitXmlRowIndexes, coordinates.Indexes, null);
+                }
                 return bounds.TryGetReference(out reference);
             } catch (XmlException) {
                 return false;

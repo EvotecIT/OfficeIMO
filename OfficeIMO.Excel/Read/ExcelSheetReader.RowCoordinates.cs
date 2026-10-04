@@ -9,10 +9,8 @@ namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
         private Dictionary<long, int>? _implicitXmlRowIndexes;
 
-        // Explicit row indices stay on the ordinary path. Missing indices need a
-        // lookahead because their first referenced cell may follow a sparse gap.
-        // A separate scan preserves the caller's XmlReader position and caches
-        // only deviations from sequential numbering, never cell values or rows.
+        // A completed worksheet scan may populate this index before a streaming
+        // projection needs it. Direct range readers retain the dedicated scan.
         private int ResolveImplicitXmlRowIndex(XmlReader reader, int fallback, CancellationToken ct) {
             ct.ThrowIfCancellationRequested();
             long position = GetXmlRowPosition(reader);
@@ -28,48 +26,64 @@ namespace OfficeIMO.Excel {
             using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
             RewindWorksheetStream(stream);
             using var reader = OpenWorksheetXmlReader(stream);
-            var indexes = new Dictionary<long, int>();
-            int nextRowIndex = 1;
+            var coordinates = new ImplicitXmlRowIndexBuilder();
             int rowDepth = -1;
-            int rowIndex = 0;
-            int fallback = 0;
-            long position = 0;
-            bool inferred = false;
-            bool hasCellReference = false;
             while (reader.Read()) {
                 ct.ThrowIfCancellationRequested();
                 if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "row" && rowDepth < 0) {
-                    rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
-                    inferred = rowIndex <= 0;
-                    fallback = nextRowIndex;
-                    if (inferred) rowIndex = fallback;
-                    hasCellReference = false;
-                    position = inferred ? GetXmlRowPosition(reader) : 0;
-                    if (reader.IsEmptyElement) {
-                        nextRowIndex = rowIndex + 1;
-                    } else {
-                        rowDepth = reader.Depth;
-                    }
-                } else if (inferred && !hasCellReference && rowDepth >= 0
-                    && reader.NodeType == XmlNodeType.Element && reader.LocalName == "c" && reader.Depth == rowDepth + 1) {
-                    if (A1.TryParseCellReferenceFast(ReadXmlReferenceAttribute(reader).Text, out int referencedRow, out _)) {
-                        rowIndex = referencedRow;
-                        hasCellReference = true;
-                    }
+                    coordinates.BeginRow(reader, ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text));
+                    if (reader.IsEmptyElement) coordinates.EndRow();
+                    else rowDepth = reader.Depth;
+                } else if (rowDepth >= 0 && reader.NodeType == XmlNodeType.Element
+                    && reader.LocalName == "c" && reader.Depth == rowDepth + 1) {
+                    if (coordinates.NeedsCellReference) coordinates.AddCell(ReadXmlReferenceAttribute(reader).Text);
                 } else if (reader.NodeType == XmlNodeType.EndElement && reader.LocalName == "row" && reader.Depth == rowDepth) {
-                    if (inferred && rowIndex != fallback) {
-                        if (indexes.Count >= A1.MaxRows) {
-                            throw new InvalidDataException("Worksheet implicit row coordinates exceed the XLSX row limit.");
-                        }
-                        indexes.Add(position, rowIndex);
-                    }
-                    nextRowIndex = rowIndex + 1;
+                    coordinates.EndRow();
                     rowDepth = -1;
                 }
             }
-            // Do not publish a partially scanned or cancelled index.
             ct.ThrowIfCancellationRequested();
-            return indexes;
+            return coordinates.Indexes;
+        }
+
+        // Shared by full validation and the fallback scan. It retains only rows
+        // whose first cell reference moves an omitted row index away from its
+        // sequential position, never the cells or their values.
+        private sealed class ImplicitXmlRowIndexBuilder {
+            internal Dictionary<long, int> Indexes { get; } = new Dictionary<long, int>();
+            private int _nextRowIndex = 1;
+            private int _rowIndex;
+            private int _fallback;
+            private long _position;
+            private bool _inferred;
+            internal bool NeedsCellReference { get; private set; }
+
+            internal void BeginRow(XmlReader reader, int declaredRowIndex) {
+                _rowIndex = declaredRowIndex;
+                _inferred = _rowIndex <= 0;
+                _fallback = _nextRowIndex;
+                if (_inferred) _rowIndex = _fallback;
+                NeedsCellReference = _inferred;
+                _position = _inferred ? GetXmlRowPosition(reader) : 0;
+            }
+
+            internal void AddCell(ReadOnlySpan<char> reference) {
+                if (NeedsCellReference && A1.TryParseCellReferenceFast(reference, out int rowIndex, out _)) {
+                    _rowIndex = rowIndex;
+                    NeedsCellReference = false;
+                }
+            }
+
+            internal void EndRow() {
+                if (_inferred && _rowIndex != _fallback) {
+                    if (Indexes.Count >= A1.MaxRows) {
+                        throw new InvalidDataException("Worksheet implicit row coordinates exceed the XLSX row limit.");
+                    }
+                    Indexes.Add(_position, _rowIndex);
+                }
+                _nextRowIndex = _rowIndex + 1;
+                NeedsCellReference = false;
+            }
         }
 
         private static long GetXmlRowPosition(XmlReader reader) {

@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
             private int _rowMaxColumn;
             private int _nextColumnIndex;
 
-            internal void BeginRow(ReadOnlySpan<char> reference) {
+            internal int BeginRow(ReadOnlySpan<char> reference) {
                 _rowIndex = ParsePositiveIntAttribute(reference);
                 _hasExplicitRowIndex = _rowIndex > 0;
                 if (!_hasExplicitRowIndex) _rowIndex = _nextRowIndex;
@@ -27,6 +27,7 @@ namespace OfficeIMO.Excel {
                 _rowMinColumn = int.MaxValue;
                 _rowMaxColumn = 0;
                 _nextColumnIndex = 1;
+                return _hasExplicitRowIndex ? _rowIndex : 0;
             }
 
             internal void AddCell(ReadOnlySpan<char> reference) {
