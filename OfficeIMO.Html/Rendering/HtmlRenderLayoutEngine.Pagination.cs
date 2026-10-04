@@ -244,7 +244,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             } else {
                                 ReportPageContinuationReflowPending(block, pageGeometry);
                             }
-                        } else {
+                        } else if (internalBreak == HtmlPageBreakTarget.None) {
                             blockOffset = SkipUnpaintedLeadingMarginAtPageStart(block, blockOffset);
                         }
                     }

@@ -50,6 +50,81 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
+    // A normal single column has one vertical flow. Carry spacing and actual
+    // line-end progress with no owner/resume target: this does not implement column
+    // continuation reflow or borrow margins from wrapped/reversed neighbors.
+    private static IEnumerable<HtmlInlineBreakProgress> ResolveColumnFlexBreakProgress(
+        IReadOnlyList<FlexLine> lines, HtmlRenderBoxStyle style, double contentY) {
+        if (lines.Count != 1 || style.FlexDirection != "column") yield break;
+        foreach (FlexItem item in lines[0].Items) {
+            HtmlRenderFlowBlock child = item.Block!;
+            double childStart = contentY + item.MainOffset;
+            double top = child.HasCollapsibleMargins
+                ? Math.Max(0D, child.CollapsibleMarginTop - child.LeadingFlowAdjustment) : 0D;
+            if (top > 0.0001D) {
+                yield return new HtmlInlineBreakProgress(childStart, 0,
+                    isBlockEntry: true, pageStartDiscardableMargin: top);
+            }
+            if (child.HasCollapsibleMargins && child.CollapsibleMarginBottom > 0.0001D
+                && child.Height > child.CollapsibleMarginBottom + 0.0001D) {
+                yield return new HtmlInlineBreakProgress(childStart + child.Height - child.CollapsibleMarginBottom, 0,
+                    pageStartDiscardableMargin: child.CollapsibleMarginBottom, isBlockExit: true);
+            }
+            foreach (HtmlInlineBreakProgress progress in child.InlineBreakProgress) {
+                if (progress.LogicalCharacters > 0 && progress.Offset > 0.0001D) {
+                    // Keep-with-next needs the first substantive line end,
+                    // rather than a column child's entry before its margin.
+                    yield return new HtmlInlineBreakProgress(childStart + progress.Offset, progress.LogicalCharacters);
+                }
+                if (!(progress.IsBlockEntry || progress.IsBlockExit)
+                    || progress.PageStartDiscardableMargin <= 0.0001D) continue;
+                yield return new HtmlInlineBreakProgress(childStart + progress.Offset, 0,
+                    isBlockEntry: progress.IsBlockEntry,
+                    pageStartDiscardableMargin: progress.PageStartDiscardableMargin,
+                    isBlockExit: progress.IsBlockExit);
+            }
+        }
+    }
+
+    private IReadOnlyList<HtmlRenderAvoidBreakRange> ResolveColumnFlexAvoidBreakRanges(
+        IReadOnlyList<FlexLine> lines, HtmlRenderBoxStyle style, double contentY) {
+        if (lines.Count != 1 || style.FlexDirection != "column") return Array.Empty<HtmlRenderAvoidBreakRange>();
+        IReadOnlyList<FlexItem> items = lines[0].Items;
+        HtmlRenderFlowBlock[] children = items.Select(item => item.Block!).ToArray();
+        var ranges = new List<HtmlRenderAvoidBreakRange>();
+        for (int index = 0; index < items.Count; index++) {
+            double start = contentY + items[index].MainOffset;
+            HtmlRenderFlowBlock child = children[index];
+            if (child.AvoidBreakInside) ranges.Add(new HtmlRenderAvoidBreakRange(start, start + child.Height));
+            ranges.AddRange(child.AvoidBreakRanges.Select(range => range.Translate(start)));
+            AppendKeepWithNextRange(children, index, start, ranges,
+                index > 0 ? contentY + items[index - 1].MainOffset : null);
+        }
+        return ranges;
+    }
+
+    // Margin truncation must observe the same direct and descendant forced
+    // boundaries as a block flow. Parallel/reversed columns retain their
+    // existing contract rather than borrowing a single flow's page changes.
+    private static IEnumerable<HtmlRenderForcedBreak> ResolveColumnFlexForcedBreaks(
+        IReadOnlyList<FlexLine> lines, HtmlRenderBoxStyle style, double contentY) {
+        if (lines.Count != 1 || style.FlexDirection != "column") yield break;
+        string? childPageName = lines[0].Items.FirstOrDefault()?.Block?.PageName;
+        foreach (FlexItem item in lines[0].Items) {
+            HtmlRenderFlowBlock child = item.Block!;
+            double start = contentY + item.MainOffset;
+            if (!string.Equals(childPageName, child.PageName, StringComparison.Ordinal)) {
+                yield return new HtmlRenderForcedBreak(start, HtmlPageBreakTarget.Page, child.PageName, changesPageName: true);
+            }
+            childPageName = child.PageName;
+            if (child.BreakBefore != HtmlPageBreakTarget.None)
+                yield return new HtmlRenderForcedBreak(start, child.BreakBefore);
+            foreach (HtmlRenderForcedBreak boundary in child.ForcedBreaks) yield return boundary.Translate(start);
+            if (child.BreakAfter != HtmlPageBreakTarget.None)
+                yield return new HtmlRenderForcedBreak(start + child.Height, child.BreakAfter);
+        }
+    }
+
     private bool TryRelayoutBlockForFlexPagination(
         HtmlRenderFlowBlock block,
         double blockOffset,

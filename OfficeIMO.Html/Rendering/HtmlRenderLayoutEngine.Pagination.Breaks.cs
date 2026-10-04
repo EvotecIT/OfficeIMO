@@ -2,6 +2,19 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private double SkipUnpaintedLeadingMarginAtPageStart(HtmlRenderFlowBlock block, double start) {
+        // Flex items do not collapse adjoining margins. A completed item's
+        // bottom margin can be immediately followed by the next item's top
+        // margin; truncate each unpainted interval without treating it as a
+        // content continuation or crossing retained paint/metadata.
+        while (start < block.Height - 0.0001D) {
+            double next = SkipOneUnpaintedLeadingMarginAtPageStart(block, start);
+            if (next <= start + 0.0001D) break;
+            start = next;
+        }
+        return start;
+    }
+
+    private double SkipOneUnpaintedLeadingMarginAtPageStart(HtmlRenderFlowBlock block, double start) {
         double discardableMargin = ResolvePageStartDiscardableMargin(block, start);
         if (discardableMargin <= 0.0001D) return start;
 

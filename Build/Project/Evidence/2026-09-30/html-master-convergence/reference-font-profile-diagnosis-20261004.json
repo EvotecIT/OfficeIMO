@@ -104,11 +104,57 @@
     },
     "interpretation": "The default routes have different print geometry. The observed horizontal offset matches the OfficeIMO default page margin; page counts and wraps alone cannot classify a renderer defect."
   },
-  "nextBoundedDeliverable": "Replay the same frozen MHTML with explicitly equivalent paper, viewport, margins, fonts and print-media settings in the normal OfficeIMO route and independent browser producer. Classify residual width, page-5 and footer differences while preserving all36 article blocks/resources/source order. Do not alter defaults or fit widths merely to match a page count.",
-  "retainedRawEvidence": "Ignore/MasterConvergenceQualification/reference-font-diagnosis-5a9de77f6/{captured-and-pdf-fonts.json,paragraph-line-bounds.json,observe_fonts.py}",
+  "nextBoundedDeliverable": "Independent heading top-margin fixture at an unforced page boundary, with forced-break, row/column, nested wrapper and border controls. Reproduce any failure before a bounded generic pagination fix; preserve paint/navigation/source order. Remaining footer and native criteria stay open.",
+  "retainedRawEvidence": "Ignore/MasterConvergenceQualification/reference-font-diagnosis-5a9de77f6/ (captured fonts, normal API replay, independent structure/character/link checks, classified gradient changes, all nine paired page rasters and contact sheets)",
   "unchangedOpenCriteria": [
     "Named appearance, resource/loss and manual-accessibility criteria",
     "All11 historical PDF intents",
     "Supported-platform timing/allocation/memory budgets and qualified long-lived integration"
-  ]
+  ],
+  "equivalentMarginReplay": {
+    "sourceHead": {
+      "OfficeIMO.Mhtml": "3.4.4+296a8170ee28e372f53d5197351b47ad1bfadd46",
+      "OfficeIMO.Html": "3.4.4+296a8170ee28e372f53d5197351b47ad1bfadd46",
+      "OfficeIMO.Html.Pdf": "3.4.4+296a8170ee28e372f53d5197351b47ad1bfadd46",
+      "OfficeIMO.Pdf": "3.4.4+296a8170ee28e372f53d5197351b47ad1bfadd46"
+    },
+    "pages": 9,
+    "sha256": "89bad8cb9a5c096150ad0837646cfd5a0b80f155ca0961f31ad1fbb133fb9f47",
+    "all36ArticleBlocksInSourceOrder": true,
+    "pdfMarginCssPixels": 0,
+    "reportHasLoss": true,
+    "browserPages": 9,
+    "scope": "Equivalent-margin diagnostic only; matched page counts do not qualify residual appearance or all11 intents",
+    "recordedUtc": "2026-10-04T22:34:24.888386+00:00",
+    "paper": "A4",
+    "viewportCssPixels": [
+      816,
+      900
+    ],
+    "profile": "PrintPaged / PortableDeterministic",
+    "route": "Normal source API; diagnostic zero-margin request, not the existing default-margin Tool route",
+    "contentObservations": {
+      "defaultPages": 10,
+      "zeroMarginPages": 9,
+      "fullRawTokenMultisetSame": false,
+      "fullNonWhitespaceCharacterMultisetSame": true,
+      "decodedImagePixelMultisetSame": false,
+      "uriTargetMultisetSame": true,
+      "rawTokensOnlyInDefault": {
+        "24-hour": 1,
+        "short-term": 1
+      },
+      "rawTokensOnlyInZeroMargin": {
+        "24-": 1,
+        "hour": 1,
+        "short-": 1,
+        "term": 1
+      },
+      "nonWhitespaceCharactersOnlyInDefault": {},
+      "nonWhitespaceCharactersOnlyInZeroMargin": {},
+      "scope": "Margin profile diagnostic. Raw token joins must be classified before full-content acceptance."
+    },
+    "changedRasterClassification": "Only two placements of an all-black translucent alpha gradient change decoded raster size (317x564 -> 365x649). All other decoded image pixel multiset entries are identical. These are generated CSS-gradient rasters, not changed source photos. Retained per-raster extrema and hashes distinguish this from resource omission.",
+    "allPageVisualInspection": "All nine 72dpi page pairs inspected on three contact sheets. Article columns and most line wraps align closely; page-5 heading top margin, next-page arrow placement, card-label boundary, footer background/typography and link underline differences remain. Matched page count is not visual acceptance."
+  }
 }

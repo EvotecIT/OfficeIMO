@@ -2,15 +2,16 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     /// <summary>
-    /// Keeps a block's final content with the next block's first substantive line.
-    /// If that line belongs to an unbreakable descendant, the keep range extends
+    /// Keeps a block's final content with the next block's first substantive content.
+    /// If that content belongs to an unbreakable descendant, the keep range extends
     /// through that descendant. Pagination may still split an oversized range.
     /// </summary>
     private void AppendKeepWithNextRange(
         IReadOnlyList<HtmlRenderFlowBlock> children,
         int childIndex,
         double childStart,
-        ICollection<HtmlRenderAvoidBreakRange> ranges) {
+        ICollection<HtmlRenderAvoidBreakRange> ranges,
+        double? previousFlowStart = null) {
         if (childIndex <= 0) return;
 
         HtmlRenderFlowBlock previous = children[childIndex - 1];
@@ -19,7 +20,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         double firstContentBreak = FirstKeptContentExtent(current);
         if (HasForcedBreakBeforeKeptContent(current, firstContentBreak)) return;
-        double previousStart = Math.Max(0D, childStart - previous.Height);
+        double previousStart = previousFlowStart ?? Math.Max(0D, childStart - previous.Height);
         double keepEnd = childStart + firstContentBreak;
         if (keepEnd > previousStart + 0.0001D)
             ranges.Add(new HtmlRenderAvoidBreakRange(previousStart, keepEnd));
@@ -48,8 +49,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             .DefaultIfEmpty(0D)
             .Min();
         if (firstContentBreak <= 0.0001D) {
+            // Images, vector drawings and fields have no logical characters.
+            // An entry before their padding is not their first content end.
+            IReadOnlyList<(double Top, double Bottom)> atomicContent = CollectAtomicFlexVisualRanges(current.Visuals);
+            double firstAtomicEnd = atomicContent.Count == 0 ? 0D : atomicContent[0].Bottom;
             firstContentBreak = current.BreakOffsets
-                .Where(offset => offset > 0.01D)
+                .Where(offset => offset > 0.01D && offset >= firstAtomicEnd - 0.0001D)
                 .DefaultIfEmpty(current.Height)
                 .Min();
         }

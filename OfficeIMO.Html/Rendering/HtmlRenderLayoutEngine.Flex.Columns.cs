@@ -181,14 +181,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             lineBreakGroups: lineBreakGroups,
             continuationGroups: continuationGroups,
             trailingGroups: trailingGroups,
-            inlineBreakProgress: ResolveColumnFlexGapProgress(lines, contentY, style.RowGap).Concat(
+            avoidBreakRanges: ResolveColumnFlexAvoidBreakRanges(lines, style, contentY),
+            inlineBreakProgress: ResolveColumnFlexBreakProgress(lines, style, contentY)
+                .Concat(ResolveColumnFlexGapProgress(lines, contentY, style.RowGap)).Concat(
                 lines.Count != 1 ? Array.Empty<HtmlInlineBreakProgress>()
                     : lines[0].Items.SelectMany(item => item.Block!.InlineBreakProgress
                         .Where(progress => progress.IsFlexGap)
                         .Select(progress => new HtmlInlineBreakProgress(contentY + item.MainOffset + progress.Offset,
                             progress.LogicalCharacters, progress.OwnerElement, progress.IsBlockEntry,
                             progress.PageStartDiscardableMargin, progress.IsBlockExit, progress.IsFlexGap)))),
-            pageName: style.PageName,
+            pageName: style.PageName ?? (lines.Count == 1 && style.FlexDirection == "column"
+                ? lines[0].Items.FirstOrDefault()?.Block?.PageName : null),
+            forcedBreaks: ResolveColumnFlexForcedBreaks(lines, style, contentY),
             runningStringAssignments: NormalizeRunningElementAssignmentOrder(
                 PlaceDirectRunningElementAssignments(
                         runningElementAssignments,
