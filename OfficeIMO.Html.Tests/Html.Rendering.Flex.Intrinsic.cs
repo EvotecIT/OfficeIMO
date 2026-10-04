@@ -1,5 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
+using OfficeIMO.Tests.Pdf;
 using OfficeIMO.TestAssets;
 using Xunit;
 
@@ -89,6 +90,55 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderShape next = FindFlexShape(rendered, "div#next");
         Assert.True(auto.Width < 100D, "the cyclic percentage must not consume the flex row");
         Assert.Equal(auto.X + auto.Width, next.X, 1);
+    }
+
+    [Theory]
+    [InlineData("block", "100%", "0", "0", 242.909D)]
+    [InlineData("inline-block", "100%", "0", "0", 242.909D)]
+    [InlineData("block", "300px", "0", "0", 300D)]
+    [InlineData("block", "100%", "280px", "0", 280D)]
+    [InlineData("block", "100%", "0", "200px", 242.909D)]
+    public void HtmlFlexRow_FixedWidthImageWithPercentageMaximumCanShrink(
+        string wrapperDisplay, string maximumWidth, string minimumWidth, string minimumHeight, double expectedSidebarWidth) {
+        string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(400, 200));
+        string html = "<style>body{margin:0}</style><div style='display:flex;width:700px'>"
+            + "<div id='prose' style='width:100%;margin-right:32px;background:#eeeeee'>Prose</div>"
+            + "<div id='sidebar' style='background:#ddeeff'><div style='width:100%;max-width:100%'>"
+            + "<figure style='margin:0;display:" + wrapperDisplay + "'><img src='data:image/png;base64," + image
+            + "' style='display:block;width:400px;max-width:" + maximumWidth + ";min-width:" + minimumWidth
+            + ";height:auto;min-height:" + minimumHeight + "'></figure></div></div></div>";
+
+        HtmlRenderDocument rendered = RenderFlex(html, 700D);
+        HtmlRenderShape prose = FindFlexShape(rendered, "div#prose");
+        HtmlRenderShape sidebar = FindFlexShape(rendered, "div#sidebar");
+        HtmlRenderImage renderedImage = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>());
+
+        Assert.Equal(expectedSidebarWidth, sidebar.Width, 1);
+        Assert.Equal(668D - expectedSidebarWidth, prose.Width, 1);
+        Assert.Equal(prose.X + prose.Width + 32D, sidebar.X, 1);
+        Assert.Equal(sidebar.Width, renderedImage.Width, 1);
+        Assert.Equal(minimumHeight == "200px" ? 200D : renderedImage.Width / 2D, renderedImage.Height, 1);
+        Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Prose");
+    }
+
+    [Theory]
+    [InlineData("width:400px;max-width:100%;min-width:50%", 242.909D)]
+    [InlineData("width:400px;max-width:calc(50% + 300px)", 400D)]
+    [InlineData("width:calc(50% + 300px);max-width:none", 421.455D)]
+    public void HtmlFlexRow_CyclicImageConstraintsUseIntrinsicReferenceForMinimum(string constraints, double expectedImageWidth) {
+        string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(400, 200));
+        string html = "<style>body{margin:0}</style><div style='display:flex;width:700px'>"
+            + "<div id='prose' style='width:100%;margin-right:32px;background:#eeeeee'>Prose</div>"
+            + "<div id='sidebar' style='background:#ddeeff'><figure style='margin:0'><img style='display:block;height:auto;"
+            + constraints + "' src='data:image/png;base64," + data + "'></figure></div></div>";
+
+        HtmlRenderDocument rendered = RenderFlex(html, 700D);
+        HtmlRenderShape sidebar = FindFlexShape(rendered, "div#sidebar");
+        HtmlRenderImage image = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>());
+        Assert.Equal(242.909D, sidebar.Width, 1);
+        Assert.Equal(expectedImageWidth, image.Width, 1);
+        Assert.Equal(sidebar.X, image.X, 1);
+        Assert.Equal(expectedImageWidth / 2D, image.Height, 1);
     }
 
     [Fact]

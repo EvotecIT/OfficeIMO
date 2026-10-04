@@ -612,8 +612,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     ResolveFormControlIntrinsicOuterWidth(child, childStyle, availableSize), childStyle));
             } else if (IsReplacedImageElement(child)) {
                 double width = ResolveIntrinsicReplacedImageBoxWidth(child, childStyle) + childStyle.MarginLeft + childStyle.MarginRight;
-                double minimumWidth = childStyle.ExplicitWidthUsesPercentage
-                    ? ResolveGridMeasuredContribution(childStyle, 0D)
+                // A cyclic percentage width or maximum can compress replaced content
+                // during minimum sizing; its definite constraints still apply.
+                double minimumWidth = childStyle.ExplicitWidthUsesPercentage || childStyle.MaxWidthUsesPercentage
+                    ? ResolveCompressibleReplacedMinimumWidth(childStyle)
                     : width;
                 result.Add(GridIntrinsicTextRun.Replaced(minimumWidth, width, childStyle));
             } else if (childStyle.Display == "inline-block") {
@@ -675,8 +677,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (childStyle.Display == "none" || childStyle.Position == "absolute" || childStyle.Position == "fixed") continue;
             double contribution;
             if (IsReplacedImageElement(child)) {
-                contribution = minimum && childStyle.ExplicitWidthUsesPercentage
-                    ? ResolveGridMeasuredContribution(childStyle, 0D)
+                contribution = minimum && (childStyle.ExplicitWidthUsesPercentage || childStyle.MaxWidthUsesPercentage)
+                    ? ResolveCompressibleReplacedMinimumWidth(childStyle)
                     : ResolveIntrinsicReplacedImageBoxWidth(child, childStyle) + childStyle.MarginLeft + childStyle.MarginRight;
             } else {
                 double descendant = ResolveDescendantReplacedGridContribution(child, childStyle, availableSize, depth + 1, minimum);
@@ -685,6 +687,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             maximum = Math.Max(maximum, contribution);
         }
         return maximum;
+    }
+
+    private static double ResolveCompressibleReplacedMinimumWidth(HtmlRenderBoxStyle style) {
+        if (style.MinWidthWithIndefiniteReference.HasValue) {
+            style = style.Clone();
+            style.MinWidth = style.MinWidthWithIndefiniteReference;
+        }
+        return ResolveGridMeasuredContribution(style, 0D);
     }
 
     private bool TryResolveDefiniteGridContribution(FlexItem item, double availableSize, out double contribution) {
