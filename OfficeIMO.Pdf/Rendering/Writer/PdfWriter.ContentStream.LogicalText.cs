@@ -31,8 +31,10 @@ internal sealed partial class ContentStreamBuilder {
         double lineE = _lineE, lineF = _lineF;
         for (int index = 0; index < glyphs.Count;) {
             PdfGlyphInfo single = glyphs[index];
+            int singleLogicalEnd = Math.Max(single.LogicalClusterStart + 1,
+                single.TextIndex + single.UnicodeText.Length);
             if (!single.HasPositioning &&
-                (index + 1 == glyphs.Count || glyphs[index + 1].LogicalClusterStart != single.LogicalClusterStart)) {
+                (index + 1 == glyphs.Count || glyphs[index + 1].LogicalClusterStart >= singleLogicalEnd)) {
                 // Keep the same isolated text object and ActualText boundary, but
                 // avoid allocating a list, builders and formatted strings per scalar.
                 _sb.Append("ET\nBT\n");
