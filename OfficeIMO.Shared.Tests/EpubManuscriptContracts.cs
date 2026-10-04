@@ -124,6 +124,19 @@ public sealed class EpubManuscriptContracts {
     }
 
     [Fact]
+    public void Import_EmptyHeadingsDoNotSplitUntilTextOrMediaIsPresent() {
+        string html = "<title>Chapters</title>" + string.Concat(Enumerable.Repeat("<h1></h1>", 1024)) +
+            "<p>Text</p><h1>Media</h1><img alt='Dot' src='" + ImageData + "'><h1>Final</h1><p>More</p>";
+        EpubManuscriptResult result = EpubManuscript.ImportHtml(HtmlConversionDocument.Parse(html));
+
+        result.Report.RequireNoLoss();
+        Assert.Equal(3, result.Publication.Spine.Count);
+        Assert.Equal(1024, result.Publication.GetContentXml("chapter-1").Descendants(Html + "h1").Count());
+        Assert.Single(result.Publication.GetContentXml("chapter-2").Descendants(Html + "img"));
+        Assert.Contains("More", result.Publication.GetContentXml("chapter-3").Descendants(Html + "p").Single().Value);
+    }
+
+    [Fact]
     public void Import_ParsesHtmlVoidsAndEntitiesIntoXmlWithoutLosingText() {
         var result = EpubManuscript.ImportHtml(HtmlConversionDocument.Parse("<title>Text</title><h1>Heading</h1><p>Zażółć&nbsp;&amp; <strong>bold</strong><br>next <ruby>漢<rt>kan</rt></ruby></p>"));
         result.Report.RequireNoLoss();

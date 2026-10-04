@@ -1,4 +1,5 @@
 using OfficeIMO.Html;
+using System.Threading;
 
 namespace OfficeIMO.Epub;
 
@@ -7,10 +8,11 @@ public static partial class EpubManuscript {
         internal string Title = string.Empty;
         internal string Path = string.Empty;
         internal XElement Body = new XElement(Xhtml + "body");
+        internal bool HasReadableContent;
     }
 
     private static List<Chapter> SplitChapters(XElement body, int headingLevel, string title,
-        List<OfficeConversionFidelityDiagnostic> diagnostics) {
+        List<OfficeConversionFidelityDiagnostic> diagnostics, CancellationToken token) {
         var chapters = new List<Chapter>();
         var ancestors = new List<XElement>();
         var targets = new List<XElement>();
@@ -19,22 +21,24 @@ public static partial class EpubManuscript {
         targets.Add(current.Body);
         foreach (XNode node in body.Nodes()) Append(node);
         foreach (Chapter chapter in chapters) {
+            token.ThrowIfCancellationRequested();
             foreach (XElement empty in chapter.Body.Descendants().Reverse().Where(element =>
                 !element.Nodes().Any() && new[] { "section", "article", "main", "div" }.Contains(element.Name.LocalName)).ToArray()) empty.Remove();
         }
-        chapters.RemoveAll(chapter => !HasContent(chapter.Body));
+        chapters.RemoveAll(chapter => !chapter.HasReadableContent);
         if (chapters.Count == 0) throw new InvalidDataException("The manuscript has no readable body content.");
         for (int index = 0; index < chapters.Count; index++) chapters[index].Path = "EPUB/text/chapter-" + (index + 1).ToString("D4") + ".xhtml";
         return chapters;
 
         void Append(XNode node) {
+            token.ThrowIfCancellationRequested();
             if (node is XElement element) {
                 int level = HeadingLevel(element);
                 bool canSplit = ancestors.All(parent => parent.Name.Namespace == Xhtml &&
                     new[] { "section", "article", "main", "div" }.Contains(parent.Name.LocalName));
                 if (headingLevel != 0 && level != 0 && level <= headingLevel && canSplit) {
                     string label = element.Value.Trim();
-                    if (HasContent(current.Body)) {
+                    if (current.HasReadableContent) {
                         current = new Chapter { Title = label.Length == 0 ? title : label, Body = new XElement(body.Name, body.Attributes()) };
                         chapters.Add(current);
                         targets.Clear(); targets.Add(current.Body);
@@ -46,15 +50,18 @@ public static partial class EpubManuscript {
                 }
                 var target = new XElement(element.Name, element.Attributes());
                 targets[targets.Count - 1].Add(target);
+                if (IsReadableMedia(element)) current.HasReadableContent = true;
                 ancestors.Add(element); targets.Add(target);
                 foreach (XNode child in element.Nodes()) Append(child);
                 ancestors.RemoveAt(ancestors.Count - 1); targets.RemoveAt(targets.Count - 1);
-            } else if (node is XText text) targets[targets.Count - 1].Add(new XText(text.Value));
+            } else if (node is XText text) {
+                targets[targets.Count - 1].Add(new XText(text.Value));
+                if (!string.IsNullOrWhiteSpace(text.Value)) current.HasReadableContent = true;
+            }
         }
     }
 
-    private static bool HasContent(XElement body) => !string.IsNullOrWhiteSpace(body.Value) ||
-        body.Descendants().Any(element => new[] { "img", "svg", "math", "audio", "video", "hr" }.Contains(element.Name.LocalName));
+    private static bool IsReadableMedia(XElement element) => element.Name.LocalName is "img" or "svg" or "math" or "audio" or "video" or "hr";
     private static int HeadingLevel(XElement element) => element.Name.Namespace == Xhtml &&
         element.Name.LocalName.Length == 2 && element.Name.LocalName[0] == 'h' && element.Name.LocalName[1] >= '1' && element.Name.LocalName[1] <= '6'
             ? element.Name.LocalName[1] - '0' : 0;
