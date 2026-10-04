@@ -78,12 +78,14 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
         string? structureElementKey = null,
         double? layoutHeight = null,
         string? alternativeText = null,
-        HtmlMathMlSource? mathMlSource = null)
+        HtmlMathMlSource? mathMlSource = null,
+        int? logicalOrder = null)
         : base(HtmlRenderVisualKind.SemanticGroup, x, y, width, height, paintOrder, null, source, layoutY, layoutHeight) {
         Role = role;
         AlternativeText = alternativeText;
         MathMlSource = mathMlSource;
         StructureElementKey = structureElementKey;
+        LogicalOrder = logicalOrder;
         ColumnSpan = columnSpan;
         RowSpan = rowSpan;
         HeaderScope = headerScope;
@@ -106,12 +108,14 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
         string? structureElementKey,
         double layoutHeight,
         string? alternativeText,
-        HtmlMathMlSource? mathMlSource)
+        HtmlMathMlSource? mathMlSource,
+        int? logicalOrder)
         : base(HtmlRenderVisualKind.SemanticGroup, x, y, width, height, paintOrder, null, source, layoutY, layoutHeight) {
         Role = role;
         AlternativeText = alternativeText;
         MathMlSource = mathMlSource;
         StructureElementKey = structureElementKey;
+        LogicalOrder = logicalOrder;
         ColumnSpan = columnSpan;
         RowSpan = rowSpan;
         HeaderScope = headerScope;
@@ -128,6 +132,9 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
     public HtmlMathMlSource? MathMlSource { get; }
 
     internal string? StructureElementKey { get; }
+
+    /// <summary>Sibling source order, independent of fragment arrival and CSS paint order.</summary>
+    internal int? LogicalOrder { get; }
 
     /// <summary>Table column span, or one for non-cell groups.</summary>
     public int ColumnSpan { get; }
@@ -148,14 +155,14 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
     public IReadOnlyList<HtmlRenderVisual> Visuals => _visuals;
 
     internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: false), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY + offsetY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource);
+        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: false), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY + offsetY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource, LogicalOrder);
 
     internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: true), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource);
+        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: true), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource, LogicalOrder);
 
     internal HtmlRenderVisual ProjectPaint(IEnumerable<HtmlRenderVisual> visuals, double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, visuals,
-            paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource);
+            paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource, LogicalOrder);
 
     private static ReadOnlyCollection<HtmlRenderVisual> OrderVisuals(IEnumerable<HtmlRenderVisual> visuals) {
         if (visuals == null) throw new ArgumentNullException(nameof(visuals));

@@ -376,6 +376,7 @@ internal static partial class PdfWriter {
         public int? AnnotationStructParentIndex { get; set; }
         public System.Collections.Generic.List<int>? AdditionalAnnotationStructParentIndexes { get; set; }
         public bool SpansPages { get; set; }
+        public int? LogicalOrder { get; set; }
         public int ObjectId { get; set; }
         public IReadOnlyList<PdfEmbeddedFile> AssociatedFiles { get; set; } = Array.Empty<PdfEmbeddedFile>();
         public IReadOnlyList<int> AssociatedFileIds { get; set; } = Array.Empty<int>();

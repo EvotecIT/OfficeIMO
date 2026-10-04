@@ -42,6 +42,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (style.Display == "contents") {
             FlattenedSemanticBoundary boundary = CreateFlattenedSemanticBoundary(element, style);
+            int boundarySourceIndex = sourceIndex;
             var flattenedItems = new List<FlexItem>();
             AddGeneratedFlexItem(element, HtmlPseudoElementKind.Before, containingWidth, style, ref sourceIndex, flattenedItems);
             foreach (INode child in element.ChildNodes) {
@@ -51,7 +52,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AddGeneratedFlexItem(element, HtmlPseudoElementKind.After, containingWidth, style, ref sourceIndex, flattenedItems);
             for (int index = 0; index < flattenedItems.Count; index++) {
                 FlexItem flattenedItem = flattenedItems[index];
-                flattenedItem.FlattenedSemanticPlacements.Add(new FlattenedSemanticPlacement(boundary, index == 0));
+                flattenedItem.FlattenedSemanticPlacements.Add(new FlattenedSemanticPlacement(boundary, index == 0, boundarySourceIndex));
                 items.Add(flattenedItem);
             }
             return true;
@@ -97,8 +98,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderFlowBlock block = item.Element != null
             ? LayoutElement(item.Element, containingWidth, item.Style, parentStyle, depth, pageBoundary: pageBoundary)
             : LayoutAnonymousFlexItem(item, containingWidth, parentStyle);
+        block = ApplyFlexItemSemantics(block, item);
         foreach (FlattenedSemanticPlacement placement in item.FlattenedSemanticPlacements) {
-            block = ApplyFlattenedSemanticBoundary(block, placement.Boundary, placement.FirstFragment);
+            block = ApplyFlattenedSemanticBoundary(block, placement.Boundary, placement.FirstFragment, placement.LogicalOrder);
         }
         return block;
     }

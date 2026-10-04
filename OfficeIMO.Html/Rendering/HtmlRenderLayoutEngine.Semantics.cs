@@ -31,19 +31,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderSemanticGroupRole role;
         if (style.SemanticArtifact) role = HtmlRenderSemanticGroupRole.Artifact;
         else if (style.SemanticGroupRoleOverride.HasValue) role = style.SemanticGroupRoleOverride.Value;
-        else if (!TryResolveSemanticGroupRole(element.TagName, out role)) return WrapEditableLayoutRegion(listBlock, element, style);
-        HtmlRenderFlowBlock semanticBlock = listBlock.WithVisuals(new[] {
-            new HtmlRenderSemanticGroup(
-                role,
-                0D,
-                0D,
-                Math.Max(0.01D, listBlock.Width),
-                Math.Max(0.01D, listBlock.Height),
-                listBlock.Visuals,
-                0,
-                HtmlRenderStyleResolver.DescribeSource(element),
-                structureElementKey: structureElementKey)
-        });
+        else if (!TryResolveSemanticGroupRole(element.TagName, out role)) {
+            // Each flex container supplies the parent scope for item source indices.
+            // Independent untagged rows must not interleave their logical children.
+            if (style.Display == "flex" || style.Display == "inline-flex") role = HtmlRenderSemanticGroupRole.Division;
+            else return WrapEditableLayoutRegion(listBlock, element, style);
+        }
+        HtmlRenderFlowBlock semanticBlock = WrapSemanticBlock(listBlock, role,
+            HtmlRenderStyleResolver.DescribeSource(element), structureElementKey);
         return WrapEditableLayoutRegion(semanticBlock, element, style);
     }
 
@@ -135,18 +130,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderSemanticGroupRole role = style.SemanticArtifact
             ? HtmlRenderSemanticGroupRole.Artifact
             : style.SemanticGroupRoleOverride!.Value;
-        HtmlRenderFlowBlock semanticBlock = block.WithVisuals(new[] {
-            new HtmlRenderSemanticGroup(
-                role,
-                0D,
-                0D,
-                Math.Max(0.01D, block.Width),
-                Math.Max(0.01D, block.Height),
-                block.Visuals,
-                0,
-                HtmlRenderStyleResolver.DescribeSource(element),
-                structureElementKey: structureElementKey)
-        });
+        HtmlRenderFlowBlock semanticBlock = WrapSemanticBlock(block, role,
+            HtmlRenderStyleResolver.DescribeSource(element), structureElementKey);
         return WrapEditableLayoutRegion(semanticBlock, element, style);
     }
 
@@ -256,7 +241,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderFlowBlock ApplyFlattenedSemanticBoundary(
         HtmlRenderFlowBlock block,
         FlattenedSemanticBoundary boundary,
-        bool firstFragment) {
+        bool firstFragment, int? logicalOrder = null) {
         double anchorTop = Math.Max(0D, block.CollapsibleMarginTop);
         if (firstFragment) block = AddTargetPageAnchor(block, boundary.Element, anchorTop);
         string anchorText = boundary.AnchorText.Length > 0
@@ -280,21 +265,30 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         HtmlRenderFlowBlock semanticBlock = boundary.Style.SemanticArtifact || boundary.Style.SemanticGroupRoleOverride.HasValue
             ? block
-            : ApplyListSemantics(block, boundary.Element, boundary.StructureElementKey);
+            : ApplyListSemantics(block, boundary.Element, boundary.StructureElementKey, logicalOrder);
         if (!boundary.Role.HasValue) return semanticBlock;
-        return semanticBlock.WithVisuals(new[] {
-            new HtmlRenderSemanticGroup(
-                boundary.Role.Value,
-                0D,
-                0D,
-                Math.Max(0.01D, semanticBlock.Width),
-                Math.Max(0.01D, semanticBlock.Height),
-                semanticBlock.Visuals,
-                0,
-                boundary.Source,
-                structureElementKey: boundary.StructureElementKey)
-        });
+        return WrapSemanticBlock(semanticBlock, boundary.Role.Value, boundary.Source, boundary.StructureElementKey, logicalOrder);
     }
+
+    /// <summary>Preserves a semantic ancestor on ordinary, repeated-header and repeated-footer fragments.</summary>
+    private static HtmlRenderFlowBlock WrapSemanticBlock(HtmlRenderFlowBlock block,
+        HtmlRenderSemanticGroupRole role, string? source, string? structureElementKey, int? logicalOrder = null) {
+        IReadOnlyList<HtmlRenderVisual> Wrap(IReadOnlyList<HtmlRenderVisual> visuals, double height) =>
+            new[] {
+                new HtmlRenderSemanticGroup(role, 0D, 0D,
+                    Math.Max(0.01D, block.Width), Math.Max(0.01D, height), visuals,
+                    0, source, structureElementKey: structureElementKey, logicalOrder: logicalOrder)
+            };
+        return WrapSemanticFragments(block, Wrap);
+    }
+
+    private static HtmlRenderFlowBlock WrapSemanticFragments(HtmlRenderFlowBlock block,
+        Func<IReadOnlyList<HtmlRenderVisual>, double, IReadOnlyList<HtmlRenderVisual>> wrap) =>
+        block.WithVisuals(wrap(block.Visuals, block.Height),
+            continuationGroups: block.ContinuationGroups.Select(group => new HtmlRenderContinuationGroup(
+                group.StartsAfter, group.EndsAt, group.Height, wrap(group.Visuals, group.Height))),
+            trailingGroups: block.TrailingGroups.Select(group => new HtmlRenderTrailingGroup(
+                group.StartsAt, group.ContentEndsAt, group.SourceEndsAt, group.Height, wrap(group.Visuals, group.Height))));
 
     private sealed class FlattenedSemanticBoundary {
         internal FlattenedSemanticBoundary(
@@ -323,13 +317,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class FlattenedSemanticPlacement {
-        internal FlattenedSemanticPlacement(FlattenedSemanticBoundary boundary, bool firstFragment) {
+        internal FlattenedSemanticPlacement(FlattenedSemanticBoundary boundary, bool firstFragment, int logicalOrder) {
             Boundary = boundary;
             FirstFragment = firstFragment;
+            LogicalOrder = logicalOrder;
         }
 
         internal FlattenedSemanticBoundary Boundary { get; }
         internal bool FirstFragment { get; }
+        internal int LogicalOrder { get; }
     }
 
     private string ResolveBookmarkAnchorText(IElement element, HtmlRenderBoxStyle style) {
