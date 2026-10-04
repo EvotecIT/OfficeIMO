@@ -29,7 +29,7 @@ public sealed partial class IWorkBoundaryTests {
             saved.Position = 0;
             using var xml = DocumentFormat.OpenXml.Packaging.PresentationDocument.Open(saved, false);
             Assert.IsType<DocumentFormat.OpenXml.Drawing.NoFill>(Assert.Single(xml.PresentationPart!.SlideParts.Single()
-                .Slide.CommonSlideData!.Background!.BackgroundProperties!.ChildElements));
+                .Slide!.CommonSlideData!.Background!.BackgroundProperties!.ChildElements));
             Assert.Equal(PowerPointSlideBackgroundKind.None, reopened.Slides[0].GetBackground().Kind);
         }
         package.Position = 0;
@@ -54,7 +54,7 @@ public sealed partial class IWorkBoundaryTests {
             _ => new byte[] { 0x80 }
         };
         using var package = KeynoteWithBuildDeclarations(ReferenceField(1, 10), SlideBackgroundStyle(10, fill));
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.Slides[0].HasBackgroundFill);
         Assert.Contains(result.Report.SourceDeclarationIssues, issue => issue.FieldPath == "11/1");
@@ -80,7 +80,7 @@ public sealed partial class IWorkBoundaryTests {
             _ => new[] { SlideBackgroundStyle(10, FillColor(1, 0, 0)) }
         };
         using var package = KeynoteWithBuildDeclarations(reference, records);
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.Slides[0].HasBackgroundFill);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_KEYNOTE_BACKGROUND_UNSUPPORTED");
@@ -91,7 +91,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = KeynoteWithBuildDeclarations(ReferenceField(1, 10),
             SlideBackgroundStyle(10, null, 11), SlideBackgroundStyle(11, FillColor(1, 0, 0)));
         using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package,
-            readOptions: new IWorkReadOptions { MaximumTextStyleInheritanceDepth = 1 });
+            readOptions: new IWorkReadOptions { MaximumTextStyleInheritanceDepth = 1 }, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.Slides[0].HasBackgroundFill);
     }
@@ -103,7 +103,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = KeynoteWithBuildDeclarations(Message(ReferenceField(17, 12),
             hasStyle ? ReferenceField(1, 10) : Message()), SlideBackgroundStyle(10, null),
             ArchiveRecord(12, 5, ReferenceField(1, 11)), SlideBackgroundStyle(11, FillColor(1, 0, 0)));
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.SourceDeclarationIssues, issue => issue.FieldPath == "17");
     }

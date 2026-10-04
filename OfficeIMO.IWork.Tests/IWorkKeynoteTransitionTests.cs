@@ -13,7 +13,7 @@ public sealed partial class IWorkBoundaryTests {
             VarintField(11, 123), VarintField(16, 0));
         using MemoryStream package = KeynoteWithBuildDeclarations(
             BytesField(4, Message(BytesField(2, Message(BytesField(8, animation))))));
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.Equal(fallback, result.IsVisualFallback);
         Assert.Equal(fallback, result.Report.Diagnostics.Any(d => d.Code == "IWORK_KEYNOTE_TRANSITION_UNSUPPORTED"));
         if (fallback) {
@@ -52,7 +52,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_malformed_transition_retains_nested_path() {
         using MemoryStream package = KeynoteWithBuildDeclarations(
             BytesField(4, Message(BytesField(2, Message(BytesField(8, new byte[] { 0x80 }))))));
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         IWorkSourceDeclarationIssue issue = Assert.Single(result.Report.SourceDeclarationIssues);
         Assert.Equal("4/2/8", issue.FieldPath);

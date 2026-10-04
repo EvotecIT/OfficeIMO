@@ -64,7 +64,7 @@ public sealed partial class IWorkBoundaryTests {
         var options = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
-            using var automatic = source.ToWordDocumentResult();
+            using var automatic = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
             using var partial = source.ToWordDocumentResult(options);
             Assert.False(partial.IsVisualFallback);
@@ -74,7 +74,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal("42", reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
             Assert.Equal(unreadableRange ? 4 : 3, reopened.Tables[0].Rows[3].Cells.Count);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var automatic = source.ToExcelDocumentResult();
+            using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
             using var partial = source.ToExcelDocumentResult(options);
             Assert.False(partial.IsVisualFallback);
@@ -85,7 +85,7 @@ public sealed partial class IWorkBoundaryTests {
             if (unreadableRange) Assert.Empty(reopened.Sheets[0].GetMergedRanges());
             else Assert.Equal("A4:B4", Assert.Single(reopened.Sheets[0].GetMergedRanges()).A1Range);
         } else {
-            using var automatic = source.ToPowerPointPresentationResult();
+            using var automatic = source.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
             using var partial = source.ToPowerPointPresentationResult(options);
             Assert.False(partial.IsVisualFallback);

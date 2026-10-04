@@ -11,7 +11,7 @@ public sealed partial class IWorkBoundaryTests {
             rows: 2, columns: 2, defaultRowHeight: 20d, defaultColumnWidth: 40d,
             includePreview: true, omitTableGeometry: true);
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -24,7 +24,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePackageWithMalformedImageCatalog(
             IWorkDocumentKind.Pages);
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -36,7 +36,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePackageWithMalformedImageCatalog(
             IWorkDocumentKind.Keynote);
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>

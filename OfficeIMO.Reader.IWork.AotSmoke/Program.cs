@@ -30,6 +30,15 @@ foreach (var (name, kind, sha256) in fixtures) {
         && fromPath.BuildVersions.Count > 0, name + " lost source records or producer metadata.");
     Require(ProjectionSignature(fromPath) == ProjectionSignature(fromStream), name + " source path/stream mismatch.");
     VerifySource(fromPath, name);
+    using var cancellation = new CancellationTokenSource();
+    IWorkSourceDocument independent = fromPath.WithCancellation(cancellation.Token);
+    string originalSignature = ProjectionSignature(fromPath);
+    Require(ProjectionSignature(independent) == originalSignature, name + " replacement-token projection changed.");
+    cancellation.Cancel();
+    Reject<OperationCanceledException>(() => ProjectionSignature(independent), name + " replacement-token cancellation");
+    Require(ProjectionSignature(fromPath) == originalSignature
+        && ProjectionSignature(independent.WithCancellation(CancellationToken.None)) == originalSignature,
+        name + " cancelled view affected independent source reuse.");
 
     OfficeDocumentReadResult result = reader.ReadDocument(path);
     using var readerStream = new MemoryStream(bytes, writable: false);
@@ -82,10 +91,9 @@ static void VerifySource(IWorkSourceDocument source, string name) {
         Require(pages.Paragraphs[0] == "hello pages"
             && pages.Paragraphs.Any(text => text.Contains("second paragraph with some words", StringComparison.Ordinal)),
             "Pages source text changed.");
-        Require(pages.HasRecoverableContent && !pages.HasEditableContent,
-            "Pages partial-reconstruction classification changed.");
-        Reject<InvalidOperationException>(() => pages.CreateConversionReport(IWorkProjectionKind.EditableReconstruction),
-            "Pages complete-reconstruction report for partial source");
+        Require(pages.HasRecoverableContent && pages.HasEditableContent,
+            "Qualified Pages complete-reconstruction classification changed.");
+        pages.CreateConversionReport(IWorkProjectionKind.EditableReconstruction).RequireCompleteEditableReconstruction();
     } else if (source.Kind == IWorkDocumentKind.Keynote) {
         IWorkKeynoteProjection keynote = source.ReadKeynote();
         Require(keynote.Slides.Count == 2 && keynote.Slides[0].Title == "hello keynote"
@@ -97,6 +105,7 @@ static void VerifySource(IWorkSourceDocument source, string name) {
         IWorkNumbersProjection numbers = source.ReadNumbers();
         IWorkTable table = numbers.Sheets[0].Tables[0];
         if (name == "simple.numbers") {
+            Require(numbers.HasEditableContent, "Qualified Numbers complete-reconstruction classification changed.");
             Require(numbers.Sheets.Count == 1 && numbers.Sheets[0].Tables.Count == 1
                 && table.RowCount == 3 && table.ColumnCount == 3
                 && table.GetCell(1, 1)!.Value is string first && first == "a"

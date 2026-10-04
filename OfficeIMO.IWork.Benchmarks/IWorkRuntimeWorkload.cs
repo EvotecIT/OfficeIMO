@@ -49,7 +49,7 @@ public sealed partial class IWorkRuntimeWorkload {
         }
         if (operation != "ConvertSave") throw new ArgumentException("Unknown iWork workload operation.", nameof(operation));
         using var saved = new MemoryStream();
-        var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = _native };
+        var policy = new IWorkConversionOptions();
         if (_kind == IWorkDocumentKind.Pages) {
             using var result = source.ToWordDocumentResult(policy);
             ValidateConversionPolicy(result.Report); result.Value.Save(saved);
@@ -66,7 +66,7 @@ public sealed partial class IWorkRuntimeWorkload {
     private void ValidateConversionPolicy(IWorkConversionReport report) {
         if (report.ProjectionKind != IWorkProjectionKind.EditableReconstruction)
             throw new InvalidDataException("Runtime workload requires editable output.");
-        if (!_native) report.RequireCompleteEditableReconstruction();
+        report.RequireCompleteEditableReconstruction();
     }
 
     /// <summary>Releases materialized results after validation; retains input and verified-unit metadata.</summary>

@@ -1,0 +1,340 @@
+{
+  "source": "nim-iwork/simple.key",
+  "sourceSha256": "ba95755df82ceb0ca834e1e03e2777c34fad906320d8336b4f3fefc6b48607eb",
+  "provider": "numbers-parser",
+  "providerVersion": "4.19.0",
+  "placeholderSchema": {
+    "revision": "be4828260466c9c022ec12f9dc9dbfeb15ab1dea",
+    "url": "https://github.com/orcastor/iwork-converter/blob/be4828260466c9c022ec12f9dc9dbfeb15ab1dea/proto/KN/KNArchives.pb.go",
+    "fieldPath": "PlaceholderArchive.1 -> ShapeInfoArchive.1 -> ShapeArchive.1 -> DrawableArchive.1"
+  },
+  "selectedFrames": [
+    {
+      "slide": 1221831,
+      "role": 5,
+      "placeholder": 1221857,
+      "geometry": {
+        "position": {
+          "x": 55.0,
+          "y": 146.0
+        },
+        "size": {
+          "width": 914.09894,
+          "height": 260.0
+        },
+        "flags": 3,
+        "angle": 0.0
+      },
+      "styleChain": [
+        {
+          "identifier": 1221398,
+          "properties": {
+            "shrinkToFit": true,
+            "verticalAlignment": "kFrameAlignBottom"
+          }
+        },
+        {
+          "identifier": 1220782,
+          "properties": {
+            "shrinkToFit": false,
+            "verticalAlignment": "kFrameAlignMiddle",
+            "columns": {
+              "equalColumns": {
+                "count": 1
+              }
+            },
+            "padding": {
+              "left": 4.0,
+              "top": 4.0,
+              "right": 4.0,
+              "bottom": 4.0
+            },
+            "defaultTextPresetIndex": 0,
+            "paragraphStyle": {
+              "identifier": "1220743"
+            },
+            "verticalText40": false
+          }
+        }
+      ]
+    },
+    {
+      "slide": 1221831,
+      "role": 6,
+      "placeholder": 1221866,
+      "geometry": {
+        "position": {
+          "x": 55.0,
+          "y": 402.0
+        },
+        "size": {
+          "width": 914.0,
+          "height": 114.67706
+        },
+        "flags": 3,
+        "angle": 0.0
+      },
+      "styleChain": [
+        {
+          "identifier": 1221403,
+          "properties": {
+            "shrinkToFit": true,
+            "verticalAlignment": "kFrameAlignTop"
+          }
+        },
+        {
+          "identifier": 1220782,
+          "properties": {
+            "shrinkToFit": false,
+            "verticalAlignment": "kFrameAlignMiddle",
+            "columns": {
+              "equalColumns": {
+                "count": 1
+              }
+            },
+            "padding": {
+              "left": 4.0,
+              "top": 4.0,
+              "right": 4.0,
+              "bottom": 4.0
+            },
+            "defaultTextPresetIndex": 0,
+            "paragraphStyle": {
+              "identifier": "1220743"
+            },
+            "verticalText40": false
+          }
+        }
+      ]
+    },
+    {
+      "slide": 1225067,
+      "role": 5,
+      "placeholder": 1225057,
+      "geometry": {
+        "position": {
+          "x": 55.0,
+          "y": 146.0
+        },
+        "size": {
+          "width": 914.09894,
+          "height": 260.0
+        },
+        "flags": 3,
+        "angle": 0.0
+      },
+      "styleChain": [
+        {
+          "identifier": 1221398,
+          "properties": {
+            "shrinkToFit": true,
+            "verticalAlignment": "kFrameAlignBottom"
+          }
+        },
+        {
+          "identifier": 1220782,
+          "properties": {
+            "shrinkToFit": false,
+            "verticalAlignment": "kFrameAlignMiddle",
+            "columns": {
+              "equalColumns": {
+                "count": 1
+              }
+            },
+            "padding": {
+              "left": 4.0,
+              "top": 4.0,
+              "right": 4.0,
+              "bottom": 4.0
+            },
+            "defaultTextPresetIndex": 0,
+            "paragraphStyle": {
+              "identifier": "1220743"
+            },
+            "verticalText40": false
+          }
+        }
+      ]
+    },
+    {
+      "slide": 1225067,
+      "role": 6,
+      "placeholder": 1225076,
+      "geometry": {
+        "position": {
+          "x": 55.0,
+          "y": 233.0
+        },
+        "size": {
+          "width": 435.0,
+          "height": 480.0
+        },
+        "flags": 3,
+        "angle": 0.0
+      },
+      "styleChain": [
+        {
+          "identifier": 1221403,
+          "properties": {
+            "shrinkToFit": true,
+            "verticalAlignment": "kFrameAlignTop"
+          }
+        },
+        {
+          "identifier": 1220782,
+          "properties": {
+            "shrinkToFit": false,
+            "verticalAlignment": "kFrameAlignMiddle",
+            "columns": {
+              "equalColumns": {
+                "count": 1
+              }
+            },
+            "padding": {
+              "left": 4.0,
+              "top": 4.0,
+              "right": 4.0,
+              "bottom": 4.0
+            },
+            "defaultTextPresetIndex": 0,
+            "paragraphStyle": {
+              "identifier": "1220743"
+            },
+            "verticalText40": false
+          }
+        }
+      ]
+    }
+  ],
+  "selectedList": {
+    "identifier": 1220734,
+    "properties": {
+      "super": {
+        "name": "Bullet",
+        "styleIdentifier": "text-1-liststyle-Bullet",
+        "stylesheet": {
+          "identifier": "1222069"
+        }
+      },
+      "overrideCount": 7,
+      "labelTypes": [
+        "kString",
+        "kString",
+        "kString",
+        "kString",
+        "kString",
+        "kString",
+        "kString",
+        "kString",
+        "kString"
+      ],
+      "textIndents": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "indents": [
+        0.0,
+        30.0,
+        60.0,
+        90.0,
+        120.0,
+        150.0,
+        180.0,
+        210.0,
+        240.0
+      ],
+      "geometries": [
+        {
+          "scale": 1.23,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.23,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.23,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.23,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.23,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.23,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.23,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.23,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        },
+        {
+          "scale": 1.23,
+          "baselineOffset": 0.0,
+          "scaleWithText": true
+        }
+      ],
+      "strings": [
+        "\u2022",
+        "\u2022",
+        "\u2022",
+        "\u2022",
+        "\u2022",
+        "\u2022",
+        "\u2022",
+        "\u2022",
+        "\u2022"
+      ],
+      "fontColorNull": true,
+      "fontNameNull": true
+    }
+  },
+  "limits": "Pinned selected frames and character-list declarations only. Apple export/render evidence is recorded separately.",
+  "wrappedProbes": {
+    "text": "first bullet wraps across several lines and remains inside this fixed text frame",
+    "inputs": [
+      {
+        "path": "keynote-fixed-frame-wrapped-keep.key",
+        "sha256": "608a83682fbc2b0bb53700a686c6d89c0f8114e308cebe657d0c6c5ab654c49d",
+        "keepLinesTogether": true,
+        "changedRecordIdentifiers": [
+          1220740,
+          1221867
+        ]
+      },
+      {
+        "path": "keynote-fixed-frame-wrapped-no-keep.key",
+        "sha256": "867d0d25046a507220a8ca9ed8e254ed49a9b13e998e0556ef2e8e8c65b5b4df",
+        "keepLinesTogether": false,
+        "changedRecordIdentifiers": [
+          1220740,
+          1221867
+        ]
+      }
+    ],
+    "provenance": "Test-only mutations of the pinned licensed native fixture; no independent-producer claim."
+  }
+}

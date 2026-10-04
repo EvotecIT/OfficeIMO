@@ -18,7 +18,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -34,7 +34,7 @@ public sealed partial class IWorkBoundaryTests {
             includeBody: true, textBox: null, includePreview: true,
             documentLayoutFields: layout);
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -48,7 +48,7 @@ public sealed partial class IWorkBoundaryTests {
                 unknownCellValueFlag: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         IWorkTableCell cell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);
 
@@ -63,7 +63,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesDrawableOccurrencePackage(
             duplicateWithinField: true, floating: false);
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -75,7 +75,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesDrawableOccurrencePackage(
             duplicateWithinField: true, floating: true);
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,

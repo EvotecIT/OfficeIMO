@@ -6,12 +6,12 @@ public static partial class PowerPointIWorkConverter {
     /// <summary>Opens and converts a Keynote file into the normal editable PowerPoint model.</summary>
     public static PowerPointPresentation ConvertKeynoteToPowerPoint(string path,
         IWorkReadOptions? readOptions = null, IWorkConversionOptions? conversionOptions = null) =>
-        ConvertKeynoteToPowerPointResult(path, readOptions, conversionOptions).Value;
+        ConvertKeynoteToPowerPointResult(path, readOptions, conversionOptions).RequireCompleteEditableReconstruction();
 
     /// <summary>Opens and converts a Keynote stream into the normal editable PowerPoint model.</summary>
     public static PowerPointPresentation ConvertKeynoteToPowerPoint(Stream stream,
         IWorkReadOptions? readOptions = null, IWorkConversionOptions? conversionOptions = null) =>
-        ConvertKeynoteToPowerPointResult(stream, readOptions, conversionOptions).Value;
+        ConvertKeynoteToPowerPointResult(stream, readOptions, conversionOptions).RequireCompleteEditableReconstruction();
 
     /// <summary>Opens and converts a Keynote file, returning the presentation with source evidence.</summary>
     public static KeynoteToPowerPointResult ConvertKeynoteToPowerPointResult(string path,
@@ -32,7 +32,7 @@ public static partial class PowerPointIWorkConverter {
     /// <summary>Converts an opened Keynote source into the normal editable PowerPoint model.</summary>
     public static PowerPointPresentation ToPowerPointPresentation(this IWorkSourceDocument source,
         IWorkConversionOptions? options = null) =>
-        ToPowerPointPresentationResult(source, options).Value;
+        ToPowerPointPresentationResult(source, options).RequireCompleteEditableReconstruction();
 
     /// <summary>Converts an opened Keynote source and returns the presentation with its projection and loss report.</summary>
     public static KeynoteToPowerPointResult ToPowerPointPresentationResult(

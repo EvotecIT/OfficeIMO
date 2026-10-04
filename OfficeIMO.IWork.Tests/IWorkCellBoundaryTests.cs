@@ -57,20 +57,20 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream();
         const string marker = "Truncated cell value field.";
         if (kind == IWorkDocumentKind.Pages) {
-            using var automatic = source.ToWordDocumentResult(); Assert.True(automatic.IsVisualFallback);
+            using var automatic = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
             using var partial = source.ToWordDocumentResult(options); partial.Value.Save(saved); saved.Position = 0;
             using var reopened = WordDocument.Load(saved);
             Assert.Equal(marker, reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
             Assert.Empty(reopened.ValidateDocument());
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var automatic = source.ToExcelDocumentResult(); Assert.True(automatic.IsVisualFallback);
+            using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
             using var partial = source.ToExcelDocumentResult(options); partial.Value.Save(saved); saved.Position = 0;
             using var reopened = ExcelDocument.Load(saved);
             Assert.Null(reopened.Sheets[0].GetFormulaText(1, 1));
             Assert.Equal(marker, reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
             Assert.Empty(reopened.ValidateOpenXml());
         } else {
-            using var automatic = source.ToPowerPointPresentationResult(); Assert.True(automatic.IsVisualFallback);
+            using var automatic = source.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
             using var partial = source.ToPowerPointPresentationResult(options); partial.Value.Save(saved); saved.Position = 0;
             using var reopened = PowerPointPresentation.Load(saved);
             Assert.Equal(marker, Assert.Single(reopened.Slides[0].Tables).GetCell(0, 0).Text);
