@@ -7,7 +7,8 @@
     "adoptedUnixOwner": "ed7fcf373ce5ad9fac6fcdbced75be093362f1c3",
     "screenBodyBackground": "648391a095e231427e54aaf7b9c9a044f97ebf20",
     "stylesheetDisplayRetention": "d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
-    "screenBackgroundFinalReplay": "d589345b3e3a4d1e93b66aa7d263e7a55003e9e8"
+    "screenBackgroundFinalReplay": "d589345b3e3a4d1e93b66aa7d263e7a55003e9e8",
+    "flexFragmentGapReplay": "18a214d10b6ead53027b69c00567f8fd092f4b35"
   },
   "cleanSourceRequired": true,
   "ownership": "HtmlConversionDocument and HtmlRenderRequest/Result with MHTML and target adapters; retained AngleSharp/Css/Js/Jint boundaries. No new runtime dependency.",
@@ -744,7 +745,7 @@
     "pdfAllPageContactSheets": "Prior six-profile inspection identified planetary snapshot contrast and screen-media page3 failures. Final d589345b3 snapshot contacts confirm the contrast correction; planetary screen-media page3 remains a 56 CSS-pixel body-background-only fragment before an oversized figure. Chesapeake snapshot is byte-identical and retains its known footer/fixed-control differences."
   },
   "remaining": [
-    "Independently qualify screen-media background-only/oversized-figure fragmentation and the remaining named H10 profile appearance failures.",
+    "Close the planetary nested margin/oversized-figure background-only page and remaining named H10 profile appearance failures; preserve the separately qualified flex-gap contract.",
     "Complete table widths, article/photo order, slide contrast and target-specific native application acceptance.",
     "Complete remaining corpus/intent/workbench/browser surfaces and operation-level loss/resource checks.",
     "Resolve all-platform static timing and remaining H10 platform budgets without changing ceilings; current source3a28 run37160774821 fails timing.",
@@ -1074,8 +1075,366 @@
         "heightCssPixels": 1749.7458897637796
       },
       "status": "Observed pagination failure remains open; background-only prefix precedes an oversized figure.",
-      "nextDeliverable": "Create an independent oversized-figure/margin print fixture and prove legal fragmentation before changing pagination."
+      "nextDeliverable": "Trace the remaining nested parent/figure-margin prefix using the independent fixtures. The plain block-margin control does not fail; row/column gap fixes do not close planetary page3.",
+      "recheckedAtSource": "18a214d10b6ead53027b69c00567f8fd092f4b35",
+      "page3PixelIdenticalToBaseline72dpi": true
     },
     "qualificationLimit": "Two frozen sources and three explicit PDF profiles; this does not qualify all eleven historical intents, manual accessibility, native whole-page appearance or current platform timing."
+  },
+  "flexFragmentGapQualification20261004": {
+    "sourceCommit": "18a214d10b6ead53027b69c00567f8fd092f4b35",
+    "baselineSource": "5840c236c1c8e828b0083bff67d6cc9749072122",
+    "cleanSourceReplay": true,
+    "owner": "OfficeIMO.Html paged layout; no host workaround, public API or dependency addition",
+    "contract": "An authored flex gap can be discarded at a page start only without content, paint, forced breaks, running strings or navigation metadata. Gap metadata cannot resume completed content.",
+    "independentFixtures": {
+      "predeclared": {
+        "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/predeclared.json",
+        "sha256": "fcc7bdd6fb9faeff9e7e02b976cb6f834d55db8199f5cac16babb133bff0654b"
+      },
+      "browserOwner": "test-only HtmlTinkerX3.0.3",
+      "browser": "Chromium151",
+      "pageCssPixels": [
+        400,
+        400
+      ],
+      "rowAndColumnBefore": {
+        "pages": 6,
+        "backgroundOnlyPage": 3
+      },
+      "rowAndColumnBrowserReference": {
+        "pages": 5,
+        "imagePages": [
+          3,
+          4,
+          5
+        ]
+      },
+      "final": {
+        "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/final-fixture-observations-18a214d10.json",
+        "sha256": "f08b7cc3eb102916e00adda7d3d41503c3350c824d0e648ba09c0acb962763d5"
+      },
+      "visuals": [
+        {
+          "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/final-row-18a214d10-contact.png",
+          "sha256": "5e797912a0251ee0f0084ba9c8eb7c7dc2125285ab757a0971fb468f9a2a2a24"
+        },
+        {
+          "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/final-column-18a214d10-contact.png",
+          "sha256": "b26b04d9ef793d46933d39cf80ffd1f031cc5f913e857200b4d9e0879a9fff7c"
+        }
+      ],
+      "variablePageGeometryLimit": "Changing page geometry may retain the prior layout with PagePseudoGeometryPending; exact-once content and painted gaps are protected. This does not implement column continuation reflow.",
+      "browserReferences": [
+        {
+          "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/chromium-wrapped.pdf",
+          "sha256": "a42820806ab80358f90f871c9e609d2e0b71e2971d2c72e090c0aa93b125427c"
+        },
+        {
+          "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/chromium-column.pdf",
+          "sha256": "a8bf97b3f19751d26e5a87e4452fe062a80487c35cf7a4b7449481f8d1d7a8bb"
+        }
+      ],
+      "sourceFixtures": [
+        {
+          "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/wrapped-row.html",
+          "sha256": "4c5ec6c0ae3cabd747bdde5a2417f8098c1fa8fe49a00ef6d9885095c021da52"
+        },
+        {
+          "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/column-flex.html",
+          "sha256": "45c402b14d5cfcfd6f7f651af7360d61a9a7d03ba4071f193992239886472af0"
+        },
+        {
+          "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/fixture-embedded.html",
+          "sha256": "372c1227fbe304d00edcc0c5249281a85e456ffa05c917b747bc993b3b912fa8"
+        }
+      ]
+    },
+    "validation": {
+      "focusedCases": 10,
+      "frameworkSuites": {
+        "net8": {
+          "passed": 4242,
+          "failed": 0,
+          "skipped": 0,
+          "h4AdvancedHeldOutPassed": 8,
+          "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/tests/full-html-final-net8.trx",
+          "sha256": "25131e490c412e339e830fdc3c0ec32e237004fe35f09fbf207c3a9253692ea3"
+        },
+        "net10": {
+          "passed": 4242,
+          "failed": 0,
+          "skipped": 0,
+          "h4AdvancedHeldOutPassed": 8,
+          "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/tests/full-html-final-net10.trx",
+          "sha256": "131404d3cbe63240250e845a2cefaf7e1b220aec3715c24fd637fa6b7ba9ff13"
+        }
+      },
+      "standardBuild": {
+        "target": "netstandard2.0",
+        "warnings": 0,
+        "errors": 0
+      },
+      "normalCleanSourceConsumerBuilds": [
+        "ApiProbe",
+        "OfficeIMO.Tool",
+        "fixture OfficeIMO.Html/Mhtml.Pdf probe"
+      ],
+      "platformTimingRerun": false,
+      "frameworkSuiteBoundary": "Stable remediation source bytes before source commit18a214d10; no source changes after those suites. Normal clean-head owner builds and API/Tool replay were then executed at18a214d10. A new commit identity alone did not trigger duplicate suites."
+    },
+    "review": {
+      "reason": "Shared paged geometry and paint/navigation preservation",
+      "task": "flex_fragment_gap_review",
+      "boundary": "candidate-reviewed",
+      "fullReadOnlyPass": 1,
+      "targetedConfirmation": 1,
+      "initialTrackedDiffGitHash": "ee0b73e4aa0e702b107d27d8dbfb30875141b0e2",
+      "confirmedTrackedDiffGitHash": "c90967b79b940b84cf54f53c27da31df00c1d874",
+      "confirmedTestBlob": "87062cfe1b077e164ce53c04fd3aab255a6055e3",
+      "finding": "Candidate-introduced gap/resume conflation duplicated all38 leading labels when page width changed; primary also reproduced row border loss.",
+      "remediation": "Ownerless gap metadata, separate discard eligibility and explicit exclusion from continuation selection. Ten focused regressions pass; confirmation found no remaining actionable issue."
+    },
+    "routes": [
+      {
+        "case": "planets",
+        "profile": "print-paged",
+        "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+        "sourceCommit": "18a214d10b6ead53027b69c00567f8fd092f4b35",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35"
+        },
+        "pdfBytesEqual": true,
+        "independentRawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "pages": 19,
+        "pdfSha256": "4cf795920bb01fac72bc051eb6c05c7738ad01adfdb4db2c74126ef947dd2098",
+        "imageOccurrences": 16,
+        "linkAnnotations": 72,
+        "reportUnchanged": true,
+        "hasLoss": true
+      },
+      {
+        "case": "planets",
+        "profile": "screen-media-paged",
+        "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+        "sourceCommit": "18a214d10b6ead53027b69c00567f8fd092f4b35",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35"
+        },
+        "pdfBytesEqual": true,
+        "independentRawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": false,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "pages": 22,
+        "pdfSha256": "d1986d4f31d3fadf1efce7de84c20866e829506aec7b82caa871ed40f102be43",
+        "imageOccurrences": 18,
+        "linkAnnotations": 73,
+        "reportUnchanged": true,
+        "hasLoss": true
+      },
+      {
+        "case": "planets",
+        "profile": "screen-snapshot-paged",
+        "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+        "sourceCommit": "18a214d10b6ead53027b69c00567f8fd092f4b35",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35"
+        },
+        "pdfBytesEqual": true,
+        "independentRawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "pages": 14,
+        "pdfSha256": "6da411b98b16f3356309c8343408531b93922718573765f8627c8d8e0df209bc",
+        "imageOccurrences": 23,
+        "linkAnnotations": 83,
+        "reportUnchanged": true,
+        "hasLoss": true
+      },
+      {
+        "case": "chesapeake",
+        "profile": "print-paged",
+        "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+        "sourceCommit": "18a214d10b6ead53027b69c00567f8fd092f4b35",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35"
+        },
+        "pdfBytesEqual": true,
+        "independentRawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "pages": 3,
+        "pdfSha256": "caafb1c4f0400c051c69d46920ad4cf6282ac8c6c453cd11b13e3a9621eebc71",
+        "imageOccurrences": 16,
+        "linkAnnotations": 44,
+        "reportUnchanged": true,
+        "hasLoss": true
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-media-paged",
+        "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+        "sourceCommit": "18a214d10b6ead53027b69c00567f8fd092f4b35",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35"
+        },
+        "pdfBytesEqual": true,
+        "independentRawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "pages": 5,
+        "pdfSha256": "8f7d3cb9ec60d88856a5a967cdb4d548f6c894b11909efca121c86bf0ed95bbd",
+        "imageOccurrences": 19,
+        "linkAnnotations": 55,
+        "reportUnchanged": true,
+        "hasLoss": true
+      },
+      {
+        "case": "chesapeake",
+        "profile": "screen-snapshot-paged",
+        "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+        "sourceCommit": "18a214d10b6ead53027b69c00567f8fd092f4b35",
+        "owners": {
+          "OfficeIMO.Mhtml": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Html.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35",
+          "OfficeIMO.Pdf": "3.4.4+18a214d10b6ead53027b69c00567f8fd092f4b35"
+        },
+        "pdfBytesEqual": true,
+        "independentRawPopplerPerPageTextEqual": true,
+        "baselinePdfBytesEqual": true,
+        "baselineRawPopplerPerPageTextEqual": true,
+        "pages": 4,
+        "pdfSha256": "94567efcdfab12d31644d37b10c7ddc21819a375cc9b06b763dd568e56fdd504",
+        "imageOccurrences": 22,
+        "linkAnnotations": 56,
+        "reportUnchanged": true,
+        "hasLoss": true
+      }
+    ],
+    "routeComparison": {
+      "path": "Ignore/H10JobQualification/route-equivalence-18a214d10.json",
+      "sha256": "20b8029b233a3bfe0460f466c76a1ec60c56d3db71dc742d6993f617e67f64ac"
+    },
+    "nasaScreenMedia": {
+      "pages": 22,
+      "images": 18,
+      "links": 73,
+      "sha256": "d1986d4f31d3fadf1efce7de84c20866e829506aec7b82caa871ed40f102be43",
+      "pixelIdenticalPages72dpi": 20,
+      "changedPages": [
+        14,
+        15
+      ],
+      "decodedImageBytesPerPageEqual": true,
+      "linkTargetsPerPageEqual": true,
+      "annotationChanges": [
+        {
+          "page": 14,
+          "linkIndex": 0,
+          "translationPoints": [
+            0.0,
+            24.0,
+            0.0,
+            24.0
+          ],
+          "paintTranslationVisuallyConfirmed72dpi": true
+        },
+        {
+          "page": 15,
+          "linkIndex": 0,
+          "translationPoints": [
+            0.0,
+            12.0,
+            0.0,
+            12.0
+          ],
+          "paintTranslationVisuallyConfirmed72dpi": true
+        }
+      ],
+      "visualInspection": "Pages14 and15 remove authored flex gap before their image; images, captions and prose move together. Page3 remains background only. Other20pages pixel identical at72dpi.",
+      "comparison": {
+        "path": "Ignore/H10JobQualification/oversized-figure-5840c236c/final-nasa-media-comparison.json",
+        "sha256": "d03672319bbcf61d95cacc412a43194b8c879847c7fdbe74088e27b6e2148a80"
+      }
+    },
+    "qualificationLimit": "Six canonical API/Tool routes, two independent fixtures and selected H4 profile. Not all eleven unfamiliar-page intents, browser parity, full native acceptance, new package qualification or all-platform timing.",
+    "retainedEvidenceRoot": "Ignore/H10JobQualification/oversized-figure-5840c236c",
+    "cleanup": {
+      "removedVerifiedSupersededPaths": [
+        "browser-probe/bin",
+        "browser-probe/obj",
+        "nasa-trace",
+        "office-probe/bin",
+        "office-probe/obj",
+        "office-nasa-preview",
+        "tests/full-html-net10.trx",
+        "tests/full-html-net8.trx",
+        "candidate-source.json",
+        "Pagination.original"
+      ],
+      "approximateRemovedMiB": 220,
+      "retainedFixtureEvidenceBytes": 22010630,
+      "retainedPurpose": "Final and before-fix PDFs/fixtures/contacts, independent Chromium references, exact-source route comparisons, final suite TRX and failure logs. Normal shared build caches and unrelated worktrees preserved."
+    }
+  },
+  "standaloneMergeCheckpoint20261004": {
+    "observedUtc": "2026-10-04T03:15:00Z",
+    "merged": [
+      {
+        "pr": 2759,
+        "head": "a69416444f87c613daf5b0c875951d9c1eeb5cf3",
+        "merge": "f77b87f539d388731b33a5f9224b011957667f20",
+        "currentHeadChecks": {
+          "success": 86,
+          "skipped": 3
+        },
+        "delayedReviewClean": true,
+        "worktreeAndLocalBranchRemoved": true
+      },
+      {
+        "pr": 2760,
+        "head": "09cfba66067586da0d610b2e3ae13025c81d4e23",
+        "merge": "e3e3a26e52369471c21661ac229d12ef68de4698",
+        "currentHeadChecks": {
+          "success": 86,
+          "skipped": 3
+        },
+        "delayedReviewClean": true,
+        "worktreeAndLocalBranchRemoved": true
+      }
+    ],
+    "pendingAtSnapshot": [
+      {
+        "pr": 2761,
+        "head": "7c3ee6df4d3b68bc8e2a12c24c28c1fdff2092c6",
+        "reason": "current-head CI pending"
+      },
+      {
+        "pr": 2754,
+        "head": "27b323809f1a36b1b6dd7c1f240a4a6e9938ea31",
+        "reason": "current-head CI pending"
+      }
+    ],
+    "completePaginatedReviewThreadsUnresolved": 0,
+    "prTextCurrent": true,
+    "masterIntegration": "Not performed here. Broader master convergence needs deliberate review/replay; merging two narrow owner fixes is not qualification of the remaining incoming master changes."
   }
 }
