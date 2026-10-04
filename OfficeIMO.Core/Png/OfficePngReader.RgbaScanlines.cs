@@ -124,16 +124,16 @@ public static partial class OfficePngReader {
         for (int index = 0; index < current.Length; index += 4) {
             if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             var above = Sse2.UnpackLow(ReadRgbaPixel(ref Unsafe.Add(ref upper, index)), zero).AsInt16();
-            // The four unsigned channels widen to signed shorts. Predictor
-            // distances stay within 510 and preserve left/above/diagonal ties.
-            var distanceLeft = Ssse3.Abs(Sse2.Subtract(above, upperLeft)).AsInt16();
-            var distanceAbove = Ssse3.Abs(Sse2.Subtract(left, upperLeft)).AsInt16();
-            var distanceDiagonal = Ssse3.Abs(Sse2.Subtract(Sse2.Add(left, above), Sse2.Add(upperLeft, upperLeft))).AsInt16();
-            var minimum = Sse2.Min(distanceLeft, Sse2.Min(distanceAbove, distanceDiagonal));
-            var chooseLeft = Sse2.CompareEqual(distanceLeft, minimum);
-            var chooseAbove = Sse2.CompareEqual(distanceAbove, minimum);
-            var prediction = Sse2.Or(Sse2.And(chooseLeft, left), Sse2.AndNot(chooseLeft,
-                Sse2.Or(Sse2.And(chooseAbove, above), Sse2.AndNot(chooseAbove, upperLeft))));
+            // Paeth selects high below the low threshold, low above the high
+            // threshold, and the diagonal between them. Inclusive boundaries
+            // preserve PNG's ties; all widened arithmetic stays within shorts.
+            var low = Sse2.Min(left, above);
+            var high = Sse2.Max(left, above);
+            var threshold = Sse2.Subtract(Sse2.Add(Sse2.Add(upperLeft, upperLeft), upperLeft), Sse2.Add(left, above));
+            var aboveLow = Sse2.CompareGreaterThan(threshold, low);
+            var belowHigh = Sse2.CompareGreaterThan(high, threshold);
+            var prediction = Sse2.Or(Sse2.AndNot(aboveLow, high),
+                Sse2.Or(Sse2.AndNot(belowHigh, low), Sse2.And(Sse2.And(aboveLow, belowHigh), upperLeft)));
             var predictedBytes = Sse2.PackUnsignedSaturate(prediction, Vector128<short>.Zero);
             var value = Sse2.Add(ReadRgbaPixel(ref Unsafe.Add(ref data, index)), predictedBytes);
             WriteRgbaPixel(ref Unsafe.Add(ref data, index), value);
