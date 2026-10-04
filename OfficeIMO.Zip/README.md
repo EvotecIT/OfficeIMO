@@ -18,6 +18,7 @@ using OfficeIMO.Zip;
 
 ZipTraversalResult result = ZipTraversal.Traverse("archive.zip", new ZipTraversalOptions {
     MaxEntries = 1000,
+    MaxPhysicalEntries = 5000,
     MaxDepth = 8,
     MaxTotalUncompressedBytes = 100L * 1024L * 1024L
 });
@@ -35,8 +36,10 @@ foreach (ZipTraversalWarning warning in result.Warnings) {
 
 - Enumerates entries deterministically.
 - Applies path safety guards for relative traversal, absolute paths, and drive paths.
-- Enforces depth, entry-count, uncompressed-size, per-entry-size, and compression-ratio limits.
+- Enforces compressed archive size, physical and accepted entry counts, depth, uncompressed-size, per-entry-size, and compression-ratio limits.
 - Reports traversal warnings for rejected or limited entries.
+
+`MaxEntries` counts accepted entries. `MaxPhysicalEntries` counts every ZIP entry, including directories and rejected paths, before entry metadata is opened. The defaults are 5,000 accepted entries, 10,000 physical entries, and 512 MiB compressed source bytes. A malformed source or one above either physical bound raises `InvalidDataException`. The path and stream overloads copy input into a bounded private snapshot so validation and parsing see the same bytes. If you create `ZipArchive` yourself, use an immutable source and call `ZipTraversal.ValidateSource` before opening it; the archive overload can limit processing only after the caller's archive has materialized its entries.
 
 ## Examples
 

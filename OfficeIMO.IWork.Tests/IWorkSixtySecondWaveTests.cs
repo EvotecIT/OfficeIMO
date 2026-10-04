@@ -27,7 +27,7 @@ public sealed partial class IWorkBoundaryTests {
                 includePreview: true, conflictingFont: kind == 0,
                 conflictingColor: kind == 1, conflictingBackground: kind == 2);
 
-            using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+            using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
             Assert.True(result.IsVisualFallback);
             Assert.False(result.Projection.Body.IsComplete);
@@ -55,7 +55,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Empty", rows, columns, 0d, emptyTile: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Single(Assert.Single(result.Projection.Sheets).Tables);
@@ -72,7 +72,7 @@ public sealed partial class IWorkBoundaryTests {
                 decimal128SpecialHighByte: highByte)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         IWorkTableCell cell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);
 

@@ -14,7 +14,7 @@ public sealed class NumbersToExcelResult : IDisposable {
         WorksheetMappings = Array.AsReadOnly(worksheetMappings.ToArray());
     }
 
-    /// <summary>Gets the converted editable OfficeIMO Excel workbook.</summary>
+    /// <summary>Gets the converted OfficeIMO Excel workbook.</summary>
     public ExcelDocument Value { get; }
     /// <summary>Gets the bounded source package and preserved IWA records.</summary>
     public IWorkSourceDocument Source { get; }
@@ -31,6 +31,18 @@ public sealed class NumbersToExcelResult : IDisposable {
 
     /// <summary>Returns the converted workbook.</summary>
     public ExcelDocument RequireValue() => Value;
+
+    /// <summary>Returns the converted workbook or throws unless its report permits complete editable reconstruction.</summary>
+    /// <remarks>This checks assessed content completeness, not full appearance or record-level fidelity. A rejected value is disposed.</remarks>
+    public ExcelDocument RequireCompleteEditableReconstruction() {
+        try {
+            Report.RequireCompleteEditableReconstruction();
+            return Value;
+        } catch {
+            Value.Dispose();
+            throw;
+        }
+    }
 
     /// <summary>Returns the converted workbook or throws when the conversion was lossy.</summary>
     public ExcelDocument RequireNoLoss() {

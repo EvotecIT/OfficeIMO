@@ -142,8 +142,18 @@ public static partial class OfficeOperationCapabilityCatalog {
             new[] { ".pages", ".numbers", ".key" },
             Array.Empty<OfficeOperationKind>(),
             limitedSupported: new[] { OfficeOperationKind.Read, OfficeOperationKind.Inspect },
-            unsupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Edit, OfficeOperationKind.Preserve },
-            limitation: "Modern IWA packages are bounded read-only sources; OfficeIMO does not author or rewrite iWork packages, and projections report unsupported records and visual fallbacks.");
+            unsupported: new[] { OfficeOperationKind.Edit, OfficeOperationKind.Preserve },
+            limitation: "Loaded modern IWA packages remain read-only sources; projections report unsupported records and visual fallbacks, and loaded packages cannot be edited or rewritten.");
+        AddNativeLifecycle(rows, "iwork-native", "OfficeIMO.IWork", "IWork.Native",
+            "IWorkSourceDocument.Open / project to Pages or Numbers",
+            "OfficeIMO.IWork.Tests source inspection and conversion contracts",
+            new[] { ".pages", ".numbers" }, Array.Empty<OfficeOperationKind>(),
+            unsupported: new[] { OfficeOperationKind.Create }, limitation: "Native Pages and Numbers creation is not supported.");
+        AddNativeLifecycle(rows, "keynote-native-creation", "OfficeIMO.IWork", "IWork.Keynote",
+            "IWorkKeynoteDocument.Create / AddSlide / AddText / SaveBytes / Save",
+            "OfficeIMO.IWork.Tests creation contracts; native-exports/keynote-created-v15.4.json independent decoding and Apple reopen/export/edit evidence",
+            new[] { ".key" }, Array.Empty<OfficeOperationKind>(), limitedSupported: new[] { OfficeOperationKind.Create },
+            limitation: "Template-free creation supports static slides with opaque sRGB backgrounds and positioned, uniformly styled plain text. Native acceptance is fixture-specific to Keynote 15.4; it does not qualify all fonts, producer versions, rich runs, media, tables, builds, or editing loaded packages.");
         AddEmailStoreLifecycleRows(rows);
         AddProjectLifecycleRows(rows);
         AddNativeLifecycle(rows, "epub-native", "OfficeIMO.Epub", "Epub.Native",

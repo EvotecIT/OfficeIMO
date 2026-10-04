@@ -1,0 +1,880 @@
+{
+  "baseline": "683cf842502771c652b9d7b14cd8bf0738b4fca1",
+  "candidate": {
+    "candidateBaseHead": "8a2f135e1f286bfed49a0428f38e4269048e46fd",
+    "stagedPatchGitHash": "f28b13ebbde33e2448616dee9aa198669cc9cf06",
+    "sdk": "10.0.112",
+    "target": "net8.0",
+    "runtimeOwnerFiles": [
+      {
+        "path": "DocumentFormat.OpenXml.Framework.dll",
+        "sha256": "9545e02b8a88d3df6b7befe5fde7618ede3521154898bb78db548599608b9e4b",
+        "bytes": 478696
+      },
+      {
+        "path": "DocumentFormat.OpenXml.dll",
+        "sha256": "5f96d580164cc1546978b712fec9dc425f2ddd1b18ded5f8b776bebc60ca9742",
+        "bytes": 7985120
+      },
+      {
+        "path": "OfficeIMO.Core.dll",
+        "sha256": "923e1789b969c4f1e9fa023725b5f8ab55305311079875570b59ec0771663825",
+        "bytes": 3985920
+      },
+      {
+        "path": "OfficeIMO.Excel.IWork.dll",
+        "sha256": "2a1e7554e5d2b426d37b4374b63fac8c935cf8fa40479084c5c87bce95357d6b",
+        "bytes": 51200
+      },
+      {
+        "path": "OfficeIMO.Excel.dll",
+        "sha256": "757465c9b198f6e2e4390e182fb1a1065324b3092cfa2f21650ee0a2c23b4d4b",
+        "bytes": 5792256
+      },
+      {
+        "path": "OfficeIMO.IWork.Benchmarks.dll",
+        "sha256": "1af9382211bc2b69f0e56f2b20747671dce728101c1aac5e220355640072566b",
+        "bytes": 22528
+      },
+      {
+        "path": "OfficeIMO.IWork.dll",
+        "sha256": "e21b04990341c2e7f91173dc44bde18424a4f2fe8735465cb407930ada2d06b6",
+        "bytes": 391168
+      },
+      {
+        "path": "OfficeIMO.PowerPoint.IWork.dll",
+        "sha256": "68dc24ce01576dea9752e543d511ecacea7cd1f433614105b215adedd867d0d2",
+        "bytes": 58880
+      },
+      {
+        "path": "OfficeIMO.PowerPoint.dll",
+        "sha256": "48c1002a0d8e78d1e92a9f7abed5cace348dfa25964efc8546f1695a712b4be3",
+        "bytes": 2929664
+      },
+      {
+        "path": "OfficeIMO.Word.IWork.dll",
+        "sha256": "5750d465cb76aa5a908b7552e82da2353c683bdb193c50fdf75dbcaa32a87db0",
+        "bytes": 68096
+      },
+      {
+        "path": "OfficeIMO.Word.dll",
+        "sha256": "24bb92739d2340ddeb40130721ddcf350719f4da3e6407bd3bb87bd418845f48",
+        "bytes": 4744704
+      },
+      {
+        "path": "System.IO.Packaging.dll",
+        "sha256": "12ddc8bff279fad856551a74894dc52b80fa437d5d2b32722e70ae6899217b7c",
+        "bytes": 142136
+      },
+      {
+        "path": "System.Text.Encoding.CodePages.dll",
+        "sha256": "2ea37e46ff9617ee2fb2390791fec65b72f99ed4d19bf0582df241bf2a341945",
+        "bytes": 741712
+      },
+      {
+        "path": "runtimes/win/lib/net8.0/System.Text.Encoding.CodePages.dll",
+        "sha256": "d671e5e6744cba8a915d627061802eb41a6953a7ab4842fe3778af9cc20fe33d",
+        "bytes": 743248
+      }
+    ],
+    "qualifiedSourceCommit": "44c69d1c18f415e2967173b70d2175de7e5115f2"
+  },
+  "ordering": [
+    "baseline-a",
+    "candidate-a",
+    "candidate-b",
+    "baseline-b"
+  ],
+  "warmupCount": 2,
+  "iterationCount": 5,
+  "totalVerifiedSamples": 360,
+  "metadata": {
+    "baseline-a": {
+      "suite": "officeimo-iwork-runtime",
+      "pwsh": "7.5.4",
+      "psEdition": "Core",
+      "os": "Unix 27.0.1",
+      "osLabel": "macOS",
+      "processArchitecture": "Arm64",
+      "osArchitecture": "Arm64",
+      "processorCount": "10",
+      "workingSetBytes": "293765120",
+      "profile": "Current",
+      "cleanup": "Always",
+      "warmupCount": "2",
+      "iterationCount": "5",
+      "runOrder": "Rotated",
+      "memoryCleanup": "BeforeIteration",
+      "cooldownMilliseconds": "0",
+      "outlierMode": "None",
+      "runMode": "standard",
+      "benchmark.Contract": "Deterministic synthetic ZIP or pinned native nim-iwork Pages/Numbers fixture: load/project or load/convert/save. Input generation and full semantic readback are outside timing. No native Apple appearance qualification.",
+      "benchmark.Measurement": "PowerForge elapsed time and managed allocation including host invocation. Working-set deltas are not peak or retained memory. Saving uses normal owner APIs.",
+      "benchmark.RetainedMemory": "Opt-in collected process-wide managed heap before execution and after validation/result release. Includes host/cache effects; excludes native and peak memory.",
+      "benchmark.AffinityPolicy": "Inherited; macOS processor placement is unqualified. Keep competing work idle and record host power mode.",
+      "benchmark.Runtime": ".NET 9.0.10",
+      "benchmark.RunnerSha256": "837038CC88C2387560EC41BECFA216D0B728648FBAFFA6B0E5B1D650F1FF87B9",
+      "benchmark.WorkloadSha256": "E3B3E67181E7998D2ADB7A0F0C773F93662543A99704189E12207D28E8C4CC44",
+      "benchmark.SpecSha256": "590C333FA0C32449C1B7F93E05550E92A6070F5DFBE6BCBCA6F63E20CB6C9909",
+      "benchmark.OfficeIMO.Core.Sha256": "0A9297A23CFD91E8F211DFE13DCACCEF1323D2FF9B69753F0CE166A9EA7390C0",
+      "benchmark.OfficeIMO.IWork.Sha256": "733DB8C6D202E8A826AE603750FF57A45499FB63F41CE5142D14FF871A565EFD",
+      "benchmark.OfficeIMO.Word.Sha256": "B4869982AB7E778F8E859A1015C518BCB0221B467BFF247EF67BDFFE4FBF718B",
+      "benchmark.OfficeIMO.Word.IWork.Sha256": "9545342042E4B1B650C193972FEF28579F0E878EFBFA1D8F08420B5E5360007C",
+      "benchmark.OfficeIMO.Excel.Sha256": "194E33F571449260CE9F08A3AD3DF26E7DAFD825A19CF0DA1A8B5BD4AA7B678F",
+      "benchmark.OfficeIMO.Excel.IWork.Sha256": "1150C80DABD120129B1E88EEABC56F13FD84CBF557D8AFB0611EF14ED17FA5B3",
+      "benchmark.OfficeIMO.PowerPoint.Sha256": "0330CF0116544E1FF8C2674947BD8A139343DD9F1DDB21A697E77F162EAADEC8",
+      "benchmark.OfficeIMO.PowerPoint.IWork.Sha256": "653D48AFDC1FB0CA53AE777A149216DC06EA29AEC0D8D279CB715C3920A62F43"
+    },
+    "candidate-a": {
+      "suite": "officeimo-iwork-runtime",
+      "pwsh": "7.5.4",
+      "psEdition": "Core",
+      "os": "Unix 27.0.1",
+      "osLabel": "macOS",
+      "processArchitecture": "Arm64",
+      "osArchitecture": "Arm64",
+      "processorCount": "10",
+      "workingSetBytes": "289767424",
+      "profile": "Current",
+      "cleanup": "Always",
+      "warmupCount": "2",
+      "iterationCount": "5",
+      "runOrder": "Rotated",
+      "memoryCleanup": "BeforeIteration",
+      "cooldownMilliseconds": "0",
+      "outlierMode": "None",
+      "runMode": "standard",
+      "benchmark.Contract": "Deterministic synthetic ZIP or pinned native nim-iwork Pages/Numbers fixture: load/project or load/convert/save. Input generation and full semantic readback are outside timing. No native Apple appearance qualification.",
+      "benchmark.Measurement": "PowerForge elapsed time and managed allocation including host invocation. Working-set deltas are not peak or retained memory. Saving uses normal owner APIs.",
+      "benchmark.RetainedMemory": "Opt-in collected process-wide managed heap before execution and after validation/result release. Includes host/cache effects; excludes native and peak memory.",
+      "benchmark.AffinityPolicy": "Inherited; macOS processor placement is unqualified. Keep competing work idle and record host power mode.",
+      "benchmark.Runtime": ".NET 9.0.10",
+      "benchmark.RunnerSha256": "837038CC88C2387560EC41BECFA216D0B728648FBAFFA6B0E5B1D650F1FF87B9",
+      "benchmark.WorkloadSha256": "1AF9382211BC2B69F0E56F2B20747671DCE728101C1AAC5E220355640072566B",
+      "benchmark.SpecSha256": "590C333FA0C32449C1B7F93E05550E92A6070F5DFBE6BCBCA6F63E20CB6C9909",
+      "benchmark.OfficeIMO.Core.Sha256": "923E1789B969C4F1E9FA023725B5F8AB55305311079875570B59EC0771663825",
+      "benchmark.OfficeIMO.IWork.Sha256": "E21B04990341C2E7F91173DC44BDE18424A4F2FE8735465CB407930ADA2D06B6",
+      "benchmark.OfficeIMO.Word.Sha256": "24BB92739D2340DDEB40130721DDCF350719F4DA3E6407BD3BB87BD418845F48",
+      "benchmark.OfficeIMO.Word.IWork.Sha256": "5750D465CB76AA5A908B7552E82DA2353C683BDB193C50FDF75DBCAA32A87DB0",
+      "benchmark.OfficeIMO.Excel.Sha256": "757465C9B198F6E2E4390E182FB1A1065324B3092CFA2F21650EE0A2C23B4D4B",
+      "benchmark.OfficeIMO.Excel.IWork.Sha256": "2A1E7554E5D2B426D37B4374B63FAC8C935CF8FA40479084C5C87BCE95357D6B",
+      "benchmark.OfficeIMO.PowerPoint.Sha256": "48C1002A0D8E78D1E92A9F7ABED5CACE348DFA25964EFC8546F1695A712B4BE3",
+      "benchmark.OfficeIMO.PowerPoint.IWork.Sha256": "68DC24CE01576DEA9752E543D511ECACEA7CD1F433614105B215ADEDD867D0D2"
+    },
+    "candidate-b": {
+      "suite": "officeimo-iwork-runtime",
+      "pwsh": "7.5.4",
+      "psEdition": "Core",
+      "os": "Unix 27.0.1",
+      "osLabel": "macOS",
+      "processArchitecture": "Arm64",
+      "osArchitecture": "Arm64",
+      "processorCount": "10",
+      "workingSetBytes": "211795968",
+      "profile": "Current",
+      "cleanup": "Always",
+      "warmupCount": "2",
+      "iterationCount": "5",
+      "runOrder": "Rotated",
+      "memoryCleanup": "BeforeIteration",
+      "cooldownMilliseconds": "0",
+      "outlierMode": "None",
+      "runMode": "standard",
+      "benchmark.Contract": "Deterministic synthetic ZIP or pinned native nim-iwork Pages/Numbers fixture: load/project or load/convert/save. Input generation and full semantic readback are outside timing. No native Apple appearance qualification.",
+      "benchmark.Measurement": "PowerForge elapsed time and managed allocation including host invocation. Working-set deltas are not peak or retained memory. Saving uses normal owner APIs.",
+      "benchmark.RetainedMemory": "Opt-in collected process-wide managed heap before execution and after validation/result release. Includes host/cache effects; excludes native and peak memory.",
+      "benchmark.AffinityPolicy": "Inherited; macOS processor placement is unqualified. Keep competing work idle and record host power mode.",
+      "benchmark.Runtime": ".NET 9.0.10",
+      "benchmark.RunnerSha256": "837038CC88C2387560EC41BECFA216D0B728648FBAFFA6B0E5B1D650F1FF87B9",
+      "benchmark.WorkloadSha256": "1AF9382211BC2B69F0E56F2B20747671DCE728101C1AAC5E220355640072566B",
+      "benchmark.SpecSha256": "590C333FA0C32449C1B7F93E05550E92A6070F5DFBE6BCBCA6F63E20CB6C9909",
+      "benchmark.OfficeIMO.Core.Sha256": "923E1789B969C4F1E9FA023725B5F8AB55305311079875570B59EC0771663825",
+      "benchmark.OfficeIMO.IWork.Sha256": "E21B04990341C2E7F91173DC44BDE18424A4F2FE8735465CB407930ADA2D06B6",
+      "benchmark.OfficeIMO.Word.Sha256": "24BB92739D2340DDEB40130721DDCF350719F4DA3E6407BD3BB87BD418845F48",
+      "benchmark.OfficeIMO.Word.IWork.Sha256": "5750D465CB76AA5A908B7552E82DA2353C683BDB193C50FDF75DBCAA32A87DB0",
+      "benchmark.OfficeIMO.Excel.Sha256": "757465C9B198F6E2E4390E182FB1A1065324B3092CFA2F21650EE0A2C23B4D4B",
+      "benchmark.OfficeIMO.Excel.IWork.Sha256": "2A1E7554E5D2B426D37B4374B63FAC8C935CF8FA40479084C5C87BCE95357D6B",
+      "benchmark.OfficeIMO.PowerPoint.Sha256": "48C1002A0D8E78D1E92A9F7ABED5CACE348DFA25964EFC8546F1695A712B4BE3",
+      "benchmark.OfficeIMO.PowerPoint.IWork.Sha256": "68DC24CE01576DEA9752E543D511ECACEA7CD1F433614105B215ADEDD867D0D2"
+    },
+    "baseline-b": {
+      "suite": "officeimo-iwork-runtime",
+      "pwsh": "7.5.4",
+      "psEdition": "Core",
+      "os": "Unix 27.0.1",
+      "osLabel": "macOS",
+      "processArchitecture": "Arm64",
+      "osArchitecture": "Arm64",
+      "processorCount": "10",
+      "workingSetBytes": "255688704",
+      "profile": "Current",
+      "cleanup": "Always",
+      "warmupCount": "2",
+      "iterationCount": "5",
+      "runOrder": "Rotated",
+      "memoryCleanup": "BeforeIteration",
+      "cooldownMilliseconds": "0",
+      "outlierMode": "None",
+      "runMode": "standard",
+      "benchmark.Contract": "Deterministic synthetic ZIP or pinned native nim-iwork Pages/Numbers fixture: load/project or load/convert/save. Input generation and full semantic readback are outside timing. No native Apple appearance qualification.",
+      "benchmark.Measurement": "PowerForge elapsed time and managed allocation including host invocation. Working-set deltas are not peak or retained memory. Saving uses normal owner APIs.",
+      "benchmark.RetainedMemory": "Opt-in collected process-wide managed heap before execution and after validation/result release. Includes host/cache effects; excludes native and peak memory.",
+      "benchmark.AffinityPolicy": "Inherited; macOS processor placement is unqualified. Keep competing work idle and record host power mode.",
+      "benchmark.Runtime": ".NET 9.0.10",
+      "benchmark.RunnerSha256": "837038CC88C2387560EC41BECFA216D0B728648FBAFFA6B0E5B1D650F1FF87B9",
+      "benchmark.WorkloadSha256": "E3B3E67181E7998D2ADB7A0F0C773F93662543A99704189E12207D28E8C4CC44",
+      "benchmark.SpecSha256": "590C333FA0C32449C1B7F93E05550E92A6070F5DFBE6BCBCA6F63E20CB6C9909",
+      "benchmark.OfficeIMO.Core.Sha256": "0A9297A23CFD91E8F211DFE13DCACCEF1323D2FF9B69753F0CE166A9EA7390C0",
+      "benchmark.OfficeIMO.IWork.Sha256": "733DB8C6D202E8A826AE603750FF57A45499FB63F41CE5142D14FF871A565EFD",
+      "benchmark.OfficeIMO.Word.Sha256": "B4869982AB7E778F8E859A1015C518BCB0221B467BFF247EF67BDFFE4FBF718B",
+      "benchmark.OfficeIMO.Word.IWork.Sha256": "9545342042E4B1B650C193972FEF28579F0E878EFBFA1D8F08420B5E5360007C",
+      "benchmark.OfficeIMO.Excel.Sha256": "194E33F571449260CE9F08A3AD3DF26E7DAFD825A19CF0DA1A8B5BD4AA7B678F",
+      "benchmark.OfficeIMO.Excel.IWork.Sha256": "1150C80DABD120129B1E88EEABC56F13FD84CBF557D8AFB0611EF14ED17FA5B3",
+      "benchmark.OfficeIMO.PowerPoint.Sha256": "0330CF0116544E1FF8C2674947BD8A139343DD9F1DDB21A697E77F162EAADEC8",
+      "benchmark.OfficeIMO.PowerPoint.IWork.Sha256": "653D48AFDC1FB0CA53AE777A149216DC06EA29AEC0D8D279CB715C3920A62F43"
+    }
+  },
+  "matrix": [
+    {
+      "scenario": "Keynote-Large",
+      "operation": "ConvertSave",
+      "inputSha256": "67A8DAA1A68873CF930825130D12532B3C59FDE4589713FDCAC1F18BBB6E5B20",
+      "runs": {
+        "baseline-a": {
+          "elapsedMs": 650.0787,
+          "allocatedBytes": 559993280,
+          "retainedDeltaBytes": -2582672,
+          "inputSha256": "67A8DAA1A68873CF930825130D12532B3C59FDE4589713FDCAC1F18BBB6E5B20"
+        },
+        "candidate-a": {
+          "elapsedMs": 534.2873,
+          "allocatedBytes": 542114224,
+          "retainedDeltaBytes": -2316640,
+          "inputSha256": "67A8DAA1A68873CF930825130D12532B3C59FDE4589713FDCAC1F18BBB6E5B20"
+        },
+        "candidate-b": {
+          "elapsedMs": 576.347,
+          "allocatedBytes": 542112120,
+          "retainedDeltaBytes": -2284864,
+          "inputSha256": "67A8DAA1A68873CF930825130D12532B3C59FDE4589713FDCAC1F18BBB6E5B20"
+        },
+        "baseline-b": {
+          "elapsedMs": 840.975,
+          "allocatedBytes": 559981040,
+          "retainedDeltaBytes": -2488048,
+          "inputSha256": "67A8DAA1A68873CF930825130D12532B3C59FDE4589713FDCAC1F18BBB6E5B20"
+        }
+      },
+      "allocationChangePercent": -3.1918567561441957,
+      "elapsedChangePercent": -25.513460715734116
+    },
+    {
+      "scenario": "Keynote-Large",
+      "operation": "LoadProject",
+      "inputSha256": "67A8DAA1A68873CF930825130D12532B3C59FDE4589713FDCAC1F18BBB6E5B20",
+      "runs": {
+        "baseline-a": {
+          "elapsedMs": 14.4304,
+          "allocatedBytes": 33922504,
+          "retainedDeltaBytes": -2583776,
+          "inputSha256": "67A8DAA1A68873CF930825130D12532B3C59FDE4589713FDCAC1F18BBB6E5B20"
+        },
+        "candidate-a": {
+          "elapsedMs": 19.6102,
+          "allocatedBytes": 27029024,
+          "retainedDeltaBytes": -2306112,
+          "inputSha256": "67A8DAA1A68873CF930825130D12532B3C59FDE4589713FDCAC1F18BBB6E5B20"
+        },
+        "candidate-b": {
+          "elapsedMs": 17.595,
+          "allocatedBytes": 27026560,
+          "retainedDeltaBytes": -2288296,
+          "inputSha256": "67A8DAA1A68873CF930825130D12532B3C59FDE4589713FDCAC1F18BBB6E5B20"
+        },
+        "baseline-b": {
+          "elapsedMs": 16.8342,
+          "allocatedBytes": 33912184,
+          "retainedDeltaBytes": -2499064,
+          "inputSha256": "67A8DAA1A68873CF930825130D12532B3C59FDE4589713FDCAC1F18BBB6E5B20"
+        }
+      },
+      "allocationChangePercent": -20.312769773482266,
+      "elapsedChangePercent": 19.00104271284455
+    },
+    {
+      "scenario": "Keynote-Medium",
+      "operation": "ConvertSave",
+      "inputSha256": "91F8326F4853A612383AB10F23874D8E98A90B8B14719514CD0B184621528BB0",
+      "runs": {
+        "baseline-a": {
+          "elapsedMs": 23.6285,
+          "allocatedBytes": 23168600,
+          "retainedDeltaBytes": 5876336,
+          "inputSha256": "91F8326F4853A612383AB10F23874D8E98A90B8B14719514CD0B184621528BB0"
+        },
+        "candidate-a": {
+          "elapsedMs": 23.0586,
+          "allocatedBytes": 21242240,
+          "retainedDeltaBytes": 39624,
+          "inputSha256": "91F8326F4853A612383AB10F23874D8E98A90B8B14719514CD0B184621528BB0"
+        },
+        "candidate-b": {
+          "elapsedMs": 30.5071,
+          "allocatedBytes": 21238344,
+          "retainedDeltaBytes": 33160,
+          "inputSha256": "91F8326F4853A612383AB10F23874D8E98A90B8B14719514CD0B184621528BB0"
+        },
+        "baseline-b": {
+          "elapsedMs": 27.006,
+          "allocatedBytes": 23158064,
+          "retainedDeltaBytes": 5863064,
+          "inputSha256": "91F8326F4853A612383AB10F23874D8E98A90B8B14719514CD0B184621528BB0"
+        }
+      },
+      "allocationChangePercent": -8.302087109056677,
+      "elapsedChangePercent": 5.788938372058561
+    },
+    {
+      "scenario": "Keynote-Medium",
+      "operation": "LoadProject",
+      "inputSha256": "91F8326F4853A612383AB10F23874D8E98A90B8B14719514CD0B184621528BB0",
+      "runs": {
+        "baseline-a": {
+          "elapsedMs": 2.9936,
+          "allocatedBytes": 7021592,
+          "retainedDeltaBytes": 3162392,
+          "inputSha256": "91F8326F4853A612383AB10F23874D8E98A90B8B14719514CD0B184621528BB0"
+        },
+        "candidate-a": {
+          "elapsedMs": 4.9451,
+          "allocatedBytes": 6299576,
+          "retainedDeltaBytes": 2408944,
+          "inputSha256": "91F8326F4853A612383AB10F23874D8E98A90B8B14719514CD0B184621528BB0"
+        },
+        "candidate-b": {
+          "elapsedMs": 3.3181,
+          "allocatedBytes": 6296064,
+          "retainedDeltaBytes": 2404992,
+          "inputSha256": "91F8326F4853A612383AB10F23874D8E98A90B8B14719514CD0B184621528BB0"
+        },
+        "baseline-b": {
+          "elapsedMs": 3.2525,
+          "allocatedBytes": 7011272,
+          "retainedDeltaBytes": 3138960,
+          "inputSha256": "91F8326F4853A612383AB10F23874D8E98A90B8B14719514CD0B184621528BB0"
+        }
+      },
+      "allocationChangePercent": -10.241843717718634,
+      "elapsedChangePercent": 32.29375130081169
+    },
+    {
+      "scenario": "Keynote-Small",
+      "operation": "ConvertSave",
+      "inputSha256": "976AA78970567603063CE74564F8BBC87B78B167EFCCC119E8CB7D8D7EB9B00C",
+      "runs": {
+        "baseline-a": {
+          "elapsedMs": 6.4555,
+          "allocatedBytes": 7804112,
+          "retainedDeltaBytes": -2582928,
+          "inputSha256": "976AA78970567603063CE74564F8BBC87B78B167EFCCC119E8CB7D8D7EB9B00C"
+        },
+        "candidate-a": {
+          "elapsedMs": 8.4872,
+          "allocatedBytes": 7595784,
+          "retainedDeltaBytes": -2312560,
+          "inputSha256": "976AA78970567603063CE74564F8BBC87B78B167EFCCC119E8CB7D8D7EB9B00C"
+        },
+        "candidate-b": {
+          "elapsedMs": 7.7868,
+          "allocatedBytes": 7592280,
+          "retainedDeltaBytes": -2292600,
+          "inputSha256": "976AA78970567603063CE74564F8BBC87B78B167EFCCC119E8CB7D8D7EB9B00C"
+        },
+        "baseline-b": {
+          "elapsedMs": 6.8301,
+          "allocatedBytes": 7793544,
+          "retainedDeltaBytes": -2507344,
+          "inputSha256": "976AA78970567603063CE74564F8BBC87B78B167EFCCC119E8CB7D8D7EB9B00C"
+        }
+      },
+      "allocationChangePercent": -2.625984314566243,
+      "elapsedChangePercent": 22.493526826037225
+    },
+    {
+      "scenario": "Keynote-Small",
+      "operation": "LoadProject",
+      "inputSha256": "976AA78970567603063CE74564F8BBC87B78B167EFCCC119E8CB7D8D7EB9B00C",
+      "runs": {
+        "baseline-a": {
+          "elapsedMs": 2.2984,
+          "allocatedBytes": 4360600,
+          "retainedDeltaBytes": 27544,
+          "inputSha256": "976AA78970567603063CE74564F8BBC87B78B167EFCCC119E8CB7D8D7EB9B00C"
+        },
+        "candidate-a": {
+          "elapsedMs": 2.6425,
+          "allocatedBytes": 4255816,
+          "retainedDeltaBytes": -2308416,
+          "inputSha256": "976AA78970567603063CE74564F8BBC87B78B167EFCCC119E8CB7D8D7EB9B00C"
+        },
+        "candidate-b": {
+          "elapsedMs": 2.6915,
+          "allocatedBytes": 4252112,
+          "retainedDeltaBytes": -2278232,
+          "inputSha256": "976AA78970567603063CE74564F8BBC87B78B167EFCCC119E8CB7D8D7EB9B00C"
+        },
+        "baseline-b": {
+          "elapsedMs": 2.5598,
+          "allocatedBytes": 4350280,
+          "retainedDeltaBytes": 19488,
+          "inputSha256": "976AA78970567603063CE74564F8BBC87B78B167EFCCC119E8CB7D8D7EB9B00C"
+        }
+      },
+      "allocationChangePercent": -2.3298679352717566,
+      "elapsedChangePercent": 9.793750771890819
+    },
+    {
+      "scenario": "Numbers-Large",
+      "operation": "ConvertSave",
+      "inputSha256": "F7EF1C04BE849A161C7842321A10577EF7B2295D58BAF04D3C55B37CAA5A8380",
+      "runs": {
+        "baseline-a": {
+          "elapsedMs": 189.9999,
+          "allocatedBytes": 329765360,
+          "retainedDeltaBytes": -2571824,
+          "inputSha256": "F7EF1C04BE849A161C7842321A10577EF7B2295D58BAF04D3C55B37CAA5A8380"
+        },
+        "candidate-a": {
+          "elapsedMs": 233.0179,
+          "allocatedBytes": 256967672,
+          "retainedDeltaBytes": -2308336,
+          "inputSha256": "F7EF1C04BE849A161C7842321A10577EF7B2295D58BAF04D3C55B37CAA5A8380"
+        },
+        "candidate-b": {
+          "elapsedMs": 224.3371,
+          "allocatedBytes": 256963872,
+          "retainedDeltaBytes": -2274048,
+          "inputSha256": "F7EF1C04BE849A161C7842321A10577EF7B2295D58BAF04D3C55B37CAA5A8380"
+        },
+        "baseline-b": {
+          "elapsedMs": 242.1466,
+          "allocatedBytes": 329755416,
+          "retainedDeltaBytes": -1561792,
+          "inputSha256": "F7EF1C04BE849A161C7842321A10577EF7B2295D58BAF04D3C55B37CAA5A8380"
+        }
+      },
+      "allocationChangePercent": -22.075003138339344,
+      "elapsedChangePercent": 5.833322727362145
+    },
+    {
+      "scenario": "Numbers-Large",
+      "operation": "LoadProject",
+      "inputSha256": "F7EF1C04BE849A161C7842321A10577EF7B2295D58BAF04D3C55B37CAA5A8380",
+      "runs": {
+        "baseline-a": {
+          "elapsedMs": 152.1609,
+          "allocatedBytes": 305742856,
+          "retainedDeltaBytes": -2573768,
+          "inputSha256": "F7EF1C04BE849A161C7842321A10577EF7B2295D58BAF04D3C55B37CAA5A8380"
+        },
+        "candidate-a": {
+          "elapsedMs": 201.009,
+          "allocatedBytes": 232944336,
+          "retainedDeltaBytes": -2308912,
+          "inputSha256": "F7EF1C04BE849A161C7842321A10577EF7B2295D58BAF04D3C55B37CAA5A8380"
+        },
+        "candidate-b": {
+          "elapsedMs": 186.8226,
+          "allocatedBytes": 232945592,
+          "retainedDeltaBytes": -2277080,
+          "inputSha256": "F7EF1C04BE849A161C7842321A10577EF7B2295D58BAF04D3C55B37CAA5A8380"
+        },
+        "baseline-b": {
+          "elapsedMs": 176.0372,
+          "allocatedBytes": 305732472,
+          "retainedDeltaBytes": -2490600,
+          "inputSha256": "F7EF1C04BE849A161C7842321A10577EF7B2295D58BAF04D3C55B37CAA5A8380"
+        }
+      },
+      "allocationChangePercent": -23.808875572490795,
+      "elapsedChangePercent": 18.169971124147267
+    },
+    {
+      "scenario": "Numbers-Medium",
+      "operation": "ConvertSave",
+      "inputSha256": "96BAAEFAC55A2948B4D942BDDBF720B8FFF15B68C9453C8ACD5CDE4140225329",
+      "runs": {
+        "baseline-a": {
+          "elapsedMs": 18.0075,
+          "allocatedBytes": 36696208,
+          "retainedDeltaBytes": -2569280,
+          "inputSha256": "96BAAEFAC55A2948B4D942BDDBF720B8FFF15B68C9453C8ACD5CDE4140225329"
+        },
+        "candidate-a": {
+          "elapsedMs": 39.5435,
+          "allocatedBytes": 29380648,
+          "retainedDeltaBytes": 32832,
+          "inputSha256": "96BAAEFAC55A2948B4D942BDDBF720B8FFF15B68C9453C8ACD5CDE4140225329"
+        },
+        "candidate-b": {
+          "elapsedMs": 20.1802,
+          "allocatedBytes": 29377792,
+          "retainedDeltaBytes": 47896,
+          "inputSha256": "96BAAEFAC55A2948B4D942BDDBF720B8FFF15B68C9453C8ACD5CDE4140225329"
+        },
+        "baseline-b": {
+          "elapsedMs": 22.7052,
+          "allocatedBytes": 36685888,
+          "retainedDeltaBytes": -2500504,
+          "inputSha256": "96BAAEFAC55A2948B4D942BDDBF720B8FFF15B68C9453C8ACD5CDE4140225329"
+        }
+      },
+      "allocationChangePercent": -19.928097992731086,
+      "elapsedChangePercent": 46.6955028774805
+    },
+    {
+      "scenario": "Numbers-Medium",
+      "operation": "LoadProject",
+      "inputSha256": "96BAAEFAC55A2948B4D942BDDBF720B8FFF15B68C9453C8ACD5CDE4140225329",
+      "runs": {
+        "baseline-a": {
+          "elapsedMs": 14.2812,
+          "allocatedBytes": 33602504,
+          "retainedDeltaBytes": -2574984,
+          "inputSha256": "96BAAEFAC55A2948B4D942BDDBF720B8FFF15B68C9453C8ACD5CDE4140225329"
+        },
+        "candidate-a": {
+          "elapsedMs": 16.4143,
+          "allocatedBytes": 26283632,
+          "retainedDeltaBytes": 4283368,
+          "inputSha256": "96BAAEFAC55A2948B4D942BDDBF720B8FFF15B68C9453C8ACD5CDE4140225329"
+        },
+        "candidate-b": {
+          "elapsedMs": 12.3813,
+          "allocatedBytes": 26281168,
+          "retainedDeltaBytes": 4290880,
+          "inputSha256": "96BAAEFAC55A2948B4D942BDDBF720B8FFF15B68C9453C8ACD5CDE4140225329"
+        },
+        "baseline-b": {
+          "elapsedMs": 14.3732,
+          "allocatedBytes": 33592184,
+          "retainedDeltaBytes": -2498384,
+          "inputSha256": "96BAAEFAC55A2948B4D942BDDBF720B8FFF15B68C9453C8ACD5CDE4140225329"
+        }
+      },
+      "allocationChangePercent": -21.77238772207708,
+      "elapsedChangePercent": 0.49276899882739755
+    },
+    {
+      "scenario": "Numbers-Small",
+      "operation": "ConvertSave",
+      "inputSha256": "215EEB85644E5112792E118CB10DE50566CE91D0412A8BF2CF30BCF990C432C7",
+      "runs": {
+        "baseline-a": {
+          "elapsedMs": 4.4794,
+          "allocatedBytes": 7963888,
+          "retainedDeltaBytes": -1984808,
+          "inputSha256": "215EEB85644E5112792E118CB10DE50566CE91D0412A8BF2CF30BCF990C432C7"
+        },
+        "candidate-a": {
+          "elapsedMs": 5.3937,
+          "allocatedBytes": 7195832,
+          "retainedDeltaBytes": -2284984,
+          "inputSha256": "215EEB85644E5112792E118CB10DE50566CE91D0412A8BF2CF30BCF990C432C7"
+        },
+        "candidate-b": {
+          "elapsedMs": 4.5744,
+          "allocatedBytes": 7192616,
+          "retainedDeltaBytes": -2278880,
+          "inputSha256": "215EEB85644E5112792E118CB10DE50566CE91D0412A8BF2CF30BCF990C432C7"
+        },
+        "baseline-b": {
+          "elapsedMs": 4.5932,
+          "allocatedBytes": 7953648,
+          "retainedDeltaBytes": -1003448,
+          "inputSha256": "215EEB85644E5112792E118CB10DE50566CE91D0412A8BF2CF30BCF990C432C7"
+        }
+      },
+      "allocationChangePercent": -9.60631092651526,
+      "elapsedChangePercent": 9.870378943191561
+    },
+    {
+      "scenario": "Numbers-Small",
+      "operation": "LoadProject",
+      "inputSha256": "215EEB85644E5112792E118CB10DE50566CE91D0412A8BF2CF30BCF990C432C7",
+      "runs": {
+        "baseline-a": {
+          "elapsedMs": 3.0726,
+          "allocatedBytes": 7006088,
+          "retainedDeltaBytes": -3960144,
+          "inputSha256": "215EEB85644E5112792E118CB10DE50566CE91D0412A8BF2CF30BCF990C432C7"
+        },
+        "candidate-a": {
+          "elapsedMs": 3.9941,
+          "allocatedBytes": 6238112,
+          "retainedDeltaBytes": -5841472,
+          "inputSha256": "215EEB85644E5112792E118CB10DE50566CE91D0412A8BF2CF30BCF990C432C7"
+        },
+        "candidate-b": {
+          "elapsedMs": 3.2199,
+          "allocatedBytes": 6234736,
+          "retainedDeltaBytes": -5788464,
+          "inputSha256": "215EEB85644E5112792E118CB10DE50566CE91D0412A8BF2CF30BCF990C432C7"
+        },
+        "baseline-b": {
+          "elapsedMs": 3.537,
+          "allocatedBytes": 6995768,
+          "retainedDeltaBytes": 3151104,
+          "inputSha256": "215EEB85644E5112792E118CB10DE50566CE91D0412A8BF2CF30BCF990C432C7"
+        }
+      },
+      "allocationChangePercent": -10.920038029244129,
+      "elapsedChangePercent": 9.144274993948187
+    },
+    {
+      "scenario": "Pages-Large",
+      "operation": "ConvertSave",
+      "inputSha256": "4960D1293D344C6E382DF0193D69BBD57901EB46958ED0E0D2EEE6C50C1A9B16",
+      "runs": {
+        "baseline-a": {
+          "elapsedMs": 344.9421,
+          "allocatedBytes": 52582760,
+          "retainedDeltaBytes": -2573584,
+          "inputSha256": "4960D1293D344C6E382DF0193D69BBD57901EB46958ED0E0D2EEE6C50C1A9B16"
+        },
+        "candidate-a": {
+          "elapsedMs": 64.3782,
+          "allocatedBytes": 53266520,
+          "retainedDeltaBytes": -2316704,
+          "inputSha256": "4960D1293D344C6E382DF0193D69BBD57901EB46958ED0E0D2EEE6C50C1A9B16"
+        },
+        "candidate-b": {
+          "elapsedMs": 55.3651,
+          "allocatedBytes": 53264048,
+          "retainedDeltaBytes": -2291800,
+          "inputSha256": "4960D1293D344C6E382DF0193D69BBD57901EB46958ED0E0D2EEE6C50C1A9B16"
+        },
+        "baseline-b": {
+          "elapsedMs": 400.3,
+          "allocatedBytes": 52572712,
+          "retainedDeltaBytes": -2495544,
+          "inputSha256": "4960D1293D344C6E382DF0193D69BBD57901EB46958ED0E0D2EEE6C50C1A9B16"
+        }
+      },
+      "allocationChangePercent": 1.307678976515847,
+      "elapsedChangePercent": -83.93229529034927
+    },
+    {
+      "scenario": "Pages-Large",
+      "operation": "LoadProject",
+      "inputSha256": "4960D1293D344C6E382DF0193D69BBD57901EB46958ED0E0D2EEE6C50C1A9B16",
+      "runs": {
+        "baseline-a": {
+          "elapsedMs": 12.2085,
+          "allocatedBytes": 19131240,
+          "retainedDeltaBytes": 38976,
+          "inputSha256": "4960D1293D344C6E382DF0193D69BBD57901EB46958ED0E0D2EEE6C50C1A9B16"
+        },
+        "candidate-a": {
+          "elapsedMs": 13.5912,
+          "allocatedBytes": 19174600,
+          "retainedDeltaBytes": -2311384,
+          "inputSha256": "4960D1293D344C6E382DF0193D69BBD57901EB46958ED0E0D2EEE6C50C1A9B16"
+        },
+        "candidate-b": {
+          "elapsedMs": 13.8877,
+          "allocatedBytes": 19172136,
+          "retainedDeltaBytes": -2293912,
+          "inputSha256": "4960D1293D344C6E382DF0193D69BBD57901EB46958ED0E0D2EEE6C50C1A9B16"
+        },
+        "baseline-b": {
+          "elapsedMs": 13.0142,
+          "allocatedBytes": 19120920,
+          "retainedDeltaBytes": 38928,
+          "inputSha256": "4960D1293D344C6E382DF0193D69BBD57901EB46958ED0E0D2EEE6C50C1A9B16"
+        }
+      },
+      "allocationChangePercent": 0.2472435543509066,
+      "elapsedChangePercent": 8.945116898666683
+    },
+    {
+      "scenario": "Pages-Medium",
+      "operation": "ConvertSave",
+      "inputSha256": "7E90F13F26622451FAA239998BC4B1DE577FFFB300CC88D6C93B9676BE6D60B8",
+      "runs": {
+        "baseline-a": {
+          "elapsedMs": 10.2039,
+          "allocatedBytes": 9342360,
+          "retainedDeltaBytes": 40264,
+          "inputSha256": "7E90F13F26622451FAA239998BC4B1DE577FFFB300CC88D6C93B9676BE6D60B8"
+        },
+        "candidate-a": {
+          "elapsedMs": 10.3942,
+          "allocatedBytes": 9379408,
+          "retainedDeltaBytes": -6468736,
+          "inputSha256": "7E90F13F26622451FAA239998BC4B1DE577FFFB300CC88D6C93B9676BE6D60B8"
+        },
+        "candidate-b": {
+          "elapsedMs": 10.8965,
+          "allocatedBytes": 9375760,
+          "retainedDeltaBytes": -6427344,
+          "inputSha256": "7E90F13F26622451FAA239998BC4B1DE577FFFB300CC88D6C93B9676BE6D60B8"
+        },
+        "baseline-b": {
+          "elapsedMs": 10.4377,
+          "allocatedBytes": 9332040,
+          "retainedDeltaBytes": 34864,
+          "inputSha256": "7E90F13F26622451FAA239998BC4B1DE577FFFB300CC88D6C93B9676BE6D60B8"
+        }
+      },
+      "allocationChangePercent": 0.4325065330077482,
+      "elapsedChangePercent": 3.144620572048673
+    },
+    {
+      "scenario": "Pages-Medium",
+      "operation": "LoadProject",
+      "inputSha256": "7E90F13F26622451FAA239998BC4B1DE577FFFB300CC88D6C93B9676BE6D60B8",
+      "runs": {
+        "baseline-a": {
+          "elapsedMs": 2.4628,
+          "allocatedBytes": 5518000,
+          "retainedDeltaBytes": 1931464,
+          "inputSha256": "7E90F13F26622451FAA239998BC4B1DE577FFFB300CC88D6C93B9676BE6D60B8"
+        },
+        "candidate-a": {
+          "elapsedMs": 3.3425,
+          "allocatedBytes": 5489496,
+          "retainedDeltaBytes": 1871160,
+          "inputSha256": "7E90F13F26622451FAA239998BC4B1DE577FFFB300CC88D6C93B9676BE6D60B8"
+        },
+        "candidate-b": {
+          "elapsedMs": 2.7475,
+          "allocatedBytes": 5487032,
+          "retainedDeltaBytes": 1865312,
+          "inputSha256": "7E90F13F26622451FAA239998BC4B1DE577FFFB300CC88D6C93B9676BE6D60B8"
+        },
+        "baseline-b": {
+          "elapsedMs": 2.8194,
+          "allocatedBytes": 5507680,
+          "retainedDeltaBytes": 1905624,
+          "inputSha256": "7E90F13F26622451FAA239998BC4B1DE577FFFB300CC88D6C93B9676BE6D60B8"
+        }
+      },
+      "allocationChangePercent": -0.4457956334665947,
+      "elapsedChangePercent": 15.29287039491123
+    },
+    {
+      "scenario": "Pages-Small",
+      "operation": "ConvertSave",
+      "inputSha256": "0D78DE323C97BDD374A0AA5C64A4191A639D694FE7C1F33FE13208E4FF393FAE",
+      "runs": {
+        "baseline-a": {
+          "elapsedMs": 3.4516,
+          "allocatedBytes": 5007384,
+          "retainedDeltaBytes": 1280384,
+          "inputSha256": "0D78DE323C97BDD374A0AA5C64A4191A639D694FE7C1F33FE13208E4FF393FAE"
+        },
+        "candidate-a": {
+          "elapsedMs": 3.6677,
+          "allocatedBytes": 4978608,
+          "retainedDeltaBytes": 1231088,
+          "inputSha256": "0D78DE323C97BDD374A0AA5C64A4191A639D694FE7C1F33FE13208E4FF393FAE"
+        },
+        "candidate-b": {
+          "elapsedMs": 4.0801,
+          "allocatedBytes": 4975872,
+          "retainedDeltaBytes": 1229120,
+          "inputSha256": "0D78DE323C97BDD374A0AA5C64A4191A639D694FE7C1F33FE13208E4FF393FAE"
+        },
+        "baseline-b": {
+          "elapsedMs": 3.708,
+          "allocatedBytes": 4997040,
+          "retainedDeltaBytes": 1274536,
+          "inputSha256": "0D78DE323C97BDD374A0AA5C64A4191A639D694FE7C1F33FE13208E4FF393FAE"
+        }
+      },
+      "allocationChangePercent": -0.4992191454500583,
+      "elapsedChangePercent": 8.215542767752382
+    },
+    {
+      "scenario": "Pages-Small",
+      "operation": "LoadProject",
+      "inputSha256": "0D78DE323C97BDD374A0AA5C64A4191A639D694FE7C1F33FE13208E4FF393FAE",
+      "runs": {
+        "baseline-a": {
+          "elapsedMs": 2.4782,
+          "allocatedBytes": 4204096,
+          "retainedDeltaBytes": -2552488,
+          "inputSha256": "0D78DE323C97BDD374A0AA5C64A4191A639D694FE7C1F33FE13208E4FF393FAE"
+        },
+        "candidate-a": {
+          "elapsedMs": 2.832,
+          "allocatedBytes": 4168392,
+          "retainedDeltaBytes": -2298200,
+          "inputSha256": "0D78DE323C97BDD374A0AA5C64A4191A639D694FE7C1F33FE13208E4FF393FAE"
+        },
+        "candidate-b": {
+          "elapsedMs": 2.5932,
+          "allocatedBytes": 4165792,
+          "retainedDeltaBytes": -2270320,
+          "inputSha256": "0D78DE323C97BDD374A0AA5C64A4191A639D694FE7C1F33FE13208E4FF393FAE"
+        },
+        "baseline-b": {
+          "elapsedMs": 2.414,
+          "allocatedBytes": 4193776,
+          "retainedDeltaBytes": 33680,
+          "inputSha256": "0D78DE323C97BDD374A0AA5C64A4191A639D694FE7C1F33FE13208E4FF393FAE"
+        }
+      },
+      "allocationChangePercent": -0.7583825997824256,
+      "elapsedChangePercent": 10.894893912759063
+    }
+  ],
+  "wholeMatrixProcessObservations": {
+    "baseline-a": {
+      "maximum resident set size": 404209664,
+      "peak memory footprint": 340411520,
+      "instructions retired": 319214080252,
+      "cycles elapsed": 94385377763
+    },
+    "candidate-a": {
+      "maximum resident set size": 387416064,
+      "peak memory footprint": 323601536,
+      "instructions retired": 242080376757,
+      "cycles elapsed": 86910831621
+    },
+    "candidate-b": {
+      "maximum resident set size": 383893504,
+      "peak memory footprint": 324863104,
+      "instructions retired": 247559114123,
+      "cycles elapsed": 86445670440
+    },
+    "baseline-b": {
+      "maximum resident set size": 368312320,
+      "peak memory footprint": 338855016,
+      "instructions retired": 309582125527,
+      "cycles elapsed": 101186708581
+    }
+  },
+  "qualification": {
+    "allocations": "Repeated managed allocation in semantically verified synthetic workloads, including PowerForge host invocation. No portable ceilings.",
+    "retained": "Collected managed heap after validation/result release; host/cache effects included, not operation-native peak.",
+    "elapsed": "Balanced same-host observations. macOS affinity/frequency and competing host activity are not controlled; no portable speedup claim. Timing regressions remain visible.",
+    "peak": "macOS time -l process peak for the complete matrix, including input generation, warmup, measurement and validation; not per-operation or library-only peak."
+  },
+  "schemaVersion": 1,
+  "recordedUtc": "2026-10-04T08:00:33Z/2026-10-04T08:02:21Z",
+  "aggregation": "Median of the two per-run medians for each variant; raw samples include all successful measured iterations. Negative change means fewer bytes or less elapsed time.",
+  "hostConditions": {
+    "power": "AC; LowPowerMode=0",
+    "processorPlacement": "Inherited; no macOS affinity or frequency control",
+    "activity": "Native test apps and task builds idle; unrelated processes were left running. Host snapshots included VBCSCompiler and WindowServer activity.",
+    "memory": "Approximately 22 GB used, 5 GB compressed and 1.3 GB free in the recorded snapshot."
+  },
+  "sampleFiles": {
+    "baseline-a": "baseline-a-samples.json",
+    "candidate-a": "candidate-a-samples.json",
+    "candidate-b": "candidate-b-samples.json",
+    "baseline-b": "baseline-b-samples.json"
+  }
+}

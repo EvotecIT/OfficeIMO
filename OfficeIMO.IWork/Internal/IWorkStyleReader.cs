@@ -4,7 +4,8 @@ namespace OfficeIMO.IWork.Internal;
 internal static class IWorkStyleReader {
     internal static IReadOnlyList<(IWorkArchiveRecord Record, IWorkWireMessage Message)> ReadChain(IWorkObjectIndex index,
         ulong identifier, int maximumDepth, Func<uint, bool> allowedType,
-        bool tolerateStyleDepth, IWorkSourceReferenceIssueCollector references, ref bool complete) {
+        bool tolerateStyleDepth, IWorkSourceReferenceIssueCollector references, ref bool complete,
+        int superArchiveDepth = 1) {
         var chain = new List<(IWorkArchiveRecord Record, IWorkWireMessage Message)>();
         var seen = new HashSet<ulong>();
         ulong current = identifier;
@@ -35,15 +36,21 @@ internal static class IWorkStyleReader {
                 break;
             }
             chain.Add((record, message));
-            IWorkWireMessage? super = IWorkObjectIndex.TryGetMessage(message, 1, out bool malformedSuper);
-            if (malformedSuper || message.FieldCount(1) > 1 || message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
-                || message.HasField(1) && super == null) {
-                references.Declarations.Record(record, "1", message.FieldCount(1));
-                complete = false;
-                break;
+            IWorkWireMessage? super = message;
+            string superPath = string.Empty;
+            for (int level = 0; level < superArchiveDepth && super != null; level++) {
+                superPath = superPath.Length == 0 ? "1" : superPath + "/1";
+                IWorkWireMessage? nested = IWorkObjectIndex.TryGetMessage(super, 1, out bool malformedSuper);
+                if (malformedSuper || super.HasField(1) && nested == null) {
+                    references.Declarations.Record(record, superPath, super.FieldCount(1));
+                    complete = false;
+                    super = null;
+                    break;
+                }
+                super = nested;
             }
             if (super == null) break;
-            IWorkArchiveRecord? parent = references.ReadOne(record, super, 3, "1/3", allowedType);
+            IWorkArchiveRecord? parent = references.ReadOne(record, super, 3, superPath + "/3", allowedType);
             if (super.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)
                 || super.HasField(3) && (parent == null || !allowedType(parent.MessageType))) {
                 complete = false;

@@ -6,6 +6,11 @@ namespace OfficeIMO.Visio {
         /// <summary>Default maximum VSDX bytes buffered while loading: 512 MiB.</summary>
         public const long DefaultMaxInputBytes = 512L * 1024L * 1024L;
 
+        /// <summary>Creates bounded options that reject active, embedded, and externally linked package content.</summary>
+        public static VisioLoadOptions UntrustedDefaults => new VisioLoadOptions {
+            PackageSecurity = OfficePackageSecurityOptions.UntrustedDefaults
+        };
+
         /// <summary>
         /// Maximum VSDX bytes buffered by stream and asynchronous load APIs. Default: 512 MiB. Set to null to disable this compatibility guard.
         /// </summary>

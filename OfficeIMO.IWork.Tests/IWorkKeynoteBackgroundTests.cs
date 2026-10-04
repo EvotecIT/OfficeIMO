@@ -29,7 +29,7 @@ public sealed partial class IWorkBoundaryTests {
             saved.Position = 0;
             using var xml = DocumentFormat.OpenXml.Packaging.PresentationDocument.Open(saved, false);
             Assert.IsType<DocumentFormat.OpenXml.Drawing.NoFill>(Assert.Single(xml.PresentationPart!.SlideParts.Single()
-                .Slide.CommonSlideData!.Background!.BackgroundProperties!.ChildElements));
+                .Slide!.CommonSlideData!.Background!.BackgroundProperties!.ChildElements));
             Assert.Equal(PowerPointSlideBackgroundKind.None, reopened.Slides[0].GetBackground().Kind);
         }
         package.Position = 0;
@@ -43,18 +43,23 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("alpha")]
     [InlineData("p3")]
     [InlineData("unknown-color")]
+    [InlineData("non-neutral-extra-color")]
+    [InlineData("malformed-extra-color")]
+    [InlineData("duplicate-extra-color")]
     [InlineData("malformed")]
     public void Keynote_unsupported_backgrounds_gate_editable_conversion_with_physical_evidence(string kind) {
         byte[] fill = kind switch {
             "gradient" => BytesField(2, Message()),
             "alpha" => FillColor(1, 0, 0, .5f),
             "p3" => FillColor(1, 0, 0, space: 2),
-            "unknown-color" => BytesField(1, Message(VarintField(1, 1), FloatField(3, 1), FloatField(4, 0),
-                FloatField(5, 0), FloatField(6, 1), VarintField(12, 1), FloatField(13, 1))),
+            "unknown-color" => ExtraColorFill(FloatField(14, 1)),
+            "non-neutral-extra-color" => ExtraColorFill(FloatField(13, .5f)),
+            "malformed-extra-color" => ExtraColorFill(VarintField(13, 1)),
+            "duplicate-extra-color" => ExtraColorFill(FloatField(13, 1), FloatField(13, 1)),
             _ => new byte[] { 0x80 }
         };
         using var package = KeynoteWithBuildDeclarations(ReferenceField(1, 10), SlideBackgroundStyle(10, fill));
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.Slides[0].HasBackgroundFill);
         Assert.Contains(result.Report.SourceDeclarationIssues, issue => issue.FieldPath == "11/1");
@@ -65,6 +70,10 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(partial.IsVisualFallback);
         Assert.Null(partial.Value.Slides[0].BackgroundColor);
     }
+
+    private static byte[] ExtraColorFill(params byte[][] extraFields) => BytesField(1, Message(
+        new[] { VarintField(1, 1), FloatField(3, 1), FloatField(4, 0), FloatField(5, 0),
+            FloatField(6, 1), VarintField(12, 1) }.Concat(extraFields).ToArray()));
 
     [Theory]
     [InlineData("missing")]
@@ -80,7 +89,7 @@ public sealed partial class IWorkBoundaryTests {
             _ => new[] { SlideBackgroundStyle(10, FillColor(1, 0, 0)) }
         };
         using var package = KeynoteWithBuildDeclarations(reference, records);
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.Slides[0].HasBackgroundFill);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_KEYNOTE_BACKGROUND_UNSUPPORTED");
@@ -91,7 +100,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = KeynoteWithBuildDeclarations(ReferenceField(1, 10),
             SlideBackgroundStyle(10, null, 11), SlideBackgroundStyle(11, FillColor(1, 0, 0)));
         using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package,
-            readOptions: new IWorkReadOptions { MaximumTextStyleInheritanceDepth = 1 });
+            readOptions: new IWorkReadOptions { MaximumTextStyleInheritanceDepth = 1 }, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.Slides[0].HasBackgroundFill);
     }
@@ -103,7 +112,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = KeynoteWithBuildDeclarations(Message(ReferenceField(17, 12),
             hasStyle ? ReferenceField(1, 10) : Message()), SlideBackgroundStyle(10, null),
             ArchiveRecord(12, 5, ReferenceField(1, 11)), SlideBackgroundStyle(11, FillColor(1, 0, 0)));
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.SourceDeclarationIssues, issue => issue.FieldPath == "17");
     }
@@ -139,6 +148,21 @@ public sealed partial class IWorkBoundaryTests {
                     d => d.Code == "IWORK_KEYNOTE_BACKGROUND_UNSUPPORTED" && d.RecordIdentifier == slide.SourceIdentity!.RecordIdentifier);
             }
         }
+    }
+
+    [Fact]
+    public void Keynote_15_4_native_color_profile_survives_strict_conversion_and_saved_output() {
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(
+            Fixture("native-exports/keynote-colors-v15.4.key"));
+        result.Report.RequireCompleteEditableReconstruction();
+        Assert.False(result.IsVisualFallback);
+        Assert.Equal(new[] { "56C1FF", "FF968D" }, result.Projection.Slides.Select(slide => slide.BackgroundColor?.RgbHex));
+        Assert.Contains("wrapped title keeps all of its lines in this fixed frame", result.Projection.Slides[1].TitleBox!.Content.PlainText);
+        using var saved = new MemoryStream();
+        result.Value.Save(saved); saved.Position = 0;
+        using var reopened = PowerPointPresentation.Load(saved);
+        Assert.Equal(new[] { "56C1FF", "FF968D" }, reopened.Slides.Select(slide => slide.BackgroundColor));
+        Assert.Empty(reopened.ValidateDocument());
     }
 
     private static byte[] SlideBackgroundStyle(ulong id, byte[]? fill, ulong? parent = null) =>

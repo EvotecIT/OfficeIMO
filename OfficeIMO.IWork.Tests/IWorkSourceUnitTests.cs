@@ -79,7 +79,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void A_visual_preview_does_not_establish_individual_source_unit_coverage() {
         using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(CorpusFixture("nim-iwork/simple.key"),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly });
+            conversionOptions: IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly }));
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Report.HasCompleteVisualCoverage);
         Assert.NotEmpty(result.Report.SourceUnits);

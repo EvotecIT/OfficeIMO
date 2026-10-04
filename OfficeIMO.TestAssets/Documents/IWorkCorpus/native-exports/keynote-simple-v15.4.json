@@ -1,0 +1,166 @@
+{
+  "source": "nim-iwork/simple.key",
+  "sourceSha256": "ba95755df82ceb0ca834e1e03e2777c34fad906320d8336b4f3fefc6b48607eb",
+  "sourceModified": false,
+  "sourceProducerVersion": "14.5",
+  "producer": "Apple Keynote",
+  "producerVersion": "15.4",
+  "capturedUtc": "2026-10-04T07:55:58.324210+00:00",
+  "renderer": "Apple Keynote 15.4 on macOS 27.0.1 (26A434)",
+  "exports": {
+    "pptx": {
+      "path": "native-exports/keynote-simple-v15.4.pptx",
+      "sha256": "ce1465446e82bd11f177452b1725222a110ef378b9244299369b4cddebd989d2"
+    },
+    "sourcePdf": {
+      "path": "native-exports/keynote-simple-v15.4.pdf",
+      "sha256": "a09c0db5e90f1c86d340bb158f95f07787c4549deffbb5b986fda3fbe1988ffa"
+    },
+    "nativePptxRoundTripPdf": {
+      "path": "native-exports/keynote-simple-apple-pptx-roundtrip-v15.4.pdf",
+      "sha256": "553db5b3f872d36de132c3d5256ebafc2788a62cf39caa36da48f3e3f87e9a9a"
+    },
+    "officeimoPptxPdf": {
+      "path": "native-exports/keynote-simple-officeimo-v15.4.pdf",
+      "sha256": "8f9b2ff6354f5123a2531fecc5f83315cfc39e80d904fa3dbda8b181ffaf1ab0"
+    }
+  },
+  "exportOptions": {
+    "pptx": "PowerPoint .pptx; no password.",
+    "pdf": "Best image quality; all slides; presenter notes, skipped slides, build stages, comments and password disabled."
+  },
+  "sourceFieldEvidence": "native-exports/keynote-text-layout.json",
+  "qualified": {
+    "slideCount": 2,
+    "slideOrder": [
+      "hello keynote",
+      "second slide"
+    ],
+    "presenterNote": "note text here",
+    "geometryToleranceEmu": 2,
+    "textInsetsPoints": [
+      4,
+      4,
+      4,
+      4
+    ],
+    "verticalAnchors": [
+      "Bottom",
+      "Top"
+    ],
+    "shrinkToFit": true,
+    "firstBullet": {
+      "textFontSizePoints": 38,
+      "leftMarginPoints": 38,
+      "firstLineIndentPoints": -38,
+      "markerSizePercent": 123
+    }
+  },
+  "fontProvenance": {
+    "source": [
+      "Times-Roman",
+      "HelveticaNeue-Bold"
+    ],
+    "pptx": [
+      "Times Roman",
+      "Helvetica Neue"
+    ],
+    "origin": "Installed macOS fonts; no standalone font distributed.",
+    "importWarning": "OfficeIMO PPTX declares unused Aptos in its default theme, causing a missing-font banner. Text uses the recorded installed fonts; no repair prompt."
+  },
+  "destinationRendering": {
+    "convertedPptxSha256": "0689f0e4f7f2a1623e65f2529c24a7810687457dd815fa26ee84616edd250cb3",
+    "importRepairPrompt": false,
+    "visuallyInspected": true,
+    "sourceFiles": [
+      {
+        "path": "OfficeIMO.PowerPoint.IWork/PowerPointIWorkConverter.Api.cs",
+        "sha256": "cc800d0ddcfa173438b81dcd8c05e76dbbb23843438c6fdffdeeb59a0ecfa0ab"
+      },
+      {
+        "path": "OfficeIMO.PowerPoint.IWork/PowerPointIWorkConverter.Cancellation.cs",
+        "sha256": "3fc269587bcdbfcfb17bdf69740c7fe27a1688af8c969b7c0b5d3aeb00e57d50"
+      },
+      {
+        "path": "OfficeIMO.PowerPoint.IWork/PowerPointIWorkConverter.Tables.cs",
+        "sha256": "5ae86907b776854ea2d8d360ef5aa1f2988c19731ffb30623c3dcd2de69d5e2a"
+      },
+      {
+        "path": "OfficeIMO.PowerPoint.IWork/PowerPointIWorkConverter.Text.cs",
+        "sha256": "b40dd992c0967243d5b4e04950ae7dffaac05db6819135c1444adaf04db88491"
+      },
+      {
+        "path": "OfficeIMO.PowerPoint.IWork/PowerPointIWorkConverter.cs",
+        "sha256": "9111558610714da0cfe60119d0125f1b6ef4c4e317601387547adc2a07707d31"
+      }
+    ]
+  },
+  "renderComparison": {
+    "rasterizer": "pdftoppm 26.09.0",
+    "options": "-scale-to 1200 -png",
+    "slideSizePoints": [
+      1024,
+      768
+    ],
+    "nativePptxRoundTripRasterSha256": [
+      "f745df9ca8fc7650076ba12504860b8ac91277208419cf8ec6f8de39b9e1fb45",
+      "012ff381326099e990d0bf8b851ff38063a8c85907d653800fa28e4311c98d83"
+    ],
+    "officeimoPptxRasterSha256": [
+      "f745df9ca8fc7650076ba12504860b8ac91277208419cf8ec6f8de39b9e1fb45",
+      "012ff381326099e990d0bf8b851ff38063a8c85907d653800fa28e4311c98d83"
+    ],
+    "nativePptxRoundTripMatch": true,
+    "originalKeyDifference": "The first slide differs from the original .key PDF in fi ligature rendering and a 0.76-point bullet-word advance. The same difference occurs in Apple’s own PPTX round trip. The second slide raster is identical."
+  },
+  "wrappedKeepLinesProbe": {
+    "generator": "Build/IWork/extract-keynote-text-layout.py --wrapped-dir <probe-output>",
+    "inputs": [
+      {
+        "path": "native-exports/keynote-fixed-frame-wrapped-keep.key",
+        "sha256": "608a83682fbc2b0bb53700a686c6d89c0f8114e308cebe657d0c6c5ab654c49d"
+      },
+      {
+        "path": "native-exports/keynote-fixed-frame-wrapped-no-keep.key",
+        "sha256": "867d0d25046a507220a8ca9ed8e254ed49a9b13e998e0556ef2e8e8c65b5b4df"
+      }
+    ],
+    "provenance": "Test-only mutations of the licensed native 14.5 fixture. Only selected body text and paragraph keep-lines differ; no independent producer or OfficeIMO writer claim.",
+    "nativeWorkingCopiesAutoSaved": true,
+    "keepFlagAfterNativeOpen": [
+      true,
+      false
+    ],
+    "nativePdfs": [
+      {
+        "path": "native-exports/keynote-fixed-frame-wrapped-keep-v15.4.pdf",
+        "sha256": "71f69714fd4239893103b75b6cc37a5f30b5e8cf5c65c10793744b66164f17ff"
+      },
+      {
+        "path": "native-exports/keynote-fixed-frame-wrapped-no-keep-v15.4.pdf",
+        "sha256": "138941aedeeccc1099910ae04a7f333e814c10746a982a6f35c869826b0e336e"
+      }
+    ],
+    "nativeKeepRasterSha256": [
+      "b938ef709b78b895c8ae3a18fe45f30d0531b978f6d4cff6b2e1d3d251b291f5",
+      "012ff381326099e990d0bf8b851ff38063a8c85907d653800fa28e4311c98d83"
+    ],
+    "nativeNoKeepRasterSha256": [
+      "b938ef709b78b895c8ae3a18fe45f30d0531b978f6d4cff6b2e1d3d251b291f5",
+      "012ff381326099e990d0bf8b851ff38063a8c85907d653800fa28e4311c98d83"
+    ],
+    "nativeToggleMatch": true,
+    "strictConvertedPptxSha256": "4817384790f57863c127edd19534c4c8d810e3626cd01961e00229d4dbdf1323",
+    "destinationPdf": {
+      "path": "native-exports/keynote-fixed-frame-wrapped-officeimo-v15.4.pdf",
+      "sha256": "ca4697977b7fb672917f7a40b58b8a2e90d037f1238986fb63bb7fb5b5943c84"
+    },
+    "destinationRasterSha256": [
+      "fc260b44f319392c0976ed78e5389e09b1f29347e226a62e76c389a392a66387",
+      "012ff381326099e990d0bf8b851ff38063a8c85907d653800fa28e4311c98d83"
+    ],
+    "visuallyInspected": true,
+    "scope": "Keep-lines is inactive in the recorded unlinked, horizontal, single-column fixed frame. Both native source toggles render identically. Destination wrapping matches the source; the original-to-PPTX ligature difference remains. Notes, table cells, linked flows, keep-with-next and page breaks are not qualified by this probe."
+  },
+  "limits": "Two-slide fixture, selected source styles and recorded fonts/renderer only. Exact theme/master preservation, all typography, other producer versions, complex pagination and newer background color field 13 remain unqualified."
+}

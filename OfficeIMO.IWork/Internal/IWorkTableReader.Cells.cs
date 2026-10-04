@@ -350,26 +350,7 @@ internal static partial class IWorkTableReader {
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
-    private static bool TryReadDateTime(double seconds, out DateTime value) {
-        long epochTicks = new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks;
-        double deltaTicks = seconds * TimeSpan.TicksPerSecond;
-        double roundedDeltaTicks = Math.Round(deltaTicks,
-            MidpointRounding.AwayFromZero);
-        if (!IsFinite(roundedDeltaTicks)
-            || deltaTicks != roundedDeltaTicks
-            || roundedDeltaTicks < -epochTicks
-            || roundedDeltaTicks > DateTime.MaxValue.Ticks - epochTicks) {
-            value = default;
-            return false;
-        }
-        long absoluteTicks = epochTicks + (long)roundedDeltaTicks;
-        if (absoluteTicks < DateTime.MinValue.Ticks
-            || absoluteTicks > DateTime.MaxValue.Ticks) {
-            value = default;
-            return false;
-        }
-        value = new DateTime(absoluteTicks, DateTimeKind.Utc);
-        return true;
-    }
+    private static bool TryReadDateTime(double seconds, out DateTime value) =>
+        IWorkDateTime.TryFromAppleSeconds(seconds, out value, requireExactTicks: true);
 
 }

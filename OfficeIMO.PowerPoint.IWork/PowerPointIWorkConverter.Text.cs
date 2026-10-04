@@ -13,6 +13,19 @@ public static partial class PowerPointIWorkConverter {
         double width = source.Geometry?.WidthPoints ?? fallbackWidth;
         double height = source.Geometry?.HeightPoints ?? fallbackHeight;
         PowerPointTextBox textBox = slide.AddTextBoxPoints(string.Empty, left, top, width, height);
+        if (source.Layout is { } layout) {
+            if (layout.LeftInsetPoints.HasValue) textBox.TextMarginLeftPoints = layout.LeftInsetPoints.Value;
+            if (layout.TopInsetPoints.HasValue) textBox.TextMarginTopPoints = layout.TopInsetPoints.Value;
+            if (layout.RightInsetPoints.HasValue) textBox.TextMarginRightPoints = layout.RightInsetPoints.Value;
+            if (layout.BottomInsetPoints.HasValue) textBox.TextMarginBottomPoints = layout.BottomInsetPoints.Value;
+            if (layout.VerticalAlignment.HasValue) textBox.TextVerticalAlignment = layout.VerticalAlignment.Value switch {
+                IWorkTextVerticalAlignment.Middle => PowerPointTextVerticalAlignment.Center,
+                IWorkTextVerticalAlignment.Bottom => PowerPointTextVerticalAlignment.Bottom,
+                _ => PowerPointTextVerticalAlignment.Top
+            };
+            if (layout.ShrinkToFit.HasValue) textBox.TextAutoFit = layout.ShrinkToFit.Value
+                ? PowerPointTextAutoFit.Normal : PowerPointTextAutoFit.None;
+        }
         textBox.Rotation = source.Geometry?.RotationDegrees;
         textBox.AltText = source.AccessibilityDescription;
         if (source.Hyperlink != null
@@ -67,6 +80,13 @@ public static partial class PowerPointIWorkConverter {
                 else paragraph.SetNumbered(scheme);
             } else if (source.ListLabel!.Length == 1) paragraph.SetBullet(source.ListLabel[0]);
             if (source.ListFontName != null) paragraph.BulletFontName = source.ListFontName;
+            if (source.ListLayout is { } layout && source.Style.TextStyle.FontSizePoints is double fontSize) {
+                double textOffset = layout.TextIndentEm * fontSize;
+                paragraph.LeftMarginPoints = source.Style.LeftIndentPoints.GetValueOrDefault()
+                    + layout.MarkerIndentPoints + textOffset;
+                paragraph.IndentPoints = source.Style.FirstLineIndentPoints.GetValueOrDefault() - textOffset;
+                paragraph.BulletSizePercent = checked((int)Math.Round(layout.MarkerScale * 100d));
+            }
         }
     }
 

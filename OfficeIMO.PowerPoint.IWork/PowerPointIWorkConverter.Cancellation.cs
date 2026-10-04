@@ -8,7 +8,7 @@ public static partial class PowerPointIWorkConverter {
     public static PowerPointPresentation ConvertKeynoteToPowerPoint(string path,
         IWorkReadOptions? readOptions, IWorkConversionOptions? conversionOptions,
         CancellationToken cancellationToken) =>
-        ConvertKeynoteToPowerPointResult(path, readOptions, conversionOptions, cancellationToken).Value;
+        ConvertKeynoteToPowerPointResult(path, readOptions, conversionOptions, cancellationToken).RequireCompleteEditableReconstruction();
 
     /// <summary>Converts a Keynote file or directory bundle with cancellation and retains source evidence.</summary>
     /// <remarks>Cancellation governs loading, semantic projection, and destination construction. Saving is a separate owner operation.</remarks>
@@ -25,7 +25,7 @@ public static partial class PowerPointIWorkConverter {
     public static PowerPointPresentation ConvertKeynoteToPowerPoint(Stream stream,
         IWorkReadOptions? readOptions, IWorkConversionOptions? conversionOptions,
         CancellationToken cancellationToken) =>
-        ConvertKeynoteToPowerPointResult(stream, readOptions, conversionOptions, cancellationToken).Value;
+        ConvertKeynoteToPowerPointResult(stream, readOptions, conversionOptions, cancellationToken).RequireCompleteEditableReconstruction();
 
     /// <summary>Converts a Keynote caller-owned ZIP stream with cancellation and retains source evidence.</summary>
     /// <remarks>Cancellation governs loading, semantic projection, and destination construction. Saving is a separate owner operation.</remarks>

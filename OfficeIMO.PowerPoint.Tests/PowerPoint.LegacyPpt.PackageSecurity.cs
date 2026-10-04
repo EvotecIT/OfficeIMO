@@ -110,10 +110,7 @@ namespace OfficeIMO.Tests {
                 }
                 packageBytes = editable.ToArray();
             }
-            var loadOptions = new PowerPointLoadOptions {
-                PackageSecurity = OfficePackageSecurityOptions
-                    .UntrustedDefaults
-            };
+            var loadOptions = PowerPointLoadOptions.UntrustedDefaults;
 
             using (var input = new MemoryStream(packageBytes,
                        writable: false)) {

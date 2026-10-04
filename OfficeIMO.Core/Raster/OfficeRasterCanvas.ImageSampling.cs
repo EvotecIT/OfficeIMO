@@ -12,6 +12,9 @@ public sealed partial class OfficeRasterCanvas {
         int width = ReducedSamplingDimension(image.Width, footprintX);
         int height = ReducedSamplingDimension(image.Height, footprintY);
         if (width == image.Width && height == image.Height) return image;
+        _cancellationToken.ThrowIfCancellationRequested();
+        _transformedTextBudget.ChargeIntermediateSurfacePixels(
+            OfficeRasterResampler.GetAdditionalHighQualityPixelBufferCost(image.Width, image.Height, width, height));
         return OfficeRasterResampler.Resize(image, width, height, OfficeRasterResamplingMode.Area,
             OfficeRasterResamplingColorSpace.EncodedSrgb, checked((long)Width * Height * 4L), _cancellationToken);
     }

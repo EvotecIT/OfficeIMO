@@ -23,6 +23,27 @@ public sealed partial class OfficeRasterCanvas {
     }
 
     /// <summary>
+    /// Clips renderer-owned rectangular polygons using their original pixel-centre coverage.
+    /// Unlike the public rectangular clip, this excludes boundary pixels whose centres lie outside the polygon.
+    /// </summary>
+    internal IDisposable PushClipRectangleAtPixelCentres(double left, double top, double right, double bottom) {
+        OfficeRasterClipRegion? previous = _clipRegion;
+        var next = new OfficeRasterClipRectangle(
+            ResolvePixelCentreBoundary(left, Width),
+            ResolvePixelCentreBoundary(top, Height),
+            ResolvePixelCentreBoundary(right, Width),
+            ResolvePixelCentreBoundary(bottom, Height));
+        _clipRegion = OfficeRasterClipRegion.Rectangle(next, previous);
+        return new ClipScope(this, previous);
+    }
+
+    private static int ResolvePixelCentreBoundary(double edge, int limit) {
+        if (edge <= 0.5D) return 0;
+        if (edge >= limit + 0.5D) return limit;
+        return (int)Math.Ceiling(edge - 0.5D);
+    }
+
+    /// <summary>
     /// Restricts subsequent raster drawing to the supplied polygon until the returned scope is disposed.
     /// Nested clips are intersected with the current clip.
     /// </summary>
@@ -110,8 +131,13 @@ public sealed partial class OfficeRasterCanvas {
             _previous = previous;
         }
 
-        internal static OfficeRasterClipRegion Rectangle(OfficeRasterClipRectangle rectangle, OfficeRasterClipRegion? previous) =>
-            new OfficeRasterClipRegion(rectangle, null, OfficeFillRule.EvenOdd, previous);
+        internal static OfficeRasterClipRegion Rectangle(OfficeRasterClipRectangle rectangle, OfficeRasterClipRegion? previous) {
+            if (previous != null && previous._rectangle.HasValue) {
+                rectangle = OfficeRasterClipRectangle.Intersect(rectangle, previous._rectangle.Value);
+                previous = previous._previous;
+            }
+            return new OfficeRasterClipRegion(rectangle, null, OfficeFillRule.EvenOdd, previous);
+        }
 
         internal static OfficeRasterClipRegion Polygon(IReadOnlyList<OfficePoint> points, OfficeRasterClipRegion? previous) =>
             new OfficeRasterClipRegion(null, new[] { points }, OfficeFillRule.EvenOdd, previous);

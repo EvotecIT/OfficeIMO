@@ -7871,6 +7871,20 @@
       "limitation":"Unsupported destinations, fields, embedded objects, complex tables, and producer-specific RTF controls are simplified or reported."
     },
     {
+      "id":"native:keynote-native-creation:create",
+      "packageId":"OfficeIMO.IWork",
+      "formatId":"IWork.Keynote",
+      "targetFormatId":"",
+      "capabilityId":"keynote-native-creation",
+      "operation":"Create",
+      "state":"Supported",
+      "publicApi":"IWorkKeynoteDocument.Create / AddSlide / AddText / SaveBytes / Save",
+      "evidence":"OfficeIMO.IWork.Tests creation contracts; native-exports/keynote-created-v15.4.json independent decoding and Apple reopen/export/edit evidence::Create",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".key"],
+      "limitation":"Template-free creation supports static slides with opaque sRGB backgrounds and positioned, uniformly styled plain text. Native acceptance is fixture-specific to Keynote 15.4; it does not qualify all fonts, producer versions, rich runs, media, tables, builds, or editing loaded packages."
+    },
+    {
       "id":"native:iwork-native:create",
       "packageId":"OfficeIMO.IWork",
       "formatId":"IWork.Native",
@@ -7878,11 +7892,11 @@
       "capabilityId":"iwork-native",
       "operation":"Create",
       "state":"Unsupported",
-      "publicApi":"IWorkSourceDocument.Open / project to Pages, Numbers, or Keynote",
-      "evidence":"OfficeIMO.IWork.Tests bounded package inspection, typed projection, preview, and conversion-report contracts::Create",
+      "publicApi":"IWorkSourceDocument.Open / project to Pages or Numbers",
+      "evidence":"OfficeIMO.IWork.Tests source inspection and conversion contracts::Create",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
-      "extensions":[".key",".numbers",".pages"],
-      "limitation":"Modern IWA packages are bounded read-only sources; OfficeIMO does not author or rewrite iWork packages, and projections report unsupported records and visual fallbacks."
+      "extensions":[".numbers",".pages"],
+      "limitation":"Native Pages and Numbers creation is not supported."
     },
     {
       "id":"native:iwork-native:read",
@@ -7896,7 +7910,7 @@
       "evidence":"OfficeIMO.IWork.Tests bounded package inspection, typed projection, preview, and conversion-report contracts::Read",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".key",".numbers",".pages"],
-      "limitation":"Modern IWA packages are bounded read-only sources; OfficeIMO does not author or rewrite iWork packages, and projections report unsupported records and visual fallbacks."
+      "limitation":"Loaded modern IWA packages remain read-only sources; projections report unsupported records and visual fallbacks, and loaded packages cannot be edited or rewritten."
     },
     {
       "id":"native:iwork-native:edit",
@@ -7910,7 +7924,7 @@
       "evidence":"OfficeIMO.IWork.Tests bounded package inspection, typed projection, preview, and conversion-report contracts::Edit",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".key",".numbers",".pages"],
-      "limitation":"Modern IWA packages are bounded read-only sources; OfficeIMO does not author or rewrite iWork packages, and projections report unsupported records and visual fallbacks."
+      "limitation":"Loaded modern IWA packages remain read-only sources; projections report unsupported records and visual fallbacks, and loaded packages cannot be edited or rewritten."
     },
     {
       "id":"native:iwork-native:preserve",
@@ -7924,7 +7938,7 @@
       "evidence":"OfficeIMO.IWork.Tests bounded package inspection, typed projection, preview, and conversion-report contracts::Preserve",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".key",".numbers",".pages"],
-      "limitation":"Modern IWA packages are bounded read-only sources; OfficeIMO does not author or rewrite iWork packages, and projections report unsupported records and visual fallbacks."
+      "limitation":"Loaded modern IWA packages remain read-only sources; projections report unsupported records and visual fallbacks, and loaded packages cannot be edited or rewritten."
     },
     {
       "id":"native:iwork-native:inspect",
@@ -7938,7 +7952,7 @@
       "evidence":"OfficeIMO.IWork.Tests bounded package inspection, typed projection, preview, and conversion-report contracts::Inspect",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".key",".numbers",".pages"],
-      "limitation":"Modern IWA packages are bounded read-only sources; OfficeIMO does not author or rewrite iWork packages, and projections report unsupported records and visual fallbacks."
+      "limitation":"Loaded modern IWA packages remain read-only sources; projections report unsupported records and visual fallbacks, and loaded packages cannot be edited or rewritten."
     },
     {
       "id":"native:latex-native:create",
