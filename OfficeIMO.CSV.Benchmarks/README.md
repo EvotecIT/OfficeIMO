@@ -135,19 +135,26 @@ records the long-note improvement and the limits of short-row timing on a busy P
 
 ## Document saves and compression
 
-`CsvDocumentSaveBenchmarks` measures `CsvDocument.Save(Stream)` and
-`SaveAsync(Stream)` with fresh caller-owned memory streams. It covers 1,000 and
+`CsvDocumentSaveBenchmarks` measures `CsvDocument.Save(Stream)`,
+`SaveAsync(Stream)`, `ToBytes()`, `Save(path)`, and `SaveAsync(path)`. It covers 1,000 and
 25,000 rows, plain text, multiline quoted Unicode, mixed JSON and typed values,
 and uncompressed, GZip, Deflate, Brotli and ZLib output. Document preparation is
 outside timing; serialization, compression, destination growth and disposal are
 inside it. This lane compares OfficeIMO APIs, not equivalent cross-library APIs.
 
-Setup decompresses both outputs, compares their complete text with an independent
+The same fixtures also cover `CsvRowWriter.CreateFile`, sequential data-reader
+exports to streams, and parallel exports with four workers and 512-row batches.
+
+Setup decompresses all eight outputs, compares their complete text with an independent
 CsvHelper reference, checks every field, and verifies that the destination remains
 open. Compressed bytes may differ while decoded text remains identical. The lane
 uses empty streams and makes no claim about overwriting existing stream content.
-Managed allocation includes the destination; it does not measure retained or peak
-memory, file I/O, or the latency of a destination that suspends asynchronous writes.
+File saves include serialization, file creation or replacement, and disposal. Each
+benchmark instance owns a unique directory beneath `OFFICEIMO_BENCHMARK_OUTPUT`
+(or the system temporary directory), and cleanup removes its files. File timing
+depends on the filesystem and its caches; these operations do not request a durable
+disk flush. Managed allocation includes the destination; it does not measure
+retained or peak memory or the latency of a stream that suspends asynchronous writes.
 
 ```powershell
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks -- --filter "*CsvDocumentSaveBenchmarks*" --priority Normal --invocationCount 4 --unrollFactor 1 --warmupCount 12 --iterationCount 16 --outliers DontRemove --artifacts ./Ignore/Benchmarks/csv-document-save

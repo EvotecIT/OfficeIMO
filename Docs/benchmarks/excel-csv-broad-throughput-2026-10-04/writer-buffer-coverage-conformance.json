@@ -1,0 +1,1069 @@
+{
+  "CapturedUtc": "2026-10-04T22:31:29.0279793Z",
+  "SourceBase": "a643e1913151b12c6deb98cad773712b2cda298b",
+  "Purpose": "Output validation of document, byte, file, row-writer and sequential/parallel data-reader export coverage before writer-buffer changes; no timing evidence",
+  "Results": [
+    {
+      "Framework": "net10.0",
+      "ApiOutputsPerBuild": 312,
+      "IndependentReference": "CsvHelper 33.1.0; exact decompressed text plus every field",
+      "Cases": {
+        "ToBytes-Plain-None-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "Plain",
+            "Compression": "None"
+          }
+        },
+        "ToBytes-Plain-GZip-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "Plain",
+            "Compression": "GZip"
+          }
+        },
+        "ToBytes-Plain-Deflate-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "Plain",
+            "Compression": "Deflate"
+          }
+        },
+        "ToBytes-Plain-Brotli-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "Plain",
+            "Compression": "Brotli"
+          }
+        },
+        "ToBytes-Plain-ZLib-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "Plain",
+            "Compression": "ZLib"
+          }
+        },
+        "ToBytes-Quoted-None-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "Quoted",
+            "Compression": "None"
+          }
+        },
+        "ToBytes-Quoted-GZip-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "Quoted",
+            "Compression": "GZip"
+          }
+        },
+        "ToBytes-Quoted-Deflate-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "Quoted",
+            "Compression": "Deflate"
+          }
+        },
+        "ToBytes-Quoted-Brotli-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "Quoted",
+            "Compression": "Brotli"
+          }
+        },
+        "ToBytes-Quoted-ZLib-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "Quoted",
+            "Compression": "ZLib"
+          }
+        },
+        "ToBytes-MixedJson-None-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "MixedJson",
+            "Compression": "None"
+          }
+        },
+        "ToBytes-MixedJson-GZip-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "MixedJson",
+            "Compression": "GZip"
+          }
+        },
+        "ToBytes-MixedJson-Deflate-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "MixedJson",
+            "Compression": "Deflate"
+          }
+        },
+        "ToBytes-MixedJson-Brotli-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "MixedJson",
+            "Compression": "Brotli"
+          }
+        },
+        "ToBytes-MixedJson-ZLib-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "MixedJson",
+            "Compression": "ZLib"
+          }
+        },
+        "ToBytes-Plain-None-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "Plain",
+            "Compression": "None"
+          }
+        },
+        "ToBytes-Plain-GZip-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "Plain",
+            "Compression": "GZip"
+          }
+        },
+        "ToBytes-Plain-Deflate-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "Plain",
+            "Compression": "Deflate"
+          }
+        },
+        "ToBytes-Plain-Brotli-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "Plain",
+            "Compression": "Brotli"
+          }
+        },
+        "ToBytes-Plain-ZLib-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "Plain",
+            "Compression": "ZLib"
+          }
+        },
+        "ToBytes-Quoted-None-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "Quoted",
+            "Compression": "None"
+          }
+        },
+        "ToBytes-Quoted-GZip-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "Quoted",
+            "Compression": "GZip"
+          }
+        },
+        "ToBytes-Quoted-Deflate-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "Quoted",
+            "Compression": "Deflate"
+          }
+        },
+        "ToBytes-Quoted-Brotli-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "Quoted",
+            "Compression": "Brotli"
+          }
+        },
+        "ToBytes-Quoted-ZLib-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "Quoted",
+            "Compression": "ZLib"
+          }
+        },
+        "ToBytes-MixedJson-None-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "MixedJson",
+            "Compression": "None"
+          }
+        },
+        "ToBytes-MixedJson-GZip-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "MixedJson",
+            "Compression": "GZip"
+          }
+        },
+        "ToBytes-MixedJson-Deflate-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "MixedJson",
+            "Compression": "Deflate"
+          }
+        },
+        "ToBytes-MixedJson-Brotli-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "MixedJson",
+            "Compression": "Brotli"
+          }
+        },
+        "ToBytes-MixedJson-ZLib-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "MixedJson",
+            "Compression": "ZLib"
+          }
+        },
+        "ToBytes-Plain-None-100000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 100000,
+            "Shape": "Plain",
+            "Compression": "None"
+          }
+        },
+        "ToBytes-Plain-GZip-100000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 100000,
+            "Shape": "Plain",
+            "Compression": "GZip"
+          }
+        },
+        "ToBytes-Quoted-None-100000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 100000,
+            "Shape": "Quoted",
+            "Compression": "None"
+          }
+        },
+        "ToBytes-Quoted-GZip-100000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 100000,
+            "Shape": "Quoted",
+            "Compression": "GZip"
+          }
+        },
+        "ToBytes-MixedJson-None-100000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 100000,
+            "Shape": "MixedJson",
+            "Compression": "None"
+          }
+        },
+        "ToBytes-MixedJson-GZip-100000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 100000,
+            "Shape": "MixedJson",
+            "Compression": "GZip"
+          }
+        },
+        "ToBytes-Plain-None-1": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1,
+            "Shape": "Plain",
+            "Compression": "None"
+          }
+        },
+        "ToBytes-LongUnicode-None-3": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 3,
+            "Shape": "LongUnicode",
+            "Compression": "None"
+          }
+        },
+        "ToBytes-LongUnicode-GZip-3": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 3,
+            "Shape": "LongUnicode",
+            "Compression": "GZip"
+          }
+        }
+      },
+      "ValidatedOutputRecords": [
+        "Validated document save Plain/None: 1000 rows; CSV SHA256=E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3; lengths=Save=47138,SaveAsync=47138,ToBytes=47138,WriteDataReader=47138,WriteDataReaderParallel=47138,SaveFile=47138,SaveFileAsync=47138,RowWriterFile=47138.",
+        "Validated document save Plain/None: 1000 rows; CSV SHA256=E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3; lengths=Save=47138,SaveAsync=47138,ToBytes=47138,WriteDataReader=47138,WriteDataReaderParallel=47138,SaveFile=47138,SaveFileAsync=47138,RowWriterFile=47138.",
+        "Validated document save Plain/GZip: 1000 rows; CSV SHA256=E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3; lengths=Save=13369,SaveAsync=13369,ToBytes=13369,WriteDataReader=13369,WriteDataReaderParallel=13369,SaveFile=13369,SaveFileAsync=13369,RowWriterFile=13369.",
+        "Validated document save Plain/GZip: 1000 rows; CSV SHA256=E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3; lengths=Save=13369,SaveAsync=13369,ToBytes=13369,WriteDataReader=13369,WriteDataReaderParallel=13369,SaveFile=13369,SaveFileAsync=13369,RowWriterFile=13369.",
+        "Validated document save Plain/Deflate: 1000 rows; CSV SHA256=E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3; lengths=Save=13351,SaveAsync=13351,ToBytes=13351,WriteDataReader=13351,WriteDataReaderParallel=13351,SaveFile=13351,SaveFileAsync=13351,RowWriterFile=13351.",
+        "Validated document save Plain/Deflate: 1000 rows; CSV SHA256=E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3; lengths=Save=13351,SaveAsync=13351,ToBytes=13351,WriteDataReader=13351,WriteDataReaderParallel=13351,SaveFile=13351,SaveFileAsync=13351,RowWriterFile=13351.",
+        "Validated document save Plain/Brotli: 1000 rows; CSV SHA256=E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3; lengths=Save=7946,SaveAsync=7946,ToBytes=7946,WriteDataReader=7946,WriteDataReaderParallel=7946,SaveFile=7946,SaveFileAsync=7946,RowWriterFile=7946.",
+        "Validated document save Plain/Brotli: 1000 rows; CSV SHA256=E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3; lengths=Save=7946,SaveAsync=7946,ToBytes=7946,WriteDataReader=7946,WriteDataReaderParallel=7946,SaveFile=7946,SaveFileAsync=7946,RowWriterFile=7946.",
+        "Validated document save Plain/ZLib: 1000 rows; CSV SHA256=E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3; lengths=Save=13357,SaveAsync=13357,ToBytes=13357,WriteDataReader=13357,WriteDataReaderParallel=13357,SaveFile=13357,SaveFileAsync=13357,RowWriterFile=13357.",
+        "Validated document save Plain/ZLib: 1000 rows; CSV SHA256=E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3; lengths=Save=13357,SaveAsync=13357,ToBytes=13357,WriteDataReader=13357,WriteDataReaderParallel=13357,SaveFile=13357,SaveFileAsync=13357,RowWriterFile=13357.",
+        "Validated document save Quoted/None: 1000 rows; CSV SHA256=B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209; lengths=Save=58955,SaveAsync=58955,ToBytes=58955,WriteDataReader=58955,WriteDataReaderParallel=58955,SaveFile=58955,SaveFileAsync=58955,RowWriterFile=58955.",
+        "Validated document save Quoted/None: 1000 rows; CSV SHA256=B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209; lengths=Save=58955,SaveAsync=58955,ToBytes=58955,WriteDataReader=58955,WriteDataReaderParallel=58955,SaveFile=58955,SaveFileAsync=58955,RowWriterFile=58955.",
+        "Validated document save Quoted/GZip: 1000 rows; CSV SHA256=B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209; lengths=Save=13979,SaveAsync=13979,ToBytes=13979,WriteDataReader=13979,WriteDataReaderParallel=13979,SaveFile=13979,SaveFileAsync=13979,RowWriterFile=13979.",
+        "Validated document save Quoted/GZip: 1000 rows; CSV SHA256=B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209; lengths=Save=13979,SaveAsync=13979,ToBytes=13979,WriteDataReader=13979,WriteDataReaderParallel=13979,SaveFile=13979,SaveFileAsync=13979,RowWriterFile=13979.",
+        "Validated document save Quoted/Deflate: 1000 rows; CSV SHA256=B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209; lengths=Save=13961,SaveAsync=13961,ToBytes=13961,WriteDataReader=13961,WriteDataReaderParallel=13961,SaveFile=13961,SaveFileAsync=13961,RowWriterFile=13961.",
+        "Validated document save Quoted/Deflate: 1000 rows; CSV SHA256=B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209; lengths=Save=13961,SaveAsync=13961,ToBytes=13961,WriteDataReader=13961,WriteDataReaderParallel=13961,SaveFile=13961,SaveFileAsync=13961,RowWriterFile=13961.",
+        "Validated document save Quoted/Brotli: 1000 rows; CSV SHA256=B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209; lengths=Save=7960,SaveAsync=7960,ToBytes=7960,WriteDataReader=7960,WriteDataReaderParallel=7960,SaveFile=7960,SaveFileAsync=7960,RowWriterFile=7960.",
+        "Validated document save Quoted/Brotli: 1000 rows; CSV SHA256=B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209; lengths=Save=7960,SaveAsync=7960,ToBytes=7960,WriteDataReader=7960,WriteDataReaderParallel=7960,SaveFile=7960,SaveFileAsync=7960,RowWriterFile=7960.",
+        "Validated document save Quoted/ZLib: 1000 rows; CSV SHA256=B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209; lengths=Save=13967,SaveAsync=13967,ToBytes=13967,WriteDataReader=13967,WriteDataReaderParallel=13967,SaveFile=13967,SaveFileAsync=13967,RowWriterFile=13967.",
+        "Validated document save Quoted/ZLib: 1000 rows; CSV SHA256=B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209; lengths=Save=13967,SaveAsync=13967,ToBytes=13967,WriteDataReader=13967,WriteDataReaderParallel=13967,SaveFile=13967,SaveFileAsync=13967,RowWriterFile=13967.",
+        "Validated document save MixedJson/None: 1000 rows; CSV SHA256=29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248; lengths=Save=92588,SaveAsync=92588,ToBytes=92588,WriteDataReader=92588,WriteDataReaderParallel=92588,SaveFile=92588,SaveFileAsync=92588,RowWriterFile=92588.",
+        "Validated document save MixedJson/None: 1000 rows; CSV SHA256=29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248; lengths=Save=92588,SaveAsync=92588,ToBytes=92588,WriteDataReader=92588,WriteDataReaderParallel=92588,SaveFile=92588,SaveFileAsync=92588,RowWriterFile=92588.",
+        "Validated document save MixedJson/GZip: 1000 rows; CSV SHA256=29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248; lengths=Save=14753,SaveAsync=14753,ToBytes=14753,WriteDataReader=14753,WriteDataReaderParallel=14753,SaveFile=14753,SaveFileAsync=14753,RowWriterFile=14753.",
+        "Validated document save MixedJson/GZip: 1000 rows; CSV SHA256=29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248; lengths=Save=14753,SaveAsync=14753,ToBytes=14753,WriteDataReader=14753,WriteDataReaderParallel=14753,SaveFile=14753,SaveFileAsync=14753,RowWriterFile=14753.",
+        "Validated document save MixedJson/Deflate: 1000 rows; CSV SHA256=29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248; lengths=Save=14735,SaveAsync=14735,ToBytes=14735,WriteDataReader=14735,WriteDataReaderParallel=14735,SaveFile=14735,SaveFileAsync=14735,RowWriterFile=14735.",
+        "Validated document save MixedJson/Deflate: 1000 rows; CSV SHA256=29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248; lengths=Save=14735,SaveAsync=14735,ToBytes=14735,WriteDataReader=14735,WriteDataReaderParallel=14735,SaveFile=14735,SaveFileAsync=14735,RowWriterFile=14735.",
+        "Validated document save MixedJson/Brotli: 1000 rows; CSV SHA256=29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248; lengths=Save=8214,SaveAsync=8214,ToBytes=8214,WriteDataReader=8214,WriteDataReaderParallel=8214,SaveFile=8214,SaveFileAsync=8214,RowWriterFile=8214.",
+        "Validated document save MixedJson/Brotli: 1000 rows; CSV SHA256=29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248; lengths=Save=8214,SaveAsync=8214,ToBytes=8214,WriteDataReader=8214,WriteDataReaderParallel=8214,SaveFile=8214,SaveFileAsync=8214,RowWriterFile=8214.",
+        "Validated document save MixedJson/ZLib: 1000 rows; CSV SHA256=29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248; lengths=Save=14741,SaveAsync=14741,ToBytes=14741,WriteDataReader=14741,WriteDataReaderParallel=14741,SaveFile=14741,SaveFileAsync=14741,RowWriterFile=14741.",
+        "Validated document save MixedJson/ZLib: 1000 rows; CSV SHA256=29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248; lengths=Save=14741,SaveAsync=14741,ToBytes=14741,WriteDataReader=14741,WriteDataReaderParallel=14741,SaveFile=14741,SaveFileAsync=14741,RowWriterFile=14741.",
+        "Validated document save Plain/None: 25000 rows; CSV SHA256=A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354; lengths=Save=1337225,SaveAsync=1337225,ToBytes=1337225,WriteDataReader=1337225,WriteDataReaderParallel=1337225,SaveFile=1337225,SaveFileAsync=1337225,RowWriterFile=1337225.",
+        "Validated document save Plain/None: 25000 rows; CSV SHA256=A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354; lengths=Save=1337225,SaveAsync=1337225,ToBytes=1337225,WriteDataReader=1337225,WriteDataReaderParallel=1337225,SaveFile=1337225,SaveFileAsync=1337225,RowWriterFile=1337225.",
+        "Validated document save Plain/GZip: 25000 rows; CSV SHA256=A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354; lengths=Save=341882,SaveAsync=341882,ToBytes=341882,WriteDataReader=341882,WriteDataReaderParallel=341882,SaveFile=341882,SaveFileAsync=341882,RowWriterFile=341882.",
+        "Validated document save Plain/GZip: 25000 rows; CSV SHA256=A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354; lengths=Save=341882,SaveAsync=341882,ToBytes=341882,WriteDataReader=341882,WriteDataReaderParallel=341882,SaveFile=341882,SaveFileAsync=341882,RowWriterFile=341882.",
+        "Validated document save Plain/Deflate: 25000 rows; CSV SHA256=A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354; lengths=Save=341864,SaveAsync=341864,ToBytes=341864,WriteDataReader=341864,WriteDataReaderParallel=341864,SaveFile=341864,SaveFileAsync=341864,RowWriterFile=341864.",
+        "Validated document save Plain/Deflate: 25000 rows; CSV SHA256=A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354; lengths=Save=341864,SaveAsync=341864,ToBytes=341864,WriteDataReader=341864,WriteDataReaderParallel=341864,SaveFile=341864,SaveFileAsync=341864,RowWriterFile=341864.",
+        "Validated document save Plain/Brotli: 25000 rows; CSV SHA256=A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354; lengths=Save=197901,SaveAsync=197901,ToBytes=197901,WriteDataReader=197901,WriteDataReaderParallel=197901,SaveFile=197901,SaveFileAsync=197901,RowWriterFile=197901.",
+        "Validated document save Plain/Brotli: 25000 rows; CSV SHA256=A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354; lengths=Save=197901,SaveAsync=197901,ToBytes=197901,WriteDataReader=197901,WriteDataReaderParallel=197901,SaveFile=197901,SaveFileAsync=197901,RowWriterFile=197901.",
+        "Validated document save Plain/ZLib: 25000 rows; CSV SHA256=A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354; lengths=Save=341870,SaveAsync=341870,ToBytes=341870,WriteDataReader=341870,WriteDataReaderParallel=341870,SaveFile=341870,SaveFileAsync=341870,RowWriterFile=341870.",
+        "Validated document save Plain/ZLib: 25000 rows; CSV SHA256=A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354; lengths=Save=341870,SaveAsync=341870,ToBytes=341870,WriteDataReader=341870,WriteDataReaderParallel=341870,SaveFile=341870,SaveFileAsync=341870,RowWriterFile=341870.",
+        "Validated document save Quoted/None: 25000 rows; CSV SHA256=3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887; lengths=Save=1632676,SaveAsync=1632676,ToBytes=1632676,WriteDataReader=1632676,WriteDataReaderParallel=1632676,SaveFile=1632676,SaveFileAsync=1632676,RowWriterFile=1632676.",
+        "Validated document save Quoted/None: 25000 rows; CSV SHA256=3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887; lengths=Save=1632676,SaveAsync=1632676,ToBytes=1632676,WriteDataReader=1632676,WriteDataReaderParallel=1632676,SaveFile=1632676,SaveFileAsync=1632676,RowWriterFile=1632676.",
+        "Validated document save Quoted/GZip: 25000 rows; CSV SHA256=3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887; lengths=Save=354312,SaveAsync=354312,ToBytes=354312,WriteDataReader=354312,WriteDataReaderParallel=354312,SaveFile=354312,SaveFileAsync=354312,RowWriterFile=354312.",
+        "Validated document save Quoted/GZip: 25000 rows; CSV SHA256=3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887; lengths=Save=354312,SaveAsync=354312,ToBytes=354312,WriteDataReader=354312,WriteDataReaderParallel=354312,SaveFile=354312,SaveFileAsync=354312,RowWriterFile=354312.",
+        "Validated document save Quoted/Deflate: 25000 rows; CSV SHA256=3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887; lengths=Save=354294,SaveAsync=354294,ToBytes=354294,WriteDataReader=354294,WriteDataReaderParallel=354294,SaveFile=354294,SaveFileAsync=354294,RowWriterFile=354294.",
+        "Validated document save Quoted/Deflate: 25000 rows; CSV SHA256=3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887; lengths=Save=354294,SaveAsync=354294,ToBytes=354294,WriteDataReader=354294,WriteDataReaderParallel=354294,SaveFile=354294,SaveFileAsync=354294,RowWriterFile=354294.",
+        "Validated document save Quoted/Brotli: 25000 rows; CSV SHA256=3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887; lengths=Save=199983,SaveAsync=199983,ToBytes=199983,WriteDataReader=199983,WriteDataReaderParallel=199983,SaveFile=199983,SaveFileAsync=199983,RowWriterFile=199983.",
+        "Validated document save Quoted/Brotli: 25000 rows; CSV SHA256=3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887; lengths=Save=199983,SaveAsync=199983,ToBytes=199983,WriteDataReader=199983,WriteDataReaderParallel=199983,SaveFile=199983,SaveFileAsync=199983,RowWriterFile=199983.",
+        "Validated document save Quoted/ZLib: 25000 rows; CSV SHA256=3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887; lengths=Save=354300,SaveAsync=354300,ToBytes=354300,WriteDataReader=354300,WriteDataReaderParallel=354300,SaveFile=354300,SaveFileAsync=354300,RowWriterFile=354300.",
+        "Validated document save Quoted/ZLib: 25000 rows; CSV SHA256=3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887; lengths=Save=354300,SaveAsync=354300,ToBytes=354300,WriteDataReader=354300,WriteDataReaderParallel=354300,SaveFile=354300,SaveFileAsync=354300,RowWriterFile=354300.",
+        "Validated document save MixedJson/None: 25000 rows; CSV SHA256=049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A; lengths=Save=2473575,SaveAsync=2473575,ToBytes=2473575,WriteDataReader=2473575,WriteDataReaderParallel=2473575,SaveFile=2473575,SaveFileAsync=2473575,RowWriterFile=2473575.",
+        "Validated document save MixedJson/None: 25000 rows; CSV SHA256=049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A; lengths=Save=2473575,SaveAsync=2473575,ToBytes=2473575,WriteDataReader=2473575,WriteDataReaderParallel=2473575,SaveFile=2473575,SaveFileAsync=2473575,RowWriterFile=2473575.",
+        "Validated document save MixedJson/GZip: 25000 rows; CSV SHA256=049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A; lengths=Save=365436,SaveAsync=365436,ToBytes=365436,WriteDataReader=365436,WriteDataReaderParallel=365436,SaveFile=365436,SaveFileAsync=365436,RowWriterFile=365436.",
+        "Validated document save MixedJson/GZip: 25000 rows; CSV SHA256=049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A; lengths=Save=365436,SaveAsync=365436,ToBytes=365436,WriteDataReader=365436,WriteDataReaderParallel=365436,SaveFile=365436,SaveFileAsync=365436,RowWriterFile=365436.",
+        "Validated document save MixedJson/Deflate: 25000 rows; CSV SHA256=049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A; lengths=Save=365418,SaveAsync=365418,ToBytes=365418,WriteDataReader=365418,WriteDataReaderParallel=365418,SaveFile=365418,SaveFileAsync=365418,RowWriterFile=365418.",
+        "Validated document save MixedJson/Deflate: 25000 rows; CSV SHA256=049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A; lengths=Save=365418,SaveAsync=365418,ToBytes=365418,WriteDataReader=365418,WriteDataReaderParallel=365418,SaveFile=365418,SaveFileAsync=365418,RowWriterFile=365418.",
+        "Validated document save MixedJson/Brotli: 25000 rows; CSV SHA256=049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A; lengths=Save=202967,SaveAsync=202967,ToBytes=202967,WriteDataReader=202967,WriteDataReaderParallel=202967,SaveFile=202967,SaveFileAsync=202967,RowWriterFile=202967.",
+        "Validated document save MixedJson/Brotli: 25000 rows; CSV SHA256=049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A; lengths=Save=202967,SaveAsync=202967,ToBytes=202967,WriteDataReader=202967,WriteDataReaderParallel=202967,SaveFile=202967,SaveFileAsync=202967,RowWriterFile=202967.",
+        "Validated document save MixedJson/ZLib: 25000 rows; CSV SHA256=049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A; lengths=Save=365424,SaveAsync=365424,ToBytes=365424,WriteDataReader=365424,WriteDataReaderParallel=365424,SaveFile=365424,SaveFileAsync=365424,RowWriterFile=365424.",
+        "Validated document save MixedJson/ZLib: 25000 rows; CSV SHA256=049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A; lengths=Save=365424,SaveAsync=365424,ToBytes=365424,WriteDataReader=365424,WriteDataReaderParallel=365424,SaveFile=365424,SaveFileAsync=365424,RowWriterFile=365424.",
+        "Validated document save Plain/None: 100000 rows; CSV SHA256=E32468380D24645B68C5115977DE57558FAED4BD64B49B1F71A40483CB43DE80; lengths=Save=5492457,SaveAsync=5492457,ToBytes=5492457,WriteDataReader=5492457,WriteDataReaderParallel=5492457,SaveFile=5492457,SaveFileAsync=5492457,RowWriterFile=5492457.",
+        "Validated document save Plain/None: 100000 rows; CSV SHA256=E32468380D24645B68C5115977DE57558FAED4BD64B49B1F71A40483CB43DE80; lengths=Save=5492457,SaveAsync=5492457,ToBytes=5492457,WriteDataReader=5492457,WriteDataReaderParallel=5492457,SaveFile=5492457,SaveFileAsync=5492457,RowWriterFile=5492457.",
+        "Validated document save Plain/GZip: 100000 rows; CSV SHA256=E32468380D24645B68C5115977DE57558FAED4BD64B49B1F71A40483CB43DE80; lengths=Save=1372966,SaveAsync=1372966,ToBytes=1372966,WriteDataReader=1372966,WriteDataReaderParallel=1372966,SaveFile=1372966,SaveFileAsync=1372966,RowWriterFile=1372966.",
+        "Validated document save Plain/GZip: 100000 rows; CSV SHA256=E32468380D24645B68C5115977DE57558FAED4BD64B49B1F71A40483CB43DE80; lengths=Save=1372966,SaveAsync=1372966,ToBytes=1372966,WriteDataReader=1372966,WriteDataReaderParallel=1372966,SaveFile=1372966,SaveFileAsync=1372966,RowWriterFile=1372966.",
+        "Validated document save Quoted/None: 100000 rows; CSV SHA256=1940B5D6AFE1A7B3B22D361B79DE8664DAA46F5FFC4EAB2A847D1D65312BEF0E; lengths=Save=6674274,SaveAsync=6674274,ToBytes=6674274,WriteDataReader=6674274,WriteDataReaderParallel=6674274,SaveFile=6674274,SaveFileAsync=6674274,RowWriterFile=6674274.",
+        "Validated document save Quoted/None: 100000 rows; CSV SHA256=1940B5D6AFE1A7B3B22D361B79DE8664DAA46F5FFC4EAB2A847D1D65312BEF0E; lengths=Save=6674274,SaveAsync=6674274,ToBytes=6674274,WriteDataReader=6674274,WriteDataReaderParallel=6674274,SaveFile=6674274,SaveFileAsync=6674274,RowWriterFile=6674274.",
+        "Validated document save Quoted/GZip: 100000 rows; CSV SHA256=1940B5D6AFE1A7B3B22D361B79DE8664DAA46F5FFC4EAB2A847D1D65312BEF0E; lengths=Save=1418191,SaveAsync=1418191,ToBytes=1418191,WriteDataReader=1418191,WriteDataReaderParallel=1418191,SaveFile=1418191,SaveFileAsync=1418191,RowWriterFile=1418191.",
+        "Validated document save Quoted/GZip: 100000 rows; CSV SHA256=1940B5D6AFE1A7B3B22D361B79DE8664DAA46F5FFC4EAB2A847D1D65312BEF0E; lengths=Save=1418191,SaveAsync=1418191,ToBytes=1418191,WriteDataReader=1418191,WriteDataReaderParallel=1418191,SaveFile=1418191,SaveFileAsync=1418191,RowWriterFile=1418191.",
+        "Validated document save MixedJson/None: 100000 rows; CSV SHA256=5C68D7D089D2C6C0C925051B3D8097B148918EB8D930B7C33F2A136527EEA146; lengths=Save=10037907,SaveAsync=10037907,ToBytes=10037907,WriteDataReader=10037907,WriteDataReaderParallel=10037907,SaveFile=10037907,SaveFileAsync=10037907,RowWriterFile=10037907.",
+        "Validated document save MixedJson/None: 100000 rows; CSV SHA256=5C68D7D089D2C6C0C925051B3D8097B148918EB8D930B7C33F2A136527EEA146; lengths=Save=10037907,SaveAsync=10037907,ToBytes=10037907,WriteDataReader=10037907,WriteDataReaderParallel=10037907,SaveFile=10037907,SaveFileAsync=10037907,RowWriterFile=10037907.",
+        "Validated document save MixedJson/GZip: 100000 rows; CSV SHA256=5C68D7D089D2C6C0C925051B3D8097B148918EB8D930B7C33F2A136527EEA146; lengths=Save=1462144,SaveAsync=1462144,ToBytes=1462144,WriteDataReader=1462144,WriteDataReaderParallel=1462144,SaveFile=1462144,SaveFileAsync=1462144,RowWriterFile=1462144.",
+        "Validated document save MixedJson/GZip: 100000 rows; CSV SHA256=5C68D7D089D2C6C0C925051B3D8097B148918EB8D930B7C33F2A136527EEA146; lengths=Save=1462144,SaveAsync=1462144,ToBytes=1462144,WriteDataReader=1462144,WriteDataReaderParallel=1462144,SaveFile=1462144,SaveFileAsync=1462144,RowWriterFile=1462144.",
+        "Validated document save Plain/None: 1 rows; CSV SHA256=751C1CF835C4794F51CC1ABC8394566B3819B8F6A87940B486962587DD3DA619; lengths=Save=48,SaveAsync=48,ToBytes=48,WriteDataReader=48,WriteDataReaderParallel=48,SaveFile=48,SaveFileAsync=48,RowWriterFile=48.",
+        "Validated document save Plain/None: 1 rows; CSV SHA256=751C1CF835C4794F51CC1ABC8394566B3819B8F6A87940B486962587DD3DA619; lengths=Save=48,SaveAsync=48,ToBytes=48,WriteDataReader=48,WriteDataReaderParallel=48,SaveFile=48,SaveFileAsync=48,RowWriterFile=48.",
+        "Validated document save LongUnicode/None: 3 rows; CSV SHA256=E6088274A026B410AC65D50584ED1B4167A279E021BA1B5E7450A512CADEC21A; lengths=Save=65680,SaveAsync=65680,ToBytes=65680,WriteDataReader=65680,WriteDataReaderParallel=65680,SaveFile=65680,SaveFileAsync=65680,RowWriterFile=65680.",
+        "Validated document save LongUnicode/None: 3 rows; CSV SHA256=E6088274A026B410AC65D50584ED1B4167A279E021BA1B5E7450A512CADEC21A; lengths=Save=65680,SaveAsync=65680,ToBytes=65680,WriteDataReader=65680,WriteDataReaderParallel=65680,SaveFile=65680,SaveFileAsync=65680,RowWriterFile=65680.",
+        "Validated document save LongUnicode/GZip: 3 rows; CSV SHA256=E6088274A026B410AC65D50584ED1B4167A279E021BA1B5E7450A512CADEC21A; lengths=Save=806,SaveAsync=806,ToBytes=806,WriteDataReader=806,WriteDataReaderParallel=806,SaveFile=806,SaveFileAsync=806,RowWriterFile=806.",
+        "Validated document save LongUnicode/GZip: 3 rows; CSV SHA256=E6088274A026B410AC65D50584ED1B4167A279E021BA1B5E7450A512CADEC21A; lengths=Save=806,SaveAsync=806,ToBytes=806,WriteDataReader=806,WriteDataReaderParallel=806,SaveFile=806,SaveFileAsync=806,RowWriterFile=806."
+      ],
+      "BenchmarkSha256": "FDD39B42F22CFB0B789F8601D40AE296B39ECE00F2BA50E4A58FD07FDA922E44",
+      "ProductSha256": "346D28C9EF3C647D0572F0A427EE6BCF31B356623CD2F874C2804A8D2E769832",
+      "RuntimeConfig": {
+        "runtimeOptions": {
+          "tfm": "net10.0",
+          "framework": {
+            "name": "Microsoft.NETCore.App",
+            "version": "10.0.0"
+          },
+          "configProperties": {
+            "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
+            "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false
+          }
+        }
+      }
+    },
+    {
+      "Framework": "net8.0",
+      "ApiOutputsPerBuild": 312,
+      "IndependentReference": "CsvHelper 33.1.0; exact decompressed text plus every field",
+      "Cases": {
+        "ToBytes-Plain-None-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "Plain",
+            "Compression": "None"
+          }
+        },
+        "ToBytes-Plain-GZip-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "Plain",
+            "Compression": "GZip"
+          }
+        },
+        "ToBytes-Plain-Deflate-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "Plain",
+            "Compression": "Deflate"
+          }
+        },
+        "ToBytes-Plain-Brotli-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "Plain",
+            "Compression": "Brotli"
+          }
+        },
+        "ToBytes-Plain-ZLib-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "Plain",
+            "Compression": "ZLib"
+          }
+        },
+        "ToBytes-Quoted-None-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "Quoted",
+            "Compression": "None"
+          }
+        },
+        "ToBytes-Quoted-GZip-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "Quoted",
+            "Compression": "GZip"
+          }
+        },
+        "ToBytes-Quoted-Deflate-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "Quoted",
+            "Compression": "Deflate"
+          }
+        },
+        "ToBytes-Quoted-Brotli-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "Quoted",
+            "Compression": "Brotli"
+          }
+        },
+        "ToBytes-Quoted-ZLib-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "Quoted",
+            "Compression": "ZLib"
+          }
+        },
+        "ToBytes-MixedJson-None-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "MixedJson",
+            "Compression": "None"
+          }
+        },
+        "ToBytes-MixedJson-GZip-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "MixedJson",
+            "Compression": "GZip"
+          }
+        },
+        "ToBytes-MixedJson-Deflate-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "MixedJson",
+            "Compression": "Deflate"
+          }
+        },
+        "ToBytes-MixedJson-Brotli-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "MixedJson",
+            "Compression": "Brotli"
+          }
+        },
+        "ToBytes-MixedJson-ZLib-1000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1000,
+            "Shape": "MixedJson",
+            "Compression": "ZLib"
+          }
+        },
+        "ToBytes-Plain-None-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "Plain",
+            "Compression": "None"
+          }
+        },
+        "ToBytes-Plain-GZip-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "Plain",
+            "Compression": "GZip"
+          }
+        },
+        "ToBytes-Plain-Deflate-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "Plain",
+            "Compression": "Deflate"
+          }
+        },
+        "ToBytes-Plain-Brotli-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "Plain",
+            "Compression": "Brotli"
+          }
+        },
+        "ToBytes-Plain-ZLib-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "Plain",
+            "Compression": "ZLib"
+          }
+        },
+        "ToBytes-Quoted-None-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "Quoted",
+            "Compression": "None"
+          }
+        },
+        "ToBytes-Quoted-GZip-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "Quoted",
+            "Compression": "GZip"
+          }
+        },
+        "ToBytes-Quoted-Deflate-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "Quoted",
+            "Compression": "Deflate"
+          }
+        },
+        "ToBytes-Quoted-Brotli-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "Quoted",
+            "Compression": "Brotli"
+          }
+        },
+        "ToBytes-Quoted-ZLib-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "Quoted",
+            "Compression": "ZLib"
+          }
+        },
+        "ToBytes-MixedJson-None-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "MixedJson",
+            "Compression": "None"
+          }
+        },
+        "ToBytes-MixedJson-GZip-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "MixedJson",
+            "Compression": "GZip"
+          }
+        },
+        "ToBytes-MixedJson-Deflate-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "MixedJson",
+            "Compression": "Deflate"
+          }
+        },
+        "ToBytes-MixedJson-Brotli-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "MixedJson",
+            "Compression": "Brotli"
+          }
+        },
+        "ToBytes-MixedJson-ZLib-25000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 25000,
+            "Shape": "MixedJson",
+            "Compression": "ZLib"
+          }
+        },
+        "ToBytes-Plain-None-100000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 100000,
+            "Shape": "Plain",
+            "Compression": "None"
+          }
+        },
+        "ToBytes-Plain-GZip-100000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 100000,
+            "Shape": "Plain",
+            "Compression": "GZip"
+          }
+        },
+        "ToBytes-Quoted-None-100000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 100000,
+            "Shape": "Quoted",
+            "Compression": "None"
+          }
+        },
+        "ToBytes-Quoted-GZip-100000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 100000,
+            "Shape": "Quoted",
+            "Compression": "GZip"
+          }
+        },
+        "ToBytes-MixedJson-None-100000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 100000,
+            "Shape": "MixedJson",
+            "Compression": "None"
+          }
+        },
+        "ToBytes-MixedJson-GZip-100000": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 100000,
+            "Shape": "MixedJson",
+            "Compression": "GZip"
+          }
+        },
+        "ToBytes-Plain-None-1": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 1,
+            "Shape": "Plain",
+            "Compression": "None"
+          }
+        },
+        "ToBytes-LongUnicode-None-3": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 3,
+            "Shape": "LongUnicode",
+            "Compression": "None"
+          }
+        },
+        "ToBytes-LongUnicode-GZip-3": {
+          "Library": "CSV",
+          "Class": "CsvDocumentSaveBenchmarks",
+          "Setup": "Setup",
+          "Method": "ToBytes",
+          "Properties": {
+            "RowCount": 3,
+            "Shape": "LongUnicode",
+            "Compression": "GZip"
+          }
+        }
+      },
+      "ValidatedOutputRecords": [
+        "Validated document save Plain/None: 1000 rows; CSV SHA256=E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3; lengths=Save=47138,SaveAsync=47138,ToBytes=47138,WriteDataReader=47138,WriteDataReaderParallel=47138,SaveFile=47138,SaveFileAsync=47138,RowWriterFile=47138.",
+        "Validated document save Plain/None: 1000 rows; CSV SHA256=E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3; lengths=Save=47138,SaveAsync=47138,ToBytes=47138,WriteDataReader=47138,WriteDataReaderParallel=47138,SaveFile=47138,SaveFileAsync=47138,RowWriterFile=47138.",
+        "Validated document save Plain/GZip: 1000 rows; CSV SHA256=E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3; lengths=Save=9645,SaveAsync=9645,ToBytes=9645,WriteDataReader=9645,WriteDataReaderParallel=9645,SaveFile=9645,SaveFileAsync=9645,RowWriterFile=9645.",
+        "Validated document save Plain/GZip: 1000 rows; CSV SHA256=E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3; lengths=Save=9645,SaveAsync=9645,ToBytes=9645,WriteDataReader=9645,WriteDataReaderParallel=9645,SaveFile=9645,SaveFileAsync=9645,RowWriterFile=9645.",
+        "Validated document save Plain/Deflate: 1000 rows; CSV SHA256=E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3; lengths=Save=9627,SaveAsync=9627,ToBytes=9627,WriteDataReader=9627,WriteDataReaderParallel=9627,SaveFile=9627,SaveFileAsync=9627,RowWriterFile=9627.",
+        "Validated document save Plain/Deflate: 1000 rows; CSV SHA256=E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3; lengths=Save=9627,SaveAsync=9627,ToBytes=9627,WriteDataReader=9627,WriteDataReaderParallel=9627,SaveFile=9627,SaveFileAsync=9627,RowWriterFile=9627.",
+        "Validated document save Plain/Brotli: 1000 rows; CSV SHA256=E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3; lengths=Save=7946,SaveAsync=7946,ToBytes=7946,WriteDataReader=7946,WriteDataReaderParallel=7946,SaveFile=7946,SaveFileAsync=7946,RowWriterFile=7946.",
+        "Validated document save Plain/Brotli: 1000 rows; CSV SHA256=E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3; lengths=Save=7946,SaveAsync=7946,ToBytes=7946,WriteDataReader=7946,WriteDataReaderParallel=7946,SaveFile=7946,SaveFileAsync=7946,RowWriterFile=7946.",
+        "Validated document save Plain/ZLib: 1000 rows; CSV SHA256=E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3; lengths=Save=9633,SaveAsync=9633,ToBytes=9633,WriteDataReader=9633,WriteDataReaderParallel=9633,SaveFile=9633,SaveFileAsync=9633,RowWriterFile=9633.",
+        "Validated document save Plain/ZLib: 1000 rows; CSV SHA256=E8F2C58283055822A837B07EF2CE85585EA858DBD20A58DFD3B7C6A6C7BDDAC3; lengths=Save=9633,SaveAsync=9633,ToBytes=9633,WriteDataReader=9633,WriteDataReaderParallel=9633,SaveFile=9633,SaveFileAsync=9633,RowWriterFile=9633.",
+        "Validated document save Quoted/None: 1000 rows; CSV SHA256=B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209; lengths=Save=58955,SaveAsync=58955,ToBytes=58955,WriteDataReader=58955,WriteDataReaderParallel=58955,SaveFile=58955,SaveFileAsync=58955,RowWriterFile=58955.",
+        "Validated document save Quoted/None: 1000 rows; CSV SHA256=B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209; lengths=Save=58955,SaveAsync=58955,ToBytes=58955,WriteDataReader=58955,WriteDataReaderParallel=58955,SaveFile=58955,SaveFileAsync=58955,RowWriterFile=58955.",
+        "Validated document save Quoted/GZip: 1000 rows; CSV SHA256=B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209; lengths=Save=9691,SaveAsync=9691,ToBytes=9691,WriteDataReader=9691,WriteDataReaderParallel=9691,SaveFile=9691,SaveFileAsync=9691,RowWriterFile=9691.",
+        "Validated document save Quoted/GZip: 1000 rows; CSV SHA256=B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209; lengths=Save=9691,SaveAsync=9691,ToBytes=9691,WriteDataReader=9691,WriteDataReaderParallel=9691,SaveFile=9691,SaveFileAsync=9691,RowWriterFile=9691.",
+        "Validated document save Quoted/Deflate: 1000 rows; CSV SHA256=B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209; lengths=Save=9673,SaveAsync=9673,ToBytes=9673,WriteDataReader=9673,WriteDataReaderParallel=9673,SaveFile=9673,SaveFileAsync=9673,RowWriterFile=9673.",
+        "Validated document save Quoted/Deflate: 1000 rows; CSV SHA256=B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209; lengths=Save=9673,SaveAsync=9673,ToBytes=9673,WriteDataReader=9673,WriteDataReaderParallel=9673,SaveFile=9673,SaveFileAsync=9673,RowWriterFile=9673.",
+        "Validated document save Quoted/Brotli: 1000 rows; CSV SHA256=B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209; lengths=Save=7960,SaveAsync=7960,ToBytes=7960,WriteDataReader=7960,WriteDataReaderParallel=7960,SaveFile=7960,SaveFileAsync=7960,RowWriterFile=7960.",
+        "Validated document save Quoted/Brotli: 1000 rows; CSV SHA256=B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209; lengths=Save=7960,SaveAsync=7960,ToBytes=7960,WriteDataReader=7960,WriteDataReaderParallel=7960,SaveFile=7960,SaveFileAsync=7960,RowWriterFile=7960.",
+        "Validated document save Quoted/ZLib: 1000 rows; CSV SHA256=B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209; lengths=Save=9679,SaveAsync=9679,ToBytes=9679,WriteDataReader=9679,WriteDataReaderParallel=9679,SaveFile=9679,SaveFileAsync=9679,RowWriterFile=9679.",
+        "Validated document save Quoted/ZLib: 1000 rows; CSV SHA256=B64DB05CBEB41ADEFE77688583ECDD441B85A604257DC49425A3669F38F3B209; lengths=Save=9679,SaveAsync=9679,ToBytes=9679,WriteDataReader=9679,WriteDataReaderParallel=9679,SaveFile=9679,SaveFileAsync=9679,RowWriterFile=9679.",
+        "Validated document save MixedJson/None: 1000 rows; CSV SHA256=29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248; lengths=Save=92588,SaveAsync=92588,ToBytes=92588,WriteDataReader=92588,WriteDataReaderParallel=92588,SaveFile=92588,SaveFileAsync=92588,RowWriterFile=92588.",
+        "Validated document save MixedJson/None: 1000 rows; CSV SHA256=29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248; lengths=Save=92588,SaveAsync=92588,ToBytes=92588,WriteDataReader=92588,WriteDataReaderParallel=92588,SaveFile=92588,SaveFileAsync=92588,RowWriterFile=92588.",
+        "Validated document save MixedJson/GZip: 1000 rows; CSV SHA256=29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248; lengths=Save=11059,SaveAsync=11059,ToBytes=11059,WriteDataReader=11059,WriteDataReaderParallel=11059,SaveFile=11059,SaveFileAsync=11059,RowWriterFile=11059.",
+        "Validated document save MixedJson/GZip: 1000 rows; CSV SHA256=29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248; lengths=Save=11059,SaveAsync=11059,ToBytes=11059,WriteDataReader=11059,WriteDataReaderParallel=11059,SaveFile=11059,SaveFileAsync=11059,RowWriterFile=11059.",
+        "Validated document save MixedJson/Deflate: 1000 rows; CSV SHA256=29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248; lengths=Save=11041,SaveAsync=11041,ToBytes=11041,WriteDataReader=11041,WriteDataReaderParallel=11041,SaveFile=11041,SaveFileAsync=11041,RowWriterFile=11041.",
+        "Validated document save MixedJson/Deflate: 1000 rows; CSV SHA256=29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248; lengths=Save=11041,SaveAsync=11041,ToBytes=11041,WriteDataReader=11041,WriteDataReaderParallel=11041,SaveFile=11041,SaveFileAsync=11041,RowWriterFile=11041.",
+        "Validated document save MixedJson/Brotli: 1000 rows; CSV SHA256=29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248; lengths=Save=8214,SaveAsync=8214,ToBytes=8214,WriteDataReader=8214,WriteDataReaderParallel=8214,SaveFile=8214,SaveFileAsync=8214,RowWriterFile=8214.",
+        "Validated document save MixedJson/Brotli: 1000 rows; CSV SHA256=29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248; lengths=Save=8214,SaveAsync=8214,ToBytes=8214,WriteDataReader=8214,WriteDataReaderParallel=8214,SaveFile=8214,SaveFileAsync=8214,RowWriterFile=8214.",
+        "Validated document save MixedJson/ZLib: 1000 rows; CSV SHA256=29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248; lengths=Save=11047,SaveAsync=11047,ToBytes=11047,WriteDataReader=11047,WriteDataReaderParallel=11047,SaveFile=11047,SaveFileAsync=11047,RowWriterFile=11047.",
+        "Validated document save MixedJson/ZLib: 1000 rows; CSV SHA256=29A4F30A1F8E00D169649ABB9188AF3116365E83A7A17B11662DC6BB76A26248; lengths=Save=11047,SaveAsync=11047,ToBytes=11047,WriteDataReader=11047,WriteDataReaderParallel=11047,SaveFile=11047,SaveFileAsync=11047,RowWriterFile=11047.",
+        "Validated document save Plain/None: 25000 rows; CSV SHA256=A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354; lengths=Save=1337225,SaveAsync=1337225,ToBytes=1337225,WriteDataReader=1337225,WriteDataReaderParallel=1337225,SaveFile=1337225,SaveFileAsync=1337225,RowWriterFile=1337225.",
+        "Validated document save Plain/None: 25000 rows; CSV SHA256=A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354; lengths=Save=1337225,SaveAsync=1337225,ToBytes=1337225,WriteDataReader=1337225,WriteDataReaderParallel=1337225,SaveFile=1337225,SaveFileAsync=1337225,RowWriterFile=1337225.",
+        "Validated document save Plain/GZip: 25000 rows; CSV SHA256=A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354; lengths=Save=235995,SaveAsync=235995,ToBytes=235995,WriteDataReader=235995,WriteDataReaderParallel=235995,SaveFile=235995,SaveFileAsync=235995,RowWriterFile=235995.",
+        "Validated document save Plain/GZip: 25000 rows; CSV SHA256=A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354; lengths=Save=235995,SaveAsync=235995,ToBytes=235995,WriteDataReader=235995,WriteDataReaderParallel=235995,SaveFile=235995,SaveFileAsync=235995,RowWriterFile=235995.",
+        "Validated document save Plain/Deflate: 25000 rows; CSV SHA256=A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354; lengths=Save=235977,SaveAsync=235977,ToBytes=235977,WriteDataReader=235977,WriteDataReaderParallel=235977,SaveFile=235977,SaveFileAsync=235977,RowWriterFile=235977.",
+        "Validated document save Plain/Deflate: 25000 rows; CSV SHA256=A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354; lengths=Save=235977,SaveAsync=235977,ToBytes=235977,WriteDataReader=235977,WriteDataReaderParallel=235977,SaveFile=235977,SaveFileAsync=235977,RowWriterFile=235977.",
+        "Validated document save Plain/Brotli: 25000 rows; CSV SHA256=A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354; lengths=Save=197901,SaveAsync=197901,ToBytes=197901,WriteDataReader=197901,WriteDataReaderParallel=197901,SaveFile=197901,SaveFileAsync=197901,RowWriterFile=197901.",
+        "Validated document save Plain/Brotli: 25000 rows; CSV SHA256=A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354; lengths=Save=197901,SaveAsync=197901,ToBytes=197901,WriteDataReader=197901,WriteDataReaderParallel=197901,SaveFile=197901,SaveFileAsync=197901,RowWriterFile=197901.",
+        "Validated document save Plain/ZLib: 25000 rows; CSV SHA256=A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354; lengths=Save=235983,SaveAsync=235983,ToBytes=235983,WriteDataReader=235983,WriteDataReaderParallel=235983,SaveFile=235983,SaveFileAsync=235983,RowWriterFile=235983.",
+        "Validated document save Plain/ZLib: 25000 rows; CSV SHA256=A522580741D4834FFE40E7F1B8BD739F3BAAC5648C5885AFCBA822AC41832354; lengths=Save=235983,SaveAsync=235983,ToBytes=235983,WriteDataReader=235983,WriteDataReaderParallel=235983,SaveFile=235983,SaveFileAsync=235983,RowWriterFile=235983.",
+        "Validated document save Quoted/None: 25000 rows; CSV SHA256=3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887; lengths=Save=1632676,SaveAsync=1632676,ToBytes=1632676,WriteDataReader=1632676,WriteDataReaderParallel=1632676,SaveFile=1632676,SaveFileAsync=1632676,RowWriterFile=1632676.",
+        "Validated document save Quoted/None: 25000 rows; CSV SHA256=3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887; lengths=Save=1632676,SaveAsync=1632676,ToBytes=1632676,WriteDataReader=1632676,WriteDataReaderParallel=1632676,SaveFile=1632676,SaveFileAsync=1632676,RowWriterFile=1632676.",
+        "Validated document save Quoted/GZip: 25000 rows; CSV SHA256=3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887; lengths=Save=245511,SaveAsync=245511,ToBytes=245511,WriteDataReader=245511,WriteDataReaderParallel=245511,SaveFile=245511,SaveFileAsync=245511,RowWriterFile=245511.",
+        "Validated document save Quoted/GZip: 25000 rows; CSV SHA256=3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887; lengths=Save=245511,SaveAsync=245511,ToBytes=245511,WriteDataReader=245511,WriteDataReaderParallel=245511,SaveFile=245511,SaveFileAsync=245511,RowWriterFile=245511.",
+        "Validated document save Quoted/Deflate: 25000 rows; CSV SHA256=3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887; lengths=Save=245493,SaveAsync=245493,ToBytes=245493,WriteDataReader=245493,WriteDataReaderParallel=245493,SaveFile=245493,SaveFileAsync=245493,RowWriterFile=245493.",
+        "Validated document save Quoted/Deflate: 25000 rows; CSV SHA256=3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887; lengths=Save=245493,SaveAsync=245493,ToBytes=245493,WriteDataReader=245493,WriteDataReaderParallel=245493,SaveFile=245493,SaveFileAsync=245493,RowWriterFile=245493.",
+        "Validated document save Quoted/Brotli: 25000 rows; CSV SHA256=3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887; lengths=Save=199983,SaveAsync=199983,ToBytes=199983,WriteDataReader=199983,WriteDataReaderParallel=199983,SaveFile=199983,SaveFileAsync=199983,RowWriterFile=199983.",
+        "Validated document save Quoted/Brotli: 25000 rows; CSV SHA256=3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887; lengths=Save=199983,SaveAsync=199983,ToBytes=199983,WriteDataReader=199983,WriteDataReaderParallel=199983,SaveFile=199983,SaveFileAsync=199983,RowWriterFile=199983.",
+        "Validated document save Quoted/ZLib: 25000 rows; CSV SHA256=3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887; lengths=Save=245499,SaveAsync=245499,ToBytes=245499,WriteDataReader=245499,WriteDataReaderParallel=245499,SaveFile=245499,SaveFileAsync=245499,RowWriterFile=245499.",
+        "Validated document save Quoted/ZLib: 25000 rows; CSV SHA256=3846B0BEC0ADDC697E3F839B6EB537533C3EDD72EBB17528C70672D658C1B887; lengths=Save=245499,SaveAsync=245499,ToBytes=245499,WriteDataReader=245499,WriteDataReaderParallel=245499,SaveFile=245499,SaveFileAsync=245499,RowWriterFile=245499.",
+        "Validated document save MixedJson/None: 25000 rows; CSV SHA256=049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A; lengths=Save=2473575,SaveAsync=2473575,ToBytes=2473575,WriteDataReader=2473575,WriteDataReaderParallel=2473575,SaveFile=2473575,SaveFileAsync=2473575,RowWriterFile=2473575.",
+        "Validated document save MixedJson/None: 25000 rows; CSV SHA256=049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A; lengths=Save=2473575,SaveAsync=2473575,ToBytes=2473575,WriteDataReader=2473575,WriteDataReaderParallel=2473575,SaveFile=2473575,SaveFileAsync=2473575,RowWriterFile=2473575.",
+        "Validated document save MixedJson/GZip: 25000 rows; CSV SHA256=049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A; lengths=Save=266177,SaveAsync=266177,ToBytes=266177,WriteDataReader=266177,WriteDataReaderParallel=266177,SaveFile=266177,SaveFileAsync=266177,RowWriterFile=266177.",
+        "Validated document save MixedJson/GZip: 25000 rows; CSV SHA256=049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A; lengths=Save=266177,SaveAsync=266177,ToBytes=266177,WriteDataReader=266177,WriteDataReaderParallel=266177,SaveFile=266177,SaveFileAsync=266177,RowWriterFile=266177.",
+        "Validated document save MixedJson/Deflate: 25000 rows; CSV SHA256=049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A; lengths=Save=266159,SaveAsync=266159,ToBytes=266159,WriteDataReader=266159,WriteDataReaderParallel=266159,SaveFile=266159,SaveFileAsync=266159,RowWriterFile=266159.",
+        "Validated document save MixedJson/Deflate: 25000 rows; CSV SHA256=049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A; lengths=Save=266159,SaveAsync=266159,ToBytes=266159,WriteDataReader=266159,WriteDataReaderParallel=266159,SaveFile=266159,SaveFileAsync=266159,RowWriterFile=266159.",
+        "Validated document save MixedJson/Brotli: 25000 rows; CSV SHA256=049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A; lengths=Save=202967,SaveAsync=202967,ToBytes=202967,WriteDataReader=202967,WriteDataReaderParallel=202967,SaveFile=202967,SaveFileAsync=202967,RowWriterFile=202967.",
+        "Validated document save MixedJson/Brotli: 25000 rows; CSV SHA256=049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A; lengths=Save=202967,SaveAsync=202967,ToBytes=202967,WriteDataReader=202967,WriteDataReaderParallel=202967,SaveFile=202967,SaveFileAsync=202967,RowWriterFile=202967.",
+        "Validated document save MixedJson/ZLib: 25000 rows; CSV SHA256=049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A; lengths=Save=266165,SaveAsync=266165,ToBytes=266165,WriteDataReader=266165,WriteDataReaderParallel=266165,SaveFile=266165,SaveFileAsync=266165,RowWriterFile=266165.",
+        "Validated document save MixedJson/ZLib: 25000 rows; CSV SHA256=049807D28421AB8F30E7460E0D622255545A3145DA48C034473DCC8D3921977A; lengths=Save=266165,SaveAsync=266165,ToBytes=266165,WriteDataReader=266165,WriteDataReaderParallel=266165,SaveFile=266165,SaveFileAsync=266165,RowWriterFile=266165.",
+        "Validated document save Plain/None: 100000 rows; CSV SHA256=E32468380D24645B68C5115977DE57558FAED4BD64B49B1F71A40483CB43DE80; lengths=Save=5492457,SaveAsync=5492457,ToBytes=5492457,WriteDataReader=5492457,WriteDataReaderParallel=5492457,SaveFile=5492457,SaveFileAsync=5492457,RowWriterFile=5492457.",
+        "Validated document save Plain/None: 100000 rows; CSV SHA256=E32468380D24645B68C5115977DE57558FAED4BD64B49B1F71A40483CB43DE80; lengths=Save=5492457,SaveAsync=5492457,ToBytes=5492457,WriteDataReader=5492457,WriteDataReaderParallel=5492457,SaveFile=5492457,SaveFileAsync=5492457,RowWriterFile=5492457.",
+        "Validated document save Plain/GZip: 100000 rows; CSV SHA256=E32468380D24645B68C5115977DE57558FAED4BD64B49B1F71A40483CB43DE80; lengths=Save=942563,SaveAsync=942563,ToBytes=942563,WriteDataReader=942563,WriteDataReaderParallel=942563,SaveFile=942563,SaveFileAsync=942563,RowWriterFile=942563.",
+        "Validated document save Plain/GZip: 100000 rows; CSV SHA256=E32468380D24645B68C5115977DE57558FAED4BD64B49B1F71A40483CB43DE80; lengths=Save=942563,SaveAsync=942563,ToBytes=942563,WriteDataReader=942563,WriteDataReaderParallel=942563,SaveFile=942563,SaveFileAsync=942563,RowWriterFile=942563.",
+        "Validated document save Quoted/None: 100000 rows; CSV SHA256=1940B5D6AFE1A7B3B22D361B79DE8664DAA46F5FFC4EAB2A847D1D65312BEF0E; lengths=Save=6674274,SaveAsync=6674274,ToBytes=6674274,WriteDataReader=6674274,WriteDataReaderParallel=6674274,SaveFile=6674274,SaveFileAsync=6674274,RowWriterFile=6674274.",
+        "Validated document save Quoted/None: 100000 rows; CSV SHA256=1940B5D6AFE1A7B3B22D361B79DE8664DAA46F5FFC4EAB2A847D1D65312BEF0E; lengths=Save=6674274,SaveAsync=6674274,ToBytes=6674274,WriteDataReader=6674274,WriteDataReaderParallel=6674274,SaveFile=6674274,SaveFileAsync=6674274,RowWriterFile=6674274.",
+        "Validated document save Quoted/GZip: 100000 rows; CSV SHA256=1940B5D6AFE1A7B3B22D361B79DE8664DAA46F5FFC4EAB2A847D1D65312BEF0E; lengths=Save=977099,SaveAsync=977099,ToBytes=977099,WriteDataReader=977099,WriteDataReaderParallel=977099,SaveFile=977099,SaveFileAsync=977099,RowWriterFile=977099.",
+        "Validated document save Quoted/GZip: 100000 rows; CSV SHA256=1940B5D6AFE1A7B3B22D361B79DE8664DAA46F5FFC4EAB2A847D1D65312BEF0E; lengths=Save=977099,SaveAsync=977099,ToBytes=977099,WriteDataReader=977099,WriteDataReaderParallel=977099,SaveFile=977099,SaveFileAsync=977099,RowWriterFile=977099.",
+        "Validated document save MixedJson/None: 100000 rows; CSV SHA256=5C68D7D089D2C6C0C925051B3D8097B148918EB8D930B7C33F2A136527EEA146; lengths=Save=10037907,SaveAsync=10037907,ToBytes=10037907,WriteDataReader=10037907,WriteDataReaderParallel=10037907,SaveFile=10037907,SaveFileAsync=10037907,RowWriterFile=10037907.",
+        "Validated document save MixedJson/None: 100000 rows; CSV SHA256=5C68D7D089D2C6C0C925051B3D8097B148918EB8D930B7C33F2A136527EEA146; lengths=Save=10037907,SaveAsync=10037907,ToBytes=10037907,WriteDataReader=10037907,WriteDataReaderParallel=10037907,SaveFile=10037907,SaveFileAsync=10037907,RowWriterFile=10037907.",
+        "Validated document save MixedJson/GZip: 100000 rows; CSV SHA256=5C68D7D089D2C6C0C925051B3D8097B148918EB8D930B7C33F2A136527EEA146; lengths=Save=1063000,SaveAsync=1063000,ToBytes=1063000,WriteDataReader=1063000,WriteDataReaderParallel=1063000,SaveFile=1063000,SaveFileAsync=1063000,RowWriterFile=1063000.",
+        "Validated document save MixedJson/GZip: 100000 rows; CSV SHA256=5C68D7D089D2C6C0C925051B3D8097B148918EB8D930B7C33F2A136527EEA146; lengths=Save=1063000,SaveAsync=1063000,ToBytes=1063000,WriteDataReader=1063000,WriteDataReaderParallel=1063000,SaveFile=1063000,SaveFileAsync=1063000,RowWriterFile=1063000.",
+        "Validated document save Plain/None: 1 rows; CSV SHA256=751C1CF835C4794F51CC1ABC8394566B3819B8F6A87940B486962587DD3DA619; lengths=Save=48,SaveAsync=48,ToBytes=48,WriteDataReader=48,WriteDataReaderParallel=48,SaveFile=48,SaveFileAsync=48,RowWriterFile=48.",
+        "Validated document save Plain/None: 1 rows; CSV SHA256=751C1CF835C4794F51CC1ABC8394566B3819B8F6A87940B486962587DD3DA619; lengths=Save=48,SaveAsync=48,ToBytes=48,WriteDataReader=48,WriteDataReaderParallel=48,SaveFile=48,SaveFileAsync=48,RowWriterFile=48.",
+        "Validated document save LongUnicode/None: 3 rows; CSV SHA256=E6088274A026B410AC65D50584ED1B4167A279E021BA1B5E7450A512CADEC21A; lengths=Save=65680,SaveAsync=65680,ToBytes=65680,WriteDataReader=65680,WriteDataReaderParallel=65680,SaveFile=65680,SaveFileAsync=65680,RowWriterFile=65680.",
+        "Validated document save LongUnicode/None: 3 rows; CSV SHA256=E6088274A026B410AC65D50584ED1B4167A279E021BA1B5E7450A512CADEC21A; lengths=Save=65680,SaveAsync=65680,ToBytes=65680,WriteDataReader=65680,WriteDataReaderParallel=65680,SaveFile=65680,SaveFileAsync=65680,RowWriterFile=65680.",
+        "Validated document save LongUnicode/GZip: 3 rows; CSV SHA256=E6088274A026B410AC65D50584ED1B4167A279E021BA1B5E7450A512CADEC21A; lengths=Save=470,SaveAsync=470,ToBytes=470,WriteDataReader=470,WriteDataReaderParallel=470,SaveFile=470,SaveFileAsync=470,RowWriterFile=470.",
+        "Validated document save LongUnicode/GZip: 3 rows; CSV SHA256=E6088274A026B410AC65D50584ED1B4167A279E021BA1B5E7450A512CADEC21A; lengths=Save=470,SaveAsync=470,ToBytes=470,WriteDataReader=470,WriteDataReaderParallel=470,SaveFile=470,SaveFileAsync=470,RowWriterFile=470."
+      ],
+      "BenchmarkSha256": "D0426DD7769D3B4C5A2ADB40951697E66661281BFDD22BD3854B2B71E45523D7",
+      "ProductSha256": "282D504E6C81262D88641656EC7AA7B49B58177918843DF75C9420315C6A58D2",
+      "RuntimeConfig": {
+        "runtimeOptions": {
+          "tfm": "net8.0",
+          "framework": {
+            "name": "Microsoft.NETCore.App",
+            "version": "8.0.0"
+          },
+          "configProperties": {
+            "System.Reflection.Metadata.MetadataUpdater.IsSupported": false,
+            "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false
+          }
+        }
+      }
+    }
+  ]
+}

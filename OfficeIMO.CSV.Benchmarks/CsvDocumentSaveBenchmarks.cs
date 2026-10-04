@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.IO.Compression;
+using System.Security.Cryptography;
 using System.Text;
 using BenchmarkDotNet.Attributes;
 using CsvHelper.Configuration;
@@ -8,16 +9,26 @@ using OfficeIMO.Benchmarks;
 namespace OfficeIMO.CSV.Benchmarks;
 
 /// <summary>
-/// Measures complete document saves to fresh caller-owned memory streams.
+/// Measures complete document saves to memory, bytes, and files.
 /// This is an OfficeIMO API comparison, not a cross-library parity lane.
 /// </summary>
 [MemoryDiagnoser]
 public class CsvDocumentSaveBenchmarks {
     private static readonly string[] Headers = ["Id", "Label", "Notes", "Enabled", "Score"];
+    private static readonly Type[] FieldTypes = [typeof(int), typeof(string), typeof(string), typeof(bool), typeof(decimal)];
     private static readonly Encoding Utf8 = new UTF8Encoding(false, true);
     private CsvDocument _document = null!;
     private CsvSaveOptions _options = null!;
     private object?[][] _rows = [];
+    private string? _directory;
+    private string _file = null!, _asyncFile = null!, _rowFile = null!;
+    private readonly Dictionary<string, long> _expectedOutputLengths = [];
+
+    /// <summary>Identifies the independently formatted, uncompressed output validated by setup.</summary>
+    public string ExpectedCsvSha256 { get; private set; } = "";
+
+    /// <summary>Gets each operation's validated output length, including its compression framing.</summary>
+    public IReadOnlyDictionary<string, long> ExpectedOutputLengths => _expectedOutputLengths;
 
     [Params(1000, 25000)]
     public int RowCount { get; set; }
@@ -33,7 +44,7 @@ public class CsvDocumentSaveBenchmarks {
     public async Task Setup() {
         string? priority = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_PROCESS_PRIORITY");
         if (!string.IsNullOrEmpty(priority)) BenchmarkProcessorAffinity.ApplyPriority(priority);
-        if (Shape is not ("Plain" or "Quoted" or "MixedJson"))
+        if (Shape is not ("Plain" or "Quoted" or "MixedJson" or "LongUnicode"))
             throw new ArgumentOutOfRangeException(nameof(Shape));
 
         _options = new CsvSaveOptions {
@@ -46,6 +57,7 @@ public class CsvDocumentSaveBenchmarks {
             string text = Shape switch {
                 "Plain" => "ordinary description " + index.ToString(CultureInfo.InvariantCulture),
                 "Quoted" => "Łódź 🚀, \"row " + index.ToString(CultureInfo.InvariantCulture) + "\"\nnext line",
+                "LongUnicode" => new string('x', 32767 + index % 3) + "🚀 漢字, \"end\"\r\nnext",
                 _ => "{\"row\":" + index.ToString(CultureInfo.InvariantCulture)
                     + ",\"city\":\"Łódź 🚀 漢字\",\"note\":\"quoted value\"}"
             };
@@ -56,13 +68,39 @@ public class CsvDocumentSaveBenchmarks {
         }
 
         string expected = CreateReferenceText();
+        ExpectedCsvSha256 = Convert.ToHexString(SHA256.HashData(Utf8.GetBytes(expected)));
         using var sync = new MemoryStream();
         _document.Save(sync, _options);
         Validate(nameof(Save), sync, expected);
         using var asyncOutput = new MemoryStream();
         await _document.SaveAsync(asyncOutput, _options).ConfigureAwait(false);
         Validate(nameof(SaveAsync), asyncOutput, expected);
-        Console.WriteLine($"Validated document save {Shape}/{Compression}: {RowCount} rows; sync={sync.Length}, async={asyncOutput.Length} bytes.");
+        using var bytes = new MemoryStream(_document.ToBytes(_options), writable: false);
+        Validate(nameof(ToBytes), bytes, expected, callerOwned: false);
+        using var sequential = new MemoryStream();
+        WriteDataReaderCore(sequential, parallel: false);
+        Validate(nameof(WriteDataReader), sequential, expected);
+        using var parallel = new MemoryStream();
+        WriteDataReaderCore(parallel, parallel: true);
+        Validate(nameof(WriteDataReaderParallel), parallel, expected);
+        string root = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_OUTPUT") ?? Path.GetTempPath();
+        _directory = Path.Combine(Path.GetFullPath(root), "OfficeIMO.CsvDocumentSave-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(_directory);
+        _file = Path.Combine(_directory, "sync.csv");
+        _asyncFile = Path.Combine(_directory, "async.csv");
+        _rowFile = Path.Combine(_directory, "rows.csv");
+        try {
+            _document.Save(_file, _options);
+            ValidateFile(nameof(SaveFile), _file, expected);
+            await _document.SaveAsync(_asyncFile, _options).ConfigureAwait(false);
+            ValidateFile(nameof(SaveFileAsync), _asyncFile, expected);
+            RowWriterFile();
+            ValidateFile(nameof(RowWriterFile), _rowFile, expected);
+        } catch {
+            Cleanup();
+            throw;
+        }
+        Console.WriteLine($"Validated document save {Shape}/{Compression}: {RowCount} rows; CSV SHA256={ExpectedCsvSha256}; lengths={string.Join(",", _expectedOutputLengths.Select(pair => pair.Key + "=" + pair.Value))}.");
     }
 
     [Benchmark(Baseline = true)]
@@ -79,6 +117,69 @@ public class CsvDocumentSaveBenchmarks {
         return output.Length;
     }
 
+    [Benchmark]
+    public long ToBytes() => _document.ToBytes(_options).LongLength;
+
+    [Benchmark]
+    public long SaveFile() {
+        _document.Save(_file, _options);
+        return new FileInfo(_file).Length;
+    }
+
+    [Benchmark]
+    public async Task<long> SaveFileAsync() {
+        await _document.SaveAsync(_asyncFile, _options).ConfigureAwait(false);
+        return new FileInfo(_asyncFile).Length;
+    }
+
+    [Benchmark]
+    public long RowWriterFile() {
+        using (var writer = CsvRowWriter.CreateFile(_rowFile, _options)) {
+            using var reader = new BenchmarkArrayDataReader(Headers, _rows, FieldTypes);
+            writer.WriteDataReader(reader);
+        }
+        return new FileInfo(_rowFile).Length;
+    }
+
+    [Benchmark]
+    public long WriteDataReader() {
+        using var output = new MemoryStream();
+        WriteDataReaderCore(output, parallel: false);
+        return output.Length;
+    }
+
+    [Benchmark]
+    public long WriteDataReaderParallel() {
+        using var output = new MemoryStream();
+        WriteDataReaderCore(output, parallel: true);
+        return output.Length;
+    }
+
+    private void WriteDataReaderCore(Stream output, bool parallel) {
+        using var reader = new BenchmarkArrayDataReader(Headers, _rows, FieldTypes);
+        if (parallel) {
+            CsvDocument.WriteDataReaderParallel(output, reader, _options,
+                new CsvWriteParallelOptions { MaxDegreeOfParallelism = 4, BatchSize = 512 });
+        } else {
+            CsvDocument.WriteDataReader(output, reader, _options);
+        }
+    }
+
+    [GlobalCleanup]
+    public void Cleanup() {
+        if (_directory == null) return;
+        File.Delete(_file);
+        File.Delete(_asyncFile);
+        File.Delete(_rowFile);
+        Directory.Delete(_directory);
+        _directory = null;
+    }
+
+    private void ValidateFile(string method, string path, string expected) {
+        using var output = new MemoryStream(File.ReadAllBytes(path), writable: false);
+        Validate(method, output, expected, callerOwned: false);
+    }
+
     private string CreateReferenceText() {
         using var output = new StringWriter(CultureInfo.InvariantCulture);
         using (var csv = new global::CsvHelper.CsvWriter(output,
@@ -93,8 +194,8 @@ public class CsvDocumentSaveBenchmarks {
         return output.ToString();
     }
 
-    private void Validate(string method, MemoryStream output, string expected) {
-        if (!output.CanWrite || output.Length == 0)
+    private void Validate(string method, MemoryStream output, string expected, bool callerOwned = true) {
+        if ((callerOwned && !output.CanWrite) || output.Length == 0)
             throw new InvalidDataException($"{method} must leave a nonempty caller-owned stream open.");
         output.Position = 0;
         using Stream decoded = Compression switch {
@@ -111,5 +212,6 @@ public class CsvDocumentSaveBenchmarks {
             throw new InvalidDataException($"{method} differs from the independently formatted reference.");
         CsvBenchmarkOutputValidator.Validate(method, text, Headers, RowCount,
             expectedTextRows: null, expectedObjectRows: _rows);
+        _expectedOutputLengths[method] = output.Length;
     }
 }
