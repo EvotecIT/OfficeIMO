@@ -39,6 +39,9 @@ namespace OfficeIMO.Excel {
                 const int chunkLength = 32;
                 char[] buffer = _xmlCoordinateTextBuffer ??= new char[chunkLength * 2];
                 int length = reader.ReadValueChunk(buffer, 0, chunkLength);
+                // Framework attribute chunks can be one character short when a
+                // surrogate pair crosses the boundary; shorter values are complete.
+                if (length < chunkLength - 1) return new XmlCoordinateReference(buffer.AsSpan(0, length));
                 // A short chunk can end before a surrogate pair, rather than at EOF.
                 // Keep the first chunk intact while checking for additional content.
                 int followingLength = reader.ReadValueChunk(buffer, chunkLength, chunkLength);

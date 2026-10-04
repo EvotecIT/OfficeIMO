@@ -523,6 +523,48 @@ integrated baseline at `a97198615` passes 5,376 Excel tests with five skips and
 638 CSV tests on Windows .NET 10. No rotated or other-runtime qualification is
 claimed for the rejected buffer change.
 
+## Short XML attribute completion
+
+The XML attribute readers avoid a second `ReadValueChunk` call when the framework
+reader has already returned a complete short value. A chunk of 31 or 32 characters
+still probes for continuation because a surrogate pair can cross the boundary.
+Long-value handling and restoration of the reader's element position are unchanged.
+
+The qualification covers 42 workloads: 250,000- and 1,000,000-row first/full reads,
+25,000-row reads, the 65K corpus, typed and materialized numeric APIs, shared
+strings, explicit and inferred coordinates, and dense/sparse range discovery.
+All 84 native cases and 3,840 rotated samples pass their output checks. Snapshots
+use identical benchmark and dependency DLLs; only the Excel product DLL differs.
+
+Million-row full-read median ratios are 0.954/0.944 on the two processor groups;
+first-row ratios are 0.962/0.925. The 250,000-row full-read ratios are 0.917/0.974,
+and first-row ratios are 0.922/0.956. Managed allocation is effectively unchanged:
+the million-row full scan measures 2,105,480 → 2,105,560 bytes. Native sequential
+jobs show slower large-read medians, and the group-A 250,000-row first-read mean
+is 4.9% slower despite a lower median. All observations remain in the packet;
+these results qualify a bounded large-read improvement, not a portable ranking.
+
+An initial 2,500-row explicit-range slowdown prompted a longer four-workload
+follow-up with identical-baseline controls. It retains another 1,536 samples,
+using 24 warmups, 48 measurements and 16 operations per sample. Explicit-range
+candidate medians are about 9% lower on both groups in that follow-up. The
+identical-baseline ratios range from 0.94 to 1.03, demonstrating the host's
+timing variability. Small omitted-coordinate used-range results remain mixed:
+the follow-up measures 8% slower on one group and 2% faster on the other. The
+small-workload measurements do not establish a general speedup or close the
+earlier numeric materialization targets.
+
+Correctness passes 5,376 Windows .NET 10 tests with five existing skips, 760
+focused .NET 8 tests, 755 .NET Framework 4.7.2 tests, 760 Linux/WSL .NET 10 tests,
+and 760 macOS ARM64 .NET 10 tests. Product `netstandard2.0` and benchmark
+.NET 8/.NET 10 builds succeed. Independent read-only review reports no actionable
+findings. The [native cases](excel-large-typed-read-2026-10-04/xml-short-attributes-native.json),
+[full rotations](excel-large-typed-read-2026-10-04/xml-short-attributes-rotated.json),
+[focused follow-up and controls](excel-large-typed-read-2026-10-04/xml-short-attributes-followup.json),
+and [source, binary, runtime and reproduction details](excel-large-typed-read-2026-10-04/xml-short-attributes-provenance.json)
+retain the complete evidence. These runs measure warmed managed allocation;
+they do not measure retained or peak memory.
+
 ## Earlier allocation profile and remaining work
 
 A profile after the buffer guard, before scan consolidation, attributes roughly

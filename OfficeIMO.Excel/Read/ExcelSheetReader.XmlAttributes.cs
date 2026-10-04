@@ -74,6 +74,9 @@ namespace OfficeIMO.Excel {
                 const int chunkLength = 32;
                 char[] buffer = _xmlAttributeTextBuffer ??= new char[chunkLength * 2];
                 int length = reader.ReadValueChunk(buffer, 0, chunkLength);
+                // The framework reader fills attribute chunks unless the value ends
+                // or a surrogate pair crosses the last slot. Probe that boundary.
+                if (length < chunkLength - 1) return buffer.AsSpan(0, length);
                 int following = reader.ReadValueChunk(buffer, chunkLength, chunkLength);
                 if (following == 0) return buffer.AsSpan(0, length);
                 var builder = new StringBuilder(length + following);
