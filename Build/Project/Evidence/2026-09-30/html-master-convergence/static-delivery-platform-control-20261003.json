@@ -5024,5 +5024,199 @@
       ],
       "boundary": "This source predates the PDF text-string correction; its results do not qualify the later correction or long-lived adoption."
     }
+  },
+  "rasterRectangleQualification20261004": {
+    "recordedAtUtc": "2026-10-04T16:09:09.953865+00:00",
+    "behaviorSource": "e377c6ad60c8db8dd92e5a485ffee674212828c2",
+    "priorSourceControl": "ee3df1e28983890c547429479423246ad8fd51b8",
+    "owner": "OfficeIMO.Core canvas and raster renderer",
+    "contract": "Exact finite axis-aligned rectangle clips retain prior half-open polygon pixel-centre coverage. Consecutive immutable rectangles intersect once; rounded/freeform/non-axis-aligned or nonfinite geometry keeps polygon behavior. Public rectangle rounding, live caller polygon lists and scope restoration remain unchanged.",
+    "publicApiOrNewRuntimeDependency": false,
+    "independentReview": {
+      "recordedAtUtc": "2026-10-04T15:42:27.011784+00:00",
+      "boundary": "current",
+      "reviewer": "rectangle_clip_owner_review",
+      "scope": "Staged four-file raster rectangle clip owner change; separate math audit prose excluded",
+      "fullPass": "No actionable P0-P3 findings; accept as shaped",
+      "targetedConfirmationUsed": false,
+      "base": "ee3df1e28983890c547429479423246ad8fd51b8",
+      "diffFingerprint": "119e15f77a6c579da612a1fe8a569b5222076bf8",
+      "candidateSource": "e377c6ad60c8db8dd92e5a485ffee674212828c2"
+    },
+    "tests": [
+      {
+        "name": "baseline-clips-net8.trx",
+        "total": 11,
+        "passed": 11,
+        "failed": 0,
+        "sha256": "e1b3318c54f51ea8e8f5442739c89d55a01fa8a0b20f2966574c8f8403cba20b"
+      },
+      {
+        "name": "candidate-clips-net8.trx",
+        "total": 12,
+        "passed": 12,
+        "failed": 0,
+        "sha256": "a8b50d3049e8cfc24bfbdbdf7911689eb8498e9e0adfdec942bd9aa42da73eed"
+      },
+      {
+        "name": "full-drawing-net10.trx",
+        "total": 3422,
+        "passed": 3422,
+        "failed": 0,
+        "sha256": "55559813279b6ee6bd9d851712da110d38dd6f23a66bc239b5392bf706005ec1"
+      },
+      {
+        "name": "full-drawing-net8.trx",
+        "total": 3422,
+        "passed": 3422,
+        "failed": 0,
+        "sha256": "6623f290a4f01ea708a7b59cb3bde26ad9d30e73f6d97c471b9ccad865c273af"
+      },
+      {
+        "name": "full-html-net10.trx",
+        "total": 4266,
+        "passed": 4266,
+        "failed": 0,
+        "sha256": "e72d5a2d2d330dbc547d02ea792079db8932d488792d2a26e7d1f5eeadf875f1"
+      },
+      {
+        "name": "full-html-net8.trx",
+        "total": 4266,
+        "passed": 4266,
+        "failed": 0,
+        "sha256": "42cbbef5d79db799fe369008bca6e8992d763b864df056eeb9911545800bd3a8"
+      }
+    ],
+    "kernelDiagnostic": {
+      "orchestrator": "Existing PowerForge / PSPublishModule 3.0.151",
+      "workload": "800x500, four shapes, three nested fractional rectangular clips, exact 1600000-byte RGBA validation on every sample",
+      "baselineMs": [
+        344.8307,
+        311.3331,
+        286.01
+      ],
+      "candidateMs": [
+        74.5088,
+        56.8995,
+        69.7087
+      ],
+      "rgbaSha256": "4bc9a72c80e1389489a42a733ffabb64ac7ff2fb824a272293bfe0bbad4a9039",
+      "environment": {
+        "OsFamily": "macOS",
+        "OsDescription": "Darwin 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:02:57 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T8132",
+        "OsArchitecture": "Arm64",
+        "ProcessArchitecture": "Arm64",
+        "ProcessorName": "Apple M4",
+        "LogicalCoreCount": 10,
+        "RuntimeVersion": ".NET 9.0.10",
+        "Runner": "PowerShell 7.5.4"
+      },
+      "boundary": "Contended-host diagnostic kernel, not full-corpus or platform acceptance; precommit candidate bytes identified by hashes and frozen owner diff. No portable ranking or no-regression claim."
+    },
+    "frozenCorpus": {
+      "cases": 8,
+      "outputs": 76,
+      "pngByteIdentical": 30,
+      "svgByteIdentical": 30,
+      "pdfByteIdentical": 16,
+      "baselineSource": "f460e65b30602d56a076e5557fdf6acbff8c5d9c",
+      "details": "Ignore/MasterConvergenceQualification/rectangle-clip-cost/corpus-byte-comparison.json",
+      "loadedCoreEqualsNormalPackedCore": true,
+      "provenanceBoundary": "Normal SDK Git discovery did not populate SourceRevisionId from the current linked worktree; commit and tree are independently bound by clean build command, owner DLL hashes and exact feed/installed/loaded equality. No SourceRoot workaround or release/published claim."
+    },
+    "normalCorePackage": {
+      "source": "e377c6ad60c8db8dd92e5a485ffee674212828c2",
+      "fourFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ],
+      "feedSha256": "9e8f65ab4a925e4e5bab2f6780eed1aa721093fffe1ccfc5b04cfc3474d8fc02",
+      "externalRuntimeDependencies": 0,
+      "consumers": [
+        {
+          "framework": "net8.0",
+          "loadedCoreSha256": "ca35d118da52b9b897cc4802149055072ea106dd2c8e825fe91f386f531edac6",
+          "installedEqualsFeed": true,
+          "loadedEqualsPacked": true,
+          "rgbaSha256": "4bc9a72c80e1389489a42a733ffabb64ac7ff2fb824a272293bfe0bbad4a9039"
+        },
+        {
+          "framework": "net10.0",
+          "loadedCoreSha256": "dd9c5d74d0b02e3df8f9a00d7b732e97abf6a1f0a7f8d7c5f37934e63552f3f1",
+          "installedEqualsFeed": true,
+          "loadedEqualsPacked": true,
+          "rgbaSha256": "4bc9a72c80e1389489a42a733ffabb64ac7ff2fb824a272293bfe0bbad4a9039"
+        }
+      ],
+      "publishedClaim": false
+    },
+    "standaloneExtraction": {
+      "pr": "https://github.com/EvotecIT/OfficeIMO/pull/2783",
+      "source": "8b722366d1987d3eb87d8ddf6fdce4d13bceb2f9",
+      "base": "af25f4b70cbdb37082bbb0f1fac33444568f93b6",
+      "fullDrawingPassed": {
+        "net8": 3303,
+        "net10": 3303
+      },
+      "firstNet8Failure": "Original full net8 failure retained. Existing shared file-commit code untouched; focused2 and second full3303 passed. Race remains tracked in canonical roadmap, not claimed fixed.",
+      "packages": {
+        "source": "8b722366d1987d3eb87d8ddf6fdce4d13bceb2f9",
+        "fourFrameworks": [
+          "netstandard2.0",
+          "net8.0",
+          "net10.0",
+          "net472"
+        ],
+        "feedSha256": "1bbe1d4b8d059e19a3ecb029cd4c8ebc8219c60cfbf0e72e0336933bdce8fc37",
+        "externalRuntimeDependencies": 0,
+        "consumers": [
+          {
+            "framework": "net8.0",
+            "loadedCoreSha256": "4416f81a956bb930afef3b85a474ed78f94a36ca4ca203d43f81448f46227a6d",
+            "installedEqualsFeed": true,
+            "loadedEqualsPacked": true,
+            "rgbaSha256": "4bc9a72c80e1389489a42a733ffabb64ac7ff2fb824a272293bfe0bbad4a9039"
+          },
+          {
+            "framework": "net10.0",
+            "loadedCoreSha256": "c3463ef1d7da08b09f22bc345299e7a5a785288a28d556a3b139e1281e077428",
+            "installedEqualsFeed": true,
+            "loadedEqualsPacked": true,
+            "rgbaSha256": "4bc9a72c80e1389489a42a733ffabb64ac7ff2fb824a272293bfe0bbad4a9039"
+          }
+        ],
+        "publishedClaim": false
+      },
+      "reviewBoundary": "Identical canvas/helper/tests and same two renderer call sites; preceding renderer font/shadow differences excluded; existing full owner review current.",
+      "initialSnapshot": "Exact head, queued/running CI, no failures and complete review-thread page with zero threads/reviews/comments. No manual hosted-review request."
+    },
+    "hostedQualification": {
+      "runId": 37215418944,
+      "url": "https://github.com/EvotecIT/OfficeIMO/actions/runs/37215418944",
+      "workflowSource": "e377c6ad60c8db8dd92e5a485ffee674212828c2",
+      "candidateSource": "e377c6ad60c8db8dd92e5a485ffee674212828c2",
+      "controlSource": "ee3df1e28983890c547429479423246ad8fd51b8",
+      "suite": "html-static",
+      "createdAtUtc": "2026-10-04T16:04:40Z",
+      "initialVerifiedState": "queued",
+      "qualified": false,
+      "scope": "Existing unchanged optional three-platform correctness/package/static-budget lane plus prior-source control; outputs, allocations, memory, cancellation and timing remain required."
+    },
+    "cleanup": {
+      "allTargetsAbsent": true,
+      "targetCount": 85,
+      "removedBytes": 2551976372,
+      "nativeExecutionErrorsRecoveredWithGuardedDotNet": 47,
+      "retained": "Normal NUPKG and feed/loaded-origin receipts, final full and failure TRX/logs, corpus artifacts, baseline/candidate DLLs and PowerForge kernel proof; unrelated worktrees and shared caches untouched."
+    },
+    "remaining": [
+      "Complete exact-source platform artifact/owner/package review and unchanged performance ceilings; retain any failure",
+      "Settle standalone PR current-head CI and delayed complete feedback before authorized merge",
+      "Qualified long-lived HTML adoption and synchronization; no HTML-to-master merge or release"
+    ],
+    "retainedEvidence": "Ignore/MasterConvergenceQualification/rectangle-clip-cost",
+    "broaderH10Complete": false
   }
 }

@@ -422,10 +422,10 @@
   "cleanup": "Superseded probes, private expanded package cache, task-only fontTools environment and duplicate intermediate test/artifact output removed through verified containment checks. Decisive outputs, nineteen packages, compact failure summaries and final tests retained. Unrelated worktrees preserved.",
   "integrationBuildLimit": "Earlier external-provider checkout deterministic SourceRoot failure remains a separate larger-runtime validation gap; normal package proof here is not qualification of that checkout.",
   "currentSourceAudit": {
-    "recordedAtUtc": "2026-10-04T11:39:32.072835+00:00",
-    "sourceCheckpointBeforeEvidence": "ce34a73b275b78bce7fccf4725310e02a2613e1f",
+    "recordedAtUtc": "2026-10-04T16:09:09.953865+00:00",
+    "sourceCheckpointBeforeEvidence": "e377c6ad60c8db8dd92e5a485ffee674212828c2",
     "corePackageSourceCommit": "966539fd403b36b8af6a946e6f98dc3cf1556f18",
-    "coreSourceUnchangedSincePackageBuild": true,
+    "coreSourceUnchangedSincePackageBuild": false,
     "sourceBlobs": [
       {
         "path": "OfficeIMO.Core/Math/OfficeMath.cs",
@@ -670,6 +670,31 @@
           ]
         }
       ]
-    }
+    },
+    "currentCorePackSource": "e377c6ad60c8db8dd92e5a485ffee674212828c2",
+    "currentCorePackReceipt": "Ignore/MasterConvergenceQualification/rectangle-clip-cost/packages/origin-receipt.json",
+    "currentMathPublicConsumer": {
+      "net8": "passed",
+      "net10": "passed",
+      "rootDimensions": [
+        72.85,
+        97.92
+      ],
+      "accentDimensions": [
+        238.27999999999997,
+        21.08
+      ],
+      "fontSha256": "3a5f3f26f40d5698b3c62dd085d48d6663696a3f80825aab8b553d5097518e8c",
+      "source": "e377c6ad60c8db8dd92e5a485ffee674212828c2"
+    },
+    "rasterRectangleQualificationRecord": "static-delivery-platform-control-20261003.json#/rasterRectangleQualification20261004",
+    "currentHostedQualification": {
+      "runId": 37215418944,
+      "source": "e377c6ad60c8db8dd92e5a485ffee674212828c2",
+      "control": "ee3df1e28983890c547429479423246ad8fd51b8",
+      "qualified": false,
+      "initialState": "queued"
+    },
+    "historicalCorePackageNote": "Older 966539fd4 package source retained; later raster changes are qualified in the fresh e377c6ad6 Core package, not asserted byte-identical to that older package."
   }
 }
