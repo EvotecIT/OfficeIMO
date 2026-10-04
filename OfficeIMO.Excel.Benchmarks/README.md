@@ -44,6 +44,29 @@ Measure worksheet copy fast paths:
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter *ExcelWorksheetCopyBenchmarks*
 ```
 
+## Large typed reads
+
+`ExcelLargeTypedReadBenchmarks` reads generated workbooks with 25,000, 250,000,
+and 1,000,000 rows. Each row contains an integer, decimal, date/time, and boolean.
+Setup validates every header and typed value with the selected reader. The timed
+operation opens the file, reads all four fields from every row, checks the resulting
+count and checksum, and disposes the reader. `ExcelLargeTypedFirstRowBenchmarks`
+measures OfficeIMO's first-row operation separately. Workbook
+generation and full preflight validation are outside the timed operation.
+
+```powershell
+$env:OFFICEIMO_BENCHMARK_DATA = './Ignore/Benchmarks/large-typed-read-fixtures'
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter '*ExcelLargeTypedReadBenchmarks*' '*ExcelLargeTypedFirstRowBenchmarks*' --priority Normal --warmupCount 8 --iterationCount 8 --invocationCount 1 --unrollFactor 1 --outliers DontRemove --artifacts ./Ignore/Benchmarks/large-typed-read
+```
+
+The fixtures use `ExcelDocument.WriteRows` with explicit cell references and
+without shared strings. Cleanup removes the generated files. These cases exercise
+the indexed reader and its larger-sheet fallback, including opening costs.
+Readers perform different amounts of whole-worksheet validation before returning
+a row, so the first-row lane contains only OfficeIMO. Use full scans for the
+completed-row comparison, and keep cold versus warmed
+allocation and sampled process memory separate.
+
 ## Snapshot and profile artifacts
 
 ```powershell

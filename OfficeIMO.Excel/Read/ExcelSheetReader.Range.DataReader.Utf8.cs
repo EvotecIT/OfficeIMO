@@ -218,6 +218,16 @@ namespace OfficeIMO.Excel {
                 CancellationToken ct,
                 out byte[]? buffer,
                 out int length) {
+                ct.ThrowIfCancellationRequested();
+                // A known oversized part cannot become indexable through the SDK
+                // stream. Avoid inflating and growing a buffer only to discard it.
+                if (owner._partBufferReader != null
+                    && owner._partBufferReader.TryGetLength(owner._worksheetPartName, out long declaredLength)
+                    && declaredLength > MaximumBufferSize) {
+                    buffer = null;
+                    length = 0;
+                    return false;
+                }
                 if (owner.TryReadWorksheetPartBuffer(
                         MaximumBufferSize,
                         ct,

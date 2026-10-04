@@ -262,7 +262,7 @@ public class ExcelGeneratedRowStreamingBenchmarks {
         }
     }
 
-    private static IEnumerable<GeneratedRow> GenerateRows(int count) {
+    internal static IEnumerable<GeneratedRow> GenerateRows(int count) {
         for (int index = 0; index < count; index++) {
             yield return CreateRow(index);
         }
@@ -275,7 +275,7 @@ public class ExcelGeneratedRowStreamingBenchmarks {
         }
     }
 
-    private static GeneratedRow CreateRow(int index) => new(
+    internal static GeneratedRow CreateRow(int index) => new(
         index + 1,
         index * 1.25m,
         new DateTime(2026, 1, 1).AddMinutes(index),
@@ -285,7 +285,7 @@ public class ExcelGeneratedRowStreamingBenchmarks {
         Path.GetTempPath(),
         $"OfficeIMO.Excel.Benchmarks.{implementation}.{Guid.NewGuid():N}.xlsx");
 
-    private readonly record struct GeneratedRow(
+    internal readonly record struct GeneratedRow(
         int Id,
         decimal Amount,
         DateTime CreatedOn,

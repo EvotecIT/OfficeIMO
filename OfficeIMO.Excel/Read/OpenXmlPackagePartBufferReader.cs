@@ -200,6 +200,17 @@ namespace OfficeIMO.Excel {
             return _entries.ContainsKey(NormalizePartName(partName));
         }
 
+        /// <summary>Gets the ZIP-declared uncompressed length without reading the part.</summary>
+        internal bool TryGetLength(string partName, out long length) {
+            if (_disposed) throw new ObjectDisposedException(nameof(OpenXmlPackagePartBufferReader));
+            if (_entries.TryGetValue(NormalizePartName(partName), out ZipArchiveEntry? entry)) {
+                length = entry.Length;
+                return true;
+            }
+            length = 0;
+            return false;
+        }
+
         internal Stream OpenPart(string partName, int maximumBytes, CancellationToken cancellationToken = default) {
             if (_disposed) {
                 throw new ObjectDisposedException(nameof(OpenXmlPackagePartBufferReader));
